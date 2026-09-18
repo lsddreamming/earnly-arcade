@@ -115,7 +115,7 @@
         if(ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h){
           b.alive=false;
           broken+=1;
-          Arcade.feedback('tap');
+          Arcade.feedback('brick');
           bricksEl.textContent=broken;
           rewardPreviewEl.textContent=rewardFor(broken,false);
           ball.dy*=-1;
