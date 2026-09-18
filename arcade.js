@@ -10,12 +10,36 @@ const Arcade = (() => {
     jungleHopper: 'Jungle Hopper',
     towerStack: 'Tower Stack'
   };
+
+  const bestConfig = {
+    snake: { key: 'snakeBest', label: 'apples', lower: false },
+    blockDrop: { key: 'blockDropBestLines', label: 'lines', lower: false },
+    tapRush: { key: 'tapRushBest', label: 'hits', lower: false },
+    memory: { key: 'memoryBestMoves', label: 'moves', lower: true },
+    dodger: { key: 'dodgerBest', label: 'seconds', lower: false },
+    brickBreaker: { key: 'brickBreakerBest', label: 'bricks', lower: false },
+    jungleHopper: { key: 'jungleHopperBest', label: 'vines', lower: false },
+    towerStack: { key: 'towerStackBest', label: 'floors', lower: false }
+  };
+
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
   const COIN_AD_REWARD = 10;
   const COIN_AD_LIMIT = 5;
   const DAILY_BONUS = 10;
-  const CHALLENGE_REWARD = 5;
+  const CHALLENGE_VERSION = '3';
+
+  const challengeDefinitions = [
+    { id:'variety', title:'🎮 Arcade Explorer', description:'Finish 2 different games today', goal:2, reward:8, type:'variety' },
+    { id:'snake10', title:'🐍 Snake Run', description:'Eat 10 apples in one Snake run', goal:10, reward:10, type:'score', game:'snake' },
+    { id:'block3', title:'🧱 Line Clearer', description:'Clear 3 lines in one Block Drop game', goal:3, reward:8, type:'score', game:'blockDrop' },
+    { id:'tap20', title:'🎯 Quick Fingers', description:'Hit 20 targets in one Tap Rush game', goal:20, reward:8, type:'score', game:'tapRush' },
+    { id:'dodger15', title:'🚗 Stay Alive', description:'Survive 15 seconds in Neon Dodger', goal:15, reward:8, type:'score', game:'dodger' },
+    { id:'brick15', title:'💥 Brick Smasher', description:'Break 15 bricks in one Brick Breaker run', goal:15, reward:8, type:'score', game:'brickBreaker' },
+    { id:'jungle8', title:'🐸 Vine Hopper', description:'Pass 8 vines in Jungle Hopper', goal:8, reward:10, type:'score', game:'jungleHopper' },
+    { id:'tower10', title:'🏗️ High Rise', description:'Stack 10 floors in Tower Stack', goal:10, reward:10, type:'score', game:'towerStack' },
+    { id:'memory', title:'🧠 Memory Master', description:'Finish one Memory Match board today', goal:1, reward:8, type:'complete', game:'memory' }
+  ];
 
   function dateKey(date = new Date()) {
     return date.getFullYear() + '-' +
@@ -35,7 +59,25 @@ const Arcade = (() => {
   }
 
   function setNumber(key, value) {
-    localStorage.setItem(key, String(Math.max(0, Math.floor(value))));
+    localStorage.setItem(key, String(Math.max(0, Math.floor(Number(value) || 0))));
+  }
+
+  function readArray(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeArray(key, value) {
+    localStorage.setItem(key, JSON.stringify(Array.from(new Set(value))));
+  }
+
+  function dailyChallengeDefinition() {
+    const seed = dateKey().split('-').join('').split('').reduce((sum, digit) => sum + Number(digit), 0);
+    return challengeDefinitions[seed % challengeDefinitions.length];
   }
 
   function refreshDaily() {
@@ -49,10 +91,16 @@ const Arcade = (() => {
       localStorage.setItem('arcadePlayDay', today);
     }
 
-    if (localStorage.getItem('arcadeChallengeDay') !== today) {
+    const challengeNeedsReset =
+      localStorage.getItem('arcadeChallengeDay') !== today ||
+      localStorage.getItem('arcadeChallengeVersion') !== CHALLENGE_VERSION;
+
+    if (challengeNeedsReset) {
       localStorage.setItem('arcadeChallengeDay', today);
+      localStorage.setItem('arcadeChallengeVersion', CHALLENGE_VERSION);
       setNumber('arcadeChallengeProgress', 0);
       localStorage.setItem('arcadeChallengeClaimed', '0');
+      localStorage.setItem('arcadeChallengeGames', '[]');
     }
 
     if (localStorage.getItem('coinAdDay') !== today) {
@@ -66,18 +114,113 @@ const Arcade = (() => {
     return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
   }
 
-  function recordGameForChallenge() {
-    refreshDaily();
-    if (number('arcadeChallengeProgress') < 1) {
-      setNumber('arcadeChallengeProgress', 1);
-    }
-  }
-
   function consume(g) {
     if (!remaining(g)) return false;
     setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
-    recordGameForChallenge();
     return true;
+  }
+
+  function best(game) {
+    const config = bestConfig[game];
+    if (!config) return { value:0, label:'', display:'No score yet' };
+    const value = number(config.key);
+    return {
+      value,
+      label: config.label,
+      display: value ? value + ' ' + config.label : 'No score yet'
+    };
+  }
+
+  function setBest(game, value) {
+    const config = bestConfig[game];
+    value = Math.max(0, Math.floor(Number(value) || 0));
+    if (!config || !value) return best(game);
+
+    const current = number(config.key);
+    const isBetter = !current || (config.lower ? value < current : value > current);
+    if (isBetter) setNumber(config.key, value);
+    return best(game);
+  }
+
+  function achievementDefinitions() {
+    const memoryBest = number('memoryBestMoves');
+    const lifetimeGames = readArray('arcadeGamesEver').length;
+
+    return [
+      { id:'first', icon:'🎮', title:'First Run', description:'Finish your first Earnly game', unlocked:number('gamesCompletedEver') >= 1 },
+      { id:'explorer', icon:'🗺️', title:'Arcade Explorer', description:'Finish 4 different games', unlocked:lifetimeGames >= 4 },
+      { id:'collector', icon:'🪙', title:'Coin Collector', description:'Earn 100 lifetime Arcade Coins', unlocked:number('lifetimePoints') >= 100 },
+      { id:'snake10', icon:'🐍', title:'Growing Fast', description:'Eat 10 apples in Snake', unlocked:number('snakeBest') >= 10 },
+      { id:'snake25', icon:'🔥', title:'Snake Master', description:'Eat 25 apples in Snake', unlocked:number('snakeBest') >= 25 },
+      { id:'block3', icon:'🧱', title:'Line Clearer', description:'Clear 3 lines in Block Drop', unlocked:number('blockDropBestLines') >= 3 },
+      { id:'tap20', icon:'🎯', title:'Quick Fingers', description:'Hit 20 targets in Tap Rush', unlocked:number('tapRushBest') >= 20 },
+      { id:'memory24', icon:'🧠', title:'Sharp Memory', description:'Clear Memory Match in 24 moves or fewer', unlocked:memoryBest > 0 && memoryBest <= 24 },
+      { id:'dodger15', icon:'🚗', title:'Road Warrior', description:'Survive 15 seconds in Neon Dodger', unlocked:number('dodgerBest') >= 15 },
+      { id:'brick20', icon:'💥', title:'Brick Smasher', description:'Break 20 bricks in Brick Breaker', unlocked:number('brickBreakerBest') >= 20 },
+      { id:'jungle10', icon:'🐸', title:'Jungle Pro', description:'Pass 10 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 10 },
+      { id:'tower10', icon:'🏗️', title:'High Rise', description:'Stack 10 floors in Tower Stack', unlocked:number('towerStackBest') >= 10 },
+      { id:'tower20', icon:'🏙️', title:'Skyline Builder', description:'Stack 20 floors in Tower Stack', unlocked:number('towerStackBest') >= 20 }
+    ];
+  }
+
+  function achievements() {
+    return achievementDefinitions();
+  }
+
+  function achievementSummary() {
+    const all = achievements();
+    const unlocked = all.filter(item => item.unlocked);
+    return { unlocked:unlocked.length, total:all.length, all };
+  }
+
+  function updateChallenge(game, metric) {
+    refreshDaily();
+    const challenge = dailyChallengeDefinition();
+    const games = readArray('arcadeChallengeGames');
+
+    if (!games.includes(game)) {
+      games.push(game);
+      writeArray('arcadeChallengeGames', games);
+    }
+
+    if (challenge.type === 'variety') {
+      setNumber('arcadeChallengeProgress', Math.min(challenge.goal, games.length));
+      return;
+    }
+
+    if (challenge.game !== game) return;
+
+    if (challenge.type === 'complete') {
+      setNumber('arcadeChallengeProgress', 1);
+      return;
+    }
+
+    setNumber('arcadeChallengeProgress', Math.max(number('arcadeChallengeProgress'), Math.floor(Number(metric) || 0)));
+  }
+
+  function recordResult(game, metric) {
+    refreshDaily();
+
+    const before = new Set(achievementDefinitions().filter(item => item.unlocked).map(item => item.id));
+    const currentBest = setBest(game, metric);
+
+    setNumber('gamesCompletedEver', number('gamesCompletedEver') + 1);
+    const gamesEver = readArray('arcadeGamesEver');
+    if (!gamesEver.includes(game)) {
+      gamesEver.push(game);
+      writeArray('arcadeGamesEver', gamesEver);
+    }
+
+    updateChallenge(game, metric);
+
+    const after = achievementDefinitions().filter(item => item.unlocked);
+    const newlyUnlocked = after.filter(item => !before.has(item.id));
+
+    if (newlyUnlocked.length) {
+      toast('🏆 Achievement unlocked: ' + newlyUnlocked[0].title);
+    }
+
+    return { best:currentBest, newAchievements:newlyUnlocked };
   }
 
   function logTransaction(amount, source) {
@@ -117,13 +260,13 @@ const Arcade = (() => {
   function claimDailyBonus() {
     const today = dateKey();
     const last = localStorage.getItem('lastDailyBonusDate');
-    if (last === today) return { claimed: false, streak: number('dailyStreak') };
+    if (last === today) return { claimed:false, streak:number('dailyStreak') };
 
     const streak = last === yesterdayKey() ? number('dailyStreak') + 1 : 1;
     setNumber('dailyStreak', streak);
     localStorage.setItem('lastDailyBonusDate', today);
     earn(DAILY_BONUS, 'Daily bonus');
-    return { claimed: true, streak };
+    return { claimed:true, streak };
   }
 
   function dailyBonusStatus() {
@@ -136,20 +279,22 @@ const Arcade = (() => {
 
   function challengeStatus() {
     refreshDaily();
+    const challenge = dailyChallengeDefinition();
+    const progress = Math.min(challenge.goal, number('arcadeChallengeProgress'));
     return {
-      progress: Math.min(1, number('arcadeChallengeProgress')),
-      goal: 1,
+      ...challenge,
+      progress,
       claimed: localStorage.getItem('arcadeChallengeClaimed') === '1',
-      reward: CHALLENGE_REWARD
+      complete: progress >= challenge.goal
     };
   }
 
   function claimChallenge() {
     const s = challengeStatus();
-    if (s.progress < s.goal || s.claimed) return false;
+    if (!s.complete || s.claimed) return false;
     localStorage.setItem('arcadeChallengeClaimed', '1');
-    earn(CHALLENGE_REWARD, 'Daily challenge');
-    return true;
+    earn(s.reward, 'Daily challenge');
+    return s;
   }
 
   const modal = document.createElement('dialog');
@@ -243,16 +388,16 @@ const Arcade = (() => {
     modal.addEventListener('close', () => {
       clearInterval(timer);
       if (!finished) busy = false;
-    }, { once: true });
+    }, { once:true });
   }
 
   function coinAdStatus() {
     refreshDaily();
     return {
-      watched: number('coinAdsToday'),
-      limit: COIN_AD_LIMIT,
-      remaining: Math.max(0, COIN_AD_LIMIT - number('coinAdsToday')),
-      reward: COIN_AD_REWARD
+      watched:number('coinAdsToday'),
+      limit:COIN_AD_LIMIT,
+      remaining:Math.max(0, COIN_AD_LIMIT - number('coinAdsToday')),
+      reward:COIN_AD_REWARD
     };
   }
 
@@ -296,7 +441,7 @@ const Arcade = (() => {
     modal.addEventListener('close', () => {
       clearInterval(timer);
       if (!finished) busy = false;
-    }, { once: true });
+    }, { once:true });
   }
 
   function out(g, done) {
@@ -315,11 +460,15 @@ const Arcade = (() => {
     FREE_PLAYS,
     remaining,
     consume,
+    best,
+    recordResult,
+    achievements,
+    achievementSummary,
     earn,
     panel,
     toast,
     playAd,
-    ad: playAd,
+    ad:playAd,
     coinAd,
     coinAdStatus,
     out,
