@@ -38,8 +38,6 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="dodger-board touch-surface" id="game" width="330" height="500" aria-label="Neon Dodger game board"></canvas>
-    <p class="muted small">Tap the board to start the countdown. Then drag left/right to steer and survive up to 30 seconds.</p>
-
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -54,6 +52,25 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'dodger',
+      surface:canvas,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the road' },
+        { icon:'↔️', title:'Control', text:'Drag left or right' },
+        { icon:'⏱️', title:'Goal', text:'Survive 30 seconds' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Drag left and right to dodge the falling obstacles',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Keep your car away from every falling obstacle. One collision ends the run.',
+        'The difficulty increases as the timer climbs toward 30 seconds.'
+      ],
+      reward:'Survival time and obstacles dodged earn up to 20 Coins.'
+    });
 
     const player={x:140,y:445,w:50,h:24};
     let obstacles=[];
