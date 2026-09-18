@@ -18,7 +18,7 @@
     .dodger-board{width:min(82vw,330px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   </style>
 </head>
-<body>
+<body class="dodger-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -26,14 +26,16 @@
     </div>
 
     <header class="page-header">
-      <h1>🚗 Neon Dodger</h1>
+      <div class="game-title-status-row">
+        <h1>🚗 Neon Dodger</h1>
+        <span class="game-status title-status" id="gameStatus">Ready</span>
+      </div>
       <div class="game-meta">
         <span class="meta-pill">Time: <span id="time">0</span>s</span>
         <span class="meta-pill">Dodged: <span id="dodged">0</span></span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
-      <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
