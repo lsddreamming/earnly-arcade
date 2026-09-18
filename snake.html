@@ -24,10 +24,10 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
     <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
-    <p class="swipe-hint">Swipe anywhere on the board to move</p>
+    <p class="swipe-hint">Tap the board to start the countdown. Once it starts, swipe anywhere to move.</p>
     <p class="muted small">Earn 1 coin every 3 apples, plus milestone bonuses at 10, 25, and 50 apples. Max 30 coins per run.</p>
 
     <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
@@ -62,6 +62,7 @@
     let food = { x: 100, y: 100 };
     let score = 0;
     let game = null;
+    let starting = false;
 
     function snakeReward(apples) {
       let coins = Math.floor(apples / 3);
@@ -120,6 +121,12 @@
 
     canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
+
+      if (game === null) {
+        if (!starting) startGame();
+        return;
+      }
+
       swipePointer = event.pointerId;
       swipeStartX = event.clientX;
       swipeStartY = event.clientY;
@@ -232,8 +239,9 @@
       const result = Arcade.recordResult('snake', score);
       refreshChrome();
 
+      starting = false;
       startButton.disabled = false;
-      startButton.textContent = '▶ Play Again';
+      startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
 
       Arcade.panel(
@@ -249,9 +257,11 @@
     }
 
     function startGame() {
-      if (game !== null) return;
+      if (game !== null || starting) return;
+      starting = true;
 
       if (!Arcade.consume('snake')) {
+        starting = false;
         Arcade.out('snake', refreshChrome);
         return;
       }
@@ -270,6 +280,7 @@
       setStatus('Get Ready');
 
       Arcade.countdown(() => {
+        starting = false;
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         game = setInterval(draw, 120);
