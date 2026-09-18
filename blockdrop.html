@@ -6,6 +6,35 @@
   <meta name="theme-color" content="#0f172a">
   <title>Earnly Block Drop</title>
   <link rel="stylesheet" href="arcade.css">
+  <style>
+    .blockdrop-board {
+      width: min(66vw, 250px);
+      height: auto;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+
+    .blockdrop-controls,
+    .blockdrop-controls * {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .blockdrop-controls {
+      touch-action: none;
+    }
+
+    .blockdrop-controls .game-control {
+      touch-action: none;
+    }
+
+    @media (max-height: 750px) {
+      .blockdrop-board {
+        width: min(60vw, 225px);
+      }
+    }
+  </style>
 </head>
 <body>
   <main class="container">
@@ -26,16 +55,16 @@
 
     <button class="green wide" id="startButton" type="button">▶ Start Game</button>
 
-    <canvas id="game" width="300" height="600" aria-label="Block Drop game board"></canvas>
+    <canvas id="game" class="blockdrop-board" width="300" height="600" aria-label="Block Drop game board"></canvas>
 
-    <div class="controls" aria-label="Block Drop controls">
+    <div class="controls blockdrop-controls" aria-label="Block Drop controls">
       <button class="game-control" id="leftButton" type="button" aria-label="Move left">⬅️</button>
       <button class="game-control" id="rotateButton" type="button" aria-label="Rotate">🔄</button>
       <button class="game-control" id="rightButton" type="button" aria-label="Move right">➡️</button>
       <button class="game-control" id="dropButton" type="button">⬇️ Drop</button>
     </div>
 
-    <p class="swipe-hint">Tip: tap quickly — game controls no longer trigger iPhone text selection or double-tap zoom.</p>
+    <p class="swipe-hint">Hold ⬅️ or ➡️ to slide the piece. Tap 🔄 to rotate and ⬇️ Drop to move down.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -248,16 +277,46 @@
       draw();
     }
 
-    [
-      ['leftButton', moveLeft],
-      ['rotateButton', rotatePiece],
-      ['rightButton', moveRight],
-      ['dropButton', moveDown]
-    ].forEach(([id, fn]) => {
+    function bindTapControl(id, fn) {
       const button = document.getElementById(id);
       button.addEventListener('click', fn);
       button.addEventListener('contextmenu', event => event.preventDefault());
-    });
+      button.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
+    }
+
+    function bindHoldControl(id, fn) {
+      const button = document.getElementById(id);
+      let holdDelay = null;
+      let holdInterval = null;
+
+      const stop = () => {
+        clearTimeout(holdDelay);
+        clearInterval(holdInterval);
+        holdDelay = null;
+        holdInterval = null;
+      };
+
+      const start = event => {
+        event.preventDefault();
+        stop();
+        fn();
+
+        holdDelay = setTimeout(() => {
+          holdInterval = setInterval(fn, 85);
+        }, 240);
+      };
+
+      button.addEventListener('pointerdown', start);
+      button.addEventListener('pointerup', stop);
+      button.addEventListener('pointercancel', stop);
+      button.addEventListener('pointerleave', stop);
+      button.addEventListener('contextmenu', event => event.preventDefault());
+    }
+
+    bindHoldControl('leftButton', moveLeft);
+    bindHoldControl('rightButton', moveRight);
+    bindTapControl('rotateButton', rotatePiece);
+    bindTapControl('dropButton', moveDown);
 
     document.addEventListener('keydown', event => {
       if (!event.key.startsWith('Arrow')) return;
