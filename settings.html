@@ -76,10 +76,16 @@
       <div class="app-status-grid">
         <div class="app-status-card"><strong id="networkStatus">Online</strong><span>Network</span></div>
         <div class="app-status-card"><strong id="installStatus">Browser</strong><span>Launch Mode</span></div>
-        <div class="app-status-card"><strong id="versionStatus">v0.15.5</strong><span>Prototype Version</span></div>
+        <div class="app-status-card"><strong id="versionStatus">v0.15.7</strong><span>Prototype Version</span></div>
         <div class="app-status-card"><strong id="queueStatus">0</strong><span>Backend Events</span></div>
       </div>
       <button class="wide ghost browser-only" id="installButton" type="button" style="margin-top:12px">📱 Install / Add to Home Screen</button>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>🧪 Prototype Testing</h2>
+      <p class="muted small">Use this only while we are testing. It resets today’s play limits without changing your Coins, XP, scores, achievements, or streak.</p>
+      <button class="wide secondary" id="resetTestPlaysButton" type="button">🎟️ Reset Test Plays</button>
     </section>
 
     <section class="card" style="text-align:left">
@@ -145,6 +151,11 @@
         Arcade.setTextScale(button.dataset.textScale);
         render();
       });
+    });
+
+    document.getElementById('resetTestPlaysButton').addEventListener('click', () => {
+      Arcade.resetPrototypePlays();
+      render();
     });
 
     document.getElementById('walkthroughButton').addEventListener('click', () => Arcade.showOnboarding(true));
