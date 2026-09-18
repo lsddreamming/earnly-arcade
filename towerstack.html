@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Earnly Tower Stack</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>
+    .tower-board{
+      width:min(88vw,360px);
+      height:auto;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🏗️ Tower Stack</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Floors: <span id="floors">0</span></span>
+        <span class="meta-pill">Perfects: <span id="perfects">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+
+    <canvas class="tower-board touch-surface" id="game" width="360" height="560" aria-label="Tower Stack game board"></canvas>
+    <p class="swipe-hint">Tap anywhere on the board to drop the moving floor.</p>
+    <p class="muted small">Line it up carefully. Any overhang gets cut off, so the tower gets harder as it grows.</p>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const floorsEl = document.getElementById('floors');
+    const perfectsEl = document.getElementById('perfects');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+
+    const blockHeight = 28;
+    const startWidth = 190;
+    const baseY = 500;
+    const MAX_COINS = 25;
+
+    let blocks = [];
+    let moving = null;
+    let direction = 1;
+    let speed = 2.6;
+    let floors = 0;
+    let perfects = 0;
+    let running = false;
+    let animation = null;
+
+    const palette = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6'];
+
+    function rewardFor(floorCount, perfectCount) {
+      let coins = Math.floor(floorCount / 3) + Math.floor(perfectCount / 3);
+      if (floorCount >= 10) coins += 2;
+      if (floorCount >= 20) coins += 3;
+      if (floorCount >= 30) coins += 5;
+      return Math.min(coins, MAX_COINS);
+    }
+
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('towerStack');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+      rewardPreviewEl.textContent = rewardFor(floors, perfects);
+    }
+
+    function setStatus(text, mode) {
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function colorFor(level) {
+      return palette[level % palette.length];
+    }
+
+    function resetGame() {
+      floors = 0;
+      perfects = 0;
+      speed = 2.6;
+      direction = 1;
+      floorsEl.textContent = '0';
+      perfectsEl.textContent = '0';
+      rewardPreviewEl.textContent = '0';
+
+      blocks = [{
+        x: (canvas.width - startWidth) / 2,
+        y: baseY,
+        w: startWidth,
+        h: blockHeight,
+        color: '#64748b'
+      }];
+
+      spawnMoving();
+    }
+
+    function spawnMoving() {
+      const previous = blocks[blocks.length - 1];
+      const nextY = previous.y - blockHeight;
+
+      moving = {
+        x: direction > 0 ? -previous.w : canvas.width,
+        y: nextY,
+        w: previous.w,
+        h: blockHeight,
+        color: colorFor(floors)
+      };
+
+      direction *= -1;
+      speed = Math.min(6.3, 2.6 + floors * 0.09);
+    }
+
+    function shiftTowerIfNeeded() {
+      const top = blocks[blocks.length - 1];
+      if (top.y >= 178) return;
+
+      blocks.forEach(block => {
+        block.y += blockHeight;
+      });
+
+      if (moving) moving.y += blockHeight;
+    }
+
+    function drawBackground() {
+      const gradient = ctx.createLinearGradient(0,0,0,canvas.height);
+      gradient.addColorStop(0,'#172554');
+      gradient.addColorStop(.55,'#0f172a');
+      gradient.addColorStop(1,'#020617');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      ctx.fillStyle = 'rgba(255,255,255,.08)';
+      for (let i = 0; i < 26; i++) {
+        const x = (i * 73) % canvas.width;
+        const y = (i * 47) % 250;
+        ctx.fillRect(x,y,2,2);
+      }
+
+      ctx.fillStyle = '#0b1120';
+      ctx.fillRect(0,baseY + blockHeight,canvas.width,canvas.height - baseY);
+    }
+
+    function drawBlock(block) {
+      ctx.fillStyle = block.color;
+      ctx.fillRect(block.x, block.y, block.w, block.h);
+
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fillRect(block.x, block.y, block.w, 4);
+
+      ctx.fillStyle = 'rgba(0,0,0,.18)';
+      ctx.fillRect(block.x, block.y + block.h - 4, block.w, 4);
+    }
+
+    function draw() {
+      drawBackground();
+      blocks.forEach(drawBlock);
+      if (moving) drawBlock(moving);
+
+      if (!running) {
+        ctx.fillStyle = 'rgba(2,6,23,.45)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '700 21px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Tap to stack the moving floor', canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    function placeBlock() {
+      if (!running || !moving) return;
+
+      const previous = blocks[blocks.length - 1];
+      const previousRight = previous.x + previous.w;
+      const movingRight = moving.x + moving.w;
+
+      const left = Math.max(previous.x, moving.x);
+      const right = Math.min(previousRight, movingRight);
+      let overlap = right - left;
+
+      if (overlap <= 0) {
+        finishGame();
+        return;
+      }
+
+      const perfect = Math.abs(moving.x - previous.x) <= 5;
+
+      if (perfect) {
+        moving.x = previous.x;
+        moving.w = previous.w;
+        overlap = previous.w;
+        perfects += 1;
+        perfectsEl.textContent = perfects;
+        Arcade.toast('✨ Perfect stack!');
+      } else {
+        moving.x = left;
+        moving.w = overlap;
+      }
+
+      blocks.push({
+        x: moving.x,
+        y: moving.y,
+        w: moving.w,
+        h: blockHeight,
+        color: moving.color
+      });
+
+      floors += 1;
+      floorsEl.textContent = floors;
+      rewardPreviewEl.textContent = rewardFor(floors, perfects);
+
+      if (floors === 10) Arcade.toast('🏗️ 10 floors! +2 milestone bonus');
+      if (floors === 20) Arcade.toast('🔥 20 floors! +3 milestone bonus');
+      if (floors === 30) Arcade.toast('🏆 30 floors! +5 milestone bonus');
+
+      moving = null;
+      shiftTowerIfNeeded();
+      spawnMoving();
+    }
+
+    function loop() {
+      if (!running || !moving) return;
+
+      moving.x += speed * direction;
+
+      if (direction > 0 && moving.x > canvas.width) {
+        moving.x = -moving.w;
+      } else if (direction < 0 && moving.x + moving.w < 0) {
+        moving.x = canvas.width;
+      }
+
+      draw();
+      animation = requestAnimationFrame(loop);
+    }
+
+    function finishGame() {
+      if (!running) return;
+
+      running = false;
+      cancelAnimationFrame(animation);
+      animation = null;
+
+      const earned = rewardFor(floors, perfects);
+      Arcade.earn(earned, 'Tower Stack');
+
+      const best = Math.max(floors, Arcade.number('towerStackBest'));
+      localStorage.setItem('towerStackBest', String(best));
+
+      refreshChrome();
+      setStatus('Game Over', 'over');
+      startButton.disabled = false;
+      startButton.textContent = '▶ Play Again';
+      draw();
+
+      Arcade.panel(
+        '🏗️ Tower Finished',
+        'Floors: ' + floors +
+        '\nPerfect stacks: ' + perfects +
+        '\nBest: ' + best +
+        '\n+' + earned + ' Arcade Coins' +
+        '\n' + Arcade.remaining('towerStack') + ' plays remaining',
+        Arcade.remaining('towerStack') > 0
+          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+          : [['Get More Plays', () => Arcade.out('towerStack', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+      );
+    }
+
+    function startGame() {
+      if (running) return;
+
+      if (!Arcade.consume('towerStack')) {
+        Arcade.out('towerStack', refreshChrome);
+        return;
+      }
+
+      resetGame();
+      running = true;
+      startButton.disabled = true;
+      startButton.textContent = 'Game Running';
+      setStatus('Running', 'running');
+      refreshChrome();
+      draw();
+      animation = requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      placeBlock();
+    });
+
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+    document.addEventListener('keydown', event => {
+      if (event.code === 'Space' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        placeBlock();
+      }
+    });
+
+    startButton.addEventListener('click', startGame);
+    resetGame();
+    refreshChrome();
+    draw();
+  </script>
+</body>
+</html>
