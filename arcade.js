@@ -6,7 +6,8 @@ const Arcade = (() => {
     tapRush: 'Tap Rush',
     memory: 'Memory Match',
     dodger: 'Neon Dodger',
-    brickBreaker: 'Brick Breaker'
+    brickBreaker: 'Brick Breaker',
+    jungleHopper: 'Jungle Hopper'
   };
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
