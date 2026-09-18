@@ -30,6 +30,14 @@ const Arcade = (() => {
   const CHALLENGE_VERSION = '3';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
+  const WEEKLY_ALL_CLEAR_XP = 100;
+
+  const weeklyMissionDefinitions = [
+    { id:'games10', icon:'🎮', title:'Arcade Regular', description:'Finish 10 games this week', goal:10, rewardXP:40, type:'games' },
+    { id:'variety4', icon:'🗺️', title:'Mix It Up', description:'Finish 4 different games this week', goal:4, rewardXP:50, type:'variety' },
+    { id:'jungle20', icon:'🐸', title:'Jungle Trek', description:'Pass 20 total vines in Jungle Hopper', goal:20, rewardXP:50, type:'metric', game:'jungleHopper' },
+    { id:'tower25', icon:'🏗️', title:'Sky Builder', description:'Stack 25 total Tower Stack floors', goal:25, rewardXP:50, type:'metric', game:'towerStack' }
+  ];
 
   const challengeDefinitions = [
     { id:'variety', title:'🎮 Arcade Explorer', description:'Finish 2 different games today', goal:2, reward:8, type:'variety' },
@@ -75,6 +83,171 @@ const Arcade = (() => {
 
   function writeArray(key, value) {
     localStorage.setItem(key, JSON.stringify(Array.from(new Set(value))));
+  }
+
+  function weekKey(date = new Date()) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return dateKey(d);
+  }
+
+  function nextWeekDate() {
+    const d = new Date();
+    const day = d.getDay();
+    const daysUntilMonday = day === 0 ? 1 : 8 - day;
+    d.setDate(d.getDate() + daysUntilMonday);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+
+  function refreshWeekly() {
+    const key = weekKey();
+    if (localStorage.getItem('arcadeWeekKey') === key) return;
+
+    localStorage.setItem('arcadeWeekKey', key);
+    setNumber('weeklyGamesCompleted', 0);
+    localStorage.setItem('weeklyDistinctGames', '[]');
+    localStorage.setItem('weeklyClaimedMissions', '[]');
+    localStorage.setItem('weeklyAllClearClaimed', '0');
+
+    Object.keys(names).forEach(game => {
+      setNumber('weeklyMetric_' + game, 0);
+    });
+  }
+
+  function logActivity(type, title, detail = '') {
+    let items = [];
+    try {
+      items = JSON.parse(localStorage.getItem('arcadeActivity') || '[]');
+      if (!Array.isArray(items)) items = [];
+    } catch {
+      items = [];
+    }
+
+    items.unshift({
+      type:String(type || 'activity'),
+      title:String(title || 'Arcade activity'),
+      detail:String(detail || ''),
+      time:new Date().toISOString()
+    });
+
+    localStorage.setItem('arcadeActivity', JSON.stringify(items.slice(0, 40)));
+  }
+
+  function activity() {
+    try {
+      const items = JSON.parse(localStorage.getItem('arcadeActivity') || '[]');
+      return Array.isArray(items) ? items : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function updateWeekly(game, metric) {
+    refreshWeekly();
+
+    setNumber('weeklyGamesCompleted', number('weeklyGamesCompleted') + 1);
+
+    const distinct = readArray('weeklyDistinctGames');
+    if (!distinct.includes(game)) {
+      distinct.push(game);
+      writeArray('weeklyDistinctGames', distinct);
+    }
+
+    const amount = Math.max(0, Math.floor(Number(metric) || 0));
+    if (amount) {
+      setNumber('weeklyMetric_' + game, number('weeklyMetric_' + game) + amount);
+    }
+  }
+
+  function weeklyProgressFor(mission) {
+    refreshWeekly();
+
+    if (mission.type === 'games') return number('weeklyGamesCompleted');
+    if (mission.type === 'variety') return readArray('weeklyDistinctGames').length;
+    if (mission.type === 'metric') return number('weeklyMetric_' + mission.game);
+    return 0;
+  }
+
+  function weeklyStatus() {
+    refreshWeekly();
+    const claimed = new Set(readArray('weeklyClaimedMissions'));
+    const missions = weeklyMissionDefinitions.map(mission => {
+      const rawProgress = weeklyProgressFor(mission);
+      const progress = Math.min(mission.goal, rawProgress);
+      return {
+        ...mission,
+        progress,
+        complete:progress >= mission.goal,
+        claimed:claimed.has(mission.id)
+      };
+    });
+
+    const completed = missions.filter(mission => mission.complete).length;
+    const claimedCount = missions.filter(mission => mission.claimed).length;
+
+    return {
+      weekKey:weekKey(),
+      missions,
+      completed,
+      claimedCount,
+      total:missions.length,
+      allComplete:completed === missions.length,
+      allClaimed:claimedCount === missions.length,
+      allClearClaimed:localStorage.getItem('weeklyAllClearClaimed') === '1',
+      allClearRewardXP:WEEKLY_ALL_CLEAR_XP,
+      nextReset:nextWeekDate().toISOString()
+    };
+  }
+
+  function claimWeeklyMission(id) {
+    const status = weeklyStatus();
+    const mission = status.missions.find(item => item.id === id);
+    if (!mission || !mission.complete || mission.claimed) return false;
+
+    const claimed = readArray('weeklyClaimedMissions');
+    claimed.push(id);
+    writeArray('weeklyClaimedMissions', claimed);
+
+    const xpResult = addXP(mission.rewardXP);
+    logActivity('weekly', mission.title + ' claimed', '+' + mission.rewardXP + ' XP');
+
+    const after = weeklyStatus();
+    let allClearXP = 0;
+    let weeklyBadgeUnlocked = false;
+
+    if (after.allClaimed && !after.allClearClaimed) {
+      localStorage.setItem('weeklyAllClearClaimed', '1');
+      setNumber('weeklyClearsEver', number('weeklyClearsEver') + 1);
+      const bonus = addXP(WEEKLY_ALL_CLEAR_XP);
+      allClearXP = WEEKLY_ALL_CLEAR_XP;
+      weeklyBadgeUnlocked = number('weeklyClearsEver') === 1;
+      logActivity('weekly', '🏅 Weekly Sweep completed', '+' + WEEKLY_ALL_CLEAR_XP + ' bonus XP');
+      feedback(weeklyBadgeUnlocked ? 'achievement' : 'level');
+      toast('🏅 Weekly Sweep! +' + WEEKLY_ALL_CLEAR_XP + ' bonus XP');
+      return {
+        mission,
+        xp:mission.rewardXP,
+        leveledUp:xpResult.leveledUp || bonus.leveledUp,
+        level:bonus.status.level,
+        allClearXP,
+        weeklyBadgeUnlocked
+      };
+    }
+
+    feedback(xpResult.leveledUp ? 'level' : 'success');
+    toast(mission.icon + ' Mission claimed · +' + mission.rewardXP + ' XP');
+
+    return {
+      mission,
+      xp:mission.rewardXP,
+      leveledUp:xpResult.leveledUp,
+      level:xpResult.status.level,
+      allClearXP,
+      weeklyBadgeUnlocked
+    };
   }
 
   function profileName() {
@@ -186,7 +359,11 @@ const Arcade = (() => {
       achievements: achievement.unlocked,
       totalAchievements: achievement.total,
       streak: number('dailyStreak'),
-      favorites: favorites().length
+      favorites: favorites().length,
+      favoriteGame: favorites()[0] || '',
+      weeklyMissionsCompleted: weeklyStatus().completed,
+      weeklyMissionsTotal: weeklyStatus().total,
+      weeklyClears: number('weeklyClearsEver')
     };
   }
 
@@ -269,6 +446,7 @@ const Arcade = (() => {
       { id:'streak3', icon:'🔥', title:'Heating Up', description:'Reach a 3-day streak', unlocked:number('dailyStreak') >= 3 },
       { id:'streak7', icon:'📅', title:'Week Warrior', description:'Reach a 7-day streak', unlocked:number('dailyStreak') >= 7 },
       { id:'streak14', icon:'⚡', title:'Locked In', description:'Reach a 14-day streak', unlocked:number('dailyStreak') >= 14 },
+      { id:'weeklySweep', icon:'🏅', title:'Weekly Sweep', description:'Claim every weekly mission in one week', unlocked:number('weeklyClearsEver') >= 1 },
       { id:'snake10', icon:'🐍', title:'Growing Fast', description:'Eat 10 apples in Snake', unlocked:number('snakeBest') >= 10 },
       { id:'snake25', icon:'🔥', title:'Snake Master', description:'Eat 25 apples in Snake', unlocked:number('snakeBest') >= 25 },
       { id:'block3', icon:'🧱', title:'Line Clearer', description:'Clear 3 lines in Block Drop', unlocked:number('blockDropBestLines') >= 3 },
@@ -338,6 +516,14 @@ const Arcade = (() => {
     }
 
     updateChallenge(game, metric);
+    updateWeekly(game, cleanMetric);
+
+    const runLabel = config ? cleanMetric + ' ' + config.label : String(cleanMetric);
+    logActivity(
+      'game',
+      (names[game] || 'Game') + ' finished',
+      runLabel + (newBest ? ' · New best' : '')
+    );
 
     const after = achievementDefinitions().filter(item => item.unlocked);
     const newlyUnlocked = after.filter(item => !before.has(item.id));
@@ -410,6 +596,7 @@ const Arcade = (() => {
     setNumber('dailyStreak', streak);
     localStorage.setItem('lastDailyBonusDate', today);
     earn(DAILY_BONUS, 'Daily bonus');
+    logActivity('reward', 'Daily bonus claimed', '+' + DAILY_BONUS + ' Arcade Coins · ' + streak + ' day streak');
     return { claimed:true, streak };
   }
 
@@ -438,6 +625,7 @@ const Arcade = (() => {
     if (!s.complete || s.claimed) return false;
     localStorage.setItem('arcadeChallengeClaimed', '1');
     earn(s.reward, 'Daily challenge');
+    logActivity('challenge', 'Daily challenge claimed', '+' + s.reward + ' Arcade Coins');
     return s;
   }
 
@@ -856,6 +1044,9 @@ const Arcade = (() => {
     recentGames,
     markRecent,
     stats,
+    weeklyStatus,
+    claimWeeklyMission,
+    activity,
     earn,
     panel,
     toast,
