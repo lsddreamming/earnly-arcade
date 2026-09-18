@@ -128,7 +128,8 @@
 
       const earned = rewardForHits(hits);
       Arcade.earn(earned, 'Tap Rush');
-      Arcade.recordResult('tapRush', hits);
+      Arcade.feedback('success');
+      const result = Arcade.recordResult('tapRush', hits);
 
       const best = Math.max(hits, Arcade.number('tapRushBest'));
       localStorage.setItem('tapRushBest', String(best));
@@ -143,6 +144,7 @@
         'Hits: ' + hits +
         '\nBest: ' + best +
         '\n+' + earned + ' Arcade Coins' +
+        Arcade.resultText(result) +
         '\n' + Arcade.remaining('tapRush') + ' Tap Rush plays remaining',
         Arcade.remaining('tapRush') > 0
           ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
@@ -163,20 +165,27 @@
       hitsEl.textContent = '0';
       timeEl.textContent = String(timeLeft);
       rewardPreviewEl.textContent = '0';
-      running = true;
+      running = false;
 
       refreshChrome();
-      setStatus('Running', 'running');
+      setStatus('Get Ready');
       startButton.disabled = true;
-      startButton.textContent = 'Game Running';
-      target.hidden = false;
-      moveTarget();
+      startButton.textContent = 'Get Ready…';
+      target.hidden = true;
 
-      timer = setInterval(() => {
-        timeLeft -= 1;
-        timeEl.textContent = String(timeLeft);
-        if (timeLeft <= 0) finishGame();
-      }, 1000);
+      Arcade.countdown(() => {
+        running = true;
+        setStatus('Running', 'running');
+        startButton.textContent = 'Game Running';
+        target.hidden = false;
+        moveTarget();
+
+        timer = setInterval(() => {
+          timeLeft -= 1;
+          timeEl.textContent = String(timeLeft);
+          if (timeLeft <= 0) finishGame();
+        }, 1000);
+      });
     }
 
     target.addEventListener('pointerdown', event => {
@@ -184,6 +193,7 @@
       if (!running) return;
 
       hits += 1;
+      Arcade.feedback('tap');
       hitsEl.textContent = String(hits);
       rewardPreviewEl.textContent = rewardForHits(hits);
 
