@@ -30,7 +30,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.10.1';
+  const APP_VERSION = '0.11.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1518,19 +1518,78 @@ const Arcade = (() => {
       }
     }
 
-    panel(
-      '🎮 Welcome to Earnly Arcade',
-      '🎟️ PLAYS\nEach game starts with 3 free plays every day. If you run out, an optional rewarded ad can unlock +3 plays for that game.\n\n🪙 ARCADE COINS\nEarn Coins from game rewards, the daily bonus, and daily challenges. Ads do not directly award Coins.\n\n⭐ XP\nFinishing games, missions, streaks, and achievements builds XP and levels up your profile.\n\n🎁 REWARDS\nArcade Coins are prototype rewards right now. Real cash-out and a coin-to-cash conversion are not connected yet.',
-      [
-        ['Let’s Play', () => {
-          localStorage.setItem('arcadeOnboardingSeen', '1');
-          location.href = 'games.html';
-        }, 'green'],
-        ['Explore Home', () => {
-          localStorage.setItem('arcadeOnboardingSeen', '1');
-        }, 'secondary']
-      ]
-    );
+    if (modal.open) {
+      closeModalThen(() => showOnboarding(force));
+      return;
+    }
+
+    modal.className = 'onboarding-dialog';
+    modal.replaceChildren();
+
+    const head = document.createElement('div');
+    head.className = 'onboarding-head';
+
+    const icon = document.createElement('div');
+    icon.className = 'onboarding-app-icon';
+    icon.textContent = '🎮';
+
+    const headCopy = document.createElement('div');
+    const title = document.createElement('h2');
+    title.textContent = force ? 'How Earnly Works' : 'Welcome to Earnly';
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'Three simple systems, one arcade.';
+    headCopy.append(title, subtitle);
+    head.append(icon, headCopy);
+
+    const list = document.createElement('div');
+    list.className = 'onboarding-list';
+
+    [
+      ['🎟️','Plays','3 free plays per game each day. Optional rewarded ads can unlock +3 more for that game.'],
+      ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
+      ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
+      ['🎁','Rewards','Coins are prototype rewards today. Real cash-out is not connected yet.']
+    ].forEach(([itemIcon,itemTitle,itemText]) => {
+      const row = document.createElement('div');
+      row.className = 'onboarding-row';
+
+      const badge = document.createElement('span');
+      badge.className = 'onboarding-row-icon';
+      badge.textContent = itemIcon;
+
+      const copy = document.createElement('div');
+      const strong = document.createElement('strong');
+      strong.textContent = itemTitle;
+      const text = document.createElement('span');
+      text.textContent = itemText;
+      copy.append(strong,text);
+
+      row.append(badge,copy);
+      list.append(row);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'onboarding-actions';
+
+    const close = document.createElement('button');
+    close.className = 'onboarding-secondary';
+    close.textContent = force ? 'Close' : 'Stay Here';
+    close.addEventListener('click', () => {
+      localStorage.setItem('arcadeOnboardingSeen', '1');
+      closeModalThen(() => {});
+    });
+
+    const play = document.createElement('button');
+    play.className = 'onboarding-primary';
+    play.textContent = 'Play Games';
+    play.addEventListener('click', () => {
+      localStorage.setItem('arcadeOnboardingSeen', '1');
+      closeModalThen(() => { location.href = 'games.html'; });
+    });
+
+    actions.append(close,play);
+    modal.append(head,list,actions);
+    modal.showModal();
   }
 
     let installPromptEvent = null;
