@@ -50,6 +50,24 @@
     return result.data;
   }
 
+  async function sendPasswordReset(email){
+    const redirectTo = new URL('account.html?recovery=1', window.location.href).href.split('#')[0];
+    const { data, error } = await requireClient().auth.resetPasswordForEmail(
+      String(email || '').trim(),
+      { redirectTo }
+    );
+    if (error) throw error;
+    return data;
+  }
+
+  async function updatePassword(password){
+    const cleaned = String(password || '');
+    if (cleaned.length < 6) throw new Error('Use a password with at least 6 characters.');
+    const { data, error } = await requireClient().auth.updateUser({ password:cleaned });
+    if (error) throw error;
+    return data;
+  }
+
   async function signOut(){
     const { error } = await requireClient().auth.signOut();
     if (error) throw error;
@@ -68,6 +86,39 @@
 
     if (error) throw error;
     return data || null;
+  }
+
+  async function maybeRestoreFreshDevice(){
+    const current = await user();
+    if (!current) return { skipped:'signed-out' };
+    if (Arcade.hasMeaningfulProgress()) return { skipped:'local-progress' };
+    if (localStorage.getItem('arcadeFreshDeviceRestoreDone') === current.id) return { skipped:'already-checked' };
+
+    const { data, error } = await requireClient()
+      .from('player_saves')
+      .select('payload,updated_at,app_version,device_id')
+      .eq('user_id', current.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    localStorage.setItem('arcadeFreshDeviceRestoreDone', current.id);
+
+    if (!data?.payload) return { skipped:'no-cloud-save' };
+
+    const result = Arcade.restoreSnapshot(data.payload);
+    Arcade.repairLifetimeCounters?.();
+    if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
+    localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
+    localStorage.removeItem('arcadeCloudConflict');
+
+    const detail = {
+      restored:result.restored,
+      updatedAt:data.updated_at || null,
+      sourceDeviceId:data.device_id || null
+    };
+    window.dispatchEvent(new CustomEvent('earnly-cloud-auto-restored', { detail }));
+    return { restored:result.restored, save:data, auto:true };
   }
 
   async function saveProgress(options = {}){
@@ -238,8 +289,24 @@
       window.dispatchEvent(new CustomEvent('earnly-cloud-auth-change', {
         detail:{ event, session:currentSession }
       }));
+      if (event === 'PASSWORD_RECOVERY') {
+        window.dispatchEvent(new CustomEvent('earnly-cloud-password-recovery', {
+          detail:{ session:currentSession }
+        }));
+      }
+
       if (currentSession?.user && event !== 'SIGNED_OUT') {
-        scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
+        maybeRestoreFreshDevice()
+          .then(result => {
+            if (result?.auto) {
+              setTimeout(() => location.reload(), 350);
+              return;
+            }
+            scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
+          })
+          .catch(() => {
+            scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
+          });
       }
     });
 
@@ -265,8 +332,11 @@
     profile,
     signUp,
     signIn,
+    sendPasswordReset,
+    updatePassword,
     signOut,
     cloudSaveInfo,
+    maybeRestoreFreshDevice,
     saveProgress,
     autoSaveProgress,
     scheduleAutoSync,
