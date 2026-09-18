@@ -206,6 +206,7 @@
       const perfect = Math.abs(moving.x - previous.x) <= 5;
 
       if (perfect) {
+        Arcade.feedback('perfect');
         moving.x = previous.x;
         moving.w = previous.w;
         overlap = previous.w;
@@ -213,6 +214,7 @@
         perfectsEl.textContent = perfects;
         Arcade.toast('✨ Perfect stack!');
       } else {
+        Arcade.feedback('tap');
         moving.x = left;
         moving.w = overlap;
       }
@@ -262,7 +264,8 @@
 
       const earned = rewardFor(floors, perfects);
       Arcade.earn(earned, 'Tower Stack');
-      Arcade.recordResult('towerStack', floors);
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('towerStack', floors);
 
       const best = Math.max(floors, Arcade.number('towerStackBest'));
       localStorage.setItem('towerStackBest', String(best));
@@ -279,6 +282,7 @@
         '\nPerfect stacks: ' + perfects +
         '\nBest: ' + best +
         '\n+' + earned + ' Arcade Coins' +
+        Arcade.resultText(result) +
         '\n' + Arcade.remaining('towerStack') + ' plays remaining',
         Arcade.remaining('towerStack') > 0
           ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
@@ -295,13 +299,19 @@
       }
 
       resetGame();
-      running = true;
+      running = false;
       startButton.disabled = true;
-      startButton.textContent = 'Game Running';
-      setStatus('Running', 'running');
+      startButton.textContent = 'Get Ready…';
+      setStatus('Get Ready');
       refreshChrome();
       draw();
-      animation = requestAnimationFrame(loop);
+
+      Arcade.countdown(() => {
+        running = true;
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        animation = requestAnimationFrame(loop);
+      });
     }
 
     canvas.addEventListener('pointerdown', event => {
