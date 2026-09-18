@@ -3600,3 +3600,102 @@ body{animation:app-fade-in 180ms ease both}
 .text-size-preview span,.text-size-preview strong{display:block}
 .text-size-preview span{color:#7dd3fc;font-size:10px;font-weight:800}
 .text-size-preview strong{margin-top:3px;font-size:14px}
+
+
+/* 0.15.0 Earnly Cloud account + manual cloud saves */
+.cloud-account-head{
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+.cloud-account-head h2{
+  margin:2px 0 0;
+}
+.section-kicker{
+  display:block;
+  color:#7dd3fc;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.cloud-badge{
+  padding:5px 8px;
+  border:1px solid #42536a;
+  border-radius:999px;
+  background:#111b2b;
+  color:#9fb0c4;
+  font-size:8px;
+  font-weight:900;
+}
+.cloud-badge.connected{
+  border-color:#15803d;
+  background:#123522;
+  color:#86efac;
+}
+.cloud-auth-fields{
+  display:grid;
+  gap:8px;
+  margin-top:10px;
+}
+.cloud-auth-fields label span{
+  display:block;
+  margin-bottom:4px;
+  color:#9fb0c4;
+  font-size:8px;
+  font-weight:800;
+}
+.cloud-auth-fields input{
+  width:100%;
+  box-sizing:border-box;
+  min-height:42px;
+  padding:9px 10px;
+  border:1px solid #35475d;
+  border-radius:11px;
+  background:#0f1828;
+  color:#f8fafc;
+  font-size:10px;
+}
+.cloud-auth-actions,
+.cloud-save-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:9px;
+}
+.cloud-auth-actions button,
+.cloud-save-actions button{
+  min-height:42px;
+  margin:0;
+  padding:8px 10px;
+  font-size:9px;
+}
+.cloud-signed-status{
+  margin-top:2px;
+}
+.cloud-message{
+  margin-top:10px;
+}
+.cloud-device-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:10px;
+  padding-top:9px;
+  border-top:1px solid #314158;
+  color:#8192a8;
+  font-size:7.5px;
+}
+.cloud-device-meta strong{
+  color:#9fc9ff;
+}
+.cloud-signout{
+  margin-top:8px;
+}
+.cloud-safety-card{
+  border-color:#254d3a;
+}
+@media(max-width:390px){
+  .cloud-auth-actions,
+  .cloud-save-actions{
+    grid-template-columns:1fr;
+  }
+}
