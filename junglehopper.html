@@ -45,9 +45,6 @@
     <button class="green wide" id="startButton" type="button">👆 Tap the Jungle to Start</button>
 
     <canvas class="jungle-board touch-surface" id="game" width="360" height="560" aria-label="Jungle Hopper game board"></canvas>
-    <p class="swipe-hint">Tap the jungle to start the countdown. Once it begins, keep tapping to hop upward.</p>
-    <p class="muted small">Pass through vine gaps to score. Longer runs earn more coins, with milestone bonuses.</p>
-
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -61,6 +58,25 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'jungleHopper',
+      surface:canvas,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the jungle' },
+        { icon:'🐸', title:'Control', text:'Keep tapping to hop' },
+        { icon:'🌿', title:'Goal', text:'Pass through vine gaps' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Keep tapping to hop upward and time each vine gap',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Each tap gives the frog an upward hop. Gravity pulls it back down.',
+        'Touching a vine, the top, or the ground ends the run.'
+      ],
+      reward:'Longer runs and milestones can earn up to 25 Coins.'
+    });
 
     const frog = { x: 82, y: 270, r: 15, vy: 0 };
     const gravity = 0.42;
