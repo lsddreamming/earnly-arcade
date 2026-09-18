@@ -108,6 +108,7 @@
 
     const result = Arcade.restoreSnapshot(data.payload);
     Arcade.repairLifetimeCounters?.();
+    Arcade.repairGameStats?.();
     if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
     localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
     localStorage.removeItem('arcadeCloudConflict');
@@ -383,6 +384,7 @@
 
     const result = Arcade.restoreSnapshot(data.payload);
     Arcade.repairLifetimeCounters?.();
+    Arcade.repairGameStats?.();
     localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
     if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
     localStorage.removeItem('arcadeCloudConflict');
