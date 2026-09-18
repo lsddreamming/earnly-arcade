@@ -28,9 +28,9 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="dodger-board touch-surface" id="game" width="330" height="500" aria-label="Neon Dodger game board"></canvas>
-    <p class="muted small">Put your finger anywhere on the board and drag left/right to steer. Survive up to 30 seconds.</p>
+    <p class="muted small">Tap the board to start the countdown. Then drag left/right to steer and survive up to 30 seconds.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -50,6 +50,7 @@
     const player={x:140,y:445,w:50,h:24};
     let obstacles=[];
     let running=false;
+    let starting=false;
     let startTime=0;
     let lastSpawn=0;
     let dodged=0;
@@ -162,10 +163,11 @@
       const best=Math.max(seconds,Arcade.number('dodgerBest'));
       localStorage.setItem('dodgerBest',String(best));
 
+      starting=false;
       refreshChrome();
       setStatus(survived?'You Survived!':'Game Over','over');
       startButton.disabled=false;
-      startButton.textContent='▶ Play Again';
+      startButton.textContent='👆 Tap Game to Play Again';
 
       Arcade.panel(
         survived?'🚗 You Survived!':'💥 Game Over',
@@ -188,6 +190,12 @@
 
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
+
+      if(!running){
+        if(!starting) startGame();
+        return;
+      }
+
       dragging = true;
       dragPointer = event.pointerId;
       setPlayerFromClientX(event.clientX);
@@ -217,8 +225,10 @@
     });
 
     function startGame(){
-      if(running) return;
+      if(running || starting) return;
+      starting=true;
       if(!Arcade.consume('dodger')){
+        starting=false;
         Arcade.out('dodger',refreshChrome);
         return;
       }
@@ -240,6 +250,7 @@
       draw();
 
       Arcade.countdown(()=>{
+        starting=false;
         running=true;
         startButton.textContent='Game Running';
         setStatus('Running','running');
