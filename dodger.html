@@ -185,7 +185,7 @@
       animation=null;
 
       const earned=rewardFor(seconds,dodged);
-      Arcade.earn(earned,'Neon Dodger');
+      Arcade.earn(earned,'Neon Dodger', { kind:'game', game:'dodger', metric:seconds, aux:dodged });
       Arcade.feedback(survived?'success':'fail');
       const result=Arcade.recordResult('dodger', seconds);
 
