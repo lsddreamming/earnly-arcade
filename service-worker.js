@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-arcade-v20';
+const CACHE_NAME = 'earnly-arcade-v21';
 const CORE_ASSETS = [
   './',
   './index.html',
