@@ -32,6 +32,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
+  const APP_VERSION = '0.9.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -959,6 +960,33 @@ const Arcade = (() => {
     return localStorage.getItem('arcadeSound') !== 'off';
   }
 
+  function hapticsEnabled() {
+    return localStorage.getItem('arcadeHaptics') !== 'off';
+  }
+
+  function setHapticsEnabled(enabled) {
+    localStorage.setItem('arcadeHaptics', enabled ? 'on' : 'off');
+    if (enabled) vibrate(18);
+    return hapticsEnabled();
+  }
+
+  function reducedMotionEnabled() {
+    const setting = localStorage.getItem('arcadeReducedMotion');
+    if (setting === 'on') return true;
+    if (setting === 'off') return false;
+    return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function setReducedMotionEnabled(enabled) {
+    localStorage.setItem('arcadeReducedMotion', enabled ? 'on' : 'off');
+    applyMotionPreference();
+    return reducedMotionEnabled();
+  }
+
+  function applyMotionPreference() {
+    document.documentElement.classList.toggle('reduce-motion', reducedMotionEnabled());
+  }
+
   function setSoundEnabled(enabled) {
     localStorage.setItem('arcadeSound', enabled ? 'on' : 'off');
     if (enabled) feedback('go');
@@ -1045,6 +1073,7 @@ const Arcade = (() => {
   }
 
   function vibrate(pattern) {
+    if (!hapticsEnabled()) return;
     try {
       if (navigator.vibrate) navigator.vibrate(pattern);
     } catch {}
@@ -1393,7 +1422,74 @@ const Arcade = (() => {
     return { installed:false, method:'help' };
   }
 
-  function registerServiceWorker() {
+  function mountConnectionBanner() {
+    if (!document.body || document.getElementById('connectionBanner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'connectionBanner';
+    banner.className = 'connection-banner';
+    banner.setAttribute('role', 'status');
+    banner.textContent = '📴 Offline mode · cached games are still available';
+    document.body.append(banner);
+
+    const render = () => {
+      const offline = navigator.onLine === false;
+      banner.classList.toggle('show', offline);
+      document.body.classList.toggle('is-offline', offline);
+    };
+
+    window.addEventListener('online', () => {
+      render();
+      toast('🌐 Back online');
+    });
+    window.addEventListener('offline', render);
+    render();
+  }
+
+  function mountLaunchSplash() {
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+
+    if (!standalone || sessionStorage.getItem('arcadeSplashSeen') === '1') return;
+    sessionStorage.setItem('arcadeSplashSeen', '1');
+
+    const splash = document.createElement('div');
+    splash.className = 'launch-splash';
+
+    const icon = document.createElement('img');
+    icon.src = 'earnly-icon.svg';
+    icon.alt = '';
+
+    const title = document.createElement('strong');
+    title.textContent = 'Earnly Arcade';
+
+    const subtitle = document.createElement('span');
+    subtitle.textContent = 'Play. Watch. Earn.';
+
+    splash.append(icon, title, subtitle);
+    document.body.append(splash);
+
+    requestAnimationFrame(() => splash.classList.add('show'));
+    setTimeout(() => {
+      splash.classList.remove('show');
+      setTimeout(() => splash.remove(), 260);
+    }, reducedMotionEnabled() ? 250 : 800);
+  }
+
+  function appStatus() {
+    return {
+      version:APP_VERSION,
+      online:navigator.onLine !== false,
+      sound:soundEnabled(),
+      haptics:hapticsEnabled(),
+      reducedMotion:reducedMotionEnabled(),
+      install:installStatus(),
+      sync:syncStatus()
+    };
+  }
+
+    function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
 
@@ -1419,7 +1515,7 @@ const Arcade = (() => {
     if (gameFiles.has(file)) active = 'games';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
-    else if (file === 'profile.html' || file === 'account.html') active = 'profile';
+    else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
 
     const items = [
       ['home','🏠','Home','index.html'],
@@ -1456,7 +1552,10 @@ const Arcade = (() => {
     document.body.classList.add('has-app-nav');
   }
 
+  applyMotionPreference();
   mountBottomNav();
+  mountConnectionBanner();
+  mountLaunchSplash();
   registerServiceWorker();
   setTimeout(() => showOnboarding(false), 180);
 
@@ -1503,6 +1602,11 @@ const Arcade = (() => {
     toast,
     soundEnabled,
     setSoundEnabled,
+    hapticsEnabled,
+    setHapticsEnabled,
+    reducedMotionEnabled,
+    setReducedMotionEnabled,
+    appStatus,
     feedback,
     countdown,
     resultText,
