@@ -24,27 +24,59 @@
 
     <header class="page-header">
       <h1>☁️ Account & Data</h1>
-      <p>Backup your progress now while Earnly is being prepared for real cloud accounts.</p>
+      <p>Sign in to back up your Earnly progress securely and restore it on another device.</p>
     </header>
 
-    <section class="card" style="text-align:left">
-      <h2>👤 Current Account</h2>
-      <div class="account-status">
+    <section class="card cloud-account-card" style="text-align:left">
+      <div class="row cloud-account-head">
         <div>
-          <strong>Guest on this device</strong>
-          <span>Your progress is still stored locally. Cloud sign-in is the next backend step.</span>
+          <span class="section-kicker">CLOUD ACCOUNT</span>
+          <h2>☁️ Earnly Cloud</h2>
         </div>
-        <div class="status-dot"></div>
+        <span class="cloud-badge" id="cloudBadge">Guest</span>
       </div>
 
-      <div class="sync-queue" style="margin-top:10px">
-        <span>Device ID</span>
-        <strong class="device-id" id="deviceId">—</strong>
+      <div id="cloudSignedOut">
+        <p class="muted">Create an account or sign in to keep a secure copy of your current prototype progress.</p>
+        <div class="cloud-auth-fields">
+          <label>
+            <span>Email</span>
+            <input id="cloudEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+          </label>
+          <label>
+            <span>Password</span>
+            <input id="cloudPassword" type="password" minlength="6" autocomplete="current-password" placeholder="6+ characters">
+          </label>
+        </div>
+        <div class="cloud-auth-actions">
+          <button class="green" id="cloudSignInButton" type="button">Sign In</button>
+          <button class="secondary" id="cloudCreateButton" type="button">Create Account</button>
+        </div>
       </div>
 
-      <div class="sync-queue" style="margin-top:8px">
-        <span>Backend-ready events</span>
-        <strong id="pendingEvents">0 pending</strong>
+      <div id="cloudSignedIn" hidden>
+        <div class="account-status cloud-signed-status">
+          <div>
+            <strong id="cloudEmailDisplay">Signed in</strong>
+            <span id="cloudSaveStatus">Checking cloud save…</span>
+          </div>
+          <div class="status-dot ready"></div>
+        </div>
+
+        <div class="cloud-save-actions">
+          <button class="green" id="cloudSaveButton" type="button">☁️ Save Progress</button>
+          <button class="secondary" id="cloudRestoreButton" type="button">↩️ Restore Cloud Save</button>
+        </div>
+        <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
+      </div>
+
+      <div class="data-note cloud-message" id="cloudMessage">
+        Cloud saves are private to your signed-in account. Cash-out is not connected yet.
+      </div>
+
+      <div class="cloud-device-meta">
+        <span>Device <strong class="device-id" id="deviceId">—</strong></span>
+        <span id="pendingEvents">0 pending events</span>
       </div>
     </section>
 
@@ -80,17 +112,10 @@
       </div>
     </section>
 
-    <section class="card" style="text-align:left">
-      <h2>🔐 Cloud Backend Readiness</h2>
-      <div class="account-status">
-        <div>
-          <strong>Event queue ready</strong>
-          <span>Earnly now records play starts, game results, XP awards, and coin awards in a structured queue that can be sent to a secure backend.</span>
-        </div>
-        <div class="status-dot ready"></div>
-      </div>
+    <section class="card cloud-safety-card" style="text-align:left">
+      <h2>🔐 Cloud Save Status</h2>
       <p class="muted small" style="margin-bottom:0">
-        The next step is connecting authentication and a server-side database so balances and reward actions no longer depend on editable browser storage.
+        Account authentication and private cloud backups are now connected. For this prototype, cloud save backs up progress; a future server-authoritative reward ledger will handle real cash-out balances and fraud controls.
       </p>
     </section>
 
@@ -99,6 +124,8 @@
   </main>
 
   <script src="arcade.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
   <script>
     const balance = document.getElementById('balance');
     const device = document.getElementById('deviceId');
@@ -107,6 +134,51 @@
     const transferNote = document.getElementById('transferNote');
     const transferInput = document.getElementById('transferCodeInput');
     const restoreFile = document.getElementById('restoreFile');
+    const cloudSignedOut = document.getElementById('cloudSignedOut');
+    const cloudSignedIn = document.getElementById('cloudSignedIn');
+    const cloudBadge = document.getElementById('cloudBadge');
+    const cloudEmail = document.getElementById('cloudEmail');
+    const cloudPassword = document.getElementById('cloudPassword');
+    const cloudEmailDisplay = document.getElementById('cloudEmailDisplay');
+    const cloudSaveStatus = document.getElementById('cloudSaveStatus');
+    const cloudMessage = document.getElementById('cloudMessage');
+
+    function friendlyTime(value){
+      if (!value) return 'No cloud save yet';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Cloud save available';
+      return 'Last saved ' + date.toLocaleString([], { dateStyle:'medium', timeStyle:'short' });
+    }
+
+    async function renderCloud(){
+      if (!window.EarnlyCloud?.ready) {
+        cloudBadge.textContent = 'Offline';
+        cloudSignedOut.hidden = false;
+        cloudSignedIn.hidden = true;
+        cloudMessage.textContent = 'Earnly Cloud could not load. Check your internet connection and refresh.';
+        return;
+      }
+
+      try {
+        const current = await EarnlyCloud.session();
+        const signedIn = !!current?.user;
+        cloudSignedOut.hidden = signedIn;
+        cloudSignedIn.hidden = !signedIn;
+        cloudBadge.textContent = signedIn ? 'Connected' : 'Guest';
+        cloudBadge.classList.toggle('connected', signedIn);
+
+        if (!signedIn) {
+          cloudSaveStatus.textContent = '';
+          return;
+        }
+
+        cloudEmailDisplay.textContent = current.user.email || 'Earnly account';
+        const save = await EarnlyCloud.cloudSaveInfo();
+        cloudSaveStatus.textContent = save ? friendlyTime(save.updated_at) : 'No cloud save yet — save this device when ready.';
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not check Earnly Cloud right now.';
+      }
+    }
 
     function render(){
       balance.textContent = Arcade.number('points').toLocaleString();
@@ -159,6 +231,98 @@
       restoreCode(transferInput.value);
     });
 
+    function authValues(){
+      const email = cloudEmail.value.trim();
+      const password = cloudPassword.value;
+      if (!email) throw new Error('Enter your email address.');
+      if (password.length < 6) throw new Error('Use a password with at least 6 characters.');
+      return { email, password };
+    }
+
+    document.getElementById('cloudCreateButton').addEventListener('click', async () => {
+      try {
+        const { email, password } = authValues();
+        cloudMessage.textContent = 'Creating your Earnly account…';
+        const data = await EarnlyCloud.signUp(email, password);
+        cloudPassword.value = '';
+
+        if (data.session) {
+          cloudMessage.textContent = 'Account created. You are signed in — tap Save Progress to create your first cloud backup.';
+        } else {
+          cloudMessage.textContent = 'Account created. Check your email to confirm it, then return here and sign in.';
+        }
+        await renderCloud();
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not create the account.';
+      }
+    });
+
+    document.getElementById('cloudSignInButton').addEventListener('click', async () => {
+      try {
+        const { email, password } = authValues();
+        cloudMessage.textContent = 'Signing in…';
+        await EarnlyCloud.signIn(email, password);
+        cloudPassword.value = '';
+        cloudMessage.textContent = 'Signed in. Your local progress has not been overwritten.';
+        await renderCloud();
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not sign in.';
+      }
+    });
+
+    document.getElementById('cloudSignOutButton').addEventListener('click', async () => {
+      try {
+        await EarnlyCloud.signOut();
+        cloudMessage.textContent = 'Signed out. Your local Earnly progress stays on this device.';
+        await renderCloud();
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not sign out.';
+      }
+    });
+
+    document.getElementById('cloudSaveButton').addEventListener('click', async () => {
+      try {
+        cloudMessage.textContent = 'Saving your current Earnly progress…';
+        const result = await EarnlyCloud.saveProgress();
+        cloudMessage.textContent = 'Cloud save complete · ' + Object.keys(result.snapshot.data).length + ' progress items backed up.';
+        Arcade.toast('☁️ Earnly progress saved');
+        await renderCloud();
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Cloud save failed.';
+        Arcade.toast('⚠️ Cloud save failed');
+      }
+    });
+
+    document.getElementById('cloudRestoreButton').addEventListener('click', async () => {
+      try {
+        const info = await EarnlyCloud.cloudSaveInfo();
+        if (!info) {
+          cloudMessage.textContent = 'No cloud save exists for this account yet.';
+          return;
+        }
+
+        Arcade.panel(
+          '↩️ Restore Cloud Save?',
+          friendlyTime(info.updated_at) + '\n\nThis replaces the Earnly progress currently stored on this device. Your sign-in stays connected.',
+          [
+            ['Restore', async () => {
+              try {
+                const result = await EarnlyCloud.restoreProgress();
+                Arcade.toast('✅ Restored ' + result.restored + ' progress items');
+                setTimeout(() => location.reload(), 500);
+              } catch (error) {
+                cloudMessage.textContent = error.message || 'Cloud restore failed.';
+                Arcade.toast('⚠️ Cloud restore failed');
+              }
+            }, 'green'],
+            ['Cancel', () => {}, 'secondary']
+          ]
+        );
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not read the cloud save.';
+      }
+    });
+
     document.getElementById('backupButton').addEventListener('click', () => {
       const snapshot = Arcade.downloadBackup();
       note.textContent = 'Backup created with ' + Object.keys(snapshot.data).length + ' saved data items.';
@@ -186,8 +350,10 @@
     });
 
     render();
-    window.addEventListener('pageshow', render);
+    renderCloud();
+    window.addEventListener('pageshow', () => { render(); renderCloud(); });
     window.addEventListener('storage', render);
+    window.addEventListener('earnly-cloud-auth-change', renderCloud);
   </script>
 </body>
 </html>
