@@ -34,28 +34,9 @@
       </div>
     </header>
 
-    <section class="snake-control-strip" aria-label="Snake controls">
-      <div><span>👆</span><strong>Tap board</strong><small>to start</small></div>
-      <div><span>↔️</span><strong>Swipe</strong><small>to steer</small></div>
-      <div><span>🖐️</span><strong>Keep swiping</strong><small>off-board is okay</small></div>
-    </section>
-
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
-    <div class="snake-board-wrap">
-      <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
-      <div class="snake-board-overlay" id="boardOverlay" aria-hidden="true">
-        <div class="snake-overlay-icon">👆</div>
-        <strong id="boardOverlayTitle">Tap to Start</strong>
-        <span id="boardOverlayText">Swipe up, down, left, or right to move</span>
-      </div>
-    </div>
-
-    <details class="snake-more-help">
-      <summary>More tips & rewards</summary>
-      <p>Swipe in any direction while playing. Your finger can slide off the board without scrolling the page.</p>
-      <p>Earn 1 coin every 3 apples, plus milestone bonuses at 10, 25, and 50 apples. Max 30 coins per run.</p>
-    </details>
+    <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
 
     <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
       <button class="game-control" type="button" data-direction="UP">⬆️</button>
@@ -79,9 +60,25 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
-    const boardOverlay = document.getElementById('boardOverlay');
-    const boardOverlayTitle = document.getElementById('boardOverlayTitle');
-    const boardOverlayText = document.getElementById('boardOverlayText');
+
+    Arcade.gameGuide({
+      game:'snake',
+      surface:canvas,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the board' },
+        { icon:'↔️', title:'Control', text:'Swipe any direction' },
+        { icon:'🍎', title:'Goal', text:'Eat apples, avoid crashes' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Swipe up, down, left, or right to steer',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Swipe in any direction while playing. Your finger can slide off the board without scrolling the page.',
+        'Eat apples to grow. Hitting a wall or your own body ends the run.'
+      ],
+      reward:'Earn 1 Coin every 3 apples, plus milestone bonuses. Max 30 Coins per run.'
+    });
 
     const box = 20;
     const MAX_SNAKE_COINS = 30;
@@ -104,29 +101,11 @@
       return Math.min(coins, MAX_SNAKE_COINS);
     }
 
-    function updateBoardOverlay() {
-      if (game !== null || starting) {
-        boardOverlay.classList.add('hidden');
-        return;
-      }
-
-      const playsLeft = Arcade.remaining('snake');
-      boardOverlay.classList.remove('hidden');
-
-      if (playsLeft > 0) {
-        boardOverlayTitle.textContent = score > 0 ? 'Tap to Play Again' : 'Tap to Start';
-        boardOverlayText.textContent = 'Swipe up, down, left, or right to move';
-      } else {
-        boardOverlayTitle.textContent = 'Out of Plays';
-        boardOverlayText.textContent = 'Tap the board to see today’s play options';
-      }
-    }
 
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('snake');
       balanceEl.textContent = Arcade.number('points').toLocaleString();
       rewardPreviewEl.textContent = snakeReward(score);
-      updateBoardOverlay();
     }
 
     function setStatus(text, mode) {
@@ -317,7 +296,6 @@
       startButton.disabled = false;
       startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
-      updateBoardOverlay();
 
       Arcade.gameResult({
         icon:'🐍',
@@ -338,12 +316,10 @@
     function startGame() {
       if (game !== null || starting) return;
       starting = true;
-      updateBoardOverlay();
 
       if (!Arcade.consume('snake')) {
         starting = false;
-        updateBoardOverlay();
-        Arcade.out('snake', refreshChrome);
+          Arcade.out('snake', refreshChrome);
         return;
       }
 
