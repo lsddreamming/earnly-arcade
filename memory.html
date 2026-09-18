@@ -105,6 +105,7 @@
       if(card.matched || card.revealed) return;
 
       card.revealed=true;
+      Arcade.feedback('tap');
       render();
 
       if(first===null){
@@ -118,6 +119,7 @@
       movesEl.textContent=moves;
 
       if(cards[first].icon===cards[second].icon){
+        Arcade.feedback('score');
         cards[first].matched=true;
         cards[second].matched=true;
         pairs+=1;
@@ -147,7 +149,8 @@
       lock=true;
       const earned=rewardForMoves(moves);
       Arcade.earn(earned,'Memory Match');
-      Arcade.recordResult('memory', moves);
+      Arcade.feedback('success');
+      const result=Arcade.recordResult('memory', moves);
 
       const previous=Arcade.number('memoryBestMoves');
       if(!previous || moves<previous) localStorage.setItem('memoryBestMoves',String(moves));
@@ -161,7 +164,7 @@
 
       Arcade.panel(
         '🧠 Board Cleared!',
-        'Moves: '+moves+'\nBest: '+best+'\n+'+earned+' Arcade Coins\n'+Arcade.remaining('memory')+' plays remaining',
+        'Moves: '+moves+'\nBest: '+best+'\n+'+earned+' Arcade Coins'+Arcade.resultText(result)+'\n'+Arcade.remaining('memory')+' plays remaining',
         Arcade.remaining('memory')>0
           ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
           : [['Get More Plays',()=>Arcade.out('memory',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
@@ -176,14 +179,22 @@
       }
 
       cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
-      first=null;second=null;lock=false;moves=0;pairs=0;running=true;
+      first=null;second=null;lock=true;moves=0;pairs=0;running=false;
       movesEl.textContent='0';
       pairsEl.textContent='0';
       startButton.disabled=true;
-      startButton.textContent='Game Running';
-      setStatus('Running','running');
+      startButton.textContent='Get Ready…';
+      setStatus('Get Ready');
       refreshChrome();
       render();
+
+      Arcade.countdown(()=>{
+        lock=false;
+        running=true;
+        startButton.textContent='Game Running';
+        setStatus('Running','running');
+        render();
+      });
     }
 
     startButton.addEventListener('click',startGame);
