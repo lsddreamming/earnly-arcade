@@ -3040,3 +3040,64 @@ body{animation:app-fade-in 180ms ease both}
     font-size:8px;
   }
 }
+
+
+/* 0.13.8 shared real-phone readability for every game */
+.game-guide-page .game-title-status-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  margin-bottom:5px;
+}
+.game-guide-page .game-title-status-row h1{
+  margin:0!important;
+  min-width:0;
+}
+.game-guide-page .game-title-status-row .title-status{
+  flex:0 0 auto;
+  margin:0;
+  padding:5px 8px;
+  font-size:9px;
+  white-space:nowrap;
+}
+.game-guide-page .game-guide-strip{
+  gap:7px;
+  margin-bottom:8px;
+}
+.game-guide-page .game-guide-step{
+  min-height:48px;
+  gap:7px;
+  padding:8px 9px;
+  border-radius:11px;
+}
+.game-guide-page .game-guide-step-icon{
+  font-size:17px;
+}
+.game-guide-page .game-guide-step strong{
+  font-size:10px;
+  line-height:1.15;
+}
+.game-guide-page .game-guide-step small{
+  margin-top:2px;
+  font-size:8.5px;
+  line-height:1.22;
+}
+@media(max-width:390px){
+  .game-guide-page .game-guide-strip{
+    gap:5px;
+  }
+  .game-guide-page .game-guide-step{
+    padding:7px 6px;
+    gap:5px;
+  }
+  .game-guide-page .game-guide-step-icon{
+    font-size:15px;
+  }
+  .game-guide-page .game-guide-step strong{
+    font-size:9.5px;
+  }
+  .game-guide-page .game-guide-step small{
+    font-size:8px;
+  }
+}
