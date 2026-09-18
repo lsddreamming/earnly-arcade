@@ -1025,6 +1025,58 @@ const Arcade = (() => {
     );
   }
 
+  function mountBottomNav() {
+    if (!document.body || document.getElementById('arcadeBottomNav')) return;
+
+    const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    const gameFiles = new Set([
+      'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
+      'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html'
+    ]);
+
+    let active = 'home';
+    if (gameFiles.has(file)) active = 'games';
+    else if (file === 'stats.html') active = 'missions';
+    else if (file === 'rewards.html') active = 'rewards';
+    else if (file === 'profile.html') active = 'profile';
+
+    const items = [
+      ['home','🏠','Home','index.html'],
+      ['games','🕹️','Games','games.html'],
+      ['missions','📅','Missions','stats.html'],
+      ['rewards','🎁','Rewards','rewards.html'],
+      ['profile','👤','Profile','profile.html']
+    ];
+
+    const nav = document.createElement('nav');
+    nav.id = 'arcadeBottomNav';
+    nav.className = 'bottom-nav';
+    nav.setAttribute('aria-label', 'Earnly navigation');
+
+    items.forEach(([key, icon, label, href]) => {
+      const link = document.createElement('a');
+      link.className = 'bottom-nav-item' + (key === active ? ' active' : '');
+      link.href = href;
+      if (key === active) link.setAttribute('aria-current', 'page');
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'bottom-nav-icon';
+      iconSpan.textContent = icon;
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'bottom-nav-label';
+      labelSpan.textContent = label;
+
+      link.append(iconSpan, labelSpan);
+      nav.append(link);
+    });
+
+    document.body.append(nav);
+    document.body.classList.add('has-app-nav');
+  }
+
+  mountBottomNav();
+
   return {
     names,
     FREE_PLAYS,
