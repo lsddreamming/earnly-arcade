@@ -53,6 +53,7 @@
           <button class="secondary" id="cloudCreateButton" type="button">Create Account</button>
         </div>
         <button class="text-button cloud-forgot" id="cloudForgotButton" type="button">Forgot password?</button>
+        <p class="muted small">Returning player? Sign in on a fresh phone or Home Screen install and Earnly will automatically restore your latest cloud save.</p>
 
         <div class="cloud-reset-panel" id="cloudResetPanel" hidden>
           <div class="cloud-reset-head">
@@ -104,7 +105,7 @@
         <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
       </div>
 
-      <div class="data-note cloud-message" id="cloudMessage">
+      <div class="data-note cloud-message" id="cloudMessage" aria-live="polite">
         Cloud saves are private to your signed-in account. Cash-out is not connected yet.
       </div>
 
@@ -390,16 +391,41 @@
     });
 
     document.getElementById('cloudSignInButton').addEventListener('click', async () => {
+      const button = document.getElementById('cloudSignInButton');
+      const originalText = button.textContent;
       try {
         const { email, password } = authValues();
-        cloudMessage.textContent = 'Signing in…';
-        await EarnlyCloud.signIn(email, password);
+        button.disabled = true;
+        button.textContent = 'Connecting…';
+        cloudMessage.textContent = 'Signing in and checking for your cloud save…';
+
+        const result = await EarnlyCloud.signInAndRestore(email, password);
         cloudPassword.value = '';
-        cloudMessage.textContent = 'Signed in. Automatic sync is on. Earnly will protect a newer cloud save instead of overwriting it.';
+
+        if (result.restore?.auto) {
+          render();
+          await renderCloud();
+          const count = result.restore.restored || 0;
+          cloudMessage.textContent = '✅ Welcome back! Your Earnly progress restored automatically (' + count + ' saved items).';
+          Arcade.toast('☁️ Progress restored');
+          setTimeout(() => { location.href = 'index.html'; }, 900);
+          return;
+        }
+
         await renderCloud();
-        EarnlyCloud.scheduleAutoSync('manual-signin', 250);
+
+        if (result.restore?.skipped === 'local-progress') {
+          cloudMessage.textContent = '✅ Signed in. Your progress on this device is connected to Earnly Cloud.';
+        } else if (result.restore?.skipped === 'no-cloud-save') {
+          cloudMessage.textContent = '✅ Signed in. This account does not have a cloud save yet, so Earnly will create one automatically.';
+        } else {
+          cloudMessage.textContent = '✅ Signed in. Automatic cloud sync is on.';
+        }
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not sign in.';
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
       }
     });
 
@@ -511,9 +537,11 @@
       cloudRecovery.hidden = false;
       cloudMessage.textContent = 'Password recovery verified. Choose your new password below.';
     });
-    window.addEventListener('earnly-cloud-auto-restored', event => {
+    window.addEventListener('earnly-cloud-auto-restored', async event => {
       const count = event.detail?.restored || 0;
-      cloudMessage.textContent = '☁️ Restored ' + count + ' saved progress items from Earnly Cloud on this fresh device.';
+      render();
+      await renderCloud();
+      cloudMessage.textContent = '✅ Welcome back! Restored ' + count + ' saved progress items from Earnly Cloud automatically.';
     });
   </script>
 </body>

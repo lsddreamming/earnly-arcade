@@ -50,6 +50,17 @@
     return result.data;
   }
 
+  async function signInAndRestore(email, password){
+    const auth = await signIn(email, password);
+    const restore = await maybeRestoreFreshDevice();
+
+    if (!restore?.auto) {
+      scheduleAutoSync('manual-signin', 600);
+    }
+
+    return { auth, restore };
+  }
+
   async function sendPasswordReset(email){
     const redirectTo = new URL('account.html?recovery=1', window.location.href).href.split('#')[0];
     const { data, error } = await requireClient().auth.resetPasswordForEmail(
@@ -88,38 +99,60 @@
     return data || null;
   }
 
+  let freshRestorePromise = null;
+
   async function maybeRestoreFreshDevice(){
-    const current = await user();
-    if (!current) return { skipped:'signed-out' };
-    if (Arcade.hasMeaningfulProgress()) return { skipped:'local-progress' };
-    if (localStorage.getItem('arcadeFreshDeviceRestoreDone') === current.id) return { skipped:'already-checked' };
+    if (freshRestorePromise) return freshRestorePromise;
 
-    const { data, error } = await requireClient()
-      .from('player_saves')
-      .select('payload,updated_at,app_version,device_id')
-      .eq('user_id', current.id)
-      .maybeSingle();
+    freshRestorePromise = (async () => {
+      const current = await user();
+      if (!current) return { skipped:'signed-out' };
+      if (Arcade.hasMeaningfulProgress()) return { skipped:'local-progress' };
 
-    if (error) throw error;
+      const { data, error } = await requireClient()
+        .from('player_saves')
+        .select('payload,updated_at,app_version,device_id')
+        .eq('user_id', current.id)
+        .maybeSingle();
 
-    localStorage.setItem('arcadeFreshDeviceRestoreDone', current.id);
+      if (error) throw error;
+      if (!data?.payload) return { skipped:'no-cloud-save' };
 
-    if (!data?.payload) return { skipped:'no-cloud-save' };
+      const marker = current.id + ':' + (data.updated_at || data.app_version || 'save');
+      if (localStorage.getItem('arcadeFreshDeviceRestoreDone') === marker) {
+        return { skipped:'already-restored', save:data };
+      }
 
-    const result = Arcade.restoreSnapshot(data.payload);
-    Arcade.repairLifetimeCounters?.();
-    Arcade.repairGameStats?.();
-    if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
-    localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
-    localStorage.removeItem('arcadeCloudConflict');
+      const result = Arcade.restoreSnapshot(data.payload);
+      Arcade.repairLifetimeCounters?.();
+      Arcade.repairGameStats?.();
 
-    const detail = {
-      restored:result.restored,
-      updatedAt:data.updated_at || null,
-      sourceDeviceId:data.device_id || null
-    };
-    window.dispatchEvent(new CustomEvent('earnly-cloud-auto-restored', { detail }));
-    return { restored:result.restored, save:data, auto:true };
+      if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
+      localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
+      localStorage.setItem('arcadeFreshDeviceRestoreDone', marker);
+      localStorage.removeItem('arcadeCloudConflict');
+
+      let rewardSync = null;
+      try {
+        rewardSync = await syncServerRewards();
+      } catch {
+        // Snapshot restore should still succeed if wallet reconciliation is temporarily unavailable.
+      }
+
+      const detail = {
+        restored:result.restored,
+        updatedAt:data.updated_at || null,
+        sourceDeviceId:data.device_id || null
+      };
+      window.dispatchEvent(new CustomEvent('earnly-cloud-auto-restored', { detail }));
+      return { restored:result.restored, save:data, auto:true, rewardSync };
+    })();
+
+    try {
+      return await freshRestorePromise;
+    } finally {
+      freshRestorePromise = null;
+    }
   }
 
   async function walletInfo(){
@@ -424,7 +457,8 @@
         maybeRestoreFreshDevice()
           .then(result => {
             if (result?.auto) {
-              setTimeout(() => location.reload(), 350);
+              const onAccountPage = /\/account\.html$/.test(location.pathname);
+              if (!onAccountPage) setTimeout(() => location.reload(), 300);
               return;
             }
             scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
@@ -457,6 +491,7 @@
     profile,
     signUp,
     signIn,
+    signInAndRestore,
     sendPasswordReset,
     updatePassword,
     signOut,
