@@ -167,8 +167,14 @@
         source:event.payload.source || 'Arcade reward'
       };
 
-      const { data, error } = await requireClient().functions.invoke('claim-coin-reward', {
-        body
+      const { data, error } = await requireClient().rpc('claim_coin_reward', {
+        p_event_id: body.eventId,
+        p_kind: body.kind,
+        p_game: body.game,
+        p_metric: body.metric,
+        p_aux: body.aux,
+        p_challenge_id: body.challengeId,
+        p_source: body.source
       });
 
       if (error) {
