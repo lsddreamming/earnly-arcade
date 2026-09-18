@@ -911,6 +911,7 @@ const Arcade = (() => {
 
   function panel(title, message, actions) {
     if (modal.open) modal.close();
+    modal.className = '';
     modal.replaceChildren();
 
     const h = document.createElement('h2');
