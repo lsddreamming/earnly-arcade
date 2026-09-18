@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earnly Block Drop</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    canvas {
+      background: #1f2937;
+      border: 3px solid white;
+      max-width: 100%;
+    }
+
+    button {
+      padding: 14px 18px;
+      margin: 5px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .control-button {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .back-button {
+      background: #374151;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🧱 Block Drop</h1>
+
+  <p>Score: <span id="score">0</span></p>
+
+  <button id="startButton" onclick="startGame()">
+    ▶ Start Game
+  </button>
+
+  <br><br>
+
+  <canvas id="game" width="300" height="600"></canvas>
+
+  <br>
+
+  <button class="control-button" onclick="moveLeft()">⬅️</button>
+  <button class="control-button" onclick="rotatePiece()">🔄</button>
+  <button class="control-button" onclick="moveRight()">➡️</button>
+
+  <br>
+
+  <button class="control-button" onclick="moveDown()">⬇️ Drop</button>
+
+  <br>
+
+  <button class="back-button" onclick="window.location.href='games.html'">
+    ⬅ Back to Games
+  </button>
+
+</div>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const rows = 20;
+  const cols = 10;
+  const blockSize = 30;
+
+  let board = [];
+  let score = 0;
+  let game = null;
+
+  let blockDropGamesPlayed =
+    Number(localStorage.getItem("blockDropGamesPlayed")) || 0;
+
+  const freeGameLimit = 3;
+
+  if (blockDropGamesPlayed >= freeGameLimit) {
+    alert(
+      "You've used your 3 Block Drop plays. Unlock more from the Arcade."
+    );
+
+    window.location.href = "games.html";
+  }
+
+  const pieces = [
+    [[1, 1, 1, 1]],
+
+    [[1, 1],
+     [1, 1]],
+
+    [[0, 1, 0],
+     [1, 1, 1]],
+
+    [[1, 0, 0],
+     [1, 1, 1]],
+
+    [[0, 0, 1],
+     [1, 1, 1]],
+
+    [[0, 1, 1],
+     [1, 1, 0]],
+
+    [[1, 1, 0],
+     [0, 1, 1]]
+  ];
+
+  let currentPiece;
+  let pieceX;
+  let pieceY;
+
+  function createBoard() {
+    board = [];
+
+    for (let y = 0; y < rows; y++) {
+      board[y] = [];
+
+      for (let x = 0; x < cols; x++) {
+        board[y][x] = 0;
+      }
+    }
+  }
+
+  function newPiece() {
+    currentPiece =
+      pieces[Math.floor(Math.random() * pieces.length)];
+
+    pieceX = Math.floor(
+      (cols - currentPiece[0].length) / 2
+    );
+
+    pieceY = 0;
+
+    if (collision(currentPiece, pieceX, pieceY)) {
+      clearInterval(game);
+      game = null;
+
+      blockDropGamesPlayed =
+        blockDropGamesPlayed + 1;
+
+      localStorage.setItem(
+        "blockDropGamesPlayed",
+        blockDropGamesPlayed
+      );
+
+      let earnedCoins = Math.min(
+        Math.floor(score / 100),
+        5
+      );
+
+      let points =
+        Number(localStorage.getItem("points")) || 0;
+
+      points = points + earnedCoins;
+
+      localStorage.setItem("points", points);
+
+      let playsLeft = Math.max(
+        0,
+        freeGameLimit - blockDropGamesPlayed
+      );
+
+      if (playsLeft === 0) {
+        alert(
+          "Game Over! Score: " + score +
+          "\nYou earned " + earnedCoins + " Arcade Coins!" +
+          "\n\nYou've used all 3 Block Drop plays."
+        );
+
+        window.location.href = "games.html";
+        return;
+      }
+
+      alert(
+        "Game Over! Score: " + score +
+        "\nYou earned " + earnedCoins + " Arcade Coins!" +
+        "\n\nBlock Drop plays remaining: " + playsLeft
+      );
+
+      document.getElementById("startButton").disabled = false;
+
+      document.getElementById("startButton").textContent =
+        "🔄 Play Again";
+    }
+  }
+
+  function collision(piece, newX, newY) {
+    for (let y = 0; y < piece.length; y++) {
+      for (let x = 0; x < piece[y].length; x++) {
+        if (piece[y][x]) {
+          let boardX = newX + x;
+          let boardY = newY + y;
+
+          if (
+            boardX < 0 ||
+            boardX >= cols ||
+            boardY >= rows
+          ) {
+            return true;
+          }
+
+          if (
+            boardY >= 0 &&
+            board[boardY][boardX]
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function mergePiece() {
+    for (let y = 0; y < currentPiece.length; y++) {
+      for (let x = 0; x < currentPiece[y].length; x++) {
+        if (currentPiece[y][x]) {
+          board[pieceY + y][pieceX + x] = 1;
+        }
+      }
+    }
+
+    clearLines();
+  }
+
+  function clearLines() {
+    for (let y = rows - 1; y >= 0; y--) {
+      let full = true;
+
+      for (let x = 0; x < cols; x++) {
+        if (board[y][x] === 0) {
+          full = false;
+          break;
+        }
+      }
+
+      if (full) {
+        board.splice(y, 1);
+
+        let newRow = [];
+
+        for (let x = 0; x < cols; x++) {
+          newRow.push(0);
+        }
+
+        board.unshift(newRow);
+
+        score += 100;
+
+        document.getElementById("score").textContent = score;
+
+        y++;
+      }
+    }
+  }
+
+  function moveDown() {
+    if (!game) return;
+
+    if (!collision(currentPiece, pieceX, pieceY + 1)) {
+      pieceY++;
+    } else {
+      mergePiece();
+      newPiece();
+    }
+
+    draw();
+  }
+
+  function moveLeft() {
+    if (!game) return;
+
+    if (!collision(currentPiece, pieceX - 1, pieceY)) {
+      pieceX--;
+    }
+
+    draw();
+  }
+
+  function moveRight() {
+    if (!game) return;
+
+    if (!collision(currentPiece, pieceX + 1, pieceY)) {
+      pieceX++;
+    }
+
+    draw();
+  }
+
+  function rotatePiece() {
+    if (!game) return;
+
+    let rotated = [];
+
+    for (let x = 0; x < currentPiece[0].length; x++) {
+      rotated[x] = [];
+
+      for (let y = currentPiece.length - 1; y >= 0; y--) {
+        rotated[x].push(currentPiece[y][x]);
+      }
+    }
+
+    if (!collision(rotated, pieceX, pieceY)) {
+      currentPiece = rotated;
+    }
+
+    draw();
+  }
+
+  function draw() {
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (board[y][x]) {
+          drawBlock(x, y);
+        }
+      }
+    }
+
+    if (currentPiece) {
+      for (let y = 0; y < currentPiece.length; y++) {
+        for (let x = 0; x < currentPiece[y].length; x++) {
+          if (currentPiece[y][x]) {
+            drawBlock(
+              pieceX + x,
+              pieceY + y
+            );
+          }
+        }
+      }
+    }
+  }
+
+  function drawBlock(x, y) {
+    ctx.fillStyle = "#3b82f6";
+
+    ctx.fillRect(
+      x * blockSize,
+      y * blockSize,
+      blockSize - 2,
+      blockSize - 2
+    );
+  }
+
+  function startGame() {
+    if (game) return;
+
+    createBoard();
+
+    score = 0;
+
+    document.getElementById("score").textContent = score;
+
+    newPiece();
+
+    game = setInterval(moveDown, 600);
+
+    document.getElementById("startButton").disabled = true;
+
+    document.getElementById("startButton").textContent =
+      "🎮 Game Running";
+  }
+
+  document.addEventListener("keydown", function(event) {
+    if (event.key === "ArrowLeft") {
+      moveLeft();
+    }
+
+    if (event.key === "ArrowRight") {
+      moveRight();
+    }
+
+    if (event.key === "ArrowDown") {
+      moveDown();
+    }
+
+    if (event.key === "ArrowUp") {
+      rotatePiece();
+    }
+  });
+
+  createBoard();
+  draw();
+</script>
+
+</body>
+</html>

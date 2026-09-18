@@ -28,11 +28,22 @@
 
     button {
       padding: 14px 18px;
+      margin: 5px;
       margin-top: 15px;
       font-size: 16px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
+    }
+
+    .control-button {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .start-button {
+      background: #22c55e;
+      color: white;
     }
 
     .back-button {
@@ -45,24 +56,100 @@
 <body>
 
   <div class="container">
+
     <h1>🐍 Earnly Snake</h1>
 
-    <p>Score: <span id="score">0</span></p>
+    <p>
+      Score:
+      <span id="score">0</span>
+    </p>
 
-    <canvas id="game" width="400" height="400"></canvas>
+    <button
+      class="start-button"
+      id="startButton"
+      onclick="startGame()"
+    >
+      ▶️ Start Game
+    </button>
 
     <br>
 
-    <button class="back-button" onclick="window.location.href='games.html'">
+    <canvas
+      id="game"
+      width="400"
+      height="400"
+    ></canvas>
+
+    <br>
+
+    <div class="controls">
+
+      <button
+        class="control-button"
+        onclick="setDirection('UP')"
+      >
+        ⬆️
+      </button>
+
+      <div>
+
+        <button
+          class="control-button"
+          onclick="setDirection('LEFT')"
+        >
+          ⬅️
+        </button>
+
+        <button
+          class="control-button"
+          onclick="setDirection('DOWN')"
+        >
+          ⬇️
+        </button>
+
+        <button
+          class="control-button"
+          onclick="setDirection('RIGHT')"
+        >
+          ➡️
+        </button>
+
+      </div>
+
+    </div>
+
+    <button
+      class="back-button"
+      onclick="window.location.href='games.html'"
+    >
       ⬅ Back to Games
     </button>
+
   </div>
 
   <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
+    const canvas =
+      document.getElementById("game");
+
+    const ctx =
+      canvas.getContext("2d");
 
     const box = 20;
+
+    const freeGameLimit = 3;
+
+    let snakeGamesPlayed =
+      Number(
+        localStorage.getItem("snakeGamesPlayed")
+      ) || 0;
+
+    if (snakeGamesPlayed >= freeGameLimit) {
+      alert(
+        "You've used your 3 Snake plays. Unlock more from the Arcade."
+      );
+
+      window.location.href = "games.html";
+    }
 
     let snake = [
       { x: 200, y: 200 }
@@ -71,66 +158,165 @@
     let direction = "RIGHT";
 
     let food = {
-      x: Math.floor(Math.random() * 20) * box,
-      y: Math.floor(Math.random() * 20) * box
+      x:
+        Math.floor(Math.random() * 20) * box,
+
+      y:
+        Math.floor(Math.random() * 20) * box
     };
 
     let score = 0;
-let gamesPlayed = Number(localStorage.getItem("gamesPlayed")) || 0;
-    document.addEventListener("keydown", changeDirection);
 
-    const freeGameLimit = 3;
+    let game = null;
 
-if (gamesPlayed >= freeGameLimit) {
-  alert("You've used your 3 plays. Watch an ad to unlock 3 more games.");
-  window.location.href = "games.html";
-}
-    function changeDirection(event) {
-      if (event.key === "ArrowLeft" && direction !== "RIGHT") {
+    document.addEventListener(
+      "keydown",
+      changeDirection
+    );
+
+    function setDirection(newDirection) {
+
+      if (
+        newDirection === "LEFT" &&
+        direction !== "RIGHT"
+      ) {
         direction = "LEFT";
       }
 
-      if (event.key === "ArrowUp" && direction !== "DOWN") {
+      if (
+        newDirection === "UP" &&
+        direction !== "DOWN"
+      ) {
         direction = "UP";
       }
 
-      if (event.key === "ArrowRight" && direction !== "LEFT") {
+      if (
+        newDirection === "RIGHT" &&
+        direction !== "LEFT"
+      ) {
         direction = "RIGHT";
       }
 
-      if (event.key === "ArrowDown" && direction !== "UP") {
+      if (
+        newDirection === "DOWN" &&
+        direction !== "UP"
+      ) {
+        direction = "DOWN";
+      }
+    }
+
+    function changeDirection(event) {
+
+      if (
+        event.key === "ArrowLeft" &&
+        direction !== "RIGHT"
+      ) {
+        direction = "LEFT";
+      }
+
+      if (
+        event.key === "ArrowUp" &&
+        direction !== "DOWN"
+      ) {
+        direction = "UP";
+      }
+
+      if (
+        event.key === "ArrowRight" &&
+        direction !== "LEFT"
+      ) {
+        direction = "RIGHT";
+      }
+
+      if (
+        event.key === "ArrowDown" &&
+        direction !== "UP"
+      ) {
         direction = "DOWN";
       }
     }
 
     function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      for (let i = 0; i < snake.length; i++) {
-        ctx.fillStyle = i === 0 ? "#22c55e" : "#4ade80";
-        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+      ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      for (
+        let i = 0;
+        i < snake.length;
+        i++
+      ) {
+
+        ctx.fillStyle =
+          i === 0
+            ? "#22c55e"
+            : "#4ade80";
+
+        ctx.fillRect(
+          snake[i].x,
+          snake[i].y,
+          box,
+          box
+        );
       }
 
       ctx.fillStyle = "#ef4444";
-      ctx.fillRect(food.x, food.y, box, box);
+
+      ctx.fillRect(
+        food.x,
+        food.y,
+        box,
+        box
+      );
 
       let snakeX = snake[0].x;
       let snakeY = snake[0].y;
 
-      if (direction === "LEFT") snakeX -= box;
-      if (direction === "UP") snakeY -= box;
-      if (direction === "RIGHT") snakeX += box;
-      if (direction === "DOWN") snakeY += box;
+      if (direction === "LEFT") {
+        snakeX -= box;
+      }
 
-      if (snakeX === food.x && snakeY === food.y) {
+      if (direction === "UP") {
+        snakeY -= box;
+      }
+
+      if (direction === "RIGHT") {
+        snakeX += box;
+      }
+
+      if (direction === "DOWN") {
+        snakeY += box;
+      }
+
+      if (
+        snakeX === food.x &&
+        snakeY === food.y
+      ) {
+
         score++;
-        document.getElementById("score").textContent = score;
+
+        document.getElementById(
+          "score"
+        ).textContent = score;
 
         food = {
-          x: Math.floor(Math.random() * 20) * box,
-          y: Math.floor(Math.random() * 20) * box
+          x:
+            Math.floor(
+              Math.random() * 20
+            ) * box,
+
+          y:
+            Math.floor(
+              Math.random() * 20
+            ) * box
         };
+
       } else {
+
         snake.pop();
       }
 
@@ -146,37 +332,26 @@ if (gamesPlayed >= freeGameLimit) {
         snakeY >= canvas.height ||
         collision(newHead, snake)
       ) {
-        clearInterval(game);
 
-gamesPlayed = gamesPlayed + 1;
-localStorage.setItem("gamesPlayed", gamesPlayed);
-let points = Number(localStorage.getItem("points")) || 0;
-let earnedPoints = score * 5;
-
-points = points + earnedPoints;
-localStorage.setItem("points", points);
-
-let playAgain = confirm(
-  "Game Over!\n\nScore: " + score +
-  "\nYou earned " + earnedPoints + " Arcade Coins!" +
-  "\n\nPlay again?"
-);
-
-if (playAgain) {
-  location.reload();
-} else {
-  window.location.href = "games.html";
-}
-
-return;
+        gameOver();
+        return;
       }
 
       snake.unshift(newHead);
     }
 
     function collision(head, body) {
-      for (let i = 0; i < body.length; i++) {
-        if (head.x === body[i].x && head.y === body[i].y) {
+
+      for (
+        let i = 0;
+        i < body.length;
+        i++
+      ) {
+
+        if (
+          head.x === body[i].x &&
+          head.y === body[i].y
+        ) {
           return true;
         }
       }
@@ -184,7 +359,112 @@ return;
       return false;
     }
 
-    const game = setInterval(draw, 120);
+    function gameOver() {
+
+      clearInterval(game);
+      game = null;
+
+      snakeGamesPlayed =
+        snakeGamesPlayed + 1;
+
+      localStorage.setItem(
+        "snakeGamesPlayed",
+        snakeGamesPlayed
+      );
+
+      /*
+        Snake reward system:
+
+        1 apple = 1 Arcade Coin
+        Maximum 5 Arcade Coins per game
+      */
+
+      let earnedCoins =
+        Math.min(score, 5);
+
+      let points =
+        Number(
+          localStorage.getItem("points")
+        ) || 0;
+
+      points =
+        points + earnedCoins;
+
+      localStorage.setItem(
+        "points",
+        points
+      );
+
+      let playsLeft =
+        Math.max(
+          0,
+          freeGameLimit -
+          snakeGamesPlayed
+        );
+
+      if (playsLeft === 0) {
+
+        alert(
+          "Game Over!\n\n" +
+          "Score: " + score +
+          "\nYou earned " +
+          earnedCoins +
+          " Arcade Coins!" +
+          "\n\nYou've used all 3 Snake plays."
+        );
+
+        window.location.href =
+          "games.html";
+
+        return;
+      }
+
+      let playAgain =
+        confirm(
+          "Game Over!\n\n" +
+          "Score: " + score +
+          "\nYou earned " +
+          earnedCoins +
+          " Arcade Coins!" +
+          "\n\nSnake plays remaining: " +
+          playsLeft +
+          "\n\nPlay again?"
+        );
+
+      if (playAgain) {
+
+        location.reload();
+
+      } else {
+
+        window.location.href =
+          "games.html";
+      }
+    }
+
+    function startGame() {
+
+      if (game !== null) {
+        return;
+      }
+
+      game =
+        setInterval(
+          draw,
+          120
+        );
+
+      const startButton =
+        document.getElementById(
+          "startButton"
+        );
+
+      startButton.disabled = true;
+
+      startButton.textContent =
+        "🎮 Game Running";
+    }
+
   </script>
 
 </body>
