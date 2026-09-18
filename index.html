@@ -60,6 +60,17 @@
       </div>
     </section>
 
+    <section class="card compact-card" id="streakRewardCard">
+      <div class="row">
+        <div style="text-align:left">
+          <strong>🔥 Streak Rewards</strong>
+          <div class="muted small" id="streakRewardText">Build your streak for bonus XP</div>
+        </div>
+        <span class="play-pill" id="streakRewardCount">0/3</span>
+      </div>
+      <div class="streak-reward-list" id="streakRewardList"></div>
+    </section>
+
     <section class="card challenge">
       <div class="row">
         <div>
@@ -101,6 +112,16 @@
     <a class="button wide" href="games.html">🕹 Play Games</a>
     <a class="button wide gold" href="rewards.html">🎁 Rewards</a>
 
+    <section class="card compact-card">
+      <div class="how-it-works">
+        <div>
+          <strong>❓ How Earnly Works</strong>
+          <div class="muted small">Quick walkthrough of games, XP, missions, and rewards.</div>
+        </div>
+        <button class="mini-button secondary" id="howEarnlyWorks" type="button">View</button>
+      </div>
+    </section>
+
     <details class="card compact-card">
       <summary>What is this prototype testing?</summary>
       <p class="muted">
@@ -116,6 +137,9 @@
     const streak = document.getElementById('streak');
     const bonusText = document.getElementById('bonusText');
     const bonusButton = document.getElementById('dailyBonusButton');
+    const streakRewardText = document.getElementById('streakRewardText');
+    const streakRewardCount = document.getElementById('streakRewardCount');
+    const streakRewardList = document.getElementById('streakRewardList');
     const challengeTitle = document.getElementById('challengeTitle');
     const challengeDescription = document.getElementById('challengeDescription');
     const challengeCount = document.getElementById('challengeCount');
@@ -176,6 +200,54 @@
       bonusButton.disabled = bonus.claimed;
       bonusButton.textContent = bonus.claimed ? 'Claimed ✓' : 'Claim +' + bonus.reward;
 
+      const streakRewards = Arcade.streakRewardStatus();
+      streakRewardCount.textContent = streakRewards.claimed + '/' + streakRewards.total;
+      streakRewardText.textContent = streakRewards.ready
+        ? streakRewards.ready + ' reward' + (streakRewards.ready === 1 ? '' : 's') + ' ready to claim'
+        : 'Current streak: ' + streakRewards.streak + ' day' + (streakRewards.streak === 1 ? '' : 's');
+
+      streakRewardList.replaceChildren();
+      streakRewards.rewards.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'streak-reward' + (item.claimed ? ' claimed' : (item.reached ? ' ready' : ''));
+
+        const icon = document.createElement('div');
+        icon.className = 'streak-reward-icon';
+        icon.textContent = item.icon;
+
+        const copy = document.createElement('div');
+        copy.className = 'streak-reward-copy';
+
+        const title = document.createElement('strong');
+        title.textContent = item.days + '-Day Streak';
+
+        const detail = document.createElement('span');
+        detail.textContent = item.claimed ? '+' + item.rewardXP + ' XP claimed' :
+          (item.reached ? '+' + item.rewardXP + ' XP ready' : 'Reach day ' + item.days + ' · +' + item.rewardXP + ' XP');
+
+        copy.append(title, detail);
+        row.append(icon, copy);
+
+        if (item.reached && !item.claimed) {
+          const claim = document.createElement('button');
+          claim.className = 'green';
+          claim.type = 'button';
+          claim.textContent = 'Claim';
+          claim.addEventListener('click', () => {
+            Arcade.claimStreakReward(item.days);
+            render();
+          });
+          row.append(claim);
+        } else {
+          const state = document.createElement('div');
+          state.className = 'game-stat-badge';
+          state.textContent = item.claimed ? '✓' : item.days + 'd';
+          row.append(state);
+        }
+
+        streakRewardList.append(row);
+      });
+
       const challenge = Arcade.challengeStatus();
       challengeTitle.textContent = challenge.title;
       challengeDescription.textContent = challenge.description;
@@ -221,6 +293,7 @@
       render();
     });
 
+    document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
     coinAdButton.addEventListener('click', () => Arcade.coinAd(render));
 
     window.addEventListener('pageshow', render);
