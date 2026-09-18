@@ -91,7 +91,22 @@ const Arcade = (() => {
     return profileName();
   }
 
+  function ensureXPMigration() {
+    if (localStorage.getItem('arcadeXPMigrated') === '1') return;
+
+    if (localStorage.getItem('arcadeXP') === null) {
+      const legacyAchievements = achievementDefinitions().filter(item => item.unlocked).length;
+      const legacyXP =
+        number('gamesCompletedEver') * BASE_GAME_XP +
+        legacyAchievements * ACHIEVEMENT_XP;
+      setNumber('arcadeXP', legacyXP);
+    }
+
+    localStorage.setItem('arcadeXPMigrated', '1');
+  }
+
   function xpStatus() {
+    ensureXPMigration();
     const xp = number('arcadeXP');
     let level = 1;
     let spent = 0;
@@ -251,6 +266,9 @@ const Arcade = (() => {
       { id:'first', icon:'🎮', title:'First Run', description:'Finish your first Earnly game', unlocked:number('gamesCompletedEver') >= 1 },
       { id:'explorer', icon:'🗺️', title:'Arcade Explorer', description:'Finish 4 different games', unlocked:lifetimeGames >= 4 },
       { id:'collector', icon:'🪙', title:'Coin Collector', description:'Earn 100 lifetime Arcade Coins', unlocked:number('lifetimePoints') >= 100 },
+      { id:'streak3', icon:'🔥', title:'Heating Up', description:'Reach a 3-day streak', unlocked:number('dailyStreak') >= 3 },
+      { id:'streak7', icon:'📅', title:'Week Warrior', description:'Reach a 7-day streak', unlocked:number('dailyStreak') >= 7 },
+      { id:'streak14', icon:'⚡', title:'Locked In', description:'Reach a 14-day streak', unlocked:number('dailyStreak') >= 14 },
       { id:'snake10', icon:'🐍', title:'Growing Fast', description:'Eat 10 apples in Snake', unlocked:number('snakeBest') >= 10 },
       { id:'snake25', icon:'🔥', title:'Snake Master', description:'Eat 25 apples in Snake', unlocked:number('snakeBest') >= 25 },
       { id:'block3', icon:'🧱', title:'Line Clearer', description:'Clear 3 lines in Block Drop', unlocked:number('blockDropBestLines') >= 3 },
