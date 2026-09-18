@@ -2500,3 +2500,151 @@ body{animation:app-fade-in 180ms ease both}
     min-width:240px;
   }
 }
+
+
+/* Shared game guide system */
+.game-guide-page .container{
+  width:min(100%,500px);
+  padding:max(12px,env(safe-area-inset-top)) 14px max(28px,env(safe-area-inset-bottom));
+}
+.game-guide-page .topbar{
+  min-height:36px;
+  margin-bottom:7px;
+}
+.game-guide-page .brand{font-size:12px}
+.game-guide-page .balance-chip{
+  padding:6px 9px;
+  font-size:10px;
+}
+.game-guide-page .page-header{
+  margin:0 0 7px;
+}
+.game-guide-page .page-header h1{
+  margin:0 0 5px;
+  font-size:23px;
+  line-height:1.05;
+}
+.game-guide-page .game-meta{
+  gap:5px;
+  margin:5px 0 6px;
+}
+.game-guide-page .meta-pill{
+  padding:5px 7px;
+  font-size:9px;
+}
+.game-guide-page .game-status{
+  padding:5px 8px;
+  font-size:9px;
+}
+.game-guide-strip{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
+  margin:0 0 7px;
+}
+.game-guide-step{
+  min-width:0;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:5px;
+  align-items:center;
+  padding:6px 7px;
+  border-radius:10px;
+  background:#111b2b;
+  border:1px solid #27394f;
+  text-align:left;
+}
+.game-guide-step-icon{
+  font-size:14px;
+  line-height:1;
+}
+.game-guide-step strong{
+  display:block;
+  color:#e2e8f0;
+  font-size:8.5px;
+  line-height:1.1;
+}
+.game-guide-step small{
+  display:block;
+  margin-top:1px;
+  color:#8395aa;
+  font-size:7.2px;
+  line-height:1.2;
+}
+.game-guide-surface-wrap{
+  position:relative;
+  width:fit-content;
+  max-width:100%;
+  margin:0 auto;
+}
+.game-guide-surface-wrap>.game-guide-surface{
+  display:block;
+  margin:0!important;
+  max-width:100%;
+}
+.game-guide-overlay{
+  position:absolute;
+  inset:0;
+  z-index:6;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  border-radius:inherit;
+  background:rgba(8,15,27,.64);
+  backdrop-filter:blur(2px);
+  pointer-events:none;
+  opacity:1;
+  transition:opacity 140ms ease;
+}
+.game-guide-overlay.hidden{
+  opacity:0;
+}
+.game-guide-overlay-icon{
+  margin-bottom:6px;
+  font-size:27px;
+}
+.game-guide-overlay-title{
+  font-size:19px;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+.game-guide-overlay-text{
+  max-width:280px;
+  margin-top:5px;
+  color:#c0cede;
+  font-size:10px;
+  line-height:1.35;
+  text-align:center;
+}
+.game-guide-more{
+  margin:7px 2px 0;
+  color:#708198;
+  font-size:9px;
+  text-align:left;
+}
+.game-guide-more summary{
+  color:#7890aa;
+  cursor:pointer;
+}
+.game-guide-more p{
+  margin:6px 0 0;
+  color:#8293a8;
+  font-size:9px;
+  line-height:1.4;
+}
+.game-guide-page>a.button.secondary{
+  min-height:38px;
+  margin-top:8px;
+  padding:9px 12px;
+  border-radius:11px;
+  font-size:11px;
+}
+@media(max-height:760px) and (pointer:coarse){
+  .game-guide-page .topbar{margin-bottom:4px}
+  .game-guide-page .page-header h1{font-size:20px}
+  .game-guide-page .page-header{margin-bottom:5px}
+  .game-guide-page .game-meta{margin:4px 0}
+  .game-guide-strip{margin-bottom:5px}
+}
