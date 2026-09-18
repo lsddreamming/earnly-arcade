@@ -176,7 +176,7 @@
       running=false;
       lock=true;
       const earned=rewardForMoves(moves);
-      Arcade.earn(earned,'Memory Match');
+      Arcade.earn(earned,'Memory Match', { kind:'game', game:'memory', metric:moves });
       Arcade.feedback('success');
       const result=Arcade.recordResult('memory', moves);
 
