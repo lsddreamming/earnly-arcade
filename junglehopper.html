@@ -284,6 +284,7 @@
 
       const earned = rewardFor(score);
       Arcade.earn(earned, 'Jungle Hopper');
+      Arcade.recordResult('jungleHopper', score);
 
       const best = Math.max(score, Arcade.number('jungleHopperBest'));
       localStorage.setItem('jungleHopperBest', String(best));
