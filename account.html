@@ -48,6 +48,23 @@
       </div>
     </section>
 
+    <section class="card transfer-card" id="transfer" style="text-align:left">
+      <h2>📲 Move Progress Between Safari & Home Screen</h2>
+      <p class="muted">Use this when the iPhone Home Screen version starts with a fresh balance. The code contains prototype game progress only.</p>
+
+      <div class="data-actions transfer-actions">
+        <button class="wide green" id="copyTransferButton" type="button">📋 Copy Progress Code</button>
+        <button class="wide secondary" id="clipboardRestoreButton" type="button">📲 Restore From Clipboard</button>
+      </div>
+
+      <textarea id="transferCodeInput" class="transfer-code-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Or paste an Earnly progress code here"></textarea>
+      <button class="wide secondary" id="pasteRestoreButton" type="button">Restore Pasted Code</button>
+
+      <div class="data-note" id="transferNote">
+        In Safari: copy the code. Then open Earnly from your Home Screen and restore it there.
+      </div>
+    </section>
+
     <section class="card" style="text-align:left">
       <h2>💾 Backup Progress</h2>
       <p class="muted">Save a copy of your Earnly profile, XP, coins, best scores, achievements, streaks, missions, favorites, and history.</p>
@@ -87,6 +104,8 @@
     const device = document.getElementById('deviceId');
     const pending = document.getElementById('pendingEvents');
     const note = document.getElementById('backupNote');
+    const transferNote = document.getElementById('transferNote');
+    const transferInput = document.getElementById('transferCodeInput');
     const restoreFile = document.getElementById('restoreFile');
 
     function render(){
@@ -95,6 +114,50 @@
       device.textContent = sync.deviceId.slice(0, 8) + '…' + sync.deviceId.slice(-6);
       pending.textContent = sync.pending + ' pending';
     }
+
+    document.getElementById('copyTransferButton').addEventListener('click', async () => {
+      try {
+        const result = await Arcade.copyTransferCode();
+        if (result.copied) {
+          transferNote.textContent = 'Copied ' + result.saved + ' saved data items. Now open the Home Screen version and tap Restore Progress.';
+          Arcade.toast('📋 Earnly progress code copied');
+        } else {
+          transferInput.value = result.code;
+          transferInput.focus();
+          transferInput.select();
+          transferNote.textContent = 'Clipboard copy is unavailable here. The progress code is selected below — copy it manually.';
+        }
+      } catch (error) {
+        transferNote.textContent = error.message || 'Could not create the progress code.';
+      }
+    });
+
+    async function restoreCode(code) {
+      try {
+        const result = Arcade.restoreTransferCode(code);
+        transferNote.textContent = 'Restore complete: ' + result.restored + ' data items restored.';
+        Arcade.toast('✅ Earnly progress restored');
+        setTimeout(() => location.reload(), 450);
+      } catch (error) {
+        transferNote.textContent = error.message || 'The progress code could not be restored.';
+        Arcade.toast('⚠️ Progress restore failed');
+      }
+    }
+
+    document.getElementById('clipboardRestoreButton').addEventListener('click', async () => {
+      try {
+        const result = await Arcade.restoreTransferFromClipboard();
+        transferNote.textContent = 'Restore complete: ' + result.restored + ' data items restored.';
+        Arcade.toast('✅ Earnly progress restored');
+        setTimeout(() => location.reload(), 450);
+      } catch (error) {
+        transferNote.textContent = error.message || 'Could not read an Earnly progress code from the clipboard.';
+      }
+    });
+
+    document.getElementById('pasteRestoreButton').addEventListener('click', () => {
+      restoreCode(transferInput.value);
+    });
 
     document.getElementById('backupButton').addEventListener('click', () => {
       const snapshot = Arcade.downloadBackup();
