@@ -170,6 +170,8 @@
           score += 100;
           lines += 1;
           Arcade.feedback('line');
+          if (lines === 3) Arcade.milestone('🧱 3 lines · Line Clearer!');
+          if (lines === 10) Arcade.milestone('🔥 10 lines · Block Drop streak!', 'perfect');
           scoreEl.textContent = score;
           linesEl.textContent = lines;
           y += 1;
@@ -257,13 +259,20 @@
       startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
 
-      Arcade.panel(
-        '🧱 Game Over',
-        'Score: ' + score + '\nLines cleared: ' + lines + '\n+' + earned + ' Arcade Coins' + Arcade.resultText(result) + '\n' + Arcade.remaining('blockDrop') + ' Block Drop plays remaining',
-        Arcade.remaining('blockDrop') > 0
-          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-          : [['Get More Plays', () => Arcade.out('blockDrop', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-      );
+      Arcade.gameResult({
+        icon:'🧱',
+        title:'Block Drop Over',
+        scoreLabel:'Lines Cleared',
+        score:lines,
+        best:result.best.display,
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('blockDrop'),
+        game:'blockDrop',
+        extra:['Board score: ' + score],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('blockDrop', refreshChrome)
+      });
     }
 
     function startGame() {
