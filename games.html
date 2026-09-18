@@ -33,7 +33,7 @@
 
     <section class="games-play-note">
       <span>🎟️ 3 free plays per game daily</span>
-      <span>▶️ Rewarded ad = +3 plays</span>
+      <span>▶️ +3 plays · max 2 unlocks/day</span>
     </section>
 
     <div id="quickSections"></div>
@@ -48,7 +48,7 @@
     <details class="card compact-card">
       <summary>How game progress works</summary>
       <p class="muted">Every finished game gives XP. Some game scores also earn Arcade Coins. Achievements, streak rewards, and weekly missions can add more XP.</p>
-      <p class="muted">Each game gets 3 free plays per day. Rewarded ads unlock extra plays without spending Arcade Coins. Your prototype progress is stored on this device for now.</p>
+      <p class="muted">Each game gets 3 free plays per day. Up to 2 rewarded ads per game can unlock +3 plays each without spending Arcade Coins. Your prototype progress is stored on this device for now.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -143,6 +143,7 @@
 
       gameInfo.forEach(info => {
         const remaining = Arcade.remaining(info.key);
+        const adStatus = Arcade.playAdStatus(info.key);
         const best = Arcade.best(info.key);
         const card = document.createElement('section');
         card.className = 'card game-card compact-game';
@@ -183,18 +184,23 @@
 
         const play = document.createElement('button');
         play.className = 'wide game-play-button';
-        play.textContent = remaining ? 'Play' : 'Get More Plays';
+        play.disabled = !remaining && adStatus.remaining <= 0;
+        play.textContent = remaining
+          ? 'Play'
+          : (adStatus.remaining > 0 ? 'Get More Plays' : 'Come Back Tomorrow');
         play.addEventListener('click', () => {
           if (remaining) location.href = info.href;
-          else Arcade.out(info.key, render);
+          else if (adStatus.remaining > 0) Arcade.out(info.key, render);
         });
 
         card.append(heading, rule, bestLine, play);
 
         if (!remaining) {
           const status = document.createElement('div');
-          status.className = 'status-line warning';
-          status.textContent = 'Free plays refill tomorrow · Get More Plays can unlock +3 with a rewarded ad.';
+          status.className = 'status-line ' + (adStatus.remaining > 0 ? 'warning' : '');
+          status.textContent = adStatus.remaining > 0
+            ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +3 plays each'
+            : 'Daily bonus-play limit reached · free plays refill tomorrow';
           card.append(status);
         }
 
