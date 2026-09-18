@@ -27,8 +27,16 @@
 
     <header class="page-header">
       <h1>Choose a Game</h1>
-      <p>Beat your best scores, level up, and unlock achievements.</p>
+      <p>Play with free daily attempts, beat your best scores, earn XP, and chase Arcade Coin rewards.</p>
     </header>
+
+    <section class="card compact-card play-explainer">
+      <div class="play-explainer-row">
+        <span>🎟️ <strong>3 free plays</strong> per game each day</span>
+        <span>▶️ Rewarded ad = <strong>+3 plays</strong> for that game</span>
+      </div>
+      <p class="muted small">Ads unlock more chances to play. They do not directly award Arcade Coins.</p>
+    </section>
 
     <div id="quickSections"></div>
 
@@ -41,8 +49,8 @@
 
     <details class="card compact-card">
       <summary>How game progress works</summary>
-      <p class="muted">Every finished game gives XP. Achievements give bonus XP. Favorites and recently played games stay at the top for faster access.</p>
-      <p class="muted">Your prototype progress is stored on this device for now.</p>
+      <p class="muted">Every finished game gives XP. Some game scores also earn Arcade Coins. Achievements, streak rewards, and weekly missions can add more XP.</p>
+      <p class="muted">Each game gets 3 free plays per day. Rewarded ads unlock extra plays without spending Arcade Coins. Your prototype progress is stored on this device for now.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -186,15 +194,10 @@
         card.append(heading, rule, bestLine, play);
 
         if (!remaining) {
-          const ad = document.createElement('button');
-          ad.className = 'wide green game-play-button';
-          ad.textContent = '▶ Demo Ad · +3 Plays';
-          ad.addEventListener('click', () => Arcade.playAd(info.key, render));
-
           const status = document.createElement('div');
           status.className = 'status-line warning';
-          status.textContent = 'Out of free plays — refill tomorrow or unlock 3 more.';
-          card.append(ad, status);
+          status.textContent = 'Free plays refill tomorrow · Get More Plays can unlock +3 with a rewarded ad.';
+          card.append(status);
         }
 
         root.append(card);
