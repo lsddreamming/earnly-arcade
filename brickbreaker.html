@@ -198,7 +198,7 @@
       animation=null;
 
       const earned=rewardFor(broken,cleared);
-      Arcade.earn(earned,'Brick Breaker');
+      Arcade.earn(earned,'Brick Breaker', { kind:'game', game:'brickBreaker', metric:broken, aux:cleared ? 1 : 0 });
       Arcade.feedback(cleared?'success':'fail');
       const result=Arcade.recordResult('brickBreaker', broken);
 
