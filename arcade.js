@@ -909,8 +909,27 @@ const Arcade = (() => {
 
   let busy = false;
 
+  function closeModalThen(fn) {
+    const next = typeof fn === 'function' ? fn : () => {};
+
+    if (!modal.open) {
+      next();
+      return;
+    }
+
+    modal.addEventListener('close', () => {
+      requestAnimationFrame(() => next());
+    }, { once:true });
+
+    modal.close();
+  }
+
   function panel(title, message, actions) {
-    if (modal.open) modal.close();
+    if (modal.open) {
+      closeModalThen(() => panel(title, message, actions));
+      return;
+    }
+
     modal.className = '';
     modal.replaceChildren();
 
@@ -928,10 +947,7 @@ const Arcade = (() => {
       const b = document.createElement('button');
       b.className = 'wide' + (className ? ' ' + className : '');
       b.textContent = label;
-      b.addEventListener('click', () => {
-        modal.close();
-        fn();
-      });
+      b.addEventListener('click', () => closeModalThen(fn));
       actionBox.append(b);
     });
 
@@ -1066,24 +1082,26 @@ const Arcade = (() => {
     primary.className = 'wide green';
     primary.textContent = playsLeft > 0 ? '▶ Play Again' : '🎟️ Get More Plays';
     primary.addEventListener('click', () => {
-      modal.close();
-      modal.className = '';
-      if (playsLeft > 0) {
-        if (typeof onReplay === 'function') onReplay();
-      } else if (typeof onMorePlays === 'function') {
-        onMorePlays();
-      } else if (game) {
-        out(game, () => {});
-      }
+      closeModalThen(() => {
+        modal.className = '';
+        if (playsLeft > 0) {
+          if (typeof onReplay === 'function') onReplay();
+        } else if (typeof onMorePlays === 'function') {
+          onMorePlays();
+        } else if (game) {
+          out(game, () => {});
+        }
+      });
     });
 
     const back = document.createElement('button');
     back.className = 'wide secondary';
     back.textContent = '← Games';
     back.addEventListener('click', () => {
-      modal.close();
-      modal.className = '';
-      location.href = 'games.html';
+      closeModalThen(() => {
+        modal.className = '';
+        location.href = 'games.html';
+      });
     });
 
     actions.append(primary, back);
@@ -1533,11 +1551,7 @@ const Arcade = (() => {
       'Out of ' + names[g] + ' plays',
       'Your free plays refill daily.\nWant to keep playing now? Finish a demo rewarded ad for +' + PLAY_AD_BONUS + ' plays.',
       [
-        ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => {
-          // Let Safari finish dispatching the current dialog's close event
-          // before reusing the same dialog for the rewarded-ad simulation.
-          setTimeout(() => playAd(g, done), 50);
-        }, 'green'],
+        ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
         ['Back to Arcade', () => location.href = 'games.html', 'secondary']
       ]
     );
