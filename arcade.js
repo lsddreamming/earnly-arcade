@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.5';
+  const APP_VERSION = '0.15.6';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -2357,4 +2357,52 @@ const Arcade = (() => {
     challengeStatus,
     claimChallenge
   };
+})();
+
+(function ensureEarnlyCloudEverywhere(){
+  function loadScript(src, onload){
+    const existing = Array.from(document.scripts).find(script => script.src === src);
+    if (existing) {
+      if (onload) existing.addEventListener('load', onload, { once:true });
+      return existing;
+    }
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    if (onload) script.addEventListener('load', onload, { once:true });
+    document.head.append(script);
+    return script;
+  }
+
+  function start(){
+    if (window.EarnlyCloud) return;
+
+    const cloudUrl = new URL('cloud.js', location.href).href;
+    const loadCloud = () => {
+      if (!window.EarnlyCloud) loadScript(cloudUrl);
+    };
+
+    if (window.supabase) {
+      loadCloud();
+      return;
+    }
+
+    const supabaseUrl = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    const existingSupabase = Array.from(document.scripts).find(script => script.src === supabaseUrl);
+
+    if (existingSupabase) {
+      if (window.supabase) loadCloud();
+      else existingSupabase.addEventListener('load', loadCloud, { once:true });
+      return;
+    }
+
+    loadScript(supabaseUrl, loadCloud);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once:true });
+  } else {
+    start();
+  }
 })();
