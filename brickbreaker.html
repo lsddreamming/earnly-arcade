@@ -170,6 +170,7 @@
 
       const earned=rewardFor(broken,cleared);
       Arcade.earn(earned,'Brick Breaker');
+      Arcade.recordResult('brickBreaker', broken);
 
       const best=Math.max(broken,Arcade.number('brickBreakerBest'));
       localStorage.setItem('brickBreakerBest',String(best));
