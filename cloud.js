@@ -148,7 +148,9 @@
       .slice(0, 30);
 
     if (!rewardEvents.length) {
-      return { synced:0, wallet:await walletInfo() };
+      const wallet = await walletInfo();
+      if (wallet) Arcade.applyServerWallet?.(wallet);
+      return { synced:0, wallet };
     }
 
     let synced = 0;
@@ -212,6 +214,7 @@
     }
 
     if (wallet) {
+      Arcade.applyServerWallet?.(wallet);
       localStorage.setItem('arcadeShadowWallet', JSON.stringify({
         balance:Number(wallet.balance || 0),
         lifetime:Number(wallet.lifetime_earned || 0),
