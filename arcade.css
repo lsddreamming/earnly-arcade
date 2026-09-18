@@ -13,7 +13,7 @@
   --red:#ef4444;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:110%;text-size-adjust:110%}
 body{
   margin:0;
   min-height:100vh;
@@ -3557,3 +3557,46 @@ body{animation:app-fade-in 180ms ease both}
   font:8px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
   resize:vertical;
 }
+
+
+/* 0.14.3 user-controlled text sizing */
+.display-settings-card .muted{margin-top:0}
+.text-size-options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.text-size-options button{
+  min-height:54px;
+  margin:0;
+  padding:9px 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:2px;
+  border:1px solid #33475f;
+  border-radius:13px;
+  background:#111b2b;
+  color:#dbeafe;
+  box-shadow:none;
+}
+.text-size-options button strong{font-size:12px}
+.text-size-options button span{color:#8fa0b6;font-size:10px}
+.text-size-options button.active{
+  border-color:#3b82f6;
+  background:#17335d;
+  box-shadow:inset 0 0 0 1px #3b82f6;
+}
+.text-size-options button.active span{color:#93c5fd}
+.text-size-preview{
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px solid #293b52;
+  border-radius:12px;
+  background:#0f1828;
+}
+.text-size-preview span,.text-size-preview strong{display:block}
+.text-size-preview span{color:#7dd3fc;font-size:10px;font-weight:800}
+.text-size-preview strong{margin-top:3px;font-size:14px}
