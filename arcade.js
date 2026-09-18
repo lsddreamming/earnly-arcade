@@ -1602,8 +1602,13 @@ const Arcade = (() => {
 
     document.body.classList.add('game-guide-page');
 
+    const surfaceRect = surface.getBoundingClientRect();
+    const surfaceRadius = getComputedStyle(surface).borderRadius;
+
     const wrapper = document.createElement('div');
     wrapper.className = 'game-guide-surface-wrap';
+    if (surfaceRect.width > 0) wrapper.style.width = Math.ceil(surfaceRect.width) + 'px';
+    if (surfaceRadius) wrapper.style.borderRadius = surfaceRadius;
 
     surface.parentNode.insertBefore(wrapper, surface);
     wrapper.append(surface);
