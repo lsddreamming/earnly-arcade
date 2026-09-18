@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.12.2';
+  const APP_VERSION = '0.13.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1591,6 +1591,154 @@ const Arcade = (() => {
     );
   }
 
+
+  function gameGuide(options = {}) {
+    const game = options.game;
+    const surface = typeof options.surface === 'string'
+      ? document.querySelector(options.surface)
+      : options.surface;
+
+    if (!game || !surface) return null;
+
+    document.body.classList.add('game-guide-page');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'game-guide-surface-wrap';
+
+    surface.parentNode.insertBefore(wrapper, surface);
+    wrapper.append(surface);
+    surface.classList.add('game-guide-surface');
+
+    const strip = document.createElement('section');
+    strip.className = 'game-guide-strip';
+    strip.setAttribute('aria-label', (names[game] || 'Game') + ' quick instructions');
+
+    (options.steps || []).slice(0, 3).forEach(step => {
+      const item = document.createElement('div');
+      item.className = 'game-guide-step';
+
+      const icon = document.createElement('span');
+      icon.className = 'game-guide-step-icon';
+      icon.textContent = step.icon || '•';
+
+      const copy = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = step.title || '';
+      const text = document.createElement('small');
+      text.textContent = step.text || '';
+
+      copy.append(title, text);
+      item.append(icon, copy);
+      strip.append(item);
+    });
+
+    wrapper.before(strip);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'game-guide-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+
+    const overlayIcon = document.createElement('div');
+    overlayIcon.className = 'game-guide-overlay-icon';
+    overlayIcon.textContent = options.overlayIcon || '👆';
+
+    const overlayTitle = document.createElement('strong');
+    overlayTitle.className = 'game-guide-overlay-title';
+
+    const overlayText = document.createElement('span');
+    overlayText.className = 'game-guide-overlay-text';
+
+    overlay.append(overlayIcon, overlayTitle, overlayText);
+    wrapper.append(overlay);
+
+    const tips = Array.isArray(options.tips) ? options.tips.filter(Boolean) : [];
+    if (options.reward) tips.push(options.reward);
+
+    if (tips.length) {
+      const details = document.createElement('details');
+      details.className = 'game-guide-more';
+
+      const summary = document.createElement('summary');
+      summary.textContent = 'More tips & rewards';
+      details.append(summary);
+
+      tips.forEach(tip => {
+        const p = document.createElement('p');
+        p.textContent = tip;
+        details.append(p);
+      });
+
+      const afterTarget = options.detailsAfter
+        ? (typeof options.detailsAfter === 'string'
+            ? document.querySelector(options.detailsAfter)
+            : options.detailsAfter)
+        : wrapper;
+
+      (afterTarget || wrapper).insertAdjacentElement('afterend', details);
+    }
+
+    const statusEl = document.querySelector(options.status || '#gameStatus');
+
+    const refresh = () => {
+      const statusText = (statusEl?.textContent || '').trim().toLowerCase();
+      const active =
+        statusText.includes('running') ||
+        statusText.includes('get ready') ||
+        statusText.includes('starting');
+
+      if (active) {
+        overlay.classList.add('hidden');
+        return;
+      }
+
+      overlay.classList.remove('hidden');
+
+      const playsLeft = remaining(game);
+      if (playsLeft <= 0) {
+        overlayIcon.textContent = '🎟️';
+        overlayTitle.textContent = 'Out of Plays';
+        overlayText.textContent = 'Tap here to see today’s play options';
+        return;
+      }
+
+      const replay =
+        statusText.includes('over') ||
+        statusText.includes('complete') ||
+        statusText.includes('clear') ||
+        statusText.includes('survived') ||
+        statusText.includes('finished');
+
+      overlayIcon.textContent = replay ? (options.replayIcon || '↻') : (options.overlayIcon || '👆');
+      overlayTitle.textContent = replay
+        ? (options.replayTitle || 'Tap to Play Again')
+        : (options.overlayTitle || 'Tap to Start');
+      overlayText.textContent = replay
+        ? (options.replayText || options.overlayText || '')
+        : (options.overlayText || '');
+    };
+
+    if (statusEl) {
+      new MutationObserver(refresh).observe(statusEl, {
+        childList:true,
+        characterData:true,
+        subtree:true,
+        attributes:true
+      });
+    }
+
+    window.addEventListener('pageshow', refresh);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+
+    requestAnimationFrame(refresh);
+
+    return {
+      wrapper,
+      overlay,
+      refresh
+    };
+  }
+
   function showOnboarding(force = false) {
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     if (!force) {
@@ -1938,6 +2086,7 @@ const Arcade = (() => {
     feedback,
     countdown,
     resultText,
+    gameGuide,
     playAd,
     ad:playAd,
     out,
