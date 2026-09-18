@@ -1,6 +1,13 @@
 // Earnly prototype storage only. No real ad SDK or cash-out system is connected yet.
 const Arcade = (() => {
-  const names = { snake: 'Snake', blockDrop: 'Block Drop', tapRush: 'Tap Rush' };
+  const names = {
+    snake: 'Snake',
+    blockDrop: 'Block Drop',
+    tapRush: 'Tap Rush',
+    memory: 'Memory Match',
+    dodger: 'Neon Dodger',
+    brickBreaker: 'Brick Breaker'
+  };
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
   const COIN_AD_REWARD = 10;
