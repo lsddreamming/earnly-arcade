@@ -32,6 +32,12 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
 
+  const streakRewardDefinitions = [
+    { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
+    { days:7, icon:'📅', title:'7-Day Streak', rewardXP:50 },
+    { days:14, icon:'⚡', title:'14-Day Streak', rewardXP:100 }
+  ];
+
   const weeklyMissionDefinitions = [
     { id:'games10', icon:'🎮', title:'Arcade Regular', description:'Finish 10 games this week', goal:10, rewardXP:40, type:'games' },
     { id:'variety4', icon:'🗺️', title:'Mix It Up', description:'Finish 4 different games this week', goal:4, rewardXP:50, type:'variety' },
@@ -345,6 +351,77 @@ const Arcade = (() => {
     return readArray('arcadeRecentGames').filter(game => names[game]).slice(0, 4);
   }
 
+  function gameStats(game) {
+    if (!names[game]) {
+      return { game, name:'Game', runs:0, metricTotal:0, average:0, best:{ value:0, display:'No score yet' } };
+    }
+
+    const runs = number('gameRuns_' + game);
+    const metricTotal = number('gameMetricTotal_' + game);
+    const average = runs ? Math.round(metricTotal / runs * 10) / 10 : 0;
+
+    return {
+      game,
+      name:names[game],
+      runs,
+      metricTotal,
+      average,
+      best:best(game)
+    };
+  }
+
+  function allGameStats() {
+    return Object.keys(names).map(gameStats);
+  }
+
+  function mostPlayedGame() {
+    const sorted = allGameStats()
+      .filter(item => item.runs > 0)
+      .sort((a,b) => b.runs - a.runs || b.best.value - a.best.value);
+    return sorted[0] || null;
+  }
+
+  function streakRewardStatus() {
+    const streak = number('dailyStreak');
+    const claimed = new Set(readArray('streakRewardClaims').map(String));
+
+    const rewards = streakRewardDefinitions.map(item => ({
+      ...item,
+      reached:streak >= item.days,
+      claimed:claimed.has(String(item.days))
+    }));
+
+    return {
+      streak,
+      rewards,
+      ready:rewards.filter(item => item.reached && !item.claimed).length,
+      claimed:rewards.filter(item => item.claimed).length,
+      total:rewards.length
+    };
+  }
+
+  function claimStreakReward(days) {
+    const status = streakRewardStatus();
+    const reward = status.rewards.find(item => item.days === Number(days));
+    if (!reward || !reward.reached || reward.claimed) return false;
+
+    const claims = readArray('streakRewardClaims').map(String);
+    claims.push(String(reward.days));
+    writeArray('streakRewardClaims', claims);
+
+    const xpResult = addXP(reward.rewardXP);
+    logActivity('streak', reward.title + ' reward claimed', '+' + reward.rewardXP + ' XP');
+    feedback(xpResult.leveledUp ? 'level' : 'success');
+    toast(reward.icon + ' ' + reward.title + ' · +' + reward.rewardXP + ' XP');
+
+    return {
+      reward,
+      xp:reward.rewardXP,
+      leveledUp:xpResult.leveledUp,
+      level:xpResult.status.level
+    };
+  }
+
   function stats() {
     const achievement = achievementSummary();
     const xp = xpStatus();
@@ -363,7 +440,8 @@ const Arcade = (() => {
       favoriteGame: favorites()[0] || '',
       weeklyMissionsCompleted: weeklyStatus().completed,
       weeklyMissionsTotal: weeklyStatus().total,
-      weeklyClears: number('weeklyClearsEver')
+      weeklyClears: number('weeklyClearsEver'),
+      mostPlayedGame: mostPlayedGame()
     };
   }
 
@@ -597,7 +675,9 @@ const Arcade = (() => {
     localStorage.setItem('lastDailyBonusDate', today);
     earn(DAILY_BONUS, 'Daily bonus');
     logActivity('reward', 'Daily bonus claimed', '+' + DAILY_BONUS + ' Arcade Coins · ' + streak + ' day streak');
-    return { claimed:true, streak };
+    const ready = streakRewardStatus().rewards.find(item => item.days === streak && !item.claimed);
+    if (ready) toast(ready.icon + ' ' + ready.title + ' reward ready!');
+    return { claimed:true, streak, streakRewardReady:ready || null };
   }
 
   function dailyBonusStatus() {
@@ -1025,7 +1105,33 @@ const Arcade = (() => {
     );
   }
 
-  function mountBottomNav() {
+  function showOnboarding(force = false) {
+    const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    if (!force) {
+      if (file !== 'index.html' && file !== '') return;
+      if (localStorage.getItem('arcadeOnboardingSeen') === '1') return;
+      if (number('gamesCompletedEver') > 0) {
+        localStorage.setItem('arcadeOnboardingSeen', '1');
+        return;
+      }
+    }
+
+    panel(
+      '🎮 Welcome to Earnly Arcade',
+      '1. Play arcade games and build your best scores.\n\n2. Complete daily and weekly missions to earn XP and level up.\n\n3. Build streaks, unlock achievements, and track your stats.\n\nThis is still a prototype — real cash-out and real ad rewards are not connected yet.',
+      [
+        ['Let’s Play', () => {
+          localStorage.setItem('arcadeOnboardingSeen', '1');
+          location.href = 'games.html';
+        }, 'green'],
+        ['Explore Home', () => {
+          localStorage.setItem('arcadeOnboardingSeen', '1');
+        }, 'secondary']
+      ]
+    );
+  }
+
+    function mountBottomNav() {
     if (!document.body || document.getElementById('arcadeBottomNav')) return;
 
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
@@ -1076,6 +1182,7 @@ const Arcade = (() => {
   }
 
   mountBottomNav();
+  setTimeout(() => showOnboarding(false), 180);
 
   return {
     names,
@@ -1095,6 +1202,12 @@ const Arcade = (() => {
     toggleFavorite,
     recentGames,
     markRecent,
+    gameStats,
+    allGameStats,
+    mostPlayedGame,
+    streakRewardStatus,
+    claimStreakReward,
+    showOnboarding,
     stats,
     weeklyStatus,
     claimWeeklyMission,
