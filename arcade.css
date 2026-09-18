@@ -476,3 +476,56 @@ a{color:#93c5fd}
 @media(max-width:360px){
   .stats-grid,.best-grid,.quick-grid{grid-template-columns:1fr}
 }
+
+.countdown-overlay{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  display:grid;
+  place-items:center;
+  background:rgba(2,6,23,.46);
+  backdrop-filter:blur(2px);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 120ms ease;
+}
+.countdown-overlay.show{opacity:1;pointer-events:auto}
+.countdown-value{
+  min-width:126px;
+  min-height:126px;
+  padding:20px;
+  display:grid;
+  place-items:center;
+  border-radius:32px;
+  background:linear-gradient(145deg,#2563eb,#172554);
+  border:2px solid rgba(255,255,255,.35);
+  box-shadow:0 24px 70px rgba(0,0,0,.55);
+  color:#fff;
+  font-size:56px;
+  font-weight:1000;
+  line-height:1;
+}
+.countdown-value.pop{animation:countdown-pop 260ms ease}
+@keyframes countdown-pop{
+  0%{transform:scale(.72);opacity:.45}
+  70%{transform:scale(1.08);opacity:1}
+  100%{transform:scale(1)}
+}
+.game-feel-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin:8px 0;
+}
+.mini-button{
+  min-height:40px;
+  padding:9px 12px;
+  margin:0;
+  border-radius:12px;
+  font-size:13px;
+}
+@media(prefers-reduced-motion:reduce){
+  .countdown-value.pop{animation:none}
+}
