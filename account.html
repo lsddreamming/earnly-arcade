@@ -53,6 +53,23 @@
           <button class="secondary" id="cloudCreateButton" type="button">Create Account</button>
         </div>
         <button class="text-button cloud-forgot" id="cloudForgotButton" type="button">Forgot password?</button>
+
+        <div class="cloud-reset-panel" id="cloudResetPanel" hidden>
+          <div class="cloud-reset-head">
+            <div>
+              <span class="section-kicker">PASSWORD RESET</span>
+              <h3>Reset your password</h3>
+            </div>
+            <button class="cloud-reset-close" id="cloudResetClose" type="button" aria-label="Close password reset">✕</button>
+          </div>
+          <p class="muted small">We’ll send a reset link to this email:</p>
+          <label class="cloud-reset-email-label">
+            <span>Email</span>
+            <input id="cloudResetEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+          </label>
+          <button class="green wide" id="cloudResetSendButton" type="button">Send Reset Email</button>
+          <div class="cloud-reset-status" id="cloudResetStatus" hidden></div>
+        </div>
       </div>
 
       <div class="cloud-recovery" id="cloudRecovery" hidden>
@@ -162,6 +179,9 @@
     const cloudAutoSyncToggle = document.getElementById('cloudAutoSyncToggle');
     const cloudRecovery = document.getElementById('cloudRecovery');
     const cloudNewPassword = document.getElementById('cloudNewPassword');
+    const cloudResetPanel = document.getElementById('cloudResetPanel');
+    const cloudResetEmail = document.getElementById('cloudResetEmail');
+    const cloudResetStatus = document.getElementById('cloudResetStatus');
     let recoveryMode = new URLSearchParams(location.search).has('recovery');
 
     function friendlyTime(value){
@@ -281,15 +301,58 @@
       return { email, password };
     }
 
-    document.getElementById('cloudForgotButton').addEventListener('click', async () => {
+    document.getElementById('cloudForgotButton').addEventListener('click', () => {
+      cloudResetEmail.value = cloudEmail.value.trim();
+      cloudResetStatus.hidden = true;
+      cloudResetStatus.textContent = '';
+      cloudResetPanel.hidden = false;
+      cloudResetEmail.focus();
+      if (cloudResetEmail.value) cloudResetEmail.select();
+    });
+
+    document.getElementById('cloudResetClose').addEventListener('click', () => {
+      cloudResetPanel.hidden = true;
+      cloudResetStatus.hidden = true;
+      cloudResetStatus.textContent = '';
+    });
+
+    document.getElementById('cloudResetSendButton').addEventListener('click', async () => {
+      const button = document.getElementById('cloudResetSendButton');
       try {
-        const email = cloudEmail.value.trim();
-        if (!email) throw new Error('Enter the email address for your Earnly account first.');
-        cloudMessage.textContent = 'Sending password-reset email…';
+        const email = cloudResetEmail.value.trim();
+        if (!email) {
+          cloudResetStatus.hidden = false;
+          cloudResetStatus.className = 'cloud-reset-status error';
+          cloudResetStatus.textContent = 'Enter the email address for your Earnly account.';
+          cloudResetEmail.focus();
+          return;
+        }
+
+        cloudEmail.value = email;
+        button.disabled = true;
+        button.textContent = 'Sending…';
+        cloudResetStatus.hidden = false;
+        cloudResetStatus.className = 'cloud-reset-status';
+        cloudResetStatus.textContent = 'Sending reset email…';
+
         await EarnlyCloud.sendPasswordReset(email);
-        cloudMessage.textContent = 'Password-reset email sent. Open it on this device and return to Earnly to choose a new password.';
+
+        cloudResetStatus.className = 'cloud-reset-status success';
+        cloudResetStatus.innerHTML = '✅ Reset email sent to <strong>' + email.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])) + '</strong>.<br>Open that email and tap the reset link.';
+        button.textContent = 'Email Sent ✓';
       } catch (error) {
-        cloudMessage.textContent = error.message || 'Could not send the password-reset email.';
+        const raw = String(error?.message || '');
+        cloudResetStatus.hidden = false;
+        cloudResetStatus.className = 'cloud-reset-status error';
+
+        if (/rate limit/i.test(raw)) {
+          cloudResetStatus.textContent = 'Too many reset emails were requested recently. Wait a little while, then try again.';
+        } else {
+          cloudResetStatus.textContent = raw || 'Could not send the password-reset email.';
+        }
+
+        button.disabled = false;
+        button.textContent = 'Send Reset Email';
       }
     });
 
@@ -318,7 +381,7 @@
         if (data.session) {
           cloudMessage.textContent = 'Account created. Automatic cloud sync is on and will create your first backup.';
         } else {
-          cloudMessage.textContent = 'Account created. Check your email to confirm it, then return to Earnly and sign in. If Safari ever shows a blank localhost page after confirming, the confirmation may still have succeeded — just come back here and sign in.';
+          cloudMessage.textContent = 'Account created. Check your email to confirm it, then return to Earnly and sign in.';
         }
         await renderCloud();
       } catch (error) {
