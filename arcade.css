@@ -2578,9 +2578,14 @@ body{animation:app-fade-in 180ms ease both}
   margin:0 auto;
 }
 .game-guide-surface-wrap>.game-guide-surface{
-  display:block;
   margin:0!important;
   max-width:100%;
+}
+.game-guide-surface-wrap>canvas.game-guide-surface{
+  display:block;
+}
+.game-guide-surface-wrap>.memory-grid.game-guide-surface{
+  display:grid;
 }
 .game-guide-overlay{
   position:absolute;
@@ -2647,4 +2652,45 @@ body{animation:app-fade-in 180ms ease both}
   .game-guide-page .page-header{margin-bottom:5px}
   .game-guide-page .game-meta{margin:4px 0}
   .game-guide-strip{margin-bottom:5px}
+}
+
+
+/* Full-screen installed app sizing */
+@media (display-mode:standalone) and (max-width:520px){
+  .blockdrop-board{
+    width:min(70vw,280px);
+  }
+  .tap-board{
+    width:min(92vw,400px);
+  }
+  .memory-grid{
+    width:min(92vw,400px);
+    max-width:400px;
+  }
+  .dodger-board{
+    width:min(88vw,350px);
+  }
+  .brick-board{
+    width:min(90vw,380px);
+  }
+  .jungle-board,
+  .tower-board{
+    width:min(92vw,390px);
+  }
+  .snake-page .snake-board-wrap{
+    width:min(92vw,400px);
+  }
+}
+
+/* Keep Memory Match a clear 4x4 board on phones */
+.memory-grid.game-guide-surface{
+  width:min(92vw,390px);
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.memory-grid.game-guide-surface .memory-card{
+  width:100%;
+  aspect-ratio:1;
+  font-size:clamp(24px,8vw,32px);
+  border-radius:14px;
 }
