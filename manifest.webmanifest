@@ -1,0 +1,41 @@
+{
+  "name": "Earnly Arcade",
+  "short_name": "Earnly",
+  "description": "Play arcade games, build streaks, complete missions, earn XP, and track your progress.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "./earnly-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play Games",
+      "short_name": "Games",
+      "url": "./games.html",
+      "icons": [{"src":"./earnly-icon.svg","sizes":"any","type":"image/svg+xml"}]
+    },
+    {
+      "name": "Weekly Missions",
+      "short_name": "Missions",
+      "url": "./stats.html",
+      "icons": [{"src":"./earnly-icon.svg","sizes":"any","type":"image/svg+xml"}]
+    },
+    {
+      "name": "Rewards",
+      "short_name": "Rewards",
+      "url": "./rewards.html",
+      "icons": [{"src":"./earnly-icon.svg","sizes":"any","type":"image/svg+xml"}]
+    }
+  ]
+}
