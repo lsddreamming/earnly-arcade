@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Account & Data</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="profile.html">← Profile</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>☁️ Account & Data</h1>
+      <p>Backup your progress now while Earnly is being prepared for real cloud accounts.</p>
+    </header>
+
+    <section class="card" style="text-align:left">
+      <h2>👤 Current Account</h2>
+      <div class="account-status">
+        <div>
+          <strong>Guest on this device</strong>
+          <span>Your progress is still stored locally. Cloud sign-in is the next backend step.</span>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+
+      <div class="sync-queue" style="margin-top:10px">
+        <span>Device ID</span>
+        <strong class="device-id" id="deviceId">—</strong>
+      </div>
+
+      <div class="sync-queue" style="margin-top:8px">
+        <span>Backend-ready events</span>
+        <strong id="pendingEvents">0 pending</strong>
+      </div>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>💾 Backup Progress</h2>
+      <p class="muted">Save a copy of your Earnly profile, XP, coins, best scores, achievements, streaks, missions, favorites, and history.</p>
+
+      <div class="data-actions">
+        <button class="wide green" id="backupButton" type="button">⬇️ Download Progress Backup</button>
+        <button class="wide secondary" id="restoreButton" type="button">⬆️ Restore From Backup</button>
+        <input id="restoreFile" type="file" accept="application/json,.json" hidden>
+      </div>
+
+      <div class="data-note" id="backupNote">
+        Backups contain prototype game progress only. They do not contain passwords or payment information.
+      </div>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>🔐 Cloud Backend Readiness</h2>
+      <div class="account-status">
+        <div>
+          <strong>Event queue ready</strong>
+          <span>Earnly now records play starts, game results, XP awards, and coin awards in a structured queue that can be sent to a secure backend.</span>
+        </div>
+        <div class="status-dot ready"></div>
+      </div>
+      <p class="muted small" style="margin-bottom:0">
+        The next step is connecting authentication and a server-side database so balances and reward actions no longer depend on editable browser storage.
+      </p>
+    </section>
+
+    <a class="button wide" href="profile.html">← Back to Profile</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const balance = document.getElementById('balance');
+    const device = document.getElementById('deviceId');
+    const pending = document.getElementById('pendingEvents');
+    const note = document.getElementById('backupNote');
+    const restoreFile = document.getElementById('restoreFile');
+
+    function render(){
+      balance.textContent = Arcade.number('points').toLocaleString();
+      const sync = Arcade.syncStatus();
+      device.textContent = sync.deviceId.slice(0, 8) + '…' + sync.deviceId.slice(-6);
+      pending.textContent = sync.pending + ' pending';
+    }
+
+    document.getElementById('backupButton').addEventListener('click', () => {
+      const snapshot = Arcade.downloadBackup();
+      note.textContent = 'Backup created with ' + Object.keys(snapshot.data).length + ' saved data items.';
+      Arcade.toast('💾 Earnly progress backup created');
+      render();
+    });
+
+    document.getElementById('restoreButton').addEventListener('click', () => restoreFile.click());
+
+    restoreFile.addEventListener('change', async () => {
+      const file = restoreFile.files && restoreFile.files[0];
+      if (!file) return;
+
+      try {
+        const result = await Arcade.restoreBackupFile(file);
+        note.textContent = 'Restore complete: ' + result.restored + ' data items restored.';
+        Arcade.toast('✅ Earnly progress restored');
+        render();
+      } catch (error) {
+        note.textContent = error.message || 'The backup could not be restored.';
+        Arcade.toast('⚠️ Backup restore failed');
+      } finally {
+        restoreFile.value = '';
+      }
+    });
+
+    render();
+    window.addEventListener('pageshow', render);
+    window.addEventListener('storage', render);
+  </script>
+</body>
+</html>
