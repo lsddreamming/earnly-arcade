@@ -72,8 +72,6 @@
       <button class="game-control" id="dropButton" type="button" aria-label="Hold to drop piece faster">⬇️ Drop</button>
     </div>
 
-    <p class="swipe-hint">Tap the board to start. Drag to move pieces, tap to rotate, or hold ⬇️ Drop for a fast soft-drop.</p>
-
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -88,6 +86,26 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'blockDrop',
+      surface:canvas,
+      detailsAfter:'.blockdrop-controls',
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the board' },
+        { icon:'↔️', title:'Control', text:'Drag pieces, tap rotate' },
+        { icon:'🧱', title:'Goal', text:'Fill complete rows' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Drag left/right to move · tap to rotate · drag down to drop',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Fill a complete horizontal row to clear it. The run ends when a new piece can no longer fit.',
+        'You can also use the Left, Rotate, Right, and Drop buttons below the board.'
+      ],
+      reward:'Earn up to 5 Coins per run based on lines cleared.'
+    });
 
     const rows = 20;
     const cols = 10;
