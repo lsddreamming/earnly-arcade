@@ -138,6 +138,8 @@
         if(o.y>canvas.height){
           dodged+=1;
           dodgedEl.textContent=dodged;
+          if(dodged===10) Arcade.milestone('🚗 10 obstacles dodged!');
+          if(dodged===20) Arcade.milestone('🔥 20 dodged · Road Warrior!', 'perfect');
         }else{
           survivors.push(o);
         }
@@ -177,13 +179,20 @@
       startButton.disabled=false;
       startButton.textContent='👆 Tap Game to Play Again';
 
-      Arcade.panel(
-        survived?'🚗 You Survived!':'💥 Game Over',
-        'Time: '+seconds+'s\nDodged: '+dodged+'\nBest: '+best+'s\n+'+earned+' Arcade Coins'+Arcade.resultText(result)+'\n'+Arcade.remaining('dodger')+' plays remaining',
-        Arcade.remaining('dodger')>0
-          ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
-          : [['Get More Plays',()=>Arcade.out('dodger',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
-      );
+      Arcade.gameResult({
+        icon:survived?'🚗':'💥',
+        title:survived?'You Survived!':'Run Over',
+        scoreLabel:'Seconds Survived',
+        score:seconds + 's',
+        best:best + 's',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('dodger'),
+        game:'dodger',
+        extra:['🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('dodger',refreshChrome)
+      });
     }
 
     function setPlayerFromClientX(clientX){
