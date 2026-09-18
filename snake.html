@@ -287,7 +287,7 @@
       document.documentElement.classList.remove('snake-gesture-active');
 
       const earned = snakeReward(score);
-      Arcade.earn(earned, 'Snake');
+      Arcade.earn(earned, 'Snake', { kind:'game', game:'snake', metric:score });
       Arcade.feedback('fail');
       const result = Arcade.recordResult('snake', score);
       refreshChrome();
