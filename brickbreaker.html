@@ -115,6 +115,7 @@
         if(ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h){
           b.alive=false;
           broken+=1;
+          Arcade.feedback('tap');
           bricksEl.textContent=broken;
           rewardPreviewEl.textContent=rewardFor(broken,false);
           ball.dy*=-1;
@@ -170,7 +171,8 @@
 
       const earned=rewardFor(broken,cleared);
       Arcade.earn(earned,'Brick Breaker');
-      Arcade.recordResult('brickBreaker', broken);
+      Arcade.feedback(cleared?'success':'fail');
+      const result=Arcade.recordResult('brickBreaker', broken);
 
       const best=Math.max(broken,Arcade.number('brickBreakerBest'));
       localStorage.setItem('brickBreakerBest',String(best));
@@ -182,7 +184,7 @@
 
       Arcade.panel(
         cleared?'🏆 Level Clear!':'🧱 Game Over',
-        'Bricks broken: '+broken+'/35\nBest: '+best+'/35\n+'+earned+' Arcade Coins\n'+Arcade.remaining('brickBreaker')+' plays remaining',
+        'Bricks broken: '+broken+'/35\nBest: '+best+'/35\n+'+earned+' Arcade Coins'+Arcade.resultText(result)+'\n'+Arcade.remaining('brickBreaker')+' plays remaining',
         Arcade.remaining('brickBreaker')>0
           ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
           : [['Get More Plays',()=>Arcade.out('brickBreaker',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
@@ -246,13 +248,19 @@
       ball.dx=3.2*(Math.random()>.5?1:-1);
       ball.dy=-3.6;
 
-      running=true;
+      running=false;
       startButton.disabled=true;
-      startButton.textContent='Game Running';
-      setStatus('Running','running');
+      startButton.textContent='Get Ready…';
+      setStatus('Get Ready');
       refreshChrome();
       draw();
-      animation=requestAnimationFrame(loop);
+
+      Arcade.countdown(()=>{
+        running=true;
+        startButton.textContent='Game Running';
+        setStatus('Running','running');
+        animation=requestAnimationFrame(loop);
+      });
     }
 
     startButton.addEventListener('click',startGame);
