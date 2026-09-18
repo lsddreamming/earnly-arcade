@@ -7,8 +7,8 @@
   <title>Earnly Memory Match</title>
   <link rel="stylesheet" href="arcade.css">
   <style>
-    .memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px auto;max-width:390px}
-    .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0}
+    .memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px auto;max-width:390px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     .memory-card.matched{background:#14532d;border-color:#22c55e}
     .memory-card.revealed{background:#243044}
   </style>
@@ -31,8 +31,8 @@
     </header>
 
     <button class="green wide" id="startButton" type="button">▶ Start Game</button>
-    <div class="memory-grid" id="grid" aria-label="Memory Match cards"></div>
-    <p class="muted small">Match all 8 pairs. Fewer moves earn a bigger bonus.</p>
+    <div class="memory-grid touch-surface" id="grid" aria-label="Memory Match cards"></div>
+    <p class="muted small">Tap cards to flip them. Match all 8 pairs — fewer moves earn a bigger bonus.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
