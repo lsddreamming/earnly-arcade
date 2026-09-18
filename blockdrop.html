@@ -2,371 +2,276 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
   <title>Earnly Block Drop</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111827;
-      color: white;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    canvas {
-      background: #1f2937;
-      border: 3px solid white;
-      max-width: 100%;
-    }
-
-    button {
-      padding: 14px 18px;
-      margin: 5px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .control-button {
-      background: #3b82f6;
-      color: white;
-    }
-
-    .back-button {
-      background: #374151;
-      color: white;
-    }
-  </style>
-<link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="arcade.css">
 </head>
-
 <body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
 
-<div class="container">
+    <header class="page-header">
+      <h1>🧱 Block Drop</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Score: <span id="score">0</span></span>
+        <span class="meta-pill">Lines: <span id="lines">0</span></span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
 
-  <h1>🧱 Block Drop</h1>
+    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
 
-  <p>Score: <span id="score">0</span></p>
+    <canvas id="game" width="300" height="600" aria-label="Block Drop game board"></canvas>
 
-  <button id="startButton" onclick="startGame()">
-    ▶ Start Game
-  </button>
+    <div class="controls" aria-label="Block Drop controls">
+      <button class="game-control" id="leftButton" type="button" aria-label="Move left">⬅️</button>
+      <button class="game-control" id="rotateButton" type="button" aria-label="Rotate">🔄</button>
+      <button class="game-control" id="rightButton" type="button" aria-label="Move right">➡️</button>
+      <button class="game-control" id="dropButton" type="button">⬇️ Drop</button>
+    </div>
 
-  <br><br>
+    <p class="swipe-hint">Tip: tap quickly — game controls no longer trigger iPhone text selection or double-tap zoom.</p>
 
-  <canvas id="game" width="300" height="600"></canvas>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
 
-  <br>
+  <script src="arcade.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
 
-  <button class="control-button" onclick="moveLeft()">⬅️</button>
-  <button class="control-button" onclick="rotatePiece()">🔄</button>
-  <button class="control-button" onclick="moveRight()">➡️</button>
+    const scoreEl = document.getElementById('score');
+    const linesEl = document.getElementById('lines');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
 
-  <br>
+    const rows = 20;
+    const cols = 10;
+    const blockSize = 30;
 
-  <button class="control-button" onclick="moveDown()">⬇️ Drop</button>
+    const pieceShapes = [
+      [[1,1,1,1]],
+      [[1,1],[1,1]],
+      [[0,1,0],[1,1,1]],
+      [[1,0,0],[1,1,1]],
+      [[0,0,1],[1,1,1]],
+      [[0,1,1],[1,1,0]],
+      [[1,1,0],[0,1,1]]
+    ];
 
-  <br>
+    const colors = ['#38bdf8','#facc15','#a78bfa','#fb923c','#60a5fa','#4ade80','#f87171'];
 
-  <button class="back-button" onclick="window.location.href='games.html'">
-    ⬅ Back to Games
-  </button>
+    let board = [];
+    let score = 0;
+    let lines = 0;
+    let game = null;
+    let currentPiece = null;
+    let currentColor = colors[0];
+    let pieceX = 0;
+    let pieceY = 0;
 
-</div>
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('blockDrop');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+    }
 
-<script src="arcade.js"></script>
-<script>
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
+    function setStatus(text, mode) {
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
 
-  const rows = 20;
-  const cols = 10;
-  const blockSize = 30;
+    function createBoard() {
+      board = Array.from({ length: rows }, () => Array(cols).fill(null));
+    }
 
-  let board = [];
-  let score = 0;
-  let game = null;
+    function newPiece() {
+      const index = Math.floor(Math.random() * pieceShapes.length);
+      currentPiece = pieceShapes[index].map(row => row.slice());
+      currentColor = colors[index];
+      pieceX = Math.floor((cols - currentPiece[0].length) / 2);
+      pieceY = 0;
 
-  let blockDropGamesPlayed =
-    Number(localStorage.getItem("blockDropGamesPlayed")) || 0;
+      if (collision(currentPiece, pieceX, pieceY)) gameOver();
+    }
 
-  const freeGameLimit = 3;
+    function collision(piece, newX, newY) {
+      for (let y = 0; y < piece.length; y++) {
+        for (let x = 0; x < piece[y].length; x++) {
+          if (!piece[y][x]) continue;
+          const boardX = newX + x;
+          const boardY = newY + y;
 
-  const pieces = [
-    [[1, 1, 1, 1]],
+          if (boardX < 0 || boardX >= cols || boardY >= rows) return true;
+          if (boardY >= 0 && board[boardY][boardX]) return true;
+        }
+      }
+      return false;
+    }
 
-    [[1, 1],
-     [1, 1]],
+    function mergePiece() {
+      for (let y = 0; y < currentPiece.length; y++) {
+        for (let x = 0; x < currentPiece[y].length; x++) {
+          if (currentPiece[y][x]) board[pieceY + y][pieceX + x] = currentColor;
+        }
+      }
+      clearLines();
+    }
 
-    [[0, 1, 0],
-     [1, 1, 1]],
-
-    [[1, 0, 0],
-     [1, 1, 1]],
-
-    [[0, 0, 1],
-     [1, 1, 1]],
-
-    [[0, 1, 1],
-     [1, 1, 0]],
-
-    [[1, 1, 0],
-     [0, 1, 1]]
-  ];
-
-  let currentPiece;
-  let pieceX;
-  let pieceY;
-
-  function createBoard() {
-    board = [];
-
-    for (let y = 0; y < rows; y++) {
-      board[y] = [];
-
-      for (let x = 0; x < cols; x++) {
-        board[y][x] = 0;
+    function clearLines() {
+      for (let y = rows - 1; y >= 0; y--) {
+        if (board[y].every(Boolean)) {
+          board.splice(y, 1);
+          board.unshift(Array(cols).fill(null));
+          score += 100;
+          lines += 1;
+          scoreEl.textContent = score;
+          linesEl.textContent = lines;
+          y += 1;
+        }
       }
     }
-  }
 
-  function newPiece() {
-    currentPiece =
-      pieces[Math.floor(Math.random() * pieces.length)];
+    function moveDown() {
+      if (!game) return;
+      if (!collision(currentPiece, pieceX, pieceY + 1)) {
+        pieceY += 1;
+      } else {
+        mergePiece();
+        newPiece();
+      }
+      draw();
+    }
 
-    pieceX = Math.floor(
-      (cols - currentPiece[0].length) / 2
-    );
+    function moveLeft() {
+      if (!game) return;
+      if (!collision(currentPiece, pieceX - 1, pieceY)) pieceX -= 1;
+      draw();
+    }
 
-    pieceY = 0;
+    function moveRight() {
+      if (!game) return;
+      if (!collision(currentPiece, pieceX + 1, pieceY)) pieceX += 1;
+      draw();
+    }
 
-    if (collision(currentPiece, pieceX, pieceY)) {
+    function rotatePiece() {
+      if (!game) return;
+      const rotated = [];
+
+      for (let x = 0; x < currentPiece[0].length; x++) {
+        rotated[x] = [];
+        for (let y = currentPiece.length - 1; y >= 0; y--) {
+          rotated[x].push(currentPiece[y][x]);
+        }
+      }
+
+      if (!collision(rotated, pieceX, pieceY)) currentPiece = rotated;
+      draw();
+    }
+
+    function drawBlock(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x * blockSize + 1, y * blockSize + 1, blockSize - 2, blockSize - 2);
+      ctx.fillStyle = 'rgba(255,255,255,.16)';
+      ctx.fillRect(x * blockSize + 3, y * blockSize + 3, blockSize - 6, 4);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (board[y][x]) drawBlock(x, y, board[y][x]);
+        }
+      }
+
+      if (currentPiece) {
+        for (let y = 0; y < currentPiece.length; y++) {
+          for (let x = 0; x < currentPiece[y].length; x++) {
+            if (currentPiece[y][x]) drawBlock(pieceX + x, pieceY + y, currentColor);
+          }
+        }
+      }
+    }
+
+    function gameOver() {
+      if (game === null) return;
+
       clearInterval(game);
       game = null;
 
-      const earned=Math.min(Math.floor(score/100),5);Arcade.earn(earned);
-      document.getElementById('startButton').disabled=false;
-      document.getElementById('startButton').textContent='Play Again';
-      Arcade.panel('Game Over','Score: '+score+' · +'+earned+' Arcade Coins · '+Arcade.remaining('blockDrop')+' plays left',
-        [['Play Again',startGame],['Back to Arcade',()=>location.href='games.html']]);
+      const earned = Math.min(lines, 5);
+      Arcade.earn(earned, 'Block Drop');
+      refreshChrome();
 
-    }
-  }
+      startButton.disabled = false;
+      startButton.textContent = '▶ Play Again';
+      setStatus('Game Over', 'over');
 
-  function collision(piece, newX, newY) {
-    for (let y = 0; y < piece.length; y++) {
-      for (let x = 0; x < piece[y].length; x++) {
-        if (piece[y][x]) {
-          let boardX = newX + x;
-          let boardY = newY + y;
-
-          if (
-            boardX < 0 ||
-            boardX >= cols ||
-            boardY >= rows
-          ) {
-            return true;
-          }
-
-          if (
-            boardY >= 0 &&
-            board[boardY][boardX]
-          ) {
-            return true;
-          }
-        }
-      }
+      Arcade.panel(
+        '🧱 Game Over',
+        'Score: ' + score + '\nLines cleared: ' + lines + '\n+' + earned + ' Arcade Coins\n' + Arcade.remaining('blockDrop') + ' Block Drop plays remaining',
+        Arcade.remaining('blockDrop') > 0
+          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+          : [['Get More Plays', () => Arcade.out('blockDrop', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+      );
     }
 
-    return false;
-  }
+    function startGame() {
+      if (game) return;
 
-  function mergePiece() {
-    for (let y = 0; y < currentPiece.length; y++) {
-      for (let x = 0; x < currentPiece[y].length; x++) {
-        if (currentPiece[y][x]) {
-          board[pieceY + y][pieceX + x] = 1;
-        }
-      }
-    }
-
-    clearLines();
-  }
-
-  function clearLines() {
-    for (let y = rows - 1; y >= 0; y--) {
-      let full = true;
-
-      for (let x = 0; x < cols; x++) {
-        if (board[y][x] === 0) {
-          full = false;
-          break;
-        }
+      if (!Arcade.consume('blockDrop')) {
+        Arcade.out('blockDrop', refreshChrome);
+        return;
       }
 
-      if (full) {
-        board.splice(y, 1);
-
-        let newRow = [];
-
-        for (let x = 0; x < cols; x++) {
-          newRow.push(0);
-        }
-
-        board.unshift(newRow);
-
-        score += 100;
-
-        document.getElementById("score").textContent = score;
-
-        y++;
-      }
-    }
-  }
-
-  function moveDown() {
-    if (!game) return;
-
-    if (!collision(currentPiece, pieceX, pieceY + 1)) {
-      pieceY++;
-    } else {
-      mergePiece();
+      createBoard();
+      score = 0;
+      lines = 0;
+      scoreEl.textContent = '0';
+      linesEl.textContent = '0';
       newPiece();
+
+      refreshChrome();
+      startButton.disabled = true;
+      startButton.textContent = 'Game Running';
+      setStatus('Running', 'running');
+
+      game = setInterval(moveDown, 600);
+      draw();
     }
 
-    draw();
-  }
+    [
+      ['leftButton', moveLeft],
+      ['rotateButton', rotatePiece],
+      ['rightButton', moveRight],
+      ['dropButton', moveDown]
+    ].forEach(([id, fn]) => {
+      const button = document.getElementById(id);
+      button.addEventListener('click', fn);
+      button.addEventListener('contextmenu', event => event.preventDefault());
+    });
 
-  function moveLeft() {
-    if (!game) return;
+    document.addEventListener('keydown', event => {
+      if (!event.key.startsWith('Arrow')) return;
+      event.preventDefault();
+      if (event.key === 'ArrowLeft') moveLeft();
+      if (event.key === 'ArrowRight') moveRight();
+      if (event.key === 'ArrowDown') moveDown();
+      if (event.key === 'ArrowUp') rotatePiece();
+    });
 
-    if (!collision(currentPiece, pieceX - 1, pieceY)) {
-      pieceX--;
-    }
-
-    draw();
-  }
-
-  function moveRight() {
-    if (!game) return;
-
-    if (!collision(currentPiece, pieceX + 1, pieceY)) {
-      pieceX++;
-    }
-
-    draw();
-  }
-
-  function rotatePiece() {
-    if (!game) return;
-
-    let rotated = [];
-
-    for (let x = 0; x < currentPiece[0].length; x++) {
-      rotated[x] = [];
-
-      for (let y = currentPiece.length - 1; y >= 0; y--) {
-        rotated[x].push(currentPiece[y][x]);
-      }
-    }
-
-    if (!collision(rotated, pieceX, pieceY)) {
-      currentPiece = rotated;
-    }
-
-    draw();
-  }
-
-  function draw() {
-    ctx.clearRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        if (board[y][x]) {
-          drawBlock(x, y);
-        }
-      }
-    }
-
-    if (currentPiece) {
-      for (let y = 0; y < currentPiece.length; y++) {
-        for (let x = 0; x < currentPiece[y].length; x++) {
-          if (currentPiece[y][x]) {
-            drawBlock(
-              pieceX + x,
-              pieceY + y
-            );
-          }
-        }
-      }
-    }
-  }
-
-  function drawBlock(x, y) {
-    ctx.fillStyle = "#3b82f6";
-
-    ctx.fillRect(
-      x * blockSize,
-      y * blockSize,
-      blockSize - 2,
-      blockSize - 2
-    );
-  }
-
-  function startGame() {
-    if (game) return;
-    if(!Arcade.consume('blockDrop')){Arcade.out('blockDrop',()=>{});return;}
+    startButton.addEventListener('click', startGame);
     createBoard();
-
-    score = 0;
-
-    document.getElementById("score").textContent = score;
-
-    newPiece();
-
-    game = setInterval(moveDown, 600);
-
-    document.getElementById("startButton").disabled = true;
-
-    document.getElementById("startButton").textContent =
-      "🎮 Game Running";
-  }
-
-  document.addEventListener("keydown", function(event) {
-    if(event.key.startsWith("Arrow")) event.preventDefault();
-    if (event.key === "ArrowLeft") {
-      moveLeft();
-    }
-
-    if (event.key === "ArrowRight") {
-      moveRight();
-    }
-
-    if (event.key === "ArrowDown") {
-      moveDown();
-    }
-
-    if (event.key === "ArrowUp") {
-      rotatePiece();
-    }
-  });
-
-  createBoard();
-  draw();
-</script>
-
+    draw();
+    refreshChrome();
+  </script>
 </body>
 </html>
