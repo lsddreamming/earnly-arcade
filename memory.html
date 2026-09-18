@@ -133,6 +133,8 @@
         cards[second].matched=true;
         pairs+=1;
         pairsEl.textContent=pairs;
+        if(pairs===4) Arcade.milestone('🧠 Half the board matched!');
+        if(pairs===7) Arcade.milestone('✨ One pair left!', 'perfect');
         cards[first].revealed=false;
         cards[second].revealed=false;
         first=null;
@@ -172,13 +174,20 @@
       startButton.textContent='👆 Tap Cards to Play Again';
       render();
 
-      Arcade.panel(
-        '🧠 Board Cleared!',
-        'Moves: '+moves+'\nBest: '+best+'\n+'+earned+' Arcade Coins'+Arcade.resultText(result)+'\n'+Arcade.remaining('memory')+' plays remaining',
-        Arcade.remaining('memory')>0
-          ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
-          : [['Get More Plays',()=>Arcade.out('memory',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
-      );
+      Arcade.gameResult({
+        icon:'🧠',
+        title:'Board Cleared!',
+        scoreLabel:'Moves',
+        score:moves,
+        best:best + ' moves',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('memory'),
+        game:'memory',
+        extra:[moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('memory',refreshChrome)
+      });
     }
 
     function startGame(){
