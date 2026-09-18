@@ -938,6 +938,160 @@ const Arcade = (() => {
     modal.showModal();
   }
 
+  function milestone(message, kind = 'score') {
+    let pop = document.getElementById('arcadeMilestone');
+    if (!pop) {
+      pop = document.createElement('div');
+      pop.id = 'arcadeMilestone';
+      pop.className = 'milestone-pop';
+      pop.setAttribute('role', 'status');
+      document.body.append(pop);
+    }
+
+    pop.textContent = message;
+    pop.className = 'milestone-pop show ' + (kind || 'score');
+    clearTimeout(milestone.timer);
+    feedback(kind === 'perfect' ? 'perfect' : 'score');
+
+    milestone.timer = setTimeout(() => {
+      pop.classList.remove('show');
+    }, 1200);
+  }
+
+  function gameResult(options = {}) {
+    const {
+      icon = '🎮',
+      title = 'Run Complete',
+      scoreLabel = 'Score',
+      score = 0,
+      best = '',
+      extra = [],
+      coins = 0,
+      result = null,
+      playsLeft = 0,
+      game = '',
+      onReplay = null,
+      onMorePlays = null
+    } = options;
+
+    if (modal.open) modal.close();
+    modal.replaceChildren();
+    modal.className = 'game-result-dialog';
+
+    const hero = document.createElement('div');
+    hero.className = 'result-hero';
+
+    const iconEl = document.createElement('div');
+    iconEl.className = 'result-icon';
+    iconEl.textContent = icon;
+
+    const heading = document.createElement('div');
+    heading.className = 'result-heading';
+
+    const h = document.createElement('h2');
+    h.textContent = title;
+
+    const badge = document.createElement('div');
+    badge.className = 'result-badge';
+    badge.textContent = result?.newBest ? '🏆 NEW BEST' : 'RUN COMPLETE';
+    if (result?.newBest) badge.classList.add('best');
+
+    heading.append(h, badge);
+    hero.append(iconEl, heading);
+
+    const main = document.createElement('div');
+    main.className = 'result-main';
+
+    const label = document.createElement('span');
+    label.textContent = scoreLabel;
+
+    const value = document.createElement('strong');
+    value.textContent = String(score);
+
+    main.append(label, value);
+
+    if (best) {
+      const bestLine = document.createElement('div');
+      bestLine.className = 'result-best';
+      bestLine.textContent = 'Best: ' + best;
+      main.append(bestLine);
+    }
+
+    const statsBox = document.createElement('div');
+    statsBox.className = 'result-stats';
+
+    const statData = [
+      ['🪙', '+' + coins, 'Coins'],
+      ['⭐', '+' + (result?.xpAward || 0), 'XP'],
+      ['🎟️', String(playsLeft), 'Plays Left']
+    ];
+
+    statData.forEach(([statIcon, statValue, statLabel]) => {
+      const stat = document.createElement('div');
+      stat.className = 'result-stat';
+      stat.innerHTML = '<span>' + statIcon + '</span><strong>' + statValue + '</strong><small>' + statLabel + '</small>';
+      statsBox.append(stat);
+    });
+
+    const notes = document.createElement('div');
+    notes.className = 'result-notes';
+
+    (Array.isArray(extra) ? extra : [extra]).filter(Boolean).forEach(text => {
+      const line = document.createElement('div');
+      line.textContent = text;
+      notes.append(line);
+    });
+
+    if (result?.leveledUp) {
+      const line = document.createElement('div');
+      line.className = 'result-highlight';
+      line.textContent = '⬆️ Level ' + result.level + ' reached!';
+      notes.append(line);
+    }
+
+    if (result?.newAchievements?.length) {
+      result.newAchievements.forEach(item => {
+        const line = document.createElement('div');
+        line.className = 'result-highlight';
+        line.textContent = '🏅 ' + item.title + ' unlocked';
+        notes.append(line);
+      });
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions result-actions';
+
+    const primary = document.createElement('button');
+    primary.className = 'wide green';
+    primary.textContent = playsLeft > 0 ? '▶ Play Again' : '🎟️ Get More Plays';
+    primary.addEventListener('click', () => {
+      modal.close();
+      modal.className = '';
+      if (playsLeft > 0) {
+        if (typeof onReplay === 'function') onReplay();
+      } else if (typeof onMorePlays === 'function') {
+        onMorePlays();
+      } else if (game) {
+        out(game, () => {});
+      }
+    });
+
+    const back = document.createElement('button');
+    back.className = 'wide secondary';
+    back.textContent = '← Games';
+    back.addEventListener('click', () => {
+      modal.close();
+      modal.className = '';
+      location.href = 'games.html';
+    });
+
+    actions.append(primary, back);
+    modal.append(hero, main, statsBox);
+    if (notes.childElementCount) modal.append(notes);
+    modal.append(actions);
+    modal.showModal();
+  }
+
   function toast(message) {
     let t = document.getElementById('arcadeToast');
     if (!t) {
@@ -1599,6 +1753,8 @@ const Arcade = (() => {
     activity,
     earn,
     panel,
+    gameResult,
+    milestone,
     toast,
     soundEnabled,
     setSoundEnabled,
