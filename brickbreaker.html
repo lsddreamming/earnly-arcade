@@ -27,9 +27,9 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="brick-board touch-surface" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
-    <p class="muted small">Put your finger anywhere on the board and drag left/right to move the paddle. Clear all 35 bricks for the bonus.</p>
+    <p class="muted small">Tap the board to start the countdown. Then drag left/right to move the paddle and clear all 35 bricks.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -50,6 +50,7 @@
     let bricks=[];
     let broken=0;
     let running=false;
+    let starting=false;
     let animation=null;
 
     function rewardFor(count,cleared){
@@ -177,10 +178,11 @@
       const best=Math.max(broken,Arcade.number('brickBreakerBest'));
       localStorage.setItem('brickBreakerBest',String(best));
 
+      starting=false;
       refreshChrome();
       setStatus(cleared?'Level Clear!':'Game Over','over');
       startButton.disabled=false;
-      startButton.textContent='▶ Play Again';
+      startButton.textContent='👆 Tap Game to Play Again';
 
       Arcade.panel(
         cleared?'🏆 Level Clear!':'🧱 Game Over',
@@ -203,6 +205,12 @@
 
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
+
+      if(!running){
+        if(!starting) startGame();
+        return;
+      }
+
       dragging = true;
       dragPointer = event.pointerId;
       setPaddleFromClientX(event.clientX);
@@ -232,8 +240,10 @@
     });
 
     function startGame(){
-      if(running) return;
+      if(running || starting) return;
+      starting=true;
       if(!Arcade.consume('brickBreaker')){
+        starting=false;
         Arcade.out('brickBreaker',refreshChrome);
         return;
       }
@@ -256,6 +266,7 @@
       draw();
 
       Arcade.countdown(()=>{
+        starting=false;
         running=true;
         startButton.textContent='Game Running';
         setStatus('Running','running');
