@@ -351,3 +351,128 @@ a{color:#93c5fd}
 .achievement-badge strong{display:block;font-size:13px;margin-bottom:3px}
 .achievement-badge span{font-size:11px;color:#aab6c8;line-height:1.3;display:block}
 @media(max-width:370px){.achievement-grid{grid-template-columns:1fr}}
+
+.profile-card{text-align:left}
+.profile-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.profile-avatar{
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#111827;
+  border:1px solid #475569;
+  font-size:27px;
+  flex:0 0 auto;
+}
+.profile-copy{min-width:0;flex:1}
+.profile-copy strong{display:block;font-size:18px}
+.xp-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:8px;
+  font-size:12px;
+  color:#cbd5e1;
+}
+.xp-bar{
+  height:9px;
+  border-radius:999px;
+  overflow:hidden;
+  background:#0f172a;
+  border:1px solid #334155;
+  margin-top:6px;
+}
+.xp-bar>span{
+  display:block;
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg,#3b82f6,#22c55e);
+  border-radius:inherit;
+}
+.stats-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.stat-card{
+  padding:14px;
+  border-radius:15px;
+  border:1px solid #374151;
+  background:#172033;
+  text-align:left;
+}
+.stat-card strong{display:block;font-size:22px;margin-bottom:3px}
+.stat-card span{font-size:12px;color:#aab6c8}
+.quick-section{
+  margin:12px 0 16px;
+  text-align:left;
+}
+.quick-section h2{
+  margin:0 0 8px;
+  font-size:16px;
+}
+.quick-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.quick-game{
+  min-height:46px;
+  margin:0;
+  padding:10px 12px;
+  font-size:13px;
+  justify-content:flex-start;
+  background:#172033;
+  border:1px solid #374151;
+}
+.favorite-button{
+  min-width:42px;
+  min-height:42px;
+  padding:8px;
+  margin:0;
+  background:#111827;
+  border:1px solid #475569;
+  font-size:19px;
+}
+.game-title-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+.profile-name-form{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+.profile-name-form input{
+  min-width:0;
+  flex:1;
+  border:1px solid #475569;
+  border-radius:12px;
+  background:#111827;
+  color:#fff;
+  padding:12px 13px;
+  font:inherit;
+  font-size:16px;
+}
+.profile-name-form button{margin:0;white-space:nowrap}
+.best-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.best-card{
+  padding:12px;
+  border:1px solid #374151;
+  border-radius:14px;
+  background:#172033;
+  text-align:left;
+}
+.best-card strong{display:block;font-size:13px;margin-bottom:4px}
+.best-card span{font-size:12px;color:#cbd5e1}
+@media(max-width:360px){
+  .stats-grid,.best-grid,.quick-grid{grid-template-columns:1fr}
+}
