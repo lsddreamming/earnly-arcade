@@ -36,7 +36,10 @@
         <input id="nameInput" type="text" maxlength="18" autocomplete="off" aria-label="Player name" placeholder="Player name">
         <button type="submit">Save</button>
       </form>
-      <p class="muted small" style="margin-bottom:0">Prototype nickname only — it is stored on this device.</p>
+      <p class="muted small" style="margin-bottom:10px">Prototype nickname only — it is stored on this device.</p>
+      <div class="game-feel-row" style="justify-content:flex-start">
+        <button class="mini-button secondary" id="soundButton" type="button">🔊 Game Sounds On</button>
+      </div>
     </section>
 
     <section class="stats-grid" aria-label="Player stats">
@@ -157,7 +160,15 @@
 
       renderFavorites();
       renderBests();
+
+      document.getElementById('soundButton').textContent =
+        Arcade.soundEnabled() ? '🔊 Game Sounds On' : '🔇 Game Sounds Off';
     }
+
+    document.getElementById('soundButton').addEventListener('click', () => {
+      Arcade.setSoundEnabled(!Arcade.soundEnabled());
+      render();
+    });
 
     document.getElementById('nameForm').addEventListener('submit', event => {
       event.preventDefault();
