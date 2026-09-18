@@ -227,6 +227,7 @@
 
       const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake');
+      Arcade.recordResult('snake', score);
       refreshChrome();
 
       startButton.disabled = false;
