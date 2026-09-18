@@ -1,1 +1,93 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Earnly Arcade</title><link rel="stylesheet" href="arcade.css"></head><body><main class="container"><h1>🎮 Choose your game</h1><p>3 free plays per game, refreshed daily</p><div class="card">🪙 <strong id="balance"></strong> Arcade Coins</div><div id="games"></div><details class="card"><summary>How rewards work</summary><p>Starting a game uses one play. Get 3 free plays per game each day. When you run out, finish a demo ad for 3 more, or return tomorrow. No coins required.</p><p>Snake: 1 coin per apple. Block Drop: 1 coin per cleared line. Maximum 5 coins per game.</p><p>Ads are simulated. Arcade Coins have no cash value and cannot be redeemed or transferred.</p></details><a class="button wide secondary" href="index.html">← Back Home</a></main><script src="arcade.js"></script><script>function render(){document.getElementById('balance').textContent=Arcade.number('points');const root=document.getElementById('games');root.replaceChildren();for(const g of ['snake','blockDrop']){const n=Arcade.remaining(g),card=document.createElement('section');card.className='card';card.innerHTML='<h2>'+ (g==='snake'?'🐍 Snake':'🧱 Block Drop')+'</h2><p>'+n+' plays remaining</p>';const play=document.createElement('button');play.className='wide';play.textContent='Play '+Arcade.names[g];play.onclick=()=>n?location.href=(g==='snake'?'snake.html':'blockdrop.html'):Arcade.out(g,render);const ad=document.createElement('button');ad.className='wide green';ad.textContent='Watch demo ad · +3 plays';ad.disabled=n>0;ad.onclick=()=>Arcade.ad(g,render);card.append(play,ad);if(!n){const p=document.createElement('p');p.textContent='Out of plays — watch a demo ad or come back tomorrow.';card.append(p);}root.append(card);}}render();window.addEventListener('pageshow',render);window.addEventListener('focus',render);window.addEventListener('storage',render);</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Earnly Games</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="index.html">🎮 Earnly</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>Choose a Game</h1>
+      <p>3 free plays per game refresh every day.</p>
+    </header>
+
+    <div id="games"></div>
+
+    <details class="card compact-card">
+      <summary>How game rewards work</summary>
+      <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays. No Arcade Coins are required to keep playing.</p>
+      <p class="muted">Snake currently earns 1 Arcade Coin per apple. Block Drop earns 1 Arcade Coin per cleared line. Each game is capped at 5 Arcade Coins while we test the economy.</p>
+    </details>
+
+    <a class="button wide secondary" href="index.html">← Back Home</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    function render() {
+      document.getElementById('balance').textContent = Arcade.number('points').toLocaleString();
+      const root = document.getElementById('games');
+      root.replaceChildren();
+
+      [
+        { key:'snake', icon:'🐍', name:'Snake', note:'1 coin per apple · max 5 coins', href:'snake.html' },
+        { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'1 coin per cleared line · max 5 coins', href:'blockdrop.html' }
+      ].forEach(info => {
+        const remaining = Arcade.remaining(info.key);
+        const card = document.createElement('section');
+        card.className = 'card game-card';
+
+        const heading = document.createElement('div');
+        heading.className = 'game-title-row';
+        heading.innerHTML = '<h2>' + info.icon + ' ' + info.name + '</h2><span class="play-pill">' + remaining + ' plays</span>';
+
+        const rule = document.createElement('p');
+        rule.className = 'reward-rule';
+        rule.textContent = info.note;
+
+        const play = document.createElement('button');
+        play.className = 'wide';
+        play.textContent = remaining ? 'Play ' + info.name : 'Get More ' + info.name + ' Plays';
+        play.addEventListener('click', () => {
+          if (remaining) location.href = info.href;
+          else Arcade.out(info.key, render);
+        });
+
+        card.append(heading, rule, play);
+
+        if (!remaining) {
+          const ad = document.createElement('button');
+          ad.className = 'wide green';
+          ad.textContent = '▶ Watch Demo Ad · +3 Plays';
+          ad.addEventListener('click', () => Arcade.playAd(info.key, render));
+
+          const status = document.createElement('div');
+          status.className = 'status-line warning';
+          status.textContent = 'Out of free plays — watch an optional demo ad or come back tomorrow.';
+          card.append(ad, status);
+        } else {
+          const status = document.createElement('div');
+          status.className = 'status-line success';
+          status.textContent = '✓ ' + remaining + ' play' + (remaining === 1 ? '' : 's') + ' available';
+          card.append(status);
+        }
+
+        root.append(card);
+      });
+    }
+
+    render();
+    window.addEventListener('pageshow', render);
+    window.addEventListener('focus', render);
+    window.addEventListener('storage', render);
+  </script>
+</body>
+</html>
