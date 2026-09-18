@@ -518,25 +518,69 @@ const Arcade = (() => {
     }
   }
 
-  function tone(frequency, duration = 0.06, volume = 0.035, type = 'sine', delay = 0) {
+  function tone(frequency, duration = 0.06, volume = 0.035, type = 'sine', delay = 0, endFrequency = null, detune = 0) {
     if (!soundEnabled()) return;
     const ctx = audio();
     if (!ctx) return;
 
-    const start = ctx.currentTime + delay;
+    const start = ctx.currentTime + Math.max(0, delay);
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
 
     oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, start);
+    oscillator.frequency.setValueAtTime(Math.max(30, frequency), start);
+    if (Number.isFinite(endFrequency) && endFrequency > 0) {
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(30, endFrequency), start + duration);
+    }
+    oscillator.detune.setValueAtTime(detune, start);
+
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + 0.008);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + Math.min(0.012, duration * 0.22));
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
     oscillator.connect(gain);
     gain.connect(ctx.destination);
     oscillator.start(start);
-    oscillator.stop(start + duration + 0.02);
+    oscillator.stop(start + duration + 0.03);
+  }
+
+  function noise(duration = 0.04, volume = 0.018, delay = 0, cutoff = 900) {
+    if (!soundEnabled()) return;
+    const ctx = audio();
+    if (!ctx) return;
+
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < length; i++) {
+      const envelope = 1 - i / length;
+      data[i] = (Math.random() * 2 - 1) * envelope;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = cutoff;
+
+    const gain = ctx.createGain();
+    const start = ctx.currentTime + Math.max(0, delay);
+    gain.gain.setValueAtTime(Math.max(0.0002, volume), start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(start);
+    source.stop(start + duration + 0.02);
+  }
+
+  function chord(frequencies, duration = 0.12, volume = 0.02, type = 'sine', delay = 0) {
+    frequencies.forEach((frequency, index) => {
+      tone(frequency, duration, volume, type, delay, null, (index - (frequencies.length - 1) / 2) * 2);
+    });
   }
 
   function vibrate(pattern) {
@@ -546,41 +590,86 @@ const Arcade = (() => {
   }
 
   function feedback(kind = 'tap') {
-    if (kind === 'tap') {
-      tone(520, 0.035, 0.018, 'square');
-      vibrate(8);
+    if (kind === 'tap' || kind === 'flip') {
+      tone(780, 0.035, 0.014, 'triangle', 0, 620);
+      noise(0.018, 0.006, 0, 1800);
+      vibrate(6);
     } else if (kind === 'move') {
-      tone(390, 0.025, 0.012, 'square');
+      tone(330, 0.025, 0.01, 'triangle', 0, 300);
+    } else if (kind === 'hit') {
+      tone(760, 0.045, 0.02, 'square', 0, 560);
+      noise(0.022, 0.008, 0, 2200);
+      vibrate(7);
+    } else if (kind === 'hop') {
+      tone(390, 0.075, 0.025, 'triangle', 0, 760);
+      tone(780, 0.035, 0.012, 'sine', 0.045, 900);
+      vibrate(8);
     } else if (kind === 'score') {
-      tone(700, 0.055, 0.028, 'sine');
-      tone(900, 0.06, 0.022, 'sine', 0.05);
-      vibrate(12);
+      tone(880, 0.07, 0.026, 'sine');
+      tone(1320, 0.09, 0.024, 'sine', 0.045);
+      tone(1760, 0.055, 0.012, 'sine', 0.09);
+      vibrate(10);
+    } else if (kind === 'line') {
+      tone(240, 0.09, 0.018, 'triangle', 0, 420);
+      chord([523, 659, 784], 0.11, 0.016, 'sine', 0.045);
+      noise(0.045, 0.01, 0, 1200);
+      vibrate([8, 18, 8]);
+    } else if (kind === 'match') {
+      tone(660, 0.06, 0.022, 'sine');
+      tone(990, 0.09, 0.024, 'sine', 0.045);
+      tone(1320, 0.05, 0.012, 'sine', 0.11);
+      vibrate(10);
+    } else if (kind === 'brick') {
+      tone(310, 0.045, 0.018, 'square', 0, 190);
+      noise(0.028, 0.012, 0, 1100);
+      vibrate(7);
+    } else if (kind === 'stack') {
+      tone(170, 0.065, 0.024, 'triangle', 0, 105);
+      noise(0.038, 0.009, 0, 700);
+      vibrate(9);
     } else if (kind === 'success') {
-      tone(620, 0.06, 0.03, 'sine');
-      tone(840, 0.08, 0.03, 'sine', 0.065);
+      chord([523, 659, 784], 0.14, 0.02, 'sine');
+      tone(1047, 0.13, 0.026, 'sine', 0.11);
       vibrate([10, 22, 10]);
     } else if (kind === 'perfect') {
-      tone(720, 0.05, 0.03, 'sine');
-      tone(980, 0.08, 0.03, 'sine', 0.055);
-      vibrate([10, 25, 10]);
+      tone(659, 0.055, 0.022, 'sine');
+      tone(831, 0.07, 0.023, 'sine', 0.04);
+      tone(988, 0.09, 0.024, 'sine', 0.08);
+      tone(1319, 0.12, 0.02, 'sine', 0.14);
+      noise(0.025, 0.006, 0.14, 2600);
+      vibrate([10, 24, 10]);
     } else if (kind === 'fail') {
-      tone(210, 0.13, 0.03, 'sawtooth');
-      vibrate(35);
+      tone(290, 0.18, 0.026, 'sawtooth', 0, 105);
+      tone(190, 0.16, 0.015, 'triangle', 0.07, 80);
+      noise(0.05, 0.008, 0.02, 500);
+      vibrate(32);
     } else if (kind === 'countdown') {
-      tone(440, 0.055, 0.025, 'sine');
+      tone(430, 0.07, 0.022, 'triangle', 0, 390);
+      noise(0.018, 0.005, 0, 1700);
     } else if (kind === 'go') {
-      tone(880, 0.085, 0.035, 'sine');
-      vibrate(12);
+      tone(520, 0.12, 0.024, 'triangle', 0, 1040);
+      chord([659, 831, 988], 0.13, 0.018, 'sine', 0.07);
+      vibrate(11);
     } else if (kind === 'newBest') {
-      tone(660, 0.07, 0.035, 'sine');
-      tone(880, 0.08, 0.035, 'sine', 0.07);
-      tone(1100, 0.11, 0.03, 'sine', 0.15);
-      vibrate([12, 30, 12]);
-    } else if (kind === 'achievement' || kind === 'level') {
-      tone(600, 0.07, 0.035, 'sine');
-      tone(800, 0.07, 0.035, 'sine', 0.075);
-      tone(1050, 0.12, 0.04, 'sine', 0.15);
-      vibrate([12, 30, 12, 30, 18]);
+      tone(659, 0.08, 0.024, 'sine');
+      tone(831, 0.08, 0.024, 'sine', 0.07);
+      tone(988, 0.1, 0.025, 'sine', 0.14);
+      chord([1047, 1319, 1568], 0.16, 0.018, 'sine', 0.22);
+      noise(0.03, 0.006, 0.23, 2500);
+      vibrate([12, 28, 12]);
+    } else if (kind === 'achievement') {
+      tone(523, 0.07, 0.022, 'sine');
+      tone(659, 0.07, 0.022, 'sine', 0.065);
+      tone(784, 0.08, 0.023, 'sine', 0.13);
+      tone(1047, 0.14, 0.028, 'sine', 0.2);
+      vibrate([10, 24, 10, 24, 16]);
+    } else if (kind === 'level') {
+      tone(440, 0.065, 0.022, 'triangle');
+      tone(554, 0.065, 0.022, 'triangle', 0.055);
+      tone(659, 0.075, 0.023, 'triangle', 0.11);
+      tone(880, 0.09, 0.025, 'sine', 0.175);
+      tone(1109, 0.16, 0.025, 'sine', 0.25);
+      vibrate([12, 24, 12, 24, 18]);
     }
   }
 
