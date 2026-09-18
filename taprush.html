@@ -152,7 +152,7 @@
       target.hidden = true;
 
       const earned = rewardForHits(hits);
-      Arcade.earn(earned, 'Tap Rush');
+      Arcade.earn(earned, 'Tap Rush', { kind:'game', game:'tapRush', metric:hits });
       Arcade.feedback('success');
       const result = Arcade.recordResult('tapRush', hits);
 
