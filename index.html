@@ -37,13 +37,23 @@
     <section class="card challenge">
       <div class="row">
         <div>
-          <strong>🔥 Daily Challenge</strong>
-          <span class="muted">Play any game today</span>
+          <strong id="challengeTitle">🔥 Daily Challenge</strong>
+          <span class="muted" id="challengeDescription">Loading today’s challenge…</span>
         </div>
         <span class="play-pill" id="challengeCount">0 / 1</span>
       </div>
       <div class="challenge-progress" aria-hidden="true"><span id="challengeBar"></span></div>
-      <button class="wide green" id="challengeButton" type="button" disabled>Complete a game to unlock +5 Coins</button>
+      <button class="wide green" id="challengeButton" type="button" disabled>Complete the challenge</button>
+    </section>
+
+    <section class="card compact-card">
+      <div class="achievement-summary">
+        <div style="text-align:left">
+          <strong>🏆 Achievements</strong>
+          <div class="muted small" id="achievementText">0 unlocked</div>
+        </div>
+        <a class="button ghost" href="games.html#achievements">View Badges</a>
+      </div>
     </section>
 
     <button class="button wide green" id="coinAdButton" type="button">
@@ -57,9 +67,8 @@
     <details class="card compact-card">
       <summary>What is this prototype testing?</summary>
       <p class="muted">
-        Games, daily rewards, optional rewarded-ad flows, and the Arcade Coin experience.
-        No real ad network or cash-out system is connected yet, so the final coin-to-cash
-        conversion and payout minimum are still being designed.
+        Games, daily rewards, optional rewarded-ad flows, achievements, and the Arcade Coin experience.
+        No real ad network or cash-out system is connected yet.
       </p>
     </details>
   </main>
@@ -70,9 +79,12 @@
     const streak = document.getElementById('streak');
     const bonusText = document.getElementById('bonusText');
     const bonusButton = document.getElementById('dailyBonusButton');
+    const challengeTitle = document.getElementById('challengeTitle');
+    const challengeDescription = document.getElementById('challengeDescription');
     const challengeCount = document.getElementById('challengeCount');
     const challengeBar = document.getElementById('challengeBar');
     const challengeButton = document.getElementById('challengeButton');
+    const achievementText = document.getElementById('achievementText');
     const coinAdButton = document.getElementById('coinAdButton');
     const coinAdStatus = document.getElementById('coinAdStatus');
 
@@ -86,19 +98,24 @@
       bonusButton.textContent = bonus.claimed ? 'Claimed ✓' : 'Claim +' + bonus.reward;
 
       const challenge = Arcade.challengeStatus();
+      challengeTitle.textContent = challenge.title;
+      challengeDescription.textContent = challenge.description;
       challengeCount.textContent = challenge.progress + ' / ' + challenge.goal;
-      challengeBar.style.width = (challenge.progress / challenge.goal * 100) + '%';
+      challengeBar.style.width = Math.min(100, challenge.progress / challenge.goal * 100) + '%';
 
       if (challenge.claimed) {
         challengeButton.disabled = true;
-        challengeButton.textContent = 'Daily Challenge Claimed ✓';
-      } else if (challenge.progress >= challenge.goal) {
+        challengeButton.textContent = 'Challenge Complete ✓';
+      } else if (challenge.complete) {
         challengeButton.disabled = false;
         challengeButton.textContent = 'Claim +' + challenge.reward + ' Arcade Coins';
       } else {
         challengeButton.disabled = true;
-        challengeButton.textContent = 'Complete a game to unlock +' + challenge.reward + ' Coins';
+        challengeButton.textContent = 'Complete Challenge · +' + challenge.reward + ' Coins';
       }
+
+      const achievement = Arcade.achievementSummary();
+      achievementText.textContent = achievement.unlocked + ' of ' + achievement.total + ' unlocked';
 
       const ad = Arcade.coinAdStatus();
       coinAdButton.disabled = ad.remaining <= 0;
@@ -115,7 +132,8 @@
     });
 
     challengeButton.addEventListener('click', () => {
-      if (Arcade.claimChallenge()) Arcade.toast('🔥 Daily challenge complete · +5 Coins');
+      const result = Arcade.claimChallenge();
+      if (result) Arcade.toast('🔥 Challenge complete · +' + result.reward + ' Coins');
       render();
     });
 
