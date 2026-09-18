@@ -255,9 +255,9 @@
           scoreEl.textContent = score;
           rewardPreviewEl.textContent = rewardFor(score);
 
-          if (score === 10) Arcade.toast('🐸 10 vines! +2 milestone bonus');
-          if (score === 20) Arcade.toast('🌿 20 vines! +3 milestone bonus');
-          if (score === 30) Arcade.toast('🏆 30 vines! +5 milestone bonus');
+          if (score === 10) Arcade.milestone('🐸 10 vines · Jungle Pro!');
+          if (score === 20) Arcade.milestone('🌿 20 vines · Deep jungle!', 'perfect');
+          if (score === 30) Arcade.milestone('🏆 30 vines · Legendary hop!', 'perfect');
         }
 
         const topH = o.gapY - gapSize / 2;
@@ -307,17 +307,20 @@
       startButton.textContent = '👆 Tap Jungle to Play Again';
       draw();
 
-      Arcade.panel(
-        '🐸 Jungle Run Over',
-        'Vines passed: ' + score +
-        '\nBest: ' + best +
-        '\n+' + earned + ' Arcade Coins' +
-        Arcade.resultText(result) +
-        '\n' + Arcade.remaining('jungleHopper') + ' plays remaining',
-        Arcade.remaining('jungleHopper') > 0
-          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-          : [['Get More Plays', () => Arcade.out('jungleHopper', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-      );
+      Arcade.gameResult({
+        icon:'🐸',
+        title:'Jungle Run Over',
+        scoreLabel:'Vines Passed',
+        score,
+        best:best + ' vines',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('jungleHopper'),
+        game:'jungleHopper',
+        extra:[score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('jungleHopper',refreshChrome)
+      });
     }
 
     function startGame() {
