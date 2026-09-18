@@ -35,7 +35,7 @@
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
     <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
-    <p class="swipe-hint">Tap the board to start the countdown. Once it starts, swipe anywhere to move.</p>
+    <p class="swipe-hint">Tap the board to start. During the game, swipe in any direction — your finger can slide off the board without scrolling the page.</p>
     <p class="muted small">Earn 1 coin every 3 apples, plus milestone bonuses at 10, 25, and 50 apples. Max 30 coins per run.</p>
 
     <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
@@ -138,15 +138,24 @@
       swipePointer = event.pointerId;
       swipeStartX = event.clientX;
       swipeStartY = event.clientY;
-      canvas.setPointerCapture?.(event.pointerId);
+      document.documentElement.classList.add('snake-gesture-active');
+
+      try {
+        canvas.setPointerCapture?.(event.pointerId);
+      } catch {}
     });
 
-    canvas.addEventListener('pointerup', event => {
+    function finishSwipe(event) {
       if (swipePointer !== event.pointerId) return;
 
       const dx = event.clientX - swipeStartX;
       const dy = event.clientY - swipeStartY;
       swipePointer = null;
+      document.documentElement.classList.remove('snake-gesture-active');
+
+      try {
+        canvas.releasePointerCapture?.(event.pointerId);
+      } catch {}
 
       if (Math.abs(dx) < swipeThreshold && Math.abs(dy) < swipeThreshold) return;
 
@@ -157,11 +166,25 @@
       }
 
       event.preventDefault();
-    });
+    }
 
-    canvas.addEventListener('pointercancel', () => {
+    document.addEventListener('pointerup', finishSwipe, { passive:false });
+
+    document.addEventListener('pointercancel', event => {
+      if (swipePointer !== event.pointerId) return;
       swipePointer = null;
-    });
+      document.documentElement.classList.remove('snake-gesture-active');
+    }, { passive:false });
+
+    document.addEventListener('pointermove', event => {
+      if (swipePointer !== event.pointerId) return;
+      event.preventDefault();
+    }, { passive:false });
+
+    document.addEventListener('touchmove', event => {
+      if (swipePointer === null) return;
+      event.preventDefault();
+    }, { passive:false });
 
     canvas.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -240,6 +263,8 @@
       if (game === null) return;
       clearInterval(game);
       game = null;
+      swipePointer = null;
+      document.documentElement.classList.remove('snake-gesture-active');
 
       const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake');
