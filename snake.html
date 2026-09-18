@@ -224,9 +224,9 @@
         scoreEl.textContent = score;
         rewardPreviewEl.textContent = snakeReward(score);
 
-        if (score === 10) Arcade.toast('🐍 10 apples! +2 milestone bonus');
-        if (score === 25) Arcade.toast('🔥 25 apples! +3 milestone bonus');
-        if (score === 50) Arcade.toast('🏆 50 apples! +4 milestone bonus');
+        if (score === 10) Arcade.milestone('🐍 10 apples · Bonus unlocked!');
+        if (score === 25) Arcade.milestone('🔥 25 apples · You’re on fire!');
+        if (score === 50) Arcade.milestone('🏆 50 apples · Monster run!', 'perfect');
 
         food = randomFood();
       } else {
@@ -252,16 +252,20 @@
       startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
 
-      Arcade.panel(
-        '🐍 Game Over',
-        'Apples: ' + score +
-        '\n+' + earned + ' Arcade Coins' +
-        Arcade.resultText(result) +
-        '\n' + Arcade.remaining('snake') + ' Snake plays remaining',
-        Arcade.remaining('snake') > 0
-          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-          : [['Get More Plays', () => Arcade.out('snake', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-      );
+      Arcade.gameResult({
+        icon:'🐍',
+        title:'Snake Run Over',
+        scoreLabel:'Apples',
+        score,
+        best:result.best.display,
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('snake'),
+        game:'snake',
+        extra:[score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('snake', refreshChrome)
+      });
     }
 
     function startGame() {
