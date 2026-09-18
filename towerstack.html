@@ -288,7 +288,7 @@
       animation = null;
 
       const earned = rewardFor(floors, perfects);
-      Arcade.earn(earned, 'Tower Stack');
+      Arcade.earn(earned, 'Tower Stack', { kind:'game', game:'towerStack', metric:floors, aux:perfects });
       Arcade.feedback('fail');
       const result = Arcade.recordResult('towerStack', floors);
 
