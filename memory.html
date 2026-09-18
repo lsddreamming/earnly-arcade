@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Earnly Memory Match</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>
+    .memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px auto;max-width:390px}
+    .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0}
+    .memory-card.matched{background:#14532d;border-color:#22c55e}
+    .memory-card.revealed{background:#243044}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🧠 Memory Match</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Moves: <span id="moves">0</span></span>
+        <span class="meta-pill">Pairs: <span id="pairs">0</span>/8</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <div class="memory-grid" id="grid" aria-label="Memory Match cards"></div>
+    <p class="muted small">Match all 8 pairs. Fewer moves earn a bigger bonus.</p>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const grid = document.getElementById('grid');
+    const movesEl = document.getElementById('moves');
+    const pairsEl = document.getElementById('pairs');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+
+    const icons = ['🍎','⭐','🎲','🍕','🚀','🐸','🎧','💎'];
+    let cards = [];
+    let first = null;
+    let second = null;
+    let lock = true;
+    let moves = 0;
+    let pairs = 0;
+    let running = false;
+
+    function refreshChrome(){
+      playsEl.textContent = Arcade.remaining('memory');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+    }
+
+    function setStatus(text,mode){
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function shuffle(items){
+      for(let i=items.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [items[i],items[j]]=[items[j],items[i]];
+      }
+      return items;
+    }
+
+    function rewardForMoves(value){
+      let reward = 8;
+      if(value <= 16) reward += 7;
+      else if(value <= 20) reward += 5;
+      else if(value <= 24) reward += 3;
+      else if(value <= 30) reward += 1;
+      return Math.min(reward,15);
+    }
+
+    function render(){
+      grid.replaceChildren();
+      cards.forEach((card,index)=>{
+        const button=document.createElement('button');
+        button.className='memory-card';
+        button.type='button';
+        button.dataset.index=index;
+        button.textContent=card.matched || card.revealed ? card.icon : '❓';
+        if(card.matched) button.classList.add('matched');
+        else if(card.revealed) button.classList.add('revealed');
+        button.disabled = !running || lock || card.matched || card.revealed;
+        button.addEventListener('click',()=>flip(index));
+        grid.append(button);
+      });
+    }
+
+    function flip(index){
+      if(!running || lock) return;
+      const card=cards[index];
+      if(card.matched || card.revealed) return;
+
+      card.revealed=true;
+      render();
+
+      if(first===null){
+        first=index;
+        return;
+      }
+
+      second=index;
+      lock=true;
+      moves+=1;
+      movesEl.textContent=moves;
+
+      if(cards[first].icon===cards[second].icon){
+        cards[first].matched=true;
+        cards[second].matched=true;
+        pairs+=1;
+        pairsEl.textContent=pairs;
+        cards[first].revealed=false;
+        cards[second].revealed=false;
+        first=null;
+        second=null;
+        lock=false;
+        render();
+
+        if(pairs===8) finishGame();
+      } else {
+        setTimeout(()=>{
+          cards[first].revealed=false;
+          cards[second].revealed=false;
+          first=null;
+          second=null;
+          lock=false;
+          render();
+        },650);
+      }
+    }
+
+    function finishGame(){
+      running=false;
+      lock=true;
+      const earned=rewardForMoves(moves);
+      Arcade.earn(earned,'Memory Match');
+
+      const previous=Arcade.number('memoryBestMoves');
+      if(!previous || moves<previous) localStorage.setItem('memoryBestMoves',String(moves));
+      const best=Number(localStorage.getItem('memoryBestMoves'))||moves;
+
+      refreshChrome();
+      setStatus('Complete','over');
+      startButton.disabled=false;
+      startButton.textContent='▶ Play Again';
+      render();
+
+      Arcade.panel(
+        '🧠 Board Cleared!',
+        'Moves: '+moves+'\nBest: '+best+'\n+'+earned+' Arcade Coins\n'+Arcade.remaining('memory')+' plays remaining',
+        Arcade.remaining('memory')>0
+          ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
+          : [['Get More Plays',()=>Arcade.out('memory',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
+      );
+    }
+
+    function startGame(){
+      if(running) return;
+      if(!Arcade.consume('memory')){
+        Arcade.out('memory',refreshChrome);
+        return;
+      }
+
+      cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
+      first=null;second=null;lock=false;moves=0;pairs=0;running=true;
+      movesEl.textContent='0';
+      pairsEl.textContent='0';
+      startButton.disabled=true;
+      startButton.textContent='Game Running';
+      setStatus('Running','running');
+      refreshChrome();
+      render();
+    }
+
+    startButton.addEventListener('click',startGame);
+    cards=[...icons,...icons].map(icon=>({icon,revealed:false,matched:false}));
+    render();
+    refreshChrome();
+  </script>
+</body>
+</html>
