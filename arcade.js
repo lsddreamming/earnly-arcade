@@ -1384,33 +1384,90 @@ const Arcade = (() => {
     if (busy || remaining(g) > 0) return;
     busy = true;
 
+    const gameName = names[g] || 'game';
+
     panel(
-      'Demo rewarded ad',
-      'This 3-second simulation stands in for a future rewarded ad.\nFinish it to unlock +' + PLAY_AD_BONUS + ' ' + names[g] + ' plays.',
+      'Unlocking ' + PLAY_AD_BONUS + ' ' + gameName + ' plays…',
+      'This demo simulates a future rewarded ad. Keep this screen open to unlock your extra plays.',
       [['Cancel', () => {}, 'secondary']]
     );
 
-    const progress = document.createElement('progress');
-    progress.max = 3;
-    progress.value = 0;
-    modal.insertBefore(progress, modal.querySelector('.modal-actions'));
+    modal.className = 'reward-ad-dialog';
 
-    let elapsed = 0;
+    const reward = document.createElement('div');
+    reward.className = 'reward-ad-pill';
+    reward.textContent = '🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays';
+
+    const progressWrap = document.createElement('div');
+    progressWrap.className = 'reward-ad-progress';
+
+    const track = document.createElement('div');
+    track.className = 'reward-ad-track';
+    track.setAttribute('role', 'progressbar');
+    track.setAttribute('aria-valuemin', '0');
+    track.setAttribute('aria-valuemax', '100');
+    track.setAttribute('aria-valuenow', '0');
+
+    const fill = document.createElement('div');
+    fill.className = 'reward-ad-fill';
+    track.append(fill);
+
+    const countdown = document.createElement('div');
+    countdown.className = 'reward-ad-countdown';
+    countdown.textContent = '3 seconds remaining';
+
+    progressWrap.append(track, countdown);
+    modal.insertBefore(reward, modal.querySelector('.modal-actions'));
+    modal.insertBefore(progressWrap, modal.querySelector('.modal-actions'));
+
+    const cancelButton = modal.querySelector('.modal-actions button');
+    if (cancelButton) cancelButton.classList.add('reward-ad-cancel');
+
+    const duration = 3000;
+    const startedAt = Date.now();
     let finished = false;
-    const timer = setInterval(() => {
-      elapsed += 1;
-      progress.value = elapsed;
 
-      if (elapsed >= 3) {
-        finished = true;
-        clearInterval(timer);
-        grantPlays(g, PLAY_AD_BONUS);
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+      fill.style.width = '100%';
+      track.setAttribute('aria-valuenow', '100');
+      countdown.textContent = 'Unlocked ✓';
+      reward.classList.add('complete');
+
+      grantPlays(g, PLAY_AD_BONUS);
+      if (cancelButton) cancelButton.disabled = true;
+      done();
+
+      const heading = modal.querySelector('h2');
+      const message = modal.querySelector('.modal-message');
+      if (heading) heading.textContent = PLAY_AD_BONUS + ' ' + gameName + ' plays unlocked!';
+      if (message) message.textContent = 'You’re ready to jump back in.';
+
+      setTimeout(() => {
         modal.close();
         busy = false;
-        toast('🎮 +' + PLAY_AD_BONUS + ' ' + names[g] + ' plays');
-        done();
-      }
-    }, 1000);
+        toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+      }, 450);
+    };
+
+    const updateProgress = () => {
+      const elapsed = Date.now() - startedAt;
+      const percent = Math.min(100, (elapsed / duration) * 100);
+      const secondsLeft = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+
+      fill.style.width = percent + '%';
+      track.setAttribute('aria-valuenow', String(Math.round(percent)));
+      countdown.textContent = secondsLeft > 0
+        ? secondsLeft + ' second' + (secondsLeft === 1 ? '' : 's') + ' remaining'
+        : 'Unlocking…';
+
+      if (elapsed >= duration) finish();
+    };
+
+    const timer = setInterval(updateProgress, 80);
+    updateProgress();
 
     modal.addEventListener('close', () => {
       clearInterval(timer);
