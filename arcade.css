@@ -3492,3 +3492,68 @@ body{animation:app-fade-in 180ms ease both}
 .missions-dashboard .activity-item{
   padding:8px 0;
 }
+
+
+/* 0.14.2 Safari → Home Screen progress transfer */
+.home-transfer-banner{
+  margin:0 0 10px;
+  padding:12px;
+  border:1px solid #2f6fb0;
+  border-radius:16px;
+  background:linear-gradient(135deg,#142844,#162238);
+  text-align:left;
+}
+.home-transfer-copy strong,
+.home-transfer-copy span{
+  display:block;
+}
+.home-transfer-copy strong{
+  color:#f8fafc;
+  font-size:11px;
+}
+.home-transfer-copy span{
+  margin-top:4px;
+  color:#a8b8ca;
+  font-size:8.5px;
+  line-height:1.4;
+}
+.home-transfer-actions{
+  display:flex;
+  gap:7px;
+  margin-top:9px;
+}
+.home-transfer-actions button{
+  min-height:36px;
+  margin:0;
+  padding:8px 10px;
+  font-size:9px;
+}
+.home-transfer-actions .green{
+  flex:1.4;
+}
+.home-transfer-actions .secondary{
+  flex:.7;
+}
+.transfer-card{
+  scroll-margin-top:18px;
+}
+.transfer-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.transfer-actions button{
+  margin:0;
+}
+.transfer-code-input{
+  width:100%;
+  box-sizing:border-box;
+  margin:10px 0 8px;
+  padding:10px;
+  border:1px solid #3a4c63;
+  border-radius:12px;
+  background:#0f1828;
+  color:#dbeafe;
+  font:8px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  resize:vertical;
+}
