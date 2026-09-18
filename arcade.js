@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.4';
+  const APP_VERSION = '0.15.5';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1040,21 +1040,24 @@ const Arcade = (() => {
     };
   }
 
-  function earn(n, source = 'Arcade reward') {
+  function earn(n, source = 'Arcade reward', server = null) {
     n = Math.max(0, Math.floor(Number(n) || 0));
-    if (!n) return number('points');
+    if (!n && !server) return number('points');
 
     refreshCoinEarnDay();
-    setNumber('points', number('points') + n);
-    setNumber('lifetimePoints', number('lifetimePoints') + n);
-    setNumber('arcadeCoinsEarnedToday', number('arcadeCoinsEarnedToday') + n);
-    logTransaction(n, source);
+    if (n) {
+      setNumber('points', number('points') + n);
+      setNumber('lifetimePoints', number('lifetimePoints') + n);
+      setNumber('arcadeCoinsEarnedToday', number('arcadeCoinsEarnedToday') + n);
+      logTransaction(n, source);
+    }
     queueEvent('coin_award', {
       amount:n,
       source,
       balance:number('points'),
       lifetime:number('lifetimePoints'),
-      earnedToday:number('arcadeCoinsEarnedToday')
+      earnedToday:number('arcadeCoinsEarnedToday'),
+      server:server && typeof server === 'object' ? server : null
     });
     return number('points');
   }
@@ -1067,7 +1070,7 @@ const Arcade = (() => {
     const streak = last === yesterdayKey() ? number('dailyStreak') + 1 : 1;
     setNumber('dailyStreak', streak);
     localStorage.setItem('lastDailyBonusDate', today);
-    earn(DAILY_BONUS, 'Daily bonus');
+    earn(DAILY_BONUS, 'Daily bonus', { kind:'daily_bonus' });
     logActivity('reward', 'Daily bonus claimed', '+' + DAILY_BONUS + ' Arcade Coins · ' + streak + ' day streak');
     const ready = streakRewardStatus().rewards.find(item => item.days === streak && !item.claimed);
     if (ready) toast(ready.icon + ' ' + ready.title + ' reward ready!');
@@ -1108,7 +1111,7 @@ const Arcade = (() => {
     const s = challengeStatus();
     if (!s.complete || s.claimed) return false;
     localStorage.setItem('arcadeChallengeClaimed', '1');
-    earn(s.reward, 'Daily challenge');
+    earn(s.reward, 'Daily challenge', { kind:'daily_challenge', challengeId:s.id });
     logActivity('challenge', 'Daily challenge claimed', '+' + s.reward + ' Arcade Coins');
     return s;
   }
