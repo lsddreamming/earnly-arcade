@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.13.1';
+  const APP_VERSION = '0.13.2';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1613,6 +1613,29 @@ const Arcade = (() => {
     surface.parentNode.insertBefore(wrapper, surface);
     wrapper.append(surface);
     surface.classList.add('game-guide-surface');
+
+    // iPhone Safari can interpret fast repeated taps as a page-zoom gesture.
+    // Keep zoom/gesture prevention scoped to the actual game area so the rest
+    // of Earnly remains normally zoomable and accessible.
+    let lastTouchEnd = 0;
+    const preventGameGesture = event => {
+      event.preventDefault();
+    };
+
+    wrapper.addEventListener('dblclick', preventGameGesture, { passive:false });
+    wrapper.addEventListener('gesturestart', preventGameGesture, { passive:false });
+    wrapper.addEventListener('gesturechange', preventGameGesture, { passive:false });
+    wrapper.addEventListener('gestureend', preventGameGesture, { passive:false });
+
+    wrapper.addEventListener('touchmove', event => {
+      if (event.touches && event.touches.length > 1) event.preventDefault();
+    }, { passive:false });
+
+    wrapper.addEventListener('touchend', event => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) event.preventDefault();
+      lastTouchEnd = now;
+    }, { passive:false });
 
     const strip = document.createElement('section');
     strip.className = 'game-guide-strip';
