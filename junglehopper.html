@@ -309,7 +309,7 @@
       animation = null;
 
       const earned = rewardFor(score);
-      Arcade.earn(earned, 'Jungle Hopper');
+      Arcade.earn(earned, 'Jungle Hopper', { kind:'game', game:'jungleHopper', metric:score });
       Arcade.feedback('fail');
       const result = Arcade.recordResult('jungleHopper', score);
 
