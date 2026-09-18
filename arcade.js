@@ -1476,7 +1476,11 @@ const Arcade = (() => {
       'Out of ' + names[g] + ' plays',
       'Your free plays refill daily.\nWant to keep playing now? Finish a demo rewarded ad for +' + PLAY_AD_BONUS + ' plays.',
       [
-        ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
+        ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => {
+          // Let Safari finish dispatching the current dialog's close event
+          // before reusing the same dialog for the rewarded-ad simulation.
+          setTimeout(() => playAd(g, done), 50);
+        }, 'green'],
         ['Back to Arcade', () => location.href = 'games.html', 'secondary']
       ]
     );
