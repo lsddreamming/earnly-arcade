@@ -156,6 +156,7 @@
 
       const earned=rewardFor(seconds,dodged);
       Arcade.earn(earned,'Neon Dodger');
+      Arcade.recordResult('dodger', seconds);
 
       const best=Math.max(seconds,Arcade.number('dodgerBest'));
       localStorage.setItem('dodgerBest',String(best));
