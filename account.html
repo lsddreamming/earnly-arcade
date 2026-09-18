@@ -115,42 +115,54 @@
       </div>
     </section>
 
-    <section class="card transfer-card" id="transfer" style="text-align:left">
-      <h2>📲 Move Progress Between Safari & Home Screen</h2>
-      <p class="muted">Use this when the iPhone Home Screen version starts with a fresh balance. The code contains prototype game progress only.</p>
+    <details class="card home-disclosure account-advanced" id="transfer">
+      <summary>
+        <div>
+          <strong>🧰 Manual backup & transfer</strong>
+          <span>Only needed if automatic cloud sync is unavailable</span>
+        </div>
+        <span>⌄</span>
+      </summary>
 
-      <div class="data-actions transfer-actions">
-        <button class="wide green" id="copyTransferButton" type="button">📋 Copy Progress Code</button>
-        <button class="wide secondary" id="clipboardRestoreButton" type="button">📲 Restore From Clipboard</button>
+      <div class="account-advanced-body">
+        <section class="account-tool-block">
+          <h3>📲 Move progress manually</h3>
+          <p class="muted small">Copy a progress code between Safari and the Home Screen version if you ever need a manual fallback.</p>
+
+          <div class="data-actions transfer-actions">
+            <button class="wide green" id="copyTransferButton" type="button">📋 Copy Progress Code</button>
+            <button class="wide secondary" id="clipboardRestoreButton" type="button">📲 Restore From Clipboard</button>
+          </div>
+
+          <textarea id="transferCodeInput" class="transfer-code-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Or paste an Earnly progress code here"></textarea>
+          <button class="wide secondary" id="pasteRestoreButton" type="button">Restore Pasted Code</button>
+
+          <div class="data-note" id="transferNote">
+            Manual transfer is a backup option. Signed-in players should normally use Earnly Cloud automatically.
+          </div>
+        </section>
+
+        <section class="account-tool-block">
+          <h3>💾 Download a backup</h3>
+          <p class="muted small">Save a local copy of profile progress, XP, Coins, best scores, achievements, streaks, missions, favorites, and history.</p>
+
+          <div class="data-actions">
+            <button class="wide green" id="backupButton" type="button">⬇️ Download Progress Backup</button>
+            <button class="wide secondary" id="restoreButton" type="button">⬆️ Restore From Backup</button>
+            <input id="restoreFile" type="file" accept="application/json,.json" hidden>
+          </div>
+
+          <div class="data-note" id="backupNote">
+            Backups contain prototype game progress only. They do not contain passwords or payment information.
+          </div>
+        </section>
       </div>
-
-      <textarea id="transferCodeInput" class="transfer-code-input" rows="3" spellcheck="false" autocomplete="off" placeholder="Or paste an Earnly progress code here"></textarea>
-      <button class="wide secondary" id="pasteRestoreButton" type="button">Restore Pasted Code</button>
-
-      <div class="data-note" id="transferNote">
-        In Safari: copy the code. Then open Earnly from your Home Screen and restore it there.
-      </div>
-    </section>
-
-    <section class="card" style="text-align:left">
-      <h2>💾 Backup Progress</h2>
-      <p class="muted">Save a copy of your Earnly profile, XP, coins, best scores, achievements, streaks, missions, favorites, and history.</p>
-
-      <div class="data-actions">
-        <button class="wide green" id="backupButton" type="button">⬇️ Download Progress Backup</button>
-        <button class="wide secondary" id="restoreButton" type="button">⬆️ Restore From Backup</button>
-        <input id="restoreFile" type="file" accept="application/json,.json" hidden>
-      </div>
-
-      <div class="data-note" id="backupNote">
-        Backups contain prototype game progress only. They do not contain passwords or payment information.
-      </div>
-    </section>
+    </details>
 
     <section class="card cloud-safety-card" style="text-align:left">
-      <h2>🔐 Cloud Save Status</h2>
+      <h2>🔐 Cloud & reward protection</h2>
       <p class="muted small" style="margin-bottom:0">
-        Account authentication and private cloud backups are now connected. For this prototype, cloud save backs up progress; a future server-authoritative reward ledger will handle real cash-out balances and fraud controls.
+        Signed-in progress is backed up with Earnly Cloud. Arcade Coin rewards are also reconciled against a secure server wallet. Cash-out and real payment processing are not connected yet.
       </p>
     </section>
 

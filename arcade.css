@@ -3837,3 +3837,28 @@ body{animation:app-fade-in 180ms ease both}
   background:#331b16;
   color:#ffd0bf;
 }
+
+/* 0.15.14 account cleanup after automatic cloud restore */
+.account-advanced{
+  padding:0;
+  overflow:hidden;
+  text-align:left;
+}
+.account-advanced summary{
+  padding:13px 14px;
+}
+.account-advanced-body{
+  padding:0 14px 14px;
+}
+.account-tool-block{
+  padding:13px 0 2px;
+  border-top:1px solid #2b3a4f;
+}
+.account-tool-block:first-child{border-top:0}
+.account-tool-block h3{
+  margin:0 0 5px;
+  font-size:14px;
+}
+.account-tool-block .data-actions{
+  margin-top:10px;
+}
