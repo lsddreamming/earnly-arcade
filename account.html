@@ -247,7 +247,7 @@
       balance.textContent = Arcade.number('points').toLocaleString();
       const sync = Arcade.syncStatus();
       device.textContent = sync.deviceId.slice(0, 8) + '…' + sync.deviceId.slice(-6);
-      pending.textContent = sync.pending + ' pending';
+      pending.textContent = sync.pending ? (sync.pending + ' waiting') : 'All synced';
     }
 
     document.getElementById('copyTransferButton').addEventListener('click', async () => {
@@ -523,6 +523,7 @@
     window.addEventListener('earnly-cloud-auth-change', renderCloud);
     window.addEventListener('earnly-cloud-synced', async event => {
       const when = event.detail?.updatedAt;
+      render();
       if (event.detail?.source?.startsWith('auto:')) {
         cloudMessage.textContent = '☁️ Progress synced automatically.';
       }

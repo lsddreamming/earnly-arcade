@@ -129,8 +129,11 @@
 
       if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
       localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
+      localStorage.setItem('arcadeLastCloudHash', snapshotSignature(data.payload));
       localStorage.setItem('arcadeFreshDeviceRestoreDone', marker);
       localStorage.removeItem('arcadeCloudConflict');
+      localStorage.removeItem('arcadeCloudSyncError');
+      clearSnapshotSyncedEvents();
 
       let rewardSync = null;
       try {
@@ -271,6 +274,32 @@
     return { synced, wallet, mismatches };
   }
 
+  function snapshotSignature(snapshot){
+    const data = snapshot?.data && typeof snapshot.data === 'object' ? snapshot.data : {};
+    const ordered = Object.keys(data).sort().map(key => [key, data[key]]);
+    const text = JSON.stringify(ordered);
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return 'v1-' + (hash >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function clearSnapshotSyncedEvents(){
+    const ids = Arcade.pendingSyncEvents()
+      .filter(event => !(
+        event?.type === 'coin_award' &&
+        event?.payload?.server &&
+        typeof event.payload.server === 'object'
+      ))
+      .map(event => event.id)
+      .filter(Boolean);
+
+    if (ids.length) Arcade.clearSyncEvents(ids);
+    return ids.length;
+  }
+
   async function saveProgress(options = {}){
     const current = await user();
     if (!current) throw new Error('Sign in before saving to Earnly Cloud.');
@@ -279,10 +308,24 @@
       await syncServerRewards();
     }
 
-    const snapshot = Arcade.snapshotData();
+    const snapshot = options.snapshot || Arcade.snapshotData();
+    const signature = snapshotSignature(snapshot);
     const status = Arcade.appStatus();
     const displayName = (localStorage.getItem('arcadeProfileName') || 'Player').trim().slice(0,32) || 'Player';
     const source = options.source || 'manual';
+
+    if (options.skipIfUnchanged && localStorage.getItem('arcadeLastCloudHash') === signature) {
+      const clearedEvents = clearSnapshotSyncedEvents();
+      localStorage.removeItem('arcadeCloudSyncError');
+      return {
+        skipped:'unchanged',
+        snapshot,
+        source,
+        signature,
+        clearedEvents,
+        pending:Arcade.syncStatus().pending
+      };
+    }
 
     const { error:profileError } = await requireClient()
       .from('profiles')
@@ -307,11 +350,20 @@
 
     const savedAt = data.updated_at || new Date().toISOString();
     localStorage.setItem('arcadeLastCloudSave', savedAt);
+    localStorage.setItem('arcadeLastCloudHash', signature);
     localStorage.removeItem('arcadeCloudConflict');
+    localStorage.removeItem('arcadeCloudSyncError');
+    const clearedEvents = clearSnapshotSyncedEvents();
     window.dispatchEvent(new CustomEvent('earnly-cloud-synced', {
-      detail:{ source, updatedAt:savedAt, deviceId:data.device_id || status.deviceId }
+      detail:{
+        source,
+        updatedAt:savedAt,
+        deviceId:data.device_id || status.deviceId,
+        clearedEvents,
+        pending:Arcade.syncStatus().pending
+      }
     }));
-    return { snapshot, save:data, source };
+    return { snapshot, save:data, source, signature, clearedEvents };
   }
 
   function autoSyncEnabled(){
@@ -384,7 +436,11 @@
         return { skipped:'newer-cloud-save', conflict };
       }
 
-      const result = await saveProgress({ source:'auto:' + reason, skipRewardSync:true });
+      const result = await saveProgress({
+        source:'auto:' + reason,
+        skipRewardSync:true,
+        skipIfUnchanged:true
+      });
       result.rewardSync = rewardSync;
       return result;
     } catch (error) {
@@ -420,7 +476,10 @@
     Arcade.repairGameStats?.();
     localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
     if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
+    localStorage.setItem('arcadeLastCloudHash', snapshotSignature(data.payload));
     localStorage.removeItem('arcadeCloudConflict');
+    localStorage.removeItem('arcadeCloudSyncError');
+    clearSnapshotSyncedEvents();
     window.dispatchEvent(new CustomEvent('earnly-cloud-restored', {
       detail:{ restored:result.restored, updatedAt:data.updated_at || null }
     }));
@@ -470,13 +529,17 @@
     });
 
     window.addEventListener('earnly-data-change', event => {
-      scheduleAutoSync(event.detail?.type || 'data-change', 1400);
+      scheduleAutoSync(event.detail?.type || 'data-change', 650);
     });
     window.addEventListener('online', () => scheduleAutoSync('online', 300));
     window.addEventListener('pageshow', () => scheduleAutoSync('pageshow', 850));
     window.addEventListener('focus', () => scheduleAutoSync('focus', 1000));
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') scheduleAutoSync('foreground', 650);
+      if (document.visibilityState === 'visible') {
+        scheduleAutoSync('foreground', 650);
+      } else if (autoSyncEnabled()) {
+        autoSaveProgress('background').catch(() => {});
+      }
     });
 
     setTimeout(() => scheduleAutoSync('cloud-ready', 900), 0);
