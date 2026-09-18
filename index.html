@@ -125,10 +125,11 @@
       </div>
     </section>
 
-    <button class="button wide green" id="coinAdButton" type="button">
-      ▶ Watch Demo Ad · +10 Arcade Coins
-    </button>
-    <p class="muted small" id="coinAdStatus"></p>
+    <section class="card compact-card">
+      <p class="muted small" style="margin:0">
+        🪙 Earn Arcade Coins from games, the daily bonus, and challenges. Rewarded ads are only used to unlock extra game plays.
+      </p>
+    </section>
 
     <a class="button wide" href="games.html">🕹 Play Games</a>
     <a class="button wide gold" href="rewards.html">🎁 Rewards</a>
@@ -146,7 +147,7 @@
     <details class="card compact-card">
       <summary>What is this prototype testing?</summary>
       <p class="muted">
-        Games, daily rewards, optional rewarded-ad flows, achievements, and the Arcade Coin experience.
+        Games, daily rewards, optional rewarded ads for extra plays, achievements, and the Arcade Coin experience.
         No real ad network or cash-out system is connected yet.
       </p>
     </details>
@@ -182,8 +183,6 @@
     const continueButton = document.getElementById('continueButton');
     const weeklyText = document.getElementById('weeklyText');
     const weeklyCount = document.getElementById('weeklyCount');
-    const coinAdButton = document.getElementById('coinAdButton');
-    const coinAdStatus = document.getElementById('coinAdStatus');
 
     function render() {
       const install = Arcade.installStatus();
@@ -313,13 +312,6 @@
 
       const achievement = Arcade.achievementSummary();
       achievementText.textContent = achievement.unlocked + ' of ' + achievement.total + ' unlocked';
-
-      const ad = Arcade.coinAdStatus();
-      coinAdButton.disabled = ad.remaining <= 0;
-      coinAdButton.textContent = ad.remaining > 0
-        ? '▶ Watch Demo Ad · +' + ad.reward + ' Arcade Coins'
-        : 'Daily Demo Ad Limit Reached';
-      coinAdStatus.textContent = ad.watched + ' of ' + ad.limit + ' demo reward ads used today';
     }
 
     bonusButton.addEventListener('click', () => {
@@ -342,7 +334,6 @@
     window.addEventListener('earnly-install-changed', render);
 
     document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
-    coinAdButton.addEventListener('click', () => Arcade.coinAd(render));
 
     window.addEventListener('pageshow', render);
     window.addEventListener('focus', render);
