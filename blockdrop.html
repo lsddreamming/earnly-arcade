@@ -55,7 +55,7 @@
 
     <button class="green wide" id="startButton" type="button">▶ Start Game</button>
 
-    <canvas id="game" class="blockdrop-board" width="300" height="600" aria-label="Block Drop game board"></canvas>
+    <canvas id="game" class="blockdrop-board touch-surface" width="300" height="600" aria-label="Block Drop game board"></canvas>
 
     <div class="controls blockdrop-controls" aria-label="Block Drop controls">
       <button class="game-control" id="leftButton" type="button" aria-label="Move left">⬅️</button>
@@ -64,7 +64,7 @@
       <button class="game-control" id="dropButton" type="button">⬇️ Drop</button>
     </div>
 
-    <p class="swipe-hint">Hold ⬅️ or ➡️ to slide the piece. Tap 🔄 to rotate and ⬇️ Drop to move down.</p>
+    <p class="swipe-hint">Drag on the board to slide left/right or down. Tap the board to rotate. You can also hold ⬅️ or ➡️.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -321,6 +321,68 @@
     bindHoldControl('rightButton', moveRight);
     bindTapControl('rotateButton', rotatePiece);
     bindTapControl('dropButton', moveDown);
+
+    let blockDragPointer = null;
+    let blockDragX = 0;
+    let blockDragY = 0;
+    let blockDragTotalX = 0;
+    let blockDragTotalY = 0;
+    const blockStep = 26;
+    const tapSlop = 12;
+
+    canvas.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      blockDragPointer = event.pointerId;
+      blockDragX = event.clientX;
+      blockDragY = event.clientY;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
+      canvas.setPointerCapture?.(event.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', event => {
+      if (blockDragPointer !== event.pointerId || !game) return;
+      event.preventDefault();
+
+      const dx = event.clientX - blockDragX;
+      const dy = event.clientY - blockDragY;
+      blockDragTotalX += Math.abs(dx);
+      blockDragTotalY += Math.abs(dy);
+
+      if (Math.abs(dx) >= blockStep) {
+        const moves = Math.max(1, Math.floor(Math.abs(dx) / blockStep));
+        for (let i = 0; i < moves; i++) {
+          dx > 0 ? moveRight() : moveLeft();
+        }
+        blockDragX = event.clientX;
+      }
+
+      if (dy >= blockStep) {
+        const moves = Math.max(1, Math.floor(dy / blockStep));
+        for (let i = 0; i < moves; i++) moveDown();
+        blockDragY = event.clientY;
+      }
+    });
+
+    canvas.addEventListener('pointerup', event => {
+      if (blockDragPointer !== event.pointerId) return;
+      event.preventDefault();
+
+      const wasTap =
+        blockDragTotalX < tapSlop &&
+        blockDragTotalY < tapSlop &&
+        Math.abs(event.clientX - blockDragX) < tapSlop &&
+        Math.abs(event.clientY - blockDragY) < tapSlop;
+
+      blockDragPointer = null;
+      if (wasTap && game) rotatePiece();
+    });
+
+    canvas.addEventListener('pointercancel', () => {
+      blockDragPointer = null;
+    });
+
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
 
     document.addEventListener('keydown', event => {
       if (!event.key.startsWith('Arrow')) return;
