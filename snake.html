@@ -24,6 +24,10 @@
       background: #1f2937;
       border: 3px solid white;
       max-width: 100%;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
     button {
@@ -39,6 +43,22 @@
     .control-button {
       background: #3b82f6;
       color: white;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+
+    .swipe-hint {
+      margin: 10px 0 0;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+
+    @media (pointer: coarse) {
+      .controls {
+        display: none;
+      }
     }
 
     .start-button {
@@ -80,6 +100,8 @@
       width="400"
       height="400"
     ></canvas>
+
+    <p class="swipe-hint">Swipe on the game board to move</p>
 
     <br>
 
@@ -166,6 +188,59 @@
     document.addEventListener(
       "keydown",
       changeDirection
+    );
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const swipeThreshold = 24;
+
+    canvas.addEventListener(
+      "touchstart",
+      function (event) {
+        if (!event.touches.length) return;
+
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener(
+      "touchmove",
+      function (event) {
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener(
+      "touchend",
+      function (event) {
+        if (!event.changedTouches.length) return;
+
+        const touchEndX = event.changedTouches[0].clientX;
+        const touchEndY = event.changedTouches[0].clientY;
+
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        if (
+          Math.abs(deltaX) < swipeThreshold &&
+          Math.abs(deltaY) < swipeThreshold
+        ) {
+          return;
+        }
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          setDirection(deltaX > 0 ? "RIGHT" : "LEFT");
+        } else {
+          setDirection(deltaY > 0 ? "DOWN" : "UP");
+        }
+
+        event.preventDefault();
+      },
+      { passive: false }
     );
 
     function setDirection(newDirection) {
