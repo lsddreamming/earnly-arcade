@@ -56,12 +56,27 @@
       </div>
     </section>
 
+    <section class="card display-settings-card" style="text-align:left">
+      <h2>👀 Display</h2>
+      <p class="muted small">Choose the text size that feels best on your phone. It applies across Earnly, including games and the bottom navigation.</p>
+      <div class="text-size-options" id="textSizeOptions" role="group" aria-label="Text size">
+        <button type="button" data-text-scale="compact"><strong>Compact</strong><span>100%</span></button>
+        <button type="button" data-text-scale="comfortable"><strong>Comfortable</strong><span>110%</span></button>
+        <button type="button" data-text-scale="large"><strong>Large</strong><span>120%</span></button>
+        <button type="button" data-text-scale="xlarge"><strong>Extra Large</strong><span>130%</span></button>
+      </div>
+      <div class="text-size-preview">
+        <span>Preview</span>
+        <strong>Earnly should be easy to read.</strong>
+      </div>
+    </section>
+
     <section class="card" style="text-align:left">
       <h2>📱 App Status</h2>
       <div class="app-status-grid">
         <div class="app-status-card"><strong id="networkStatus">Online</strong><span>Network</span></div>
         <div class="app-status-card"><strong id="installStatus">Browser</strong><span>Launch Mode</span></div>
-        <div class="app-status-card"><strong id="versionStatus">v0.14.2</strong><span>Prototype Version</span></div>
+        <div class="app-status-card"><strong id="versionStatus">v0.14.3</strong><span>Prototype Version</span></div>
         <div class="app-status-card"><strong id="queueStatus">0</strong><span>Backend Events</span></div>
       </div>
       <button class="wide ghost browser-only" id="installButton" type="button" style="margin-top:12px">📱 Install / Add to Home Screen</button>
@@ -83,6 +98,7 @@
     const soundToggle = document.getElementById('soundToggle');
     const hapticsToggle = document.getElementById('hapticsToggle');
     const motionToggle = document.getElementById('motionToggle');
+    const textSizeButtons = Array.from(document.querySelectorAll('[data-text-scale]'));
 
     function setToggle(button, enabled) {
       button.textContent = enabled ? 'On' : 'Off';
@@ -96,6 +112,12 @@
       setToggle(soundToggle, status.sound);
       setToggle(hapticsToggle, status.haptics);
       setToggle(motionToggle, !status.reducedMotion);
+
+      textSizeButtons.forEach(button => {
+        const active = button.dataset.textScale === status.textScale;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
 
       document.getElementById('networkStatus').textContent = status.online ? '🌐 Online' : '📴 Offline';
       document.getElementById('installStatus').textContent = status.install.standalone ? '📱 Installed' : '🌍 Browser';
@@ -116,6 +138,13 @@
     motionToggle.addEventListener('click', () => {
       Arcade.setReducedMotionEnabled(!Arcade.reducedMotionEnabled());
       render();
+    });
+
+    textSizeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        Arcade.setTextScale(button.dataset.textScale);
+        render();
+      });
     });
 
     document.getElementById('walkthroughButton').addEventListener('click', () => Arcade.showOnboarding(true));
