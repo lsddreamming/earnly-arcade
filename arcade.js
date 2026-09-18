@@ -7,7 +7,8 @@ const Arcade = (() => {
     memory: 'Memory Match',
     dodger: 'Neon Dodger',
     brickBreaker: 'Brick Breaker',
-    jungleHopper: 'Jungle Hopper'
+    jungleHopper: 'Jungle Hopper',
+    towerStack: 'Tower Stack'
   };
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
