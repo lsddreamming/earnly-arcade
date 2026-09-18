@@ -3765,3 +3765,75 @@ body{animation:app-fade-in 180ms ease both}
   color:#f8fafc;
   font-size:10px;
 }
+
+
+/* 0.15.4 clearer forgot-password flow */
+.cloud-reset-panel{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid #314158;
+  border-radius:12px;
+  background:#101a2a;
+}
+.cloud-reset-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.cloud-reset-head h3{
+  margin:3px 0 0;
+}
+.cloud-reset-close{
+  width:32px;
+  height:32px;
+  min-width:32px;
+  padding:0;
+  border:1px solid #3b4c63;
+  border-radius:10px;
+  background:#162235;
+  color:#dbeafe;
+  font-size:14px;
+}
+.cloud-reset-email-label{
+  display:block;
+  margin-top:8px;
+}
+.cloud-reset-email-label > span{
+  display:block;
+  margin-bottom:5px;
+  font-size:8px;
+  font-weight:700;
+  color:#a8b6ca;
+}
+.cloud-reset-email-label input{
+  width:100%;
+  box-sizing:border-box;
+  min-height:44px;
+  padding:9px 11px;
+  border:1px solid #40536b;
+  border-radius:11px;
+  background:#0d1727;
+  color:#f8fafc;
+  font-size:10px;
+}
+.cloud-reset-status{
+  margin-top:9px;
+  padding:9px 10px;
+  border:1px solid #34455b;
+  border-radius:10px;
+  background:#0d1727;
+  color:#cbd5e1;
+  font-size:8.5px;
+  line-height:1.45;
+}
+.cloud-reset-status.success{
+  border-color:#197347;
+  background:#0c2d20;
+  color:#9ff3c7;
+}
+.cloud-reset-status.error{
+  border-color:#8a4a32;
+  background:#331b16;
+  color:#ffd0bf;
+}
