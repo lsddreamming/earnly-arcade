@@ -53,7 +53,7 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
     <canvas id="game" class="blockdrop-board touch-surface" width="300" height="600" aria-label="Block Drop game board"></canvas>
 
@@ -64,7 +64,7 @@
       <button class="game-control" id="dropButton" type="button">⬇️ Drop</button>
     </div>
 
-    <p class="swipe-hint">Drag on the board to slide left/right or down. Tap the board to rotate. You can also hold ⬅️ or ➡️.</p>
+    <p class="swipe-hint">Tap the board to start the countdown. Then drag left/right or down, and tap to rotate.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -101,6 +101,7 @@
     let score = 0;
     let lines = 0;
     let game = null;
+    let starting = false;
     let currentPiece = null;
     let currentColor = colors[0];
     let pieceX = 0;
@@ -243,8 +244,9 @@
       const result = Arcade.recordResult('blockDrop', lines);
       refreshChrome();
 
+      starting = false;
       startButton.disabled = false;
-      startButton.textContent = '▶ Play Again';
+      startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
 
       Arcade.panel(
@@ -257,9 +259,11 @@
     }
 
     function startGame() {
-      if (game) return;
+      if (game || starting) return;
+      starting = true;
 
       if (!Arcade.consume('blockDrop')) {
+        starting = false;
         Arcade.out('blockDrop', refreshChrome);
         return;
       }
@@ -278,6 +282,7 @@
       draw();
 
       Arcade.countdown(() => {
+        starting = false;
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         game = setInterval(moveDown, 600);
@@ -339,6 +344,12 @@
 
     canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
+
+      if (!game) {
+        if (!starting) startGame();
+        return;
+      }
+
       blockDragPointer = event.pointerId;
       blockDragX = event.clientX;
       blockDragY = event.clientY;
