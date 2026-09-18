@@ -24,6 +24,20 @@
       </div>
     </section>
 
+    <section class="card compact-card profile-card">
+      <div class="profile-head">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-copy">
+          <strong><span id="profileName">Player</span> · Level <span id="profileLevel">1</span></strong>
+          <div class="xp-row">
+            <span id="profileXP">0 / 100 XP</span>
+            <a href="profile.html">View Profile →</a>
+          </div>
+          <div class="xp-bar"><span id="profileXPBar"></span></div>
+        </div>
+      </div>
+    </section>
+
     <section class="card challenge">
       <div class="row">
         <div>
@@ -85,11 +99,21 @@
     const challengeBar = document.getElementById('challengeBar');
     const challengeButton = document.getElementById('challengeButton');
     const achievementText = document.getElementById('achievementText');
+    const profileName = document.getElementById('profileName');
+    const profileLevel = document.getElementById('profileLevel');
+    const profileXP = document.getElementById('profileXP');
+    const profileXPBar = document.getElementById('profileXPBar');
     const coinAdButton = document.getElementById('coinAdButton');
     const coinAdStatus = document.getElementById('coinAdStatus');
 
     function render() {
       points.textContent = Arcade.number('points').toLocaleString();
+
+      const xp = Arcade.xpStatus();
+      profileName.textContent = Arcade.profileName();
+      profileLevel.textContent = xp.level;
+      profileXP.textContent = xp.current + ' / ' + xp.needed + ' XP';
+      profileXPBar.style.width = xp.progress + '%';
 
       const bonus = Arcade.dailyBonusStatus();
       streak.textContent = '🔥 ' + bonus.streak + ' day' + (bonus.streak === 1 ? '' : 's') + ' streak';
