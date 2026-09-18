@@ -2576,6 +2576,17 @@ body{animation:app-fade-in 180ms ease both}
   width:fit-content;
   max-width:100%;
   margin:0 auto;
+  touch-action:none;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  overscroll-behavior:contain;
+}
+.game-guide-surface{
+  touch-action:none!important;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
 }
 .game-guide-surface-wrap>.game-guide-surface{
   margin:0!important;
