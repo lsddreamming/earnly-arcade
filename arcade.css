@@ -2961,3 +2961,82 @@ body{animation:app-fade-in 180ms ease both}
     grid-template-columns:1fr;
   }
 }
+
+
+/* 0.13.7 real-phone readability: Snake + Neon Dodger */
+.game-title-status-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-width:0;
+}
+.game-title-status-row h1{
+  margin:0!important;
+  min-width:0;
+}
+.game-title-status-row .title-status{
+  flex:0 0 auto;
+  margin:0;
+  padding:5px 8px;
+  font-size:9px;
+  white-space:nowrap;
+}
+
+.snake-page .game-guide-strip,
+.dodger-page .game-guide-strip{
+  gap:7px;
+  margin-bottom:8px;
+}
+.snake-page .game-guide-step,
+.dodger-page .game-guide-step{
+  gap:7px;
+  min-height:48px;
+  padding:8px 9px;
+  border-radius:11px;
+}
+.snake-page .game-guide-step-icon,
+.dodger-page .game-guide-step-icon{
+  font-size:17px;
+}
+.snake-page .game-guide-step strong,
+.dodger-page .game-guide-step strong{
+  font-size:10px;
+  line-height:1.15;
+}
+.snake-page .game-guide-step small,
+.dodger-page .game-guide-step small{
+  margin-top:2px;
+  font-size:8.5px;
+  line-height:1.22;
+}
+
+/* Keep the larger guides readable without making the game boards smaller. */
+.snake-page .game-guide-surface-wrap,
+.dodger-page .game-guide-surface-wrap{
+  margin-top:0;
+}
+
+@media(max-width:390px){
+  .snake-page .game-guide-strip,
+  .dodger-page .game-guide-strip{
+    gap:5px;
+  }
+  .snake-page .game-guide-step,
+  .dodger-page .game-guide-step{
+    padding:7px 6px;
+    gap:5px;
+  }
+  .snake-page .game-guide-step-icon,
+  .dodger-page .game-guide-step-icon{
+    font-size:15px;
+  }
+  .snake-page .game-guide-step strong,
+  .dodger-page .game-guide-step strong{
+    font-size:9.5px;
+  }
+  .snake-page .game-guide-step small,
+  .dodger-page .game-guide-step small{
+    font-size:8px;
+  }
+}
