@@ -2796,3 +2796,84 @@ body{animation:app-fade-in 180ms ease both}
     padding-inline:7px;
   }
 }
+
+
+/* 0.13.5 simplified Home top */
+.home-hero{
+  position:relative;
+  padding-right:38px;
+  margin-bottom:14px;
+}
+.home-hero-copy p{display:none}
+.home-info-button{
+  position:absolute;
+  right:0;
+  top:50%;
+  width:30px;
+  height:30px;
+  min-height:0;
+  margin:0;
+  padding:0;
+  transform:translateY(-50%);
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid #2d4057;
+  background:#121c2c;
+  color:#7dd3fc;
+  font-size:15px;
+  font-weight:900;
+  box-shadow:none;
+}
+.home-install-banner{
+  min-height:46px;
+  margin-bottom:10px;
+  padding:7px 8px;
+}
+.home-install-main{
+  gap:8px;
+}
+.home-install-icon{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+}
+.home-install-copy strong{
+  font-size:10px;
+}
+.home-install-copy span{
+  margin-top:1px;
+  font-size:8.5px;
+}
+.home-install-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.home-install-button{
+  min-width:44px;
+  min-height:30px;
+  padding:5px 8px;
+  font-size:9px;
+}
+.home-install-dismiss{
+  width:28px;
+  height:28px;
+  min-height:0;
+  margin:0;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#71839a;
+  font-size:17px;
+  box-shadow:none;
+}
+.home-overview{
+  margin-bottom:15px;
+}
+.home-dashboard .continue-card{
+  margin-top:0;
+}
