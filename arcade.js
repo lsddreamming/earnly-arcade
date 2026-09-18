@@ -30,7 +30,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.10.0';
+  const APP_VERSION = '0.10.1';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -868,9 +868,19 @@ const Arcade = (() => {
   }
 
   function dailyBonusStatus() {
+    const claimedToday = localStorage.getItem('lastDailyBonusDate') === dateKey();
+    let streak = number('dailyStreak');
+
+    // Repair legacy prototype data from versions where a claimed bonus
+    // could exist without a matching streak value.
+    if (claimedToday && streak < 1) {
+      streak = 1;
+      setNumber('dailyStreak', streak);
+    }
+
     return {
-      claimed: localStorage.getItem('lastDailyBonusDate') === dateKey(),
-      streak: number('dailyStreak'),
+      claimed: claimedToday,
+      streak,
       reward: DAILY_BONUS
     };
   }
