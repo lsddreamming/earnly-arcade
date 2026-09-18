@@ -614,3 +614,81 @@ a{color:#93c5fd}
 .streak-step.reached{opacity:1;border-color:#f59e0b88;background:#2b2415}
 .streak-step strong{display:block;font-size:14px}
 .streak-step span{font-size:10px;color:#aab6c8}
+
+.bottom-nav{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:min(100%,520px);
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:2px;
+  padding:8px 8px max(8px,env(safe-area-inset-bottom));
+  background:rgba(15,23,42,.96);
+  border-top:1px solid #334155;
+  box-shadow:0 -12px 32px rgba(0,0,0,.28);
+  backdrop-filter:blur(14px);
+  z-index:45;
+}
+.bottom-nav-item{
+  min-width:0;
+  min-height:52px;
+  padding:5px 2px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  border-radius:12px;
+  color:#94a3b8;
+  text-decoration:none;
+  font-weight:800;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.bottom-nav-item.active{
+  color:#fff;
+  background:#1e3a5f;
+}
+.bottom-nav-icon{font-size:20px;line-height:1}
+.bottom-nav-label{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10px;
+}
+.has-app-nav .container{
+  padding-bottom:max(112px,calc(88px + env(safe-area-inset-bottom)));
+}
+.has-app-nav .toast{
+  bottom:max(94px,calc(84px + env(safe-area-inset-bottom)));
+}
+.continue-card{
+  text-align:left;
+  border-color:#3b82f688;
+  background:linear-gradient(145deg,#1d3558,#1f2937);
+}
+.continue-game-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.continue-game-icon{
+  width:50px;
+  height:50px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  border-radius:15px;
+  background:#0f172a;
+  border:1px solid #475569;
+  font-size:26px;
+}
+.continue-game-copy{min-width:0;flex:1}
+.continue-game-copy strong{display:block;font-size:17px;margin-bottom:3px}
+.continue-game-meta{font-size:12px;color:#bfdbfe}
+@media(min-width:700px){
+  .bottom-nav{border-left:1px solid #334155;border-right:1px solid #334155;border-radius:18px 18px 0 0}
+}
