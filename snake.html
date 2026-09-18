@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earnly Snake</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 25px 15px;
+    }
+
+    canvas {
+      background: #1f2937;
+      border: 3px solid white;
+      max-width: 100%;
+    }
+
+    button {
+      padding: 14px 18px;
+      margin-top: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .back-button {
+      background: #374151;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>🐍 Earnly Snake</h1>
+
+    <p>Score: <span id="score">0</span></p>
+
+    <canvas id="game" width="400" height="400"></canvas>
+
+    <br>
+
+    <button class="back-button" onclick="window.location.href='games.html'">
+      ⬅ Back to Games
+    </button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const box = 20;
+
+    let snake = [
+      { x: 200, y: 200 }
+    ];
+
+    let direction = "RIGHT";
+
+    let food = {
+      x: Math.floor(Math.random() * 20) * box,
+      y: Math.floor(Math.random() * 20) * box
+    };
+
+    let score = 0;
+let gamesPlayed = Number(localStorage.getItem("gamesPlayed")) || 0;
+    document.addEventListener("keydown", changeDirection);
+
+    const freeGameLimit = 3;
+
+if (gamesPlayed >= freeGameLimit) {
+  alert("You've used your 3 plays. Watch an ad to unlock 3 more games.");
+  window.location.href = "games.html";
+}
+    function changeDirection(event) {
+      if (event.key === "ArrowLeft" && direction !== "RIGHT") {
+        direction = "LEFT";
+      }
+
+      if (event.key === "ArrowUp" && direction !== "DOWN") {
+        direction = "UP";
+      }
+
+      if (event.key === "ArrowRight" && direction !== "LEFT") {
+        direction = "RIGHT";
+      }
+
+      if (event.key === "ArrowDown" && direction !== "UP") {
+        direction = "DOWN";
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "#22c55e" : "#4ade80";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+      }
+
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(food.x, food.y, box, box);
+
+      let snakeX = snake[0].x;
+      let snakeY = snake[0].y;
+
+      if (direction === "LEFT") snakeX -= box;
+      if (direction === "UP") snakeY -= box;
+      if (direction === "RIGHT") snakeX += box;
+      if (direction === "DOWN") snakeY += box;
+
+      if (snakeX === food.x && snakeY === food.y) {
+        score++;
+        document.getElementById("score").textContent = score;
+
+        food = {
+          x: Math.floor(Math.random() * 20) * box,
+          y: Math.floor(Math.random() * 20) * box
+        };
+      } else {
+        snake.pop();
+      }
+
+      const newHead = {
+        x: snakeX,
+        y: snakeY
+      };
+
+      if (
+        snakeX < 0 ||
+        snakeY < 0 ||
+        snakeX >= canvas.width ||
+        snakeY >= canvas.height ||
+        collision(newHead, snake)
+      ) {
+        clearInterval(game);
+
+gamesPlayed = gamesPlayed + 1;
+localStorage.setItem("gamesPlayed", gamesPlayed);
+let points = Number(localStorage.getItem("points")) || 0;
+let earnedPoints = score * 5;
+
+points = points + earnedPoints;
+localStorage.setItem("points", points);
+
+let playAgain = confirm(
+  "Game Over!\n\nScore: " + score +
+  "\nYou earned " + earnedPoints + " Arcade Coins!" +
+  "\n\nPlay again?"
+);
+
+if (playAgain) {
+  location.reload();
+} else {
+  window.location.href = "games.html";
+}
+
+return;
+      }
+
+      snake.unshift(newHead);
+    }
+
+    function collision(head, body) {
+      for (let i = 0; i < body.length; i++) {
+        if (head.x === body[i].x && head.y === body[i].y) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    const game = setInterval(draw, 120);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earnly Arcade</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 5px;
+    }
+
+    .points {
+      background: #1f2937;
+      padding: 25px;
+      border-radius: 20px;
+      margin: 30px 0;
+    }
+
+    .points-number {
+      font-size: 50px;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      margin: 10px 0;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .earn-button {
+      background: #22c55e;
+      color: white;
+    }
+
+    .games-button {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .cash-button {
+      background: #f59e0b;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>🎮 Earnly Arcade</h1>
+    <p>Play. Watch. Earn.</p>
+
+    <div class="points">
+      <p>Arcade Coins</p>
+     <div class="points-number" id="points">0</div> 
+    </div>
+
+    <button class="earn-button" onclick="watchAd()"></button>
+     ▶ Watch Ad + Earn 10 Arcade Coins
+    </button>
+
+    <button class="games-button" onclick="window.location.href='games.html'">
+  🕹 Play Games
+</button>
+
+    <button class="cash-button" onclick="window.location.href='rewards.html'">
+  🎁 Rewards
+</button>
+
+  </div>
+<script>
+  let points = Number(localStorage.getItem("points")) || 0;
+document.getElementById("points").textContent = points;
+
+  function watchAd() {
+    points = points + 10;
+    document.getElementById("points").textContent = points;
+    localStorage.setItem("points", points);
+  }
+</script>
+</body>
+</html>

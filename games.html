@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earnly Arcade Games</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 38px;
+    }
+
+    .balance {
+      background: #1f2937;
+      padding: 20px;
+      border-radius: 16px;
+      margin: 25px 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      margin: 10px 0;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .game-button {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .back-button {
+      background: #374151;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>🕹 Earnly Arcade</h1>
+    <p>Choose a game</p>
+
+    <div class="balance">
+      Arcade Coins:
+<strong id="points">0</strong>
+      <strong id="points">0</strong>
+    </div>
+<div class="balance">
+  Snake Plays Remaining:
+  <strong id="playsRemaining">3</strong>
+</div>
+    <button class="game-button" onclick="window.location.href='snake.html'">
+  🐍 Play Snake
+</button>
+<button class="game-button" id="adButton" onclick="watchAdForPlays()">
+  📺 Watch Ad to Unlock 3 Plays
+</button>
+    <button class="back-button" onclick="window.location.href='index.html'">
+      ⬅ Back Home
+    </button>
+
+  </div>
+
+  <script>
+  let points = Number(localStorage.getItem("points")) || 0;
+  document.getElementById("points").textContent = points;
+
+  let gamesPlayed = Number(localStorage.getItem("gamesPlayed")) || 0;
+  let playsRemaining = Math.max(0, 3 - gamesPlayed);
+document.getElementById("playsRemaining").textContent = playsRemaining;
+
+  const adButton = document.getElementById("adButton");
+
+  if (gamesPlayed < 3) {
+    adButton.disabled = true;
+    adButton.textContent = "✅ You Still Have Plays Available";
+  }
+
+  function watchAdForPlays() {
+    alert("Prototype ad plays here.");
+
+    localStorage.setItem("gamesPlayed", 0);
+
+    alert("You unlocked 3 more Snake games!");
+
+    location.reload();
+  }
+</script>
+
+</body>
+</html>
