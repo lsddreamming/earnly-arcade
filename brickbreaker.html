@@ -125,6 +125,8 @@
           b.alive=false;
           broken+=1;
           Arcade.feedback('brick');
+          if(broken===10) Arcade.milestone('💥 10 bricks smashed!');
+          if(broken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
           bricksEl.textContent=broken;
           rewardPreviewEl.textContent=rewardFor(broken,false);
           ball.dy*=-1;
@@ -192,13 +194,20 @@
       startButton.disabled=false;
       startButton.textContent='👆 Tap Game to Play Again';
 
-      Arcade.panel(
-        cleared?'🏆 Level Clear!':'🧱 Game Over',
-        'Bricks broken: '+broken+'/35\nBest: '+best+'/35\n+'+earned+' Arcade Coins'+Arcade.resultText(result)+'\n'+Arcade.remaining('brickBreaker')+' plays remaining',
-        Arcade.remaining('brickBreaker')>0
-          ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
-          : [['Get More Plays',()=>Arcade.out('brickBreaker',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
-      );
+      Arcade.gameResult({
+        icon:cleared?'🏆':'💥',
+        title:cleared?'Level Clear!':'Brick Run Over',
+        scoreLabel:'Bricks Broken',
+        score:broken + '/35',
+        best:best + '/35',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('brickBreaker'),
+        game:'brickBreaker',
+        extra:[cleared?'🏆 Every brick cleared!':'Keep the ball alive and finish the wall.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('brickBreaker',refreshChrome)
+      });
     }
 
     function setPaddleFromClientX(clientX){
