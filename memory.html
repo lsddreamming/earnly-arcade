@@ -147,6 +147,7 @@
       lock=true;
       const earned=rewardForMoves(moves);
       Arcade.earn(earned,'Memory Match');
+      Arcade.recordResult('memory', moves);
 
       const previous=Arcade.number('memoryBestMoves');
       if(!previous || moves<previous) localStorage.setItem('memoryBestMoves',String(moves));
