@@ -50,9 +50,25 @@
         </div>
         <div class="cloud-auth-actions">
           <button class="green" id="cloudSignInButton" type="button">Sign In</button>
-          <button class="secondary" id="cloudCreateButton" type="button">Create Account</button>
+          <button class="secondary" id="cloudCreateButton" type="button">Create Account &amp; Send Email</button>
         </div>
         <button class="text-button cloud-forgot" id="cloudForgotButton" type="button">Forgot password?</button>
+
+        <div class="cloud-signup-hint">
+          <strong>New player?</strong>
+          <span>Tap Create Account once. Earnly will send a confirmation email, then you confirm it and come back to sign in.</span>
+        </div>
+
+        <div class="cloud-signup-notice" id="cloudSignupNotice" hidden aria-live="assertive" role="status">
+          <div class="cloud-signup-notice-icon" id="cloudSignupIcon">📨</div>
+          <div class="cloud-signup-notice-copy">
+            <strong id="cloudSignupTitle">Check your email</strong>
+            <span id="cloudSignupText"></span>
+            <small id="cloudSignupWarning">Do not press Create Account again after the email is sent.</small>
+          </div>
+          <button class="mini-button secondary cloud-signup-different" id="cloudSignupDifferentEmail" type="button">Use a different email</button>
+        </div>
+
         <p class="muted small">Returning player? Sign in on a fresh phone or Home Screen install and Earnly will automatically restore your latest cloud save.</p>
 
         <div class="cloud-reset-panel" id="cloudResetPanel" hidden>
@@ -195,6 +211,15 @@
     const cloudResetPanel = document.getElementById('cloudResetPanel');
     const cloudResetEmail = document.getElementById('cloudResetEmail');
     const cloudResetStatus = document.getElementById('cloudResetStatus');
+    const cloudCreateButton = document.getElementById('cloudCreateButton');
+    const cloudSignInButton = document.getElementById('cloudSignInButton');
+    const cloudSignupNotice = document.getElementById('cloudSignupNotice');
+    const cloudSignupIcon = document.getElementById('cloudSignupIcon');
+    const cloudSignupTitle = document.getElementById('cloudSignupTitle');
+    const cloudSignupText = document.getElementById('cloudSignupText');
+    const cloudSignupWarning = document.getElementById('cloudSignupWarning');
+    const cloudSignupDifferentEmail = document.getElementById('cloudSignupDifferentEmail');
+    let createCooldownTimer = null;
     let recoveryMode = new URLSearchParams(location.search).has('recovery');
 
     function friendlyTime(value){
@@ -314,6 +339,63 @@
       return { email, password };
     }
 
+    function showSignupNotice(type, title, text, warning){
+      cloudSignupNotice.hidden = false;
+      cloudSignupNotice.className = 'cloud-signup-notice ' + (type || 'success');
+      cloudSignupIcon.textContent = type === 'error' ? '⚠️' : '📨';
+      cloudSignupTitle.textContent = title;
+      cloudSignupText.textContent = text;
+      cloudSignupWarning.textContent = warning || '';
+      cloudSignupWarning.hidden = !warning;
+
+      try {
+        cloudSignupNotice.scrollIntoView({
+          behavior: Arcade.reducedMotionEnabled() ? 'auto' : 'smooth',
+          block:'center'
+        });
+      } catch {}
+    }
+
+    function resetSignupNotice(){
+      clearInterval(createCooldownTimer);
+      createCooldownTimer = null;
+      cloudSignupNotice.hidden = true;
+      cloudSignupNotice.className = 'cloud-signup-notice';
+      cloudEmail.readOnly = false;
+      cloudCreateButton.disabled = false;
+      cloudCreateButton.textContent = 'Create Account & Send Email';
+    }
+
+    function startCreateCooldown(seconds = 60){
+      clearInterval(createCooldownTimer);
+      let remaining = seconds;
+      cloudCreateButton.disabled = true;
+
+      const render = () => {
+        cloudCreateButton.textContent = 'Please wait · ' + remaining + 's';
+      };
+
+      render();
+      createCooldownTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(createCooldownTimer);
+          createCooldownTimer = null;
+          cloudCreateButton.disabled = false;
+          cloudCreateButton.textContent = 'Create Account & Send Email';
+          return;
+        }
+        render();
+      },1000);
+    }
+
+    cloudSignupDifferentEmail.addEventListener('click', () => {
+      resetSignupNotice();
+      cloudEmail.value = '';
+      cloudPassword.value = '';
+      cloudEmail.focus();
+    });
+
     document.getElementById('cloudForgotButton').addEventListener('click', () => {
       cloudResetEmail.value = cloudEmail.value.trim();
       cloudResetStatus.hidden = true;
@@ -384,21 +466,76 @@
       }
     });
 
-    document.getElementById('cloudCreateButton').addEventListener('click', async () => {
+    cloudCreateButton.addEventListener('click', async () => {
+      if (cloudCreateButton.disabled) return;
+
       try {
         const { email, password } = authValues();
-        cloudMessage.textContent = 'Creating your Earnly account…';
+
+        cloudSignupNotice.hidden = true;
+        cloudCreateButton.disabled = true;
+        cloudCreateButton.textContent = 'Sending confirmation…';
+        cloudSignInButton.disabled = true;
+        cloudMessage.textContent = 'Creating your Earnly account and sending one confirmation email…';
+
         const data = await EarnlyCloud.signUp(email, password);
         cloudPassword.value = '';
+        cloudSignInButton.disabled = false;
 
         if (data.session) {
-          cloudMessage.textContent = 'Account created. Automatic cloud sync is on and will create your first backup.';
-        } else {
-          cloudMessage.textContent = 'Account created. Check your email to confirm it, then return to Earnly and sign in.';
+          cloudMessage.textContent = '✅ Account created and connected. Automatic cloud sync is on.';
+          cloudCreateButton.textContent = 'Account Created ✓';
+          await renderCloud();
+          return;
         }
+
+        cloudEmail.readOnly = true;
+        cloudCreateButton.disabled = true;
+        cloudCreateButton.textContent = 'Confirmation Email Sent ✓';
+
+        showSignupNotice(
+          'success',
+          'Check your email now',
+          'We sent a confirmation link to ' + email + '. Open that email, tap “Confirm your email address,” then return to Earnly and tap Sign In.',
+          'Your account request was already sent. Do not tap Create Account again or you may hit the email request limit.'
+        );
+
+        cloudMessage.textContent = '📨 Confirmation email sent to ' + email + '. Confirm it first, then come back and sign in.';
+        Arcade.feedback('success');
+        Arcade.toast('📨 Confirmation email sent');
         await renderCloud();
       } catch (error) {
-        cloudMessage.textContent = error.message || 'Could not create the account.';
+        cloudSignInButton.disabled = false;
+        const raw = String(error?.message || '');
+
+        if (/rate limit|too many|email.*limit/i.test(raw)) {
+          showSignupNotice(
+            'error',
+            'Too many email requests',
+            'Earnly has already received several confirmation-email requests. Check your inbox and spam folder for the newest email instead of pressing Create Account again.',
+            'Wait a few minutes before requesting another email.'
+          );
+          cloudMessage.textContent = '⚠️ Email request limit reached. Check your inbox or spam folder and use the confirmation email you already received.';
+          startCreateCooldown(60);
+          return;
+        }
+
+        if (/already registered|user already|already exists/i.test(raw)) {
+          showSignupNotice(
+            'error',
+            'That email already has an Earnly account',
+            'Use Sign In instead. If you forgot the password, tap Forgot password.',
+            ''
+          );
+          cloudMessage.textContent = 'That email already has an account. Sign in instead.';
+          cloudCreateButton.disabled = false;
+          cloudCreateButton.textContent = 'Create Account & Send Email';
+          return;
+        }
+
+        cloudCreateButton.disabled = false;
+        cloudCreateButton.textContent = 'Create Account & Send Email';
+        cloudMessage.textContent = raw || 'Could not create the account.';
       }
     });
 

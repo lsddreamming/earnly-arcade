@@ -3884,3 +3884,90 @@ body{animation:app-fade-in 180ms ease both}
   border:1px solid #3b82f680;
   color:#dbeafe;
 }
+
+
+/* 0.15.17 clearer account confirmation flow */
+.cloud-signup-hint{
+  display:flex;
+  gap:6px;
+  align-items:flex-start;
+  margin-top:9px;
+  padding:9px 10px;
+  border:1px solid #314158;
+  border-radius:11px;
+  background:#101a2a;
+  color:#aebed1;
+  font-size:8px;
+  line-height:1.4;
+}
+.cloud-signup-hint strong{
+  flex:0 0 auto;
+  color:#f8fafc;
+}
+.cloud-signup-hint span{
+  min-width:0;
+}
+.cloud-signup-notice{
+  display:grid;
+  grid-template-columns:38px 1fr;
+  gap:9px 10px;
+  margin-top:11px;
+  padding:12px;
+  border:1px solid #197347;
+  border-radius:13px;
+  background:#0c2d20;
+  text-align:left;
+}
+.cloud-signup-notice[hidden]{display:none}
+.cloud-signup-notice.error{
+  border-color:#9a5a2c;
+  background:#351e12;
+}
+.cloud-signup-notice-icon{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:#132338;
+  font-size:20px;
+}
+.cloud-signup-notice-copy{
+  min-width:0;
+}
+.cloud-signup-notice-copy strong{
+  display:block;
+  color:#f8fafc;
+  font-size:12px;
+  line-height:1.25;
+}
+.cloud-signup-notice-copy span{
+  display:block;
+  margin-top:4px;
+  color:#d9fbe8;
+  font-size:9px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.cloud-signup-notice.error .cloud-signup-notice-copy span{
+  color:#ffd8c2;
+}
+.cloud-signup-notice-copy small{
+  display:block;
+  margin-top:7px;
+  padding-top:7px;
+  border-top:1px solid rgba(255,255,255,.12);
+  color:#fef3c7;
+  font-size:8px;
+  line-height:1.45;
+}
+.cloud-signup-different{
+  grid-column:1 / -1;
+  width:100%;
+  min-height:38px;
+  margin:0;
+}
+#cloudCreateButton:disabled{
+  opacity:.72;
+  cursor:not-allowed;
+}
