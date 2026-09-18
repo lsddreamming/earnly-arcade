@@ -3101,3 +3101,394 @@ body{animation:app-fade-in 180ms ease both}
     font-size:8px;
   }
 }
+
+
+/* 0.14.0 Profile + Missions dashboard refresh */
+.profile-dashboard,
+.missions-dashboard{
+  background:
+    radial-gradient(circle at 50% -10%,rgba(59,130,246,.12),transparent 34%),
+    #0b1220;
+}
+.profile-container,
+.missions-container{
+  width:min(100%,520px);
+  margin-inline:auto;
+  padding-inline:16px;
+}
+.profile-dashboard .topbar,
+.missions-dashboard .topbar{
+  margin-bottom:12px;
+}
+.profile-hero{
+  margin-bottom:10px;
+  padding:14px;
+  border:1px solid #2c4058;
+  border-radius:18px;
+  background:#152033;
+  text-align:left;
+}
+.profile-eyebrow,
+.missions-eyebrow{
+  display:block;
+  color:#7dd3fc;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.profile-hero-row{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:10px;
+  align-items:center;
+  margin-top:7px;
+}
+.profile-hero .profile-avatar{
+  width:44px;
+  height:44px;
+  font-size:22px;
+}
+.profile-hero-copy h1{
+  margin:0;
+  font-size:22px;
+  line-height:1.05;
+}
+.profile-level-line{
+  margin-top:3px;
+  color:#9fb0c4;
+  font-size:9.5px;
+}
+.profile-settings-link{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid #2d4057;
+  border-radius:11px;
+  background:#111b2b;
+  text-decoration:none;
+}
+.profile-xp-line{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+  color:#a8b8ca;
+  font-size:9px;
+}
+.profile-hero .xp-bar,
+.missions-player-strip .xp-bar{
+  height:6px;
+  margin-top:5px;
+}
+.profile-edit-card,
+.profile-section,
+.profile-achievement-card,
+.missions-detail-card{
+  margin-bottom:10px;
+  border:1px solid #293b52;
+  border-radius:15px;
+  background:#131e2f;
+}
+.profile-edit-card{
+  padding:0 12px;
+}
+.profile-edit-card summary,
+.profile-collapsible summary,
+.missions-detail-card summary{
+  padding:11px 0;
+  cursor:pointer;
+  color:#dbeafe;
+  font-size:10px;
+  font-weight:900;
+}
+.profile-edit-card .profile-name-form{
+  margin-top:0;
+}
+.profile-edit-footer{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  padding:8px 0 11px;
+  color:#8192a8;
+  font-size:8px;
+}
+.profile-edit-footer .mini-button{
+  min-height:32px;
+  padding:6px 8px;
+  font-size:8px;
+}
+.profile-key-stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-bottom:9px;
+}
+.profile-key-stats>div,
+.missions-highlights>div{
+  padding:10px 6px;
+  border:1px solid #2a3b50;
+  border-radius:12px;
+  background:#152033;
+  text-align:center;
+}
+.profile-key-stats strong,
+.missions-highlights strong{
+  display:block;
+  color:#f8fafc;
+  font-size:17px;
+}
+.profile-key-stats span,
+.missions-highlights span{
+  display:block;
+  margin-top:2px;
+  color:#8fa0b6;
+  font-size:7.5px;
+}
+.profile-secondary-stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-bottom:12px;
+}
+.profile-secondary-stats>div{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:11px;
+  background:#111b2b;
+  border:1px solid #26384e;
+}
+.profile-secondary-stats span{
+  color:#8495aa;
+  font-size:8px;
+}
+.profile-secondary-stats strong{
+  max-width:54%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:9px;
+}
+.profile-section{
+  padding:11px 12px;
+  text-align:left;
+}
+.profile-section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+.profile-section-head h2{
+  margin:0;
+  font-size:12px;
+}
+.profile-section-head a,
+.profile-achievement-card a{
+  color:#7dd3fc;
+  font-size:8.5px;
+  text-decoration:none;
+}
+.profile-favorites{
+  gap:6px;
+}
+.profile-favorites .quick-game{
+  min-height:36px;
+  padding:7px 8px;
+  font-size:9px;
+}
+.profile-collapsible{
+  padding:0 12px 10px;
+}
+.profile-collapsible summary{
+  display:flex;
+  justify-content:space-between;
+}
+.profile-collapsible summary span{
+  color:#7890aa;
+  font-weight:700;
+}
+.profile-collapsible .best-grid{
+  margin-top:3px;
+}
+.profile-achievement-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+}
+.profile-achievement-card strong,
+.profile-achievement-card span{
+  display:block;
+}
+.profile-achievement-card strong{font-size:10px}
+.profile-achievement-card span{
+  margin-top:2px;
+  color:#8fa0b6;
+  font-size:8px;
+}
+.profile-shortcuts{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:10px;
+}
+.profile-shortcuts a{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  column-gap:7px;
+  padding:10px;
+  border:1px solid #2a3d55;
+  border-radius:13px;
+  background:#152033;
+  text-decoration:none;
+  text-align:left;
+}
+.profile-shortcuts a>span{
+  grid-row:1/3;
+  align-self:center;
+  font-size:18px;
+}
+.profile-shortcuts strong{
+  font-size:9px;
+}
+.profile-shortcuts small{
+  color:#8395aa;
+  font-size:7.5px;
+}
+
+/* Missions */
+.missions-hero{
+  margin:2px auto 11px;
+  text-align:center;
+}
+.missions-hero h1{
+  margin:4px 0 3px;
+  font-size:27px;
+  line-height:1.08;
+  letter-spacing:-.035em;
+}
+.missions-hero p{
+  margin:0;
+  color:#94a3b8;
+  font-size:10px;
+}
+.missions-player-strip{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:5px 10px;
+  margin-bottom:10px;
+  padding:10px 12px;
+  border:1px solid #2b3e55;
+  border-radius:14px;
+  background:#152033;
+  text-align:left;
+}
+.missions-player-strip>div{
+  display:flex;
+  gap:7px;
+  align-items:center;
+}
+.missions-player-strip strong{
+  font-size:10px;
+}
+.missions-player-strip span{
+  color:#8fa0b6;
+  font-size:8.5px;
+}
+.missions-player-strip .xp-bar{
+  grid-column:1/-1;
+}
+.missions-weekly-card{
+  margin-bottom:10px;
+  padding:12px;
+  border:1px solid #31506f;
+  border-radius:17px;
+  background:#17243a;
+}
+.missions-weekly-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  text-align:left;
+}
+.missions-weekly-head h2{
+  margin:0;
+  font-size:13px;
+}
+.missions-weekly-head span{
+  display:block;
+  margin-top:2px;
+  color:#8fa0b6;
+  font-size:8px;
+}
+.missions-weekly-head>strong{
+  padding:5px 7px;
+  border:1px solid #3a5471;
+  border-radius:999px;
+  font-size:9px;
+}
+.missions-dashboard .mission-list{
+  gap:7px;
+  margin-top:9px;
+}
+.missions-dashboard .mission-card{
+  padding:10px;
+  border-radius:12px;
+}
+.missions-dashboard .mission-title{font-size:10px}
+.missions-dashboard .mission-reward{font-size:8px}
+.missions-dashboard .mission-description{
+  margin:3px 0 6px;
+  font-size:8px;
+}
+.missions-dashboard .mission-progress-row{
+  margin-bottom:4px;
+  font-size:8px;
+}
+.missions-dashboard .mission-progress{height:6px}
+.missions-dashboard .mission-card button{
+  min-height:32px;
+  margin-top:7px;
+  padding:6px 8px;
+  font-size:8.5px;
+}
+.missions-highlights{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin-bottom:10px;
+}
+.missions-detail-card{
+  padding:0 12px 10px;
+  text-align:left;
+}
+.missions-detail-card summary{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+}
+.missions-detail-card summary span{
+  color:#8193a9;
+  font-weight:700;
+}
+.missions-detail-card .streak-track{
+  margin-top:4px;
+}
+.missions-dashboard .streak-reward-list,
+.missions-dashboard .game-stats-list{
+  gap:6px;
+  margin-top:8px;
+}
+.missions-dashboard .streak-reward,
+.missions-dashboard .game-stat-row{
+  padding:8px 9px;
+  border-radius:11px;
+}
+.missions-dashboard .activity-item{
+  padding:8px 0;
+}
