@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-arcade-v6';
+const CACHE_NAME = 'earnly-arcade-v7';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -62,16 +62,14 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request).then(response => {
+    fetch(request)
+      .then(response => {
         if (response && response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
         return response;
-      }).catch(() => cached);
-
-      return cached || network;
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
