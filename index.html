@@ -255,6 +255,7 @@
       streak.textContent = '🔥 ' + bonus.streak + ' day' + (bonus.streak === 1 ? '' : 's') + ' streak';
       bonusText.textContent = bonus.claimed ? 'Claimed today · come back tomorrow' : 'Claim +' + bonus.reward + ' Arcade Coins';
       bonusButton.disabled = bonus.claimed;
+      bonusButton.className = bonus.claimed ? 'claimed-button' : 'green';
       bonusButton.textContent = bonus.claimed ? 'Claimed ✓' : 'Claim +' + bonus.reward;
 
       const streakRewards = Arcade.streakRewardStatus();
@@ -313,13 +314,16 @@
 
       if (challenge.claimed) {
         challengeButton.disabled = true;
+        challengeButton.className = 'wide claimed-button';
         challengeButton.textContent = 'Challenge Complete ✓';
       } else if (challenge.complete) {
         challengeButton.disabled = false;
+        challengeButton.className = 'wide green';
         challengeButton.textContent = 'Claim +' + challenge.reward + ' Arcade Coins';
       } else {
         challengeButton.disabled = true;
-        challengeButton.textContent = 'Complete Challenge · +' + challenge.reward + ' Coins';
+        challengeButton.className = 'wide progress-button';
+        challengeButton.textContent = challenge.progress + ' / ' + challenge.goal + ' · Keep Playing';
       }
 
       const weekly = Arcade.weeklyStatus();
