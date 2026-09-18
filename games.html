@@ -16,15 +16,20 @@
 
     <header class="page-header">
       <h1>Choose a Game</h1>
-      <p>3 free plays per game refresh every day.</p>
+      <p>Beat your best scores and unlock achievements.</p>
     </header>
+
+    <details class="card compact-card" id="achievements">
+      <summary id="achievementSummary">🏆 Achievements</summary>
+      <div class="achievement-grid" id="achievementGrid"></div>
+    </details>
 
     <div id="games" class="game-list"></div>
 
     <details class="card compact-card">
       <summary>How game rewards work</summary>
-      <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays. No Arcade Coins are required to keep playing.</p>
-      <p class="muted">Each game rewards a different skill: long runs, reaction speed, line clears, memory, survival, brick clearing, or obstacle timing.</p>
+      <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays.</p>
+      <p class="muted">Your best scores and achievement progress are saved on this device during the prototype.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -32,22 +37,54 @@
 
   <script src="arcade.js"></script>
   <script>
+    const gameInfo = [
+      { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
+      { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines and build your score', href:'blockdrop.html' },
+      { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge', href:'taprush.html' },
+      { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs in fewer moves', href:'memory.html' },
+      { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Survive falling obstacles', href:'dodger.html' },
+      { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Break all 35 bricks', href:'brickbreaker.html' },
+      { key:'jungleHopper', icon:'🐸', name:'Jungle Hopper', note:'Tap through jungle vine gaps', href:'junglehopper.html' },
+      { key:'towerStack', icon:'🏗️', name:'Tower Stack', note:'Tap to build the tallest tower', href:'towerstack.html' }
+    ];
+
+    function renderAchievements() {
+      const summary = Arcade.achievementSummary();
+      document.getElementById('achievementSummary').textContent =
+        '🏆 Achievements · ' + summary.unlocked + '/' + summary.total + ' unlocked';
+
+      const grid = document.getElementById('achievementGrid');
+      grid.replaceChildren();
+
+      summary.all.forEach(item => {
+        const badge = document.createElement('div');
+        badge.className = 'achievement-badge' + (item.unlocked ? ' unlocked' : '');
+
+        const icon = document.createElement('span');
+        icon.className = 'achievement-icon';
+        icon.textContent = item.unlocked ? item.icon : '🔒';
+
+        const title = document.createElement('strong');
+        title.textContent = item.title;
+
+        const description = document.createElement('span');
+        description.textContent = item.description;
+
+        badge.append(icon, title, description);
+        grid.append(badge);
+      });
+    }
+
     function render() {
       document.getElementById('balance').textContent = Arcade.number('points').toLocaleString();
+      renderAchievements();
+
       const root = document.getElementById('games');
       root.replaceChildren();
 
-      [
-        { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
-        { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines and build your score', href:'blockdrop.html' },
-        { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge', href:'taprush.html' },
-        { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs in fewer moves', href:'memory.html' },
-        { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Survive falling obstacles', href:'dodger.html' },
-        { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Break all 35 bricks', href:'brickbreaker.html' },
-        { key:'jungleHopper', icon:'🐸', name:'Jungle Hopper', note:'Tap through jungle vine gaps · max 25 coins', href:'junglehopper.html' },
-        { key:'towerStack', icon:'🏗️', name:'Tower Stack', note:'Tap to build the tallest tower · max 25 coins', href:'towerstack.html', badge:'NEW' }
-      ].forEach(info => {
+      gameInfo.forEach(info => {
         const remaining = Arcade.remaining(info.key);
+        const best = Arcade.best(info.key);
         const card = document.createElement('section');
         card.className = 'card game-card compact-game';
 
@@ -56,13 +93,6 @@
 
         const title = document.createElement('h2');
         title.textContent = info.icon + ' ' + info.name;
-        if (info.badge) {
-          const badge = document.createElement('span');
-          badge.className = 'play-pill';
-          badge.style.marginLeft = '7px';
-          badge.textContent = info.badge;
-          title.append(' ', badge);
-        }
 
         const playCount = document.createElement('span');
         playCount.className = 'play-pill';
@@ -74,6 +104,10 @@
         rule.className = 'reward-rule';
         rule.textContent = info.note;
 
+        const bestLine = document.createElement('div');
+        bestLine.className = 'game-best';
+        bestLine.textContent = '🏆 Best: ' + best.display;
+
         const play = document.createElement('button');
         play.className = 'wide game-play-button';
         play.textContent = remaining ? 'Play' : 'Get More Plays';
@@ -82,7 +116,7 @@
           else Arcade.out(info.key, render);
         });
 
-        card.append(heading, rule, play);
+        card.append(heading, rule, bestLine, play);
 
         if (!remaining) {
           const ad = document.createElement('button');
