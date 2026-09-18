@@ -49,6 +49,8 @@
       <div class="stat-card"><strong id="achievementCount">0</strong><span>Achievements</span></div>
       <div class="stat-card"><strong id="streak">0</strong><span>Day Streak</span></div>
       <div class="stat-card"><strong id="favoriteCount">0</strong><span>Favorites</span></div>
+      <div class="stat-card"><strong id="mostPlayedGame">—</strong><span>Most Played</span></div>
+      <div class="stat-card"><strong id="trackedRuns">0</strong><span>Tracked Runs</span></div>
     </section>
 
     <section class="card" style="text-align:left">
@@ -155,6 +157,10 @@
       document.getElementById('achievementCount').textContent = stats.achievements + '/' + stats.totalAchievements;
       document.getElementById('streak').textContent = stats.streak;
       document.getElementById('favoriteCount').textContent = stats.favorites;
+      document.getElementById('mostPlayedGame').textContent =
+        stats.mostPlayedGame ? stats.mostPlayedGame.name : '—';
+      document.getElementById('trackedRuns').textContent =
+        Arcade.allGameStats().reduce((sum, item) => sum + item.runs, 0);
 
       document.getElementById('achievementSummary').textContent =
         stats.achievements + ' of ' + stats.totalAchievements + ' unlocked';
