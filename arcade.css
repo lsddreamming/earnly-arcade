@@ -2705,3 +2705,94 @@ body{animation:app-fade-in 180ms ease both}
   font-size:clamp(24px,8vw,32px);
   border-radius:14px;
 }
+
+
+/* 0.13.4 centered Games page */
+.games-dashboard .container{
+  width:min(100%,520px);
+  margin-inline:auto;
+  padding-inline:16px;
+}
+.games-dashboard .games-hero{
+  width:min(100%,440px);
+  margin:2px auto 15px;
+  text-align:center;
+}
+.games-dashboard .games-eyebrow{
+  text-align:center;
+}
+.games-dashboard .games-hero p{
+  max-width:360px;
+  margin-inline:auto;
+}
+.games-dashboard .games-play-note{
+  width:min(100%,440px);
+  justify-content:center;
+  margin:0 auto 17px;
+}
+.games-dashboard .games-play-note span{
+  text-align:center;
+}
+.games-dashboard #quickSections{
+  width:min(100%,440px);
+  margin-inline:auto;
+}
+.games-dashboard .quick-section{
+  width:100%;
+  margin:10px auto 14px;
+  text-align:center;
+}
+.games-dashboard .quick-section h2{
+  margin:0 0 7px;
+  text-align:center;
+}
+.games-dashboard .quick-grid{
+  width:100%;
+  margin-inline:auto;
+}
+.games-dashboard .quick-game{
+  justify-content:center;
+  text-align:center;
+}
+.games-dashboard #achievements{
+  width:min(100%,440px);
+  margin:0 auto 15px;
+  text-align:center;
+}
+.games-dashboard #achievements summary{
+  text-align:center;
+}
+.games-dashboard .achievement-grid{
+  text-align:left;
+}
+.games-dashboard .game-list{
+  width:100%;
+  grid-template-columns:1fr!important;
+  justify-items:center;
+  gap:11px;
+}
+.games-dashboard .compact-game{
+  width:min(100%,440px);
+  margin-inline:auto;
+}
+.games-dashboard .compact-game .game-title-row,
+.games-dashboard .compact-game .reward-rule,
+.games-dashboard .compact-game .game-best,
+.games-dashboard .compact-game .status-line{
+  text-align:left;
+}
+.games-dashboard main>details.card:not(#achievements),
+.games-dashboard main>a.button.secondary{
+  width:min(100%,440px);
+  margin-left:auto;
+  margin-right:auto;
+}
+@media(max-width:390px){
+  .games-dashboard .quick-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  .games-dashboard .quick-game{
+    min-width:0;
+    padding-inline:7px;
+  }
+}
