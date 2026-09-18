@@ -103,6 +103,18 @@ button:disabled,.button.disabled{opacity:.48;cursor:default;transform:none}
 .gold{background:linear-gradient(135deg,#f59e0b,#d97706)}
 .secondary{background:#374151}
 .ghost{background:transparent;border:1px solid #475569}
+.claimed-button{
+  background:#16352a;
+  border:1px solid #22c55e66;
+  color:#86efac;
+  opacity:1!important;
+}
+.progress-button{
+  background:#172033;
+  border:1px solid #475569;
+  color:#cbd5e1;
+  opacity:1!important;
+}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #fbbf24;outline-offset:3px}
 .game-card{text-align:left}
 .game-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -955,7 +967,7 @@ a{color:#93c5fd}
   line-height:1.35;
 }
 .play-explainer p{margin:9px 1px 0}
-@media(max-width:380px){
+@media(max-width:460px){
   .economy-grid{grid-template-columns:1fr}
   .guide-header{align-items:flex-start}
 }
