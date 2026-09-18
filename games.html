@@ -19,12 +19,12 @@
       <p>3 free plays per game refresh every day.</p>
     </header>
 
-    <div id="games"></div>
+    <div id="games" class="game-list"></div>
 
     <details class="card compact-card">
       <summary>How game rewards work</summary>
       <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays. No Arcade Coins are required to keep playing.</p>
-      <p class="muted">Each game rewards a different skill: long runs, reaction speed, line clears, memory, survival, or brick clearing. The exact reward economy is still being tuned during the prototype.</p>
+      <p class="muted">Each game rewards a different skill: long runs, reaction speed, line clears, memory, survival, brick clearing, or obstacle timing.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -38,28 +38,44 @@
       root.replaceChildren();
 
       [
-        { key:'snake', icon:'🐍', name:'Snake', note:'Longer snake = bigger reward · max 30 coins', href:'snake.html' },
+        { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
         { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines and build your score', href:'blockdrop.html' },
-        { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge · max 20 coins', href:'taprush.html' },
-        { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs with as few moves as possible · max 15 coins', href:'memory.html' },
-        { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Survive the falling obstacles for up to 30 seconds · max 20 coins', href:'dodger.html' },
-        { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Break 35 bricks and clear the level · max 22 coins', href:'brickbreaker.html' }
+        { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge', href:'taprush.html' },
+        { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs in fewer moves', href:'memory.html' },
+        { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Survive falling obstacles', href:'dodger.html' },
+        { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Break all 35 bricks', href:'brickbreaker.html' },
+        { key:'jungleHopper', icon:'🐸', name:'Jungle Hopper', note:'Tap through jungle vine gaps · max 25 coins', href:'junglehopper.html', badge:'NEW' }
       ].forEach(info => {
         const remaining = Arcade.remaining(info.key);
         const card = document.createElement('section');
-        card.className = 'card game-card';
+        card.className = 'card game-card compact-game';
 
         const heading = document.createElement('div');
         heading.className = 'game-title-row';
-        heading.innerHTML = '<h2>' + info.icon + ' ' + info.name + '</h2><span class="play-pill">' + remaining + ' plays</span>';
+
+        const title = document.createElement('h2');
+        title.textContent = info.icon + ' ' + info.name;
+        if (info.badge) {
+          const badge = document.createElement('span');
+          badge.className = 'play-pill';
+          badge.style.marginLeft = '7px';
+          badge.textContent = info.badge;
+          title.append(' ', badge);
+        }
+
+        const playCount = document.createElement('span');
+        playCount.className = 'play-pill';
+        playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's');
+
+        heading.append(title, playCount);
 
         const rule = document.createElement('p');
         rule.className = 'reward-rule';
         rule.textContent = info.note;
 
         const play = document.createElement('button');
-        play.className = 'wide';
-        play.textContent = remaining ? 'Play ' + info.name : 'Get More ' + info.name + ' Plays';
+        play.className = 'wide game-play-button';
+        play.textContent = remaining ? 'Play' : 'Get More Plays';
         play.addEventListener('click', () => {
           if (remaining) location.href = info.href;
           else Arcade.out(info.key, render);
@@ -69,19 +85,14 @@
 
         if (!remaining) {
           const ad = document.createElement('button');
-          ad.className = 'wide green';
-          ad.textContent = '▶ Watch Demo Ad · +3 Plays';
+          ad.className = 'wide green game-play-button';
+          ad.textContent = '▶ Demo Ad · +3 Plays';
           ad.addEventListener('click', () => Arcade.playAd(info.key, render));
 
           const status = document.createElement('div');
           status.className = 'status-line warning';
-          status.textContent = 'Out of free plays — watch an optional demo ad or come back tomorrow.';
+          status.textContent = 'Out of free plays — refill tomorrow or unlock 3 more.';
           card.append(ad, status);
-        } else {
-          const status = document.createElement('div');
-          status.className = 'status-line success';
-          status.textContent = '✓ ' + remaining + ' play' + (remaining === 1 ? '' : 's') + ' available';
-          card.append(status);
         }
 
         root.append(card);
