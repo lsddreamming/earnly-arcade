@@ -31,9 +31,11 @@
   }
 
   async function signUp(email, password){
+    const emailRedirectTo = new URL('account.html', window.location.href).href.split('#')[0];
     const result = await requireClient().auth.signUp({
       email:String(email || '').trim(),
-      password:String(password || '')
+      password:String(password || ''),
+      options:{ emailRedirectTo }
     });
     if (result.error) throw result.error;
     return result.data;
