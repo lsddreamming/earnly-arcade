@@ -160,6 +160,7 @@
           board.unshift(Array(cols).fill(null));
           score += 100;
           lines += 1;
+          Arcade.feedback('score');
           scoreEl.textContent = score;
           linesEl.textContent = lines;
           y += 1;
@@ -238,7 +239,8 @@
 
       const earned = Math.min(lines, 5);
       Arcade.earn(earned, 'Block Drop');
-      Arcade.recordResult('blockDrop', lines);
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('blockDrop', lines);
       refreshChrome();
 
       startButton.disabled = false;
@@ -247,7 +249,7 @@
 
       Arcade.panel(
         '🧱 Game Over',
-        'Score: ' + score + '\nLines cleared: ' + lines + '\n+' + earned + ' Arcade Coins\n' + Arcade.remaining('blockDrop') + ' Block Drop plays remaining',
+        'Score: ' + score + '\nLines cleared: ' + lines + '\n+' + earned + ' Arcade Coins' + Arcade.resultText(result) + '\n' + Arcade.remaining('blockDrop') + ' Block Drop plays remaining',
         Arcade.remaining('blockDrop') > 0
           ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
           : [['Get More Plays', () => Arcade.out('blockDrop', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
@@ -271,11 +273,15 @@
 
       refreshChrome();
       startButton.disabled = true;
-      startButton.textContent = 'Game Running';
-      setStatus('Running', 'running');
-
-      game = setInterval(moveDown, 600);
+      startButton.textContent = 'Get Ready…';
+      setStatus('Get Ready');
       draw();
+
+      Arcade.countdown(() => {
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        game = setInterval(moveDown, 600);
+      });
     }
 
     function bindTapControl(id, fn) {
