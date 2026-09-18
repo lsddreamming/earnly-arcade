@@ -28,6 +28,8 @@ const Arcade = (() => {
   const COIN_AD_LIMIT = 5;
   const DAILY_BONUS = 10;
   const CHALLENGE_VERSION = '3';
+  const BASE_GAME_XP = 10;
+  const ACHIEVEMENT_XP = 25;
 
   const challengeDefinitions = [
     { id:'variety', title:'🎮 Arcade Explorer', description:'Finish 2 different games today', goal:2, reward:8, type:'variety' },
@@ -75,6 +77,104 @@ const Arcade = (() => {
     localStorage.setItem(key, JSON.stringify(Array.from(new Set(value))));
   }
 
+  function profileName() {
+    const value = (localStorage.getItem('arcadeProfileName') || 'Player').trim();
+    return value || 'Player';
+  }
+
+  function setProfileName(value) {
+    const cleaned = String(value || '')
+      .replace(/[<>]/g, '')
+      .trim()
+      .slice(0, 18);
+    localStorage.setItem('arcadeProfileName', cleaned || 'Player');
+    return profileName();
+  }
+
+  function xpStatus() {
+    const xp = number('arcadeXP');
+    let level = 1;
+    let spent = 0;
+    let needed = 100;
+
+    while (xp >= spent + needed) {
+      spent += needed;
+      level += 1;
+      needed = 100 + (level - 1) * 50;
+    }
+
+    const current = xp - spent;
+    return {
+      xp,
+      level,
+      current,
+      needed,
+      progress: needed ? Math.min(100, current / needed * 100) : 100
+    };
+  }
+
+  function addXP(amount) {
+    amount = Math.max(0, Math.floor(Number(amount) || 0));
+    const before = xpStatus();
+    if (amount) setNumber('arcadeXP', before.xp + amount);
+    const after = xpStatus();
+    return {
+      amount,
+      beforeLevel: before.level,
+      afterLevel: after.level,
+      leveledUp: after.level > before.level,
+      status: after
+    };
+  }
+
+  function favorites() {
+    return readArray('arcadeFavorites').filter(game => names[game]);
+  }
+
+  function isFavorite(game) {
+    return favorites().includes(game);
+  }
+
+  function toggleFavorite(game) {
+    if (!names[game]) return favorites();
+    const list = favorites();
+    const index = list.indexOf(game);
+    if (index >= 0) list.splice(index, 1);
+    else list.unshift(game);
+    writeArray('arcadeFavorites', list.slice(0, 8));
+    return favorites();
+  }
+
+  function markRecent(game) {
+    if (!names[game]) return recentGames();
+    const list = readArray('arcadeRecentGames').filter(item => item !== game && names[item]);
+    list.unshift(game);
+    localStorage.setItem('arcadeRecentGames', JSON.stringify(list.slice(0, 4)));
+    return list.slice(0, 4);
+  }
+
+  function recentGames() {
+    return readArray('arcadeRecentGames').filter(game => names[game]).slice(0, 4);
+  }
+
+  function stats() {
+    const achievement = achievementSummary();
+    const xp = xpStatus();
+    return {
+      name: profileName(),
+      level: xp.level,
+      xp: xp.xp,
+      gamesCompleted: number('gamesCompletedEver'),
+      differentGames: readArray('arcadeGamesEver').length,
+      lifetimeCoins: number('lifetimePoints'),
+      currentCoins: number('points'),
+      achievements: achievement.unlocked,
+      totalAchievements: achievement.total,
+      streak: number('dailyStreak'),
+      favorites: favorites().length
+    };
+  }
+
   function dailyChallengeDefinition() {
     const seed = dateKey().split('-').join('').split('').reduce((sum, digit) => sum + Number(digit), 0);
     return challengeDefinitions[seed % challengeDefinitions.length];
@@ -117,6 +217,7 @@ const Arcade = (() => {
   function consume(g) {
     if (!remaining(g)) return false;
     setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+    markRecent(g);
     return true;
   }
 
@@ -216,11 +317,22 @@ const Arcade = (() => {
     const after = achievementDefinitions().filter(item => item.unlocked);
     const newlyUnlocked = after.filter(item => !before.has(item.id));
 
+    const xpAward = BASE_GAME_XP + newlyUnlocked.length * ACHIEVEMENT_XP;
+    const xpResult = addXP(xpAward);
+
     if (newlyUnlocked.length) {
       toast('🏆 Achievement unlocked: ' + newlyUnlocked[0].title);
+    } else if (xpResult.leveledUp) {
+      toast('⬆️ Level up! You reached Level ' + xpResult.afterLevel);
     }
 
-    return { best:currentBest, newAchievements:newlyUnlocked };
+    return {
+      best:currentBest,
+      newAchievements:newlyUnlocked,
+      xpAward,
+      level:xpResult.status.level,
+      leveledUp:xpResult.leveledUp
+    };
   }
 
   function logTransaction(amount, source) {
@@ -464,6 +576,16 @@ const Arcade = (() => {
     recordResult,
     achievements,
     achievementSummary,
+    profileName,
+    setProfileName,
+    xpStatus,
+    addXP,
+    favorites,
+    isFavorite,
+    toggleFavorite,
+    recentGames,
+    markRecent,
+    stats,
     earn,
     panel,
     toast,
