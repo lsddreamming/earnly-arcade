@@ -205,6 +205,7 @@
 
       if (snakeX === food.x && snakeY === food.y) {
         score += 1;
+        Arcade.feedback('score');
         scoreEl.textContent = score;
         rewardPreviewEl.textContent = snakeReward(score);
 
@@ -227,7 +228,8 @@
 
       const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake');
-      Arcade.recordResult('snake', score);
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('snake', score);
       refreshChrome();
 
       startButton.disabled = false;
@@ -238,6 +240,7 @@
         '🐍 Game Over',
         'Apples: ' + score +
         '\n+' + earned + ' Arcade Coins' +
+        Arcade.resultText(result) +
         '\n' + Arcade.remaining('snake') + ' Snake plays remaining',
         Arcade.remaining('snake') > 0
           ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
@@ -263,10 +266,14 @@
 
       refreshChrome();
       startButton.disabled = true;
-      startButton.textContent = 'Game Running';
-      setStatus('Running', 'running');
+      startButton.textContent = 'Get Ready…';
+      setStatus('Get Ready');
 
-      game = setInterval(draw, 120);
+      Arcade.countdown(() => {
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        game = setInterval(draw, 120);
+      });
     }
 
     startButton.addEventListener('click', startGame);
