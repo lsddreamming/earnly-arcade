@@ -1131,6 +1131,88 @@ const Arcade = (() => {
     );
   }
 
+    let installPromptEvent = null;
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    installPromptEvent = event;
+    window.dispatchEvent(new CustomEvent('earnly-install-available'));
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installPromptEvent = null;
+    localStorage.setItem('arcadeInstalled', '1');
+    toast('📱 Earnly Arcade installed!');
+    window.dispatchEvent(new CustomEvent('earnly-install-changed'));
+  });
+
+  function installStatus() {
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    return {
+      standalone,
+      isIOS,
+      canPrompt:!!installPromptEvent,
+      installed:standalone || localStorage.getItem('arcadeInstalled') === '1'
+    };
+  }
+
+  async function requestInstall() {
+    const status = installStatus();
+
+    if (status.standalone) {
+      toast('📱 Earnly is already running like an installed app');
+      return { installed:true, method:'standalone' };
+    }
+
+    if (installPromptEvent) {
+      const prompt = installPromptEvent;
+      installPromptEvent = null;
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      return {
+        installed:choice && choice.outcome === 'accepted',
+        method:'prompt',
+        outcome:choice?.outcome || 'dismissed'
+      };
+    }
+
+    if (status.isIOS) {
+      panel(
+        '📱 Add Earnly to your iPhone',
+        'In Safari:\n\n1. Tap the Share button.\n2. Choose “Add to Home Screen”.\n3. Tap Add.\n\nThen Earnly opens from your Home Screen without the normal browser controls.',
+        [['Got It', () => {}, 'green']]
+      );
+      return { installed:false, method:'ios-help' };
+    }
+
+    panel(
+      '📱 Install Earnly Arcade',
+      'Open this page in a browser that supports installing web apps, then use its Install or Add to Home Screen option.',
+      [['Got It', () => {}, 'green']]
+    );
+    return { installed:false, method:'help' };
+  }
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js', { scope:'./' })
+        .then(registration => {
+          registration.update().catch(() => {});
+        })
+        .catch(() => {});
+    }, { once:true });
+  }
+
     function mountBottomNav() {
     if (!document.body || document.getElementById('arcadeBottomNav')) return;
 
@@ -1182,6 +1264,7 @@ const Arcade = (() => {
   }
 
   mountBottomNav();
+  registerServiceWorker();
   setTimeout(() => showOnboarding(false), 180);
 
   return {
@@ -1208,6 +1291,8 @@ const Arcade = (() => {
     streakRewardStatus,
     claimStreakReward,
     showOnboarding,
+    installStatus,
+    requestInstall,
     stats,
     weeklyStatus,
     claimWeeklyMission,
