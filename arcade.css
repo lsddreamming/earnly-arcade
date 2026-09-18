@@ -2877,3 +2877,87 @@ body{animation:app-fade-in 180ms ease both}
 .home-dashboard .continue-card{
   margin-top:0;
 }
+
+
+/* 0.13.6 compact game result screens */
+.game-result-dialog{
+  width:min(390px,calc(100% - 24px));
+  padding:14px;
+  border-radius:20px;
+}
+.result-hero{
+  gap:10px;
+  margin-bottom:10px;
+}
+.result-icon{
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  font-size:25px;
+}
+.result-heading h2{
+  margin:0 0 3px;
+  font-size:19px;
+}
+.result-badge{
+  padding:4px 7px;
+  font-size:9px;
+}
+.result-main{
+  padding:11px 12px;
+  border-radius:14px;
+}
+.result-main>span{
+  font-size:10px;
+}
+.result-main>strong{
+  font-size:34px;
+  margin:2px 0;
+}
+.result-best{
+  font-size:10px;
+}
+.result-stats{
+  gap:6px;
+  margin-top:8px;
+}
+.result-stat{
+  padding:8px 5px;
+  border-radius:12px;
+}
+.result-stat>span{
+  font-size:15px;
+}
+.result-stat>strong{
+  font-size:14px;
+  margin-top:1px;
+}
+.result-stat>small{
+  font-size:8px;
+  margin-top:1px;
+}
+.result-notes{
+  gap:4px;
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:12px;
+  font-size:10px;
+}
+.result-actions{
+  display:grid;
+  grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);
+  gap:7px;
+  margin-top:9px;
+}
+.result-actions button{
+  min-height:42px;
+  margin:0;
+  padding:9px 10px;
+  border-radius:11px;
+  font-size:11px;
+}
+@media(max-width:340px){
+  .result-actions{
+    grid-template-columns:1fr;
+  }
+}
