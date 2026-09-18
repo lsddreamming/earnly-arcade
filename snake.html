@@ -18,6 +18,7 @@
       <h1>🐍 Earnly Snake</h1>
       <div class="game-meta">
         <span class="meta-pill">Score: <span id="score">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
@@ -27,6 +28,7 @@
 
     <canvas id="game" width="400" height="400" aria-label="Snake game board"></canvas>
     <p class="swipe-hint">Swipe anywhere on the board to move</p>
+    <p class="muted small">Earn 1 coin every 3 apples, plus milestone bonuses at 10, 25, and 50 apples. Max 30 coins per run.</p>
 
     <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
       <button class="game-control" type="button" data-direction="UP">⬆️</button>
@@ -45,12 +47,15 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
     const playsEl = document.getElementById('plays');
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
 
     const box = 20;
+    const MAX_SNAKE_COINS = 30;
+
     let snake = [{ x: 200, y: 200 }];
     let direction = 'RIGHT';
     let nextDirection = 'RIGHT';
@@ -58,9 +63,20 @@
     let score = 0;
     let game = null;
 
+    function snakeReward(apples) {
+      let coins = Math.floor(apples / 3);
+
+      if (apples >= 10) coins += 2;
+      if (apples >= 25) coins += 3;
+      if (apples >= 50) coins += 4;
+
+      return Math.min(coins, MAX_SNAKE_COINS);
+    }
+
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('snake');
       balanceEl.textContent = Arcade.number('points').toLocaleString();
+      rewardPreviewEl.textContent = snakeReward(score);
     }
 
     function setStatus(text, mode) {
@@ -185,6 +201,12 @@
       if (snakeX === food.x && snakeY === food.y) {
         score += 1;
         scoreEl.textContent = score;
+        rewardPreviewEl.textContent = snakeReward(score);
+
+        if (score === 10) Arcade.toast('🐍 10 apples! +2 milestone bonus');
+        if (score === 25) Arcade.toast('🔥 25 apples! +3 milestone bonus');
+        if (score === 50) Arcade.toast('🏆 50 apples! +4 milestone bonus');
+
         food = randomFood();
       } else {
         snake.pop();
@@ -198,7 +220,7 @@
       clearInterval(game);
       game = null;
 
-      const earned = Math.min(score, 5);
+      const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake');
       refreshChrome();
 
@@ -208,7 +230,9 @@
 
       Arcade.panel(
         '🐍 Game Over',
-        'Score: ' + score + '\n+' + earned + ' Arcade Coins\n' + Arcade.remaining('snake') + ' Snake plays remaining',
+        'Apples: ' + score +
+        '\n+' + earned + ' Arcade Coins' +
+        '\n' + Arcade.remaining('snake') + ' Snake plays remaining',
         Arcade.remaining('snake') > 0
           ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
           : [['Get More Plays', () => Arcade.out('snake', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
@@ -228,6 +252,7 @@
       nextDirection = 'RIGHT';
       score = 0;
       scoreEl.textContent = '0';
+      rewardPreviewEl.textContent = '0';
       food = randomFood();
 
       refreshChrome();
