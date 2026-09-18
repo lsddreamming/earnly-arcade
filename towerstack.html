@@ -35,10 +35,10 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Tower to Start</button>
 
     <canvas class="tower-board touch-surface" id="game" width="360" height="560" aria-label="Tower Stack game board"></canvas>
-    <p class="swipe-hint">Tap anywhere on the board to drop the moving floor.</p>
+    <p class="swipe-hint">Tap the tower to start the countdown. Then tap anywhere to drop each moving floor.</p>
     <p class="muted small">Line it up carefully. Any overhang gets cut off, so the tower gets harder as it grows.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -68,6 +68,7 @@
     let floors = 0;
     let perfects = 0;
     let running = false;
+    let starting = false;
     let animation = null;
 
     const palette = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6'];
@@ -270,10 +271,11 @@
       const best = Math.max(floors, Arcade.number('towerStackBest'));
       localStorage.setItem('towerStackBest', String(best));
 
+      starting = false;
       refreshChrome();
       setStatus('Game Over', 'over');
       startButton.disabled = false;
-      startButton.textContent = '▶ Play Again';
+      startButton.textContent = '👆 Tap Tower to Play Again';
       draw();
 
       Arcade.panel(
@@ -291,9 +293,11 @@
     }
 
     function startGame() {
-      if (running) return;
+      if (running || starting) return;
+      starting = true;
 
       if (!Arcade.consume('towerStack')) {
+        starting = false;
         Arcade.out('towerStack', refreshChrome);
         return;
       }
@@ -307,6 +311,7 @@
       draw();
 
       Arcade.countdown(() => {
+        starting = false;
         running = true;
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
@@ -316,6 +321,12 @@
 
     canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
+
+      if (!running) {
+        if (!starting) startGame();
+        return;
+      }
+
       placeBlock();
     });
 
