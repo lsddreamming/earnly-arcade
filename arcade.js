@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.1';
+  const APP_VERSION = '0.15.2';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -162,7 +162,11 @@ const Arcade = (() => {
       payload
     });
     localStorage.setItem('arcadeSyncQueue', JSON.stringify(events.slice(-250)));
-    return events[events.length - 1];
+    const queued = events[events.length - 1];
+    window.dispatchEvent(new CustomEvent('earnly-data-change', {
+      detail:{ type:queued.type, payload:queued.payload, eventId:queued.id }
+    }));
+    return queued;
   }
 
   function syncStatus() {
@@ -211,7 +215,9 @@ const Arcade = (() => {
     'arcadeTransferDismissed',
     'arcadeTransferRestored',
     'arcadeLastCloudSave',
-    'arcadeLastCloudRestore'
+    'arcadeLastCloudRestore',
+    'arcadeCloudConflict',
+    'arcadeCloudSyncError'
   ]);
 
   function snapshotData() {
@@ -548,6 +554,7 @@ const Arcade = (() => {
       .trim()
       .slice(0, 18);
     localStorage.setItem('arcadeProfileName', cleaned || 'Player');
+    queueEvent('profile_name_changed', { name:profileName() });
     return profileName();
   }
 
@@ -625,7 +632,9 @@ const Arcade = (() => {
     if (index >= 0) list.splice(index, 1);
     else list.unshift(game);
     writeArray('arcadeFavorites', list.slice(0, 8));
-    return favorites();
+    const updated = favorites();
+    queueEvent('favorite_changed', { game, favorite:updated.includes(game) });
+    return updated;
   }
 
   function markRecent(game) {
@@ -1340,6 +1349,7 @@ const Arcade = (() => {
   function setHapticsEnabled(enabled) {
     localStorage.setItem('arcadeHaptics', enabled ? 'on' : 'off');
     if (enabled) vibrate(18);
+    queueEvent('setting_changed', { setting:'haptics', enabled:hapticsEnabled() });
     return hapticsEnabled();
   }
 
@@ -1353,6 +1363,7 @@ const Arcade = (() => {
   function setReducedMotionEnabled(enabled) {
     localStorage.setItem('arcadeReducedMotion', enabled ? 'on' : 'off');
     applyMotionPreference();
+    queueEvent('setting_changed', { setting:'reducedMotion', enabled:reducedMotionEnabled() });
     return reducedMotionEnabled();
   }
 
@@ -1363,6 +1374,7 @@ const Arcade = (() => {
   function setSoundEnabled(enabled) {
     localStorage.setItem('arcadeSound', enabled ? 'on' : 'off');
     if (enabled) feedback('go');
+    queueEvent('setting_changed', { setting:'sound', enabled:soundEnabled() });
     return soundEnabled();
   }
 
@@ -2223,6 +2235,37 @@ const Arcade = (() => {
     document.body.classList.add('has-app-nav');
   }
 
+  function bootCloudClient() {
+    const file = location.pathname.split('/').pop() || 'index.html';
+    if (file === 'account.html') return;
+
+    const loadCloud = () => {
+      if (window.EarnlyCloud || document.querySelector('script[data-earnly-cloud]')) return;
+      const script = document.createElement('script');
+      script.src = 'cloud.js';
+      script.dataset.earnlyCloud = '1';
+      script.async = true;
+      document.head.append(script);
+    };
+
+    if (window.supabase?.createClient) {
+      loadCloud();
+      return;
+    }
+
+    if (document.querySelector('script[data-earnly-supabase]')) return;
+
+    const sdk = document.createElement('script');
+    sdk.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    sdk.dataset.earnlySupabase = '1';
+    sdk.async = true;
+    sdk.addEventListener('load', loadCloud, { once:true });
+    sdk.addEventListener('error', () => {
+      window.addEventListener('online', bootCloudClient, { once:true });
+    }, { once:true });
+    document.head.append(sdk);
+  }
+
   repairLifetimeCounters();
   applyTextScale();
   applyMotionPreference();
@@ -2230,6 +2273,7 @@ const Arcade = (() => {
   mountConnectionBanner();
   mountLaunchSplash();
   registerServiceWorker();
+  bootCloudClient();
 
   return {
     names,
