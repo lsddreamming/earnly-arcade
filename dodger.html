@@ -156,7 +156,8 @@
 
       const earned=rewardFor(seconds,dodged);
       Arcade.earn(earned,'Neon Dodger');
-      Arcade.recordResult('dodger', seconds);
+      Arcade.feedback(survived?'success':'fail');
+      const result=Arcade.recordResult('dodger', seconds);
 
       const best=Math.max(seconds,Arcade.number('dodgerBest'));
       localStorage.setItem('dodgerBest',String(best));
@@ -168,7 +169,7 @@
 
       Arcade.panel(
         survived?'🚗 You Survived!':'💥 Game Over',
-        'Time: '+seconds+'s\nDodged: '+dodged+'\nBest: '+best+'s\n+'+earned+' Arcade Coins\n'+Arcade.remaining('dodger')+' plays remaining',
+        'Time: '+seconds+'s\nDodged: '+dodged+'\nBest: '+best+'s\n+'+earned+' Arcade Coins'+Arcade.resultText(result)+'\n'+Arcade.remaining('dodger')+' plays remaining',
         Arcade.remaining('dodger')>0
           ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
           : [['Get More Plays',()=>Arcade.out('dodger',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
@@ -231,13 +232,21 @@
       dodgedEl.textContent='0';
       rewardPreviewEl.textContent='0';
 
-      running=true;
+      running=false;
       startButton.disabled=true;
-      startButton.textContent='Game Running';
-      setStatus('Running','running');
+      startButton.textContent='Get Ready…';
+      setStatus('Get Ready');
       refreshChrome();
       draw();
-      animation=requestAnimationFrame(loop);
+
+      Arcade.countdown(()=>{
+        running=true;
+        startButton.textContent='Game Running';
+        setStatus('Running','running');
+        startTime=0;
+        lastSpawn=0;
+        animation=requestAnimationFrame(loop);
+      });
     }
 
     startButton.addEventListener('click',startGame);
