@@ -52,6 +52,15 @@
           <button class="green" id="cloudSignInButton" type="button">Sign In</button>
           <button class="secondary" id="cloudCreateButton" type="button">Create Account</button>
         </div>
+        <button class="text-button cloud-forgot" id="cloudForgotButton" type="button">Forgot password?</button>
+      </div>
+
+      <div class="cloud-recovery" id="cloudRecovery" hidden>
+        <span class="section-kicker">PASSWORD RECOVERY</span>
+        <h3>Choose a new password</h3>
+        <p class="muted small">Enter a new password for this Earnly account.</p>
+        <input id="cloudNewPassword" type="password" minlength="6" autocomplete="new-password" placeholder="New password · 6+ characters">
+        <button class="green wide" id="cloudUpdatePasswordButton" type="button">Update Password</button>
       </div>
 
       <div id="cloudSignedIn" hidden>
@@ -151,6 +160,8 @@
     const cloudSaveStatus = document.getElementById('cloudSaveStatus');
     const cloudMessage = document.getElementById('cloudMessage');
     const cloudAutoSyncToggle = document.getElementById('cloudAutoSyncToggle');
+    const cloudRecovery = document.getElementById('cloudRecovery');
+    const cloudNewPassword = document.getElementById('cloudNewPassword');
 
     function friendlyTime(value){
       if (!value) return 'No cloud save yet';
@@ -257,6 +268,31 @@
       if (password.length < 6) throw new Error('Use a password with at least 6 characters.');
       return { email, password };
     }
+
+    document.getElementById('cloudForgotButton').addEventListener('click', async () => {
+      try {
+        const email = cloudEmail.value.trim();
+        if (!email) throw new Error('Enter the email address for your Earnly account first.');
+        cloudMessage.textContent = 'Sending password-reset email…';
+        await EarnlyCloud.sendPasswordReset(email);
+        cloudMessage.textContent = 'Password-reset email sent. Open it on this device and return to Earnly to choose a new password.';
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not send the password-reset email.';
+      }
+    });
+
+    document.getElementById('cloudUpdatePasswordButton').addEventListener('click', async () => {
+      try {
+        cloudMessage.textContent = 'Updating password…';
+        await EarnlyCloud.updatePassword(cloudNewPassword.value);
+        cloudNewPassword.value = '';
+        cloudRecovery.hidden = true;
+        cloudMessage.textContent = '✅ Password updated. You are still signed in.';
+        history.replaceState({}, '', 'account.html');
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not update the password.';
+      }
+    });
 
     document.getElementById('cloudCreateButton').addEventListener('click', async () => {
       try {
@@ -391,6 +427,16 @@
     });
     window.addEventListener('earnly-cloud-conflict', renderCloud);
     window.addEventListener('earnly-cloud-auto-change', renderCloud);
+    window.addEventListener('earnly-cloud-password-recovery', () => {
+      cloudSignedOut.hidden = true;
+      cloudSignedIn.hidden = true;
+      cloudRecovery.hidden = false;
+      cloudMessage.textContent = 'Password recovery verified. Choose your new password below.';
+    });
+    window.addEventListener('earnly-cloud-auto-restored', event => {
+      const count = event.detail?.restored || 0;
+      cloudMessage.textContent = '☁️ Restored ' + count + ' saved progress items from Earnly Cloud on this fresh device.';
+    });
   </script>
 </body>
 </html>
