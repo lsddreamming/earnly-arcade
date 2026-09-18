@@ -37,8 +37,6 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="brick-board touch-surface" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
-    <p class="muted small">Tap the board to start the countdown. Then drag left/right to move the paddle and clear all 35 bricks.</p>
-
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -52,6 +50,25 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'brickBreaker',
+      surface:canvas,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the board' },
+        { icon:'↔️', title:'Control', text:'Drag the paddle' },
+        { icon:'🧱', title:'Goal', text:'Break all 35 bricks' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Drag left and right to keep the ball in play',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Keep the paddle under the ball. Missing the ball ends the run.',
+        'Clear every brick for the full-clear bonus.'
+      ],
+      reward:'Broken bricks and a full clear can earn up to 22 Coins.'
+    });
 
     const paddle={x:135,y:465,w:90,h:12};
     const ball={x:180,y:430,r:7,dx:3.2,dy:-3.6};
