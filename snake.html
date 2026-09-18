@@ -51,6 +51,7 @@
       color: white;
     }
   </style>
+<link rel="stylesheet" href="arcade.css">
 </head>
 
 <body>
@@ -127,6 +128,7 @@
 
   </div>
 
+  <script src="arcade.js"></script>
   <script>
     const canvas =
       document.getElementById("game");
@@ -142,14 +144,6 @@
       Number(
         localStorage.getItem("snakeGamesPlayed")
       ) || 0;
-
-    if (snakeGamesPlayed >= freeGameLimit) {
-      alert(
-        "You've used your 3 Snake plays. Unlock more from the Arcade."
-      );
-
-      window.location.href = "games.html";
-    }
 
     let snake = [
       { x: 200, y: 200 }
@@ -206,6 +200,7 @@
     }
 
     function changeDirection(event) {
+      if(event.key.startsWith("Arrow")) event.preventDefault();
 
       if (
         event.key === "ArrowLeft" &&
@@ -360,86 +355,13 @@
     }
 
     function gameOver() {
-
-      clearInterval(game);
-      game = null;
-
-      snakeGamesPlayed =
-        snakeGamesPlayed + 1;
-
-      localStorage.setItem(
-        "snakeGamesPlayed",
-        snakeGamesPlayed
-      );
-
-      /*
-        Snake reward system:
-
-        1 apple = 1 Arcade Coin
-        Maximum 5 Arcade Coins per game
-      */
-
-      let earnedCoins =
-        Math.min(score, 5);
-
-      let points =
-        Number(
-          localStorage.getItem("points")
-        ) || 0;
-
-      points =
-        points + earnedCoins;
-
-      localStorage.setItem(
-        "points",
-        points
-      );
-
-      let playsLeft =
-        Math.max(
-          0,
-          freeGameLimit -
-          snakeGamesPlayed
-        );
-
-      if (playsLeft === 0) {
-
-        alert(
-          "Game Over!\n\n" +
-          "Score: " + score +
-          "\nYou earned " +
-          earnedCoins +
-          " Arcade Coins!" +
-          "\n\nYou've used all 3 Snake plays."
-        );
-
-        window.location.href =
-          "games.html";
-
-        return;
-      }
-
-      let playAgain =
-        confirm(
-          "Game Over!\n\n" +
-          "Score: " + score +
-          "\nYou earned " +
-          earnedCoins +
-          " Arcade Coins!" +
-          "\n\nSnake plays remaining: " +
-          playsLeft +
-          "\n\nPlay again?"
-        );
-
-      if (playAgain) {
-
-        location.reload();
-
-      } else {
-
-        window.location.href =
-          "games.html";
-      }
+      if(game===null)return;
+      clearInterval(game);game=null;
+      const earned=Math.min(score,5);Arcade.earn(earned);
+      document.getElementById('startButton').disabled=false;
+      document.getElementById('startButton').textContent='Play Again';
+      Arcade.panel('Game Over','Score: '+score+' · +'+earned+' Arcade Coins · '+Arcade.remaining('snake')+' plays left',
+        [['Play Again',startGame],['Back to Arcade',()=>location.href='games.html']]);
     }
 
     function startGame() {
@@ -448,6 +370,10 @@
         return;
       }
 
+      if(!Arcade.consume('snake')){Arcade.out('snake',()=>{});return;}
+      snake=[{x:200,y:200}];direction='RIGHT';score=0;
+      document.getElementById('score').textContent=0;
+      food={x:100,y:100};
       game =
         setInterval(
           draw,

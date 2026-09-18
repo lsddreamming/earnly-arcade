@@ -45,6 +45,7 @@
       color: white;
     }
   </style>
+<link rel="stylesheet" href="arcade.css">
 </head>
 
 <body>
@@ -81,6 +82,7 @@
 
 </div>
 
+<script src="arcade.js"></script>
 <script>
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -97,14 +99,6 @@
     Number(localStorage.getItem("blockDropGamesPlayed")) || 0;
 
   const freeGameLimit = 3;
-
-  if (blockDropGamesPlayed >= freeGameLimit) {
-    alert(
-      "You've used your 3 Block Drop plays. Unlock more from the Arcade."
-    );
-
-    window.location.href = "games.html";
-  }
 
   const pieces = [
     [[1, 1, 1, 1]],
@@ -158,52 +152,12 @@
       clearInterval(game);
       game = null;
 
-      blockDropGamesPlayed =
-        blockDropGamesPlayed + 1;
+      const earned=Math.min(Math.floor(score/100),5);Arcade.earn(earned);
+      document.getElementById('startButton').disabled=false;
+      document.getElementById('startButton').textContent='Play Again';
+      Arcade.panel('Game Over','Score: '+score+' · +'+earned+' Arcade Coins · '+Arcade.remaining('blockDrop')+' plays left',
+        [['Play Again',startGame],['Back to Arcade',()=>location.href='games.html']]);
 
-      localStorage.setItem(
-        "blockDropGamesPlayed",
-        blockDropGamesPlayed
-      );
-
-      let earnedCoins = Math.min(
-        Math.floor(score / 100),
-        5
-      );
-
-      let points =
-        Number(localStorage.getItem("points")) || 0;
-
-      points = points + earnedCoins;
-
-      localStorage.setItem("points", points);
-
-      let playsLeft = Math.max(
-        0,
-        freeGameLimit - blockDropGamesPlayed
-      );
-
-      if (playsLeft === 0) {
-        alert(
-          "Game Over! Score: " + score +
-          "\nYou earned " + earnedCoins + " Arcade Coins!" +
-          "\n\nYou've used all 3 Block Drop plays."
-        );
-
-        window.location.href = "games.html";
-        return;
-      }
-
-      alert(
-        "Game Over! Score: " + score +
-        "\nYou earned " + earnedCoins + " Arcade Coins!" +
-        "\n\nBlock Drop plays remaining: " + playsLeft
-      );
-
-      document.getElementById("startButton").disabled = false;
-
-      document.getElementById("startButton").textContent =
-        "🔄 Play Again";
     }
   }
 
@@ -374,7 +328,7 @@
 
   function startGame() {
     if (game) return;
-
+    if(!Arcade.consume('blockDrop')){Arcade.out('blockDrop',()=>{});return;}
     createBoard();
 
     score = 0;
@@ -392,6 +346,7 @@
   }
 
   document.addEventListener("keydown", function(event) {
+    if(event.key.startsWith("Arrow")) event.preventDefault();
     if (event.key === "ArrowLeft") {
       moveLeft();
     }
