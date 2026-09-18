@@ -31,6 +31,7 @@ const Arcade = (() => {
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
+  const DATA_SCHEMA_VERSION = 1;
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -89,6 +90,169 @@ const Arcade = (() => {
 
   function writeArray(key, value) {
     localStorage.setItem(key, JSON.stringify(Array.from(new Set(value))));
+  }
+
+  function randomId(prefix = 'evt') {
+    if (crypto && typeof crypto.randomUUID === 'function') {
+      return prefix + '_' + crypto.randomUUID();
+    }
+    return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function deviceId() {
+    let id = localStorage.getItem('arcadeDeviceId');
+    if (!id) {
+      id = randomId('device');
+      localStorage.setItem('arcadeDeviceId', id);
+    }
+    return id;
+  }
+
+  function pendingSyncEvents() {
+    try {
+      const events = JSON.parse(localStorage.getItem('arcadeSyncQueue') || '[]');
+      return Array.isArray(events) ? events : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function queueEvent(type, payload = {}) {
+    const events = pendingSyncEvents();
+    events.push({
+      id:randomId('event'),
+      type:String(type || 'activity'),
+      deviceId:deviceId(),
+      createdAt:new Date().toISOString(),
+      schemaVersion:DATA_SCHEMA_VERSION,
+      payload
+    });
+    localStorage.setItem('arcadeSyncQueue', JSON.stringify(events.slice(-250)));
+    return events[events.length - 1];
+  }
+
+  function syncStatus() {
+    const events = pendingSyncEvents();
+    return {
+      deviceId:deviceId(),
+      pending:events.length,
+      oldest:events.length ? events[0].createdAt : null,
+      backendConnected:false
+    };
+  }
+
+  function clearSyncEvents(ids = null) {
+    if (!ids) {
+      localStorage.setItem('arcadeSyncQueue', '[]');
+      return 0;
+    }
+    const remove = new Set(Array.isArray(ids) ? ids : [ids]);
+    const remainingEvents = pendingSyncEvents().filter(event => !remove.has(event.id));
+    localStorage.setItem('arcadeSyncQueue', JSON.stringify(remainingEvents));
+    return remainingEvents.length;
+  }
+
+  function isEarnlyDataKey(key) {
+    if (!key) return false;
+    if (['points','lifetimePoints','dailyStreak','lastDailyBonusDate','streakRewardClaims'].includes(key)) return true;
+    if (key.startsWith('arcade')) return true;
+    if (key.startsWith('weekly')) return true;
+    if (key.startsWith('coinAd') || key === 'coinAdsToday') return true;
+    if (key.startsWith('gameRuns_') || key.startsWith('gameMetricTotal_')) return true;
+
+    return Object.keys(names).some(game =>
+      key === game + 'Best' ||
+      key === game + 'BestLines' ||
+      key === game + 'BestMoves' ||
+      key === game + 'GamesPlayed' ||
+      key === game + 'BonusPlays'
+    );
+  }
+
+  const deviceOnlyKeys = new Set([
+    'arcadeDeviceId',
+    'arcadeSyncQueue',
+    'arcadeInstalled',
+    'arcadeOnboardingSeen'
+  ]);
+
+  function snapshotData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!isEarnlyDataKey(key) || deviceOnlyKeys.has(key)) continue;
+      data[key] = localStorage.getItem(key);
+    }
+
+    return {
+      app:'Earnly Arcade',
+      schemaVersion:DATA_SCHEMA_VERSION,
+      exportedAt:new Date().toISOString(),
+      deviceId:deviceId(),
+      data
+    };
+  }
+
+  function downloadBackup() {
+    const snapshot = snapshotData();
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'earnly-backup-' + dateKey() + '.json';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
+    logActivity('backup', 'Progress backup created', Object.keys(snapshot.data).length + ' saved data items');
+    return snapshot;
+  }
+
+  function restoreSnapshot(snapshot) {
+    if (!snapshot || snapshot.app !== 'Earnly Arcade' || !snapshot.data || typeof snapshot.data !== 'object') {
+      throw new Error('That file is not a valid Earnly backup.');
+    }
+
+    if (Number(snapshot.schemaVersion) > DATA_SCHEMA_VERSION) {
+      throw new Error('This backup was created by a newer Earnly version.');
+    }
+
+    const keepDeviceId = deviceId();
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (isEarnlyDataKey(key) && !deviceOnlyKeys.has(key)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    let restored = 0;
+    Object.entries(snapshot.data).forEach(([key, value]) => {
+      if (!isEarnlyDataKey(key) || deviceOnlyKeys.has(key)) return;
+      if (typeof value !== 'string') return;
+      localStorage.setItem(key, value);
+      restored += 1;
+    });
+
+    localStorage.setItem('arcadeDeviceId', keepDeviceId);
+    queueEvent('backup_restored', {
+      sourceExportedAt:snapshot.exportedAt || null,
+      restoredKeys:restored
+    });
+    logActivity('backup', 'Progress backup restored', restored + ' data items restored');
+
+    return { restored, deviceId:keepDeviceId };
+  }
+
+  async function restoreBackupFile(file) {
+    if (!file || typeof file.text !== 'function') throw new Error('Choose an Earnly backup file first.');
+    const text = await file.text();
+    let snapshot;
+    try {
+      snapshot = JSON.parse(text);
+    } catch {
+      throw new Error('That backup file could not be read.');
+    }
+    return restoreSnapshot(snapshot);
   }
 
   function weekKey(date = new Date()) {
@@ -312,6 +476,14 @@ const Arcade = (() => {
     const before = xpStatus();
     if (amount) setNumber('arcadeXP', before.xp + amount);
     const after = xpStatus();
+    if (amount) {
+      queueEvent('xp_award', {
+        amount,
+        beforeLevel:before.level,
+        afterLevel:after.level,
+        totalXP:after.xp
+      });
+    }
     return {
       amount,
       beforeLevel: before.level,
@@ -488,6 +660,11 @@ const Arcade = (() => {
     if (!remaining(g)) return false;
     setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
     markRecent(g);
+    queueEvent('play_started', {
+      game:g,
+      playsUsed:number(g + 'GamesPlayed'),
+      bonusPlays:number(g + 'BonusPlays')
+    });
     return true;
   }
 
@@ -609,6 +786,16 @@ const Arcade = (() => {
     const xpAward = BASE_GAME_XP + newlyUnlocked.length * ACHIEVEMENT_XP;
     const xpResult = addXP(xpAward);
 
+    queueEvent('game_result', {
+      game,
+      metric:cleanMetric,
+      best:currentBest.value,
+      newBest,
+      xpAward,
+      level:xpResult.status.level,
+      achievements:newlyUnlocked.map(item => item.id)
+    });
+
     if (newlyUnlocked.length) {
       feedback('achievement');
       toast('🏆 Achievement unlocked: ' + newlyUnlocked[0].title);
@@ -662,6 +849,12 @@ const Arcade = (() => {
     setNumber('points', number('points') + n);
     setNumber('lifetimePoints', number('lifetimePoints') + n);
     logTransaction(n, source);
+    queueEvent('coin_award', {
+      amount:n,
+      source,
+      balance:number('points'),
+      lifetime:number('lifetimePoints')
+    });
     return number('points');
   }
 
@@ -1226,7 +1419,7 @@ const Arcade = (() => {
     if (gameFiles.has(file)) active = 'games';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
-    else if (file === 'profile.html') active = 'profile';
+    else if (file === 'profile.html' || file === 'account.html') active = 'profile';
 
     const items = [
       ['home','🏠','Home','index.html'],
@@ -1293,6 +1486,14 @@ const Arcade = (() => {
     showOnboarding,
     installStatus,
     requestInstall,
+    deviceId,
+    syncStatus,
+    pendingSyncEvents,
+    clearSyncEvents,
+    snapshotData,
+    downloadBackup,
+    restoreSnapshot,
+    restoreBackupFile,
     stats,
     weeklyStatus,
     claimWeeklyMission,
