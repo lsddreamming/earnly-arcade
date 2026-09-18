@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.14.2';
+  const APP_VERSION = '0.14.3';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -77,6 +77,40 @@ const Arcade = (() => {
 
   function setNumber(key, value) {
     localStorage.setItem(key, String(Math.max(0, Math.floor(Number(value) || 0))));
+  }
+
+  const textScaleOptions = {
+    compact:100,
+    comfortable:110,
+    large:120,
+    xlarge:130
+  };
+
+  function textScale() {
+    const saved = localStorage.getItem('arcadeTextScale');
+    return Object.prototype.hasOwnProperty.call(textScaleOptions, saved) ? saved : 'comfortable';
+  }
+
+  function textScalePercent() {
+    return textScaleOptions[textScale()];
+  }
+
+  function applyTextScale() {
+    const scale = textScale();
+    const percent = textScaleOptions[scale];
+    document.documentElement.style.setProperty('-webkit-text-size-adjust', percent + '%');
+    document.documentElement.style.setProperty('text-size-adjust', percent + '%');
+    document.documentElement.dataset.textScale = scale;
+    return { scale, percent };
+  }
+
+  function setTextScale(scale) {
+    if (!Object.prototype.hasOwnProperty.call(textScaleOptions, scale)) return applyTextScale();
+    localStorage.setItem('arcadeTextScale', scale);
+    const result = applyTextScale();
+    queueEvent('text_scale_changed', result);
+    window.dispatchEvent(new CustomEvent('earnly-text-scale-change', { detail:result }));
+    return result;
   }
 
   function readArray(key) {
@@ -154,7 +188,7 @@ const Arcade = (() => {
 
   function isEarnlyDataKey(key) {
     if (!key) return false;
-    if (['points','lifetimePoints','dailyStreak','lastDailyBonusDate','streakRewardClaims'].includes(key)) return true;
+    if (['points','lifetimePoints','gamesCompletedEver','dailyStreak','lastDailyBonusDate','streakRewardClaims'].includes(key)) return true;
     if (key.startsWith('arcade')) return true;
     if (key.startsWith('weekly')) return true;
     if (key.startsWith('gameRuns_') || key.startsWith('gameMetricTotal_')) return true;
@@ -2090,6 +2124,8 @@ const Arcade = (() => {
       sound:soundEnabled(),
       haptics:hapticsEnabled(),
       reducedMotion:reducedMotionEnabled(),
+      textScale:textScale(),
+      textScalePercent:textScalePercent(),
       install:installStatus(),
       sync:syncStatus()
     };
@@ -2158,6 +2194,7 @@ const Arcade = (() => {
     document.body.classList.add('has-app-nav');
   }
 
+  applyTextScale();
   applyMotionPreference();
   mountBottomNav();
   mountConnectionBanner();
@@ -2190,6 +2227,10 @@ const Arcade = (() => {
     mostPlayedGame,
     streakRewardStatus,
     claimStreakReward,
+    textScale,
+    textScalePercent,
+    setTextScale,
+    applyTextScale,
     showOnboarding,
     installStatus,
     requestInstall,
