@@ -7,7 +7,7 @@
   <title>Earnly Brick Breaker</title>
   <link rel="stylesheet" href="arcade.css">
   <style>
-    .brick-board{width:min(86vw,360px);height:auto}
+    .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   </style>
 </head>
 <body>
@@ -28,8 +28,8 @@
     </header>
 
     <button class="green wide" id="startButton" type="button">▶ Start Game</button>
-    <canvas class="brick-board" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
-    <p class="muted small">Drag the paddle left and right. Clear all 35 bricks for the level-clear bonus.</p>
+    <canvas class="brick-board touch-surface" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
+    <p class="muted small">Put your finger anywhere on the board and drag left/right to move the paddle. Clear all 35 bricks for the bonus.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -195,17 +195,31 @@
       paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x));
     }
 
+    let dragging = false;
+    let dragPointer = null;
+
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
+      dragging = true;
+      dragPointer = event.pointerId;
       setPaddleFromClientX(event.clientX);
       canvas.setPointerCapture?.(event.pointerId);
     });
+
     canvas.addEventListener('pointermove',event=>{
-      if(event.buttons || event.pointerType==='touch'){
-        event.preventDefault();
-        setPaddleFromClientX(event.clientX);
-      }
+      if(!dragging || dragPointer !== event.pointerId) return;
+      event.preventDefault();
+      setPaddleFromClientX(event.clientX);
     });
+
+    const stopDragging = event => {
+      if(event && dragPointer !== event.pointerId) return;
+      dragging = false;
+      dragPointer = null;
+    };
+
+    canvas.addEventListener('pointerup',stopDragging);
+    canvas.addEventListener('pointercancel',stopDragging);
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
 
     document.addEventListener('keydown',event=>{
