@@ -2,471 +2,245 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
   <title>Earnly Snake</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111827;
-      color: white;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: auto;
-      padding: 25px 15px;
-    }
-
-    canvas {
-      background: #1f2937;
-      border: 3px solid white;
-      max-width: 100%;
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-    }
-
-    button {
-      padding: 14px 18px;
-      margin: 5px;
-      margin-top: 15px;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .control-button {
-      background: #3b82f6;
-      color: white;
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-      touch-action: manipulation;
-    }
-
-    .swipe-hint {
-      margin: 10px 0 0;
-      color: #9ca3af;
-      font-size: 14px;
-    }
-
-    @media (pointer: coarse) {
-      .controls {
-        display: none;
-      }
-    }
-
-    .start-button {
-      background: #22c55e;
-      color: white;
-    }
-
-    .back-button {
-      background: #374151;
-      color: white;
-    }
-  </style>
-<link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="arcade.css">
 </head>
-
 <body>
-
-  <div class="container">
-
-    <h1>🐍 Earnly Snake</h1>
-
-    <p>
-      Score:
-      <span id="score">0</span>
-    </p>
-
-    <button
-      class="start-button"
-      id="startButton"
-      onclick="startGame()"
-    >
-      ▶️ Start Game
-    </button>
-
-    <br>
-
-    <canvas
-      id="game"
-      width="400"
-      height="400"
-    ></canvas>
-
-    <p class="swipe-hint">Swipe on the game board to move</p>
-
-    <br>
-
-    <div class="controls">
-
-      <button
-        class="control-button"
-        onclick="setDirection('UP')"
-      >
-        ⬆️
-      </button>
-
-      <div>
-
-        <button
-          class="control-button"
-          onclick="setDirection('LEFT')"
-        >
-          ⬅️
-        </button>
-
-        <button
-          class="control-button"
-          onclick="setDirection('DOWN')"
-        >
-          ⬇️
-        </button>
-
-        <button
-          class="control-button"
-          onclick="setDirection('RIGHT')"
-        >
-          ➡️
-        </button>
-
-      </div>
-
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
     </div>
 
-    <button
-      class="back-button"
-      onclick="window.location.href='games.html'"
-    >
-      ⬅ Back to Games
-    </button>
+    <header class="page-header">
+      <h1>🐍 Earnly Snake</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Score: <span id="score">0</span></span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
 
-  </div>
+    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+
+    <canvas id="game" width="400" height="400" aria-label="Snake game board"></canvas>
+    <p class="swipe-hint">Swipe anywhere on the board to move</p>
+
+    <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
+      <button class="game-control" type="button" data-direction="UP">⬆️</button>
+      <div style="width:100%">
+        <button class="game-control" type="button" data-direction="LEFT">⬅️</button>
+        <button class="game-control" type="button" data-direction="DOWN">⬇️</button>
+        <button class="game-control" type="button" data-direction="RIGHT">➡️</button>
+      </div>
+    </div>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
 
   <script src="arcade.js"></script>
   <script>
-    const canvas =
-      document.getElementById("game");
-
-    const ctx =
-      canvas.getContext("2d");
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
 
     const box = 20;
-
-    const freeGameLimit = 3;
-
-    let snakeGamesPlayed =
-      Number(
-        localStorage.getItem("snakeGamesPlayed")
-      ) || 0;
-
-    let snake = [
-      { x: 200, y: 200 }
-    ];
-
-    let direction = "RIGHT";
-
-    let food = {
-      x:
-        Math.floor(Math.random() * 20) * box,
-
-      y:
-        Math.floor(Math.random() * 20) * box
-    };
-
+    let snake = [{ x: 200, y: 200 }];
+    let direction = 'RIGHT';
+    let nextDirection = 'RIGHT';
+    let food = { x: 100, y: 100 };
     let score = 0;
-
     let game = null;
 
-    document.addEventListener(
-      "keydown",
-      changeDirection
-    );
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('snake');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+    }
+
+    function setStatus(text, mode) {
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function setDirection(newDirection) {
+      const opposite = {
+        LEFT: 'RIGHT',
+        RIGHT: 'LEFT',
+        UP: 'DOWN',
+        DOWN: 'UP'
+      };
+
+      if (newDirection !== opposite[direction]) {
+        nextDirection = newDirection;
+      }
+    }
+
+    document.querySelectorAll('[data-direction]').forEach(button => {
+      button.addEventListener('click', () => setDirection(button.dataset.direction));
+    });
+
+    document.addEventListener('keydown', event => {
+      if (!event.key.startsWith('Arrow')) return;
+      event.preventDefault();
+      const map = {
+        ArrowLeft: 'LEFT',
+        ArrowRight: 'RIGHT',
+        ArrowUp: 'UP',
+        ArrowDown: 'DOWN'
+      };
+      setDirection(map[event.key]);
+    });
 
     let touchStartX = 0;
     let touchStartY = 0;
-    const swipeThreshold = 24;
+    const swipeThreshold = 22;
 
-    canvas.addEventListener(
-      "touchstart",
-      function (event) {
-        if (!event.touches.length) return;
+    canvas.addEventListener('touchstart', event => {
+      if (!event.touches.length) return;
+      touchStartX = event.touches[0].clientX;
+      touchStartY = event.touches[0].clientY;
+      event.preventDefault();
+    }, { passive: false });
 
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-        event.preventDefault();
-      },
-      { passive: false }
-    );
+    canvas.addEventListener('touchmove', event => {
+      event.preventDefault();
+    }, { passive: false });
 
-    canvas.addEventListener(
-      "touchmove",
-      function (event) {
-        event.preventDefault();
-      },
-      { passive: false }
-    );
+    canvas.addEventListener('touchend', event => {
+      if (!event.changedTouches.length) return;
 
-    canvas.addEventListener(
-      "touchend",
-      function (event) {
-        if (!event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - touchStartX;
+      const dy = event.changedTouches[0].clientY - touchStartY;
 
-        const touchEndX = event.changedTouches[0].clientX;
-        const touchEndY = event.changedTouches[0].clientY;
+      if (Math.abs(dx) < swipeThreshold && Math.abs(dy) < swipeThreshold) return;
 
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-
-        if (
-          Math.abs(deltaX) < swipeThreshold &&
-          Math.abs(deltaY) < swipeThreshold
-        ) {
-          return;
-        }
-
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          setDirection(deltaX > 0 ? "RIGHT" : "LEFT");
-        } else {
-          setDirection(deltaY > 0 ? "DOWN" : "UP");
-        }
-
-        event.preventDefault();
-      },
-      { passive: false }
-    );
-
-    function setDirection(newDirection) {
-
-      if (
-        newDirection === "LEFT" &&
-        direction !== "RIGHT"
-      ) {
-        direction = "LEFT";
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setDirection(dx > 0 ? 'RIGHT' : 'LEFT');
+      } else {
+        setDirection(dy > 0 ? 'DOWN' : 'UP');
       }
 
-      if (
-        newDirection === "UP" &&
-        direction !== "DOWN"
-      ) {
-        direction = "UP";
-      }
+      event.preventDefault();
+    }, { passive: false });
 
-      if (
-        newDirection === "RIGHT" &&
-        direction !== "LEFT"
-      ) {
-        direction = "RIGHT";
-      }
-
-      if (
-        newDirection === "DOWN" &&
-        direction !== "UP"
-      ) {
-        direction = "DOWN";
-      }
+    function randomFood() {
+      let next;
+      do {
+        next = {
+          x: Math.floor(Math.random() * 20) * box,
+          y: Math.floor(Math.random() * 20) * box
+        };
+      } while (snake.some(part => part.x === next.x && part.y === next.y));
+      return next;
     }
 
-    function changeDirection(event) {
-      if(event.key.startsWith("Arrow")) event.preventDefault();
-
-      if (
-        event.key === "ArrowLeft" &&
-        direction !== "RIGHT"
-      ) {
-        direction = "LEFT";
-      }
-
-      if (
-        event.key === "ArrowUp" &&
-        direction !== "DOWN"
-      ) {
-        direction = "UP";
-      }
-
-      if (
-        event.key === "ArrowRight" &&
-        direction !== "LEFT"
-      ) {
-        direction = "RIGHT";
-      }
-
-      if (
-        event.key === "ArrowDown" &&
-        direction !== "UP"
-      ) {
-        direction = "DOWN";
-      }
+    function roundedBlock(x, y, color, radius) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(x + 1, y + 1, box - 2, box - 2, radius);
+      ctx.fill();
     }
 
     function draw() {
+      direction = nextDirection;
 
-      ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      for (
-        let i = 0;
-        i < snake.length;
-        i++
-      ) {
+      snake.forEach((part, index) => {
+        roundedBlock(part.x, part.y, index === 0 ? '#16a34a' : '#4ade80', 6);
+      });
 
-        ctx.fillStyle =
-          i === 0
-            ? "#22c55e"
-            : "#4ade80";
-
-        ctx.fillRect(
-          snake[i].x,
-          snake[i].y,
-          box,
-          box
-        );
-      }
-
-      ctx.fillStyle = "#ef4444";
-
-      ctx.fillRect(
-        food.x,
-        food.y,
-        box,
-        box
-      );
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(food.x + box / 2, food.y + box / 2, box / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
 
       let snakeX = snake[0].x;
       let snakeY = snake[0].y;
 
-      if (direction === "LEFT") {
-        snakeX -= box;
-      }
+      if (direction === 'LEFT') snakeX -= box;
+      if (direction === 'RIGHT') snakeX += box;
+      if (direction === 'UP') snakeY -= box;
+      if (direction === 'DOWN') snakeY += box;
 
-      if (direction === "UP") {
-        snakeY -= box;
-      }
-
-      if (direction === "RIGHT") {
-        snakeX += box;
-      }
-
-      if (direction === "DOWN") {
-        snakeY += box;
-      }
-
-      if (
-        snakeX === food.x &&
-        snakeY === food.y
-      ) {
-
-        score++;
-
-        document.getElementById(
-          "score"
-        ).textContent = score;
-
-        food = {
-          x:
-            Math.floor(
-              Math.random() * 20
-            ) * box,
-
-          y:
-            Math.floor(
-              Math.random() * 20
-            ) * box
-        };
-
-      } else {
-
-        snake.pop();
-      }
-
-      const newHead = {
-        x: snakeX,
-        y: snakeY
-      };
+      const newHead = { x: snakeX, y: snakeY };
 
       if (
         snakeX < 0 ||
         snakeY < 0 ||
         snakeX >= canvas.width ||
         snakeY >= canvas.height ||
-        collision(newHead, snake)
+        snake.some(part => part.x === newHead.x && part.y === newHead.y)
       ) {
-
         gameOver();
         return;
+      }
+
+      if (snakeX === food.x && snakeY === food.y) {
+        score += 1;
+        scoreEl.textContent = score;
+        food = randomFood();
+      } else {
+        snake.pop();
       }
 
       snake.unshift(newHead);
     }
 
-    function collision(head, body) {
-
-      for (
-        let i = 0;
-        i < body.length;
-        i++
-      ) {
-
-        if (
-          head.x === body[i].x &&
-          head.y === body[i].y
-        ) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
     function gameOver() {
-      if(game===null)return;
-      clearInterval(game);game=null;
-      const earned=Math.min(score,5);Arcade.earn(earned);
-      document.getElementById('startButton').disabled=false;
-      document.getElementById('startButton').textContent='Play Again';
-      Arcade.panel('Game Over','Score: '+score+' · +'+earned+' Arcade Coins · '+Arcade.remaining('snake')+' plays left',
-        [['Play Again',startGame],['Back to Arcade',()=>location.href='games.html']]);
+      if (game === null) return;
+      clearInterval(game);
+      game = null;
+
+      const earned = Math.min(score, 5);
+      Arcade.earn(earned, 'Snake');
+      refreshChrome();
+
+      startButton.disabled = false;
+      startButton.textContent = '▶ Play Again';
+      setStatus('Game Over', 'over');
+
+      Arcade.panel(
+        '🐍 Game Over',
+        'Score: ' + score + '\n+' + earned + ' Arcade Coins\n' + Arcade.remaining('snake') + ' Snake plays remaining',
+        Arcade.remaining('snake') > 0
+          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+          : [['Get More Plays', () => Arcade.out('snake', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+      );
     }
 
     function startGame() {
+      if (game !== null) return;
 
-      if (game !== null) {
+      if (!Arcade.consume('snake')) {
+        Arcade.out('snake', refreshChrome);
         return;
       }
 
-      if(!Arcade.consume('snake')){Arcade.out('snake',()=>{});return;}
-      snake=[{x:200,y:200}];direction='RIGHT';score=0;
-      document.getElementById('score').textContent=0;
-      food={x:100,y:100};
-      game =
-        setInterval(
-          draw,
-          120
-        );
+      snake = [{ x: 200, y: 200 }];
+      direction = 'RIGHT';
+      nextDirection = 'RIGHT';
+      score = 0;
+      scoreEl.textContent = '0';
+      food = randomFood();
 
-      const startButton =
-        document.getElementById(
-          "startButton"
-        );
-
+      refreshChrome();
       startButton.disabled = true;
+      startButton.textContent = 'Game Running';
+      setStatus('Running', 'running');
 
-      startButton.textContent =
-        "🎮 Game Running";
+      game = setInterval(draw, 120);
     }
 
+    startButton.addEventListener('click', startGame);
+    refreshChrome();
+    draw();
   </script>
-
 </body>
 </html>
