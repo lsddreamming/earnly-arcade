@@ -24,7 +24,7 @@
     <details class="card compact-card">
       <summary>How game rewards work</summary>
       <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays. No Arcade Coins are required to keep playing.</p>
-      <p class="muted">Snake rewards longer runs, Tap Rush rewards speed and accuracy, and Block Drop rewards cleared lines. The exact economy is still being tuned while we test the prototype.</p>
+      <p class="muted">Each game rewards a different skill: long runs, reaction speed, line clears, memory, survival, or brick clearing. The exact reward economy is still being tuned during the prototype.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -38,9 +38,12 @@
       root.replaceChildren();
 
       [
-        { key:'snake', icon:'🐍', name:'Snake', note:'1 coin every 3 apples + milestone bonuses · max 30 coins', href:'snake.html' },
-        { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'1 coin per cleared line · max 5 coins', href:'blockdrop.html' },
-        { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction game · milestone bonuses · max 20 coins', href:'taprush.html' }
+        { key:'snake', icon:'🐍', name:'Snake', note:'Longer snake = bigger reward · max 30 coins', href:'snake.html' },
+        { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines and build your score', href:'blockdrop.html' },
+        { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge · max 20 coins', href:'taprush.html' },
+        { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs with as few moves as possible · max 15 coins', href:'memory.html' },
+        { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Survive the falling obstacles for up to 30 seconds · max 20 coins', href:'dodger.html' },
+        { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Break 35 bricks and clear the level · max 22 coins', href:'brickbreaker.html' }
       ].forEach(info => {
         const remaining = Arcade.remaining(info.key);
         const card = document.createElement('section');
