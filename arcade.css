@@ -845,3 +845,88 @@ a{color:#93c5fd}
   border:1px solid #374151;
   font-size:12px;
 }
+
+html{scroll-behavior:smooth}
+body{animation:app-fade-in 180ms ease both}
+@keyframes app-fade-in{from{opacity:.72}to{opacity:1}}
+.connection-banner{
+  position:fixed;
+  top:max(8px,env(safe-area-inset-top));
+  left:50%;
+  transform:translate(-50%,-18px);
+  z-index:70;
+  padding:9px 13px;
+  border-radius:999px;
+  background:#451a03;
+  border:1px solid #f59e0b66;
+  color:#fde68a;
+  font-size:12px;
+  font-weight:900;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 160ms ease,transform 160ms ease;
+}
+.connection-banner.show{opacity:1;transform:translate(-50%,0)}
+.launch-splash{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:12px;
+  background:radial-gradient(circle at 50% 30%,#1d4ed8 0,#0f172a 48%,#020617 100%);
+  opacity:0;
+  transition:opacity 220ms ease;
+  pointer-events:none;
+}
+.launch-splash.show{opacity:1}
+.launch-splash img{
+  width:112px;
+  height:112px;
+  border-radius:26px;
+  box-shadow:0 22px 60px rgba(0,0,0,.42);
+}
+.launch-splash strong{font-size:28px;letter-spacing:-.03em}
+.launch-splash span{color:#bfdbfe;font-size:14px}
+.setting-list{display:grid;gap:9px}
+.setting-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:13px;
+  border-radius:15px;
+  border:1px solid #374151;
+  background:#172033;
+  text-align:left;
+}
+.setting-row strong{display:block;font-size:14px}
+.setting-row span{display:block;margin-top:3px;color:#aab6c8;font-size:11px;line-height:1.35}
+.toggle-button{
+  min-width:72px;
+  min-height:40px;
+  padding:9px 11px;
+  margin:0;
+  font-size:12px;
+}
+.app-status-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.app-status-card{
+  padding:12px;
+  border-radius:14px;
+  border:1px solid #374151;
+  background:#111827;
+  text-align:left;
+}
+.app-status-card strong{display:block;font-size:13px;margin-bottom:3px}
+.app-status-card span{font-size:11px;color:#aab6c8}
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after{
+  scroll-behavior:auto!important;
+  animation-duration:.001ms!important;
+  animation-iteration-count:1!important;
+  transition-duration:.001ms!important;
+}
+@media(max-width:360px){.app-status-grid{grid-template-columns:1fr}}
