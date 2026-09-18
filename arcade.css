@@ -3699,3 +3699,34 @@ body{animation:app-fade-in 180ms ease both}
     grid-template-columns:1fr;
   }
 }
+
+
+/* 0.15.2 automatic cloud sync */
+.cloud-auto-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:10px;
+  padding:10px 11px;
+  border:1px solid #314158;
+  border-radius:12px;
+  background:#101a2a;
+}
+.cloud-auto-row strong,.cloud-auto-row span{display:block}
+.cloud-auto-row strong{color:#f8fafc;font-size:9px}
+.cloud-auto-row span{margin-top:2px;color:#91a2b7;font-size:7.5px;line-height:1.35}
+.cloud-auto-toggle{
+  flex:0 0 auto;
+  min-width:52px;
+  min-height:34px;
+  margin:0;
+  padding:6px 10px;
+  border:1px solid #46566d;
+  border-radius:999px;
+  background:#1f2b3c;
+  color:#aebccc;
+  font-size:9px;
+  font-weight:900;
+}
+.cloud-auto-toggle.active{border-color:#15803d;background:#12452a;color:#86efac}
