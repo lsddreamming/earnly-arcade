@@ -26,7 +26,7 @@
 
     <button class="green wide" id="startButton" type="button">▶ Start Game</button>
 
-    <canvas id="game" width="400" height="400" aria-label="Snake game board"></canvas>
+    <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
     <p class="swipe-hint">Swipe anywhere on the board to move</p>
     <p class="muted small">Earn 1 coin every 3 apples, plus milestone bonuses at 10, 25, and 50 apples. Max 30 coins per run.</p>
 
@@ -113,26 +113,25 @@
       setDirection(map[event.key]);
     });
 
-    let touchStartX = 0;
-    let touchStartY = 0;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipePointer = null;
     const swipeThreshold = 22;
 
-    canvas.addEventListener('touchstart', event => {
-      if (!event.touches.length) return;
-      touchStartX = event.touches[0].clientX;
-      touchStartY = event.touches[0].clientY;
+    canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
-    }, { passive: false });
+      swipePointer = event.pointerId;
+      swipeStartX = event.clientX;
+      swipeStartY = event.clientY;
+      canvas.setPointerCapture?.(event.pointerId);
+    });
 
-    canvas.addEventListener('touchmove', event => {
-      event.preventDefault();
-    }, { passive: false });
+    canvas.addEventListener('pointerup', event => {
+      if (swipePointer !== event.pointerId) return;
 
-    canvas.addEventListener('touchend', event => {
-      if (!event.changedTouches.length) return;
-
-      const dx = event.changedTouches[0].clientX - touchStartX;
-      const dy = event.changedTouches[0].clientY - touchStartY;
+      const dx = event.clientX - swipeStartX;
+      const dy = event.clientY - swipeStartY;
+      swipePointer = null;
 
       if (Math.abs(dx) < swipeThreshold && Math.abs(dy) < swipeThreshold) return;
 
@@ -143,7 +142,13 @@
       }
 
       event.preventDefault();
-    }, { passive: false });
+    });
+
+    canvas.addEventListener('pointercancel', () => {
+      swipePointer = null;
+    });
+
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
 
     function randomFood() {
       let next;
