@@ -267,7 +267,7 @@
       game = null;
 
       const earned = Math.min(lines, 5);
-      Arcade.earn(earned, 'Block Drop');
+      Arcade.earn(earned, 'Block Drop', { kind:'game', game:'blockDrop', metric:lines });
       Arcade.feedback('fail');
       const result = Arcade.recordResult('blockDrop', lines);
       refreshChrome();
