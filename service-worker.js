@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-arcade-v31';
+const CACHE_NAME = 'earnly-arcade-v32';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -25,7 +25,11 @@ const CORE_ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
-      Promise.allSettled(CORE_ASSETS.map(asset => cache.add(asset)))
+      Promise.allSettled(CORE_ASSETS.map(async asset => {
+        const url = new URL(asset, self.registration.scope).href;
+        const response = await fetch(url, { cache:'reload' });
+        if (response && response.ok) await cache.put(asset, response.clone());
+      }))
     ).then(() => self.skipWaiting())
   );
 });
@@ -47,7 +51,7 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache:'no-store' })
         .then(response => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
@@ -62,7 +66,7 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache:'no-store' })
       .then(response => {
         if (response && response.ok) {
           const copy = response.clone();
