@@ -2,102 +2,329 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
   <title>Earnly Arcade</title>
 
   <style>
+    :root {
+      color-scheme: dark;
+      --background: #111827;
+      --card: #1f2937;
+      --card-border: #374151;
+      --text: #ffffff;
+      --muted: #9ca3af;
+      --green: #22c55e;
+      --green-dark: #16a34a;
+      --blue: #3b82f6;
+      --blue-dark: #2563eb;
+      --gold: #f59e0b;
+      --gold-dark: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: Arial, sans-serif;
-      background: #111827;
-      color: white;
+      background:
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 34%),
+        var(--background);
+      color: var(--text);
       text-align: center;
     }
 
     .container {
-      max-width: 500px;
+      width: min(100%, 500px);
       margin: auto;
-      padding: 40px 20px;
+      padding: max(36px, env(safe-area-inset-top)) 20px
+        max(32px, env(safe-area-inset-bottom));
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #93c5fd;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
     }
 
     h1 {
-      font-size: 42px;
-      margin-bottom: 5px;
+      margin: 0 0 6px;
+      font-size: clamp(36px, 10vw, 46px);
+      line-height: 1.05;
     }
 
-    .points {
-      background: #1f2937;
-      padding: 25px;
-      border-radius: 20px;
-      margin: 30px 0;
+    .tagline {
+      margin: 0;
+      color: #d1d5db;
+      font-size: 18px;
+    }
+
+    .points-card {
+      position: relative;
+      overflow: hidden;
+      padding: 26px 22px;
+      margin: 30px 0 18px;
+      border: 1px solid var(--card-border);
+      border-radius: 22px;
+      background: linear-gradient(145deg, #243044, var(--card));
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+    }
+
+    .points-card::after {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    .points-label {
+      margin: 0;
+      color: #d1d5db;
+      font-size: 15px;
     }
 
     .points-number {
-      font-size: 50px;
-      font-weight: bold;
+      position: relative;
+      z-index: 1;
+      margin: 5px 0;
+      font-size: 54px;
+      font-weight: 800;
+      line-height: 1;
+      transition: transform 180ms ease, color 180ms ease;
     }
 
-    button {
+    .points-number.bump {
+      color: #fbbf24;
+      transform: scale(1.12);
+    }
+
+    .balance-note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
-      padding: 18px;
-      margin: 10px 0;
+      min-height: 58px;
+      padding: 16px 18px;
+      margin: 11px 0;
+      border: 0;
+      border-radius: 14px;
+      color: white;
+      font: inherit;
       font-size: 18px;
-      border: none;
-      border-radius: 12px;
+      font-weight: 700;
+      text-decoration: none;
       cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+      transition: transform 120ms ease, filter 120ms ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .earn-button {
-      background: #22c55e;
-      color: white;
+    .button:active {
+      transform: scale(0.98);
+    }
+
+    .button:focus-visible {
+      outline: 3px solid white;
+      outline-offset: 3px;
+    }
+
+    .button:disabled {
+      color: #d1d5db;
+      background: #374151;
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .bonus-button {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
     }
 
     .games-button {
-      background: #3b82f6;
+      background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    }
+
+    .rewards-button {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    }
+
+    .helper-card {
+      padding: 14px 16px;
+      margin: 18px 0 4px;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      background: rgba(31, 41, 55, 0.72);
+      color: #d1d5db;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .helper-card strong {
       color: white;
     }
 
-    .cash-button {
-      background: #f59e0b;
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      z-index: 10;
+      width: max-content;
+      max-width: calc(100% - 40px);
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      background: #0f172a;
       color: white;
+      font-weight: 700;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+      opacity: 0;
+      transform: translate(-50%, 18px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
 
 <body>
-
-  <div class="container">
-
+  <main class="container">
+    <p class="eyebrow">Welcome to</p>
     <h1>🎮 Earnly Arcade</h1>
-    <p>Play. Watch. Earn.</p>
+    <p class="tagline">Play. Watch. Earn.</p>
 
-    <div class="points">
-      <p>Arcade Coins</p>
-     <div class="points-number" id="points">0</div> 
-    </div>
+    <section class="points-card" aria-label="Arcade Coin balance">
+      <p class="points-label">Arcade Coins</p>
+      <div class="points-number" id="points" aria-live="polite">0</div>
+      <p class="balance-note">Prototype balance saved on this device</p>
+    </section>
 
-    <button class="earn-button" onclick="watchAd()"></button>
-     ▶ Watch Ad + Earn 10 Arcade Coins
+    <button class="button bonus-button" id="dailyBonusButton" type="button">
+      🎁 Claim Daily Bonus +10 Coins
     </button>
 
-    <button class="games-button" onclick="window.location.href='games.html'">
-  🕹 Play Games
-</button>
+    <a class="button games-button" href="games.html">
+      🕹 Play Games
+    </a>
 
-    <button class="cash-button" onclick="window.location.href='rewards.html'">
-  🎁 Rewards
-</button>
+    <a class="button rewards-button" href="rewards.html">
+      🎁 View Rewards
+    </a>
 
-  </div>
-<script>
-  let points = Number(localStorage.getItem("points")) || 0;
-document.getElementById("points").textContent = points;
+    <div class="helper-card">
+      <strong>How it works:</strong> claim your daily bonus, earn coins through
+      gameplay, and try simulated ads for extra game plays. This demo has no
+      real ads or cash payouts; Arcade Coins have no cash value.
+    </div>
+  </main>
 
-  function watchAd() {
-    points = points + 10;
-    document.getElementById("points").textContent = points;
-    localStorage.setItem("points", points);
-  }
-</script>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const DAILY_BONUS = 10;
+    const pointsElement = document.getElementById("points");
+    const dailyBonusButton = document.getElementById("dailyBonusButton");
+    const toast = document.getElementById("toast");
+
+    let points = Number(localStorage.getItem("points")) || 0;
+    let toastTimer;
+
+    function getLocalDateKey() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function hasClaimedDailyBonus() {
+      return localStorage.getItem("lastDailyBonusDate") === getLocalDateKey();
+    }
+
+    function updateBalance() {
+      points = Number(localStorage.getItem("points")) || 0;
+      pointsElement.textContent = points.toLocaleString();
+    }
+
+    function updateBonusButton() {
+      const alreadyClaimed = hasClaimedDailyBonus();
+      dailyBonusButton.disabled = alreadyClaimed;
+      dailyBonusButton.textContent = alreadyClaimed
+        ? "✅ Daily Bonus Claimed — Come Back Tomorrow"
+        : "🎁 Claim Daily Bonus +10 Coins";
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.add("show");
+
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2400);
+    }
+
+    function claimDailyBonus() {
+      if (hasClaimedDailyBonus()) {
+        showToast("Today's bonus is already claimed");
+        updateBonusButton();
+        return;
+      }
+
+      updateBalance();
+      points += DAILY_BONUS;
+      localStorage.setItem("points", String(points));
+      localStorage.setItem("lastDailyBonusDate", getLocalDateKey());
+
+      updateBalance();
+      updateBonusButton();
+      pointsElement.classList.add("bump");
+      showToast("🪙 +10 Arcade Coins");
+
+      setTimeout(() => {
+        pointsElement.classList.remove("bump");
+      }, 300);
+    }
+
+    dailyBonusButton.addEventListener("click", claimDailyBonus);
+    function refreshHome() {
+      updateBalance();
+      updateBonusButton();
+    }
+    window.addEventListener("pageshow", refreshHome);
+    window.addEventListener("focus", refreshHome);
+    window.addEventListener("storage", refreshHome);
+
+    updateBalance();
+    updateBonusButton();
+  </script>
 </body>
 </html>
