@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.14.0';
+  const APP_VERSION = '0.14.1';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -2008,7 +2008,7 @@ const Arcade = (() => {
     if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
 
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js', { scope:'./' })
+      navigator.serviceWorker.register('./service-worker.js', { scope:'./', updateViaCache:'none' })
         .then(registration => {
           registration.update().catch(() => {});
         })
