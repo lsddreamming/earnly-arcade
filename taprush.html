@@ -73,9 +73,6 @@
       <button class="target touch-surface" id="target" type="button" aria-label="Tap target" hidden></button>
     </div>
 
-    <p class="muted tap-help">Tap the game area to start the countdown. Then hit the green target as fast as you can.</p>
-    <p class="muted small">Earn 1 coin every 5 hits, plus milestone bonuses at 20, 35, and 50 hits. Max 20 coins per run.</p>
-
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -90,6 +87,25 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'tapRush',
+      surface:board,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the game area' },
+        { icon:'🎯', title:'Control', text:'Tap the green target' },
+        { icon:'⏱️', title:'Goal', text:'Get max hits in 20 sec' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Hit the green target as fast as it moves',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Every successful tap moves the target to a new spot. Keep your eyes moving and tap quickly.',
+        'The round lasts 20 seconds.'
+      ],
+      reward:'Earn Coins from hits and milestones. Max 20 Coins per run.'
+    });
 
     const ROUND_SECONDS = 20;
     const MAX_COINS = 20;
