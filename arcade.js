@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.8';
+  const APP_VERSION = '0.15.9';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -77,6 +77,32 @@ const Arcade = (() => {
 
   function setNumber(key, value) {
     localStorage.setItem(key, String(Math.max(0, Math.floor(Number(value) || 0))));
+  }
+
+  function applyServerWallet(wallet) {
+    if (!wallet || typeof wallet !== 'object') return null;
+
+    const balance = Math.max(0, Math.floor(Number(wallet.balance) || 0));
+    const lifetime = Math.max(
+      balance,
+      Math.max(0, Math.floor(Number(wallet.lifetime_earned) || 0))
+    );
+    const before = {
+      balance:number('points'),
+      lifetime:number('lifetimePoints')
+    };
+
+    setNumber('points', balance);
+    setNumber('lifetimePoints', lifetime);
+
+    const detail = {
+      balance,
+      lifetime,
+      previousBalance:before.balance,
+      previousLifetime:before.lifetime
+    };
+    window.dispatchEvent(new CustomEvent('earnly-wallet-change', { detail }));
+    return detail;
   }
 
   const textScaleOptions = {
@@ -722,6 +748,18 @@ const Arcade = (() => {
   }
 
   function repairLifetimeCounters() {
+    // A lifetime-earned counter can never be lower than the current balance.
+    // Older prototype saves could drift out of sync while the reward system was evolving.
+    const currentCoins = number('points');
+    const lifetimeCoins = number('lifetimePoints');
+    if (lifetimeCoins < currentCoins) {
+      setNumber('lifetimePoints', currentCoins);
+      queueEvent('lifetime_coin_counter_repaired', {
+        previous:lifetimeCoins,
+        repaired:currentCoins
+      });
+    }
+
     // Compatibility repair for saves/transfers created before gamesCompletedEver
     // was included in the transferable data set.
     if (number('gamesCompletedEver') > 0) return number('gamesCompletedEver');
@@ -2367,6 +2405,7 @@ const Arcade = (() => {
     number,
     history,
     dailyCoinStatus,
+    applyServerWallet,
     claimDailyBonus,
     dailyBonusStatus,
     challengeStatus,
