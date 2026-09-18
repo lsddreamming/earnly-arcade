@@ -1,7 +1,7 @@
 {
   "name": "Earnly Arcade",
   "short_name": "Earnly",
-  "description": "Play arcade games, build streaks, complete missions, earn XP, and track your progress.",
+  "description": "Play arcade games, earn Arcade Coins and XP, complete missions, build streaks, and unlock achievements.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
