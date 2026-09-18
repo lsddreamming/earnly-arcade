@@ -63,8 +63,16 @@
           <div class="status-dot ready"></div>
         </div>
 
+        <div class="cloud-auto-row">
+          <div>
+            <strong>Automatic sync</strong>
+            <span>Saves after games, rewards, profile changes, and when you return to Earnly.</span>
+          </div>
+          <button class="cloud-auto-toggle" id="cloudAutoSyncToggle" type="button" aria-pressed="true">On</button>
+        </div>
+
         <div class="cloud-save-actions">
-          <button class="green" id="cloudSaveButton" type="button">☁️ Save Progress</button>
+          <button class="green" id="cloudSaveButton" type="button">☁️ Sync Now</button>
           <button class="secondary" id="cloudRestoreButton" type="button">↩️ Restore Cloud Save</button>
         </div>
         <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
@@ -142,6 +150,7 @@
     const cloudEmailDisplay = document.getElementById('cloudEmailDisplay');
     const cloudSaveStatus = document.getElementById('cloudSaveStatus');
     const cloudMessage = document.getElementById('cloudMessage');
+    const cloudAutoSyncToggle = document.getElementById('cloudAutoSyncToggle');
 
     function friendlyTime(value){
       if (!value) return 'No cloud save yet';
@@ -173,8 +182,18 @@
         }
 
         cloudEmailDisplay.textContent = current.user.email || 'Earnly account';
+        const autoOn = EarnlyCloud.autoSyncEnabled();
+        cloudAutoSyncToggle.textContent = autoOn ? 'On' : 'Off';
+        cloudAutoSyncToggle.classList.toggle('active', autoOn);
+        cloudAutoSyncToggle.setAttribute('aria-pressed', autoOn ? 'true' : 'false');
+
+        const conflict = EarnlyCloud.cloudConflict();
         const save = await EarnlyCloud.cloudSaveInfo();
-        cloudSaveStatus.textContent = save ? friendlyTime(save.updated_at) : 'No cloud save yet — save this device when ready.';
+        cloudSaveStatus.textContent = save ? friendlyTime(save.updated_at) : 'No cloud save yet — automatic sync will create one.';
+
+        if (conflict) {
+          cloudMessage.textContent = '⚠️ A newer cloud save exists from another device. Auto-sync is paused to protect it. Restore that save, or use Sync Now only if you intentionally want this device to replace it.';
+        }
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not check Earnly Cloud right now.';
       }
@@ -247,7 +266,7 @@
         cloudPassword.value = '';
 
         if (data.session) {
-          cloudMessage.textContent = 'Account created. You are signed in — tap Save Progress to create your first cloud backup.';
+          cloudMessage.textContent = 'Account created. Automatic cloud sync is on and will create your first backup.';
         } else {
           cloudMessage.textContent = 'Account created. Check your email to confirm it, then return to Earnly and sign in. If Safari ever shows a blank localhost page after confirming, the confirmation may still have succeeded — just come back here and sign in.';
         }
@@ -263,8 +282,9 @@
         cloudMessage.textContent = 'Signing in…';
         await EarnlyCloud.signIn(email, password);
         cloudPassword.value = '';
-        cloudMessage.textContent = 'Signed in. Your local progress has not been overwritten.';
+        cloudMessage.textContent = 'Signed in. Automatic sync is on. Earnly will protect a newer cloud save instead of overwriting it.';
         await renderCloud();
+        EarnlyCloud.scheduleAutoSync('manual-signin', 250);
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not sign in.';
       }
@@ -280,10 +300,18 @@
       }
     });
 
+    cloudAutoSyncToggle.addEventListener('click', async () => {
+      const enabled = EarnlyCloud.setAutoSyncEnabled(!EarnlyCloud.autoSyncEnabled());
+      cloudMessage.textContent = enabled
+        ? 'Automatic sync is on.'
+        : 'Automatic sync is off. You can still use Sync Now manually.';
+      await renderCloud();
+    });
+
     document.getElementById('cloudSaveButton').addEventListener('click', async () => {
       try {
         cloudMessage.textContent = 'Saving your current Earnly progress…';
-        const result = await EarnlyCloud.saveProgress();
+        const result = await EarnlyCloud.saveProgress({ source:'manual' });
         cloudMessage.textContent = 'Cloud save complete · ' + Object.keys(result.snapshot.data).length + ' progress items backed up.';
         Arcade.toast('☁️ Earnly progress saved');
         await renderCloud();
@@ -354,6 +382,15 @@
     window.addEventListener('pageshow', () => { render(); renderCloud(); });
     window.addEventListener('storage', render);
     window.addEventListener('earnly-cloud-auth-change', renderCloud);
+    window.addEventListener('earnly-cloud-synced', async event => {
+      const when = event.detail?.updatedAt;
+      if (event.detail?.source?.startsWith('auto:')) {
+        cloudMessage.textContent = '☁️ Progress synced automatically.';
+      }
+      if (when) cloudSaveStatus.textContent = friendlyTime(when);
+    });
+    window.addEventListener('earnly-cloud-conflict', renderCloud);
+    window.addEventListener('earnly-cloud-auto-change', renderCloud);
   </script>
 </body>
 </html>
