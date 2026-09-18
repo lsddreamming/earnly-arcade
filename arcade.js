@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.13.2';
+  const APP_VERSION = '0.13.3';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -2056,7 +2056,6 @@ const Arcade = (() => {
   mountConnectionBanner();
   mountLaunchSplash();
   registerServiceWorker();
-  setTimeout(() => showOnboarding(false), 180);
 
   return {
     names,
