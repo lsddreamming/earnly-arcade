@@ -103,7 +103,7 @@
 
         <div class="home-divider"></div>
 
-        <div class="home-challenge-row">
+        <div class="home-challenge-row" id="challengeCard">
           <div class="home-action-row home-action-row-top">
             <div class="home-action-icon">🎯</div>
             <div class="home-action-copy">
@@ -185,6 +185,7 @@
     const challengeCount = document.getElementById('challengeCount');
     const challengeBar = document.getElementById('challengeBar');
     const challengeButton = document.getElementById('challengeButton');
+    const challengeCard = document.getElementById('challengeCard');
     const achievementText = document.getElementById('achievementText');
     const profileName = document.getElementById('profileName');
     const profileLevel = document.getElementById('profileLevel');
@@ -197,6 +198,31 @@
     const continueButton = document.getElementById('continueButton');
     const weeklyText = document.getElementById('weeklyText');
     const weeklyCount = document.getElementById('weeklyCount');
+
+    const challengeGamePages = {
+      snake:'snake.html',
+      blockDrop:'blockdrop.html',
+      tapRush:'taprush.html',
+      memory:'memory.html',
+      dodger:'dodger.html',
+      brickBreaker:'brickbreaker.html',
+      jungleHopper:'junglehopper.html',
+      towerStack:'towerstack.html'
+    };
+
+    function challengeDestination(challenge) {
+      return challengeGamePages[challenge.game] || 'games.html';
+    }
+
+    function challengeGameLabel(challenge) {
+      return challenge.game ? (Arcade.names[challenge.game] || 'Game') : 'a Game';
+    }
+
+    function openChallengeGame() {
+      const challenge = Arcade.challengeStatus();
+      if (challenge.claimed || challenge.complete) return;
+      location.href = challengeDestination(challenge);
+    }
 
     function render() {
       const install = Arcade.installStatus();
@@ -313,6 +339,18 @@
       challengeCount.textContent = challenge.progress + ' / ' + challenge.goal;
       challengeBar.style.width = Math.min(100, challenge.progress / challenge.goal * 100) + '%';
 
+      const challengePlayable = !challenge.claimed && !challenge.complete;
+      challengeCard.classList.toggle('playable', challengePlayable);
+      if (challengePlayable) {
+        challengeCard.setAttribute('role', 'link');
+        challengeCard.setAttribute('tabindex', '0');
+        challengeCard.setAttribute('aria-label', 'Play ' + challengeGameLabel(challenge) + ' for ' + challenge.title);
+      } else {
+        challengeCard.removeAttribute('role');
+        challengeCard.removeAttribute('tabindex');
+        challengeCard.removeAttribute('aria-label');
+      }
+
       if (challenge.claimed) {
         challengeButton.disabled = true;
         challengeButton.className = 'home-challenge-button claimed-button';
@@ -322,9 +360,11 @@
         challengeButton.className = 'home-challenge-button green';
         challengeButton.textContent = 'Claim +' + challenge.reward + ' Coins';
       } else {
-        challengeButton.disabled = true;
-        challengeButton.className = 'home-challenge-button progress-button';
-        challengeButton.textContent = 'Keep playing · ' + challenge.progress + '/' + challenge.goal;
+        challengeButton.disabled = false;
+        challengeButton.className = 'home-challenge-button progress-button mission-play-button';
+        challengeButton.textContent = challenge.game
+          ? 'Play ' + challengeGameLabel(challenge) + ' →'
+          : 'Pick a Game →';
       }
 
       const weekly = Arcade.weeklyStatus();
@@ -343,9 +383,27 @@
     });
 
     challengeButton.addEventListener('click', () => {
+      const challenge = Arcade.challengeStatus();
+      if (!challenge.complete && !challenge.claimed) {
+        openChallengeGame();
+        return;
+      }
       const result = Arcade.claimChallenge();
       if (result) Arcade.toast('🔥 Challenge complete · +' + result.reward + ' Coins');
       render();
+    });
+
+    challengeCard.addEventListener('click', event => {
+      if (event.target.closest('button')) return;
+      openChallengeGame();
+    });
+
+    challengeCard.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const challenge = Arcade.challengeStatus();
+      if (challenge.complete || challenge.claimed) return;
+      event.preventDefault();
+      openChallengeGame();
     });
 
     installButton.addEventListener('click', async () => {

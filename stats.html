@@ -102,6 +102,27 @@
       ['towerStack','🏗️','Tower Stack']
     ];
 
+    const missionGamePages = {
+      snake:'snake.html',
+      blockDrop:'blockdrop.html',
+      tapRush:'taprush.html',
+      memory:'memory.html',
+      dodger:'dodger.html',
+      brickBreaker:'brickbreaker.html',
+      jungleHopper:'junglehopper.html',
+      towerStack:'towerstack.html'
+    };
+
+    function missionDestination(mission) {
+      return missionGamePages[mission.game] || 'games.html';
+    }
+
+    function missionGameLabel(mission) {
+      if (!mission.game) return 'a Game';
+      const info = gameInfo.find(item => item[0] === mission.game);
+      return info ? info[2] : 'Game';
+    }
+
     function timeAgo(iso) {
       const then = new Date(iso).getTime();
       if (!Number.isFinite(then)) return '';
@@ -172,13 +193,37 @@
           card.append(claimed);
         } else {
           const button = document.createElement('button');
-          button.className = 'wide' + (mission.complete ? ' green' : ' secondary');
-          button.disabled = !mission.complete;
-          button.textContent = mission.complete ? 'Claim +' + mission.rewardXP + ' XP' : 'Keep Playing';
-          button.addEventListener('click', () => {
-            if (Arcade.claimWeeklyMission(mission.id)) render();
+          button.className = 'wide' + (mission.complete ? ' green' : ' secondary mission-play-button');
+          button.disabled = false;
+          button.textContent = mission.complete
+            ? 'Claim +' + mission.rewardXP + ' XP'
+            : (mission.game ? 'Play ' + missionGameLabel(mission) + ' →' : 'Choose a Game →');
+
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            if (mission.complete) {
+              if (Arcade.claimWeeklyMission(mission.id)) render();
+              return;
+            }
+            location.href = missionDestination(mission);
           });
           card.append(button);
+
+          if (!mission.complete) {
+            card.classList.add('playable');
+            card.setAttribute('role', 'link');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-label', 'Play ' + missionGameLabel(mission) + ' for ' + mission.title);
+            card.addEventListener('click', event => {
+              if (event.target.closest('button')) return;
+              location.href = missionDestination(mission);
+            });
+            card.addEventListener('keydown', event => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              location.href = missionDestination(mission);
+            });
+          }
         }
 
         root.append(card);

@@ -3862,3 +3862,25 @@ body{animation:app-fade-in 180ms ease both}
 .account-tool-block .data-actions{
   margin-top:10px;
 }
+
+
+/* 0.15.15 mission navigation */
+.home-challenge-row.playable,
+.mission-card.playable{
+  cursor:pointer;
+}
+.home-challenge-row.playable{
+  border-radius:14px;
+}
+.home-challenge-row.playable:focus-visible,
+.mission-card.playable:focus-visible{
+  outline:3px solid #60a5fa;
+  outline-offset:3px;
+}
+.mission-card.playable{
+  border-color:#3b82f680;
+}
+.mission-play-button{
+  border:1px solid #3b82f680;
+  color:#dbeafe;
+}
