@@ -38,6 +38,10 @@
       </div>
       <span class="prototype-badge">PROTOTYPE</span>
       <p>Coins are reward points for now — no dollar conversion is set yet.</p>
+      <div class="rewards-balance-meta">
+        <span>Today <strong id="todayEarned">+0</strong></span>
+        <span>Lifetime <strong id="lifetimeEarned">0</strong></span>
+      </div>
     </section>
 
     <section class="rewards-section">
@@ -50,7 +54,7 @@
       <div class="rewards-basics">
         <div class="rewards-basic-item"><span>🪙</span><div><strong>Coins</strong><small>Prototype reward currency</small></div></div>
         <div class="rewards-basic-item"><span>⭐</span><div><strong>XP</strong><small>Levels and profile progress</small></div></div>
-        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>Daily game attempts</small></div></div>
+        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>3 free + up to 2 bonus unlocks/game</small></div></div>
       </div>
     </section>
 
@@ -109,6 +113,10 @@
       const balance = Arcade.number('points');
       document.getElementById('balance').textContent = balance.toLocaleString();
       document.getElementById('topBalance').textContent = balance.toLocaleString();
+
+      const dailyCoins = Arcade.dailyCoinStatus();
+      document.getElementById('todayEarned').textContent = '+' + dailyCoins.earned.toLocaleString();
+      document.getElementById('lifetimeEarned').textContent = dailyCoins.lifetime.toLocaleString();
 
       const root = document.getElementById('history');
       const items = Arcade.history();
