@@ -61,6 +61,17 @@
     </section>
 
     <section class="card compact-card">
+      <div class="week-summary">
+        <div>
+          <strong>📅 Weekly Missions</strong>
+          <div class="muted small" id="weeklyText">0 of 4 complete</div>
+        </div>
+        <div class="week-ring" id="weeklyCount">0/4</div>
+      </div>
+      <a class="button wide ghost" href="stats.html" style="margin-top:12px">View Missions & Stats</a>
+    </section>
+
+    <section class="card compact-card">
       <div class="achievement-summary">
         <div style="text-align:left">
           <strong>🏆 Achievements</strong>
@@ -103,6 +114,8 @@
     const profileLevel = document.getElementById('profileLevel');
     const profileXP = document.getElementById('profileXP');
     const profileXPBar = document.getElementById('profileXPBar');
+    const weeklyText = document.getElementById('weeklyText');
+    const weeklyCount = document.getElementById('weeklyCount');
     const coinAdButton = document.getElementById('coinAdButton');
     const coinAdStatus = document.getElementById('coinAdStatus');
 
@@ -137,6 +150,11 @@
         challengeButton.disabled = true;
         challengeButton.textContent = 'Complete Challenge · +' + challenge.reward + ' Coins';
       }
+
+      const weekly = Arcade.weeklyStatus();
+      weeklyText.textContent = weekly.completed + ' of ' + weekly.total + ' complete' +
+        (weekly.allClaimed ? ' · Weekly Sweep ✓' : '');
+      weeklyCount.textContent = weekly.completed + '/' + weekly.total;
 
       const achievement = Arcade.achievementSummary();
       achievementText.textContent = achievement.unlocked + ' of ' + achievement.total + ' unlocked';
