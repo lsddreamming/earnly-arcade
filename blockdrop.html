@@ -238,6 +238,7 @@
 
       const earned = Math.min(lines, 5);
       Arcade.earn(earned, 'Block Drop');
+      Arcade.recordResult('blockDrop', lines);
       refreshChrome();
 
       startButton.disabled = false;
