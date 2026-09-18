@@ -34,10 +34,10 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Jungle to Start</button>
 
     <canvas class="jungle-board touch-surface" id="game" width="360" height="560" aria-label="Jungle Hopper game board"></canvas>
-    <p class="swipe-hint">Tap anywhere on the jungle to make the frog hop upward.</p>
+    <p class="swipe-hint">Tap the jungle to start the countdown. Once it begins, keep tapping to hop upward.</p>
     <p class="muted small">Pass through vine gaps to score. Longer runs earn more coins, with milestone bonuses.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -65,6 +65,7 @@
     let obstacles = [];
     let score = 0;
     let running = false;
+    let starting = false;
     let animation = null;
     let frame = 0;
 
@@ -291,10 +292,11 @@
       const best = Math.max(score, Arcade.number('jungleHopperBest'));
       localStorage.setItem('jungleHopperBest', String(best));
 
+      starting = false;
       refreshChrome();
       setStatus('Game Over', 'over');
       startButton.disabled = false;
-      startButton.textContent = '▶ Play Again';
+      startButton.textContent = '👆 Tap Jungle to Play Again';
       draw();
 
       Arcade.panel(
@@ -311,9 +313,11 @@
     }
 
     function startGame() {
-      if (running) return;
+      if (running || starting) return;
+      starting = true;
 
       if (!Arcade.consume('jungleHopper')) {
+        starting = false;
         Arcade.out('jungleHopper', refreshChrome);
         return;
       }
@@ -327,6 +331,7 @@
       draw();
 
       Arcade.countdown(() => {
+        starting = false;
         running = true;
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
@@ -337,6 +342,12 @@
 
     canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
+
+      if (!running) {
+        if (!starting) startGame();
+        return;
+      }
+
       hop();
     });
     canvas.addEventListener('contextmenu', event => event.preventDefault());
