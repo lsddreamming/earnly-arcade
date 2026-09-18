@@ -320,8 +320,15 @@ const Arcade = (() => {
   function recordResult(game, metric) {
     refreshDaily();
 
+    const previousBest = best(game).value;
     const before = new Set(achievementDefinitions().filter(item => item.unlocked).map(item => item.id));
     const currentBest = setBest(game, metric);
+    const config = bestConfig[game];
+    const cleanMetric = Math.max(0, Math.floor(Number(metric) || 0));
+    const newBest = !!config && cleanMetric > 0 && (
+      !previousBest ||
+      (config.lower ? cleanMetric < previousBest : cleanMetric > previousBest)
+    );
 
     setNumber('gamesCompletedEver', number('gamesCompletedEver') + 1);
     const gamesEver = readArray('arcadeGamesEver');
@@ -339,13 +346,20 @@ const Arcade = (() => {
     const xpResult = addXP(xpAward);
 
     if (newlyUnlocked.length) {
+      feedback('achievement');
       toast('🏆 Achievement unlocked: ' + newlyUnlocked[0].title);
     } else if (xpResult.leveledUp) {
+      feedback('level');
       toast('⬆️ Level up! You reached Level ' + xpResult.afterLevel);
+    } else if (newBest) {
+      feedback('newBest');
+      toast('🏆 New best! ' + currentBest.display);
     }
 
     return {
       best:currentBest,
+      newBest,
+      previousBest,
       newAchievements:newlyUnlocked,
       xpAward,
       level:xpResult.status.level,
@@ -478,6 +492,151 @@ const Arcade = (() => {
     toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
   }
 
+  let audioContext = null;
+
+  function soundEnabled() {
+    return localStorage.getItem('arcadeSound') !== 'off';
+  }
+
+  function setSoundEnabled(enabled) {
+    localStorage.setItem('arcadeSound', enabled ? 'on' : 'off');
+    if (enabled) feedback('go');
+    return soundEnabled();
+  }
+
+  function audio() {
+    if (!soundEnabled()) return null;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+
+    try {
+      if (!audioContext) audioContext = new AudioCtx();
+      if (audioContext.state === 'suspended') audioContext.resume();
+      return audioContext;
+    } catch {
+      return null;
+    }
+  }
+
+  function tone(frequency, duration = 0.06, volume = 0.035, type = 'sine', delay = 0) {
+    if (!soundEnabled()) return;
+    const ctx = audio();
+    if (!ctx) return;
+
+    const start = ctx.currentTime + delay;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+  }
+
+  function vibrate(pattern) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    } catch {}
+  }
+
+  function feedback(kind = 'tap') {
+    if (kind === 'tap') {
+      tone(520, 0.035, 0.018, 'square');
+      vibrate(8);
+    } else if (kind === 'move') {
+      tone(390, 0.025, 0.012, 'square');
+    } else if (kind === 'score') {
+      tone(700, 0.055, 0.028, 'sine');
+      tone(900, 0.06, 0.022, 'sine', 0.05);
+      vibrate(12);
+    } else if (kind === 'perfect') {
+      tone(720, 0.05, 0.03, 'sine');
+      tone(980, 0.08, 0.03, 'sine', 0.055);
+      vibrate([10, 25, 10]);
+    } else if (kind === 'fail') {
+      tone(210, 0.13, 0.03, 'sawtooth');
+      vibrate(35);
+    } else if (kind === 'countdown') {
+      tone(440, 0.055, 0.025, 'sine');
+    } else if (kind === 'go') {
+      tone(880, 0.085, 0.035, 'sine');
+      vibrate(12);
+    } else if (kind === 'newBest') {
+      tone(660, 0.07, 0.035, 'sine');
+      tone(880, 0.08, 0.035, 'sine', 0.07);
+      tone(1100, 0.11, 0.03, 'sine', 0.15);
+      vibrate([12, 30, 12]);
+    } else if (kind === 'achievement' || kind === 'level') {
+      tone(600, 0.07, 0.035, 'sine');
+      tone(800, 0.07, 0.035, 'sine', 0.075);
+      tone(1050, 0.12, 0.04, 'sine', 0.15);
+      vibrate([12, 30, 12, 30, 18]);
+    }
+  }
+
+  function countdown(done, options = {}) {
+    const seconds = Math.max(1, Math.min(5, Math.floor(Number(options.seconds) || 3)));
+    let overlay = document.getElementById('arcadeCountdown');
+
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'arcadeCountdown';
+      overlay.className = 'countdown-overlay';
+      overlay.setAttribute('role', 'status');
+      overlay.setAttribute('aria-live', 'assertive');
+
+      const value = document.createElement('div');
+      value.className = 'countdown-value';
+      overlay.append(value);
+      document.body.append(overlay);
+    }
+
+    const value = overlay.querySelector('.countdown-value');
+    let remaining = seconds;
+    overlay.classList.add('show');
+
+    const tick = () => {
+      if (remaining > 0) {
+        value.textContent = String(remaining);
+        value.classList.remove('pop');
+        void value.offsetWidth;
+        value.classList.add('pop');
+        feedback('countdown');
+        remaining -= 1;
+        setTimeout(tick, 620);
+      } else {
+        value.textContent = 'GO!';
+        value.classList.remove('pop');
+        void value.offsetWidth;
+        value.classList.add('pop');
+        feedback('go');
+        setTimeout(() => {
+          overlay.classList.remove('show');
+          if (typeof done === 'function') done();
+        }, 430);
+      }
+    };
+
+    tick();
+  }
+
+  function resultText(result) {
+    if (!result) return '';
+    let text = '\n+' + result.xpAward + ' XP';
+    if (result.newBest) text += '\n🏆 NEW BEST!';
+    if (result.leveledUp) text += '\n⬆️ LEVEL ' + result.level + '!';
+    if (result.newAchievements && result.newAchievements.length) {
+      text += '\n🏅 ' + result.newAchievements[0].title + ' unlocked';
+    }
+    return text;
+  }
+
   function grantPlays(g, n) {
     refreshDaily();
     setNumber(g + 'BonusPlays', number(g + 'BonusPlays') + n);
@@ -607,6 +766,11 @@ const Arcade = (() => {
     earn,
     panel,
     toast,
+    soundEnabled,
+    setSoundEnabled,
+    feedback,
+    countdown,
+    resultText,
     playAd,
     ad:playAd,
     coinAd,
