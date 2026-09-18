@@ -24,7 +24,7 @@
     <details class="card compact-card">
       <summary>How game rewards work</summary>
       <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays. No Arcade Coins are required to keep playing.</p>
-      <p class="muted">Snake earns 1 coin every 3 apples, plus milestone bonuses at 10, 25, and 50 apples, up to 30 coins per run. Block Drop earns 1 Arcade Coin per cleared line, currently capped at 5 while we test the economy.</p>
+      <p class="muted">Snake rewards longer runs, Tap Rush rewards speed and accuracy, and Block Drop rewards cleared lines. The exact economy is still being tuned while we test the prototype.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -39,7 +39,8 @@
 
       [
         { key:'snake', icon:'🐍', name:'Snake', note:'1 coin every 3 apples + milestone bonuses · max 30 coins', href:'snake.html' },
-        { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'1 coin per cleared line · max 5 coins', href:'blockdrop.html' }
+        { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'1 coin per cleared line · max 5 coins', href:'blockdrop.html' },
+        { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction game · milestone bonuses · max 20 coins', href:'taprush.html' }
       ].forEach(info => {
         const remaining = Arcade.remaining(info.key);
         const card = document.createElement('section');
