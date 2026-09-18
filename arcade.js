@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.12.0';
+  const APP_VERSION = '0.12.1';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -861,17 +861,46 @@ const Arcade = (() => {
     }
   }
 
+  function refreshCoinEarnDay() {
+    const today = dateKey();
+    if (localStorage.getItem('arcadeCoinEarnDay') === today) return;
+
+    const migrated = history().reduce((sum, item) => {
+      if (!item || !item.time) return sum;
+      const when = new Date(item.time);
+      return !Number.isNaN(when.getTime()) && dateKey(when) === today
+        ? sum + Math.max(0, Math.floor(Number(item.amount) || 0))
+        : sum;
+    }, 0);
+
+    localStorage.setItem('arcadeCoinEarnDay', today);
+    setNumber('arcadeCoinsEarnedToday', migrated);
+  }
+
+  function dailyCoinStatus() {
+    refreshCoinEarnDay();
+    return {
+      earned: number('arcadeCoinsEarnedToday'),
+      balance: number('points'),
+      lifetime: number('lifetimePoints')
+    };
+  }
+
   function earn(n, source = 'Arcade reward') {
     n = Math.max(0, Math.floor(Number(n) || 0));
     if (!n) return number('points');
+
+    refreshCoinEarnDay();
     setNumber('points', number('points') + n);
     setNumber('lifetimePoints', number('lifetimePoints') + n);
+    setNumber('arcadeCoinsEarnedToday', number('arcadeCoinsEarnedToday') + n);
     logTransaction(n, source);
     queueEvent('coin_award', {
       amount:n,
       source,
       balance:number('points'),
-      lifetime:number('lifetimePoints')
+      lifetime:number('lifetimePoints'),
+      earnedToday:number('arcadeCoinsEarnedToday')
     });
     return number('points');
   }
@@ -1914,6 +1943,7 @@ const Arcade = (() => {
     out,
     number,
     history,
+    dailyCoinStatus,
     claimDailyBonus,
     dailyBonusStatus,
     challengeStatus,
