@@ -27,23 +27,47 @@
 
     <header class="page-header">
       <h1>🎁 Earnly Rewards</h1>
-      <p>See what you have earned and how future cash-out will work.</p>
+      <p>Track your Arcade Coins and preview how future cash-out could work.</p>
     </header>
 
     <section class="card">
-      <p class="muted" style="margin:0">Arcade Coins</p>
+      <p class="muted" style="margin:0">Prototype Reward Balance</p>
       <div class="big-number" id="balance">0</div>
-      <p class="muted">These are prototype coins while we test earning rates and ad economics.</p>
+      <strong>🪙 Arcade Coins</strong>
+      <p class="muted">Arcade Coins are not dollars yet. The final coin-to-cash conversion has not been set.</p>
+    </section>
+
+    <section class="card compact-card" style="text-align:left">
+      <h2 style="margin-top:0">Know Your Earnly Balance</h2>
+      <div class="economy-grid reward-economy-grid">
+        <div class="economy-item">
+          <span class="economy-icon">🪙</span>
+          <div><strong>Arcade Coins</strong><span>Game rewards, daily bonus, and daily challenges. These are the prototype reward currency.</span></div>
+        </div>
+        <div class="economy-item">
+          <span class="economy-icon">⭐</span>
+          <div><strong>XP</strong><span>Levels and progress only. XP is separate from Arcade Coins and is not a cash balance.</span></div>
+        </div>
+        <div class="economy-item">
+          <span class="economy-icon">🎟️</span>
+          <div><strong>Plays</strong><span>3 free plays per game each day. Rewarded ads can unlock +3 extra plays for that game.</span></div>
+        </div>
+      </div>
     </section>
 
     <section class="card" style="text-align:left">
-      <h2>💵 Cash Rewards</h2>
-      <p><strong>Status:</strong> In development</p>
-      <p class="muted">Real cash rewards are the goal, but cash-out is not connected in this prototype yet. We still need to finalize the coin-to-cash conversion, minimum payout, fraud controls, and payment provider before showing a real dollar balance.</p>
-      <div class="progress-wrap">
-        <progress value="0" max="100" aria-label="Cash-out system development progress"></progress>
+      <div class="section-title-row">
+        <h2>💵 Cash Rewards</h2>
+        <span class="prototype-badge">PROTOTYPE</span>
       </div>
-      <p class="muted small">We will replace this with real cash-out progress after the reward economy is locked.</p>
+      <p class="muted">Cash-out is not connected yet, so Earnly does not show a fake dollar value for your Coins.</p>
+      <div class="launch-checklist">
+        <div class="launch-check done"><span>✓</span><div><strong>Arcade Coin earning</strong><small>Working in the prototype</small></div></div>
+        <div class="launch-check done"><span>✓</span><div><strong>Extra-play rewarded-ad flow</strong><small>Working with simulated ads</small></div></div>
+        <div class="launch-check"><span>○</span><div><strong>Coin-to-cash conversion</strong><small>Not set yet</small></div></div>
+        <div class="launch-check"><span>○</span><div><strong>Minimum payout & fraud controls</strong><small>Still to be designed</small></div></div>
+        <div class="launch-check"><span>○</span><div><strong>Payment provider</strong><small>Not connected</small></div></div>
+      </div>
     </section>
 
     <section class="card" style="text-align:left">
@@ -62,8 +86,8 @@
 
     <details class="card compact-card">
       <summary>How rewards work right now</summary>
-      <p class="muted">Arcade Coins come from gameplay, daily bonuses, challenges, and simulated rewarded ads. The prototype stores them only on this device. They cannot be withdrawn yet.</p>
-      <p class="muted">Before launch, the final conversion will be based on real ad revenue and costs so Earnly can give users real rewards without promising more than the app earns.</p>
+      <p class="muted">Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads only unlock extra game plays; they do not directly award Coins.</p>
+      <p class="muted">The prototype stores progress on this device for now, and Coins cannot be withdrawn yet. Before launch, the final conversion must be based on sustainable revenue, costs, payout rules, and fraud protection.</p>
     </details>
 
     <a class="button wide" href="games.html">🕹 Play Games</a>
