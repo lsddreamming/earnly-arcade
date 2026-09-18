@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Arcade</title>
   <link rel="stylesheet" href="arcade.css">
 </head>
@@ -14,6 +22,19 @@
       <h1>🎮 Earnly Arcade</h1>
       <p>Play. Watch. Earn.</p>
     </header>
+
+    <section class="card compact-card install-card browser-only" id="installCard">
+      <div class="install-row">
+        <div class="install-icon"><img src="earnly-icon.svg" alt=""></div>
+        <div class="install-copy">
+          <strong id="installTitle">📱 Add Earnly to your phone</strong>
+          <span id="installText">Open Earnly from your Home Screen like an app.</span>
+        </div>
+      </div>
+      <div class="install-actions">
+        <button class="wide green" id="installButton" type="button">Install Earnly</button>
+      </div>
+    </section>
 
     <section class="card" aria-label="Arcade Coin balance">
       <p class="muted" style="margin:0">Arcade Coins</p>
@@ -133,6 +154,10 @@
 
   <script src="arcade.js"></script>
   <script>
+    const installCard = document.getElementById('installCard');
+    const installTitle = document.getElementById('installTitle');
+    const installText = document.getElementById('installText');
+    const installButton = document.getElementById('installButton');
     const points = document.getElementById('points');
     const streak = document.getElementById('streak');
     const bonusText = document.getElementById('bonusText');
@@ -161,6 +186,22 @@
     const coinAdStatus = document.getElementById('coinAdStatus');
 
     function render() {
+      const install = Arcade.installStatus();
+      installCard.hidden = install.standalone;
+      if (install.isIOS && !install.canPrompt) {
+        installTitle.textContent = '📱 Add Earnly to your iPhone';
+        installText.textContent = 'Tap here for the quick Safari Add to Home Screen steps.';
+        installButton.textContent = 'Show iPhone Install Steps';
+      } else if (install.canPrompt) {
+        installTitle.textContent = '📱 Install Earnly Arcade';
+        installText.textContent = 'Launch it from your Home Screen without the normal browser chrome.';
+        installButton.textContent = 'Install Earnly';
+      } else {
+        installTitle.textContent = '📱 Add Earnly to your Home Screen';
+        installText.textContent = 'Install the arcade for a more app-like experience.';
+        installButton.textContent = 'Install Instructions';
+      }
+
       points.textContent = Arcade.number('points').toLocaleString();
 
       const xp = Arcade.xpStatus();
@@ -292,6 +333,13 @@
       if (result) Arcade.toast('🔥 Challenge complete · +' + result.reward + ' Coins');
       render();
     });
+
+    installButton.addEventListener('click', async () => {
+      await Arcade.requestInstall();
+      render();
+    });
+    window.addEventListener('earnly-install-available', render);
+    window.addEventListener('earnly-install-changed', render);
 
     document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
     coinAdButton.addEventListener('click', () => Arcade.coinAd(render));
