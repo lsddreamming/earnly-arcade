@@ -555,6 +555,10 @@ const Arcade = (() => {
       tone(700, 0.055, 0.028, 'sine');
       tone(900, 0.06, 0.022, 'sine', 0.05);
       vibrate(12);
+    } else if (kind === 'success') {
+      tone(620, 0.06, 0.03, 'sine');
+      tone(840, 0.08, 0.03, 'sine', 0.065);
+      vibrate([10, 22, 10]);
     } else if (kind === 'perfect') {
       tone(720, 0.05, 0.03, 'sine');
       tone(980, 0.08, 0.03, 'sine', 0.055);
