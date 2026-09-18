@@ -149,17 +149,20 @@
       startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
 
-      Arcade.panel(
-        '🎯 Time!',
-        'Hits: ' + hits +
-        '\nBest: ' + best +
-        '\n+' + earned + ' Arcade Coins' +
-        Arcade.resultText(result) +
-        '\n' + Arcade.remaining('tapRush') + ' Tap Rush plays remaining',
-        Arcade.remaining('tapRush') > 0
-          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-          : [['Get More Plays', () => Arcade.out('tapRush', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-      );
+      Arcade.gameResult({
+        icon:'🎯',
+        title:'Time!',
+        scoreLabel:'Targets Hit',
+        score:hits,
+        best:best + ' hits',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('tapRush'),
+        game:'tapRush',
+        extra:[hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('tapRush', refreshChrome)
+      });
     }
 
     function startGame() {
@@ -216,9 +219,9 @@
       hitsEl.textContent = String(hits);
       rewardPreviewEl.textContent = rewardForHits(hits);
 
-      if (hits === 20) Arcade.toast('🎯 20 hits! +2 milestone bonus');
-      if (hits === 35) Arcade.toast('🔥 35 hits! +3 milestone bonus');
-      if (hits === 50) Arcade.toast('🏆 50 hits! +5 milestone bonus');
+      if (hits === 20) Arcade.milestone('🎯 20 hits · Quick Fingers!');
+      if (hits === 35) Arcade.milestone('🔥 35 hits · Blazing fast!');
+      if (hits === 50) Arcade.milestone('🏆 50 hits · Elite reflexes!', 'perfect');
 
       moveTarget();
     });
