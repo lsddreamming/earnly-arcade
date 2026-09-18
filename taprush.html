@@ -59,13 +59,13 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
-    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
     <div class="tap-board touch-surface" id="board" aria-label="Tap Rush game area">
       <button class="target touch-surface" id="target" type="button" aria-label="Tap target" hidden></button>
     </div>
 
-    <p class="muted tap-help">Tap the green target as fast as you can — the whole game is optimized for quick iPhone taps.</p>
+    <p class="muted tap-help">Tap the game area to start the countdown. Then hit the green target as fast as you can.</p>
     <p class="muted small">Earn 1 coin every 5 hits, plus milestone bonuses at 20, 35, and 50 hits. Max 20 coins per run.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -90,6 +90,7 @@
     let timeLeft = ROUND_SECONDS;
     let timer = null;
     let running = false;
+    let starting = false;
 
     function rewardForHits(value) {
       let coins = Math.floor(value / 5);
@@ -134,9 +135,10 @@
       const best = Math.max(hits, Arcade.number('tapRushBest'));
       localStorage.setItem('tapRushBest', String(best));
 
+      starting = false;
       refreshChrome();
       startButton.disabled = false;
-      startButton.textContent = '▶ Play Again';
+      startButton.textContent = '👆 Tap Game to Play Again';
       setStatus('Game Over', 'over');
 
       Arcade.panel(
@@ -153,9 +155,11 @@
     }
 
     function startGame() {
-      if (running) return;
+      if (running || starting) return;
+      starting = true;
 
       if (!Arcade.consume('tapRush')) {
+        starting = false;
         Arcade.out('tapRush', refreshChrome);
         return;
       }
@@ -174,6 +178,7 @@
       target.hidden = true;
 
       Arcade.countdown(() => {
+        starting = false;
         running = true;
         setStatus('Running', 'running');
         startButton.textContent = 'Game Running';
@@ -187,6 +192,12 @@
         }, 1000);
       });
     }
+
+    board.addEventListener('pointerdown', event => {
+      if (event.target === target) return;
+      event.preventDefault();
+      if (!running && !starting) startGame();
+    });
 
     target.addEventListener('pointerdown', event => {
       event.preventDefault();
