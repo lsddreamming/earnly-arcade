@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.14.3';
+  const APP_VERSION = '0.14.4';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -707,6 +707,33 @@ const Arcade = (() => {
       leveledUp:xpResult.leveledUp,
       level:xpResult.status.level
     };
+  }
+
+  function repairLifetimeCounters() {
+    // Compatibility repair for saves/transfers created before gamesCompletedEver
+    // was included in the transferable data set.
+    if (number('gamesCompletedEver') > 0) return number('gamesCompletedEver');
+
+    let activityCount = 0;
+    try {
+      const items = JSON.parse(localStorage.getItem('arcadeActivity') || '[]');
+      if (Array.isArray(items)) {
+        activityCount = items.filter(item =>
+          item && (
+            item.type === 'game' ||
+            / finished$/i.test(String(item.title || '').trim())
+          )
+        ).length;
+      }
+    } catch {}
+
+    const weeklyCount = number('weeklyGamesCompleted');
+    const recovered = Math.max(activityCount, weeklyCount);
+    if (recovered > 0) {
+      setNumber('gamesCompletedEver', recovered);
+      queueEvent('lifetime_counter_repaired', { gamesCompletedEver:recovered });
+    }
+    return recovered;
   }
 
   function stats() {
@@ -2194,6 +2221,7 @@ const Arcade = (() => {
     document.body.classList.add('has-app-nav');
   }
 
+  repairLifetimeCounters();
   applyTextScale();
   applyMotionPreference();
   mountBottomNav();
@@ -2227,6 +2255,7 @@ const Arcade = (() => {
     mostPlayedGame,
     streakRewardStatus,
     claimStreakReward,
+    repairLifetimeCounters,
     textScale,
     textScalePercent,
     setTextScale,
