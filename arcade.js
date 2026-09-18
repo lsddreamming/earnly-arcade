@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.9';
+  const APP_VERSION = '0.15.10';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -676,6 +676,70 @@ const Arcade = (() => {
     return readArray('arcadeRecentGames').filter(game => names[game]).slice(0, 4);
   }
 
+  function repairGameStats() {
+    const repairKey = 'arcadeGameStatsRepairV1';
+    if (localStorage.getItem(repairKey) === '1') return { repaired:false, reason:'already-done' };
+
+    const trackedRuns = Object.keys(names).reduce(
+      (sum, game) => sum + number('gameRuns_' + game),
+      0
+    );
+
+    // v0.15.9 and earlier recorded completed games in Activity but did not
+    // increment the per-game run counters used by Profile/Stats.
+    if (trackedRuns > 0) {
+      localStorage.setItem(repairKey, '1');
+      return { repaired:false, reason:'already-tracked', trackedRuns };
+    }
+
+    const gameItems = activity().filter(item =>
+      item &&
+      item.type === 'game' &&
+      / finished$/i.test(String(item.title || '').trim())
+    );
+
+    if (!gameItems.length) {
+      localStorage.setItem(repairKey, '1');
+      return { repaired:false, reason:'no-history' };
+    }
+
+    const nameToGame = Object.fromEntries(
+      Object.entries(names).map(([game, name]) => [name, game])
+    );
+    const rebuilt = {};
+
+    Object.keys(names).forEach(game => {
+      rebuilt[game] = { runs:0, metricTotal:0 };
+    });
+
+    gameItems.forEach(item => {
+      const title = String(item.title || '').replace(/ finished$/i, '').trim();
+      const game = nameToGame[title];
+      if (!game) return;
+
+      const metricMatch = String(item.detail || '').trim().match(/^(\d+)/);
+      const metric = metricMatch ? Math.max(0, Math.floor(Number(metricMatch[1]) || 0)) : 0;
+
+      rebuilt[game].runs += 1;
+      rebuilt[game].metricTotal += metric;
+    });
+
+    let rebuiltRuns = 0;
+    Object.entries(rebuilt).forEach(([game, stats]) => {
+      setNumber('gameRuns_' + game, stats.runs);
+      setNumber('gameMetricTotal_' + game, stats.metricTotal);
+      rebuiltRuns += stats.runs;
+    });
+
+    localStorage.setItem(repairKey, '1');
+    queueEvent('game_stats_repaired', {
+      rebuiltRuns,
+      completedGames:number('gamesCompletedEver')
+    });
+
+    return { repaired:true, rebuiltRuns, rebuilt };
+  }
+
   function gameStats(game) {
     if (!names[game]) {
       return { game, name:'Game', runs:0, metricTotal:0, average:0, best:{ value:0, display:'No score yet' } };
@@ -988,6 +1052,9 @@ const Arcade = (() => {
     );
 
     setNumber('gamesCompletedEver', number('gamesCompletedEver') + 1);
+    setNumber('gameRuns_' + game, number('gameRuns_' + game) + 1);
+    setNumber('gameMetricTotal_' + game, number('gameMetricTotal_' + game) + cleanMetric);
+
     const gamesEver = readArray('arcadeGamesEver');
     if (!gamesEver.includes(game)) {
       gamesEver.push(game);
@@ -2323,6 +2390,7 @@ const Arcade = (() => {
   }
 
   repairLifetimeCounters();
+  repairGameStats();
   applyTextScale();
   applyMotionPreference();
   mountBottomNav();
@@ -2359,6 +2427,7 @@ const Arcade = (() => {
     streakRewardStatus,
     claimStreakReward,
     repairLifetimeCounters,
+    repairGameStats,
     textScale,
     textScalePercent,
     setTextScale,
