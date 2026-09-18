@@ -40,6 +40,17 @@
       </div>
     </section>
 
+    <section class="home-transfer-banner" id="transferCard" hidden>
+      <div class="home-transfer-copy">
+        <strong>📲 Restore your Safari progress</strong>
+        <span>This Home Screen version started fresh. If you copied your Earnly progress in Safari, bring it over now.</span>
+      </div>
+      <div class="home-transfer-actions">
+        <button class="green" id="transferRestoreButton" type="button">Restore Progress</button>
+        <button class="secondary" id="transferLaterButton" type="button">Later</button>
+      </div>
+    </section>
+
     <section class="home-overview" aria-label="Earnly overview">
       <a class="home-metric" href="rewards.html" aria-label="View Arcade Coin rewards">
         <span class="home-metric-label">Arcade Coins</span>
@@ -159,6 +170,9 @@
     const installText = document.getElementById('installText');
     const installButton = document.getElementById('installButton');
     const installDismiss = document.getElementById('installDismiss');
+    const transferCard = document.getElementById('transferCard');
+    const transferRestoreButton = document.getElementById('transferRestoreButton');
+    const transferLaterButton = document.getElementById('transferLaterButton');
     const points = document.getElementById('points');
     const streak = document.getElementById('streak');
     const bonusText = document.getElementById('bonusText');
@@ -188,6 +202,9 @@
       const install = Arcade.installStatus();
       const installDismissed = localStorage.getItem('earnlyInstallSuggestionDismissed') === '1';
       installCard.hidden = install.standalone || installDismissed;
+
+      const transferDismissed = localStorage.getItem('arcadeTransferDismissed') === '1';
+      transferCard.hidden = !(install.standalone && !Arcade.hasMeaningfulProgress() && !transferDismissed);
       if (install.isIOS && !install.canPrompt) {
         installTitle.textContent = 'Add Earnly to your iPhone';
         installText.textContent = 'Open it like an app.';
@@ -338,6 +355,26 @@
 
     installDismiss.addEventListener('click', () => {
       localStorage.setItem('earnlyInstallSuggestionDismissed', '1');
+      render();
+    });
+
+    transferRestoreButton.addEventListener('click', async () => {
+      try {
+        const result = await Arcade.restoreTransferFromClipboard();
+        Arcade.toast('✅ Restored ' + result.restored + ' Earnly data items');
+        setTimeout(() => location.reload(), 450);
+      } catch (error) {
+        Arcade.panel(
+          '📲 Restore Safari Progress',
+          (error.message || 'The progress code could not be restored.') +
+          '\n\nOpen Earnly in normal Safari → Profile → Account → Copy Progress Code. Then return here and tap Restore Progress again.',
+          [['Open Account', () => { location.href = 'account.html#transfer'; }, 'green'], ['Close', () => {}, 'secondary']]
+        );
+      }
+    });
+
+    transferLaterButton.addEventListener('click', () => {
+      localStorage.setItem('arcadeTransferDismissed', '1');
       render();
     });
 
