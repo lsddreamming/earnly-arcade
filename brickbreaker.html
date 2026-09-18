@@ -28,6 +28,7 @@
     <header class="page-header">
       <h1>🧱 Brick Breaker</h1>
       <div class="game-meta">
+        <span class="meta-pill">Level: <span id="level">1</span></span>
         <span class="meta-pill">Bricks: <span id="bricks">0</span>/35</span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
@@ -44,6 +45,7 @@
   <script>
     const canvas=document.getElementById('game');
     const ctx=canvas.getContext('2d');
+    const levelEl=document.getElementById('level');
     const bricksEl=document.getElementById('bricks');
     const rewardPreviewEl=document.getElementById('rewardPreview');
     const playsEl=document.getElementById('plays');
@@ -57,7 +59,7 @@
       steps:[
         { icon:'👆', title:'Start', text:'Tap the board' },
         { icon:'↔️', title:'Control', text:'Drag the paddle' },
-        { icon:'🧱', title:'Goal', text:'Break all 35 bricks' }
+        { icon:'🧱', title:'Goal', text:'Clear levels. Each round gets faster' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
@@ -65,25 +67,53 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'Keep the paddle under the ball. Missing the ball ends the run.',
-        'Clear every brick for the full-clear bonus.'
+        'Clear all 35 bricks to advance instantly to the next level.',
+        'Every new level speeds up the ball and increases your possible Coin reward.'
       ],
-      reward:'Broken bricks and a full clear can earn up to 22 Coins.'
+      reward:'Higher levels build bigger rewards — up to 100 Coins in one run.'
     });
 
     const paddle={x:135,y:465,w:90,h:12};
-    const ball={x:180,y:430,r:7,dx:3.2,dy:-3.6};
+    const ball={x:180,y:430,r:7,dx:3.8,dy:-4.4};
     let bricks=[];
-    let broken=0;
+    let level=1;
+    let levelBroken=0;
+    let totalBroken=0;
+    let levelsCleared=0;
     let running=false;
     let starting=false;
     let animation=null;
+    let levelTimer=null;
 
-    function rewardFor(count,cleared){
+    function levelSpeed(){
+      return Math.min(9.8, 5.6 + (level-1)*0.7);
+    }
+
+    function levelClearBonus(clearedLevel){
+      return Math.min(20, 5 + (clearedLevel-1)*3);
+    }
+
+    function rewardFor(count,clears){
       let reward=Math.floor(count/3);
       if(count>=15) reward+=2;
       if(count>=25) reward+=3;
-      if(cleared) reward+=5;
-      return Math.min(reward,22);
+      for(let clearedLevel=1; clearedLevel<=clears; clearedLevel++){
+        reward+=levelClearBonus(clearedLevel);
+      }
+      return Math.min(reward,100);
+    }
+
+    function currentReward(){
+      return rewardFor(totalBroken,levelsCleared);
+    }
+
+    function launchBall(){
+      const speed=levelSpeed();
+      const horizontal=speed*(0.48+Math.random()*0.12)*(Math.random()>.5?1:-1);
+      ball.x=canvas.width/2;
+      ball.y=430;
+      ball.dx=horizontal;
+      ball.dy=-Math.sqrt(Math.max(1,speed*speed-horizontal*horizontal));
     }
 
     function refreshChrome(){
@@ -140,12 +170,13 @@
         if(!b.alive) continue;
         if(ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h){
           b.alive=false;
-          broken+=1;
+          levelBroken+=1;
+          totalBroken+=1;
           Arcade.feedback('brick');
-          if(broken===10) Arcade.milestone('💥 10 bricks smashed!');
-          if(broken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
-          bricksEl.textContent=broken;
-          rewardPreviewEl.textContent=rewardFor(broken,false);
+          if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
+          if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
+          bricksEl.textContent=levelBroken;
+          rewardPreviewEl.textContent=currentReward();
           ball.dy*=-1;
           return true;
         }
@@ -170,20 +201,21 @@
         ball.x<=paddle.x+paddle.w
       ){
         const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
-        ball.dx=4.2*hit;
-        ball.dy=-Math.abs(ball.dy);
+        const speed=levelSpeed();
+        ball.dx=speed*0.78*hit;
+        ball.dy=-Math.sqrt(Math.max((speed*0.58)*(speed*0.58),speed*speed-ball.dx*ball.dx));
         ball.y=paddle.y-ball.r-1;
       }
 
       collideBrick();
 
-      if(broken===35){
-        finishGame(true);
+      if(levelBroken===35){
+        advanceLevel();
         return;
       }
 
       if(ball.y-ball.r>canvas.height){
-        finishGame(false);
+        finishGame();
         return;
       }
 
@@ -191,37 +223,84 @@
       animation=requestAnimationFrame(loop);
     }
 
-    function finishGame(cleared){
+    function advanceLevel(){
       if(!running) return;
       running=false;
+      starting=true;
       cancelAnimationFrame(animation);
       animation=null;
 
-      const earned=rewardFor(broken,cleared);
-      Arcade.earn(earned,'Brick Breaker', { kind:'game', game:'brickBreaker', metric:broken, aux:cleared ? 1 : 0 });
-      Arcade.feedback(cleared?'success':'fail');
-      const result=Arcade.recordResult('brickBreaker', broken);
+      levelsCleared+=1;
+      const clearedLevel=level;
+      const bonus=levelClearBonus(clearedLevel);
+      level+=1;
+      levelBroken=0;
 
-      const best=Math.max(broken,Arcade.number('brickBreakerBest'));
+      levelEl.textContent=level;
+      bricksEl.textContent='0';
+      rewardPreviewEl.textContent=currentReward();
+      resetBricks();
+      paddle.x=(canvas.width-paddle.w)/2;
+      launchBall();
+      draw();
+
+      Arcade.feedback('success');
+      Arcade.milestone('🚀 Level '+level+' · Faster ball · Bigger rewards', 'perfect');
+      setStatus('Level '+level+' · Speed '+levelSpeed().toFixed(1),'running');
+      startButton.textContent='Level '+level+' · +'+bonus+' clear bonus';
+
+      clearTimeout(levelTimer);
+      levelTimer=setTimeout(()=>{
+        starting=false;
+        running=true;
+        startButton.textContent='Game Running · Level '+level;
+        setStatus('Running · Level '+level,'running');
+        animation=requestAnimationFrame(loop);
+      },850);
+    }
+
+    function finishGame(){
+      if(!running && !starting) return;
+      running=false;
+      starting=false;
+      clearTimeout(levelTimer);
+      cancelAnimationFrame(animation);
+      animation=null;
+
+      const earned=currentReward();
+      Arcade.earn(earned,'Brick Breaker', {
+        kind:'game',
+        game:'brickBreaker',
+        metric:totalBroken,
+        aux:levelsCleared,
+        levelReached:level
+      });
+      Arcade.feedback(levelsCleared>0?'success':'fail');
+      const result=Arcade.recordResult('brickBreaker', totalBroken);
+
+      const best=Math.max(totalBroken,Arcade.number('brickBreakerBest'));
       localStorage.setItem('brickBreakerBest',String(best));
 
-      starting=false;
       refreshChrome();
-      setStatus(cleared?'Level Clear!':'Game Over','over');
+      setStatus('Game Over · Level '+level,'over');
       startButton.disabled=false;
       startButton.textContent='👆 Tap Game to Play Again';
 
+      const levelText=levelsCleared
+        ? '🚀 Reached Level '+level+' · '+levelsCleared+' level'+(levelsCleared===1?'':'s')+' cleared'
+        : 'Break all 35 bricks to reach Level 2.';
+
       Arcade.gameResult({
-        icon:cleared?'🏆':'💥',
-        title:cleared?'Level Clear!':'Brick Run Over',
+        icon:levelsCleared>0?'🏆':'💥',
+        title:levelsCleared>0?'Level '+level+' Run Complete':'Brick Run Over',
         scoreLabel:'Bricks Broken',
-        score:broken + '/35',
-        best:best + '/35',
+        score:totalBroken,
+        best:best+' bricks',
         coins:earned,
         result,
         playsLeft:Arcade.remaining('brickBreaker'),
         game:'brickBreaker',
-        extra:[cleared?'🏆 Every brick cleared!':'Keep the ball alive and finish the wall.'],
+        extra:[levelText,'⚡ Next levels move faster and can pay more Coins.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('brickBreaker',refreshChrome)
       });
@@ -282,28 +361,30 @@
         return;
       }
 
+      clearTimeout(levelTimer);
       resetBricks();
-      broken=0;
+      level=1;
+      levelBroken=0;
+      totalBroken=0;
+      levelsCleared=0;
+      levelEl.textContent='1';
       bricksEl.textContent='0';
       rewardPreviewEl.textContent='0';
       paddle.x=(canvas.width-paddle.w)/2;
-      ball.x=canvas.width/2;
-      ball.y=430;
-      ball.dx=3.2*(Math.random()>.5?1:-1);
-      ball.dy=-3.6;
+      launchBall();
 
       running=false;
       startButton.disabled=true;
       startButton.textContent='Get Ready…';
-      setStatus('Get Ready');
+      setStatus('Get Ready · Level 1');
       refreshChrome();
       draw();
 
       Arcade.countdown(()=>{
         starting=false;
         running=true;
-        startButton.textContent='Game Running';
-        setStatus('Running','running');
+        startButton.textContent='Game Running · Level 1';
+        setStatus('Running · Level 1','running');
         animation=requestAnimationFrame(loop);
       });
     }
