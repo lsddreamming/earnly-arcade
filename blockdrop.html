@@ -279,9 +279,13 @@
 
     function bindTapControl(id, fn) {
       const button = document.getElementById(id);
-      button.addEventListener('click', fn);
+
+      button.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        fn();
+      });
+
       button.addEventListener('contextmenu', event => event.preventDefault());
-      button.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
     }
 
     function bindHoldControl(id, fn) {
