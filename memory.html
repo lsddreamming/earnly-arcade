@@ -40,8 +40,6 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Cards to Start</button>
     <div class="memory-grid touch-surface" id="grid" aria-label="Memory Match cards"></div>
-    <p class="muted small">Tap the cards to start the countdown. Then match all 8 pairs — fewer moves earn a bigger bonus.</p>
-
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -54,6 +52,25 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'memory',
+      surface:grid,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the cards' },
+        { icon:'🃏', title:'Control', text:'Flip 2 cards at a time' },
+        { icon:'🧠', title:'Goal', text:'Match all 8 pairs' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Flip two cards at a time and remember where the matches are',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'A move is counted each time you reveal two cards. Matching cards stay face-up.',
+        'Try to remember every reveal so you can finish in fewer moves.'
+      ],
+      reward:'Fewer moves earn a bigger reward, up to 15 Coins.'
+    });
 
     const icons = ['🍎','⭐','🎲','🍕','🚀','🐸','🎧','💎'];
     let cards = [];
