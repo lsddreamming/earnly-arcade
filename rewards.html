@@ -15,83 +15,92 @@
   <title>Earnly Rewards</title>
   <link rel="stylesheet" href="arcade.css">
 </head>
-<body>
-  <main class="container">
-    <div class="topbar">
-      <a class="brand" href="index.html">🎮 Earnly</a>
-      <div class="game-title-actions">
-        <a class="balance-chip" href="profile.html">👤 Profile</a>
-        <span class="balance-chip">🪙 <span id="topBalance">0</span></span>
+<body class="rewards-dashboard">
+  <main class="container rewards-container">
+    <div class="rewards-topbar">
+      <a class="rewards-brand" href="index.html">🎮 Earnly</a>
+      <div class="rewards-top-actions">
+        <a href="profile.html">👤 Profile</a>
+        <span>🪙 <b id="topBalance">0</b></span>
       </div>
     </div>
 
-    <header class="page-header">
-      <h1>🎁 Earnly Rewards</h1>
-      <p>Track your Arcade Coins and preview how future cash-out could work.</p>
+    <header class="rewards-hero">
+      <span class="rewards-eyebrow">REWARDS</span>
+      <h1>Your Earnly balance</h1>
+      <p>Track Arcade Coins and what’s ready for future cash-out.</p>
     </header>
 
-    <section class="card">
-      <p class="muted" style="margin:0">Prototype Reward Balance</p>
-      <div class="big-number" id="balance">0</div>
-      <strong>🪙 Arcade Coins</strong>
-      <p class="muted">Arcade Coins are not dollars yet. The final coin-to-cash conversion has not been set.</p>
+    <section class="rewards-balance-card">
+      <div>
+        <span class="rewards-balance-label">Arcade Coins</span>
+        <strong><span id="balance">0</span> <small>🪙</small></strong>
+      </div>
+      <span class="prototype-badge">PROTOTYPE</span>
+      <p>Coins are reward points for now — no dollar conversion is set yet.</p>
     </section>
 
-    <section class="card compact-card" style="text-align:left">
-      <h2 style="margin-top:0">Know Your Earnly Balance</h2>
-      <div class="economy-grid reward-economy-grid">
-        <div class="economy-item">
-          <span class="economy-icon">🪙</span>
-          <div><strong>Arcade Coins</strong><span>Game rewards, daily bonus, and daily challenges. These are the prototype reward currency.</span></div>
-        </div>
-        <div class="economy-item">
-          <span class="economy-icon">⭐</span>
-          <div><strong>XP</strong><span>Levels and progress only. XP is separate from Arcade Coins and is not a cash balance.</span></div>
-        </div>
-        <div class="economy-item">
-          <span class="economy-icon">🎟️</span>
-          <div><strong>Plays</strong><span>3 free plays per game each day. Rewarded ads can unlock +3 extra plays for that game.</span></div>
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">BALANCE BASICS</span>
+          <h2>What each number means</h2>
         </div>
       </div>
-    </section>
-
-    <section class="card" style="text-align:left">
-      <div class="section-title-row">
-        <h2>💵 Cash Rewards</h2>
-        <span class="prototype-badge">PROTOTYPE</span>
-      </div>
-      <p class="muted">Cash-out is not connected yet, so Earnly does not show a fake dollar value for your Coins.</p>
-      <div class="launch-checklist">
-        <div class="launch-check done"><span>✓</span><div><strong>Arcade Coin earning</strong><small>Working in the prototype</small></div></div>
-        <div class="launch-check done"><span>✓</span><div><strong>Extra-play rewarded-ad flow</strong><small>Working with simulated ads</small></div></div>
-        <div class="launch-check"><span>○</span><div><strong>Coin-to-cash conversion</strong><small>Not set yet</small></div></div>
-        <div class="launch-check"><span>○</span><div><strong>Minimum payout & fraud controls</strong><small>Still to be designed</small></div></div>
-        <div class="launch-check"><span>○</span><div><strong>Payment provider</strong><small>Not connected</small></div></div>
+      <div class="rewards-basics">
+        <div class="rewards-basic-item"><span>🪙</span><div><strong>Coins</strong><small>Prototype reward currency</small></div></div>
+        <div class="rewards-basic-item"><span>⭐</span><div><strong>XP</strong><small>Levels and profile progress</small></div></div>
+        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>Daily game attempts</small></div></div>
       </div>
     </section>
 
-    <section class="card" style="text-align:left">
-      <h2>Planned Reward Options</h2>
-      <div class="reward-grid">
-        <div class="reward-option"><strong>💵 Cash</strong><span class="muted">Primary reward option · planned</span></div>
-        <div class="reward-option disabled"><strong>🎁 Gift Cards</strong><span class="muted">Possible future option</span></div>
-        <div class="reward-option disabled"><strong>₿ Bitcoin</strong><span class="muted">Possible future option</span></div>
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">CASH-OUT READINESS</span>
+          <h2>2 of 5 pieces working</h2>
+        </div>
+        <span class="rewards-status-pill">Building</span>
+      </div>
+
+      <div class="rewards-readiness">
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Arcade Coin earning</strong><small>Working in the prototype</small></div></div>
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Extra-play rewarded ads</strong><small>Working with simulated ads</small></div></div>
+        <div class="rewards-readiness-row"><span>3</span><div><strong>Coin-to-cash conversion</strong><small>Needs final economics</small></div></div>
+        <div class="rewards-readiness-row"><span>4</span><div><strong>Payout & fraud rules</strong><small>Still to be designed</small></div></div>
+        <div class="rewards-readiness-row"><span>5</span><div><strong>Payment provider</strong><small>Not connected</small></div></div>
       </div>
     </section>
 
-    <section class="card" style="text-align:left">
-      <h2>Recent Earnings</h2>
-      <div class="history" id="history"></div>
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">PLANNED OPTIONS</span>
+          <h2>Ways to redeem</h2>
+        </div>
+      </div>
+      <div class="rewards-options">
+        <div class="rewards-option primary"><span>💵</span><strong>Cash</strong><small>Planned first</small></div>
+        <div class="rewards-option"><span>🎁</span><strong>Gift cards</strong><small>Possible later</small></div>
+        <div class="rewards-option"><span>₿</span><strong>Bitcoin</strong><small>Possible later</small></div>
+      </div>
     </section>
 
-    <details class="card compact-card">
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">ACTIVITY</span>
+          <h2>Recent earnings</h2>
+        </div>
+      </div>
+      <div class="rewards-history" id="history"></div>
+    </section>
+
+    <details class="rewards-footnote">
       <summary>How rewards work right now</summary>
-      <p class="muted">Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads only unlock extra game plays; they do not directly award Coins.</p>
-      <p class="muted">The prototype stores progress on this device for now, and Coins cannot be withdrawn yet. Before launch, the final conversion must be based on sustainable revenue, costs, payout rules, and fraud protection.</p>
+      <p>Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads unlock extra plays, not Coins.</p>
+      <p>Progress is stored on this device during the prototype. Coins cannot be withdrawn yet.</p>
     </details>
-
-    <a class="button wide" href="games.html">🕹 Play Games</a>
-    <a class="button wide secondary" href="index.html">← Back Home</a>
   </main>
 
   <script src="arcade.js"></script>
@@ -107,7 +116,7 @@
 
       if (!items.length) {
         const p = document.createElement('p');
-        p.className = 'muted';
+        p.className = 'rewards-empty';
         p.textContent = 'New earnings will appear here as you play and claim rewards.';
         root.append(p);
         return;
