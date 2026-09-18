@@ -11,13 +11,18 @@
   <main class="container">
     <div class="topbar">
       <a class="brand" href="index.html">🎮 Earnly</a>
-      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+      <div class="game-title-actions">
+        <a class="balance-chip" href="profile.html">👤 L<span id="level">1</span></a>
+        <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+      </div>
     </div>
 
     <header class="page-header">
       <h1>Choose a Game</h1>
-      <p>Beat your best scores and unlock achievements.</p>
+      <p>Beat your best scores, level up, and unlock achievements.</p>
     </header>
+
+    <div id="quickSections"></div>
 
     <details class="card compact-card" id="achievements">
       <summary id="achievementSummary">🏆 Achievements</summary>
@@ -27,9 +32,9 @@
     <div id="games" class="game-list"></div>
 
     <details class="card compact-card">
-      <summary>How game rewards work</summary>
-      <p class="muted">Starting a game uses one play. When free plays run out, an optional demo rewarded ad can unlock 3 more plays.</p>
-      <p class="muted">Your best scores and achievement progress are saved on this device during the prototype.</p>
+      <summary>How game progress works</summary>
+      <p class="muted">Every finished game gives XP. Achievements give bonus XP. Favorites and recently played games stay at the top for faster access.</p>
+      <p class="muted">Your prototype progress is stored on this device for now.</p>
     </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
@@ -47,6 +52,44 @@
       { key:'jungleHopper', icon:'🐸', name:'Jungle Hopper', note:'Tap through jungle vine gaps', href:'junglehopper.html' },
       { key:'towerStack', icon:'🏗️', name:'Tower Stack', note:'Tap to build the tallest tower', href:'towerstack.html' }
     ];
+
+    const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
+
+    function renderQuickSection(title, keys) {
+      const games = keys.map(key => byKey[key]).filter(Boolean);
+      if (!games.length) return null;
+
+      const section = document.createElement('section');
+      section.className = 'quick-section';
+
+      const heading = document.createElement('h2');
+      heading.textContent = title;
+
+      const grid = document.createElement('div');
+      grid.className = 'quick-grid';
+
+      games.forEach(info => {
+        const link = document.createElement('a');
+        link.className = 'button quick-game';
+        link.href = info.href;
+        link.textContent = info.icon + ' ' + info.name;
+        grid.append(link);
+      });
+
+      section.append(heading, grid);
+      return section;
+    }
+
+    function renderQuickSections() {
+      const root = document.getElementById('quickSections');
+      root.replaceChildren();
+
+      const favoriteSection = renderQuickSection('⭐ Favorites', Arcade.favorites());
+      const recentSection = renderQuickSection('🕘 Recently Played', Arcade.recentGames());
+
+      if (favoriteSection) root.append(favoriteSection);
+      if (recentSection) root.append(recentSection);
+    }
 
     function renderAchievements() {
       const summary = Arcade.achievementSummary();
@@ -77,6 +120,8 @@
 
     function render() {
       document.getElementById('balance').textContent = Arcade.number('points').toLocaleString();
+      document.getElementById('level').textContent = Arcade.xpStatus().level;
+      renderQuickSections();
       renderAchievements();
 
       const root = document.getElementById('games');
@@ -94,11 +139,25 @@
         const title = document.createElement('h2');
         title.textContent = info.icon + ' ' + info.name;
 
+        const actions = document.createElement('div');
+        actions.className = 'game-title-actions';
+
+        const favorite = document.createElement('button');
+        favorite.className = 'favorite-button';
+        favorite.type = 'button';
+        favorite.setAttribute('aria-label', (Arcade.isFavorite(info.key) ? 'Remove ' : 'Add ') + info.name + ' favorite');
+        favorite.textContent = Arcade.isFavorite(info.key) ? '★' : '☆';
+        favorite.addEventListener('click', () => {
+          Arcade.toggleFavorite(info.key);
+          render();
+        });
+
         const playCount = document.createElement('span');
         playCount.className = 'play-pill';
         playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's');
 
-        heading.append(title, playCount);
+        actions.append(favorite, playCount);
+        heading.append(title, actions);
 
         const rule = document.createElement('p');
         rule.className = 'reward-rule';
