@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.14.1';
+  const APP_VERSION = '0.14.2';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -173,7 +173,9 @@ const Arcade = (() => {
     'arcadeDeviceId',
     'arcadeSyncQueue',
     'arcadeInstalled',
-    'arcadeOnboardingSeen'
+    'arcadeOnboardingSeen',
+    'arcadeTransferDismissed',
+    'arcadeTransferRestored'
   ]);
 
   function snapshotData() {
@@ -191,6 +193,85 @@ const Arcade = (() => {
       deviceId:deviceId(),
       data
     };
+  }
+
+  const TRANSFER_PREFIX = 'EARNLY1.';
+
+  function hasMeaningfulProgress() {
+    if (
+      number('points') > 0 ||
+      number('lifetimePoints') > 0 ||
+      number('arcadeXP') > 0 ||
+      number('gamesCompletedEver') > 0 ||
+      number('dailyStreak') > 0
+    ) return true;
+
+    const customName = (localStorage.getItem('arcadeProfileName') || '').trim();
+    if (customName && customName !== 'Player') return true;
+    if (readArray('arcadeRecentGames').length || readArray('arcadeHistory').length) return true;
+
+    return Object.values(bestConfig).some(config => number(config.key) > 0);
+  }
+
+  function encodeTransferPayload(value) {
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  function decodeTransferPayload(value) {
+    let base64 = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) base64 += '=';
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  function transferCode() {
+    return TRANSFER_PREFIX + encodeTransferPayload(JSON.stringify(snapshotData()));
+  }
+
+  async function copyTransferCode() {
+    const code = transferCode();
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+      return { copied:false, code, saved:Object.keys(snapshotData().data).length };
+    }
+    await navigator.clipboard.writeText(code);
+    const snapshot = snapshotData();
+    logActivity('backup', 'Progress transfer code copied', Object.keys(snapshot.data).length + ' saved data items');
+    return { copied:true, code, saved:Object.keys(snapshot.data).length };
+  }
+
+  function restoreTransferCode(code) {
+    const cleaned = String(code || '').trim();
+    if (!cleaned.startsWith(TRANSFER_PREFIX)) {
+      throw new Error('That is not a valid Earnly progress code.');
+    }
+
+    let snapshot;
+    try {
+      snapshot = JSON.parse(decodeTransferPayload(cleaned.slice(TRANSFER_PREFIX.length)));
+    } catch {
+      throw new Error('That Earnly progress code could not be read.');
+    }
+
+    const result = restoreSnapshot(snapshot);
+    localStorage.setItem('arcadeTransferRestored', '1');
+    localStorage.removeItem('arcadeTransferDismissed');
+    return result;
+  }
+
+  async function restoreTransferFromClipboard() {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+      throw new Error('Clipboard access is not available here. Paste the code on Account & Data instead.');
+    }
+    const code = await navigator.clipboard.readText();
+    if (!code) throw new Error('No Earnly progress code was found on the clipboard.');
+    return restoreTransferCode(code);
   }
 
   function downloadBackup() {
@@ -1920,12 +2001,23 @@ const Arcade = (() => {
     }
 
     if (status.isIOS) {
+      let transferCopied = false;
+      if (hasMeaningfulProgress()) {
+        try {
+          const transfer = await copyTransferCode();
+          transferCopied = transfer.copied;
+        } catch {}
+      }
+
       panel(
         '📱 Add Earnly to your iPhone',
-        'In Safari:\n\n1. Tap the Share button.\n2. Choose “Add to Home Screen”.\n3. Tap Add.\n\nThen Earnly opens from your Home Screen without the normal browser controls.',
+        'In Safari:\n\n1. Tap the Share button.\n2. Choose “Add to Home Screen”.\n3. Tap Add.\n\n' +
+        (transferCopied
+          ? '✅ Your current Earnly progress was copied too. When the Home Screen app opens, tap “Restore Safari Progress.”'
+          : 'If your Home Screen app starts fresh, open Account & Data to move your Safari progress over.'),
         [['Got It', () => {}, 'green']]
       );
-      return { installed:false, method:'ios-help' };
+      return { installed:false, method:'ios-help', transferCopied };
     }
 
     panel(
@@ -2106,6 +2198,11 @@ const Arcade = (() => {
     pendingSyncEvents,
     clearSyncEvents,
     snapshotData,
+    hasMeaningfulProgress,
+    transferCode,
+    copyTransferCode,
+    restoreTransferCode,
+    restoreTransferFromClipboard,
     downloadBackup,
     restoreSnapshot,
     restoreBackupFile,
