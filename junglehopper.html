@@ -226,6 +226,7 @@
 
     function hop() {
       if (!running) return;
+      Arcade.feedback('tap');
       frog.vy = hopPower;
     }
 
@@ -284,7 +285,8 @@
 
       const earned = rewardFor(score);
       Arcade.earn(earned, 'Jungle Hopper');
-      Arcade.recordResult('jungleHopper', score);
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('jungleHopper', score);
 
       const best = Math.max(score, Arcade.number('jungleHopperBest'));
       localStorage.setItem('jungleHopperBest', String(best));
@@ -300,6 +302,7 @@
         'Vines passed: ' + score +
         '\nBest: ' + best +
         '\n+' + earned + ' Arcade Coins' +
+        Arcade.resultText(result) +
         '\n' + Arcade.remaining('jungleHopper') + ' plays remaining',
         Arcade.remaining('jungleHopper') > 0
           ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
@@ -316,14 +319,20 @@
       }
 
       resetGame();
-      running = true;
+      running = false;
       startButton.disabled = true;
-      startButton.textContent = 'Game Running';
-      setStatus('Running', 'running');
+      startButton.textContent = 'Get Ready…';
+      setStatus('Get Ready');
       refreshChrome();
-      hop();
       draw();
-      animation = requestAnimationFrame(loop);
+
+      Arcade.countdown(() => {
+        running = true;
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        hop();
+        animation = requestAnimationFrame(loop);
+      });
     }
 
     canvas.addEventListener('pointerdown', event => {
