@@ -692,3 +692,7 @@ a{color:#93c5fd}
 @media(min-width:700px){
   .bottom-nav{border-left:1px solid #334155;border-right:1px solid #334155;border-radius:18px 18px 0 0}
 }
+
+@media(pointer:coarse){
+  #startButton{display:none!important}
+}
