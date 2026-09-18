@@ -22,19 +22,22 @@
       <div class="home-hero-copy">
         <span class="home-eyebrow">EARNLY ARCADE</span>
         <h1>Play. Earn. Level Up.</h1>
-        <p>Quick games, daily goals, and rewards progress.</p>
       </div>
+      <button class="home-info-button" id="howEarnlyWorks" type="button" aria-label="How Earnly works" title="How Earnly works">ⓘ</button>
     </header>
 
     <section class="home-install-banner browser-only" id="installCard">
       <div class="home-install-main">
         <div class="home-install-icon"><img src="earnly-icon.svg" alt=""></div>
         <div class="home-install-copy">
-          <strong id="installTitle">Add Earnly to your phone</strong>
-          <span id="installText">Open Earnly from your Home Screen like an app.</span>
+          <strong id="installTitle">Add Earnly to your iPhone</strong>
+          <span id="installText">Open it like an app.</span>
         </div>
       </div>
-      <button class="home-install-button" id="installButton" type="button">Install</button>
+      <div class="home-install-actions">
+        <button class="home-install-button" id="installButton" type="button">Add</button>
+        <button class="home-install-dismiss" id="installDismiss" type="button" aria-label="Hide install suggestion">×</button>
+      </div>
     </section>
 
     <section class="home-overview" aria-label="Earnly overview">
@@ -57,15 +60,6 @@
         </div>
         <div class="xp-bar home-xp-bar"><span id="profileXPBar"></span></div>
       </div>
-    </section>
-
-    <section class="home-guide-strip" aria-label="Earnly basics">
-      <div class="home-guide-chips">
-        <span>🎟️ 3 plays daily</span>
-        <span>🪙 Coins = rewards</span>
-        <span>⭐ XP = levels</span>
-      </div>
-      <button class="home-text-button" id="howEarnlyWorks" type="button">How it works</button>
     </section>
 
     <section class="home-section continue-card" id="continueCard" hidden>
@@ -164,6 +158,7 @@
     const installTitle = document.getElementById('installTitle');
     const installText = document.getElementById('installText');
     const installButton = document.getElementById('installButton');
+    const installDismiss = document.getElementById('installDismiss');
     const points = document.getElementById('points');
     const streak = document.getElementById('streak');
     const bonusText = document.getElementById('bonusText');
@@ -191,19 +186,20 @@
 
     function render() {
       const install = Arcade.installStatus();
-      installCard.hidden = install.standalone;
+      const installDismissed = localStorage.getItem('earnlyInstallSuggestionDismissed') === '1';
+      installCard.hidden = install.standalone || installDismissed;
       if (install.isIOS && !install.canPrompt) {
-        installTitle.textContent = '📱 Add Earnly to your iPhone';
-        installText.textContent = 'Tap here for the quick Safari Add to Home Screen steps.';
+        installTitle.textContent = 'Add Earnly to your iPhone';
+        installText.textContent = 'Open it like an app.';
         installButton.textContent = 'Add';
       } else if (install.canPrompt) {
-        installTitle.textContent = '📱 Install Earnly Arcade';
-        installText.textContent = 'Launch it from your Home Screen without the normal browser chrome.';
+        installTitle.textContent = 'Install Earnly';
+        installText.textContent = 'Open it from your Home Screen.';
         installButton.textContent = 'Install';
       } else {
-        installTitle.textContent = '📱 Add Earnly to your Home Screen';
-        installText.textContent = 'Install the arcade for a more app-like experience.';
-        installButton.textContent = 'Install';
+        installTitle.textContent = 'Add Earnly to Home Screen';
+        installText.textContent = 'Open it like an app.';
+        installButton.textContent = 'Add';
       }
 
       points.textContent = Arcade.number('points').toLocaleString();
@@ -339,6 +335,12 @@
       await Arcade.requestInstall();
       render();
     });
+
+    installDismiss.addEventListener('click', () => {
+      localStorage.setItem('earnlyInstallSuggestionDismissed', '1');
+      render();
+    });
+
     window.addEventListener('earnly-install-available', render);
     window.addEventListener('earnly-install-changed', render);
 
