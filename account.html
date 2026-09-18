@@ -249,7 +249,7 @@
         if (data.session) {
           cloudMessage.textContent = 'Account created. You are signed in — tap Save Progress to create your first cloud backup.';
         } else {
-          cloudMessage.textContent = 'Account created. Check your email to confirm it, then return here and sign in.';
+          cloudMessage.textContent = 'Account created. Check your email to confirm it, then return to Earnly and sign in. If Safari ever shows a blank localhost page after confirming, the confirmation may still have succeeded — just come back here and sign in.';
         }
         await renderCloud();
       } catch (error) {
