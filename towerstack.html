@@ -262,6 +262,7 @@
 
       const earned = rewardFor(floors, perfects);
       Arcade.earn(earned, 'Tower Stack');
+      Arcade.recordResult('towerStack', floors);
 
       const best = Math.max(floors, Arcade.number('towerStackBest'));
       localStorage.setItem('towerStackBest', String(best));
