@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Earnly Profile</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="index.html">🎮 Earnly</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>👤 Player Profile</h1>
+      <p>Your Earnly progress, levels, stats, and best scores.</p>
+    </header>
+
+    <section class="card profile-card">
+      <div class="profile-head">
+        <div class="profile-avatar">🎮</div>
+        <div class="profile-copy">
+          <strong><span id="nameDisplay">Player</span> · Level <span id="level">1</span></strong>
+          <div class="xp-row">
+            <span id="xpText">0 / 100 XP</span>
+            <span id="totalXP">0 total XP</span>
+          </div>
+          <div class="xp-bar"><span id="xpBar"></span></div>
+        </div>
+      </div>
+
+      <form class="profile-name-form" id="nameForm">
+        <input id="nameInput" type="text" maxlength="18" autocomplete="off" aria-label="Player name" placeholder="Player name">
+        <button type="submit">Save</button>
+      </form>
+      <p class="muted small" style="margin-bottom:0">Prototype nickname only — it is stored on this device.</p>
+    </section>
+
+    <section class="stats-grid" aria-label="Player stats">
+      <div class="stat-card"><strong id="gamesCompleted">0</strong><span>Games Finished</span></div>
+      <div class="stat-card"><strong id="differentGames">0</strong><span>Different Games</span></div>
+      <div class="stat-card"><strong id="lifetimeCoins">0</strong><span>Lifetime Coins</span></div>
+      <div class="stat-card"><strong id="achievementCount">0</strong><span>Achievements</span></div>
+      <div class="stat-card"><strong id="streak">0</strong><span>Day Streak</span></div>
+      <div class="stat-card"><strong id="favoriteCount">0</strong><span>Favorites</span></div>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <div class="row">
+        <h2 style="margin:0">⭐ Favorite Games</h2>
+        <a href="games.html" class="muted">Edit →</a>
+      </div>
+      <div class="quick-grid" id="favoriteGames" style="margin-top:12px"></div>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>🏆 Personal Bests</h2>
+      <div class="best-grid" id="bestGrid"></div>
+    </section>
+
+    <section class="card compact-card">
+      <div class="achievement-summary">
+        <div style="text-align:left">
+          <strong>🏅 Achievement Progress</strong>
+          <div class="muted small" id="achievementSummary">0 unlocked</div>
+        </div>
+        <a class="button ghost" href="games.html#achievements">View Badges</a>
+      </div>
+    </section>
+
+    <a class="button wide" href="games.html">🕹 Play Games</a>
+    <a class="button wide secondary" href="index.html">← Back Home</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const gameInfo = [
+      ['snake','🐍','Snake','snake.html'],
+      ['blockDrop','🧱','Block Drop','blockdrop.html'],
+      ['tapRush','🎯','Tap Rush','taprush.html'],
+      ['memory','🧠','Memory Match','memory.html'],
+      ['dodger','🚗','Neon Dodger','dodger.html'],
+      ['brickBreaker','💥','Brick Breaker','brickbreaker.html'],
+      ['jungleHopper','🐸','Jungle Hopper','junglehopper.html'],
+      ['towerStack','🏗️','Tower Stack','towerstack.html']
+    ];
+    const byKey = Object.fromEntries(gameInfo.map(item => [item[0], item]));
+
+    function renderFavorites() {
+      const root = document.getElementById('favoriteGames');
+      root.replaceChildren();
+      const favorites = Arcade.favorites();
+
+      if (!favorites.length) {
+        const empty = document.createElement('p');
+        empty.className = 'muted';
+        empty.textContent = 'Tap ☆ on the Games page to add favorites.';
+        root.append(empty);
+        return;
+      }
+
+      favorites.forEach(key => {
+        const info = byKey[key];
+        if (!info) return;
+        const link = document.createElement('a');
+        link.className = 'button quick-game';
+        link.href = info[3];
+        link.textContent = info[1] + ' ' + info[2];
+        root.append(link);
+      });
+    }
+
+    function renderBests() {
+      const root = document.getElementById('bestGrid');
+      root.replaceChildren();
+
+      gameInfo.forEach(info => {
+        const best = Arcade.best(info[0]);
+        const card = document.createElement('div');
+        card.className = 'best-card';
+
+        const title = document.createElement('strong');
+        title.textContent = info[1] + ' ' + info[2];
+
+        const value = document.createElement('span');
+        value.textContent = best.display;
+
+        card.append(title, value);
+        root.append(card);
+      });
+    }
+
+    function render() {
+      const stats = Arcade.stats();
+      const xp = Arcade.xpStatus();
+
+      document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
+      document.getElementById('nameDisplay').textContent = stats.name;
+      document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
+      document.getElementById('level').textContent = xp.level;
+      document.getElementById('xpText').textContent = xp.current + ' / ' + xp.needed + ' XP';
+      document.getElementById('totalXP').textContent = xp.xp.toLocaleString() + ' total XP';
+      document.getElementById('xpBar').style.width = xp.progress + '%';
+
+      document.getElementById('gamesCompleted').textContent = stats.gamesCompleted.toLocaleString();
+      document.getElementById('differentGames').textContent = stats.differentGames + '/8';
+      document.getElementById('lifetimeCoins').textContent = stats.lifetimeCoins.toLocaleString();
+      document.getElementById('achievementCount').textContent = stats.achievements + '/' + stats.totalAchievements;
+      document.getElementById('streak').textContent = stats.streak;
+      document.getElementById('favoriteCount').textContent = stats.favorites;
+
+      document.getElementById('achievementSummary').textContent =
+        stats.achievements + ' of ' + stats.totalAchievements + ' unlocked';
+
+      renderFavorites();
+      renderBests();
+    }
+
+    document.getElementById('nameForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const name = Arcade.setProfileName(document.getElementById('nameInput').value);
+      Arcade.toast('👤 Profile name saved as ' + name);
+      render();
+    });
+
+    render();
+    window.addEventListener('pageshow', render);
+    window.addEventListener('focus', render);
+    window.addEventListener('storage', render);
+  </script>
+</body>
+</html>
