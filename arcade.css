@@ -3730,3 +3730,38 @@ body{animation:app-fade-in 180ms ease both}
   font-weight:900;
 }
 .cloud-auto-toggle.active{border-color:#15803d;background:#12452a;color:#86efac}
+
+
+/* 0.15.3 cross-device restore + password recovery */
+.cloud-forgot{
+  display:inline-block;
+  margin-top:8px;
+  padding:4px 0;
+  border:0;
+  background:transparent;
+  color:#7dd3fc;
+  font-size:8px;
+  text-decoration:underline;
+}
+.cloud-recovery{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid #314158;
+  border-radius:12px;
+  background:#101a2a;
+}
+.cloud-recovery h3{
+  margin:4px 0 4px;
+}
+.cloud-recovery input{
+  width:100%;
+  box-sizing:border-box;
+  min-height:42px;
+  margin:8px 0;
+  padding:9px 10px;
+  border:1px solid #35475d;
+  border-radius:11px;
+  background:#0f1828;
+  color:#f8fafc;
+  font-size:10px;
+}
