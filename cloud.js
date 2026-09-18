@@ -121,9 +121,120 @@
     return { restored:result.restored, save:data, auto:true };
   }
 
+  async function walletInfo(){
+    const current = await user();
+    if (!current) return null;
+
+    const { data, error } = await requireClient()
+      .from('coin_wallets')
+      .select('balance,lifetime_earned,updated_at,legacy_seeded')
+      .eq('user_id', current.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+  }
+
+  async function syncServerRewards(){
+    const current = await user();
+    if (!current) return { skipped:'signed-out', synced:0 };
+
+    const rewardEvents = Arcade.pendingSyncEvents()
+      .filter(event =>
+        event?.type === 'coin_award' &&
+        event?.payload?.server &&
+        typeof event.payload.server === 'object'
+      )
+      .slice(0, 30);
+
+    if (!rewardEvents.length) {
+      return { synced:0, wallet:await walletInfo() };
+    }
+
+    let synced = 0;
+    let wallet = null;
+    const mismatches = [];
+
+    for (const event of rewardEvents) {
+      const server = event.payload.server || {};
+      const body = {
+        eventId:event.id,
+        kind:server.kind || '',
+        game:server.game || null,
+        metric:server.metric ?? null,
+        aux:server.aux ?? null,
+        challengeId:server.challengeId || null,
+        source:event.payload.source || 'Arcade reward'
+      };
+
+      const { data, error } = await requireClient().functions.invoke('claim-coin-reward', {
+        body
+      });
+
+      if (error) {
+        const message = String(error?.message || error);
+        localStorage.setItem('arcadeServerRewardError', message);
+        window.dispatchEvent(new CustomEvent('earnly-server-reward-error', {
+          detail:{ eventId:event.id, message }
+        }));
+        break;
+      }
+
+      if (!data?.ok) {
+        const message = String(data?.error || 'Server reward rejected');
+        localStorage.setItem('arcadeServerRewardError', message);
+        window.dispatchEvent(new CustomEvent('earnly-server-reward-error', {
+          detail:{ eventId:event.id, message }
+        }));
+        break;
+      }
+
+      const localAmount = Math.max(0, Math.floor(Number(event.payload.amount) || 0));
+      const serverAmount = Math.max(0, Math.floor(Number(data.amount) || 0));
+      if (localAmount !== serverAmount) {
+        mismatches.push({
+          eventId:event.id,
+          source:event.payload.source || '',
+          localAmount,
+          serverAmount
+        });
+      }
+
+      if (data.wallet) wallet = data.wallet;
+      Arcade.clearSyncEvents(event.id);
+      synced += 1;
+    }
+
+    if (wallet) {
+      localStorage.setItem('arcadeShadowWallet', JSON.stringify({
+        balance:Number(wallet.balance || 0),
+        lifetime:Number(wallet.lifetime_earned || 0),
+        checkedAt:new Date().toISOString()
+      }));
+    }
+
+    if (mismatches.length) {
+      localStorage.setItem('arcadeServerRewardMismatches', JSON.stringify(mismatches.slice(-20)));
+    } else if (synced) {
+      localStorage.removeItem('arcadeServerRewardError');
+    }
+
+    if (synced) {
+      window.dispatchEvent(new CustomEvent('earnly-server-rewards-synced', {
+        detail:{ synced, wallet, mismatches }
+      }));
+    }
+
+    return { synced, wallet, mismatches };
+  }
+
   async function saveProgress(options = {}){
     const current = await user();
     if (!current) throw new Error('Sign in before saving to Earnly Cloud.');
+
+    if (!options.skipRewardSync) {
+      await syncServerRewards();
+    }
 
     const snapshot = Arcade.snapshotData();
     const status = Arcade.appStatus();
@@ -209,6 +320,7 @@
       const current = await user();
       if (!current) return { skipped:'signed-out' };
 
+      const rewardSync = await syncServerRewards();
       const remote = await cloudSaveInfo();
       const localDevice = Arcade.deviceId();
       const lastKnownRaw = localStorage.getItem('arcadeLastCloudSave');
@@ -229,7 +341,9 @@
         return { skipped:'newer-cloud-save', conflict };
       }
 
-      return await saveProgress({ source:'auto:' + reason });
+      const result = await saveProgress({ source:'auto:' + reason, skipRewardSync:true });
+      result.rewardSync = rewardSync;
+      return result;
     } catch (error) {
       localStorage.setItem('arcadeCloudSyncError', String(error?.message || error));
       window.dispatchEvent(new CustomEvent('earnly-cloud-sync-error', {
@@ -336,6 +450,8 @@
     updatePassword,
     signOut,
     cloudSaveInfo,
+    walletInfo,
+    syncServerRewards,
     maybeRestoreFreshDevice,
     saveProgress,
     autoSaveProgress,
