@@ -15,157 +15,145 @@
   <title>Earnly Arcade</title>
   <link rel="stylesheet" href="arcade.css">
 </head>
-<body>
-  <main class="container">
-    <header class="page-header">
-      <p class="muted" style="margin-bottom:6px">WELCOME TO</p>
-      <h1>🎮 Earnly Arcade</h1>
-      <p>Play. Earn. Level Up.</p>
+<body class="home-dashboard">
+  <main class="container home-container">
+    <header class="home-hero">
+      <img class="home-hero-icon" src="earnly-icon.svg" alt="">
+      <div class="home-hero-copy">
+        <span class="home-eyebrow">EARNLY ARCADE</span>
+        <h1>Play. Earn. Level Up.</h1>
+        <p>Quick games, daily goals, and rewards progress.</p>
+      </div>
     </header>
 
-    <section class="card compact-card install-card browser-only" id="installCard">
-      <div class="install-row">
-        <div class="install-icon"><img src="earnly-icon.svg" alt=""></div>
-        <div class="install-copy">
-          <strong id="installTitle">📱 Add Earnly to your phone</strong>
+    <section class="home-install-banner browser-only" id="installCard">
+      <div class="home-install-main">
+        <div class="home-install-icon"><img src="earnly-icon.svg" alt=""></div>
+        <div class="home-install-copy">
+          <strong id="installTitle">Add Earnly to your phone</strong>
           <span id="installText">Open Earnly from your Home Screen like an app.</span>
         </div>
       </div>
-      <div class="install-actions">
-        <button class="wide green" id="installButton" type="button">Install Earnly</button>
+      <button class="home-install-button" id="installButton" type="button">Install</button>
+    </section>
+
+    <section class="home-overview" aria-label="Earnly overview">
+      <a class="home-metric" href="rewards.html" aria-label="View Arcade Coin rewards">
+        <span class="home-metric-label">Arcade Coins</span>
+        <strong><span id="points" aria-live="polite">0</span> <small>🪙</small></strong>
+        <span class="home-metric-link">Rewards →</span>
+      </a>
+
+      <a class="home-metric" href="profile.html" aria-label="View profile">
+        <span class="home-metric-label">Level</span>
+        <strong><span id="profileLevel">1</span> <small>⭐</small></strong>
+        <span class="home-metric-link"><span id="profileName">Player</span> →</span>
+      </a>
+
+      <div class="home-progress-row">
+        <div class="home-progress-copy">
+          <span id="streak">🔥 0 day streak</span>
+          <span id="profileXP">0 / 100 XP</span>
+        </div>
+        <div class="xp-bar home-xp-bar"><span id="profileXPBar"></span></div>
       </div>
     </section>
 
-    <section class="card" aria-label="Arcade Coin balance">
-      <p class="muted" style="margin:0">Arcade Coins</p>
-      <div class="big-number" id="points" aria-live="polite">0</div>
-      <div class="row">
-        <span class="muted" id="streak">🔥 0 day streak</span>
-        <a href="rewards.html" class="muted">How rewards work →</a>
+    <section class="home-guide-strip" aria-label="Earnly basics">
+      <div class="home-guide-chips">
+        <span>🎟️ 3 plays daily</span>
+        <span>🪙 Coins = rewards</span>
+        <span>⭐ XP = levels</span>
       </div>
+      <button class="home-text-button" id="howEarnlyWorks" type="button">How it works</button>
     </section>
 
-    <section class="card compact-card earnly-guide" aria-label="How Earnly works">
-      <div class="guide-header">
-        <div>
-          <strong>🧭 How Earnly Works</strong>
-          <div class="muted small">Plays, Coins, and XP each have a different job.</div>
-        </div>
-        <button class="mini-button ghost" id="howEarnlyWorks" type="button">Quick Guide</button>
+    <section class="home-section continue-card" id="continueCard" hidden>
+      <div class="home-section-heading">
+        <span>Continue playing</span>
       </div>
-
-      <div class="economy-grid">
-        <div class="economy-item">
-          <span class="economy-icon">🎟️</span>
-          <div><strong>Plays</strong><span>3 free per game daily. A rewarded ad can unlock +3 more for that game.</span></div>
-        </div>
-        <div class="economy-item">
-          <span class="economy-icon">🪙</span>
-          <div><strong>Arcade Coins</strong><span>Earned from game rewards, the daily bonus, and daily challenges.</span></div>
-        </div>
-        <div class="economy-item">
-          <span class="economy-icon">⭐</span>
-          <div><strong>XP</strong><span>Levels up your profile. Earn XP from games, missions, streaks, and achievements.</span></div>
-        </div>
-        <div class="economy-item">
-          <span class="economy-icon">🎁</span>
-          <div><strong>Rewards</strong><span>Coins are prototype rewards right now. Real cash-out is not connected yet.</span></div>
-        </div>
-      </div>
-
-      <div class="prototype-note">
-        Rewarded ads unlock extra plays — they do not directly award Arcade Coins.
-      </div>
-    </section>
-
-    <section class="card compact-card profile-card">
-      <div class="profile-head">
-        <div class="profile-avatar">👤</div>
-        <div class="profile-copy">
-          <strong><span id="profileName">Player</span> · Level <span id="profileLevel">1</span></strong>
-          <div class="xp-row">
-            <span id="profileXP">0 / 100 XP</span>
-            <a href="profile.html">View Profile →</a>
-          </div>
-          <div class="xp-bar"><span id="profileXPBar"></span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card compact-card continue-card" id="continueCard" hidden>
-      <div class="continue-game-row">
-        <div class="continue-game-icon" id="continueIcon">🎮</div>
-        <div class="continue-game-copy">
-          <span class="muted small">CONTINUE PLAYING</span>
+      <div class="home-action-row">
+        <div class="home-action-icon" id="continueIcon">🎮</div>
+        <div class="home-action-copy">
           <strong id="continueName">Game</strong>
-          <div class="continue-game-meta" id="continueMeta">Ready to play</div>
+          <span id="continueMeta">Ready to play</span>
         </div>
+        <a class="home-row-button" id="continueButton" href="games.html">Play</a>
       </div>
-      <a class="button wide green" id="continueButton" href="games.html" style="margin-top:12px">Play Again</a>
     </section>
 
-    <section class="card challenge">
-      <div class="row">
+    <section class="home-section">
+      <div class="home-section-heading">
+        <span>Today</span>
+      </div>
+      <div class="home-panel">
+        <div class="home-action-row">
+          <div class="home-action-icon">🎁</div>
+          <div class="home-action-copy">
+            <strong>Daily Bonus</strong>
+            <span id="bonusText">Claim +10 Arcade Coins</span>
+          </div>
+          <button class="home-row-button green" id="dailyBonusButton" type="button">Claim</button>
+        </div>
+
+        <div class="home-divider"></div>
+
+        <div class="home-challenge-row">
+          <div class="home-action-row home-action-row-top">
+            <div class="home-action-icon">🎯</div>
+            <div class="home-action-copy">
+              <strong id="challengeTitle">Daily Challenge</strong>
+              <span id="challengeDescription">Loading today’s challenge…</span>
+            </div>
+            <span class="home-count-pill" id="challengeCount">0 / 1</span>
+          </div>
+          <div class="challenge-progress home-challenge-progress" aria-hidden="true"><span id="challengeBar"></span></div>
+          <button class="home-challenge-button" id="challengeButton" type="button" disabled>Keep Playing</button>
+        </div>
+      </div>
+    </section>
+
+    <details class="home-section home-disclosure" id="streakRewardCard">
+      <summary>
         <div>
-          <strong>🎁 Daily Bonus</strong>
-          <span class="muted" id="bonusText">Claim +10 Arcade Coins</span>
-        </div>
-        <button id="dailyBonusButton" type="button">Claim</button>
-      </div>
-    </section>
-
-    <section class="card compact-card" id="streakRewardCard">
-      <div class="row">
-        <div style="text-align:left">
           <strong>🔥 Streak Rewards</strong>
-          <div class="muted small" id="streakRewardText">Build your streak for bonus XP</div>
+          <span id="streakRewardText">Build your streak for bonus XP</span>
         </div>
-        <span class="play-pill" id="streakRewardCount">0/3</span>
-      </div>
-      <div class="streak-reward-list" id="streakRewardList"></div>
-    </section>
+        <span class="home-count-pill" id="streakRewardCount">0/3</span>
+      </summary>
+      <div class="streak-reward-list home-streak-list" id="streakRewardList"></div>
+    </details>
 
-    <section class="card challenge">
-      <div class="row">
-        <div>
-          <strong id="challengeTitle">🔥 Daily Challenge</strong>
-          <span class="muted" id="challengeDescription">Loading today’s challenge…</span>
-        </div>
-        <span class="play-pill" id="challengeCount">0 / 1</span>
+    <section class="home-section">
+      <div class="home-section-heading">
+        <span>Progress</span>
       </div>
-      <div class="challenge-progress" aria-hidden="true"><span id="challengeBar"></span></div>
-      <button class="wide green" id="challengeButton" type="button" disabled>Complete the challenge</button>
-    </section>
+      <div class="home-progress-grid">
+        <a class="home-progress-tile" href="stats.html">
+          <span class="home-progress-icon">📅</span>
+          <div>
+            <strong>Weekly Missions</strong>
+            <span id="weeklyText">0 of 4 complete</span>
+          </div>
+          <b id="weeklyCount">0/4</b>
+        </a>
 
-    <section class="card compact-card">
-      <div class="week-summary">
-        <div>
-          <strong>📅 Weekly Missions</strong>
-          <div class="muted small" id="weeklyText">0 of 4 complete</div>
-        </div>
-        <div class="week-ring" id="weeklyCount">0/4</div>
-      </div>
-      <a class="button wide ghost" href="stats.html" style="margin-top:12px">View Missions & Stats</a>
-    </section>
-
-    <section class="card compact-card">
-      <div class="achievement-summary">
-        <div style="text-align:left">
-          <strong>🏆 Achievements</strong>
-          <div class="muted small" id="achievementText">0 unlocked</div>
-        </div>
-        <a class="button ghost" href="games.html#achievements">View Badges</a>
+        <a class="home-progress-tile" href="games.html#achievements">
+          <span class="home-progress-icon">🏆</span>
+          <div>
+            <strong>Achievements</strong>
+            <span id="achievementText">0 unlocked</span>
+          </div>
+          <b>→</b>
+        </a>
       </div>
     </section>
 
-    <a class="button wide" href="games.html">🕹 Play Games</a>
-    <a class="button wide gold" href="rewards.html">🎁 Rewards</a>
-
-    <details class="card compact-card">
-      <summary>What is this prototype testing?</summary>
-      <p class="muted">
-        Games, daily rewards, optional rewarded ads for extra plays, achievements, and the Arcade Coin experience.
-        No real ad network or cash-out system is connected yet.
+    <details class="home-prototype-note">
+      <summary>About this prototype</summary>
+      <p>
+        Games, daily rewards, optional rewarded ads for extra plays, achievements, and Arcade Coins are being tested.
+        Real cash-out and a live ad network are not connected yet.
       </p>
     </details>
   </main>
@@ -207,15 +195,15 @@
       if (install.isIOS && !install.canPrompt) {
         installTitle.textContent = '📱 Add Earnly to your iPhone';
         installText.textContent = 'Tap here for the quick Safari Add to Home Screen steps.';
-        installButton.textContent = 'Show iPhone Install Steps';
+        installButton.textContent = 'Show steps';
       } else if (install.canPrompt) {
         installTitle.textContent = '📱 Install Earnly Arcade';
         installText.textContent = 'Launch it from your Home Screen without the normal browser chrome.';
-        installButton.textContent = 'Install Earnly';
+        installButton.textContent = 'Install';
       } else {
         installTitle.textContent = '📱 Add Earnly to your Home Screen';
         installText.textContent = 'Install the arcade for a more app-like experience.';
-        installButton.textContent = 'Install Instructions';
+        installButton.textContent = 'Install';
       }
 
       points.textContent = Arcade.number('points').toLocaleString();
@@ -255,7 +243,7 @@
       streak.textContent = '🔥 ' + bonus.streak + ' day' + (bonus.streak === 1 ? '' : 's') + ' streak';
       bonusText.textContent = bonus.claimed ? 'Claimed today · come back tomorrow' : 'Claim +' + bonus.reward + ' Arcade Coins';
       bonusButton.disabled = bonus.claimed;
-      bonusButton.className = bonus.claimed ? 'claimed-button' : 'green';
+      bonusButton.className = bonus.claimed ? 'home-row-button claimed-button' : 'home-row-button green';
       bonusButton.textContent = bonus.claimed ? 'Claimed ✓' : 'Claim +' + bonus.reward;
 
       const streakRewards = Arcade.streakRewardStatus();
@@ -314,16 +302,16 @@
 
       if (challenge.claimed) {
         challengeButton.disabled = true;
-        challengeButton.className = 'wide claimed-button';
-        challengeButton.textContent = 'Challenge Complete ✓';
+        challengeButton.className = 'home-challenge-button claimed-button';
+        challengeButton.textContent = 'Challenge complete ✓';
       } else if (challenge.complete) {
         challengeButton.disabled = false;
-        challengeButton.className = 'wide green';
-        challengeButton.textContent = 'Claim +' + challenge.reward + ' Arcade Coins';
+        challengeButton.className = 'home-challenge-button green';
+        challengeButton.textContent = 'Claim +' + challenge.reward + ' Coins';
       } else {
         challengeButton.disabled = true;
-        challengeButton.className = 'wide progress-button';
-        challengeButton.textContent = challenge.progress + ' / ' + challenge.goal + ' · Keep Playing';
+        challengeButton.className = 'home-challenge-button progress-button';
+        challengeButton.textContent = 'Keep playing · ' + challenge.progress + '/' + challenge.goal;
       }
 
       const weekly = Arcade.weeklyStatus();
