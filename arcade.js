@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.6';
+  const APP_VERSION = '0.15.7';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -805,6 +805,20 @@ const Arcade = (() => {
   function remaining(g) {
     refreshDaily();
     return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
+  }
+
+  function resetPrototypePlays() {
+    refreshDaily();
+    Object.keys(names).forEach(g => {
+      setNumber(g + 'GamesPlayed', 0);
+      setNumber(g + 'BonusPlays', 0);
+      setNumber(g + 'PlayAdUnlocks', 0);
+    });
+    localStorage.setItem('arcadePlayDay', dateKey());
+    queueEvent('prototype_plays_reset', { games:Object.keys(names), freePlays:FREE_PLAYS });
+    toast('🧪 Test plays reset · 3 free plays per game');
+    window.dispatchEvent(new CustomEvent('earnly-prototype-plays-reset'));
+    return Object.fromEntries(Object.keys(names).map(g => [g, remaining(g)]));
   }
 
   function playAdStatus(g) {
@@ -2286,6 +2300,7 @@ const Arcade = (() => {
     PLAY_AD_DAILY_LIMIT,
     remaining,
     playAdStatus,
+    resetPrototypePlays,
     consume,
     best,
     recordResult,
