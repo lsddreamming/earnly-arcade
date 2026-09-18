@@ -70,13 +70,14 @@
     return data || null;
   }
 
-  async function saveProgress(){
+  async function saveProgress(options = {}){
     const current = await user();
     if (!current) throw new Error('Sign in before saving to Earnly Cloud.');
 
     const snapshot = Arcade.snapshotData();
     const status = Arcade.appStatus();
     const displayName = (localStorage.getItem('arcadeProfileName') || 'Player').trim().slice(0,32) || 'Player';
+    const source = options.source || 'manual';
 
     const { error:profileError } = await requireClient()
       .from('profiles')
@@ -99,8 +100,98 @@
 
     if (error) throw error;
 
-    localStorage.setItem('arcadeLastCloudSave', data.updated_at || new Date().toISOString());
-    return { snapshot, save:data };
+    const savedAt = data.updated_at || new Date().toISOString();
+    localStorage.setItem('arcadeLastCloudSave', savedAt);
+    localStorage.removeItem('arcadeCloudConflict');
+    window.dispatchEvent(new CustomEvent('earnly-cloud-synced', {
+      detail:{ source, updatedAt:savedAt, deviceId:data.device_id || status.deviceId }
+    }));
+    return { snapshot, save:data, source };
+  }
+
+  function autoSyncEnabled(){
+    return localStorage.getItem('arcadeCloudAutoSync') !== 'off';
+  }
+
+  function setAutoSyncEnabled(enabled){
+    localStorage.setItem('arcadeCloudAutoSync', enabled ? 'on' : 'off');
+    window.dispatchEvent(new CustomEvent('earnly-cloud-auto-change', {
+      detail:{ enabled:!!enabled }
+    }));
+    if (enabled) scheduleAutoSync('auto-enabled', 250);
+    return autoSyncEnabled();
+  }
+
+  function cloudConflict(){
+    try {
+      const value = JSON.parse(localStorage.getItem('arcadeCloudConflict') || 'null');
+      return value && typeof value === 'object' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  let syncTimer = null;
+  let syncRunning = false;
+  let syncAgain = false;
+
+  function scheduleAutoSync(reason = 'change', delay = 1400){
+    if (!autoSyncEnabled()) return false;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      autoSaveProgress(reason).catch(() => {});
+    }, Math.max(0, Number(delay) || 0));
+    return true;
+  }
+
+  async function autoSaveProgress(reason = 'change'){
+    if (!autoSyncEnabled()) return { skipped:'disabled' };
+    if (!navigator.onLine) return { skipped:'offline' };
+
+    if (syncRunning) {
+      syncAgain = true;
+      return { skipped:'busy' };
+    }
+
+    syncRunning = true;
+    try {
+      const current = await user();
+      if (!current) return { skipped:'signed-out' };
+
+      const remote = await cloudSaveInfo();
+      const localDevice = Arcade.deviceId();
+      const lastKnownRaw = localStorage.getItem('arcadeLastCloudSave');
+      const lastKnown = lastKnownRaw ? new Date(lastKnownRaw).getTime() : 0;
+      const remoteTime = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
+      const differentDevice = !!(remote?.device_id && remote.device_id !== localDevice);
+
+      if (remote && differentDevice && (!lastKnown || remoteTime > lastKnown + 1000)) {
+        const conflict = {
+          reason:'newer-cloud-save',
+          remoteUpdatedAt:remote.updated_at,
+          remoteDeviceId:remote.device_id,
+          localDeviceId:localDevice,
+          detectedAt:new Date().toISOString()
+        };
+        localStorage.setItem('arcadeCloudConflict', JSON.stringify(conflict));
+        window.dispatchEvent(new CustomEvent('earnly-cloud-conflict', { detail:conflict }));
+        return { skipped:'newer-cloud-save', conflict };
+      }
+
+      return await saveProgress({ source:'auto:' + reason });
+    } catch (error) {
+      localStorage.setItem('arcadeCloudSyncError', String(error?.message || error));
+      window.dispatchEvent(new CustomEvent('earnly-cloud-sync-error', {
+        detail:{ reason, message:String(error?.message || error) }
+      }));
+      throw error;
+    } finally {
+      syncRunning = false;
+      if (syncAgain) {
+        syncAgain = false;
+        scheduleAutoSync('queued-change', 500);
+      }
+    }
   }
 
   async function restoreProgress(){
@@ -119,6 +210,11 @@
     const result = Arcade.restoreSnapshot(data.payload);
     Arcade.repairLifetimeCounters?.();
     localStorage.setItem('arcadeLastCloudRestore', new Date().toISOString());
+    if (data.updated_at) localStorage.setItem('arcadeLastCloudSave', data.updated_at);
+    localStorage.removeItem('arcadeCloudConflict');
+    window.dispatchEvent(new CustomEvent('earnly-cloud-restored', {
+      detail:{ restored:result.restored, updatedAt:data.updated_at || null }
+    }));
 
     return { restored:result.restored, save:data };
   }
@@ -142,7 +238,23 @@
       window.dispatchEvent(new CustomEvent('earnly-cloud-auth-change', {
         detail:{ event, session:currentSession }
       }));
+      if (currentSession?.user && event !== 'SIGNED_OUT') {
+        scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
+      }
     });
+
+    window.addEventListener('earnly-data-change', event => {
+      scheduleAutoSync(event.detail?.type || 'data-change', 1400);
+    });
+    window.addEventListener('online', () => scheduleAutoSync('online', 300));
+    window.addEventListener('pageshow', () => scheduleAutoSync('pageshow', 850));
+    window.addEventListener('focus', () => scheduleAutoSync('focus', 1000));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') scheduleAutoSync('foreground', 650);
+    });
+
+    setTimeout(() => scheduleAutoSync('cloud-ready', 900), 0);
+    window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   }
 
   window.EarnlyCloud = {
@@ -156,6 +268,11 @@
     signOut,
     cloudSaveInfo,
     saveProgress,
+    autoSaveProgress,
+    scheduleAutoSync,
+    autoSyncEnabled,
+    setAutoSyncEnabled,
+    cloudConflict,
     restoreProgress
   };
 })();
