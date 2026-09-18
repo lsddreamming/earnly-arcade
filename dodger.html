@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Earnly Dodger</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>
+    .dodger-board{width:min(82vw,330px);height:auto}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🚗 Neon Dodger</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Time: <span id="time">0</span>s</span>
+        <span class="meta-pill">Dodged: <span id="dodged">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+    <canvas class="dodger-board" id="game" width="330" height="500" aria-label="Neon Dodger game board"></canvas>
+    <p class="muted small">Drag left and right to dodge the falling blocks. Survive up to 30 seconds.</p>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const canvas=document.getElementById('game');
+    const ctx=canvas.getContext('2d');
+    const timeEl=document.getElementById('time');
+    const dodgedEl=document.getElementById('dodged');
+    const rewardPreviewEl=document.getElementById('rewardPreview');
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+
+    const player={x:140,y:445,w:50,h:24};
+    let obstacles=[];
+    let running=false;
+    let startTime=0;
+    let lastSpawn=0;
+    let dodged=0;
+    let animation=null;
+
+    function rewardFor(seconds,dodgedCount){
+      let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
+      if(seconds>=15) coins+=2;
+      if(seconds>=25) coins+=3;
+      if(seconds>=30) coins+=4;
+      return Math.min(coins,20);
+    }
+
+    function refreshChrome(){
+      playsEl.textContent=Arcade.remaining('dodger');
+      balanceEl.textContent=Arcade.number('points').toLocaleString();
+    }
+
+    function setStatus(text,mode){
+      statusEl.textContent=text;
+      statusEl.className='game-status'+(mode?' '+mode:'');
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      const gradient=ctx.createLinearGradient(0,0,0,canvas.height);
+      gradient.addColorStop(0,'#0f172a');
+      gradient.addColorStop(1,'#172554');
+      ctx.fillStyle=gradient;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      ctx.fillStyle='#22c55e';
+      ctx.fillRect(player.x,player.y,player.w,player.h);
+
+      obstacles.forEach(o=>{
+        ctx.fillStyle=o.color;
+        ctx.fillRect(o.x,o.y,o.w,o.h);
+      });
+    }
+
+    function spawn(now){
+      const width=34+Math.random()*34;
+      obstacles.push({
+        x:Math.random()*(canvas.width-width),
+        y:-32,
+        w:width,
+        h:24,
+        speed:3.2+Math.min(4,(now-startTime)/8000),
+        color:['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)]
+      });
+    }
+
+    function intersects(a,b){
+      return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+    }
+
+    function loop(now){
+      if(!running) return;
+
+      if(!startTime) startTime=now;
+      const seconds=Math.min(30,Math.floor((now-startTime)/1000));
+
+      if(now-lastSpawn > Math.max(300,760-seconds*12)){
+        spawn(now);
+        lastSpawn=now;
+      }
+
+      obstacles.forEach(o=>o.y+=o.speed);
+
+      const survivors=[];
+      for(const o of obstacles){
+        if(intersects(player,o)){
+          finishGame(false,seconds);
+          return;
+        }
+        if(o.y>canvas.height){
+          dodged+=1;
+          dodgedEl.textContent=dodged;
+        }else{
+          survivors.push(o);
+        }
+      }
+      obstacles=survivors;
+
+      timeEl.textContent=seconds;
+      rewardPreviewEl.textContent=rewardFor(seconds,dodged);
+
+      draw();
+
+      if(seconds>=30){
+        finishGame(true,30);
+        return;
+      }
+
+      animation=requestAnimationFrame(loop);
+    }
+
+    function finishGame(survived,seconds){
+      if(!running) return;
+      running=false;
+      cancelAnimationFrame(animation);
+      animation=null;
+
+      const earned=rewardFor(seconds,dodged);
+      Arcade.earn(earned,'Neon Dodger');
+
+      const best=Math.max(seconds,Arcade.number('dodgerBest'));
+      localStorage.setItem('dodgerBest',String(best));
+
+      refreshChrome();
+      setStatus(survived?'You Survived!':'Game Over','over');
+      startButton.disabled=false;
+      startButton.textContent='▶ Play Again';
+
+      Arcade.panel(
+        survived?'🚗 You Survived!':'💥 Game Over',
+        'Time: '+seconds+'s\nDodged: '+dodged+'\nBest: '+best+'s\n+'+earned+' Arcade Coins\n'+Arcade.remaining('dodger')+' plays remaining',
+        Arcade.remaining('dodger')>0
+          ? [['Play Again',startGame,'green'],['Back to Games',()=>location.href='games.html','secondary']]
+          : [['Get More Plays',()=>Arcade.out('dodger',refreshChrome),'green'],['Back to Games',()=>location.href='games.html','secondary']]
+      );
+    }
+
+    function setPlayerFromClientX(clientX){
+      const rect=canvas.getBoundingClientRect();
+      const scale=canvas.width/rect.width;
+      const x=(clientX-rect.left)*scale-player.w/2;
+      player.x=Math.max(0,Math.min(canvas.width-player.w,x));
+    }
+
+    canvas.addEventListener('pointerdown',event=>{
+      event.preventDefault();
+      setPlayerFromClientX(event.clientX);
+      canvas.setPointerCapture?.(event.pointerId);
+    });
+    canvas.addEventListener('pointermove',event=>{
+      if(event.buttons || event.pointerType==='touch'){
+        event.preventDefault();
+        setPlayerFromClientX(event.clientX);
+      }
+    });
+    canvas.addEventListener('contextmenu',event=>event.preventDefault());
+
+    document.addEventListener('keydown',event=>{
+      if(!running) return;
+      if(event.key==='ArrowLeft'){event.preventDefault();player.x=Math.max(0,player.x-24);}
+      if(event.key==='ArrowRight'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
+    });
+
+    function startGame(){
+      if(running) return;
+      if(!Arcade.consume('dodger')){
+        Arcade.out('dodger',refreshChrome);
+        return;
+      }
+
+      obstacles=[];
+      player.x=(canvas.width-player.w)/2;
+      startTime=0;
+      lastSpawn=0;
+      dodged=0;
+      timeEl.textContent='0';
+      dodgedEl.textContent='0';
+      rewardPreviewEl.textContent='0';
+
+      running=true;
+      startButton.disabled=true;
+      startButton.textContent='Game Running';
+      setStatus('Running','running');
+      refreshChrome();
+      draw();
+      animation=requestAnimationFrame(loop);
+    }
+
+    startButton.addEventListener('click',startGame);
+    refreshChrome();
+    draw();
+  </script>
+</body>
+</html>
