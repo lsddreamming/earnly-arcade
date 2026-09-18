@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Earnly Jungle Hopper</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>
+    .jungle-board{
+      width:min(88vw,360px);
+      height:auto;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🐸 Jungle Hopper</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Vines: <span id="score">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">▶ Start Game</button>
+
+    <canvas class="jungle-board touch-surface" id="game" width="360" height="560" aria-label="Jungle Hopper game board"></canvas>
+    <p class="swipe-hint">Tap anywhere on the jungle to make the frog hop upward.</p>
+    <p class="muted small">Pass through vine gaps to score. Longer runs earn more coins, with milestone bonuses.</p>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+
+    const frog = { x: 82, y: 270, r: 15, vy: 0 };
+    const gravity = 0.42;
+    const hopPower = -6.9;
+    const obstacleWidth = 58;
+    const gapSize = 150;
+    const speed = 2.35;
+    const MAX_COINS = 25;
+
+    let obstacles = [];
+    let score = 0;
+    let running = false;
+    let animation = null;
+    let frame = 0;
+
+    function rewardFor(value) {
+      let coins = Math.floor(value / 2);
+      if (value >= 10) coins += 2;
+      if (value >= 20) coins += 3;
+      if (value >= 30) coins += 5;
+      return Math.min(coins, MAX_COINS);
+    }
+
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('jungleHopper');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+      rewardPreviewEl.textContent = rewardFor(score);
+    }
+
+    function setStatus(text, mode) {
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function spawnObstacle(x = canvas.width + 25) {
+      const margin = 76;
+      const gapY = margin + gapSize / 2 + Math.random() * (canvas.height - margin * 2 - gapSize);
+      obstacles.push({ x, gapY, scored: false });
+    }
+
+    function resetGame() {
+      frog.y = 270;
+      frog.vy = 0;
+      obstacles = [];
+      score = 0;
+      frame = 0;
+      scoreEl.textContent = '0';
+      rewardPreviewEl.textContent = '0';
+      spawnObstacle(canvas.width + 85);
+      spawnObstacle(canvas.width + 85 + 210);
+      spawnObstacle(canvas.width + 85 + 420);
+    }
+
+    function drawJungle() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, '#0f3d2e');
+      sky.addColorStop(.62, '#14532d');
+      sky.addColorStop(1, '#052e16');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(34,197,94,.14)';
+      for (let i = 0; i < 8; i++) {
+        const x = (i * 57 + frame * .25) % (canvas.width + 80) - 40;
+        ctx.beginPath();
+        ctx.arc(x, 72 + (i % 3) * 110, 42, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = '#064e3b';
+      ctx.fillRect(0, canvas.height - 28, canvas.width, 28);
+    }
+
+    function drawVinePart(x, y, h, fromTop) {
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(x + 17, y, obstacleWidth - 34, h);
+
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(x + obstacleWidth / 2, y);
+      ctx.lineTo(x + obstacleWidth / 2, y + h);
+      ctx.stroke();
+
+      ctx.fillStyle = '#4ade80';
+      const leafY = fromTop ? y + h - 14 : y + 14;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.ellipse(
+          x + 10 + i * 13,
+          leafY + (i % 2 ? 7 : -5),
+          10,
+          5,
+          (i % 2 ? -.5 : .5),
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+    }
+
+    function drawObstacle(o) {
+      const topH = Math.max(0, o.gapY - gapSize / 2);
+      const bottomY = o.gapY + gapSize / 2;
+      drawVinePart(o.x, 0, topH, true);
+      drawVinePart(o.x, bottomY, canvas.height - bottomY, false);
+    }
+
+    function drawFrog() {
+      ctx.save();
+      ctx.translate(frog.x, frog.y);
+      ctx.rotate(Math.max(-.35, Math.min(.55, frog.vy * .045)));
+
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(0, 1, 18, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(-9, -11, 8, 0, Math.PI * 2);
+      ctx.arc(9, -11, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-9, -12, 4, 0, Math.PI * 2);
+      ctx.arc(9, -12, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#111827';
+      ctx.beginPath();
+      ctx.arc(-8, -12, 2, 0, Math.PI * 2);
+      ctx.arc(8, -12, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#14532d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-9, 10);
+      ctx.lineTo(-20, 17);
+      ctx.moveTo(9, 10);
+      ctx.lineTo(20, 17);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function draw() {
+      drawJungle();
+      obstacles.forEach(drawObstacle);
+      drawFrog();
+
+      if (!running) {
+        ctx.fillStyle = 'rgba(15,23,42,.55)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '700 21px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Tap to hop through the vines', canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
+      const nearestX = Math.max(rx, Math.min(cx, rx + rw));
+      const nearestY = Math.max(ry, Math.min(cy, ry + rh));
+      const dx = cx - nearestX;
+      const dy = cy - nearestY;
+      return dx * dx + dy * dy < r * r;
+    }
+
+    function hop() {
+      if (!running) return;
+      frog.vy = hopPower;
+    }
+
+    function loop() {
+      if (!running) return;
+
+      frame += 1;
+      frog.vy += gravity;
+      frog.y += frog.vy;
+
+      for (const o of obstacles) {
+        o.x -= speed;
+
+        if (!o.scored && o.x + obstacleWidth < frog.x) {
+          o.scored = true;
+          score += 1;
+          scoreEl.textContent = score;
+          rewardPreviewEl.textContent = rewardFor(score);
+
+          if (score === 10) Arcade.toast('🐸 10 vines! +2 milestone bonus');
+          if (score === 20) Arcade.toast('🌿 20 vines! +3 milestone bonus');
+          if (score === 30) Arcade.toast('🏆 30 vines! +5 milestone bonus');
+        }
+
+        const topH = o.gapY - gapSize / 2;
+        const bottomY = o.gapY + gapSize / 2;
+
+        if (
+          circleRectCollision(frog.x, frog.y, frog.r, o.x, 0, obstacleWidth, topH) ||
+          circleRectCollision(frog.x, frog.y, frog.r, o.x, bottomY, obstacleWidth, canvas.height - bottomY)
+        ) {
+          finishGame();
+          return;
+        }
+      }
+
+      obstacles = obstacles.filter(o => o.x + obstacleWidth > -20);
+      if (obstacles.length && obstacles[obstacles.length - 1].x < canvas.width - 190) {
+        spawnObstacle(canvas.width + 30);
+      }
+
+      if (frog.y - frog.r <= 0 || frog.y + frog.r >= canvas.height - 28) {
+        finishGame();
+        return;
+      }
+
+      draw();
+      animation = requestAnimationFrame(loop);
+    }
+
+    function finishGame() {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(animation);
+      animation = null;
+
+      const earned = rewardFor(score);
+      Arcade.earn(earned, 'Jungle Hopper');
+
+      const best = Math.max(score, Arcade.number('jungleHopperBest'));
+      localStorage.setItem('jungleHopperBest', String(best));
+
+      refreshChrome();
+      setStatus('Game Over', 'over');
+      startButton.disabled = false;
+      startButton.textContent = '▶ Play Again';
+      draw();
+
+      Arcade.panel(
+        '🐸 Jungle Run Over',
+        'Vines passed: ' + score +
+        '\nBest: ' + best +
+        '\n+' + earned + ' Arcade Coins' +
+        '\n' + Arcade.remaining('jungleHopper') + ' plays remaining',
+        Arcade.remaining('jungleHopper') > 0
+          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+          : [['Get More Plays', () => Arcade.out('jungleHopper', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
+      );
+    }
+
+    function startGame() {
+      if (running) return;
+
+      if (!Arcade.consume('jungleHopper')) {
+        Arcade.out('jungleHopper', refreshChrome);
+        return;
+      }
+
+      resetGame();
+      running = true;
+      startButton.disabled = true;
+      startButton.textContent = 'Game Running';
+      setStatus('Running', 'running');
+      refreshChrome();
+      hop();
+      draw();
+      animation = requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      hop();
+    });
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+    document.addEventListener('keydown', event => {
+      if (event.code === 'Space' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        hop();
+      }
+    });
+
+    startButton.addEventListener('click', startGame);
+    resetGame();
+    refreshChrome();
+    draw();
+  </script>
+</body>
+</html>
