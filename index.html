@@ -38,6 +38,18 @@
       </div>
     </section>
 
+    <section class="card compact-card continue-card" id="continueCard" hidden>
+      <div class="continue-game-row">
+        <div class="continue-game-icon" id="continueIcon">🎮</div>
+        <div class="continue-game-copy">
+          <span class="muted small">CONTINUE PLAYING</span>
+          <strong id="continueName">Game</strong>
+          <div class="continue-game-meta" id="continueMeta">Ready to play</div>
+        </div>
+      </div>
+      <a class="button wide green" id="continueButton" href="games.html" style="margin-top:12px">Play Again</a>
+    </section>
+
     <section class="card challenge">
       <div class="row">
         <div>
@@ -114,6 +126,11 @@
     const profileLevel = document.getElementById('profileLevel');
     const profileXP = document.getElementById('profileXP');
     const profileXPBar = document.getElementById('profileXPBar');
+    const continueCard = document.getElementById('continueCard');
+    const continueIcon = document.getElementById('continueIcon');
+    const continueName = document.getElementById('continueName');
+    const continueMeta = document.getElementById('continueMeta');
+    const continueButton = document.getElementById('continueButton');
     const weeklyText = document.getElementById('weeklyText');
     const weeklyCount = document.getElementById('weeklyCount');
     const coinAdButton = document.getElementById('coinAdButton');
@@ -127,6 +144,31 @@
       profileLevel.textContent = xp.level;
       profileXP.textContent = xp.current + ' / ' + xp.needed + ' XP';
       profileXPBar.style.width = xp.progress + '%';
+
+      const gameMeta = {
+        snake:['🐍','Snake','snake.html'],
+        blockDrop:['🧱','Block Drop','blockdrop.html'],
+        tapRush:['🎯','Tap Rush','taprush.html'],
+        memory:['🧠','Memory Match','memory.html'],
+        dodger:['🚗','Neon Dodger','dodger.html'],
+        brickBreaker:['💥','Brick Breaker','brickbreaker.html'],
+        jungleHopper:['🐸','Jungle Hopper','junglehopper.html'],
+        towerStack:['🏗️','Tower Stack','towerstack.html']
+      };
+      const recent = Arcade.recentGames()[0];
+      const recentInfo = recent && gameMeta[recent];
+
+      if (recentInfo) {
+        const best = Arcade.best(recent);
+        continueCard.hidden = false;
+        continueIcon.textContent = recentInfo[0];
+        continueName.textContent = recentInfo[1];
+        continueMeta.textContent =
+          '🏆 ' + best.display + ' · ' + Arcade.remaining(recent) + ' plays left';
+        continueButton.href = recentInfo[2];
+      } else {
+        continueCard.hidden = true;
+      }
 
       const bonus = Arcade.dailyBonusStatus();
       streak.textContent = '🔥 ' + bonus.streak + ' day' + (bonus.streak === 1 ? '' : 's') + ' streak';
