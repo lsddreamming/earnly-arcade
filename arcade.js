@@ -24,13 +24,14 @@ const Arcade = (() => {
 
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
+  const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
   const CHALLENGE_VERSION = '3';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.11.1';
+  const APP_VERSION = '0.12.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -163,7 +164,8 @@ const Arcade = (() => {
       key === game + 'BestLines' ||
       key === game + 'BestMoves' ||
       key === game + 'GamesPlayed' ||
-      key === game + 'BonusPlays'
+      key === game + 'BonusPlays' ||
+      key === game + 'PlayAdUnlocks'
     );
   }
 
@@ -627,6 +629,7 @@ const Arcade = (() => {
       Object.keys(names).forEach(g => {
         setNumber(g + 'GamesPlayed', 0);
         setNumber(g + 'BonusPlays', 0);
+        setNumber(g + 'PlayAdUnlocks', 0);
       });
       localStorage.setItem('arcadePlayDay', today);
     }
@@ -648,6 +651,27 @@ const Arcade = (() => {
   function remaining(g) {
     refreshDaily();
     return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
+  }
+
+  function playAdStatus(g) {
+    refreshDaily();
+
+    let used = number(g + 'PlayAdUnlocks');
+    const legacyBonusPacks = Math.floor(number(g + 'BonusPlays') / PLAY_AD_BONUS);
+
+    // Count bonus packs already earned today before this daily cap existed.
+    if (legacyBonusPacks > used) {
+      used = Math.min(PLAY_AD_DAILY_LIMIT, legacyBonusPacks);
+      setNumber(g + 'PlayAdUnlocks', used);
+    }
+
+    return {
+      used,
+      limit: PLAY_AD_DAILY_LIMIT,
+      remaining: Math.max(0, PLAY_AD_DAILY_LIMIT - used),
+      bonus: PLAY_AD_BONUS,
+      maxDailyPlays: FREE_PLAYS + PLAY_AD_BONUS * PLAY_AD_DAILY_LIMIT
+    };
   }
 
   function consume(g) {
@@ -1402,7 +1426,18 @@ const Arcade = (() => {
   }
 
   function playAd(g, done = () => {}) {
+    const adStatus = playAdStatus(g);
     if (busy || remaining(g) > 0) return;
+
+    if (adStatus.remaining <= 0) {
+      panel(
+        'Bonus plays used for today',
+        'You’ve used both rewarded-play unlocks for ' + (names[g] || 'this game') + ' today. Free plays refill tomorrow.',
+        [['Back to Arcade', () => location.href = 'games.html', 'secondary']]
+      );
+      return;
+    }
+
     busy = true;
 
     const gameName = names[g] || 'game';
@@ -1457,7 +1492,14 @@ const Arcade = (() => {
       countdown.textContent = 'Unlocked ✓';
       reward.classList.add('complete');
 
+      setNumber(g + 'PlayAdUnlocks', adStatus.used + 1);
       grantPlays(g, PLAY_AD_BONUS);
+      queueEvent('rewarded_play_unlock', {
+        game:g,
+        unlockNumber:adStatus.used + 1,
+        dailyLimit:PLAY_AD_DAILY_LIMIT,
+        playsGranted:PLAY_AD_BONUS
+      });
       if (cancelButton) cancelButton.disabled = true;
       done();
 
@@ -1497,9 +1539,22 @@ const Arcade = (() => {
   }
 
   function out(g, done) {
+    const status = playAdStatus(g);
+    const gameName = names[g] || 'this game';
+
+    if (status.remaining <= 0) {
+      panel(
+        'That’s today’s bonus-play limit',
+        'You’ve used both rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
+        [['Back to Arcade', () => location.href = 'games.html', 'secondary']]
+      );
+      return;
+    }
+
     panel(
-      'Out of ' + names[g] + ' plays',
-      'Your free plays refill daily.\nWant to keep playing now? Finish a rewarded-ad demo for +' + PLAY_AD_BONUS + ' plays. Arcade Coins are not spent or awarded by this ad.',
+      'Out of ' + gameName + ' plays',
+      'Free plays refill daily. You have ' + status.remaining + ' of ' + status.limit + ' bonus-play unlock' +
+        (status.remaining === 1 ? '' : 's') + ' left today. Each rewarded ad unlocks +' + PLAY_AD_BONUS + ' plays.',
       [
         ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
         ['Back to Arcade', () => location.href = 'games.html', 'secondary']
@@ -1545,7 +1600,7 @@ const Arcade = (() => {
     list.className = 'onboarding-list';
 
     [
-      ['🎟️','Plays','3 free plays per game each day. Optional rewarded ads can unlock +3 more for that game.'],
+      ['🎟️','Plays','3 free plays per game each day. Up to 2 rewarded ads can unlock +3 plays each for that game.'],
       ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
       ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
       ['🎁','Rewards','Coins are prototype rewards today. Real cash-out is not connected yet.']
@@ -1801,7 +1856,10 @@ const Arcade = (() => {
   return {
     names,
     FREE_PLAYS,
+    PLAY_AD_BONUS,
+    PLAY_AD_DAILY_LIMIT,
     remaining,
+    playAdStatus,
     consume,
     best,
     recordResult,
