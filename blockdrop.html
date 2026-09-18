@@ -69,10 +69,10 @@
       <button class="game-control" id="leftButton" type="button" aria-label="Move left">⬅️</button>
       <button class="game-control" id="rotateButton" type="button" aria-label="Rotate">🔄</button>
       <button class="game-control" id="rightButton" type="button" aria-label="Move right">➡️</button>
-      <button class="game-control" id="dropButton" type="button">⬇️ Drop</button>
+      <button class="game-control" id="dropButton" type="button" aria-label="Hold to drop piece faster">⬇️ Drop</button>
     </div>
 
-    <p class="swipe-hint">Tap the board to start the countdown. Then drag left/right or down, and tap to rotate.</p>
+    <p class="swipe-hint">Tap the board to start. Drag to move pieces, tap to rotate, or hold ⬇️ Drop for a fast soft-drop.</p>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -349,7 +349,7 @@
     bindHoldControl('leftButton', moveLeft);
     bindHoldControl('rightButton', moveRight);
     bindTapControl('rotateButton', rotatePiece);
-    bindTapControl('dropButton', moveDown);
+    bindHoldControl('dropButton', moveDown);
 
     let blockDragPointer = null;
     let blockDragX = 0;
