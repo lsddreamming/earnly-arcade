@@ -24,15 +24,13 @@ const Arcade = (() => {
 
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
-  const COIN_AD_REWARD = 10;
-  const COIN_AD_LIMIT = 5;
   const DAILY_BONUS = 10;
   const CHALLENGE_VERSION = '3';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.9.0';
+  const APP_VERSION = '0.10.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -158,7 +156,6 @@ const Arcade = (() => {
     if (['points','lifetimePoints','dailyStreak','lastDailyBonusDate','streakRewardClaims'].includes(key)) return true;
     if (key.startsWith('arcade')) return true;
     if (key.startsWith('weekly')) return true;
-    if (key.startsWith('coinAd') || key === 'coinAdsToday') return true;
     if (key.startsWith('gameRuns_') || key.startsWith('gameMetricTotal_')) return true;
 
     return Object.keys(names).some(game =>
@@ -646,10 +643,6 @@ const Arcade = (() => {
       localStorage.setItem('arcadeChallengeGames', '[]');
     }
 
-    if (localStorage.getItem('coinAdDay') !== today) {
-      localStorage.setItem('coinAdDay', today);
-      setNumber('coinAdsToday', 0);
-    }
   }
 
   function remaining(g) {
@@ -1493,63 +1486,10 @@ const Arcade = (() => {
     }, { once:true });
   }
 
-  function coinAdStatus() {
-    refreshDaily();
-    return {
-      watched:number('coinAdsToday'),
-      limit:COIN_AD_LIMIT,
-      remaining:Math.max(0, COIN_AD_LIMIT - number('coinAdsToday')),
-      reward:COIN_AD_REWARD
-    };
-  }
-
-  function coinAd(done = () => {}) {
-    const status = coinAdStatus();
-    if (busy || status.remaining <= 0) {
-      if (status.remaining <= 0) toast('Daily demo ad limit reached');
-      return;
-    }
-
-    busy = true;
-    panel(
-      'Demo rewarded ad',
-      'This is a 3-second simulation, not a real advertisement.\nFinish it to earn +' + COIN_AD_REWARD + ' Arcade Coins.',
-      [['Cancel', () => {}, 'secondary']]
-    );
-
-    const progress = document.createElement('progress');
-    progress.max = 3;
-    progress.value = 0;
-    modal.insertBefore(progress, modal.querySelector('.modal-actions'));
-
-    let elapsed = 0;
-    let finished = false;
-    const timer = setInterval(() => {
-      elapsed += 1;
-      progress.value = elapsed;
-
-      if (elapsed >= 3) {
-        finished = true;
-        clearInterval(timer);
-        setNumber('coinAdsToday', number('coinAdsToday') + 1);
-        earn(COIN_AD_REWARD, 'Rewarded ad demo');
-        modal.close();
-        busy = false;
-        toast('🪙 +' + COIN_AD_REWARD + ' Arcade Coins');
-        done();
-      }
-    }, 1000);
-
-    modal.addEventListener('close', () => {
-      clearInterval(timer);
-      if (!finished) busy = false;
-    }, { once:true });
-  }
-
   function out(g, done) {
     panel(
       'Out of ' + names[g] + ' plays',
-      'Your free plays refill daily.\nWant to keep playing now? Finish a demo rewarded ad for +' + PLAY_AD_BONUS + ' plays.',
+      'Your free plays refill daily.\nWant to keep playing now? Finish a rewarded-ad demo for +' + PLAY_AD_BONUS + ' plays. Arcade Coins are not spent or awarded by this ad.',
       [
         ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
         ['Back to Arcade', () => location.href = 'games.html', 'secondary']
@@ -1570,7 +1510,7 @@ const Arcade = (() => {
 
     panel(
       '🎮 Welcome to Earnly Arcade',
-      '1. Play arcade games and build your best scores.\n\n2. Complete daily and weekly missions to earn XP and level up.\n\n3. Build streaks, unlock achievements, and track your stats.\n\nThis is still a prototype — real cash-out and real ad rewards are not connected yet.',
+      '🎟️ PLAYS\nEach game starts with 3 free plays every day. If you run out, an optional rewarded ad can unlock +3 plays for that game.\n\n🪙 ARCADE COINS\nEarn Coins from game rewards, the daily bonus, and daily challenges. Ads do not directly award Coins.\n\n⭐ XP\nFinishing games, missions, streaks, and achievements builds XP and levels up your profile.\n\n🎁 REWARDS\nArcade Coins are prototype rewards right now. Real cash-out and a coin-to-cash conversion are not connected yet.',
       [
         ['Let’s Play', () => {
           localStorage.setItem('arcadeOnboardingSeen', '1');
@@ -1695,7 +1635,7 @@ const Arcade = (() => {
     title.textContent = 'Earnly Arcade';
 
     const subtitle = document.createElement('span');
-    subtitle.textContent = 'Play. Watch. Earn.';
+    subtitle.textContent = 'Play. Earn. Level Up.';
 
     splash.append(icon, title, subtitle);
     document.body.append(splash);
@@ -1844,8 +1784,6 @@ const Arcade = (() => {
     resultText,
     playAd,
     ad:playAd,
-    coinAd,
-    coinAdStatus,
     out,
     number,
     history,
