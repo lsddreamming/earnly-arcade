@@ -221,7 +221,7 @@
         overlap = previous.w;
         perfects += 1;
         perfectsEl.textContent = perfects;
-        Arcade.toast('✨ Perfect stack!');
+        Arcade.milestone('✨ Perfect stack!', 'perfect');
       } else {
         Arcade.feedback('stack');
         moving.x = left;
@@ -240,9 +240,9 @@
       floorsEl.textContent = floors;
       rewardPreviewEl.textContent = rewardFor(floors, perfects);
 
-      if (floors === 10) Arcade.toast('🏗️ 10 floors! +2 milestone bonus');
-      if (floors === 20) Arcade.toast('🔥 20 floors! +3 milestone bonus');
-      if (floors === 30) Arcade.toast('🏆 30 floors! +5 milestone bonus');
+      if (floors === 10) Arcade.milestone('🏗️ 10 floors · High Rise!');
+      if (floors === 20) Arcade.milestone('🔥 20 floors · Skyline Builder!', 'perfect');
+      if (floors === 30) Arcade.milestone('🏆 30 floors · Tower legend!', 'perfect');
 
       moving = null;
       shiftTowerIfNeeded();
@@ -286,18 +286,20 @@
       startButton.textContent = '👆 Tap Tower to Play Again';
       draw();
 
-      Arcade.panel(
-        '🏗️ Tower Finished',
-        'Floors: ' + floors +
-        '\nPerfect stacks: ' + perfects +
-        '\nBest: ' + best +
-        '\n+' + earned + ' Arcade Coins' +
-        Arcade.resultText(result) +
-        '\n' + Arcade.remaining('towerStack') + ' plays remaining',
-        Arcade.remaining('towerStack') > 0
-          ? [['Play Again', startGame, 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-          : [['Get More Plays', () => Arcade.out('towerStack', refreshChrome), 'green'], ['Back to Games', () => location.href = 'games.html', 'secondary']]
-      );
+      Arcade.gameResult({
+        icon:'🏗️',
+        title:'Tower Finished',
+        scoreLabel:'Floors Stacked',
+        score:floors,
+        best:best + ' floors',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('towerStack'),
+        game:'towerStack',
+        extra:['✨ Perfect stacks: ' + perfects, floors>=20?'🏙️ Skyline Builder run!':'Center the next floor for a perfect.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('towerStack',refreshChrome)
+      });
     }
 
     function startGame() {
