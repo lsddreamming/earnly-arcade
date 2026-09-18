@@ -66,6 +66,13 @@
         <div class="streak-step" data-days="14"><strong>⚡ 14</strong><span>Locked In</span></div>
       </div>
       <p class="muted small" id="nextStreak" style="margin-bottom:0"></p>
+      <div class="streak-reward-list" id="streakRewardList"></div>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>🎮 Game Performance</h2>
+      <p class="muted small" id="mostPlayedText">Detailed run stats start tracking from this update.</p>
+      <div class="game-stats-list" id="gameStatsList"></div>
     </section>
 
     <section class="card" style="text-align:left">
@@ -192,6 +199,42 @@
       }
     }
 
+    function renderGameStats() {
+      const root = document.getElementById('gameStatsList');
+      root.replaceChildren();
+      const all = Arcade.allGameStats();
+
+      const iconByGame = Object.fromEntries(gameInfo.map(info => [info[0], info[1]]));
+      const most = Arcade.mostPlayedGame();
+
+      document.getElementById('mostPlayedText').textContent = most
+        ? 'Most played: ' + (iconByGame[most.game] || '🎮') + ' ' + most.name + ' · ' + most.runs + ' runs'
+        : 'Detailed run stats start tracking as you finish games.';
+
+      all.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'game-stat-row';
+
+        const copy = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = (iconByGame[item.game] || '🎮') + ' ' + item.name;
+
+        const detail = document.createElement('span');
+        detail.textContent = item.runs
+          ? item.runs + ' runs · Avg ' + item.average + ' ' + item.best.label + ' · Best ' + item.best.display
+          : 'No tracked runs yet';
+
+        copy.append(title, detail);
+
+        const badge = document.createElement('div');
+        badge.className = 'game-stat-badge';
+        badge.textContent = item.runs + ' run' + (item.runs === 1 ? '' : 's');
+
+        row.append(copy, badge);
+        root.append(row);
+      });
+    }
+
     function renderBests() {
       const root = document.getElementById('bestGrid');
       root.replaceChildren();
@@ -254,6 +297,51 @@
       });
     }
 
+    function renderStreakRewards() {
+      const root = document.getElementById('streakRewardList');
+      root.replaceChildren();
+      const status = Arcade.streakRewardStatus();
+
+      status.rewards.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'streak-reward' + (item.claimed ? ' claimed' : (item.reached ? ' ready' : ''));
+
+        const icon = document.createElement('div');
+        icon.className = 'streak-reward-icon';
+        icon.textContent = item.icon;
+
+        const copy = document.createElement('div');
+        copy.className = 'streak-reward-copy';
+        const title = document.createElement('strong');
+        title.textContent = item.title;
+        const detail = document.createElement('span');
+        detail.textContent = item.claimed ? '+' + item.rewardXP + ' XP claimed' :
+          (item.reached ? '+' + item.rewardXP + ' XP ready to claim' : '+' + item.rewardXP + ' XP at day ' + item.days);
+        copy.append(title, detail);
+
+        row.append(icon, copy);
+
+        if (item.reached && !item.claimed) {
+          const button = document.createElement('button');
+          button.className = 'green';
+          button.type = 'button';
+          button.textContent = 'Claim';
+          button.addEventListener('click', () => {
+            Arcade.claimStreakReward(item.days);
+            render();
+          });
+          row.append(button);
+        } else {
+          const badge = document.createElement('div');
+          badge.className = 'game-stat-badge';
+          badge.textContent = item.claimed ? '✓' : item.days + 'd';
+          row.append(badge);
+        }
+
+        root.append(row);
+      });
+    }
+
     function renderStreak(streak) {
       document.getElementById('streakValue').textContent =
         streak + ' day' + (streak === 1 ? '' : 's');
@@ -290,6 +378,8 @@
 
       renderMissions();
       renderStreak(stats.streak);
+      renderStreakRewards();
+      renderGameStats();
       renderBests();
       renderActivity();
     }
