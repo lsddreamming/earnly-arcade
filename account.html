@@ -162,6 +162,7 @@
     const cloudAutoSyncToggle = document.getElementById('cloudAutoSyncToggle');
     const cloudRecovery = document.getElementById('cloudRecovery');
     const cloudNewPassword = document.getElementById('cloudNewPassword');
+    let recoveryMode = new URLSearchParams(location.search).has('recovery');
 
     function friendlyTime(value){
       if (!value) return 'No cloud save yet';
@@ -182,6 +183,17 @@
       try {
         const current = await EarnlyCloud.session();
         const signedIn = !!current?.user;
+
+        if (recoveryMode) {
+          cloudSignedOut.hidden = true;
+          cloudSignedIn.hidden = true;
+          cloudRecovery.hidden = false;
+          cloudBadge.textContent = 'Recovery';
+          cloudBadge.classList.remove('connected');
+          return;
+        }
+
+        cloudRecovery.hidden = true;
         cloudSignedOut.hidden = signedIn;
         cloudSignedIn.hidden = !signedIn;
         cloudBadge.textContent = signedIn ? 'Connected' : 'Guest';
@@ -287,8 +299,10 @@
         await EarnlyCloud.updatePassword(cloudNewPassword.value);
         cloudNewPassword.value = '';
         cloudRecovery.hidden = true;
+        recoveryMode = false;
         cloudMessage.textContent = '✅ Password updated. You are still signed in.';
         history.replaceState({}, '', 'account.html');
+        await renderCloud();
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not update the password.';
       }
@@ -428,6 +442,7 @@
     window.addEventListener('earnly-cloud-conflict', renderCloud);
     window.addEventListener('earnly-cloud-auto-change', renderCloud);
     window.addEventListener('earnly-cloud-password-recovery', () => {
+      recoveryMode = true;
       cloudSignedOut.hidden = true;
       cloudSignedIn.hidden = true;
       cloudRecovery.hidden = false;
