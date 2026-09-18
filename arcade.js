@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.13.7';
+  const APP_VERSION = '0.13.8';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1706,6 +1706,21 @@ const Arcade = (() => {
     }
 
     const statusEl = document.querySelector(options.status || '#gameStatus');
+
+    // Keep game state (Ready / Running / Game Over) visually tied to the title
+    // on every game page instead of leaving it floating below the stat row.
+    if (statusEl && !statusEl.closest('.game-title-status-row')) {
+      const header = statusEl.closest('.page-header') || document.querySelector('.page-header');
+      const heading = header?.querySelector('h1');
+
+      if (header && heading) {
+        const row = document.createElement('div');
+        row.className = 'game-title-status-row';
+        heading.insertAdjacentElement('beforebegin', row);
+        row.append(heading, statusEl);
+        statusEl.classList.add('title-status');
+      }
+    }
 
     const refresh = () => {
       const statusText = (statusEl?.textContent || '').trim().toLowerCase();
