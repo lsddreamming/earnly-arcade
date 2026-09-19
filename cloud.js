@@ -376,6 +376,32 @@
     const snapshot = options.snapshot || Arcade.snapshotData();
     const signature = snapshotSignature(snapshot);
     const status = Arcade.appStatus();
+
+    // Manual saves can still arrive from a stale browser tab/device. Before
+    // writing, compare the current cloud revision with the revision this
+    // device last saw. Automatic saves already perform this check earlier.
+    if (!options.skipConflictCheck) {
+      const remote = await cloudSaveInfo();
+      const lastKnownRaw = localStorage.getItem('arcadeLastCloudSave');
+      const lastKnown = lastKnownRaw ? new Date(lastKnownRaw).getTime() : 0;
+      const remoteTime = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
+      const differentDevice = !!(remote?.device_id && remote.device_id !== status.deviceId);
+
+      if (remote && differentDevice && (!lastKnown || remoteTime > lastKnown + 1000)) {
+        const conflict = {
+          reason:'newer-cloud-save',
+          remoteUpdatedAt:remote.updated_at,
+          remoteDeviceId:remote.device_id,
+          localDeviceId:status.deviceId,
+          detectedAt:new Date().toISOString()
+        };
+        localStorage.setItem('arcadeCloudConflict', JSON.stringify(conflict));
+        window.dispatchEvent(new CustomEvent('earnly-cloud-conflict', { detail:conflict }));
+        const error = new Error('A newer cloud save exists on another device. Restore it before replacing cloud progress.');
+        error.code = 'EARNLY_CLOUD_CONFLICT';
+        throw error;
+      }
+    }
     const displayName = (localStorage.getItem('arcadeProfileName') || 'Player').trim().slice(0,32) || 'Player';
     const source = options.source || 'manual';
 
@@ -504,7 +530,8 @@
       const result = await saveProgress({
         source:'auto:' + reason,
         skipRewardSync:true,
-        skipIfUnchanged:true
+        skipIfUnchanged:true,
+        skipConflictCheck:true
       });
       result.rewardSync = rewardSync;
       return result;
