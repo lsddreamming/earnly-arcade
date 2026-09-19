@@ -32,15 +32,6 @@
       <b>Play →</b>
     </a>
 
-    <a class="home-account-shortcut" id="homeAccountShortcut" href="account.html" aria-label="Sign in to Earnly on this browser">
-      <span class="home-account-shortcut-icon">🔐</span>
-      <span class="home-account-shortcut-copy">
-        <strong id="homeAccountTitle">Sign in on this browser</strong>
-        <small id="homeAccountText">Restore your Coins, levels, scores, and missions.</small>
-      </span>
-      <b id="homeAccountAction">Sign In →</b>
-    </a>
-
     <section class="home-install-banner browser-only" id="installCard">
       <div class="home-install-main">
         <div class="home-install-icon"><img src="earnly-icon.svg" alt=""></div>
@@ -66,6 +57,20 @@
       </div>
     </section>
 
+    <section class="home-section continue-card" id="continueCard" hidden>
+      <div class="home-section-heading">
+        <span>Continue playing</span>
+      </div>
+      <div class="home-action-row">
+        <div class="home-action-icon" id="continueIcon">🎮</div>
+        <div class="home-action-copy">
+          <strong id="continueName">Game</strong>
+          <span id="continueMeta">Ready to play</span>
+        </div>
+        <a class="home-row-button" id="continueButton" href="games.html">Play</a>
+      </div>
+    </section>
+
     <section class="home-overview" aria-label="Earnly overview">
       <a class="home-metric" href="rewards.html" aria-label="View Arcade Coin rewards">
         <span class="home-metric-label">Arcade Coins</span>
@@ -85,20 +90,6 @@
           <span id="profileXP">0 / 100 XP</span>
         </div>
         <div class="xp-bar home-xp-bar"><span id="profileXPBar"></span></div>
-      </div>
-    </section>
-
-    <section class="home-section continue-card" id="continueCard" hidden>
-      <div class="home-section-heading">
-        <span>Continue playing</span>
-      </div>
-      <div class="home-action-row">
-        <div class="home-action-icon" id="continueIcon">🎮</div>
-        <div class="home-action-copy">
-          <strong id="continueName">Game</strong>
-          <span id="continueMeta">Ready to play</span>
-        </div>
-        <a class="home-row-button" id="continueButton" href="games.html">Play</a>
       </div>
     </section>
 
@@ -168,6 +159,15 @@
         </a>
       </div>
     </section>
+
+    <a class="home-account-shortcut" id="homeAccountShortcut" href="account.html" aria-label="Sign in to Earnly on this browser">
+      <span class="home-account-shortcut-icon">🔐</span>
+      <span class="home-account-shortcut-copy">
+        <strong id="homeAccountTitle">Sign in on this browser</strong>
+        <small id="homeAccountText">Restore your Coins, levels, scores, and missions.</small>
+      </span>
+      <b id="homeAccountAction">Sign In →</b>
+    </a>
 
     <details class="home-prototype-note">
       <summary>About this prototype</summary>
