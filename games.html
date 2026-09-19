@@ -44,7 +44,7 @@
     <section class="game-browser-tools" aria-label="Find a game">
       <label class="game-search-box">
         <span>🔎</span>
-        <input id="gameSearch" type="search" autocomplete="off" placeholder="Search 13 games…" aria-label="Search games">
+        <input id="gameSearch" type="search" autocomplete="off" placeholder="Search 20 games…" aria-label="Search games">
       </label>
       <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
         <button type="button" class="game-filter active" data-filter="all">All</button>
@@ -54,7 +54,7 @@
         <button type="button" class="game-filter" data-filter="classic">🕹️ Classic</button>
         <button type="button" class="game-filter" data-filter="brain">🧠 Brain</button>
       </div>
-      <div class="game-filter-count" id="gameMatchCount">13 games</div>
+      <div class="game-filter-count" id="gameMatchCount">20 games</div>
     </section>
 
     <div id="games" class="game-list"></div>
@@ -77,7 +77,14 @@
       { key:'colorMatch', icon:'🎨', name:'Color Match', note:'Match the ink color before time runs out', href:'colormatch.html' },
       { key:'paddleRally', icon:'🏓', name:'Paddle Rally', note:'Solo pong · keep the rally alive', href:'paddlerally.html' },
       { key:'laneRunner', icon:'🏎️', name:'Lane Runner', note:'Switch lanes and dodge traffic', href:'lanerunner.html' },
-      { key:'safeCracker', icon:'🔐', name:'Safe Cracker', note:'Stop the marker in the shrinking green zone', href:'safecracker.html' }
+      { key:'safeCracker', icon:'🔐', name:'Safe Cracker', note:'Stop the marker in the shrinking green zone', href:'safecracker.html' },
+      { key:'blockGrid', icon:'🧩', name:'Block Grid', note:'Place blocks · clear rows and columns', href:'mini.html?game=blockGrid' },
+      { key:'mergeRush', icon:'🔢', name:'Merge Rush', note:'Swipe and merge matching numbers', href:'mini.html?game=mergeRush' },
+      { key:'perfectDrop', icon:'🎯', name:'Perfect Drop', note:'Time each drop into the target', href:'mini.html?game=perfectDrop' },
+      { key:'spiralDrop', icon:'🌀', name:'Spiral Drop', note:'Guide the ball through shrinking gaps', href:'mini.html?game=spiralDrop' },
+      { key:'shapeFit', icon:'🧠', name:'Shape Fit', note:'Match silhouettes as your streak grows', href:'mini.html?game=shapeFit' },
+      { key:'bounceRun', icon:'⚪', name:'Bounce Run', note:'Hold to dive · release to float', href:'mini.html?game=bounceRun' },
+      { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' }
     ];
 
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
@@ -90,11 +97,18 @@
       brickBreaker:['classic','action'],
       jungleHopper:['action'],
       towerStack:['action'],
-      coinCatch:['new','action'],
-      colorMatch:['new','quick','brain'],
-      paddleRally:['new','classic','action'],
-      laneRunner:['new','action'],
-      safeCracker:['new','quick']
+      coinCatch:['action'],
+      colorMatch:['quick','brain'],
+      paddleRally:['classic','action'],
+      laneRunner:['action'],
+      safeCracker:['quick'],
+      blockGrid:['new','classic','brain'],
+      mergeRush:['new','classic','brain'],
+      perfectDrop:['new','quick'],
+      spiralDrop:['new','action'],
+      shapeFit:['new','brain','quick'],
+      bounceRun:['new','action'],
+      trafficEscape:['new','brain']
     };
     let activeGameFilter = 'all';
     let gameSearchText = '';
