@@ -1035,12 +1035,18 @@
         // obstacles are separated enough to remain jumpable, but force the
         // player to react instead of repeating one perfectly timed hop.
         if(cleared>=10){
-          const clusterChance=cleared<20?.16:cleared<35?.28:.38;
+          // Keep clusters challenging but readable. Doubles arrive first;
+          // triples are reserved for deep runs and use wider spacing. Cluster
+          // members stay close in speed so they cannot collapse into an
+          // effectively impossible wall while approaching the player.
+          const clusterChance=cleared<20?.12:cleared<35?.20:.27;
           if(Math.random()<clusterChance){
-            const count=cleared>=25&&Math.random()<.32?2:1;
+            const triple=cleared>=40&&Math.random()<.18;
+            const count=triple?2:1;
+            const baseGap=triple ? 78+Math.random()*18 : 68+Math.random()*20;
             for(let i=1;i<=count;i++){
-              const gap=(52+Math.random()*24)*i;
-              const followSpeed=Math.max(1.2,speed+(Math.random()-.5)*1.15);
+              const gap=baseGap*i;
+              const followSpeed=Math.max(1.2,speed+(Math.random()-.5)*.42);
               obstacles.push({x:390+gap,w:Math.max(18,obstacleWidth()*.72),speed:followSpeed});
             }
           }
