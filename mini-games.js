@@ -105,7 +105,7 @@
   ];
 
   function makeBlockGrid() {
-    let board, tray, selected, score, lines, alive;
+    let board, tray, selected, score, lines, alive, celebrated100, celebrated250, lastLineMilestone;
     const wrap = document.createElement('div');
     const grid = document.createElement('div');
     const trayEl = document.createElement('div');
@@ -215,10 +215,11 @@
 
       render();
       // Make progression visible without changing Block Grid's scoring or
-      // reward economy. Players now get clear feedback as their run grows.
-      if(score>=100 && score-piece.length*3<100) Arcade.milestone('🧩 100 points! Board is heating up','score');
-      if(score>=250 && score-piece.length*3<250) Arcade.milestone('🔥 250 points! Bonus reward tier reached','perfect');
-      if(lines>0 && lines%5===0) Arcade.milestone('✨ '+lines+' lines cleared!','perfect');
+      // reward economy. Each milestone fires once per run.
+      if(score>=100&&!celebrated100){celebrated100=true;Arcade.milestone('🧩 100 points! Board is heating up','score')}
+      if(score>=250&&!celebrated250){celebrated250=true;Arcade.milestone('🔥 250 points! Bonus reward tier reached','perfect')}
+      const lineMark=Math.floor(lines/5)*5;
+      if(lineMark>=5&&lineMark>lastLineMilestone){lastLineMilestone=lineMark;Arcade.milestone('✨ '+lineMark+' lines cleared!','perfect')}
       if (!anyMove()) {
         alive=false;
         finish(score,lines,['🧩 Lines cleared: '+lines,'Save room for the pieces still in your tray.'],'Board Full');
@@ -229,7 +230,7 @@
       start() {
         board=Array.from({length:8},()=>Array(8).fill(0));
         tray=[randomPiece(),randomPiece(),randomPiece()];
-        selected=0;score=0;lines=0;alive=true;
+        selected=0;score=0;lines=0;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
         render();
       },
       stop(){alive=false}
