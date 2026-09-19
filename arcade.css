@@ -4824,3 +4824,10 @@ body.earnly-gameplay-locked{
 .game-search-wrap input::placeholder{color:#94a3b8}
 .games-empty-state{display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;padding:24px 16px;color:#cbd5e1}
 .games-empty-state strong{color:#f8fafc;font-size:16px}
+
+
+/* Compact pre-game summary: make plays, reward, and controls obvious before a run starts. */
+.game-start-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 9px}
+.game-start-summary-item{display:flex;align-items:center;justify-content:center;min-height:38px;padding:7px 8px;border:1px solid #334155;border-radius:12px;background:#111c2d;color:#dbeafe;font-size:11px;font-weight:750;line-height:1.25;text-align:center}
+.game-start-summary.out-of-plays .game-start-plays{border-color:#92400e;background:#422006;color:#fde68a}
+@media(max-width:600px){.game-start-summary{gap:5px;margin:6px 0 7px}.game-start-summary-item{min-height:34px;padding:6px 5px;font-size:10px}}
