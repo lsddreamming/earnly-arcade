@@ -172,3 +172,60 @@ test('all arcade games expose a consistent play balance', async ({ page }) => {
     expect(plays, game + ' should begin with three daily plays').toBe(3);
   }
 });
+
+
+test('result popup replaces an existing result instead of stacking dialogs', async ({ page }) => {
+  await page.goto('/mini.html?game=blockGrid');
+  await page.evaluate(() => {
+    const base = {icon:'🧩', title:'Block Grid', scoreLabel:'Score', best:'10 points', coins:1, result:{xpAward:10}, playsLeft:2, game:'blockGrid'};
+    Arcade.gameResult({...base, score:9, extra:['⏱️ Time played: 10s']});
+    Arcade.gameResult({...base, score:10, extra:['⏱️ Time played: 11s']});
+  });
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
+  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('dialog.game-result-dialog')).toContainText('11s');
+});
+
+test('gameplay scroll lock releases when run status stops', async ({ page }) => {
+  await page.goto('/mini.html?game=perfectDrop');
+  await page.evaluate(() => {
+    const status = document.querySelector('#gameStatus');
+    status.classList.add('running');
+  });
+  await page.waitForTimeout(50);
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+  await page.evaluate(() => document.querySelector('#gameStatus').classList.remove('running'));
+  await page.waitForTimeout(50);
+  await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked/);
+});
+
+test('result popup blocks clicks from reaching the game surface', async ({ page }) => {
+  await page.goto('/mini.html?game=mergeRush');
+  await page.evaluate(() => {
+    window.__surfaceClicks = 0;
+    document.querySelector('#surface').addEventListener('click', () => window.__surfaceClicks++);
+    Arcade.gameResult({
+      icon:'🔢', title:'Merge Rush', scoreLabel:'Score', score:32,
+      best:'32 points', coins:2, result:{xpAward:10}, playsLeft:1,
+      game:'mergeRush', extra:['⏱️ Time played: 12s']
+    });
+  });
+  await page.locator('dialog.game-result-dialog').click({position:{x:20,y:20}});
+  expect(await page.evaluate(() => window.__surfaceClicks)).toBe(0);
+});
+
+test('closing a result popup leaves no running gameplay lock behind', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:5,
+      best:'5 points', coins:1, result:{xpAward:10}, playsLeft:0,
+      game:'shapeFit', extra:['⏱️ Time played: 8s']
+    });
+  });
+  const dialog = page.locator('dialog.game-result-dialog');
+  await expect(dialog).toBeVisible();
+  await page.evaluate(() => document.querySelector('dialog.game-result-dialog').close());
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked/);
+});
