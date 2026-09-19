@@ -4455,3 +4455,93 @@ body.earnly-gameplay-locked{
     padding-bottom:max(20px,env(safe-area-inset-bottom));
   }
 }
+
+
+/* 0.15.30 compact mobile game catalog */
+@media (max-width:699px){
+  .games-dashboard .game-list{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  .games-dashboard .game-card.compact-game{
+    min-width:0;
+    margin:0;
+    padding:12px 10px;
+    border-radius:16px;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+    text-align:left;
+  }
+  .games-dashboard .game-title-row{
+    display:block;
+    position:relative;
+    padding-right:0;
+  }
+  .games-dashboard .game-title-row h2{
+    margin:0;
+    padding-right:38px;
+    font-size:15px;
+    line-height:1.2;
+  }
+  .games-dashboard .game-title-actions{
+    position:absolute;
+    top:-3px;
+    right:0;
+    display:block;
+  }
+  .games-dashboard .favorite-button{
+    width:32px;
+    min-width:32px;
+    height:32px;
+    min-height:32px;
+    padding:0;
+    border-radius:10px;
+    font-size:17px;
+  }
+  .games-dashboard .play-pill{
+    position:static;
+    display:inline-block;
+    margin-top:7px;
+    padding:4px 7px;
+    font-size:8px;
+    white-space:nowrap;
+  }
+  .games-dashboard .reward-rule{
+    min-height:30px;
+    margin:0;
+    font-size:9px;
+    line-height:1.35;
+  }
+  .games-dashboard .game-best{
+    min-height:14px;
+    margin:0;
+    font-size:8.5px;
+    line-height:1.2;
+  }
+  .games-dashboard .game-best[hidden]{display:block;visibility:hidden}
+  .games-dashboard .game-play-button{
+    min-height:38px;
+    margin-top:auto;
+    padding:8px 6px;
+    border-radius:11px;
+    font-size:11px;
+    line-height:1.15;
+  }
+  .games-dashboard .status-line{
+    margin-top:1px;
+    padding:6px;
+    border-radius:9px;
+    font-size:7.5px;
+    line-height:1.25;
+  }
+  .games-dashboard .game-browser-tools{
+    padding:7px 8px;
+  }
+}
+@media (max-width:360px){
+  .games-dashboard .game-list{gap:8px}
+  .games-dashboard .game-card.compact-game{padding:10px 8px}
+  .games-dashboard .game-title-row h2{font-size:14px}
+}
