@@ -2442,7 +2442,53 @@ const Arcade = (() => {
     }, { once:true });
   }
 
-    function mountBottomNav() {
+  
+  function mountDesktopNav() {
+    if (!document.body || document.getElementById('arcadeDesktopNav')) return;
+
+    const container = document.querySelector('.container');
+    if (!container) return;
+
+    const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    const gameFiles = new Set([
+      'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
+      'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html'
+    ]);
+
+    let active = 'home';
+    if (gameFiles.has(file)) active = 'games';
+    else if (file === 'stats.html') active = 'missions';
+    else if (file === 'rewards.html') active = 'rewards';
+    else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
+
+    const items = [
+      ['home','🏠','Home','index.html'],
+      ['games','🕹️','Games','games.html'],
+      ['missions','📅','Missions','stats.html'],
+      ['rewards','🎁','Rewards','rewards.html'],
+      ['profile','👤','Profile','profile.html']
+    ];
+
+    const nav = document.createElement('nav');
+    nav.id = 'arcadeDesktopNav';
+    nav.className = 'desktop-nav';
+    nav.setAttribute('aria-label', 'Earnly desktop navigation');
+
+    items.forEach(([key, icon, label, href]) => {
+      const link = document.createElement('a');
+      link.className = 'desktop-nav-item' + (key === active ? ' active' : '');
+      link.href = href;
+      if (key === active) link.setAttribute('aria-current', 'page');
+      link.textContent = icon + ' ' + label;
+      nav.append(link);
+    });
+
+    const topbar = container.querySelector('.topbar');
+    if (topbar) topbar.insertAdjacentElement('afterend', nav);
+    else container.prepend(nav);
+  }
+
+  function mountBottomNav() {
     if (!document.body || document.getElementById('arcadeBottomNav')) return;
 
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
@@ -2528,6 +2574,7 @@ const Arcade = (() => {
   applyTextScale();
   applyMotionPreference();
   mountBottomNav();
+  mountDesktopNav();
   mountConnectionBanner();
   mountLaunchSplash();
   registerServiceWorker();
