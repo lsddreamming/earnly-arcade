@@ -176,13 +176,13 @@
         result,
         playsLeft:Arcade.remaining('tapRush'),
         game:'tapRush',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('tapRush', refreshChrome)
       });
     }
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (running || starting) return;
       starting = true;
@@ -191,7 +191,7 @@
         starting = false;
         Arcade.out('tapRush', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       hits = 0;
       timeLeft = ROUND_SECONDS;
@@ -244,6 +244,7 @@
       moveTarget();
     });
 
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;target.hidden=true;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;target.hidden=false;timer=setInterval(()=>{timeLeft-=1;timeEl.textContent=String(timeLeft);if(timeLeft<=0)finishGame();},1000);}});
     target.addEventListener('contextmenu', event => event.preventDefault());
     startButton.addEventListener('click', startGame);
 
