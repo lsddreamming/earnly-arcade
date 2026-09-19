@@ -395,6 +395,12 @@
       handleJungleInput();
     });
 
+    document.addEventListener('pointerdown', event => {
+      if (event.target === canvas || !Arcade.inExpandedGameZone(event, canvas, 135)) return;
+      event.preventDefault();
+      handleJungleInput();
+    }, { passive:false });
+
     canvas.addEventListener('dblclick', event => {
       event.preventDefault();
       event.stopPropagation();
