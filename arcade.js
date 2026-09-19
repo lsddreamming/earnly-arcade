@@ -2650,6 +2650,58 @@ const Arcade = (() => {
   registerServiceWorker();
   bootCloudClient();
 
+  let gameplayLockedScrollY = 0;
+
+  function setGameplayScrollLock(enabled) {
+    const html = document.documentElement;
+    const body = document.body;
+    if (!body) return;
+
+    const locked = body.classList.contains('earnly-gameplay-locked');
+    if (enabled && !locked) {
+      gameplayLockedScrollY = window.scrollY || window.pageYOffset || 0;
+      html.classList.add('earnly-gameplay-locked');
+      body.classList.add('earnly-gameplay-locked');
+      body.style.top = '-' + gameplayLockedScrollY + 'px';
+      return;
+    }
+
+    if (!enabled && locked) {
+      html.classList.remove('earnly-gameplay-locked');
+      body.classList.remove('earnly-gameplay-locked');
+      body.style.top = '';
+      const restoreY = gameplayLockedScrollY;
+      requestAnimationFrame(() => window.scrollTo(0, restoreY));
+    }
+  }
+
+  function setupGameplayScrollLock() {
+    const sync = () => {
+      setGameplayScrollLock(!!document.querySelector('.game-status.running'));
+    };
+
+    const start = () => {
+      sync();
+      const observer = new MutationObserver(sync);
+      observer.observe(document.body, {
+        subtree:true,
+        attributes:true,
+        attributeFilter:['class']
+      });
+
+      window.addEventListener('pagehide', () => {
+        observer.disconnect();
+        setGameplayScrollLock(false);
+      }, { once:true });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start, { once:true });
+    } else {
+      start();
+    }
+  }
+
   function isProtectedGameControlTarget(target) {
     const element = target instanceof Element ? target : null;
     if (!element) return false;
@@ -2749,6 +2801,7 @@ const Arcade = (() => {
     countdown,
     resultText,
     gameGuide,
+    setGameplayScrollLock,
     isProtectedGameControlTarget,
     inExpandedGameZone,
     gameSurfaceX,
