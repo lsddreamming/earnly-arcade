@@ -52,48 +52,38 @@
 
   async function signInAndRestore(email, password){
     accountTransition = true;
-    let auth;
     try {
-      auth = await signIn(email, password);
-    } catch (error) {
-      accountTransition = false;
-      throw error;
-    }
-    let remote;
-    let restore;
-    try {
-      remote = await cloudSaveInfo();
-    } catch (error) {
-      accountTransition = false;
-      throw error;
-    }
-    const localDeviceId = Arcade.deviceId();
+      const auth = await signIn(email, password);
+      const remote = await cloudSaveInfo();
+      const localDeviceId = Arcade.deviceId();
+      let restore;
 
-    // A manual sign-in on a different browser/device means the player is
-    // trying to bring their established Earnly progress with them. Restore
-    // that cloud save even if they tested a few games locally before signing
-    // in; otherwise the partial local profile can appear connected and later
-    // replace the real save.
-    if (remote && remote.device_id !== localDeviceId) {
-      const restored = await restoreProgress();
-      let rewardSync = null;
-      try {
-        rewardSync = await syncServerRewards();
-      } catch {
-        // The profile restore is still successful if wallet reconciliation
-        // needs to retry when the connection improves.
+      // A manual sign-in on a different browser/device means the player is
+      // trying to bring their established Earnly progress with them. Restore
+      // that cloud save before any automatic save can write this device's
+      // partial local state back to the account.
+      if (remote && remote.device_id !== localDeviceId) {
+        const restored = await restoreProgress();
+        let rewardSync = null;
+        try {
+          rewardSync = await syncServerRewards();
+        } catch {
+          // The profile restore is still successful if wallet reconciliation
+          // needs to retry when the connection improves.
+        }
+        restore = { ...restored, auto:true, crossDevice:true, rewardSync };
+      } else {
+        restore = await maybeRestoreFreshDevice();
       }
-      restore = { ...restored, auto:true, crossDevice:true, rewardSync };
-    } else {
-      restore = await maybeRestoreFreshDevice();
-    }
 
-    if (!restore?.auto) {
-      scheduleAutoSync('manual-signin', 600);
-    }
+      if (!restore?.auto) {
+        scheduleAutoSync('manual-signin', 600);
+      }
 
-    accountTransition = false;
-    return { auth, restore };
+      return { auth, restore };
+    } finally {
+      accountTransition = false;
+    }
   }
 
   async function sendPasswordReset(email){
