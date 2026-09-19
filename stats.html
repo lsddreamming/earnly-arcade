@@ -427,7 +427,7 @@
       document.getElementById('lifetimeXP').textContent = stats.xp.toLocaleString();
       document.getElementById('lifetimeCoins').textContent = stats.lifetimeCoins.toLocaleString();
       document.getElementById('achievementCount').textContent = stats.achievements + '/' + stats.totalAchievements;
-      document.getElementById('differentGames').textContent = stats.differentGames + '/8';
+      document.getElementById('differentGames').textContent = stats.differentGames + '/' + gameInfo.length;
       document.getElementById('weeklyClears').textContent = stats.weeklyClears;
 
       renderMissions();
