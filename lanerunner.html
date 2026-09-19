@@ -60,9 +60,9 @@
     }
     
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
-    Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe, tap, or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
-      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right or tap a lane to move. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
-      tips:['On computer use Left/Right arrows. On phone swipe left/right or tap the lane you want.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
+    Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
+      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
+      tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
     const lanes=[72,180,288];let lane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0;
     function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
@@ -118,12 +118,12 @@
     function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    function laneFromPointer(e){
-      const x=Arcade.gameSurfaceX(e.clientX,canvas,canvas.width);
-      setLane(x<120?0:x<240?1:2);
-    }
     let swipeStartX=null,swipeStartY=null;
-    canvas.addEventListener('pointerdown',e=>{swipeStartX=e.clientX;swipeStartY=e.clientY},{capture:true});
+    canvas.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      if(!running){if(!starting)startGame();swipeStartX=null;swipeStartY=null;return}
+      swipeStartX=e.clientX;swipeStartY=e.clientY;
+    },{passive:false});
     canvas.addEventListener('pointerup',e=>{
       if(!running||swipeStartX===null)return;
       const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
@@ -132,18 +132,8 @@
         e.preventDefault();
         setLane(lane+(dx>0?1:-1));
       }
-    });
-    canvas.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      if(!running){if(!starting)startGame();return}
-      laneFromPointer(e);
-    });
-    document.addEventListener('pointerdown',e=>{
-      if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,130))return;
-      e.preventDefault();
-      if(!running){if(!starting)startGame();return}
-      laneFromPointer(e);
     },{passive:false});
+    canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();setLane(lane-1)}if(e.key==='ArrowRight'){e.preventDefault();setLane(lane+1)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
