@@ -76,7 +76,7 @@
     const elapsedSeconds = runStartedAt ? Math.max(0, Math.round((performance.now()-runStartedAt)/1000)) : 0;
     const elapsedLabel = elapsedSeconds >= 60 ? Math.floor(elapsedSeconds/60)+'m '+String(elapsedSeconds%60).padStart(2,'0')+'s' : elapsedSeconds+'s';
     const resultExtra = (Array.isArray(extra) ? extra : [extra]).filter(Boolean);
-    if(elapsedSeconds) resultExtra.push('⏱️ Time played: '+elapsedLabel);
+    resultExtra.push('⏱️ Time played: '+elapsedLabel);
     const coins = config.reward(clean);
     let result = { best:{ display:String(clean) }, newBest:false, xpAward:0 };
     // A storage/cloud bookkeeping problem must never prevent the player from
@@ -89,7 +89,7 @@
     try { refreshChrome(); } catch (err) { console.error('Earnly chrome refresh failed', err); }
     setStatus('Complete', 'over');
     startButton.disabled = false;
-    startButton.textContent = '👆 Tap Game to Play Again';
+    startButton.textContent = 'Play Again';
     resultShowing = true;
 
     let playsLeft = 0;
@@ -1769,7 +1769,7 @@
   },{capture:true});
 
   document.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&!running&&!starting){
+    if((e.key==='Enter'||e.code==='Space')&&!running&&!starting&&!resultShowing){
       e.preventDefault();
       startGame();
     }
