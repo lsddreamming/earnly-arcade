@@ -1834,7 +1834,7 @@
       cars.forEach((car,idx)=>{
         const b=document.createElement('button');
         b.type='button';
-        b.className='traffic-car';
+        b.className='traffic-car'+(canExit(car)?' clear-path':'');
         b.style.left=(car.x*cell+3)+'px';
         b.style.top=(car.y*cell+3)+'px';
         b.style.width=((car.h?car.len:1)*cell-6)+'px';
@@ -1843,7 +1843,8 @@
 
         const arrow=car.h ? (car.dir>0?'→':'←') : (car.dir>0?'↓':'↑');
         b.innerHTML='<span class="traffic-emoji">🚗</span><span class="traffic-arrow">'+arrow+'</span>';
-        b.setAttribute('aria-label','Car pointing '+({'→':'right','←':'left','↑':'up','↓':'down'}[arrow]||arrow));
+        const directionName=({'→':'right','←':'left','↑':'up','↓':'down'}[arrow]||arrow);
+        b.setAttribute('aria-label','Car pointing '+directionName+(canExit(car)?' · clear path':' · path blocked'));
         b.addEventListener('click',()=>tapCar(car,b));
         grid.append(b);
       });
