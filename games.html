@@ -47,6 +47,10 @@
     <div id="quickSections"></div>
 
     <section class="game-browser-tools" aria-label="Find a game">
+      <label class="game-search-wrap" for="gameSearch">
+        <span>🔎</span>
+        <input id="gameSearch" type="search" inputmode="search" autocomplete="off" placeholder="Search games…" aria-label="Search games">
+      </label>
       <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
         <button type="button" class="game-filter active" data-filter="all" aria-pressed="true">All</button>
         <button type="button" class="game-filter" data-filter="new" aria-pressed="false">✨ New</button>
@@ -113,6 +117,12 @@
     let activeGameFilter = 'all';
     let gameSearchText = '';
 
+    const gameSearch = document.getElementById('gameSearch');
+    gameSearch?.addEventListener('input', event => {
+      gameSearchText = event.target.value.trim().toLowerCase();
+      render();
+    });
+
     function renderQuickSection(title, keys) {
       const games = keys.map(key => byKey[key]).filter(Boolean);
       if (!games.length) return null;
@@ -160,6 +170,13 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
+      if (!visibleGames.length) {
+        const empty = document.createElement('div');
+        empty.className = 'card games-empty-state';
+        empty.innerHTML = '<strong>No games found</strong><span>Try another search or category.</span>';
+        root.append(empty);
+        return;
+      }
       const gamesToRender = visibleGames;
       const recommendedKeys = new Set(['tapRush','snake','bounceRun']);
 
