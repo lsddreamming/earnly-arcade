@@ -51,7 +51,14 @@
   }
 
   async function signInAndRestore(email, password){
-    const auth = await signIn(email, password);
+    accountTransition = true;
+    let auth;
+    try {
+      auth = await signIn(email, password);
+    } catch (error) {
+      accountTransition = false;
+      throw error;
+    }
     const remote = await cloudSaveInfo();
     const localDeviceId = Arcade.deviceId();
     let restore;
@@ -79,6 +86,7 @@
       scheduleAutoSync('manual-signin', 600);
     }
 
+    accountTransition = false;
     return { auth, restore };
   }
 
@@ -101,9 +109,14 @@
   }
 
   async function signOut(){
-    const { error } = await requireClient().auth.signOut();
-    if (error) throw error;
-    return true;
+    accountTransition = true;
+    try {
+      const { error } = await requireClient().auth.signOut();
+      if (error) throw error;
+      return true;
+    } finally {
+      accountTransition = false;
+    }
   }
 
   async function cloudSaveInfo(){
@@ -121,6 +134,7 @@
   }
 
   let freshRestorePromise = null;
+  let accountTransition = false;
 
   async function maybeRestoreFreshDevice(){
     if (freshRestorePromise) return freshRestorePromise;
@@ -557,6 +571,7 @@
       }
 
       if (currentSession?.user && event !== 'SIGNED_OUT') {
+        if (accountTransition) return;
         maybeRestoreFreshDevice()
           .then(result => {
             if (result?.auto) {
