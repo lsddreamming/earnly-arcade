@@ -449,3 +449,15 @@ test('manual cloud saves guard newer remote revisions', async ({ page }) => {
   expect(accountSource).toContain('skipConflictCheck:forceReplace');
   expect(accountSource).toContain('saveThisDeviceToCloud(true)');
 });
+
+
+test('cloud sync retains offline changes and retries transient failures', async ({ page }) => {
+  const response = await page.request.get('/cloud.js');
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  expect(source).toContain("localStorage.setItem('arcadeCloudOfflinePending'");
+  expect(source).toContain("localStorage.removeItem('arcadeCloudOfflinePending')");
+  expect(source).toContain("function scheduleRetry(reason = 'retry')");
+  expect(source).toContain('MAX_RETRY_DELAY = 60000');
+  expect(source).toContain("scheduleAutoSync('online', 300)");
+});
