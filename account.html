@@ -639,7 +639,7 @@
       await renderCloud();
     });
 
-    document.getElementById('cloudSaveButton').addEventListener('click', async () => {
+    async function saveThisDeviceToCloud(){
       try {
         cloudMessage.textContent = 'Saving your current Earnly progress…';
         const result = await EarnlyCloud.saveProgress({ source:'manual' });
@@ -649,6 +649,41 @@
       } catch (error) {
         cloudMessage.textContent = error.message || 'Cloud save failed.';
         Arcade.toast('⚠️ Cloud save failed');
+      }
+    }
+
+    document.getElementById('cloudSaveButton').addEventListener('click', async () => {
+      try {
+        const info = await EarnlyCloud.cloudSaveInfo();
+        const anotherDevice = !!(
+          info?.device_id &&
+          info.device_id !== Arcade.deviceId()
+        );
+
+        if (!anotherDevice) {
+          await saveThisDeviceToCloud();
+          return;
+        }
+
+        Arcade.panel(
+          'Cloud progress came from another device',
+          'Choose carefully so you do not accidentally replace the progress from your other device.\n\nRestore Cloud Save brings that progress onto this device. Use This Device Instead replaces the cloud save with what is currently shown here.',
+          [
+            ['Restore Cloud Save', async () => {
+              try {
+                const result = await EarnlyCloud.restoreProgress();
+                Arcade.toast('✅ Restored ' + result.restored + ' progress items');
+                setTimeout(() => location.reload(), 500);
+              } catch (error) {
+                cloudMessage.textContent = error.message || 'Cloud restore failed.';
+              }
+            }, 'green'],
+            ['Use This Device Instead', saveThisDeviceToCloud, 'secondary'],
+            ['Cancel', () => {}, 'secondary']
+          ]
+        );
+      } catch (error) {
+        cloudMessage.textContent = error.message || 'Could not compare this device with the cloud save.';
       }
     });
 

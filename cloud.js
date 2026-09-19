@@ -52,7 +52,28 @@
 
   async function signInAndRestore(email, password){
     const auth = await signIn(email, password);
-    const restore = await maybeRestoreFreshDevice();
+    const remote = await cloudSaveInfo();
+    const localDeviceId = Arcade.deviceId();
+    let restore;
+
+    // A manual sign-in on a different browser/device means the player is
+    // trying to bring their established Earnly progress with them. Restore
+    // that cloud save even if they tested a few games locally before signing
+    // in; otherwise the partial local profile can appear connected and later
+    // replace the real save.
+    if (remote && remote.device_id !== localDeviceId) {
+      const restored = await restoreProgress();
+      let rewardSync = null;
+      try {
+        rewardSync = await syncServerRewards();
+      } catch {
+        // The profile restore is still successful if wallet reconciliation
+        // needs to retry when the connection improves.
+      }
+      restore = { ...restored, auto:true, crossDevice:true, rewardSync };
+    } else {
+      restore = await maybeRestoreFreshDevice();
+    }
 
     if (!restore?.auto) {
       scheduleAutoSync('manual-signin', 600);
