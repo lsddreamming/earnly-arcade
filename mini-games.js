@@ -1212,7 +1212,7 @@
     surface.replaceChildren(wrap);
 
     const cell=55;
-    const boardsNeeded=()=>level===1?1:level<=3?2:3;
+    const boardsNeeded=()=>level===1?1:level===2?2:level<=4?3:level<=6?4:5;
     const roundSeconds=()=>Math.max(12,24-Math.max(0,level-1)*2);
 
     function stopTimer(){
