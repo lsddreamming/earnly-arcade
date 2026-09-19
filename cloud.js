@@ -238,17 +238,31 @@
         p_source: body.source
       });
 
-      if (error) {
-        const message = String(error?.message || error);
-        localStorage.setItem('arcadeServerRewardError', message);
-        window.dispatchEvent(new CustomEvent('earnly-server-reward-error', {
-          detail:{ eventId:event.id, message }
-        }));
-        break;
-      }
+      if (error || !data?.ok) {
+        const message = String(error?.message || data?.error || 'Server reward rejected');
+        const permanent = /Unknown game|Unsupported reward type|Invalid reward event|Invalid memory result|Daily bonus already recorded|Daily challenge already recorded|Daily server reward limit reached|not today'?s server challenge/i.test(message);
 
-      if (!data?.ok) {
-        const message = String(data?.error || 'Server reward rejected');
+        if (permanent) {
+          Arcade.clearSyncEvents(event.id);
+          const rejected = (() => {
+            try {
+              const existing = JSON.parse(localStorage.getItem('arcadeRejectedRewardEvents') || '[]');
+              return Array.isArray(existing) ? existing : [];
+            } catch {
+              return [];
+            }
+          })();
+          rejected.push({
+            eventId:event.id,
+            game:body.game,
+            kind:body.kind,
+            message,
+            clearedAt:new Date().toISOString()
+          });
+          localStorage.setItem('arcadeRejectedRewardEvents', JSON.stringify(rejected.slice(-25)));
+          continue;
+        }
+
         localStorage.setItem('arcadeServerRewardError', message);
         window.dispatchEvent(new CustomEvent('earnly-server-reward-error', {
           detail:{ eventId:event.id, message }
@@ -283,7 +297,15 @@
 
     if (mismatches.length) {
       localStorage.setItem('arcadeServerRewardMismatches', JSON.stringify(mismatches.slice(-20)));
-    } else if (synced) {
+    }
+
+    const remainingRewardEvents = Arcade.pendingSyncEvents().filter(event =>
+      event?.type === 'coin_award' &&
+      event?.payload?.server &&
+      typeof event.payload.server === 'object'
+    );
+
+    if (!remainingRewardEvents.length || synced) {
       localStorage.removeItem('arcadeServerRewardError');
     }
 
@@ -564,7 +586,7 @@
       }
     });
 
-    setTimeout(() => scheduleAutoSync('cloud-ready', 900), 0);
+    setTimeout(() => scheduleAutoSync('cloud-ready', 200), 0);
     window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   }
 
