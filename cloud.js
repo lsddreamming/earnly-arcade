@@ -503,7 +503,10 @@
 
   async function autoSaveProgress(reason = 'change'){
     if (!autoSyncEnabled()) return { skipped:'disabled' };
-    if (!navigator.onLine) return { skipped:'offline' };
+    if (!navigator.onLine) {
+      localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
+      return { skipped:'offline' };
+    }
 
     if (syncRunning) {
       syncAgain = true;
@@ -544,6 +547,7 @@
       });
       result.rewardSync = rewardSync;
       retryAttempt = 0;
+      localStorage.removeItem('arcadeCloudOfflinePending');
       return result;
     } catch (error) {
       localStorage.setItem('arcadeCloudSyncError', String(error?.message || error));
@@ -633,6 +637,9 @@
     });
 
     window.addEventListener('earnly-data-change', event => {
+      if (!navigator.onLine) {
+        localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
+      }
       scheduleAutoSync(event.detail?.type || 'data-change', 650);
     });
     window.addEventListener('online', () => {
