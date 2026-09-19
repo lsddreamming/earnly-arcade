@@ -143,7 +143,9 @@
     }
 
     function maybeDropPowerUp(brick){
-      if(Math.random()>.16) return;
+      // Keep power-ups exciting instead of flooding the board:
+      // about a 7% drop chance, never more than one falling pickup at once.
+      if(powerUps.length || Math.random()>.07) return;
       const types=['multi','wide','fire'];
       const type=types[Math.floor(Math.random()*types.length)];
       powerUps.push({x:brick.x+brick.w/2,y:brick.y+brick.h/2,vy:2.1,type,r:11});
