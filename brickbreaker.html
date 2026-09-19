@@ -364,6 +364,8 @@
 
     canvas.addEventListener('pointerup',stopDragging);
     canvas.addEventListener('pointercancel',stopDragging);
+    document.addEventListener('pointerup',stopDragging);
+    document.addEventListener('pointercancel',stopDragging);
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
 
     document.addEventListener('keydown',event=>{
