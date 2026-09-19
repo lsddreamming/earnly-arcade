@@ -6,7 +6,7 @@
     blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Place pieces on the 8×8 board. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
-    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/4)+(v>=10?1:0)+(v>=20?2:0)+(v>=35?3:0)+(v>=50?4:0)+(v>=70?5:0))},
+    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
     trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels take multiple boards and tighter traffic to clear.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=20?1:0)+(v>=40?2:0)+(v>=70?3:0)+(v>=100?3:0))}
@@ -663,17 +663,18 @@
     function openingWidth(){
       // Smooth difficulty curve: openings tighten steadily instead of
       // suddenly becoming punishing late in a good run.
-      if(score<25)return Math.max(94,132-score*.75);
-      if(score<50)return Math.max(78,113-(score-25)*.72);
-      return Math.max(68,95-(score-50)*.34);
+      if(score<15)return Math.max(96,130-score*1.15);
+      if(score<35)return Math.max(74,113-(score-15)*1.05);
+      if(score<60)return Math.max(62,92-(score-35)*.72);
+      return Math.max(54,74-(score-60)*.28);
     }
 
     function fallSpeed(){
-      if(score<10)return .78+score*.025;
-      if(score<25)return 1.03+(score-10)*.018;
-      if(score<45)return 1.30+(score-25)*.014;
-      if(score<70)return 1.58+(score-45)*.008;
-      return Math.min(1.92,1.78+(score-70)*.003);
+      if(score<10)return .82+score*.03;
+      if(score<25)return 1.12+(score-10)*.026;
+      if(score<45)return 1.51+(score-25)*.022;
+      if(score<70)return 1.95+(score-45)*.015;
+      return Math.min(2.55,2.325+(score-70)*.006);
     }
 
     function ringColor(r){
@@ -694,7 +695,7 @@
       const previous=recent[recent.length-1];
       const before=recent.length>1?recent[recent.length-2]:null;
       const before2=recent.length>2?recent[recent.length-3]:null;
-      const minMove=Math.max(42,width*.34);
+      const minMove=Math.max(score>=45?54:score>=20?48:42,width*(score>=45?.48:.38));
       const maxMove=Math.max(minMove+18,Math.min(138,(max-min)*.78));
       const candidates=[];
 
@@ -949,7 +950,7 @@
 
       while(rows.length&&rows[0].y<-20)rows.shift();
       while(rows.length<6){
-        const rowSpacing=Math.max(80,92-Math.floor(score/25)*2);
+        const rowSpacing=Math.max(74,90-Math.floor(score/20)*3);
         const y=(rows.length?rows[rows.length-1].y:430)+rowSpacing;
         const width=openingWidth();
         rows.push({
