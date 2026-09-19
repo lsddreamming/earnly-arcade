@@ -434,3 +434,18 @@ test('cloud reward sync uses a shared in-flight request', async ({ page }) => {
   expect(source).toContain('rewardSyncPromise = (async () =>');
   expect(source).toContain('rewardSyncPromise = null');
 });
+
+
+test('manual cloud saves guard newer remote revisions', async ({ page }) => {
+  const cloudResponse = await page.request.get('/cloud.js');
+  const cloudSource = await cloudResponse.text();
+  expect(cloudSource).toContain("error.code = 'EARNLY_CLOUD_CONFLICT'");
+  expect(cloudSource).toContain('if (!options.skipConflictCheck)');
+  expect(cloudSource).toContain('skipConflictCheck:true');
+
+  const accountResponse = await page.request.get('/account.html');
+  const accountSource = await accountResponse.text();
+  expect(accountSource).toContain('saveThisDeviceToCloud(forceReplace = false)');
+  expect(accountSource).toContain('skipConflictCheck:forceReplace');
+  expect(accountSource).toContain('saveThisDeviceToCloud(true)');
+});
