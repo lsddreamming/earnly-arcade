@@ -917,6 +917,16 @@
       return Math.max(34,50-(cleared-35)*.18)+Math.random()*8;
     }
 
+    function obstacleWidth(){
+      // Vary obstacle size within each difficulty band so runs require timing,
+      // not memorizing one jump rhythm. Early obstacles remain forgiving.
+      if(cleared<5)return 16+Math.random()*7;
+      if(cleared<10)return 26+Math.random()*15;
+      if(cleared<20)return 32+Math.random()*25;
+      if(cleared<35)return 38+Math.random()*35;
+      return 44+Math.random()*Math.min(52,24+(cleared-35)*1.2);
+    }
+
     function draw() {
       const bg=ctx.createLinearGradient(0,0,0,430);
       bg.addColorStop(0,'#0d1728');
@@ -1011,11 +1021,9 @@
       y+=vy*dt;
 
       if(!warming&&spawn<=0){
-        // The opening obstacles are narrower so a new player can learn the timing.
-        const difficultyWidth=Math.min(96,34+Math.max(0,cleared-5)*2.35);
-        const maxWidth=cleared<5?22:difficultyWidth;
-        const minWidth=cleared<5?16:Math.max(26,difficultyWidth-16);
-        obstacles.push({x:390,w:minWidth+Math.random()*(maxWidth-minWidth)});
+        // Width and spacing vary independently so later runs do not settle into
+        // a single repeated jump cadence.
+        obstacles.push({x:390,w:obstacleWidth()});
         spawn=nextSpawnDelay();
       }
 
