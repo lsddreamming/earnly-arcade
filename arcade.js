@@ -2220,6 +2220,40 @@ const Arcade = (() => {
 
     const statusEl = document.querySelector(options.status || '#gameStatus');
 
+    // Give every game the same compact pre-run summary so a first-time player
+    // can see the cost, reward idea, and controls without opening extra help.
+    const startButton = document.querySelector(options.startButton || '#startButton');
+    if (startButton && !document.querySelector('.game-start-summary')) {
+      const summary = document.createElement('section');
+      summary.className = 'game-start-summary';
+      summary.setAttribute('aria-label', (names[game] || 'Game') + ' start information');
+
+      const plays = document.createElement('span');
+      plays.className = 'game-start-summary-item game-start-plays';
+
+      const reward = document.createElement('span');
+      reward.className = 'game-start-summary-item game-start-reward';
+      reward.textContent = options.reward ? '🪙 ' + options.reward : '🪙 Score-based reward';
+
+      const control = document.createElement('span');
+      control.className = 'game-start-summary-item game-start-control';
+      const controlStep = (options.steps || []).find(step => String(step.title || '').toLowerCase() === 'control');
+      control.textContent = controlStep ? '🎮 ' + controlStep.text : '🎮 Controls shown below';
+
+      const syncStartSummary = () => {
+        const left = remaining(game);
+        plays.textContent = '🎟️ ' + left + ' play' + (left === 1 ? '' : 's') + ' left';
+        summary.classList.toggle('out-of-plays', left <= 0);
+      };
+
+      summary.append(plays, reward, control);
+      startButton.insertAdjacentElement('beforebegin', summary);
+      syncStartSummary();
+      window.addEventListener('pageshow', syncStartSummary);
+      window.addEventListener('focus', syncStartSummary);
+      window.addEventListener('storage', syncStartSummary);
+    }
+
     // Keep game state (Ready / Running / Game Over) visually tied to the title
     // on every game page instead of leaving it floating below the stat row.
     if (statusEl && !statusEl.closest('.game-title-status-row')) {
