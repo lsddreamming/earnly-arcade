@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Lane Runner</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>.lane-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}</style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>🏎️ Lane Runner</h1>
+      <div class="game-meta"><span class="meta-pill">Time: <span id="time">0</span>s</span>
+        <span class="meta-pill">Passed: <span id="passed">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <canvas class="lane-board touch-surface" id="game" width="360" height="520" aria-label="Lane Runner game board"></canvas>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('laneRunner'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('laneRunner')){ Arcade.out('laneRunner',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
+    Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Tap a lane or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
+      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Tap left, center, or right to move. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
+      tips:['On computer use Left/Right arrows. On phone tap the lane you want.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Survival time and passed cars can earn up to 25 Coins.'});
+    const lanes=[72,180,288];let lane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0;
+    function rewardFor(s,p){let c=Math.floor(s/6)+Math.floor(p/8);if(s>=20)c+=2;if(s>=40)c+=4;return Math.min(c,25)}
+    function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
+    function reset(){lane=1;obstacles=[];passed=0;seconds=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function draw(){
+      ctx.fillStyle='#111827';ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#1f2937';ctx.fillRect(30,0,300,canvas.height);
+      ctx.strokeStyle='#64748b';ctx.setLineDash([20,18]);ctx.lineWidth=3;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);
+      ctx.font='34px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🏎️',lanes[lane],465);
+      obstacles.forEach(o=>ctx.fillText(o.icon,lanes[o.lane],o.y));
+    }
+    function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
+      Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)})}
+    function loop(now){
+      if(!running)return;seconds=Math.floor((now-startAt)/1000);timeEl.textContent=String(seconds);refreshReward();
+      const spawnGap=Math.max(420,900-seconds*10);if(!lastSpawn||now-lastSpawn>=spawnGap){let nextLane=Math.floor(Math.random()*3);obstacles.push({lane:nextLane,y:-28,speed:3.2+Math.min(4,seconds*.06),icon:Math.random()<.5?'🚙':'🚕'});lastSpawn=now}
+      for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');if(passed===15)Arcade.milestone('🏎️ 15 cars passed!')}}
+      draw();animation=requestAnimationFrame(loop);
+    }
+    function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+    canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}const r=canvas.getBoundingClientRect();const x=(e.clientX-r.left)*(canvas.width/r.width);setLane(x<120?0:x<240?1:2)});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();setLane(lane-1)}if(e.key==='ArrowRight'){e.preventDefault();setLane(lane+1)}});
+    startButton.addEventListener('click',startGame);reset();refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>
