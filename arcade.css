@@ -4396,3 +4396,14 @@ html.snake-game-active body{
 .games-dashboard .game-list{
   margin-top:0;
 }
+
+
+/* Scalable catalog batching */
+.catalog-more-button{
+  margin:10px 0 14px;
+  min-height:44px;
+  border:1px solid #475569;
+  background:#1a2638;
+  color:#cbd5e1;
+}
+.catalog-more-button[hidden]{display:none!important}
