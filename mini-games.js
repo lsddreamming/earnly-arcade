@@ -1240,6 +1240,48 @@
     ]
   ];
 
+  let trafficAudioCtx=null;
+  function trafficSound(kind){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC)return;
+      const ctx=trafficAudioCtx||(trafficAudioCtx=new AC());
+      if(ctx.state==='suspended')ctx.resume();
+
+      const now=ctx.currentTime;
+      const gain=ctx.createGain();
+      gain.gain.setValueAtTime(0.0001,now);
+      gain.gain.exponentialRampToValueAtTime(kind==='exit'?.16:.22,now+.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001,now+(kind==='exit'?.42:.52));
+      gain.connect(ctx.destination);
+
+      if(kind==='exit'){
+        const osc=ctx.createOscillator();
+        osc.type='sawtooth';
+        osc.frequency.setValueAtTime(95,now);
+        osc.frequency.exponentialRampToValueAtTime(420,now+.34);
+        osc.connect(gain); osc.start(now); osc.stop(now+.44);
+      }else{
+        const squeal=ctx.createOscillator();
+        squeal.type='sawtooth';
+        squeal.frequency.setValueAtTime(720,now);
+        squeal.frequency.exponentialRampToValueAtTime(150,now+.26);
+        squeal.connect(gain); squeal.start(now); squeal.stop(now+.30);
+
+        const boom=ctx.createOscillator();
+        const boomGain=ctx.createGain();
+        boom.type='triangle';
+        boom.frequency.setValueAtTime(105,now+.18);
+        boom.frequency.exponentialRampToValueAtTime(42,now+.46);
+        boomGain.gain.setValueAtTime(.0001,now);
+        boomGain.gain.exponentialRampToValueAtTime(.28,now+.19);
+        boomGain.gain.exponentialRampToValueAtTime(.0001,now+.52);
+        boom.connect(boomGain); boomGain.connect(ctx.destination);
+        boom.start(now+.17); boom.stop(now+.54);
+      }
+    }catch(_){}
+  }
+
   function makeTrafficEscape() {
     let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0;
 
@@ -1314,6 +1356,7 @@
         void button.offsetWidth;
         button.classList.add('blocked');
         Arcade.feedback('fail');
+        trafficSound('crash');
 
         if(strikes>=3){
           alive=false;
@@ -1337,6 +1380,7 @@
       button.classList.add('escaping');
       button.style.transform=exitTransform(car);
       Arcade.feedback('score');
+      trafficSound('exit');
 
       setTimeout(()=>{
         cleared++;
