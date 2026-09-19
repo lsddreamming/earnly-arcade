@@ -7,7 +7,7 @@
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?2:0)+(v>=20?5:0))},
-    shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'Match the green silhouette to the same shape below. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
+    shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
     trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when the road in its arrow direction is clear. Empty the board to level up.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=30?2:0)+(v>=60?3:0)+(v>=100?4:0)+(v>=140?5:0))}
   };
@@ -878,133 +878,78 @@
     {name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
     {name:'Square',cells:[[0,0],[1,0],[0,1],[1,1]]},
     {name:'Z',cells:[[0,0],[1,0],[1,1],[2,1]]},
-    {name:'Line',cells:[[0,0],[1,0],[2,0],[3,0]]}
+    {name:'Line',cells:[[0,0],[1,0],[2,0],[3,0]]},
+    {name:'J',cells:[[1,0],[1,1],[1,2],[0,2]]},
+    {name:'S',cells:[[1,0],[2,0],[0,1],[1,1]]},
+    {name:'Corner',cells:[[0,0],[0,1],[1,1]]}
   ];
 
+  function rotateCells(cells,turns=1){
+    let out=cells.map(([x,y])=>[x,y]);
+    for(let t=0;t<turns;t++)out=out.map(([x,y])=>[3-y,x]);
+    const minX=Math.min(...out.map(p=>p[0])),minY=Math.min(...out.map(p=>p[1]));
+    return out.map(([x,y])=>[x-minX,y-minY]);
+  }
+
   function makeShapeFit() {
-    let score=0,streak=0,lives=3,answer=null,alive=false,locked=false;
-    const wrap=document.createElement('div');
-    wrap.className='fit-wrap';
+    let score=0,streak=0,lives=3,answer=null,alive=false,locked=false,timer=null,timeLeft=0,roundNo=0;
+    const wrap=document.createElement('div'); wrap.className='fit-wrap';
+    const title=document.createElement('div'); title.className='fit-title';
+    const target=document.createElement('div'); target.className='fit-shape';
+    const hint=document.createElement('div'); hint.className='fit-hint'; hint.setAttribute('aria-live','polite');
+    const answers=document.createElement('div'); answers.className='fit-answers';
+    wrap.append(title,target,hint,answers); surface.replaceChildren(wrap);
 
-    const title=document.createElement('div');
-    title.className='fit-title';
-
-    const target=document.createElement('div');
-    target.className='fit-shape';
-
-    const hint=document.createElement('div');
-    hint.className='fit-hint';
-    hint.setAttribute('aria-live','polite');
-
-    const answers=document.createElement('div');
-    answers.className='fit-answers';
-
-    wrap.append(title,target,hint,answers);
-    surface.replaceChildren(wrap);
-
-    function shapePreview(shape,className) {
-      const preview=document.createElement('span');
-      preview.className=className;
-
-      for(let y=0;y<4;y++)for(let x=0;x<4;x++){
-        const dot=document.createElement('span');
-        dot.className='fit-preview-dot'+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');
-        preview.append(dot);
-      }
-
+    function normalizedKey(cells){return cells.map(p=>p.join(',')).sort().join('|')}
+    function variant(shape,turns){return {name:shape.name,cells:rotateCells(shape.cells,turns),base:shape}}
+    function shapePreview(shape,className){
+      const preview=document.createElement('span'); preview.className=className;
+      for(let y=0;y<4;y++)for(let x=0;x<4;x++){const dot=document.createElement('span');dot.className='fit-preview-dot'+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');preview.append(dot)}
       return preview;
     }
-
-    function round() {
-      locked=false;
-      answer=SHAPES[Math.floor(Math.random()*SHAPES.length)];
-
-      title.innerHTML='<strong>Find the same shape</strong><span>'+
-        '❤️'.repeat(lives)+'♡'.repeat(3-lives)+' · 🔥 '+streak+' streak</span>';
-
+    function drawTarget(shape){
       target.replaceChildren();
-      for(let y=0;y<4;y++)for(let x=0;x<4;x++){
-        const d=document.createElement('div');
-        d.className='fit-dot'+(answer.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');
-        target.append(d);
-      }
-
-      hint.textContent='Tap the matching shape';
-
-      const opts=[answer];
-      while(opts.length<4){
-        const option=SHAPES[Math.floor(Math.random()*SHAPES.length)];
-        if(!opts.includes(option))opts.push(option);
-      }
-      opts.sort(()=>Math.random()-.5);
-
-      answers.replaceChildren();
-      opts.forEach(shape=>{
-        const b=document.createElement('button');
-        b.type='button';
-        b.className='fit-answer';
-        b.dataset.shape=shape.name;
-        b.setAttribute('aria-label','Choose '+shape.name+' shape');
-
-        b.append(shapePreview(shape,'fit-answer-preview'));
-
-        const name=document.createElement('small');
-        name.textContent=shape.name;
-        b.append(name);
-
-        b.addEventListener('click',()=>choose(shape,b));
-        answers.append(b);
-      });
+      for(let y=0;y<4;y++)for(let x=0;x<4;x++){const d=document.createElement('div');d.className='fit-dot'+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');target.append(d)}
     }
-
-    function choose(shape,button) {
+    function stopTimer(){if(timer){clearInterval(timer);timer=null}}
+    function updateHeader(){
+      const seconds=(timeLeft/1000).toFixed(1);
+      title.innerHTML='<strong>'+(roundNo<4?'Find the shape':'Rotation challenge')+'</strong><span>'+
+        '❤️'.repeat(lives)+'♡'.repeat(3-lives)+' · ⏱️ '+seconds+'s</span>';
+    }
+    function miss(message){
+      if(locked||!alive)return;
+      locked=true; stopTimer(); lives--; streak=0; hint.textContent=message+' · '+lives+' '+(lives===1?'life':'lives')+' left'; Arcade.feedback('fail'); ui(score,streak);
+      if(lives<=0){alive=false;setTimeout(()=>finish(score,streak,['🧠 Correct matches: '+score,'Rotations and the timer get harder as you advance.'],'Shape Fit Run Over'),350);return}
+      setTimeout(()=>{if(alive)round()},520);
+    }
+    function round(){
+      stopTimer(); locked=false; roundNo++;
+      const base=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+      const targetTurns=roundNo<4?0:Math.floor(Math.random()*4);
+      answer=variant(base,targetTurns); drawTarget(answer);
+      const optionCount=roundNo<6?4:roundNo<14?6:8;
+      answers.style.gridTemplateColumns=optionCount>4?'repeat(2,1fr)':'1fr 1fr';
+      const correctTurns=roundNo<4?targetTurns:(targetTurns+1+Math.floor(Math.random()*3))%4;
+      const correct=variant(base,correctTurns);
+      const opts=[correct],used=new Set([base.name+':'+normalizedKey(correct.cells)]);
+      while(opts.length<optionCount){
+        const s=SHAPES[Math.floor(Math.random()*SHAPES.length)],turn=Math.floor(Math.random()*4),v=variant(s,turn),key=s.name+':'+normalizedKey(v.cells);
+        if(!used.has(key)){used.add(key);opts.push(v)}
+      }
+      opts.sort(()=>Math.random()-.5); answers.replaceChildren();
+      opts.forEach(shape=>{const b=document.createElement('button');b.type='button';b.className='fit-answer';b.dataset.base=shape.base.name;b.setAttribute('aria-label','Choose shape');b.append(shapePreview(shape,'fit-answer-preview'));const name=document.createElement('small');name.textContent=roundNo<4?shape.base.name:'ROTATED';b.append(name);b.addEventListener('click',()=>choose(shape,b));answers.append(b)});
+      timeLeft=Math.max(2600,6500-Math.max(0,roundNo-3)*180); updateHeader();
+      hint.textContent=roundNo<4?'Warm-up: tap the same shape':'🔄 Same shape can face a different direction';
+      timer=setInterval(()=>{timeLeft-=100;updateHeader();if(timeLeft<=0){stopTimer();miss('⏰ Too slow')}},100);
+    }
+    function choose(shape,button){
       if(!alive||locked)return;
-      locked=true;
-
-      if(shape===answer){
-        score++;
-        streak++;
-        button.classList.add('correct');
-        hint.textContent=streak>=3 ? '✅ Correct · '+streak+' in a row!' : '✅ Correct!';
-        Arcade.feedback(streak>=3?'perfect':'match');
-        if(streak===7)Arcade.milestone('🧠 7 correct in a row!','perfect');
-      }else{
-        lives--;
-        streak=0;
-        button.classList.add('wrong');
-
-        [...answers.children].forEach(node=>{
-          if(node.dataset.shape===answer.name)node.classList.add('correct');
-        });
-
-        hint.textContent='❌ Not that one · '+lives+' '+(lives===1?'life':'lives')+' left';
-        Arcade.feedback('fail');
-      }
-
-      ui(score,streak);
-
-      if(lives<=0){
-        alive=false;
-        setTimeout(()=>{
-          finish(
-            score,
-            streak,
-            ['🧠 Correct matches: '+score,'Match the block pattern, not just the name.'],
-            'Shape Fit Run Over'
-          );
-        },320);
-        return;
-      }
-
-      setTimeout(()=>{
-        if(alive)round();
-      },360);
+      const correct=shape.base===answer.base;
+      if(correct){locked=true;stopTimer();score++;streak++;button.classList.add('correct');hint.textContent=streak>=5?'🔥 '+streak+' streak!':'✅ Correct!';Arcade.feedback(streak>=5?'perfect':'match');ui(score,streak);if(streak===10)Arcade.milestone('🧠 10-shape streak!','perfect');setTimeout(()=>{if(alive)round()},300)}
+      else{button.classList.add('wrong');[...answers.children].forEach(node=>{if(node.dataset.base===answer.base.name)node.classList.add('correct')});miss('❌ Wrong shape')}
     }
-
-    return {
-      start(){score=0;streak=0;lives=3;alive=true;locked=false;ui(0,0);round()},
-      stop(){alive=false;locked=true}
-    };
+    return {start(){score=0;streak=0;lives=3;roundNo=0;alive=true;locked=false;ui(0,0);round()},stop(){alive=false;locked=true;stopTimer()}};
   }
 
   function makeBounceRun() {
