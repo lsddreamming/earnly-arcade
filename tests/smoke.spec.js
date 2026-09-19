@@ -525,3 +525,54 @@ test('arcade-wide reliability cleanup stays guarded', async ({ page }) => {
   const css = await (await page.request.get('/arcade.css')).text();
   expect(css).toContain(".game-search-wrap input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f8fafc;font:inherit;font-size:16px");
 });
+
+
+test('new player flow keeps plays and results consistent', async ({ page }) => {
+  await page.goto('/games.html');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('arcadePlayDay', new Date().toDateString());
+  });
+  await page.reload();
+
+  await expect(page.locator('#games')).toBeVisible();
+  await page.goto('/mini.html?game=shapeFit');
+  await expect(page.locator('.game-start-plays')).toContainText('3 plays left');
+
+  await page.locator('#startBtn').click();
+  await page.waitForTimeout(120);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
+  await expect(page.locator('.game-start-plays')).toContainText('2 plays left');
+
+  await page.evaluate(() => {
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:4,
+      best:'4 points', coins:1, result:{xpAward:10}, playsLeft:Arcade.remaining('shapeFit'),
+      game:'shapeFit', extra:['⏱️ Time played: 5s']
+    });
+  });
+  const result = page.locator('dialog.game-result-dialog');
+  await expect(result).toBeVisible();
+  await expect(result).toContainText('Coins Earned');
+  await expect(result).toContainText('XP Earned');
+  await expect(result).toContainText('Time played: 5s');
+
+  await page.reload();
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
+  await expect(page.locator('.game-start-plays')).toContainText('2 plays left');
+});
+
+test('out-of-plays flow offers rewarded plays without spending coins', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    localStorage.setItem('shapeFitGamesPlayed', '3');
+    localStorage.setItem('shapeFitBonusPlays', '0');
+    localStorage.setItem('shapeFitPlayAdUnlocks', '0');
+    window.dispatchEvent(new Event('earnly-data-change'));
+  });
+  await page.reload();
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
+  await expect(page.locator('.game-guide-overlay')).toContainText('Out of Plays');
+  await expect(page.locator('.game-guide-overlay')).toContainText(/ad/i);
+  await expect(page.locator('.game-guide-overlay')).not.toContainText(/spend .*coin/i);
+});
