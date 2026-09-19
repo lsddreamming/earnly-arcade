@@ -1437,7 +1437,7 @@
             const clearedRoad=boardInLevel;
             boardInLevel++;
             grid.replaceChildren();
-            levelLine.textContent='🎉 Road '+clearedRoad+'/'+needed+' cleared · '+(needed-clearedRoad)+' more for Level '+level;
+            levelLine.textContent='🎉 Road '+clearedRoad+'/'+needed+' cleared · '+(needed-clearedRoad)+' more to clear Level '+level;
             Arcade.milestone('🚦 Road '+clearedRoad+'/'+needed+' cleared','score');
             // Keep the board empty during the celebration. The next board and
             // its timer begin together, so transition time never costs play time.
