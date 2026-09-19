@@ -1433,10 +1433,15 @@
           const needed=boardsNeeded();
           if(boardInLevel<needed){
             stopTimer();
+            locked=true;
+            const clearedRoad=boardInLevel;
             boardInLevel++;
-            Arcade.milestone('🚦 Road '+(boardInLevel-1)+'/'+needed+' cleared','score');
-            levelLine.textContent='🎉 Road clear · '+(needed-boardInLevel+1)+' more for Level '+level;
-            setTimeout(()=>{if(alive)loadLevel()},500);
+            grid.replaceChildren();
+            levelLine.textContent='🎉 Road '+clearedRoad+'/'+needed+' cleared · '+(needed-clearedRoad)+' more for Level '+level;
+            Arcade.milestone('🚦 Road '+clearedRoad+'/'+needed+' cleared','score');
+            // Keep the board empty during the celebration. The next board and
+            // its timer begin together, so transition time never costs play time.
+            setTimeout(()=>{if(alive)loadLevel()},700);
             return;
           }
 
@@ -1457,8 +1462,12 @@
             return;
           }
 
-          levelLine.textContent='🎉 Level cleared · Level '+level+' next';
-          setTimeout(()=>{if(alive)loadLevel()},600);
+          locked=true;
+          grid.replaceChildren();
+          levelLine.textContent='🎉 Level '+(level-1)+' cleared · Level '+level+' next';
+          // Reveal the next road only after the level celebration finishes.
+          // loadLevel starts the fresh timer at the same moment.
+          setTimeout(()=>{if(alive)loadLevel()},850);
           return;
         }
 
