@@ -4730,3 +4730,10 @@ body.earnly-gameplay-locked{
     margin:5px 0 0!important;padding:5px 6px!important;font-size:7px!important;
   }
 }
+
+/* Games onboarding */
+.games-start-here{margin:10px 0 14px;padding:12px 14px;border:1px solid rgba(59,130,246,.28);border-radius:14px;background:rgba(30,64,175,.10);display:grid;gap:4px}
+.games-start-here strong{font-size:14px;color:#dbeafe}
+.games-start-here span{font-size:12px;line-height:1.45;color:#94a3b8}
+.game-recommended-badge{display:inline-flex;align-items:center;width:max-content;margin:0 0 8px;padding:4px 8px;border-radius:999px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.24);color:#bbf7d0;font-size:10px;font-weight:800;letter-spacing:.02em}
+.recommended-game{border-color:rgba(34,197,94,.28)}
