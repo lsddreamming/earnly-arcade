@@ -29,6 +29,7 @@
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
       <span class="game-status" id="gameStatus">Ready</span>
+      <button class="secondary" id="pauseButton" type="button" hidden>⏸ Pause</button>
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="rally-board touch-surface" id="game" width="360" height="500" aria-label="Paddle Rally game board"></canvas>
@@ -40,6 +41,7 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
+    const pauseButton=document.getElementById('pauseButton');
     function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('paddleRally'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
@@ -51,33 +53,35 @@
     Arcade.gameGuide({game:'paddleRally',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the paddle'},{icon:'🏓',title:'Goal',text:'Keep the rally alive'}],
       overlayIcon:'🏓',overlayTitle:'Keep the Ball Alive',overlayText:'Move the paddle under the ball. Each return makes it faster.',replayTitle:'Tap to Play Again',
       tips:['Mouse/finger movement controls the paddle. Arrow keys also work.','The run ends when the ball gets past your paddle.'],reward:'Long rallies earn up to 25 Coins.'});
-    const paddle={x:130,y:458,w:100,h:14},ball={x:180,y:300,r:7,dx:3.2,dy:-4.5};
-    let score=0,running=false,starting=false,animation=null,last=0;
+    const paddle={x:136,y:458,w:88,h:14},ball={x:180,y:300,r:7,dx:4.0,dy:-5.3};
+    let score=0,running=false,starting=false,paused=false,animation=null,last=0,pauseStartedAt=0,totalPausedMs=0;
     function rewardFor(v){let c=Math.floor(v/3);if(v>=10)c+=2;if(v>=20)c+=3;if(v>=35)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){score=0;paddle.x=130;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*3.4;ball.dy=-4.7;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
+    function reset(){score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
     function draw(){ctx.fillStyle='#101d31';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#243b5a';ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(canvas.width,250);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#3b82f6';ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill()}
     function finish(){
-      if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;
+      if(!running)return;running=false;paused=false;pauseButton.hidden=true;cancelAnimationFrame(animation);animation=null;
       const earned=rewardFor(score);Arcade.earn(earned,'Paddle Rally',{kind:'game',game:'paddleRally',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('paddleRally',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Missed','over');draw();
       Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
     }
     function loop(){
-      if(!running)return;ball.x+=ball.dx;ball.y+=ball.dy;
+      if(!running||paused)return;ball.x+=ball.dx;ball.y+=ball.dy;
       if(ball.x-ball.r<=0&&ball.dx<0)ball.dx*=-1;if(ball.x+ball.r>=canvas.width&&ball.dx>0)ball.dx*=-1;if(ball.y-ball.r<=0&&ball.dy<0)ball.dy*=-1;
       if(ball.dy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<=paddle.y+paddle.h&&ball.x>=paddle.x&&ball.x<=paddle.x+paddle.w){
-        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);const mag=Math.min(9,Math.hypot(ball.dx,ball.dy)*1.035);
+        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);const mag=Math.min(11.5,Math.hypot(ball.dx,ball.dy)*1.055);
         ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();Arcade.feedback('hit');
-        if(score===10)Arcade.milestone('🏓 10 returns!');if(score===20)Arcade.milestone('🔥 20 returns · Rally Pro!','perfect');
+        if(score===8)paddle.w=78;if(score===18)paddle.w=68;if(score===10)Arcade.milestone('🏓 10 returns!');if(score===20)Arcade.milestone('🔥 20 returns · Rally Pro!','perfect');
       }
       if(ball.y-ball.r>canvas.height){finish();return}draw();animation=requestAnimationFrame(loop);
     }
     function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x-paddle.w/2))}
     let earnlyRunStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+      Arcade.countdown(()=>{starting=false;running=true;paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+    function togglePause(){if(!running)return;if(!paused){paused=true;pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
+    pauseButton.addEventListener('click',togglePause);
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
@@ -87,7 +91,7 @@
       try{canvas.setPointerCapture?.(e.pointerId)}catch{}
     });
     canvas.addEventListener('pointermove',e=>{
-      if(running&&controlPointer===e.pointerId){e.preventDefault();moveTo(e.clientX)}
+      if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveTo(e.clientX)}
     },{passive:false});
     const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null};
     canvas.addEventListener('pointerup',stopControl);
@@ -101,7 +105,7 @@
       moveTo(e.clientX);
     },{passive:false});
     document.addEventListener('pointermove',e=>{
-      if(!running||controlPointer!==e.pointerId)return;
+      if(!running||paused||controlPointer!==e.pointerId)return;
       e.preventDefault();
       moveTo(e.clientX);
     },{passive:false});
