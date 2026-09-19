@@ -1105,24 +1105,12 @@
     };
   }
 
-  const TRAFFIC_LEVELS = [
-    [
-      {x:0,y:0,len:2,h:true,dir:1},{x:3,y:0,len:2,h:false,dir:1},
-      {x:1,y:2,len:2,h:true,dir:-1},{x:4,y:3,len:2,h:false,dir:1},
-      {x:0,y:5,len:2,h:true,dir:-1}
-    ],
-    [
-      {x:0,y:1,len:3,h:true,dir:1},{x:2,y:0,len:2,h:false,dir:-1},
-      {x:4,y:1,len:2,h:false,dir:1},{x:1,y:4,len:2,h:true,dir:1},
-      {x:5,y:3,len:2,h:false,dir:-1},{x:0,y:5,len:2,h:true,dir:-1}
-    ],
-    [
-      {x:0,y:0,len:2,h:true,dir:1},{x:2,y:0,len:3,h:false,dir:1},
-      {x:3,y:2,len:2,h:true,dir:-1},{x:0,y:3,len:3,h:true,dir:1},
-      {x:5,y:2,len:2,h:false,dir:-1},{x:1,y:5,len:2,h:true,dir:-1},
-      {x:4,y:4,len:2,h:false,dir:1}
-    ]
-  ];
+  // Traffic Escape boards are generated fresh each road. Candidates are
+  // accepted only when a solver proves every car can eventually leave.
+  // This prevents memorizing a tiny set of authored layouts while preserving
+  // the core clear-path rule.
+  const TRAFFIC_GRID_SIZE = 6;
+
 
   let trafficAudioCtx=null;
   function trafficSound(kind){
@@ -1248,43 +1236,112 @@
       },1000);
     }
 
-    function mirrorCars(source,mode){
-      return source.map(car=>{
-        const copy={...car};
-        if(mode==='x'){
-          copy.x=6-(car.x+(car.h?car.len:1));
-          if(car.h)copy.dir*=-1;
-        }else if(mode==='y'){
-          copy.y=6-(car.y+(car.h?1:car.len));
-          if(!car.h)copy.dir*=-1;
-        }else if(mode==='xy'){
-          copy.x=6-(car.x+(car.h?car.len:1));
-          copy.y=6-(car.y+(car.h?1:car.len));
-          copy.dir*=-1;
-        }
-        return copy;
-      });
+    function trafficCells(car){
+      const out=[];
+      for(let n=0;n<car.len;n++)out.push([
+        car.x+(car.h?n:0),
+        car.y+(car.h?0:n)
+      ]);
+      return out;
     }
 
-    let lastTrafficVariant=-1;
+    function trafficOverlap(a,b){
+      const occupied=new Set(trafficCells(a).map(([x,y])=>x+','+y));
+      return trafficCells(b).some(([x,y])=>occupied.has(x+','+y));
+    }
+
+    function trafficCanExitFrom(list,car){
+      const blocked=(x,y)=>list.some(other=>
+        other!==car&&trafficCells(other).some(([ox,oy])=>ox===x&&oy===y)
+      );
+      if(car.h){
+        if(car.dir>0){
+          for(let x=car.x+car.len;x<TRAFFIC_GRID_SIZE;x++)if(blocked(x,car.y))return false;
+        }else{
+          for(let x=car.x-1;x>=0;x--)if(blocked(x,car.y))return false;
+        }
+      }else if(car.dir>0){
+        for(let y=car.y+car.len;y<TRAFFIC_GRID_SIZE;y++)if(blocked(car.x,y))return false;
+      }else{
+        for(let y=car.y-1;y>=0;y--)if(blocked(car.x,y))return false;
+      }
+      return true;
+    }
+
+    function trafficSolvable(list){
+      const memo=new Map();
+      function solve(remaining){
+        if(!remaining.length)return true;
+        const key=remaining.map(c=>c.seedId).sort((a,b)=>a-b).join(',');
+        if(memo.has(key))return memo.get(key);
+        const exits=remaining.filter(car=>trafficCanExitFrom(remaining,car));
+        for(const car of exits){
+          if(solve(remaining.filter(other=>other!==car))){
+            memo.set(key,true);
+            return true;
+          }
+        }
+        memo.set(key,false);
+        return false;
+      }
+      return solve(list);
+    }
+
+    function trafficSignature(list){
+      return list.map(c=>[c.x,c.y,c.len,c.h?1:0,c.dir].join(':')).sort().join('|');
+    }
+
+    let recentTrafficSignatures=[];
+
+    function randomTrafficBoard(){
+      const targetCars=Math.min(9,level<=1?5:level===2?6:level<=4?7:8);
+      const minBlocked=Math.min(targetCars-1,level<=1?2:level===2?3:level<=4?4:5);
+
+      for(let attempt=0;attempt<240;attempt++){
+        const candidate=[];
+        for(let id=0;id<targetCars;id++){
+          let placed=false;
+          for(let tries=0;tries<100&&!placed;tries++){
+            const h=Math.random()<.5;
+            const len=Math.random()<(level>=4?.34:.18)?3:2;
+            const x=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?len:1)+1));
+            const y=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?1:len)+1));
+            const car={x,y,len,h,dir:Math.random()<.5?-1:1,seedId:id};
+            if(candidate.every(other=>!trafficOverlap(car,other))){
+              candidate.push(car);
+              placed=true;
+            }
+          }
+          if(!placed)break;
+        }
+        if(candidate.length!==targetCars)continue;
+
+        const initiallyBlocked=candidate.filter(car=>!trafficCanExitFrom(candidate,car)).length;
+        const initiallyFree=targetCars-initiallyBlocked;
+        if(initiallyBlocked<minBlocked||initiallyFree<1||initiallyFree>Math.max(2,Math.ceil(targetCars*.45)))continue;
+        if(!trafficSolvable(candidate))continue;
+
+        const sig=trafficSignature(candidate);
+        if(recentTrafficSignatures.includes(sig))continue;
+        recentTrafficSignatures.push(sig);
+        if(recentTrafficSignatures.length>12)recentTrafficSignatures.shift();
+        return candidate.map(({seedId,...car})=>car);
+      }
+
+      // Extremely unlikely fallback: build a different simple solvable road
+      // rather than reusing one recognizable authored pattern.
+      const fallback=[
+        {x:0,y:0,len:2,h:true,dir:-1},
+        {x:3,y:0,len:2,h:false,dir:-1},
+        {x:1,y:2,len:2,h:true,dir:1},
+        {x:4,y:2,len:2,h:false,dir:1},
+        {x:0,y:5,len:2,h:true,dir:-1}
+      ];
+      return fallback.map(car=>({...car}));
+    }
 
     function levelSource(){
-      // Keep boards provably solvable by starting from authored layouts, but
-      // vary both the base puzzle and its orientation so consecutive roads do
-      // not collapse into the same recognizable pattern.
-      const pool=level===1?[0,1]:level===2?[1,2]:[1,2,3].filter(i=>TRAFFIC_LEVELS[i]);
-      const modes=['none','x','y','xy'];
-      const variants=[];
-      pool.forEach(sourceIndex=>modes.forEach(mode=>variants.push({sourceIndex,mode})));
-
-      let choices=variants.map((_,i)=>i).filter(i=>i!==lastTrafficVariant);
-      if(!choices.length)choices=variants.map((_,i)=>i);
-      const pick=choices[Math.floor(Math.random()*choices.length)];
-      lastTrafficVariant=pick;
-
-      const variant=variants[pick];
-      const source=TRAFFIC_LEVELS[variant.sourceIndex]||TRAFFIC_LEVELS[2];
-      return variant.mode==='none'?source:mirrorCars(source,variant.mode);
+      return randomTrafficBoard();
     }
 
     function loadLevel() {
