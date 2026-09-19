@@ -155,10 +155,22 @@
       tray.forEach((piece,idx)=>{
         const b=document.createElement('button');
         b.type='button';
-        b.className='piece-button ' + (idx===selected ? 'green' : 'secondary');
-        b.textContent = piece.length + ' block' + (piece.length===1 ? '' : 's');
+        b.className='piece-button' + (idx===selected ? ' selected' : '');
         b.disabled=!alive;
-        b.addEventListener('click',()=>{selected=idx;render()});
+        b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece');
+
+        const preview=document.createElement('span');
+        preview.className='piece-preview';
+        for(let py=0;py<4;py++)for(let px=0;px<4;px++){
+          const dot=document.createElement('span');
+          dot.className='piece-preview-cell' + (piece.some(([dx,dy])=>dx===px&&dy===py) ? ' on' : '');
+          preview.append(dot);
+        }
+
+        const caption=document.createElement('small');
+        caption.textContent=idx===selected?'SELECTED':'TAP TO PICK';
+        b.append(preview,caption);
+        b.addEventListener('click',()=>{selected=idx;Arcade.feedback('move');render()});
         trayEl.append(b);
       });
       ui(score, lines);
