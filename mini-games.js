@@ -77,29 +77,33 @@
     const resultExtra = (Array.isArray(extra) ? extra : [extra]).filter(Boolean);
     if(elapsedSeconds) resultExtra.push('⏱️ Time played: '+elapsedLabel);
     const coins = config.reward(clean);
-    Arcade.earn(coins, config.name, { kind:'game', game:key, metric:clean });
-    const result = Arcade.recordResult(key, clean);
-    Arcade.feedback(clean > 0 ? 'success' : 'fail');
+    let result = { best:{ display:String(clean) }, newBest:false, xpAward:0 };
+    // A storage/cloud bookkeeping problem must never prevent the player from
+    // seeing how the run ended. Finish the visual flow even if persistence fails.
+    try { Arcade.earn(coins, config.name, { kind:'game', game:key, metric:clean }); } catch (err) { console.error('Earnly reward save failed', err); }
+    try { result = Arcade.recordResult(key, clean) || result; } catch (err) { console.error('Earnly result save failed', err); }
+    try { Arcade.feedback(clean > 0 ? 'success' : 'fail'); } catch {}
 
     ui(clean, secondary);
     refreshChrome();
     setStatus('Complete', 'over');
     startButton.disabled = false;
     startButton.textContent = '👆 Tap Game to Play Again';
+    resultShowing = true;
 
     Arcade.gameResult({
       icon:config.icon,
       title:title || config.name + ' Complete',
       scoreLabel:config.scoreLabel,
       score:clean,
-      best:result.best.display,
+      best:result?.best?.display || String(clean),
       coins,
       result,
       playsLeft:Arcade.remaining(key),
       game:key,
       extra:resultExtra,
-      onReplay:startGame,
-      onMorePlays:()=>Arcade.out(key, refreshChrome)
+      onReplay:()=>{ resultShowing=false; startGame(); },
+      onMorePlays:()=>{ resultShowing=false; Arcade.out(key, refreshChrome); }
     });
   }
 
@@ -1765,7 +1769,7 @@
   };
 
   function startGame() {
-    if(running||starting)return;
+    if(running||starting||resultShowing)return;
     starting=true;
 
     if(!Arcade.consume(key)){
@@ -1776,6 +1780,7 @@
 
     if(engine&&engine.stop)engine.stop();
     finished=false;
+    resultShowing=false;
     running=false;
     ui(0,key==='mergeRush'?2:1);
     refreshChrome();
