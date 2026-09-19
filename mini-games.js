@@ -265,6 +265,7 @@
 
     const grid=document.createElement('div');
     grid.className='merge-grid';
+    grid.style.touchAction='none';
 
     const goal=document.createElement('div');
     goal.className='merge-goal';
@@ -356,14 +357,16 @@
       if(changed){spawn();Arcade.feedback('move');render()}
       if(!canMove()){
         alive=false;
-        finish(score,high(),['🔢 Highest tile: '+high(),'Combine matching numbers to stay alive.'],'No More Moves');
+        finish(score,high(),['🔢 Highest tile: '+high(),'🎯 Goal: reach 128','Swipe the whole board to combine matching numbers.'],'No More Moves');
       }
     }
 
     let swipePointer=null;
     function beginSwipe(e){
       if(!alive)return;
+      e.preventDefault();
       swipePointer=e.pointerId;
+      try{grid.setPointerCapture?.(e.pointerId)}catch{}
       startX=e.clientX;
       startY=e.clientY;
     }
@@ -376,8 +379,9 @@
       move(Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up'));
     }
 
-    grid.addEventListener('pointerdown',beginSwipe);
-    grid.addEventListener('pointerup',endSwipe);
+    grid.addEventListener('pointerdown',beginSwipe,{passive:false});
+    grid.addEventListener('pointerup',endSwipe,{passive:false});
+    grid.addEventListener('pointercancel',e=>{if(swipePointer===e.pointerId)swipePointer=null});
 
     const onWideSwipeDown=e=>{
       if(grid.contains(e.target) || !Arcade.inExpandedGameZone(e,surface,120))return;
@@ -400,9 +404,7 @@
       stop(){
         alive=false;
         swipePointer=null;
-        heldKeys.clear();
-        document.removeEventListener('keydown',onKeyDown,{capture:true});
-        document.removeEventListener('keyup',onKeyUp,{capture:true});
+        document.removeEventListener('keydown',onKey);
         document.removeEventListener('pointerdown',onWideSwipeDown);
         document.removeEventListener('pointerup',onWideSwipeUp);
       }
