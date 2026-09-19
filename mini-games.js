@@ -1241,14 +1241,14 @@
   ];
 
   function makeTrafficEscape() {
-    let cars=[],cleared=0,level=1,alive=false,locked=false;
+    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0;
 
     const wrap=document.createElement('div');
     wrap.className='traffic-wrap';
 
     const guide=document.createElement('div');
     guide.className='traffic-guide';
-    guide.innerHTML='<strong>🚦 Clear the road</strong><span>Tap a car only if nothing blocks its arrow.</span>';
+    guide.innerHTML='<strong>🚦 Clear the road</strong><span>Tap only cars with a clear arrow path. 💥 3 crashes ends the run.</span>';
 
     const levelLine=document.createElement('div');
     levelLine.className='traffic-level-line';
@@ -1309,11 +1309,26 @@
       if(!alive||locked)return;
 
       if(!canExit(car)){
+        strikes++;
         button.classList.remove('blocked');
         void button.offsetWidth;
         button.classList.add('blocked');
-        levelLine.textContent='🚧 Blocked — another car is in the way';
         Arcade.feedback('fail');
+
+        if(strikes>=3){
+          alive=false;
+          locked=true;
+          levelLine.textContent='💥 Crash! 3 mistakes — run over';
+          setTimeout(()=>finish(
+            cleared,
+            level,
+            ['🚗 Cars cleared: '+cleared,'💥 Crashes: 3/3','Reach a clear arrow path before tapping.'],
+            cleared>=60?'Traffic Pro':''
+          ),260);
+          return;
+        }
+
+        levelLine.textContent='💥 Crash! '+strikes+'/3 mistakes · '+(3-strikes)+' left';
         return;
       }
 
@@ -1354,7 +1369,7 @@
     }
 
     function render() {
-      levelLine.textContent='Level '+level+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left';
+      levelLine.textContent='Level '+level+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left · 💥 '+strikes+'/3';
       grid.replaceChildren();
 
       cars.forEach((car,idx)=>{
@@ -1376,7 +1391,7 @@
     }
 
     return {
-      start(){cleared=0;level=1;alive=true;locked=false;ui(0,1);loadLevel()},
+      start(){cleared=0;level=1;strikes=0;alive=true;locked=false;ui(0,1);loadLevel()},
       stop(){alive=false;locked=true}
     };
   }
