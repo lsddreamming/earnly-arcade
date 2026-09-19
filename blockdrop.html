@@ -287,12 +287,13 @@
         result,
         playsLeft:Arcade.remaining('blockDrop'),
         game:'blockDrop',
-        extra:['Board score: ' + score],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s','Board score: ' + score],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('blockDrop', refreshChrome)
       });
     }
 
+    let earnlyRunStartedAt=0;
     function startGame() {
       if (game || starting) return;
       starting = true;
@@ -301,7 +302,7 @@
         starting = false;
         Arcade.out('blockDrop', refreshChrome);
         return;
-      }
+      } earnlyRunStartedAt=performance.now(); 
 
       createBoard();
       score = 0;
