@@ -65,3 +65,22 @@ test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
   await expect(page.locator('#surface')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('Rings:');
 });
+
+
+test('run results stay visible even when zero plays remain', async ({ page }) => {
+  await page.goto('/mini.html?game=spiralDrop');
+  await page.evaluate(() => {
+    Arcade.gameResult({
+      icon:'🌀', title:'Spiral Drop', scoreLabel:'Rows', score:42,
+      best:'42 rows', coins:12, result:{newBest:true,xpAward:5},
+      playsLeft:0, game:'spiralDrop', extra:['🌀 Rows passed: 42']
+    });
+  });
+  const dialog = page.locator('dialog.game-result-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Rows');
+  await expect(dialog).toContainText('42');
+  await expect(dialog).toContainText('+12');
+  await expect(dialog).toContainText('0');
+  await expect(dialog).not.toContainText('bonus-play limit');
+});
