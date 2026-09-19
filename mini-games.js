@@ -463,20 +463,22 @@
       // Per-drop pressure timer. It pauses once the player commits to a drop.
       const timeLeft=drop?Math.max(0,roundDeadline-performance.now()):Math.max(0,roundDeadline-performance.now());
       const timerRatio=roundLimit?Math.max(0,Math.min(1,timeLeft/roundLimit)):1;
-      ctx.fillStyle='#243244';ctx.fillRect(98,160,164,8);
+      // Give the pressure timer its own clear lane so the moving ball never
+      // covers the countdown text on small phone screens.
+      ctx.fillStyle='#243244';ctx.fillRect(98,158,164,7);
       ctx.fillStyle=timeLeft<=1500?'#ef4444':timeLeft<=2800?'#f59e0b':'#22c55e';
-      ctx.fillRect(98,160,164*timerRatio,8);
+      ctx.fillRect(98,158,164*timerRatio,7);
       ctx.fillStyle=timeLeft<=1500?'#fca5a5':'#cbd5e1';ctx.font='800 10px Arial';
-      ctx.fillText('⏱ DROP IN '+(timeLeft/1000).toFixed(1)+'s',180,176);
+      ctx.fillText('⏱ DROP IN '+(timeLeft/1000).toFixed(1)+'s',180,177);
 
-      // Ball rail.
+      // Ball rail sits lower than the timer lane.
       ctx.strokeStyle='#475569';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(20,190);ctx.lineTo(340,190);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(20,207);ctx.lineTo(340,207);ctx.stroke();
       ctx.fillStyle='rgba(148,163,184,.18)';
-      ctx.fillRect(20,181,320,18);
+      ctx.fillRect(20,198,320,18);
 
       const ballX=drop?drop.x:x;
-      const ballY=drop?drop.y:178;
+      const ballY=drop?drop.y:195;
       const ballGlow=ctx.createRadialGradient(ballX-4,ballY-5,2,ballX,ballY,18);
       ballGlow.addColorStop(0,'#ffffff');
       ballGlow.addColorStop(.55,'#dbeafe');
@@ -518,7 +520,7 @@
 
     function act() {
       if(!alive||drop)return;
-      drop={x,y:178};
+      drop={x,y:195};
       Arcade.feedback('move');
     }
 
