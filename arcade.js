@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.18';
+  const APP_VERSION = '0.15.19';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1409,29 +1409,44 @@ const Arcade = (() => {
     }
 
     const goalParams = new URLSearchParams(location.search);
-    const goalSource = goalParams.get('goal');
+    let goalSource = goalParams.get('goal');
+    let activeGoal = null;
+
+    try {
+      activeGoal = JSON.parse(sessionStorage.getItem('earnlyActiveGoal') || 'null');
+    } catch {}
+
+    if (
+      !goalSource &&
+      activeGoal?.game === game &&
+      Date.now() - Number(activeGoal.startedAt || 0) < 60 * 60 * 1000
+    ) {
+      goalSource = activeGoal.source;
+    }
     let goalReturn = null;
 
     if (goalSource === 'daily') {
       const challenge = challengeStatus();
-      if (challenge.game === game && !challenge.claimed) {
-        goalReturn = {
-          href:'index.html',
-          label:challenge.complete ? '🔥 Claim Daily Challenge →' : '← Daily Challenge',
-          note:challenge.complete
-            ? '🔥 Daily challenge complete — return Home to claim +' + challenge.reward + ' Coins.'
-            : '🔥 Daily challenge progress: ' + challenge.progress + '/' + challenge.goal
-        };
-      }
+      goalReturn = {
+        href:'index.html',
+        label:challenge.complete && !challenge.claimed ? '🔥 Claim Daily Challenge →' : '← Daily Challenge',
+        note:challenge.complete
+          ? (challenge.claimed
+              ? '🔥 Daily challenge complete and claimed.'
+              : '🔥 Daily challenge complete — return Home to claim +' + challenge.reward + ' Coins.')
+          : '🔥 Daily challenge progress: ' + challenge.progress + '/' + challenge.goal
+      };
     } else if (goalSource === 'weekly') {
-      const missionId = goalParams.get('mission');
+      const missionId = goalParams.get('mission') || activeGoal?.mission || '';
       const mission = weeklyStatus().missions.find(item => item.id === missionId);
-      if (mission && mission.game === game && !mission.claimed) {
+      if (mission) {
         goalReturn = {
           href:'stats.html',
-          label:mission.complete ? '📅 Claim Weekly Mission →' : '← Weekly Mission',
+          label:mission.complete && !mission.claimed ? '📅 Claim Weekly Mission →' : '← Weekly Mission',
           note:mission.complete
-            ? '📅 Weekly mission complete — return to Missions to claim +' + mission.rewardXP + ' XP.'
+            ? (mission.claimed
+                ? '📅 Weekly mission complete and claimed.'
+                : '📅 Weekly mission complete — return to Missions to claim +' + mission.rewardXP + ' XP.')
             : '📅 Weekly mission progress: ' + mission.progress + '/' + mission.goal
         };
       }
@@ -1469,6 +1484,7 @@ const Arcade = (() => {
     back.addEventListener('click', () => {
       closeModalThen(() => {
         modal.className = '';
+        if (goalReturn) sessionStorage.removeItem('earnlyActiveGoal');
         location.href = goalReturn ? goalReturn.href : 'games.html';
       });
     });
@@ -1981,6 +1997,15 @@ const Arcade = (() => {
     const goalParams = new URLSearchParams(location.search);
     const goalSource = goalParams.get('goal');
     let goal = null;
+
+    if (goalSource === 'daily' || goalSource === 'weekly') {
+      sessionStorage.setItem('earnlyActiveGoal', JSON.stringify({
+        source:goalSource,
+        mission:goalParams.get('mission') || '',
+        game,
+        startedAt:Date.now()
+      }));
+    }
 
     if (goalSource === 'daily') {
       const challenge = challengeStatus();
