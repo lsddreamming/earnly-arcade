@@ -21,6 +21,8 @@ const CORE_ASSETS = [
   './paddlerally.html',
   './lanerunner.html',
   './safecracker.html',
+  './mini.html',
+  './mini-games.js',
   './arcade.css',
   './arcade.js',
   './cloud.js',
