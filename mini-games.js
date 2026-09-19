@@ -251,7 +251,7 @@
   }
 
   function makeMergeRush() {
-    let board=Array(16).fill(0), score=0, alive=false, startX=0, startY=0, celebrated64=false, celebrated128=false, celebrated256=false;
+    let board=Array(16).fill(0), score=0, moves=0, alive=false, startX=0, startY=0, celebrated64=false, celebrated128=false, celebrated256=false;
     const wrap=document.createElement('div');
     wrap.className='merge-wrap';
 
@@ -354,10 +354,10 @@
       }
       const changed=old.some((v,i)=>v!==next[i]);
       board=next;
-      if(changed){spawn();Arcade.feedback('move');render()}
+      if(changed){moves++;spawn();Arcade.feedback('move');render()}else{Arcade.feedback('fail')}
       if(!canMove()){
         alive=false;
-        finish(score,high(),['🔢 Highest tile: '+high(),'🎯 Goal: reach 128','Swipe the whole board to combine matching numbers.'],'No More Moves');
+        finish(score,high(),['🔢 Highest tile: '+high(),'👆 Moves: '+moves,high()>=128?'🏆 128 goal reached!':'🎯 Goal: reach 128','Swipe the whole board to combine matching numbers.'],'No More Moves');
       }
     }
 
@@ -400,7 +400,7 @@
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){board=Array(16).fill(0);score=0;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;spawn();spawn();render()},
+      start(){board=Array(16).fill(0);score=0;moves=0;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;spawn();spawn();render()},
       stop(){
         alive=false;
         swipePointer=null;
