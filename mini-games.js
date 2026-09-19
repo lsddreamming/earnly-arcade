@@ -1009,14 +1009,22 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=300,vy=-8,dive=false,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0;
+    let y=300,vy=-8,dive=false,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,graceClears=0;
 
     function runLevel(){
       return 1+Math.floor(cleared/5);
     }
 
     function obstacleSpeed(){
-      return Math.min(5.1,2.65+cleared*.065);
+      // Keep the first few obstacles deliberately slow, then ramp from successful clears.
+      if(cleared<3)return 2.15+cleared*.18;
+      return Math.min(5.1,2.69+(cleared-3)*.065);
+    }
+
+    function nextSpawnDelay(){
+      // More breathing room while the player learns the hold/release rhythm.
+      if(cleared<3)return 128+Math.random()*28;
+      return Math.max(68,108-(cleared-3)*1.05)+Math.random()*32;
     }
 
     function draw() {
@@ -1108,14 +1116,18 @@
       y+=vy*dt;
 
       if(!warming&&spawn<=0){
-        obstacles.push({x:390,w:28+Math.random()*24});
-        spawn=Math.max(64,102-cleared*1.1)+Math.random()*38;
+        // The opening obstacles are narrower so a new player can learn the timing.
+        const maxWidth=cleared<3?34:52;
+        const minWidth=cleared<3?22:28;
+        obstacles.push({x:390,w:minWidth+Math.random()*(maxWidth-minWidth)});
+        spawn=nextSpawnDelay();
       }
 
       obstacles.forEach(o=>o.x-=obstacleSpeed()*dt);
       obstacles=obstacles.filter(o=>{
         if(o.x+o.w<0){
           cleared++;
+          graceClears=Math.min(3,graceClears+1);
           Arcade.feedback('score');
           if(cleared%5===0)Arcade.milestone('⚪ Level '+runLevel()+'!','perfect');
           return false;
@@ -1179,8 +1191,8 @@
 
     return {
       start(){
-        y=300;vy=-8;dive=false;obstacles=[];distance=0;cleared=0;spawn=115;last=0;alive=true;
-        readyUntil=performance.now()+1100;
+        y=292;vy=-7.2;dive=false;obstacles=[];distance=0;cleared=0;graceClears=0;spawn=145;last=0;alive=true;
+        readyUntil=performance.now()+1400;
         ui(0,0);
         draw();
         raf=requestAnimationFrame(loop);
