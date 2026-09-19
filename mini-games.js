@@ -661,14 +661,17 @@
     function openingWidth(){
       // Smooth difficulty curve: openings tighten steadily instead of
       // suddenly becoming punishing late in a good run.
-      return Math.max(78,132-score*.62);
+      if(score<25)return Math.max(94,132-score*.75);
+      if(score<50)return Math.max(78,113-(score-25)*.72);
+      return Math.max(68,95-(score-50)*.34);
     }
 
     function fallSpeed(){
       if(score<10)return .92+score*.035;
       if(score<25)return 1.27+(score-10)*.026;
-      if(score<45)return 1.66+(score-25)*.018;
-      return Math.min(2.35,2.02+(score-45)*.008);
+      if(score<45)return 1.66+(score-25)*.021;
+      if(score<70)return 2.08+(score-45)*.012;
+      return Math.min(2.65,2.38+(score-70)*.006);
     }
 
     function ringColor(r){
@@ -681,7 +684,15 @@
 
     function randomGap(width){
       const half=width/2;
-      return half+28+Math.random()*(360-(half+28)*2);
+      const edge=half+28;
+      // Later runs deliberately use more of the board so the player has to
+      // travel instead of camping near the middle.
+      if(score>=25&&Math.random()<Math.min(.72,.28+score*.006)){
+        const side=Math.random()<.5 ? -1 : 1;
+        const outer=edge+Math.random()*Math.max(1,54-half*.12);
+        return side<0 ? outer : 360-outer;
+      }
+      return edge+Math.random()*(360-edge*2);
     }
 
     function resetRings() {
@@ -713,18 +724,21 @@
       ctx.fillStyle=bg;
       ctx.fillRect(0,0,360,430);
 
-      // Small tutorial that stays out of the play area.
-      ctx.fillStyle='rgba(15,23,42,.9)';
-      ctx.fillRect(18,14,324,42);
-      ctx.strokeStyle='#334155';
-      ctx.strokeRect(18,14,324,42);
+      // Teach the control briefly, then get the tutorial completely out of the
+      // way once the player has demonstrated they understand it.
       ctx.textAlign='center';
-      ctx.fillStyle='#dbeafe';
-      ctx.font='800 11px Arial';
-      ctx.fillText('◀ DRAG TO MOVE ▶',180,30);
-      ctx.fillStyle='#94a3b8';
-      ctx.font='700 9px Arial';
-      ctx.fillText(score===0?'First opening starts centered for you':score<5?'Drag the ball through each opening':'',180,45);
+      if(score<5){
+        ctx.fillStyle='rgba(15,23,42,.9)';
+        ctx.fillRect(18,14,324,42);
+        ctx.strokeStyle='#334155';
+        ctx.strokeRect(18,14,324,42);
+        ctx.fillStyle='#dbeafe';
+        ctx.font='800 11px Arial';
+        ctx.fillText('◀ DRAG TO MOVE ▶',180,30);
+        ctx.fillStyle='#94a3b8';
+        ctx.font='700 9px Arial';
+        ctx.fillText(score===0?'First opening starts centered for you':'Drag the ball through each opening',180,45);
+      }
 
       rings.forEach(r=>{
         const safe=r.first && !r.checked;
