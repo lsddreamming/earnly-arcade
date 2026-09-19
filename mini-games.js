@@ -667,12 +667,14 @@
   function makeSpiralDrop() {
     const [c,ctx]=canvasBase();
     let ballX=180,rows=[],score=0,alive=false,raf=null,last=0,readyUntil=0;
-    let controlPointer=null,levelFlash='',levelFlashFrames=0;
+    let controlPointer=null,levelFlash='',levelFlashFrames=0,bestLevel=1;
     let pointerStartClientX=0;
     let pointerStartBallX=180;
 
-    function level(){
-      return 1+Math.floor(score/5);
+    function level(){return 1+Math.floor(score/5)}
+    function stageName(){
+      const lv=level();
+      return lv<=1?'Warm-up':lv<=3?'Spiral Zone':lv<=6?'Fast Fall':'Expert Drop';
     }
 
     function openingWidth(){
@@ -820,7 +822,7 @@
         ctx.textAlign='left';
         ctx.fillStyle='#93c5fd';
         ctx.font='800 10px Arial';
-        ctx.fillText('LEVEL '+level(),22,76);
+        ctx.fillText('LEVEL '+level()+' · '+stageName().toUpperCase(),22,76);
         ctx.textAlign='right';
         ctx.fillStyle='#cbd5e1';
         ctx.fillText(score+' ROWS',338,76);
@@ -839,7 +841,8 @@
         ctx.fillText('LEVEL',74,29);
         ctx.fillStyle='#ffffff';
         ctx.font='900 16px Arial';
-        ctx.fillText(String(level()),74,47);
+        ctx.fillText(String(level()),74,44);
+        ctx.fillStyle='#94a3b8';ctx.font='700 7px Arial';ctx.fillText(stageName().toUpperCase(),74,52);
 
         ctx.fillStyle='#94a3b8';
         ctx.font='900 9px Arial';
@@ -941,7 +944,9 @@
               level(),
               [
                 '🌀 Rows passed: '+score,
-                'Tap or drag toward the opening before it reaches the ball.'
+                '🎯 Level reached: '+level(),
+                '⚡ Stage: '+stageName(),
+                'Drag the ball toward the opening before it reaches you.'
               ],
               'Spiral Drop'
             );
@@ -949,6 +954,7 @@
           }
 
           score++;
+          bestLevel=Math.max(bestLevel,level());
           Arcade.feedback('score');
           ui(score,level());
 
@@ -1002,6 +1008,9 @@
       pointerStartBallX=ballX;
     }
 
+    c.style.touchAction='none';
+    c.style.userSelect='none';
+    c.style.webkitUserSelect='none';
     c.addEventListener('pointerdown',e=>{
       e.preventDefault();
       beginPointer(e);
@@ -1053,7 +1062,7 @@
     return {
       start(){
         ballX=180;
-        score=0;
+        score=0;bestLevel=1;
         alive=true;
         last=0;
         controlPointer=null;
