@@ -2240,8 +2240,11 @@ const Arcade = (() => {
       const active =
         statusText.includes('running') ||
         statusText.includes('get ready') ||
-        statusText.includes('starting');
+        statusText.includes('starting') ||
+        statusText.includes('paused');
 
+      // Paused is still an active run. Keep the real game board visible and
+      // frozen instead of replacing it with the Ready/Out-of-Plays guide.
       if (active) {
         overlay.classList.add('hidden');
         return;
