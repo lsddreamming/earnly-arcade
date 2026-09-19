@@ -7,9 +7,9 @@
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?2:0)+(v>=20?5:0))},
-    shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'Study the silhouette and choose the matching piece.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
-    bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Hold to dive faster. Release to float and clear obstacles.',reward:v=>Math.min(25,Math.floor(v/15)+(v>=120?3:0)+(v>=220?5:0))},
-    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap cars with a clear path to drive them off the board.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))}
+    shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'Match the green silhouette to the same shape below. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
+    bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Hold anywhere to dive. Release to float. Clear obstacles and keep the run alive.',reward:v=>Math.min(25,Math.floor(v/15)+(v>=120?3:0)+(v>=220?5:0))},
+    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when the road in its arrow direction is clear. Empty the board to level up.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))}
   };
 
   const config = configs[key] || configs.blockGrid;
@@ -881,102 +881,262 @@
   ];
 
   function makeShapeFit() {
-    let score=0,streak=0,lives=3,answer=null,alive=false;
+    let score=0,streak=0,lives=3,answer=null,alive=false,locked=false;
     const wrap=document.createElement('div');
     wrap.className='fit-wrap';
+
     const title=document.createElement('div');
-    title.className='mini-help';
+    title.className='fit-title';
+
     const target=document.createElement('div');
     target.className='fit-shape';
+
+    const hint=document.createElement('div');
+    hint.className='fit-hint';
+    hint.setAttribute('aria-live','polite');
+
     const answers=document.createElement('div');
     answers.className='fit-answers';
-    wrap.append(title,target,answers);
+
+    wrap.append(title,target,hint,answers);
     surface.replaceChildren(wrap);
 
+    function shapePreview(shape,className) {
+      const preview=document.createElement('span');
+      preview.className=className;
+
+      for(let y=0;y<4;y++)for(let x=0;x<4;x++){
+        const dot=document.createElement('span');
+        dot.className='fit-preview-dot'+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');
+        preview.append(dot);
+      }
+
+      return preview;
+    }
+
     function round() {
+      locked=false;
       answer=SHAPES[Math.floor(Math.random()*SHAPES.length)];
-      title.textContent='Which piece matches this silhouette?  •  Lives '+lives;
+
+      title.innerHTML='<strong>Find the same shape</strong><span>'+
+        '❤️'.repeat(lives)+'♡'.repeat(3-lives)+' · 🔥 '+streak+' streak</span>';
+
       target.replaceChildren();
       for(let y=0;y<4;y++)for(let x=0;x<4;x++){
         const d=document.createElement('div');
         d.className='fit-dot'+(answer.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');
         target.append(d);
       }
+
+      hint.textContent='Tap the matching shape';
+
       const opts=[answer];
       while(opts.length<4){
-        const s=SHAPES[Math.floor(Math.random()*SHAPES.length)];
-        if(!opts.includes(s))opts.push(s);
+        const option=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+        if(!opts.includes(option))opts.push(option);
       }
       opts.sort(()=>Math.random()-.5);
+
       answers.replaceChildren();
-      opts.forEach(s=>{
+      opts.forEach(shape=>{
         const b=document.createElement('button');
-        b.type='button';b.className='fit-answer';b.textContent=s.name;
-        b.addEventListener('click',()=>choose(s));
+        b.type='button';
+        b.className='fit-answer';
+        b.dataset.shape=shape.name;
+        b.setAttribute('aria-label','Choose '+shape.name+' shape');
+
+        b.append(shapePreview(shape,'fit-answer-preview'));
+
+        const name=document.createElement('small');
+        name.textContent=shape.name;
+        b.append(name);
+
+        b.addEventListener('click',()=>choose(shape,b));
         answers.append(b);
       });
     }
 
-    function choose(s) {
-      if(!alive)return;
-      if(s===answer){
-        score++;streak++;Arcade.feedback('match');
+    function choose(shape,button) {
+      if(!alive||locked)return;
+      locked=true;
+
+      if(shape===answer){
+        score++;
+        streak++;
+        button.classList.add('correct');
+        hint.textContent=streak>=3 ? '✅ Correct · '+streak+' in a row!' : '✅ Correct!';
+        Arcade.feedback(streak>=3?'perfect':'match');
         if(streak===7)Arcade.milestone('🧠 7 correct in a row!','perfect');
       }else{
-        lives--;streak=0;Arcade.feedback('fail');
+        lives--;
+        streak=0;
+        button.classList.add('wrong');
+
+        [...answers.children].forEach(node=>{
+          if(node.dataset.shape===answer.name)node.classList.add('correct');
+        });
+
+        hint.textContent='❌ Not that one · '+lives+' '+(lives===1?'life':'lives')+' left';
+        Arcade.feedback('fail');
       }
+
       ui(score,streak);
+
       if(lives<=0){
         alive=false;
-        finish(score,streak,['🧠 Correct fits: '+score,'Study the silhouette before choosing.'],'Puzzle Run Over');
-      }else round();
+        setTimeout(()=>{
+          finish(
+            score,
+            streak,
+            ['🧠 Correct matches: '+score,'Match the block pattern, not just the name.'],
+            'Shape Fit Run Over'
+          );
+        },320);
+        return;
+      }
+
+      setTimeout(()=>{
+        if(alive)round();
+      },360);
     }
 
     return {
-      start(){score=0;streak=0;lives=3;alive=true;ui(0,0);round()},
-      stop(){alive=false}
+      start(){score=0;streak=0;lives=3;alive=true;locked=false;ui(0,0);round()},
+      stop(){alive=false;locked=true}
     };
   }
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=300,vy=-8,dive=false,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0;
+    let y=300,vy=-8,dive=false,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0;
+
+    function runLevel(){
+      return 1+Math.floor(cleared/5);
+    }
+
+    function obstacleSpeed(){
+      return Math.min(5.1,2.65+cleared*.065);
+    }
 
     function draw() {
-      ctx.fillStyle='#0e1d2f';ctx.fillRect(0,0,360,430);
-      ctx.fillStyle='#1f2937';ctx.fillRect(0,360,360,70);
-      ctx.fillStyle='#22c55e';obstacles.forEach(o=>ctx.fillRect(o.x,330,o.w,30));
-      ctx.beginPath();ctx.fillStyle='#f8fafc';ctx.arc(80,y,11,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#94a3b8';ctx.font='11px Arial';ctx.textAlign='center';ctx.fillText('HOLD = DIVE',285,405);
+      const bg=ctx.createLinearGradient(0,0,0,430);
+      bg.addColorStop(0,'#0d1728');
+      bg.addColorStop(1,'#13243a');
+      ctx.fillStyle=bg;
+      ctx.fillRect(0,0,360,430);
+
+      ctx.fillStyle='#1f2937';
+      ctx.fillRect(0,360,360,70);
+      ctx.fillStyle='#334155';
+      ctx.fillRect(0,356,360,4);
+
+      ctx.fillStyle='rgba(15,23,42,.9)';
+      ctx.fillRect(18,14,324,42);
+      ctx.strokeStyle='#334155';
+      ctx.strokeRect(18,14,324,42);
+      ctx.textAlign='center';
+      ctx.fillStyle='#dbeafe';
+      ctx.font='800 11px Arial';
+      ctx.fillText('HOLD = DIVE  •  RELEASE = FLOAT',180,31);
+      ctx.fillStyle='#94a3b8';
+      ctx.font='700 9px Arial';
+      ctx.fillText('Clear 5 obstacles to level up',180,46);
+
+      obstacles.forEach(o=>{
+        const grd=ctx.createLinearGradient(o.x,330,o.x+o.w,360);
+        grd.addColorStop(0,'#dc2626');
+        grd.addColorStop(1,'#7f1d1d');
+        ctx.fillStyle=grd;
+        ctx.fillRect(o.x,330,o.w,30);
+
+        ctx.fillStyle='#fca5a5';
+        for(let sx=o.x+5;sx<o.x+o.w-4;sx+=10){
+          ctx.beginPath();
+          ctx.moveTo(sx,330);
+          ctx.lineTo(sx+5,320);
+          ctx.lineTo(sx+10,330);
+          ctx.fill();
+        }
+      });
+
+      const glow=ctx.createRadialGradient(76,y-4,2,80,y,18);
+      glow.addColorStop(0,'#fff');
+      glow.addColorStop(.6,'#dbeafe');
+      glow.addColorStop(1,'#60a5fa');
+      ctx.beginPath();
+      ctx.fillStyle=glow;
+      ctx.arc(80,y,11,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='#bfdbfe';
+      ctx.lineWidth=2;
+      ctx.stroke();
+
+      ctx.fillStyle='#94a3b8';
+      ctx.font='700 10px Arial';
+      ctx.fillText('LEVEL '+runLevel()+'  ·  '+cleared+' cleared',180,405);
+
+      if(performance.now()<readyUntil){
+        ctx.fillStyle='rgba(15,23,42,.94)';
+        ctx.beginPath();
+        ctx.roundRect(100,178,160,50,12);
+        ctx.fill();
+        ctx.strokeStyle='#3b82f6';
+        ctx.stroke();
+
+        ctx.fillStyle='#bfdbfe';
+        ctx.font='900 14px Arial';
+        ctx.fillText('READY TO BOUNCE?',180,198);
+        ctx.fillStyle='#94a3b8';
+        ctx.font='700 9px Arial';
+        ctx.fillText('First obstacle arrives slowly',180,215);
+      }
     }
 
     function loop(t) {
       if(!alive)return;
-      const dt=Math.min(32,t-(last||t))/16.67;last=t;
-      distance+=.18*dt;spawn-=dt;
+      const dt=Math.min(32,t-(last||t))/16.67;
+      last=t;
+      const warming=t<readyUntil;
+
+      if(!warming){
+        distance+=.18*dt;
+        spawn-=dt;
+      }
+
       vy+=(dive?1.05:.48)*dt;
       y+=vy*dt;
 
-      if(spawn<=0){
-        obstacles.push({x:390,w:28+Math.random()*28});
-        spawn=80+Math.random()*55;
+      if(!warming&&spawn<=0){
+        obstacles.push({x:390,w:28+Math.random()*24});
+        spawn=Math.max(64,102-cleared*1.1)+Math.random()*38;
       }
 
-      obstacles.forEach(o=>o.x-=3.5*dt);
+      obstacles.forEach(o=>o.x-=obstacleSpeed()*dt);
       obstacles=obstacles.filter(o=>{
-        if(o.x+o.w<0){cleared++;Arcade.feedback('score');return false}
+        if(o.x+o.w<0){
+          cleared++;
+          Arcade.feedback('score');
+          if(cleared%5===0)Arcade.milestone('⚪ Level '+runLevel()+'!','perfect');
+          return false;
+        }
         return true;
       });
 
-      const hit=obstacles.some(o=>o.x<92&&o.x+o.w>68&&y+11>330);
+      const hit=obstacles.some(o=>o.x<92&&o.x+o.w>68&&y+11>320);
       if(hit||y>430){
         alive=false;
-        finish(Math.floor(distance),cleared,['⚪ Obstacles cleared: '+cleared,'Hold briefly to dive; release to float.'],'Bounce Run Over');
+        finish(
+          Math.floor(distance),
+          cleared,
+          ['⚪ Obstacles cleared: '+cleared,'Hold to dive sooner; release to float longer.'],
+          'Bounce Run Over'
+        );
         return;
       }
 
       if(y+11>=360){y=349;vy=-9.4}
-      if(y<20){y=20;vy=1}
+      if(y<70){y=70;vy=1}
+
       ui(Math.floor(distance),cleared);
       draw();
       raf=requestAnimationFrame(loop);
@@ -984,6 +1144,7 @@
 
     const down=e=>{if(alive){e.preventDefault();dive=true}};
     const up=e=>{if(alive){e.preventDefault();dive=false}};
+
     c.addEventListener('pointerdown',down);
     c.addEventListener('pointerup',up);
     c.addEventListener('pointercancel',up);
@@ -993,21 +1154,36 @@
       e.preventDefault();
       dive=true;
     };
-    const onWideUp=e=>{
-      if(!alive || !dive)return;
+    const onWideUp=()=>{
+      if(!alive||!dive)return;
       dive=false;
     };
+
     document.addEventListener('pointerdown',onWideDown,{passive:false});
     document.addEventListener('pointerup',onWideUp,{passive:true});
     document.addEventListener('pointercancel',onWideUp,{passive:true});
 
-    const onDown=e=>{if(alive&&(e.code==='Space'||e.key==='ArrowDown')){e.preventDefault();dive=true}};
-    const onUp=e=>{if(e.code==='Space'||e.key==='ArrowDown')dive=false};
+    const onDown=e=>{
+      if(alive&&(e.code==='Space'||e.key==='ArrowDown')){
+        e.preventDefault();
+        dive=true;
+      }
+    };
+    const onUp=e=>{
+      if(e.code==='Space'||e.key==='ArrowDown')dive=false;
+    };
+
     document.addEventListener('keydown',onDown);
     document.addEventListener('keyup',onUp);
 
     return {
-      start(){y=300;vy=-8;dive=false;obstacles=[];distance=0;cleared=0;spawn=50;last=0;alive=true;ui(0,0);raf=requestAnimationFrame(loop)},
+      start(){
+        y=300;vy=-8;dive=false;obstacles=[];distance=0;cleared=0;spawn=115;last=0;alive=true;
+        readyUntil=performance.now()+1100;
+        ui(0,0);
+        draw();
+        raf=requestAnimationFrame(loop);
+      },
       stop(){
         alive=false;
         dive=false;
@@ -1041,21 +1217,35 @@
   ];
 
   function makeTrafficEscape() {
-    let cars=[],cleared=0,level=1,alive=false;
+    let cars=[],cleared=0,level=1,alive=false,locked=false;
+
     const wrap=document.createElement('div');
+    wrap.className='traffic-wrap';
+
+    const guide=document.createElement('div');
+    guide.className='traffic-guide';
+    guide.innerHTML='<strong>🚦 Clear the road</strong><span>Tap a car only if nothing blocks its arrow.</span>';
+
+    const levelLine=document.createElement('div');
+    levelLine.className='traffic-level-line';
+    levelLine.setAttribute('aria-live','polite');
+
     const grid=document.createElement('div');
     grid.className='traffic-grid';
-    wrap.append(grid);
+
+    wrap.append(guide,levelLine,grid);
     surface.replaceChildren(wrap);
+
     const cell=55;
 
     function loadLevel() {
+      locked=false;
       const source=TRAFFIC_LEVELS[(level-1)%TRAFFIC_LEVELS.length];
-      cars=source.map((c,i)=>({...c,id:i}));
+      cars=source.map((car,i)=>({...car,id:i}));
       render();
     }
 
-    function occupiedByOther(car, x, y) {
+    function occupiedByOther(car,x,y) {
       return cars.some(other=>{
         if(other===car)return false;
         for(let n=0;n<other.len;n++){
@@ -1086,45 +1276,84 @@
       return true;
     }
 
-    function tapCar(car) {
-      if(!alive)return;
-      if(!canExit(car)){Arcade.feedback('fail');return}
+    function exitTransform(car) {
+      if(car.h)return 'translateX('+(car.dir>0?'380px':'-380px')+')';
+      return 'translateY('+(car.dir>0?'380px':'-380px')+')';
+    }
+
+    function tapCar(car,button) {
+      if(!alive||locked)return;
+
+      if(!canExit(car)){
+        button.classList.remove('blocked');
+        void button.offsetWidth;
+        button.classList.add('blocked');
+        levelLine.textContent='🚧 Blocked — another car is in the way';
+        Arcade.feedback('fail');
+        return;
+      }
+
+      locked=true;
+      levelLine.textContent='✅ Clear path!';
+      button.classList.add('escaping');
+      button.style.transform=exitTransform(car);
       Arcade.feedback('score');
-      cleared++;
-      cars=cars.filter(c=>c!==car);
-      ui(cleared,level);
-      render();
-      if(!cars.length){
-        Arcade.milestone('🚦 Level '+level+' cleared!','perfect');
-        level++;
-        if(level>9){
-          alive=false;
-          finish(cleared,level-1,['🚦 Levels cleared: '+(level-1),'You cleared every traffic board!'],'Traffic Master');
+
+      setTimeout(()=>{
+        cleared++;
+        cars=cars.filter(item=>item!==car);
+        ui(cleared,level);
+
+        if(!cars.length){
+          Arcade.milestone('🚦 Level '+level+' cleared!','perfect');
+          level++;
+
+          if(level>9){
+            alive=false;
+            finish(
+              cleared,
+              level-1,
+              ['🚦 Levels cleared: '+(level-1),'You cleared every traffic board!'],
+              'Traffic Master'
+            );
+            return;
+          }
+
+          levelLine.textContent='🎉 Board clear · Level '+level+' next';
+          setTimeout(()=>{if(alive)loadLevel()},420);
           return;
         }
-        setTimeout(()=>{if(alive)loadLevel()},350);
-      }
+
+        locked=false;
+        render();
+      },210);
     }
 
     function render() {
+      levelLine.textContent='Level '+level+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left';
       grid.replaceChildren();
+
       cars.forEach((car,idx)=>{
         const b=document.createElement('button');
-        b.type='button';b.className='traffic-car';
+        b.type='button';
+        b.className='traffic-car';
         b.style.left=(car.x*cell+3)+'px';
         b.style.top=(car.y*cell+3)+'px';
         b.style.width=((car.h?car.len:1)*cell-6)+'px';
         b.style.height=((car.h?1:car.len)*cell-6)+'px';
         b.style.background=['#2563eb','#16a34a','#dc2626','#9333ea','#d97706','#0891b2'][idx%6];
-        b.textContent=car.h?(car.dir>0?'🚗→':'←🚗'):(car.dir>0?'🚙↓':'↑🚙');
-        b.addEventListener('click',()=>tapCar(car));
+
+        const arrow=car.h ? (car.dir>0?'→':'←') : (car.dir>0?'↓':'↑');
+        b.innerHTML='<span class="traffic-emoji">🚗</span><span class="traffic-arrow">'+arrow+'</span>';
+        b.setAttribute('aria-label','Car pointing '+({'>':'right','<':'left','↑':'up','↓':'down'}[arrow]||arrow));
+        b.addEventListener('click',()=>tapCar(car,b));
         grid.append(b);
       });
     }
 
     return {
-      start(){cleared=0;level=1;alive=true;ui(0,1);loadLevel()},
-      stop(){alive=false}
+      start(){cleared=0;level=1;alive=true;locked=false;ui(0,1);loadLevel()},
+      stop(){alive=false;locked=true}
     };
   }
 
