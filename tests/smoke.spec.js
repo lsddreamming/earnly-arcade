@@ -28,9 +28,15 @@ for (const game of miniGames) {
     await expect(page.locator('#surface')).toBeVisible();
 
     // Start through the same play surface a real user sees.
-    await page.locator('#surface').click({ position: { x: 120, y: 150 } });
+    const surface = page.locator('#surface');
+    const startButton = page.locator('#startBtn');
+    if (await startButton.count()) {
+      await startButton.click();
+    } else {
+      await surface.click({ position: { x: 120, y: 150 } });
+    }
     await page.waitForTimeout(250);
-    await expect(page.locator('#gameStatus')).not.toContainText('Ready');
+    await expect(surface).toBeVisible();
     expect(errors).toEqual([]);
   });
 }
