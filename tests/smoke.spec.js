@@ -382,3 +382,21 @@ test('core games always expose a result popup contract', async ({ page }) => {
     expect(source, name+' must show time played').toContain('Time played:');
   }
 });
+
+
+test('game catalog search filters cleanly and recovers', async ({ page }) => {
+  await page.goto('/games.html');
+  const search = page.locator('#gameSearch');
+  await expect(search).toBeVisible();
+
+  await search.fill('snake');
+  await expect(page.locator('#games .game-card')).toHaveCount(1);
+  await expect(page.locator('#games .game-card')).toContainText('Snake');
+
+  await search.fill('definitely-not-a-game');
+  await expect(page.locator('#games .game-card')).toHaveCount(0);
+  await expect(page.locator('#games .game-browser-empty')).toContainText('No games found');
+
+  await search.fill('');
+  await expect(page.locator('#games .game-card').first()).toBeVisible();
+});
