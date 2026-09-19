@@ -4779,3 +4779,21 @@ body.earnly-gameplay-locked{
 .earnly-pause-button{margin-left:8px;min-height:36px;padding:7px 12px;font-size:12px;font-weight:800;vertical-align:middle}
 .earnly-game-paused .touch-surface{filter:brightness(.72)}
 @media(max-width:520px){.earnly-pause-button{min-height:34px;padding:6px 10px}.game-status+.earnly-pause-button{margin-left:6px}}
+
+/* Pause control visibility fix: keep it obvious and tappable on real phones */
+.earnly-pause-button{
+  display:block;
+  width:max-content;
+  min-width:92px;
+  margin:7px auto 8px;
+  border:1px solid #64748b;
+  background:#253247;
+  color:#f8fafc;
+  position:relative;
+  z-index:55;
+}
+.earnly-pause-button[hidden]{display:none!important}
+.earnly-game-paused .earnly-pause-button{
+  border-color:#22c55e;
+  background:#14532d;
+}
