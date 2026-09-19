@@ -73,7 +73,21 @@
     function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}const r=canvas.getBoundingClientRect();const x=(e.clientX-r.left)*(canvas.width/r.width);setLane(x<120?0:x<240?1:2)});
+    function laneFromPointer(e){
+      const x=Arcade.gameSurfaceX(e.clientX,canvas,canvas.width);
+      setLane(x<120?0:x<240?1:2);
+    }
+    canvas.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      if(!running){if(!starting)startGame();return}
+      laneFromPointer(e);
+    });
+    document.addEventListener('pointerdown',e=>{
+      if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,130))return;
+      e.preventDefault();
+      if(!running){if(!starting)startGame();return}
+      laneFromPointer(e);
+    },{passive:false});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();setLane(lane-1)}if(e.key==='ArrowRight'){e.preventDefault();setLane(lane+1)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
