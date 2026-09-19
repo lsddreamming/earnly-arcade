@@ -52,6 +52,15 @@
     .fit-answer small{font-size:8px;color:#94a3b8;font-weight:800}
     .fit-answer.correct{border-color:#22c55e;background:#123a28}.fit-answer.correct .fit-preview-dot.on{background:#4ade80}
     .fit-answer.wrong{border-color:#ef4444;background:#3a171c}
+    /* Shape Fit: keep larger rounds usable on phones without forcing the
+       player to hunt for a narrow page-scroll gutter beside the choices. */
+    .fit-wrap.many-choices{padding-bottom:10px}
+    .fit-wrap.many-choices .fit-shape{grid-template-columns:repeat(4,36px);grid-template-rows:repeat(4,36px);gap:4px;margin:9px auto}
+    .fit-wrap.many-choices .fit-hint{margin-bottom:6px}
+    .fit-wrap.many-choices .fit-answers{max-height:250px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:1px 3px 8px 1px;touch-action:pan-y}
+    .fit-wrap.many-choices .fit-answer{min-height:78px;padding:7px}
+    .fit-wrap.many-choices .fit-answer-preview{grid-template-columns:repeat(4,10px);grid-template-rows:repeat(4,10px)}
+    .fit-wrap.many-choices .fit-preview-dot{width:10px;height:10px}
     .traffic-wrap{padding:10px 8px 14px}
     .traffic-guide{display:grid;gap:2px;margin:2px 4px 8px;padding:9px 11px;border:1px solid #334155;border-radius:12px;background:#0e1726}
     .traffic-guide strong{font-size:10px;color:#dbeafe}.traffic-guide span{font-size:8px;color:#94a3b8}
