@@ -178,6 +178,15 @@
           bricksEl.textContent=levelBroken;
           rewardPreviewEl.textContent=currentReward();
           ball.dy*=-1;
+
+          // Add a tiny horizontal deflection after brick hits so repeated
+          // straight-up/straight-down paths naturally break themselves.
+          const speed=Math.hypot(ball.dx,ball.dy);
+          if(Math.abs(ball.dx)<speed*0.34){
+            const direction=ball.dx===0?(Math.random()<.5?-1:1):Math.sign(ball.dx);
+            ball.dx=direction*speed*0.34;
+            ball.dy=Math.sign(ball.dy||1)*Math.sqrt(Math.max(1,speed*speed-ball.dx*ball.dx));
+          }
           return true;
         }
       }
@@ -190,8 +199,23 @@
       ball.x+=ball.dx;
       ball.y+=ball.dy;
 
-      if(ball.x-ball.r<=0 || ball.x+ball.r>=canvas.width) ball.dx*=-1;
-      if(ball.y-ball.r<=0) ball.dy=Math.abs(ball.dy);
+      if(ball.x-ball.r<=0 || ball.x+ball.r>=canvas.width) {
+        ball.x=Math.max(ball.r+1,Math.min(canvas.width-ball.r-1,ball.x));
+        ball.dx*=-1;
+      }
+      if(ball.y-ball.r<=0) {
+        ball.y=ball.r+1;
+        ball.dy=Math.abs(ball.dy);
+      }
+
+      // Prevent near-vertical wall loops where the ball can bounce in one corner forever.
+      const speed=Math.hypot(ball.dx,ball.dy);
+      const minHorizontal=Math.max(1.65,speed*0.30);
+      if(Math.abs(ball.dx)<minHorizontal){
+        const direction=ball.dx===0?(Math.random()<.5?-1:1):Math.sign(ball.dx);
+        ball.dx=direction*minHorizontal;
+        ball.dy=Math.sign(ball.dy||-1)*Math.sqrt(Math.max(1,speed*speed-ball.dx*ball.dx));
+      }
 
       if(
         ball.dy>0 &&
