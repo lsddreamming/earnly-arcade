@@ -482,6 +482,8 @@
   let syncTimer = null;
   let syncRunning = false;
   let syncAgain = false;
+  let retryAttempt = 0;
+  const MAX_RETRY_DELAY = 60000;
 
   function scheduleAutoSync(reason = 'change', delay = 1400){
     if (!autoSyncEnabled()) return false;
@@ -490,6 +492,13 @@
       autoSaveProgress(reason).catch(() => {});
     }, Math.max(0, Number(delay) || 0));
     return true;
+  }
+
+  function scheduleRetry(reason = 'retry'){
+    if (!autoSyncEnabled() || !navigator.onLine || cloudConflict()) return false;
+    retryAttempt += 1;
+    const delay = Math.min(MAX_RETRY_DELAY, 1500 * Math.pow(2, Math.min(retryAttempt - 1, 5)));
+    return scheduleAutoSync(reason, delay);
   }
 
   async function autoSaveProgress(reason = 'change'){
@@ -534,12 +543,14 @@
         skipConflictCheck:true
       });
       result.rewardSync = rewardSync;
+      retryAttempt = 0;
       return result;
     } catch (error) {
       localStorage.setItem('arcadeCloudSyncError', String(error?.message || error));
       window.dispatchEvent(new CustomEvent('earnly-cloud-sync-error', {
         detail:{ reason, message:String(error?.message || error) }
       }));
+      scheduleRetry('retry:' + reason);
       throw error;
     } finally {
       syncRunning = false;
@@ -624,7 +635,10 @@
     window.addEventListener('earnly-data-change', event => {
       scheduleAutoSync(event.detail?.type || 'data-change', 650);
     });
-    window.addEventListener('online', () => scheduleAutoSync('online', 300));
+    window.addEventListener('online', () => {
+      retryAttempt = 0;
+      scheduleAutoSync('online', 300);
+    });
     window.addEventListener('pageshow', () => scheduleAutoSync('pageshow', 850));
     window.addEventListener('focus', () => scheduleAutoSync('focus', 1000));
     document.addEventListener('visibilitychange', () => {
