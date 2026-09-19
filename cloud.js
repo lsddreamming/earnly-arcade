@@ -204,6 +204,9 @@
   }
 
   async function syncServerRewards(){
+    if (rewardSyncPromise) return rewardSyncPromise;
+
+    rewardSyncPromise = (async () => {
     const current = await user();
     if (!current) return { skipped:'signed-out', synced:0 };
 
@@ -326,6 +329,13 @@
     }
 
     return { synced, wallet, mismatches };
+    })();
+
+    try {
+      return await rewardSyncPromise;
+    } finally {
+      rewardSyncPromise = null;
+    }
   }
 
   function snapshotSignature(snapshot){
@@ -445,6 +455,7 @@
   let syncTimer = null;
   let syncRunning = false;
   let syncAgain = false;
+  let rewardSyncPromise = null;
 
   function scheduleAutoSync(reason = 'change', delay = 1400){
     if (!autoSyncEnabled()) return false;
