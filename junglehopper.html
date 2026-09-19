@@ -344,13 +344,13 @@
         result,
         playsLeft:Arcade.remaining('jungleHopper'),
         game:'jungleHopper',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('jungleHopper',refreshChrome)
       });
     }
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (running || starting) return;
       starting = true;
@@ -359,7 +359,7 @@
         starting = false;
         Arcade.out('jungleHopper', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       resetGame();
       running = false;
@@ -427,6 +427,11 @@
       }
     });
 
+    Arcade.installPauseControl({
+      isRunning:()=>running,
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},
+      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;animation=requestAnimationFrame(loop);}
+    });
     startButton.addEventListener('click', startGame);
     resetGame();
     refreshChrome();
