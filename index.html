@@ -484,6 +484,11 @@
     window.addEventListener('storage', render);
     render();
     refreshHomeAccountShortcut();
+
+    // New testers need the quick explanation before they begin tapping around.
+    // showOnboarding() quietly skips returning players who already completed a
+    // game or dismissed the walkthrough, so this only appears when useful.
+    setTimeout(() => Arcade.showOnboarding(), 450);
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
