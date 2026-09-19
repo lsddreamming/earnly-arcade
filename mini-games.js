@@ -121,9 +121,21 @@
 
     function anyMove() {
       return tray.some(piece => {
+        if (!piece) return false;
         for (let y=0;y<8;y++) for (let x=0;x<8;x++) if (canPlace(piece,x,y)) return true;
         return false;
       });
+    }
+
+    function refillTray() {
+      tray=[randomPiece(),randomPiece(),randomPiece()];
+      selected=0;
+      Arcade.milestone('✨ New set of 3','score');
+    }
+
+    function selectNextPiece() {
+      const next=tray.findIndex(Boolean);
+      selected=next>=0?next:0;
     }
 
     function clearLines() {
@@ -155,22 +167,28 @@
       tray.forEach((piece,idx)=>{
         const b=document.createElement('button');
         b.type='button';
-        b.className='piece-button' + (idx===selected ? ' selected' : '');
-        b.disabled=!alive;
-        b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece');
+        b.className='piece-button' + (piece && idx===selected ? ' selected' : '') + (!piece ? ' used' : '');
+        b.disabled=!alive || !piece;
 
         const preview=document.createElement('span');
         preview.className='piece-preview';
         for(let py=0;py<4;py++)for(let px=0;px<4;px++){
           const dot=document.createElement('span');
-          dot.className='piece-preview-cell' + (piece.some(([dx,dy])=>dx===px&&dy===py) ? ' on' : '');
+          dot.className='piece-preview-cell' + (piece && piece.some(([dx,dy])=>dx===px&&dy===py) ? ' on' : '');
           preview.append(dot);
         }
 
         const caption=document.createElement('small');
-        caption.textContent=idx===selected?'SELECTED':'TAP TO PICK';
+        if(!piece){
+          b.setAttribute('aria-label','Piece already used');
+          caption.textContent='✓ USED';
+        }else{
+          b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece');
+          caption.textContent=idx===selected?'SELECTED':'TAP TO PICK';
+          b.addEventListener('click',()=>{selected=idx;Arcade.feedback('move');render()});
+        }
+
         b.append(preview,caption);
-        b.addEventListener('click',()=>{selected=idx;Arcade.feedback('move');render()});
         trayEl.append(b);
       });
       ui(score, lines);
@@ -185,12 +203,18 @@
       piece.forEach(([dx,dy])=>board[y+dy][x+dx]=1);
       score += piece.length * 3;
       clearLines();
-      tray[selected]=randomPiece();
-      selected=0;
+      tray[selected]=null;
+
+      if (tray.every(piece=>!piece)) {
+        refillTray();
+      } else {
+        selectNextPiece();
+      }
+
       render();
       if (!anyMove()) {
         alive=false;
-        finish(score,lines,['🧩 Lines cleared: '+lines,'Leave open space for larger pieces.'],'Board Full');
+        finish(score,lines,['🧩 Lines cleared: '+lines,'Save room for the pieces still in your tray.'],'Board Full');
       }
     }
 
