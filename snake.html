@@ -498,12 +498,13 @@
         result,
         playsLeft:Arcade.remaining('snake'),
         game:'snake',
-        extra:[score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('snake', refreshChrome)
       });
     }
 
+    let earnlyRunStartedAt=0;
     function startGame() {
       if (game !== null || starting) return;
       starting = true;
@@ -512,7 +513,7 @@
         starting = false;
           Arcade.out('snake', refreshChrome);
         return;
-      }
+      } earnlyRunStartedAt=performance.now(); 
 
       snake = [{ x: 200, y: 200 }];
       direction = 'RIGHT';
