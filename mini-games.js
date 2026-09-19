@@ -1017,13 +1017,13 @@
 
     function obstacleSpeed(){
       // Keep the first few obstacles deliberately slow, then ramp from successful clears.
-      if(cleared<3)return 1.75+cleared*.22;
+      if(cleared<5)return 1.35+cleared*.16;
       return Math.min(5.1,2.69+(cleared-3)*.065);
     }
 
     function nextSpawnDelay(){
       // More breathing room while the player learns the hold/release rhythm.
-      if(cleared<3)return 150+Math.random()*30;
+      if(cleared<5)return 175+Math.random()*35;
       return Math.max(68,108-(cleared-3)*1.05)+Math.random()*32;
     }
 
@@ -1117,8 +1117,8 @@
 
       if(!warming&&spawn<=0){
         // The opening obstacles are narrower so a new player can learn the timing.
-        const maxWidth=cleared<3?26:52;
-        const minWidth=cleared<3?18:28;
+        const maxWidth=cleared<5?22:52;
+        const minWidth=cleared<5?16:28;
         obstacles.push({x:390,w:minWidth+Math.random()*(maxWidth-minWidth)});
         spawn=nextSpawnDelay();
       }
@@ -1134,7 +1134,7 @@
         return true;
       });
 
-      const hit=obstacles.some(o=>o.x<92&&o.x+o.w>68&&y+8>323);
+      const hit=obstacles.some(o=>o.x<90&&o.x+o.w>70&&y+6>327);
       if(hit||y>430){
         alive=false;
         finish(
@@ -1146,7 +1146,7 @@
         return;
       }
 
-      if(y+11>=360){y=349;vy=-9.4}
+      if(y+11>=360){y=349;vy=0}
       if(y<70){y=70;vy=1}
 
       ui(Math.floor(distance),cleared);
@@ -1158,7 +1158,7 @@
       if(!alive || performance.now()<readyUntil)return;
       if(e && e.preventDefault)e.preventDefault();
       if(y>=347){
-        vy=-10.4;
+        vy=-11.8;
         Arcade.feedback('hop');
       }
     }
@@ -1186,8 +1186,8 @@
 
     return {
       start(){
-        y=349;vy=0;obstacles=[];distance=0;cleared=0;spawn=175;last=0;alive=true;
-        readyUntil=performance.now()+1600;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;spawn=205;last=0;alive=true;
+        readyUntil=performance.now()+1900;
         ui(0,0);
         draw();
         raf=requestAnimationFrame(loop);
