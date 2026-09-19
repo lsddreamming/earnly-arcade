@@ -361,10 +361,11 @@
 
     const onWideSwipeDown=e=>{
       if(grid.contains(e.target) || !Arcade.inExpandedGameZone(e,surface,120))return;
+      e.preventDefault();
       beginSwipe(e);
     };
     const onWideSwipeUp=e=>endSwipe(e);
-    document.addEventListener('pointerdown',onWideSwipeDown,{passive:true});
+    document.addEventListener('pointerdown',onWideSwipeDown,{passive:false});
     document.addEventListener('pointerup',onWideSwipeUp,{passive:false});
 
     const onKey=e=>{
