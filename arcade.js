@@ -13,7 +13,14 @@ const Arcade = (() => {
     colorMatch: 'Color Match',
     paddleRally: 'Paddle Rally',
     laneRunner: 'Lane Runner',
-    safeCracker: 'Safe Cracker'
+    safeCracker: 'Safe Cracker',
+    blockGrid: 'Block Grid',
+    mergeRush: 'Merge Rush',
+    perfectDrop: 'Perfect Drop',
+    spiralDrop: 'Spiral Drop',
+    shapeFit: 'Shape Fit',
+    bounceRun: 'Bounce Run',
+    trafficEscape: 'Traffic Escape'
   };
 
   const bestConfig = {
@@ -29,19 +36,26 @@ const Arcade = (() => {
     colorMatch: { key: 'colorMatchBest', label: 'matches', lower: false },
     paddleRally: { key: 'paddleRallyBest', label: 'rallies', lower: false },
     laneRunner: { key: 'laneRunnerBest', label: 'seconds', lower: false },
-    safeCracker: { key: 'safeCrackerBest', label: 'locks', lower: false }
+    safeCracker: { key: 'safeCrackerBest', label: 'locks', lower: false },
+    blockGrid: { key: 'blockGridBest', label: 'points', lower: false },
+    mergeRush: { key: 'mergeRushBest', label: 'points', lower: false },
+    perfectDrop: { key: 'perfectDropBest', label: 'hits', lower: false },
+    spiralDrop: { key: 'spiralDropBest', label: 'rings', lower: false },
+    shapeFit: { key: 'shapeFitBest', label: 'correct', lower: false },
+    bounceRun: { key: 'bounceRunBest', label: 'distance', lower: false },
+    trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false }
   };
 
   const FREE_PLAYS = 3;
   const PLAY_AD_BONUS = 3;
   const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
-  const CHALLENGE_VERSION = '4';
+  const CHALLENGE_VERSION = '5';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.16.0';
+  const APP_VERSION = '0.17.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -70,7 +84,14 @@ const Arcade = (() => {
     { id:'colorMatch18', title:'🎨 Color Brain', description:'Get 18 correct matches in Color Match', goal:18, reward:10, type:'score', game:'colorMatch' },
     { id:'paddleRally12', title:'🏓 Rally Time', description:'Return 12 balls in one Paddle Rally run', goal:12, reward:10, type:'score', game:'paddleRally' },
     { id:'laneRunner20', title:'🏎️ Highway Run', description:'Survive 20 seconds in Lane Runner', goal:20, reward:10, type:'score', game:'laneRunner' },
-    { id:'safeCracker8', title:'🔐 Crack the Safe', description:'Crack 8 locks in one Safe Cracker run', goal:8, reward:10, type:'score', game:'safeCracker' }
+    { id:'safeCracker8', title:'🔐 Crack the Safe', description:'Crack 8 locks in one Safe Cracker run', goal:8, reward:10, type:'score', game:'safeCracker' },
+    { id:'blockGrid250', title:'🧩 Grid Builder', description:'Score 250 points in Block Grid', goal:250, reward:10, type:'score', game:'blockGrid' },
+    { id:'mergeRush800', title:'🔢 Merge Machine', description:'Score 800 points in Merge Rush', goal:800, reward:10, type:'score', game:'mergeRush' },
+    { id:'perfectDrop10', title:'🎯 Drop Zone', description:'Land 10 hits in Perfect Drop', goal:10, reward:10, type:'score', game:'perfectDrop' },
+    { id:'spiralDrop10', title:'🌀 Spiral Dive', description:'Pass 10 rings in Spiral Drop', goal:10, reward:10, type:'score', game:'spiralDrop' },
+    { id:'shapeFit10', title:'🧠 Shape Solver', description:'Get 10 correct in Shape Fit', goal:10, reward:10, type:'score', game:'shapeFit' },
+    { id:'bounceRun100', title:'⚪ Bounce Distance', description:'Reach 100 distance in Bounce Run', goal:100, reward:10, type:'score', game:'bounceRun' },
+    { id:'trafficEscape10', title:'🚦 Traffic Clear', description:'Clear 10 cars in Traffic Escape', goal:10, reward:10, type:'score', game:'trafficEscape' }
   ];
 
   function dateKey(date = new Date()) {
@@ -894,11 +915,10 @@ const Arcade = (() => {
     const challengeDay = localStorage.getItem('arcadeChallengeDay');
     const version = localStorage.getItem('arcadeChallengeVersion');
 
-    // Players who already started today's challenge before the five new games
-    // were added keep that exact legacy challenge until tomorrow.
-    const poolSize = challengeDay === dateKey() && version === '3'
-      ? Math.min(9, challengeDefinitions.length)
-      : challengeDefinitions.length;
+    // Keep today's challenge stable when the catalog expands.
+    let poolSize = challengeDefinitions.length;
+    if (challengeDay === dateKey() && version === '3') poolSize = Math.min(9, challengeDefinitions.length);
+    else if (challengeDay === dateKey() && version === '4') poolSize = Math.min(14, challengeDefinitions.length);
 
     return challengeDefinitions[seed % poolSize];
   }
@@ -1031,7 +1051,14 @@ const Arcade = (() => {
       { id:'colorMatch20', icon:'🎨', title:'Color Brain', description:'Get 20 matches in Color Match', unlocked:number('colorMatchBest') >= 20 },
       { id:'paddleRally15', icon:'🏓', title:'Rally Pro', description:'Return the ball 15 times in Paddle Rally', unlocked:number('paddleRallyBest') >= 15 },
       { id:'laneRunner25', icon:'🏎️', title:'Road Runner', description:'Survive 25 seconds in Lane Runner', unlocked:number('laneRunnerBest') >= 25 },
-      { id:'safeCracker10', icon:'🔐', title:'Safe Cracker', description:'Crack 10 locks in Safe Cracker', unlocked:number('safeCrackerBest') >= 10 }
+      { id:'safeCracker10', icon:'🔐', title:'Safe Cracker', description:'Crack 10 locks in Safe Cracker', unlocked:number('safeCrackerBest') >= 10 },
+      { id:'blockGrid300', icon:'🧩', title:'Grid Master', description:'Score 300 points in Block Grid', unlocked:number('blockGridBest') >= 300 },
+      { id:'mergeRush1024', icon:'🔢', title:'Merge Master', description:'Score 1,024 points in Merge Rush', unlocked:number('mergeRushBest') >= 1024 },
+      { id:'perfectDrop12', icon:'🎯', title:'Dead Center', description:'Land 12 hits in Perfect Drop', unlocked:number('perfectDropBest') >= 12 },
+      { id:'spiralDrop15', icon:'🌀', title:'Spiral Pro', description:'Pass 15 rings in Spiral Drop', unlocked:number('spiralDropBest') >= 15 },
+      { id:'shapeFit12', icon:'🧠', title:'Shape Genius', description:'Get 12 correct in Shape Fit', unlocked:number('shapeFitBest') >= 12 },
+      { id:'bounceRun150', icon:'⚪', title:'Bounce Runner', description:'Reach 150 distance in Bounce Run', unlocked:number('bounceRunBest') >= 150 },
+      { id:'trafficEscape15', icon:'🚦', title:'Traffic Boss', description:'Clear 15 cars in Traffic Escape', unlocked:number('trafficEscapeBest') >= 15 }
     ];
   }
 
@@ -2484,7 +2511,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
     ]);
 
     let active = 'home';
@@ -2527,7 +2554,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
     ]);
 
     let active = 'home';
