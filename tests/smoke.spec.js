@@ -229,3 +229,34 @@ test('closing a result popup leaves no running gameplay lock behind', async ({ p
   await expect(dialog).not.toBeVisible();
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked/);
 });
+
+
+test('pause control appears and toggles on mini games', async ({ page }) => {
+  for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
+    await page.goto('/mini.html?game=' + game);
+    await page.locator('#startBtn').click();
+    await page.waitForTimeout(3300);
+    const pause = page.locator('#earnlyPauseButton');
+    await expect(pause, game + ' pause button').toBeVisible();
+    await pause.click();
+    await expect(pause).toHaveText(/Resume/);
+    await expect(page.locator('#gameStatus')).toHaveText('Paused');
+    await page.waitForTimeout(250);
+    await pause.click();
+    await expect(pause).toHaveText(/Pause/);
+    await expect(page.locator('#gameStatus')).toHaveText('Running');
+  }
+});
+
+test('pause control is visible during Snake gameplay', async ({ page }) => {
+  await page.goto('/snake.html');
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+  const pause = page.locator('#earnlyPauseButton');
+  await expect(pause).toBeVisible();
+  await pause.click();
+  await expect(pause).toHaveText(/Resume/);
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await pause.click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+});
