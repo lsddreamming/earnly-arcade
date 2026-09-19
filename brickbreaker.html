@@ -68,13 +68,17 @@
       tips:[
         'Keep the paddle under the ball. Missing the ball ends the run.',
         'Clear all 35 bricks to advance instantly to the next level.',
-        'Every new level speeds up the ball and increases your possible Coin reward.'
+        'Catch falling power-ups: 3-ball Multiball, Wide Paddle, and Fireball.',
+        'Later levels add armored bricks that take extra hits. Every new level gets faster.'
       ],
-      reward:'Higher levels build bigger rewards — up to 100 Coins in one run.'
+      reward:'Clear levels to unlock faster rounds, tougher bricks, power-ups, and up to 100 Coins in one run.'
     });
 
-    const paddle={x:135,y:465,w:90,h:12};
-    const ball={x:180,y:430,r:7,dx:3.8,dy:-4.4};
+    const paddle={x:135,y:465,w:90,h:12,baseW:90};
+    let balls=[];
+    let powerUps=[];
+    let fireUntil=0;
+    let wideUntil=0;
     let bricks=[];
     let level=1;
     let levelBroken=0;
@@ -86,7 +90,7 @@
     let levelTimer=null;
 
     function levelSpeed(){
-      return Math.min(9.8, 5.6 + (level-1)*0.7);
+      return Math.min(11.8, 6.8 + (level-1)*0.75);
     }
 
     function levelClearBonus(clearedLevel){
@@ -107,13 +111,42 @@
       return rewardFor(totalBroken,levelsCleared);
     }
 
-    function launchBall(){
+    function makeBall(x=canvas.width/2,y=430,angleShift=0){
       const speed=levelSpeed();
-      const horizontal=speed*(0.48+Math.random()*0.12)*(Math.random()>.5?1:-1);
-      ball.x=canvas.width/2;
-      ball.y=430;
-      ball.dx=horizontal;
-      ball.dy=-Math.sqrt(Math.max(1,speed*speed-horizontal*horizontal));
+      const horizontal=speed*(0.48+Math.random()*0.12)*(Math.random()>.5?1:-1)+angleShift;
+      const dx=Math.max(-speed*.82,Math.min(speed*.82,horizontal));
+      return {x,y,r:7,dx,dy:-Math.sqrt(Math.max(1,speed*speed-dx*dx))};
+    }
+
+    function launchBall(){
+      balls=[makeBall()];
+    }
+
+    function activatePower(type){
+      if(type==='multi'){
+        const source=balls[0] || makeBall();
+        while(balls.length<3){
+          const shift=balls.length===1 ? -2.2 : 2.2;
+          balls.push(makeBall(source.x,source.y,shift));
+        }
+        Arcade.milestone('🔵 MULTIBALL! 3 balls in play','perfect');
+      }else if(type==='wide'){
+        wideUntil=performance.now()+12000;
+        paddle.w=140;
+        paddle.x=Math.min(canvas.width-paddle.w,paddle.x);
+        Arcade.milestone('↔️ WIDE PADDLE · 12 seconds','perfect');
+      }else{
+        fireUntil=performance.now()+10000;
+        Arcade.milestone('🔥 FIREBALL · smashes through bricks','perfect');
+      }
+      Arcade.feedback('success');
+    }
+
+    function maybeDropPowerUp(brick){
+      if(Math.random()>.16) return;
+      const types=['multi','wide','fire'];
+      const type=types[Math.floor(Math.random()*types.length)];
+      powerUps.push({x:brick.x+brick.w/2,y:brick.y+brick.h/2,vy:2.1,type,r:11});
     }
 
     function refreshChrome(){
@@ -139,7 +172,9 @@
             y:42+r*(h+gap),
             w,h,
             alive:true,
-            color:colors[r]
+            color:colors[r],
+            hp: level>=4 && (r+c+level)%6===0 ? 2 : 1,
+            special: (r*cols+c+level)%11===0
           });
         }
       }
@@ -154,33 +189,66 @@
         if(!b.alive) return;
         ctx.fillStyle=b.color;
         ctx.fillRect(b.x,b.y,b.w,b.h);
+        ctx.strokeStyle=b.hp>1?'#fff':'rgba(255,255,255,.22)';
+        ctx.lineWidth=b.hp>1?2:1;
+        ctx.strokeRect(b.x+1,b.y+1,b.w-2,b.h-2);
+        ctx.font='12px system-ui';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        if(b.special) ctx.fillText('⚡',b.x+b.w/2,b.y+b.h/2+1);
+        else if(b.hp>1) ctx.fillText('◆',b.x+b.w/2,b.y+b.h/2+1);
       });
 
-      ctx.fillStyle='#3b82f6';
+      powerUps.forEach(p=>{
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fillStyle=p.type==='fire'?'#fb923c':p.type==='wide'?'#22c55e':'#60a5fa';
+        ctx.fill();
+        ctx.font='14px system-ui';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillStyle='#fff';
+        ctx.fillText(p.type==='fire'?'🔥':p.type==='wide'?'↔':'3',p.x,p.y+1);
+      });
+
+      ctx.fillStyle=performance.now()<wideUntil?'#22c55e':'#3b82f6';
       ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
 
-      ctx.beginPath();
-      ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
-      ctx.fillStyle='#fff';
-      ctx.fill();
+      balls.forEach(ball=>{
+        ctx.beginPath();
+        ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+        ctx.fillStyle=performance.now()<fireUntil?'#fb923c':'#fff';
+        ctx.fill();
+        if(performance.now()<fireUntil){
+          ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r+3,0,Math.PI*2);
+          ctx.strokeStyle='#facc15';ctx.stroke();
+        }
+      });
     }
 
-    function collideBrick(){
+    function hitBrick(ball,b){
+      const fire=performance.now()<fireUntil;
+      b.hp=fire?0:b.hp-1;
+      if(b.hp<=0){
+        b.alive=false;
+        levelBroken+=1;
+        totalBroken+=1;
+        maybeDropPowerUp(b);
+        Arcade.feedback('brick');
+        if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
+        if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
+        bricksEl.textContent=levelBroken;
+        rewardPreviewEl.textContent=currentReward();
+      }else{
+        Arcade.feedback('move');
+      }
+      if(!fire) ball.dy*=-1;
+    }
+
+    function collideBrick(ball){
       for(const b of bricks){
         if(!b.alive) continue;
         if(ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h){
-          b.alive=false;
-          levelBroken+=1;
-          totalBroken+=1;
-          Arcade.feedback('brick');
-          if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
-          if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
-          bricksEl.textContent=levelBroken;
-          rewardPreviewEl.textContent=currentReward();
-          ball.dy*=-1;
-
-          // Add a tiny horizontal deflection after brick hits so repeated
-          // straight-up/straight-down paths naturally break themselves.
+          hitBrick(ball,b);
           const speed=Math.hypot(ball.dx,ball.dy);
           if(Math.abs(ball.dx)<speed*0.34){
             const direction=ball.dx===0?(Math.random()<.5?-1:1):Math.sign(ball.dx);
@@ -193,52 +261,69 @@
       return false;
     }
 
-    function loop(){
-      if(!running) return;
+    function updatePowerUps(){
+      for(let i=powerUps.length-1;i>=0;i--){
+        const p=powerUps[i];
+        p.y+=p.vy;
+        if(p.y+p.r>=paddle.y && p.y-p.r<=paddle.y+paddle.h && p.x>=paddle.x && p.x<=paddle.x+paddle.w){
+          powerUps.splice(i,1);
+          activatePower(p.type);
+        }else if(p.y-p.r>canvas.height){
+          powerUps.splice(i,1);
+        }
+      }
+    }
 
+    function updateBall(ball){
       ball.x+=ball.dx;
       ball.y+=ball.dy;
 
-      if(ball.x-ball.r<=0 || ball.x+ball.r>=canvas.width) {
+      if(ball.x-ball.r<=0 || ball.x+ball.r>=canvas.width){
         ball.x=Math.max(ball.r+1,Math.min(canvas.width-ball.r-1,ball.x));
         ball.dx*=-1;
       }
-      if(ball.y-ball.r<=0) {
+      if(ball.y-ball.r<=0){
         ball.y=ball.r+1;
         ball.dy=Math.abs(ball.dy);
       }
 
-      // Prevent near-vertical wall loops where the ball can bounce in one corner forever.
       const speed=Math.hypot(ball.dx,ball.dy);
-      const minHorizontal=Math.max(1.65,speed*0.30);
+      const minHorizontal=Math.max(1.9,speed*0.30);
       if(Math.abs(ball.dx)<minHorizontal){
         const direction=ball.dx===0?(Math.random()<.5?-1:1):Math.sign(ball.dx);
         ball.dx=direction*minHorizontal;
         ball.dy=Math.sign(ball.dy||-1)*Math.sqrt(Math.max(1,speed*speed-ball.dx*ball.dx));
       }
 
-      if(
-        ball.dy>0 &&
-        ball.y+ball.r>=paddle.y &&
-        ball.y-ball.r<=paddle.y+paddle.h &&
-        ball.x>=paddle.x &&
-        ball.x<=paddle.x+paddle.w
-      ){
+      if(ball.dy>0 && ball.y+ball.r>=paddle.y && ball.y-ball.r<=paddle.y+paddle.h && ball.x>=paddle.x && ball.x<=paddle.x+paddle.w){
         const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
-        const speed=levelSpeed();
-        ball.dx=speed*0.78*hit;
-        ball.dy=-Math.sqrt(Math.max((speed*0.58)*(speed*0.58),speed*speed-ball.dx*ball.dx));
+        const targetSpeed=levelSpeed();
+        ball.dx=targetSpeed*0.82*hit;
+        ball.dy=-Math.sqrt(Math.max((targetSpeed*0.55)*(targetSpeed*0.55),targetSpeed*targetSpeed-ball.dx*ball.dx));
         ball.y=paddle.y-ball.r-1;
       }
+      collideBrick(ball);
+    }
 
-      collideBrick();
+    function loop(){
+      if(!running) return;
+
+      if(performance.now()>wideUntil && paddle.w!==paddle.baseW){
+        const center=paddle.x+paddle.w/2;
+        paddle.w=paddle.baseW;
+        paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,center-paddle.w/2));
+      }
+
+      balls.forEach(updateBall);
+      balls=balls.filter(ball=>ball.y-ball.r<=canvas.height);
+      updatePowerUps();
 
       if(levelBroken===35){
         advanceLevel();
         return;
       }
 
-      if(ball.y-ball.r>canvas.height){
+      if(!balls.length){
         finishGame();
         return;
       }
@@ -264,6 +349,10 @@
       bricksEl.textContent='0';
       rewardPreviewEl.textContent=currentReward();
       resetBricks();
+      powerUps=[];
+      fireUntil=0;
+      wideUntil=0;
+      paddle.w=paddle.baseW;
       paddle.x=(canvas.width-paddle.w)/2;
       launchBall();
       draw();
@@ -408,6 +497,10 @@
       }
 
       clearTimeout(levelTimer);
+      powerUps=[];
+      fireUntil=0;
+      wideUntil=0;
+      paddle.w=paddle.baseW;
       resetBricks();
       level=1;
       levelBroken=0;
