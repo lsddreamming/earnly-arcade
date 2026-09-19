@@ -53,3 +53,15 @@ test('games page links into playable games', async ({ page }) => {
   const links = page.locator('a[href*=".html"]');
   expect(await links.count()).toBeGreaterThan(0);
 });
+
+
+test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
+  await page.goto('/mini.html?game=spiralDrop');
+  const start = page.locator('#startBtn');
+  await start.click();
+  await page.waitForTimeout(3400);
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#surface')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Rings:');
+});
