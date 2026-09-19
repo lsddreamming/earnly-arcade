@@ -1365,60 +1365,9 @@
   const TRAFFIC_GRID_SIZE = 6;
 
 
-  let trafficAudioCtx=null;
-  function trafficSound(kind){
-    try{
-      const AC=window.AudioContext||window.webkitAudioContext;
-      if(!AC)return;
-      const ctx=trafficAudioCtx||(trafficAudioCtx=new AC());
-      if(ctx.state==='suspended')ctx.resume();
-      const now=ctx.currentTime;
-
-      if(kind==='exit'){
-        // Layered engine: low motor rumble + rising rev + short tire chirp.
-        const master=ctx.createGain();
-        master.gain.setValueAtTime(.0001,now);
-        master.gain.exponentialRampToValueAtTime(.34,now+.025);
-        master.gain.setValueAtTime(.28,now+.34);
-        master.gain.exponentialRampToValueAtTime(.0001,now+.82);
-        master.connect(ctx.destination);
-
-        [1,1.48,2.03].forEach((ratio,i)=>{
-          const o=ctx.createOscillator(), g=ctx.createGain();
-          o.type=i===0?'sawtooth':'square';
-          o.frequency.setValueAtTime(48*ratio,now);
-          o.frequency.exponentialRampToValueAtTime(175*ratio,now+.68);
-          g.gain.value=i===0?.55:.12;
-          o.connect(g); g.connect(master); o.start(now); o.stop(now+.84);
-        });
-
-        const noise=ctx.createBufferSource(), ng=ctx.createGain();
-        const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.16),ctx.sampleRate);
-        const data=buf.getChannelData(0);
-        for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);
-        noise.buffer=buf; ng.gain.setValueAtTime(.20,now); ng.gain.exponentialRampToValueAtTime(.0001,now+.16);
-        noise.connect(ng); ng.connect(ctx.destination); noise.start(now);
-      }else{
-        // Skid into impact: noisy tire squeal followed by a low crash thump.
-        const noise=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), ng=ctx.createGain();
-        const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.42),ctx.sampleRate);
-        const data=buf.getChannelData(0);
-        for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
-        noise.buffer=buf; filter.type='bandpass'; filter.frequency.setValueAtTime(2400,now);
-        filter.frequency.exponentialRampToValueAtTime(700,now+.34); filter.Q.value=5;
-        ng.gain.setValueAtTime(.0001,now); ng.gain.exponentialRampToValueAtTime(.24,now+.02);
-        ng.gain.exponentialRampToValueAtTime(.0001,now+.38);
-        noise.connect(filter); filter.connect(ng); ng.connect(ctx.destination); noise.start(now); noise.stop(now+.42);
-
-        const boom=ctx.createOscillator(), bg=ctx.createGain();
-        boom.type='sine'; boom.frequency.setValueAtTime(92,now+.28);
-        boom.frequency.exponentialRampToValueAtTime(32,now+.62);
-        bg.gain.setValueAtTime(.0001,now); bg.gain.setValueAtTime(.0001,now+.27);
-        bg.gain.exponentialRampToValueAtTime(.48,now+.285); bg.gain.exponentialRampToValueAtTime(.0001,now+.66);
-        boom.connect(bg); bg.connect(ctx.destination); boom.start(now+.27); boom.stop(now+.68);
-      }
-    }catch(_){}
-  }
+  // Traffic Escape uses the app's normal feedback sounds only.
+  // The synthesized engine/crash effects were too loud on phones.
+  function trafficSound(){ /* intentionally quiet */ }
 
   function makeTrafficEscape() {
     let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0,boardInLevel=1,timeLeft=0,timerId=null;
