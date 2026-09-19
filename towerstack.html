@@ -312,13 +312,13 @@
         result,
         playsLeft:Arcade.remaining('towerStack'),
         game:'towerStack',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s','✨ Perfect stacks: ' + perfects, floors>=20?'🏙️ Skyline Builder run!':'Center the next floor for a perfect.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','✨ Perfect stacks: ' + perfects, floors>=20?'🏙️ Skyline Builder run!':'Center the next floor for a perfect.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('towerStack',refreshChrome)
       });
     }
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (running || starting) return;
       starting = true;
@@ -327,7 +327,7 @@
         starting = false;
         Arcade.out('towerStack', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       resetGame();
       running = false;
@@ -378,6 +378,7 @@
       }
     });
 
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;animation=requestAnimationFrame(loop);}});
     startButton.addEventListener('click', startGame);
     resetGame();
     refreshChrome();
