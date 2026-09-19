@@ -15,7 +15,9 @@
   <title>Earnly Brick Breaker</title>
   <link rel="stylesheet" href="arcade.css">
   <style>
-    .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
+    .power-legend{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px auto 14px;font-size:12px;color:#cbd5e1}
+    .power-legend span{padding:6px 9px;border:1px solid #334155;border-radius:999px;background:#111c2d}
   </style>
 </head>
 <body>
@@ -38,6 +40,9 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="brick-board touch-surface" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
+    <div class="power-legend" aria-label="Brick Breaker power-ups">
+      <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Bonus Brick</span><span>◆ Armored</span>
+    </div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
@@ -90,6 +95,9 @@
     let starting=false;
     let animation=null;
     let levelTimer=null;
+    let particles=[];
+    let combo=0;
+    let comboUntil=0;
 
     function levelSpeed(){
       return Math.min(11.8, 6.8 + (level-1)*0.75);
@@ -186,8 +194,13 @@
 
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='#182334';
+      const bg=ctx.createLinearGradient(0,0,0,canvas.height);
+      bg.addColorStop(0,'#17243a'); bg.addColorStop(1,'#0d1625');
+      ctx.fillStyle=bg;
       ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='rgba(96,165,250,.08)';
+      ctx.lineWidth=1;
+      for(let y=170;y<canvas.height;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
 
       bricks.forEach(b=>{
         if(!b.alive) return;
@@ -221,6 +234,18 @@
       ctx.fillStyle=performance.now()<wideUntil?'#22c55e':'#3b82f6';
       ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
 
+      particles.forEach(p=>{
+        ctx.globalAlpha=Math.max(0,p.life/24);
+        ctx.fillStyle=p.color;
+        ctx.fillRect(p.x,p.y,3,3);
+      });
+      ctx.globalAlpha=1;
+
+      if(combo>=3 && performance.now()<comboUntil){
+        ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillStyle='#facc15';
+        ctx.fillText('🔥 '+combo+' HIT COMBO',canvas.width/2,158);
+      }
+
       balls.forEach(ball=>{
         ctx.beginPath();
         ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
@@ -233,13 +258,24 @@
       });
     }
 
+    function burst(b){
+      for(let i=0;i<7;i++) particles.push({
+        x:b.x+b.w/2,y:b.y+b.h/2,
+        dx:(Math.random()-.5)*3.2,dy:(Math.random()-.5)*3.2,
+        life:18+Math.random()*8,color:b.color
+      });
+    }
+
     function hitBrick(ball,b){
       const fire=performance.now()<fireUntil;
       b.hp=fire?0:b.hp-1;
       if(b.hp<=0){
         b.alive=false;
+        burst(b);
         levelBroken+=1;
         totalBroken+=1;
+        combo = performance.now()<comboUntil ? combo+1 : 1;
+        comboUntil=performance.now()+1400;
         if(b.special){
           // Lightning bricks are rare guaranteed bonuses, not decoration.
           // Respect the one-pickup-at-a-time rule so the board stays readable.
@@ -338,6 +374,9 @@
       balls.forEach(updateBall);
       balls=balls.filter(ball=>ball.y-ball.r<=canvas.height);
       updatePowerUps();
+      particles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;p.dy+=.04;p.life-=1;});
+      particles=particles.filter(p=>p.life>0);
+      if(performance.now()>comboUntil) combo=0;
 
       if(levelBroken===35){
         advanceLevel();
@@ -371,6 +410,9 @@
       rewardPreviewEl.textContent=currentReward();
       resetBricks();
       powerUps=[];
+      particles=[];
+      combo=0;
+      comboUntil=0;
       fireUntil=0;
       wideUntil=0;
       paddle.w=paddle.baseW;
@@ -379,9 +421,9 @@
       draw();
 
       Arcade.feedback('success');
-      Arcade.milestone('🚀 Level '+level+' · Faster ball · Bigger rewards', 'perfect');
+      Arcade.milestone('🏁 LEVEL '+clearedLevel+' CLEAR! · +'+bonus+' bonus', 'perfect');
       setStatus('Level '+level+' · Speed '+levelSpeed().toFixed(1),'running');
-      startButton.textContent='Level '+level+' · +'+bonus+' clear bonus';
+      startButton.textContent='🚀 Level '+level+' · Faster · +'+bonus+' bonus banked';
 
       clearTimeout(levelTimer);
       levelTimer=setTimeout(()=>{
