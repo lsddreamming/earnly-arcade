@@ -3922,6 +3922,65 @@ html.snake-game-active body{
   overscroll-behavior:none!important;
   touch-action:none!important;
 }
+
+/* 0.15.21 clearer Snake start tutorial */
+.snake-page .game-guide-overlay{
+  padding:14px 16px;
+  background:linear-gradient(180deg,rgba(8,18,33,.94),rgba(8,18,33,.98));
+}
+.snake-page .game-guide-overlay-icon{margin-bottom:3px;font-size:24px}
+.snake-page .game-guide-overlay-title{font-size:21px}
+.snake-page .game-guide-overlay-text{max-width:300px;color:#cbd5e1}
+.snake-start-callout{
+  margin-top:10px;
+  padding:9px 20px;
+  border:2px solid #4ade80;
+  border-radius:999px;
+  background:#15803d;
+  color:white;
+  font-size:15px;
+  font-weight:1000;
+  letter-spacing:.05em;
+  box-shadow:0 0 0 5px rgba(34,197,94,.14),0 10px 24px rgba(0,0,0,.3);
+  animation:snake-start-pulse 1.6s ease-in-out infinite;
+}
+.snake-overlay-howto{
+  width:min(100%,330px);
+  display:grid;
+  gap:5px;
+  margin-top:12px;
+  text-align:left;
+}
+.snake-overlay-howto>div{
+  display:grid;
+  grid-template-columns:27px 1fr;
+  gap:9px;
+  align-items:center;
+  padding:6px 9px;
+  border:1px solid #334155;
+  border-radius:11px;
+  background:rgba(15,23,42,.88);
+}
+.snake-overlay-howto b{
+  width:27px;
+  height:27px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#2563eb;
+  color:white;
+  font-size:13px;
+}
+.snake-overlay-howto span{display:grid;gap:1px}
+.snake-overlay-howto strong{font-size:12px;color:#f8fafc}
+.snake-overlay-howto small{font-size:9px;line-height:1.3;color:#b8c4d5}
+@keyframes snake-start-pulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.035)}
+}
+@media(prefers-reduced-motion:reduce){
+  .snake-start-callout{animation:none}
+}
 .game-goal-copy{display:grid;gap:2px;min-width:0}
 .game-goal-eyebrow{
   color:#86efac;

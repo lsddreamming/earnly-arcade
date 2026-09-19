@@ -64,7 +64,7 @@
     const startButton = document.getElementById('startButton');
     const controlLayer = document.getElementById('snakeControlLayer');
 
-    Arcade.gameGuide({
+    const snakeGuide = Arcade.gameGuide({
       game:'snake',
       surface:canvas,
       steps:[
@@ -73,8 +73,8 @@
         { icon:'🍎', title:'Goal', text:'Eat apples, avoid crashes' }
       ],
       overlayIcon:'👆',
-      overlayTitle:'Tap to Start',
-      overlayText:'Swipe or hold your finger down anywhere to steer',
+      overlayTitle:'Tap Anywhere in This Box',
+      overlayText:'Start here, then wait for 3 · 2 · 1 · GO!',
       replayTitle:'Tap to Play Again',
       tips:[
         'While playing, the entire screen becomes the controller. Swipe normally or keep one finger down and steer anywhere.',
@@ -82,6 +82,35 @@
       ],
       reward:'Earn 1 Coin every 3 apples, plus milestone bonuses. Max 30 Coins per run.'
     });
+
+    if (snakeGuide?.overlay) {
+      const startCallout = document.createElement('div');
+      startCallout.className = 'snake-start-callout';
+      startCallout.textContent = '▶ START SNAKE';
+
+      const howTo = document.createElement('div');
+      howTo.className = 'snake-overlay-howto';
+
+      [
+        ['1', 'Tap', 'Tap anywhere inside this dark box'],
+        ['2', 'Steer', 'After GO, swipe or keep one finger down anywhere'],
+        ['3', 'Eat', 'Grab red apples and do not hit the walls']
+      ].forEach(([number, title, text]) => {
+        const row = document.createElement('div');
+        const badge = document.createElement('b');
+        badge.textContent = number;
+        const copy = document.createElement('span');
+        const strong = document.createElement('strong');
+        strong.textContent = title;
+        const small = document.createElement('small');
+        small.textContent = text;
+        copy.append(strong, small);
+        row.append(badge, copy);
+        howTo.append(row);
+      });
+
+      snakeGuide.overlay.append(startCallout, howTo);
+    }
 
     const box = 20;
     const MAX_SNAKE_COINS = 30;
