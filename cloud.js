@@ -208,6 +208,7 @@
     if (!rewardEvents.length) {
       const wallet = await walletInfo();
       if (wallet) Arcade.applyServerWallet?.(wallet);
+      localStorage.removeItem('arcadeServerRewardError');
       return { synced:0, wallet };
     }
 
