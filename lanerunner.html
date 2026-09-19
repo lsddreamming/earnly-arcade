@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="arcade.css">
   <style>
     html,body,.container{touch-action:manipulation}
-    .lane-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}
+    .lane-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.28),inset 0 0 0 1px rgba(148,163,184,.16)}
     @media(max-width:600px){
       .topbar{margin-bottom:4px}
       .page-header{margin:4px 0 7px}
@@ -60,24 +60,26 @@
     }
     
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
-    Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Tap a lane or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
-      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Tap left, center, or right to move. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
-      tips:['On computer use Left/Right arrows. On phone tap the lane you want.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
-    const lanes=[72,180,288];let lane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0;
+    Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe, tap, or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
+      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right or tap a lane to move. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
+      tips:['On computer use Left/Right arrows. On phone swipe left/right or tap the lane you want.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
+    const lanes=[72,180,288];let lane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0;
     function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
-    function reset(){lane=1;obstacles=[];passed=0;seconds=0;lastSpawnLane=-1;sameLaneSpawns=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function reset(){lane=1;obstacles=[];passed=0;seconds=0;roadOffset=0;lastSpawnLane=-1;sameLaneSpawns=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function draw(){
-      ctx.fillStyle='#111827';ctx.fillRect(0,0,canvas.width,canvas.height);
+      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#0b1220');sky.addColorStop(1,'#111827');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#334155';ctx.fillRect(20,0,320,canvas.height);
       ctx.fillStyle='#1f2937';ctx.fillRect(30,0,300,canvas.height);
-      ctx.strokeStyle='#64748b';ctx.setLineDash([20,18]);ctx.lineWidth=3;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);
-      ctx.font='34px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🏎️',lanes[lane],465);
-      obstacles.forEach(o=>ctx.fillText(o.icon,lanes[o.lane],o.y));
+      ctx.fillStyle='#f8fafc';ctx.globalAlpha=.7;ctx.fillRect(27,0,3,canvas.height);ctx.fillRect(330,0,3,canvas.height);ctx.globalAlpha=1;
+      ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;ctx.setLineDash([24,20]);ctx.lineDashOffset=roadOffset;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);ctx.lineDashOffset=0;
+      ctx.fillStyle='rgba(15,23,42,.78)';ctx.fillRect(38,12,112,28);ctx.fillStyle='#e2e8f0';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+      ctx.textAlign='center';ctx.font='38px Arial';ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=8;ctx.fillText('🏎️',lanes[lane],465);obstacles.forEach(o=>ctx.fillText(o.icon,lanes[o.lane],o.y));ctx.shadowBlur=0;
     }
     function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
       requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
     function loop(now){
-      if(!running)return;seconds=Math.floor((now-startAt)/1000);timeEl.textContent=String(seconds);refreshReward();
+      if(!running)return;seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055))%44;timeEl.textContent=String(seconds);refreshReward();
       const spawnGap=Math.max(330,880-seconds*9);
       if(!lastSpawn||now-lastSpawn>=spawnGap){
         let nextLane=Math.floor(Math.random()*3);
