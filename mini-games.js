@@ -399,7 +399,7 @@
   function makePerfectDrop() {
     const [c,ctx]=canvasBase();
     let x=40,dir=1,speed=3,targetX=110,targetW=150,hits=0,streak=0,lives=3,drop=null,alive=false,raf=null;
-    let flashText='',flashFrames=0,goalCelebrated=false;
+    let flashText='',flashFrames=0,goalCelebrated=false,roundDeadline=0,roundLimit=0;
 
     function level(){
       return Math.min(9,1+Math.floor(hits/5));
@@ -416,6 +416,10 @@
       speed=Math.min(9.2,3+(lv-1)*.65+hits*.08);
       x=dir>0?30:330;
       drop=null;
+      // Give the player a few rail passes to line up a drop, but never let
+      // them wait forever. Later levels tighten the decision window.
+      roundLimit=Math.max(3200,6200-(lv-1)*350);
+      roundDeadline=performance.now()+roundLimit;
     }
 
     function roundedRect(x,y,w,h,r,fill,stroke) {
@@ -439,7 +443,7 @@
       ctx.fillStyle='#dbeafe';ctx.font='700 12px Arial';
       ctx.fillText('👆 TAP TO DROP',28,31);
       ctx.fillStyle='#94a3b8';ctx.font='700 10px Arial';
-      ctx.fillText('Land inside green · 3 misses = game over',28,48);
+      ctx.fillText('Land inside green before time runs out · 3 misses ends run',28,48);
 
       // Level + lives row.
       ctx.textAlign='center';
@@ -455,6 +459,15 @@
       ctx.fillStyle='#3b82f6';ctx.fillRect(98,128,progWidth,9);
       ctx.fillStyle='#94a3b8';ctx.font='700 10px Arial';
       ctx.fillText(progress+'/5 to Level '+Math.min(9,lv+1),180,151);
+
+      // Per-drop pressure timer. It pauses once the player commits to a drop.
+      const timeLeft=drop?Math.max(0,roundDeadline-performance.now()):Math.max(0,roundDeadline-performance.now());
+      const timerRatio=roundLimit?Math.max(0,Math.min(1,timeLeft/roundLimit)):1;
+      ctx.fillStyle='#243244';ctx.fillRect(98,160,164,8);
+      ctx.fillStyle=timeLeft<=1500?'#ef4444':timeLeft<=2800?'#f59e0b':'#22c55e';
+      ctx.fillRect(98,160,164*timerRatio,8);
+      ctx.fillStyle=timeLeft<=1500?'#fca5a5':'#cbd5e1';ctx.font='800 10px Arial';
+      ctx.fillText('⏱ DROP IN '+(timeLeft/1000).toFixed(1)+'s',180,176);
 
       // Ball rail.
       ctx.strokeStyle='#475569';ctx.lineWidth=2;
@@ -568,6 +581,20 @@
         drop.y+=9.2;
         if(drop.y>=333) handleLanding();
       }else{
+        if(performance.now()>=roundDeadline){
+          lives--;
+          streak=0;
+          flashText='TOO SLOW!';
+          flashFrames=28;
+          Arcade.feedback('fail');
+          ui(hits,level());
+          if(lives<=0){
+            alive=false;
+            finish(hits,level(),['🎯 Level reached: '+level(),'⏱️ Keep an eye on the drop timer.'],'Perfect Drop Run Over');
+            return;
+          }
+          next();
+        }
         x+=speed*dir;
         if(x>=330){x=330;dir=-1}
         else if(x<=30){x=30;dir=1}
