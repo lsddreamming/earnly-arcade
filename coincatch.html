@@ -25,7 +25,7 @@
       <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
     </div>
     <header class="page-header">
-      <h1>🪙 Coin Catch</h1>
+      <h1>💰 Coin Catch</h1>
       <div class="game-meta"><span class="meta-pill">Caught: <span id="score">0</span></span>
         <span class="meta-pill">Time: <span id="time">30</span>s</span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
@@ -53,31 +53,70 @@
     const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({
       game:'coinCatch',surface:canvas,
-      steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'🪙',title:'Goal',text:'Catch coins, avoid bombs'}],
-      overlayIcon:'🪙',overlayTitle:'Catch the Coins',overlayText:'Move under falling coins. Avoid the bombs.',replayTitle:'Tap to Play Again',
+      steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
+      overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Move under falling coins. Avoid the bombs.',replayTitle:'Tap to Play Again',
       tips:['Move with your mouse/finger or the Left and Right arrow keys.','A bomb ends the run immediately. The round lasts up to 30 seconds.'],
       reward:'More catches build a bigger Coin reward, up to 25 Coins.'
     });
-    const basket={x:140,y:452,w:80,h:22};
+    const basket={x:137,y:448,w:86,h:24};
     let drops=[],score=0,timeLeft=30,running=false,starting=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
     function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=40)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){drops=[];score=0;timeLeft=30;basket.x=140;scoreEl.textContent='0';timeEl.textContent='30';refreshReward();draw()}
+    function reset(){drops=[];score=0;timeLeft=30;basket.x=137;scoreEl.textContent='0';timeEl.textContent='30';refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<.16;
       drops.push({x:18+Math.random()*(canvas.width-36),y:-20,r:bomb?13:12,bomb,speed:2.2+Math.min(3.8,(30000-timeLeft*1000)/9000)+Math.random()*.8});
       lastSpawn=now;
     }
+    function drawCoin(d){
+      const spin=.45+.55*Math.abs(Math.sin((d.y+d.x)*.045));
+      ctx.save();
+      ctx.translate(d.x,d.y);
+      ctx.scale(spin,1);
+      const glow=ctx.createRadialGradient(0,0,2,0,0,18);
+      glow.addColorStop(0,'#fff7b2');
+      glow.addColorStop(.45,'#facc15');
+      glow.addColorStop(1,'#d97706');
+      ctx.fillStyle=glow;
+      ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=3;ctx.strokeStyle='#fde68a';ctx.stroke();
+      ctx.fillStyle='#92400e';ctx.font='900 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1);
+      ctx.restore();
+    }
+    function drawBomb(d){
+      ctx.save();ctx.translate(d.x,d.y);
+      const grad=ctx.createRadialGradient(-4,-5,2,0,0,16);
+      grad.addColorStop(0,'#64748b');grad.addColorStop(.45,'#1f2937');grad.addColorStop(1,'#05070b');
+      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,2,14,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle='#94a3b8';ctx.stroke();
+      ctx.strokeStyle='#f59e0b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(7,-10);ctx.quadraticCurveTo(11,-18,17,-18);ctx.stroke();
+      ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(18,-19,3,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    function drawBasket(){
+      const x=basket.x,y=basket.y,w=basket.w,h=basket.h;
+      ctx.save();
+      ctx.shadowColor='rgba(34,197,94,.34)';ctx.shadowBlur=16;
+      const grad=ctx.createLinearGradient(x,y,x,y+h+12);
+      grad.addColorStop(0,'#4ade80');grad.addColorStop(1,'#15803d');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.moveTo(x+7,y);ctx.lineTo(x+w-7,y);ctx.lineTo(x+w-15,y+h+12);ctx.lineTo(x+15,y+h+12);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#bbf7d0';ctx.fillRect(x+5,y-7,w-10,8);
+      ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=2;
+      for(let k=1;k<4;k++){const px=x+(w*k/4);ctx.beginPath();ctx.moveTo(px,y+4);ctx.lineTo(px-4,y+h+7);ctx.stroke()}
+      ctx.restore();
+    }
     function draw(){
-      ctx.fillStyle='#102033';ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='rgba(59,130,246,.09)';
+      const bg=ctx.createLinearGradient(0,0,0,canvas.height);
+      bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');
+      ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='rgba(56,189,248,.07)';
       for(let y=30;y<canvas.height;y+=52){ctx.fillRect(0,y,canvas.width,1)}
-      drops.forEach(d=>{
-        ctx.font=(d.bomb?'25px':'24px')+' Arial';ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText(d.bomb?'💣':'🪙',d.x,d.y);
-      });
-      ctx.fillStyle='#22c55e';ctx.fillRect(basket.x,basket.y,basket.w,basket.h);
-      ctx.fillStyle='#86efac';ctx.fillRect(basket.x+8,basket.y-7,basket.w-16,8);
+      for(let x=45;x<canvas.width;x+=90){ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(x,0,1,canvas.height)}
+      drops.forEach(d=>{if(d.bomb)drawBomb(d);else drawCoin(d)});
+      drawBasket();
     }
     function finish(hitBomb=false){
       if(!running)return;
@@ -85,7 +124,7 @@
       const earned=rewardFor(score);Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Time!','over');draw();
-      Arcade.gameResult({icon:'🪙',title:hitBomb?'Boom! Run Over':'Basket Full!',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
+      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Basket Full!',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
         extra:[hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
     function loop(now){
@@ -99,7 +138,7 @@
           drops.splice(i,1);
           if(d.bomb){finish(true);return}
           score++;scoreEl.textContent=String(score);refreshReward();Arcade.feedback('score');
-          if(score===15)Arcade.milestone('🪙 15 catches!');
+          if(score===15)Arcade.milestone('💰 15 catches!');
           if(score===25)Arcade.milestone('🔥 25 catches · Coin Magnet!','perfect');
         }else if(d.y-d.r>canvas.height)drops.splice(i,1);
       }
