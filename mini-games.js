@@ -392,7 +392,9 @@
       stop(){
         alive=false;
         swipePointer=null;
-        document.removeEventListener('keydown',onKey);
+        heldKeys.clear();
+        document.removeEventListener('keydown',onKeyDown,{capture:true});
+        document.removeEventListener('keyup',onKeyUp,{capture:true});
         document.removeEventListener('pointerdown',onWideSwipeDown);
         document.removeEventListener('pointerup',onWideSwipeUp);
       }
@@ -900,6 +902,11 @@
       const dt=Math.min(32,t-(last||t))/16.67;
       last=t;
 
+      // Keyboard movement is frame-based so holding an arrow feels like a
+      // normal desktop game and works even when browser key-repeat is disabled.
+      if(heldKeys.has('left')&&!heldKeys.has('right'))nudge(-5.2*dt);
+      if(heldKeys.has('right')&&!heldKeys.has('left'))nudge(5.2*dt);
+
       // Give the player time after GO to locate the ball and first opening.
       const warmingUp=t<readyUntil;
       const speed=warmingUp ? 0 : fallSpeed();
@@ -1004,12 +1011,28 @@
     document.addEventListener('pointerup',onWideUp,{passive:true});
     document.addEventListener('pointercancel',onWideUp,{passive:true});
 
-    const onKey=e=>{
+    // Desktop controls: support both key names and key codes because some
+    // browsers report arrow keys differently. Holding a key now moves smoothly
+    // instead of relying on browser key-repeat timing.
+    const heldKeys=new Set();
+    const arrowName=e=>e.key||e.code||'';
+    const onKeyDown=e=>{
       if(!alive)return;
-      if(e.key==='ArrowLeft'){e.preventDefault();nudge(-16)}
-      if(e.key==='ArrowRight'){e.preventDefault();nudge(16)}
+      const key=arrowName(e);
+      if(key==='ArrowLeft'||e.code==='ArrowLeft'||e.keyCode===37){
+        e.preventDefault();heldKeys.add('left');
+      }
+      if(key==='ArrowRight'||e.code==='ArrowRight'||e.keyCode===39){
+        e.preventDefault();heldKeys.add('right');
+      }
     };
-    document.addEventListener('keydown',onKey);
+    const onKeyUp=e=>{
+      const key=arrowName(e);
+      if(key==='ArrowLeft'||e.code==='ArrowLeft'||e.keyCode===37)heldKeys.delete('left');
+      if(key==='ArrowRight'||e.code==='ArrowRight'||e.keyCode===39)heldKeys.delete('right');
+    };
+    document.addEventListener('keydown',onKeyDown,{capture:true});
+    document.addEventListener('keyup',onKeyUp,{capture:true});
 
     return {
       start(){
