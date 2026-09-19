@@ -4820,7 +4820,7 @@ body.earnly-gameplay-locked{
 
 /* Fast game finder */
 .game-search-wrap{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 10px;padding:9px 12px;border:1px solid #334155;border-radius:14px;background:#111c2d}
-.game-search-wrap input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f8fafc;font:inherit;font-weight:700}
+.game-search-wrap input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f8fafc;font:inherit;font-size:16px;font-weight:700}
 .game-search-wrap input::placeholder{color:#94a3b8}
 .games-empty-state{display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;padding:24px 16px;color:#cbd5e1}
 .games-empty-state strong{color:#f8fafc;font-size:16px}
