@@ -1282,6 +1282,7 @@
 
     function loop(t) {
       if(!alive)return;
+      if(miniPaused){last=t;raf=requestAnimationFrame(loop);return;}
       const dt=Math.min(32,t-(last||t))/16.67;
       last=t;
       const warming=t<readyUntil;
@@ -1810,7 +1811,13 @@
       pauseStartedAt=performance.now();
     },
     resume:()=>{
-      if(pauseStartedAt) totalPausedMs+=performance.now()-pauseStartedAt;
+      if(pauseStartedAt){
+        const pausedFor=performance.now()-pauseStartedAt;
+        totalPausedMs+=pausedFor;
+        // Timed mini-games use absolute deadlines. Move those deadlines
+        // forward by the pause duration so Resume truly continues the run.
+        if(activeGame==='perfectDrop' && typeof roundDeadline==='number') roundDeadline+=pausedFor;
+      }
       pauseStartedAt=0;
       miniPaused=false;
     }
