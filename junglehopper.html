@@ -82,8 +82,17 @@
     const gravity = 0.42;
     const hopPower = -6.9;
     const obstacleWidth = 58;
-    const gapSize = 150;
-    const speed = 2.35;
+    const BASE_GAP_SIZE = 150;
+    const MIN_GAP_SIZE = 108;
+    const BASE_SPEED = 2.35;
+    const MAX_SPEED = 5.1;
+
+    function difficultyFor(value) {
+      // Long runs gradually get faster and tighter instead of staying flat forever.
+      const speed = Math.min(MAX_SPEED, BASE_SPEED + value * 0.026);
+      const gapSize = Math.max(MIN_GAP_SIZE, BASE_GAP_SIZE - value * 0.42);
+      return { speed, gapSize };
+    }
     const MAX_COINS = 25;
 
     let obstacles = [];
@@ -114,8 +123,9 @@
 
     function spawnObstacle(x = canvas.width + 25) {
       const margin = 76;
+      const { gapSize } = difficultyFor(score);
       const gapY = margin + gapSize / 2 + Math.random() * (canvas.height - margin * 2 - gapSize);
-      obstacles.push({ x, gapY, scored: false });
+      obstacles.push({ x, gapY, gapSize, scored: false });
     }
 
     function resetGame() {
@@ -180,8 +190,8 @@
     }
 
     function drawObstacle(o) {
-      const topH = Math.max(0, o.gapY - gapSize / 2);
-      const bottomY = o.gapY + gapSize / 2;
+      const topH = Math.max(0, o.gapY - o.gapSize / 2);
+      const bottomY = o.gapY + o.gapSize / 2;
       drawVinePart(o.x, 0, topH, true);
       drawVinePart(o.x, bottomY, canvas.height - bottomY, false);
     }
@@ -263,6 +273,7 @@
       frog.y += frog.vy;
 
       for (const o of obstacles) {
+        const { speed } = difficultyFor(score);
         o.x -= speed;
 
         if (!o.scored && o.x + obstacleWidth < frog.x) {
@@ -276,8 +287,8 @@
           if (score === 30) Arcade.milestone('🏆 30 vines · Legendary hop!', 'perfect');
         }
 
-        const topH = o.gapY - gapSize / 2;
-        const bottomY = o.gapY + gapSize / 2;
+        const topH = o.gapY - o.gapSize / 2;
+        const bottomY = o.gapY + o.gapSize / 2;
 
         if (
           circleRectCollision(frog.x, frog.y, frog.r, o.x, 0, obstacleWidth, topH) ||
