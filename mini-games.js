@@ -608,86 +608,254 @@
 
   function makeSpiralDrop() {
     const [c,ctx]=canvasBase();
-    let ballX=180,rings=[],score=0,alive=false,raf=null,last=0;
+    let ballX=180,rings=[],score=0,alive=false,raf=null,last=0,readyUntil=0;
+    let controlPointer=null;
+
+    function level(){
+      return 1+Math.floor(score/5);
+    }
+
+    function openingWidth(){
+      return Math.max(62,126-score*1.7);
+    }
+
+    function randomGap(width){
+      const half=width/2;
+      return half+28+Math.random()*(360-(half+28)*2);
+    }
 
     function resetRings() {
       rings=[];
-      for(let i=0;i<7;i++)rings.push({y:150+i*62,gap:55+Math.random()*250,w:76,checked:false});
+      const firstWidth=140;
+
+      // First opening is intentionally centered and farther away so a new
+      // player can see the ball, understand the goal, and make a move.
+      rings.push({y:238,gap:180,w:firstWidth,checked:false,first:true});
+
+      let y=318;
+      for(let i=1;i<7;i++){
+        const width=i===1?126:openingWidth();
+        rings.push({
+          y,
+          gap:randomGap(width),
+          w:width,
+          checked:false,
+          first:false
+        });
+        y+=72;
+      }
     }
 
     function draw() {
-      ctx.fillStyle='#0d1727';ctx.fillRect(0,0,360,430);
+      const bg=ctx.createLinearGradient(0,0,0,430);
+      bg.addColorStop(0,'#0a1424');
+      bg.addColorStop(1,'#101c31');
+      ctx.fillStyle=bg;
+      ctx.fillRect(0,0,360,430);
+
+      // Small tutorial that stays out of the play area.
+      ctx.fillStyle='rgba(15,23,42,.9)';
+      ctx.fillRect(18,14,324,42);
+      ctx.strokeStyle='#334155';
+      ctx.strokeRect(18,14,324,42);
+      ctx.textAlign='center';
+      ctx.fillStyle='#dbeafe';
+      ctx.font='800 11px Arial';
+      ctx.fillText('◀ TAP / DRAG TO MOVE ▶',180,30);
+      ctx.fillStyle='#94a3b8';
+      ctx.font='700 9px Arial';
+      ctx.fillText(score===0?'First opening starts centered for you':'Line up with the next opening',180,45);
+
       rings.forEach(r=>{
-        ctx.fillStyle='#7c3aed';
+        const safe=r.first && !r.checked;
+        ctx.fillStyle=safe?'#2563eb':'#7c3aed';
+        ctx.shadowColor=safe?'rgba(59,130,246,.55)':'rgba(124,58,237,.22)';
+        ctx.shadowBlur=safe?10:4;
         ctx.fillRect(15,r.y,Math.max(0,r.gap-r.w/2-15),14);
         ctx.fillRect(r.gap+r.w/2,r.y,Math.max(0,345-(r.gap+r.w/2)),14);
+
+        if(safe){
+          ctx.shadowBlur=0;
+          ctx.fillStyle='#93c5fd';
+          ctx.font='800 9px Arial';
+          ctx.fillText('FIRST GAP',r.gap,r.y-7);
+        }
       });
-      ctx.beginPath();ctx.fillStyle='#f8fafc';ctx.arc(ballX,110,10,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+
+      // Ball with a glow so it is always easy to find.
+      const glow=ctx.createRadialGradient(ballX-4,106,2,ballX,110,18);
+      glow.addColorStop(0,'#ffffff');
+      glow.addColorStop(.55,'#dbeafe');
+      glow.addColorStop(1,'#60a5fa');
+      ctx.beginPath();
+      ctx.fillStyle=glow;
+      ctx.arc(ballX,110,11,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='#bfdbfe';
+      ctx.lineWidth=2;
+      ctx.stroke();
+
+      if(performance.now()<readyUntil){
+        ctx.setLineDash([5,5]);
+        ctx.strokeStyle='rgba(147,197,253,.42)';
+        ctx.beginPath();
+        ctx.moveTo(ballX,126);
+        ctx.lineTo(ballX,220);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle='rgba(15,23,42,.9)';
+        ctx.beginPath();
+        ctx.roundRect(105,152,150,44,12);
+        ctx.fill();
+        ctx.strokeStyle='#3b82f6';
+        ctx.stroke();
+        ctx.fillStyle='#bfdbfe';
+        ctx.font='900 14px Arial';
+        ctx.fillText('LOOK FIRST 👀',180,174);
+        ctx.fillStyle='#94a3b8';
+        ctx.font='700 9px Arial';
+        ctx.fillText('Movement starts in a moment',180,188);
+      }
     }
 
-    function shift(dx){ballX=Math.max(25,Math.min(335,ballX+dx))}
+    function setBallFromClientX(clientX){
+      ballX=Math.max(25,Math.min(335,Arcade.gameSurfaceX(clientX,c,360)));
+    }
+
+    function nudge(dx){
+      ballX=Math.max(25,Math.min(335,ballX+dx));
+    }
 
     function loop(t) {
       if(!alive)return;
-      const dt=Math.min(32,t-(last||t))/16.67;last=t;
-      const speed=1.9+Math.min(3.3,score*.08);
+      const dt=Math.min(32,t-(last||t))/16.67;
+      last=t;
+
+      // Give the player time after GO to locate the ball and first opening.
+      const warmingUp=t<readyUntil;
+      const speed=warmingUp ? 0 : Math.min(2.9,.78+score*.065);
+
       rings.forEach(r=>r.y-=speed*dt);
 
       for(const r of rings){
         if(!r.checked&&r.y<=120&&r.y>=98){
           r.checked=true;
+          r.first=false;
+
           if(Math.abs(ballX-r.gap)>r.w/2-8){
             alive=false;
-            finish(score,1+Math.floor(score/5),['🌀 Rings passed: '+score,'Move toward the next opening early.'],'Hit the Ring');
+            finish(
+              score,
+              level(),
+              [
+                '🌀 Rings passed: '+score,
+                'Tap or drag toward the opening before it reaches the ball.'
+              ],
+              'Hit the Ring'
+            );
             return;
           }
+
           score++;
           Arcade.feedback('score');
-          ui(score,1+Math.floor(score/5));
+          ui(score,level());
+
+          if(score===1) Arcade.milestone('🌀 First ring cleared!','score');
+          if(score>0&&score%5===0) Arcade.milestone('⬆️ Level '+level()+'!','perfect');
         }
       }
 
       while(rings.length&&rings[0].y<-20)rings.shift();
       while(rings.length<7){
-        const y=(rings.length?rings[rings.length-1].y:400)+62;
-        rings.push({y,gap:55+Math.random()*250,w:Math.max(48,76-score*.6),checked:false});
+        const y=(rings.length?rings[rings.length-1].y:410)+72;
+        const width=openingWidth();
+        rings.push({
+          y,
+          gap:randomGap(width),
+          w:width,
+          checked:false,
+          first:false
+        });
       }
+
       draw();
       raf=requestAnimationFrame(loop);
     }
 
-    function pointerShift(e){
+    function beginPointer(e){
       if(!alive)return;
-      const r=c.getBoundingClientRect();
-      shift(e.clientX < (r.left+r.right)/2 ? -32 : 32);
+      controlPointer=e.pointerId;
+      setBallFromClientX(e.clientX);
+      try{c.setPointerCapture?.(e.pointerId)}catch{}
+    }
+
+    function movePointer(e){
+      if(!alive||controlPointer!==e.pointerId)return;
+      e.preventDefault();
+      setBallFromClientX(e.clientX);
+    }
+
+    function endPointer(e){
+      if(controlPointer!==e.pointerId)return;
+      controlPointer=null;
     }
 
     c.addEventListener('pointerdown',e=>{
       e.preventDefault();
-      pointerShift(e);
+      beginPointer(e);
     });
+    c.addEventListener('pointermove',movePointer,{passive:false});
+    c.addEventListener('pointerup',endPointer);
+    c.addEventListener('pointercancel',endPointer);
 
-    const onWidePointer=e=>{
-      if(e.target===c || !Arcade.inExpandedGameZone(e,c,130))return;
+    const onWideDown=e=>{
+      if(e.target===c||!Arcade.inExpandedGameZone(e,c,135))return;
       e.preventDefault();
-      pointerShift(e);
+      beginPointer(e);
     };
-    document.addEventListener('pointerdown',onWidePointer,{passive:false});
+    const onWideMove=e=>{
+      if(controlPointer!==e.pointerId)return;
+      e.preventDefault();
+      setBallFromClientX(e.clientX);
+    };
+    const onWideUp=e=>endPointer(e);
+
+    document.addEventListener('pointerdown',onWideDown,{passive:false});
+    document.addEventListener('pointermove',onWideMove,{passive:false});
+    document.addEventListener('pointerup',onWideUp,{passive:true});
+    document.addEventListener('pointercancel',onWideUp,{passive:true});
 
     const onKey=e=>{
       if(!alive)return;
-      if(e.key==='ArrowLeft'){e.preventDefault();shift(-28)}
-      if(e.key==='ArrowRight'){e.preventDefault();shift(28)}
+      if(e.key==='ArrowLeft'){e.preventDefault();nudge(-20)}
+      if(e.key==='ArrowRight'){e.preventDefault();nudge(20)}
     };
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){ballX=180;score=0;alive=true;last=0;resetRings();ui(0,1);raf=requestAnimationFrame(loop)},
+      start(){
+        ballX=180;
+        score=0;
+        alive=true;
+        last=0;
+        controlPointer=null;
+        resetRings();
+        ui(0,1);
+        readyUntil=performance.now()+1250;
+        draw();
+        raf=requestAnimationFrame(loop);
+      },
       stop(){
         alive=false;
+        controlPointer=null;
         cancelAnimationFrame(raf);
         document.removeEventListener('keydown',onKey);
-        document.removeEventListener('pointerdown',onWidePointer);
+        document.removeEventListener('pointerdown',onWideDown);
+        document.removeEventListener('pointermove',onWideMove);
+        document.removeEventListener('pointerup',onWideUp);
+        document.removeEventListener('pointercancel',onWideUp);
       }
     };
   }
