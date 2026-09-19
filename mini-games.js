@@ -649,7 +649,7 @@
 
   function makeSpiralDrop() {
     const [c,ctx]=canvasBase();
-    let ballX=180,rings=[],score=0,alive=false,raf=null,last=0,readyUntil=0;
+    let ballX=180,rows=[],score=0,alive=false,raf=null,last=0,readyUntil=0;
     let controlPointer=null,levelFlash='',levelFlashFrames=0;
     let pointerStartClientX=0;
     let pointerStartBallX=180;
@@ -686,57 +686,65 @@
       const half=width/2;
       const edge=half+28;
       const min=edge,max=360-edge;
-      const recent=rings.slice(-4).map(r=>r.gap);
+      const recent=rows.slice(-5).map(r=>r.gap);
       const previous=recent.length?recent[recent.length-1]:180;
 
-      // Avoid long "free-fall" streaks. A new row should normally demand a
-      // meaningful horizontal correction, not sit in the same broad corridor
-      // as several recent openings.
-      let candidate=180;
-      for(let attempt=0;attempt<14;attempt++){
-        if(score>=25&&Math.random()<Math.min(.72,.28+score*.006)){
-          const side=Math.random()<.5 ? -1 : 1;
-          const outer=edge+Math.random()*Math.max(1,54-half*.12);
-          candidate=side<0 ? outer : 360-outer;
-        }else{
-          candidate=min+Math.random()*(max-min);
+      // Generate a deliberate zig-zag instead of independent random holes.
+      // Every new row must move far enough from the previous opening, while
+      // also avoiding the lanes used by the last few rows.
+      const minMove=Math.max(52,width*.46);
+      const laneRadius=Math.max(34,width*.30);
+      const candidates=[];
+
+      for(let i=0;i<28;i++){
+        let candidate=min+Math.random()*(max-min);
+
+        // Higher levels occasionally push toward an edge, but never by simply
+        // repeating the same edge lane.
+        if(score>=20&&Math.random()<Math.min(.58,.18+score*.005)){
+          const left=Math.random()<.5;
+          const band=Math.min(52,Math.max(20,(max-min)*.24));
+          candidate=left ? min+Math.random()*band : max-Math.random()*band;
         }
 
-        if(recent.length){
-          const minMove=Math.max(44,width*.40);
-          if(Math.abs(candidate-previous)<minMove)continue;
+        const move=Math.abs(candidate-previous);
+        if(recent.length&&move<minMove)continue;
 
-          // Also reject candidates that recreate the same lane used two or
-          // three rows ago; this breaks repeating left/center/right grooves.
-          const laneRadius=Math.max(30,width*.27);
-          const repeatedRecentLane=recent.slice(0,-1).some(g=>Math.abs(candidate-g)<laneRadius);
-          if(repeatedRecentLane)continue;
-        }
-        return candidate;
+        // Penalize returning to any recently used corridor.
+        const oldLaneHits=recent.slice(0,-1).filter(g=>Math.abs(candidate-g)<laneRadius).length;
+        if(oldLaneHits)continue;
+
+        // Score valid choices by how much fresh space they create. This keeps
+        // randomness but strongly favors openings that demand a new decision.
+        const clearance=recent.length?Math.min(...recent.map(g=>Math.abs(candidate-g))):999;
+        candidates.push({candidate,clearance});
       }
 
-      // Fallback picks the side with the most distance from recent rows.
-      const choices=[min,(min+max)*.5,max];
-      choices.sort((a,b)=>{
-        const aClear=Math.min(...recent.map(g=>Math.abs(a-g)),999);
-        const bClear=Math.min(...recent.map(g=>Math.abs(b-g)),999);
-        return bClear-aClear;
-      });
-      return choices[0];
+      if(candidates.length){
+        candidates.sort((x,y)=>y.clearance-x.clearance);
+        // Pick among the best few so patterns do not become deterministic.
+        return candidates[Math.floor(Math.random()*Math.min(4,candidates.length))].candidate;
+      }
+
+      // If the board is too constrained for all rules at once, force a side
+      // change from the previous row rather than accepting a repeated lane.
+      const left=min;
+      const right=max;
+      return Math.abs(left-previous)>Math.abs(right-previous)?left:right;
     }
 
     function resetRings() {
-      rings=[];
+      rows=[];
       const firstWidth=140;
 
       // First opening is intentionally centered and farther away so a new
       // player can see the ball, understand the goal, and make a move.
-      rings.push({y:238,gap:180,w:firstWidth,checked:false,first:true});
+      rows.push({y:238,gap:180,w:firstWidth,checked:false,first:true});
 
       let y=318;
       for(let i=1;i<7;i++){
         const width=i===1?126:openingWidth();
-        rings.push({
+        rows.push({
           y,
           gap:randomGap(width),
           w:width,
@@ -770,7 +778,7 @@
         ctx.fillText(score===0?'First opening starts centered for you':'Drag the ball through each opening',180,45);
       }
 
-      rings.forEach(r=>{
+      rows.forEach(r=>{
         const safe=r.first && !r.checked;
         const color=safe?'#2563eb':ringColor(r);
         ctx.fillStyle=color;
@@ -897,9 +905,9 @@
       const warmingUp=t<readyUntil;
       const speed=warmingUp ? 0 : fallSpeed();
 
-      rings.forEach(r=>r.y-=speed*dt);
+      rows.forEach(r=>r.y-=speed*dt);
 
-      for(const r of rings){
+      for(const r of rows){
         if(!r.checked&&r.y<=120&&r.y>=98){
           r.checked=true;
           r.first=false;
@@ -913,7 +921,7 @@
                 '🌀 Rows passed: '+score,
                 'Tap or drag toward the opening before it reaches the ball.'
               ],
-              'Hit the Ring'
+              'Spiral Drop'
             );
             return;
           }
@@ -933,11 +941,11 @@
         }
       }
 
-      while(rings.length&&rings[0].y<-20)rings.shift();
-      while(rings.length<7){
-        const y=(rings.length?rings[rings.length-1].y:410)+Math.max(64,72-Math.floor(score/18)*2);
+      while(rows.length&&rows[0].y<-20)rows.shift();
+      while(rows.length<7){
+        const y=(rows.length?rows[rows.length-1].y:410)+Math.max(64,72-Math.floor(score/18)*2);
         const width=openingWidth();
-        rings.push({
+        rows.push({
           y,
           gap:randomGap(width),
           w:width,
