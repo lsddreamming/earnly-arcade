@@ -58,6 +58,7 @@
     </section>
 
     <div id="games" class="game-list"></div>
+    <button type="button" class="wide secondary catalog-more-button" id="loadMoreGames" hidden>Show More Games</button>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
   </main>
@@ -112,6 +113,7 @@
     };
     let activeGameFilter = 'all';
     let gameSearchText = '';
+    let visibleGameLimit = 8;
 
     function renderQuickSection(title, keys) {
       const games = keys.map(key => byKey[key]).filter(Boolean);
@@ -164,7 +166,12 @@
       document.getElementById('gameMatchCount').textContent =
         visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's');
 
-      visibleGames.forEach(info => {
+      const loadMoreButton = document.getElementById('loadMoreGames');
+      const gamesToRender = visibleGames.slice(0, visibleGameLimit);
+      loadMoreButton.hidden = visibleGames.length <= visibleGameLimit;
+      loadMoreButton.textContent = 'Show More Games · ' + Math.min(8, visibleGames.length - visibleGameLimit) + ' more';
+
+      gamesToRender.forEach(info => {
         const remaining = Arcade.remaining(info.key);
         const adStatus = Arcade.playAdStatus(info.key);
         const best = Arcade.best(info.key);
@@ -244,6 +251,7 @@
 
     gameSearch.addEventListener('input', () => {
       gameSearchText = gameSearch.value.trim().toLowerCase();
+      visibleGameLimit = 8;
       render();
     });
 
@@ -251,11 +259,17 @@
       const button = event.target.closest('[data-filter]');
       if (!button) return;
       activeGameFilter = button.dataset.filter || 'all';
+      visibleGameLimit = 8;
       gameFilters.querySelectorAll('.game-filter').forEach(item => {
         const selected = item === button;
         item.classList.toggle('active', selected);
         item.setAttribute('aria-pressed', selected ? 'true' : 'false');
       });
+      render();
+    });
+
+    document.getElementById('loadMoreGames').addEventListener('click', () => {
+      visibleGameLimit += 8;
       render();
     });
 
