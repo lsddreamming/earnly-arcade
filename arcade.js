@@ -1413,7 +1413,7 @@ const Arcade = (() => {
 
     const badge = document.createElement('div');
     badge.className = 'result-badge';
-    badge.textContent = result?.newBest ? '🏆 NEW BEST' : 'RUN COMPLETE';
+    badge.textContent = result?.newBest ? '🏆 NEW BEST' : (score > 0 ? '✓ RUN COMPLETE' : 'RUN OVER');
     if (result?.newBest) badge.classList.add('best');
 
     heading.append(h, badge);
@@ -1433,7 +1433,7 @@ const Arcade = (() => {
     if (best) {
       const bestLine = document.createElement('div');
       bestLine.className = 'result-best';
-      bestLine.textContent = 'Best: ' + best;
+      bestLine.textContent = (result?.newBest ? 'Previous best beaten · New best: ' : '🏆 Best: ') + best;
       main.append(bestLine);
     }
 
@@ -1441,9 +1441,9 @@ const Arcade = (() => {
     statsBox.className = 'result-stats';
 
     const statData = [
-      ['🪙', '+' + coins, 'Coins'],
-      ['⭐', '+' + (result?.xpAward || 0), 'XP'],
-      ['🎟️', String(playsLeft), 'Plays Left']
+      ['🪙', '+' + coins, 'Coins Earned'],
+      ['⭐', '+' + (result?.xpAward || 0), 'XP Earned'],
+      ['🎟️', String(playsLeft), playsLeft === 1 ? 'Play Left' : 'Plays Left']
     ];
 
     statData.forEach(([statIcon, statValue, statLabel]) => {
@@ -1536,7 +1536,7 @@ const Arcade = (() => {
     primary.className = 'wide green';
     const resultAdStatus = game ? playAdStatus(game) : { remaining:0, bonus:PLAY_AD_BONUS };
     if (playsLeft > 0) {
-      primary.textContent = '▶ Play Again';
+      primary.textContent = '▶ Play Again · ' + playsLeft + ' Left';
     } else if (resultAdStatus.remaining > 0) {
       primary.textContent = '▶ Watch Ad · +' + resultAdStatus.bonus + ' Plays';
     } else {
