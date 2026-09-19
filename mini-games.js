@@ -422,14 +422,15 @@
   function makePerfectDrop() {
     const [c,ctx]=canvasBase();
     let x=40,dir=1,speed=3,targetX=110,targetW=150,hits=0,streak=0,lives=3,drop=null,alive=false,raf=null;
-    let flashText='',flashFrames=0,goalCelebrated=false,roundDeadline=0,roundLimit=0;
+    let flashText='',flashFrames=0,goalCelebrated=false,roundDeadline=0,roundLimit=0,bestStreak=0,perfects=0;
 
     function level(){
       return Math.min(9,1+Math.floor(hits/5));
     }
 
-    function nextLevelAt(){
-      return level()*5;
+    function stageName(){
+      const lv=level();
+      return lv<=1?'Warm-up':lv<=3?'Timing Zone':lv<=5?'Fast Drop':'Precision Master';
     }
 
     function next() {
@@ -471,7 +472,7 @@
       // Level + lives row.
       ctx.textAlign='center';
       roundedRect(22,77,112,36,12,'#111c2d','#334155');
-      ctx.fillStyle='#93c5fd';ctx.font='800 13px Arial';ctx.fillText('LEVEL '+lv,78,95);
+      ctx.fillStyle='#93c5fd';ctx.font='800 13px Arial';ctx.fillText('LEVEL '+lv,78,91);ctx.fillStyle='#94a3b8';ctx.font='700 8px Arial';ctx.fillText(stageName().toUpperCase(),78,104);
       roundedRect(226,77,112,36,12,'#111c2d','#334155');
       ctx.fillStyle='#fca5a5';ctx.font='800 13px Arial';
       ctx.fillText('❤'.repeat(lives)+'♡'.repeat(3-lives),282,95);
@@ -557,6 +558,8 @@
       if(hit){
         hits++;
         streak++;
+        bestStreak=Math.max(bestStreak,streak);
+        if(perfect)perfects++;
         flashText=perfect?'PERFECT!':'NICE!';
         flashFrames=26;
         Arcade.feedback(perfect?'perfect':'score');
@@ -588,7 +591,8 @@
           level(),
           [
             '🎯 Level reached: '+level(),
-            '🔥 Final streak: '+streak,
+            '✨ Perfect drops: '+perfects,
+            '🔥 Best streak: '+bestStreak,
             hits>=20?'🏆 You reached the Level 5 goal!':'Reach 20 hits to conquer Level 5.'
           ],
           'Perfect Drop Run Over'
@@ -615,7 +619,7 @@
           ui(hits,level());
           if(lives<=0){
             alive=false;
-            finish(hits,level(),['🎯 Level reached: '+level(),'⏱️ Keep an eye on the drop timer.'],'Perfect Drop Run Over');
+            finish(hits,level(),['🎯 Level reached: '+level(),'✨ Perfect drops: '+perfects,'🔥 Best streak: '+bestStreak,'⏱️ Keep an eye on the drop timer.'],'Perfect Drop Run Over');
             return;
           }
           next();
@@ -648,7 +652,7 @@
 
     return {
       start(){
-        hits=0;streak=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
+        hits=0;streak=0;bestStreak=0;perfects=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
         next();ui(0,1);draw();raf=requestAnimationFrame(loop);
       },
       stop(){
