@@ -619,7 +619,7 @@
     }
 
     function openingWidth(){
-      return Math.max(54,132-score*1.35);
+      return Math.max(66,132-score*.95);
     }
 
     function randomGap(width){
@@ -741,7 +741,7 @@
 
       // Give the player time after GO to locate the ball and first opening.
       const warmingUp=t<readyUntil;
-      const speed=warmingUp ? 0 : Math.min(3.45,.92+score*.075);
+      const speed=warmingUp ? 0 : Math.min(2.65,.92+score*.043);
 
       rings.forEach(r=>r.y-=speed*dt);
 
@@ -775,7 +775,7 @@
 
       while(rings.length&&rings[0].y<-20)rings.shift();
       while(rings.length<7){
-        const y=(rings.length?rings[rings.length-1].y:410)+Math.max(58,72-Math.floor(score/12)*2);
+        const y=(rings.length?rings[rings.length-1].y:410)+Math.max(64,72-Math.floor(score/18)*2);
         const width=openingWidth();
         rings.push({
           y,
