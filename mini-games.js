@@ -1249,48 +1249,60 @@
       if(ctx.state==='suspended')ctx.resume();
       const now=ctx.currentTime;
 
-      if(kind==='exit'){
-        // Layered engine: low motor rumble + rising rev + short tire chirp.
-        const master=ctx.createGain();
-        master.gain.setValueAtTime(.0001,now);
-        master.gain.exponentialRampToValueAtTime(.34,now+.025);
-        master.gain.setValueAtTime(.28,now+.34);
-        master.gain.exponentialRampToValueAtTime(.0001,now+.82);
-        master.connect(ctx.destination);
+      const makeNoise=(seconds)=>{
+        const src=ctx.createBufferSource();
+        const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*seconds),ctx.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+        src.buffer=buf;
+        return src;
+      };
 
-        [1,1.48,2.03].forEach((ratio,i)=>{
+      if(kind==='exit'){
+        // Forward acceleration: engine pitch rises naturally instead of a game-like chirp.
+        const master=ctx.createGain(), low=ctx.createBiquadFilter();
+        master.gain.setValueAtTime(.0001,now);
+        master.gain.exponentialRampToValueAtTime(.42,now+.04);
+        master.gain.setValueAtTime(.36,now+.48);
+        master.gain.exponentialRampToValueAtTime(.0001,now+1.05);
+        low.type='lowpass'; low.frequency.value=720;
+        low.connect(master); master.connect(ctx.destination);
+
+        [0,1,2].forEach(i=>{
           const o=ctx.createOscillator(), g=ctx.createGain();
-          o.type=i===0?'sawtooth':'square';
-          o.frequency.setValueAtTime(48*ratio,now);
-          o.frequency.exponentialRampToValueAtTime(175*ratio,now+.68);
-          g.gain.value=i===0?.55:.12;
-          o.connect(g); g.connect(master); o.start(now); o.stop(now+.84);
+          o.type=i===0?'sawtooth':'triangle';
+          const mult=[1,2,3][i];
+          o.frequency.setValueAtTime(62*mult,now);
+          o.frequency.exponentialRampToValueAtTime(138*mult,now+.78);
+          g.gain.value=[.55,.22,.10][i];
+          o.connect(g); g.connect(low); o.start(now); o.stop(now+1.06);
         });
 
-        const noise=ctx.createBufferSource(), ng=ctx.createGain();
-        const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.16),ctx.sampleRate);
-        const data=buf.getChannelData(0);
-        for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);
-        noise.buffer=buf; ng.gain.setValueAtTime(.20,now); ng.gain.exponentialRampToValueAtTime(.0001,now+.16);
-        noise.connect(ng); ng.connect(ctx.destination); noise.start(now);
+        const road=makeNoise(.9), rg=ctx.createGain(), rf=ctx.createBiquadFilter();
+        rf.type='lowpass'; rf.frequency.value=360;
+        rg.gain.setValueAtTime(.025,now); rg.gain.exponentialRampToValueAtTime(.11,now+.65);
+        rg.gain.exponentialRampToValueAtTime(.0001,now+.9);
+        road.connect(rf); rf.connect(rg); rg.connect(ctx.destination); road.start(now);
       }else{
-        // Skid into impact: noisy tire squeal followed by a low crash thump.
-        const noise=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), ng=ctx.createGain();
-        const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.42),ctx.sampleRate);
-        const data=buf.getChannelData(0);
-        for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
-        noise.buffer=buf; filter.type='bandpass'; filter.frequency.setValueAtTime(2400,now);
-        filter.frequency.exponentialRampToValueAtTime(700,now+.34); filter.Q.value=5;
-        ng.gain.setValueAtTime(.0001,now); ng.gain.exponentialRampToValueAtTime(.24,now+.02);
-        ng.gain.exponentialRampToValueAtTime(.0001,now+.38);
-        noise.connect(filter); filter.connect(ng); ng.connect(ctx.destination); noise.start(now); noise.stop(now+.42);
+        // Tire skid, then a noisy metal impact and low thud. Avoid pure-tone "beeps".
+        const skid=makeNoise(.48), sf=ctx.createBiquadFilter(), sg=ctx.createGain();
+        sf.type='bandpass'; sf.frequency.setValueAtTime(3200,now);
+        sf.frequency.exponentialRampToValueAtTime(1050,now+.42); sf.Q.value=2.4;
+        sg.gain.setValueAtTime(.0001,now); sg.gain.exponentialRampToValueAtTime(.34,now+.025);
+        sg.gain.setValueAtTime(.28,now+.25); sg.gain.exponentialRampToValueAtTime(.0001,now+.47);
+        skid.connect(sf); sf.connect(sg); sg.connect(ctx.destination); skid.start(now);
 
-        const boom=ctx.createOscillator(), bg=ctx.createGain();
-        boom.type='sine'; boom.frequency.setValueAtTime(92,now+.28);
-        boom.frequency.exponentialRampToValueAtTime(32,now+.62);
-        bg.gain.setValueAtTime(.0001,now); bg.gain.setValueAtTime(.0001,now+.27);
-        bg.gain.exponentialRampToValueAtTime(.48,now+.285); bg.gain.exponentialRampToValueAtTime(.0001,now+.66);
-        boom.connect(bg); bg.connect(ctx.destination); boom.start(now+.27); boom.stop(now+.68);
+        const hitAt=now+.34;
+        const crash=makeNoise(.34), cf=ctx.createBiquadFilter(), cg=ctx.createGain();
+        cf.type='lowpass'; cf.frequency.value=1500;
+        cg.gain.setValueAtTime(.52,hitAt); cg.gain.exponentialRampToValueAtTime(.0001,hitAt+.32);
+        crash.connect(cf); cf.connect(cg); cg.connect(ctx.destination); crash.start(hitAt);
+
+        const thud=ctx.createOscillator(), tg=ctx.createGain();
+        thud.type='sine'; thud.frequency.setValueAtTime(72,hitAt);
+        thud.frequency.exponentialRampToValueAtTime(28,hitAt+.25);
+        tg.gain.setValueAtTime(.48,hitAt); tg.gain.exponentialRampToValueAtTime(.0001,hitAt+.28);
+        thud.connect(tg); tg.connect(ctx.destination); thud.start(hitAt); thud.stop(hitAt+.3);
       }
     }catch(_){}
   }
