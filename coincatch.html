@@ -125,7 +125,7 @@
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Time!','over');draw();
       Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Basket Full!',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
-        extra:[hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
     function loop(now){
       if(!running)return;
@@ -145,8 +145,9 @@
       draw();animation=requestAnimationFrame(loop);
     }
     function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);basket.x=Math.max(0,Math.min(canvas.width-basket.w,x-basket.w/2));}
+    let earnlyRunStartedAt=0;
     function startGame(){
-      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}
+      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();
       reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
         timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish(false)},1000);animation=requestAnimationFrame(loop);});
