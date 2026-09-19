@@ -47,18 +47,18 @@
         <input id="gameSearch" type="search" autocomplete="off" placeholder="Search 20 games…" aria-label="Search games">
       </label>
       <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
-        <button type="button" class="game-filter active" data-filter="all">All</button>
-        <button type="button" class="game-filter" data-filter="new">✨ New</button>
-        <button type="button" class="game-filter" data-filter="action">⚡ Action</button>
-        <button type="button" class="game-filter" data-filter="quick">⏱️ Quick</button>
-        <button type="button" class="game-filter" data-filter="classic">🕹️ Classic</button>
-        <button type="button" class="game-filter" data-filter="brain">🧠 Brain</button>
+        <button type="button" class="game-filter active" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="game-filter" data-filter="new" aria-pressed="false">✨ New</button>
+        <button type="button" class="game-filter" data-filter="action" aria-pressed="false">⚡ Action</button>
+        <button type="button" class="game-filter" data-filter="quick" aria-pressed="false">⏱️ Quick</button>
+        <button type="button" class="game-filter" data-filter="classic" aria-pressed="false">🕹️ Classic</button>
+        <button type="button" class="game-filter" data-filter="brain" aria-pressed="false">🧠 Brain</button>
       </div>
-      <div class="game-filter-count" id="gameMatchCount">20 games</div>
+      <div class="game-filter-count" id="gameMatchCount" role="status" aria-live="polite">20 games</div>
     </section>
 
     <div id="games" class="game-list"></div>
-    <button type="button" class="wide secondary catalog-more-button" id="loadMoreGames" hidden>Show More Games</button>
+    <button type="button" class="wide secondary catalog-more-button" id="loadMoreGames" aria-controls="games" hidden>Show More Games</button>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
   </main>
@@ -218,7 +218,13 @@
         play.disabled = !remaining && adStatus.remaining <= 0;
         play.textContent = remaining
           ? 'Play'
-          : (adStatus.remaining > 0 ? 'Get More Plays' : 'Come Back Tomorrow');
+          : (adStatus.remaining > 0 ? '▶ Watch Ad · +3 Plays' : 'Come Back Tomorrow');
+        play.setAttribute(
+          'aria-label',
+          remaining
+            ? 'Play '+info.name
+            : (adStatus.remaining > 0 ? 'Watch rewarded ad for 3 more '+info.name+' plays' : info.name+' plays refill tomorrow')
+        );
         play.addEventListener('click', () => {
           if (remaining) location.href = info.href;
           else if (adStatus.remaining > 0) Arcade.out(info.key, render);
