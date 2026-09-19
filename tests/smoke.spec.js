@@ -329,3 +329,25 @@ test('Brick Breaker end state clears pending level transition', async ({ page })
   await expect(page.locator('body')).not.toHaveAttribute('data-late-level-restart','yes');
   await expect(page.locator('.game-result-modal')).toHaveCount(1);
 });
+
+
+test('Block Drop held controls cannot survive pause or game over', async ({ page }) => {
+  await page.goto('/blockdrop.html');
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+
+  const left = page.locator('#leftButton');
+  await left.dispatchEvent('pointerdown', { pointerId:1 });
+  await page.waitForTimeout(280);
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await page.waitForTimeout(180);
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+
+  await page.evaluate(() => gameOver());
+  await expect(page.locator('#gameStatus')).toHaveText('Game Over');
+  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+  await page.waitForTimeout(220);
+  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+});
