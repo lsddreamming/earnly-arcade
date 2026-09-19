@@ -114,7 +114,9 @@
     };
 
     function missionDestination(mission) {
-      return missionGamePages[mission.game] || 'games.html';
+      const page = missionGamePages[mission.game] || 'games.html';
+      if (!mission.game) return page;
+      return page + '?goal=weekly&mission=' + encodeURIComponent(mission.id);
     }
 
     function missionGameLabel(mission) {

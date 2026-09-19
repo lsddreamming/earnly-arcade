@@ -219,6 +219,7 @@
     const cloudSignupText = document.getElementById('cloudSignupText');
     const cloudSignupWarning = document.getElementById('cloudSignupWarning');
     const cloudSignupDifferentEmail = document.getElementById('cloudSignupDifferentEmail');
+    const signupPendingKey = 'earnlySignupPending';
     let createCooldownTimer = null;
     let recoveryMode = new URLSearchParams(location.search).has('recovery');
 
@@ -359,11 +360,48 @@
     function resetSignupNotice(){
       clearInterval(createCooldownTimer);
       createCooldownTimer = null;
+      localStorage.removeItem(signupPendingKey);
       cloudSignupNotice.hidden = true;
       cloudSignupNotice.className = 'cloud-signup-notice';
       cloudEmail.readOnly = false;
       cloudCreateButton.disabled = false;
       cloudCreateButton.textContent = 'Create Account & Send Email';
+    }
+
+    function rememberSignupRequest(email){
+      localStorage.setItem(signupPendingKey, JSON.stringify({
+        email:String(email || '').trim(),
+        sentAt:Date.now()
+      }));
+    }
+
+    function restoreSignupRequest(){
+      let pending = null;
+      try {
+        pending = JSON.parse(localStorage.getItem(signupPendingKey) || 'null');
+      } catch {}
+
+      const email = String(pending?.email || '').trim();
+      const sentAt = Number(pending?.sentAt || 0);
+      const stillRecent = email && sentAt && Date.now() - sentAt < 60 * 60 * 1000;
+
+      if (!stillRecent) {
+        localStorage.removeItem(signupPendingKey);
+        return false;
+      }
+
+      cloudEmail.value = email;
+      cloudEmail.readOnly = true;
+      cloudCreateButton.disabled = true;
+      cloudCreateButton.textContent = 'Confirmation Email Sent ✓';
+      showSignupNotice(
+        'success',
+        'Check your email now',
+        'We sent a confirmation link to ' + email + '. Open that email, tap “Confirm your email address,” then return to Earnly and tap Sign In.',
+        'The request was already sent. Do not press Create Account again.'
+      );
+      cloudMessage.textContent = '📨 Waiting for ' + email + ' to be confirmed. After confirming, return here and tap Sign In.';
+      return true;
     }
 
     function startCreateCooldown(seconds = 60){
@@ -483,6 +521,7 @@
         cloudSignInButton.disabled = false;
 
         if (data.session) {
+          localStorage.removeItem(signupPendingKey);
           cloudMessage.textContent = '✅ Account created and connected. Automatic cloud sync is on.';
           cloudCreateButton.textContent = 'Account Created ✓';
           await renderCloud();
@@ -492,6 +531,7 @@
         cloudEmail.readOnly = true;
         cloudCreateButton.disabled = true;
         cloudCreateButton.textContent = 'Confirmation Email Sent ✓';
+        rememberSignupRequest(email);
 
         showSignupNotice(
           'success',
@@ -509,6 +549,8 @@
         const raw = String(error?.message || '');
 
         if (/rate limit|too many|email.*limit/i.test(raw)) {
+          const email = cloudEmail.value.trim();
+          if (email) rememberSignupRequest(email);
           showSignupNotice(
             'error',
             'Too many email requests',
@@ -549,6 +591,7 @@
         cloudMessage.textContent = 'Signing in and checking for your cloud save…';
 
         const result = await EarnlyCloud.signInAndRestore(email, password);
+        localStorage.removeItem(signupPendingKey);
         cloudPassword.value = '';
 
         if (result.restore?.auto) {
@@ -667,6 +710,7 @@
 
     render();
     renderCloud();
+    restoreSignupRequest();
     window.addEventListener('pageshow', () => { render(); renderCloud(); });
     window.addEventListener('storage', render);
     window.addEventListener('earnly-cloud-auth-change', renderCloud);

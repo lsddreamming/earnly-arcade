@@ -211,7 +211,9 @@
     };
 
     function challengeDestination(challenge) {
-      return challengeGamePages[challenge.game] || 'games.html';
+      const page = challengeGamePages[challenge.game] || 'games.html';
+      if (!challenge.game) return page;
+      return page + '?goal=daily';
     }
 
     function challengeGameLabel(challenge) {

@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.17';
+  const APP_VERSION = '0.15.18';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1408,6 +1408,42 @@ const Arcade = (() => {
       });
     }
 
+    const goalParams = new URLSearchParams(location.search);
+    const goalSource = goalParams.get('goal');
+    let goalReturn = null;
+
+    if (goalSource === 'daily') {
+      const challenge = challengeStatus();
+      if (challenge.game === game && !challenge.claimed) {
+        goalReturn = {
+          href:'index.html',
+          label:challenge.complete ? '🔥 Claim Daily Challenge →' : '← Daily Challenge',
+          note:challenge.complete
+            ? '🔥 Daily challenge complete — return Home to claim +' + challenge.reward + ' Coins.'
+            : '🔥 Daily challenge progress: ' + challenge.progress + '/' + challenge.goal
+        };
+      }
+    } else if (goalSource === 'weekly') {
+      const missionId = goalParams.get('mission');
+      const mission = weeklyStatus().missions.find(item => item.id === missionId);
+      if (mission && mission.game === game && !mission.claimed) {
+        goalReturn = {
+          href:'stats.html',
+          label:mission.complete ? '📅 Claim Weekly Mission →' : '← Weekly Mission',
+          note:mission.complete
+            ? '📅 Weekly mission complete — return to Missions to claim +' + mission.rewardXP + ' XP.'
+            : '📅 Weekly mission progress: ' + mission.progress + '/' + mission.goal
+        };
+      }
+    }
+
+    if (goalReturn) {
+      const line = document.createElement('div');
+      line.className = 'result-highlight result-goal-update';
+      line.textContent = goalReturn.note;
+      notes.append(line);
+    }
+
     const actions = document.createElement('div');
     actions.className = 'modal-actions result-actions';
 
@@ -1428,12 +1464,12 @@ const Arcade = (() => {
     });
 
     const back = document.createElement('button');
-    back.className = 'wide secondary';
-    back.textContent = '← Games';
+    back.className = 'wide secondary' + (goalReturn ? ' goal-return-button' : '');
+    back.textContent = goalReturn ? goalReturn.label : '← Games';
     back.addEventListener('click', () => {
       closeModalThen(() => {
         modal.className = '';
-        location.href = 'games.html';
+        location.href = goalReturn ? goalReturn.href : 'games.html';
       });
     });
 
@@ -1941,6 +1977,77 @@ const Arcade = (() => {
     });
 
     wrapper.before(strip);
+
+    const goalParams = new URLSearchParams(location.search);
+    const goalSource = goalParams.get('goal');
+    let goal = null;
+
+    if (goalSource === 'daily') {
+      const challenge = challengeStatus();
+      if (challenge.game === game && !challenge.claimed) {
+        goal = {
+          eyebrow:'TODAY’S CHALLENGE',
+          icon:'🔥',
+          title:challenge.title.replace(/^\S+\s*/, ''),
+          description:challenge.description,
+          progress:challenge.progress,
+          target:challenge.goal,
+          reward:'+' + challenge.reward + ' Coins',
+          href:'index.html',
+          returnLabel:'Home'
+        };
+      }
+    } else if (goalSource === 'weekly') {
+      const missionId = goalParams.get('mission');
+      const mission = weeklyStatus().missions.find(item => item.id === missionId);
+      if (mission && mission.game === game && !mission.claimed) {
+        goal = {
+          eyebrow:'WEEKLY MISSION',
+          icon:mission.icon,
+          title:mission.title,
+          description:mission.description,
+          progress:mission.progress,
+          target:mission.goal,
+          reward:'+' + mission.rewardXP + ' XP',
+          href:'stats.html',
+          returnLabel:'Missions'
+        };
+      }
+    }
+
+    if (goal) {
+      const card = document.createElement('section');
+      card.className = 'game-goal-card';
+
+      const copy = document.createElement('div');
+      copy.className = 'game-goal-copy';
+
+      const eyebrow = document.createElement('span');
+      eyebrow.className = 'game-goal-eyebrow';
+      eyebrow.textContent = goal.eyebrow;
+
+      const title = document.createElement('strong');
+      title.textContent = goal.icon + ' ' + goal.title;
+
+      const detail = document.createElement('small');
+      detail.textContent = goal.description + ' · ' + goal.progress + '/' + goal.target;
+
+      copy.append(eyebrow, title, detail);
+
+      const side = document.createElement('div');
+      side.className = 'game-goal-side';
+
+      const reward = document.createElement('b');
+      reward.textContent = goal.reward;
+
+      const back = document.createElement('a');
+      back.href = goal.href;
+      back.textContent = '← ' + goal.returnLabel;
+
+      side.append(reward, back);
+      card.append(copy, side);
+      strip.before(card);
+    }
 
     const overlay = document.createElement('div');
     overlay.className = 'game-guide-overlay';

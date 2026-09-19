@@ -3887,6 +3887,39 @@ body{animation:app-fade-in 180ms ease both}
 
 
 /* 0.15.17 clearer account confirmation flow */
+
+/* 0.15.18 mission context on game pages */
+.game-goal-card{
+  width:min(100%,520px);
+  margin:0 auto 10px;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid #22c55e55;
+  border-radius:15px;
+  background:linear-gradient(145deg,#123325,#172033);
+  box-shadow:0 10px 24px #02061733;
+}
+.game-goal-copy{display:grid;gap:2px;min-width:0}
+.game-goal-eyebrow{
+  color:#86efac;
+  font-size:9px;
+  font-weight:1000;
+  letter-spacing:.12em;
+}
+.game-goal-copy strong{font-size:14px;line-height:1.2}
+.game-goal-copy small{color:#cbd5e1;font-size:11px;line-height:1.35}
+.game-goal-side{display:grid;gap:5px;text-align:right;flex:0 0 auto}
+.game-goal-side b{color:#fde68a;font-size:11px;white-space:nowrap}
+.game-goal-side a{color:#93c5fd;font-size:11px;font-weight:900;text-decoration:none}
+.result-goal-update{border-color:#22c55e66!important;background:#123325!important}
+.goal-return-button{border-color:#22c55e88!important;color:#bbf7d0!important}
+@media(max-width:390px){
+  .game-goal-card{align-items:flex-start}
+  .game-goal-copy small{font-size:10px}
+}
 .cloud-signup-hint{
   display:flex;
   gap:6px;
