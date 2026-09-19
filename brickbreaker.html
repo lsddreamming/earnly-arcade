@@ -336,6 +336,26 @@
       setPaddleFromClientX(event.clientX);
     });
 
+    document.addEventListener('pointerdown',event=>{
+      if(event.target===canvas || !Arcade.inExpandedGameZone(event,canvas,130)) return;
+      event.preventDefault();
+
+      if(!running){
+        if(!starting) startGame();
+        return;
+      }
+
+      dragging=true;
+      dragPointer=event.pointerId;
+      setPaddleFromClientX(event.clientX);
+    },{passive:false});
+
+    document.addEventListener('pointermove',event=>{
+      if(!dragging || dragPointer !== event.pointerId) return;
+      event.preventDefault();
+      setPaddleFromClientX(event.clientX);
+    },{passive:false});
+
     const stopDragging = event => {
       if(event && dragPointer !== event.pointerId) return;
       dragging = false;
