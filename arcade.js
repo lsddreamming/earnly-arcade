@@ -40,7 +40,7 @@ const Arcade = (() => {
     blockGrid: { key: 'blockGridBest', label: 'points', lower: false },
     mergeRush: { key: 'mergeRushBest', label: 'points', lower: false },
     perfectDrop: { key: 'perfectDropBest', label: 'hits', lower: false },
-    spiralDrop: { key: 'spiralDropBest', label: 'rings', lower: false },
+    spiralDrop: { key: 'spiralDropBest', label: 'rows', lower: false },
     shapeFit: { key: 'shapeFitBest', label: 'correct', lower: false },
     bounceRun: { key: 'bounceRunBest', label: 'distance', lower: false },
     trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false }
@@ -88,7 +88,7 @@ const Arcade = (() => {
     { id:'blockGrid250', title:'🧩 Grid Builder', description:'Score 250 points in Block Grid', goal:250, reward:10, type:'score', game:'blockGrid' },
     { id:'mergeRush800', title:'🔢 Merge Machine', description:'Score 800 points in Merge Rush', goal:800, reward:10, type:'score', game:'mergeRush' },
     { id:'perfectDrop10', title:'🎯 Drop Zone', description:'Land 10 hits in Perfect Drop', goal:10, reward:10, type:'score', game:'perfectDrop' },
-    { id:'spiralDrop10', title:'🌀 Spiral Dive', description:'Pass 10 rings in Spiral Drop', goal:10, reward:10, type:'score', game:'spiralDrop' },
+    { id:'spiralDrop10', title:'🌀 Spiral Dive', description:'Pass 10 rows in Spiral Drop', goal:10, reward:10, type:'score', game:'spiralDrop' },
     { id:'shapeFit10', title:'🧠 Shape Solver', description:'Get 10 correct in Shape Fit', goal:10, reward:10, type:'score', game:'shapeFit' },
     { id:'bounceRun100', title:'⚪ Bounce Distance', description:'Reach 100 distance in Bounce Run', goal:100, reward:10, type:'score', game:'bounceRun' },
     { id:'trafficEscape10', title:'🚦 Traffic Clear', description:'Clear 10 cars in Traffic Escape', goal:10, reward:10, type:'score', game:'trafficEscape' }
