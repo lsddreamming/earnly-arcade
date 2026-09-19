@@ -201,12 +201,13 @@
         result,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:[moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
     }
 
+    let earnlyRunStartedAt=0;
     function startGame(){
       if(running || starting) return;
       starting=true;
@@ -214,7 +215,7 @@
         starting=false;
         Arcade.out('memory',refreshChrome);
         return;
-      }
+      } earnlyRunStartedAt=performance.now(); 
 
       cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
       first=null;second=null;lock=true;moves=0;pairs=0;running=false;
