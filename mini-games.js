@@ -6,7 +6,7 @@
     blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Place pieces on the 8×8 board. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
-    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?2:0)+(v>=20?5:0))},
+    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/4)+(v>=10?1:0)+(v>=20?2:0)+(v>=35?3:0)+(v>=50?4:0)+(v>=70?5:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
     trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when the road in its arrow direction is clear. Empty the board to level up.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=30?2:0)+(v>=60?3:0)+(v>=100?4:0)+(v>=140?5:0))}
@@ -619,7 +619,7 @@
     }
 
     function openingWidth(){
-      return Math.max(62,126-score*1.7);
+      return Math.max(54,132-score*1.35);
     }
 
     function randomGap(width){
@@ -741,7 +741,7 @@
 
       // Give the player time after GO to locate the ball and first opening.
       const warmingUp=t<readyUntil;
-      const speed=warmingUp ? 0 : Math.min(2.9,.78+score*.065);
+      const speed=warmingUp ? 0 : Math.min(3.45,.92+score*.075);
 
       rings.forEach(r=>r.y-=speed*dt);
 
@@ -775,7 +775,7 @@
 
       while(rings.length&&rings[0].y<-20)rings.shift();
       while(rings.length<7){
-        const y=(rings.length?rings[rings.length-1].y:410)+72;
+        const y=(rings.length?rings[rings.length-1].y:410)+Math.max(58,72-Math.floor(score/12)*2);
         const width=openingWidth();
         rings.push({
           y,
