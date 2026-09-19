@@ -260,3 +260,20 @@ test('pause control is visible during Snake gameplay', async ({ page }) => {
   await pause.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 });
+
+
+test('pausing Snake keeps the live board instead of showing out-of-plays guide', async ({ page }) => {
+  await page.goto('/snake.html');
+  await page.evaluate(() => {
+    localStorage.setItem('snakeGamesPlayed', '2');
+    localStorage.setItem('snakeBonusPlays', '0');
+  });
+  await page.reload();
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
+  await expect(page.locator('.game-guide-overlay')).not.toContainText('Out of Plays');
+  await expect(page.locator('#game')).toBeVisible();
+});
