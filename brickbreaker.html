@@ -68,8 +68,9 @@
       tips:[
         'Keep the paddle under the ball. Missing the ball ends the run.',
         'Clear all 35 bricks to advance instantly to the next level.',
+        '⚡ Lightning bricks are rare bonus bricks — break one to release a guaranteed power-up.',
         'Catch falling power-ups: 3-ball Multiball, Wide Paddle, and Fireball.',
-        'Later levels add armored bricks that take extra hits. Every new level gets faster.'
+        'Later levels add armored ◆ bricks that take extra hits. Every new level gets faster.'
       ],
       reward:'Clear levels to unlock faster rounds, tougher bricks, power-ups, and up to 100 Coins in one run.'
     });
@@ -77,6 +78,7 @@
     const paddle={x:135,y:465,w:90,h:12,baseW:90};
     let balls=[];
     let powerUps=[];
+    let lastSpecialBonusAt=0;
     let fireUntil=0;
     let wideUntil=0;
     let bricks=[];
@@ -176,7 +178,7 @@
             alive:true,
             color:colors[r],
             hp: level>=4 && (r+c+level)%6===0 ? 2 : 1,
-            special: (r*cols+c+level)%11===0
+            special: level>=3 && (r*cols+c+level)%13===0
           });
         }
       }
@@ -197,8 +199,12 @@
         ctx.font='12px system-ui';
         ctx.textAlign='center';
         ctx.textBaseline='middle';
-        if(b.special) ctx.fillText('⚡',b.x+b.w/2,b.y+b.h/2+1);
-        else if(b.hp>1) ctx.fillText('◆',b.x+b.w/2,b.y+b.h/2+1);
+        if(b.special){
+          ctx.fillText('⚡',b.x+b.w/2,b.y+b.h/2+1);
+          ctx.strokeStyle='#facc15';
+          ctx.lineWidth=2;
+          ctx.strokeRect(b.x+2,b.y+2,b.w-4,b.h-4);
+        }else if(b.hp>1) ctx.fillText('◆',b.x+b.w/2,b.y+b.h/2+1);
       });
 
       powerUps.forEach(p=>{
@@ -234,7 +240,20 @@
         b.alive=false;
         levelBroken+=1;
         totalBroken+=1;
-        maybeDropPowerUp(b);
+        if(b.special){
+          // Lightning bricks are rare guaranteed bonuses, not decoration.
+          // Respect the one-pickup-at-a-time rule so the board stays readable.
+          if(!powerUps.length){
+            const types=['multi','wide','fire'];
+            const type=types[Math.floor(Math.random()*types.length)];
+            powerUps.push({x:b.x+b.w/2,y:b.y+b.h/2,vy:2.1,type,r:11});
+            Arcade.milestone('⚡ BONUS BRICK! Catch the power-up!','perfect');
+          }else{
+            Arcade.milestone('⚡ BONUS BRICK smashed!','perfect');
+          }
+        }else{
+          maybeDropPowerUp(b);
+        }
         Arcade.feedback('brick');
         if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
         if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
