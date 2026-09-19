@@ -4757,3 +4757,20 @@ body.earnly-gameplay-locked{
   .home-dashboard .home-overview{gap:8px}
   .home-dashboard .home-account-shortcut{padding:11px 13px}
 }
+
+/* Result popup clarity */
+.game-result-dialog::backdrop{background:rgba(2,6,23,.78);backdrop-filter:blur(3px)}
+.game-result-dialog .result-stat:first-child{border-color:rgba(250,204,21,.30);background:rgba(113,63,18,.18)}
+.game-result-dialog .result-stat:nth-child(2){border-color:rgba(96,165,250,.28);background:rgba(30,64,175,.16)}
+.game-result-dialog .result-stat:nth-child(3){border-color:rgba(34,197,94,.24);background:rgba(20,83,45,.16)}
+.game-result-dialog .result-actions .green{font-weight:900;min-height:48px}
+.game-result-dialog .result-actions .secondary{min-height:44px}
+@media(max-width:430px){
+  .game-result-dialog{width:min(430px,calc(100% - 20px));padding:15px;border-radius:20px}
+  .result-hero{margin-bottom:10px}
+  .result-icon{width:50px;height:50px;font-size:26px;border-radius:15px}
+  .result-heading h2{font-size:19px}
+  .result-main{padding:13px}
+  .result-main>strong{font-size:38px}
+  .result-notes{max-height:132px;overflow:auto;-webkit-overflow-scrolling:touch}
+}
