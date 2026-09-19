@@ -64,6 +64,14 @@
     @keyframes trafficShake{0%,100%{translate:0 0}25%{translate:-5px 0}75%{translate:5px 0}}
     .mini-help{color:#94a3b8;font-size:11px;margin:8px 16px 14px;text-align:center}
     .mini-canvas{display:block;width:100%;height:auto;touch-action:none}
+    /* Mini games need the playfield on screen quickly, especially on phones. */
+    @media(max-width:600px){
+      .page-header{margin:7px 0 9px}
+      .page-header h1{margin-bottom:5px;font-size:clamp(27px,8vw,34px)}
+      .game-meta{gap:5px;margin:5px 0 6px}
+      .meta-pill{padding:5px 8px;font-size:11px}
+      .game-status{padding:5px 9px;font-size:11px}
+    }
   </style>
 </head>
 <body>
