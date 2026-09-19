@@ -4674,3 +4674,59 @@ body.earnly-gameplay-locked{
     display:none!important;
   }
 }
+
+
+/* 0.15.33 slimmer mobile game catalog */
+@media (max-width:699px){
+  body.games-dashboard #games.compact-catalog-grid{gap:8px!important}
+  body.games-dashboard #games.compact-catalog-grid > .catalog-tile{
+    min-height:168px!important;
+    padding:10px!important;
+    border-radius:17px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-row{
+    min-height:0!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-row h2{
+    font-size:15px!important;
+    line-height:1.15!important;
+    padding-bottom:2px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-row > div,
+  body.games-dashboard #games .catalog-tile .game-title-row .game-card-actions{
+    margin-top:3px!important;
+    gap:5px!important;
+  }
+  body.games-dashboard #games .catalog-tile .favorite-button,
+  body.games-dashboard #games .catalog-tile .favorite-btn{
+    width:28px!important;height:28px!important;min-width:28px!important;
+  }
+  body.games-dashboard #games .catalog-tile .plays-badge,
+  body.games-dashboard #games .catalog-tile .plays-left{
+    min-height:27px!important;padding:3px 7px!important;font-size:9px!important;
+  }
+  body.games-dashboard #games .catalog-tile .reward-rule{
+    margin:5px 0 2px!important;
+    min-height:26px!important;
+    max-height:30px!important;
+    font-size:9px!important;
+    line-height:1.25!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-best{
+    margin:2px 0 5px!important;
+    min-height:14px!important;
+    font-size:8px!important;
+    line-height:1.2!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-play-button{
+    min-height:36px!important;
+    height:36px!important;
+    border-radius:11px!important;
+    font-size:11px!important;
+    padding:5px 6px!important;
+  }
+  body.games-dashboard #games .catalog-tile .bonus-unlocks,
+  body.games-dashboard #games .catalog-tile .ad-unlocks-note{
+    margin:5px 0 0!important;padding:5px 6px!important;font-size:7px!important;
+  }
+}
