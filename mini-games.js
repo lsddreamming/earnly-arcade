@@ -911,10 +911,10 @@
     function nextSpawnDelay(){
       // Plenty of room while learning; successful players get tighter spacing.
       if(cleared<5)return 175+Math.random()*35;
-      if(cleared<10)return 105+Math.random()*18;
-      if(cleared<20)return 78+Math.random()*14;
-      if(cleared<35)return 60+Math.random()*10;
-      return Math.max(34,50-(cleared-35)*.18)+Math.random()*8;
+      if(cleared<10)return 92+Math.random()*42;
+      if(cleared<20)return 64+Math.random()*48;
+      if(cleared<35)return 48+Math.random()*44;
+      return Math.max(30,42-(cleared-35)*.12)+Math.random()*42;
     }
 
     function obstacleWidth(){
@@ -987,17 +987,17 @@
       if(performance.now()<readyUntil){
         ctx.fillStyle='rgba(15,23,42,.94)';
         ctx.beginPath();
-        ctx.roundRect(100,178,160,50,12);
+        ctx.roundRect(58,174,244,62,12);
         ctx.fill();
         ctx.strokeStyle='#3b82f6';
         ctx.stroke();
 
         ctx.fillStyle='#bfdbfe';
         ctx.font='900 14px Arial';
-        ctx.fillText('READY TO JUMP?',180,198);
+        ctx.fillText('READY TO JUMP?',180,197);
         ctx.fillStyle='#94a3b8';
         ctx.font='700 9px Arial';
-        ctx.fillText('Tap the box now · then jump each red block',180,215);
+        ctx.fillText('Tap the box now · then jump each red block',180,219);
       }
     }
 
@@ -1023,11 +1023,13 @@
       if(!warming&&spawn<=0){
         // Width and spacing vary independently so later runs do not settle into
         // a single repeated jump cadence.
-        obstacles.push({x:390,w:obstacleWidth()});
+        const speed=obstacleSpeed();
+        const jitter=cleared<5?0:(Math.random()-.5)*Math.min(1.8,.35+cleared*.035);
+        obstacles.push({x:390,w:obstacleWidth(),speed:Math.max(1.2,speed+jitter)});
         spawn=nextSpawnDelay();
       }
 
-      obstacles.forEach(o=>o.x-=obstacleSpeed()*dt);
+      obstacles.forEach(o=>o.x-=(o.speed||obstacleSpeed())*dt);
       obstacles=obstacles.filter(o=>{
         if(o.x+o.w<0){
           cleared++;
