@@ -36,6 +36,7 @@
   let starting = false;
   let finished = false;
   let engine = null;
+  let runStartedAt = 0;
 
   function setStatus(text, mode) {
     statusEl.textContent = text;
@@ -71,6 +72,10 @@
     if (engine && engine.stop) engine.stop();
 
     const clean = Math.max(0, Math.floor(Number(metric) || 0));
+    const elapsedSeconds = runStartedAt ? Math.max(0, Math.round((performance.now()-runStartedAt)/1000)) : 0;
+    const elapsedLabel = elapsedSeconds >= 60 ? Math.floor(elapsedSeconds/60)+'m '+String(elapsedSeconds%60).padStart(2,'0')+'s' : elapsedSeconds+'s';
+    const resultExtra = (Array.isArray(extra) ? extra : [extra]).filter(Boolean);
+    if(elapsedSeconds) resultExtra.push('⏱️ Time played: '+elapsedLabel);
     const coins = config.reward(clean);
     Arcade.earn(coins, config.name, { kind:'game', game:key, metric:clean });
     const result = Arcade.recordResult(key, clean);
@@ -92,7 +97,7 @@
       result,
       playsLeft:Arcade.remaining(key),
       game:key,
-      extra:Array.isArray(extra) ? extra : [extra],
+      extra:resultExtra,
       onReplay:startGame,
       onMorePlays:()=>Arcade.out(key, refreshChrome)
     });
@@ -1650,6 +1655,7 @@
 
     Arcade.countdown(()=>{
       starting=false;
+      runStartedAt=performance.now();
       running=true;
       setStatus('Running','running');
       startButton.textContent='Game Running';
