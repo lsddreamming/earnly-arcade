@@ -67,14 +67,28 @@
     function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
     function reset(){lane=1;obstacles=[];passed=0;seconds=0;roadOffset=0;lastSpawnLane=-1;sameLaneSpawns=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function drawCar(x,y,isPlayer,variant){
+      ctx.save();ctx.translate(x,y);
+      ctx.shadowColor='rgba(0,0,0,.38)';ctx.shadowBlur=7;ctx.shadowOffsetY=4;
+      const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
+      ctx.fillStyle=body;ctx.beginPath();ctx.roundRect(-20,-13,40,27,8);ctx.fill();
+      ctx.fillStyle=isPlayer?'#fecaca':'#dbeafe';ctx.beginPath();ctx.roundRect(-12,-10,24,10,4);ctx.fill();
+      ctx.shadowBlur=0;ctx.fillStyle='#0f172a';ctx.fillRect(-19,9,8,6);ctx.fillRect(11,9,8,6);
+      ctx.fillStyle='#e2e8f0';ctx.fillRect(-16,-14,7,3);ctx.fillRect(9,-14,7,3);
+      if(isPlayer){ctx.fillStyle='#fef08a';ctx.fillRect(-16,-12,5,3);ctx.fillRect(11,-12,5,3)}
+      ctx.restore();
+    }
     function draw(){
       const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#0b1220');sky.addColorStop(1,'#111827');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='#334155';ctx.fillRect(20,0,320,canvas.height);
+      ctx.fillStyle='#162033';ctx.fillRect(0,0,20,canvas.height);ctx.fillRect(340,0,20,canvas.height);
+      for(let y=-40+(roadOffset*2)%70;y<canvas.height;y+=70){ctx.fillStyle='#22c55e';ctx.fillRect(5,y,8,26);ctx.fillRect(347,y,8,26);ctx.fillStyle='#64748b';ctx.fillRect(3,y+31,12,4);ctx.fillRect(345,y+31,12,4)}
+      ctx.fillStyle='#475569';ctx.fillRect(20,0,320,canvas.height);
       ctx.fillStyle='#1f2937';ctx.fillRect(30,0,300,canvas.height);
-      ctx.fillStyle='#f8fafc';ctx.globalAlpha=.7;ctx.fillRect(27,0,3,canvas.height);ctx.fillRect(330,0,3,canvas.height);ctx.globalAlpha=1;
+      ctx.fillStyle='#f8fafc';ctx.globalAlpha=.72;ctx.fillRect(27,0,3,canvas.height);ctx.fillRect(330,0,3,canvas.height);ctx.globalAlpha=1;
       ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;ctx.setLineDash([24,20]);ctx.lineDashOffset=roadOffset;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);ctx.lineDashOffset=0;
-      ctx.fillStyle='rgba(15,23,42,.78)';ctx.fillRect(38,12,112,28);ctx.fillStyle='#e2e8f0';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
-      ctx.textAlign='center';ctx.font='38px Arial';ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=8;ctx.fillText('🏎️',lanes[lane],465);obstacles.forEach(o=>ctx.fillText(o.icon,lanes[o.lane],o.y));ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(15,23,42,.84)';ctx.beginPath();ctx.roundRect(38,12,112,28,6);ctx.fill();ctx.fillStyle='#e2e8f0';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+      obstacles.forEach(o=>drawCar(lanes[o.lane],o.y,false,o.variant||0));
+      drawCar(lanes[lane],465,true,0);
     }
     function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
       requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
@@ -89,7 +103,7 @@
         }
         sameLaneSpawns=nextLane===lastSpawnLane?sameLaneSpawns+1:1;
         lastSpawnLane=nextLane;
-        obstacles.push({lane:nextLane,y:-28,speed:3.4+Math.min(5.2,seconds*.075),icon:Math.random()<.5?'🚙':'🚕'});
+        obstacles.push({lane:nextLane,y:-28,speed:3.4+Math.min(5.2,seconds*.075),variant:1+Math.floor(Math.random()*3)});
         lastSpawn=now;
       }
       for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');if(passed===15)Arcade.milestone('🏎️ 15 cars passed!');if(passed===50)Arcade.milestone('🔥 50 cars passed!');if(passed===100)Arcade.milestone('🏆 100 cars passed!','perfect')}}
