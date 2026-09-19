@@ -424,3 +424,13 @@ test('account page exposes clear cloud sync status', async ({ page }) => {
   await page.reload();
   await expect(page.locator('#cloudLiveStatus')).toHaveCount(1);
 });
+
+
+test('cloud reward sync uses a shared in-flight request', async ({ page }) => {
+  const response = await page.request.get('/cloud.js');
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  expect(source).toContain('if (rewardSyncPromise) return rewardSyncPromise');
+  expect(source).toContain('rewardSyncPromise = (async () =>');
+  expect(source).toContain('rewardSyncPromise = null');
+});
