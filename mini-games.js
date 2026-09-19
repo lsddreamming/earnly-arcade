@@ -122,14 +122,15 @@
   ];
 
   function makeBlockGrid() {
-    let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone;
+    let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone, lastClear=0;
     const wrap = document.createElement('div');
     const grid = document.createElement('div');
     const trayEl = document.createElement('div');
+    const progressEl = document.createElement('div');
     grid.className = 'mini-grid';
     grid.style.gridTemplateColumns = 'repeat(8,1fr)';
     trayEl.className = 'piece-tray';
-    const guide=document.createElement('div');guide.className='mini-guide';guide.innerHTML='<strong>🧩 Pick a piece, then tap the board</strong><span>Fill a full row or column to clear it. Use all 3 pieces for a new set.</span>';wrap.append(guide,grid,trayEl);
+    const guide=document.createElement('div');guide.className='mini-guide';guide.innerHTML='<strong>🧩 Pick a piece, then tap the board</strong><span>Fill a full row or column to clear it. Use all 3 pieces for a new set.</span>';progressEl.className='block-grid-progress';wrap.append(guide,progressEl,grid,trayEl);
     surface.replaceChildren(wrap);
 
     const randomPiece = () => PIECES[Math.floor(Math.random() * PIECES.length)].map(p => [...p]);
@@ -164,6 +165,7 @@
       rows.forEach(y => board[y].fill(0));
       cols.forEach(x => board.forEach(row => row[x]=0));
       const count = rows.length + cols.length;
+      lastClear=count;
       if (count) {
         lines += count;
         score += count * 25;
@@ -173,6 +175,10 @@
     }
 
     function render() {
+      const occupied=board.flat().filter(Boolean).length;
+      const room=Math.max(0,64-occupied);
+      const stage=score<100?'Warm-up':score<250?'Grid Builder':score<500?'Combo Zone':'Grid Master';
+      progressEl.innerHTML='<span><strong>'+stage+'</strong><small>'+piecesPlaced+' pieces placed</small></span><span><strong>'+room+'</strong><small>open spaces</small></span>'+(lastClear?'<span class="block-grid-clear"><strong>+'+lastClear+'</strong><small>line'+(lastClear===1?'':'s')+' cleared</small></span>':'');
       grid.replaceChildren();
       for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
         const cell = document.createElement('button');
@@ -232,6 +238,7 @@
       }
 
       render();
+      if(lastClear) setTimeout(()=>{if(alive){lastClear=0;render()}},650);
       // Make progression visible without changing Block Grid's scoring or
       // reward economy. Each milestone fires once per run.
       if(score>=100&&!celebrated100){celebrated100=true;Arcade.milestone('🧩 100 points! Board is heating up','score')}
@@ -248,7 +255,7 @@
       start() {
         board=Array.from({length:8},()=>Array(8).fill(0));
         tray=[randomPiece(),randomPiece(),randomPiece()];
-        selected=0;score=0;lines=0;piecesPlaced=0;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
+        selected=0;score=0;lines=0;piecesPlaced=0;lastClear=0;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
         render();
       },
       stop(){alive=false}
