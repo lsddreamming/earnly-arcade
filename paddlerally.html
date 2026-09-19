@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Paddle Rally</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>.rally-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}</style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>🏓 Paddle Rally</h1>
+      <div class="game-meta"><span class="meta-pill">Rallies: <span id="score">0</span></span>
+        <span class="meta-pill">Speed: <span id="speed">1.0</span>x</span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <canvas class="rally-board touch-surface" id="game" width="360" height="500" aria-label="Paddle Rally game board"></canvas>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('paddleRally'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('paddleRally')){ Arcade.out('paddleRally',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),speedEl=document.getElementById('speed'),rewardPreviewEl=document.getElementById('rewardPreview');
+    Arcade.gameGuide({game:'paddleRally',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the paddle'},{icon:'🏓',title:'Goal',text:'Keep the rally alive'}],
+      overlayIcon:'🏓',overlayTitle:'Keep the Ball Alive',overlayText:'Move the paddle under the ball. Each return makes it faster.',replayTitle:'Tap to Play Again',
+      tips:['Mouse/finger movement controls the paddle. Arrow keys also work.','The run ends when the ball gets past your paddle.'],reward:'Long rallies earn up to 25 Coins.'});
+    const paddle={x:130,y:458,w:100,h:14},ball={x:180,y:300,r:7,dx:3.2,dy:-4.5};
+    let score=0,running=false,starting=false,animation=null,last=0;
+    function rewardFor(v){let c=Math.floor(v/3);if(v>=10)c+=2;if(v>=20)c+=3;if(v>=35)c+=5;return Math.min(c,25)}
+    function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
+    function reset(){score=0;paddle.x=130;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*3.4;ball.dy=-4.7;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
+    function draw(){ctx.fillStyle='#101d31';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#243b5a';ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(canvas.width,250);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#3b82f6';ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill()}
+    function finish(){
+      if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;
+      const earned=rewardFor(score);Arcade.earn(earned,'Paddle Rally',{kind:'game',game:'paddleRally',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('paddleRally',score);
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Missed','over');draw();
+      Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
+        extra:[score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
+    }
+    function loop(){
+      if(!running)return;ball.x+=ball.dx;ball.y+=ball.dy;
+      if(ball.x-ball.r<=0&&ball.dx<0)ball.dx*=-1;if(ball.x+ball.r>=canvas.width&&ball.dx>0)ball.dx*=-1;if(ball.y-ball.r<=0&&ball.dy<0)ball.dy*=-1;
+      if(ball.dy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<=paddle.y+paddle.h&&ball.x>=paddle.x&&ball.x<=paddle.x+paddle.w){
+        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);const mag=Math.min(9,Math.hypot(ball.dx,ball.dy)*1.035);
+        ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();Arcade.feedback('hit');
+        if(score===10)Arcade.milestone('🏓 10 returns!');if(score===20)Arcade.milestone('🔥 20 returns · Rally Pro!','perfect');
+      }
+      if(ball.y-ball.r>canvas.height){finish();return}draw();animation=requestAnimationFrame(loop);
+    }
+    function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x-paddle.w/2))}
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+    canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}moveTo(e.clientX)});
+    canvas.addEventListener('pointermove',e=>{if(running){e.preventDefault();moveTo(e.clientX)}},{passive:false});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();paddle.x=Math.max(0,paddle.x-28)}if(e.key==='ArrowRight'){e.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+28)}});
+    startButton.addEventListener('click',startGame);reset();refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>
