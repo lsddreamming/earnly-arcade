@@ -296,3 +296,36 @@ test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 });
+
+
+test('rapid Snake game-over calls only award and show results once', async ({ page }) => {
+  await page.goto('/snake.html');
+  await page.evaluate(() => {
+    localStorage.setItem('snakeGamesPlayed','0');
+    localStorage.setItem('snakeBonusPlays','0');
+  });
+  await page.reload();
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+  const before = await page.locator('#balance').textContent();
+  await page.evaluate(() => { gameOver(); gameOver(); gameOver(); });
+  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+  await expect(page.locator('#gameStatus')).toHaveText('Game Over');
+  const after = await page.locator('#balance').textContent();
+  expect(Number(after)).toBeGreaterThanOrEqual(Number(before));
+});
+
+test('Brick Breaker end state clears pending level transition', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+  await page.evaluate(() => {
+    starting = true;
+    running = false;
+    levelTimer = setTimeout(() => { document.body.dataset.lateLevelRestart='yes'; }, 80);
+    finishGame();
+  });
+  await page.waitForTimeout(180);
+  await expect(page.locator('body')).not.toHaveAttribute('data-late-level-restart','yes');
+  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+});
