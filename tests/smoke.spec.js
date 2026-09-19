@@ -411,3 +411,16 @@ test('game start screen explains plays reward and controls before play', async (
   await expect(summary.locator('.game-start-control')).toContainText('Steer');
   await expect(page.locator('#startButton')).toBeVisible();
 });
+
+
+test('account page exposes clear cloud sync status', async ({ page }) => {
+  await page.goto('/account.html');
+  await expect(page.locator('#cloudLiveStatus')).toHaveCount(1);
+  await page.evaluate(() => {
+    localStorage.setItem('arcadeLastCloudSave', new Date().toISOString());
+    localStorage.removeItem('arcadeCloudSyncError');
+    localStorage.removeItem('arcadeCloudConflict');
+  });
+  await page.reload();
+  await expect(page.locator('#cloudLiveStatus')).toHaveCount(1);
+});
