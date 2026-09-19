@@ -351,10 +351,17 @@
       const start = event => {
         event.preventDefault();
         stop();
+        // Only arm auto-repeat during an active run. This prevents a held
+        // control from waking up after game over or while the game is paused.
+        if (!game || game === 'paused') return;
         fn();
 
         holdDelay = setTimeout(() => {
-          holdInterval = setInterval(fn, 85);
+          if (!game || game === 'paused') return;
+          holdInterval = setInterval(() => {
+            if (!game || game === 'paused') { stop(); return; }
+            fn();
+          }, 85);
         }, 240);
       };
 
