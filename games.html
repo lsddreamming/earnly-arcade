@@ -52,7 +52,7 @@
       </div>
     </section>
 
-    <div id="games" class="game-list"></div>
+    <div id="games" class="game-list compact-catalog-grid"></div>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
   </main>
@@ -162,7 +162,7 @@
         const adStatus = Arcade.playAdStatus(info.key);
         const best = Arcade.best(info.key);
         const card = document.createElement('section');
-        card.className = 'card game-card compact-game';
+        card.className = 'card game-card compact-game catalog-tile';
 
         const heading = document.createElement('div');
         heading.className = 'game-title-row';
