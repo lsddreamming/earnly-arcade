@@ -8,7 +8,12 @@ const Arcade = (() => {
     dodger: 'Neon Dodger',
     brickBreaker: 'Brick Breaker',
     jungleHopper: 'Jungle Hopper',
-    towerStack: 'Tower Stack'
+    towerStack: 'Tower Stack',
+    coinCatch: 'Coin Catch',
+    colorMatch: 'Color Match',
+    paddleRally: 'Paddle Rally',
+    laneRunner: 'Lane Runner',
+    safeCracker: 'Safe Cracker'
   };
 
   const bestConfig = {
@@ -19,7 +24,12 @@ const Arcade = (() => {
     dodger: { key: 'dodgerBest', label: 'seconds', lower: false },
     brickBreaker: { key: 'brickBreakerBest', label: 'bricks', lower: false },
     jungleHopper: { key: 'jungleHopperBest', label: 'vines', lower: false },
-    towerStack: { key: 'towerStackBest', label: 'floors', lower: false }
+    towerStack: { key: 'towerStackBest', label: 'floors', lower: false },
+    coinCatch: { key: 'coinCatchBest', label: 'catches', lower: false },
+    colorMatch: { key: 'colorMatchBest', label: 'matches', lower: false },
+    paddleRally: { key: 'paddleRallyBest', label: 'rallies', lower: false },
+    laneRunner: { key: 'laneRunnerBest', label: 'seconds', lower: false },
+    safeCracker: { key: 'safeCrackerBest', label: 'locks', lower: false }
   };
 
   const FREE_PLAYS = 3;
@@ -31,7 +41,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.27';
+  const APP_VERSION = '0.16.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1000,7 +1010,12 @@ const Arcade = (() => {
       { id:'brick20', icon:'💥', title:'Brick Smasher', description:'Break 20 bricks in Brick Breaker', unlocked:number('brickBreakerBest') >= 20 },
       { id:'jungle10', icon:'🐸', title:'Jungle Pro', description:'Pass 10 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 10 },
       { id:'tower10', icon:'🏗️', title:'High Rise', description:'Stack 10 floors in Tower Stack', unlocked:number('towerStackBest') >= 10 },
-      { id:'tower20', icon:'🏙️', title:'Skyline Builder', description:'Stack 20 floors in Tower Stack', unlocked:number('towerStackBest') >= 20 }
+      { id:'tower20', icon:'🏙️', title:'Skyline Builder', description:'Stack 20 floors in Tower Stack', unlocked:number('towerStackBest') >= 20 },
+      { id:'coinCatch20', icon:'🪙', title:'Coin Magnet', description:'Catch 20 coins in Coin Catch', unlocked:number('coinCatchBest') >= 20 },
+      { id:'colorMatch20', icon:'🎨', title:'Color Brain', description:'Get 20 matches in Color Match', unlocked:number('colorMatchBest') >= 20 },
+      { id:'paddleRally15', icon:'🏓', title:'Rally Pro', description:'Return the ball 15 times in Paddle Rally', unlocked:number('paddleRallyBest') >= 15 },
+      { id:'laneRunner25', icon:'🏎️', title:'Road Runner', description:'Survive 25 seconds in Lane Runner', unlocked:number('laneRunnerBest') >= 25 },
+      { id:'safeCracker10', icon:'🔐', title:'Safe Cracker', description:'Crack 10 locks in Safe Cracker', unlocked:number('safeCrackerBest') >= 10 }
     ];
   }
 
@@ -2452,7 +2467,8 @@ const Arcade = (() => {
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const gameFiles = new Set([
       'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
-      'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html'
+      'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html'
     ]);
 
     let active = 'home';
@@ -2494,7 +2510,8 @@ const Arcade = (() => {
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const gameFiles = new Set([
       'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
-      'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html'
+      'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html'
     ]);
 
     let active = 'home';
