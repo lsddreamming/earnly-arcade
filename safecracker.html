@@ -14,7 +14,18 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Safe Cracker</title>
   <link rel="stylesheet" href="arcade.css">
-  <style>.safe-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}</style>
+  <style>
+    .safe-board{display:block;width:min(88vw,360px);height:auto;margin:8px auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}
+    @media(max-width:600px){
+      .topbar{margin-bottom:4px}
+      .page-header{margin:4px 0 7px}
+      .page-header h1{margin:0 0 4px;font-size:clamp(26px,7.5vw,32px)}
+      .game-meta{gap:4px;margin:4px 0 5px}
+      .meta-pill{padding:4px 7px;font-size:10px}
+      .game-status{padding:4px 8px;font-size:10px}
+      .safe-board{margin-top:6px}
+    }
+  </style>
 </head>
 <body>
   <main class="container">
