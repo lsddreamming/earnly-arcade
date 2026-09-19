@@ -170,13 +170,6 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      if (!visibleGames.length) {
-        const empty = document.createElement('div');
-        empty.className = 'card games-empty-state';
-        empty.innerHTML = '<strong>No games found</strong><span>Try another search or category.</span>';
-        root.append(empty);
-        return;
-      }
       const gamesToRender = visibleGames;
       const recommendedKeys = new Set(['tapRush','snake','bounceRun']);
 
@@ -268,12 +261,7 @@
         root.append(empty);
       }
     }
-    const gameSearch = document.getElementById('gameSearch');
     const gameFilters = document.getElementById('gameFilters');
-    if (gameSearch) gameSearch.addEventListener('input', () => {
-      gameSearchText = gameSearch.value.trim().toLowerCase();
-      render();
-    });
 
     gameFilters.addEventListener('click', event => {
       const button = event.target.closest('[data-filter]');
