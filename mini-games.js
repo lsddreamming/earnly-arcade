@@ -715,6 +715,7 @@
     let controlPointer=null,levelFlash='',levelFlashFrames=0,bestLevel=1;
     let pointerStartClientX=0;
     let pointerStartBallX=180;
+    let spiralPauseAt=0;
 
     function level(){return 1+Math.floor(score/5)}
     function stageName(){
@@ -963,6 +964,18 @@
 
     function loop(t) {
       if(!alive)return;
+      if(miniPaused){
+        if(!spiralPauseAt)spiralPauseAt=t;
+        heldKeys.clear();
+        controlPointer=null;
+        last=t;
+        raf=requestAnimationFrame(loop);
+        return;
+      }
+      if(spiralPauseAt){
+        readyUntil+=t-spiralPauseAt;
+        spiralPauseAt=0;
+      }
       const dt=Math.min(32,t-(last||t))/16.67;
       last=t;
 
@@ -1113,7 +1126,7 @@
         controlPointer=null;
         pointerStartClientX=0;
         pointerStartBallX=180;
-        levelFlash='';levelFlashFrames=0;
+        levelFlash='';levelFlashFrames=0;spiralPauseAt=0;
         resetRings();
         ui(0,1);
         readyUntil=performance.now()+1250;
