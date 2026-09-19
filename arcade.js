@@ -1154,8 +1154,7 @@ const Arcade = (() => {
       xpAward,
       performanceXP,
       level:xpResult.status.level,
-      achievements:newlyUnlocked.map(item => item.id),
-      performanceXP
+      achievements:newlyUnlocked.map(item => item.id)
     });
 
     if (newlyUnlocked.length) {
@@ -1175,6 +1174,7 @@ const Arcade = (() => {
       previousBest,
       newAchievements:newlyUnlocked,
       xpAward,
+      performanceXP,
       level:xpResult.status.level,
       leveledUp:xpResult.leveledUp
     };
