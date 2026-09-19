@@ -4831,3 +4831,11 @@ body.earnly-gameplay-locked{
 .game-start-summary-item{display:flex;align-items:center;justify-content:center;min-height:38px;padding:7px 8px;border:1px solid #334155;border-radius:12px;background:#111c2d;color:#dbeafe;font-size:11px;font-weight:750;line-height:1.25;text-align:center}
 .game-start-summary.out-of-plays .game-start-plays{border-color:#92400e;background:#422006;color:#fde68a}
 @media(max-width:600px){.game-start-summary{gap:5px;margin:6px 0 7px}.game-start-summary-item{min-height:34px;padding:6px 5px;font-size:10px}}
+
+
+/* Clear account sync state */
+.cloud-live-status{display:inline-flex;align-items:center;width:max-content;max-width:100%;margin-top:5px;padding:4px 8px;border:1px solid #334155;border-radius:999px;background:#111c2d;color:#cbd5e1;font-size:11px;font-weight:800;line-height:1.2}
+.cloud-live-status.ready{border-color:#166534;background:#052e16;color:#bbf7d0}
+.cloud-live-status.working{border-color:#1d4ed8;background:#172554;color:#bfdbfe}
+.cloud-live-status.warning{border-color:#92400e;background:#422006;color:#fde68a}
+.cloud-live-status:empty{display:none}
