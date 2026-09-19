@@ -273,7 +273,8 @@
 
       const sync = Arcade.syncStatus();
       const conflict = localStorage.getItem('arcadeCloudConflict');
-      const syncError = localStorage.getItem('arcadeCloudSyncError') || localStorage.getItem('arcadeServerRewardError');
+      const syncError = localStorage.getItem('arcadeCloudSyncError');
+      const rewardError = localStorage.getItem('arcadeServerRewardError');
       const needsAttention = signedIn && !!(conflict || syncError);
 
       homeAccountShortcut.classList.toggle('connected', signedIn && !needsAttention);
@@ -289,9 +290,11 @@
         ? 'Restore your Coins, levels, scores, and missions.'
         : (needsAttention
             ? 'Open Account to protect your latest progress.'
-            : (sync.pending
-                ? sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + ' waiting to sync.'
-                : savedTimeLabel(localStorage.getItem('arcadeLastCloudSave'))));
+            : (rewardError
+                ? 'Progress backed up · reward updates are retrying automatically.'
+                : (sync.pending
+                    ? 'Saving ' + sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + ' automatically…'
+                    : savedTimeLabel(localStorage.getItem('arcadeLastCloudSave')))));
       homeAccountAction.textContent = needsAttention ? 'Fix →' : (signedIn ? 'Account ✓' : 'Sign In →');
     }
 
