@@ -169,7 +169,7 @@
       const loadMoreButton = document.getElementById('loadMoreGames');
       const gamesToRender = visibleGames.slice(0, visibleGameLimit);
       loadMoreButton.hidden = visibleGames.length <= visibleGameLimit;
-      loadMoreButton.textContent = 'Show More Games · ' + Math.min(8, visibleGames.length - visibleGameLimit) + ' more';
+      loadMoreButton.textContent = 'Show More Games · ' + Math.max(0, Math.min(8, visibleGames.length - visibleGameLimit)) + ' more';
 
       gamesToRender.forEach(info => {
         const remaining = Arcade.remaining(info.key);
