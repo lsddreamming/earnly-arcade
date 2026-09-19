@@ -795,21 +795,10 @@
       }
       ctx.textAlign='center';
 
-      if(levelFlashFrames>0){
-        // Keep level-up feedback out of the playfield. A compact top-center
-        // toast celebrates progress without covering the ball or next gap.
-        ctx.save();
-        const fadeIn=Math.min(1,(50-levelFlashFrames)/8);
-        const fadeOut=Math.min(1,levelFlashFrames/10);
-        ctx.globalAlpha=Math.min(fadeIn,fadeOut);
-        ctx.fillStyle='rgba(30,41,59,.96)';
-        ctx.beginPath();ctx.roundRect(136,16,88,34,17);ctx.fill();
-        ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.stroke();
-        ctx.fillStyle='#fef3c7';ctx.font='900 11px Arial';ctx.textAlign='center';
-        ctx.fillText('⬆ '+levelFlash,180,37);
-        ctx.restore();
-        levelFlashFrames--;
-      }
+      // The page-level milestone toast already announces level changes.
+      // Do not draw a second level-up badge inside the canvas; keeping the
+      // persistent LEVEL/RINGS cards visible is enough during active play.
+      if(levelFlashFrames>0)levelFlashFrames--;
 
       // Ball with a glow so it is always easy to find.
       const glow=ctx.createRadialGradient(ballX-4,106,2,ballX,110,18);
