@@ -4440,3 +4440,18 @@ body.earnly-gameplay-locked{
   touch-action:none;
   -webkit-overflow-scrolling:auto;
 }
+
+/* 0.15.16 iOS catalog nav stability */
+@media (max-width:699px){
+  body.games-dashboard .bottom-nav{
+    position:sticky;
+    left:auto;
+    bottom:0;
+    transform:none;
+    width:100%;
+    margin-top:12px;
+  }
+  body.games-dashboard.has-app-nav .container{
+    padding-bottom:max(20px,env(safe-area-inset-bottom));
+  }
+}
