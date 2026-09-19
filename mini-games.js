@@ -1164,13 +1164,24 @@
     }
 
     const onPointer=e=>{
-      if(!alive || !Arcade.inExpandedGameZone(e,c,130))return;
+      if(!alive)return;
+      const rect=c.getBoundingClientRect();
+      if(e.clientX<rect.left || e.clientX>rect.right || e.clientY<rect.top || e.clientY>rect.bottom)return;
       jump(e);
+    };
+    const blockGesture=e=>{
+      if(alive)e.preventDefault();
     };
     const onKey=e=>{
       if(alive&&(e.code==='Space'||e.code==='Enter'||e.key==='ArrowUp'))jump(e);
     };
-    document.addEventListener('pointerdown',onPointer,{passive:false});
+    c.style.touchAction='none';
+    c.style.userSelect='none';
+    c.style.webkitUserSelect='none';
+    c.style.webkitTouchCallout='none';
+    c.addEventListener('pointerdown',onPointer,{passive:false});
+    c.addEventListener('touchstart',blockGesture,{passive:false});
+    c.addEventListener('gesturestart',blockGesture,{passive:false});
     document.addEventListener('keydown',onKey);
 
     return {
@@ -1184,7 +1195,9 @@
       stop(){
         alive=false;
         cancelAnimationFrame(raf);
-        document.removeEventListener('pointerdown',onPointer);
+        c.removeEventListener('pointerdown',onPointer);
+        c.removeEventListener('touchstart',blockGesture);
+        c.removeEventListener('gesturestart',blockGesture);
         document.removeEventListener('keydown',onKey);
       }
     };
