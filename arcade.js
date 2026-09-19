@@ -31,7 +31,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.15.25';
+  const APP_VERSION = '0.15.26';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -2224,7 +2224,7 @@ const Arcade = (() => {
     const title = document.createElement('h2');
     title.textContent = force ? 'How Earnly Works' : 'Welcome to Earnly';
     const subtitle = document.createElement('p');
-    subtitle.textContent = 'Three simple systems, one arcade.';
+    subtitle.textContent = 'Four simple systems, one arcade.';
     headCopy.append(title, subtitle);
     head.append(icon, headCopy);
 
