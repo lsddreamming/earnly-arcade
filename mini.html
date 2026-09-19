@@ -74,17 +74,17 @@
     </div>
     <header class="page-header">
       <h1><span id="gameIcon">🎮</span> <span id="gameTitle">Arcade Game</span></h1>
-      <div class="game-meta">
+      <div class="game-meta" role="group" aria-label="Current game stats">
         <span class="meta-pill"><span id="scoreLabel">Score</span>: <span id="score">0</span></span>
         <span class="meta-pill"><span id="secondaryLabel">Level</span>: <span id="secondary">1</span></span>
         <span class="meta-pill">Run Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
-      <span class="game-status" id="gameStatus">Ready</span>
+      <span class="game-status" id="gameStatus" role="status" aria-live="polite">Ready</span>
     </header>
-    <button class="green wide" id="startButton" type="button">👆 Tap Game to Start</button>
-    <div class="mini-surface touch-surface" id="surface"></div>
-    <div class="mini-help" id="miniHelp"></div>
+    <button class="green wide" id="startButton" type="button" aria-describedby="miniHelp">👆 Tap Game to Start</button>
+    <div class="mini-surface touch-surface" id="surface" role="application" aria-label="Game play area"></div>
+    <div class="mini-help" id="miniHelp" aria-live="polite"></div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
   <script src="arcade.js"></script>
