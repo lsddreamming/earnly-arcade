@@ -4,7 +4,7 @@
 
   const configs = {
     blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Place pieces on the 8×8 board. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
-    mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'Swipe matching numbers together. Arrow keys work on computer.',reward:v=>Math.min(25,Math.floor(v/180)+(v>=1000?3:0)+(v>=2500?5:0))},
+    mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'Swipe the WHOLE board. Equal tiles merge when the swipe pushes them together. Reach 128, then keep climbing. The Run Reward is paid when the board has no moves left.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Streak',help:'Tap when the moving ball is above the glowing target.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?2:0)+(v>=20?5:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'Study the silhouette and choose the matching piece.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
@@ -230,10 +230,27 @@
   }
 
   function makeMergeRush() {
-    let board=Array(16).fill(0), score=0, alive=false, startX=0, startY=0;
+    let board=Array(16).fill(0), score=0, alive=false, startX=0, startY=0, celebrated128=false;
+    const wrap=document.createElement('div');
+    wrap.className='merge-wrap';
+
+    const rules=document.createElement('div');
+    rules.className='merge-rules';
+    rules.innerHTML =
+      '<span>1️⃣ Swipe the whole board</span>' +
+      '<span>2️⃣ Equal tiles that touch merge</span>' +
+      '<span>🎯 Goal: reach <strong>128</strong></span>' +
+      '<span>🏁 Ends when no moves remain</span>';
+
     const grid=document.createElement('div');
     grid.className='merge-grid';
-    surface.replaceChildren(grid);
+
+    const goal=document.createElement('div');
+    goal.className='merge-goal';
+    goal.innerHTML='<strong>Next target: 128</strong><span>2 + 2 = 4 · 4 + 4 = 8 · 8 + 8 = 16…</span>';
+
+    wrap.append(rules,grid,goal);
+    surface.replaceChildren(wrap);
 
     function spawn() {
       const empty=board.map((v,i)=>v ? null : i).filter(v=>v!==null);
@@ -255,7 +272,17 @@
         }
         grid.append(d);
       });
-      ui(score,high());
+      const highTile=high();
+      ui(score,highTile);
+      const nextTarget = highTile < 128 ? 128 : Math.pow(2, Math.ceil(Math.log2(highTile + 1)));
+      goal.querySelector('strong').textContent =
+        highTile < 128 ? 'Next target: 128' : 'Next target: ' + nextTarget;
+      goal.classList.toggle('goal-hit', highTile >= 128);
+
+      if (highTile >= 128 && !celebrated128) {
+        celebrated128=true;
+        Arcade.milestone('🎉 128 reached! Keep going for 256','perfect');
+      }
     }
 
     function compress(line) {
@@ -328,7 +355,7 @@
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){board=Array(16).fill(0);score=0;alive=true;spawn();spawn();render()},
+      start(){board=Array(16).fill(0);score=0;alive=true;celebrated128=false;spawn();spawn();render()},
       stop(){alive=false;document.removeEventListener('keydown',onKey)}
     };
   }
