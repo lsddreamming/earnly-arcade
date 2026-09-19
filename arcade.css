@@ -575,25 +575,25 @@ a{color:#93c5fd}
   z-index:60;
   display:grid;
   place-items:center;
-  background:rgba(2,6,23,.46);
-  backdrop-filter:blur(2px);
+  background:rgba(2,6,23,.28);
+  backdrop-filter:blur(1px);
   opacity:0;
   pointer-events:none;
   transition:opacity 120ms ease;
 }
 .countdown-overlay.show{opacity:1;pointer-events:auto}
 .countdown-value{
-  min-width:126px;
-  min-height:126px;
-  padding:20px;
+  min-width:88px;
+  min-height:88px;
+  padding:14px;
   display:grid;
   place-items:center;
-  border-radius:32px;
+  border-radius:24px;
   background:linear-gradient(145deg,#2563eb,#172554);
   border:2px solid rgba(255,255,255,.35);
   box-shadow:0 24px 70px rgba(0,0,0,.55);
   color:#fff;
-  font-size:56px;
+  font-size:38px;
   font-weight:1000;
   line-height:1;
 }
