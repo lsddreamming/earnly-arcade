@@ -84,3 +84,18 @@ test('run results stay visible even when zero plays remain', async ({ page }) =>
   await expect(dialog).toContainText('0');
   await expect(dialog).not.toContainText('bonus-play limit');
 });
+
+
+test('every mini game starts without runtime errors', async ({ page }) => {
+  for (const game of miniGames) {
+    const errors = [];
+    const onError = err => errors.push(err.message);
+    page.on('pageerror', onError);
+    await page.goto('/mini.html?game=' + game);
+    await page.locator('#startBtn').click();
+    await page.waitForTimeout(120);
+    expect(errors, game + ' produced a runtime error').toEqual([]);
+    await expect(page.locator('#gameStatus')).not.toHaveText('Ready');
+    page.off('pageerror', onError);
+  }
+});
