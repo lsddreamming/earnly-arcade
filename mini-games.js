@@ -1018,17 +1018,19 @@
     function obstacleSpeed(){
       // Friendly tutorial opening, then a noticeable difficulty ramp every few clears.
       if(cleared<5)return 1.35+cleared*.16;
-      if(cleared<10)return 2.75+(cleared-5)*.20;
-      if(cleared<20)return 3.75+(cleared-10)*.18;
-      return Math.min(8.0,5.55+(cleared-20)*.055);
+      if(cleared<10)return 2.9+(cleared-5)*.24;
+      if(cleared<20)return 4.1+(cleared-10)*.22;
+      if(cleared<35)return 6.3+(cleared-20)*.10;
+      return Math.min(10.0,7.8+(cleared-35)*.045);
     }
 
     function nextSpawnDelay(){
       // Plenty of room while learning; successful players get tighter spacing.
       if(cleared<5)return 175+Math.random()*35;
-      if(cleared<10)return 112+Math.random()*22;
-      if(cleared<20)return 88+Math.random()*18;
-      return Math.max(42,72-(cleared-20)*.35)+Math.random()*14;
+      if(cleared<10)return 105+Math.random()*18;
+      if(cleared<20)return 78+Math.random()*14;
+      if(cleared<35)return 60+Math.random()*10;
+      return Math.max(34,50-(cleared-35)*.18)+Math.random()*8;
     }
 
     function draw() {
@@ -1126,7 +1128,7 @@
 
       if(!warming&&spawn<=0){
         // The opening obstacles are narrower so a new player can learn the timing.
-        const difficultyWidth=Math.min(82,34+Math.max(0,cleared-5)*2.0);
+        const difficultyWidth=Math.min(96,34+Math.max(0,cleared-5)*2.35);
         const maxWidth=cleared<5?22:difficultyWidth;
         const minWidth=cleared<5?16:Math.max(26,difficultyWidth-16);
         obstacles.push({x:390,w:minWidth+Math.random()*(maxWidth-minWidth)});
