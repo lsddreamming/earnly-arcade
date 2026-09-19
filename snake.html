@@ -50,6 +50,8 @@
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
+  <div id="snakeControlLayer" class="snake-control-layer" aria-hidden="true" hidden></div>
+
   <script src="arcade.js"></script>
   <script>
     const canvas = document.getElementById('game');
@@ -60,21 +62,22 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+    const controlLayer = document.getElementById('snakeControlLayer');
 
     Arcade.gameGuide({
       game:'snake',
       surface:canvas,
       steps:[
         { icon:'👆', title:'Start', text:'Tap the board' },
-        { icon:'↔️', title:'Control', text:'Swipe or drag' },
+        { icon:'↔️', title:'Control', text:'Steer anywhere' },
         { icon:'🍎', title:'Goal', text:'Eat apples, avoid crashes' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
-      overlayText:'Swipe, or keep your finger down and steer',
+      overlayText:'Swipe or hold your finger down anywhere to steer',
       replayTitle:'Tap to Play Again',
       tips:[
-        'Swipe normally, or keep your finger down and move in different directions to steer continuously.',
+        'While playing, the entire screen becomes the controller. Swipe normally or keep one finger down and steer anywhere.',
         'Eat apples to grow. Hitting a wall or your own body ends the run.'
       ],
       reward:'Earn 1 Coin every 3 apples, plus milestone bonuses. Max 30 Coins per run.'
@@ -145,7 +148,35 @@
     let swipeStartX = 0;
     let swipeStartY = 0;
     let swipePointer = null;
+    let swipeSurface = null;
     const swipeThreshold = 18;
+
+    function enableFullScreenSteering() {
+      controlLayer.hidden = false;
+      document.documentElement.classList.add('snake-game-active');
+      document.body.classList.add('snake-game-active');
+    }
+
+    function disableFullScreenSteering() {
+      controlLayer.hidden = true;
+      swipePointer = null;
+      swipeSurface = null;
+      document.documentElement.classList.remove('snake-game-active', 'snake-gesture-active');
+      document.body.classList.remove('snake-game-active');
+    }
+
+    function beginSteering(event) {
+      event.preventDefault();
+      swipePointer = event.pointerId;
+      swipeSurface = event.currentTarget;
+      swipeStartX = event.clientX;
+      swipeStartY = event.clientY;
+      document.documentElement.classList.add('snake-gesture-active');
+
+      try {
+        swipeSurface.setPointerCapture?.(event.pointerId);
+      } catch {}
+    }
 
     canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
@@ -155,15 +186,10 @@
         return;
       }
 
-      swipePointer = event.pointerId;
-      swipeStartX = event.clientX;
-      swipeStartY = event.clientY;
-      document.documentElement.classList.add('snake-gesture-active');
-
-      try {
-        canvas.setPointerCapture?.(event.pointerId);
-      } catch {}
+      beginSteering(event);
     });
+
+    controlLayer.addEventListener('pointerdown', beginSteering);
 
     function steerFromPointer(event) {
       const dx = event.clientX - swipeStartX;
@@ -192,8 +218,9 @@
       document.documentElement.classList.remove('snake-gesture-active');
 
       try {
-        canvas.releasePointerCapture?.(event.pointerId);
+        swipeSurface?.releasePointerCapture?.(event.pointerId);
       } catch {}
+      swipeSurface = null;
 
       event.preventDefault();
     }
@@ -203,6 +230,7 @@
     document.addEventListener('pointercancel', event => {
       if (swipePointer !== event.pointerId) return;
       swipePointer = null;
+      swipeSurface = null;
       document.documentElement.classList.remove('snake-gesture-active');
     }, { passive:false });
 
@@ -213,7 +241,7 @@
     }, { passive:false });
 
     document.addEventListener('touchmove', event => {
-      if (swipePointer === null) return;
+      if (controlLayer.hidden) return;
       event.preventDefault();
     }, { passive:false });
 
@@ -294,8 +322,7 @@
       if (game === null) return;
       clearInterval(game);
       game = null;
-      swipePointer = null;
-      document.documentElement.classList.remove('snake-gesture-active');
+      disableFullScreenSteering();
 
       const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake', { kind:'game', game:'snake', metric:score });
@@ -346,6 +373,7 @@
       startButton.disabled = true;
       startButton.textContent = 'Get Ready…';
       setStatus('Get Ready');
+      enableFullScreenSteering();
 
       Arcade.countdown(() => {
         starting = false;
