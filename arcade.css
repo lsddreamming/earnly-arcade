@@ -4407,3 +4407,19 @@ html.snake-game-active body{
   color:#cbd5e1;
 }
 .catalog-more-button[hidden]{display:none!important}
+
+
+/* iPhone safe-area scroll mask */
+@supports (padding-top: env(safe-area-inset-top)){
+  body::before{
+    content:"";
+    position:fixed;
+    z-index:999;
+    top:0;
+    left:0;
+    right:0;
+    height:env(safe-area-inset-top);
+    background:#0f172a;
+    pointer-events:none;
+  }
+}
