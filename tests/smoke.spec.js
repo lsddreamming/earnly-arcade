@@ -483,3 +483,18 @@ test('Bounce Run shows motion and level-up feedback', async ({ page }) => {
   expect(source).toContain("trail.push({x:80,y})");
   expect(source).toContain("const scroll=(distance*5)%36");
 });
+
+
+test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
+  const jsResponse = await page.request.get('/mini-games.js');
+  const source = await jsResponse.text();
+  expect(source).toContain("title.classList.toggle('urgent',timeLeft<=1800)");
+  expect(source).toContain("Arcade.milestone('🧠 '+currentStage+'!','perfect')");
+  expect(source).toContain("wrap.classList.add('fit-success')");
+  expect(source).toContain("wrap.classList.add('fit-miss')");
+
+  const htmlResponse = await page.request.get('/mini.html');
+  const html = await htmlResponse.text();
+  expect(html).toContain('.fit-clock');
+  expect(html).toContain('.fit-title.urgent');
+});
