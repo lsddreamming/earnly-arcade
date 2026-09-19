@@ -78,7 +78,7 @@
         'Catch falling power-ups: 3-ball Multiball, Wide Paddle, and Fireball.',
         'Later levels add armored ◆ and elite ⬢ bricks, faster balls, and a smaller paddle.'
       ],
-      reward:'Clear levels to unlock faster rounds, tougher bricks, power-ups, and up to 100 Coins in one run.'
+      reward:'Coins build gradually across the run. Higher levels pay larger clear bonuses, with up to 100 Coins for a deep run.'
     });
 
     const paddle={x:135,y:465,w:90,h:12,baseW:90};
@@ -116,15 +116,21 @@
     }
 
     function levelClearBonus(clearedLevel){
-      return Math.min(20, 5 + (clearedLevel-1)*3);
+      const clearRewards=[0,2,3,3,4,4,5,5,6,6,7,7,8];
+      return clearRewards[Math.min(clearedLevel,clearRewards.length-1)];
     }
 
     function rewardFor(count,clears){
-      let reward=Math.floor(count/3);
-      if(count>=15) reward+=2;
-      if(count>=25) reward+=3;
+      // Stretch rewards across a long run so 25 Coins is a milestone,
+      // not something players hit in the opening levels.
+      // Bricks give slow progress; meaningful jumps come from clearing levels.
+      let reward=Math.floor(count/12);
+      if(count>=50) reward+=1;
+      if(count>=100) reward+=1;
+
+      const clearRewards=[0,2,3,3,4,4,5,5,6,6,7,7,8];
       for(let clearedLevel=1; clearedLevel<=clears; clearedLevel++){
-        reward+=levelClearBonus(clearedLevel);
+        reward+=clearRewards[Math.min(clearedLevel,clearRewards.length-1)];
       }
       return Math.min(reward,100);
     }
