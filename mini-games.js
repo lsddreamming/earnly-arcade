@@ -1212,8 +1212,8 @@
     surface.replaceChildren(wrap);
 
     const cell=55;
-    const boardsNeeded=()=>level===1?1:level===2?2:level<=4?3:level<=6?4:5;
-    const roundSeconds=()=>Math.max(12,24-Math.max(0,level-1)*2);
+    const boardsNeeded=()=>level===1?2:level===2?3:level===3?4:level===4?5:level===5?6:7;
+    const roundSeconds=()=>Math.max(9,20-Math.max(0,level-1)*2);
 
     function stopTimer(){
       if(timerId){clearInterval(timerId);timerId=null;}
@@ -1272,7 +1272,7 @@
       // Keep boards provably solvable by starting from authored layouts, but
       // vary both the base puzzle and its orientation so consecutive roads do
       // not collapse into the same recognizable pattern.
-      const pool=level===1?[0]:level===2?[1,2]:[1,2,3].filter(i=>TRAFFIC_LEVELS[i]);
+      const pool=level===1?[0,1]:level===2?[1,2]:[1,2,3].filter(i=>TRAFFIC_LEVELS[i]);
       const modes=['none','x','y','xy'];
       const variants=[];
       pool.forEach(sourceIndex=>modes.forEach(mode=>variants.push({sourceIndex,mode})));
