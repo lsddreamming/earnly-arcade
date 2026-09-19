@@ -1516,7 +1516,7 @@
   function trafficSound(){ /* intentionally quiet */ }
 
   function makeTrafficEscape() {
-    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0,boardInLevel=1,timeLeft=0,timerId=null;
+    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0,boardInLevel=1,timeLeft=0,timerId=null,boardStartedAt=0,fastClears=0,bestRoadTime=null;
 
     const wrap=document.createElement('div');
     wrap.className='traffic-wrap';
@@ -1550,6 +1550,7 @@
     function startTimer(){
       stopTimer();
       timeLeft=roundSeconds();
+      boardStartedAt=performance.now();
       render();
       timerId=setInterval(()=>{
         if(!alive||locked||miniPaused)return;
@@ -1750,7 +1751,9 @@
           return;
         }
 
-        levelLine.textContent='💥 Crash! '+strikes+'/3 mistakes · '+(3-strikes)+' left';
+        levelLine.textContent='💥 Blocked lane! '+strikes+'/3 mistakes · '+(3-strikes)+' left';
+        button.setAttribute('aria-label',(button.getAttribute('aria-label')||'Car')+' · blocked');
+        setTimeout(()=>{if(alive&&!locked)renderLevelLine()},650);
         return;
       }
 
@@ -1767,6 +1770,10 @@
         ui(cleared,level);
 
         if(!cars.length){
+          const roadTime=Math.max(0,(performance.now()-boardStartedAt)/1000);
+          bestRoadTime=bestRoadTime===null?roadTime:Math.min(bestRoadTime,roadTime);
+          const quick=roadTime<=Math.max(6,roundSeconds()*.58);
+          if(quick){fastClears++;Arcade.milestone('⚡ Fast road · '+roadTime.toFixed(1)+'s!','perfect');}
           const needed=boardsNeeded();
           if(boardInLevel<needed){
             stopTimer();
@@ -1774,7 +1781,7 @@
             const clearedRoad=boardInLevel;
             boardInLevel++;
             grid.replaceChildren();
-            levelLine.textContent='🎉 Road '+clearedRoad+'/'+needed+' cleared · '+(needed-clearedRoad)+' more to clear Level '+level;
+            levelLine.textContent=(quick?'⚡ Fast clear · '+roadTime.toFixed(1)+'s! · ':'🎉 ')+ 'Road '+clearedRoad+'/'+needed+' cleared · '+(needed-clearedRoad)+' more to Level '+level;
             Arcade.milestone('🚦 Road '+clearedRoad+'/'+needed+' cleared','score');
             // Keep the board empty during the celebration. The next board and
             // its timer begin together, so transition time never costs play time.
@@ -1793,7 +1800,7 @@
             finish(
               cleared,
               level-1,
-              ['🚦 Levels cleared: '+(level-1),'🚗 Cars cleared: '+cleared,'You cleared every traffic board!'],
+              ['🚦 Levels cleared: '+(level-1),'🚗 Cars cleared: '+cleared,'⚡ Fast roads: '+fastClears,'🏁 Best road: '+(bestRoadTime===null?'—':bestRoadTime.toFixed(1)+'s'),'You cleared every traffic board!'],
               'Traffic Master'
             );
             return;
@@ -1801,7 +1808,7 @@
 
           locked=true;
           grid.replaceChildren();
-          levelLine.textContent='🎉 Level '+(level-1)+' cleared · Level '+level+' next';
+          levelLine.textContent=(quick?'⚡ '+roadTime.toFixed(1)+'s road · ':'🎉 ')+'Level '+(level-1)+' cleared · Level '+level+' next';
           // Reveal the next road only after the level celebration finishes.
           // loadLevel starts the fresh timer at the same moment.
           pauseAwareDelay(()=>{if(alive)loadLevel()},850);
@@ -1843,7 +1850,7 @@
     }
 
     return {
-      start(){cleared=0;level=1;boardInLevel=1;strikes=0;alive=true;locked=false;ui(0,1);loadLevel()},
+      start(){cleared=0;level=1;boardInLevel=1;strikes=0;boardStartedAt=0;fastClears=0;bestRoadTime=null;alive=true;locked=false;ui(0,1);loadLevel()},
       stop(){alive=false;locked=true;stopTimer()}
     };
   }
