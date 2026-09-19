@@ -59,9 +59,15 @@
       accountTransition = false;
       throw error;
     }
-    const remote = await cloudSaveInfo();
-    const localDeviceId = Arcade.deviceId();
+    let remote;
     let restore;
+    try {
+      remote = await cloudSaveInfo();
+    } catch (error) {
+      accountTransition = false;
+      throw error;
+    }
+    const localDeviceId = Arcade.deviceId();
 
     // A manual sign-in on a different browser/device means the player is
     // trying to bring their established Earnly progress with them. Restore
