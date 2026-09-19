@@ -97,7 +97,7 @@
       drawCar(lanes[lane],465,true,0);
     }
     function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
-      requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
+      requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s','🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
     function loop(now){
       if(!running)return;seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055))%44;timeEl.textContent=String(seconds);refreshReward();
       const spawnGap=Math.max(330,880-seconds*9);
@@ -116,7 +116,8 @@
       draw();animation=requestAnimationFrame(loop);
     }
     function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+    let earnlyRunStartedAt=0;
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     let swipeStartX=null,swipeStartY=null;
     canvas.addEventListener('pointerdown',e=>{
