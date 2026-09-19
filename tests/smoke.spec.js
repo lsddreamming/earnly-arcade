@@ -351,3 +351,34 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await page.waitForTimeout(220);
   await expect(page.locator('.game-result-modal')).toHaveCount(1);
 });
+
+
+test('core games always expose a result popup contract', async ({ page }) => {
+  const games = [
+    ['snake.html','Snake'],
+    ['blockdrop.html','Block Drop'],
+    ['brickbreaker.html','Brick Breaker'],
+    ['dodger.html','Neon Dodger'],
+    ['junglehopper.html','Jungle Hopper'],
+    ['towerstack.html','Tower Stack'],
+    ['safecracker.html','Safe Cracker'],
+    ['taprush.html','Tap Rush'],
+    ['memory.html','Memory Match'],
+    ['coincatch.html','Coin Catch'],
+    ['colormatch.html','Color Match'],
+    ['lanerunner.html','Lane Runner'],
+    ['paddlerally.html','Paddle Rally']
+  ];
+  for (const [path,name] of games) {
+    await page.goto('/'+path);
+    await expect(page.locator('#gameStatus'), name+' status').toBeVisible();
+    await expect(page.locator('#startButton'), name+' start').toBeVisible();
+    const source = await page.locator('body').evaluate(() =>
+      [...document.scripts].map(s=>s.textContent||'').join('\n')
+    );
+    expect(source, name+' must use shared result popup').toContain('Arcade.gameResult');
+    expect(source, name+' must record a result').toContain('Arcade.recordResult');
+    expect(source, name+' must award through Arcade').toContain('Arcade.earn');
+    expect(source, name+' must show time played').toContain('Time played:');
+  }
+});
