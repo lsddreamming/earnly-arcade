@@ -238,7 +238,7 @@
   }
 
   function makeMergeRush() {
-    let board=Array(16).fill(0), score=0, alive=false, startX=0, startY=0, celebrated128=false;
+    let board=Array(16).fill(0), score=0, alive=false, startX=0, startY=0, celebrated64=false, celebrated128=false, celebrated256=false;
     const wrap=document.createElement('div');
     wrap.className='merge-wrap';
 
@@ -287,10 +287,9 @@
         highTile < 128 ? 'Next target: 128' : 'Next target: ' + nextTarget;
       goal.classList.toggle('goal-hit', highTile >= 128);
 
-      if (highTile >= 128 && !celebrated128) {
-        celebrated128=true;
-        Arcade.milestone('🎉 128 reached! Keep going for 256','perfect');
-      }
+      if(highTile>=64&&!celebrated64){celebrated64=true;Arcade.milestone('🔢 64 reached — halfway to 128!','score')}
+      if(highTile>=128&&!celebrated128){celebrated128=true;Arcade.milestone('🎉 128 reached! Keep going for 256','perfect')}
+      if(highTile>=256&&!celebrated256){celebrated256=true;Arcade.milestone('🔥 256 reached! Huge run','perfect')}
     }
 
     function compress(line) {
@@ -384,7 +383,7 @@
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){board=Array(16).fill(0);score=0;alive=true;celebrated128=false;spawn();spawn();render()},
+      start(){board=Array(16).fill(0);score=0;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;spawn();spawn();render()},
       stop(){
         alive=false;
         swipePointer=null;
