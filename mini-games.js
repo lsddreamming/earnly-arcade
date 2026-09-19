@@ -9,7 +9,7 @@
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
-    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels take multiple boards and tighter traffic to clear.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=20?1:0)+(v>=40?2:0)+(v>=70?3:0)+(v>=100?3:0))}
+    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels have denser traffic, fewer obvious exits, and tighter timers.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
   };
 
   const config = configs[key] || configs.blockGrid;
@@ -1454,7 +1454,7 @@
 
     const cell=55;
     const boardsNeeded=()=>level===1?2:level===2?3:level===3?4:level===4?5:level===5?6:7;
-    const roundSeconds=()=>Math.max(9,20-Math.max(0,level-1)*2);
+    const roundSeconds=()=>[0,18,16,14,12,11,10,9][Math.min(7,level)];
 
     function stopTimer(){
       if(timerId){clearInterval(timerId);timerId=null;}
@@ -1547,8 +1547,9 @@
     let recentTrafficSignatures=[];
 
     function randomTrafficBoard(){
-      const targetCars=Math.min(9,level<=1?5:level===2?6:level<=4?7:8);
-      const minBlocked=Math.min(targetCars-1,level<=1?2:level===2?3:level<=4?4:5);
+      const targetCars=[0,6,7,8,8,9,9,9][Math.min(7,level)];
+      const minBlocked=Math.min(targetCars-1,[0,3,4,5,6,6,7,7][Math.min(7,level)]);
+      const maxInitiallyFree=level<=1?2:1;
 
       for(let attempt=0;attempt<240;attempt++){
         const candidate=[];
@@ -1556,7 +1557,7 @@
           let placed=false;
           for(let tries=0;tries<100&&!placed;tries++){
             const h=Math.random()<.5;
-            const len=Math.random()<(level>=4?.34:.18)?3:2;
+            const len=Math.random()<(level>=4?.46:level>=2?.28:.18)?3:2;
             const x=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?len:1)+1));
             const y=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?1:len)+1));
             const car={x,y,len,h,dir:Math.random()<.5?-1:1,seedId:id};
@@ -1571,7 +1572,7 @@
 
         const initiallyBlocked=candidate.filter(car=>!trafficCanExitFrom(candidate,car)).length;
         const initiallyFree=targetCars-initiallyBlocked;
-        if(initiallyBlocked<minBlocked||initiallyFree<1||initiallyFree>Math.max(2,Math.ceil(targetCars*.45)))continue;
+        if(initiallyBlocked<minBlocked||initiallyFree<1||initiallyFree>maxInitiallyFree)continue;
         if(!trafficSolvable(candidate))continue;
 
         const sig=trafficSignature(candidate);
