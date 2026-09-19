@@ -1017,13 +1017,13 @@
 
     function obstacleSpeed(){
       // Keep the first few obstacles deliberately slow, then ramp from successful clears.
-      if(cleared<3)return 2.15+cleared*.18;
+      if(cleared<3)return 1.75+cleared*.22;
       return Math.min(5.1,2.69+(cleared-3)*.065);
     }
 
     function nextSpawnDelay(){
       // More breathing room while the player learns the hold/release rhythm.
-      if(cleared<3)return 128+Math.random()*28;
+      if(cleared<3)return 150+Math.random()*30;
       return Math.max(68,108-(cleared-3)*1.05)+Math.random()*32;
     }
 
@@ -1117,8 +1117,8 @@
 
       if(!warming&&spawn<=0){
         // The opening obstacles are narrower so a new player can learn the timing.
-        const maxWidth=cleared<3?34:52;
-        const minWidth=cleared<3?22:28;
+        const maxWidth=cleared<3?26:52;
+        const minWidth=cleared<3?18:28;
         obstacles.push({x:390,w:minWidth+Math.random()*(maxWidth-minWidth)});
         spawn=nextSpawnDelay();
       }
@@ -1135,7 +1135,7 @@
         return true;
       });
 
-      const hit=obstacles.some(o=>o.x<92&&o.x+o.w>68&&y+11>320);
+      const hit=obstacles.some(o=>o.x<92&&o.x+o.w>68&&y+8>323);
       if(hit||y>430){
         alive=false;
         finish(
@@ -1191,8 +1191,8 @@
 
     return {
       start(){
-        y=292;vy=-7.2;dive=false;obstacles=[];distance=0;cleared=0;graceClears=0;spawn=145;last=0;alive=true;
-        readyUntil=performance.now()+1400;
+        y=270;vy=-6.4;dive=false;obstacles=[];distance=0;cleared=0;graceClears=0;spawn=175;last=0;alive=true;
+        readyUntil=performance.now()+1600;
         ui(0,0);
         draw();
         raf=requestAnimationFrame(loop);
