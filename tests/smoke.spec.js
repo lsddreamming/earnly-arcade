@@ -512,3 +512,16 @@ test('Traffic Escape exposes fast-road and path feedback', async ({ page }) => {
   const html = await htmlResponse.text();
   expect(html).toContain('.traffic-car.clear-path');
 });
+
+
+test('arcade-wide reliability cleanup stays guarded', async ({ page }) => {
+  const arcade = await (await page.request.get('/arcade.js')).text();
+  expect(arcade).not.toContain("if (!paused) return;\n      if (event.target === button");
+  expect(arcade).toContain("window.addEventListener('earnly-data-change', syncStartSummary)");
+
+  const memory = await (await page.request.get('/memory.html')).text();
+  expect(memory).toContain("function finishGame(){\n      if(!running)return;");
+
+  const css = await (await page.request.get('/arcade.css')).text();
+  expect(css).toContain(".game-search-wrap input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#f8fafc;font:inherit;font-size:16px");
+});
