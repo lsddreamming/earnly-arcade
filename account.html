@@ -677,10 +677,10 @@
       await renderCloud();
     });
 
-    async function saveThisDeviceToCloud(){
+    async function saveThisDeviceToCloud(forceReplace = false){
       try {
         cloudMessage.textContent = 'Saving your current Earnly progress…';
-        const result = await EarnlyCloud.saveProgress({ source:'manual' });
+        const result = await EarnlyCloud.saveProgress({ source:'manual', skipConflictCheck:forceReplace });
         cloudMessage.textContent = 'Cloud save complete · ' + Object.keys(result.snapshot.data).length + ' progress items backed up.';
         Arcade.toast('☁️ Earnly progress saved');
         await renderCloud();
@@ -716,7 +716,7 @@
                 cloudMessage.textContent = error.message || 'Cloud restore failed.';
               }
             }, 'green'],
-            ['Use This Device Instead', saveThisDeviceToCloud, 'secondary'],
+            ['Use This Device Instead', () => saveThisDeviceToCloud(true), 'secondary'],
             ['Cancel', () => {}, 'secondary']
           ]
         );
