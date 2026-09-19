@@ -1113,10 +1113,12 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false;
+    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1;
 
-    function runLevel(){
-      return 1+Math.floor(cleared/5);
+    function runLevel(){return 1+Math.floor(cleared/5)}
+    function stageName(){
+      const l=runLevel();
+      return l<=1?'Warm-up':l<=3?'Bounce Zone':l<=6?'Fast Lane':'Expert Run';
     }
 
     function obstacleSpeed(){
@@ -1204,7 +1206,7 @@
 
       ctx.fillStyle='#94a3b8';
       ctx.font='700 10px Arial';
-      ctx.fillText('LEVEL '+runLevel()+'  ·  '+cleared+' cleared',180,405);
+      ctx.fillText(stageName().toUpperCase()+' · LEVEL '+runLevel()+' · '+cleared+' cleared',180,405);
 
       if(performance.now()<readyUntil){
         ctx.fillStyle='rgba(15,23,42,.94)';
@@ -1220,8 +1222,8 @@
         ctx.fillText('READY TO JUMP?',180,192);
         ctx.fillStyle='#94a3b8';
         ctx.font='700 10px Arial';
-        ctx.fillText('Tap, Space, or ↑ to jump',180,213);
-        ctx.fillText('Clear each red obstacle to level up',180,229);
+        ctx.fillText('Tap anywhere on the game to jump',180,213);
+        ctx.fillText('Computer: Space or ↑ · 5 clears = level up',180,229);
       }
     }
 
@@ -1279,7 +1281,7 @@
         if(o.x+o.w<0){
           cleared++;
           Arcade.feedback('score');
-          if(cleared%5===0)Arcade.milestone('⚪ Level '+runLevel()+'!','perfect');
+          if(cleared%5===0){bestLevel=Math.max(bestLevel,runLevel());Arcade.milestone('⚪ Level '+runLevel()+' · '+stageName()+'!','perfect');}
           return false;
         }
         return true;
@@ -1291,7 +1293,7 @@
         finish(
           Math.floor(distance),
           cleared,
-          ['⚪ Obstacles cleared: '+cleared,'Tap to jump over each obstacle.'],
+          ['⚪ Obstacles cleared: '+cleared,'🏁 Level reached: '+runLevel(),'⚡ Stage: '+stageName(),'Tap to jump over each obstacle.'],
           'Bounce Run Over'
         );
         return;
@@ -1342,7 +1344,7 @@
 
     return {
       start(){
-        y=349;vy=0;obstacles=[];distance=0;cleared=0;queuedJump=false;spawn=205;last=0;alive=true;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;bestLevel=1;queuedJump=false;spawn=205;last=0;alive=true;
         readyUntil=performance.now()+1900;
         ui(0,0);
         draw();
