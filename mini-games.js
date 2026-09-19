@@ -659,7 +659,24 @@
     }
 
     function openingWidth(){
-      return Math.max(66,132-score*.95);
+      // Smooth difficulty curve: openings tighten steadily instead of
+      // suddenly becoming punishing late in a good run.
+      return Math.max(78,132-score*.62);
+    }
+
+    function fallSpeed(){
+      if(score<10)return .92+score*.035;
+      if(score<25)return 1.27+(score-10)*.026;
+      if(score<45)return 1.66+(score-25)*.018;
+      return Math.min(2.35,2.02+(score-45)*.008);
+    }
+
+    function ringColor(r){
+      // Color communicates urgency as a ring approaches the ball.
+      if(r.y<165)return '#ef4444';
+      if(r.y<235)return '#f59e0b';
+      if(r.y<315)return '#22c55e';
+      return '#7c3aed';
     }
 
     function randomGap(width){
@@ -707,12 +724,13 @@
       ctx.fillText('◀ DRAG TO MOVE ▶',180,30);
       ctx.fillStyle='#94a3b8';
       ctx.font='700 9px Arial';
-      ctx.fillText(score===0?'First opening starts centered for you':'Line up with the next opening',180,45);
+      ctx.fillText(score===0?'First opening starts centered for you':score<5?'Drag the ball through each opening':'',180,45);
 
       rings.forEach(r=>{
         const safe=r.first && !r.checked;
-        ctx.fillStyle=safe?'#2563eb':'#7c3aed';
-        ctx.shadowColor=safe?'rgba(59,130,246,.55)':'rgba(124,58,237,.22)';
+        const color=safe?'#2563eb':ringColor(r);
+        ctx.fillStyle=color;
+        ctx.shadowColor=safe?'rgba(59,130,246,.55)':color;
         ctx.shadowBlur=safe?10:4;
         ctx.fillRect(15,r.y,Math.max(0,r.gap-r.w/2-15),14);
         ctx.fillRect(r.gap+r.w/2,r.y,Math.max(0,345-(r.gap+r.w/2)),14);
@@ -803,7 +821,7 @@
 
       // Give the player time after GO to locate the ball and first opening.
       const warmingUp=t<readyUntil;
-      const speed=warmingUp ? 0 : Math.min(2.65,.92+score*.043);
+      const speed=warmingUp ? 0 : fallSpeed();
 
       rings.forEach(r=>r.y-=speed*dt);
 
