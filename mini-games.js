@@ -121,6 +121,19 @@
     [[0,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]]
   ];
 
+  function pauseAwareDelay(callback, delay=0) {
+    const due=performance.now()+Math.max(0,delay);
+    const wait=()=>{
+      if(!running) return;
+      if(miniPaused || performance.now()<due) {
+        setTimeout(wait, Math.min(80,Math.max(16,due-performance.now())));
+        return;
+      }
+      callback();
+    };
+    setTimeout(wait,Math.max(0,delay));
+  }
+
   function makeBlockGrid() {
     let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone, lastClear=0;
     const wrap = document.createElement('div');
@@ -1179,9 +1192,9 @@
     function stopTimer(){if(timer){clearInterval(timer);timer=null}}
     function stage(){return roundNo<=3?'Warm-up':roundNo<=8?'Rotation challenge':roundNo<=15?'Quick Match':'Expert Shapes'}
     function header(){title.innerHTML='<strong>'+stage()+'</strong><span>Round '+roundNo+' · '+'❤️'.repeat(lives)+'♡'.repeat(3-lives)+' · ⏱️ '+(timeLeft/1000).toFixed(1)+'s</span>'}
-    function miss(msg){if(locked||!alive)return;locked=true;stopTimer();lives--;streak=0;hint.textContent=msg+' · '+lives+' '+(lives===1?'life':'lives')+' left';Arcade.feedback('fail');ui(score,streak);if(lives<=0){alive=false;setTimeout(()=>finish(score,bestStreak,['🧠 Correct matches: '+score,'🔥 Best streak: '+bestStreak,'🎯 Round reached: '+roundNo,'Rotations, choices, and the timer get harder as you advance.'],'Shape Fit Run Over'),350);return}setTimeout(()=>{if(alive)round()},520)}
+    function miss(msg){if(locked||!alive)return;locked=true;stopTimer();lives--;streak=0;hint.textContent=msg+' · '+lives+' '+(lives===1?'life':'lives')+' left';Arcade.feedback('fail');ui(score,streak);if(lives<=0){alive=false;setTimeout(()=>finish(score,bestStreak,['🧠 Correct matches: '+score,'🔥 Best streak: '+bestStreak,'🎯 Round reached: '+roundNo,'Rotations, choices, and the timer get harder as you advance.'],'Shape Fit Run Over'),350);return}pauseAwareDelay(()=>{if(alive)round()},520)}
     function round(){stopTimer();locked=false;roundNo++;const base=SHAPES[Math.floor(Math.random()*SHAPES.length)],targetTurns=roundNo<4?0:Math.floor(Math.random()*4);answer=variant(base,targetTurns);draw(answer);const count=roundNo<=3?3:roundNo<=7?4:roundNo<=13?6:8;wrap.classList.toggle('many-choices',count>4);const correctTurns=roundNo<4?targetTurns:(targetTurns+1+Math.floor(Math.random()*3))%4,correct=variant(base,correctTurns),opts=[correct],used=new Set([base.name+':'+key(correct.cells)]);while(opts.length<count){const sh=SHAPES[Math.floor(Math.random()*SHAPES.length)],v=variant(sh,Math.floor(Math.random()*4)),k=sh.name+':'+key(v.cells);if(!used.has(k)){used.add(k);opts.push(v)}}opts.sort(()=>Math.random()-.5);answers.replaceChildren();opts.forEach(shape=>{const b=document.createElement('button');b.type='button';b.className='fit-answer';b.dataset.base=shape.base.name;b.setAttribute('aria-label','Choose shape');b.append(preview(shape,'fit-answer-preview'));const n=document.createElement('small');n.textContent=roundNo<4?shape.base.name:'ROTATED';b.append(n);b.addEventListener('click',()=>choose(shape,b));answers.append(b)});timeLeft=roundNo<=3?7000:Math.max(2800,6600-(roundNo-3)*220);header();hint.textContent=roundNo<4?'👆 Tap the shape that matches the target exactly':(count>4?'🔄 Find the same shape — rotation does not matter · '+count+' choices · swipe up for more':'🔄 Find the same shape — rotation does not matter');timer=setInterval(()=>{if(miniPaused)return;timeLeft-=100;header();if(timeLeft<=0){stopTimer();miss('⏰ Too slow')}},100)}
-    function choose(shape,b){if(!alive||locked)return;if(shape.base===answer.base){locked=true;stopTimer();score++;streak++;bestStreak=Math.max(bestStreak,streak);b.classList.add('correct');hint.textContent=streak>=5?'🔥 '+streak+' streak!':'✅ Correct!';Arcade.feedback(streak>=5?'perfect':'match');ui(score,streak);if(streak===10)Arcade.milestone('🧠 10-shape streak!','perfect');setTimeout(()=>{if(alive)round()},300)}else{b.classList.add('wrong');[...answers.children].forEach(node=>{if(node.dataset.base===answer.base.name)node.classList.add('correct')});miss('❌ Wrong shape')}}
+    function choose(shape,b){if(!alive||locked)return;if(shape.base===answer.base){locked=true;stopTimer();score++;streak++;bestStreak=Math.max(bestStreak,streak);b.classList.add('correct');hint.textContent=streak>=5?'🔥 '+streak+' streak!':'✅ Correct!';Arcade.feedback(streak>=5?'perfect':'match');ui(score,streak);if(streak===10)Arcade.milestone('🧠 10-shape streak!','perfect');pauseAwareDelay(()=>{if(alive)round()},300)}else{b.classList.add('wrong');[...answers.children].forEach(node=>{if(node.dataset.base===answer.base.name)node.classList.add('correct')});miss('❌ Wrong shape')}}
     return{start(){score=0;streak=0;bestStreak=0;lives=3;roundNo=0;alive=true;locked=false;ui(0,0);round()},stop(){alive=false;locked=true;stopTimer()}};
   }
 
@@ -1493,7 +1506,7 @@
           locked=true;
           levelLine.textContent='⏰ Time up! Run over';
           Arcade.feedback('fail');
-          setTimeout(()=>finish(
+          pauseAwareDelay(()=>finish(
             cleared,
             level,
             ['🚗 Cars cleared: '+cleared,'🚦 Level reached: '+level,'⏰ Time expired','Clear each road before the timer hits zero.'],
@@ -1674,7 +1687,7 @@
           locked=true;
           stopTimer();
           levelLine.textContent='💥 Crash! 3 mistakes — run over';
-          setTimeout(()=>finish(
+          pauseAwareDelay(()=>finish(
             cleared,
             level,
             ['🚗 Cars cleared: '+cleared,'🚦 Level reached: '+level,'💥 Crashes: 3/3','Reach a clear arrow path before tapping.'],
@@ -1711,7 +1724,7 @@
             Arcade.milestone('🚦 Road '+clearedRoad+'/'+needed+' cleared','score');
             // Keep the board empty during the celebration. The next board and
             // its timer begin together, so transition time never costs play time.
-            setTimeout(()=>{if(alive)loadLevel()},700);
+            pauseAwareDelay(()=>{if(alive)loadLevel()},700);
             return;
           }
 
@@ -1737,7 +1750,7 @@
           levelLine.textContent='🎉 Level '+(level-1)+' cleared · Level '+level+' next';
           // Reveal the next road only after the level celebration finishes.
           // loadLevel starts the fresh timer at the same moment.
-          setTimeout(()=>{if(alive)loadLevel()},850);
+          pauseAwareDelay(()=>{if(alive)loadLevel()},850);
           return;
         }
 
