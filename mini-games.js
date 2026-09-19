@@ -37,6 +37,7 @@
   let finished = false;
   let engine = null;
   let runStartedAt = 0;
+  let resultShowing = false;
 
   function setStatus(text, mode) {
     statusEl.textContent = text;
@@ -85,11 +86,14 @@
     try { Arcade.feedback(clean > 0 ? 'success' : 'fail'); } catch {}
 
     ui(clean, secondary);
-    refreshChrome();
+    try { refreshChrome(); } catch (err) { console.error('Earnly chrome refresh failed', err); }
     setStatus('Complete', 'over');
     startButton.disabled = false;
     startButton.textContent = '👆 Tap Game to Play Again';
     resultShowing = true;
+
+    let playsLeft = 0;
+    try { playsLeft = Arcade.remaining(key); } catch (err) { console.error('Earnly plays lookup failed', err); }
 
     Arcade.gameResult({
       icon:config.icon,
@@ -99,7 +103,7 @@
       best:result?.best?.display || String(clean),
       coins,
       result,
-      playsLeft:Arcade.remaining(key),
+      playsLeft,
       game:key,
       extra:resultExtra,
       onReplay:()=>{ resultShowing=false; startGame(); },
