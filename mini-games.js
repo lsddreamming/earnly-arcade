@@ -1065,7 +1065,9 @@
         pointerStartClientX=0;
         pointerStartBallX=ballX;
         cancelAnimationFrame(raf);
-        document.removeEventListener('keydown',onKey);
+        document.removeEventListener('keydown',onKeyDown,{capture:true});
+        document.removeEventListener('keyup',onKeyUp,{capture:true});
+        heldKeys.clear();
         document.removeEventListener('pointerdown',onWideDown);
         document.removeEventListener('pointermove',onWideMove);
         document.removeEventListener('pointerup',onWideUp);
@@ -1164,7 +1166,7 @@
       ctx.textAlign='center';
       ctx.fillStyle='#dbeafe';
       ctx.font='800 11px Arial';
-      ctx.fillText('TAP THE GAME BOX = JUMP',180,31);
+      ctx.fillText('TAP · SPACE · ↑  =  JUMP',180,31);
       ctx.fillStyle='#94a3b8';
       ctx.font='700 9px Arial';
       ctx.fillText('Jump obstacles · 5 clears = level up',180,46);
@@ -1216,8 +1218,8 @@
         ctx.fillText('READY TO JUMP?',180,192);
         ctx.fillStyle='#94a3b8';
         ctx.font='700 10px Arial';
-        ctx.fillText('Tap anywhere in this game box to start',180,213);
-        ctx.fillText('Then tap again to jump each red obstacle',180,229);
+        ctx.fillText('Tap, Space, or ↑ to jump',180,213);
+        ctx.fillText('Clear each red obstacle to level up',180,229);
       }
     }
 
