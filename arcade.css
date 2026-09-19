@@ -4805,3 +4805,14 @@ body.earnly-gameplay-locked{
 .block-grid-progress small{font-size:8px;color:#94a3b8}
 .block-grid-progress .block-grid-clear{grid-column:1/-1;border-color:#22c55e66;background:#123323}
 .block-grid-progress .block-grid-clear strong{color:#86efac}
+
+/* Merge Rush progression and feedback */
+.merge-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:7px 0 9px}
+.merge-progress>span{display:grid;gap:2px;padding:6px 4px;border:1px solid #334155;border-radius:9px;background:#111c2d;text-align:center}
+.merge-progress strong{font-size:10px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.merge-progress small{font-size:7px;color:#94a3b8}
+.merge-goal.merge-pop{border-color:#22c55e;background:#123323;transform:scale(1.02)}
+.merge-goal.merge-pop span{color:#86efac;font-weight:800}
+.merge-goal.merge-shake{animation:mergeShake .24s ease}
+@keyframes mergeShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media(max-width:380px){.merge-progress{grid-template-columns:repeat(2,minmax(0,1fr))}}
