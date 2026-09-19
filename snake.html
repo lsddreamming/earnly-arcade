@@ -498,13 +498,13 @@
         result,
         playsLeft:Arcade.remaining('snake'),
         game:'snake',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('snake', refreshChrome)
       });
     }
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (game !== null || starting) return;
       starting = true;
@@ -513,7 +513,7 @@
         starting = false;
           Arcade.out('snake', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       snake = [{ x: 200, y: 200 }];
       direction = 'RIGHT';
@@ -537,6 +537,11 @@
       });
     }
 
+    Arcade.installPauseControl({
+      isRunning:()=>game!==null,
+      pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
+      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(draw,120);}
+    });
     startButton.addEventListener('click', startGame);
     refreshChrome();
     draw();
