@@ -1192,7 +1192,7 @@
   }
 
   function makeTrafficEscape() {
-    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0,boardInLevel=1;
+    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0,boardInLevel=1,timeLeft=0,timerId=null;
 
     const wrap=document.createElement('div');
     wrap.className='traffic-wrap';
@@ -1213,6 +1213,40 @@
 
     const cell=55;
     const boardsNeeded=()=>level===1?1:level<=3?2:3;
+    const roundSeconds=()=>Math.max(12,24-Math.max(0,level-1)*2);
+
+    function stopTimer(){
+      if(timerId){clearInterval(timerId);timerId=null;}
+    }
+
+    function timerText(){
+      return '⏱️ '+timeLeft+'s';
+    }
+
+    function startTimer(){
+      stopTimer();
+      timeLeft=roundSeconds();
+      render();
+      timerId=setInterval(()=>{
+        if(!alive||locked)return;
+        timeLeft--;
+        if(timeLeft<=0){
+          stopTimer();
+          alive=false;
+          locked=true;
+          levelLine.textContent='⏰ Time up! Run over';
+          Arcade.feedback('fail');
+          setTimeout(()=>finish(
+            cleared,
+            level,
+            ['🚗 Cars cleared: '+cleared,'🚦 Level reached: '+level,'⏰ Time expired','Clear each road before the timer hits zero.'],
+            cleared>=70?'Traffic Pro':''
+          ),260);
+          return;
+        }
+        renderLevelLine();
+      },1000);
+    }
 
     function mirrorCars(source,mode){
       return source.map(car=>{
@@ -1246,6 +1280,7 @@
       const source=levelSource();
       cars=source.map((car,i)=>({...car,id:i}));
       render();
+      startTimer();
     }
 
     function occupiedByOther(car,x,y) {
@@ -1298,6 +1333,7 @@
         if(strikes>=3){
           alive=false;
           locked=true;
+          stopTimer();
           levelLine.textContent='💥 Crash! 3 mistakes — run over';
           setTimeout(()=>finish(
             cleared,
@@ -1327,6 +1363,7 @@
         if(!cars.length){
           const needed=boardsNeeded();
           if(boardInLevel<needed){
+            stopTimer();
             boardInLevel++;
             Arcade.milestone('🚦 Road '+(boardInLevel-1)+'/'+needed+' cleared','score');
             levelLine.textContent='🎉 Road clear · '+(needed-boardInLevel+1)+' more for Level '+level;
@@ -1334,12 +1371,14 @@
             return;
           }
 
+          stopTimer();
           Arcade.milestone('🚦 Level '+level+' cleared!','perfect');
           level++;
           boardInLevel=1;
 
           if(level>7){
             alive=false;
+            stopTimer();
             finish(
               cleared,
               level-1,
@@ -1359,10 +1398,15 @@
       },210);
     }
 
-    function render() {
+    function renderLevelLine(){
       const needed=boardsNeeded();
       const road=needed>1?' · Road '+boardInLevel+'/'+needed:'';
-      levelLine.textContent='Level '+level+road+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left · 💥 '+strikes+'/3';
+      levelLine.textContent='Level '+level+road+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left · '+timerText()+' · 💥 '+strikes+'/3';
+      levelLine.classList.toggle('urgent',timeLeft>0&&timeLeft<=5);
+    }
+
+    function render() {
+      renderLevelLine();
       grid.replaceChildren();
 
       cars.forEach((car,idx)=>{
@@ -1385,7 +1429,7 @@
 
     return {
       start(){cleared=0;level=1;boardInLevel=1;strikes=0;alive=true;locked=false;ui(0,1);loadLevel()},
-      stop(){alive=false;locked=true}
+      stop(){alive=false;locked=true;stopTimer()}
     };
   }
 
