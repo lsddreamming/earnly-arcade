@@ -28,7 +28,7 @@
     <header class="games-hero">
       <span class="games-eyebrow">ARCADE</span>
       <h1>Pick a game</h1>
-      <p>Beat your best, earn XP, and chase Coin rewards.</p>
+      <p>Choose a game, use a free play, and earn XP plus score-based Arcade Coins.</p>
     </header>
 
     <div class="games-simple-note">
@@ -38,6 +38,11 @@
         <p>Play games to earn XP and score-based Arcade Coins. Optional rewarded ads only unlock extra plays.</p>
       </details>
     </div>
+
+    <section class="games-start-here" aria-label="How to play Earnly">
+      <strong>New here? Start in 3 steps</strong>
+      <span>1. Pick any game &nbsp; 2. Play for a score &nbsp; 3. Your results show Coins, XP, and plays left</span>
+    </section>
 
     <div id="quickSections"></div>
 
@@ -78,7 +83,7 @@
       { key:'perfectDrop', icon:'🎯', name:'Perfect Drop', note:'Time each drop into the target', href:'mini.html?game=perfectDrop' },
       { key:'spiralDrop', icon:'🌀', name:'Spiral Drop', note:'Guide the ball through shrinking gaps', href:'mini.html?game=spiralDrop' },
       { key:'shapeFit', icon:'🧠', name:'Shape Fit', note:'Match silhouettes as your streak grows', href:'mini.html?game=shapeFit' },
-      { key:'bounceRun', icon:'⚪', name:'Bounce Run', note:'Hold to dive · release to float', href:'mini.html?game=bounceRun' },
+      { key:'bounceRun', icon:'⚪', name:'Bounce Run', note:'Tap to jump over obstacles · gets faster as you level up', href:'mini.html?game=bounceRun' },
       { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' }
     ];
 
@@ -156,6 +161,7 @@
         return matchesFilter && matchesSearch;
       });
       const gamesToRender = visibleGames;
+      const recommendedKeys = new Set(['tapRush','snake','bounceRun']);
 
       gamesToRender.forEach(info => {
         const remaining = Arcade.remaining(info.key);
@@ -163,6 +169,7 @@
         const best = Arcade.best(info.key);
         const card = document.createElement('section');
         card.className = 'card game-card compact-game catalog-tile';
+        if (recommendedKeys.has(info.key)) card.classList.add('recommended-game');
 
         const heading = document.createElement('div');
         heading.className = 'game-title-row';
@@ -193,6 +200,13 @@
         const rule = document.createElement('p');
         rule.className = 'reward-rule';
         rule.textContent = info.note;
+
+        if (recommendedKeys.has(info.key)) {
+          const badge=document.createElement('span');
+          badge.className='game-recommended-badge';
+          badge.textContent='⭐ Easy to start';
+          card.append(badge);
+        }
 
         const bestLine = document.createElement('div');
         bestLine.className = 'game-best';
