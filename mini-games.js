@@ -1317,6 +1317,11 @@
         ctx.font='700 10px Arial';
         ctx.fillText('Tap anywhere on the game to jump',180,213);
         ctx.fillText('Computer: Space or ↑ · 5 clears = level up',180,229);
+
+        const countdown=Math.max(1,Math.ceil((readyUntil-performance.now())/650));
+        ctx.fillStyle='#ffffff';
+        ctx.font='900 24px Arial';
+        ctx.fillText(String(countdown),180,154);
       }
     }
 
