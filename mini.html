@@ -41,6 +41,12 @@
     .fit-wrap{padding:16px}
     .fit-title{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 11px;border:1px solid #334155;border-radius:12px;background:#0e1726}
     .fit-title strong{font-size:11px;color:#dbeafe}.fit-title span{font-size:9px;color:#94a3b8;white-space:nowrap}
+    .fit-stage{display:grid;gap:2px}.fit-stage small{font-size:8px;color:#64748b;font-weight:800}
+    .fit-clock{display:grid;gap:4px;min-width:86px;text-align:right}.fit-clock i{display:block;height:5px;border-radius:99px;background:#1e293b;overflow:hidden}.fit-clock b{display:block;height:100%;border-radius:inherit;background:#60a5fa;transition:width .1s linear}
+    .fit-title.urgent{border-color:#b45309;background:#2b1b0c}.fit-title.urgent .fit-clock span{color:#fde68a}.fit-title.urgent .fit-clock b{background:#f59e0b}
+    .fit-wrap.fit-success .fit-shape{filter:drop-shadow(0 0 9px rgba(34,197,94,.5));transform:scale(1.025)}
+    .fit-wrap.fit-miss .fit-shape{animation:fitMiss .22s linear}
+    @keyframes fitMiss{0%,100%{transform:translateX(0)}30%{transform:translateX(-7px)}70%{transform:translateX(7px)}}
     .fit-shape{display:grid;grid-template-columns:repeat(4,42px);grid-template-rows:repeat(4,42px);gap:5px;justify-content:center;margin:14px auto}
     .fit-dot{border-radius:9px;background:#172033;border:1px solid #334155}.fit-dot.on{background:#22c55e;border-color:#4ade80;box-shadow:0 0 10px rgba(34,197,94,.2)}
     .fit-hint{min-height:22px;margin:0 0 8px;text-align:center;font-size:10px;font-weight:800;color:#93c5fd}
