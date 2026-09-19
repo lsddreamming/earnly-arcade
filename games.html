@@ -110,9 +110,11 @@
       const root = document.getElementById('quickSections');
       root.replaceChildren();
 
+      const newSection = renderQuickSection('✨ New Games', ['coinCatch','colorMatch','paddleRally','laneRunner','safeCracker']);
       const favoriteSection = renderQuickSection('⭐ Favorites', Arcade.favorites());
       const recentSection = renderQuickSection('🕘 Recently Played', Arcade.recentGames());
 
+      if (newSection) root.append(newSection);
       if (favoriteSection) root.append(favoriteSection);
       if (recentSection) root.append(recentSection);
     }
