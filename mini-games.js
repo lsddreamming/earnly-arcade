@@ -214,6 +214,11 @@
       }
 
       render();
+      // Make progression visible without changing Block Grid's scoring or
+      // reward economy. Players now get clear feedback as their run grows.
+      if(score>=100 && score-piece.length*3<100) Arcade.milestone('🧩 100 points! Board is heating up','score');
+      if(score>=250 && score-piece.length*3<250) Arcade.milestone('🔥 250 points! Bonus reward tier reached','perfect');
+      if(lines>0 && lines%5===0) Arcade.milestone('✨ '+lines+' lines cleared!','perfect');
       if (!anyMove()) {
         alive=false;
         finish(score,lines,['🧩 Lines cleared: '+lines,'Save room for the pieces still in your tray.'],'Board Full');
