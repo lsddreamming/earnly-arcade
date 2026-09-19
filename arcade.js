@@ -2735,6 +2735,59 @@ const Arcade = (() => {
     }
   }
 
+  function installPauseControl(options = {}) {
+    const status = document.getElementById('gameStatus');
+    if (!status || document.getElementById('earnlyPauseButton')) return null;
+    const isRunning = options.isRunning || (() => status.classList.contains('running'));
+    const pause = options.pause || (() => {});
+    const resume = options.resume || (() => {});
+    let paused = false;
+    const button = document.createElement('button');
+    button.id = 'earnlyPauseButton';
+    button.type = 'button';
+    button.className = 'secondary earnly-pause-button';
+    button.textContent = '⏸ Pause';
+    button.hidden = true;
+    const host = status.parentElement || status;
+    host.append(button);
+
+    const sync = () => {
+      const active = !!isRunning();
+      if (!active) {
+        paused = false;
+        button.textContent = '⏸ Pause';
+        button.hidden = true;
+        return;
+      }
+      button.hidden = false;
+    };
+
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      if (!isRunning() && !paused) return;
+      if (!paused) {
+        paused = true;
+        pause();
+        button.textContent = '▶ Resume';
+        status.textContent = 'Paused';
+        status.classList.remove('running');
+        document.body.classList.add('earnly-game-paused');
+      } else {
+        paused = false;
+        resume();
+        button.textContent = '⏸ Pause';
+        status.textContent = 'Running';
+        status.classList.add('running');
+        document.body.classList.remove('earnly-game-paused');
+      }
+    });
+
+    const observer = new MutationObserver(sync);
+    observer.observe(status, {attributes:true, attributeFilter:['class']});
+    sync();
+    return { button, isPaused:() => paused, sync };
+  }
+
   function isProtectedGameControlTarget(target) {
     const element = target instanceof Element ? target : null;
     if (!element) return false;
@@ -2835,6 +2888,7 @@ const Arcade = (() => {
     resultText,
     gameGuide,
     setGameplayScrollLock,
+    installPauseControl,
     isProtectedGameControlTarget,
     inExpandedGameZone,
     gameSurfaceX,
