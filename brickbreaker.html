@@ -528,7 +528,7 @@
         result,
         playsLeft:Arcade.remaining('brickBreaker'),
         game:'brickBreaker',
-        extra:[levelText,'⚡ Next levels move faster and can pay more Coins.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',levelText,'⚡ Next levels move faster and can pay more Coins.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('brickBreaker',refreshChrome)
       });
@@ -602,6 +602,7 @@
       if(event.key==='ArrowRight'){event.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+24);}
     });
 
+    let earnlyRunStartedAt=0;
     function startGame(){
       if(running || starting) return;
       starting=true;
@@ -609,7 +610,7 @@
         starting=false;
         Arcade.out('brickBreaker',refreshChrome);
         return;
-      }
+      } earnlyRunStartedAt=performance.now(); 
 
       clearTimeout(levelTimer);
       powerUps=[];
