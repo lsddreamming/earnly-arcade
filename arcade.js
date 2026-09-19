@@ -1868,7 +1868,13 @@ const Arcade = (() => {
 
   function playAd(g, done = () => {}) {
     const adStatus = playAdStatus(g);
-    if (busy || remaining(g) > 0) return;
+    if (busy) return;
+    // Rewarded-play unlocks are only for a genuinely empty play balance.
+    // Re-check here so a stale popup or double tap can never grant an extra pack.
+    if (remaining(g) > 0) {
+      toast('🎟️ You still have ' + remaining(g) + ' ' + (names[g] || 'game') + ' play' + (remaining(g) === 1 ? '' : 's') + ' left');
+      return;
+    }
 
     if (adStatus.remaining <= 0) {
       panel(
@@ -1933,11 +1939,20 @@ const Arcade = (() => {
       countdown.textContent = 'Unlocked ✓';
       reward.classList.add('complete');
 
-      setNumber(g + 'PlayAdUnlocks', adStatus.used + 1);
+      // Re-check the cap at completion too. This protects against duplicate
+      // completion callbacks or another tab granting the same unlock.
+      const latestStatus = playAdStatus(g);
+      if (latestStatus.remaining <= 0 || remaining(g) > 0) {
+        busy = false;
+        modal.close();
+        done();
+        return;
+      }
+      setNumber(g + 'PlayAdUnlocks', latestStatus.used + 1);
       grantPlays(g, PLAY_AD_BONUS);
       queueEvent('rewarded_play_unlock', {
         game:g,
-        unlockNumber:adStatus.used + 1,
+        unlockNumber:latestStatus.used + 1,
         dailyLimit:PLAY_AD_DAILY_LIMIT,
         playsGranted:PLAY_AD_BONUS
       });
@@ -1980,6 +1995,12 @@ const Arcade = (() => {
   }
 
   function out(g, done) {
+    const playsNow = remaining(g);
+    if (playsNow > 0) {
+      toast('🎟️ ' + playsNow + ' ' + (names[g] || 'game') + ' play' + (playsNow === 1 ? '' : 's') + ' ready');
+      if (typeof done === 'function') done();
+      return;
+    }
     const status = playAdStatus(g);
     const gameName = names[g] || 'this game';
 
@@ -1994,7 +2015,7 @@ const Arcade = (() => {
 
     panel(
       'Out of ' + gameName + ' plays',
-      'Free plays refill daily. You have ' + status.remaining + ' of ' + status.limit + ' bonus-play unlock' +
+      'You’re out of plays for this game. Free plays refill daily. You have ' + status.remaining + ' of ' + status.limit + ' bonus-play unlock' +
         (status.remaining === 1 ? '' : 's') + ' left today. Each rewarded ad unlocks +' + PLAY_AD_BONUS + ' plays.',
       [
         ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
