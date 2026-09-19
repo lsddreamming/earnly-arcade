@@ -75,14 +75,15 @@
       ctx.fillStyle='#94a3b8';ctx.font='700 13px Arial';ctx.textAlign='center';ctx.fillText('STOP THE MARKER INSIDE THE GREEN ZONE',180,220);
     }
     function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(score);Arcade.earn(earned,'Safe Cracker',{kind:'game',game:'safeCracker',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('safeCracker',score);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Locked Out','over');draw();
-      Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:[score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
+      Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
     function attempt(){
       if(!running)return;const hit=marker>=targetX&&marker<=targetX+targetW;
       if(hit){score++;scoreEl.textContent=String(score);Arcade.feedback('perfect');if(score===8)Arcade.milestone('🔐 8 locks cracked!');if(score===15)Arcade.milestone('🔥 15 locks · Safe Master!','perfect');newTarget();marker=dir>0?30:330;refreshReward()}
       else{lives--;livesEl.textContent=String(lives);Arcade.feedback('fail');if(lives<=0){finish();return}}
     }
     function loop(){if(!running)return;marker+=speed*dir;if(marker>=332){marker=332;dir=-1}else if(marker<=28){marker=28;dir=1}draw();animation=requestAnimationFrame(loop)}
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+    let earnlyRunStartedAt=0;
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}attempt()});
     document.addEventListener('pointerdown',e=>{
