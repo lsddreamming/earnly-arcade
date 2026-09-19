@@ -4545,3 +4545,42 @@ body.earnly-gameplay-locked{
   .games-dashboard .game-card.compact-game{padding:10px 8px}
   .games-dashboard .game-title-row h2{font-size:14px}
 }
+
+
+/* 0.15.31 force compact mobile games catalog — must stay last */
+@media (max-width:699px){
+  body.games-dashboard #games.compact-catalog-grid{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    align-items:stretch!important;
+    justify-items:stretch!important;
+    gap:10px!important;
+    width:100%!important;
+  }
+  body.games-dashboard #games.compact-catalog-grid > .catalog-tile{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:11px 9px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-row h2{
+    font-size:14px!important;
+    line-height:1.15!important;
+  }
+  body.games-dashboard #games .catalog-tile .reward-rule{
+    font-size:9px!important;
+    min-height:25px!important;
+    margin:2px 0!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-best{
+    font-size:8px!important;
+    min-height:12px!important;
+    margin:0!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-play-button{
+    min-height:36px!important;
+    padding:7px 5px!important;
+    font-size:10px!important;
+  }
+}
