@@ -99,3 +99,31 @@ test('every mini game starts without runtime errors', async ({ page }) => {
     page.off('pageerror', onError);
   }
 });
+
+
+test('Spiral Drop removes desktop key handlers when a run ends', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  await page.goto('/mini.html?game=spiralDrop');
+  await page.locator('#startBtn').click();
+  await page.waitForTimeout(3300);
+  await page.keyboard.down('ArrowLeft');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('ArrowLeft');
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('ArrowRight');
+  expect(errors).toEqual([]);
+});
+
+test('Bounce Run advertises and accepts keyboard jump controls', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  await page.goto('/mini.html?game=bounceRun');
+  await page.locator('#startBtn').click();
+  await page.waitForTimeout(3300);
+  await expect(page.locator('#surface')).toContainText('');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowUp');
+  expect(errors).toEqual([]);
+});
