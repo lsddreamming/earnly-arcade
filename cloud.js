@@ -131,6 +131,7 @@
 
   let freshRestorePromise = null;
   let accountTransition = false;
+  let rewardSyncPromise = null;
 
   async function maybeRestoreFreshDevice(){
     if (freshRestorePromise) return freshRestorePromise;
@@ -455,7 +456,6 @@
   let syncTimer = null;
   let syncRunning = false;
   let syncAgain = false;
-  let rewardSyncPromise = null;
 
   function scheduleAutoSync(reason = 'change', delay = 1400){
     if (!autoSyncEnabled()) return false;
