@@ -8,7 +8,7 @@
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?2:0)+(v>=20?5:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'Match the green silhouette to the same shape below. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
-    bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Hold anywhere to dive. Release to float. Clear obstacles and keep the run alive.',reward:v=>Math.min(25,Math.floor(v/15)+(v>=120?3:0)+(v>=220?5:0))},
+    bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/15)+(v>=120?3:0)+(v>=220?5:0))},
     trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when the road in its arrow direction is clear. Empty the board to level up.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))}
   };
 
@@ -1009,7 +1009,7 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=300,vy=-8,dive=false,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,graceClears=0;
+    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0;
 
     function runLevel(){
       return 1+Math.floor(cleared/5);
@@ -1046,10 +1046,10 @@
       ctx.textAlign='center';
       ctx.fillStyle='#dbeafe';
       ctx.font='800 11px Arial';
-      ctx.fillText('HOLD = DIVE  •  RELEASE = FLOAT',180,31);
+      ctx.fillText('TAP = JUMP',180,31);
       ctx.fillStyle='#94a3b8';
       ctx.font='700 9px Arial';
-      ctx.fillText('Clear 5 obstacles to level up',180,46);
+      ctx.fillText('Jump obstacles · 5 clears = level up',180,46);
 
       obstacles.forEach(o=>{
         const grd=ctx.createLinearGradient(o.x,330,o.x+o.w,360);
@@ -1094,10 +1094,10 @@
 
         ctx.fillStyle='#bfdbfe';
         ctx.font='900 14px Arial';
-        ctx.fillText('READY TO BOUNCE?',180,198);
+        ctx.fillText('READY TO JUMP?',180,198);
         ctx.fillStyle='#94a3b8';
         ctx.font='700 9px Arial';
-        ctx.fillText('First obstacle arrives slowly',180,215);
+        ctx.fillText('Tap when the obstacle gets close',180,215);
       }
     }
 
@@ -1112,7 +1112,7 @@
         spawn-=dt;
       }
 
-      vy+=(dive?1.05:.48)*dt;
+      vy+=.58*dt;
       y+=vy*dt;
 
       if(!warming&&spawn<=0){
@@ -1127,7 +1127,6 @@
       obstacles=obstacles.filter(o=>{
         if(o.x+o.w<0){
           cleared++;
-          graceClears=Math.min(3,graceClears+1);
           Arcade.feedback('score');
           if(cleared%5===0)Arcade.milestone('⚪ Level '+runLevel()+'!','perfect');
           return false;
@@ -1141,7 +1140,7 @@
         finish(
           Math.floor(distance),
           cleared,
-          ['⚪ Obstacles cleared: '+cleared,'Hold to dive sooner; release to float longer.'],
+          ['⚪ Obstacles cleared: '+cleared,'Tap to jump over each obstacle.'],
           'Bounce Run Over'
         );
         return;
@@ -1155,43 +1154,28 @@
       raf=requestAnimationFrame(loop);
     }
 
-    const down=e=>{if(alive){e.preventDefault();dive=true}};
-    const up=e=>{if(alive){e.preventDefault();dive=false}};
-
-    c.addEventListener('pointerdown',down);
-    c.addEventListener('pointerup',up);
-    c.addEventListener('pointercancel',up);
-
-    const onWideDown=e=>{
-      if(!alive || e.target===c || !Arcade.inExpandedGameZone(e,c,130))return;
-      e.preventDefault();
-      dive=true;
-    };
-    const onWideUp=()=>{
-      if(!alive||!dive)return;
-      dive=false;
-    };
-
-    document.addEventListener('pointerdown',onWideDown,{passive:false});
-    document.addEventListener('pointerup',onWideUp,{passive:true});
-    document.addEventListener('pointercancel',onWideUp,{passive:true});
-
-    const onDown=e=>{
-      if(alive&&(e.code==='Space'||e.key==='ArrowDown')){
-        e.preventDefault();
-        dive=true;
+    function jump(e){
+      if(!alive || performance.now()<readyUntil)return;
+      if(e && e.preventDefault)e.preventDefault();
+      if(y>=347){
+        vy=-10.4;
+        Arcade.feedback('hop');
       }
-    };
-    const onUp=e=>{
-      if(e.code==='Space'||e.key==='ArrowDown')dive=false;
-    };
+    }
 
-    document.addEventListener('keydown',onDown);
-    document.addEventListener('keyup',onUp);
+    const onPointer=e=>{
+      if(!alive || !Arcade.inExpandedGameZone(e,c,130))return;
+      jump(e);
+    };
+    const onKey=e=>{
+      if(alive&&(e.code==='Space'||e.code==='Enter'||e.key==='ArrowUp'))jump(e);
+    };
+    document.addEventListener('pointerdown',onPointer,{passive:false});
+    document.addEventListener('keydown',onKey);
 
     return {
       start(){
-        y=270;vy=-6.4;dive=false;obstacles=[];distance=0;cleared=0;graceClears=0;spawn=175;last=0;alive=true;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;spawn=175;last=0;alive=true;
         readyUntil=performance.now()+1600;
         ui(0,0);
         draw();
@@ -1199,13 +1183,9 @@
       },
       stop(){
         alive=false;
-        dive=false;
         cancelAnimationFrame(raf);
-        document.removeEventListener('keydown',onDown);
-        document.removeEventListener('keyup',onUp);
-        document.removeEventListener('pointerdown',onWideDown);
-        document.removeEventListener('pointerup',onWideUp);
-        document.removeEventListener('pointercancel',onWideUp);
+        document.removeEventListener('pointerdown',onPointer);
+        document.removeEventListener('keydown',onKey);
       }
     };
   }
