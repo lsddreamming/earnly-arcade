@@ -771,7 +771,7 @@
         ctx.strokeRect(18,14,324,42);
         ctx.fillStyle='#dbeafe';
         ctx.font='800 11px Arial';
-        ctx.fillText('◀ DRAG TO MOVE ▶',180,30);
+        ctx.fillText('◀ DRAG OR ARROW KEYS ▶',180,30);
         ctx.fillStyle='#94a3b8';
         ctx.font='700 9px Arial';
         ctx.fillText(score===0?'First opening starts centered for you':'Drag the ball through each opening',180,45);
@@ -1006,8 +1006,8 @@
 
     const onKey=e=>{
       if(!alive)return;
-      if(e.key==='ArrowLeft'){e.preventDefault();nudge(-20)}
-      if(e.key==='ArrowRight'){e.preventDefault();nudge(20)}
+      if(e.key==='ArrowLeft'){e.preventDefault();nudge(-16)}
+      if(e.key==='ArrowRight'){e.preventDefault();nudge(16)}
     };
     document.addEventListener('keydown',onKey);
 
