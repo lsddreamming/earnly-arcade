@@ -34,7 +34,7 @@
       </div>
     </header>
 
-    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start <span class="desktop-only">· or press Enter/Return</span></button>
 
     <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
 
@@ -163,6 +163,22 @@
     });
 
     document.addEventListener('keydown', event => {
+      const target = event.target;
+      const tag = target?.tagName;
+      const isInteractive =
+        target?.isContentEditable ||
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        tag === 'A' ||
+        tag === 'BUTTON';
+
+      if (event.key === 'Enter' && game === null && !starting && !isInteractive) {
+        event.preventDefault();
+        startGame();
+        return;
+      }
+
       if (!event.key.startsWith('Arrow')) return;
       event.preventDefault();
       const map = {
