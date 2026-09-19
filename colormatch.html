@@ -82,14 +82,15 @@
       const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';choices.replaceChildren();
       Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score>=25?'🔥 Your brain ignored the trick.':'Focus on the ink, not the word.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=25?'🔥 Your brain ignored the trick.':'Focus on the ink, not the word.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
     }
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
-      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();
+      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
       score=0;streak=0;timeLeft=25;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish()},1000)});
     }
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish()},1000);}});
     board.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
     startButton.addEventListener('click',startGame);refreshChrome();
