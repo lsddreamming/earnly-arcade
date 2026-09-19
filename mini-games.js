@@ -458,7 +458,7 @@
   function makePerfectDrop() {
     const [c,ctx]=canvasBase();
     let x=40,dir=1,speed=3,targetX=110,targetW=150,hits=0,streak=0,lives=3,drop=null,alive=false,raf=null;
-    let flashText='',flashFrames=0,goalCelebrated=false,roundDeadline=0,roundLimit=0,bestStreak=0,perfects=0;
+    let flashText='',flashFrames=0,goalCelebrated=false,roundDeadline=0,roundLimit=0,bestStreak=0,perfects=0,perfectPauseAt=0;
 
     function level(){
       return Math.min(9,1+Math.floor(hits/5));
@@ -641,7 +641,15 @@
 
     function loop() {
       if(!alive)return;
-      if(miniPaused){raf=requestAnimationFrame(loop);return;}
+      if(miniPaused){
+        if(!perfectPauseAt) perfectPauseAt=performance.now();
+        raf=requestAnimationFrame(loop);
+        return;
+      }
+      if(perfectPauseAt){
+        roundDeadline+=performance.now()-perfectPauseAt;
+        perfectPauseAt=0;
+      }
 
       if(drop){
         drop.y+=9.2;
@@ -689,7 +697,7 @@
 
     return {
       start(){
-        hits=0;streak=0;bestStreak=0;perfects=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
+        hits=0;streak=0;bestStreak=0;perfects=0;perfectPauseAt=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
         next();ui(0,1);draw();raf=requestAnimationFrame(loop);
       },
       stop(){
@@ -1814,9 +1822,6 @@
       if(pauseStartedAt){
         const pausedFor=performance.now()-pauseStartedAt;
         totalPausedMs+=pausedFor;
-        // Timed mini-games use absolute deadlines. Move those deadlines
-        // forward by the pause duration so Resume truly continues the run.
-        if(activeGame==='perfectDrop' && typeof roundDeadline==='number') roundDeadline+=pausedFor;
       }
       pauseStartedAt=0;
       miniPaused=false;
