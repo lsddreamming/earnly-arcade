@@ -686,14 +686,14 @@
       const half=width/2;
       const edge=half+28;
       const min=edge,max=360-edge;
-      const previous=rings.length?rings[rings.length-1].gap:180;
-      const beforePrevious=rings.length>1?rings[rings.length-2].gap:180;
+      const recent=rings.slice(-4).map(r=>r.gap);
+      const previous=recent.length?recent[recent.length-1]:180;
 
-      // Later runs use more of the board, but also reject "free-fall lanes"
-      // where several openings line up and let the player clear rows without
-      // making another decision.
+      // Avoid long "free-fall" streaks. A new row should normally demand a
+      // meaningful horizontal correction, not sit in the same broad corridor
+      // as several recent openings.
       let candidate=180;
-      for(let attempt=0;attempt<8;attempt++){
+      for(let attempt=0;attempt<14;attempt++){
         if(score>=25&&Math.random()<Math.min(.72,.28+score*.006)){
           const side=Math.random()<.5 ? -1 : 1;
           const outer=edge+Math.random()*Math.max(1,54-half*.12);
@@ -702,23 +702,27 @@
           candidate=min+Math.random()*(max-min);
         }
 
-        if(rings.length){
-          const move=Math.abs(candidate-previous);
-          const repeatedLane=move<Math.max(30,width*.30);
-          const threeRowDrift=rings.length>1 &&
-            Math.abs(previous-beforePrevious)<Math.max(34,width*.34) &&
-            move<Math.max(42,width*.40);
-          if(repeatedLane||threeRowDrift)continue;
+        if(recent.length){
+          const minMove=Math.max(44,width*.40);
+          if(Math.abs(candidate-previous)<minMove)continue;
+
+          // Also reject candidates that recreate the same lane used two or
+          // three rows ago; this breaks repeating left/center/right grooves.
+          const laneRadius=Math.max(30,width*.27);
+          const repeatedRecentLane=recent.slice(0,-1).some(g=>Math.abs(candidate-g)<laneRadius);
+          if(repeatedRecentLane)continue;
         }
         return candidate;
       }
 
-      // Deterministic fallback: force the next opening away from the previous
-      // lane instead of accepting an unlucky repeated random pattern.
-      const leftRoom=previous-min;
-      const rightRoom=max-previous;
-      const direction=rightRoom>=leftRoom?1:-1;
-      return Math.max(min,Math.min(max,previous+direction*Math.max(48,width*.44)));
+      // Fallback picks the side with the most distance from recent rows.
+      const choices=[min,(min+max)*.5,max];
+      choices.sort((a,b)=>{
+        const aClear=Math.min(...recent.map(g=>Math.abs(a-g)),999);
+        const bClear=Math.min(...recent.map(g=>Math.abs(b-g)),999);
+        return bClear-aClear;
+      });
+      return choices[0];
     }
 
     function resetRings() {
@@ -794,7 +798,7 @@
         ctx.fillText('LEVEL '+level(),22,76);
         ctx.textAlign='right';
         ctx.fillStyle='#cbd5e1';
-        ctx.fillText(score+' RINGS',338,76);
+        ctx.fillText(score+' ROWS',338,76);
       }else{
         ctx.shadowBlur=0;
         ctx.fillStyle='rgba(15,23,42,.88)';
@@ -814,7 +818,7 @@
 
         ctx.fillStyle='#94a3b8';
         ctx.font='900 9px Arial';
-        ctx.fillText('RINGS',286,29);
+        ctx.fillText('ROWS',286,29);
         ctx.fillStyle='#ffffff';
         ctx.font='900 16px Arial';
         ctx.fillText(String(score),286,47);
@@ -822,7 +826,7 @@
       ctx.textAlign='center';
 
       if(levelFlashFrames>0){
-        // Small center HUD between LEVEL and RINGS: noticeable without making
+        // Small center HUD between LEVEL and ROWS: noticeable without making
         // the player look away from the next gap.
         ctx.save();
         const fade=Math.min(1,levelFlashFrames/8,(34-levelFlashFrames)/6);
@@ -906,7 +910,7 @@
               score,
               level(),
               [
-                '🌀 Rings passed: '+score,
+                '🌀 Rows passed: '+score,
                 'Tap or drag toward the opening before it reaches the ball.'
               ],
               'Hit the Ring'
@@ -918,7 +922,7 @@
           Arcade.feedback('score');
           ui(score,level());
 
-          if(score===1) Arcade.milestone('🌀 First ring cleared!','score');
+          if(score===1) Arcade.milestone('🌀 First row cleared!','score');
           if(score>0&&score%5===0){
             // Keep level feedback inside the player's focal area. The persistent
             // LEVEL card updates immediately, so a large page-level toast only
