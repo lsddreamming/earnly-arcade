@@ -5,7 +5,7 @@
   const configs = {
     blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Place pieces on the 8×8 board. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
-    perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Streak',help:'Tap when the moving ball is above the glowing target.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
+    perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?2:0)+(v>=20?5:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'Study the silhouette and choose the matching piece.',reward:v=>Math.min(25,Math.floor(v/2)+(v>=10?3:0)+(v>=20?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Hold to dive faster. Release to float and clear obstacles.',reward:v=>Math.min(25,Math.floor(v/15)+(v>=120?3:0)+(v>=220?5:0))},
@@ -369,66 +369,199 @@
 
   function makePerfectDrop() {
     const [c,ctx]=canvasBase();
-    let x=40,dir=1,speed=3,targetX=110,targetW=140,hits=0,streak=0,lives=3,drop=null,alive=false,raf=null;
+    let x=40,dir=1,speed=3,targetX=110,targetW=150,hits=0,streak=0,lives=3,drop=null,alive=false,raf=null;
+    let flashText='',flashFrames=0,goalCelebrated=false;
+
+    function level(){
+      return Math.min(9,1+Math.floor(hits/5));
+    }
+
+    function nextLevelAt(){
+      return level()*5;
+    }
 
     function next() {
-      targetW=Math.max(45,140-hits*5);
+      const lv=level();
+      targetW=Math.max(44,150-(lv-1)*16-hits*1.2);
       targetX=20+Math.random()*(320-targetW);
-      speed=Math.min(8,3+hits*.22);
+      speed=Math.min(9.2,3+(lv-1)*.65+hits*.08);
       x=dir>0?30:330;
       drop=null;
     }
 
+    function roundedRect(x,y,w,h,r,fill,stroke) {
+      ctx.beginPath();
+      ctx.roundRect(x,y,w,h,r);
+      if(fill){ctx.fillStyle=fill;ctx.fill()}
+      if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}
+    }
+
     function draw() {
-      ctx.fillStyle='#101c2e';ctx.fillRect(0,0,360,430);
-      ctx.fillStyle='#163a2a';ctx.fillRect(targetX,360,targetW,38);
-      ctx.fillStyle='#4ade80';ctx.fillRect(targetX+6,360,targetW-12,6);
-      ctx.strokeStyle='#475569';ctx.beginPath();ctx.moveTo(20,95);ctx.lineTo(340,95);ctx.stroke();
-      ctx.beginPath();ctx.fillStyle='#f8fafc';ctx.arc(drop?drop.x:x,drop?drop.y:85,11,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#94a3b8';ctx.font='12px Arial';ctx.textAlign='center';ctx.fillText('Lives: '+lives,180,410);
+      const lv=level();
+      const progress=hits%5;
+      const bg=ctx.createLinearGradient(0,0,0,430);
+      bg.addColorStop(0,'#0d1728');
+      bg.addColorStop(1,'#142640');
+      ctx.fillStyle=bg;ctx.fillRect(0,0,360,430);
+
+      // Rule strip.
+      roundedRect(14,14,332,48,12,'#0b1524','#334155');
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillStyle='#dbeafe';ctx.font='700 12px Arial';
+      ctx.fillText('👆 TAP TO DROP',28,31);
+      ctx.fillStyle='#94a3b8';ctx.font='700 10px Arial';
+      ctx.fillText('Land inside green · 3 misses = game over',28,48);
+
+      // Level + lives row.
+      ctx.textAlign='center';
+      roundedRect(22,77,112,36,12,'#111c2d','#334155');
+      ctx.fillStyle='#93c5fd';ctx.font='800 13px Arial';ctx.fillText('LEVEL '+lv,78,95);
+      roundedRect(226,77,112,36,12,'#111c2d','#334155');
+      ctx.fillStyle='#fca5a5';ctx.font='800 13px Arial';
+      ctx.fillText('❤'.repeat(lives)+'♡'.repeat(3-lives),282,95);
+
+      // Progress toward next level.
+      ctx.fillStyle='#243244';ctx.fillRect(98,128,164,9);
+      const progWidth=164*Math.min(1,progress/5);
+      ctx.fillStyle='#3b82f6';ctx.fillRect(98,128,progWidth,9);
+      ctx.fillStyle='#94a3b8';ctx.font='700 10px Arial';
+      ctx.fillText(progress+'/5 to Level '+Math.min(9,lv+1),180,151);
+
+      // Ball rail.
+      ctx.strokeStyle='#475569';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(20,190);ctx.lineTo(340,190);ctx.stroke();
+      ctx.fillStyle='rgba(148,163,184,.18)';
+      ctx.fillRect(20,181,320,18);
+
+      const ballX=drop?drop.x:x;
+      const ballY=drop?drop.y:178;
+      const ballGlow=ctx.createRadialGradient(ballX-4,ballY-5,2,ballX,ballY,18);
+      ballGlow.addColorStop(0,'#ffffff');
+      ballGlow.addColorStop(.55,'#dbeafe');
+      ballGlow.addColorStop(1,'#60a5fa');
+      ctx.beginPath();ctx.fillStyle=ballGlow;ctx.arc(ballX,ballY,12,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#bfdbfe';ctx.lineWidth=2;ctx.stroke();
+
+      // Target + perfect center.
+      const targetY=344;
+      roundedRect(targetX,targetY,targetW,42,10,'#14532d','#22c55e');
+      const perfectW=Math.max(18,targetW*.34);
+      const perfectX=targetX+(targetW-perfectW)/2;
+      roundedRect(perfectX,targetY+5,perfectW,32,8,'#22c55e','#86efac');
+      ctx.fillStyle='#dcfce7';ctx.font='800 9px Arial';
+      ctx.fillText('PERFECT',targetX+targetW/2,targetY+21);
+
+      // Guide line while ball is falling.
+      if(drop){
+        ctx.setLineDash([5,5]);
+        ctx.strokeStyle='rgba(147,197,253,.38)';
+        ctx.beginPath();ctx.moveTo(drop.x,203);ctx.lineTo(drop.x,targetY);ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Hit streak.
+      ctx.fillStyle='#aab6c8';ctx.font='700 11px Arial';
+      ctx.fillText('🔥 Streak '+streak,180,408);
+
+      if(flashFrames>0){
+        ctx.save();
+        ctx.globalAlpha=Math.min(1,flashFrames/10);
+        roundedRect(92,244,176,54,14,'rgba(15,23,42,.92)',flashText==='PERFECT!'?'#fbbf24':'#22c55e');
+        ctx.fillStyle=flashText==='PERFECT!'?'#fde68a':'#bbf7d0';
+        ctx.font='900 22px Arial';ctx.fillText(flashText,180,271);
+        ctx.restore();
+        flashFrames--;
+      }
     }
 
     function act() {
       if(!alive||drop)return;
-      drop={x,y:85};
+      drop={x,y:178};
+      Arcade.feedback('move');
+    }
+
+    function handleLanding() {
+      const landedX=drop.x;
+      const hit=landedX>=targetX&&landedX<=targetX+targetW;
+      const perfectW=Math.max(18,targetW*.34);
+      const perfectX=targetX+(targetW-perfectW)/2;
+      const perfect=landedX>=perfectX&&landedX<=perfectX+perfectW;
+
+      if(hit){
+        hits++;
+        streak++;
+        flashText=perfect?'PERFECT!':'NICE!';
+        flashFrames=26;
+        Arcade.feedback(perfect?'perfect':'score');
+
+        if(perfect && streak%3===0) {
+          Arcade.milestone('🔥 '+streak+' hit streak!','perfect');
+        }
+        if(hits===5) Arcade.milestone('🎯 Level 2 unlocked!','score');
+        if(hits===10) Arcade.milestone('🎯 Level 3 unlocked!','score');
+        if(hits===15) Arcade.milestone('🎯 Level 4 unlocked!','score');
+        if(hits>=20&&!goalCelebrated){
+          goalCelebrated=true;
+          Arcade.milestone('🏆 Level 5 reached! Keep going!','perfect');
+        }
+      }else{
+        lives--;
+        streak=0;
+        flashText='MISS';
+        flashFrames=24;
+        Arcade.feedback('fail');
+      }
+
+      ui(hits,level());
+
+      if(lives<=0){
+        alive=false;
+        finish(
+          hits,
+          level(),
+          [
+            '🎯 Level reached: '+level(),
+            '🔥 Final streak: '+streak,
+            hits>=20?'🏆 You reached the Level 5 goal!':'Reach 20 hits to conquer Level 5.'
+          ],
+          'Perfect Drop Run Over'
+        );
+        return;
+      }
+
+      next();
     }
 
     function loop() {
       if(!alive)return;
+
       if(drop){
-        drop.y+=8;
-        if(drop.y>=350){
-          const hit=drop.x>=targetX&&drop.x<=targetX+targetW;
-          if(hit){
-            hits++;streak++;
-            Arcade.feedback('perfect');
-            if(streak===5)Arcade.milestone('🎯 5 perfect drops!','perfect');
-          }else{
-            lives--;streak=0;Arcade.feedback('fail');
-          }
-          ui(hits,streak);
-          if(lives<=0){
-            alive=false;
-            finish(hits,streak,['🎯 Hits: '+hits,'Center the ball for safer drops.'],'Drop Run Over');
-            return;
-          }
-          next();
-        }
-      } else {
+        drop.y+=9.2;
+        if(drop.y>=333) handleLanding();
+      }else{
         x+=speed*dir;
         if(x>=330){x=330;dir=-1}
         else if(x<=30){x=30;dir=1}
       }
+
       draw();
       raf=requestAnimationFrame(loop);
     }
 
     c.addEventListener('pointerdown',e=>{e.preventDefault();act()});
-    const onKey=e=>{if(alive&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();act()}};
+    const onKey=e=>{
+      if(alive&&(e.code==='Space'||e.key==='Enter')){
+        e.preventDefault();
+        act();
+      }
+    };
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){hits=0;streak=0;lives=3;alive=true;next();ui(0,0);raf=requestAnimationFrame(loop)},
+      start(){
+        hits=0;streak=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
+        next();ui(0,1);draw();raf=requestAnimationFrame(loop);
+      },
       stop(){alive=false;cancelAnimationFrame(raf);document.removeEventListener('keydown',onKey)}
     };
   }
