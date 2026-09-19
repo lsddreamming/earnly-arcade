@@ -68,13 +68,13 @@
       game:'snake',
       surface:canvas,
       steps:[
-        { icon:'👆', title:'Start', text:'Tap the board' },
+        { icon:'👆', title:'Start', text:'Tap the board or press Enter/Return' },
         { icon:'↔️', title:'Control', text:'Steer anywhere' },
         { icon:'🍎', title:'Goal', text:'Eat apples, avoid crashes' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap Anywhere in This Box',
-      overlayText:'Start here, then wait for 3 · 2 · 1 · GO!',
+      overlayText:'Tap here, or press Enter/Return on a computer. Then wait for 3 · 2 · 1 · GO!',
       replayTitle:'Tap to Play Again',
       tips:[
         'While playing, the entire screen becomes the controller. Swipe normally or keep one finger down and steer anywhere.',
@@ -173,10 +173,18 @@
         tag === 'A' ||
         tag === 'BUTTON';
 
-      if (event.key === 'Enter' && game === null && !starting && !isInteractive) {
-        event.preventDefault();
-        startGame();
-        return;
+      const pressedStartKey =
+        event.key === 'Enter' ||
+        event.code === 'Enter' ||
+        event.code === 'NumpadEnter';
+
+      if (pressedStartKey && game === null && !starting) {
+        const allowFromStartButton = target === startButton;
+        if (!isInteractive || allowFromStartButton) {
+          event.preventDefault();
+          startGame();
+          return;
+        }
       }
 
       if (!event.key.startsWith('Arrow')) return;
@@ -477,7 +485,7 @@
 
       starting = false;
       startButton.disabled = false;
-      startButton.textContent = '👆 Tap Game to Play Again';
+      startButton.textContent = '👆 Tap Game to Play Again · or press Enter';
       setStatus('Game Over', 'over');
 
       Arcade.gameResult({
