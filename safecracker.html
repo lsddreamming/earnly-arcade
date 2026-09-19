@@ -73,6 +73,12 @@
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}attempt()});
+    document.addEventListener('pointerdown',e=>{
+      if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,135))return;
+      e.preventDefault();
+      if(!running){if(!starting)startGame();return}
+      attempt();
+    },{passive:false});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(running&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();attempt()}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
