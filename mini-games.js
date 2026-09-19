@@ -263,7 +263,7 @@
   }
 
   function makeMergeRush() {
-    let board=Array(16).fill(0), score=0, moves=0, alive=false, startX=0, startY=0, celebrated64=false, celebrated128=false, celebrated256=false;
+    let board=Array(16).fill(0), score=0, moves=0, alive=false, startX=0, startY=0, celebrated64=false, celebrated128=false, celebrated256=false, lastMergeValue=0, mergeCount=0, bestMerge=0;
     const wrap=document.createElement('div');
     wrap.className='merge-wrap';
 
@@ -279,11 +279,14 @@
     grid.className='merge-grid';
     grid.style.touchAction='none';
 
+    const progress=document.createElement('div');
+    progress.className='merge-progress';
+
     const goal=document.createElement('div');
     goal.className='merge-goal';
     goal.innerHTML='<strong>Next target: 128</strong><span>2 + 2 = 4 · 4 + 4 = 8 · 8 + 8 = 16…</span>';
 
-    wrap.append(rules,grid,goal);
+    wrap.append(rules,progress,grid,goal);
     surface.replaceChildren(wrap);
 
     function spawn() {
@@ -307,6 +310,9 @@
         grid.append(d);
       });
       const highTile=high();
+      const stage=highTile<16?'Warm-up':highTile<64?'Building':highTile<128?'Almost There':highTile<256?'Goal Crusher':'Merge Master';
+      const filled=board.filter(Boolean).length;
+      progress.innerHTML='<span><strong>'+stage+'</strong><small>'+moves+' moves</small></span><span><strong>'+highTile+'</strong><small>highest tile</small></span><span><strong>'+mergeCount+'</strong><small>merges</small></span><span><strong>'+filled+'/16</strong><small>board filled</small></span>';
       ui(score,highTile);
       const nextTarget = highTile < 128 ? 128 : Math.pow(2, Math.ceil(Math.log2(highTile + 1)));
       goal.querySelector('strong').textContent =
@@ -324,6 +330,9 @@
         if (a[i]===a[i+1]) {
           a[i]*=2;
           score+=a[i];
+          lastMergeValue=a[i];
+          mergeCount++;
+          bestMerge=Math.max(bestMerge,a[i]);
           a.splice(i+1,1);
         }
       }
@@ -366,10 +375,26 @@
       }
       const changed=old.some((v,i)=>v!==next[i]);
       board=next;
-      if(changed){moves++;spawn();Arcade.feedback('move');render()}else{Arcade.feedback('fail')}
+      if(changed){
+        moves++;spawn();
+        if(lastMergeValue){
+          Arcade.feedback(lastMergeValue>=64?'perfect':'score');
+          const merged=lastMergeValue;
+          lastMergeValue=0;
+          render();
+          goal.classList.add('merge-pop');
+          goal.querySelector('span').textContent='✨ '+merged+' tile created!';
+          setTimeout(()=>{goal.classList.remove('merge-pop');if(alive)render()},500);
+        }else{Arcade.feedback('move');render()}
+      }else{
+        Arcade.feedback('fail');
+        goal.classList.remove('merge-shake');
+        void goal.offsetWidth;
+        goal.classList.add('merge-shake');
+      }
       if(!canMove()){
         alive=false;
-        finish(score,high(),['🔢 Highest tile: '+high(),'👆 Moves: '+moves,high()>=128?'🏆 128 goal reached!':'🎯 Goal: reach 128','Swipe the whole board to combine matching numbers.'],'No More Moves');
+        finish(score,high(),['🔢 Highest tile: '+high(),'✨ Total merges: '+mergeCount,'💥 Biggest merge: '+bestMerge,'👆 Moves: '+moves,high()>=128?'🏆 128 goal reached!':'🎯 Goal: reach 128','Swipe the whole board to combine matching numbers.'],'No More Moves');
       }
     }
 
@@ -412,7 +437,7 @@
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){board=Array(16).fill(0);score=0;moves=0;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;spawn();spawn();render()},
+      start(){board=Array(16).fill(0);score=0;moves=0;lastMergeValue=0;mergeCount=0;bestMerge=0;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;spawn();spawn();render()},
       stop(){
         alive=false;
         swipePointer=null;
