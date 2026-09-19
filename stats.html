@@ -104,7 +104,14 @@
       ['colorMatch','🎨','Color Match'],
       ['paddleRally','🏓','Paddle Rally'],
       ['laneRunner','🏎️','Lane Runner'],
-      ['safeCracker','🔐','Safe Cracker']
+      ['safeCracker','🔐','Safe Cracker'],
+      ['blockGrid','🧩','Block Grid'],
+      ['mergeRush','🔢','Merge Rush'],
+      ['perfectDrop','🎯','Perfect Drop'],
+      ['spiralDrop','🌀','Spiral Drop'],
+      ['shapeFit','🧠','Shape Fit'],
+      ['bounceRun','⚪','Bounce Run'],
+      ['trafficEscape','🚦','Traffic Escape']
     ];
 
     const missionGamePages = {
@@ -120,13 +127,20 @@
       colorMatch:'colormatch.html',
       paddleRally:'paddlerally.html',
       laneRunner:'lanerunner.html',
-      safeCracker:'safecracker.html'
+      safeCracker:'safecracker.html',
+      blockGrid:'mini.html?game=blockGrid',
+      mergeRush:'mini.html?game=mergeRush',
+      perfectDrop:'mini.html?game=perfectDrop',
+      spiralDrop:'mini.html?game=spiralDrop',
+      shapeFit:'mini.html?game=shapeFit',
+      bounceRun:'mini.html?game=bounceRun',
+      trafficEscape:'mini.html?game=trafficEscape'
     };
 
     function missionDestination(mission) {
       const page = missionGamePages[mission.game] || 'games.html';
       if (!mission.game) return page;
-      return page + '?goal=weekly&mission=' + encodeURIComponent(mission.id);
+      return page + (page.includes('?') ? '&' : '?') + 'goal=weekly&mission=' + encodeURIComponent(mission.id);
     }
 
     function missionGameLabel(mission) {
