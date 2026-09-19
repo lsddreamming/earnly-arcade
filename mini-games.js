@@ -1016,15 +1016,15 @@
     }
 
     function obstacleSpeed(){
-      // Keep the first few obstacles deliberately slow, then ramp from successful clears.
+      // Friendly tutorial opening, then a noticeable difficulty ramp every few clears.
       if(cleared<5)return 1.35+cleared*.16;
-      return Math.min(5.1,2.69+(cleared-3)*.065);
+      return Math.min(6.2,2.75+(cleared-5)*.12);
     }
 
     function nextSpawnDelay(){
-      // More breathing room while the player learns the hold/release rhythm.
+      // Plenty of room while learning; successful players get tighter spacing.
       if(cleared<5)return 175+Math.random()*35;
-      return Math.max(68,108-(cleared-3)*1.05)+Math.random()*32;
+      return Math.max(54,108-(cleared-5)*2.0)+Math.random()*24;
     }
 
     function draw() {
@@ -1122,8 +1122,9 @@
 
       if(!warming&&spawn<=0){
         // The opening obstacles are narrower so a new player can learn the timing.
-        const maxWidth=cleared<5?22:52;
-        const minWidth=cleared<5?16:28;
+        const difficultyWidth=Math.min(66,34+Math.max(0,cleared-5)*1.4);
+        const maxWidth=cleared<5?22:difficultyWidth;
+        const minWidth=cleared<5?16:Math.max(26,difficultyWidth-16);
         obstacles.push({x:390,w:minWidth+Math.random()*(maxWidth-minWidth)});
         spawn=nextSpawnDelay();
       }
