@@ -4746,3 +4746,14 @@ body.earnly-gameplay-locked{
 .home-primary-play-copy small{font-size:11px;color:#dcfce7;line-height:1.35}
 .home-primary-play b{font-size:13px;white-space:nowrap}
 .home-primary-play:active{transform:scale(.99)}
+
+/* Home hierarchy: keep play and active tasks visually dominant on phones */
+.home-dashboard .continue-card{margin-top:2px}
+.home-dashboard .home-overview{margin-top:8px}
+.home-dashboard .home-account-shortcut{margin-top:18px;opacity:.92}
+@media(max-width:520px){
+  .home-dashboard .home-primary-play{margin-top:6px;margin-bottom:10px}
+  .home-dashboard .home-section{margin-top:12px}
+  .home-dashboard .home-overview{gap:8px}
+  .home-dashboard .home-account-shortcut{padding:11px 13px}
+}
