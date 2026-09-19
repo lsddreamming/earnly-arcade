@@ -4312,3 +4312,87 @@ html.snake-game-active body{
 }
 .game-browser-empty strong{color:#e2e8f0}
 .game-browser-empty span{font-size:11px}
+
+
+/* Simplified Games picker */
+.games-simple-note{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px 14px;
+  flex-wrap:wrap;
+  margin:8px 0 12px;
+  color:#aebed1;
+  font-size:10px;
+  font-weight:800;
+}
+.games-simple-note>span{
+  padding:7px 10px;
+  border:1px solid #334155;
+  border-radius:999px;
+  background:#111b2b;
+}
+.games-simple-note details{
+  position:relative;
+}
+.games-simple-note summary{
+  cursor:pointer;
+  color:#93c5fd;
+  list-style:none;
+}
+.games-simple-note summary::-webkit-details-marker{display:none}
+.games-simple-note details p{
+  position:absolute;
+  z-index:20;
+  right:0;
+  width:min(280px,82vw);
+  margin:7px 0 0;
+  padding:10px 12px;
+  border:1px solid #334155;
+  border-radius:12px;
+  background:#111827;
+  box-shadow:0 14px 30px rgba(0,0,0,.35);
+  color:#cbd5e1;
+  font-size:9px;
+  line-height:1.45;
+  text-align:left;
+}
+.games-dashboard .quick-section{
+  margin:12px 0 10px;
+}
+.games-dashboard .quick-section h2{
+  margin:0 0 7px;
+  font-size:11px;
+  letter-spacing:.08em;
+  color:#cbd5e1;
+  text-transform:uppercase;
+}
+.games-dashboard .quick-grid{
+  gap:7px;
+}
+.games-dashboard .quick-game{
+  min-height:38px;
+  padding:9px 11px;
+  font-size:11px;
+}
+.games-dashboard .game-browser-tools{
+  margin:10px 0 12px;
+  padding:9px;
+}
+.games-dashboard .game-search-box{
+  min-height:41px;
+}
+.games-dashboard .game-filter-row{
+  margin-top:7px;
+}
+.games-dashboard .game-filter{
+  min-height:32px;
+  padding:6px 9px;
+  font-size:9px;
+}
+.games-dashboard .game-filter-count{
+  margin-top:6px;
+}
+.games-dashboard .game-list{
+  margin-top:0;
+}
