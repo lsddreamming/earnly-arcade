@@ -1009,7 +1009,7 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0;
+    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false;
 
     function runLevel(){
       return 1+Math.floor(cleared/5);
@@ -1046,7 +1046,7 @@
       ctx.textAlign='center';
       ctx.fillStyle='#dbeafe';
       ctx.font='800 11px Arial';
-      ctx.fillText('TAP = JUMP',180,31);
+      ctx.fillText('TAP THE GAME BOX = JUMP',180,31);
       ctx.fillStyle='#94a3b8';
       ctx.font='700 9px Arial';
       ctx.fillText('Jump obstacles · 5 clears = level up',180,46);
@@ -1097,7 +1097,7 @@
         ctx.fillText('READY TO JUMP?',180,198);
         ctx.fillStyle='#94a3b8';
         ctx.font='700 9px Arial';
-        ctx.fillText('Tap when the obstacle gets close',180,215);
+        ctx.fillText('Tap the box now · then jump each red block',180,215);
       }
     }
 
@@ -1106,6 +1106,8 @@
       const dt=Math.min(32,t-(last||t))/16.67;
       last=t;
       const warming=t<readyUntil;
+
+      if(!warming&&queuedJump){queuedJump=false;jump();}
 
       if(!warming){
         distance+=.18*dt;
@@ -1155,8 +1157,12 @@
     }
 
     function jump(e){
-      if(!alive || performance.now()<readyUntil)return;
+      if(!alive)return;
       if(e && e.preventDefault)e.preventDefault();
+      if(performance.now()<readyUntil){
+        queuedJump=true;
+        return;
+      }
       if(y>=347){
         vy=-11.8;
         Arcade.feedback('hop');
@@ -1180,13 +1186,14 @@
     c.style.webkitUserSelect='none';
     c.style.webkitTouchCallout='none';
     c.addEventListener('pointerdown',onPointer,{passive:false});
+    c.addEventListener('pointerup',onPointer,{passive:false});
     c.addEventListener('touchstart',blockGesture,{passive:false});
     c.addEventListener('gesturestart',blockGesture,{passive:false});
     document.addEventListener('keydown',onKey);
 
     return {
       start(){
-        y=349;vy=0;obstacles=[];distance=0;cleared=0;spawn=205;last=0;alive=true;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;queuedJump=false;spawn=205;last=0;alive=true;
         readyUntil=performance.now()+1900;
         ui(0,0);
         draw();
@@ -1196,6 +1203,7 @@
         alive=false;
         cancelAnimationFrame(raf);
         c.removeEventListener('pointerdown',onPointer);
+        c.removeEventListener('pointerup',onPointer);
         c.removeEventListener('touchstart',blockGesture);
         c.removeEventListener('gesturestart',blockGesture);
         document.removeEventListener('keydown',onKey);
