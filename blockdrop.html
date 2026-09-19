@@ -287,13 +287,13 @@
         result,
         playsLeft:Arcade.remaining('blockDrop'),
         game:'blockDrop',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s','Board score: ' + score],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','Board score: ' + score],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('blockDrop', refreshChrome)
       });
     }
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (game || starting) return;
       starting = true;
@@ -302,7 +302,7 @@
         starting = false;
         Arcade.out('blockDrop', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       createBoard();
       score = 0;
@@ -364,6 +364,12 @@
       button.addEventListener('pointerleave', stop);
       button.addEventListener('contextmenu', event => event.preventDefault());
     }
+
+    Arcade.installPauseControl({
+      isRunning:()=>!!game,
+      pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
+      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,600);}
+    });
 
     bindHoldControl('leftButton', moveLeft);
     bindHoldControl('rightButton', moveRight);
