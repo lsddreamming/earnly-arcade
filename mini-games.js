@@ -118,14 +118,14 @@
   ];
 
   function makeBlockGrid() {
-    let board, tray, selected, score, lines, alive, celebrated100, celebrated250, lastLineMilestone;
+    let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone;
     const wrap = document.createElement('div');
     const grid = document.createElement('div');
     const trayEl = document.createElement('div');
     grid.className = 'mini-grid';
     grid.style.gridTemplateColumns = 'repeat(8,1fr)';
     trayEl.className = 'piece-tray';
-    wrap.append(grid, trayEl);
+    const guide=document.createElement('div');guide.className='mini-guide';guide.innerHTML='<strong>🧩 Pick a piece, then tap the board</strong><span>Fill a full row or column to clear it. Use all 3 pieces for a new set.</span>';wrap.append(guide,grid,trayEl);
     surface.replaceChildren(wrap);
 
     const randomPiece = () => PIECES[Math.floor(Math.random() * PIECES.length)].map(p => [...p]);
@@ -217,6 +217,7 @@
       const piece=tray[selected];
       piece.forEach(([dx,dy])=>board[y+dy][x+dx]=1);
       score += piece.length * 3;
+      piecesPlaced++;
       clearLines();
       tray[selected]=null;
 
@@ -235,7 +236,7 @@
       if(lineMark>=5&&lineMark>lastLineMilestone){lastLineMilestone=lineMark;Arcade.milestone('✨ '+lineMark+' lines cleared!','perfect')}
       if (!anyMove()) {
         alive=false;
-        finish(score,lines,['🧩 Lines cleared: '+lines,'Save room for the pieces still in your tray.'],'Board Full');
+        finish(score,lines,['🧩 Lines cleared: '+lines,'🧱 Pieces placed: '+piecesPlaced,'⭐ Board score: '+score,'Save room for the pieces still in your tray.'],'Board Full');
       }
     }
 
@@ -243,7 +244,7 @@
       start() {
         board=Array.from({length:8},()=>Array(8).fill(0));
         tray=[randomPiece(),randomPiece(),randomPiece()];
-        selected=0;score=0;lines=0;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
+        selected=0;score=0;lines=0;piecesPlaced=0;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
         render();
       },
       stop(){alive=false}
