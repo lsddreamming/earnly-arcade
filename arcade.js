@@ -2650,6 +2650,36 @@ const Arcade = (() => {
   registerServiceWorker();
   bootCloudClient();
 
+  function isProtectedGameControlTarget(target) {
+    const element = target instanceof Element ? target : null;
+    if (!element) return false;
+    return !!element.closest(
+      'a,button,input,textarea,select,summary,[role="button"],' +
+      '.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-modal,.toast'
+    );
+  }
+
+  function inExpandedGameZone(event, surface, padding = 110) {
+    if (!surface || isProtectedGameControlTarget(event?.target)) return false;
+    const rect = surface.getBoundingClientRect();
+    const x = Number(event?.clientX);
+    const y = Number(event?.clientY);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+
+    const horizontalPadding = Math.min(80, Math.max(30, padding * .55));
+    return x >= rect.left - horizontalPadding &&
+      x <= rect.right + horizontalPadding &&
+      y >= rect.top - padding &&
+      y <= rect.bottom + padding;
+  }
+
+  function gameSurfaceX(clientX, surface, logicalWidth) {
+    const rect = surface.getBoundingClientRect();
+    const width = Number(logicalWidth) || surface.width || rect.width || 1;
+    const normalized = (Number(clientX) - rect.left) / Math.max(1, rect.width);
+    return Math.max(0, Math.min(width, normalized * width));
+  }
+
   return {
     names,
     FREE_PLAYS,
@@ -2719,6 +2749,9 @@ const Arcade = (() => {
     countdown,
     resultText,
     gameGuide,
+    isProtectedGameControlTarget,
+    inExpandedGameZone,
+    gameSurfaceX,
     playAd,
     ad:playAd,
     out,
