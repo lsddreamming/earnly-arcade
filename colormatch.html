@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Color Match</title>
+  <link rel="stylesheet" href="arcade.css">
+  <style>
+    .color-board{max-width:390px;margin:12px auto;padding:18px;border:1px solid #475569;border-radius:20px;background:#152236;touch-action:manipulation}
+    .color-rule{color:#94a3b8;font-size:12px;margin-bottom:8px}.color-word{font-size:44px;font-weight:900;letter-spacing:.02em;margin:16px 0 20px}
+    .color-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.color-choice{min-height:58px;margin:0;font-size:15px}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>🎨 Color Match</h1>
+      <div class="game-meta"><span class="meta-pill">Matches: <span id="score">0</span></span>
+        <span class="meta-pill">Streak: <span id="streak">0</span></span>
+        <span class="meta-pill">Time: <span id="time">25</span>s</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <div class="color-board touch-surface" id="board" aria-label="Color Match game area">
+      <div class="color-rule">Tap the button that names the <strong>INK COLOR</strong></div>
+      <div class="color-word" id="word">READY</div>
+      <div class="color-choices" id="choices"></div>
+    </div>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('colorMatch'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('colorMatch')){ Arcade.out('colorMatch',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const board=document.getElementById('board'),wordEl=document.getElementById('word'),choices=document.getElementById('choices');
+    const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time');
+    const colors=[['RED','#ef4444'],['BLUE','#3b82f6'],['GREEN','#22c55e'],['YELLOW','#facc15']];
+    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,answer='';
+    Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Think',text:'Match the ink color'},{icon:'⚡',title:'Goal',text:'Get max matches in 25 sec'}],
+      overlayIcon:'🎨',overlayTitle:'Match the Ink Color',overlayText:'Ignore the word itself. Tap the color the word is painted.',replayTitle:'Tap to Play Again',
+      tips:['Example: the word RED may be painted blue. In that case tap BLUE.','Keyboard players can press 1, 2, 3, or 4 for the four buttons.'],reward:'Fast correct matches can earn up to 22 Coins.'});
+    function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=35)c+=4;return Math.min(c,22)}
+    function refreshReward(){}
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    function nextRound(){
+      const ink=colors[Math.floor(Math.random()*colors.length)],word=colors[Math.floor(Math.random()*colors.length)];
+      answer=ink[0];wordEl.textContent=word[0];wordEl.style.color=ink[1];choices.replaceChildren();
+      shuffle([...colors]).forEach(([name,color],idx)=>{const b=document.createElement('button');b.type='button';b.className='color-choice';b.textContent=(idx+1)+' · '+name;b.style.border='2px solid '+color;b.style.background='#1f2937';b.addEventListener('click',()=>choose(name));choices.append(b)});
+    }
+    function choose(name){
+      if(!running)return;
+      if(name===answer){score++;streak++;Arcade.feedback('score');if(streak===8)Arcade.milestone('🔥 8 correct in a row!');if(score===25)Arcade.milestone('🎨 25 matches · Color Pro!','perfect')}
+      else{streak=0;Arcade.feedback('fail')}
+      scoreEl.textContent=String(score);streakEl.textContent=String(streak);nextRound();
+    }
+    function finish(){
+      if(!running)return;running=false;clearInterval(timer);timer=null;
+      const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';choices.replaceChildren();
+      Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
+        extra:[score>=25?'🔥 Your brain ignored the trick.':'Focus on the ink, not the word.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
+    }
+    function startGame(){
+      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}
+      score=0;streak=0;timeLeft=25;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish()},1000)});
+    }
+    board.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
+    startButton.addEventListener('click',startGame);refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>
