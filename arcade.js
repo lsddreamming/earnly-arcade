@@ -2252,6 +2252,7 @@ const Arcade = (() => {
       window.addEventListener('pageshow', syncStartSummary);
       window.addEventListener('focus', syncStartSummary);
       window.addEventListener('storage', syncStartSummary);
+      window.addEventListener('earnly-data-change', syncStartSummary);
     }
 
     // Keep game state (Ready / Running / Game Over) visually tied to the title
