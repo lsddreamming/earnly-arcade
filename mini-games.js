@@ -646,7 +646,7 @@
   function makeSpiralDrop() {
     const [c,ctx]=canvasBase();
     let ballX=180,rings=[],score=0,alive=false,raf=null,last=0,readyUntil=0;
-    let controlPointer=null;
+    let controlPointer=null,levelFlash='',levelFlashFrames=0;
     let pointerStartClientX=0;
     let pointerStartBallX=180;
 
@@ -721,6 +721,28 @@
         }
       });
       ctx.shadowBlur=0;
+
+      // Make progression readable inside the game instead of relying only on
+      // the chrome above the canvas.
+      ctx.textAlign='left';
+      ctx.fillStyle='#93c5fd';
+      ctx.font='800 10px Arial';
+      ctx.fillText('LEVEL '+level(),22,76);
+      ctx.textAlign='right';
+      ctx.fillStyle='#cbd5e1';
+      ctx.fillText(score+' RINGS',338,76);
+      ctx.textAlign='center';
+
+      if(levelFlashFrames>0){
+        ctx.save();
+        ctx.globalAlpha=Math.min(1,levelFlashFrames/16);
+        ctx.fillStyle='rgba(15,23,42,.92)';
+        ctx.beginPath();ctx.roundRect(116,78,128,38,12);ctx.fill();
+        ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;ctx.stroke();
+        ctx.fillStyle='#bfdbfe';ctx.font='900 15px Arial';ctx.fillText(levelFlash,180,98);
+        ctx.restore();
+        levelFlashFrames--;
+      }
 
       // Ball with a glow so it is always easy to find.
       const glow=ctx.createRadialGradient(ballX-4,106,2,ballX,110,18);
@@ -805,7 +827,7 @@
           ui(score,level());
 
           if(score===1) Arcade.milestone('🌀 First ring cleared!','score');
-          if(score>0&&score%5===0) Arcade.milestone('⬆️ Level '+level()+'!','perfect');
+          if(score>0&&score%5===0){levelFlash='LEVEL '+level();levelFlashFrames=50;Arcade.milestone('⬆️ Level '+level()+'!','perfect')}
         }
       }
 
@@ -888,6 +910,7 @@
         controlPointer=null;
         pointerStartClientX=0;
         pointerStartBallX=180;
+        levelFlash='';levelFlashFrames=0;
         resetRings();
         ui(0,1);
         readyUntil=performance.now()+1250;
