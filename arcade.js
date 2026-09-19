@@ -2781,6 +2781,22 @@ const Arcade = (() => {
       button.hidden = false;
     };
 
+    // While paused, game input must be inert. Keep normal page/navigation
+    // controls usable, but block taps, swipes and gameplay keys from reaching
+    // the board until Resume is pressed.
+    const blockPausedGameInput = event => {
+      if (!paused) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target === button || button.contains(target)) return;
+      if (target?.closest('a,.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-modal')) return;
+      if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Escape')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','click','keydown'].forEach(type => {
+      window.addEventListener(type, blockPausedGameInput, {capture:true, passive:false});
+    });
+
     button.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
@@ -2809,7 +2825,12 @@ const Arcade = (() => {
     const observer = new MutationObserver(sync);
     observer.observe(status, {attributes:true, childList:true, characterData:true, subtree:true});
     const syncTimer = setInterval(sync, 250);
-    window.addEventListener('pagehide', () => clearInterval(syncTimer), {once:true});
+    window.addEventListener('pagehide', () => {
+      clearInterval(syncTimer);
+      ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','click','keydown'].forEach(type => {
+        window.removeEventListener(type, blockPausedGameInput, {capture:true});
+      });
+    }, {once:true});
     sync();
     return { button, isPaused:() => paused, sync };
   }
