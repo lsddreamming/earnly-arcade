@@ -277,3 +277,22 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
   await expect(page.locator('.game-guide-overlay')).not.toContainText('Out of Plays');
   await expect(page.locator('#game')).toBeVisible();
 });
+
+
+test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
+  await page.goto('/snake.html');
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+
+  const before = await page.locator('#score').textContent();
+  await page.keyboard.press('ArrowDown');
+  await page.locator('#game').click({ position:{x:200,y:320} });
+  await page.waitForTimeout(350);
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await expect(page.locator('#score')).toHaveText(before || '0');
+
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+});
