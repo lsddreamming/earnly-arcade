@@ -1200,7 +1200,7 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1;
+    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1,lastClearAt=0,combo=0,bestCombo=0;
 
     function runLevel(){return 1+Math.floor(cleared/5)}
     function stageName(){
@@ -1295,6 +1295,12 @@
       ctx.font='700 10px Arial';
       ctx.fillText(stageName().toUpperCase()+' · LEVEL '+runLevel()+' · '+cleared+' cleared',180,405);
 
+      if(combo>=2){
+        ctx.fillStyle='#fef3c7';
+        ctx.font='900 12px Arial';
+        ctx.fillText('🔥 '+combo+' CLEAR COMBO',180,78);
+      }
+
       if(performance.now()<readyUntil){
         ctx.fillStyle='rgba(15,23,42,.94)';
         ctx.beginPath();
@@ -1368,7 +1374,11 @@
       obstacles=obstacles.filter(o=>{
         if(o.x+o.w<0){
           cleared++;
-          Arcade.feedback('score');
+          const now=performance.now();
+          combo=lastClearAt&&now-lastClearAt<2200?combo+1:1;
+          bestCombo=Math.max(bestCombo,combo);
+          lastClearAt=now;
+          Arcade.feedback(combo>=3?'perfect':'score');
           if(cleared%5===0){bestLevel=Math.max(bestLevel,runLevel());Arcade.milestone('⚪ Level '+runLevel()+' · '+stageName()+'!','perfect');}
           return false;
         }
@@ -1381,7 +1391,7 @@
         finish(
           Math.floor(distance),
           cleared,
-          ['⚪ Obstacles cleared: '+cleared,'🏁 Level reached: '+runLevel(),'⚡ Stage: '+stageName(),'Tap to jump over each obstacle.'],
+          ['⚪ Obstacles cleared: '+cleared,'🏁 Level reached: '+runLevel(),'🔥 Best clear combo: '+bestCombo,'⚡ Stage: '+stageName(),'Tap to jump over each obstacle.'],
           'Bounce Run Over'
         );
         return;
@@ -1389,6 +1399,7 @@
 
       if(y+11>=360){y=349;vy=0}
       if(y<70){y=70;vy=1}
+      if(combo>0&&lastClearAt&&t-lastClearAt>=2200)combo=0;
 
       ui(Math.floor(distance),cleared);
       draw();
@@ -1432,7 +1443,7 @@
 
     return {
       start(){
-        y=349;vy=0;obstacles=[];distance=0;cleared=0;bestLevel=1;queuedJump=false;spawn=205;last=0;alive=true;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;bestLevel=1;lastClearAt=0;combo=0;bestCombo=0;queuedJump=false;spawn=205;last=0;alive=true;
         readyUntil=performance.now()+1900;
         ui(0,0);
         draw();
