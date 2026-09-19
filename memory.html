@@ -179,6 +179,7 @@
     }
 
     function finishGame(){
+      if(!running)return;
       running=false;
       lock=true;
       const earned=rewardForMoves(moves);
