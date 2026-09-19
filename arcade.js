@@ -2759,15 +2759,20 @@ const Arcade = (() => {
     button.className = 'secondary earnly-pause-button';
     button.textContent = '⏸ Pause';
     button.hidden = true;
-    const host = status.parentElement || status;
-    host.append(button);
+
+    // Keep pause beside the status when there is room, but never bury it
+    // inside a title row where a long game name can squeeze it off-screen.
+    const titleRow = status.closest('.game-title-status-row');
+    const host = titleRow?.parentElement || status.parentElement || status;
+    if (titleRow) titleRow.insertAdjacentElement('afterend', button);
+    else host.append(button);
 
     const sync = () => {
       const active = !!isRunning();
-      if (!active) {
-        paused = false;
+      if (!active && !paused) {
         button.textContent = '⏸ Pause';
         button.hidden = true;
+        document.body.classList.remove('earnly-game-paused');
         return;
       }
       button.hidden = false;
@@ -2775,6 +2780,7 @@ const Arcade = (() => {
 
     button.addEventListener('click', event => {
       event.preventDefault();
+      event.stopPropagation();
       if (!isRunning() && !paused) return;
       if (!paused) {
         paused = true;
@@ -2791,10 +2797,16 @@ const Arcade = (() => {
         status.classList.add('running');
         document.body.classList.remove('earnly-game-paused');
       }
+      sync();
     });
 
+    // Games change status text/class and some keep their own running flag.
+    // Observe both, then do a tiny polling fallback so the control stays
+    // correct even when a game starts without mutating the status class.
     const observer = new MutationObserver(sync);
-    observer.observe(status, {attributes:true, attributeFilter:['class']});
+    observer.observe(status, {attributes:true, childList:true, characterData:true, subtree:true});
+    const syncTimer = setInterval(sync, 250);
+    window.addEventListener('pagehide', () => clearInterval(syncTimer), {once:true});
     sync();
     return { button, isPaused:() => paused, sync };
   }
