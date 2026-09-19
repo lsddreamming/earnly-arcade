@@ -4191,7 +4191,7 @@ html.snake-game-active body{
 
 /* Desktop navigation: keep primary sections visible near the top on computers. */
 .desktop-nav{display:none}
-@media (min-width:700px) and (pointer:fine){
+@media (min-width:600px){
   .desktop-nav{
     position:sticky;
     top:8px;
