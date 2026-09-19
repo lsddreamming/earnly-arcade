@@ -161,14 +161,20 @@
 
         if(pairs===8) finishGame();
       } else {
-        setTimeout(()=>{
-          cards[first].revealed=false;
-          cards[second].revealed=false;
-          first=null;
-          second=null;
+        const mismatchFirst=first;
+        const mismatchSecond=second;
+        const token=++mismatchToken;
+        const hideMismatch=()=>{
+          if(token!==mismatchToken || !running) return;
+          if(pauseStartedAt){ setTimeout(hideMismatch,80); return; }
+          cards[mismatchFirst].revealed=false;
+          cards[mismatchSecond].revealed=false;
+          if(first===mismatchFirst) first=null;
+          if(second===mismatchSecond) second=null;
           lock=false;
           render();
-        },650);
+        };
+        setTimeout(hideMismatch,650);
       }
     }
 
@@ -207,7 +213,7 @@
       });
     }
 
-    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0,mismatchToken=0;
     function startGame(){
       if(running || starting) return;
       starting=true;
@@ -217,7 +223,7 @@
         return;
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
-      cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
+      mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
       first=null;second=null;lock=true;moves=0;pairs=0;running=false;
       movesEl.textContent='0';
       pairsEl.textContent='0';
