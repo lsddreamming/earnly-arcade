@@ -528,7 +528,7 @@
         result,
         playsLeft:Arcade.remaining('brickBreaker'),
         game:'brickBreaker',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',levelText,'⚡ Next levels move faster and can pay more Coins.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',levelText,'⚡ Next levels move faster and can pay more Coins.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('brickBreaker',refreshChrome)
       });
@@ -602,7 +602,7 @@
       if(event.key==='ArrowRight'){event.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+24);}
     });
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
       if(running || starting) return;
       starting=true;
@@ -610,7 +610,7 @@
         starting=false;
         Arcade.out('brickBreaker',refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       clearTimeout(levelTimer);
       powerUps=[];
@@ -644,6 +644,11 @@
       });
     }
 
+    Arcade.installPauseControl({
+      isRunning:()=>running,
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},
+      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(fireUntil)fireUntil+=d;if(wideUntil)wideUntil+=d;if(comboUntil)comboUntil+=d;animation=requestAnimationFrame(loop);}
+    });
     startButton.addEventListener('click',startGame);
     resetBricks();
     refreshChrome();
