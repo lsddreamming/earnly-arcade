@@ -344,12 +344,13 @@
         result,
         playsLeft:Arcade.remaining('jungleHopper'),
         game:'jungleHopper',
-        extra:[score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('jungleHopper',refreshChrome)
       });
     }
 
+    let earnlyRunStartedAt=0;
     function startGame() {
       if (running || starting) return;
       starting = true;
@@ -358,7 +359,7 @@
         starting = false;
         Arcade.out('jungleHopper', refreshChrome);
         return;
-      }
+      } earnlyRunStartedAt=performance.now(); 
 
       resetGame();
       running = false;
