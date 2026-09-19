@@ -1266,13 +1266,25 @@
       });
     }
 
+    let lastTrafficVariant=-1;
+
     function levelSource(){
-      // Level 1 teaches the rule. From Level 2 onward use the denser
-      // seven-car puzzle, mirrored into fresh but equivalently solvable boards.
-      const source=level===1?TRAFFIC_LEVELS[0]:TRAFFIC_LEVELS[2];
+      // Keep boards provably solvable by starting from authored layouts, but
+      // vary both the base puzzle and its orientation so consecutive roads do
+      // not collapse into the same recognizable pattern.
+      const pool=level===1?[0]:level===2?[1,2]:[1,2,3].filter(i=>TRAFFIC_LEVELS[i]);
       const modes=['none','x','y','xy'];
-      const mode=modes[(level+boardInLevel-2)%modes.length];
-      return mode==='none'?source:mirrorCars(source,mode);
+      const variants=[];
+      pool.forEach(sourceIndex=>modes.forEach(mode=>variants.push({sourceIndex,mode})));
+
+      let choices=variants.map((_,i)=>i).filter(i=>i!==lastTrafficVariant);
+      if(!choices.length)choices=variants.map((_,i)=>i);
+      const pick=choices[Math.floor(Math.random()*choices.length)];
+      lastTrafficVariant=pick;
+
+      const variant=variants[pick];
+      const source=TRAFFIC_LEVELS[variant.sourceIndex]||TRAFFIC_LEVELS[2];
+      return variant.mode==='none'?source:mirrorCars(source,variant.mode);
     }
 
     function loadLevel() {
