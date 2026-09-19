@@ -62,7 +62,7 @@
       const earned=rewardFor(score);Arcade.earn(earned,'Paddle Rally',{kind:'game',game:'paddleRally',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('paddleRally',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Missed','over');draw();
       Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
-        extra:[score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
     }
     function loop(){
       if(!running)return;ball.x+=ball.dx;ball.y+=ball.dy;
@@ -75,7 +75,8 @@
       if(ball.y-ball.r>canvas.height){finish();return}draw();animation=requestAnimationFrame(loop);
     }
     function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x-paddle.w/2))}
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+    let earnlyRunStartedAt=0;
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
