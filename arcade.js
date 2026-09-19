@@ -1045,6 +1045,9 @@ const Arcade = (() => {
       { id:'dodger15', icon:'🚗', title:'Road Warrior', description:'Survive 15 seconds in Neon Dodger', unlocked:number('dodgerBest') >= 15 },
       { id:'brick20', icon:'💥', title:'Brick Smasher', description:'Break 20 bricks in Brick Breaker', unlocked:number('brickBreakerBest') >= 20 },
       { id:'jungle10', icon:'🐸', title:'Jungle Pro', description:'Pass 10 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 10 },
+      { id:'jungle25', icon:'🌿', title:'Deep Jungle', description:'Pass 25 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 25 },
+      { id:'jungle50', icon:'👑', title:'Vine Master', description:'Pass 50 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 50 },
+      { id:'jungle100', icon:'🏆', title:'Jungle Legend', description:'Pass 100 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 100 },
       { id:'tower10', icon:'🏗️', title:'High Rise', description:'Stack 10 floors in Tower Stack', unlocked:number('towerStackBest') >= 10 },
       { id:'tower20', icon:'🏙️', title:'Skyline Builder', description:'Stack 20 floors in Tower Stack', unlocked:number('towerStackBest') >= 20 },
       { id:'coinCatch20', icon:'🪙', title:'Coin Magnet', description:'Catch 20 coins in Coin Catch', unlocked:number('coinCatchBest') >= 20 },
@@ -1133,7 +1136,14 @@ const Arcade = (() => {
     const after = achievementDefinitions().filter(item => item.unlocked);
     const newlyUnlocked = after.filter(item => !before.has(item.id));
 
-    const xpAward = BASE_GAME_XP + newlyUnlocked.length * ACHIEVEMENT_XP;
+    let performanceXP = 0;
+    if (game === 'jungleHopper') {
+      if (cleanMetric >= 100) performanceXP = 30;
+      else if (cleanMetric >= 50) performanceXP = 20;
+      else if (cleanMetric >= 25) performanceXP = 10;
+    }
+
+    const xpAward = BASE_GAME_XP + performanceXP + newlyUnlocked.length * ACHIEVEMENT_XP;
     const xpResult = addXP(xpAward);
 
     queueEvent('game_result', {
@@ -1142,8 +1152,10 @@ const Arcade = (() => {
       best:currentBest.value,
       newBest,
       xpAward,
+      performanceXP,
       level:xpResult.status.level,
-      achievements:newlyUnlocked.map(item => item.id)
+      achievements:newlyUnlocked.map(item => item.id),
+      performanceXP
     });
 
     if (newlyUnlocked.length) {
