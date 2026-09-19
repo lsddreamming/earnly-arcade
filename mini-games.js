@@ -610,6 +610,8 @@
     const [c,ctx]=canvasBase();
     let ballX=180,rings=[],score=0,alive=false,raf=null,last=0,readyUntil=0;
     let controlPointer=null;
+    let pointerStartClientX=0;
+    let pointerStartBallX=180;
 
     function level(){
       return 1+Math.floor(score/5);
@@ -661,7 +663,7 @@
       ctx.textAlign='center';
       ctx.fillStyle='#dbeafe';
       ctx.font='800 11px Arial';
-      ctx.fillText('◀ TAP / DRAG TO MOVE ▶',180,30);
+      ctx.fillText('◀ DRAG TO MOVE ▶',180,30);
       ctx.fillStyle='#94a3b8';
       ctx.font='700 9px Arial';
       ctx.fillText(score===0?'First opening starts centered for you':'Line up with the next opening',180,45);
@@ -720,8 +722,11 @@
       }
     }
 
-    function setBallFromClientX(clientX){
-      ballX=Math.max(25,Math.min(335,Arcade.gameSurfaceX(clientX,c,360)));
+    function setBallFromDrag(clientX){
+      const rect=c.getBoundingClientRect();
+      const scale=360/Math.max(1,rect.width);
+      const delta=(Number(clientX)-pointerStartClientX)*scale;
+      ballX=Math.max(25,Math.min(335,pointerStartBallX+delta));
     }
 
     function nudge(dx){
@@ -787,19 +792,22 @@
     function beginPointer(e){
       if(!alive)return;
       controlPointer=e.pointerId;
-      setBallFromClientX(e.clientX);
+      pointerStartClientX=e.clientX;
+      pointerStartBallX=ballX;
       try{c.setPointerCapture?.(e.pointerId)}catch{}
     }
 
     function movePointer(e){
       if(!alive||controlPointer!==e.pointerId)return;
       e.preventDefault();
-      setBallFromClientX(e.clientX);
+      setBallFromDrag(e.clientX);
     }
 
     function endPointer(e){
       if(controlPointer!==e.pointerId)return;
       controlPointer=null;
+      pointerStartClientX=0;
+      pointerStartBallX=ballX;
     }
 
     c.addEventListener('pointerdown',e=>{
@@ -818,7 +826,7 @@
     const onWideMove=e=>{
       if(controlPointer!==e.pointerId)return;
       e.preventDefault();
-      setBallFromClientX(e.clientX);
+      setBallFromDrag(e.clientX);
     };
     const onWideUp=e=>endPointer(e);
 
@@ -841,6 +849,8 @@
         alive=true;
         last=0;
         controlPointer=null;
+        pointerStartClientX=0;
+        pointerStartBallX=180;
         resetRings();
         ui(0,1);
         readyUntil=performance.now()+1250;
@@ -850,6 +860,8 @@
       stop(){
         alive=false;
         controlPointer=null;
+        pointerStartClientX=0;
+        pointerStartBallX=ballX;
         cancelAnimationFrame(raf);
         document.removeEventListener('keydown',onKey);
         document.removeEventListener('pointerdown',onWideDown);
