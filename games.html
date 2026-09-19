@@ -31,24 +31,15 @@
       <p>Beat your best, earn XP, and chase Coin rewards.</p>
     </header>
 
-    <section class="games-play-note">
-      <span>🎟️ 3 free plays per game daily</span>
-      <span>▶️ Optional rewarded ad = +3 extra plays</span>
-      <span>🪙 Ads do not directly award Arcade Coins</span>
-    </section>
-
-    <details class="card compact-card games-reward-guide">
-      <summary>ⓘ How rewards work</summary>
-      <p class="muted"><strong>Play games to earn rewards.</strong> Game scores, daily challenges, bonuses, and other Earnly activities can award Arcade Coins or XP.</p>
-      <p class="muted"><strong>Rewarded ads only unlock more chances to play.</strong> When you run out, you can optionally watch a rewarded ad for +3 plays, up to 2 unlocks per game each day. The ad itself does not directly give Arcade Coins.</p>
-    </details>
+    <div class="games-simple-note">
+      <span>🎟️ 3 free plays per game</span>
+      <details>
+        <summary>ⓘ Rewards</summary>
+        <p>Play games to earn XP and score-based Arcade Coins. Optional rewarded ads only unlock extra plays.</p>
+      </details>
+    </div>
 
     <div id="quickSections"></div>
-
-    <details class="card compact-card" id="achievements">
-      <summary id="achievementSummary">🏆 Achievements</summary>
-      <div class="achievement-grid" id="achievementGrid"></div>
-    </details>
 
     <section class="game-browser-tools" aria-label="Find a game">
       <label class="game-search-box">
@@ -57,6 +48,7 @@
       </label>
       <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
         <button type="button" class="game-filter active" data-filter="all">All</button>
+        <button type="button" class="game-filter" data-filter="new">✨ New</button>
         <button type="button" class="game-filter" data-filter="action">⚡ Action</button>
         <button type="button" class="game-filter" data-filter="quick">⏱️ Quick</button>
         <button type="button" class="game-filter" data-filter="classic">🕹️ Classic</button>
@@ -66,12 +58,6 @@
     </section>
 
     <div id="games" class="game-list"></div>
-
-    <details class="card compact-card">
-      <summary>How game progress works</summary>
-      <p class="muted">Every finished game gives XP. Some game scores also earn Arcade Coins. Achievements, streak rewards, and weekly missions can add more XP.</p>
-      <p class="muted">Each game gets 3 free plays per day. Up to 2 rewarded ads per game can unlock +3 plays each without spending Arcade Coins. Progress stays on this device and is backed up automatically when you sign in.</p>
-    </details>
 
     <a class="button wide secondary" href="index.html">← Back Home</a>
   </main>
@@ -104,11 +90,11 @@
       brickBreaker:['classic','action'],
       jungleHopper:['action'],
       towerStack:['action'],
-      coinCatch:['action'],
-      colorMatch:['quick','brain'],
-      paddleRally:['classic','action'],
-      laneRunner:['action'],
-      safeCracker:['quick']
+      coinCatch:['new','action'],
+      colorMatch:['new','quick','brain'],
+      paddleRally:['new','classic','action'],
+      laneRunner:['new','action'],
+      safeCracker:['new','quick']
     };
     let activeGameFilter = 'all';
     let gameSearchText = '';
@@ -142,47 +128,14 @@
       const root = document.getElementById('quickSections');
       root.replaceChildren();
 
-      const newSection = renderQuickSection('✨ New Games', ['coinCatch','colorMatch','paddleRally','laneRunner','safeCracker']);
       const favoriteSection = renderQuickSection('⭐ Favorites', Arcade.favorites());
-      const recentSection = renderQuickSection('🕘 Recently Played', Arcade.recentGames());
-
-      if (newSection) root.append(newSection);
       if (favoriteSection) root.append(favoriteSection);
-      if (recentSection) root.append(recentSection);
-    }
-
-    function renderAchievements() {
-      const summary = Arcade.achievementSummary();
-      document.getElementById('achievementSummary').textContent =
-        '🏆 Achievements · ' + summary.unlocked + '/' + summary.total + ' unlocked';
-
-      const grid = document.getElementById('achievementGrid');
-      grid.replaceChildren();
-
-      summary.all.forEach(item => {
-        const badge = document.createElement('div');
-        badge.className = 'achievement-badge' + (item.unlocked ? ' unlocked' : '');
-
-        const icon = document.createElement('span');
-        icon.className = 'achievement-icon';
-        icon.textContent = item.unlocked ? item.icon : '🔒';
-
-        const title = document.createElement('strong');
-        title.textContent = item.title;
-
-        const description = document.createElement('span');
-        description.textContent = item.description;
-
-        badge.append(icon, title, description);
-        grid.append(badge);
-      });
     }
 
     function render() {
       document.getElementById('balance').textContent = Arcade.number('points').toLocaleString();
       document.getElementById('level').textContent = Arcade.xpStatus().level;
       renderQuickSections();
-      renderAchievements();
 
       const root = document.getElementById('games');
       root.replaceChildren();
@@ -236,7 +189,8 @@
 
         const bestLine = document.createElement('div');
         bestLine.className = 'game-best';
-        bestLine.textContent = '🏆 Best: ' + best.display;
+        bestLine.hidden = !best.value;
+        bestLine.textContent = best.value ? '🏆 Best: ' + best.display : '';
 
         const play = document.createElement('button');
         play.className = 'wide game-play-button';
