@@ -225,13 +225,20 @@
       colorMatch:'colormatch.html',
       paddleRally:'paddlerally.html',
       laneRunner:'lanerunner.html',
-      safeCracker:'safecracker.html'
+      safeCracker:'safecracker.html',
+      blockGrid:'mini.html?game=blockGrid',
+      mergeRush:'mini.html?game=mergeRush',
+      perfectDrop:'mini.html?game=perfectDrop',
+      spiralDrop:'mini.html?game=spiralDrop',
+      shapeFit:'mini.html?game=shapeFit',
+      bounceRun:'mini.html?game=bounceRun',
+      trafficEscape:'mini.html?game=trafficEscape'
     };
 
     function challengeDestination(challenge) {
       const page = challengeGamePages[challenge.game] || 'games.html';
       if (!challenge.game) return page;
-      return page + '?goal=daily';
+      return page + (page.includes('?') ? '&' : '?') + 'goal=daily';
     }
 
     function challengeGameLabel(challenge) {
@@ -330,7 +337,14 @@
         colorMatch:['🎨','Color Match','colormatch.html'],
         paddleRally:['🏓','Paddle Rally','paddlerally.html'],
         laneRunner:['🏎️','Lane Runner','lanerunner.html'],
-        safeCracker:['🔐','Safe Cracker','safecracker.html']
+        safeCracker:['🔐','Safe Cracker','safecracker.html'],
+        blockGrid:['🧩','Block Grid','mini.html?game=blockGrid'],
+        mergeRush:['🔢','Merge Rush','mini.html?game=mergeRush'],
+        perfectDrop:['🎯','Perfect Drop','mini.html?game=perfectDrop'],
+        spiralDrop:['🌀','Spiral Drop','mini.html?game=spiralDrop'],
+        shapeFit:['🧠','Shape Fit','mini.html?game=shapeFit'],
+        bounceRun:['⚪','Bounce Run','mini.html?game=bounceRun'],
+        trafficEscape:['🚦','Traffic Escape','mini.html?game=trafficEscape']
       };
       const recent = Arcade.recentGames()[0];
       const recentInfo = recent && gameMeta[recent];
