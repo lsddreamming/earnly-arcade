@@ -50,6 +50,21 @@
       <div class="achievement-grid" id="achievementGrid"></div>
     </details>
 
+    <section class="game-browser-tools" aria-label="Find a game">
+      <label class="game-search-box">
+        <span>🔎</span>
+        <input id="gameSearch" type="search" autocomplete="off" placeholder="Search 13 games…" aria-label="Search games">
+      </label>
+      <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
+        <button type="button" class="game-filter active" data-filter="all">All</button>
+        <button type="button" class="game-filter" data-filter="action">⚡ Action</button>
+        <button type="button" class="game-filter" data-filter="quick">⏱️ Quick</button>
+        <button type="button" class="game-filter" data-filter="classic">🕹️ Classic</button>
+        <button type="button" class="game-filter" data-filter="brain">🧠 Brain</button>
+      </div>
+      <div class="game-filter-count" id="gameMatchCount">13 games</div>
+    </section>
+
     <div id="games" class="game-list"></div>
 
     <details class="card compact-card">
@@ -80,6 +95,23 @@
     ];
 
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
+    const gameTags = {
+      snake:['classic'],
+      blockDrop:['classic','brain'],
+      tapRush:['quick'],
+      memory:['brain'],
+      dodger:['action'],
+      brickBreaker:['classic','action'],
+      jungleHopper:['action'],
+      towerStack:['action'],
+      coinCatch:['action'],
+      colorMatch:['quick','brain'],
+      paddleRally:['classic','action'],
+      laneRunner:['action'],
+      safeCracker:['quick']
+    };
+    let activeGameFilter = 'all';
+    let gameSearchText = '';
 
     function renderQuickSection(title, keys) {
       const games = keys.map(key => byKey[key]).filter(Boolean);
@@ -155,7 +187,17 @@
       const root = document.getElementById('games');
       root.replaceChildren();
 
-      gameInfo.forEach(info => {
+      const visibleGames = gameInfo.filter(info => {
+        const matchesFilter = activeGameFilter === 'all' || (gameTags[info.key] || []).includes(activeGameFilter);
+        const haystack = (info.name + ' ' + info.note).toLowerCase();
+        const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
+        return matchesFilter && matchesSearch;
+      });
+
+      document.getElementById('gameMatchCount').textContent =
+        visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's');
+
+      visibleGames.forEach(info => {
         const remaining = Arcade.remaining(info.key);
         const adStatus = Arcade.playAdStatus(info.key);
         const best = Arcade.best(info.key);
@@ -220,7 +262,34 @@
 
         root.append(card);
       });
+
+      if (!visibleGames.length) {
+        const empty = document.createElement('div');
+        empty.className = 'game-browser-empty';
+        empty.innerHTML = '<strong>No games found</strong><span>Try another search or category.</span>';
+        root.append(empty);
+      }
     }
+
+    const gameSearch = document.getElementById('gameSearch');
+    const gameFilters = document.getElementById('gameFilters');
+
+    gameSearch.addEventListener('input', () => {
+      gameSearchText = gameSearch.value.trim().toLowerCase();
+      render();
+    });
+
+    gameFilters.addEventListener('click', event => {
+      const button = event.target.closest('[data-filter]');
+      if (!button) return;
+      activeGameFilter = button.dataset.filter || 'all';
+      gameFilters.querySelectorAll('.game-filter').forEach(item => {
+        const selected = item === button;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+      render();
+    });
 
     render();
     window.addEventListener('pageshow', render);
