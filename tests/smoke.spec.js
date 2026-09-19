@@ -127,3 +127,48 @@ test('Bounce Run advertises and accepts keyboard jump controls', async ({ page }
   await page.keyboard.press('ArrowUp');
   expect(errors).toEqual([]);
 });
+
+
+test('result popup clearly shows rewards, time, and replay state', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:18,
+      best:'18 points', coins:4, result:{newBest:true,xpAward:10},
+      playsLeft:2, game:'shapeFit', extra:['⏱️ Time played: 33s']
+    });
+  });
+  const dialog = page.locator('dialog.game-result-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('NEW BEST');
+  await expect(dialog).toContainText('Coins Earned');
+  await expect(dialog).toContainText('XP Earned');
+  await expect(dialog).toContainText('2');
+  await expect(dialog).toContainText('Time played: 33s');
+  await expect(dialog.getByRole('button', { name:/Play Again · 2 Left/ })).toBeVisible();
+});
+
+test('rewarded plays cannot be unlocked while plays remain', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    localStorage.setItem('shapeFitGamesPlayed', '0');
+    localStorage.setItem('shapeFitBonusPlays', '0');
+    localStorage.setItem('shapeFitPlayAdUnlocks', '0');
+    Arcade.playAd('shapeFit');
+  });
+  await expect(page.locator('dialog.reward-ad-dialog')).not.toBeVisible();
+  await expect(page.locator('#arcadeToast')).toContainText('play');
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
+});
+
+test('all arcade games expose a consistent play balance', async ({ page }) => {
+  await page.goto('/games.html');
+  const balances = await page.evaluate(() => {
+    localStorage.removeItem('arcadePlayDay');
+    return Object.keys(Arcade.names).map(game => [game, Arcade.remaining(game)]);
+  });
+  expect(balances.length).toBe(20);
+  for (const [game, plays] of balances) {
+    expect(plays, game + ' should begin with three daily plays').toBe(3);
+  }
+});
