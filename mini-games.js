@@ -6,7 +6,7 @@
     blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Place pieces on the 8×8 board. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
-    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/4)+(v>=10?1:0)+(v>=20?2:0)+(v>=35?3:0)+(v>=50?4:0)+(v>=70?5:0))},
+    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/4)+(v>=10?1:0)+(v>=20?2:0)+(v>=35?3:0)+(v>=50?4:0)+(v>=70?5:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
     trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels take multiple boards and tighter traffic to clear.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=20?1:0)+(v>=40?2:0)+(v>=70?3:0)+(v>=100?3:0))}
@@ -667,11 +667,11 @@
     }
 
     function fallSpeed(){
-      if(score<10)return .92+score*.035;
-      if(score<25)return 1.27+(score-10)*.026;
-      if(score<45)return 1.66+(score-25)*.021;
-      if(score<70)return 2.08+(score-45)*.012;
-      return Math.min(2.65,2.38+(score-70)*.006);
+      if(score<10)return .78+score*.025;
+      if(score<25)return 1.03+(score-10)*.018;
+      if(score<45)return 1.30+(score-25)*.014;
+      if(score<70)return 1.58+(score-45)*.008;
+      return Math.min(1.92,1.78+(score-70)*.003);
     }
 
     function ringColor(r){
@@ -687,50 +687,49 @@
       const edge=half+28;
       const min=edge,max=360-edge;
       const recent=rows.slice(-5).map(r=>r.gap);
-      const previous=recent.length?recent[recent.length-1]:180;
+      if(!recent.length)return 180;
 
-      // Generate a deliberate zig-zag instead of independent random holes.
-      // Every new row must move far enough from the previous opening, while
-      // also avoiding the lanes used by the last few rows.
-      const minMove=Math.max(52,width*.46);
-      const laneRadius=Math.max(34,width*.30);
+      const previous=recent[recent.length-1];
+      const before=recent.length>1?recent[recent.length-2]:null;
+      const before2=recent.length>2?recent[recent.length-3]:null;
+      const minMove=Math.max(42,width*.34);
+      const maxMove=Math.max(minMove+18,Math.min(138,(max-min)*.78));
       const candidates=[];
 
-      for(let i=0;i<28;i++){
-        let candidate=min+Math.random()*(max-min);
+      for(let attempt=0;attempt<40;attempt++){
+        // Use many possible step sizes instead of forcing opposite edges.
+        const direction=Math.random()<.5?-1:1;
+        const distance=minMove+Math.random()*(maxMove-minMove);
+        let candidate=previous+direction*distance;
 
-        // Higher levels occasionally push toward an edge, but never by simply
-        // repeating the same edge lane.
-        if(score>=20&&Math.random()<Math.min(.58,.18+score*.005)){
-          const left=Math.random()<.5;
-          const band=Math.min(52,Math.max(20,(max-min)*.24));
-          candidate=left ? min+Math.random()*band : max-Math.random()*band;
-        }
+        // Reflect naturally off an edge rather than snapping to the opposite edge.
+        if(candidate<min)candidate=min+(min-candidate)*.55;
+        if(candidate>max)candidate=max-(candidate-max)*.55;
+        candidate=Math.max(min,Math.min(max,candidate));
 
         const move=Math.abs(candidate-previous);
-        if(recent.length&&move<minMove)continue;
+        if(move<minMove*.82)continue;
 
-        // Penalize returning to any recently used corridor.
-        const oldLaneHits=recent.slice(0,-1).filter(g=>Math.abs(candidate-g)<laneRadius).length;
-        if(oldLaneHits)continue;
+        // Block obvious A-B-A and A-B-A-B grooves, but do not over-constrain
+        // the board into a forced left/right ping-pong pattern.
+        if(before!==null&&Math.abs(candidate-before)<26)continue;
+        if(before2!==null&&Math.abs(candidate-before2)<20)continue;
 
-        // Score valid choices by how much fresh space they create. This keeps
-        // randomness but strongly favors openings that demand a new decision.
-        const clearance=recent.length?Math.min(...recent.map(g=>Math.abs(candidate-g))):999;
-        candidates.push({candidate,clearance});
+        // Prefer fresh positions while keeping several choices random.
+        const clearance=Math.min(...recent.map(g=>Math.abs(candidate-g)));
+        candidates.push({candidate,quality:clearance+Math.random()*42});
       }
 
       if(candidates.length){
-        candidates.sort((x,y)=>y.clearance-x.clearance);
-        // Pick among the best few so patterns do not become deterministic.
-        return candidates[Math.floor(Math.random()*Math.min(4,candidates.length))].candidate;
+        candidates.sort((a,b)=>b.quality-a.quality);
+        return candidates[Math.floor(Math.random()*Math.min(8,candidates.length))].candidate;
       }
 
-      // If the board is too constrained for all rules at once, force a side
-      // change from the previous row rather than accepting a repeated lane.
-      const left=min;
-      const right=max;
-      return Math.abs(left-previous)>Math.abs(right-previous)?left:right;
+      // Gentle fallback: move away from the previous opening without creating
+      // a hard edge-to-edge rhythm.
+      const roomLeft=previous-min,roomRight=max-previous;
+      const dir=roomRight>roomLeft?1:-1;
+      return Math.max(min,Math.min(max,previous+dir*Math.min(Math.max(48,minMove),Math.max(roomLeft,roomRight)*.7)));
     }
 
     function resetRings() {
@@ -741,8 +740,8 @@
       // player can see the ball, understand the goal, and make a move.
       rows.push({y:238,gap:180,w:firstWidth,checked:false,first:true});
 
-      let y=318;
-      for(let i=1;i<7;i++){
+      let y=338;
+      for(let i=1;i<6;i++){
         const width=i===1?126:openingWidth();
         rows.push({
           y,
@@ -751,7 +750,7 @@
           checked:false,
           first:false
         });
-        y+=72;
+        y+=88;
       }
     }
 
@@ -942,8 +941,9 @@
       }
 
       while(rows.length&&rows[0].y<-20)rows.shift();
-      while(rows.length<7){
-        const y=(rows.length?rows[rows.length-1].y:410)+Math.max(64,72-Math.floor(score/18)*2);
+      while(rows.length<6){
+        const rowSpacing=Math.max(80,92-Math.floor(score/25)*2);
+        const y=(rows.length?rows[rows.length-1].y:430)+rowSpacing;
         const width=openingWidth();
         rows.push({
           y,
