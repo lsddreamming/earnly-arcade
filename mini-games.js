@@ -1200,7 +1200,7 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
-    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1,lastClearAt=0,combo=0,bestCombo=0;
+    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1,lastClearAt=0,combo=0,bestCombo=0,levelFlashUntil=0,levelFlashText='',trail=[];
 
     function runLevel(){return 1+Math.floor(cleared/5)}
     function stageName(){
@@ -1245,6 +1245,10 @@
       ctx.fillStyle=bg;
       ctx.fillRect(0,0,360,430);
 
+      const scroll=(distance*5)%36;
+      ctx.fillStyle='rgba(148,163,184,.12)';
+      for(let x=-36+scroll;x<396;x+=36)ctx.fillRect(x,96,18,2);
+
       ctx.fillStyle='#1f2937';
       ctx.fillRect(0,360,360,70);
       ctx.fillStyle='#334155';
@@ -1279,6 +1283,14 @@
         }
       });
 
+      trail.forEach((p,index)=>{
+        const alpha=(index+1)/(trail.length+1)*.22;
+        ctx.beginPath();
+        ctx.fillStyle='rgba(96,165,250,'+alpha+')';
+        ctx.arc(p.x,p.y,Math.max(2,7-index*.45),0,Math.PI*2);
+        ctx.fill();
+      });
+
       const glow=ctx.createRadialGradient(76,y-4,2,80,y,18);
       glow.addColorStop(0,'#fff');
       glow.addColorStop(.6,'#dbeafe');
@@ -1299,6 +1311,21 @@
         ctx.fillStyle='#fef3c7';
         ctx.font='900 12px Arial';
         ctx.fillText('🔥 '+combo+' CLEAR COMBO',180,78);
+      }
+
+      if(performance.now()<levelFlashUntil){
+        ctx.fillStyle='rgba(15,23,42,.82)';
+        ctx.beginPath();
+        ctx.roundRect(76,92,208,52,14);
+        ctx.fill();
+        ctx.strokeStyle='#60a5fa';
+        ctx.stroke();
+        ctx.fillStyle='#dbeafe';
+        ctx.font='900 16px Arial';
+        ctx.fillText(levelFlashText,180,114);
+        ctx.fillStyle='#93c5fd';
+        ctx.font='800 10px Arial';
+        ctx.fillText('SPEED UP!',180,132);
       }
 
       if(performance.now()<readyUntil){
@@ -1384,7 +1411,12 @@
           bestCombo=Math.max(bestCombo,combo);
           lastClearAt=now;
           Arcade.feedback(combo>=3?'perfect':'score');
-          if(cleared%5===0){bestLevel=Math.max(bestLevel,runLevel());Arcade.milestone('⚪ Level '+runLevel()+' · '+stageName()+'!','perfect');}
+          if(cleared%5===0){
+            bestLevel=Math.max(bestLevel,runLevel());
+            levelFlashText='LEVEL '+runLevel()+' · '+stageName().toUpperCase();
+            levelFlashUntil=performance.now()+1250;
+            Arcade.milestone('⚪ Level '+runLevel()+' · '+stageName()+'!','perfect');
+          }
           return false;
         }
         return true;
@@ -1405,6 +1437,8 @@
       if(y+11>=360){y=349;vy=0}
       if(y<70){y=70;vy=1}
       if(combo>0&&lastClearAt&&t-lastClearAt>=2200)combo=0;
+      trail.push({x:80,y});
+      if(trail.length>7)trail.shift();
 
       ui(Math.floor(distance),cleared);
       draw();
@@ -1448,7 +1482,7 @@
 
     return {
       start(){
-        y=349;vy=0;obstacles=[];distance=0;cleared=0;bestLevel=1;lastClearAt=0;combo=0;bestCombo=0;queuedJump=false;spawn=205;last=0;alive=true;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;bestLevel=1;lastClearAt=0;combo=0;bestCombo=0;levelFlashUntil=0;levelFlashText='';trail=[];queuedJump=false;spawn=205;last=0;alive=true;
         readyUntil=performance.now()+1900;
         ui(0,0);
         draw();
