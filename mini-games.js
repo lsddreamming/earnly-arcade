@@ -909,12 +909,14 @@
     }
 
     function nextSpawnDelay(){
-      // Plenty of room while learning; successful players get tighter spacing.
+      // Early levels teach the jump. Higher levels deliberately mix long gaps,
+      // quick follow-ups, and occasional clusters so there is no fixed rhythm.
       if(cleared<5)return 175+Math.random()*35;
-      if(cleared<10)return 92+Math.random()*42;
-      if(cleared<20)return 64+Math.random()*48;
-      if(cleared<35)return 48+Math.random()*44;
-      return Math.max(30,42-(cleared-35)*.12)+Math.random()*42;
+      const r=Math.random();
+      if(cleared<10)return r<.20 ? 48+Math.random()*18 : 92+Math.random()*58;
+      if(cleared<20)return r<.34 ? 34+Math.random()*20 : r<.48 ? 135+Math.random()*45 : 68+Math.random()*55;
+      if(cleared<35)return r<.42 ? 28+Math.random()*18 : r<.58 ? 125+Math.random()*55 : 55+Math.random()*58;
+      return r<.48 ? 24+Math.random()*18 : r<.65 ? 118+Math.random()*62 : 46+Math.random()*60;
     }
 
     function obstacleWidth(){
@@ -987,17 +989,19 @@
       if(performance.now()<readyUntil){
         ctx.fillStyle='rgba(15,23,42,.94)';
         ctx.beginPath();
-        ctx.roundRect(58,174,244,62,12);
+        ctx.roundRect(34,166,292,78,14);
         ctx.fill();
         ctx.strokeStyle='#3b82f6';
+        ctx.lineWidth=2;
         ctx.stroke();
 
         ctx.fillStyle='#bfdbfe';
-        ctx.font='900 14px Arial';
-        ctx.fillText('READY TO JUMP?',180,197);
+        ctx.font='900 15px Arial';
+        ctx.fillText('READY TO JUMP?',180,192);
         ctx.fillStyle='#94a3b8';
-        ctx.font='700 9px Arial';
-        ctx.fillText('Tap the box now · then jump each red block',180,219);
+        ctx.font='700 10px Arial';
+        ctx.fillText('Tap anywhere in this game box to start',180,213);
+        ctx.fillText('Then tap again to jump each red obstacle',180,229);
       }
     }
 
@@ -1024,8 +1028,23 @@
         // Width and spacing vary independently so later runs do not settle into
         // a single repeated jump cadence.
         const speed=obstacleSpeed();
-        const jitter=cleared<5?0:(Math.random()-.5)*Math.min(1.8,.35+cleared*.035);
+        const jitter=cleared<5?0:(Math.random()-.5)*Math.min(2.6,.55+cleared*.045);
         obstacles.push({x:390,w:obstacleWidth(),speed:Math.max(1.2,speed+jitter)});
+
+        // At higher levels, some waves become doubles/triples. The extra
+        // obstacles are separated enough to remain jumpable, but force the
+        // player to react instead of repeating one perfectly timed hop.
+        if(cleared>=10){
+          const clusterChance=cleared<20?.16:cleared<35?.28:.38;
+          if(Math.random()<clusterChance){
+            const count=cleared>=25&&Math.random()<.32?2:1;
+            for(let i=1;i<=count;i++){
+              const gap=(52+Math.random()*24)*i;
+              const followSpeed=Math.max(1.2,speed+(Math.random()-.5)*1.15);
+              obstacles.push({x:390+gap,w:Math.max(18,obstacleWidth()*.72),speed:followSpeed});
+            }
+          }
+        }
         spawn=nextSpawnDelay();
       }
 
