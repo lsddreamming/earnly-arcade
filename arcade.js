@@ -1522,8 +1522,18 @@ const Arcade = (() => {
 
     const primary = document.createElement('button');
     primary.className = 'wide green';
-    primary.textContent = playsLeft > 0 ? '▶ Play Again' : '🎟️ Get More Plays';
+    const resultAdStatus = game ? playAdStatus(game) : { remaining:0, bonus:PLAY_AD_BONUS };
+    if (playsLeft > 0) {
+      primary.textContent = '▶ Play Again';
+    } else if (resultAdStatus.remaining > 0) {
+      primary.textContent = '▶ Watch Ad · +' + resultAdStatus.bonus + ' Plays';
+    } else {
+      primary.textContent = '🎟️ Plays Refill Tomorrow';
+      primary.disabled = true;
+    }
+
     primary.addEventListener('click', () => {
+      if (primary.disabled) return;
       closeModalThen(() => {
         modal.className = '';
         if (playsLeft > 0) {
