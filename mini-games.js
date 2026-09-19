@@ -1114,7 +1114,10 @@
         spawn-=dt;
       }
 
-      vy+=.58*dt;
+      // Softer gravity near the top creates a rounded arcade-style jump arc.
+      // Falling accelerates gradually instead of snapping straight back down.
+      const gravity=vy<0?.40:.46;
+      vy+=gravity*dt;
       y+=vy*dt;
 
       if(!warming&&spawn<=0){
@@ -1164,7 +1167,7 @@
         return;
       }
       if(y>=347){
-        vy=-11.8;
+        vy=-9.6;
         Arcade.feedback('hop');
       }
     }
