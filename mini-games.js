@@ -758,15 +758,41 @@
       });
       ctx.shadowBlur=0;
 
-      // Make progression readable inside the game instead of relying only on
-      // the chrome above the canvas.
-      ctx.textAlign='left';
-      ctx.fillStyle='#93c5fd';
-      ctx.font='800 10px Arial';
-      ctx.fillText('LEVEL '+level(),22,76);
-      ctx.textAlign='right';
-      ctx.fillStyle='#cbd5e1';
-      ctx.fillText(score+' RINGS',338,76);
+      // Once the tutorial is gone, promote progression into larger HUD
+      // badges at the top of the freed-up space. Keep the tutorial version
+      // compact so nothing competes with the instructions.
+      if(score<5){
+        ctx.textAlign='left';
+        ctx.fillStyle='#93c5fd';
+        ctx.font='800 10px Arial';
+        ctx.fillText('LEVEL '+level(),22,76);
+        ctx.textAlign='right';
+        ctx.fillStyle='#cbd5e1';
+        ctx.fillText(score+' RINGS',338,76);
+      }else{
+        ctx.shadowBlur=0;
+        ctx.fillStyle='rgba(15,23,42,.88)';
+        ctx.beginPath();ctx.roundRect(18,15,112,40,12);ctx.fill();
+        ctx.strokeStyle='#3b82f6';ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fillStyle='rgba(15,23,42,.88)';
+        ctx.beginPath();ctx.roundRect(230,15,112,40,12);ctx.fill();
+        ctx.strokeStyle='#475569';ctx.stroke();
+
+        ctx.textAlign='center';
+        ctx.fillStyle='#93c5fd';
+        ctx.font='900 9px Arial';
+        ctx.fillText('LEVEL',74,29);
+        ctx.fillStyle='#ffffff';
+        ctx.font='900 16px Arial';
+        ctx.fillText(String(level()),74,47);
+
+        ctx.fillStyle='#94a3b8';
+        ctx.font='900 9px Arial';
+        ctx.fillText('RINGS',286,29);
+        ctx.fillStyle='#ffffff';
+        ctx.font='900 16px Arial';
+        ctx.fillText(String(score),286,47);
+      }
       ctx.textAlign='center';
 
       if(levelFlashFrames>0){
