@@ -2752,18 +2752,8 @@ const Arcade = (() => {
 
     const start = () => {
       sync();
-      const blockPausedInput = event => {
-      if (!paused) return;
-      if (event.target === button || button.contains(event.target)) return;
-      if (event.type === 'keydown' && event.key === 'Tab') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    };
-    ['pointerdown','pointermove','touchstart','touchmove','keydown'].forEach(type => {
-      window.addEventListener(type, blockPausedInput, {capture:true, passive:false});
-    });
 
-    const observer = new MutationObserver(sync);
+      const observer = new MutationObserver(sync);
       observer.observe(document.body, {
         subtree:true,
         attributes:true,
