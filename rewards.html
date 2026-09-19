@@ -44,6 +44,15 @@
       </div>
     </section>
 
+    <section class="reward-protection-card" id="rewardProtectionCard">
+      <span class="reward-protection-icon" id="rewardProtectionIcon">🔐</span>
+      <div>
+        <strong id="rewardProtectionTitle">Checking Coin protection…</strong>
+        <small id="rewardProtectionText">Confirming your Earnly account and secure wallet.</small>
+      </div>
+      <a id="rewardProtectionAction" href="account.html">Account →</a>
+    </section>
+
     <section class="rewards-section">
       <div class="rewards-section-heading">
         <div>
@@ -110,6 +119,42 @@
 
   <script src="arcade.js"></script>
   <script>
+    const protectionCard = document.getElementById('rewardProtectionCard');
+    const protectionIcon = document.getElementById('rewardProtectionIcon');
+    const protectionTitle = document.getElementById('rewardProtectionTitle');
+    const protectionText = document.getElementById('rewardProtectionText');
+    const protectionAction = document.getElementById('rewardProtectionAction');
+
+    async function renderRewardProtection() {
+      const pendingRewards = Arcade.pendingSyncEvents().filter(event =>
+        event?.type === 'coin_award' && event?.payload?.server
+      ).length;
+      let signedIn = false;
+      let wallet = null;
+
+      try {
+        if (window.EarnlyCloud?.ready) {
+          signedIn = !!(await EarnlyCloud.session())?.user;
+          if (signedIn) wallet = await EarnlyCloud.walletInfo();
+        }
+      } catch {}
+
+      protectionCard.classList.toggle('ready', signedIn);
+      protectionCard.classList.toggle('warning', signedIn && pendingRewards > 0);
+      protectionIcon.textContent = signedIn ? (pendingRewards ? '⏳' : '🛡️') : '🔐';
+      protectionTitle.textContent = signedIn
+        ? (pendingRewards ? 'Coin rewards waiting to verify' : 'Secure Coin wallet connected')
+        : 'Protect your Arcade Coins';
+      protectionText.textContent = !signedIn
+        ? 'Sign in to attach your progress and Coin wallet to your Earnly account.'
+        : (pendingRewards
+            ? pendingRewards + ' Coin reward' + (pendingRewards === 1 ? '' : 's') + ' will verify when Earnly syncs.'
+            : (wallet
+                ? 'Server-protected balance: ' + Number(wallet.balance || 0).toLocaleString() + ' Coins.'
+                : 'Your signed-in rewards are checked against Earnly Cloud.'));
+      protectionAction.textContent = signedIn ? 'Manage →' : 'Sign In →';
+    }
+
     function render() {
       const balance = Arcade.number('points');
       document.getElementById('balance').textContent = balance.toLocaleString();
@@ -151,6 +196,14 @@
     render();
     window.addEventListener('pageshow', render);
     window.addEventListener('focus', render);
+    window.addEventListener('earnly-cloud-ready', renderRewardProtection);
+    window.addEventListener('earnly-cloud-auth-change', renderRewardProtection);
+    window.addEventListener('earnly-server-rewards-synced', () => {
+      render();
+      renderRewardProtection();
+    });
+    window.addEventListener('earnly-data-change', renderRewardProtection);
+    renderRewardProtection();
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

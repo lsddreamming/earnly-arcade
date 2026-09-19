@@ -233,6 +233,17 @@
       return challenge.game ? (Arcade.names[challenge.game] || 'Game') : 'a Game';
     }
 
+    function savedTimeLabel(value) {
+      const time = value ? new Date(value).getTime() : 0;
+      if (!time || Number.isNaN(time)) return 'Waiting for the first cloud backup.';
+      const minutes = Math.max(0, Math.floor((Date.now() - time) / 60000));
+      if (minutes < 1) return 'Saved to Earnly Cloud just now.';
+      if (minutes < 60) return 'Saved to Earnly Cloud ' + minutes + ' min ago.';
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return 'Saved to Earnly Cloud ' + hours + ' hr' + (hours === 1 ? '' : 's') + ' ago.';
+      return 'Last cloud backup ' + new Date(time).toLocaleDateString() + '.';
+    }
+
     function openChallengeGame() {
       const challenge = Arcade.challengeStatus();
       if (challenge.claimed || challenge.complete) return;
@@ -248,16 +259,28 @@
         }
       } catch {}
 
-      homeAccountShortcut.classList.toggle('connected', signedIn);
+      const sync = Arcade.syncStatus();
+      const conflict = localStorage.getItem('arcadeCloudConflict');
+      const syncError = localStorage.getItem('arcadeCloudSyncError') || localStorage.getItem('arcadeServerRewardError');
+      const needsAttention = signedIn && !!(conflict || syncError);
+
+      homeAccountShortcut.classList.toggle('connected', signedIn && !needsAttention);
+      homeAccountShortcut.classList.toggle('attention', needsAttention);
       homeAccountShortcut.setAttribute(
         'aria-label',
         signedIn ? 'Open your connected Earnly account' : 'Sign in to Earnly on this browser'
       );
-      homeAccountTitle.textContent = signedIn ? 'Earnly account connected' : 'Sign in on this browser';
-      homeAccountText.textContent = signedIn
-        ? 'Your progress is backed up automatically.'
-        : 'Restore your Coins, levels, scores, and missions.';
-      homeAccountAction.textContent = signedIn ? 'Account ✓' : 'Sign In →';
+      homeAccountTitle.textContent = needsAttention
+        ? 'Earnly backup needs attention'
+        : (signedIn ? 'Earnly account connected' : 'Sign in on this browser');
+      homeAccountText.textContent = !signedIn
+        ? 'Restore your Coins, levels, scores, and missions.'
+        : (needsAttention
+            ? 'Open Account to protect your latest progress.'
+            : (sync.pending
+                ? sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + ' waiting to sync.'
+                : savedTimeLabel(localStorage.getItem('arcadeLastCloudSave'))));
+      homeAccountAction.textContent = needsAttention ? 'Fix →' : (signedIn ? 'Account ✓' : 'Sign In →');
     }
 
     function render() {
@@ -476,6 +499,13 @@
     window.addEventListener('earnly-install-changed', render);
     window.addEventListener('earnly-cloud-ready', refreshHomeAccountShortcut);
     window.addEventListener('earnly-cloud-auth-change', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-cloud-synced', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-cloud-conflict', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-server-rewards-synced', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-server-reward-error', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-data-change', refreshHomeAccountShortcut);
+    window.addEventListener('online', refreshHomeAccountShortcut);
+    window.addEventListener('offline', refreshHomeAccountShortcut);
 
     document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
 

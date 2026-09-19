@@ -85,7 +85,15 @@
     <section class="card" style="text-align:left">
       <h2>🧪 Prototype Testing</h2>
       <p class="muted small">Use this only while we are testing. It resets today’s play limits without changing your Coins, XP, scores, achievements, or streak.</p>
+      <div class="test-readiness" id="testReadiness">
+        <div><span id="testAccountIcon">○</span><strong>Account</strong><small id="testAccountText">Checking…</small></div>
+        <div><span id="testBackupIcon">○</span><strong>Cloud backup</strong><small id="testBackupText">Checking…</small></div>
+        <div><span id="testGameIcon">○</span><strong>Game test</strong><small id="testGameText">Checking…</small></div>
+        <div><span id="testQueueIcon">○</span><strong>Backend queue</strong><small id="testQueueText">Checking…</small></div>
+      </div>
       <button class="wide secondary" id="resetTestPlaysButton" type="button">🎟️ Reset Test Plays</button>
+      <button class="wide secondary" id="copyTestReportButton" type="button">📋 Copy Test Report</button>
+      <p class="muted tiny test-report-note">The report includes app status and progress totals—never your password or payment information.</p>
     </section>
 
     <section class="card" style="text-align:left">
@@ -129,6 +137,60 @@
       document.getElementById('installStatus').textContent = status.install.standalone ? '📱 Installed' : '🌍 Browser';
       document.getElementById('versionStatus').textContent = 'v' + status.version;
       document.getElementById('queueStatus').textContent = status.sync.pending.toLocaleString();
+      renderTestReadiness();
+    }
+
+    function setTestState(prefix, ready, text) {
+      document.getElementById(prefix + 'Icon').textContent = ready ? '✓' : '○';
+      document.getElementById(prefix + 'Icon').className = ready ? 'ready' : '';
+      document.getElementById(prefix + 'Text').textContent = text;
+    }
+
+    async function renderTestReadiness() {
+      const status = Arcade.appStatus();
+      let signedIn = false;
+      try {
+        if (window.EarnlyCloud?.ready) signedIn = !!(await EarnlyCloud.session())?.user;
+      } catch {}
+
+      const lastSave = localStorage.getItem('arcadeLastCloudSave');
+      const games = Arcade.number('gamesCompletedEver');
+      setTestState('testAccount', signedIn, signedIn ? 'Connected' : 'Sign in to test cloud restore');
+      setTestState('testBackup', !!lastSave, lastSave ? 'A cloud save exists' : 'No cloud save on this browser yet');
+      setTestState('testGame', games > 0, games > 0 ? games + ' completed game' + (games === 1 ? '' : 's') : 'Finish one game');
+      setTestState('testQueue', status.sync.pending === 0, status.sync.pending === 0 ? 'All caught up' : status.sync.pending + ' update' + (status.sync.pending === 1 ? '' : 's') + ' waiting');
+    }
+
+    async function copyTestReport() {
+      const status = Arcade.appStatus();
+      const xp = Arcade.xpStatus();
+      let signedIn = false;
+      try {
+        if (window.EarnlyCloud?.ready) signedIn = !!(await EarnlyCloud.session())?.user;
+      } catch {}
+
+      const report = [
+        'Earnly Arcade Test Report',
+        'Version: v' + status.version,
+        'Mode: ' + (status.install.standalone ? 'Installed app' : 'Browser'),
+        'Network: ' + (status.online ? 'Online' : 'Offline'),
+        'Account: ' + (signedIn ? 'Connected' : 'Signed out'),
+        'Player: ' + Arcade.profileName(),
+        'Level: ' + xp.level + ' (' + xp.xp + ' total XP)',
+        'Coins: ' + Arcade.number('points'),
+        'Games completed: ' + Arcade.number('gamesCompletedEver'),
+        'Backend events waiting: ' + status.sync.pending,
+        'Last cloud save: ' + (localStorage.getItem('arcadeLastCloudSave') || 'None on this browser'),
+        'Cloud conflict: ' + (localStorage.getItem('arcadeCloudConflict') ? 'Yes' : 'No'),
+        'Generated: ' + new Date().toISOString()
+      ].join('\n');
+
+      try {
+        await navigator.clipboard.writeText(report);
+        Arcade.toast('📋 Test report copied');
+      } catch {
+        Arcade.panel('Test Report', report, [['Close', () => {}, 'secondary']]);
+      }
     }
 
     soundToggle.addEventListener('click', () => {
@@ -157,6 +219,7 @@
       Arcade.resetPrototypePlays();
       render();
     });
+    document.getElementById('copyTestReportButton').addEventListener('click', copyTestReport);
 
     document.getElementById('walkthroughButton').addEventListener('click', () => Arcade.showOnboarding(true));
     document.getElementById('installButton').addEventListener('click', async () => {
@@ -168,6 +231,10 @@
     window.addEventListener('offline', render);
     window.addEventListener('pageshow', render);
     window.addEventListener('storage', render);
+    window.addEventListener('earnly-cloud-ready', renderTestReadiness);
+    window.addEventListener('earnly-cloud-auth-change', renderTestReadiness);
+    window.addEventListener('earnly-cloud-synced', renderTestReadiness);
+    window.addEventListener('earnly-data-change', renderTestReadiness);
     render();
   </script>
 
