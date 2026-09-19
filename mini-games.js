@@ -685,14 +685,40 @@
     function randomGap(width){
       const half=width/2;
       const edge=half+28;
-      // Later runs deliberately use more of the board so the player has to
-      // travel instead of camping near the middle.
-      if(score>=25&&Math.random()<Math.min(.72,.28+score*.006)){
-        const side=Math.random()<.5 ? -1 : 1;
-        const outer=edge+Math.random()*Math.max(1,54-half*.12);
-        return side<0 ? outer : 360-outer;
+      const min=edge,max=360-edge;
+      const previous=rings.length?rings[rings.length-1].gap:180;
+      const beforePrevious=rings.length>1?rings[rings.length-2].gap:180;
+
+      // Later runs use more of the board, but also reject "free-fall lanes"
+      // where several openings line up and let the player clear rows without
+      // making another decision.
+      let candidate=180;
+      for(let attempt=0;attempt<8;attempt++){
+        if(score>=25&&Math.random()<Math.min(.72,.28+score*.006)){
+          const side=Math.random()<.5 ? -1 : 1;
+          const outer=edge+Math.random()*Math.max(1,54-half*.12);
+          candidate=side<0 ? outer : 360-outer;
+        }else{
+          candidate=min+Math.random()*(max-min);
+        }
+
+        if(rings.length){
+          const move=Math.abs(candidate-previous);
+          const repeatedLane=move<Math.max(30,width*.30);
+          const threeRowDrift=rings.length>1 &&
+            Math.abs(previous-beforePrevious)<Math.max(34,width*.34) &&
+            move<Math.max(42,width*.40);
+          if(repeatedLane||threeRowDrift)continue;
+        }
+        return candidate;
       }
-      return edge+Math.random()*(360-edge*2);
+
+      // Deterministic fallback: force the next opening away from the previous
+      // lane instead of accepting an unlucky repeated random pattern.
+      const leftRoom=previous-min;
+      const rightRoom=max-previous;
+      const direction=rightRoom>=leftRoom?1:-1;
+      return Math.max(min,Math.min(max,previous+direction*Math.max(48,width*.44)));
     }
 
     function resetRings() {
