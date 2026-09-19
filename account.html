@@ -24,7 +24,7 @@
 
     <header class="page-header">
       <h1>☁️ Account & Data</h1>
-      <p>Sign in to back up your Earnly progress securely and restore it on another device.</p>
+      <p>Your Earnly progress saves automatically when you’re signed in and can be restored on another device.</p>
     </header>
 
     <section class="card cloud-account-card" style="text-align:left">
@@ -270,11 +270,18 @@
         cloudAutoSyncToggle.setAttribute('aria-pressed', autoOn ? 'true' : 'false');
 
         const conflict = EarnlyCloud.cloudConflict();
+        const rewardError = localStorage.getItem('arcadeServerRewardError');
         const save = await EarnlyCloud.cloudSaveInfo();
         cloudSaveStatus.textContent = save ? friendlyTime(save.updated_at) : 'No cloud save yet — automatic sync will create one.';
 
         if (conflict) {
           cloudMessage.textContent = '⚠️ A newer cloud save exists from another device. Auto-sync is paused to protect it. Restore that save, or use Sync Now only if you intentionally want this device to replace it.';
+        } else if (rewardError) {
+          cloudMessage.textContent = '✅ Your progress is backed up. Some reward updates are still syncing automatically.';
+        } else if (autoOn) {
+          cloudMessage.textContent = '✅ Automatic backup is on. You do not need to press Sync Now.';
+        } else {
+          cloudMessage.textContent = 'Automatic backup is off. Turn it on to save progress automatically.';
         }
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not check Earnly Cloud right now.';
@@ -285,7 +292,10 @@
       balance.textContent = Arcade.number('points').toLocaleString();
       const sync = Arcade.syncStatus();
       device.textContent = sync.deviceId.slice(0, 8) + '…' + sync.deviceId.slice(-6);
-      pending.textContent = sync.pending ? (sync.pending + ' waiting') : 'All synced';
+      const autoOn = window.EarnlyCloud?.autoSyncEnabled?.() !== false;
+      pending.textContent = sync.pending
+        ? (sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + (autoOn ? ' syncing' : ' waiting'))
+        : 'All synced';
     }
 
     document.getElementById('copyTransferButton').addEventListener('click', async () => {
