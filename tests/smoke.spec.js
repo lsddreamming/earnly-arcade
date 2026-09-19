@@ -400,3 +400,14 @@ test('game catalog search filters cleanly and recovers', async ({ page }) => {
   await search.fill('');
   await expect(page.locator('#games .game-card').first()).toBeVisible();
 });
+
+
+test('game start screen explains plays reward and controls before play', async ({ page }) => {
+  await page.goto('/snake.html');
+  const summary = page.locator('.game-start-summary');
+  await expect(summary).toBeVisible();
+  await expect(summary.locator('.game-start-plays')).toContainText('play');
+  await expect(summary.locator('.game-start-reward')).toContainText('Coin');
+  await expect(summary.locator('.game-start-control')).toContainText('Steer');
+  await expect(page.locator('#startButton')).toBeVisible();
+});
