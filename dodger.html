@@ -208,7 +208,7 @@
         result,
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
       });
@@ -282,7 +282,7 @@
       if(event.key==='ArrowRight'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
     });
 
-    let earnlyRunStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
       if(running || starting) return;
       starting=true;
@@ -290,7 +290,7 @@
         starting=false;
         Arcade.out('dodger',refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       obstacles=[];
       player.x=(canvas.width-player.w)/2;
@@ -319,6 +319,11 @@
       });
     }
 
+    Arcade.installPauseControl({
+      isRunning:()=>running,
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},
+      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;animation=requestAnimationFrame(loop);}
+    });
     startButton.addEventListener('click',startGame);
     refreshChrome();
     draw();
