@@ -478,7 +478,10 @@
       startButton.textContent='🚀 Level '+level+' · '+layoutName+' · +'+bonus+' bonus banked';
 
       clearTimeout(levelTimer);
+      levelResumeDelay=performance.now()+850;
       levelTimer=setTimeout(()=>{
+        levelTimer=null;
+        levelResumeDelay=0;
         starting=false;
         running=true;
         startButton.textContent='Game Running · Level '+level;
@@ -492,6 +495,8 @@
       running=false;
       starting=false;
       clearTimeout(levelTimer);
+      levelTimer=null;
+      levelResumeDelay=0;
       cancelAnimationFrame(animation);
       animation=null;
 
@@ -602,7 +607,7 @@
       if(event.key==='ArrowRight'){event.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+24);}
     });
 
-    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0,levelResumeDelay=0;
     function startGame(){
       if(running || starting) return;
       starting=true;
@@ -613,6 +618,8 @@
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       clearTimeout(levelTimer);
+      levelTimer=null;
+      levelResumeDelay=0;
       powerUps=[];
       fireUntil=0;
       wideUntil=0;
