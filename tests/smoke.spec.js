@@ -461,3 +461,14 @@ test('cloud sync retains offline changes and retries transient failures', async 
   expect(source).toContain('MAX_RETRY_DELAY = 60000');
   expect(source).toContain("scheduleAutoSync('online', 300)");
 });
+
+
+test('Bounce Run exposes progressive run feedback', async ({ page }) => {
+  const response = await page.request.get('/mini-games.js');
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  expect(source).toContain("CLEAR COMBO");
+  expect(source).toContain("Best clear combo:");
+  expect(source).toContain("5 clears = level up");
+  expect(source).toContain("Math.ceil((readyUntil-performance.now())/650)");
+});
