@@ -36,7 +36,7 @@ const Arcade = (() => {
   const PLAY_AD_BONUS = 3;
   const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
-  const CHALLENGE_VERSION = '3';
+  const CHALLENGE_VERSION = '4';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
@@ -65,7 +65,12 @@ const Arcade = (() => {
     { id:'brick15', title:'💥 Brick Smasher', description:'Break 15 bricks in one Brick Breaker run', goal:15, reward:8, type:'score', game:'brickBreaker' },
     { id:'jungle8', title:'🐸 Vine Hopper', description:'Pass 8 vines in Jungle Hopper', goal:8, reward:10, type:'score', game:'jungleHopper' },
     { id:'tower10', title:'🏗️ High Rise', description:'Stack 10 floors in Tower Stack', goal:10, reward:10, type:'score', game:'towerStack' },
-    { id:'memory', title:'🧠 Memory Master', description:'Finish one Memory Match board today', goal:1, reward:8, type:'complete', game:'memory' }
+    { id:'memory', title:'🧠 Memory Master', description:'Finish one Memory Match board today', goal:1, reward:8, type:'complete', game:'memory' },
+    { id:'coinCatch15', title:'💰 Coin Magnet', description:'Catch 15 coins in one Coin Catch run', goal:15, reward:10, type:'score', game:'coinCatch' },
+    { id:'colorMatch18', title:'🎨 Color Brain', description:'Get 18 correct matches in Color Match', goal:18, reward:10, type:'score', game:'colorMatch' },
+    { id:'paddleRally12', title:'🏓 Rally Time', description:'Return 12 balls in one Paddle Rally run', goal:12, reward:10, type:'score', game:'paddleRally' },
+    { id:'laneRunner20', title:'🏎️ Highway Run', description:'Survive 20 seconds in Lane Runner', goal:20, reward:10, type:'score', game:'laneRunner' },
+    { id:'safeCracker8', title:'🔐 Crack the Safe', description:'Crack 8 locks in one Safe Cracker run', goal:8, reward:10, type:'score', game:'safeCracker' }
   ];
 
   function dateKey(date = new Date()) {
@@ -886,7 +891,16 @@ const Arcade = (() => {
 
   function dailyChallengeDefinition() {
     const seed = dateKey().split('-').join('').split('').reduce((sum, digit) => sum + Number(digit), 0);
-    return challengeDefinitions[seed % challengeDefinitions.length];
+    const challengeDay = localStorage.getItem('arcadeChallengeDay');
+    const version = localStorage.getItem('arcadeChallengeVersion');
+
+    // Players who already started today's challenge before the five new games
+    // were added keep that exact legacy challenge until tomorrow.
+    const poolSize = challengeDay === dateKey() && version === '3'
+      ? Math.min(9, challengeDefinitions.length)
+      : challengeDefinitions.length;
+
+    return challengeDefinitions[seed % poolSize];
   }
 
   function refreshDaily() {
@@ -901,9 +915,8 @@ const Arcade = (() => {
       localStorage.setItem('arcadePlayDay', today);
     }
 
-    const challengeNeedsReset =
-      localStorage.getItem('arcadeChallengeDay') !== today ||
-      localStorage.getItem('arcadeChallengeVersion') !== CHALLENGE_VERSION;
+    const challengeDay = localStorage.getItem('arcadeChallengeDay');
+    const challengeNeedsReset = challengeDay !== today;
 
     if (challengeNeedsReset) {
       localStorage.setItem('arcadeChallengeDay', today);
@@ -911,6 +924,9 @@ const Arcade = (() => {
       setNumber('arcadeChallengeProgress', 0);
       localStorage.setItem('arcadeChallengeClaimed', '0');
       localStorage.setItem('arcadeChallengeGames', '[]');
+    } else if (!localStorage.getItem('arcadeChallengeVersion')) {
+      // Older installs without a version marker use the legacy pool for today.
+      localStorage.setItem('arcadeChallengeVersion', '3');
     }
 
   }
