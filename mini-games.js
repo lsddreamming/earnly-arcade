@@ -26,6 +26,7 @@
   document.title = 'Earnly ' + config.name;
   document.getElementById('gameIcon').textContent = config.icon;
   document.getElementById('gameTitle').textContent = config.name;
+  surface.setAttribute('aria-label', config.name + ' play area');
   document.getElementById('scoreLabel').textContent = config.scoreLabel;
   document.getElementById('secondaryLabel').textContent = config.secondaryLabel;
   helpEl.textContent = config.help;
@@ -1345,7 +1346,7 @@
 
         const arrow=car.h ? (car.dir>0?'→':'←') : (car.dir>0?'↓':'↑');
         b.innerHTML='<span class="traffic-emoji">🚗</span><span class="traffic-arrow">'+arrow+'</span>';
-        b.setAttribute('aria-label','Car pointing '+({'>':'right','<':'left','↑':'up','↓':'down'}[arrow]||arrow));
+        b.setAttribute('aria-label','Car pointing '+({'→':'right','←':'left','↑':'up','↓':'down'}[arrow]||arrow));
         b.addEventListener('click',()=>tapCar(car,b));
         grid.append(b);
       });
