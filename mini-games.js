@@ -9,7 +9,7 @@
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rings',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,Math.floor(v/4)+(v>=10?1:0)+(v>=20?2:0)+(v>=35?3:0)+(v>=50?4:0)+(v>=70?5:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
-    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when the road in its arrow direction is clear. Empty the board to level up.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=30?2:0)+(v>=60?3:0)+(v>=100?4:0)+(v>=140?5:0))}
+    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels take multiple boards and tighter traffic to clear.',reward:v=>Math.min(25,Math.floor(v/6)+(v>=20?1:0)+(v>=40?2:0)+(v>=70?3:0)+(v>=100?3:0))}
   };
 
   const config = configs[key] || configs.blockGrid;
@@ -30,6 +30,7 @@
   document.getElementById('scoreLabel').textContent = config.scoreLabel;
   document.getElementById('secondaryLabel').textContent = config.secondaryLabel;
   helpEl.textContent = config.help;
+  document.body.classList.toggle('mini-traffic', key === 'trafficEscape');
 
   let running = false;
   let starting = false;
@@ -1191,7 +1192,7 @@
   }
 
   function makeTrafficEscape() {
-    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0;
+    let cars=[],cleared=0,level=1,alive=false,locked=false,strikes=0,boardInLevel=1;
 
     const wrap=document.createElement('div');
     wrap.className='traffic-wrap';
@@ -1211,10 +1212,38 @@
     surface.replaceChildren(wrap);
 
     const cell=55;
+    const boardsNeeded=()=>level===1?1:level<=3?2:3;
+
+    function mirrorCars(source,mode){
+      return source.map(car=>{
+        const copy={...car};
+        if(mode==='x'){
+          copy.x=6-(car.x+(car.h?car.len:1));
+          if(car.h)copy.dir*=-1;
+        }else if(mode==='y'){
+          copy.y=6-(car.y+(car.h?1:car.len));
+          if(!car.h)copy.dir*=-1;
+        }else if(mode==='xy'){
+          copy.x=6-(car.x+(car.h?car.len:1));
+          copy.y=6-(car.y+(car.h?1:car.len));
+          copy.dir*=-1;
+        }
+        return copy;
+      });
+    }
+
+    function levelSource(){
+      // Level 1 teaches the rule. From Level 2 onward use the denser
+      // seven-car puzzle, mirrored into fresh but equivalently solvable boards.
+      const source=level===1?TRAFFIC_LEVELS[0]:TRAFFIC_LEVELS[2];
+      const modes=['none','x','y','xy'];
+      const mode=modes[(level+boardInLevel-2)%modes.length];
+      return mode==='none'?source:mirrorCars(source,mode);
+    }
 
     function loadLevel() {
       locked=false;
-      const source=TRAFFIC_LEVELS[(level-1)%TRAFFIC_LEVELS.length];
+      const source=levelSource();
       cars=source.map((car,i)=>({...car,id:i}));
       render();
     }
@@ -1273,8 +1302,8 @@
           setTimeout(()=>finish(
             cleared,
             level,
-            ['🚗 Cars cleared: '+cleared,'💥 Crashes: 3/3','Reach a clear arrow path before tapping.'],
-            cleared>=60?'Traffic Pro':''
+            ['🚗 Cars cleared: '+cleared,'🚦 Level reached: '+level,'💥 Crashes: 3/3','Reach a clear arrow path before tapping.'],
+            cleared>=70?'Traffic Pro':''
           ),260);
           return;
         }
@@ -1296,22 +1325,32 @@
         ui(cleared,level);
 
         if(!cars.length){
+          const needed=boardsNeeded();
+          if(boardInLevel<needed){
+            boardInLevel++;
+            Arcade.milestone('🚦 Road '+(boardInLevel-1)+'/'+needed+' cleared','score');
+            levelLine.textContent='🎉 Road clear · '+(needed-boardInLevel+1)+' more for Level '+level;
+            setTimeout(()=>{if(alive)loadLevel()},500);
+            return;
+          }
+
           Arcade.milestone('🚦 Level '+level+' cleared!','perfect');
           level++;
+          boardInLevel=1;
 
-          if(level>9){
+          if(level>7){
             alive=false;
             finish(
               cleared,
               level-1,
-              ['🚦 Levels cleared: '+(level-1),'You cleared every traffic board!'],
+              ['🚦 Levels cleared: '+(level-1),'🚗 Cars cleared: '+cleared,'You cleared every traffic board!'],
               'Traffic Master'
             );
             return;
           }
 
-          levelLine.textContent='🎉 Board clear · Level '+level+' next';
-          setTimeout(()=>{if(alive)loadLevel()},420);
+          levelLine.textContent='🎉 Level cleared · Level '+level+' next';
+          setTimeout(()=>{if(alive)loadLevel()},600);
           return;
         }
 
@@ -1321,7 +1360,9 @@
     }
 
     function render() {
-      levelLine.textContent='Level '+level+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left · 💥 '+strikes+'/3';
+      const needed=boardsNeeded();
+      const road=needed>1?' · Road '+boardInLevel+'/'+needed:'';
+      levelLine.textContent='Level '+level+road+' · '+cars.length+' car'+(cars.length===1?'':'s')+' left · 💥 '+strikes+'/3';
       grid.replaceChildren();
 
       cars.forEach((car,idx)=>{
@@ -1343,7 +1384,7 @@
     }
 
     return {
-      start(){cleared=0;level=1;strikes=0;alive=true;locked=false;ui(0,1);loadLevel()},
+      start(){cleared=0;level=1;boardInLevel=1;strikes=0;alive=true;locked=false;ui(0,1);loadLevel()},
       stop(){alive=false;locked=true}
     };
   }
