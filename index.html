@@ -327,12 +327,34 @@
 
       if (recentInfo) {
         const best = Arcade.best(recent);
+        const playsLeft = Arcade.remaining(recent);
+        const adStatus = Arcade.playAdStatus(recent);
+
         continueCard.hidden = false;
         continueIcon.textContent = recentInfo[0];
         continueName.textContent = recentInfo[1];
-        continueMeta.textContent =
-          '🏆 ' + best.display + ' · ' + Arcade.remaining(recent) + ' plays left';
         continueButton.href = recentInfo[2];
+        continueButton.className = 'home-row-button';
+        continueButton.dataset.game = recent;
+
+        if (playsLeft > 0) {
+          continueMeta.textContent =
+            '🏆 ' + best.display + ' · ' + playsLeft + ' play' + (playsLeft === 1 ? '' : 's') + ' left';
+          continueButton.textContent = 'Play';
+          continueButton.removeAttribute('data-out-of-plays');
+        } else if (adStatus.remaining > 0) {
+          continueMeta.textContent =
+            '🏆 ' + best.display + ' · Out of plays · ' + adStatus.remaining +
+            ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today';
+          continueButton.textContent = 'Get +' + Arcade.PLAY_AD_BONUS + ' Plays';
+          continueButton.className = 'home-row-button green';
+          continueButton.dataset.outOfPlays = '1';
+        } else {
+          continueMeta.textContent =
+            '🏆 ' + best.display + ' · Out of plays · Free plays refill tomorrow';
+          continueButton.textContent = 'View Game';
+          continueButton.removeAttribute('data-out-of-plays');
+        }
       } else {
         continueCard.hidden = true;
       }
@@ -434,6 +456,14 @@
       const achievement = Arcade.achievementSummary();
       achievementText.textContent = achievement.unlocked + ' of ' + achievement.total + ' unlocked';
     }
+
+    continueButton.addEventListener('click', event => {
+      const game = continueButton.dataset.game;
+      if (!game || continueButton.dataset.outOfPlays !== '1') return;
+
+      event.preventDefault();
+      Arcade.out(game, render);
+    });
 
     bonusButton.addEventListener('click', () => {
       const result = Arcade.claimDailyBonus();
