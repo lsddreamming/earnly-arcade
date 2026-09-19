@@ -795,10 +795,20 @@
       }
       ctx.textAlign='center';
 
-      // The page-level milestone toast already announces level changes.
-      // Do not draw a second level-up badge inside the canvas; keeping the
-      // persistent LEVEL/RINGS cards visible is enough during active play.
-      if(levelFlashFrames>0)levelFlashFrames--;
+      if(levelFlashFrames>0){
+        // Small center HUD between LEVEL and RINGS: noticeable without making
+        // the player look away from the next gap.
+        ctx.save();
+        const fade=Math.min(1,levelFlashFrames/8,(34-levelFlashFrames)/6);
+        ctx.globalAlpha=Math.max(0,fade);
+        ctx.fillStyle='rgba(15,23,42,.92)';
+        ctx.beginPath();ctx.roundRect(137,17,86,28,14);ctx.fill();
+        ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.25;ctx.stroke();
+        ctx.fillStyle='#fef3c7';ctx.font='900 10px Arial';ctx.textAlign='center';
+        ctx.fillText('⬆ '+levelFlash,180,35);
+        ctx.restore();
+        levelFlashFrames--;
+      }
 
       // Ball with a glow so it is always easy to find.
       const glow=ctx.createRadialGradient(ballX-4,106,2,ballX,110,18);
@@ -883,7 +893,13 @@
           ui(score,level());
 
           if(score===1) Arcade.milestone('🌀 First ring cleared!','score');
-          if(score>0&&score%5===0){levelFlash='LEVEL '+level();levelFlashFrames=50;Arcade.milestone('⬆️ Level '+level()+'!','perfect')}
+          if(score>0&&score%5===0){
+            // Keep level feedback inside the player's focal area. The persistent
+            // LEVEL card updates immediately, so a large page-level toast only
+            // pulls attention away from the next opening at higher speeds.
+            levelFlash='LEVEL '+level();
+            levelFlashFrames=34;
+          }
         }
       }
 
