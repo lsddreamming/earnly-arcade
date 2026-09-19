@@ -62,9 +62,9 @@
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Tap a lane or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
       overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Tap left, center, or right to move. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
-      tips:['On computer use Left/Right arrows. On phone tap the lane you want.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Survival time and passed cars can earn up to 25 Coins.'});
+      tips:['On computer use Left/Right arrows. On phone tap the lane you want.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
     const lanes=[72,180,288];let lane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0;
-    function rewardFor(s,p){let c=Math.floor(s/6)+Math.floor(p/8);if(s>=20)c+=2;if(s>=40)c+=4;return Math.min(c,25)}
+    function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
     function reset(){lane=1;obstacles=[];passed=0;seconds=0;lastSpawnLane=-1;sameLaneSpawns=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function draw(){
@@ -75,10 +75,10 @@
       obstacles.forEach(o=>ctx.fillText(o.icon,lanes[o.lane],o.y));
     }
     function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
-      Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)})}
+      requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
     function loop(now){
       if(!running)return;seconds=Math.floor((now-startAt)/1000);timeEl.textContent=String(seconds);refreshReward();
-      const spawnGap=Math.max(460,920-seconds*8);
+      const spawnGap=Math.max(330,880-seconds*9);
       if(!lastSpawn||now-lastSpawn>=spawnGap){
         let nextLane=Math.floor(Math.random()*3);
         if(nextLane===lastSpawnLane&&sameLaneSpawns>=2){
@@ -87,10 +87,10 @@
         }
         sameLaneSpawns=nextLane===lastSpawnLane?sameLaneSpawns+1:1;
         lastSpawnLane=nextLane;
-        obstacles.push({lane:nextLane,y:-28,speed:3.2+Math.min(4,seconds*.06),icon:Math.random()<.5?'🚙':'🚕'});
+        obstacles.push({lane:nextLane,y:-28,speed:3.4+Math.min(5.2,seconds*.075),icon:Math.random()<.5?'🚙':'🚕'});
         lastSpawn=now;
       }
-      for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');if(passed===15)Arcade.milestone('🏎️ 15 cars passed!')}}
+      for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');if(passed===15)Arcade.milestone('🏎️ 15 cars passed!');if(passed===50)Arcade.milestone('🔥 50 cars passed!');if(passed===100)Arcade.milestone('🏆 100 cars passed!','perfect')}}
       draw();animation=requestAnimationFrame(loop);
     }
     function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
@@ -100,6 +100,17 @@
       const x=Arcade.gameSurfaceX(e.clientX,canvas,canvas.width);
       setLane(x<120?0:x<240?1:2);
     }
+    let swipeStartX=null,swipeStartY=null;
+    canvas.addEventListener('pointerdown',e=>{swipeStartX=e.clientX;swipeStartY=e.clientY},{capture:true});
+    canvas.addEventListener('pointerup',e=>{
+      if(!running||swipeStartX===null)return;
+      const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
+      swipeStartX=null;swipeStartY=null;
+      if(Math.abs(dx)>=28&&Math.abs(dx)>Math.abs(dy)*1.15){
+        e.preventDefault();
+        setLane(lane+(dx>0?1:-1));
+      }
+    });
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
