@@ -176,12 +176,13 @@
         result,
         playsLeft:Arcade.remaining('tapRush'),
         game:'tapRush',
-        extra:[hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt)/1000))+'s',hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('tapRush', refreshChrome)
       });
     }
 
+    let earnlyRunStartedAt=0;
     function startGame() {
       if (running || starting) return;
       starting = true;
@@ -190,7 +191,7 @@
         starting = false;
         Arcade.out('tapRush', refreshChrome);
         return;
-      }
+      } earnlyRunStartedAt=performance.now(); 
 
       hits = 0;
       timeLeft = ROUND_SECONDS;
