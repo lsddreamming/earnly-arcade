@@ -740,18 +740,18 @@
     function openingWidth(){
       // Smooth difficulty curve: openings tighten steadily instead of
       // suddenly becoming punishing late in a good run.
-      if(score<15)return Math.max(96,130-score*1.15);
-      if(score<35)return Math.max(74,113-(score-15)*1.05);
-      if(score<60)return Math.max(62,92-(score-35)*.72);
-      return Math.max(54,74-(score-60)*.28);
+      if(score<10)return Math.max(88,126-score*2.2);
+      if(score<25)return Math.max(64,104-(score-10)*2.1);
+      if(score<45)return Math.max(50,73-(score-25)*1.15);
+      return Math.max(42,52-(score-45)*.32);
     }
 
     function fallSpeed(){
-      if(score<10)return .82+score*.03;
-      if(score<25)return 1.12+(score-10)*.026;
-      if(score<45)return 1.51+(score-25)*.022;
-      if(score<70)return 1.95+(score-45)*.015;
-      return Math.min(2.55,2.325+(score-70)*.006);
+      if(score<10)return .92+score*.045;
+      if(score<25)return 1.37+(score-10)*.04;
+      if(score<45)return 1.97+(score-25)*.03;
+      if(score<70)return 2.57+(score-45)*.018;
+      return Math.min(3.35,3.02+(score-70)*.008);
     }
 
     function ringColor(r){
@@ -772,7 +772,7 @@
       const previous=recent[recent.length-1];
       const before=recent.length>1?recent[recent.length-2]:null;
       const before2=recent.length>2?recent[recent.length-3]:null;
-      const minMove=Math.max(score>=45?54:score>=20?48:42,width*(score>=45?.48:.38));
+      const minMove=Math.max(score>=45?68:score>=20?58:46,width*(score>=45?.62:.46));
       const maxMove=Math.max(minMove+18,Math.min(138,(max-min)*.78));
       const candidates=[];
 
@@ -1043,7 +1043,7 @@
 
       while(rows.length&&rows[0].y<-20)rows.shift();
       while(rows.length<6){
-        const rowSpacing=Math.max(74,90-Math.floor(score/20)*3);
+        const rowSpacing=Math.max(64,88-Math.floor(score/12)*4);
         const y=(rows.length?rows[rows.length-1].y:430)+rowSpacing;
         const width=openingWidth();
         rows.push({
