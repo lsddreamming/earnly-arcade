@@ -5866,3 +5866,15 @@ body.home-dashboard.has-app-nav .home-container{
 @media(max-width:699px){
   body.games-dashboard .games-back-home{display:none!important}
 }
+
+
+/* Result-screen disabled actions should read as status, not look broken */
+.game-result-dialog .result-actions button:disabled{
+  opacity:1!important;
+  cursor:default!important;
+  background:#1a2638!important;
+  border:1px solid #475569!important;
+  color:#cbd5e1!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+}
