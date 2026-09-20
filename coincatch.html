@@ -187,7 +187,7 @@
       transitioning=true;
       clearInterval(timer);timer=null;
       level+=1;levelEl.textContent=String(level);timeLeft=LEVEL_SECONDS;timeEl.textContent=String(timeLeft);
-      drops=[];lastSpawn=performance.now();lastFrame=0;
+      drops=[];lastSpawn=performance.now();lastFrame=0;levelEndsAt=0;
       Arcade.feedback('success');
       setStatus('Level '+level,'running');
       // gameGuide can mistake a level transition for a new idle state; force any
@@ -202,14 +202,17 @@
       setTimeout(()=>{
         if(!running)return;
         transitioning=false;
-        timer=setInterval(tickTimer,1000);
+        levelEndsAt=performance.now()+LEVEL_SECONDS*1000;
+        timer=setInterval(tickTimer,250);
       },850);
     }
+    let levelEndsAt=0;
     function tickTimer(){
       if(!running||transitioning)return;
-      timeLeft=Math.max(0,timeLeft-1);timeEl.textContent=String(timeLeft);
+      timeLeft=Math.max(0,Math.ceil((levelEndsAt-performance.now())/1000));
+      timeEl.textContent=String(timeLeft);
       if(timeLeft===5) statusEl.textContent='5 seconds!';
-      if(timeLeft<=0)nextLevel();
+      if(performance.now()>=levelEndsAt)nextLevel();
     }
     function finish(hitBomb=false){
       if(!running)return;
@@ -263,9 +266,9 @@
       reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');clearTouchControls();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
-        timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);});
+        levelEndsAt=performance.now()+LEVEL_SECONDS*1000;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);}});
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
