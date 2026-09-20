@@ -477,6 +477,20 @@ test('pre-game summary gets out of the way once gameplay starts', async ({ page 
   await expect(page.locator('.catch-board-wrap')).toBeVisible();
 });
 
+test('Block Drop and Color Match expose live run rewards', async ({ page }) => {
+  await page.goto('/blockdrop.html');
+  await expect(page.locator('#runRewardPill')).toBeVisible();
+  await expect(page.locator('#rewardPreview')).toHaveText('0');
+  expect(await page.evaluate(() => rewardForLines(3))).toBe(3);
+  expect(await page.evaluate(() => rewardForLines(9))).toBe(5);
+
+  await page.goto('/colormatch.html');
+  await expect(page.locator('#runRewardPill')).toContainText('Run Reward');
+  await expect(page.locator('#rewardPreview')).toHaveText('0');
+  expect(await page.evaluate(() => rewardFor(4))).toBe(1);
+  expect(await page.evaluate(() => rewardFor(15))).toBe(5);
+});
+
 test('Coin Catch HUD stays inside the board and shows live run rewards', async ({ page }) => {
   await page.goto('/coincatch.html');
   await page.locator('#startButton').click();
