@@ -107,7 +107,6 @@
     const paddle={x:135,y:465,w:90,h:12,baseW:90};
     let balls=[];
     let powerUps=[];
-    let lastSpecialBonusAt=0;
     let fireUntil=0;
     let wideUntil=0;
     let bricks=[];
@@ -351,16 +350,12 @@
         combo = performance.now()<comboUntil ? combo+1 : 1;
         comboUntil=performance.now()+1400;
         if(b.special){
-          // Lightning bricks are rare guaranteed bonuses, not decoration.
-          // Respect the one-pickup-at-a-time rule so the board stays readable.
-          if(!powerUps.length){
-            const types=['multi','wide','fire'];
-            const type=types[Math.floor(Math.random()*types.length)];
-            powerUps.push({x:b.x+b.w/2,y:b.y+b.h/2,vy:2.1,type,r:11});
-            Arcade.milestone('⚡ BONUS BRICK! Catch the power-up!','perfect');
-          }else{
-            Arcade.milestone('⚡ BONUS BRICK smashed!','perfect');
-          }
+          // Lightning bricks guarantee a bonus. If one is already falling,
+          // replace it here rather than silently losing this guaranteed reward.
+          const types=['multi','wide','fire'];
+          const type=types[Math.floor(Math.random()*types.length)];
+          powerUps=[{x:b.x+b.w/2,y:b.y+b.h/2,vy:2.1,type,r:11}];
+          Arcade.milestone('⚡ BONUS BRICK! Catch the power-up!','perfect');
         }else{
           maybeDropPowerUp(b);
         }
@@ -681,7 +676,6 @@
       comboUntil=0;
       fireUntil=0;
       wideUntil=0;
-      lastSpecialBonusAt=0;
       dragging=false;
       dragPointer=null;
       dragLastClientX=null;
