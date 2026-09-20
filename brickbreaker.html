@@ -323,11 +323,6 @@
       });
       ctx.globalAlpha=1;
 
-      if(combo>=3 && performance.now()<comboUntil){
-        ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillStyle='#facc15';
-        ctx.fillText('🔥 '+combo+' HIT COMBO',canvas.width/2,158);
-      }
-
       balls.forEach(ball=>{
         ctx.beginPath();
         ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
