@@ -1232,6 +1232,11 @@ const Arcade = (() => {
       else if (cleanMetric >= 300) performanceXP = 30;
       else if (cleanMetric >= 200) performanceXP = 20;
       else if (cleanMetric >= 100) performanceXP = 10;
+    } else if (game === 'blockDrop') {
+      if (cleanMetric >= 20) performanceXP = 40;
+      else if (cleanMetric >= 15) performanceXP = 30;
+      else if (cleanMetric >= 10) performanceXP = 20;
+      else if (cleanMetric >= 6) performanceXP = 10;
     }
 
     const xpAward = BASE_GAME_XP + performanceXP + newlyUnlocked.length * ACHIEVEMENT_XP;
