@@ -523,6 +523,9 @@
       if(!running && !starting) return;
       running=false;
       starting=false;
+      dragging=false;
+      dragPointer=null;
+      dragLastClientX=null;
       clearTimeout(levelTimer);
       levelTimer=null;
       levelResumeDelay=0;
@@ -661,8 +664,15 @@
       levelTimer=null;
       levelResumeDelay=0;
       powerUps=[];
+      particles=[];
+      combo=0;
+      comboUntil=0;
       fireUntil=0;
       wideUntil=0;
+      lastSpecialBonusAt=0;
+      dragging=false;
+      dragPointer=null;
+      dragLastClientX=null;
       // A replay is always a brand-new run. Reset level before rebuilding the board
       // because resetBricks() chooses its layout/difficulty from the current level.
       level=1;
