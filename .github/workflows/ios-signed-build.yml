@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 35
     env:
       EARNLY_ADMOB_TEST_MODE: ${{ inputs.admob_mode == 'live' && '0' || '1' }}
-      TEAM_ID: 2R7R98NCMZ
+      TEAM_ID: 27R798NCMZ
       BUNDLE_ID: com.earnly.arcade
       PROFILE_NAME: Earnly Arcade App Store
       KEYCHAIN_PASSWORD: earnly-ci-keychain
