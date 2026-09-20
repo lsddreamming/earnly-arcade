@@ -37,11 +37,13 @@
       body.brick-breaker-page .brick-board{width:min(78vw,315px)!important;height:auto!important;margin:5px auto 7px!important;display:block!important}
       body.brick-breaker-page .power-legend{gap:5px!important;margin:5px auto 8px!important;font-size:10px!important}
       body.brick-breaker-page .power-legend span{padding:4px 6px!important}
+      /* Keep the helpful guide/reward text visible during play. The whole non-button
+         game area is also a paddle drag surface, so players can swipe right over it. */
+      body.brick-breaker-page.game-active #startButton{display:none!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
       body.brick-breaker-page.game-active .game-guide-more,
-      body.brick-breaker-page.game-active #startButton,
-      body.brick-breaker-page.game-active .power-legend{display:none!important}
+      body.brick-breaker-page.game-active .power-legend{touch-action:none!important;-webkit-user-select:none!important;user-select:none!important}
       body.brick-breaker-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.brick-breaker-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
       body.brick-breaker-page.game-active .brick-board{width:min(86vw,calc((100dvh - 210px) * .72),340px)!important;height:auto!important;margin-top:3px!important}
@@ -621,7 +623,9 @@
     });
 
     document.addEventListener('pointerdown',event=>{
-      if(event.target===canvas || !Arcade.inExpandedGameZone(event,canvas,130)) return;
+      // During play, the visible guide/reward text is intentionally part of the
+      // paddle control surface too. Only real buttons/nav links stay protected.
+      if(event.target===canvas || !Arcade.inExpandedGameZone(event,canvas,260)) return;
       event.preventDefault();
 
       if(!running){
