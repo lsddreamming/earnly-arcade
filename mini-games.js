@@ -1494,8 +1494,18 @@
     c.style.userSelect='none';
     c.style.webkitUserSelect='none';
     c.style.webkitTouchCallout='none';
+    const onWideJump=e=>{
+      if(!alive)return;
+      if(e.target===c || bounceZone.contains(e.target))return;
+      const nav=e.target.closest&&e.target.closest('.bottom-nav,.game-pause-control,button,a,input,select,textarea');
+      if(nav)return;
+      const rect=c.getBoundingClientRect();
+      if(e.clientY<rect.top)return;
+      jump(e);
+    };
     c.addEventListener('pointerdown',onPointer,{passive:false});
     bounceZone.addEventListener('pointerdown',jump,{passive:false});
+    document.addEventListener('pointerdown',onWideJump,{passive:false});
     c.addEventListener('touchstart',blockGesture,{passive:false});
     c.addEventListener('gesturestart',blockGesture,{passive:false});
     document.addEventListener('keydown',onKey);
@@ -1513,6 +1523,7 @@
         cancelAnimationFrame(raf);
         c.removeEventListener('pointerdown',onPointer);
         bounceZone.removeEventListener('pointerdown',jump);
+        document.removeEventListener('pointerdown',onWideJump);
         c.removeEventListener('touchstart',blockGesture);
         c.removeEventListener('gesturestart',blockGesture);
         document.removeEventListener('keydown',onKey);
