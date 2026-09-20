@@ -247,6 +247,7 @@
     let currentColor = colors[0];
     let pieceX = 0;
     let pieceY = 0;
+    let pieceSerial = 0;
 
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('blockDrop');
@@ -264,6 +265,7 @@
     }
 
     function newPiece() {
+      pieceSerial += 1;
       const index = Math.floor(Math.random() * pieceShapes.length);
       currentPiece = pieceShapes[index].map(row => row.slice());
       currentColor = colors[index];
@@ -426,6 +428,12 @@
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       createBoard();
+      pieceSerial = 0;
+      blockDragPointer = null;
+      blockDragX = 0;
+      blockDragY = 0;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
       score = 0;
       lines = 0;
       scoreEl.textContent = '0';
@@ -520,6 +528,7 @@
         if (!starting) startGame();
         return;
       }
+      if (game === 'paused' || starting || blockDragPointer !== null || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
 
       blockDragPointer = event.pointerId;
       blockDragX = event.clientX;
@@ -530,7 +539,7 @@
     });
 
     canvas.addEventListener('pointermove', event => {
-      if (blockDragPointer !== event.pointerId || !game) return;
+      if (blockDragPointer !== event.pointerId || !game || game === 'paused' || starting) return;
       event.preventDefault();
 
       const dx = event.clientX - blockDragX;
@@ -556,6 +565,7 @@
     canvas.addEventListener('pointerup', event => {
       if (blockDragPointer !== event.pointerId) return;
       event.preventDefault();
+      const releasedPieceSerial = pieceSerial;
 
       const wasTap =
         blockDragTotalX < tapSlop &&
@@ -564,11 +574,13 @@
         Math.abs(event.clientY - blockDragY) < tapSlop;
 
       blockDragPointer = null;
-      if (wasTap && game) rotatePiece();
+      if (wasTap && game && game !== 'paused' && !starting && releasedPieceSerial === pieceSerial) rotatePiece();
     });
 
     canvas.addEventListener('pointercancel', () => {
       blockDragPointer = null;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
     });
 
     canvas.addEventListener('contextmenu', event => event.preventDefault());
