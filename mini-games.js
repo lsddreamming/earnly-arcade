@@ -760,7 +760,12 @@
       stop(){
         alive=false;
         dropPointer=null;
+        drop=null;
+        roundDeadline=0;
+        perfectPauseAt=0;
+        flashFrames=0;
         cancelAnimationFrame(raf);
+        raf=null;
         document.removeEventListener('keydown',onKey);
         document.removeEventListener('pointerdown',onWidePointer);
       }
@@ -1210,9 +1215,13 @@
       stop(){
         alive=false;
         controlPointer=null;
+        readyUntil=0;
+        spiralPauseAt=0;
+        levelFlashFrames=0;
         pointerStartClientX=0;
         pointerStartBallX=ballX;
         cancelAnimationFrame(raf);
+        raf=null;
         document.removeEventListener('keydown',onKeyDown,{capture:true});
         document.removeEventListener('keyup',onKeyUp,{capture:true});
         heldKeys.clear();
@@ -1589,7 +1598,14 @@
       },
       stop(){
         alive=false;
+        queuedJump=false;
+        vy=0;
+        obstacles=[];
+        trail=[];
+        readyUntil=0;
+        levelFlashUntil=0;
         cancelAnimationFrame(raf);
+        raf=null;
         c.removeEventListener('pointerdown',onPointer);
         bounceZone.removeEventListener('pointerdown',jump);
         document.removeEventListener('pointerdown',onWideJump);
