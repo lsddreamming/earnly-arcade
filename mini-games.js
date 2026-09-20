@@ -338,9 +338,12 @@
         highTile < 128 ? 'Next target: 128' : 'Next target: ' + nextTarget;
       goal.classList.toggle('goal-hit', highTile >= 128);
 
-      if(highTile>=64&&!celebrated64){celebrated64=true;Arcade.feedback('score')}
-      if(highTile>=128&&!celebrated128){celebrated128=true;Arcade.feedback('perfect')}
-      if(highTile>=256&&!celebrated256){celebrated256=true;Arcade.feedback('perfect')}
+      // Milestones are shown by the goal/progress UI. Keep render() silent
+      // so a swipe that creates 64/128/256 does not stack milestone feedback
+      // on top of the merge feedback from that same move.
+      if(highTile>=64&&!celebrated64)celebrated64=true;
+      if(highTile>=128&&!celebrated128)celebrated128=true;
+      if(highTile>=256&&!celebrated256)celebrated256=true;
     }
 
     function compress(line) {
