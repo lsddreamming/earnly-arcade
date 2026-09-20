@@ -75,6 +75,7 @@
       <div class="game-meta">
         <span class="meta-pill">Vines: <span id="score">0</span></span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill">Speed: <span id="speedPreview">1.0</span>x</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
@@ -92,6 +93,7 @@
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
     const rewardPreviewEl = document.getElementById('rewardPreview');
+    const speedPreviewEl = document.getElementById('speedPreview');
     const playsEl = document.getElementById('plays');
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
@@ -181,6 +183,7 @@
       frame = 0;
       scoreEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
+      speedPreviewEl.textContent = '1.0';
       spawnObstacle(canvas.width + 85);
       spawnObstacle(canvas.width + 85 + 210);
       spawnObstacle(canvas.width + 85 + 420);
@@ -326,6 +329,11 @@
           score += 1;
           scoreEl.textContent = score;
           rewardPreviewEl.textContent = rewardFor(score);
+          const difficulty=difficultyFor(score);
+          speedPreviewEl.textContent=(difficulty.speed/BASE_SPEED).toFixed(1);
+          if(score===10 || score===20 || score===30){
+            Arcade.feedback('score',{message:'🐸 Faster vines · '+speedPreviewEl.textContent+'x speed'});
+          }
 
           if (score === 10) Arcade.milestone('🐸 10 vines · Jungle Pro!');
           if (score === 20) Arcade.milestone('🌿 20 vines · Deep jungle!', 'perfect');
