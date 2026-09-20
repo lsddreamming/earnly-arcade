@@ -633,6 +633,17 @@
 
     document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
 
+    window.addEventListener('earnly-mission-claimed', event => {
+      const detail = event.detail || {};
+      Arcade.milestone((detail.icon || '🎯') + ' Mission complete · +' + (detail.rewardXP || 0) + ' XP', 'perfect');
+      render();
+    });
+    window.addEventListener('earnly-bonus-plays-unlocked', event => {
+      const detail = event.detail || {};
+      Arcade.milestone('🎟️ +' + (detail.playsGranted || Arcade.PLAY_AD_BONUS) + ' ' + (detail.gameName || 'game') + ' plays', 'perfect');
+      render();
+    });
+
     window.addEventListener('pageshow', render);
     window.addEventListener('focus', render);
     window.addEventListener('storage', render);
