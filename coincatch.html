@@ -218,8 +218,10 @@
     let levelBannerTimer=null;
     function showLevelBanner(){
       clearTimeout(levelBannerTimer);
+      const bombChance=Math.round(Math.min(.30,.12+(level-1)*.035)*100);
+      const speedStep=Math.min(5,level);
       levelBannerTitle.textContent='LEVEL '+level;
-      levelBannerText.textContent=level===2?'Faster drops · more bombs':'Speed '+Math.min(5,level)+' · stay sharp';
+      levelBannerText.textContent='Speed '+speedStep+' · Bomb chance '+bombChance+'%';
       levelBanner.classList.add('show');
       levelBannerTimer=setTimeout(()=>{
         if(document.body.classList.contains('earnly-game-paused'))return;
@@ -257,7 +259,11 @@
       if(!running||transitioning)return;
       timeLeft=Math.max(0,Math.ceil((levelEndsAt-performance.now())/1000));
       timeEl.textContent=String(timeLeft);
-      if(timeLeft===5 && statusEl.textContent!=='5 seconds!') statusEl.textContent='5 seconds!';
+      if(timeLeft<=5 && timeLeft>0){
+        statusEl.textContent='Next level in '+timeLeft+'s';
+      }else if(statusEl.textContent.startsWith('Next level in ')){
+        statusEl.textContent='Running · Level '+level;
+      }
       if(performance.now()>=levelEndsAt)nextLevel();
     }
     function finish(hitBomb=false){
