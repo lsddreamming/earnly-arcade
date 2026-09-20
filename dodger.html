@@ -310,7 +310,8 @@
     });
 
     document.addEventListener('pointerdown',event=>{
-      if(event.target===canvas || !Arcade.inExpandedGameZone(event,canvas,130)) return;
+      if(event.target===canvas || event.target.closest?.('a,button,[role="button"],.earnly-pause-button')) return;
+      if(!Arcade.inExpandedGameZone(event,canvas,130)) return;
       event.preventDefault();
 
       if(!running){
