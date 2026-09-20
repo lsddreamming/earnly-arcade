@@ -18,10 +18,35 @@
     html,body,.container{touch-action:manipulation}
     .color-board{max-width:390px;margin:12px auto;padding:18px;border:1px solid #475569;border-radius:20px;background:#152236;touch-action:manipulation}
     .color-rule{color:#94a3b8;font-size:12px;margin-bottom:8px}.color-word{font-size:44px;font-weight:900;letter-spacing:.02em;margin:16px 0 20px}
-    .color-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.color-choice{min-height:58px;margin:0;font-size:15px}
+    .color-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.color-choice{min-height:58px;margin:0;font-size:15px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+    @media(max-width:600px){
+      body.colormatch-page main.container{padding-top:8px!important;padding-bottom:92px!important}
+      body.colormatch-page .topbar{margin-bottom:4px!important}
+      body.colormatch-page .page-header{margin:0 0 5px!important}
+      body.colormatch-page .page-header h1{font-size:20px!important;margin:2px 0 5px!important}
+      body.colormatch-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;width:100%!important}
+      body.colormatch-page .meta-pill{font-size:9px!important;padding:4px 2px!important;min-height:28px!important;text-align:center!important}
+      body.colormatch-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
+      body.colormatch-page .color-board{width:min(92vw,390px)!important;box-sizing:border-box!important;margin:6px auto!important;padding:14px!important}
+      body.colormatch-page .color-rule{font-size:11px!important;margin-bottom:5px!important}
+      body.colormatch-page .color-word{font-size:42px!important;margin:12px 0 16px!important}
+      body.colormatch-page .color-choice{min-height:62px!important;font-size:16px!important;font-weight:800!important}
+      body.colormatch-page.game-active .topbar,
+      body.colormatch-page.game-active .game-guide-strip,
+      body.colormatch-page.game-active .game-guide-more,
+      body.colormatch-page.game-active #startButton,
+      body.colormatch-page.game-active a.button.secondary{display:none!important}
+      body.colormatch-page.game-active main.container{padding-top:8px!important}
+      body.colormatch-page.game-active .page-header{margin-bottom:4px!important}
+      body.colormatch-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
+      body.colormatch-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+      body.colormatch-page.game-active .color-board{width:min(94vw,400px)!important;margin:4px auto!important;padding:16px!important}
+      body.colormatch-page.game-active .color-word{font-size:50px!important;margin:16px 0 20px!important}
+      body.colormatch-page.game-active .color-choice{min-height:72px!important;font-size:17px!important}
+    }
   </style>
 </head>
-<body>
+<body class="colormatch-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -49,7 +74,7 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('colorMatch'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
       if(!Arcade.consume('colorMatch')){ Arcade.out('colorMatch',refreshChrome); return false; }
@@ -73,7 +98,7 @@
     }
     function choose(name){
       if(!running)return;
-      if(name===answer){score++;streak++;Arcade.feedback('score');if(streak===8)Arcade.milestone('🔥 8 correct in a row!');if(score===25)Arcade.milestone('🎨 25 matches · Color Pro!','perfect')}
+      if(name===answer){score++;streak++;Arcade.feedback('score')}
       else{streak=0;Arcade.feedback('fail')}
       scoreEl.textContent=String(score);streakEl.textContent=String(streak);nextRound();
     }
