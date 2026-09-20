@@ -96,7 +96,18 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
-    function setStatus(text,mode){ document.body.classList.toggle('game-active',mode==='running'); statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
+    function setStatus(text,mode){
+      document.body.classList.toggle('game-active',mode==='running');
+      statusEl.textContent=text;statusEl.className='game-status'+(mode?' '+mode:'');
+      if(mode==='running')requestAnimationFrame(()=>{
+        hideActiveGuideChrome();
+        const board=document.querySelector('.catch-board-wrap');
+        if(!board)return;
+        const r=board.getBoundingClientRect();
+        const viewH=window.visualViewport?.height||window.innerHeight;
+        if(r.bottom>viewH-78||r.top<0)board.scrollIntoView({block:'center',behavior:'auto'});
+      });
+    }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('coinCatch'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
       if(!Arcade.consume('coinCatch')){ Arcade.out('coinCatch',refreshChrome); return false; }
