@@ -23,9 +23,47 @@
       user-select:none;
       -webkit-touch-callout:none;
     }
+
+    @media(max-width:699px){
+      body.junglehopper-page main.container{padding-top:8px!important}
+      body.junglehopper-page .topbar{margin-bottom:6px!important}
+      body.junglehopper-page .page-header{
+        margin:2px 0 6px!important;padding:0!important;gap:5px!important
+      }
+      body.junglehopper-page .page-header h1{
+        font-size:22px!important;line-height:1.1!important;margin:0!important
+      }
+      body.junglehopper-page .game-meta{
+        display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        gap:6px!important;margin:0!important;width:100%!important
+      }
+      body.junglehopper-page .meta-pill{
+        min-height:38px!important;padding:5px 4px!important;
+        display:flex!important;align-items:center!important;justify-content:center!important;
+        text-align:center!important;font-size:10px!important;border-radius:12px!important
+      }
+      body.junglehopper-page #startButton{
+        min-height:42px!important;margin:5px 0!important
+      }
+      body.junglehopper-page .jungle-board{
+        width:min(76vw,300px)!important;
+        max-height:58vh!important;
+        margin:6px auto 8px!important;display:block!important
+      }
+      body.junglehopper-page .container>a.button.wide.secondary{margin-top:6px!important}
+      body.junglehopper-page.game-active .game-guide-strip,
+      body.junglehopper-page.game-active .game-preflight,
+      body.junglehopper-page.game-active .game-guide-more,
+      body.junglehopper-page.game-active #startButton{display:none!important}
+      body.junglehopper-page.game-active .page-header{margin-bottom:3px!important}
+      body.junglehopper-page.game-active .jungle-board{
+        width:min(82vw,320px)!important;max-height:68vh!important;margin-top:3px!important
+      }
+      body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
+    }
   </style>
 </head>
-<body>
+<body class="junglehopper-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -117,6 +155,7 @@
     }
 
     function setStatus(text, mode) {
+      document.body.classList.toggle('game-active', mode === 'running');
       statusEl.textContent = text;
       statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
     }
