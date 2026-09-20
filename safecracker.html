@@ -28,7 +28,7 @@
       body.safecracker-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
       body.safecracker-page .meta-pill{padding:4px 2px;font-size:9px;text-align:center;min-height:28px}
       body.safecracker-page .safe-board{width:min(92vw,380px);border:1px solid rgba(148,163,184,.18);box-shadow:0 14px 34px rgba(0,0,0,.28)}
-      body.safecracker-page.game-active .game-guide-strip,body.safecracker-page.game-active .game-guide-more,body.safecracker-page.game-active a.button.secondary{display:none!important}
+      body.safecracker-page.game-active .game-guide-strip,body.safecracker-page.game-active .game-guide-more,body.safecracker-page.game-active .game-guide-overlay,body.safecracker-page.game-active .game-overlay,body.safecracker-page.game-active a.button.secondary{display:none!important}
       body.safecracker-page.game-active .topbar,body.safecracker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
       body.safecracker-page.game-active .page-header{margin:0 0 4px}
       body.safecracker-page.game-active .page-header h1{font-size:22px!important;margin:0 0 4px!important}
@@ -36,7 +36,7 @@
       body.safecracker-page.game-active .game-status{padding:3px 8px;font-size:9px}
       body.safecracker-page.game-active .safe-board{margin:5px auto 4px;width:min(94vw,390px)}
       body.safecracker-page .safe-tap-zone{display:none}
-      body.safecracker-page.game-active .safe-tap-zone{display:flex;width:min(92vw,380px);height:64px;margin:7px auto 0;border:1px solid rgba(34,197,94,.38);border-radius:16px;background:linear-gradient(180deg,#183629,#10261d);align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:900;color:#dcfce7;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      body.safecracker-page.game-active .safe-tap-zone{display:flex;width:min(92vw,380px);height:46px;margin:7px auto 0;border:1px solid rgba(34,197,94,.38);border-radius:16px;background:linear-gradient(180deg,#183629,#10261d);align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:900;color:#dcfce7;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
       body.safecracker-page.game-active .safe-tap-zone:active{transform:scale(.985);background:#1d4733}
     }
   </style>
@@ -57,7 +57,7 @@
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="safe-board touch-surface" id="game" width="360" height="300" aria-label="Safe Cracker timing game"></canvas>
-    <div class="safe-tap-zone" id="safeTapZone">🔓 TAP TO CRACK</div>
+    <div class="safe-tap-zone" id="safeTapZone">🔓 TAP ANYWHERE TO CRACK</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
   <script src="arcade.js"></script>
@@ -104,7 +104,7 @@
     function loop(){if(!running)return;if(performance.now()-roundStartedAt>=roundLimit){loseLife('Too slow');if(!running)return}marker+=speed*dir;if(marker>=332){marker=332;dir=-1;bounces++;if(bounces>=maxBounces){loseLife('Too many passes');if(!running)return}}else if(marker<=28){marker=28;dir=1;bounces++;if(bounces>=maxBounces){loseLife('Too many passes');if(!running)return}}draw();animation=requestAnimationFrame(loop)}
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');document.querySelectorAll('.game-guide-overlay,.game-overlay').forEach(el=>el.style.display='none');animation=requestAnimationFrame(loop)})}
     canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}attempt()});
     safeTapZone.addEventListener('pointerdown',e=>{if(!running)return;e.preventDefault();attempt()},{passive:false});
     document.addEventListener('pointerdown',e=>{
