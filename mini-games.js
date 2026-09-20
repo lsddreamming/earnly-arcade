@@ -428,7 +428,8 @@
 
     let swipePointer=null;
     function beginSwipe(e){
-      if(!alive)return;
+      if(!alive || miniPaused || swipePointer!==null)return;
+      if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
       e.preventDefault();
       swipePointer=e.pointerId;
       try{grid.setPointerCapture?.(e.pointerId)}catch{}
@@ -436,7 +437,7 @@
       startY=e.clientY;
     }
     function endSwipe(e){
-      if(!alive || swipePointer!==e.pointerId)return;
+      if(!alive || miniPaused || swipePointer!==e.pointerId)return;
       const dx=e.clientX-startX, dy=e.clientY-startY;
       swipePointer=null;
       const distance=Math.max(Math.abs(dx),Math.abs(dy));
@@ -448,10 +449,11 @@
     grid.addEventListener('pointerdown',beginSwipe,{passive:false});
     grid.addEventListener('pointerup',endSwipe,{passive:false});
     grid.addEventListener('pointercancel',e=>{if(swipePointer===e.pointerId)swipePointer=null});
+    grid.addEventListener('lostpointercapture',e=>{if(swipePointer===e.pointerId)swipePointer=null});
     grid.addEventListener('click',e=>{if(alive)e.preventDefault()});
 
     const onWideSwipeDown=e=>{
-      if(grid.contains(e.target) || !Arcade.inExpandedGameZone(e,surface,120))return;
+      if(miniPaused || swipePointer!==null || grid.contains(e.target) || !Arcade.inExpandedGameZone(e,surface,120))return;
       e.preventDefault();
       beginSwipe(e);
     };
@@ -468,6 +470,7 @@
 
     return {
       start(){board=Array(16).fill(0);score=0;moves=0;lastMergeValue=0;mergeCount=0;bestMerge=0;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;spawn();spawn();render()},
+      adjustPauseTime(){ if(miniPaused) swipePointer=null; },
       stop(){
         alive=false;
         swipePointer=null;
