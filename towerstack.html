@@ -25,12 +25,12 @@
     }
     @media(max-width:699px){
       body.towerstack-page main.container{padding-top:8px!important}
-      body.towerstack-page .topbar{margin-bottom:6px!important}
-      body.towerstack-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
-      body.towerstack-page .page-header h1{font-size:21px!important;line-height:1.05!important;margin:0!important}
+      body.towerstack-page .topbar{margin-bottom:3px!important;min-height:38px!important}
+      body.towerstack-page .page-header{margin:0 0 3px!important;padding:0!important;gap:3px!important}
+      body.towerstack-page .page-header h1{font-size:18px!important;line-height:1!important;margin:0!important}
       body.towerstack-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
-      body.towerstack-page .meta-pill{min-height:31px!important;padding:3px 2px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:9px!important;border-radius:10px!important}
-      body.towerstack-page #startButton{min-height:42px!important;margin:5px 0!important}
+      body.towerstack-page .meta-pill{min-height:27px!important;padding:2px 1px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:8px!important;border-radius:8px!important}
+      body.towerstack-page #startButton{min-height:38px!important;margin:3px 0!important;padding:8px 12px!important}
       body.towerstack-page .tower-board{width:min(78vw,315px)!important;max-height:59vh!important;margin:6px auto 8px!important;display:block!important}
       body.towerstack-page.game-active .game-guide-strip,
       body.towerstack-page.game-active .game-preflight,
@@ -282,8 +282,7 @@
         overlap = previous.w;
         perfects += 1;
         perfectsEl.textContent = perfects;
-        canvas.animate?.([{filter:'brightness(1)'},{filter:'brightness(1.35)'},{filter:'brightness(1)'}],{duration:220});
-        Arcade.milestone('✨ Perfect stack!', 'perfect');
+        // Keep perfect-drop feedback subtle; avoid screen-covering milestone flashes.
       } else {
         Arcade.feedback('stack');
         moving.x = left;
