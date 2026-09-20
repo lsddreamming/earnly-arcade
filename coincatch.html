@@ -29,10 +29,10 @@
       body.coincatch-page .catch-hud{position:absolute;top:9px;z-index:4;height:28px;min-width:58px;padding:0 9px;border-radius:999px;background:rgba(2,6,23,.78);border:1px solid rgba(148,163,184,.22);backdrop-filter:blur(5px);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1;text-align:center;font-size:11px;font-weight:900;color:#cbd5e1;box-sizing:border-box}
       body.coincatch-page .catch-hud-left{left:9px}body.coincatch-page .catch-hud-center{left:50%;transform:translateX(-50%)}body.coincatch-page .catch-hud-right{right:9px}
       body.coincatch-page .catch-hud strong{font-size:13px;color:#f8fafc}
-      body.coincatch-page.game-active .page-header h1{font-size:17px!important;line-height:24px!important;margin:2px 0!important}
+      body.coincatch-page.game-active .page-header h1{font-size:17px!important;line-height:26px!important;margin:2px 0!important}
       body.coincatch-page.game-active .game-meta{display:none!important}
       body.coincatch-page.game-active .topbar{display:none!important}
-      body.coincatch-page.game-active .page-header{min-height:28px!important;margin:0 0 4px!important;padding:0!important}
+      body.coincatch-page.game-active .page-header{flex:0 0 auto!important;min-height:30px!important;margin:4px 0 2px!important;padding:0!important}
       body.coincatch-page.game-active .game-guide-strip,
       body.coincatch-page.game-active .game-preflight,
       body.coincatch-page.game-active .game-guide-more,
@@ -40,11 +40,12 @@
       body.coincatch-page.game-active .game-overlay,
       body.coincatch-page.game-active #startButton{display:none!important}
       body.coincatch-page.game-active .container>a.button.wide.secondary{display:none!important}
-      body.coincatch-page.game-active .catch-board-wrap{width:min(92vw,358px)!important;margin:8px auto 0!important}
-      body.coincatch-page.game-active .catch-board{width:100%!important;max-height:calc(100dvh - 160px)!important}
+      body.coincatch-page.game-active .catch-board-wrap{width:min(92vw,358px)!important;max-width:358px!important;flex:1 1 auto!important;min-height:0!important;margin:6px auto 0!important;display:flex!important;align-items:center!important;justify-content:center!important}
+      body.coincatch-page.game-active .catch-board{width:auto!important;height:100%!important;max-width:100%!important;max-height:100%!important;aspect-ratio:360/500!important;object-fit:contain!important}
       body.coincatch-page.game-active .page-header{gap:2px!important;margin-bottom:2px!important}
       body.coincatch-page.game-active .game-status{display:none!important}
-      body.coincatch-page.game-active main.container{padding-top:10px!important;padding-bottom:18px!important}
+      body.coincatch-page.game-active{overflow:hidden!important}
+      body.coincatch-page.game-active main.container{height:calc(100dvh - env(safe-area-inset-bottom,0px))!important;min-height:0!important;padding:8px 12px 8px!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;overflow:hidden!important}
     }
     .level-banner{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.94);z-index:8;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 24px;border-radius:16px;background:rgba(2,6,23,.82);border:1px solid rgba(250,204,21,.45);box-shadow:0 14px 35px rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;backdrop-filter:blur(7px)}
     .level-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
@@ -53,7 +54,7 @@
     body.coincatch-page main.container{position:relative}
     .catch-control-zone{display:none}
     @media(max-width:699px){
-      body.coincatch-page.game-active .catch-control-zone{display:flex;height:44px;margin:4px auto 0;width:min(92vw,358px);border:1px solid rgba(56,189,248,.24);border-radius:16px;background:linear-gradient(180deg,rgba(30,41,59,.9),rgba(15,23,42,.96));align-items:center;justify-content:center;gap:8px;color:#94a3b8;font-size:12px;font-weight:800;letter-spacing:.02em;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+      body.coincatch-page.game-active .catch-control-zone{display:flex;flex:0 0 46px;height:46px;margin:5px auto 0;width:min(92vw,358px);border:1px solid rgba(56,189,248,.24);border-radius:16px;background:linear-gradient(180deg,rgba(30,41,59,.9),rgba(15,23,42,.96));align-items:center;justify-content:center;gap:8px;color:#94a3b8;font-size:12px;font-weight:800;letter-spacing:.02em;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
       body.coincatch-page.game-active .catch-control-zone span{font-size:20px;color:#e2e8f0}
     }
   </style>
