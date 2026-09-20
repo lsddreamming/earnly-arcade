@@ -215,8 +215,10 @@
         if(t.includes('out of plays')){el.remove()}
       });
       showLevelBanner();
-      setTimeout(()=>{
-        if(!running)return;
+      clearTimeout(levelBannerTimer);
+      levelBannerTimer=setTimeout(()=>{
+        if(!running||document.body.classList.contains('earnly-game-paused'))return;
+        levelBanner.classList.remove('show');levelBannerTimer=null;
         transitioning=false;
         levelEndsAt=performance.now()+LEVEL_SECONDS*1000;
         timer=setInterval(tickTimer,250);
