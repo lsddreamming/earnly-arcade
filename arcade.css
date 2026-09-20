@@ -5393,3 +5393,50 @@ body.earnly-gameplay-locked{
     border-radius:15px!important;
   }
 }
+
+
+/* 0.15.42 game-card identity pass */
+.games-dashboard #games .catalog-tile{--game-accent:#38bdf8;--game-accent2:#8b5cf6}
+.games-dashboard #games .catalog-tile[data-game="blockDrop"],
+.games-dashboard #games .catalog-tile[data-game="colorMatch"]{--game-accent:#d946ef;--game-accent2:#f43f5e}
+.games-dashboard #games .catalog-tile[data-game="tapRush"],
+.games-dashboard #games .catalog-tile[data-game="jungleHopper"],
+.games-dashboard #games .catalog-tile[data-game="paddleRally"]{--game-accent:#22c55e;--game-accent2:#06b6d4}
+.games-dashboard #games .catalog-tile[data-game="memory"],
+.games-dashboard #games .catalog-tile[data-game="towerStack"],
+.games-dashboard #games .catalog-tile[data-game="laneRunner"]{--game-accent:#f59e0b;--game-accent2:#ef4444}
+.games-dashboard #games .catalog-tile[data-game="brickBreaker"],
+.games-dashboard #games .catalog-tile[data-game="shapeFit"]{--game-accent:#a855f7;--game-accent2:#ec4899}
+.games-dashboard #games .catalog-tile::before{background:linear-gradient(var(--game-accent),var(--game-accent2))!important}
+.games-dashboard #games .catalog-tile::after{
+  background:
+    radial-gradient(circle at 88% 16%,color-mix(in srgb,var(--game-accent) 18%,transparent),transparent 34%),
+    linear-gradient(110deg,rgba(255,255,255,.035),transparent 42%)!important
+}
+.games-dashboard #games .game-icon-bubble{
+  width:44px;height:44px;min-width:44px;border-radius:14px;
+  display:grid;place-items:center;font-size:25px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent) 22%,#0b1729),rgba(8,18,34,.78));
+  border:1px solid color-mix(in srgb,var(--game-accent) 42%,transparent);
+  box-shadow:0 6px 18px color-mix(in srgb,var(--game-accent) 13%,transparent),inset 0 1px 0 rgba(255,255,255,.12)
+}
+.games-dashboard #games .game-name-wrap{display:flex;align-items:center;gap:10px;min-width:0}
+.games-dashboard #games .game-name-wrap h2{margin:0!important}
+.games-dashboard #games .game-play-button:not(:disabled){
+  background:linear-gradient(135deg,color-mix(in srgb,var(--game-accent) 76%,#2563eb),color-mix(in srgb,var(--game-accent2) 55%,#3b82f6))!important;
+  border-color:color-mix(in srgb,var(--game-accent) 52%,#93c5fd)!important;
+  box-shadow:0 8px 22px color-mix(in srgb,var(--game-accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.3)!important
+}
+@media(max-width:700px){
+ body.games-dashboard #games .catalog-tile{
+   min-height:128px!important;padding:12px 12px 11px 17px!important;
+   grid-template-areas:"badge badge" "title actions" "rule play" "best play" "status status"!important
+ }
+ body.games-dashboard #games .game-title-row{overflow:visible!important}
+ body.games-dashboard #games .game-icon-bubble{width:40px;height:40px;min-width:40px;border-radius:13px;font-size:23px}
+ body.games-dashboard #games .game-name-wrap{gap:8px}
+ body.games-dashboard #games .game-title-row h2{font-size:18px!important}
+ body.games-dashboard #games .reward-rule{padding-left:48px!important;max-width:280px!important}
+ body.games-dashboard #games .game-recommended-badge{margin-left:48px!important}
+ body.games-dashboard #games .game-play-button{font-size:15px!important;font-weight:900!important}
+}
