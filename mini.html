@@ -186,6 +186,18 @@
       body.mini-mergeRush.game-active .merge-tile:not(:empty){animation:mergeTileIn .16s ease-out}
       body.mini-mergeRush.game-active .merge-goal{margin:7px 4px 0!important;padding:6px 8px!important}
       @keyframes mergeTileIn{0%{transform:scale(.88);filter:brightness(1.3)}100%{transform:scale(1);filter:none}}
+
+      /* Perfect Drop active mobile polish */
+      body.mini-perfectDrop.game-active .topbar,body.mini-perfectDrop.game-active #startButton,body.mini-perfectDrop.game-active .game-guide-strip,body.mini-perfectDrop.game-active .game-guide-more,body.mini-perfectDrop.game-active .game-guide-overlay,body.mini-perfectDrop.game-active .game-overlay,body.mini-perfectDrop.game-active a.button.secondary,body.mini-perfectDrop.game-active .mini-help{display:none!important}
+      body.mini-perfectDrop.game-active main.container{padding-top:max(8px,env(safe-area-inset-top))!important;padding-bottom:76px!important}
+      body.mini-perfectDrop.game-active .page-header{margin:0 0 4px!important}
+      body.mini-perfectDrop.game-active .page-header h1{font-size:22px!important;line-height:1.1!important;margin:0 0 3px!important}
+      body.mini-perfectDrop.game-active .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important;margin:2px 0!important}
+      body.mini-perfectDrop.game-active .meta-pill{min-height:27px!important;padding:3px 2px!important;font-size:8px!important}
+      body.mini-perfectDrop.game-active .game-status{padding:3px 8px!important;font-size:9px!important;margin:2px auto!important}
+      body.mini-perfectDrop.game-active .pause-control{padding:5px 9px!important;min-height:30px!important;font-size:9px!important;margin:2px auto 4px!important}
+      body.mini-perfectDrop.game-active .mini-surface{width:min(94vw,400px)!important;min-height:0!important;margin:3px auto 0!important;border-radius:18px!important;box-shadow:0 12px 28px rgba(0,0,0,.24)}
+      body.mini-perfectDrop.game-active canvas{width:100%!important;max-height:calc(100dvh - 245px)!important;object-fit:contain!important;touch-action:manipulation}
 </style>
 </head>
 <body>
