@@ -223,7 +223,7 @@
 
         const playCount = document.createElement('span');
         playCount.className = 'play-pill';
-        playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's');
+        playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
 
         actions.append(favorite, playCount);
         heading.append(title, actions);
