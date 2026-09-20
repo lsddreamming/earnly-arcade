@@ -108,9 +108,9 @@
     canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!running){if(!starting)startGame();return}attempt()});
     safeTapZone.addEventListener('pointerdown',e=>{if(!running)return;e.preventDefault();attempt()},{passive:false});
     document.addEventListener('pointerdown',e=>{
-      if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,135))return;
+      if(!running)return;
+      if(e.target.closest('a,button,.pause-control,[role="button"]')||e.target===canvas||safeTapZone.contains(e.target))return;
       e.preventDefault();
-      if(!running){if(!starting)startGame();return}
       attempt();
     },{passive:false});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(running&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();attempt()}});
