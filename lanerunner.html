@@ -29,7 +29,14 @@
       body.lanerunner-page .meta-pill{font-size:9px;padding:4px 2px;min-height:28px;text-align:center}
       body.lanerunner-page.game-active .game-guide-strip,body.lanerunner-page.game-active .game-guide-more,body.lanerunner-page.game-active a.button.secondary{display:none!important}
       body.lanerunner-page.game-active .topbar,body.lanerunner-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
-      body.lanerunner-page.game-active .page-header h1{font-size:20px!important;margin:0 0 4px!important}
+      body.lanerunner-page.game-active .page-header h1{font-size:22px!important;margin:0 0 4px!important}
+      body.lanerunner-page.game-active .game-status{padding:3px 8px;font-size:9px}
+      body.lanerunner-page.game-active .game-meta{margin:2px 0 4px}
+      body.lanerunner-page.game-active .meta-pill{background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.18);border-radius:10px}
+      body.lanerunner-page.game-active main.container{padding-top:8px;padding-bottom:74px}
+      body.lanerunner-page.game-active .page-header{margin:0 0 3px}
+      body.lanerunner-page.game-active .lane-control-zone{box-shadow:inset 0 0 0 1px rgba(56,189,248,.08);background:linear-gradient(180deg,#17243a,#111c30)}
+      body.lanerunner-page.game-active .lane-control-zone:active{transform:scale(.99)}
       body.lanerunner-page.game-active .lane-board{width:min(90vw,360px)!important;margin:4px auto!important}
       body.lanerunner-page .lane-control-zone{display:none}
       body.lanerunner-page.game-active .lane-control-zone{display:flex;width:min(90vw,360px);height:48px;margin:3px auto 0;border:1px solid #334155;border-radius:14px;background:#17243a;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;color:#cbd5e1;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -72,10 +79,10 @@
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
       overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
       tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
-    const lanes=[72,180,288];let lane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0;
+    const lanes=[72,180,288];let lane=1,targetLane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0;
     function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
-    function reset(){lane=1;obstacles=[];passed=0;seconds=0;roadOffset=0;lastSpawnLane=-1;sameLaneSpawns=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function reset(){lane=1;targetLane=1;obstacles=[];passed=0;seconds=0;roadOffset=0;lastSpawnLane=-1;sameLaneSpawns=0;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function drawCar(x,y,isPlayer,variant){
       ctx.save();ctx.translate(x,y);
       const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
@@ -124,17 +131,18 @@
       for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');void 0}}
       draw();animation=requestAnimationFrame(loop);
     }
-    function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
+    function setLane(n){const next=Math.max(0,Math.min(2,n));if(next===lane)return;lane=next;targetLane=next;Arcade.feedback('move')}
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;animation=requestAnimationFrame(loop);}});
-    let swipeStartX=null,swipeStartY=null;
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;animation=requestAnimationFrame(loop);}});
+    let swipeStartX=null,swipeStartY=null,swipeLastX=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();swipeStartX=null;swipeStartY=null;return}
-      swipeStartX=e.clientX;swipeStartY=e.clientY;
+      swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;
     },{passive:false});
+    canvas.addEventListener('pointermove',e=>{if(!running||swipeLastX===null)return;const dx=e.clientX-swipeLastX;if(Math.abs(dx)>=42){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeLastX=e.clientX}},{passive:false});
     canvas.addEventListener('pointerup',e=>{
       if(!running||swipeStartX===null)return;
       const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
@@ -145,10 +153,12 @@
       }
     },{passive:false});
     canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
-    function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY}
-    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;if(Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)){e.preventDefault();setLane(lane+(dx>0?1:-1))}}
-    laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
+    function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX}
+    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)){e.preventDefault();setLane(lane+(dx>0?1:-1))}}
+    function laneSwipeMove(e){if(!running||swipeLastX===null)return;const dx=e.clientX-swipeLastX;if(Math.abs(dx)>=42){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeLastX=e.clientX}}
+    laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointermove',laneSwipeMove,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
     document.addEventListener('pointerdown',e=>{if(!running||e.target===canvas||laneControlZone.contains(e.target)||e.clientY<window.innerHeight-145)return;laneSwipeStart(e)},{passive:false});
+    document.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||e.target===canvas||laneControlZone.contains(e.target))return;laneSwipeMove(e)},{passive:false});
     document.addEventListener('pointerup',e=>{if(!running||swipeStartX===null)return;laneSwipeEnd(e)},{passive:false});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();setLane(lane-1)}if(e.key==='ArrowRight'){e.preventDefault();setLane(lane+1)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
