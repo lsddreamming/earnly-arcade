@@ -1,0 +1,8 @@
+{
+  "appId": "com.earnly.arcade",
+  "appName": "Earnly Arcade",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "automatic"
+  }
+}
