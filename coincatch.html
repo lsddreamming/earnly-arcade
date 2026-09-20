@@ -21,10 +21,17 @@
       body.coincatch-page .topbar{min-height:38px!important;margin-bottom:3px!important}
       body.coincatch-page .page-header{margin:0 0 3px!important;padding:0!important;gap:3px!important}
       body.coincatch-page .page-header h1{font-size:18px!important;line-height:1!important;margin:0!important}
-      body.coincatch-page .game-meta{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
-      body.coincatch-page .meta-pill{min-height:27px!important;padding:2px 1px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:7.5px!important;border-radius:8px!important}
+      body.coincatch-page .game-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
+      body.coincatch-page .meta-pill{min-height:27px!important;padding:2px 1px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:9px!important;border-radius:8px!important}
       body.coincatch-page #startButton{min-height:38px!important;margin:3px 0!important;padding:8px 12px!important}
-      body.coincatch-page .catch-board{width:min(82vw,330px)!important;max-height:62vh!important;margin:5px auto 7px!important;display:block!important}
+      body.coincatch-page .catch-board-wrap{position:relative;width:min(82vw,330px);margin:5px auto 7px}
+      body.coincatch-page .catch-board{width:100%!important;max-height:62vh!important;margin:0!important;display:block!important}
+      body.coincatch-page .catch-hud{position:absolute;top:8px;z-index:4;min-width:54px;padding:5px 8px;border-radius:10px;background:rgba(2,6,23,.72);border:1px solid rgba(148,163,184,.2);backdrop-filter:blur(5px);pointer-events:none;line-height:1;text-align:center}
+      body.coincatch-page .catch-hud-left{left:8px}.catch-hud-center{left:50%;transform:translateX(-50%)}body.coincatch-page .catch-hud-right{right:8px}
+      body.coincatch-page .catch-hud small{display:block;font-size:7px;font-weight:900;letter-spacing:.08em;color:#94a3b8;margin-bottom:3px}
+      body.coincatch-page .catch-hud strong{font-size:14px;color:#f8fafc}
+      body.coincatch-page.game-active .page-header h1{font-size:16px!important}
+      body.coincatch-page.game-active .game-meta{display:none!important}
       body.coincatch-page.game-active .game-guide-strip,
       body.coincatch-page.game-active .game-preflight,
       body.coincatch-page.game-active .game-guide-more,
@@ -32,7 +39,8 @@
       body.coincatch-page.game-active .game-overlay,
       body.coincatch-page.game-active #startButton{display:none!important}
       body.coincatch-page.game-active .container>a.button.wide.secondary{display:none!important}
-      body.coincatch-page.game-active .catch-board{width:min(90vw,350px)!important;max-height:72vh!important;margin-top:3px!important}
+      body.coincatch-page.game-active .catch-board-wrap{width:min(92vw,358px)!important;margin-top:3px!important}
+      body.coincatch-page.game-active .catch-board{width:100%!important;max-height:72vh!important}
       body.coincatch-page.game-active .page-header{gap:2px!important;margin-bottom:2px!important}
       body.coincatch-page.game-active .game-status{position:absolute;right:14px;top:48px;font-size:9px!important;padding:3px 7px!important;z-index:3}
       body.coincatch-page.game-active main.container{padding-bottom:116px!important}
@@ -57,16 +65,20 @@
     </div>
     <header class="page-header">
       <h1>💰 Coin Catch</h1>
-      <div class="game-meta"><span class="meta-pill">Caught: <span id="score">0</span></span>
-        <span class="meta-pill">Level: <span id="level">1</span></span>
-        <span class="meta-pill">Time: <span id="time">20</span>s</span>
+      <div class="game-meta">
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
-        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
       <span class="game-status" id="gameStatus">Ready</span>
       <div class="level-banner" id="levelBanner" aria-live="polite"><strong id="levelBannerTitle">LEVEL 2</strong><small id="levelBannerText">Get ready</small></div>
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
-    <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
+    <div class="catch-board-wrap">
+      <div class="catch-hud catch-hud-left"><small>CAUGHT</small><strong id="score">0</strong></div>
+      <div class="catch-hud catch-hud-center"><small>LEVEL</small><strong id="level">1</strong></div>
+      <div class="catch-hud catch-hud-right"><small>TIME</small><strong><span id="time">20</span>s</strong></div>
+      <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
+    </div>
     <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe left or right to move basket"><span>↔</span> Swipe anywhere here to move</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
