@@ -19,6 +19,8 @@
     .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     .memory-card.matched{background:#14532d;border-color:#22c55e}
     .memory-card.revealed{background:#243044}
+    .timer-danger{animation:memoryTimerPulse .7s ease-in-out infinite alternate;border-color:#ef4444!important;color:#fecaca!important}
+    @keyframes memoryTimerPulse{from{transform:scale(1)}to{transform:scale(1.04);box-shadow:0 0 14px rgba(239,68,68,.35)}}
     @media(max-width:699px){
       body.memory-page main.container{padding-top:8px!important}
       body.memory-page .topbar{margin-bottom:6px!important}
@@ -51,7 +53,7 @@
       <div class="game-meta">
         <span class="meta-pill">Moves: <span id="moves">0</span></span>
         <span class="meta-pill">Pairs: <span id="pairs">0</span>/8</span>
-        <span class="meta-pill">Time: <span id="time">0:00</span></span>
+        <span class="meta-pill">Time: <span id="time">1:00</span></span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
@@ -87,9 +89,9 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'A move is counted each time you reveal two cards. Matching cards stay face-up.',
-        'Try to remember every reveal so you can finish in fewer moves.'
+        'You have 60 seconds to match all 8 pairs. The final 10 seconds are the danger zone.'
       ],
-      reward:'Fewer moves earn a bigger reward, up to 15 Coins.'
+      reward:'Beat the 60-second clock. Faster clears and fewer moves earn the best reward, up to 15 Coins.'
     });
 
     const icons = ['🍎','⭐','🎲','🍕','🚀','🐸','🎧','💎'];
@@ -102,17 +104,24 @@
     let running = false;
     let starting = false;
     let gameTimer = null;
-    let elapsedSeconds = 0;
+    const ROUND_SECONDS = 60;
+    let timeLeft = ROUND_SECONDS;
 
     function renderTime(){
-      const minutes=Math.floor(elapsedSeconds/60);
-      const seconds=elapsedSeconds%60;
+      const minutes=Math.floor(timeLeft/60);
+      const seconds=timeLeft%60;
       timeEl.textContent=minutes+':'+String(seconds).padStart(2,'0');
+      timeEl.closest('.meta-pill')?.classList.toggle('timer-danger',timeLeft<=10 && timeLeft>0);
     }
 
     function startTimer(){
       clearInterval(gameTimer);
-      gameTimer=setInterval(()=>{ elapsedSeconds+=1; renderTime(); },1000);
+      gameTimer=setInterval(()=>{
+        timeLeft=Math.max(0,timeLeft-1);
+        renderTime();
+        if(timeLeft===10) Arcade.milestone('⏰ 10 seconds left! Hurry!','perfect');
+        if(timeLeft<=0) timeUp();
+      },1000);
     }
 
     function stopTimer(){
@@ -217,6 +226,32 @@
       }
     }
 
+    function timeUp(){
+      if(!running) return;
+      running=false;
+      lock=true;
+      stopTimer();
+      starting=false;
+      Arcade.feedback('fail');
+      refreshChrome();
+      setStatus('Time Up','over');
+      startButton.disabled=false;
+      startButton.textContent='👆 Tap Cards to Try Again';
+      render();
+      Arcade.gameResult({
+        icon:'⏰',
+        title:'Time Up!',
+        scoreLabel:'Pairs Found',
+        score:pairs+'/8',
+        coins:0,
+        playsLeft:Arcade.remaining('memory'),
+        game:'memory',
+        extra:['🧠 '+moves+' moves made','Match all 8 pairs before the 60-second clock hits zero.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('memory',refreshChrome)
+      });
+    }
+
     function finishGame(){
       if(!running)return;
       running=false;
@@ -248,7 +283,7 @@
         result,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:['⏱️ Clear time: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        extra:['⏱️ Time left: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
@@ -265,7 +300,7 @@
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
-      first=null;second=null;lock=true;moves=0;pairs=0;running=false;elapsedSeconds=0;stopTimer();renderTime();
+      first=null;second=null;lock=true;moves=0;pairs=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
       movesEl.textContent='0';
       pairsEl.textContent='0';
       startButton.disabled=true;
