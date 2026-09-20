@@ -229,15 +229,32 @@
       });
     }
 
-    function setPlayerFromClientX(clientX){
+    function clientXToGameX(clientX){
       const rect=canvas.getBoundingClientRect();
       const scale=canvas.width/rect.width;
-      const x=(clientX-rect.left)*scale-player.w/2;
+      return (clientX-rect.left)*scale;
+    }
+
+    function setPlayerX(x){
       player.x=Math.max(0,Math.min(canvas.width-player.w,x));
     }
 
     let dragging = false;
     let dragPointer = null;
+    let dragStartClientX=0;
+    let dragStartPlayerX=0;
+
+    function beginDrag(event){
+      dragging=true;
+      dragPointer=event.pointerId;
+      dragStartClientX=event.clientX;
+      dragStartPlayerX=player.x;
+    }
+
+    function moveDrag(event){
+      const delta=clientXToGameX(event.clientX)-clientXToGameX(dragStartClientX);
+      setPlayerX(dragStartPlayerX+delta);
+    }
 
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
@@ -247,16 +264,14 @@
         return;
       }
 
-      dragging = true;
-      dragPointer = event.pointerId;
-      setPlayerFromClientX(event.clientX);
+      beginDrag(event);
       canvas.setPointerCapture?.(event.pointerId);
     });
 
     canvas.addEventListener('pointermove',event=>{
       if(!dragging || dragPointer !== event.pointerId) return;
       event.preventDefault();
-      setPlayerFromClientX(event.clientX);
+      moveDrag(event);
     });
 
     document.addEventListener('pointerdown',event=>{
@@ -268,9 +283,7 @@
         return;
       }
 
-      dragging=true;
-      dragPointer=event.pointerId;
-      setPlayerFromClientX(event.clientX);
+      beginDrag(event);
     },{passive:false});
 
     document.addEventListener('pointermove',event=>{
