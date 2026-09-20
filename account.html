@@ -820,6 +820,15 @@
       cloudMessage.textContent = event.detail?.message ? 'Sync paused: ' + event.detail.message : 'Sync needs attention. Earnly will retry automatically.';
       render();
     });
+    window.addEventListener('earnly-cloud-offline-pending', () => {
+      setCloudLiveStatus('warning', '📴 Offline · progress waiting to sync');
+    });
+    window.addEventListener('earnly-cloud-recovered', event => {
+      setCloudLiveStatus('ready', '☁️ Offline progress synced');
+      cloudMessage.textContent = '✅ Your offline progress is now backed up to Earnly Cloud.';
+      if (event.detail?.updatedAt) cloudSaveStatus.textContent = friendlyTime(event.detail.updatedAt);
+      render();
+    });
     window.addEventListener('online', () => { setCloudLiveStatus('working','⏳ Reconnecting & syncing…'); renderCloud(); });
     window.addEventListener('offline', () => refreshCloudLiveStatus());
     window.addEventListener('earnly-cloud-auto-change', renderCloud);
