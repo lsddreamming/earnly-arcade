@@ -456,6 +456,9 @@
     window.addEventListener('pageshow', render);
     window.addEventListener('focus', render);
     window.addEventListener('storage', render);
+    window.addEventListener('earnly-data-change', render);
+    window.addEventListener('earnly-cloud-synced', render);
+    window.addEventListener('earnly-server-rewards-synced', render);
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
