@@ -244,6 +244,20 @@
       .bounce-tap-zone{display:none;align-items:center;justify-content:center;width:min(94vw,400px);height:48px;margin:5px auto 0;border:1px solid #334155;border-radius:14px;background:#10213a;color:#dbeafe;font-weight:900;font-size:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
       body.mini-bounceRun.game-active .bounce-tap-zone{display:flex!important}
       body.mini-bounceRun.game-active .bounce-tap-zone:active{transform:scale(.985);background:#16345d}
+
+      /* Prevent iPhone long-press copy/callout during arcade play */
+      body.game-active .pause-control,
+      body.game-active .game-pause-control,
+      body.game-active .bounce-tap-zone,
+      body.game-active .mini-surface,
+      body.game-active canvas{
+        -webkit-user-select:none!important;
+        user-select:none!important;
+        -webkit-touch-callout:none!important;
+      }
+      body.mini-bounceRun.game-active .bounce-tap-zone,
+      body.mini-bounceRun.game-active .mini-surface,
+      body.mini-bounceRun.game-active canvas{touch-action:manipulation!important}
 </style>
 </head>
 <body>
