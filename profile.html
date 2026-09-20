@@ -165,7 +165,7 @@
       document.getElementById('xpBar').style.width = xp.progress + '%';
 
       document.getElementById('gamesCompleted').textContent = stats.gamesCompleted.toLocaleString();
-      document.getElementById('differentGames').textContent = stats.differentGames + '/8';
+      document.getElementById('differentGames').textContent = stats.differentGames + '/' + Object.keys(Arcade.names).length;
       document.getElementById('lifetimeCoins').textContent = stats.lifetimeCoins.toLocaleString();
       document.getElementById('achievementCount').textContent = stats.achievements + '/' + stats.totalAchievements;
       document.getElementById('streak').textContent = stats.streak;
