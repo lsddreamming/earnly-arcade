@@ -201,6 +201,7 @@
       targetLocked = true;
       clearInterval(timer);
       timer = null;
+      roundEndsAt = 0;
       target.hidden = true;
 
       const earned = rewardForHits(hits);
@@ -285,6 +286,17 @@
       if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
       if (!running || targetLocked) return;
+
+      // The timer display updates in small intervals, but scoring must honor
+      // the exact deadline. A tap after the real 20-second mark cannot sneak
+      // in before the next timer tick closes the run.
+      if (roundEndsAt && performance.now() >= roundEndsAt) {
+        timeLeft = 0;
+        timeEl.textContent = '0';
+        finishGame();
+        return;
+      }
+
       // Lock immediately so one physical tap cannot register twice on browsers
       // that dispatch overlapping touch/pointer activity during rapid play.
       targetLocked = true;
