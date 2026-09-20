@@ -528,6 +528,32 @@ test('Coin Catch reward curve lasts into deep runs and awards performance XP', a
   expect(xp.elite).toBe(30);
 });
 
+test('Coin Catch accepts drag input at the very bottom of the screen', async ({ page }) => {
+  await page.goto('/coincatch.html');
+  await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+  await page.reload();
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+
+  const result = await page.evaluate(() => {
+    const before = basket.x;
+    const y = window.innerHeight - 8;
+    const base = { pointerId:77, pointerType:'touch', isPrimary:true, bubbles:true, cancelable:true, clientY:y };
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { ...base, clientX:120 }));
+    document.body.dispatchEvent(new PointerEvent('pointermove', { ...base, clientX:240 }));
+    document.body.dispatchEvent(new PointerEvent('pointerup', { ...base, clientX:240 }));
+    const nav = document.getElementById('arcadeBottomNav');
+    return {
+      before,
+      after:basket.x,
+      navDisplay:nav ? getComputedStyle(nav).display : 'missing'
+    };
+  });
+
+  expect(result.after).toBeGreaterThan(result.before);
+  expect(result.navDisplay).toBe('none');
+});
+
 test('Coin Catch HUD stays inside the board and shows live run rewards', async ({ page }) => {
   await page.goto('/coincatch.html');
   await page.locator('#startButton').click();
