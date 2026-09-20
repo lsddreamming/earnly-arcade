@@ -168,6 +168,12 @@
     }
 
     function resetGame() {
+      // A replay must own exactly one animation loop and begin from a fully
+      // neutral frog state, even if the previous run ended mid-frame.
+      if (animation !== null) {
+        cancelAnimationFrame(animation);
+        animation = null;
+      }
       frog.y = 270;
       frog.vy = 0;
       obstacles = [];
@@ -462,7 +468,8 @@
     document.addEventListener('keydown', event => {
       if (event.code === 'Space' || event.key === 'ArrowUp') {
         event.preventDefault();
-        hop();
+        // Do not let keyboard input during idle/countdown preload a hop.
+        if (running) hop();
       }
     });
 
