@@ -4,9 +4,19 @@
   "scripts": {
     "test": "playwright test",
     "test:mobile": "playwright test --project=mobile-webkit",
-    "test:smoke": "playwright test tests/smoke.spec.js"
+    "test:smoke": "playwright test tests/smoke.spec.js",
+    "native:web": "node scripts/build-native-web.mjs",
+    "native:ios:generate": "npm run native:web && npx cap add ios && npx cap sync ios && node scripts/configure-ios.mjs",
+    "native:ios:sync": "npm run native:web && npx cap sync ios && node scripts/configure-ios.mjs"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@capacitor/cli": "^8.0.0",
+    "@playwright/test": "^1.55.0",
+    "esbuild": "^0.25.0"
   }
 }
