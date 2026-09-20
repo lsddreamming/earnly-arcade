@@ -1087,11 +1087,6 @@
     spiralZone.innerHTML='<span>↔️ Slide anywhere here to steer</span>';
     c.insertAdjacentElement('afterend',spiralZone);
 
-    const bounceZone=document.createElement('div');
-    bounceZone.className='bounce-tap-zone';
-    bounceZone.textContent='👆 TAP ANYWHERE TO JUMP';
-    c.insertAdjacentElement('afterend',bounceZone);
-
     c.style.touchAction='none';
     c.style.userSelect='none';
     c.style.webkitUserSelect='none';
@@ -1221,6 +1216,10 @@
 
   function makeBounceRun() {
     const [c,ctx]=canvasBase();
+    const bounceZone=document.createElement('div');
+    bounceZone.className='bounce-tap-zone';
+    bounceZone.textContent='👆 TAP ANYWHERE TO JUMP';
+    c.insertAdjacentElement('afterend',bounceZone);
     let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1,lastClearAt=0,combo=0,bestCombo=0,levelFlashUntil=0,levelFlashText='',trail=[];
 
     function runLevel(){return 1+Math.floor(cleared/5)}
