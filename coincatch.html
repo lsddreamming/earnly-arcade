@@ -348,7 +348,7 @@
       Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Run Complete','over');draw();
-      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Run Complete',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
+      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Run Complete',badgeText:hitBomb?'💥 BOMB HIT':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
         extra:['🏁 Level reached: '+level,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
     function loop(now){
