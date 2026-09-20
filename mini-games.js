@@ -371,6 +371,10 @@
 
     function move(dir) {
       if(!alive)return;
+      // Track the strongest merge from this swipe only. Without resetting it,
+      // a previous merge can leak into a later non-merging move and replay
+      // stale "tile created" feedback.
+      lastMergeValue=0;
       const old=[...board], next=Array(16).fill(0);
       for(let n=0;n<4;n++){
         let line=[];
