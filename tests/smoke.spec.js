@@ -438,6 +438,27 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
 });
 
 
+test('disabled result actions stay readable on mobile', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    localStorage.setItem('arcadeOnboardingSeen','1');
+    Arcade.gameResult({
+      icon:'🎮',
+      title:'Test Run Over',
+      scoreLabel:'Score',
+      score:1,
+      coins:0,
+      result:{xpAward:10},
+      playsLeft:0,
+      game:null
+    });
+  });
+  const disabled = page.locator('.game-result-dialog .result-actions button:disabled');
+  await expect(disabled).toBeVisible();
+  await expect(disabled).toHaveCSS('opacity','1');
+  await expect(disabled).toHaveCSS('color','rgb(203, 213, 225)');
+});
+
 test('core games always expose a result popup contract', async ({ page }) => {
   const games = [
     ['snake.html','Snake'],
