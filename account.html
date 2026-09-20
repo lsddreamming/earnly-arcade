@@ -811,6 +811,9 @@
       if (when) cloudSaveStatus.textContent = friendlyTime(when);
       refreshCloudLiveStatus();
     });
+    window.addEventListener('earnly-cloud-syncing', () => {
+      setCloudLiveStatus('working', '⏳ Syncing progress…');
+    });
     window.addEventListener('earnly-cloud-conflict', () => { refreshCloudLiveStatus(); renderCloud(); });
     window.addEventListener('earnly-cloud-sync-error', event => {
       setCloudLiveStatus('warning', '⚠️ Sync needs attention');
