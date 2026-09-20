@@ -230,6 +230,8 @@
       if(!running) return;
       running=false;
       lock=true;
+      mismatchToken++;
+      pauseStartedAt=0;
       stopTimer();
       starting=false;
       Arcade.feedback('fail');
@@ -256,6 +258,8 @@
       if(!running)return;
       running=false;
       lock=true;
+      mismatchToken++;
+      pauseStartedAt=0;
       stopTimer();
       const earned=rewardForMoves(moves);
       Arcade.earn(earned,'Memory Match', { kind:'game', game:'memory', metric:moves });
@@ -320,7 +324,12 @@
       });
     }
 
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();lock=true;stopTimer();render();},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running || pauseStartedAt) return;
+      pauseStartedAt=performance.now();lock=true;stopTimer();render();
+    },resume:()=>{
+      if(!running || !pauseStartedAt) return;
+      totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;
       // If a mismatch was waiting to flip back when pause began, keep input
       // locked until that pending pair is actually hidden. Otherwise resume
       // could let the player open a third card before the old mismatch clears.
@@ -328,6 +337,7 @@
       startTimer();render();
     }});
     grid.addEventListener('pointerdown',event=>{
+      if(event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0)) return;
       if(!running && !starting){
         event.preventDefault();
         startGame();
