@@ -576,6 +576,7 @@
 
     let dragging = false;
     let dragPointer = null;
+    let dragLastClientX = null;
 
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
@@ -587,14 +588,17 @@
 
       dragging = true;
       dragPointer = event.pointerId;
-      setPaddleFromClientX(event.clientX);
+      dragLastClientX = event.clientX;
       canvas.setPointerCapture?.(event.pointerId);
     });
 
     canvas.addEventListener('pointermove',event=>{
       if(!dragging || dragPointer !== event.pointerId) return;
       event.preventDefault();
-      setPaddleFromClientX(event.clientX);
+      const rect=canvas.getBoundingClientRect();
+      const scale=canvas.width/rect.width;
+      paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x+(event.clientX-dragLastClientX)*scale));
+      dragLastClientX=event.clientX;
     });
 
     document.addEventListener('pointerdown',event=>{
@@ -608,19 +612,23 @@
 
       dragging=true;
       dragPointer=event.pointerId;
-      setPaddleFromClientX(event.clientX);
+      dragLastClientX=event.clientX;
     },{passive:false});
 
     document.addEventListener('pointermove',event=>{
-      if(!dragging || dragPointer !== event.pointerId) return;
+      if(!dragging || dragPointer !== event.pointerId || dragLastClientX===null) return;
       event.preventDefault();
-      setPaddleFromClientX(event.clientX);
+      const rect=canvas.getBoundingClientRect();
+      const scale=canvas.width/rect.width;
+      paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x+(event.clientX-dragLastClientX)*scale));
+      dragLastClientX=event.clientX;
     },{passive:false});
 
     const stopDragging = event => {
       if(event && dragPointer !== event.pointerId) return;
       dragging = false;
       dragPointer = null;
+      dragLastClientX = null;
     };
 
     canvas.addEventListener('pointerup',stopDragging);
@@ -685,7 +693,7 @@
       isRunning:()=>running,
       pause:()=>{
         pauseStartedAt=performance.now();
-        dragging=false;dragPointer=null;
+        dragging=false;dragPointer=null;dragLastClientX=null;
         cancelAnimationFrame(animation);animation=null;
         // Freeze the between-level countdown too, not just the moving ball.
         if(levelTimer){
