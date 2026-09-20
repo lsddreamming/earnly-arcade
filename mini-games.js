@@ -410,7 +410,7 @@
           render();
           goal.classList.add('merge-pop');
           goal.querySelector('span').textContent='✨ '+merged+' tile created!';
-          setTimeout(()=>{goal.classList.remove('merge-pop');if(alive)render()},500);
+          pauseAwareDelay(()=>{goal.classList.remove('merge-pop');if(alive)render()},500);
         }else{Arcade.feedback('move');render()}
       }else{
         Arcade.feedback('fail');
