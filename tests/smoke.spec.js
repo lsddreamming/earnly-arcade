@@ -616,3 +616,37 @@ test('offline cloud progress has an explicit recovery lifecycle', async ({ page 
   expect(account).toContain("earnly-cloud-recovered");
   expect(account).toContain("☁️ Offline progress synced");
 });
+
+
+test('daily missions track games, variety, and coins', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('arcadeOnboardingSeen', '1');
+  });
+  await page.reload();
+
+  await expect(page.locator('#dailyMissionsSection')).toBeVisible();
+  await expect(page.locator('#dailyMissionList .daily-mission-row')).toHaveCount(3);
+
+  const initial = await page.evaluate(() => Arcade.dailyMissionStatus());
+  expect(initial.total).toBe(3);
+  expect(initial.missions.find(m => m.id === 'play3').progress).toBe(0);
+
+  await page.evaluate(() => {
+    Arcade.recordResult('snake', 1);
+    Arcade.recordResult('shapeFit', 1);
+    Arcade.recordResult('snake', 2);
+    Arcade.earn(15, 'Mission test');
+  });
+
+  const status = await page.evaluate(() => Arcade.dailyMissionStatus());
+  expect(status.missions.find(m => m.id === 'play3').complete).toBeTruthy();
+  expect(status.missions.find(m => m.id === 'variety2').complete).toBeTruthy();
+  expect(status.missions.find(m => m.id === 'coins15').complete).toBeTruthy();
+
+  const claimed = await page.evaluate(() => Arcade.claimDailyMission('play3'));
+  expect(claimed.xp).toBe(20);
+  const after = await page.evaluate(() => Arcade.dailyMissionStatus());
+  expect(after.missions.find(m => m.id === 'play3').claimed).toBeTruthy();
+});
