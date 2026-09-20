@@ -33,6 +33,7 @@
   document.body.classList.toggle('mini-traffic', key === 'trafficEscape');
   document.body.classList.toggle('mini-blockGrid', key === 'blockGrid');
   document.body.classList.toggle('mini-mergeRush', key === 'mergeRush');
+  document.body.classList.toggle('mini-perfectDrop', key === 'perfectDrop');
 
   let running = false;
   let starting = false;
@@ -617,15 +618,10 @@
         flashFrames=26;
         Arcade.feedback(perfect?'perfect':'score');
 
-        if(perfect && streak%3===0) {
-          Arcade.milestone('🔥 '+streak+' hit streak!','perfect');
-        }
-        if(hits===5) Arcade.milestone('🎯 Level 2 unlocked!','score');
-        if(hits===10) Arcade.milestone('🎯 Level 3 unlocked!','score');
-        if(hits===15) Arcade.milestone('🎯 Level 4 unlocked!','score');
+        if(perfect && streak%3===0) Arcade.feedback('perfect');
         if(hits>=20&&!goalCelebrated){
           goalCelebrated=true;
-          Arcade.milestone('🏆 Level 5 reached! Keep going!','perfect');
+          Arcade.feedback('perfect');
         }
       }else{
         lives--;
