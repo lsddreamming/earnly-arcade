@@ -635,12 +635,15 @@
     canvas.addEventListener('pointercancel',stopDragging);
     document.addEventListener('pointerup',stopDragging);
     document.addEventListener('pointercancel',stopDragging);
+    window.addEventListener('blur',()=>stopDragging());
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)stopDragging()});
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
 
     document.addEventListener('keydown',event=>{
+      if((event.key==='Enter'||event.key===' ')&&!running&&!starting){event.preventDefault();startGame();return}
       if(!running) return;
-      if(event.key==='ArrowLeft'){event.preventDefault();paddle.x=Math.max(0,paddle.x-24);}
-      if(event.key==='ArrowRight'){event.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+24);}
+      if(event.key==='ArrowLeft'||event.key==='a'||event.key==='A'){event.preventDefault();paddle.x=Math.max(0,paddle.x-24);}
+      if(event.key==='ArrowRight'||event.key==='d'||event.key==='D'){event.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+24);}
     });
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0,levelResumeDelay=0;
