@@ -283,6 +283,19 @@
       body.mini-traffic.game-active .traffic-level-line{min-height:18px!important;font-size:8px!important;line-height:18px!important}
       body.mini-traffic.game-active .traffic-grid{width:min(91vw,390px)!important;height:min(91vw,390px)!important;margin:3px auto!important;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transform-origin:top center}
       body.mini-traffic.game-active .traffic-car{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;touch-action:manipulation}
+
+      /* Shared iPhone gameplay touch polish for all mini games */
+      body.game-active .mini-surface,
+      body.game-active .mini-surface *,
+      body.game-active .pause-control,
+      body.game-active .earnly-pause-button{
+        -webkit-user-select:none!important;
+        user-select:none!important;
+        -webkit-touch-callout:none!important;
+      }
+      body.game-active .mini-surface button{
+        -webkit-tap-highlight-color:transparent;
+      }
 </style>
 </head>
 <body>
