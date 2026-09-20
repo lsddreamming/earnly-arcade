@@ -88,6 +88,11 @@
     body.game-active .run-reward-pill #rewardPreview{color:#fff7b2;font-weight:900}
     .run-reward-pill.reward-bump{animation:runRewardBump .34s ease}
     @keyframes runRewardBump{0%{transform:scale(1)}45%{transform:scale(1.06);box-shadow:0 0 0 2px rgba(250,204,21,.18),0 0 20px rgba(250,204,21,.18)}100%{transform:scale(1)}}
+    .run-reward-pill{transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease}
+    body.game-active .run-reward-pill{border-color:rgba(250,204,21,.52)!important;background:rgba(120,84,8,.20)!important;color:#fde68a!important;box-shadow:0 0 0 1px rgba(250,204,21,.08),0 0 14px rgba(250,204,21,.08)}
+    body.game-active .run-reward-pill #rewardPreview{color:#fff7b2;font-weight:900}
+    .run-reward-pill.reward-bump{animation:runRewardBump .34s ease}
+    @keyframes runRewardBump{0%{transform:scale(1)}45%{transform:scale(1.06);box-shadow:0 0 0 2px rgba(250,204,21,.18),0 0 20px rgba(250,204,21,.18)}100%{transform:scale(1)}}
     /* Mini games need the playfield on screen quickly, especially on phones. */
     @media(max-width:600px){
       .page-header{margin:7px 0 9px}
