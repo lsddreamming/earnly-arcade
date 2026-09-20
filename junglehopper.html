@@ -141,6 +141,7 @@
     let starting = false;
     let animation = null;
     let frame = 0;
+    let lastHopAt = 0;
 
     function rewardFor(value) {
       let coins = Math.floor(value / 2);
@@ -181,6 +182,7 @@
       obstacles = [];
       score = 0;
       frame = 0;
+      lastHopAt = 0;
       scoreEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
       speedPreviewEl.textContent = '1.0';
@@ -307,8 +309,12 @@
       return dx * dx + dy * dy < r * r;
     }
 
-    function hop() {
-      if (!running) return;
+    function hop(force = false) {
+      if (!running || document.body.classList.contains('earnly-game-paused')) return;
+      const now = performance.now();
+      // Ignore duplicate synthetic/near-simultaneous taps, but keep normal rapid hopping responsive.
+      if (!force && now - lastHopAt < 55) return;
+      lastHopAt = now;
       Arcade.feedback('hop');
       frog.vy = hopPower;
     }
@@ -427,7 +433,7 @@
         running = true;
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
-        hop();
+        hop(true);
         animation = requestAnimationFrame(loop);
       });
     }
@@ -443,6 +449,7 @@
     canvas.addEventListener('touchstart', event => {
       event.preventDefault();
       event.stopPropagation();
+      if (event.touches.length !== 1) return;
       handleJungleInput();
     }, { passive:false });
 
@@ -455,13 +462,14 @@
     }, { passive:false });
 
     canvas.addEventListener('pointerdown', event => {
-      if (event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch' || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
       handleJungleInput();
     });
 
     document.addEventListener('pointerdown', event => {
       if (event.target === canvas || !Arcade.inExpandedGameZone(event, canvas, 135)) return;
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
       handleJungleInput();
     }, { passive:false });
