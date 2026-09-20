@@ -56,7 +56,7 @@
       }
       body.blockdrop-page .game-meta {
         display: grid !important;
-        grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+        grid-template-columns: repeat(4,minmax(0,1fr)) !important;
         gap: 6px !important;
         margin: 0 !important;
         width: 100% !important;
@@ -71,6 +71,14 @@
         font-size: 10px !important;
         border-radius: 12px !important;
       }
+      body.blockdrop-page .blockdrop-reward-pill {
+        border-color: rgba(250,204,21,.48) !important;
+        color: #fde68a !important;
+        background: rgba(120,84,8,.16) !important;
+      }
+      body.blockdrop-page .blockdrop-reward-pill strong { color:#fff7b2; font-size:13px; }
+      body.blockdrop-page .blockdrop-reward-pill.reward-bump { animation:blockRewardBump .34s ease; }
+      @keyframes blockRewardBump { 0%{transform:scale(1)} 45%{transform:scale(1.06);box-shadow:0 0 16px rgba(250,204,21,.2)} 100%{transform:scale(1)} }
       body.blockdrop-page #startButton {
         min-height: 42px !important;
         margin: 5px 0 !important;
@@ -171,6 +179,7 @@
       <div class="game-meta">
         <span class="meta-pill">Score: <span id="score">0</span></span>
         <span class="meta-pill">Lines: <span id="lines">0</span></span>
+        <span class="meta-pill blockdrop-reward-pill" id="runRewardPill" aria-label="Arcade Coins earned this run">🪙 <strong id="rewardPreview">0</strong></span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
@@ -197,6 +206,8 @@
 
     const scoreEl = document.getElementById('score');
     const linesEl = document.getElementById('lines');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const runRewardPill = document.getElementById('runRewardPill');
     const playsEl = document.getElementById('plays');
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
@@ -241,6 +252,7 @@
     let board = [];
     let score = 0;
     let lines = 0;
+    let lastRewardShown = 0;
     let game = null;
     let starting = false;
     let currentPiece = null;
@@ -248,6 +260,19 @@
     let pieceX = 0;
     let pieceY = 0;
     let pieceSerial = 0;
+
+    function rewardForLines(value) { return Math.min(Math.max(0, Number(value) || 0), 5); }
+
+    function refreshReward() {
+      const reward = rewardForLines(lines);
+      rewardPreviewEl.textContent = String(reward);
+      if (game && game !== 'paused' && reward > lastRewardShown) {
+        runRewardPill.classList.remove('reward-bump');
+        void runRewardPill.offsetWidth;
+        runRewardPill.classList.add('reward-bump');
+      }
+      lastRewardShown = reward;
+    }
 
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('blockDrop');
@@ -310,6 +335,7 @@
           if (lines === 10) Arcade.milestone('🔥 10 lines · Block Drop streak!', 'perfect');
           scoreEl.textContent = score;
           linesEl.textContent = lines;
+          refreshReward();
           y += 1;
         }
       }
@@ -390,7 +416,7 @@
       blockDragTotalX = 0;
       blockDragTotalY = 0;
 
-      const earned = Math.min(lines, 5);
+      const earned = rewardForLines(lines);
       Arcade.earn(earned, 'Block Drop', { kind:'game', game:'blockDrop', metric:lines });
       Arcade.feedback('fail');
       const result = Arcade.recordResult('blockDrop', lines);
@@ -437,8 +463,10 @@
       blockDragTotalY = 0;
       score = 0;
       lines = 0;
+      lastRewardShown = 0;
       scoreEl.textContent = '0';
       linesEl.textContent = '0';
+      refreshReward();
       newPiece();
 
       refreshChrome();
