@@ -145,7 +145,13 @@
       body.mini-blockGrid.game-active .piece-button{min-height:66px;border-radius:12px}
       body.mini-blockGrid.game-active .mini-cell{border-radius:6px}
     }
-  </style>
+  
+      @media(max-width:600px){
+        body.mini-blockGrid.game-active .page-header{position:relative!important;transform:none!important;top:auto!important}
+        body.mini-blockGrid.game-active .page-header h1,body.mini-blockGrid.game-active .game-meta{visibility:visible!important;opacity:1!important}
+        body.mini-blockGrid.game-active .game-meta{display:grid!important}
+      }
+</style>
 </head>
 <body>
   <main class="container">
@@ -174,9 +180,3 @@
   <script src="cloud.js"></script>
 </body>
 </html>
-      @media(max-width:600px){
-        body.mini-blockGrid.game-active .page-header{position:relative!important;transform:none!important;top:auto!important}
-        body.mini-blockGrid.game-active .page-header h1,
-        body.mini-blockGrid.game-active .game-meta{visibility:visible!important;opacity:1!important}
-        body.mini-blockGrid.game-active .game-meta{display:grid!important}
-      }
