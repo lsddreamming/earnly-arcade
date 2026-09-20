@@ -438,6 +438,25 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
 });
 
 
+test('result popup supports accurate failure badges', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    localStorage.setItem('arcadeOnboardingSeen','1');
+    Arcade.gameResult({
+      icon:'💰',
+      title:'Boom! Run Over',
+      badgeText:'💥 BOMB HIT',
+      scoreLabel:'Coins Caught',
+      score:11,
+      coins:1,
+      result:{xpAward:10,newBest:false},
+      playsLeft:0,
+      game:null
+    });
+  });
+  await expect(page.locator('.result-badge')).toHaveText('💥 BOMB HIT');
+});
+
 test('disabled result actions stay readable on mobile', async ({ page }) => {
   await page.goto('/index.html');
   await page.evaluate(() => {
