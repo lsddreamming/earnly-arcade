@@ -5763,3 +5763,47 @@ body.earnly-gameplay-locked{
  }
  .game-status{border-radius:999px!important;padding:6px 10px!important}
 }
+
+
+/* 0.15.49 Snake compact mobile HUD */
+@media(max-width:700px){
+ body.snake-page .container{padding-top:8px!important}
+ body.snake-page .topbar{margin-bottom:6px!important}
+ body.snake-page .snake-header{margin:2px 0 6px!important}
+ body.snake-page .game-title-status-row{gap:8px!important;margin-bottom:5px!important}
+ body.snake-page .game-title-status-row h1{font-size:22px!important}
+ body.snake-page .snake-stats{
+   margin-top:6px!important;gap:6px!important;
+   grid-template-columns:repeat(3,minmax(0,1fr))!important
+ }
+ body.snake-page .snake-stats>span{
+   min-height:44px!important;padding:5px 6px!important;border-radius:12px!important
+ }
+ body.snake-page .snake-stats small{font-size:9px!important;letter-spacing:.08em!important}
+ body.snake-page .snake-stats strong{font-size:15px!important}
+ body.snake-page #startButton{margin:6px 0!important;min-height:44px!important}
+ body.snake-page .game-guide,
+ body.snake-page .guide-summary,
+ body.snake-page .quick-guide,
+ body.snake-page .game-howto{margin:6px 0!important}
+ body.snake-page .game-guide-grid,
+ body.snake-page .guide-steps,
+ body.snake-page .quick-guide-grid{
+   gap:5px!important;margin:5px 0!important
+ }
+ body.snake-page .guide-step,
+ body.snake-page .game-guide-step,
+ body.snake-page .quick-guide-item{
+   min-height:46px!important;padding:6px!important
+ }
+ body.snake-page .guide-step small,
+ body.snake-page .game-guide-step small,
+ body.snake-page .quick-guide-item small{font-size:10px!important;line-height:1.15!important}
+ body.snake-page canvas#game{
+   margin-top:6px!important;
+   max-height:min(52vh,400px)!important
+ }
+ body.snake-page .desktop-controls{margin:6px 0!important}
+ body.snake-page details{margin-top:7px!important}
+ body.snake-page .secondary.wide{margin-top:8px!important}
+}
