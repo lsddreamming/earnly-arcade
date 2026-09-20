@@ -360,8 +360,8 @@
 
     document.addEventListener('keydown',event=>{
       if(!running) return;
-      if(event.key==='ArrowLeft'){event.preventDefault();player.x=Math.max(0,player.x-24);}
-      if(event.key==='ArrowRight'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
+      if(event.key==='ArrowLeft' || event.key==='a' || event.key==='A'){event.preventDefault();player.x=Math.max(0,player.x-24);}
+      if(event.key==='ArrowRight' || event.key==='d' || event.key==='D'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
     });
 
     function clearDragState(){
@@ -423,6 +423,12 @@
       resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
     });
     startButton.addEventListener('click',startGame);
+    document.addEventListener('keydown',event=>{
+      if((event.key==='Enter' || event.key===' ') && !running && !starting && !Arcade.isProtectedGameControlTarget(event.target)){
+        event.preventDefault();
+        startGame();
+      }
+    });
     refreshChrome();
     draw();
   </script>
