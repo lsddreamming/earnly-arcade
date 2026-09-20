@@ -147,12 +147,14 @@
       if(!running||swipeStartX===null)return;
       const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
       swipeStartX=null;swipeStartY=null;
-      if(Math.abs(dx)>=28&&Math.abs(dx)>Math.abs(dy)*1.15){
+      if(!swipeChangedLane&&Math.abs(dx)>=28&&Math.abs(dx)>Math.abs(dy)*1.15){
         e.preventDefault();
         setLane(lane+(dx>0?1:-1));
       }
+      swipeLastX=null;
+      swipeChangedLane=false;
     },{passive:false});
-    canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
+    canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
     function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false}
     function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(!swipeChangedLane&&Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1))}swipeChangedLane=false}
     function laneSwipeMove(e){if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}}
