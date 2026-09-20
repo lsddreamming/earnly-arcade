@@ -364,7 +364,8 @@
         }else{
           maybeDropPowerUp(b);
         }
-        Arcade.feedback('brick');
+        // Keep normal brick hits quiet; reserve feedback for meaningful streaks/milestones.
+        if(totalBroken===1 || totalBroken%10===0) Arcade.feedback('brick');
         if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
         if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
         bricksEl.textContent=levelBroken;
@@ -500,7 +501,6 @@
       launchBall();
       draw();
 
-      Arcade.feedback('success');
       Arcade.milestone('🏁 '+layoutName.toUpperCase()+' · LEVEL '+clearedLevel+' CLEAR! · +'+bonus+' bonus', 'perfect');
       setStatus('Level '+level+' · Speed '+levelSpeed().toFixed(1),'running');
       startButton.textContent='🚀 Level '+level+' · '+layoutName+' · +'+bonus+' bonus banked';
