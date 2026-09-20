@@ -446,6 +446,27 @@ test('pre-game summary gets out of the way once gameplay starts', async ({ page 
   await expect(page.locator('.catch-board-wrap')).toBeVisible();
 });
 
+test('Coin Catch HUD stays inside the board and shows live run rewards', async ({ page }) => {
+  await page.goto('/coincatch.html');
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+
+  const board = await page.locator('.catch-board-wrap').boundingBox();
+  expect(board).not.toBeNull();
+
+  for (const selector of ['.catch-hud-left','.catch-hud-center','.catch-hud-right','#earnedHud']) {
+    const box = await page.locator(selector).boundingBox();
+    expect(box, selector + ' should render').not.toBeNull();
+    expect(box.x, selector + ' left edge').toBeGreaterThanOrEqual(board.x - 1);
+    expect(box.x + box.width, selector + ' right edge').toBeLessThanOrEqual(board.x + board.width + 1);
+    expect(box.y, selector + ' top edge').toBeGreaterThanOrEqual(board.y - 1);
+    expect(box.y + box.height, selector + ' bottom edge').toBeLessThanOrEqual(board.y + board.height + 1);
+  }
+
+  await expect(page.locator('#earnedHud')).toContainText('Arcade Coins');
+  await expect(page.locator('#levelBanner').evaluate(node => node.parentElement?.classList.contains('catch-board-wrap'))).resolves.toBeTruthy();
+});
+
 
 test('account page exposes clear cloud sync status', async ({ page }) => {
   await page.goto('/account.html');
