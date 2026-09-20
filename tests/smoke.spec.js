@@ -576,3 +576,18 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
   await expect(page.locator('.game-guide-overlay')).toContainText(/ad/i);
   await expect(page.locator('.game-guide-overlay')).not.toContainText(/spend .*coin/i);
 });
+
+
+test('account cloud flow exposes offline and restore safeguards', async ({ page }) => {
+  const cloud = await (await page.request.get('/cloud.js')).text();
+  expect(cloud).toContain("new CustomEvent('earnly-cloud-syncing'");
+  expect(cloud).toContain("try { await syncServerRewards(); } catch {}");
+  expect(cloud).toContain("localStorage.setItem('arcadeCloudOfflinePending'");
+
+  const account = await (await page.request.get('/account.html')).text();
+  expect(account).toContain("localStorage.getItem('arcadeServerRewardError')");
+  expect(account).toContain("localStorage.getItem('arcadeCloudOfflinePending')");
+  expect(account).toContain("if (navigator.onLine) {");
+  expect(account).toContain("Your progress is safe on this device and will sync automatically when you reconnect.");
+  expect(account).toContain("earnly-cloud-syncing");
+});
