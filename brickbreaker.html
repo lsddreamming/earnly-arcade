@@ -553,6 +553,20 @@
       levelResumeDelay=0;
       cancelAnimationFrame(animation);
       animation=null;
+      lastFrame=0;
+
+      // Game Over is a hard stop. Clear moving/transient objects now so no
+      // old ball, falling pickup, particle, or timed power-up can survive
+      // behind the result dialog or leak into Play Again.
+      balls=[];
+      powerUps=[];
+      particles=[];
+      combo=0;
+      comboUntil=0;
+      fireUntil=0;
+      wideUntil=0;
+      paddle.w=paddle.baseW;
+      paddle.x=(canvas.width-paddle.w)/2;
 
       const earned=currentReward();
       Arcade.earn(earned,'Brick Breaker', {
@@ -688,6 +702,10 @@
       clearTimeout(levelTimer);
       levelTimer=null;
       levelResumeDelay=0;
+      cancelAnimationFrame(animation);
+      animation=null;
+      lastFrame=0;
+      balls=[];
       powerUps=[];
       particles=[];
       combo=0;
