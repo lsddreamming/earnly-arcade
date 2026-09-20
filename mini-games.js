@@ -631,8 +631,9 @@
         // The landing itself already gives perfect feedback. Avoid firing
         // a second identical effect on every third perfect streak.
         if(hits>=20&&!goalCelebrated){
+          // The landing already gives perfect feedback. Mark the Level 5 goal
+          // without stacking another effect on that same successful drop.
           goalCelebrated=true;
-          Arcade.feedback('perfect');
         }
       }else{
         lives--;
