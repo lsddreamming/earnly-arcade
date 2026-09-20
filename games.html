@@ -44,14 +44,12 @@
       <span>1. Pick any game &nbsp; 2. Play for a score &nbsp; 3. Your results show Coins, XP, and plays left</span>
     </section>
 
-    <section class="games-start-here games-mission-strip" id="gamesMissionStrip" aria-label="Today's daily missions">
-      <div class="game-title-row">
-        <strong>🎯 Today’s Missions</strong>
-        <span class="play-pill" id="gamesMissionCount">0/3</span>
-      </div>
-      <div id="gamesMissionItems"></div>
-      <a class="button wide secondary" href="index.html">View & Claim Missions</a>
-    </section>
+    <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
+      <strong>🎯 Missions</strong>
+      <span id="gamesMissionSummary">0/3 complete</span>
+      <span class="play-pill" id="gamesMissionCount">0/3</span>
+      <span aria-hidden="true">→</span>
+    </a>
 
     <div id="quickSections"></div>
 
@@ -168,22 +166,14 @@
     function renderMissionStrip() {
       const status = Arcade.dailyMissionStatus();
       const count = document.getElementById('gamesMissionCount');
-      const root = document.getElementById('gamesMissionItems');
-      if (!count || !root) return;
+      const summary = document.getElementById('gamesMissionSummary');
+      if (!count || !summary) return;
 
       count.textContent = status.completed + '/' + status.total;
-      root.replaceChildren();
-
-      status.missions.forEach(mission => {
-        const row = document.createElement('div');
-        row.className = 'status-line games-mission-line' + (mission.complete ? ' success' : '');
-        row.textContent = mission.claimed
-          ? mission.icon + ' ' + mission.title + ' · Claimed ✓'
-          : mission.complete
-            ? '✅ ' + mission.title + ' · +' + mission.rewardXP + ' XP ready'
-            : mission.icon + ' ' + mission.title + ' · ' + mission.progress + '/' + mission.goal;
-        root.append(row);
-      });
+      const ready = status.missions.filter(mission => mission.complete && !mission.claimed).length;
+      summary.textContent = ready
+        ? ready + ' reward' + (ready === 1 ? '' : 's') + ' ready to claim'
+        : status.completed + '/' + status.total + ' complete';
     }
 
     function render() {
