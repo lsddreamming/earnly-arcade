@@ -184,7 +184,7 @@
     }
     function rewardFor(v){
       const catches=Math.max(0,Math.floor(Number(v)||0));
-      let c=Math.floor(catches/12);
+      let c=catches>=6 ? 1+Math.floor((catches-6)/12) : 0;
       if(catches>=75)c+=1;
       if(catches>=150)c+=1;
       if(catches>=225)c+=1;
