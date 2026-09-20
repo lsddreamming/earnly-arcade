@@ -263,9 +263,12 @@
     function finish(hitBomb=false){
       if(!running)return;
       running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTouchControls();
-      const earned=rewardFor(score);Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
+      // Freeze the final HUD before awarding so the result screen always matches the run.
+      scoreEl.textContent=String(score);levelEl.textContent=String(level);timeEl.textContent=String(Math.max(0,timeLeft));
+      const earned=rewardFor(score);rewardPreviewEl.textContent=String(earned);
+      Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
-      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Time!','over');draw();
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Run Complete','over');draw();
       Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Run Complete',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
         extra:['🏁 Level reached: '+level,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
