@@ -110,15 +110,31 @@
       body.mini-blockGrid.game-active .topbar,body.mini-blockGrid.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
       body.mini-blockGrid.game-active .game-guide-strip,body.mini-blockGrid.game-active .game-guide-more,body.mini-blockGrid.game-active .game-guide-overlay,body.mini-blockGrid.game-active .game-overlay,body.mini-blockGrid.game-active .mini-help,body.mini-blockGrid.game-active a.button.secondary{display:none!important}
        body.mini-blockGrid.game-active .page-header{margin:0 0 3px}
-      body.mini-blockGrid.game-active .page-header h1{font-size:20px!important}
+      body.mini-blockGrid.game-active .page-header h1{font-size:21px!important}
+      body.mini-blockGrid.game-active .page-header{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 8px}
+      body.mini-blockGrid.game-active .page-header h1{grid-column:1/-1}
+      body.mini-blockGrid.game-active .game-meta{grid-column:1/-1}
+      body.mini-blockGrid.game-active .game-status{justify-self:center;grid-column:1/-1}
+      body.mini-blockGrid.game-active .pause-control{margin:2px auto 4px!important}
+      body.mini-blockGrid.game-active main.container{padding-top:5px!important;padding-bottom:76px!important}
+      body.mini-blockGrid.game-active .mini-surface{background:#0f1a2b;border-color:#334155;box-shadow:0 12px 28px rgba(0,0,0,.24)}
       body.mini-blockGrid.game-active .game-status{padding:3px 8px;font-size:9px}
       body.mini-blockGrid.game-active .mini-surface{margin:4px auto 0;width:min(94vw,400px);border-radius:16px}
-      body.mini-blockGrid.game-active .mini-grid{gap:3px;padding:6px}
+      body.mini-blockGrid.game-active .mini-grid{gap:4px;padding:7px 10px}
+      body.mini-blockGrid.game-active .block-grid-progress{display:grid!important;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 5px!important}
+      body.mini-blockGrid.game-active .block-grid-progress>*{min-height:38px!important;padding:5px!important;border-radius:10px!important}
+      body.mini-blockGrid.game-active .block-grid-progress small{font-size:7px!important}
+      body.mini-blockGrid.game-active .block-grid-progress strong{font-size:10px!important}
       body.mini-blockGrid.game-active .mini-surface{min-height:0!important}
       body.mini-blockGrid.game-active .mini-cell{aspect-ratio:1;max-height:54px}
       body.mini-blockGrid.game-active .mini-guide{display:none!important}
       body.mini-blockGrid.game-active .block-grid-progress{margin-top:2px!important}
-      body.mini-blockGrid.game-active .piece-tray{position:sticky;bottom:0;background:#111c2d;z-index:3}
+      body.mini-blockGrid.game-active .piece-tray{position:sticky;bottom:0;background:#0f1a2b;z-index:3;border-top:1px solid rgba(71,85,105,.45);padding-top:7px!important}
+      body.mini-blockGrid.game-active .piece-button{min-height:70px!important;background:#1a2638;border-color:#3b4b62}
+      body.mini-blockGrid.game-active .piece-button.selected{background:#103c29;border-color:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.2),0 0 18px rgba(34,197,94,.08)}
+      body.mini-blockGrid.game-active .piece-button:not(.selected):active{transform:scale(.98)}
+      body.mini-blockGrid.game-active .mini-cell.filled{box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+      body.mini-blockGrid.game-active .mini-cell{transition:background .12s ease,border-color .12s ease,transform .1s ease}
       body.mini-blockGrid.game-active .piece-tray{gap:7px;padding:2px 8px 8px}
       body.mini-blockGrid.game-active .piece-button{min-height:66px;border-radius:12px}
       body.mini-blockGrid.game-active .mini-cell{border-radius:6px}
