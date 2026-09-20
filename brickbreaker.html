@@ -683,8 +683,31 @@
 
     Arcade.installPauseControl({
       isRunning:()=>running,
-      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},
-      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(fireUntil)fireUntil+=d;if(wideUntil)wideUntil+=d;if(comboUntil)comboUntil+=d;animation=requestAnimationFrame(loop);}
+      pause:()=>{
+        pauseStartedAt=performance.now();
+        dragging=false;dragPointer=null;
+        cancelAnimationFrame(animation);animation=null;
+        // Freeze the between-level countdown too, not just the moving ball.
+        if(levelTimer){
+          levelResumeDelay=Math.max(0,levelResumeDelay-performance.now());
+          clearTimeout(levelTimer);levelTimer=null;
+        }
+      },
+      resume:()=>{
+        const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;
+        if(fireUntil)fireUntil+=d;if(wideUntil)wideUntil+=d;if(comboUntil)comboUntil+=d;
+        if(starting&&levelResumeDelay>0){
+          const delay=levelResumeDelay;levelResumeDelay=performance.now()+delay;
+          levelTimer=setTimeout(()=>{
+            levelTimer=null;levelResumeDelay=0;starting=false;running=true;
+            startButton.textContent='Game Running · Level '+level;
+            setStatus('Running · Level '+level,'running');
+            animation=requestAnimationFrame(loop);
+          },delay);
+          return;
+        }
+        animation=requestAnimationFrame(loop);
+      }
     });
     startButton.addEventListener('click',startGame);
     resetBricks();
