@@ -1879,7 +1879,8 @@
 
     return {
       start(){cleared=0;level=1;boardInLevel=1;strikes=0;boardStartedAt=0;fastClears=0;bestRoadTime=null;alive=true;locked=false;ui(0,1);loadLevel()},
-      stop(){alive=false;locked=true;stopTimer()}
+      stop(){alive=false;locked=true;stopTimer()},
+      adjustPauseTime(ms){if(boardStartedAt)boardStartedAt+=Math.max(0,Number(ms)||0)}
     };
   }
 
@@ -1943,6 +1944,12 @@
       if(pauseStartedAt){
         const pausedFor=performance.now()-pauseStartedAt;
         totalPausedMs+=pausedFor;
+        // Timed mini games use performance.now() for per-round stats.
+        // Shift that clock forward too so pausing never makes a road/round
+        // look slower than it actually was.
+        if(engine && typeof engine.adjustPauseTime==='function'){
+          engine.adjustPauseTime(pausedFor);
+        }
       }
       pauseStartedAt=0;
       miniPaused=false;
