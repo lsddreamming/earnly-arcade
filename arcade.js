@@ -1503,6 +1503,7 @@ const Arcade = (() => {
       result = null,
       playsLeft = 0,
       game = '',
+      badgeText = '',
       onReplay = null,
       onMorePlays = null
     } = options;
@@ -1526,7 +1527,7 @@ const Arcade = (() => {
 
     const badge = document.createElement('div');
     badge.className = 'result-badge';
-    badge.textContent = result?.newBest ? '🏆 NEW BEST' : (score > 0 ? '✓ RUN COMPLETE' : 'RUN OVER');
+    badge.textContent = result?.newBest ? '🏆 NEW BEST' : (badgeText || (score > 0 ? '✓ RUN COMPLETE' : 'RUN OVER'));
     if (result?.newBest) badge.classList.add('best');
 
     heading.append(h, badge);
