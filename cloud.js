@@ -514,6 +514,7 @@
     }
 
     syncRunning = true;
+    window.dispatchEvent(new CustomEvent('earnly-cloud-syncing', { detail:{ reason } }));
     try {
       const current = await user();
       if (!current) return { skipped:'signed-out' };
@@ -587,6 +588,9 @@
     localStorage.removeItem('arcadeCloudConflict');
     localStorage.removeItem('arcadeCloudSyncError');
     clearSnapshotSyncedEvents();
+    // Pull server-authoritative reward events immediately after a restore so
+    // another device cannot briefly show stale Coins before startup sync runs.
+    try { await syncServerRewards(); } catch {}
     window.dispatchEvent(new CustomEvent('earnly-cloud-restored', {
       detail:{ restored:result.restored, updatedAt:data.updated_at || null }
     }));
