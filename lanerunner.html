@@ -25,10 +25,18 @@
       .meta-pill{padding:4px 7px;font-size:10px}
       .game-status{padding:4px 8px;font-size:10px}
       .lane-board{margin-top:6px}
+      body.lanerunner-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
+      body.lanerunner-page .meta-pill{font-size:9px;padding:4px 2px;min-height:28px;text-align:center}
+      body.lanerunner-page.game-active .game-guide-strip,body.lanerunner-page.game-active .game-guide-more,body.lanerunner-page.game-active a.button.secondary{display:none!important}
+      body.lanerunner-page.game-active .topbar,body.lanerunner-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.lanerunner-page.game-active .page-header h1{font-size:20px!important;margin:0 0 4px!important}
+      body.lanerunner-page.game-active .lane-board{width:min(90vw,360px)!important;margin:4px auto!important}
+      body.lanerunner-page .lane-control-zone{display:none}
+      body.lanerunner-page.game-active .lane-control-zone{display:flex;width:min(90vw,360px);height:48px;margin:3px auto 0;border:1px solid #334155;border-radius:14px;background:#17243a;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;color:#cbd5e1;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     }
   </style>
 </head>
-<body>
+<body class="lanerunner-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -44,6 +52,7 @@
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="lane-board touch-surface" id="game" width="360" height="520" aria-label="Lane Runner game board"></canvas>
+    <div class="lane-control-zone" id="laneControlZone">↔️ Swipe anywhere here to change lanes</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
   <script src="arcade.js"></script>
@@ -52,14 +61,14 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); }
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('laneRunner'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
       if(!Arcade.consume('laneRunner')){ Arcade.out('laneRunner',refreshChrome); return false; }
       refreshChrome(); return true;
     }
     
-    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
+    const canvas=document.getElementById('game'),laneControlZone=document.getElementById('laneControlZone'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
       overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
       tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
@@ -112,7 +121,7 @@
         obstacles.push({lane:nextLane,y:-28,speed:3.4+Math.min(5.2,seconds*.075),variant:1+Math.floor(Math.random()*3)});
         lastSpawn=now;
       }
-      for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');if(passed===15)Arcade.milestone('🏎️ 15 cars passed!');if(passed===50)Arcade.milestone('🔥 50 cars passed!');if(passed===100)Arcade.milestone('🏆 100 cars passed!','perfect')}}
+      for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');void 0}}
       draw();animation=requestAnimationFrame(loop);
     }
     function setLane(n){lane=Math.max(0,Math.min(2,n));Arcade.feedback('move')}
@@ -136,6 +145,11 @@
       }
     },{passive:false});
     canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
+    function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY}
+    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;if(Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)){e.preventDefault();setLane(lane+(dx>0?1:-1))}}
+    laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
+    document.addEventListener('pointerdown',e=>{if(!running||e.target===canvas||laneControlZone.contains(e.target)||e.clientY<window.innerHeight-145)return;laneSwipeStart(e)},{passive:false});
+    document.addEventListener('pointerup',e=>{if(!running||swipeStartX===null)return;laneSwipeEnd(e)},{passive:false});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();setLane(lane-1)}if(e.key==='ArrowRight'){e.preventDefault();setLane(lane+1)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
