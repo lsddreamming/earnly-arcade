@@ -609,7 +609,7 @@
     }
 
     function act() {
-      if(!alive||drop)return;
+      if(!alive||drop||miniPaused)return;
       drop={x,y:195};
       Arcade.feedback('move');
     }
