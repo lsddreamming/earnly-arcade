@@ -114,7 +114,7 @@
       attempt();
     },{passive:false});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(running&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();attempt()}});
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;roundStartedAt+=pausedFor;pauseStartedAt=0;animation=requestAnimationFrame(loop);}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
   </script>
