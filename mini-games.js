@@ -31,6 +31,7 @@
   document.getElementById('secondaryLabel').textContent = config.secondaryLabel;
   helpEl.textContent = config.help;
   document.body.classList.toggle('mini-traffic', key === 'trafficEscape');
+  document.body.classList.toggle('mini-blockGrid', key === 'blockGrid');
 
   let running = false;
   let starting = false;
@@ -45,6 +46,7 @@
   function setStatus(text, mode) {
     statusEl.textContent = text;
     statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    document.body.classList.toggle('game-active', mode === 'running');
   }
 
   function ui(score = 0, secondary = 0) {
