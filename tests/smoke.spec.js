@@ -727,3 +727,76 @@ test('games page shows live daily mission progress', async ({ page }) => {
   await expect(page.locator('#gamesMissionItems')).toContainText('Mix It Up · +25 XP ready');
   await expect(page.locator('#gamesMissionItems')).toContainText('Coin Hunt · +25 XP ready');
 });
+
+
+test('full player journey preserves rewards missions and bonus plays', async ({ page }) => {
+  await page.goto('/games.html');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('arcadeOnboardingSeen', '1');
+  });
+  await page.reload();
+
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
+  await expect(page.locator('#gamesMissionItems')).toContainText('Warm Up · 0/3');
+
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    Arcade.consume('shapeFit');
+    const result = Arcade.recordResult('shapeFit', 4);
+    Arcade.earn(5, 'Shape Fit');
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:4,
+      best:'4 points', coins:5, result, playsLeft:Arcade.remaining('shapeFit'),
+      game:'shapeFit', extra:['⏱️ Time played: 5s']
+    });
+  });
+  await expect(page.locator('dialog.game-result-dialog')).toContainText('Warm Up · 1/3');
+  await expect(page.locator('dialog.game-result-dialog')).toContainText('Coin Hunt · 5/15');
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
+
+  await page.evaluate(() => {
+    document.querySelector('dialog.game-result-dialog')?.close();
+    Arcade.consume('shapeFit');
+    Arcade.recordResult('shapeFit', 5);
+    Arcade.earn(5, 'Shape Fit');
+    Arcade.consume('shapeFit');
+    Arcade.recordResult('shapeFit', 6);
+    Arcade.earn(5, 'Shape Fit');
+  });
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
+
+  const missions = await page.evaluate(() => Arcade.dailyMissionStatus());
+  expect(missions.missions.find(m => m.id === 'play3').complete).toBeTruthy();
+  expect(missions.missions.find(m => m.id === 'coins15').complete).toBeTruthy();
+
+  await page.evaluate(() => Arcade.out('shapeFit'));
+  await expect(page.locator('dialog')).toContainText('Out of Shape Fit plays');
+  await page.getByRole('button', { name:/Watch demo ad/ }).click();
+  await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
+  await page.waitForTimeout(3400);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
+  expect(await page.evaluate(() => Arcade.playAdStatus('shapeFit').used)).toBe(1);
+
+  await page.reload();
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
+  expect(await page.evaluate(() => Arcade.dailyMissionStatus().missions.find(m => m.id === 'play3').complete)).toBeTruthy();
+  expect(await page.evaluate(() => Arcade.dailyCoinStatus().earned)).toBe(15);
+});
+
+test('player journey cloud contract includes mission and bonus-play state', async ({ page }) => {
+  await page.goto('/index.html');
+  const snapshot = await page.evaluate(() => {
+    localStorage.setItem('arcadeDailyGames', '3');
+    localStorage.setItem('arcadeDailyGamesList', JSON.stringify(['shapeFit','snake']));
+    localStorage.setItem('arcadeDailyMissionClaims', JSON.stringify(['play3']));
+    localStorage.setItem('shapeFitBonusPlays', '3');
+    localStorage.setItem('shapeFitPlayAdUnlocks', '1');
+    return Arcade.snapshotData();
+  });
+  const serialized = JSON.stringify(snapshot);
+  expect(serialized).toContain('arcadeDailyGames');
+  expect(serialized).toContain('arcadeDailyMissionClaims');
+  expect(serialized).toContain('shapeFitBonusPlays');
+  expect(serialized).toContain('shapeFitPlayAdUnlocks');
+});
