@@ -2850,7 +2850,9 @@ const Arcade = (() => {
 
   function setupGameplayScrollLock() {
     const sync = () => {
-      setGameplayScrollLock(!!document.querySelector('.game-status.running'));
+      const running = !!document.querySelector('.game-status.running');
+      const paused = document.body?.classList.contains('earnly-game-paused');
+      setGameplayScrollLock(running || paused);
     };
 
     const start = () => {
