@@ -77,11 +77,11 @@
     Arcade.gameGuide({game:'safeCracker',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎯',title:'Time it',text:'Stop inside the green zone'},{icon:'🔐',title:'Goal',text:'Crack as many locks as possible'}],
       overlayIcon:'🔐',overlayTitle:'Stop in the Green',overlayText:'Tap fast: you have only a few seconds before the safe costs you a life.',replayTitle:'Tap to Play Again',
       tips:['Each successful lock makes the target smaller and the marker faster.','You get 3 misses before the run ends.'],reward:'Locks cracked can earn up to 25 Coins.'});
-    let score=0,lives=3,targetX=120,targetW=90,marker=30,dir=1,speed=3,running=false,starting=false,animation=null,bounces=0,maxBounces=4,roundStartedAt=0,roundLimit=5200;
+    let score=0,lives=3,targetX=120,targetW=90,marker=30,dir=1,speed=3,running=false,starting=false,animation=null,bounces=0,maxBounces=4,roundStartedAt=0,roundLimit=5200,lastAttemptAt=0;
     function rewardFor(v){let c=Math.floor(v/2);if(v>=8)c+=2;if(v>=15)c+=4;if(v>=25)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
     function newTarget(){targetW=Math.max(28,90-score*3);targetX=25+Math.random()*(310-targetW);speed=Math.min(9,3+score*.22);bounces=0;roundStartedAt=performance.now();roundLimit=Math.max(2600,5200-score*110)}
-    function reset(){score=0;lives=3;marker=30;dir=1;scoreEl.textContent='0';livesEl.textContent='3';newTarget();refreshReward();draw()}
+    function reset(){score=0;lives=3;marker=30;dir=1;lastAttemptAt=0;scoreEl.textContent='0';livesEl.textContent='3';newTarget();refreshReward();draw()}
     function draw(){
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1627');bg.addColorStop(1,'#101b2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle='#162338';ctx.beginPath();ctx.roundRect(18,70,324,150,18);ctx.fill();
@@ -96,7 +96,13 @@
     function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(score);Arcade.earn(earned,'Safe Cracker',{kind:'game',game:'safeCracker',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('safeCracker',score);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Locked Out','over');draw();
       Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
     function attempt(){
-      if(!running)return;const hit=marker>=targetX&&marker<=targetX+targetW;
+      if(!running)return;
+      const now=performance.now();
+      // iPhone can occasionally deliver near-duplicate pointer input when a
+      // tap crosses nested gameplay zones. One physical tap should crack once.
+      if(now-lastAttemptAt<140)return;
+      lastAttemptAt=now;
+      const hit=marker>=targetX&&marker<=targetX+targetW;
       if(hit){score++;scoreEl.textContent=String(score);Arcade.feedback('perfect');newTarget();marker=dir>0?30:330;refreshReward()}
       else{loseLife('Missed the green')}
     }
