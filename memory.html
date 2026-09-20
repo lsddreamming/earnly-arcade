@@ -23,9 +23,9 @@
       body.memory-page main.container{padding-top:8px!important}
       body.memory-page .topbar{margin-bottom:6px!important}
       body.memory-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
-      body.memory-page .page-header h1{font-size:22px!important;line-height:1.1!important;margin:0!important}
-      body.memory-page .game-meta{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:0!important;width:100%!important}
-      body.memory-page .meta-pill{min-height:36px!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:10px!important;border-radius:11px!important}
+      body.memory-page .page-header h1{font-size:20px!important;line-height:1.05!important;margin:0!important}
+      body.memory-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
+      body.memory-page .meta-pill{min-height:31px!important;padding:3px 2px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;border-radius:10px!important}
       body.memory-page #startButton{min-height:42px!important;margin:5px 0!important}
       body.memory-page .memory-grid{width:min(84vw,350px)!important;gap:7px!important;margin:7px auto 9px!important}
       body.memory-page .memory-card{border-radius:13px!important;font-size:27px!important}
@@ -51,6 +51,7 @@
       <div class="game-meta">
         <span class="meta-pill">Moves: <span id="moves">0</span></span>
         <span class="meta-pill">Pairs: <span id="pairs">0</span>/8</span>
+        <span class="meta-pill">Time: <span id="time">0:00</span></span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
@@ -66,6 +67,7 @@
     const grid = document.getElementById('grid');
     const movesEl = document.getElementById('moves');
     const pairsEl = document.getElementById('pairs');
+    const timeEl = document.getElementById('time');
     const playsEl = document.getElementById('plays');
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
@@ -99,6 +101,24 @@
     let pairs = 0;
     let running = false;
     let starting = false;
+    let gameTimer = null;
+    let elapsedSeconds = 0;
+
+    function renderTime(){
+      const minutes=Math.floor(elapsedSeconds/60);
+      const seconds=elapsedSeconds%60;
+      timeEl.textContent=minutes+':'+String(seconds).padStart(2,'0');
+    }
+
+    function startTimer(){
+      clearInterval(gameTimer);
+      gameTimer=setInterval(()=>{ elapsedSeconds+=1; renderTime(); },1000);
+    }
+
+    function stopTimer(){
+      clearInterval(gameTimer);
+      gameTimer=null;
+    }
 
     function refreshChrome(){
       playsEl.textContent = Arcade.remaining('memory');
@@ -201,6 +221,7 @@
       if(!running)return;
       running=false;
       lock=true;
+      stopTimer();
       const earned=rewardForMoves(moves);
       Arcade.earn(earned,'Memory Match', { kind:'game', game:'memory', metric:moves });
       Arcade.feedback('success');
@@ -227,7 +248,7 @@
         result,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        extra:['⏱️ Clear time: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
@@ -244,7 +265,7 @@
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
-      first=null;second=null;lock=true;moves=0;pairs=0;running=false;
+      first=null;second=null;lock=true;moves=0;pairs=0;running=false;elapsedSeconds=0;stopTimer();renderTime();
       movesEl.textContent='0';
       pairsEl.textContent='0';
       startButton.disabled=true;
@@ -259,11 +280,12 @@
         running=true;
         startButton.textContent='Game Running';
         setStatus('Running','running');
+        startTimer();
         render();
       });
     }
 
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();lock=true;render();},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lock=false;render();}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();lock=true;stopTimer();render();},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lock=false;startTimer();render();}});
     grid.addEventListener('pointerdown',event=>{
       if(!running && !starting){
         event.preventDefault();
