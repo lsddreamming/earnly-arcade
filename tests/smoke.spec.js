@@ -402,7 +402,7 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 
-  await page.evaluate(() => gameOver());
+  await page.evaluate(() => { gameOver(); gameOver(); gameOver(); });
   await expect(page.locator('#gameStatus')).toHaveText('Game Over');
   await expect(page.locator('.game-result-modal')).toHaveCount(1);
   await page.waitForTimeout(220);
@@ -495,6 +495,32 @@ test('pre-game summary gets out of the way once gameplay starts', async ({ page 
   await expect(page.locator('body')).toHaveClass(/game-active/);
   await expect(summary).toBeHidden();
   await expect(page.locator('.catch-board-wrap')).toBeVisible();
+});
+
+test('Block Drop speeds up and deep runs keep earning XP', async ({ page }) => {
+  await page.goto('/blockdrop.html');
+  const timing = await page.evaluate(() => {
+    lines = 0;
+    const start = dropDelayMs();
+    lines = 6;
+    const mid = dropDelayMs();
+    lines = 20;
+    const late = dropDelayMs();
+    return { start, mid, late };
+  });
+  expect(timing.start).toBe(600);
+  expect(timing.mid).toBeLessThan(timing.start);
+  expect(timing.late).toBeLessThan(timing.mid);
+  expect(timing.late).toBeGreaterThanOrEqual(220);
+
+  const xp = await page.evaluate(() => {
+    localStorage.clear();
+    const strong = Arcade.recordResult('blockDrop', 6);
+    const elite = Arcade.recordResult('blockDrop', 16);
+    return { strong:strong.performanceXP, elite:elite.performanceXP };
+  });
+  expect(xp.strong).toBe(10);
+  expect(xp.elite).toBe(30);
 });
 
 test('Block Drop and Color Match expose live run rewards', async ({ page }) => {
