@@ -588,9 +588,12 @@ test('Block Drop and Color Match expose live run rewards', async ({ page }) => {
 
 test('Coin Catch reward curve lasts into deep runs and awards performance XP', async ({ page }) => {
   await page.goto('/coincatch.html');
+  expect(await page.evaluate(() => rewardFor(5))).toBe(0);
+  expect(await page.evaluate(() => rewardFor(6))).toBe(1);
+  expect(await page.evaluate(() => rewardFor(11))).toBe(1);
   expect(await page.evaluate(() => rewardFor(75))).toBe(7);
-  expect(await page.evaluate(() => rewardFor(150))).toBe(14);
-  expect(await page.evaluate(() => rewardFor(227))).toBe(21);
+  expect(await page.evaluate(() => rewardFor(150))).toBe(15);
+  expect(await page.evaluate(() => rewardFor(227))).toBe(22);
   expect(await page.evaluate(() => rewardFor(264))).toBe(25);
 
   const xp = await page.evaluate(() => {
