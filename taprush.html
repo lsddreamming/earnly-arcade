@@ -48,9 +48,28 @@
     }
     .target:active{transform:translate(-50%,-50%) scale(.92)}
     .tap-help{margin-top:8px}
+    @media(max-width:699px){
+      body.taprush-page main.container{padding-top:8px!important}
+      body.taprush-page .topbar{margin-bottom:6px!important}
+      body.taprush-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
+      body.taprush-page .page-header h1{font-size:22px!important;line-height:1.1!important;margin:0!important}
+      body.taprush-page .game-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:0!important;width:100%!important}
+      body.taprush-page .meta-pill{min-height:34px!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:10px!important;border-radius:11px!important}
+      body.taprush-page #startButton{min-height:42px!important;margin:5px 0!important}
+      body.taprush-page .tap-board{width:min(80vw,330px)!important;margin:6px auto 8px!important}
+      body.taprush-page.game-active .game-guide-strip,
+      body.taprush-page.game-active .game-preflight,
+      body.taprush-page.game-active .game-guide-more,
+      body.taprush-page.game-active #startButton{display:none!important}
+      body.taprush-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
+      body.taprush-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
+      body.taprush-page.game-active .tap-board{width:min(88vw,360px)!important;margin-top:3px!important}
+      body.taprush-page.game-active .container>a.button.wide.secondary{display:none!important}
+      body.taprush-page.game-active .target{width:68px;height:68px}
+    }
   </style>
 </head>
-<body>
+<body class="taprush-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -132,6 +151,7 @@
     }
 
     function setStatus(text, mode) {
+      document.body.classList.toggle('game-active', mode === 'running');
       statusEl.textContent = text;
       statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
     }
