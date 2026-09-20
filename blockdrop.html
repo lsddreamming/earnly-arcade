@@ -42,9 +42,42 @@
         width: min(60vw, 225px);
       }
     }
+
+
+    /* Active-run focus mode: prioritize board + controls on phones. */
+    @media (max-width: 699px) {
+      body.blockdrop-page.game-active .game-guide,
+      body.blockdrop-page.game-active .game-guide-grid,
+      body.blockdrop-page.game-active .game-guide-cards,
+      body.blockdrop-page.game-active .guide-grid,
+      body.blockdrop-page.game-active .how-to-play,
+      body.blockdrop-page.game-active #startButton {
+        display: none !important;
+      }
+      body.blockdrop-page.game-active .page-header {
+        margin-bottom: 4px !important;
+        padding-bottom: 0 !important;
+      }
+      body.blockdrop-page.game-active .page-header h1 {
+        font-size: 22px !important;
+        margin-bottom: 4px !important;
+      }
+      body.blockdrop-page.game-active .game-meta {
+        gap: 5px !important;
+        margin-top: 2px !important;
+      }
+      body.blockdrop-page.game-active .blockdrop-board {
+        width: min(66vw, 250px) !important;
+        margin-top: 6px !important;
+        margin-bottom: 8px !important;
+      }
+      body.blockdrop-page.game-active .blockdrop-controls {
+        margin-top: 2px !important;
+      }
+    }
   </style>
 </head>
-<body>
+<body class="blockdrop-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -139,6 +172,7 @@
     }
 
     function setStatus(text, mode) {
+      document.body.classList.toggle('game-active', mode === 'running');
       statusEl.textContent = text;
       statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
     }
@@ -314,6 +348,7 @@
       refreshChrome();
       startButton.disabled = true;
       startButton.textContent = 'Get Ready…';
+      document.body.classList.add('game-active');
       setStatus('Get Ready');
       draw();
 
