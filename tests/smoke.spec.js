@@ -785,6 +785,18 @@ test('Bounce Run shows motion and level-up feedback', async ({ page }) => {
 });
 
 
+test('Shape Fit always renders exactly one valid matching choice', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen','1'));
+  await page.reload();
+  await page.locator('#startBtn').click();
+  await page.waitForTimeout(2500);
+
+  const targetBase = await page.locator('.fit-shape').getAttribute('data-base');
+  expect(targetBase).toBeTruthy();
+  await expect(page.locator('.fit-answer[data-base="' + targetBase + '"]')).toHaveCount(1);
+});
+
 test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
   const jsResponse = await page.request.get('/mini-games.js');
   const source = await jsResponse.text();
