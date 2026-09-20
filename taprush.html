@@ -264,7 +264,9 @@
       if (!running) return;
 
       hits += 1;
-      Arcade.feedback('hit');
+      // Keep rapid play clean: celebrate the first hit and every 10th hit,
+      // while milestone banners handle the bigger 20/35/50 achievements.
+      if (hits === 1 || (hits % 10 === 0 && hits !== 20 && hits !== 50)) Arcade.feedback('hit');
       hitsEl.textContent = String(hits);
       rewardPreviewEl.textContent = rewardForHits(hits);
 
@@ -291,6 +293,13 @@
       }
     });
     target.addEventListener('contextmenu', event => event.preventDefault());
+    board.addEventListener('contextmenu', event => event.preventDefault());
+    document.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && !running && !starting) {
+        event.preventDefault();
+        startGame();
+      }
+    });
     startButton.addEventListener('click', startGame);
 
     refreshChrome();
