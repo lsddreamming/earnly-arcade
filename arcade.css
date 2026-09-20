@@ -5440,3 +5440,103 @@ body.earnly-gameplay-locked{
  body.games-dashboard #games .game-recommended-badge{margin-left:48px!important}
  body.games-dashboard #games .game-play-button{font-size:15px!important;font-weight:900!important}
 }
+
+
+/* 0.15.43 iPhone card alignment pass — tighter rhythm, consistent controls */
+@media(max-width:700px){
+  body.games-dashboard #games .catalog-tile{
+    min-height:118px!important;
+    padding:11px 11px 10px 17px!important;
+    grid-template-columns:minmax(0,1fr) 138px!important;
+    grid-template-areas:
+      "badge badge"
+      "title title"
+      "rule best"
+      "play play"
+      "status status"!important;
+    row-gap:6px!important;
+    column-gap:8px!important;
+  }
+  body.games-dashboard #games .game-recommended-badge{
+    margin:0 auto 0 48px!important;
+    justify-self:start!important;
+  }
+  body.games-dashboard #games .game-title-row{
+    grid-area:title!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:8px!important;
+    width:100%!important;
+  }
+  body.games-dashboard #games .game-name-wrap{
+    min-width:0!important;
+    flex:1 1 auto!important;
+  }
+  body.games-dashboard #games .game-name-wrap h2{
+    font-size:18px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  body.games-dashboard #games .game-title-actions{
+    flex:0 0 auto!important;
+    align-items:center!important;
+  }
+  body.games-dashboard #games .favorite-button{
+    width:34px!important;height:34px!important;min-width:34px!important;
+    border-radius:11px!important;font-size:20px!important;
+  }
+  body.games-dashboard #games .play-pill{
+    min-height:34px!important;
+    height:34px!important;
+    padding:0 10px!important;
+    font-size:10.5px!important;
+  }
+  body.games-dashboard #games .reward-rule{
+    grid-area:rule!important;
+    padding-left:48px!important;
+    margin:0!important;
+    max-width:none!important;
+    min-width:0!important;
+    font-size:11.5px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  body.games-dashboard #games .game-best{
+    grid-area:best!important;
+    justify-self:end!important;
+    align-self:center!important;
+    margin:0!important;
+    white-space:nowrap!important;
+  }
+  body.games-dashboard #games .game-play-button{
+    grid-area:play!important;
+    justify-self:center!important;
+    width:142px!important;
+    min-width:142px!important;
+    height:45px!important;
+    min-height:45px!important;
+    margin:1px 0 0!important;
+    border-radius:15px!important;
+    font-size:15px!important;
+  }
+  body.games-dashboard #games .catalog-tile:has(.status-line) .game-play-button{
+    width:174px!important;
+    min-width:174px!important;
+    min-height:48px!important;
+    font-size:12px!important;
+  }
+  body.games-dashboard #games .status-line{
+    grid-area:status!important;
+    justify-self:center!important;
+    width:auto!important;
+    max-width:100%!important;
+    margin:0!important;
+    padding:5px 10px!important;
+  }
+  body.games-dashboard #games .game-icon-bubble{
+    width:40px!important;height:40px!important;min-width:40px!important;
+  }
+}
