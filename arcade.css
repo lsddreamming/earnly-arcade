@@ -4865,3 +4865,41 @@ body.earnly-gameplay-locked{
   body.games-dashboard .game-search-wrap{margin-bottom:7px!important;min-height:38px!important;padding:6px 10px!important}
   body.games-dashboard .game-filter-row{margin-top:4px!important}
 }
+
+
+/* 0.15.35 Mobile game-card density pass */
+@media (max-width:699px){
+  body.games-dashboard #games.compact-catalog-grid{gap:8px!important}
+  body.games-dashboard #games .catalog-tile{
+    min-height:0!important;
+    padding:10px!important;
+    border-radius:15px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-row{gap:5px!important;margin:0!important}
+  body.games-dashboard #games .catalog-tile h2{font-size:15px!important;line-height:1.15!important}
+  body.games-dashboard #games .catalog-tile .game-title-actions{gap:5px!important}
+  body.games-dashboard #games .catalog-tile .favorite-button{
+    width:31px!important;height:31px!important;min-width:31px!important;padding:0!important;
+  }
+  body.games-dashboard #games .catalog-tile .play-pill{
+    min-height:31px!important;padding:5px 8px!important;font-size:10px!important;white-space:nowrap!important;
+  }
+  body.games-dashboard #games .catalog-tile .reward-rule{
+    margin:7px 0 4px!important;min-height:28px!important;max-height:32px!important;
+    font-size:10px!important;line-height:1.3!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-best{
+    margin:2px 0 7px!important;min-height:14px!important;font-size:9px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-play-button{
+    min-height:40px!important;height:40px!important;margin-top:auto!important;
+    padding:6px 7px!important;border-radius:11px!important;font-size:12px!important;
+  }
+  body.games-dashboard #games .catalog-tile .status-line{
+    margin:6px 0 0!important;padding:6px 7px!important;min-height:0!important;
+    font-size:9px!important;line-height:1.25!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-recommended-badge{
+    margin:0 0 6px!important;padding:3px 7px!important;font-size:9px!important;
+  }
+}
