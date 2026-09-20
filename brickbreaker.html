@@ -191,7 +191,6 @@
         fireUntil=performance.now()+10000;
         Arcade.milestone('🔥 FIREBALL · smashes through bricks','perfect');
       }
-      Arcade.feedback('success');
     }
 
     function maybeDropPowerUp(brick){
@@ -366,7 +365,7 @@
           maybeDropPowerUp(b);
         }
         // Keep normal brick hits quiet; reserve feedback for meaningful streaks/milestones.
-        if(totalBroken===1 || totalBroken%10===0) Arcade.feedback('brick');
+        if(totalBroken===1 || (totalBroken%10===0 && totalBroken!==10 && totalBroken!==20)) Arcade.feedback('brick');
         if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
         if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
         bricksEl.textContent=levelBroken;
