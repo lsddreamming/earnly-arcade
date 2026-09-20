@@ -116,7 +116,14 @@
     function reset(){drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;basket.x=137;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.30,.12+(level-1)*.035);
-      drops.push({x:18+Math.random()*(canvas.width-36),y:-20,r:bomb?13:12,bomb,speed:2.5+Math.min(3.8,(level-1)*.65)+Math.random()*.9});
+      const previous=drops[drops.length-1];
+      let x=18+Math.random()*(canvas.width-36);
+      if(previous && previous.y<90 && Math.abs(x-previous.x)<44){
+        x=previous.x<canvas.width/2
+          ? Math.min(canvas.width-18,previous.x+58+Math.random()*42)
+          : Math.max(18,previous.x-58-Math.random()*42);
+      }
+      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:2.5+Math.min(3.8,(level-1)*.65)+Math.random()*.9});
       lastSpawn=now;
     }
     function drawCoin(d){
