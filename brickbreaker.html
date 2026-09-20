@@ -37,13 +37,18 @@
       body.brick-breaker-page .brick-board{width:min(78vw,315px)!important;height:auto!important;margin:5px auto 7px!important;display:block!important}
       body.brick-breaker-page .power-legend{gap:5px!important;margin:5px auto 8px!important;font-size:10px!important}
       body.brick-breaker-page .power-legend span{padding:4px 6px!important}
-      /* Keep the helpful guide/reward text visible during play. The whole non-button
-         game area is also a paddle drag surface, so players can swipe right over it. */
-      body.brick-breaker-page.game-active #startButton{display:none!important}
+      /* Instructions are for pre-game only. During play keep the HUD + board clean.
+         Reserve the hidden blocks' vertical space so starting a run cannot make
+         Safari jump the board upward underneath the player's finger. */
+      body.brick-breaker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
       body.brick-breaker-page.game-active .game-guide-more,
-      body.brick-breaker-page.game-active .power-legend{touch-action:none!important;-webkit-user-select:none!important;user-select:none!important}
+      body.brick-breaker-page.game-active .power-legend{visibility:hidden!important;pointer-events:none!important}
+      body.brick-breaker-page.game-active .game-guide-strip,
+      body.brick-breaker-page.game-active .game-preflight,
+      body.brick-breaker-page.game-active .game-guide-more{max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;overflow:hidden!important}
+      body.brick-breaker-page.game-active .power-legend{margin-top:5px!important;margin-bottom:8px!important}
       body.brick-breaker-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.brick-breaker-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
       body.brick-breaker-page.game-active .brick-board{width:min(86vw,calc((100dvh - 210px) * .72),340px)!important;height:auto!important;margin-top:3px!important}
