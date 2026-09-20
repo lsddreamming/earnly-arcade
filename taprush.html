@@ -205,7 +205,9 @@
 
       const earned = rewardForHits(hits);
       Arcade.earn(earned, 'Tap Rush', { kind:'game', game:'tapRush', metric:hits });
-      Arcade.feedback('success');
+      Arcade.feedback(hits > 0 ? 'success' : 'fail');
+      timeLeft = 0;
+      timeEl.textContent = '0';
       const result = Arcade.recordResult('tapRush', hits);
 
       const best = Math.max(hits, Arcade.number('tapRushBest'));
@@ -273,12 +275,14 @@
     }
 
     board.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       if (event.target === target) return;
       event.preventDefault();
       if (!running && !starting) startGame();
     });
 
     target.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
       if (!running || targetLocked) return;
       // Lock immediately so one physical tap cannot register twice on browsers
@@ -319,6 +323,9 @@
         startTimer();
       }
     });
+    const cancelTapState=()=>{ targetLocked = running; };
+    window.addEventListener('blur', cancelTapState);
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) cancelTapState(); });
     target.addEventListener('contextmenu', event => event.preventDefault());
     board.addEventListener('contextmenu', event => event.preventDefault());
     document.addEventListener('keydown', event => {
