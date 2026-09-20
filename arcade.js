@@ -2931,7 +2931,17 @@ const Arcade = (() => {
 
     const sync = () => {
       const active = !!isRunning();
-      if (!active && !paused) {
+
+      // A run can end while paused (navigation, result modal, game cleanup).
+      // Never carry that paused state into the next replay.
+      if (!active && paused) {
+        paused = false;
+        try { resume(); } catch {}
+        button.textContent = '⏸ Pause';
+        document.body.classList.remove('earnly-game-paused');
+      }
+
+      if (!active) {
         button.textContent = '⏸ Pause';
         button.hidden = true;
         document.body.classList.remove('earnly-game-paused');
@@ -2985,6 +2995,12 @@ const Arcade = (() => {
     observer.observe(status, {attributes:true, childList:true, characterData:true, subtree:true});
     const syncTimer = setInterval(sync, 250);
     window.addEventListener('pagehide', () => {
+      if (paused) {
+        paused = false;
+        try { resume(); } catch {}
+        document.body.classList.remove('earnly-game-paused');
+      }
+      observer.disconnect();
       clearInterval(syncTimer);
       ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','click','keydown'].forEach(type => {
         window.removeEventListener(type, blockPausedGameInput, {capture:true});
