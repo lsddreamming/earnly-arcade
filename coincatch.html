@@ -361,7 +361,12 @@
     document.addEventListener('pointercancel',stopControl);
 
     let zonePointer=null,zoneLastX=0;
-    function clearTouchControls(){clearTouchControls();zoneLastX=0}
+    function clearTouchControls(){
+      controlPointer=null;
+      zonePointer=null;
+      dragLastClientX=null;
+      zoneLastX=0;
+    }
     catchControlZone.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
@@ -381,7 +386,7 @@
     document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTouchControls()});
     document.addEventListener('contextmenu',e=>{if(running&&Arcade.inExpandedGameZone(e,canvas,130))e.preventDefault()});
 
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
   </script>
