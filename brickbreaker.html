@@ -377,10 +377,21 @@
       if(!fire) ball.dy*=-1;
     }
 
-    function collideBrick(ball){
+    function collideBrick(ball,prevX=ball.x,prevY=ball.y){
       for(const b of bricks){
         if(!b.alive) continue;
-        if(ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h){
+        const overlaps=ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h;
+        const minX=b.x-ball.r,maxX=b.x+b.w+ball.r,minY=b.y-ball.r,maxY=b.y+b.h+ball.r;
+        const dx=ball.x-prevX,dy=ball.y-prevY;
+        let swept=false;
+        if(!overlaps&&(dx!==0||dy!==0)){
+          const tx1=dx===0?-Infinity:(minX-prevX)/dx,tx2=dx===0?Infinity:(maxX-prevX)/dx;
+          const ty1=dy===0?-Infinity:(minY-prevY)/dy,ty2=dy===0?Infinity:(maxY-prevY)/dy;
+          const enter=Math.max(Math.min(tx1,tx2),Math.min(ty1,ty2));
+          const exit=Math.min(Math.max(tx1,tx2),Math.max(ty1,ty2));
+          swept=enter<=exit&&exit>=0&&enter<=1;
+        }
+        if(overlaps||swept){
           hitBrick(ball,b);
           const speed=Math.hypot(ball.dx,ball.dy);
           if(Math.abs(ball.dx)<speed*0.34){
@@ -441,7 +452,7 @@
         ball.dy=-Math.sqrt(Math.max((targetSpeed*0.55)*(targetSpeed*0.55),targetSpeed*targetSpeed-ball.dx*ball.dx));
         ball.y=paddle.y-ball.r-1;
       }
-      collideBrick(ball);
+      collideBrick(ball,prevX,prevY);
     }
 
     function loop(){
