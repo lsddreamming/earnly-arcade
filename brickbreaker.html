@@ -82,7 +82,7 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="brick-board touch-surface" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
-    <div id="powerTimers" class="power-timers" aria-live="polite"></div>
+    <div id="powerTimers" class="power-timers" aria-live="off"></div>
     <div class="power-legend" aria-label="Brick Breaker power-ups">
       <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Bonus Brick</span><span>◆ Armored</span>
     </div>
@@ -130,6 +130,7 @@
     let fireUntil=0;
     let wideUntil=0;
     const powerTimersEl=document.getElementById('powerTimers');
+    let lastPowerTimerMarkup='';
     let bricks=[];
     let level=1;
     let levelBroken=0;
@@ -300,7 +301,11 @@
         const seconds=Math.ceil(fireLeft/1000);
         timers.push('<span class="power-timer fire'+(seconds<=3?' urgent':'')+'">🔥 Fireball · '+seconds+'s</span>');
       }
-      powerTimersEl.innerHTML=timers.join('');
+      const markup=timers.join('');
+      if(markup!==lastPowerTimerMarkup){
+        powerTimersEl.innerHTML=markup;
+        lastPowerTimerMarkup=markup;
+      }
     }
 
     function draw(){
@@ -595,6 +600,7 @@
       comboUntil=0;
       fireUntil=0;
       wideUntil=0;
+      updatePowerTimers();
       paddle.w=paddle.baseW;
       paddle.x=(canvas.width-paddle.w)/2;
 
@@ -742,6 +748,7 @@
       comboUntil=0;
       fireUntil=0;
       wideUntil=0;
+      updatePowerTimers();
       dragging=false;
       dragPointer=null;
       dragLastClientX=null;
