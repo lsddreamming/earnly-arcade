@@ -50,6 +50,7 @@ const Arcade = (() => {
   const PLAY_AD_BONUS = 3;
   const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
+  const DAILY_MISSION_VERSION = '1';
   const CHALLENGE_VERSION = '5';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
@@ -68,6 +69,12 @@ const Arcade = (() => {
     { id:'variety4', icon:'🗺️', title:'Mix It Up', description:'Finish 4 different games this week', goal:4, rewardXP:50, type:'variety' },
     { id:'jungle20', icon:'🐸', title:'Jungle Trek', description:'Pass 20 total vines in Jungle Hopper', goal:20, rewardXP:50, type:'metric', game:'jungleHopper' },
     { id:'tower25', icon:'🏗️', title:'Sky Builder', description:'Stack 25 total Tower Stack floors', goal:25, rewardXP:50, type:'metric', game:'towerStack' }
+  ];
+
+  const dailyMissionDefinitions = [
+    { id:'play3', icon:'🎮', title:'Warm Up', description:'Finish 3 games today', goal:3, rewardXP:20, type:'games' },
+    { id:'variety2', icon:'🗺️', title:'Mix It Up', description:'Finish 2 different games today', goal:2, rewardXP:25, type:'variety' },
+    { id:'coins15', icon:'🪙', title:'Coin Hunt', description:'Earn 15 Arcade Coins today', goal:15, rewardXP:25, type:'coins' }
   ];
 
   const challengeDefinitions = [
@@ -923,6 +930,68 @@ const Arcade = (() => {
     return challengeDefinitions[seed % poolSize];
   }
 
+  function refreshDailyMissions() {
+    const today = dateKey();
+    if (localStorage.getItem('arcadeDailyMissionDay') === today &&
+        localStorage.getItem('arcadeDailyMissionVersion') === DAILY_MISSION_VERSION) return;
+
+    localStorage.setItem('arcadeDailyMissionDay', today);
+    localStorage.setItem('arcadeDailyMissionVersion', DAILY_MISSION_VERSION);
+    setNumber('arcadeDailyGames', 0);
+    localStorage.setItem('arcadeDailyGamesList', '[]');
+    localStorage.setItem('arcadeDailyMissionClaims', '[]');
+  }
+
+  function dailyMissionStatus() {
+    refreshDailyMissions();
+    refreshCoinEarnDay();
+    const claimed = new Set(readArray('arcadeDailyMissionClaims'));
+    const games = readArray('arcadeDailyGamesList');
+    const completedGames = number('arcadeDailyGames');
+    const earnedCoins = number('arcadeCoinsEarnedToday');
+
+    const missions = dailyMissionDefinitions.map(mission => {
+      let progress = 0;
+      if (mission.type === 'games') progress = completedGames;
+      else if (mission.type === 'variety') progress = games.length;
+      else if (mission.type === 'coins') progress = earnedCoins;
+      progress = Math.min(mission.goal, progress);
+      return { ...mission, progress, complete:progress >= mission.goal, claimed:claimed.has(mission.id) };
+    });
+    return {
+      missions,
+      completed:missions.filter(item => item.complete).length,
+      claimed:missions.filter(item => item.claimed).length,
+      total:missions.length
+    };
+  }
+
+  function updateDailyMissions(game) {
+    refreshDailyMissions();
+    setNumber('arcadeDailyGames', number('arcadeDailyGames') + 1);
+    const games = readArray('arcadeDailyGamesList');
+    if (game && !games.includes(game)) {
+      games.push(game);
+      writeArray('arcadeDailyGamesList', games);
+    }
+  }
+
+  function claimDailyMission(id) {
+    const status = dailyMissionStatus();
+    const mission = status.missions.find(item => item.id === id);
+    if (!mission || !mission.complete || mission.claimed) return false;
+
+    const claims = readArray('arcadeDailyMissionClaims');
+    claims.push(mission.id);
+    writeArray('arcadeDailyMissionClaims', claims);
+    const xpResult = addXP(mission.rewardXP);
+    logActivity('mission', mission.title + ' completed', '+' + mission.rewardXP + ' XP');
+    feedback(xpResult.leveledUp ? 'level' : 'success');
+    toast(mission.icon + ' Daily mission complete · +' + mission.rewardXP + ' XP');
+    queueEvent('daily_mission_claimed', { id:mission.id, rewardXP:mission.rewardXP });
+    return { mission, xp:mission.rewardXP, leveledUp:xpResult.leveledUp, level:xpResult.status.level };
+  }
+
   function refreshDaily() {
     const today = dateKey();
 
@@ -1124,6 +1193,7 @@ const Arcade = (() => {
     }
 
     updateChallenge(game, metric);
+    updateDailyMissions(game);
     updateWeekly(game, cleanMetric);
 
     const runLabel = config ? cleanMetric + ' ' + config.label : String(cleanMetric);
@@ -2970,6 +3040,8 @@ const Arcade = (() => {
     number,
     history,
     dailyCoinStatus,
+    dailyMissionStatus,
+    claimDailyMission,
     applyServerWallet,
     claimDailyBonus,
     dailyBonusStatus,
