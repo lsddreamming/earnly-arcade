@@ -1654,11 +1654,20 @@ const Arcade = (() => {
       primary.disabled = true;
     }
 
+    let resultActionBusy = false;
     primary.addEventListener('click', () => {
-      if (primary.disabled) return;
+      if (primary.disabled || resultActionBusy) return;
+
+      // Re-check the live balance instead of trusting the playsLeft snapshot
+      // captured when the result screen opened. This keeps replay/ad behavior
+      // correct if another tab or a reward event changed the balance.
+      const livePlays = game ? remaining(game) : playsLeft;
+      resultActionBusy = true;
+      primary.disabled = true;
+
       closeModalThen(() => {
         modal.className = '';
-        if (playsLeft > 0) {
+        if (livePlays > 0) {
           if (typeof onReplay === 'function') onReplay();
         } else if (typeof onMorePlays === 'function') {
           onMorePlays();
