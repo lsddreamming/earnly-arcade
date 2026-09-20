@@ -190,7 +190,6 @@
         lines += count;
         score += count * 25;
         Arcade.feedback(count > 1 ? 'perfect' : 'score');
-        if (count > 1) Arcade.feedback('perfect');
       }
     }
 
