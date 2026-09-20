@@ -339,6 +339,7 @@
       if (!running) return;
 
       running = false;
+      pauseStartedAt = 0;
       cancelAnimationFrame(animation);
       animation = null;
       moving = null;
@@ -404,6 +405,7 @@
     }
 
     canvas.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
 
       if (!running) {
@@ -416,6 +418,7 @@
 
     document.addEventListener('pointerdown', event => {
       if (event.target === canvas || !Arcade.inExpandedGameZone(event, canvas, 135)) return;
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
 
       if (!running) {
@@ -435,7 +438,15 @@
       }
     });
 
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running||pauseStartedAt)return;
+      pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;
+    },resume:()=>{
+      if(!running||!pauseStartedAt)return;
+      totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;
+      cancelAnimationFrame(animation);animation=null;
+      animation=requestAnimationFrame(loop);
+    }});
     startButton.addEventListener('click', startGame);
     resetGame();
     refreshChrome();
