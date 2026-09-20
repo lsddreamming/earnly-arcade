@@ -989,6 +989,9 @@ const Arcade = (() => {
     feedback(xpResult.leveledUp ? 'level' : 'success');
     toast(mission.icon + ' Daily mission complete · +' + mission.rewardXP + ' XP');
     queueEvent('daily_mission_claimed', { id:mission.id, rewardXP:mission.rewardXP });
+    window.dispatchEvent(new CustomEvent('earnly-mission-claimed', {
+      detail:{ id:mission.id, title:mission.title, icon:mission.icon, rewardXP:mission.rewardXP }
+    }));
     return { mission, xp:mission.rewardXP, leveledUp:xpResult.leveledUp, level:xpResult.status.level };
   }
 
@@ -2026,6 +2029,15 @@ const Arcade = (() => {
         dailyLimit:PLAY_AD_DAILY_LIMIT,
         playsGranted:PLAY_AD_BONUS
       });
+      window.dispatchEvent(new CustomEvent('earnly-bonus-plays-unlocked', {
+        detail:{
+          game:g,
+          gameName,
+          playsGranted:PLAY_AD_BONUS,
+          playsLeft:remaining(g),
+          unlocksLeft:Math.max(0, latestStatus.remaining - 1)
+        }
+      }));
       if (cancelButton) cancelButton.disabled = true;
       done();
 
