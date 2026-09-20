@@ -231,10 +231,10 @@
     window.addEventListener('offline', render);
     window.addEventListener('pageshow', render);
     window.addEventListener('storage', render);
-    window.addEventListener('earnly-cloud-ready', renderTestReadiness);
-    window.addEventListener('earnly-cloud-auth-change', renderTestReadiness);
-    window.addEventListener('earnly-cloud-synced', renderTestReadiness);
-    window.addEventListener('earnly-data-change', renderTestReadiness);
+    window.addEventListener('earnly-cloud-ready', render);
+    window.addEventListener('earnly-cloud-auth-change', render);
+    window.addEventListener('earnly-cloud-synced', render);
+    window.addEventListener('earnly-data-change', render);
     render();
   </script>
 
