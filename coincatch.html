@@ -134,12 +134,19 @@
       steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
       overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Move under falling coins. Avoid the bombs.',replayTitle:'Tap to Play Again',
       tips:['Move with your finger/mouse, or use ← → / A D on a keyboard.','Survive each 20-second level to advance. Every level gets faster with more bombs.'],
-      reward:'Keep advancing through harder levels. More catches build a bigger Coin reward, up to 25 Coins.'
+      reward:'Keep advancing through harder levels. The 25-Coin max now takes a deep run, and high scores also earn bonus XP.'
     });
     const basket={x:137,y:448,w:86,h:24};
     const LEVEL_SECONDS=20;
     let drops=[],score=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
-    function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=40)c+=5;return Math.min(c,25)}
+    function rewardFor(v){
+      const catches=Math.max(0,Math.floor(Number(v)||0));
+      let c=Math.floor(catches/12);
+      if(catches>=75)c+=1;
+      if(catches>=150)c+=1;
+      if(catches>=225)c+=1;
+      return Math.min(c,25);
+    }
     let lastRewardShown=0;
     function refreshReward(){
       const reward=rewardFor(score);
@@ -157,7 +164,7 @@
     }
     function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTouchControls();drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
-      const bomb=Math.random()<Math.min(.30,.12+(level-1)*.035);
+      const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
       const previous=drops[drops.length-1];
       let x=18+Math.random()*(canvas.width-36);
       if(previous && previous.y<90 && Math.abs(x-previous.x)<44){
@@ -165,7 +172,7 @@
           ? Math.min(canvas.width-18,previous.x+58+Math.random()*42)
           : Math.max(18,previous.x-58-Math.random()*42);
       }
-      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:2.5+Math.min(3.8,(level-1)*.65)+Math.random()*.9});
+      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:2.6+Math.min(7,(level-1)*.8)+Math.random()*1.05});
       lastSpawn=now;
     }
     function drawCoin(d){
@@ -235,7 +242,7 @@
     let levelBannerTimer=null;
     function showLevelBanner(){
       clearTimeout(levelBannerTimer);
-      const bombChance=Math.round(Math.min(.30,.12+(level-1)*.035)*100);
+      const bombChance=Math.round(Math.min(.46,.10+(level-1)*.05)*100);
       levelBannerTitle.textContent='LEVEL '+level;
       levelBannerText.textContent=(level===1?'Steady drops':'Faster drops')+' · Bomb chance '+bombChance+'%';
       levelBanner.classList.add('show');
@@ -302,7 +309,7 @@
       if(transitioning){draw();animation=requestAnimationFrame(loop);return}
       if(!lastFrame)lastFrame=now;const dt=Math.min(50,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
       if(!lastSpawn||now-lastSpawn<0)lastSpawn=now;
-      const interval=Math.max(280,650-(level-1)*70);if(now-lastSpawn>=interval)spawn(now);
+      const interval=Math.max(220,650-(level-1)*65);if(now-lastSpawn>=interval)spawn(now);
       for(let i=drops.length-1;i>=0;i--){
         const d=drops[i];d.y+=d.speed*dt;
         const basketTop=basket.y-7;
