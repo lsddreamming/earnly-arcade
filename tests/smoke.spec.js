@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 const pages = [
-  'index.html','games.html','rewards.html','profile.html','account.html',
+  'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html',
   'snake.html','blockdrop.html','brickbreaker.html','coincatch.html',
   'colormatch.html','dodger.html','junglehopper.html','lanerunner.html',
   'memory.html','paddlerally.html','safecracker.html','taprush.html','towerstack.html'
@@ -52,6 +52,27 @@ test('games page links into playable games', async ({ page }) => {
   await expect(page.locator('body')).toBeVisible();
   const links = page.locator('a[href*=".html"]');
   expect(await links.count()).toBeGreaterThan(0);
+});
+
+test('core navigation never points to a missing internal page', async ({ page }) => {
+  const entryPages = ['/index.html','/games.html','/rewards.html','/profile.html','/account.html','/settings.html','/stats.html'];
+  const hrefs = new Set();
+
+  for (const entry of entryPages) {
+    await page.goto(entry);
+    const found = await page.locator('a[href]').evaluateAll(nodes =>
+      nodes.map(node => node.getAttribute('href')).filter(Boolean)
+    );
+    found.forEach(href => {
+      if (!href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('#')) hrefs.add(href);
+    });
+  }
+
+  for (const href of hrefs) {
+    const path = href.startsWith('/') ? href : '/' + href;
+    const response = await page.request.get(path);
+    expect(response.status(), 'Broken internal link: ' + href).toBeLessThan(400);
+  }
 });
 
 
