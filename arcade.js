@@ -1530,10 +1530,14 @@ const Arcade = (() => {
     const statsBox = document.createElement('div');
     statsBox.className = 'result-stats';
 
+    // Plays can change between finishing a run and rendering this shared
+    // result panel (daily refresh, another tab, rewarded-play completion).
+    // Always display the same live balance the replay action will use.
+    const resultPlaysLeft = game ? remaining(game) : Math.max(0, Number(playsLeft) || 0);
     const statData = [
       ['🪙', '+' + coins, 'Coins Earned'],
       ['⭐', '+' + (result?.xpAward || 0), 'XP Earned'],
-      ['🎟️', String(playsLeft), playsLeft === 1 ? 'Play Left' : 'Plays Left']
+      ['🎟️', String(resultPlaysLeft), resultPlaysLeft === 1 ? 'Play Left' : 'Plays Left']
     ];
 
     statData.forEach(([statIcon, statValue, statLabel]) => {
@@ -1645,8 +1649,8 @@ const Arcade = (() => {
     const primary = document.createElement('button');
     primary.className = 'wide green';
     const resultAdStatus = game ? playAdStatus(game) : { remaining:0, bonus:PLAY_AD_BONUS };
-    if (playsLeft > 0) {
-      primary.textContent = '▶ Play Again · ' + playsLeft + ' Left';
+    if (resultPlaysLeft > 0) {
+      primary.textContent = '▶ Play Again · ' + resultPlaysLeft + ' Left';
     } else if (resultAdStatus.remaining > 0) {
       primary.textContent = '▶ Watch Ad · +' + resultAdStatus.bonus + ' Plays';
     } else {
@@ -1661,7 +1665,7 @@ const Arcade = (() => {
       // Re-check the live balance instead of trusting the playsLeft snapshot
       // captured when the result screen opened. This keeps replay/ad behavior
       // correct if another tab or a reward event changed the balance.
-      const livePlays = game ? remaining(game) : playsLeft;
+      const livePlays = game ? remaining(game) : resultPlaysLeft;
       resultActionBusy = true;
       primary.disabled = true;
 
