@@ -57,6 +57,11 @@
       body.coincatch-page.game-active{overflow:hidden!important}
       body.coincatch-page.game-active main.container{height:calc(100dvh - env(safe-area-inset-bottom,0px) - 74px)!important;min-height:0!important;padding:6px 12px 4px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;box-sizing:border-box!important;overflow:hidden!important}
     }
+    .catch-earned-hud{position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:6;min-height:30px;padding:5px 11px;border-radius:999px;background:rgba(15,23,42,.26);border:1px solid rgba(250,204,21,.5);box-shadow:0 4px 14px rgba(0,0,0,.18),0 0 12px rgba(250,204,21,.10);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:5px;color:#fde68a;font-size:11px;font-weight:900;white-space:nowrap}
+    .catch-earned-hud strong{font-size:15px;color:#fff}
+    body.coincatch-page.game-active .catch-earned-hud{background:rgba(15,23,42,.18)}
+    .catch-earned-hud.bump{animation:coinEarnPulse .36s ease}
+    @keyframes coinEarnPulse{0%{transform:translateX(-50%) scale(1)}45%{transform:translateX(-50%) scale(1.08);box-shadow:0 0 20px rgba(250,204,21,.32)}100%{transform:translateX(-50%) scale(1)}}
     .level-banner{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.94);z-index:8;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 24px;border-radius:16px;background:rgba(2,6,23,.82);border:1px solid rgba(250,204,21,.45);box-shadow:0 14px 35px rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;backdrop-filter:blur(7px)}
     .level-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
     .level-banner strong{font-size:23px;letter-spacing:.08em;color:#fde047}
@@ -89,6 +94,7 @@
       <div class="catch-hud catch-hud-left">💰 <strong id="score">0</strong></div>
       <div class="catch-hud catch-hud-center">L<strong id="level">1</strong></div>
       <div class="catch-hud catch-hud-right">⏱ <strong><span id="time">20</span>s</strong></div>
+      <div class="catch-earned-hud" id="earnedHud">🪙 Arcade Coins <strong id="earnedCoins">+0</strong></div>
       <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
     </div>
     <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe left or right to move basket"><span>↔</span> Swipe anywhere here to move</div>
@@ -121,7 +127,7 @@
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
     const catchControlZone=document.getElementById('catchControlZone');
     const levelBanner=document.getElementById('levelBanner'),levelBannerTitle=document.getElementById('levelBannerTitle'),levelBannerText=document.getElementById('levelBannerText');
-    const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview');
+    const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),earnedHudEl=document.getElementById('earnedHud'),earnedCoinsEl=document.getElementById('earnedCoins');
     Arcade.gameGuide({
       game:'coinCatch',surface:canvas,
       steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
@@ -137,8 +143,14 @@
     function refreshReward(){
       const reward=rewardFor(score);
       rewardPreviewEl.textContent=String(reward);
-      if(running&&reward>lastRewardShown&&(reward===5||reward===10||reward===15||reward===20||reward===25)){
-        Arcade.feedback('success',{message:'🪙 '+reward+' Coin reward'});
+      earnedCoinsEl.textContent='+'+reward;
+      if(running&&reward>lastRewardShown){
+        earnedHudEl.classList.remove('bump');
+        void earnedHudEl.offsetWidth;
+        earnedHudEl.classList.add('bump');
+        if(reward===5||reward===10||reward===15||reward===20||reward===25){
+          Arcade.feedback('success',{message:'🪙 '+reward+' Arcade Coins this run'});
+        }
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
