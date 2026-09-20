@@ -415,10 +415,10 @@
       }
     }
 
-    function updateBall(ball){
+    function updateBall(ball,stepScale=1){
       const prevX=ball.x,prevY=ball.y;
-      ball.x+=ball.dx;
-      ball.y+=ball.dy;
+      ball.x+=ball.dx*stepScale;
+      ball.y+=ball.dy*stepScale;
 
       if(ball.x-ball.r<=0 || ball.x+ball.r>=canvas.width){
         ball.x=Math.max(ball.r+1,Math.min(canvas.width-ball.r-1,ball.x));
@@ -466,10 +466,10 @@
 
       balls.forEach(ball=>{
         const steps=Math.max(1,Math.ceil(dt));
-        const originalDx=ball.dx,originalDy=ball.dy;
-        ball.dx=originalDx*dt/steps;ball.dy=originalDy*dt/steps;
-        for(let step=0;step<steps && ball.y-ball.r<=canvas.height;step++)updateBall(ball);
-        ball.dx=originalDx;ball.dy=originalDy;
+        const stepScale=dt/steps;
+        // Scale distance, not velocity state, so wall/brick/paddle bounces made
+        // inside a substep survive into the next substep and following frame.
+        for(let step=0;step<steps && ball.y-ball.r<=canvas.height;step++)updateBall(ball,stepScale);
       });
       balls=balls.filter(ball=>ball.y-ball.r<=canvas.height);
       updatePowerUps(dt);
