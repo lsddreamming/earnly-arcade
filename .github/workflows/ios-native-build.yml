@@ -1,0 +1,68 @@
+name: Earnly iOS native build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - '*.svg'
+      - 'package.json'
+      - 'capacitor.config.json'
+      - 'native-ads-entry.js'
+      - 'scripts/**'
+      - '.github/workflows/ios-native-build.yml'
+
+concurrency:
+  group: earnly-ios-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator-build:
+    runs-on: macos-26
+    timeout-minutes: 25
+    env:
+      EARNLY_ADMOB_TEST_MODE: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build native web bundle
+        run: npm run native:web
+
+      - name: Generate iOS project
+        run: |
+          rm -rf ios
+          npx cap add ios
+          npx cap sync ios
+          node scripts/configure-ios.mjs
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Compile iOS simulator app
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Upload generated iOS project
+        uses: actions/upload-artifact@v4
+        with:
+          name: earnly-ios-project
+          path: ios/
+          retention-days: 7
