@@ -384,6 +384,7 @@
       clearInterval(game);
       game = null;
       blockDragPointer = null;
+      blockDragPieceSerial = 0;
       blockDragX = 0;
       blockDragY = 0;
       blockDragTotalX = 0;
@@ -514,6 +515,7 @@
     bindHoldControl('dropButton', moveDown);
 
     let blockDragPointer = null;
+    let blockDragPieceSerial = 0;
     let blockDragX = 0;
     let blockDragY = 0;
     let blockDragTotalX = 0;
@@ -531,6 +533,7 @@
       if (game === 'paused' || starting || blockDragPointer !== null || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
 
       blockDragPointer = event.pointerId;
+      blockDragPieceSerial = pieceSerial;
       blockDragX = event.clientX;
       blockDragY = event.clientY;
       blockDragTotalX = 0;
@@ -557,7 +560,21 @@
 
       if (dy >= blockStep) {
         const moves = Math.max(1, Math.floor(dy / blockStep));
-        for (let i = 0; i < moves; i++) moveDown();
+        for (let i = 0; i < moves; i++) {
+          const beforePiece = pieceSerial;
+          moveDown();
+          // If this swipe locked the current piece and spawned a new one,
+          // end ownership of the gesture immediately. The same finger movement
+          // must never continue dropping or rotating the next piece.
+          if (pieceSerial !== beforePiece) {
+            blockDragPointer = null;
+            blockDragPieceSerial = 0;
+            blockDragTotalX = 0;
+            blockDragTotalY = 0;
+            try { canvas.releasePointerCapture?.(event.pointerId); } catch {}
+            return;
+          }
+        }
         blockDragY = event.clientY;
       }
     });
@@ -565,7 +582,7 @@
     canvas.addEventListener('pointerup', event => {
       if (blockDragPointer !== event.pointerId) return;
       event.preventDefault();
-      const releasedPieceSerial = pieceSerial;
+      const startedOnSamePiece = blockDragPieceSerial === pieceSerial;
 
       const wasTap =
         blockDragTotalX < tapSlop &&
@@ -574,11 +591,13 @@
         Math.abs(event.clientY - blockDragY) < tapSlop;
 
       blockDragPointer = null;
-      if (wasTap && game && game !== 'paused' && !starting && releasedPieceSerial === pieceSerial) rotatePiece();
+      blockDragPieceSerial = 0;
+      if (wasTap && game && game !== 'paused' && !starting && startedOnSamePiece) rotatePiece();
     });
 
     canvas.addEventListener('pointercancel', () => {
       blockDragPointer = null;
+      blockDragPieceSerial = 0;
       blockDragTotalX = 0;
       blockDragTotalY = 0;
     });
