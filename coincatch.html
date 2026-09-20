@@ -63,6 +63,34 @@
     .catch-earned-hud strong{font-size:15px;color:#fff}
     body.coincatch-page.game-active .catch-earned-hud{background:rgba(15,23,42,.18)}
     .catch-earned-hud.bump{animation:coinEarnPulse .36s ease}
+    .catch-live-tip{
+      display:none;
+      position:fixed;
+      left:50%;
+      top:calc(max(env(safe-area-inset-top),8px) + 66px);
+      transform:translateX(-50%) translateY(-4px);
+      z-index:72;
+      width:min(92vw,430px);
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(125,211,252,.28);
+      background:rgba(15,23,42,.82);
+      color:#e2e8f0;
+      box-shadow:0 8px 22px rgba(0,0,0,.2);
+      font-size:11px;
+      font-weight:900;
+      text-align:center;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .22s ease,transform .22s ease;
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+    body.coincatch-page.game-active .catch-live-tip.show{
+      display:block;
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
     @keyframes coinEarnPulse{0%{transform:translateX(-50%) scale(1)}45%{transform:translateX(-50%) scale(1.08);box-shadow:0 0 20px rgba(250,204,21,.32)}100%{transform:translateX(-50%) scale(1)}}
     .level-banner{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.94);z-index:8;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 24px;border-radius:16px;background:rgba(2,6,23,.82);border:1px solid rgba(250,204,21,.45);box-shadow:0 14px 35px rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;backdrop-filter:blur(7px)}
     .level-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
@@ -90,6 +118,7 @@
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
+    <div class="catch-live-tip" id="catchLiveTip" aria-live="polite">↔ Swipe anywhere · 🪙 Catch coins · 💣 Avoid bombs</div>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <div class="catch-board-wrap">
       <div class="level-banner" id="levelBanner" aria-live="polite"><strong id="levelBannerTitle">LEVEL 2</strong><small id="levelBannerText">Get ready</small></div>
@@ -128,6 +157,7 @@
     
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
     const catchControlZone=document.getElementById('catchControlZone');
+    const catchLiveTip=document.getElementById('catchLiveTip');
     const levelBanner=document.getElementById('levelBanner'),levelBannerTitle=document.getElementById('levelBannerTitle'),levelBannerText=document.getElementById('levelBannerText');
     const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),earnedHudEl=document.getElementById('earnedHud'),earnedCoinsEl=document.getElementById('earnedCoins');
     Arcade.gameGuide({
@@ -139,7 +169,19 @@
     });
     const basket={x:137,y:448,w:86,h:24};
     const LEVEL_SECONDS=20;
+    const LEVEL_BANNER_MS=1500;
+    const START_TIP_MS=6000;
+    let liveTipTimer=null;
     let drops=[],score=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
+    function showLiveTip(text,duration=START_TIP_MS){
+      clearTimeout(liveTipTimer);
+      catchLiveTip.textContent=text;
+      catchLiveTip.classList.add('show');
+      liveTipTimer=setTimeout(()=>{
+        catchLiveTip.classList.remove('show');
+        liveTipTimer=null;
+      },duration);
+    }
     function rewardFor(v){
       const catches=Math.max(0,Math.floor(Number(v)||0));
       let c=Math.floor(catches/12);
@@ -166,7 +208,7 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTouchControls();drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
       const previous=drops[drops.length-1];
@@ -253,7 +295,7 @@
       levelBannerTimer=setTimeout(()=>{
         if(document.body.classList.contains('earnly-game-paused'))return;
         levelBanner.classList.remove('show');levelBannerTimer=null;
-      },850);
+      },LEVEL_BANNER_MS);
     }
     function nextLevel(){
       if(!running||transitioning)return;
@@ -282,7 +324,8 @@
         transitioning=false;
         levelEndsAt=performance.now()+LEVEL_SECONDS*1000;
         timer=setInterval(tickTimer,250);
-      },850);
+      },LEVEL_BANNER_MS);
+      showLiveTip('LEVEL '+level+' · '+(level===2?'Faster drops':'Stay sharp')+' · '+Math.round(Math.min(.46,.10+(level-1)*.05)*100)+'% bombs',2200);
     }
     let levelEndsAt=0;
     function tickTimer(){
@@ -298,7 +341,7 @@
     }
     function finish(hitBomb=false){
       if(!running)return;
-      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTouchControls();
+      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTouchControls();
       // Freeze the final HUD before awarding so the result screen always matches the run.
       scoreEl.textContent=String(score);levelEl.textContent=String(level);timeEl.textContent=String(Math.max(0,timeLeft));
       const earned=rewardFor(score);rewardPreviewEl.textContent=String(earned);
@@ -351,6 +394,7 @@
       reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');clearTouchControls();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
+        showLiveTip('↔ Swipe anywhere · 🪙 Catch coins · 💣 Avoid bombs',START_TIP_MS);
         levelEndsAt=performance.now()+LEVEL_SECONDS*1000;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);});
     }
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{if(!running||!pauseStartedAt)return;const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;if(transitioning){
