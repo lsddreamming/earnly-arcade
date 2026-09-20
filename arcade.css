@@ -5638,3 +5638,44 @@ body.earnly-gameplay-locked{
    grid-area:status!important;justify-self:center!important;margin:0!important;padding:3px 8px!important;font-size:8.5px!important
  }
 }
+
+
+/* 0.15.46 true compact card override */
+@media(max-width:700px){
+ body.games-dashboard #games{gap:10px!important}
+ body.games-dashboard #games .catalog-tile{
+   min-height:unset!important;
+   height:154px!important;
+   box-sizing:border-box!important;
+   padding:12px 14px 10px 16px!important;
+   display:grid!important;
+   grid-template-columns:minmax(0,1fr) auto!important;
+   grid-template-rows:42px 24px 48px!important;
+   grid-template-areas:"title title" "rule best" "play play"!important;
+   row-gap:3px!important
+ }
+ body.games-dashboard #games .catalog-tile:has(.game-recommended-badge){
+   height:176px!important;padding-top:34px!important
+ }
+ body.games-dashboard #games .catalog-tile:has(.status-line){
+   height:186px!important;
+   grid-template-rows:42px 24px 48px 20px!important;
+   grid-template-areas:"title title" "rule best" "play play" "status status"!important
+ }
+ body.games-dashboard #games .catalog-tile:has(.game-recommended-badge):has(.status-line){
+   height:208px!important
+ }
+ body.games-dashboard #games .game-name-wrap{height:42px!important}
+ body.games-dashboard #games .reward-rule{
+   padding-left:43px!important;line-height:24px!important;font-size:11px!important
+ }
+ body.games-dashboard #games .game-best{line-height:22px!important}
+ body.games-dashboard #games .game-play-button{
+   align-self:center!important;width:128px!important;min-width:128px!important;
+   height:40px!important;min-height:40px!important;padding:0 12px!important
+ }
+ body.games-dashboard #games .catalog-tile:has(.status-line) .game-play-button{
+   width:190px!important;min-width:190px!important
+ }
+ body.games-dashboard #games .status-line{align-self:center!important}
+}
