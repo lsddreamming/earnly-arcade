@@ -645,9 +645,11 @@
       powerUps=[];
       fireUntil=0;
       wideUntil=0;
+      // A replay is always a brand-new run. Reset level before rebuilding the board
+      // because resetBricks() chooses its layout/difficulty from the current level.
+      level=1;
       paddle.w=levelPaddleWidth();
       resetBricks();
-      level=1;
       levelBroken=0;
       totalBroken=0;
       levelsCleared=0;
