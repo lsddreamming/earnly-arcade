@@ -21,8 +21,8 @@
       body.coincatch-page .topbar{min-height:38px!important;margin-bottom:3px!important}
       body.coincatch-page .page-header{margin:0 0 3px!important;padding:0!important;gap:3px!important}
       body.coincatch-page .page-header h1{font-size:18px!important;line-height:1!important;margin:0!important}
-      body.coincatch-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
-      body.coincatch-page .meta-pill{min-height:27px!important;padding:2px 1px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:8px!important;border-radius:8px!important}
+      body.coincatch-page .game-meta{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
+      body.coincatch-page .meta-pill{min-height:27px!important;padding:2px 1px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:7.5px!important;border-radius:8px!important}
       body.coincatch-page #startButton{min-height:38px!important;margin:3px 0!important;padding:8px 12px!important}
       body.coincatch-page .catch-board{width:min(82vw,330px)!important;max-height:62vh!important;margin:5px auto 7px!important;display:block!important}
       body.coincatch-page.game-active .game-guide-strip,
@@ -50,7 +50,8 @@
     <header class="page-header">
       <h1>💰 Coin Catch</h1>
       <div class="game-meta"><span class="meta-pill">Caught: <span id="score">0</span></span>
-        <span class="meta-pill">Time: <span id="time">30</span>s</span>
+        <span class="meta-pill">Level: <span id="level">1</span></span>
+        <span class="meta-pill">Time: <span id="time">20</span>s</span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
       <span class="game-status" id="gameStatus">Ready</span>
@@ -75,22 +76,23 @@
     
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
     const catchControlZone=document.getElementById('catchControlZone');
-    const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview');
+    const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({
       game:'coinCatch',surface:canvas,
       steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
       overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Move under falling coins. Avoid the bombs.',replayTitle:'Tap to Play Again',
-      tips:['Move with your mouse/finger or the Left and Right arrow keys.','A bomb ends the run immediately. The round lasts up to 30 seconds.'],
-      reward:'More catches build a bigger Coin reward, up to 25 Coins.'
+      tips:['Move with your mouse/finger or the Left and Right arrow keys.','Survive each 20-second level to advance. Every level gets faster with more bombs.'],
+      reward:'Keep advancing through harder levels. More catches build a bigger Coin reward, up to 25 Coins.'
     });
     const basket={x:137,y:448,w:86,h:24};
-    let drops=[],score=0,timeLeft=30,running=false,starting=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
+    const LEVEL_SECONDS=20;
+    let drops=[],score=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
     function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=40)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){drops=[];score=0;timeLeft=30;basket.x=137;scoreEl.textContent='0';timeEl.textContent='30';refreshReward();draw()}
+    function reset(){drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;basket.x=137;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
-      const bomb=Math.random()<.16;
-      drops.push({x:18+Math.random()*(canvas.width-36),y:-20,r:bomb?13:12,bomb,speed:2.2+Math.min(3.8,(30000-timeLeft*1000)/9000)+Math.random()*.8});
+      const bomb=Math.random()<Math.min(.30,.12+(level-1)*.035);
+      drops.push({x:18+Math.random()*(canvas.width-36),y:-20,r:bomb?13:12,bomb,speed:2.5+Math.min(3.8,(level-1)*.65)+Math.random()*.9});
       lastSpawn=now;
     }
     function drawCoin(d){
@@ -143,20 +145,34 @@
       drops.forEach(d=>{if(d.bomb)drawBomb(d);else drawCoin(d)});
       drawBasket();
     }
+    function nextLevel(){
+      if(!running)return;
+      level+=1;levelEl.textContent=String(level);timeLeft=LEVEL_SECONDS;timeEl.textContent=String(timeLeft);
+      drops=[];lastSpawn=0;lastFrame=0;
+      Arcade.feedback('success');
+      setStatus('Level '+level,'running');
+      Arcade.milestone('🏁 Level '+level+' · Faster!');
+      clearInterval(timer);
+      timer=setInterval(tickTimer,1000);
+    }
+    function tickTimer(){
+      timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));
+      if(timeLeft<=0)nextLevel();
+    }
     function finish(hitBomb=false){
       if(!running)return;
       running=false;cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;
       const earned=rewardFor(score);Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Time!','over');draw();
-      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Basket Full!',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Run Complete',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
+        extra:['🏁 Level reached: '+level,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
     function loop(now){
       if(!running)return;
       if(!lastFrame)lastFrame=now;const dt=Math.min(32,now-lastFrame)/16.67;lastFrame=now;
       if(!lastSpawn||now-lastSpawn<0)lastSpawn=now;
-      const interval=Math.max(330,720-(30-timeLeft)*10);if(now-lastSpawn>=interval)spawn(now);
+      const interval=Math.max(280,650-(level-1)*70);if(now-lastSpawn>=interval)spawn(now);
       for(let i=drops.length-1;i>=0;i--){
         const d=drops[i];d.y+=d.speed*dt;
         if(d.y+d.r>=basket.y&&d.y-d.r<=basket.y+basket.h&&d.x>=basket.x&&d.x<=basket.x+basket.w){
@@ -180,9 +196,9 @@
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
       reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
-        timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish(false)},1000);animation=requestAnimationFrame(loop);});
+        timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish(false)},1000);animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
