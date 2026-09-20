@@ -293,11 +293,14 @@
     let dragStartPlayerX=0;
 
     function beginDrag(event){
+      if(!running || document.body.classList.contains('earnly-game-paused') || dragging || dragPointer!==null) return false;
+      if(event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0)) return false;
       dragging=true;
       dragPointer=event.pointerId;
       dragStartClientX=event.clientX;
       dragAnchorClientX=event.clientX;
       dragStartPlayerX=player.x;
+      return true;
     }
 
     function moveDrag(event){
@@ -318,8 +321,7 @@
         return;
       }
 
-      beginDrag(event);
-      canvas.setPointerCapture?.(event.pointerId);
+      if(beginDrag(event)) canvas.setPointerCapture?.(event.pointerId);
     });
 
     canvas.addEventListener('pointermove',event=>{
@@ -390,6 +392,9 @@
         return;
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
+      cancelAnimationFrame(animation);
+      animation=null;
+      clearDragState();
       obstacles=[];
       player.x=(canvas.width-player.w)/2;
       lastFrame=0;
