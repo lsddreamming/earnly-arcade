@@ -535,6 +535,14 @@
         return { skipped:'newer-cloud-save', conflict };
       }
 
+      // Re-check immediately before the write. Another device may have
+      // saved after our first cloud read while reward reconciliation was running.
+      const latestRemote = await cloudSaveInfo();
+      if (!cloudRevisionMatches(latestRemote, { deviceId:localDevice })) {
+        const conflict = markCloudConflict(latestRemote, { deviceId:localDevice });
+        return { skipped:'newer-cloud-save-before-write', conflict };
+      }
+
       const result = await saveProgress({
         source:'auto:' + reason,
         skipRewardSync:true,
