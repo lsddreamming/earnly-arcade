@@ -188,8 +188,20 @@
       obstacles.forEach(o=>o.y+=o.speed*frameScale);
 
       const survivors=[];
+      const hitPlayer={
+        x:player.x+5,
+        y:player.y+3,
+        w:player.w-10,
+        h:player.h-6
+      };
       for(const o of obstacles){
-        if(intersects(player,o)){
+        const hitObstacle={
+          x:o.x+4,
+          y:o.y+3,
+          w:Math.max(1,o.w-8),
+          h:Math.max(1,o.h-6)
+        };
+        if(intersects(hitPlayer,hitObstacle)){
           finishGame(false,seconds);
           return;
         }
