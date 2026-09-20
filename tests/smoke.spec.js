@@ -412,6 +412,19 @@ test('game start screen explains plays reward and controls before play', async (
   await expect(page.locator('#startButton')).toBeVisible();
 });
 
+test('pre-game summary gets out of the way once gameplay starts', async ({ page }) => {
+  await page.goto('/coincatch.html');
+  const summary = page.locator('.game-start-summary');
+  await expect(summary).toBeVisible();
+
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+
+  await expect(page.locator('body')).toHaveClass(/game-active/);
+  await expect(summary).toBeHidden();
+  await expect(page.locator('.catch-board-wrap')).toBeVisible();
+});
+
 
 test('account page exposes clear cloud sync status', async ({ page }) => {
   await page.goto('/account.html');
