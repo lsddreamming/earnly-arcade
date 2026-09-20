@@ -46,14 +46,13 @@
 
     /* Active-run focus mode: prioritize board + controls on phones. */
     @media (max-width: 699px) {
-      body.blockdrop-page.game-active .game-guide,
-      body.blockdrop-page.game-active .game-guide-grid,
-      body.blockdrop-page.game-active .game-guide-cards,
-      body.blockdrop-page.game-active .guide-grid,
-      body.blockdrop-page.game-active .how-to-play,
+      body.blockdrop-page.game-active .game-guide-strip,
+      body.blockdrop-page.game-active .game-preflight,
+      body.blockdrop-page.game-active .game-guide-more,
       body.blockdrop-page.game-active #startButton {
         display: none !important;
       }
+      body.blockdrop-page.game-active .topbar { margin-bottom: 4px !important; }
       body.blockdrop-page.game-active .page-header {
         margin-bottom: 4px !important;
         padding-bottom: 0 !important;
@@ -67,7 +66,7 @@
         margin-top: 2px !important;
       }
       body.blockdrop-page.game-active .blockdrop-board {
-        width: min(66vw, 250px) !important;
+        width: min(62vw, 235px) !important;
         margin-top: 6px !important;
         margin-bottom: 8px !important;
       }
