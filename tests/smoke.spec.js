@@ -456,6 +456,13 @@ test('game start screen explains plays reward and controls before play', async (
   await expect(page.locator('#startButton')).toBeVisible();
 });
 
+test('Memory Match shows the current clear reward', async ({ page }) => {
+  await page.goto('/memory.html');
+  await expect(page.locator('#memoryRewardHud')).toBeVisible();
+  await expect(page.locator('#memoryRewardHud')).toContainText('Clear Reward');
+  await expect(page.locator('#rewardPreview')).toHaveText('15');
+});
+
 test('mini games surface the live run reward clearly', async ({ page }) => {
   await page.goto('/mini.html?game=shapeFit');
   const pill = page.locator('#runRewardPill');
