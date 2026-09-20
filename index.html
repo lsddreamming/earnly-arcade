@@ -124,6 +124,14 @@
       </div>
     </section>
 
+    <section class="home-section" id="dailyMissionsSection">
+      <div class="home-section-heading">
+        <span>Daily Missions</span>
+        <span class="home-count-pill" id="dailyMissionCount">0/3</span>
+      </div>
+      <div class="home-panel" id="dailyMissionList"></div>
+    </section>
+
     <details class="home-section home-disclosure" id="streakRewardCard">
       <summary>
         <div>
@@ -196,6 +204,8 @@
     const streak = document.getElementById('streak');
     const bonusText = document.getElementById('bonusText');
     const bonusButton = document.getElementById('dailyBonusButton');
+    const dailyMissionCount = document.getElementById('dailyMissionCount');
+    const dailyMissionList = document.getElementById('dailyMissionList');
     const streakRewardText = document.getElementById('streakRewardText');
     const streakRewardCount = document.getElementById('streakRewardCount');
     const streakRewardList = document.getElementById('streakRewardList');
@@ -398,6 +408,57 @@
       bonusButton.disabled = bonus.claimed;
       bonusButton.className = bonus.claimed ? 'home-row-button claimed-button' : 'home-row-button green';
       bonusButton.textContent = bonus.claimed ? 'Claimed ✓' : 'Claim +' + bonus.reward;
+
+      const dailyMissions = Arcade.dailyMissionStatus();
+      dailyMissionCount.textContent = dailyMissions.claimed + '/' + dailyMissions.total;
+      dailyMissionList.replaceChildren();
+      dailyMissions.missions.forEach((mission, index) => {
+        const row = document.createElement('div');
+        row.className = 'home-challenge-row daily-mission-row' + (mission.claimed ? ' claimed' : '');
+        if (index) row.style.borderTop = '1px solid rgba(148,163,184,.14)';
+
+        const top = document.createElement('div');
+        top.className = 'home-action-row home-action-row-top';
+        const icon = document.createElement('div');
+        icon.className = 'home-action-icon';
+        icon.textContent = mission.icon;
+        const copy = document.createElement('div');
+        copy.className = 'home-action-copy';
+        const title = document.createElement('strong');
+        title.textContent = mission.title;
+        const desc = document.createElement('span');
+        desc.textContent = mission.description + ' · +' + mission.rewardXP + ' XP';
+        copy.append(title, desc);
+        const count = document.createElement('span');
+        count.className = 'home-count-pill';
+        count.textContent = mission.progress + ' / ' + mission.goal;
+        top.append(icon, copy, count);
+
+        const progress = document.createElement('div');
+        progress.className = 'challenge-progress home-challenge-progress';
+        progress.setAttribute('aria-hidden', 'true');
+        const bar = document.createElement('span');
+        bar.style.width = Math.min(100, mission.progress / mission.goal * 100) + '%';
+        progress.append(bar);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = mission.claimed ? 'home-challenge-button claimed-button' :
+          (mission.complete ? 'home-challenge-button green' : 'home-challenge-button progress-button');
+        button.disabled = mission.claimed;
+        button.textContent = mission.claimed ? 'Claimed ✓' :
+          (mission.complete ? 'Claim +' + mission.rewardXP + ' XP' : 'Keep Playing');
+        button.addEventListener('click', () => {
+          if (mission.complete) {
+            Arcade.claimDailyMission(mission.id);
+            render();
+          } else {
+            location.href = 'games.html';
+          }
+        });
+        row.append(top, progress, button);
+        dailyMissionList.append(row);
+      });
 
       const streakRewards = Arcade.streakRewardStatus();
       streakRewardCount.textContent = streakRewards.claimed + '/' + streakRewards.total;
