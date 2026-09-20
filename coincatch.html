@@ -219,9 +219,8 @@
     function showLevelBanner(){
       clearTimeout(levelBannerTimer);
       const bombChance=Math.round(Math.min(.30,.12+(level-1)*.035)*100);
-      const speedStep=Math.min(5,level);
       levelBannerTitle.textContent='LEVEL '+level;
-      levelBannerText.textContent='Speed '+speedStep+' · Bomb chance '+bombChance+'%';
+      levelBannerText.textContent=(level===1?'Steady drops':'Faster drops')+' · Bomb chance '+bombChance+'%';
       levelBanner.classList.add('show');
       levelBannerTimer=setTimeout(()=>{
         if(document.body.classList.contains('earnly-game-paused'))return;
@@ -323,7 +322,7 @@
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
         levelEndsAt=performance.now()+LEVEL_SECONDS*1000;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;if(transitioning){
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{if(!running||!pauseStartedAt)return;const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;if(transitioning){
       showLevelBanner();
       clearTimeout(levelBannerTimer);
       levelBannerTimer=setTimeout(()=>{
@@ -340,7 +339,7 @@
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
-      if(controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
+      if(transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
       controlPointer=e.pointerId;
       beginBasketDrag(e.clientX);
       try{canvas.setPointerCapture?.(e.pointerId)}catch{}
@@ -356,7 +355,7 @@
       if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,130))return;
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
-      if(controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
+      if(transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
       controlPointer=e.pointerId;
       beginBasketDrag(e.clientX);
     },{passive:false});
@@ -378,6 +377,7 @@
     catchControlZone.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
+      if(transitioning || zonePointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
       zonePointer=e.pointerId;zoneLastX=e.clientX;
       try{catchControlZone.setPointerCapture?.(e.pointerId)}catch{}
     },{passive:false});
