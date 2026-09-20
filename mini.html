@@ -151,6 +151,18 @@
         body.mini-blockGrid.game-active .page-header h1,body.mini-blockGrid.game-active .game-meta{visibility:visible!important;opacity:1!important}
         body.mini-blockGrid.game-active .game-meta{display:grid!important}
       }
+
+      /* Block Grid active HUD: keep everything below iPhone safe area */
+      @media(max-width:600px){
+        body.mini-blockGrid.game-active main.container{padding-top:max(10px,env(safe-area-inset-top))!important}
+        body.mini-blockGrid.game-active .page-header{position:relative!important;top:auto!important;transform:none!important;margin:0 auto 4px!important;display:grid!important;grid-template-columns:1fr!important;gap:3px!important}
+        body.mini-blockGrid.game-active .page-header h1{display:block!important;visibility:visible!important;opacity:1!important;font-size:20px!important;line-height:1.1!important;margin:0!important;text-align:center!important}
+        body.mini-blockGrid.game-active .game-meta{display:grid!important;visibility:visible!important;opacity:1!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:2px 0!important}
+        body.mini-blockGrid.game-active .meta-pill{min-height:27px!important;padding:3px 2px!important;font-size:8px!important}
+        body.mini-blockGrid.game-active .game-status{margin:2px auto!important;padding:3px 8px!important;font-size:9px!important}
+        body.mini-blockGrid.game-active .pause-control{position:relative!important;right:auto!important;top:auto!important;display:block!important;margin:-34px calc(50% - 104px) 5px auto!important;padding:5px 8px!important;min-height:28px!important;font-size:9px!important;width:max-content!important}
+        body.mini-blockGrid.game-active .mini-surface{margin:5px auto 0!important}
+      }
 </style>
 </head>
 <body>
