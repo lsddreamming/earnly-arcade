@@ -5116,3 +5116,74 @@ body.earnly-gameplay-locked{
   .games-dashboard #games .status-line { grid-area:status; margin:2px 0 0 !important; padding:7px 9px !important; font-size:11px !important; line-height:1.25 !important; border-radius:10px !important; }
   .games-dashboard .container > a.button.wide.secondary { margin-top:12px !important; }
 }
+
+
+/* Fun arcade visual refresh */
+.games-dashboard {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(0,229,255,.10), transparent 28%),
+    radial-gradient(circle at 85% 18%, rgba(168,85,247,.12), transparent 30%),
+    #07111f;
+}
+.games-dashboard .games-hero h1 {
+  text-shadow: 0 0 22px rgba(56,189,248,.22);
+}
+.games-dashboard #games .catalog-tile {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(25,39,63,.98), rgba(15,27,47,.98)) !important;
+  border: 1px solid rgba(96,165,250,.30) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.035);
+}
+.games-dashboard #games .catalog-tile::before {
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:linear-gradient(#38bdf8,#8b5cf6);
+  opacity:.9;
+}
+.games-dashboard #games .catalog-tile:nth-child(4n+2)::before { background:linear-gradient(#a855f7,#ec4899); }
+.games-dashboard #games .catalog-tile:nth-child(4n+3)::before { background:linear-gradient(#22c55e,#06b6d4); }
+.games-dashboard #games .catalog-tile:nth-child(4n+4)::before { background:linear-gradient(#f59e0b,#ef4444); }
+.games-dashboard #games .game-title-row h2 {
+  letter-spacing:-.02em;
+}
+.games-dashboard #games .game-play-button {
+  background: linear-gradient(135deg,#2563eb,#3b82f6) !important;
+  box-shadow:0 5px 14px rgba(37,99,235,.25);
+}
+.games-dashboard #games .game-play-button:active { transform:scale(.97); }
+.games-dashboard #games .favorite-button {
+  background:rgba(7,17,31,.55) !important;
+  border-color:rgba(148,163,184,.38) !important;
+}
+.games-dashboard #games .play-pill {
+  background:rgba(7,17,31,.48);
+}
+.games-dashboard #games .game-best {
+  color:#fcd34d !important;
+}
+@media (max-width:700px) {
+  .games-dashboard #games { gap:9px !important; }
+  .games-dashboard #games .catalog-tile {
+    min-height:142px !important;
+    padding:13px 14px 12px 18px !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    grid-template-areas:
+      "badge badge"
+      "title actions"
+      "rule actions"
+      "best play"
+      "status status" !important;
+  }
+  .games-dashboard #games .game-title-row h2 { font-size:20px !important; }
+  .games-dashboard #games .reward-rule { color:#a9b8ce !important; }
+  .games-dashboard #games .game-play-button {
+    min-width:104px !important;
+    min-height:44px !important;
+    padding:9px 13px !important;
+  }
+  .games-dashboard #games .game-best { font-size:11.5px !important; }
+  .games-dashboard #games .status-line { background:rgba(7,17,31,.7) !important; }
+}
