@@ -202,6 +202,7 @@
       clearInterval(timer);
       timer = null;
       roundEndsAt = 0;
+      pauseStartedAt = 0;
       target.hidden = true;
 
       const earned = rewardForHits(hits);
@@ -247,6 +248,9 @@
         return;
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
+      clearInterval(timer);
+      timer = null;
+      roundEndsAt = 0;
       hits = 0;
       targetLocked = true;
       timeLeft = ROUND_SECONDS;
@@ -315,7 +319,10 @@
       if (hits === 50) Arcade.milestone('🏆 50 hits · Elite reflexes!', 'perfect');
 
       moveTarget();
-      requestAnimationFrame(()=>{ if(running) targetLocked=false; });
+      const unlockRoundEndsAt = roundEndsAt;
+      requestAnimationFrame(()=>{
+        if(running && roundEndsAt===unlockRoundEndsAt && !document.body.classList.contains('earnly-game-paused')) targetLocked=false;
+      });
     });
 
     Arcade.installPauseControl({
@@ -327,6 +334,7 @@
         clearInterval(timer);timer=null;target.hidden=true;
       },
       resume:()=>{
+        if(!running || !pauseStartedAt) return;
         const pausedFor=performance.now()-pauseStartedAt;
         totalPausedMs+=pausedFor;pauseStartedAt=0;
         roundEndsAt=performance.now()+timeLeft*1000;
