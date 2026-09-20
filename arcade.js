@@ -1,4 +1,20 @@
-// Earnly prototype storage only. No real ad SDK or cash-out system is connected yet.
+// Earnly web game engine. Native builds can attach rewarded ads through Capacitor.
+(function loadEarnlyNativeBridge(){
+  try {
+    if (!window.Capacitor?.isNativePlatform?.()) return;
+    if (document.querySelector('script[data-earnly-native-ads]')) return;
+
+    const script = document.createElement('script');
+    script.src = 'native-ads.js';
+    script.async = false;
+    script.dataset.earnlyNativeAds = '1';
+    script.addEventListener('error', () => {
+      console.warn('Earnly native ad bridge failed to load.');
+    }, { once:true });
+    document.head.append(script);
+  } catch {}
+})();
+
 const Arcade = (() => {
   const names = {
     snake: 'Snake',
@@ -2037,6 +2053,34 @@ const Arcade = (() => {
     setNumber(g + 'BonusPlays', number(g + 'BonusPlays') + n);
   }
 
+  function grantRewardedPlayUnlock(g) {
+    const latestStatus = playAdStatus(g);
+
+    // Re-check at the exact moment the reward is earned. This protects
+    // against double callbacks, stale dialogs, and another tab/device
+    // changing the play balance while the ad is open.
+    if (latestStatus.remaining <= 0 || remaining(g) > 0) return null;
+
+    setNumber(g + 'PlayAdUnlocks', latestStatus.used + 1);
+    grantPlays(g, PLAY_AD_BONUS);
+    queueEvent('rewarded_play_unlock', {
+      game:g,
+      unlockNumber:latestStatus.used + 1,
+      dailyLimit:PLAY_AD_DAILY_LIMIT,
+      playsGranted:PLAY_AD_BONUS
+    });
+
+    const detail = {
+      game:g,
+      gameName:names[g] || 'game',
+      playsGranted:PLAY_AD_BONUS,
+      playsLeft:remaining(g),
+      unlocksLeft:Math.max(0, latestStatus.remaining - 1)
+    };
+    window.dispatchEvent(new CustomEvent('earnly-bonus-plays-unlocked', { detail }));
+    return detail;
+  }
+
   function playAd(g, done = () => {}) {
     const adStatus = playAdStatus(g);
     if (busy) return;
@@ -2059,6 +2103,45 @@ const Arcade = (() => {
     busy = true;
 
     const gameName = names[g] || 'game';
+    const nativeAds = window.EarnlyNativeAds;
+
+    if (nativeAds?.isNative) {
+      busy = true;
+      toast(nativeAds.testMode ? '📺 Loading rewarded test ad…' : '📺 Loading rewarded ad…');
+
+      Promise.resolve(nativeAds.showRewarded('extraPlays'))
+        .then(result => {
+          if (!result?.earned) {
+            busy = false;
+            toast('Ad closed before a reward was earned.');
+            return;
+          }
+
+          const detail = grantRewardedPlayUnlock(g);
+          busy = false;
+
+          if (!detail) {
+            if (typeof done === 'function') done();
+            return;
+          }
+
+          toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+          if (typeof done === 'function') done();
+        })
+        .catch(error => {
+          console.warn('Earnly rewarded ad failed', error);
+          busy = false;
+          panel(
+            'Rewarded ad unavailable',
+            'The test ad could not load right now. Your play balance was not changed.',
+            [
+              ['Try Again', () => playAd(g, done), 'green'],
+              ['Back to Arcade', () => location.href = 'games.html', 'secondary']
+            ]
+          );
+        });
+      return;
+    }
 
     panel(
       'Unlocking ' + PLAY_AD_BONUS + ' ' + gameName + ' plays…',
@@ -2112,30 +2195,13 @@ const Arcade = (() => {
 
       // Re-check the cap at completion too. This protects against duplicate
       // completion callbacks or another tab granting the same unlock.
-      const latestStatus = playAdStatus(g);
-      if (latestStatus.remaining <= 0 || remaining(g) > 0) {
+      const detail = grantRewardedPlayUnlock(g);
+      if (!detail) {
         busy = false;
         modal.close();
         done();
         return;
       }
-      setNumber(g + 'PlayAdUnlocks', latestStatus.used + 1);
-      grantPlays(g, PLAY_AD_BONUS);
-      queueEvent('rewarded_play_unlock', {
-        game:g,
-        unlockNumber:latestStatus.used + 1,
-        dailyLimit:PLAY_AD_DAILY_LIMIT,
-        playsGranted:PLAY_AD_BONUS
-      });
-      window.dispatchEvent(new CustomEvent('earnly-bonus-plays-unlocked', {
-        detail:{
-          game:g,
-          gameName,
-          playsGranted:PLAY_AD_BONUS,
-          playsLeft:remaining(g),
-          unlocksLeft:Math.max(0, latestStatus.remaining - 1)
-        }
-      }));
       if (cancelButton) cancelButton.disabled = true;
 
       const heading = modal.querySelector('h2');
@@ -2197,12 +2263,16 @@ const Arcade = (() => {
       return;
     }
 
+    const rewardedLabel = window.EarnlyNativeAds?.isNative
+      ? (window.EarnlyNativeAds.testMode ? 'Watch test ad' : 'Watch ad')
+      : 'Watch demo ad';
+
     panel(
       'Out of ' + gameName + ' plays',
       'You’re out of plays for this game. Free plays refill daily. You have ' + status.remaining + ' of ' + status.limit + ' bonus-play unlock' +
         (status.remaining === 1 ? '' : 's') + ' left today. Each rewarded ad unlocks +' + PLAY_AD_BONUS + ' plays.',
       [
-        ['Watch demo ad · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
+        [rewardedLabel + ' · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
         ['Back to Arcade', () => location.href = 'games.html', 'secondary']
       ]
     );
