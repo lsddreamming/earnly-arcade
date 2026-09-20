@@ -146,6 +146,11 @@
     }
 
     function setDirection(newDirection) {
+      // Ignore steering while idle, paused, or in the 3-2-1 countdown.
+      // This prevents a key/button press from preloading the first turn of a
+      // fresh run before GO.
+      if (starting || game === null || game === 'paused') return;
+
       const opposite = {
         LEFT: 'RIGHT',
         RIGHT: 'LEFT',
@@ -220,6 +225,8 @@
 
     function beginSteering(event) {
       event.preventDefault();
+      if (starting || game === null || game === 'paused' || swipePointer !== null) return;
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       swipePointer = event.pointerId;
       swipeSurface = event.currentTarget;
       swipeStartX = event.clientX;
