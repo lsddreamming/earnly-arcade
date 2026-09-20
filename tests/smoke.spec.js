@@ -511,6 +511,23 @@ test('Block Drop and Color Match expose live run rewards', async ({ page }) => {
   expect(await page.evaluate(() => rewardFor(15))).toBe(5);
 });
 
+test('Coin Catch reward curve lasts into deep runs and awards performance XP', async ({ page }) => {
+  await page.goto('/coincatch.html');
+  expect(await page.evaluate(() => rewardFor(75))).toBe(7);
+  expect(await page.evaluate(() => rewardFor(150))).toBe(14);
+  expect(await page.evaluate(() => rewardFor(227))).toBe(21);
+  expect(await page.evaluate(() => rewardFor(264))).toBe(25);
+
+  const xp = await page.evaluate(() => {
+    localStorage.clear();
+    const strong = Arcade.recordResult('coinCatch', 227);
+    const elite = Arcade.recordResult('coinCatch', 350);
+    return { strong:strong.performanceXP, elite:elite.performanceXP };
+  });
+  expect(xp.strong).toBe(20);
+  expect(xp.elite).toBe(30);
+});
+
 test('Coin Catch HUD stays inside the board and shows live run rewards', async ({ page }) => {
   await page.goto('/coincatch.html');
   await page.locator('#startButton').click();
