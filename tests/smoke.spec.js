@@ -742,6 +742,30 @@ test('offline cloud progress has an explicit recovery lifecycle', async ({ page 
 });
 
 
+test('Home resets restored scroll and clears the fixed bottom nav', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+  await page.reload();
+
+  await page.evaluate(() => {
+    window.scrollTo(0, 600);
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted:true }));
+  });
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => Math.round(window.scrollY))).toBeLessThanOrEqual(1);
+
+  const nav = page.locator('#arcadeBottomNav');
+  if (await nav.isVisible()) {
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(40);
+    const navBox = await nav.boundingBox();
+    const lastBox = await page.locator('.home-prototype-note').boundingBox();
+    expect(navBox).not.toBeNull();
+    expect(lastBox).not.toBeNull();
+    expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(navBox.y - 12);
+  }
+});
+
 test('daily missions track games, variety, and coins', async ({ page }) => {
   await page.goto('/index.html');
   await page.evaluate(() => {
