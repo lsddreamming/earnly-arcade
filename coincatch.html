@@ -213,7 +213,7 @@
     }
     function finish(hitBomb=false){
       if(!running)return;
-      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;controlPointer=null;zonePointer=null;dragLastClientX=null;
+      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTouchControls();
       const earned=rewardFor(score);Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Time!','over');draw();
@@ -255,12 +255,12 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
-      reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');controlPointer=null;zonePointer=null;dragLastClientX=null;startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');clearTouchControls();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
         timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;controlPointer=null;zonePointer=null;dragLastClientX=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
@@ -292,6 +292,7 @@
     document.addEventListener('pointercancel',stopControl);
 
     let zonePointer=null,zoneLastX=0;
+    function clearTouchControls(){clearTouchControls();zoneLastX=0}
     catchControlZone.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
@@ -307,6 +308,10 @@
     const stopZone=e=>{if(e&&zonePointer!==e.pointerId)return;zonePointer=null};
     catchControlZone.addEventListener('pointerup',stopZone);
     catchControlZone.addEventListener('pointercancel',stopZone);
+    window.addEventListener('blur',clearTouchControls);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTouchControls()});
+    document.addEventListener('contextmenu',e=>{if(running&&Arcade.inExpandedGameZone(e,canvas,130))e.preventDefault()});
+
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
