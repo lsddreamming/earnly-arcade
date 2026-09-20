@@ -57,6 +57,7 @@
       body.coincatch-page.game-active{overflow:hidden!important}
       body.coincatch-page.game-active main.container{height:calc(100dvh - env(safe-area-inset-bottom,0px) - 74px)!important;min-height:0!important;padding:6px 12px 4px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;box-sizing:border-box!important;overflow:hidden!important}
     }
+    .catch-board-wrap{position:relative}
     .catch-earned-hud{position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:6;min-height:30px;padding:5px 11px;border-radius:999px;background:rgba(15,23,42,.26);border:1px solid rgba(250,204,21,.5);box-shadow:0 4px 14px rgba(0,0,0,.18),0 0 12px rgba(250,204,21,.10);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:5px;color:#fde68a;font-size:11px;font-weight:900;white-space:nowrap}
     .catch-earned-hud strong{font-size:15px;color:#fff}
     body.coincatch-page.game-active .catch-earned-hud{background:rgba(15,23,42,.18)}
@@ -87,10 +88,10 @@
         <span class="meta-pill">🎟️ <span id="plays">0</span></span>
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
-      <div class="level-banner" id="levelBanner" aria-live="polite"><strong id="levelBannerTitle">LEVEL 2</strong><small id="levelBannerText">Get ready</small></div>
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <div class="catch-board-wrap">
+      <div class="level-banner" id="levelBanner" aria-live="polite"><strong id="levelBannerTitle">LEVEL 2</strong><small id="levelBannerText">Get ready</small></div>
       <div class="catch-hud catch-hud-left">💰 <strong id="score">0</strong></div>
       <div class="catch-hud catch-hud-center">L<strong id="level">1</strong></div>
       <div class="catch-hud catch-hud-right">⏱ <strong><span id="time">20</span>s</strong></div>
