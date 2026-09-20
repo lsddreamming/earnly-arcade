@@ -591,3 +591,13 @@ test('account cloud flow exposes offline and restore safeguards', async ({ page 
   expect(account).toContain("Your progress is safe on this device and will sync automatically when you reconnect.");
   expect(account).toContain("earnly-cloud-syncing");
 });
+
+
+test('multi-device saves recheck cloud revision before writes', async ({ page }) => {
+  const cloud = await (await page.request.get('/cloud.js')).text();
+  expect(cloud).toContain('function cloudRevisionMatches(remote');
+  expect(cloud).toContain('function markCloudConflict(remote');
+  expect(cloud).toContain('const latestRemote = await cloudSaveInfo();');
+  expect(cloud).toContain("skipped:'newer-cloud-save-before-write'");
+  expect(cloud).toContain("error.code = 'EARNLY_CLOUD_CONFLICT'");
+});
