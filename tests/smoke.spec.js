@@ -487,6 +487,20 @@ test('Coin Catch HUD stays inside the board and shows live run rewards', async (
   }
 
   await expect(page.locator('#earnedHud')).toContainText('Arcade Coins');
+  const viewportWidth = page.viewportSize()?.width || 1280;
+  if (viewportWidth < 700) {
+    const hudBoxes = await page.locator('.catch-hud').evaluateAll(nodes =>
+      nodes.map(node => {
+        const r = node.getBoundingClientRect();
+        return { left:r.left, right:r.right };
+      }).sort((a,b) => a.left - b.left)
+    );
+    expect(hudBoxes).toHaveLength(3);
+    for (let i = 1; i < hudBoxes.length; i++) {
+      expect(hudBoxes[i].left, 'mobile Coin Catch HUD cards should not overlap').toBeGreaterThanOrEqual(hudBoxes[i - 1].right + 2);
+    }
+  }
+
   const levelBannerInsideBoard = await page.locator('#levelBanner').evaluate(
     node => node.parentElement?.classList.contains('catch-board-wrap')
   );
