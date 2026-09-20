@@ -601,3 +601,18 @@ test('multi-device saves recheck cloud revision before writes', async ({ page })
   expect(cloud).toContain("skipped:'newer-cloud-save-before-write'");
   expect(cloud).toContain("error.code = 'EARNLY_CLOUD_CONFLICT'");
 });
+
+
+test('offline cloud progress has an explicit recovery lifecycle', async ({ page }) => {
+  const cloud = await (await page.request.get('/cloud.js')).text();
+  expect(cloud).toContain("new CustomEvent('earnly-cloud-offline-pending'");
+  expect(cloud).toContain("const recoveredOffline = !!localStorage.getItem('arcadeCloudOfflinePending')");
+  expect(cloud).toContain("new CustomEvent('earnly-cloud-recovered'");
+  expect(cloud).toContain("localStorage.removeItem('arcadeCloudOfflinePending')");
+
+  const account = await (await page.request.get('/account.html')).text();
+  expect(account).toContain("earnly-cloud-offline-pending");
+  expect(account).toContain("📴 Offline · progress waiting to sync");
+  expect(account).toContain("earnly-cloud-recovered");
+  expect(account).toContain("☁️ Offline progress synced");
+});
