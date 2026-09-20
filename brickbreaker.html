@@ -28,7 +28,7 @@
       body.brick-breaker-page .game-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:0!important;width:100%!important}
       body.brick-breaker-page .meta-pill{min-height:34px!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:10px!important;border-radius:11px!important}
       body.brick-breaker-page #startButton{min-height:42px!important;margin:5px 0!important}
-      body.brick-breaker-page .brick-board{width:min(78vw,315px)!important;max-height:58vh!important;margin:5px auto 7px!important;display:block!important}
+      body.brick-breaker-page .brick-board{width:min(78vw,315px)!important;height:auto!important;margin:5px auto 7px!important;display:block!important}
       body.brick-breaker-page .power-legend{gap:5px!important;margin:5px auto 8px!important;font-size:10px!important}
       body.brick-breaker-page .power-legend span{padding:4px 6px!important}
       body.brick-breaker-page.game-active .game-guide-strip,
@@ -38,7 +38,7 @@
       body.brick-breaker-page.game-active .power-legend{display:none!important}
       body.brick-breaker-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.brick-breaker-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
-      body.brick-breaker-page.game-active .brick-board{width:min(86vw,340px)!important;max-height:68vh!important;margin-top:3px!important}
+      body.brick-breaker-page.game-active .brick-board{width:min(86vw,calc((100dvh - 210px) * .72),340px)!important;height:auto!important;margin-top:3px!important}
       body.brick-breaker-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
   </style>
