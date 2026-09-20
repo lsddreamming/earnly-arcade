@@ -297,7 +297,13 @@
         render();
       },
       adjustPauseTime(){inputLocked=false},
-      stop(){alive=false;inputLocked=false}
+      stop(){
+        alive=false;
+        inputLocked=false;
+        lastPlaced=[];
+        lastClear=0;
+        selected=0;
+      }
     };
   }
 
@@ -492,6 +498,10 @@
       stop(){
         alive=false;
         swipePointer=null;
+        startX=0;
+        startY=0;
+        lastMergeValue=0;
+        goal.classList.remove('merge-pop','merge-shake');
         document.removeEventListener('keydown',onKey);
         document.removeEventListener('pointerdown',onWideSwipeDown);
         document.removeEventListener('pointerup',onWideSwipeUp);
@@ -1289,7 +1299,10 @@
         miss('❌ Wrong shape');
       }
     }
-    return{start(){score=0;streak=0;bestStreak=0;lives=3;roundNo=0;lastStage='';alive=true;locked=false;ui(0,0);round()},stop(){alive=false;locked=true;stopTimer()}};
+    return{
+      start(){score=0;streak=0;bestStreak=0;lives=3;roundNo=0;lastStage='';timeLeft=0;answer=null;alive=true;locked=false;wrap.classList.remove('fit-success','fit-miss','many-choices');ui(0,0);round()},
+      stop(){alive=false;locked=true;stopTimer();timeLeft=0;answer=null;wrap.classList.remove('fit-success','fit-miss','many-choices')}
+    };
   }
 
   function makeBounceRun() {
@@ -1970,7 +1983,16 @@
 
     return {
       start(){cleared=0;level=1;boardInLevel=1;strikes=0;boardStartedAt=0;fastClears=0;bestRoadTime=null;alive=true;locked=false;ui(0,1);loadLevel()},
-      stop(){alive=false;locked=true;stopTimer()},
+      stop(){
+        alive=false;
+        locked=true;
+        stopTimer();
+        timeLeft=0;
+        boardStartedAt=0;
+        cars=[];
+        grid.replaceChildren();
+        levelLine.classList.remove('urgent');
+      },
       adjustPauseTime(ms){if(boardStartedAt)boardStartedAt+=Math.max(0,Number(ms)||0)}
     };
   }
