@@ -54,7 +54,8 @@
       body.coincatch-page.game-active .catch-board{width:100%!important;height:auto!important;max-width:100%!important;margin:0!important;display:block!important}
       body.coincatch-page.game-active .page-header{gap:0!important}
       body.coincatch-page.game-active .game-status{display:none!important}
-      body.coincatch-page.game-active{overflow:hidden!important}
+      body.coincatch-page.game-active{overflow:hidden!important;touch-action:none!important}
+      body.coincatch-page.game-active #arcadeBottomNav{display:none!important}
       body.coincatch-page.game-active main.container{height:calc(100dvh - env(safe-area-inset-bottom,0px) - 74px)!important;min-height:0!important;padding:6px 12px 4px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;box-sizing:border-box!important;overflow:hidden!important}
     }
     .catch-board-wrap{position:relative}
@@ -98,7 +99,7 @@
       <div class="catch-earned-hud" id="earnedHud">🪙 Arcade Coins <strong id="earnedCoins">+0</strong></div>
       <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
     </div>
-    <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe left or right to move basket"><span>↔</span> Swipe anywhere here to move</div>
+    <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe anywhere below Pause to move basket"><span>↔</span> Swipe anywhere below Pause to move</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
   <script src="arcade.js"></script>
@@ -374,18 +375,22 @@
       beginBasketDrag(e.clientX);
       try{canvas.setPointerCapture?.(e.pointerId)}catch{}
     });
-    canvas.addEventListener('pointermove',e=>{
-      if(running&&controlPointer===e.pointerId){e.preventDefault();dragBasket(e.clientX)}
-    },{passive:false});
     const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null;dragLastClientX=null};
     canvas.addEventListener('pointerup',stopControl);
     canvas.addEventListener('pointercancel',stopControl);
 
+    function canStartGlobalBasketDrag(e){
+      if(!running || transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return false;
+      if(e.target===canvas || catchControlZone.contains(e.target))return false;
+      const target=e.target instanceof Element?e.target:null;
+      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-modal'))return false;
+      const pauseButton=document.querySelector('.earnly-pause-button');
+      const minY=pauseButton?pauseButton.getBoundingClientRect().bottom+4:0;
+      return e.clientY>=minY;
+    }
     document.addEventListener('pointerdown',e=>{
-      if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,130))return;
+      if(!canStartGlobalBasketDrag(e))return;
       e.preventDefault();
-      if(!running){if(!starting)startGame();return}
-      if(transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
       controlPointer=e.pointerId;
       beginBasketDrag(e.clientX);
     },{passive:false});
