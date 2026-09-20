@@ -5834,3 +5834,21 @@ body.game-active .game-meta .meta-pill:has(#rewardPreview){
 /* Shared reward-number pulse */
 .game-meta .meta-pill.earnly-reward-bump:has(#rewardPreview){animation:earnlyRewardBump .34s ease}
 @keyframes earnlyRewardBump{0%{transform:scale(1)}45%{transform:scale(1.06);box-shadow:0 0 20px rgba(250,204,21,.20)}100%{transform:scale(1)}}
+
+
+/* Home iPhone viewport stability — keep dynamic content clear of system/nav chrome */
+body.home-dashboard{
+  overflow-anchor:none;
+  overscroll-behavior-y:contain;
+}
+body.home-dashboard.has-app-nav .home-container{
+  padding-top:max(30px,calc(env(safe-area-inset-top) + 10px))!important;
+  padding-bottom:max(168px,calc(134px + env(safe-area-inset-bottom)))!important;
+}
+@supports selector(html:has(body)){
+  html:has(body.home-dashboard){
+    overflow-anchor:none;
+    scroll-padding-top:max(18px,calc(env(safe-area-inset-top) + 8px));
+    scroll-padding-bottom:max(120px,calc(92px + env(safe-area-inset-bottom)));
+  }
+}
