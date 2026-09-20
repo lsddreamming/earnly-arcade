@@ -95,6 +95,7 @@
     let dodged=0;
     let animation=null;
     let lastFrame=0;
+    let nextSpawnAt=0;
 
     function rewardFor(seconds,dodgedCount){
       let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
@@ -155,9 +156,11 @@
       if(!startTime) startTime=now;
       const seconds=Math.min(30,Math.floor((now-startTime)/1000));
 
-      if(now-lastSpawn > Math.max(300,760-seconds*12)){
+      if(!nextSpawnAt) nextSpawnAt=now+760;
+      if(now>=nextSpawnAt){
         spawn(now);
         lastSpawn=now;
+        nextSpawnAt=now+Math.max(300,760-seconds*12);
       }
 
       const frameScale=lastFrame?Math.min(2,(now-lastFrame)/16.667):1;
@@ -325,6 +328,7 @@
       lastFrame=0;
       startTime=0;
       lastSpawn=0;
+      nextSpawnAt=0;
       dodged=0;
       timeEl.textContent='0';
       dodgedEl.textContent='0';
@@ -345,6 +349,7 @@
         requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
         startTime=0;
         lastSpawn=0;
+        nextSpawnAt=0;
         animation=requestAnimationFrame(loop);
       });
     }
@@ -352,7 +357,7 @@
     Arcade.installPauseControl({
       isRunning:()=>running,
       pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;lastFrame=0;},
-      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
+      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
     });
     startButton.addEventListener('click',startGame);
     refreshChrome();
