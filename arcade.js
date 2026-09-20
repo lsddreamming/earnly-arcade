@@ -1063,16 +1063,29 @@ const Arcade = (() => {
     };
   }
 
+  let consumeLocks = new Set();
+
   function consume(g) {
-    if (!remaining(g)) return false;
-    setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
-    markRecent(g);
-    queueEvent('play_started', {
-      game:g,
-      playsUsed:number(g + 'GamesPlayed'),
-      bonusPlays:number(g + 'BonusPlays')
-    });
-    return true;
+    // Treat consuming a play like a tiny transaction. A fast double-tap,
+    // Enter+tap, or duplicate mobile event must never spend two plays before
+    // the game has had a chance to enter its starting state.
+    if (!g || consumeLocks.has(g) || !remaining(g)) return false;
+    consumeLocks.add(g);
+
+    try {
+      setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+      markRecent(g);
+      queueEvent('play_started', {
+        game:g,
+        playsUsed:number(g + 'GamesPlayed'),
+        bonusPlays:number(g + 'BonusPlays')
+      });
+      return true;
+    } finally {
+      // Keep the lock through the rest of this event/frame, then allow the
+      // next legitimate run to consume normally.
+      requestAnimationFrame(() => consumeLocks.delete(g));
+    }
   }
 
   function best(game) {
