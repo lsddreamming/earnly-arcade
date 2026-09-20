@@ -1085,7 +1085,8 @@
     }
 
     function beginPointer(e){
-      if(!alive)return;
+      if(!alive || miniPaused || controlPointer!==null)return;
+      if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
       controlPointer=e.pointerId;
       pointerStartClientX=e.clientX;
       pointerStartBallX=ballX;
@@ -1093,7 +1094,7 @@
     }
 
     function movePointer(e){
-      if(!alive||controlPointer!==e.pointerId)return;
+      if(!alive||miniPaused||controlPointer!==e.pointerId)return;
       e.preventDefault();
       setBallFromDrag(e.clientX);
     }
@@ -1120,13 +1121,14 @@
     c.addEventListener('pointermove',movePointer,{passive:false});
     c.addEventListener('pointerup',endPointer);
     c.addEventListener('pointercancel',endPointer);
+    c.addEventListener('lostpointercapture',endPointer);
     spiralZone.addEventListener('pointerdown',e=>{e.preventDefault();beginPointer(e)},{passive:false});
     spiralZone.addEventListener('pointermove',movePointer,{passive:false});
     spiralZone.addEventListener('pointerup',endPointer);
     spiralZone.addEventListener('pointercancel',endPointer);
 
     const onWideDown=e=>{
-      if(e.target===c||spiralZone.contains(e.target)||!Arcade.inExpandedGameZone(e,c,180))return;
+      if(miniPaused||controlPointer!==null||e.target===c||spiralZone.contains(e.target)||!Arcade.inExpandedGameZone(e,c,180))return;
       e.preventDefault();
       beginPointer(e);
     };
@@ -1180,6 +1182,12 @@
         readyUntil=performance.now()+1250;
         draw();
         raf=requestAnimationFrame(loop);
+      },
+      adjustPauseTime(){
+        controlPointer=null;
+        pointerStartClientX=0;
+        pointerStartBallX=ballX;
+        heldKeys.clear();
       },
       stop(){
         alive=false;
