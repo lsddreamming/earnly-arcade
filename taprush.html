@@ -161,8 +161,17 @@
     function moveTarget() {
       const rect = board.getBoundingClientRect();
       const radius = 38;
-      const x = radius + Math.random() * Math.max(1, rect.width - radius * 2);
-      const y = radius + Math.random() * Math.max(1, rect.height - radius * 2);
+      const minDistance = Math.min(120, Math.max(78, rect.width * .28));
+      const oldX = parseFloat(target.style.left) || rect.width / 2;
+      const oldY = parseFloat(target.style.top) || rect.height / 2;
+      let x = oldX, y = oldY;
+      // Avoid unfair tiny hops where the next target appears under the same finger.
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const nextX = radius + Math.random() * Math.max(1, rect.width - radius * 2);
+        const nextY = radius + Math.random() * Math.max(1, rect.height - radius * 2);
+        x = nextX; y = nextY;
+        if (Math.hypot(nextX - oldX, nextY - oldY) >= minDistance) break;
+      }
       target.style.left = x + 'px';
       target.style.top = y + 'px';
     }
