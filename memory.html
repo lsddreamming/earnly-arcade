@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,9 +19,27 @@
     .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     .memory-card.matched{background:#14532d;border-color:#22c55e}
     .memory-card.revealed{background:#243044}
+    @media(max-width:699px){
+      body.memory-page main.container{padding-top:8px!important}
+      body.memory-page .topbar{margin-bottom:6px!important}
+      body.memory-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
+      body.memory-page .page-header h1{font-size:22px!important;line-height:1.1!important;margin:0!important}
+      body.memory-page .game-meta{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:0!important;width:100%!important}
+      body.memory-page .meta-pill{min-height:36px!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:10px!important;border-radius:11px!important}
+      body.memory-page #startButton{min-height:42px!important;margin:5px 0!important}
+      body.memory-page .memory-grid{width:min(84vw,350px)!important;gap:7px!important;margin:7px auto 9px!important}
+      body.memory-page .memory-card{border-radius:13px!important;font-size:27px!important}
+      body.memory-page.game-active .game-guide-strip,
+      body.memory-page.game-active .game-preflight,
+      body.memory-page.game-active .game-guide-more,
+      body.memory-page.game-active #startButton{display:none!important}
+      body.memory-page.game-active .memory-grid{width:min(90vw,375px)!important;gap:8px!important;margin-top:5px!important}
+      body.memory-page.game-active .memory-card{font-size:30px!important}
+      body.memory-page.game-active .container>a.button.wide.secondary{display:none!important}
+    }
   </style>
 </head>
-<body>
+<body class="memory-page">
   <main class="container">
     <div class="topbar">
       <a class="brand" href="games.html">← Games</a>
@@ -88,6 +106,7 @@
     }
 
     function setStatus(text,mode){
+      document.body.classList.toggle('game-active',mode==='running');
       statusEl.textContent = text;
       statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
     }
