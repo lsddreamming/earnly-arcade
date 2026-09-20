@@ -34,6 +34,7 @@
   document.body.classList.toggle('mini-blockGrid', key === 'blockGrid');
   document.body.classList.toggle('mini-mergeRush', key === 'mergeRush');
   document.body.classList.toggle('mini-perfectDrop', key === 'perfectDrop');
+  document.body.classList.toggle('mini-spiralDrop', key === 'spiralDrop');
 
   let running = false;
   let starting = false;
@@ -1029,7 +1030,7 @@
           Arcade.feedback('score');
           ui(score,level());
 
-          if(score===1) Arcade.milestone('🌀 First row cleared!','score');
+          if(score===1) Arcade.feedback('score');
           if(score>0&&score%5===0){
             // Keep level feedback inside the player's focal area. The persistent
             // LEVEL card updates immediately, so a large page-level toast only
@@ -1079,6 +1080,11 @@
       pointerStartBallX=ballX;
     }
 
+    const spiralZone=document.createElement('div');
+    spiralZone.className='spiral-control-zone';
+    spiralZone.innerHTML='<span>↔️ Slide anywhere here to steer</span>';
+    c.insertAdjacentElement('afterend',spiralZone);
+
     c.style.touchAction='none';
     c.style.userSelect='none';
     c.style.webkitUserSelect='none';
@@ -1089,9 +1095,13 @@
     c.addEventListener('pointermove',movePointer,{passive:false});
     c.addEventListener('pointerup',endPointer);
     c.addEventListener('pointercancel',endPointer);
+    spiralZone.addEventListener('pointerdown',e=>{e.preventDefault();beginPointer(e)},{passive:false});
+    spiralZone.addEventListener('pointermove',movePointer,{passive:false});
+    spiralZone.addEventListener('pointerup',endPointer);
+    spiralZone.addEventListener('pointercancel',endPointer);
 
     const onWideDown=e=>{
-      if(e.target===c||!Arcade.inExpandedGameZone(e,c,135))return;
+      if(e.target===c||spiralZone.contains(e.target)||!Arcade.inExpandedGameZone(e,c,180))return;
       e.preventDefault();
       beginPointer(e);
     };
