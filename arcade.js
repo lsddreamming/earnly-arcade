@@ -1296,11 +1296,28 @@ const Arcade = (() => {
 
   function dailyCoinStatus() {
     refreshCoinEarnDay();
-    return {
-      earned: number('arcadeCoinsEarnedToday'),
-      balance: number('points'),
-      lifetime: number('lifetimePoints')
-    };
+    const balance = number('points');
+    const lifetime = Math.max(balance, number('lifetimePoints'));
+    let earned = number('arcadeCoinsEarnedToday');
+
+    // Prototype/cloud migrations could leave the daily counter above the
+    // lifetime total. That cannot represent real earnings, so repair it from
+    // today's transaction history before showing mission/reward progress.
+    if (earned > lifetime) {
+      const today = dateKey();
+      const historyEarned = history().reduce((sum, item) => {
+        if (!item || !item.time) return sum;
+        const when = new Date(item.time);
+        return !Number.isNaN(when.getTime()) && dateKey(when) === today
+          ? sum + Math.max(0, Math.floor(Number(item.amount) || 0))
+          : sum;
+      }, 0);
+      earned = Math.min(lifetime, historyEarned);
+      setNumber('arcadeCoinsEarnedToday', earned);
+      queueEvent('daily_coin_counter_repaired', { earned, lifetime });
+    }
+
+    return { earned, balance, lifetime };
   }
 
   function earn(n, source = 'Arcade reward', server = null) {
