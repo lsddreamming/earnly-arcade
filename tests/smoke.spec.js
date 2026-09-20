@@ -664,3 +664,37 @@ test('mission claims and rewarded plays emit polished feedback events', async ({
   expect(home).toContain("Mission complete · +");
   expect(home).toContain("earnly-bonus-plays-unlocked");
 });
+
+
+test('game results show daily mission progress and claim readiness', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('arcadeOnboardingSeen', '1');
+    Arcade.recordResult('shapeFit', 2);
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:2,
+      coins:1, result:{xpAward:10}, playsLeft:2, game:'shapeFit'
+    });
+  });
+
+  const result = page.locator('dialog.game-result-dialog');
+  await expect(result).toBeVisible();
+  await expect(result.locator('.result-mission-update')).toHaveCount(3);
+  await expect(result).toContainText('Warm Up · 1/3');
+  await expect(result).toContainText('Mix It Up · 1/2');
+
+  await page.evaluate(() => {
+    document.querySelector('dialog.game-result-dialog')?.close();
+    Arcade.recordResult('snake', 1);
+    Arcade.recordResult('shapeFit', 3);
+    Arcade.earn(15, 'Mission result test');
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:3,
+      coins:1, result:{xpAward:10}, playsLeft:1, game:'shapeFit'
+    });
+  });
+  await expect(result).toContainText('Warm Up complete · +20 XP ready to claim');
+  await expect(result).toContainText('Mix It Up complete · +25 XP ready to claim');
+  await expect(result).toContainText('Coin Hunt complete · +25 XP ready to claim');
+});
