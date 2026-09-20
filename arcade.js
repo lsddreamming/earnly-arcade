@@ -3222,3 +3222,26 @@ const Arcade = (() => {
     start();
   }
 })();
+
+
+(function installEarnlyRewardPreviewPulse(){
+  function mount(){
+    const preview=document.getElementById('rewardPreview');
+    if(!preview || preview.dataset.earnlyPulseInstalled==='1') return;
+    const host=preview.closest('.meta-pill');
+    if(!host) return;
+    preview.dataset.earnlyPulseInstalled='1';
+    let last=(preview.textContent||'').trim();
+    const observer=new MutationObserver(()=>{
+      const next=(preview.textContent||'').trim();
+      if(next===last) return;
+      last=next;
+      host.classList.remove('earnly-reward-bump');
+      void host.offsetWidth;
+      host.classList.add('earnly-reward-bump');
+    });
+    observer.observe(preview,{childList:true,subtree:true,characterData:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount,{once:true});
+  else mount();
+})();
