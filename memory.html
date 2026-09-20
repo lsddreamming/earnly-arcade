@@ -20,6 +20,10 @@
     .memory-card.matched{background:#14532d;border-color:#22c55e}
     .memory-card.revealed{background:#243044}
     .timer-danger{animation:memoryTimerPulse .7s ease-in-out infinite alternate;border-color:#ef4444!important;color:#fecaca!important}
+    .memory-reward-hud{width:max-content;max-width:100%;margin:5px auto 1px;padding:6px 11px;border:1px solid rgba(250,204,21,.46);border-radius:999px;background:rgba(120,84,8,.15);color:#fde68a;font-size:11px;font-weight:900;box-sizing:border-box;transition:transform .18s ease,box-shadow .18s ease}
+    .memory-reward-hud strong{font-size:14px;color:#fff7b2}
+    .memory-reward-hud.reward-change{animation:memoryRewardPulse .3s ease}
+    @keyframes memoryRewardPulse{0%{transform:scale(1)}45%{transform:scale(1.05);box-shadow:0 0 16px rgba(250,204,21,.18)}100%{transform:scale(1)}}
     @keyframes memoryTimerPulse{from{transform:scale(1)}to{transform:scale(1.04);box-shadow:0 0 14px rgba(239,68,68,.35)}}
     @media(max-width:699px){
       body.memory-page main.container{padding-top:8px!important}
@@ -28,6 +32,7 @@
       body.memory-page .page-header h1{font-size:20px!important;line-height:1.05!important;margin:0!important}
       body.memory-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
       body.memory-page .meta-pill{min-height:31px!important;padding:3px 2px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;border-radius:10px!important}
+      body.memory-page .memory-reward-hud{margin:3px auto 0!important;padding:5px 10px!important;font-size:10px!important}
       body.memory-page #startButton{min-height:42px!important;margin:5px 0!important}
       body.memory-page .memory-grid{width:min(84vw,350px)!important;gap:7px!important;margin:7px auto 9px!important}
       body.memory-page .memory-card{border-radius:13px!important;font-size:27px!important}
@@ -56,6 +61,7 @@
         <span class="meta-pill">Time: <span id="time">1:00</span></span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
+      <div class="memory-reward-hud" id="memoryRewardHud" aria-live="polite">🪙 Clear Reward <strong id="rewardPreview">15</strong></div>
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
@@ -74,6 +80,8 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const memoryRewardHud = document.getElementById('memoryRewardHud');
 
     Arcade.gameGuide({
       game:'memory',
@@ -157,6 +165,18 @@
       return Math.min(reward,15);
     }
 
+    let lastRewardPreview = 15;
+    function refreshRewardPreview(){
+      const reward = rewardForMoves(moves);
+      rewardPreviewEl.textContent = String(reward);
+      if(running && reward !== lastRewardPreview){
+        memoryRewardHud.classList.remove('reward-change');
+        void memoryRewardHud.offsetWidth;
+        memoryRewardHud.classList.add('reward-change');
+      }
+      lastRewardPreview = reward;
+    }
+
     function render(){
       grid.replaceChildren();
       cards.forEach((card,index)=>{
@@ -191,6 +211,7 @@
       lock=true;
       moves+=1;
       movesEl.textContent=moves;
+      refreshRewardPreview();
 
       if(cards[first].icon===cards[second].icon){
         Arcade.feedback('match');
@@ -239,6 +260,8 @@
       setStatus('Time Up','over');
       startButton.disabled=false;
       startButton.textContent='👆 Tap Cards to Try Again';
+      rewardPreviewEl.textContent='0';
+      lastRewardPreview=0;
       render();
       Arcade.gameResult({
         icon:'⏰',
@@ -307,6 +330,8 @@
       first=null;second=null;lock=true;moves=0;pairs=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
       movesEl.textContent='0';
       pairsEl.textContent='0';
+      lastRewardPreview=rewardForMoves(0);
+      rewardPreviewEl.textContent=String(lastRewardPreview);
       startButton.disabled=true;
       startButton.textContent='Get Ready…';
       setStatus('Get Ready');
