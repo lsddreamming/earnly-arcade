@@ -1804,7 +1804,7 @@
       Arcade.feedback('score');
       trafficSound('exit');
 
-      setTimeout(()=>{
+      pauseAwareDelay(()=>{
         cleared++;
         cars=cars.filter(item=>item!==car);
         ui(cleared,level);
