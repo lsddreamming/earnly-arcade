@@ -1813,7 +1813,7 @@
           const roadTime=Math.max(0,(performance.now()-boardStartedAt)/1000);
           bestRoadTime=bestRoadTime===null?roadTime:Math.min(bestRoadTime,roadTime);
           const quick=roadTime<=Math.max(6,roundSeconds()*.58);
-          if(quick){fastClears++;Arcade.feedback('perfect');}
+          if(quick)fastClears++;
           const needed=boardsNeeded();
           if(boardInLevel<needed){
             stopTimer();
@@ -1822,7 +1822,7 @@
             boardInLevel++;
             grid.replaceChildren();
             levelLine.textContent=(quick?'⚡ Fast clear · '+roadTime.toFixed(1)+'s! · ':'🎉 ')+ 'Road '+clearedRoad+'/'+needed+' cleared · '+(needed-clearedRoad)+' more to Level '+level;
-            Arcade.feedback('score');
+            Arcade.feedback(quick?'perfect':'score');
             // Keep the board empty during the celebration. The next board and
             // its timer begin together, so transition time never costs play time.
             pauseAwareDelay(()=>{if(alive)loadLevel()},700);
