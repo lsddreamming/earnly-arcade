@@ -234,7 +234,10 @@
       level+=1;levelEl.textContent=String(level);timeLeft=LEVEL_SECONDS;timeEl.textContent=String(timeLeft);
       drops=[];lastSpawn=performance.now();lastFrame=0;levelEndsAt=0;
       Arcade.feedback('success');
-      setStatus('Level '+level,'running');
+      // Keep the shared game guide in active-run mode during the level banner.
+      // It keys off the status text, so "Level 2" alone could make the
+      // pre-game "Catch the Coins" overlay reappear over live gameplay.
+      setStatus('Running · Level '+level,'running');
       // gameGuide can mistake a level transition for a new idle state; force any
       // pre-game/out-of-plays UI closed while this same paid run continues.
       document.body.classList.add('game-active');
