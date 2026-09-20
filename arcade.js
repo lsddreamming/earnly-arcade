@@ -2089,17 +2089,21 @@ const Arcade = (() => {
         }
       }));
       if (cancelButton) cancelButton.disabled = true;
-      done();
 
       const heading = modal.querySelector('h2');
       const message = modal.querySelector('.modal-message');
       if (heading) heading.textContent = PLAY_AD_BONUS + ' ' + gameName + ' plays unlocked!';
       if (message) message.textContent = 'You’re ready to jump back in.';
 
+      // Finish the reward UI before handing control back to the game.
+      // Previously done() could start the replay/countdown underneath this
+      // still-open ad dialog, hiding the beginning of the new run.
       setTimeout(() => {
-        modal.close();
+        if (modal.open) modal.close();
+        modal.className = '';
         busy = false;
         toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+        done();
       }, 450);
     };
 
