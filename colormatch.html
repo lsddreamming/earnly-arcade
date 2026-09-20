@@ -106,7 +106,7 @@
       scoreEl.textContent=String(score);streakEl.textContent=String(streak);nextRound();
     }
     function finish(){
-      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;roundEndsAt=0;answer='';
+      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;roundEndsAt=0;pauseStartedAt=0;answer='';
       const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';choices.replaceChildren();
       Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
@@ -118,8 +118,17 @@
       clearInterval(timer);timer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;},resume:()=>{const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;if(roundEndsAt)roundEndsAt+=pausedFor;pauseStartedAt=0;timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100);}});
-    board.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running||pauseStartedAt)return;
+      pauseStartedAt=performance.now();clearInterval(timer);timer=null;
+    },resume:()=>{
+      if(!running||!pauseStartedAt)return;
+      const pausedFor=Math.max(0,performance.now()-pauseStartedAt);
+      totalPausedMs+=pausedFor;if(roundEndsAt)roundEndsAt+=pausedFor;pauseStartedAt=0;
+      clearInterval(timer);timer=null;
+      timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100);
+    }});
+    board.addEventListener('pointerdown',e=>{if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
     startButton.addEventListener('click',startGame);refreshChrome();
   
