@@ -1033,7 +1033,6 @@
           Arcade.feedback('score');
           ui(score,level());
 
-          if(score===1) Arcade.feedback('score');
           if(score>0&&score%5===0){
             // Keep level feedback inside the player's focal area. The persistent
             // LEVEL card updates immediately, so a large page-level toast only
