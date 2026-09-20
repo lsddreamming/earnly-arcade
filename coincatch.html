@@ -129,8 +129,16 @@
     const LEVEL_SECONDS=20;
     let drops=[],score=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
     function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=40)c+=5;return Math.min(c,25)}
-    function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;basket.x=137;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    let lastRewardShown=0;
+    function refreshReward(){
+      const reward=rewardFor(score);
+      rewardPreviewEl.textContent=String(reward);
+      if(running&&reward>lastRewardShown&&(reward===5||reward===10||reward===15||reward===20||reward===25)){
+        Arcade.feedback('success',{message:'🪙 '+reward+' Coin reward'});
+      }
+      lastRewardShown=Math.max(lastRewardShown,reward);
+    }
+    function reset(){drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.30,.12+(level-1)*.035);
       const previous=drops[drops.length-1];
