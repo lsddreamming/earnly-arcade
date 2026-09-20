@@ -15,7 +15,19 @@
   <title>Earnly Dodger</title>
   <link rel="stylesheet" href="arcade.css">
   <style>
-    .dodger-board{width:min(82vw,330px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .dodger-board{display:block;width:min(88vw,350px);height:auto;margin:7px auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;border:1px solid rgba(148,163,184,.18);box-shadow:0 14px 34px rgba(0,0,0,.28)}
+    @media(max-width:600px){
+      body.dodger-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
+      body.dodger-page .meta-pill{padding:4px 2px;font-size:9px;text-align:center;min-height:28px}
+      body.dodger-page.game-active .game-guide-strip,body.dodger-page.game-active .game-guide-more,body.dodger-page.game-active .game-guide-overlay,body.dodger-page.game-active .game-overlay,body.dodger-page.game-active a.button.secondary{display:none!important}
+      body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.dodger-page.game-active .page-header{margin:0 0 4px}
+      body.dodger-page.game-active .game-title-status-row h1{font-size:22px!important;margin:0!important}
+      body.dodger-page.game-active .game-meta{margin:3px 0 4px}
+      body.dodger-page.game-active .game-status{padding:3px 8px;font-size:9px}
+      body.dodger-page.game-active .dodger-board{width:min(92vw,365px);margin:5px auto 4px;-webkit-tap-highlight-color:transparent}
+      body.dodger-page.game-active,body.dodger-page.game-active .container,body.dodger-page.game-active .dodger-board{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    }
   </style>
 </head>
 <body class="dodger-page">
@@ -99,6 +111,7 @@
     function setStatus(text,mode){
       statusEl.textContent=text;
       statusEl.className='game-status'+(mode?' '+mode:'');
+      document.body.classList.toggle('game-active',mode==='running');
     }
 
     function draw(){
@@ -157,8 +170,7 @@
         if(o.y>canvas.height){
           dodged+=1;
           dodgedEl.textContent=dodged;
-          if(dodged===10) Arcade.milestone('🚗 10 obstacles dodged!');
-          if(dodged===20) Arcade.milestone('🔥 20 dodged · Road Warrior!', 'perfect');
+          if(dodged===10 || dodged===20) Arcade.feedback(dodged===20?'perfect':'score');
         }else{
           survivors.push(o);
         }
@@ -321,7 +333,7 @@
 
     Arcade.installPauseControl({
       isRunning:()=>running,
-      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;},
       resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;animation=requestAnimationFrame(loop);}
     });
     startButton.addEventListener('click',startGame);
