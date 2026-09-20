@@ -96,6 +96,7 @@
     let animation=null;
     let lastFrame=0;
     let nextSpawnAt=0;
+    let dragAnchorClientX=null;
 
     function rewardFor(seconds,dodgedCount){
       let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
@@ -269,12 +270,18 @@
       dragging=true;
       dragPointer=event.pointerId;
       dragStartClientX=event.clientX;
+      dragAnchorClientX=event.clientX;
       dragStartPlayerX=player.x;
     }
 
     function moveDrag(event){
-      const delta=clientXToGameX(event.clientX)-clientXToGameX(dragStartClientX);
-      setPlayerX(dragStartPlayerX+delta);
+      // Use movement deltas instead of mapping the finger directly to the
+      // canvas so control stays smooth even if the finger leaves the road.
+      const rect=canvas.getBoundingClientRect();
+      const scale=canvas.width/rect.width;
+      const delta=(event.clientX-dragAnchorClientX)*scale;
+      setPlayerX(player.x+delta);
+      dragAnchorClientX=event.clientX;
     }
 
     canvas.addEventListener('pointerdown',event=>{
@@ -317,6 +324,7 @@
       if(event && dragPointer !== event.pointerId) return;
       dragging = false;
       dragPointer = null;
+      dragAnchorClientX = null;
     };
 
     canvas.addEventListener('pointerup',stopDragging);
@@ -374,7 +382,7 @@
 
     Arcade.installPauseControl({
       isRunning:()=>running,
-      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;lastFrame=0;},
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;dragAnchorClientX=null;lastFrame=0;},
       resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
     });
     startButton.addEventListener('click',startGame);
