@@ -138,7 +138,7 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTouchControls();drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.30,.12+(level-1)*.035);
       const previous=drops[drops.length-1];
@@ -334,6 +334,7 @@
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
+      if(controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
       controlPointer=e.pointerId;
       beginBasketDrag(e.clientX);
       try{canvas.setPointerCapture?.(e.pointerId)}catch{}
@@ -349,6 +350,7 @@
       if(e.target===canvas||!Arcade.inExpandedGameZone(e,canvas,130))return;
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
+      if(controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
       controlPointer=e.pointerId;
       beginBasketDrag(e.clientX);
     },{passive:false});
