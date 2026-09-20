@@ -650,3 +650,17 @@ test('daily missions track games, variety, and coins', async ({ page }) => {
   const after = await page.evaluate(() => Arcade.dailyMissionStatus());
   expect(after.missions.find(m => m.id === 'play3').claimed).toBeTruthy();
 });
+
+
+test('mission claims and rewarded plays emit polished feedback events', async ({ page }) => {
+  const arcade = await (await page.request.get('/arcade.js')).text();
+  expect(arcade).toContain("new CustomEvent('earnly-mission-claimed'");
+  expect(arcade).toContain("new CustomEvent('earnly-bonus-plays-unlocked'");
+  expect(arcade).toContain("playsGranted:PLAY_AD_BONUS");
+  expect(arcade).toContain("unlocksLeft:Math.max(0, latestStatus.remaining - 1)");
+
+  const home = await (await page.request.get('/index.html')).text();
+  expect(home).toContain("earnly-mission-claimed");
+  expect(home).toContain("Mission complete · +");
+  expect(home).toContain("earnly-bonus-plays-unlocked");
+});
