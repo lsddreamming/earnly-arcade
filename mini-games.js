@@ -1921,6 +1921,12 @@
       miniPaused=false;
       running=true;
       setStatus('Running','running');
+      // Active-game layouts remove/reflow pre-game chrome. Always anchor the
+      // player back at the gameplay HUD instead of letting iPhone Safari keep
+      // the old scroll offset and appear to jump down the page.
+      if(key!=='trafficEscape'){
+        requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
+      }
       startButton.textContent='Game Running';
       engine=(factories[key]||makeBlockGrid)();
       engine.start();
