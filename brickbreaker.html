@@ -16,6 +16,12 @@
   <link rel="stylesheet" href="arcade.css">
   <style>
     .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
+    /* While a run is active, turn the whole safe gameplay area into a fixed touch surface.
+       This stops iPhone from scrolling/bouncing the page when the player drags the paddle. */
+    body.brick-breaker-page.game-active{overscroll-behavior:none;touch-action:none}
+    body.brick-breaker-page.game-active main,
+    body.brick-breaker-page.game-active .game-shell,
+    body.brick-breaker-page.game-active .game-stage{overscroll-behavior:none;touch-action:none}
     .power-legend{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px auto 14px;font-size:12px;color:#cbd5e1}
     .power-legend span{padding:6px 9px;border:1px solid #334155;border-radius:999px;background:#111c2d}
     /* Keep Brick Breaker notices above the playfield so they never hide bricks, balls, or drops. */
@@ -631,6 +637,7 @@
     document.addEventListener('pointermove',event=>{
       if(!dragging || dragPointer !== event.pointerId || dragLastClientX===null) return;
       event.preventDefault();
+      // Horizontal paddle control only: vertical finger movement must never move the page.
       const rect=canvas.getBoundingClientRect();
       const scale=canvas.width/rect.width;
       paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x+(event.clientX-dragLastClientX)*scale));
