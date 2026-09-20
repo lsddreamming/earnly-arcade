@@ -708,12 +708,20 @@
       raf=requestAnimationFrame(loop);
     }
 
-    c.addEventListener('pointerdown',e=>{e.preventDefault();act()});
+    let dropPointer=null;
+    const triggerDrop=e=>{
+      if(!alive || miniPaused || dropPointer!==null)return;
+      if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
+      e.preventDefault();
+      dropPointer=e.pointerId;
+      act();
+      requestAnimationFrame(()=>{ if(dropPointer===e.pointerId) dropPointer=null; });
+    };
+    c.addEventListener('pointerdown',triggerDrop,{passive:false});
 
     const onWidePointer=e=>{
-      if(!alive || e.target===c || !Arcade.inExpandedGameZone(e,c,140))return;
-      e.preventDefault();
-      act();
+      if(!alive || miniPaused || dropPointer!==null || e.target===c || !Arcade.inExpandedGameZone(e,c,140))return;
+      triggerDrop(e);
     };
     document.addEventListener('pointerdown',onWidePointer,{passive:false});
 
@@ -730,8 +738,10 @@
         hits=0;streak=0;bestStreak=0;perfects=0;perfectPauseAt=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
         next();ui(0,1);draw();raf=requestAnimationFrame(loop);
       },
+      adjustPauseTime(){ dropPointer=null; },
       stop(){
         alive=false;
+        dropPointer=null;
         cancelAnimationFrame(raf);
         document.removeEventListener('keydown',onKey);
         document.removeEventListener('pointerdown',onWidePointer);
