@@ -287,7 +287,19 @@
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
         levelEndsAt=performance.now()+LEVEL_SECONDS*1000;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;if(transitioning){showLevelBanner();return;}timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;if(transitioning){
+      showLevelBanner();
+      clearTimeout(levelBannerTimer);
+      levelBannerTimer=setTimeout(()=>{
+        if(!running||document.body.classList.contains('earnly-game-paused'))return;
+        levelBanner.classList.remove('show');levelBannerTimer=null;
+        transitioning=false;
+        levelEndsAt=performance.now()+LEVEL_SECONDS*1000;
+        timer=setInterval(tickTimer,250);
+        animation=requestAnimationFrame(loop);
+      },850);
+      return;
+    }timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);}});
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
