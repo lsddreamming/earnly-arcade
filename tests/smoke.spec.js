@@ -75,6 +75,16 @@ test('core navigation never points to a missing internal page', async ({ page })
   }
 });
 
+test('Settings and Stats reflect the current app/game catalog', async ({ page }) => {
+  await page.goto('/settings.html');
+  const expectedVersion = await page.evaluate(() => Arcade.appStatus().version);
+  await expect(page.locator('#versionStatus')).toHaveText('v' + expectedVersion);
+
+  await page.goto('/stats.html');
+  const gameCount = await page.evaluate(() => Object.keys(Arcade.names).length);
+  await expect(page.locator('#differentGames')).toContainText('/' + gameCount);
+});
+
 
 test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
   await page.goto('/mini.html?game=spiralDrop');
