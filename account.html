@@ -245,9 +245,13 @@
       }
       const conflict = window.EarnlyCloud?.cloudConflict?.();
       const syncError = localStorage.getItem('arcadeCloudSyncError');
+      const rewardError = localStorage.getItem('arcadeServerRewardError');
+      const offlinePending = localStorage.getItem('arcadeCloudOfflinePending');
       const pendingCount = Arcade.syncStatus().pending;
-      if (conflict || syncError) {
+      if (conflict || syncError || rewardError) {
         setCloudLiveStatus('warning', '⚠️ Sync needs attention');
+      } else if (offlinePending) {
+        setCloudLiveStatus('working', '⏳ Reconnecting · saving offline progress…');
       } else if (pendingCount > 0) {
         setCloudLiveStatus('working', '⏳ Syncing ' + pendingCount + ' update' + (pendingCount === 1 ? '' : 's') + '…');
       } else {
@@ -298,12 +302,23 @@
 
         const conflict = EarnlyCloud.cloudConflict();
         const rewardError = localStorage.getItem('arcadeServerRewardError');
-        const save = await EarnlyCloud.cloudSaveInfo();
-        cloudSaveStatus.textContent = save ? friendlyTime(save.updated_at) : 'No cloud save yet — automatic sync will create one.';
+        const offlinePending = localStorage.getItem('arcadeCloudOfflinePending');
+        let save = null;
+        if (navigator.onLine) {
+          save = await EarnlyCloud.cloudSaveInfo();
+          cloudSaveStatus.textContent = save ? friendlyTime(save.updated_at) : 'No cloud save yet — automatic sync will create one.';
+        } else {
+          const cachedSave = localStorage.getItem('arcadeLastCloudSave');
+          cloudSaveStatus.textContent = cachedSave ? 'Last synced ' + friendlyTime(cachedSave) : 'Offline — cloud save will be checked when connected.';
+        }
         refreshCloudLiveStatus();
 
         if (conflict) {
           cloudMessage.textContent = '⚠️ A newer cloud save exists from another device. Auto-sync is paused to protect it. Restore that save, or use Sync Now only if you intentionally want this device to replace it.';
+        } else if (!navigator.onLine && offlinePending) {
+          cloudMessage.textContent = '📴 You are offline. Your progress is safe on this device and will sync automatically when you reconnect.';
+        } else if (!navigator.onLine) {
+          cloudMessage.textContent = '📴 You are offline. Earnly will check your cloud save when you reconnect.';
         } else if (rewardError) {
           cloudMessage.textContent = '✅ Your progress is backed up. Some reward updates are still syncing automatically.';
         } else if (autoOn) {
