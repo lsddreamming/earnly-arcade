@@ -407,9 +407,11 @@
 
     function updatePowerUps(){
       for(let i=powerUps.length-1;i>=0;i--){
-        const p=powerUps[i];
+        const p=powerUps[i],prevY=p.y;
         p.y+=p.vy;
-        if(p.y+p.r>=paddle.y && p.y-p.r<=paddle.y+paddle.h && p.x>=paddle.x && p.x<=paddle.x+paddle.w){
+        // Swept pickup check keeps falling bonuses catchable even if the game/device skips a frame.
+        const crossedPaddle=prevY+p.r<=paddle.y && p.y+p.r>=paddle.y;
+        if(crossedPaddle && p.x+p.r>=paddle.x && p.x-p.r<=paddle.x+paddle.w){
           powerUps.splice(i,1);
           activatePower(p.type);
         }else if(p.y-p.r>canvas.height){
