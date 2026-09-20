@@ -279,12 +279,14 @@
       // that dispatch overlapping touch/pointer activity during rapid play.
       targetLocked = true;
 
+      const previousReward = rewardForHits(hits);
       hits += 1;
-      // Keep rapid play clean: celebrate the first hit and every 10th hit,
-      // while milestone banners handle the bigger 20/35/50 achievements.
-      if (hits === 1 || (hits % 10 === 0 && hits !== 20 && hits !== 50)) Arcade.feedback('hit');
+      const newReward = rewardForHits(hits);
+      // Keep rapid play clean: normal hits stay quiet. Give feedback only when
+      // the run actually earns another Coin or reaches a named achievement.
+      if (newReward > previousReward && hits !== 20 && hits !== 35 && hits !== 50) Arcade.feedback('score');
       hitsEl.textContent = String(hits);
-      rewardPreviewEl.textContent = rewardForHits(hits);
+      rewardPreviewEl.textContent = newReward;
 
       if (hits === 20) Arcade.milestone('🎯 20 hits · Quick Fingers!');
       if (hits === 35) Arcade.milestone('🔥 35 hits · Blazing fast!');
