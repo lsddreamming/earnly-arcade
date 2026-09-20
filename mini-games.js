@@ -431,7 +431,8 @@
       if(!alive || swipePointer!==e.pointerId)return;
       const dx=e.clientX-startX, dy=e.clientY-startY;
       swipePointer=null;
-      if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+      const distance=Math.max(Math.abs(dx),Math.abs(dy));
+      if(distance<18)return;
       e.preventDefault();
       move(Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up'));
     }
