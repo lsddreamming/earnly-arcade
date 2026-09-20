@@ -1793,7 +1793,7 @@
 
         levelLine.textContent='💥 Blocked lane! '+strikes+'/3 mistakes · '+(3-strikes)+' left';
         button.setAttribute('aria-label',(button.getAttribute('aria-label')||'Car')+' · blocked');
-        setTimeout(()=>{if(alive&&!locked)renderLevelLine()},650);
+        pauseAwareDelay(()=>{if(alive&&!locked)renderLevelLine()},650);
         return;
       }
 
