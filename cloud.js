@@ -365,6 +365,27 @@
     return ids.length;
   }
 
+  function cloudRevisionMatches(remote, status = Arcade.appStatus()){
+    const lastKnownRaw = localStorage.getItem('arcadeLastCloudSave');
+    const lastKnown = lastKnownRaw ? new Date(lastKnownRaw).getTime() : 0;
+    const remoteTime = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
+    const differentDevice = !!(remote?.device_id && remote.device_id !== status.deviceId);
+    return !(remote && differentDevice && (!lastKnown || remoteTime > lastKnown + 1000));
+  }
+
+  function markCloudConflict(remote, status = Arcade.appStatus()){
+    const conflict = {
+      reason:'newer-cloud-save',
+      remoteUpdatedAt:remote?.updated_at || null,
+      remoteDeviceId:remote?.device_id || null,
+      localDeviceId:status.deviceId,
+      detectedAt:new Date().toISOString()
+    };
+    localStorage.setItem('arcadeCloudConflict', JSON.stringify(conflict));
+    window.dispatchEvent(new CustomEvent('earnly-cloud-conflict', { detail:conflict }));
+    return conflict;
+  }
+
   async function saveProgress(options = {}){
     const current = await user();
     if (!current) throw new Error('Sign in before saving to Earnly Cloud.');
@@ -382,21 +403,8 @@
     // device last saw. Automatic saves already perform this check earlier.
     if (!options.skipConflictCheck) {
       const remote = await cloudSaveInfo();
-      const lastKnownRaw = localStorage.getItem('arcadeLastCloudSave');
-      const lastKnown = lastKnownRaw ? new Date(lastKnownRaw).getTime() : 0;
-      const remoteTime = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
-      const differentDevice = !!(remote?.device_id && remote.device_id !== status.deviceId);
-
-      if (remote && differentDevice && (!lastKnown || remoteTime > lastKnown + 1000)) {
-        const conflict = {
-          reason:'newer-cloud-save',
-          remoteUpdatedAt:remote.updated_at,
-          remoteDeviceId:remote.device_id,
-          localDeviceId:status.deviceId,
-          detectedAt:new Date().toISOString()
-        };
-        localStorage.setItem('arcadeCloudConflict', JSON.stringify(conflict));
-        window.dispatchEvent(new CustomEvent('earnly-cloud-conflict', { detail:conflict }));
+      if (!cloudRevisionMatches(remote, status)) {
+        markCloudConflict(remote, status);
         const error = new Error('A newer cloud save exists on another device. Restore it before replacing cloud progress.');
         error.code = 'EARNLY_CLOUD_CONFLICT';
         throw error;
@@ -522,21 +530,8 @@
       const rewardSync = await syncServerRewards();
       const remote = await cloudSaveInfo();
       const localDevice = Arcade.deviceId();
-      const lastKnownRaw = localStorage.getItem('arcadeLastCloudSave');
-      const lastKnown = lastKnownRaw ? new Date(lastKnownRaw).getTime() : 0;
-      const remoteTime = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
-      const differentDevice = !!(remote?.device_id && remote.device_id !== localDevice);
-
-      if (remote && differentDevice && (!lastKnown || remoteTime > lastKnown + 1000)) {
-        const conflict = {
-          reason:'newer-cloud-save',
-          remoteUpdatedAt:remote.updated_at,
-          remoteDeviceId:remote.device_id,
-          localDeviceId:localDevice,
-          detectedAt:new Date().toISOString()
-        };
-        localStorage.setItem('arcadeCloudConflict', JSON.stringify(conflict));
-        window.dispatchEvent(new CustomEvent('earnly-cloud-conflict', { detail:conflict }));
+      if (!cloudRevisionMatches(remote, { deviceId:localDevice })) {
+        const conflict = markCloudConflict(remote, { deviceId:localDevice });
         return { skipped:'newer-cloud-save', conflict };
       }
 
