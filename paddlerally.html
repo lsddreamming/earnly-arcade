@@ -75,10 +75,10 @@
       overlayIcon:'🏓',overlayTitle:'Keep the Ball Alive',overlayText:'Move the paddle under the ball. Each return makes it faster.',replayTitle:'Tap to Play Again',
       tips:['Mouse/finger movement controls the paddle. Arrow keys also work.','The run ends when the ball gets past your paddle.'],reward:'Long rallies earn up to 25 Coins.'});
     const paddle={x:136,y:458,w:88,h:14},ball={x:180,y:300,r:7,dx:4.0,dy:-5.3};
-    let score=0,running=false,starting=false,paused=false,animation=null,last=0,pauseStartedAt=0,totalPausedMs=0;
+    let score=0,running=false,starting=false,paused=false,animation=null,last=0,pauseStartedAt=0,totalPausedMs=0,lastFrame=0;
     function rewardFor(v){let c=Math.floor(v/3);if(v>=10)c+=2;if(v>=20)c+=3;if(v>=35)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
+    function reset(){score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;lastFrame=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
     function draw(){
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.strokeStyle='rgba(56,189,248,.12)';ctx.lineWidth=1;for(let y=55;y<canvas.height;y+=55){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}
@@ -94,8 +94,12 @@
       Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
         extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
     }
-    function loop(){
-      if(!running||paused)return;ball.x+=ball.dx;ball.y+=ball.dy;
+    function loop(now){
+      if(!running||paused)return;
+      if(!lastFrame)lastFrame=now;
+      const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;
+      lastFrame=now;
+      ball.x+=ball.dx*dt;ball.y+=ball.dy*dt;
       if(ball.x-ball.r<=0&&ball.dx<0)ball.dx*=-1;if(ball.x+ball.r>=canvas.width&&ball.dx>0)ball.dx*=-1;if(ball.y-ball.r<=0&&ball.dy<0)ball.dy*=-1;
       if(ball.dy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<=paddle.y+paddle.h&&ball.x>=paddle.x&&ball.x<=paddle.x+paddle.w){
         const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
@@ -111,7 +115,7 @@
     let earnlyRunStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    function togglePause(){if(!running)return;if(!paused){paused=true;clearRallyControl();pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
+    function togglePause(){if(!running)return;if(!paused){paused=true;clearRallyControl();pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
     pauseButton.addEventListener('click',togglePause);
     let controlPointer=null,controlLastX=null;
     function beginRelativeControl(e,target){
