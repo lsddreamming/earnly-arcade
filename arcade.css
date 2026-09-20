@@ -5069,3 +5069,50 @@ body.earnly-gameplay-locked{
     border-radius:999px!important;
   }
 }
+
+
+/* Compact Games catalog — mobile browsing pass */
+@media (max-width: 700px) {
+  .games-dashboard #games {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .games-dashboard #games .catalog-tile {
+    min-height: 0 !important;
+    padding: 14px 15px !important;
+    border-radius: 20px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) auto !important;
+    grid-template-areas:
+      "badge badge"
+      "title actions"
+      "rule actions"
+      "best play"
+      "status status" !important;
+    column-gap: 10px !important;
+    row-gap: 7px !important;
+    align-items: center !important;
+  }
+  .games-dashboard #games .game-recommended-badge { grid-area: badge; justify-self:start; margin:0 0 2px !important; }
+  .games-dashboard #games .game-title-row { grid-area:title; display:block !important; min-width:0; margin:0 !important; }
+  .games-dashboard #games .game-title-row h2 { margin:0 !important; font-size:19px !important; line-height:1.15 !important; }
+  .games-dashboard #games .game-title-actions { grid-area:actions; display:flex !important; gap:6px !important; align-self:start; margin:0 !important; }
+  .games-dashboard #games .favorite-button { width:42px !important; height:42px !important; min-width:42px !important; padding:0 !important; font-size:24px !important; }
+  .games-dashboard #games .play-pill { min-height:42px !important; padding:0 10px !important; display:flex !important; align-items:center; white-space:nowrap; font-size:12px !important; }
+  .games-dashboard #games .reward-rule { grid-area:rule; margin:0 !important; font-size:13px !important; line-height:1.25 !important; }
+  .games-dashboard #games .game-best { grid-area:best; margin:0 !important; font-size:12px !important; align-self:center; }
+  .games-dashboard #games .game-play-button {
+    grid-area:play;
+    width:auto !important;
+    min-width:112px !important;
+    min-height:46px !important;
+    margin:0 !important;
+    padding:10px 14px !important;
+    border-radius:15px !important;
+    font-size:16px !important;
+    justify-self:end;
+  }
+  .games-dashboard #games .status-line { grid-area:status; margin:2px 0 0 !important; padding:7px 9px !important; font-size:11px !important; line-height:1.25 !important; border-radius:10px !important; }
+  .games-dashboard .container > a.button.wide.secondary { margin-top:12px !important; }
+}
