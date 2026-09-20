@@ -239,6 +239,7 @@
     }
 
     canvas.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
 
       if (game === null) {
@@ -482,6 +483,7 @@
       if (game === null) return;
       clearInterval(game);
       game = null;
+      pauseStartedAt = 0;
       disableFullScreenSteering();
 
       const earned = snakeReward(score);
@@ -546,8 +548,19 @@
 
     Arcade.installPauseControl({
       isRunning:()=>game!==null,
-      pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
-      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(draw,120);}
+      pause:()=>{
+        if(game===null||game==='paused'||pauseStartedAt)return;
+        pauseStartedAt=performance.now();
+        clearInterval(game);
+        game='paused';
+      },
+      resume:()=>{
+        if(game!=='paused'||!pauseStartedAt)return;
+        totalPausedMs+=performance.now()-pauseStartedAt;
+        pauseStartedAt=0;
+        clearInterval(game);
+        game=setInterval(draw,120);
+      }
     });
     startButton.addEventListener('click', startGame);
     refreshChrome();
