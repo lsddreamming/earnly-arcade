@@ -255,6 +255,7 @@
     let lastRewardShown = 0;
     let game = null;
     let starting = false;
+    let ending = false;
     let currentPiece = null;
     let currentColor = colors[0];
     let pieceX = 0;
@@ -297,7 +298,11 @@
       pieceX = Math.floor((cols - currentPiece[0].length) / 2);
       pieceY = 0;
 
-      if (collision(currentPiece, pieceX, pieceY)) gameOver();
+      if (collision(currentPiece, pieceX, pieceY)) {
+        gameOver();
+        return false;
+      }
+      return true;
     }
 
     function collision(piece, newX, newY) {
@@ -347,9 +352,9 @@
         pieceY += 1;
       } else {
         mergePiece();
-        newPiece();
+        if (!newPiece()) return;
       }
-      draw();
+      if (game && game !== 'paused') draw();
     }
 
     function moveLeft() {
@@ -405,7 +410,8 @@
     }
 
     function gameOver() {
-      if (game === null) return;
+      if (game === null || ending) return;
+      ending = true;
 
       clearInterval(game);
       game = null;
@@ -446,6 +452,7 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (game || starting) return;
+      ending = false;
       starting = true;
 
       if (!Arcade.consume('blockDrop')) {
@@ -463,6 +470,7 @@
       blockDragTotalY = 0;
       score = 0;
       lines = 0;
+      ending = false;
       lastRewardShown = 0;
       scoreEl.textContent = '0';
       linesEl.textContent = '0';
