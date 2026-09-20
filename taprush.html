@@ -136,6 +136,7 @@
     let running = false;
     let starting = false;
     let roundEndsAt = 0;
+    let targetLocked = false;
 
     function rewardForHits(value) {
       let coins = Math.floor(value / 5);
@@ -182,6 +183,7 @@
     function finishGame() {
       if (!running) return;
       running = false;
+      targetLocked = true;
       clearInterval(timer);
       timer = null;
       target.hidden = true;
@@ -228,6 +230,7 @@
       } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       hits = 0;
+      targetLocked = true;
       timeLeft = ROUND_SECONDS;
       hitsEl.textContent = '0';
       timeEl.textContent = String(timeLeft);
@@ -246,6 +249,7 @@
         setStatus('Running', 'running');
         startButton.textContent = 'Game Running';
         target.hidden = false;
+        targetLocked = false;
         moveTarget();
 
         roundEndsAt = performance.now() + ROUND_SECONDS * 1000;
@@ -261,7 +265,10 @@
 
     target.addEventListener('pointerdown', event => {
       event.preventDefault();
-      if (!running) return;
+      if (!running || targetLocked) return;
+      // Lock immediately so one physical tap cannot register twice on browsers
+      // that dispatch overlapping touch/pointer activity during rapid play.
+      targetLocked = true;
 
       hits += 1;
       // Keep rapid play clean: celebrate the first hit and every 10th hit,
@@ -275,11 +282,13 @@
       if (hits === 50) Arcade.milestone('🏆 50 hits · Elite reflexes!', 'perfect');
 
       moveTarget();
+      requestAnimationFrame(()=>{ if(running) targetLocked=false; });
     });
 
     Arcade.installPauseControl({
       isRunning:()=>running,
       pause:()=>{
+        targetLocked=true;
         pauseStartedAt=performance.now();
         timeLeft=Math.max(0,(roundEndsAt-performance.now())/1000);
         clearInterval(timer);timer=null;target.hidden=true;
@@ -289,6 +298,7 @@
         totalPausedMs+=pausedFor;pauseStartedAt=0;
         roundEndsAt=performance.now()+timeLeft*1000;
         target.hidden=false;
+        targetLocked=false;
         startTimer();
       }
     });
