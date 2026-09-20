@@ -79,7 +79,13 @@
     function rewardFor(v){let c=Math.floor(v/3);if(v>=10)c+=2;if(v>=20)c+=3;if(v>=35)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
     function reset(){score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
-    function draw(){ctx.fillStyle='#101d31';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#243b5a';ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(canvas.width,250);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#3b82f6';ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill()}
+    function draw(){
+      const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='rgba(56,189,248,.12)';ctx.lineWidth=1;for(let y=55;y<canvas.height;y+=55){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}
+      ctx.strokeStyle='rgba(148,163,184,.25)';ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(canvas.width,250);ctx.stroke();ctx.setLineDash([]);
+      ctx.save();ctx.shadowColor='rgba(59,130,246,.55)';ctx.shadowBlur=14;const pg=ctx.createLinearGradient(paddle.x,paddle.y,paddle.x,paddle.y+paddle.h);pg.addColorStop(0,'#60a5fa');pg.addColorStop(1,'#2563eb');ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(paddle.x,paddle.y,paddle.w,paddle.h,7);ctx.fill();ctx.restore();
+      ctx.save();ctx.shadowColor='rgba(255,255,255,.8)';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.restore();
+    }
     function clearRallyControl(){controlPointer=null;controlLastX=null}
     function finish(){
       if(!running)return;running=false;paused=false;clearRallyControl();pauseButton.hidden=true;cancelAnimationFrame(animation);animation=null;
