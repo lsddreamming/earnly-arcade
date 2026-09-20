@@ -1551,6 +1551,26 @@ const Arcade = (() => {
       });
     }
 
+    if (game) {
+      const daily = dailyMissionStatus();
+      const relevantMissions = daily.missions.filter(mission =>
+        mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins'
+      );
+
+      relevantMissions.forEach(mission => {
+        const line = document.createElement('div');
+        line.className = 'result-highlight result-mission-update';
+        if (mission.claimed) {
+          line.textContent = mission.icon + ' ' + mission.title + ' · Claimed ✓';
+        } else if (mission.complete) {
+          line.textContent = '✅ ' + mission.title + ' complete · +' + mission.rewardXP + ' XP ready to claim';
+        } else {
+          line.textContent = mission.icon + ' ' + mission.title + ' · ' + mission.progress + '/' + mission.goal;
+        }
+        notes.append(line);
+      });
+    }
+
     const goalParams = new URLSearchParams(location.search);
     let goalSource = goalParams.get('goal');
     let activeGoal = null;
