@@ -5722,3 +5722,44 @@ body.earnly-gameplay-locked{
    border-radius:14px!important;font-size:18px!important
  }
 }
+
+
+/* 0.15.48 in-game mobile polish */
+@media(max-width:700px){
+ body:not(.games-dashboard) .container{padding:14px 14px 28px!important}
+ body:not(.games-dashboard) .topbar{
+   min-height:48px!important;margin-bottom:10px!important;
+   position:sticky;top:0;z-index:20;
+   background:rgba(8,18,35,.88);backdrop-filter:blur(14px);
+   border-bottom:1px solid rgba(125,180,255,.12)
+ }
+ body:not(.games-dashboard) .topbar .brand,
+ body:not(.games-dashboard) .topbar .balance-chip{
+   min-height:38px!important;display:flex!important;align-items:center!important
+ }
+ .snake-header{margin-bottom:10px!important}
+ .snake-header h1,.game-title-status-row h1{
+   font-size:24px!important;line-height:1.1!important;margin:0!important
+ }
+ .snake-stats{
+   gap:7px!important;margin-top:10px!important;
+   display:grid!important;grid-template-columns:repeat(3,1fr)!important
+ }
+ .snake-stats>span{
+   min-height:54px!important;padding:7px 6px!important;border-radius:14px!important
+ }
+ .snake-stats small{font-size:10px!important}
+ .snake-stats strong{font-size:16px!important}
+ body:not(.games-dashboard) canvas{
+   border-radius:18px!important;
+   box-shadow:0 12px 32px rgba(0,0,0,.28),0 0 0 1px rgba(92,176,255,.18)!important
+ }
+ body:not(.games-dashboard) .button.wide,
+ body:not(.games-dashboard) button.wide{
+   min-height:48px!important;border-radius:15px!important;font-weight:800!important
+ }
+ body:not(.games-dashboard) .secondary.wide{
+   margin-top:12px!important;min-height:44px!important
+ }
+ .game-status{border-radius:999px!important;padding:6px 10px!important}
+}
