@@ -93,7 +93,7 @@
       ctx.fillStyle='#64748b';ctx.font='700 10px Arial';ctx.fillText('Target shrinks • Speed increases',180,239);
       if(running){const left=Math.max(0,(roundLimit-(performance.now()-roundStartedAt))/1000);ctx.fillStyle=left<1.6?'#f87171':'#fbbf24';ctx.font='900 15px Arial';ctx.fillText('ACT NOW  '+left.toFixed(1)+'s',180,272)}
     }
-    function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(score);Arcade.earn(earned,'Safe Cracker',{kind:'game',game:'safeCracker',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('safeCracker',score);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Locked Out','over');draw();
+    function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;const earned=rewardFor(score);Arcade.earn(earned,'Safe Cracker',{kind:'game',game:'safeCracker',metric:score});const result=Arcade.recordResult('safeCracker',score);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Locked Out','over');draw();
       Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
     function attempt(){
       if(!running||roundLocked)return;
