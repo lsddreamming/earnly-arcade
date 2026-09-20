@@ -36,6 +36,7 @@
   document.body.classList.toggle('mini-perfectDrop', key === 'perfectDrop');
   document.body.classList.toggle('mini-spiralDrop', key === 'spiralDrop');
   document.body.classList.toggle('mini-shapeFit', key === 'shapeFit');
+  document.body.classList.toggle('mini-bounceRun', key === 'bounceRun');
 
   let running = false;
   let starting = false;
@@ -1086,6 +1087,11 @@
     spiralZone.innerHTML='<span>↔️ Slide anywhere here to steer</span>';
     c.insertAdjacentElement('afterend',spiralZone);
 
+    const bounceZone=document.createElement('div');
+    bounceZone.className='bounce-tap-zone';
+    bounceZone.textContent='👆 TAP ANYWHERE TO JUMP';
+    c.insertAdjacentElement('afterend',bounceZone);
+
     c.style.touchAction='none';
     c.style.userSelect='none';
     c.style.webkitUserSelect='none';
@@ -1430,7 +1436,7 @@
             bestLevel=Math.max(bestLevel,runLevel());
             levelFlashText='LEVEL '+runLevel()+' · '+stageName().toUpperCase();
             levelFlashUntil=performance.now()+1250;
-            Arcade.milestone('⚪ Level '+runLevel()+' · '+stageName()+'!','perfect');
+            Arcade.feedback('perfect');
           }
           return false;
         }
@@ -1490,7 +1496,7 @@
     c.style.webkitUserSelect='none';
     c.style.webkitTouchCallout='none';
     c.addEventListener('pointerdown',onPointer,{passive:false});
-    c.addEventListener('pointerup',onPointer,{passive:false});
+    bounceZone.addEventListener('pointerdown',jump,{passive:false});
     c.addEventListener('touchstart',blockGesture,{passive:false});
     c.addEventListener('gesturestart',blockGesture,{passive:false});
     document.addEventListener('keydown',onKey);
@@ -1507,7 +1513,7 @@
         alive=false;
         cancelAnimationFrame(raf);
         c.removeEventListener('pointerdown',onPointer);
-        c.removeEventListener('pointerup',onPointer);
+        bounceZone.removeEventListener('pointerdown',jump);
         c.removeEventListener('touchstart',blockGesture);
         c.removeEventListener('gesturestart',blockGesture);
         document.removeEventListener('keydown',onKey);
