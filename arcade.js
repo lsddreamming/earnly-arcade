@@ -2869,7 +2869,11 @@ const Arcade = (() => {
     const sync = () => {
       const running = !!document.querySelector('.game-status.running');
       const paused = document.body?.classList.contains('earnly-game-paused');
-      setGameplayScrollLock(running || paused);
+      // Traffic Escape has useful controls/help below its board. Keeping the
+      // whole body position:fixed while running clips that lower content on
+      // iPhone, so let this tap-only game keep normal vertical scrolling.
+      const allowGameScroll = document.body?.classList.contains('mini-traffic');
+      setGameplayScrollLock((running || paused) && !allowGameScroll);
     };
 
     const start = () => {
