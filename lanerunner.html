@@ -136,13 +136,13 @@
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;animation=requestAnimationFrame(loop);}});
-    let swipeStartX=null,swipeStartY=null,swipeLastX=null;
+    let swipeStartX=null,swipeStartY=null,swipeLastX=null,swipeChangedLane=false;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();swipeStartX=null;swipeStartY=null;return}
-      swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;
+      swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false;
     },{passive:false});
-    canvas.addEventListener('pointermove',e=>{if(!running||swipeLastX===null)return;const dx=e.clientX-swipeLastX;if(Math.abs(dx)>=42){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeLastX=e.clientX}},{passive:false});
+    canvas.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}},{passive:false});
     canvas.addEventListener('pointerup',e=>{
       if(!running||swipeStartX===null)return;
       const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
@@ -153,9 +153,9 @@
       }
     },{passive:false});
     canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
-    function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX}
-    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)){e.preventDefault();setLane(lane+(dx>0?1:-1))}}
-    function laneSwipeMove(e){if(!running||swipeLastX===null)return;const dx=e.clientX-swipeLastX;if(Math.abs(dx)>=42){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeLastX=e.clientX}}
+    function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false}
+    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(!swipeChangedLane&&Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1))}swipeChangedLane=false}
+    function laneSwipeMove(e){if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}}
     laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointermove',laneSwipeMove,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null});
     document.addEventListener('pointerdown',e=>{if(!running||e.target===canvas||laneControlZone.contains(e.target)||e.clientY<window.innerHeight-145)return;laneSwipeStart(e)},{passive:false});
     document.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||e.target===canvas||laneControlZone.contains(e.target))return;laneSwipeMove(e)},{passive:false});
