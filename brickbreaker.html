@@ -19,6 +19,7 @@
     /* While a run is active, turn the whole safe gameplay area into a fixed touch surface.
        This stops iPhone from scrolling/bouncing the page when the player drags the paddle. */
     body.brick-breaker-page.game-active{overscroll-behavior:none;touch-action:none}
+    body.brick-breaker-page.game-active #arcadeBottomNav{display:none!important}
     body.brick-breaker-page.game-active main,
     body.brick-breaker-page.game-active .game-shell,
     body.brick-breaker-page.game-active .game-stage{overscroll-behavior:none;touch-action:none}
@@ -148,10 +149,10 @@
     let lastFrame=0;
 
     function levelSpeed(){
-      // Keep progression alive on long runs: strong early ramp, then slower growth
-      // instead of hitting a hard speed ceiling.
-      if(level<=8) return 7.1 + (level-1)*0.92;
-      return 13.54 + (level-8)*0.34;
+      // Give Level 1 a calmer launch, then ramp hard enough that deep runs
+      // still feel faster instead of making the opening immediately punishing.
+      if(level<=8) return 6.0 + (level-1)*1.05;
+      return 13.35 + (level-8)*0.38;
     }
 
     function levelPaddleWidth(){
@@ -677,17 +678,18 @@
       dragLastClientX=event.clientX;
     });
 
+    function canStartGlobalPaddleDrag(event){
+      if(!running || event.target===canvas || event.isPrimary===false || (event.pointerType==='mouse'&&event.button!==0)) return false;
+      const target=event.target instanceof Element?event.target:null;
+      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-modal')) return false;
+      const pauseButton=document.querySelector('.earnly-pause-button');
+      const minY=pauseButton?pauseButton.getBoundingClientRect().bottom+4:0;
+      return event.clientY>=minY;
+    }
+
     document.addEventListener('pointerdown',event=>{
-      // During play, the visible guide/reward text is intentionally part of the
-      // paddle control surface too. Only real buttons/nav links stay protected.
-      if(event.target===canvas || !Arcade.inExpandedGameZone(event,canvas,260)) return;
+      if(!canStartGlobalPaddleDrag(event)) return;
       event.preventDefault();
-
-      if(!running){
-        if(!starting) startGame();
-        return;
-      }
-
       dragging=true;
       dragPointer=event.pointerId;
       dragLastClientX=event.clientX;
