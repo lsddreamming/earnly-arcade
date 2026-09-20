@@ -5810,3 +5810,22 @@ body.game-active .game-start-summary{display:none!important}
  body.snake-page details{margin-top:7px!important}
  body.snake-page .secondary.wide{margin-top:8px!important}
 }
+
+
+/* Reward HUD visibility pass */
+.game-meta .meta-pill:has(#rewardPreview){
+  border-color:rgba(250,204,21,.42);
+  background:rgba(120,84,8,.12);
+  color:#fde68a;
+  box-shadow:0 0 12px rgba(250,204,21,.06);
+}
+.game-meta #rewardPreview{
+  color:#fff7b2;
+  font-weight:900;
+  text-shadow:0 0 10px rgba(250,204,21,.12);
+}
+body.game-active .game-meta .meta-pill:has(#rewardPreview){
+  border-color:rgba(250,204,21,.56);
+  background:rgba(120,84,8,.16);
+  box-shadow:0 0 14px rgba(250,204,21,.10);
+}
