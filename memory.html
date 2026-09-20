@@ -320,7 +320,13 @@
       });
     }
 
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();lock=true;stopTimer();render();},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lock=false;startTimer();render();}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();lock=true;stopTimer();render();},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;
+      // If a mismatch was waiting to flip back when pause began, keep input
+      // locked until that pending pair is actually hidden. Otherwise resume
+      // could let the player open a third card before the old mismatch clears.
+      lock=first!==null && second!==null;
+      startTimer();render();
+    }});
     grid.addEventListener('pointerdown',event=>{
       if(!running && !starting){
         event.preventDefault();
