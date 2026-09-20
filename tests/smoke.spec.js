@@ -711,10 +711,8 @@ test('games page shows live daily mission progress', async ({ page }) => {
   await page.reload();
 
   await expect(page.locator('#gamesMissionStrip')).toBeVisible();
-  await expect(page.locator('#gamesMissionItems .games-mission-line')).toHaveCount(3);
-  await expect(page.locator('#gamesMissionItems')).toContainText('Warm Up · 1/3');
-  await expect(page.locator('#gamesMissionItems')).toContainText('Mix It Up · 1/2');
-  await expect(page.locator('#gamesMissionItems')).toContainText('Coin Hunt · 5/15');
+  await expect(page.locator('#gamesMissionStrip')).toContainText('Missions');
+  await expect(page.locator('#gamesMissionSummary')).toContainText('0/3 complete');
 
   await page.evaluate(() => {
     Arcade.recordResult('shapeFit', 1);
@@ -723,9 +721,7 @@ test('games page shows live daily mission progress', async ({ page }) => {
   });
   await page.reload();
   await expect(page.locator('#gamesMissionCount')).toHaveText('3/3');
-  await expect(page.locator('#gamesMissionItems')).toContainText('Warm Up · +20 XP ready');
-  await expect(page.locator('#gamesMissionItems')).toContainText('Mix It Up · +25 XP ready');
-  await expect(page.locator('#gamesMissionItems')).toContainText('Coin Hunt · +25 XP ready');
+  await expect(page.locator('#gamesMissionSummary')).toContainText('3 rewards ready to claim');
 });
 
 
@@ -738,7 +734,7 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await page.reload();
 
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
-  await expect(page.locator('#gamesMissionItems')).toContainText('Warm Up · 0/3');
+  await expect(page.locator('#gamesMissionSummary')).toContainText('0/3 complete');
 
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => {
@@ -822,4 +818,23 @@ test('paused gameplay keeps mobile scroll lock', async ({ page }) => {
   await page.evaluate(() => document.body.classList.remove('earnly-game-paused'));
   await page.waitForTimeout(60);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked/);
+});
+
+
+test('repairs impossible daily coin counters and uses live catalog total', async ({ page }) => {
+  await page.goto('/rewards.html');
+  const repaired = await page.evaluate(() => {
+    localStorage.setItem('points', '617');
+    localStorage.setItem('lifetimePoints', '617');
+    localStorage.setItem('arcadeCoinEarnDay', new Date().toLocaleDateString('en-CA'));
+    localStorage.setItem('arcadeCoinsEarnedToday', '992');
+    localStorage.setItem('arcadeHistory', '[]');
+    return Arcade.dailyCoinStatus();
+  });
+  expect(repaired.earned).toBeLessThanOrEqual(repaired.lifetime);
+
+  await page.goto('/profile.html');
+  const totalGames = await page.evaluate(() => Object.keys(Arcade.names).length);
+  expect(totalGames).toBe(20);
+  await expect(page.locator('#differentGames')).toContainText('/20');
 });
