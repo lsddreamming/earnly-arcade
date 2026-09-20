@@ -239,9 +239,7 @@
       running=false;
       cancelAnimationFrame(animation);
       animation=null;
-      dragging=false;
-      dragPointer=null;
-      dragAnchorClientX=null;
+      clearDragState();
       lastFrame=0;
 
       const earned=rewardFor(seconds,dodged);
@@ -366,10 +364,15 @@
       if(event.key==='ArrowRight'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
     });
 
-    window.addEventListener('blur',()=>{
+    function clearDragState(){
       dragging=false;
       dragPointer=null;
       dragAnchorClientX=null;
+    }
+
+    window.addEventListener('blur',clearDragState);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden) clearDragState();
     });
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
@@ -416,7 +419,7 @@
 
     Arcade.installPauseControl({
       isRunning:()=>running,
-      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;dragAnchorClientX=null;lastFrame=0;},
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;clearDragState();lastFrame=0;},
       resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
     });
     startButton.addEventListener('click',startGame);
