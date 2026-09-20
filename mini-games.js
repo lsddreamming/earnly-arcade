@@ -260,10 +260,12 @@
       pauseAwareDelay(()=>{lastPlaced=[]},220);if(lastClear) pauseAwareDelay(()=>{if(alive){lastClear=0;render()}},650);
       // Make progression visible without changing Block Grid's scoring or
       // reward economy. Each milestone fires once per run.
-      if(score>=100&&!celebrated100){celebrated100=true;Arcade.feedback('score')}
-      if(score>=250&&!celebrated250){celebrated250=true;Arcade.feedback('perfect')}
+      // The placement/clear action already provides feedback. Track these
+      // milestones silently so one move never stacks extra effects on top.
+      if(score>=100&&!celebrated100)celebrated100=true;
+      if(score>=250&&!celebrated250)celebrated250=true;
       const lineMark=Math.floor(lines/5)*5;
-      if(lineMark>=5&&lineMark>lastLineMilestone){lastLineMilestone=lineMark;Arcade.feedback('perfect')}
+      if(lineMark>=5&&lineMark>lastLineMilestone)lastLineMilestone=lineMark;
       if (!anyMove()) {
         alive=false;
         finish(score,lines,['🧩 Lines cleared: '+lines,'🧱 Pieces placed: '+piecesPlaced,'⭐ Board score: '+score,'Save room for the pieces still in your tray.'],'Board Full');
