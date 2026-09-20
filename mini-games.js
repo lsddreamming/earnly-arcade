@@ -427,7 +427,7 @@
       if(!alive || swipePointer!==e.pointerId)return;
       const dx=e.clientX-startX, dy=e.clientY-startY;
       swipePointer=null;
-      if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;
+      if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
       e.preventDefault();
       move(Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up'));
     }
@@ -435,6 +435,7 @@
     grid.addEventListener('pointerdown',beginSwipe,{passive:false});
     grid.addEventListener('pointerup',endSwipe,{passive:false});
     grid.addEventListener('pointercancel',e=>{if(swipePointer===e.pointerId)swipePointer=null});
+    grid.addEventListener('click',e=>{if(alive)e.preventDefault()});
 
     const onWideSwipeDown=e=>{
       if(grid.contains(e.target) || !Arcade.inExpandedGameZone(e,surface,120))return;
