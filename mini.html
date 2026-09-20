@@ -297,6 +297,23 @@
         -webkit-tap-highlight-color:transparent;
         touch-action:manipulation;
       }
+      body.game-active .mini-surface button,
+      body.game-active .mini-surface [role="button"]{
+        cursor:pointer;
+      }
+      body.game-active .mini-surface button:active,
+      body.game-active .mini-surface [role="button"]:active{
+        transform:scale(.97);
+      }
+      @media(prefers-reduced-motion:reduce){
+        body.game-active .mini-surface *,
+        body.game-active .mini-surface *::before,
+        body.game-active .mini-surface *::after{
+          animation-duration:.01ms!important;
+          animation-iteration-count:1!important;
+          transition-duration:.01ms!important;
+        }
+      }
       body.game-active{
         -webkit-text-size-adjust:100%;
       }
