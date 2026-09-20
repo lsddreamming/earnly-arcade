@@ -213,7 +213,7 @@
     }
     function finish(hitBomb=false){
       if(!running)return;
-      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;controlPointer=null;zonePointer=null;
+      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;controlPointer=null;zonePointer=null;dragLastClientX=null;
       const earned=rewardFor(score);Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Time!','over');draw();
@@ -236,7 +236,17 @@
       }
       draw();animation=requestAnimationFrame(loop);
     }
-    function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);basket.x=Math.max(0,Math.min(canvas.width-basket.w,x-basket.w/2));}
+    function gameX(clientX){const r=canvas.getBoundingClientRect();return (clientX-r.left)*(canvas.width/Math.max(1,r.width))}
+    function setBasketX(x){basket.x=Math.max(0,Math.min(canvas.width-basket.w,x))}
+    let dragLastClientX=null;
+    function beginBasketDrag(clientX){dragLastClientX=clientX}
+    function dragBasket(clientX){
+      if(dragLastClientX===null){dragLastClientX=clientX;return}
+      const r=canvas.getBoundingClientRect();
+      const scale=canvas.width/Math.max(1,r.width);
+      setBasketX(basket.x+(clientX-dragLastClientX)*scale);
+      dragLastClientX=clientX;
+    }
     function moveBy(deltaX){
       const r=canvas.getBoundingClientRect();
       const scale=canvas.width/Math.max(1,r.width);
@@ -245,24 +255,24 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
-      reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');controlPointer=null;zonePointer=null;startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');controlPointer=null;zonePointer=null;dragLastClientX=null;startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
         timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;controlPointer=null;zonePointer=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;controlPointer=null;zonePointer=null;dragLastClientX=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
     let controlPointer=null;
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
       controlPointer=e.pointerId;
-      moveTo(e.clientX);
+      beginBasketDrag(e.clientX);
       try{canvas.setPointerCapture?.(e.pointerId)}catch{}
     });
     canvas.addEventListener('pointermove',e=>{
-      if(running&&controlPointer===e.pointerId){e.preventDefault();moveTo(e.clientX)}
+      if(running&&controlPointer===e.pointerId){e.preventDefault();dragBasket(e.clientX)}
     },{passive:false});
-    const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null};
+    const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null;dragLastClientX=null};
     canvas.addEventListener('pointerup',stopControl);
     canvas.addEventListener('pointercancel',stopControl);
 
@@ -271,12 +281,12 @@
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
       controlPointer=e.pointerId;
-      moveTo(e.clientX);
+      beginBasketDrag(e.clientX);
     },{passive:false});
     document.addEventListener('pointermove',e=>{
       if(!running||controlPointer!==e.pointerId)return;
       e.preventDefault();
-      moveTo(e.clientX);
+      dragBasket(e.clientX);
     },{passive:false});
     document.addEventListener('pointerup',stopControl);
     document.addEventListener('pointercancel',stopControl);
