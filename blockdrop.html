@@ -266,7 +266,10 @@
 
     function refreshReward() {
       const reward = rewardForLines(lines);
-      rewardPreviewEl.textContent = String(reward);
+      rewardPreviewEl.textContent = reward >= 5 ? 'MAX 5 · XP ↑' : String(reward);
+      runRewardPill.setAttribute('aria-label', reward >= 5
+        ? 'Maximum 5 Arcade Coins reached. Keep clearing lines for performance XP and a higher best score.'
+        : reward + ' Arcade Coins earned this run');
       if (game && game !== 'paused' && reward > lastRewardShown) {
         runRewardPill.classList.remove('reward-bump');
         void runRewardPill.offsetWidth;
@@ -329,12 +332,14 @@
     }
 
     function clearLines() {
+      let clearedNow = 0;
       for (let y = rows - 1; y >= 0; y--) {
         if (board[y].every(Boolean)) {
           board.splice(y, 1);
           board.unshift(Array(cols).fill(null));
           score += 100;
           lines += 1;
+          clearedNow += 1;
           Arcade.feedback('line');
           if (lines === 3) Arcade.milestone('🧱 3 lines · Line Clearer!');
           if (lines === 10) Arcade.milestone('🔥 10 lines · Block Drop streak!', 'perfect');
@@ -344,6 +349,17 @@
           y += 1;
         }
       }
+      if (clearedNow && game && game !== 'paused') restartDropTimer();
+    }
+
+    function dropDelayMs() {
+      return Math.max(220, 600 - Math.floor(lines / 2) * 45);
+    }
+
+    function restartDropTimer() {
+      if (!game || game === 'paused') return;
+      clearInterval(game);
+      game = setInterval(moveDown, dropDelayMs());
     }
 
     function moveDown() {
@@ -488,7 +504,7 @@
         starting = false;
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
-        game = setInterval(moveDown, 600);
+        game = setInterval(moveDown, dropDelayMs());
       });
     }
 
@@ -542,7 +558,7 @@
     Arcade.installPauseControl({
       isRunning:()=>!!game,
       pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
-      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,600);}
+      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,dropDelayMs());}
     });
 
     bindHoldControl('leftButton', moveLeft);
