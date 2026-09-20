@@ -61,6 +61,7 @@
       <div class="game-meta">
         <span class="meta-pill">Floors: <span id="floors">0</span></span>
         <span class="meta-pill">Perfects: <span id="perfects">0</span></span>
+        <span class="meta-pill">Speed: <span id="speedPreview">1.0</span>x</span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
@@ -79,6 +80,7 @@
     const ctx = canvas.getContext('2d');
     const floorsEl = document.getElementById('floors');
     const perfectsEl = document.getElementById('perfects');
+    const speedPreviewEl = document.getElementById('speedPreview');
     const rewardPreviewEl = document.getElementById('rewardPreview');
     const playsEl = document.getElementById('plays');
     const balanceEl = document.getElementById('balance');
@@ -118,6 +120,7 @@
     let running = false;
     let starting = false;
     let animation = null;
+    let placementLocked = false;
 
     const palette = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6'];
 
@@ -152,6 +155,7 @@
       perfects = 0;
       speed = 2.6;
       direction = 1;
+      speedPreviewEl.textContent = '1.0';
       floorsEl.textContent = '0';
       perfectsEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
@@ -181,6 +185,8 @@
 
       direction *= -1;
       speed = Math.min(6.3, 2.6 + floors * 0.09);
+      speedPreviewEl.textContent = (speed / 2.6).toFixed(1);
+      requestAnimationFrame(()=>{ placementLocked = false; });
     }
 
     function shiftTowerIfNeeded() {
@@ -260,7 +266,8 @@
     }
 
     function placeBlock() {
-      if (!running || starting || !moving) return;
+      if (!running || starting || !moving || placementLocked || document.body.classList.contains('earnly-game-paused')) return;
+      placementLocked = true;
 
       const previous = blocks[blocks.length - 1];
       const previousRight = previous.x + previous.w;
@@ -271,6 +278,7 @@
       let overlap = right - left;
 
       if (overlap <= 0) {
+        placementLocked = false;
         finishGame();
         return;
       }
@@ -334,6 +342,7 @@
       cancelAnimationFrame(animation);
       animation = null;
       moving = null;
+      placementLocked = false;
 
       const earned = rewardFor(floors, perfects);
       Arcade.earn(earned, 'Tower Stack', { kind:'game', game:'towerStack', metric:floors, aux:perfects });
