@@ -1227,6 +1227,11 @@ const Arcade = (() => {
       if (cleanMetric >= 100) performanceXP = 30;
       else if (cleanMetric >= 50) performanceXP = 20;
       else if (cleanMetric >= 25) performanceXP = 10;
+    } else if (game === 'coinCatch') {
+      if (cleanMetric >= 400) performanceXP = 40;
+      else if (cleanMetric >= 300) performanceXP = 30;
+      else if (cleanMetric >= 200) performanceXP = 20;
+      else if (cleanMetric >= 100) performanceXP = 10;
     }
 
     const xpAward = BASE_GAME_XP + performanceXP + newlyUnlocked.length * ACHIEVEMENT_XP;
