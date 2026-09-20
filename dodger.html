@@ -239,6 +239,7 @@
     function finishGame(survived,seconds){
       if(!running) return;
       running=false;
+      pauseStartedAt=0;
       cancelAnimationFrame(animation);
       animation=null;
       clearDragState();
@@ -314,6 +315,7 @@
     }
 
     canvas.addEventListener('pointerdown',event=>{
+      if(event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0)) return;
       event.preventDefault();
 
       if(!running){
@@ -333,6 +335,7 @@
     document.addEventListener('pointerdown',event=>{
       if(event.target===canvas || event.target.closest?.('a,button,[role="button"],.earnly-pause-button')) return;
       if(!Arcade.inExpandedGameZone(event,canvas,130)) return;
+      if(event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0)) return;
       event.preventDefault();
 
       if(!running){
@@ -429,8 +432,14 @@
 
     Arcade.installPauseControl({
       isRunning:()=>running,
-      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;clearDragState();lastFrame=0;},
-      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
+      pause:()=>{
+        if(!running||pauseStartedAt)return;
+        pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;clearDragState();lastFrame=0;
+      },
+      resume:()=>{
+        if(!running||!pauseStartedAt)return;
+        const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;cancelAnimationFrame(animation);animation=null;animation=requestAnimationFrame(loop);
+      }
     });
     startButton.addEventListener('click',startGame);
     document.addEventListener('keydown',event=>{
