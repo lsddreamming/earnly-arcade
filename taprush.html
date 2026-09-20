@@ -135,6 +135,7 @@
     let timer = null;
     let running = false;
     let starting = false;
+    let roundEndsAt = 0;
 
     function rewardForHits(value) {
       let coins = Math.floor(value / 5);
@@ -163,6 +164,19 @@
       const y = radius + Math.random() * Math.max(1, rect.height - radius * 2);
       target.style.left = x + 'px';
       target.style.top = y + 'px';
+    }
+
+    function updateTimer() {
+      if (!running) return;
+      timeLeft = Math.max(0, Math.ceil((roundEndsAt - performance.now()) / 1000));
+      timeEl.textContent = String(timeLeft);
+      if (timeLeft <= 0) finishGame();
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(updateTimer, 100);
+      updateTimer();
     }
 
     function finishGame() {
@@ -234,11 +248,8 @@
         target.hidden = false;
         moveTarget();
 
-        timer = setInterval(() => {
-          timeLeft -= 1;
-          timeEl.textContent = String(timeLeft);
-          if (timeLeft <= 0) finishGame();
-        }, 1000);
+        roundEndsAt = performance.now() + ROUND_SECONDS * 1000;
+        startTimer();
       });
     }
 
@@ -264,7 +275,21 @@
       moveTarget();
     });
 
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;target.hidden=true;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;target.hidden=false;timer=setInterval(()=>{timeLeft-=1;timeEl.textContent=String(timeLeft);if(timeLeft<=0)finishGame();},1000);}});
+    Arcade.installPauseControl({
+      isRunning:()=>running,
+      pause:()=>{
+        pauseStartedAt=performance.now();
+        timeLeft=Math.max(0,(roundEndsAt-performance.now())/1000);
+        clearInterval(timer);timer=null;target.hidden=true;
+      },
+      resume:()=>{
+        const pausedFor=performance.now()-pauseStartedAt;
+        totalPausedMs+=pausedFor;pauseStartedAt=0;
+        roundEndsAt=performance.now()+timeLeft*1000;
+        target.hidden=false;
+        startTimer();
+      }
+    });
     target.addEventListener('contextmenu', event => event.preventDefault());
     startButton.addEventListener('click', startGame);
 
