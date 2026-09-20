@@ -170,7 +170,7 @@
     function refillTray() {
       tray=[randomPiece(),randomPiece(),randomPiece()];
       selected=0;
-      Arcade.milestone('✨ New set of 3','score');
+      Arcade.feedback('score');
     }
 
     function selectNextPiece() {
