@@ -174,7 +174,12 @@
     document.addEventListener('pointerdown',e=>{if(!running||e.target===canvas||laneControlZone.contains(e.target)||e.clientY<window.innerHeight-145)return;laneSwipeStart(e)},{passive:false});
     document.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||e.target===canvas||laneControlZone.contains(e.target))return;laneSwipeMove(e)},{passive:false});
     document.addEventListener('pointerup',e=>{if(!running||swipeStartX===null)return;laneSwipeEnd(e)},{passive:false});
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();setLane(lane-1)}if(e.key==='ArrowRight'){e.preventDefault();setLane(lane+1)}});
+    document.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();startGame();return}
+      if(!running)return;
+      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();setLane(lane-1)}
+      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();setLane(lane+1)}
+    });
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
   </script>
