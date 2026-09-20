@@ -25,9 +25,9 @@
       body.paddlerally-page .meta-pill{font-size:9px!important;padding:4px 2px!important;min-height:28px!important;text-align:center!important}
       body.paddlerally-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
       body.paddlerally-page .rally-board{width:min(88vw,350px)!important;margin:5px auto!important;display:block!important}
-      body.paddlerally-page.game-active .topbar,body.paddlerally-page.game-active .game-guide-strip,body.paddlerally-page.game-active .game-guide-more,body.paddlerally-page.game-active #startButton,body.paddlerally-page.game-active a.button.secondary{display:none!important}
-      body.paddlerally-page.game-active{overflow:hidden!important}
-      body.paddlerally-page.game-active main.container{padding-top:8px!important;overflow:hidden!important}
+      body.paddlerally-page.game-active .game-guide-strip,body.paddlerally-page.game-active .game-guide-more,body.paddlerally-page.game-active a.button.secondary{display:none!important}
+      body.paddlerally-page.game-active .topbar,body.paddlerally-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.paddlerally-page.game-active main.container{padding-top:8px!important}
       body.paddlerally-page.game-active .page-header{margin-bottom:3px!important}
       body.paddlerally-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
       body.paddlerally-page.game-active .rally-board{width:min(90vw,358px)!important;margin:3px auto!important}
@@ -63,7 +63,7 @@
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
     const pauseButton=document.getElementById('pauseButton');
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); if(mode==='running') requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'instant'})); }
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('paddleRally'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
       if(!Arcade.consume('paddleRally')){ Arcade.out('paddleRally',refreshChrome); return false; }
@@ -100,7 +100,7 @@
     function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x-paddle.w/2))}
     let earnlyRunStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');window.scrollTo(0,0);animation=requestAnimationFrame(loop)})}
+      Arcade.countdown(()=>{starting=false;running=true;paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     function togglePause(){if(!running)return;if(!paused){paused=true;pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
     pauseButton.addEventListener('click',togglePause);
     let controlPointer=null;
