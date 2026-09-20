@@ -698,3 +698,32 @@ test('game results show daily mission progress and claim readiness', async ({ pa
   await expect(result).toContainText('Mix It Up complete · +25 XP ready to claim');
   await expect(result).toContainText('Coin Hunt complete · +25 XP ready to claim');
 });
+
+
+test('games page shows live daily mission progress', async ({ page }) => {
+  await page.goto('/games.html');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('arcadeOnboardingSeen', '1');
+    Arcade.recordResult('snake', 2);
+    Arcade.earn(5, 'Mission games page test');
+  });
+  await page.reload();
+
+  await expect(page.locator('#gamesMissionStrip')).toBeVisible();
+  await expect(page.locator('#gamesMissionItems .games-mission-line')).toHaveCount(3);
+  await expect(page.locator('#gamesMissionItems')).toContainText('Warm Up · 1/3');
+  await expect(page.locator('#gamesMissionItems')).toContainText('Mix It Up · 1/2');
+  await expect(page.locator('#gamesMissionItems')).toContainText('Coin Hunt · 5/15');
+
+  await page.evaluate(() => {
+    Arcade.recordResult('shapeFit', 1);
+    Arcade.recordResult('snake', 3);
+    Arcade.earn(10, 'Mission games page completion test');
+  });
+  await page.reload();
+  await expect(page.locator('#gamesMissionCount')).toHaveText('3/3');
+  await expect(page.locator('#gamesMissionItems')).toContainText('Warm Up · +20 XP ready');
+  await expect(page.locator('#gamesMissionItems')).toContainText('Mix It Up · +25 XP ready');
+  await expect(page.locator('#gamesMissionItems')).toContainText('Coin Hunt · +25 XP ready');
+});
