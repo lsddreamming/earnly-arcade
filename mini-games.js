@@ -257,7 +257,7 @@
       }
 
       render();
-      setTimeout(()=>{lastPlaced=[]},220);if(lastClear) setTimeout(()=>{if(alive){lastClear=0;render()}},650);
+      pauseAwareDelay(()=>{lastPlaced=[]},220);if(lastClear) pauseAwareDelay(()=>{if(alive){lastClear=0;render()}},650);
       // Make progression visible without changing Block Grid's scoring or
       // reward economy. Each milestone fires once per run.
       if(score>=100&&!celebrated100){celebrated100=true;Arcade.feedback('score')}
