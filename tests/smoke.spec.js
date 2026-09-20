@@ -372,6 +372,34 @@ test('rapid Snake game-over calls only award and show results once', async ({ pa
   expect(Number(after)).toBeGreaterThanOrEqual(Number(before));
 });
 
+test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  const speeds = await page.evaluate(() => {
+    level = 1;
+    const opening = levelSpeed();
+    level = 8;
+    const late = levelSpeed();
+    return { opening, late };
+  });
+  expect(speeds.opening).toBeCloseTo(6, 3);
+  expect(speeds.late).toBeGreaterThan(13);
+
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+  const result = await page.evaluate(() => {
+    const before = paddle.x;
+    const y = window.innerHeight - 8;
+    const base = { pointerId:91, pointerType:'touch', isPrimary:true, bubbles:true, cancelable:true, clientY:y };
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { ...base, clientX:120 }));
+    document.body.dispatchEvent(new PointerEvent('pointermove', { ...base, clientX:220 }));
+    document.body.dispatchEvent(new PointerEvent('pointerup', { ...base, clientX:220 }));
+    const nav = document.getElementById('arcadeBottomNav');
+    return { before, after:paddle.x, navDisplay:nav ? getComputedStyle(nav).display : 'missing' };
+  });
+  expect(result.after).toBeGreaterThan(result.before);
+  expect(result.navDisplay).toBe('none');
+});
+
 test('Brick Breaker end state clears pending level transition', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await page.locator('#startButton').click();
