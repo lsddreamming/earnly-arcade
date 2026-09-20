@@ -492,6 +492,9 @@
 
     function advanceLevel(){
       if(!running) return;
+      // Preserve the exact viewport position between rounds. Changing the status
+      // briefly changes the active layout and iPhone can otherwise jump the page.
+      const levelScrollY=window.scrollY||window.pageYOffset||0;
       running=false;
       starting=true;
       cancelAnimationFrame(animation);
@@ -521,6 +524,7 @@
       Arcade.milestone('🏁 '+layoutName.toUpperCase()+' · LEVEL '+clearedLevel+' CLEAR! · +'+bonus+' bonus', 'perfect');
       setStatus('Level '+level+' · Speed '+levelSpeed().toFixed(1),'running');
       startButton.textContent='🚀 Level '+level+' · '+layoutName+' · +'+bonus+' bonus banked';
+      requestAnimationFrame(()=>window.scrollTo(0,levelScrollY));
 
       clearTimeout(levelTimer);
       levelResumeDelay=performance.now()+850;
@@ -531,6 +535,7 @@
         running=true;
         startButton.textContent='Game Running · Level '+level;
         setStatus('Running · Level '+level,'running');
+        window.scrollTo(0,levelScrollY);
         lastFrame=0;
         animation=requestAnimationFrame(loop);
       },850);
