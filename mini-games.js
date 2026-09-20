@@ -621,7 +621,8 @@
         flashFrames=26;
         Arcade.feedback(perfect?'perfect':'score');
 
-        if(perfect && streak%3===0) Arcade.feedback('perfect');
+        // The landing itself already gives perfect feedback. Avoid firing
+        // a second identical effect on every third perfect streak.
         if(hits>=20&&!goalCelebrated){
           goalCelebrated=true;
           Arcade.feedback('perfect');
