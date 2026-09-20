@@ -190,7 +190,7 @@
         lines += count;
         score += count * 25;
         Arcade.feedback(count > 1 ? 'perfect' : 'score');
-        if (count > 1) Arcade.milestone('🧩 Combo clear ×' + count, 'perfect');
+        if (count > 1) Arcade.feedback('perfect');
       }
     }
 
@@ -261,10 +261,10 @@
       setTimeout(()=>{lastPlaced=[]},220);if(lastClear) setTimeout(()=>{if(alive){lastClear=0;render()}},650);
       // Make progression visible without changing Block Grid's scoring or
       // reward economy. Each milestone fires once per run.
-      if(score>=100&&!celebrated100){celebrated100=true;Arcade.milestone('🧩 100 points! Board is heating up','score')}
-      if(score>=250&&!celebrated250){celebrated250=true;Arcade.milestone('🔥 250 points! Bonus reward tier reached','perfect')}
+      if(score>=100&&!celebrated100){celebrated100=true;Arcade.feedback('score')}
+      if(score>=250&&!celebrated250){celebrated250=true;Arcade.feedback('perfect')}
       const lineMark=Math.floor(lines/5)*5;
-      if(lineMark>=5&&lineMark>lastLineMilestone){lastLineMilestone=lineMark;Arcade.milestone('✨ '+lineMark+' lines cleared!','perfect')}
+      if(lineMark>=5&&lineMark>lastLineMilestone){lastLineMilestone=lineMark;Arcade.feedback('perfect')}
       if (!anyMove()) {
         alive=false;
         finish(score,lines,['🧩 Lines cleared: '+lines,'🧱 Pieces placed: '+piecesPlaced,'⭐ Board score: '+score,'Save room for the pieces still in your tray.'],'Board Full');
