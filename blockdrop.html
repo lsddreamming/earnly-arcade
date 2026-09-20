@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,8 +38,70 @@
     }
 
     @media (max-height: 750px) {
-      .blockdrop-board {
-        width: min(60vw, 225px);
+      .blockdrop-board { width: min(60vw, 225px); }
+    }
+
+    @media (max-width: 699px) {
+      body.blockdrop-page main.container { padding-top: 8px !important; }
+      body.blockdrop-page .topbar { margin-bottom: 6px !important; }
+      body.blockdrop-page .page-header {
+        margin: 2px 0 6px !important;
+        padding: 0 !important;
+        gap: 5px !important;
+      }
+      body.blockdrop-page .page-header h1 {
+        font-size: 22px !important;
+        line-height: 1.1 !important;
+        margin: 0 !important;
+      }
+      body.blockdrop-page .game-meta {
+        display: grid !important;
+        grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+        gap: 6px !important;
+        margin: 0 !important;
+        width: 100% !important;
+      }
+      body.blockdrop-page .meta-pill {
+        min-height: 38px !important;
+        padding: 5px 4px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        font-size: 10px !important;
+        border-radius: 12px !important;
+      }
+      body.blockdrop-page #startButton {
+        min-height: 42px !important;
+        margin: 5px 0 !important;
+      }
+      body.blockdrop-page .blockdrop-board {
+        width: min(58vw, 220px) !important;
+        margin: 6px auto 8px !important;
+        display: block !important;
+        touch-action: none !important;
+      }
+      body.blockdrop-page .blockdrop-controls {
+        display: grid !important;
+        grid-template-columns: repeat(3,1fr) !important;
+        gap: 7px !important;
+        width: min(100%,360px) !important;
+        margin: 4px auto 8px !important;
+      }
+      body.blockdrop-page .blockdrop-controls .game-control {
+        min-height: 48px !important;
+        margin: 0 !important;
+        padding: 8px 6px !important;
+        border-radius: 14px !important;
+        font-size: 18px !important;
+      }
+      body.blockdrop-page #dropButton {
+        grid-column: 1 / -1 !important;
+        min-height: 44px !important;
+        font-size: 15px !important;
+      }
+      body.blockdrop-page .container > a.button.wide.secondary {
+        margin-top: 6px !important;
       }
     }
 
