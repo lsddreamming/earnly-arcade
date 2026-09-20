@@ -28,6 +28,8 @@
       body.coincatch-page.game-active .game-guide-strip,
       body.coincatch-page.game-active .game-preflight,
       body.coincatch-page.game-active .game-guide-more,
+      body.coincatch-page.game-active .game-guide-overlay,
+      body.coincatch-page.game-active .game-overlay,
       body.coincatch-page.game-active #startButton{display:none!important}
       body.coincatch-page.game-active .container>a.button.wide.secondary{display:none!important}
       body.coincatch-page.game-active .catch-board{width:min(90vw,350px)!important;max-height:72vh!important;margin-top:3px!important}
@@ -172,6 +174,14 @@
       drops=[];lastSpawn=performance.now();lastFrame=0;
       Arcade.feedback('success');
       setStatus('Level '+level,'running');
+      // gameGuide can mistake a level transition for a new idle state; force any
+      // pre-game/out-of-plays UI closed while this same paid run continues.
+      document.body.classList.add('game-active');
+      document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
+      document.querySelectorAll('[role="dialog"],.modal,.game-modal,.out-of-plays,.out-panel').forEach(el=>{
+        const t=(el.textContent||'').toLowerCase();
+        if(t.includes('out of plays')){el.remove()}
+      });
       showLevelBanner();
       setTimeout(()=>{
         if(!running)return;
@@ -221,6 +231,7 @@
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
       reset();transitioning=false;levelBanner.classList.remove('show');startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
+        document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
         timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);});
     }
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;lastFrame=0;timer=setInterval(tickTimer,1000);animation=requestAnimationFrame(loop);}});
