@@ -1430,12 +1430,12 @@
           combo=lastClearAt&&now-lastClearAt<2200?combo+1:1;
           bestCombo=Math.max(bestCombo,combo);
           lastClearAt=now;
-          Arcade.feedback(combo>=3?'perfect':'score');
-          if(cleared%5===0){
+          const leveledUp=cleared%5===0;
+          Arcade.feedback(leveledUp||combo>=3?'perfect':'score');
+          if(leveledUp){
             bestLevel=Math.max(bestLevel,runLevel());
             levelFlashText='LEVEL '+runLevel()+' · '+stageName().toUpperCase();
             levelFlashUntil=performance.now()+1250;
-            Arcade.feedback('perfect');
           }
           return false;
         }
