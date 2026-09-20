@@ -84,7 +84,7 @@
     const board=document.getElementById('board'),wordEl=document.getElementById('word'),choices=document.getElementById('choices');
     const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time');
     const colors=[['RED','#ef4444'],['BLUE','#3b82f6'],['GREEN','#22c55e'],['YELLOW','#facc15']];
-    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,answer='';
+    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,answer='',answerLocked=false,roundEndsAt=0;
     Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Think',text:'Match the ink color'},{icon:'⚡',title:'Goal',text:'Get max matches in 25 sec'}],
       overlayIcon:'🎨',overlayTitle:'Match the Ink Color',overlayText:'Ignore the word itself. Tap the color the word is painted.',replayTitle:'Tap to Play Again',
       tips:['Example: the word RED may be painted blue. In that case tap BLUE.','Keyboard players can press 1, 2, 3, or 4 for the four buttons.'],reward:'Fast correct matches can earn up to 22 Coins.'});
@@ -92,18 +92,21 @@
     function refreshReward(){}
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
     function nextRound(){
+      answerLocked=false;
       const ink=colors[Math.floor(Math.random()*colors.length)],word=colors[Math.floor(Math.random()*colors.length)];
       answer=ink[0];wordEl.textContent=word[0];wordEl.style.color=ink[1];choices.replaceChildren();
       shuffle([...colors]).forEach(([name,color],idx)=>{const b=document.createElement('button');b.type='button';b.className='color-choice';b.textContent=(idx+1)+' · '+name;b.style.border='2px solid '+color;b.style.background='#1f2937';b.addEventListener('click',()=>choose(name));choices.append(b)});
     }
     function choose(name){
-      if(!running)return;
+      if(!running||answerLocked||document.body.classList.contains('earnly-game-paused'))return;
+      if(roundEndsAt && performance.now()>=roundEndsAt){finish();return}
+      answerLocked=true;
       if(name===answer){score++;streak++;Arcade.feedback('score')}
       else{streak=0;Arcade.feedback('fail')}
       scoreEl.textContent=String(score);streakEl.textContent=String(streak);nextRound();
     }
     function finish(){
-      if(!running)return;running=false;clearInterval(timer);timer=null;
+      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;roundEndsAt=0;answer='';
       const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';choices.replaceChildren();
       Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
@@ -112,10 +115,10 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
-      score=0;streak=0;timeLeft=25;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish()},1000)});
+      clearInterval(timer);timer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;},resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;timer=setInterval(()=>{timeLeft--;timeEl.textContent=String(Math.max(0,timeLeft));if(timeLeft<=0)finish()},1000);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;},resume:()=>{const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;if(roundEndsAt)roundEndsAt+=pausedFor;pauseStartedAt=0;timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100);}});
     board.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
     startButton.addEventListener('click',startGame);refreshChrome();
