@@ -1,6 +1,10 @@
 name: Earnly signed iOS build
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios-signed-build.yml'
   workflow_dispatch:
     inputs:
       admob_mode:
