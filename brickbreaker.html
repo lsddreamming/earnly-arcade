@@ -400,10 +400,10 @@
       return false;
     }
 
-    function updatePowerUps(){
+    function updatePowerUps(dt=1){
       for(let i=powerUps.length-1;i>=0;i--){
         const p=powerUps[i],prevY=p.y;
-        p.y+=p.vy;
+        p.y+=p.vy*dt;
         // Swept pickup check keeps falling bonuses catchable even if the game/device skips a frame.
         const crossedPaddle=prevY+p.r<=paddle.y && p.y+p.r>=paddle.y;
         if(crossedPaddle && p.x+p.r>=paddle.x && p.x-p.r<=paddle.x+paddle.w){
@@ -472,10 +472,8 @@
         ball.dx=originalDx;ball.dy=originalDy;
       });
       balls=balls.filter(ball=>ball.y-ball.r<=canvas.height);
-      for(const p of powerUps)p.vy*=dt;
-      updatePowerUps();
-      for(const p of powerUps)p.vy/=dt||1;
-      particles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;p.dy+=.04;p.life-=1;});
+      updatePowerUps(dt);
+      particles.forEach(p=>{p.x+=p.dx*dt;p.y+=p.dy*dt;p.dy+=.04*dt;p.life-=dt;});
       particles=particles.filter(p=>p.life>0);
       if(performance.now()>comboUntil) combo=0;
 
@@ -744,6 +742,7 @@
             levelTimer=null;levelResumeDelay=0;starting=false;running=true;
             startButton.textContent='Game Running · Level '+level;
             setStatus('Running · Level '+level,'running');
+            lastFrame=0;
             animation=requestAnimationFrame(loop);
           },delay);
           return;
