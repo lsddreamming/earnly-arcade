@@ -289,7 +289,7 @@
     document.addEventListener('pointermove',event=>{
       if(!dragging || dragPointer !== event.pointerId) return;
       event.preventDefault();
-      setPlayerFromClientX(event.clientX);
+      moveDrag(event);
     },{passive:false});
 
     const stopDragging = event => {
@@ -342,6 +342,7 @@
         running=true;
         startButton.textContent='Game Running';
         setStatus('Running','running');
+        requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
         startTime=0;
         lastSpawn=0;
         animation=requestAnimationFrame(loop);
