@@ -314,7 +314,7 @@
     }
 
     function moveDown() {
-      if (!game) return;
+      if (!game || game === 'paused' || starting) return;
       if (!collision(currentPiece, pieceX, pieceY + 1)) {
         pieceY += 1;
       } else {
@@ -325,19 +325,19 @@
     }
 
     function moveLeft() {
-      if (!game) return;
+      if (!game || game === 'paused' || starting) return;
       if (!collision(currentPiece, pieceX - 1, pieceY)) pieceX -= 1;
       draw();
     }
 
     function moveRight() {
-      if (!game) return;
+      if (!game || game === 'paused' || starting) return;
       if (!collision(currentPiece, pieceX + 1, pieceY)) pieceX += 1;
       draw();
     }
 
     function rotatePiece() {
-      if (!game) return;
+      if (!game || game === 'paused' || starting) return;
       const rotated = [];
 
       for (let x = 0; x < currentPiece[0].length; x++) {
@@ -381,6 +381,11 @@
 
       clearInterval(game);
       game = null;
+      blockDragPointer = null;
+      blockDragX = 0;
+      blockDragY = 0;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
 
       const earned = Math.min(lines, 5);
       Arcade.earn(earned, 'Block Drop', { kind:'game', game:'blockDrop', metric:lines });
