@@ -384,7 +384,7 @@
     }
 
     function move(dir) {
-      if(!alive)return;
+      if(!alive||miniPaused)return;
       // Track the strongest merge from this swipe only. Without resetting it,
       // a previous merge can leak into a later non-merging move and replay
       // stale "tile created" feedback.
@@ -1526,7 +1526,7 @@
     }
 
     function jump(e){
-      if(!alive)return;
+      if(!alive||miniPaused)return;
       if(e && e.preventDefault)e.preventDefault();
       if(performance.now()<readyUntil){
         queuedJump=true;
@@ -1820,7 +1820,7 @@
     }
 
     function tapCar(car,button) {
-      if(!alive||locked)return;
+      if(!alive||locked||miniPaused)return;
 
       if(!canExit(car)){
         strikes++;
