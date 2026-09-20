@@ -81,7 +81,16 @@
     finished = true;
     running = false;
     miniPaused = false;
-    if (engine && engine.stop) engine.stop();
+    pauseStartedAt = 0;
+
+    // Shut the engine down before any reward/storage/result work. This makes
+    // Game Over an immediate hard boundary: no RAF, timer, pointer, or delayed
+    // gameplay callback can keep changing state behind the result dialog.
+    const finishedEngine = engine;
+    engine = null;
+    if (finishedEngine && finishedEngine.stop) {
+      try { finishedEngine.stop(); } catch (err) { console.error('Earnly game cleanup failed', err); }
+    }
 
     const clean = Math.max(0, Math.floor(Number(metric) || 0));
     const elapsedSeconds = runStartedAt ? Math.max(0, Math.round((performance.now()-runStartedAt-totalPausedMs)/1000)) : 0;
@@ -1970,7 +1979,10 @@
       return;
     }
 
-    if(engine&&engine.stop)engine.stop();
+    if(engine&&engine.stop){
+      try { engine.stop(); } catch (err) { console.error('Earnly previous-run cleanup failed', err); }
+    }
+    engine=null;
     finished=false;
     resultShowing=false;
     running=false;
