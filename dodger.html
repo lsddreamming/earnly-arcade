@@ -239,6 +239,10 @@
       running=false;
       cancelAnimationFrame(animation);
       animation=null;
+      dragging=false;
+      dragPointer=null;
+      dragAnchorClientX=null;
+      lastFrame=0;
 
       const earned=rewardFor(seconds,dodged);
       Arcade.earn(earned,'Neon Dodger', { kind:'game', game:'dodger', metric:seconds, aux:dodged });
@@ -360,6 +364,12 @@
       if(!running) return;
       if(event.key==='ArrowLeft'){event.preventDefault();player.x=Math.max(0,player.x-24);}
       if(event.key==='ArrowRight'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
+    });
+
+    window.addEventListener('blur',()=>{
+      dragging=false;
+      dragPointer=null;
+      dragAnchorClientX=null;
     });
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
