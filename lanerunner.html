@@ -131,7 +131,16 @@
         obstacles.push({lane:nextLane,y:-28,speed:3.4+Math.min(5.2,seconds*.075),variant:1+Math.floor(Math.random()*3)});
         lastSpawn=now;
       }
-      for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.y+=o.speed*dt;if(o.lane===lane&&o.y>430&&o.y<495){finish();return}if(o.y>550){obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);Arcade.feedback('score');void 0}}
+      for(let i=obstacles.length-1;i>=0;i--){
+        const o=obstacles[i],prevY=o.y;o.y+=o.speed*dt;
+        // Check the full path between frames so fast traffic cannot tunnel through the player's car.
+        const crossedPlayer=o.lane===lane&&prevY<495&&o.y>430;
+        if(crossedPlayer){finish();return}
+        if(o.y>550){
+          obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);
+          if(passed===1||passed%10===0)Arcade.feedback('score');
+        }
+      }
       draw();animation=requestAnimationFrame(loop);
     }
     function setLane(n){const next=Math.max(0,Math.min(2,n));if(next===lane)return;lane=next;targetLane=next;Arcade.feedback('move')}
