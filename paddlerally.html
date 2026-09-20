@@ -91,7 +91,10 @@
       if(!running||paused)return;ball.x+=ball.dx;ball.y+=ball.dy;
       if(ball.x-ball.r<=0&&ball.dx<0)ball.dx*=-1;if(ball.x+ball.r>=canvas.width&&ball.dx>0)ball.dx*=-1;if(ball.y-ball.r<=0&&ball.dy<0)ball.dy*=-1;
       if(ball.dy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<=paddle.y+paddle.h&&ball.x>=paddle.x&&ball.x<=paddle.x+paddle.w){
-        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);const mag=Math.min(11.5,Math.hypot(ball.dx,ball.dy)*1.055);
+        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
+        // Keep accelerating throughout long rallies instead of capping near 2x.
+        const currentMag=Math.hypot(ball.dx,ball.dy);
+        const mag=currentMag*1.045;
         ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();Arcade.feedback('hit');
         if(score===8)paddle.w=78;if(score===18)paddle.w=68;
       }
