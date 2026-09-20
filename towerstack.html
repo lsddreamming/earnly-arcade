@@ -146,6 +146,8 @@
     }
 
     function resetGame() {
+      cancelAnimationFrame(animation);
+      animation = null;
       floors = 0;
       perfects = 0;
       speed = 2.6;
@@ -258,7 +260,7 @@
     }
 
     function placeBlock() {
-      if (!running || !moving) return;
+      if (!running || starting || !moving) return;
 
       const previous = blocks[blocks.length - 1];
       const previousRight = previous.x + previous.w;
@@ -331,6 +333,7 @@
       running = false;
       cancelAnimationFrame(animation);
       animation = null;
+      moving = null;
 
       const earned = rewardFor(floors, perfects);
       Arcade.earn(earned, 'Tower Stack', { kind:'game', game:'towerStack', metric:floors, aux:perfects });
