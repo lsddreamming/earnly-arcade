@@ -151,7 +151,10 @@
     function refreshReward(){
       const reward=rewardFor(score);
       rewardPreviewEl.textContent=String(reward);
-      earnedCoinsEl.textContent='+'+reward;
+      earnedCoinsEl.textContent=reward>=25?'MAX +25 · XP ↑':'+'+reward;
+      earnedHudEl.setAttribute('aria-label', reward>=25
+        ? 'Maximum 25 Arcade Coins reached. Keep playing for performance XP and a higher best score.'
+        : reward+' Arcade Coins earned this run');
       if(running&&reward>lastRewardShown){
         earnedHudEl.classList.remove('bump');
         void earnedHudEl.offsetWidth;
