@@ -17,6 +17,7 @@
   const scoreEl = document.getElementById('score');
   const secondaryEl = document.getElementById('secondary');
   const rewardEl = document.getElementById('rewardPreview');
+  const runRewardPill = document.getElementById('runRewardPill');
   const playsEl = document.getElementById('plays');
   const balanceEl = document.getElementById('balance');
   const statusEl = document.getElementById('gameStatus');
@@ -54,11 +55,19 @@
     document.body.classList.toggle('game-active', mode === 'running');
   }
 
+  let lastRewardPreview = 0;
   function ui(score = 0, secondary = 0) {
     score = Math.max(0, Math.floor(Number(score) || 0));
     scoreEl.textContent = String(score);
     secondaryEl.textContent = String(secondary);
-    rewardEl.textContent = String(config.reward(score));
+    const reward = config.reward(score);
+    rewardEl.textContent = String(reward);
+    if (running && reward > lastRewardPreview && runRewardPill) {
+      runRewardPill.classList.remove('reward-bump');
+      void runRewardPill.offsetWidth;
+      runRewardPill.classList.add('reward-bump');
+    }
+    lastRewardPreview = reward;
   }
 
   function refreshChrome() {
