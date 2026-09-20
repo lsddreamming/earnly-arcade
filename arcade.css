@@ -4903,3 +4903,17 @@ body.earnly-gameplay-locked{
     margin:0 0 6px!important;padding:3px 7px!important;font-size:9px!important;
   }
 }
+
+
+/* 0.15.36 Fix uneven mobile catalog rows.
+   CSS grid was stretching both cards in a row to the height of the taller card,
+   which created large blank areas on shorter cards. */
+@media (max-width:699px){
+  body.games-dashboard #games.compact-catalog-grid{
+    align-items:start!important;
+  }
+  body.games-dashboard #games .catalog-tile{
+    align-self:start!important;
+    height:auto!important;
+  }
+}
