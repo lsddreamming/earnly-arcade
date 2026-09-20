@@ -142,7 +142,7 @@
   }
 
   function makeBlockGrid() {
-    let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone, lastClear=0,lastPlaced=[];
+    let board, tray, selected, score, lines, piecesPlaced, alive, inputLocked=false, celebrated100, celebrated250, lastLineMilestone, lastClear=0,lastPlaced=[];
     const wrap = document.createElement('div');
     const grid = document.createElement('div');
     const trayEl = document.createElement('div');
@@ -229,7 +229,10 @@
         }else{
           b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece');
           caption.textContent=idx===selected?'SELECTED':'TAP TO PICK';
-          b.addEventListener('click',()=>{selected=idx;Arcade.feedback('move');render()});
+          b.addEventListener('click',()=>{
+            if(!alive || miniPaused || inputLocked || selected===idx)return;
+            selected=idx;Arcade.feedback('move');render();
+          });
         }
 
         b.append(preview,caption);
@@ -239,10 +242,12 @@
     }
 
     function place(x,y) {
-      if (!alive || !tray[selected] || !canPlace(tray[selected],x,y)) {
+      if (!alive || miniPaused || inputLocked)return;
+      if (!tray[selected] || !canPlace(tray[selected],x,y)) {
         Arcade.feedback('fail');
         return;
       }
+      inputLocked=true;
       const piece=tray[selected];
       lastPlaced=piece.map(([dx,dy])=>[x+dx,y+dy]);piece.forEach(([dx,dy])=>board[y+dy][x+dx]=1);
       score += piece.length * 3;
@@ -257,6 +262,9 @@
       }
 
       render();
+      // Release on the next frame, after this physical tap/click has fully
+      // completed. This prevents rapid duplicate mobile events placing twice.
+      requestAnimationFrame(()=>{if(alive)inputLocked=false});
       pauseAwareDelay(()=>{lastPlaced=[]},220);if(lastClear) pauseAwareDelay(()=>{if(alive){lastClear=0;render()}},650);
       // Make progression visible without changing Block Grid's scoring or
       // reward economy. Each milestone fires once per run.
@@ -276,10 +284,11 @@
       start() {
         board=Array.from({length:8},()=>Array(8).fill(0));
         tray=[randomPiece(),randomPiece(),randomPiece()];
-        selected=0;score=0;lines=0;piecesPlaced=0;lastClear=0;lastPlaced=[];alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
+        selected=0;score=0;lines=0;piecesPlaced=0;lastClear=0;lastPlaced=[];inputLocked=false;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
         render();
       },
-      stop(){alive=false}
+      adjustPauseTime(){inputLocked=false},
+      stop(){alive=false;inputLocked=false}
     };
   }
 
