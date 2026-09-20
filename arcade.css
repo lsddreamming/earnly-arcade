@@ -5852,3 +5852,17 @@ body.home-dashboard.has-app-nav .home-container{
     scroll-padding-bottom:max(120px,calc(92px + env(safe-area-inset-bottom)));
   }
 }
+
+
+/* Games catalog screenshot polish */
+.games-dashboard #games .game-play-button:disabled{
+  background:#162033!important;
+  border-color:#42526a!important;
+  color:#cbd5e1!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  opacity:1!important;
+}
+@media(max-width:699px){
+  body.games-dashboard .games-back-home{display:none!important}
+}
