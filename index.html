@@ -633,9 +633,9 @@
 
     document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
 
-    window.addEventListener('earnly-mission-claimed', event => {
-      const detail = event.detail || {};
-      Arcade.milestone((detail.icon || '🎯') + ' Mission complete · +' + (detail.rewardXP || 0) + ' XP', 'perfect');
+    window.addEventListener('earnly-mission-claimed', () => {
+      // claimDailyMission already shows the app toast; avoid stacking a second
+      // celebration over the mission list on small screens.
       render();
     });
     window.addEventListener('earnly-bonus-plays-unlocked', event => {
