@@ -464,13 +464,11 @@
         paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,center-paddle.w/2));
       }
 
-      balls.forEach(ball=>{
-        const steps=Math.max(1,Math.ceil(dt));
-        const stepScale=dt/steps;
-        // Scale distance, not velocity state, so wall/brick/paddle bounces made
-        // inside a substep survive into the next substep and following frame.
-        for(let step=0;step<steps && ball.y-ball.r<=canvas.height;step++)updateBall(ball,stepScale);
-      });
+      // Brick Breaker already uses swept collision checks for the paddle and bricks.
+      // Keep one authoritative movement step per frame so a collision can only be
+      // resolved once; repeated substeps were able to re-hit the same brick and
+      // launch the ball through the wall on iPhone.
+      balls.forEach(ball=>updateBall(ball,dt));
       balls=balls.filter(ball=>ball.y-ball.r<=canvas.height);
       updatePowerUps(dt);
       particles.forEach(p=>{p.x+=p.dx*dt;p.y+=p.dy*dt;p.dy+=.04*dt;p.life-=dt;});
