@@ -1578,10 +1578,16 @@
       stopTimer();
       timeLeft=roundSeconds();
       boardStartedAt=performance.now();
+      let lastTickAt=boardStartedAt;
       render();
       timerId=setInterval(()=>{
-        if(!alive||locked||miniPaused)return;
-        timeLeft--;
+        if(!alive||locked||miniPaused){lastTickAt=performance.now();return;}
+        const now=performance.now();
+        const elapsed=Math.max(0,now-lastTickAt);
+        if(elapsed<900)return;
+        const ticks=Math.max(1,Math.floor(elapsed/1000));
+        lastTickAt+=ticks*1000;
+        timeLeft-=ticks;
         if(timeLeft<=0){
           stopTimer();
           alive=false;
