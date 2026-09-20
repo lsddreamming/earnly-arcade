@@ -464,7 +464,10 @@ test('Coin Catch HUD stays inside the board and shows live run rewards', async (
   }
 
   await expect(page.locator('#earnedHud')).toContainText('Arcade Coins');
-  await expect(page.locator('#levelBanner').evaluate(node => node.parentElement?.classList.contains('catch-board-wrap'))).resolves.toBeTruthy();
+  const levelBannerInsideBoard = await page.locator('#levelBanner').evaluate(
+    node => node.parentElement?.classList.contains('catch-board-wrap')
+  );
+  expect(levelBannerInsideBoard).toBeTruthy();
 });
 
 
