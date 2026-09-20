@@ -211,7 +211,7 @@
       if(!running||transitioning)return;
       timeLeft=Math.max(0,Math.ceil((levelEndsAt-performance.now())/1000));
       timeEl.textContent=String(timeLeft);
-      if(timeLeft===5) statusEl.textContent='5 seconds!';
+      if(timeLeft===5 && statusEl.textContent!=='5 seconds!') statusEl.textContent='5 seconds!';
       if(performance.now()>=levelEndsAt)nextLevel();
     }
     function finish(hitBomb=false){
@@ -239,7 +239,8 @@
         if(overlapsBasket){
           drops.splice(i,1);
           if(d.bomb){finish(true);return}
-          score++;scoreEl.textContent=String(score);refreshReward();Arcade.feedback('score');
+          score++;scoreEl.textContent=String(score);refreshReward();
+          if(score===1 || score%5===0) Arcade.feedback('score');
         }else if(d.y-d.r>canvas.height)drops.splice(i,1);
       }
       draw();animation=requestAnimationFrame(loop);
