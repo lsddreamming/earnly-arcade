@@ -24,6 +24,10 @@
     body.brick-breaker-page.game-active .game-stage{overscroll-behavior:none;touch-action:none}
     .power-legend{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px auto 14px;font-size:12px;color:#cbd5e1}
     .power-legend span{padding:6px 9px;border:1px solid #334155;border-radius:999px;background:#111c2d}
+    .power-timers{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;min-height:28px;margin:4px auto 7px;font-size:12px;font-weight:900}
+    .power-timer{padding:5px 9px;border:1px solid #334155;border-radius:999px;background:#111c2d;color:#e2e8f0}
+    .power-timer.wide{border-color:#22c55e;color:#86efac}
+    .power-timer.fire{border-color:#fb923c;color:#fdba74}
     /* Keep Brick Breaker notices above the playfield so they never hide bricks, balls, or drops. */
     body.brick-breaker-page .milestone-pop{top:max(calc(env(safe-area-inset-top) + 8px),8px);max-width:min(92vw,420px);padding:9px 14px;font-size:13px;z-index:70}
     @media(max-width:699px){
@@ -76,6 +80,7 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <canvas class="brick-board touch-surface" id="game" width="360" height="500" aria-label="Brick Breaker game board"></canvas>
+    <div id="powerTimers" class="power-timers" aria-live="polite"></div>
     <div class="power-legend" aria-label="Brick Breaker power-ups">
       <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Bonus Brick</span><span>◆ Armored</span>
     </div>
@@ -122,6 +127,7 @@
     let powerUps=[];
     let fireUntil=0;
     let wideUntil=0;
+    const powerTimersEl=document.getElementById('powerTimers');
     let bricks=[];
     let level=1;
     let levelBroken=0;
@@ -276,7 +282,17 @@
       setStatus('Level '+level+' · '+layoutName);
     }
 
+    function updatePowerTimers(now=performance.now()){
+      const timers=[];
+      const wideLeft=Math.max(0,wideUntil-now);
+      const fireLeft=Math.max(0,fireUntil-now);
+      if(wideLeft>0) timers.push('<span class="power-timer wide">↔ Wide Paddle · '+Math.ceil(wideLeft/1000)+'s</span>');
+      if(fireLeft>0) timers.push('<span class="power-timer fire">🔥 Fireball · '+Math.ceil(fireLeft/1000)+'s</span>');
+      powerTimersEl.innerHTML=timers.join('');
+    }
+
     function draw(){
+      updatePowerTimers();
       ctx.clearRect(0,0,canvas.width,canvas.height);
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);
       bg.addColorStop(0,'#17243a'); bg.addColorStop(1,'#0d1625');
@@ -463,6 +479,8 @@
         const center=paddle.x+paddle.w/2;
         paddle.w=paddle.baseW;
         paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,center-paddle.w/2));
+        wideUntil=0;
+        Arcade.milestone('↔️ Wide Paddle ended');
       }
 
       // Brick Breaker already uses swept collision checks for the paddle and bricks.
