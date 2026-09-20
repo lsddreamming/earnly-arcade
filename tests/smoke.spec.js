@@ -85,6 +85,19 @@ test('Settings and Stats reflect the current app/game catalog', async ({ page })
   await expect(page.locator('#differentGames')).toContainText('/' + gameCount);
 });
 
+test('Rewards balance and history update immediately after a local earning event', async ({ page }) => {
+  await page.goto('/rewards.html');
+  const before = await page.evaluate(() => Arcade.number('points'));
+
+  await page.evaluate(() => {
+    Arcade.earn(3, 'QA Reward', { kind:'test' });
+  });
+
+  await expect(page.locator('#balance')).toHaveText((before + 3).toLocaleString());
+  await expect(page.locator('#history')).toContainText('QA Reward');
+  await expect(page.locator('#history')).toContainText('+3');
+});
+
 
 test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
   await page.goto('/mini.html?game=spiralDrop');
