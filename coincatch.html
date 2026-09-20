@@ -228,7 +228,12 @@
       const interval=Math.max(280,650-(level-1)*70);if(now-lastSpawn>=interval)spawn(now);
       for(let i=drops.length-1;i>=0;i--){
         const d=drops[i];d.y+=d.speed*dt;
-        if(d.y+d.r>=basket.y&&d.y-d.r<=basket.y+basket.h&&d.x>=basket.x&&d.x<=basket.x+basket.w){
+        const basketTop=basket.y-7;
+        const basketBottom=basket.y+basket.h+12;
+        const catchLeft=basket.x+5;
+        const catchRight=basket.x+basket.w-5;
+        const overlapsBasket=d.y+d.r>=basketTop&&d.y-d.r<=basketBottom&&d.x+d.r>=catchLeft&&d.x-d.r<=catchRight;
+        if(overlapsBasket){
           drops.splice(i,1);
           if(d.bomb){finish(true);return}
           score++;scoreEl.textContent=String(score);refreshReward();Arcade.feedback('score');
