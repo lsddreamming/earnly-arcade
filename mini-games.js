@@ -1973,8 +1973,11 @@
   });
 
   startButton.addEventListener('click',startGame);
-  surface.addEventListener('pointerdown',()=>{
-    if(!running&&!starting)startGame();
+  surface.addEventListener('pointerdown',e=>{
+    // One physical primary tap should be the only thing that can launch a run.
+    // This avoids multi-touch or a secondary mouse button consuming a play.
+    if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
+    if(!running&&!starting&&!resultShowing)startGame();
   },{capture:true});
 
   document.addEventListener('keydown',e=>{
