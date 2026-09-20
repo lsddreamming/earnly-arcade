@@ -406,6 +406,7 @@
     }
 
     function updateBall(ball){
+      const prevX=ball.x,prevY=ball.y;
       ball.x+=ball.dx;
       ball.y+=ball.dy;
 
@@ -426,8 +427,13 @@
         ball.dy=Math.sign(ball.dy||-1)*Math.sqrt(Math.max(1,speed*speed-ball.dx*ball.dx));
       }
 
-      if(ball.dy>0 && ball.y+ball.r>=paddle.y && ball.y-ball.r<=paddle.y+paddle.h && ball.x>=paddle.x && ball.x<=paddle.x+paddle.w){
-        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
+      // Swept paddle collision: fast balls cannot jump from above to below the paddle between frames.
+      const crossedPaddle=ball.dy>0 && prevY+ball.r<=paddle.y && ball.y+ball.r>=paddle.y;
+      if(crossedPaddle && ball.x+ball.r>=paddle.x && ball.x-ball.r<=paddle.x+paddle.w){
+        const travelY=Math.max(1,ball.y-prevY);
+        const t=Math.max(0,Math.min(1,(paddle.y-ball.r-prevY)/travelY));
+        const impactX=prevX+(ball.x-prevX)*t;
+        const hit=Math.max(-1,Math.min(1,(impactX-(paddle.x+paddle.w/2))/(paddle.w/2)));
         const targetSpeed=levelSpeed();
         ball.dx=targetSpeed*0.82*hit;
         ball.dy=-Math.sqrt(Math.max((targetSpeed*0.55)*(targetSpeed*0.55),targetSpeed*targetSpeed-ball.dx*ball.dx));
