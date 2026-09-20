@@ -5829,3 +5829,8 @@ body.game-active .game-meta .meta-pill:has(#rewardPreview){
   background:rgba(120,84,8,.16);
   box-shadow:0 0 14px rgba(250,204,21,.10);
 }
+
+
+/* Shared reward-number pulse */
+.game-meta .meta-pill.earnly-reward-bump:has(#rewardPreview){animation:earnlyRewardBump .34s ease}
+@keyframes earnlyRewardBump{0%{transform:scale(1)}45%{transform:scale(1.06);box-shadow:0 0 20px rgba(250,204,21,.20)}100%{transform:scale(1)}}
