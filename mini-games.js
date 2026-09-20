@@ -137,7 +137,7 @@
   }
 
   function makeBlockGrid() {
-    let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone, lastClear=0;
+    let board, tray, selected, score, lines, piecesPlaced, alive, celebrated100, celebrated250, lastLineMilestone, lastClear=0,lastPlaced=[];
     const wrap = document.createElement('div');
     const grid = document.createElement('div');
     const trayEl = document.createElement('div');
@@ -198,7 +198,7 @@
       for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
         const cell = document.createElement('button');
         cell.type='button';
-        cell.className='mini-cell' + (board[y][x] ? ' filled' : '');
+        cell.className='mini-cell' + (board[y][x] ? ' filled' : '') + (lastPlaced.some(([px,py])=>px===x&&py===y) ? ' just-placed' : '');
         cell.disabled=!alive;
         cell.addEventListener('click',()=>place(x,y));
         grid.append(cell);
@@ -240,7 +240,7 @@
         return;
       }
       const piece=tray[selected];
-      piece.forEach(([dx,dy])=>board[y+dy][x+dx]=1);
+      lastPlaced=piece.map(([dx,dy])=>[x+dx,y+dy]);piece.forEach(([dx,dy])=>board[y+dy][x+dx]=1);
       score += piece.length * 3;
       piecesPlaced++;
       clearLines();
@@ -253,7 +253,7 @@
       }
 
       render();
-      if(lastClear) setTimeout(()=>{if(alive){lastClear=0;render()}},650);
+      setTimeout(()=>{lastPlaced=[]},220);if(lastClear) setTimeout(()=>{if(alive){lastClear=0;render()}},650);
       // Make progression visible without changing Block Grid's scoring or
       // reward economy. Each milestone fires once per run.
       if(score>=100&&!celebrated100){celebrated100=true;Arcade.milestone('🧩 100 points! Board is heating up','score')}
@@ -270,7 +270,7 @@
       start() {
         board=Array.from({length:8},()=>Array(8).fill(0));
         tray=[randomPiece(),randomPiece(),randomPiece()];
-        selected=0;score=0;lines=0;piecesPlaced=0;lastClear=0;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
+        selected=0;score=0;lines=0;piecesPlaced=0;lastClear=0;lastPlaced=[];alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
         render();
       },
       stop(){alive=false}
