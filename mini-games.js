@@ -138,16 +138,28 @@
   ];
 
   function pauseAwareDelay(callback, delay=0) {
-    const due=performance.now()+Math.max(0,delay);
+    let remaining=Math.max(0,delay);
+    let lastChecked=performance.now();
     const wait=()=>{
       if(!running) return;
-      if(miniPaused || performance.now()<due) {
-        setTimeout(wait, Math.min(80,Math.max(16,due-performance.now())));
+      const now=performance.now();
+      if(miniPaused){
+        // Freeze delayed transitions while paused. Without this, a long pause
+        // could silently consume a celebration/mismatch delay and fire the
+        // callback immediately on resume.
+        lastChecked=now;
+        setTimeout(wait,Math.min(80,Math.max(16,remaining)));
         return;
       }
-      callback();
+      remaining-=Math.max(0,now-lastChecked);
+      lastChecked=now;
+      if(remaining<=0){
+        callback();
+        return;
+      }
+      setTimeout(wait,Math.min(80,Math.max(16,remaining)));
     };
-    setTimeout(wait,Math.max(0,delay));
+    setTimeout(wait,Math.min(80,Math.max(0,remaining)));
   }
 
   function makeBlockGrid() {
@@ -1608,6 +1620,13 @@
         ui(0,0);
         draw();
         raf=requestAnimationFrame(loop);
+      },
+      adjustPauseTime(ms){
+        const pausedFor=Math.max(0,Number(ms)||0);
+        if(readyUntil) readyUntil+=pausedFor;
+        if(levelFlashUntil) levelFlashUntil+=pausedFor;
+        if(lastClearAt) lastClearAt+=pausedFor;
+        last=0;
       },
       stop(){
         alive=false;
