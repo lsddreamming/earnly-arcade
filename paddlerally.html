@@ -103,22 +103,30 @@
       Arcade.countdown(()=>{starting=false;running=true;paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     function togglePause(){if(!running)return;if(!paused){paused=true;pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
     pauseButton.addEventListener('click',togglePause);
-    let controlPointer=null;
+    let controlPointer=null,controlLastX=null;
+    function beginRelativeControl(e,target){
+      controlPointer=e.pointerId;controlLastX=e.clientX;
+      try{target?.setPointerCapture?.(e.pointerId)}catch{}
+    }
+    function moveRelative(clientX){
+      if(controlLastX===null){controlLastX=clientX;return}
+      const delta=clientX-controlLastX;controlLastX=clientX;
+      const r=canvas.getBoundingClientRect();
+      paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x+delta*(canvas.width/r.width)));
+    }
     canvas.addEventListener('pointerdown',e=>{
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
-      controlPointer=e.pointerId;
-      moveTo(e.clientX);
-      try{canvas.setPointerCapture?.(e.pointerId)}catch{}
+      beginRelativeControl(e,canvas)
     });
     canvas.addEventListener('pointermove',e=>{
-      if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveTo(e.clientX)}
+      if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveRelative(e.clientX)}
     },{passive:false});
-    const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null};
+    const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null;controlLastX=null};
     canvas.addEventListener('pointerup',stopControl);
     canvas.addEventListener('pointercancel',stopControl);
-    rallyControlZone.addEventListener('pointerdown',e=>{if(!running||paused)return;e.preventDefault();controlPointer=e.pointerId;moveTo(e.clientX);try{rallyControlZone.setPointerCapture?.(e.pointerId)}catch{}});
-    rallyControlZone.addEventListener('pointermove',e=>{if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveTo(e.clientX)}},{passive:false});
+    rallyControlZone.addEventListener('pointerdown',e=>{if(!running||paused)return;e.preventDefault();beginRelativeControl(e,rallyControlZone)});
+    rallyControlZone.addEventListener('pointermove',e=>{if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveRelative(e.clientX)}},{passive:false});
     rallyControlZone.addEventListener('pointerup',stopControl);rallyControlZone.addEventListener('pointercancel',stopControl);
 
     document.addEventListener('pointerdown',e=>{
@@ -127,13 +135,12 @@
       if(!bottomControl&&!Arcade.inExpandedGameZone(e,canvas,130))return;
       e.preventDefault();
       if(!running){if(!starting)startGame();return}
-      controlPointer=e.pointerId;
-      moveTo(e.clientX);
+      beginRelativeControl(e,e.target);
     },{passive:false});
     document.addEventListener('pointermove',e=>{
       if(!running||paused||controlPointer!==e.pointerId)return;
       e.preventDefault();
-      moveTo(e.clientX);
+      moveRelative(e.clientX);
     },{passive:false});
     document.addEventListener('touchmove',e=>{
       if(!running||paused||controlPointer===null)return;
