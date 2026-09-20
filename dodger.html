@@ -175,7 +175,8 @@
       if(!running) return;
 
       if(!startTime) startTime=now;
-      const seconds=Math.min(30,Math.floor((now-startTime)/1000));
+      const elapsed=Math.max(0,now-startTime);
+      const seconds=Math.min(30,Math.floor(elapsed/1000));
 
       if(!nextSpawnAt) nextSpawnAt=now+760;
       if(now>=nextSpawnAt){
@@ -227,7 +228,7 @@
 
       draw();
 
-      if(seconds>=30){
+      if(elapsed>=30000){
         finishGame(true,30);
         return;
       }
