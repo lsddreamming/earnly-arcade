@@ -1959,6 +1959,29 @@ const Arcade = (() => {
 
     const value = overlay.querySelector('.countdown-value');
     let remaining = seconds;
+
+    // Countdown is a transition, not gameplay. Swallow taps/swipes/keys here
+    // so a start tap or impatient extra press cannot carry into the fresh run.
+    overlay.style.pointerEvents = 'auto';
+    const blockCountdownInput = event => {
+      if (!overlay.classList.contains('show')) return;
+      if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Escape')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','click'].forEach(type => {
+      overlay.addEventListener(type, blockCountdownInput, {capture:true, passive:false});
+    });
+    window.addEventListener('keydown', blockCountdownInput, {capture:true, passive:false});
+
+    const cleanupCountdownInput = () => {
+      ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','click'].forEach(type => {
+        overlay.removeEventListener(type, blockCountdownInput, {capture:true});
+      });
+      window.removeEventListener('keydown', blockCountdownInput, {capture:true});
+      overlay.style.pointerEvents = '';
+    };
+
     overlay.classList.add('show');
 
     const tick = () => {
@@ -1978,6 +2001,7 @@ const Arcade = (() => {
         feedback('go');
         setTimeout(() => {
           overlay.classList.remove('show');
+          cleanupCountdownInput();
           if (typeof done === 'function') done();
         }, 430);
       }
