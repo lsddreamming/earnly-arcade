@@ -83,6 +83,11 @@
     @keyframes trafficShake{0%,100%{translate:0 0}25%{translate:-5px 0}75%{translate:5px 0}}
     .mini-help{color:#94a3b8;font-size:11px;margin:8px 16px 14px;text-align:center}
     .mini-canvas{display:block;width:100%;height:auto;touch-action:none}
+    .run-reward-pill{transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease}
+    body.game-active .run-reward-pill{border-color:rgba(250,204,21,.52)!important;background:rgba(120,84,8,.20)!important;color:#fde68a!important;box-shadow:0 0 0 1px rgba(250,204,21,.08),0 0 14px rgba(250,204,21,.08)}
+    body.game-active .run-reward-pill #rewardPreview{color:#fff7b2;font-weight:900}
+    .run-reward-pill.reward-bump{animation:runRewardBump .34s ease}
+    @keyframes runRewardBump{0%{transform:scale(1)}45%{transform:scale(1.06);box-shadow:0 0 0 2px rgba(250,204,21,.18),0 0 20px rgba(250,204,21,.18)}100%{transform:scale(1)}}
     /* Mini games need the playfield on screen quickly, especially on phones. */
     @media(max-width:600px){
       .page-header{margin:7px 0 9px}
@@ -341,7 +346,7 @@
       <div class="game-meta" role="group" aria-label="Current game stats">
         <span class="meta-pill"><span id="scoreLabel">Score</span>: <span id="score">0</span></span>
         <span class="meta-pill"><span id="secondaryLabel">Level</span>: <span id="secondary">1</span></span>
-        <span class="meta-pill">Run Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill run-reward-pill" id="runRewardPill" aria-label="Arcade Coins earned this run">Run Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <span class="game-status" id="gameStatus" role="status" aria-live="polite">Ready</span>
