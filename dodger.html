@@ -94,6 +94,7 @@
     let lastSpawn=0;
     let dodged=0;
     let animation=null;
+    let lastFrame=0;
 
     function rewardFor(seconds,dodgedCount){
       let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
@@ -159,7 +160,9 @@
         lastSpawn=now;
       }
 
-      obstacles.forEach(o=>o.y+=o.speed);
+      const frameScale=lastFrame?Math.min(2,(now-lastFrame)/16.667):1;
+      lastFrame=now;
+      obstacles.forEach(o=>o.y+=o.speed*frameScale);
 
       const survivors=[];
       for(const o of obstacles){
@@ -306,6 +309,7 @@
 
       obstacles=[];
       player.x=(canvas.width-player.w)/2;
+      lastFrame=0;
       startTime=0;
       lastSpawn=0;
       dodged=0;
@@ -333,8 +337,8 @@
 
     Arcade.installPauseControl({
       isRunning:()=>running,
-      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;},
-      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;animation=requestAnimationFrame(loop);}
+      pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;dragging=false;dragPointer=null;lastFrame=0;},
+      resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;lastFrame=0;animation=requestAnimationFrame(loop);}
     });
     startButton.addEventListener('click',startGame);
     refreshChrome();
