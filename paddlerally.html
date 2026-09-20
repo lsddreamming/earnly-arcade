@@ -111,8 +111,12 @@
         // Keep accelerating throughout long rallies instead of capping near 2x.
         const currentMag=Math.hypot(ball.dx,ball.dy);
         const mag=currentMag*1.045;
-        ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();Arcade.feedback('hit');
-        if(score===8)paddle.w=78;if(score===18)paddle.w=68;
+        ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();
+        // Keep normal returns quiet enough that long rallies do not become a wall of feedback.
+        if(score===1||score%5===0)Arcade.feedback('hit');
+        if(score===8)paddle.w=78;
+        if(score===18)paddle.w=68;
+        if(score===30)paddle.w=60;
       }
       if(ball.y-ball.r>canvas.height){finish();return}draw();animation=requestAnimationFrame(loop);
     }
