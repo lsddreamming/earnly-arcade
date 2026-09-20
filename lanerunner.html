@@ -112,7 +112,7 @@
       obstacles.forEach(o=>drawCar(lanes[o.lane],o.y,false,o.variant||0));
       drawCar(lanes[lane],465,true,0);
     }
-    function finish(){if(!running)return;running=false;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
+    function finish(){if(!running)return;running=false;pauseStartedAt=0;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
       requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
     function loop(now){
       if(!running)return;
@@ -147,9 +147,16 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;},resume:()=>{const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;lastFrame=0;animation=requestAnimationFrame(loop);}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running||pauseStartedAt)return;
+      pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;
+    },resume:()=>{
+      if(!running||!pauseStartedAt)return;
+      const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;lastFrame=0;cancelAnimationFrame(animation);animation=null;animation=requestAnimationFrame(loop);
+    }});
     let swipeStartX=null,swipeStartY=null,swipeLastX=null,swipeChangedLane=false;
     canvas.addEventListener('pointerdown',e=>{
+      if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
       if(!running){if(!starting)startGame();swipeStartX=null;swipeStartY=null;return}
       swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false;
@@ -167,7 +174,7 @@
       swipeChangedLane=false;
     },{passive:false});
     canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
-    function laneSwipeStart(e){if(!running)return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false}
+    function laneSwipeStart(e){if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false}
     function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(!swipeChangedLane&&Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1))}swipeChangedLane=false}
     function laneSwipeMove(e){if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}}
     laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointermove',laneSwipeMove,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
