@@ -513,6 +513,7 @@
     if (!autoSyncEnabled()) return { skipped:'disabled' };
     if (!navigator.onLine) {
       localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
+      window.dispatchEvent(new CustomEvent('earnly-cloud-offline-pending', { detail:{ reason } }));
       return { skipped:'offline' };
     }
 
@@ -551,7 +552,13 @@
       });
       result.rewardSync = rewardSync;
       retryAttempt = 0;
+      const recoveredOffline = !!localStorage.getItem('arcadeCloudOfflinePending');
       localStorage.removeItem('arcadeCloudOfflinePending');
+      if (recoveredOffline) {
+        window.dispatchEvent(new CustomEvent('earnly-cloud-recovered', {
+          detail:{ reason, updatedAt:result?.save?.updated_at || localStorage.getItem('arcadeLastCloudSave') || null }
+        }));
+      }
       return result;
     } catch (error) {
       localStorage.setItem('arcadeCloudSyncError', String(error?.message || error));
