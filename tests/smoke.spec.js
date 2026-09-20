@@ -54,6 +54,19 @@ test('games page links into playable games', async ({ page }) => {
   expect(await links.count()).toBeGreaterThan(0);
 });
 
+test('games catalog keeps disabled actions readable and avoids duplicate mobile Home control', async ({ page }) => {
+  await page.goto('/games.html');
+  const play = page.locator('#games .game-play-button').first();
+  await play.evaluate(node => { node.disabled = true; });
+  await expect(play).toHaveCSS('opacity', '1');
+  await expect(play).toHaveCSS('color', 'rgb(203, 213, 225)');
+
+  const backHome = page.locator('.games-back-home');
+  const width = page.viewportSize()?.width || 1280;
+  if (width < 700) await expect(backHome).toBeHidden();
+  else await expect(backHome).toBeVisible();
+});
+
 test('core navigation never points to a missing internal page', async ({ page }) => {
   const entryPages = ['/index.html','/games.html','/rewards.html','/profile.html','/account.html','/settings.html','/stats.html'];
   const hrefs = new Set();
