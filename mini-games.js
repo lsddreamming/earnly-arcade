@@ -32,6 +32,7 @@
   helpEl.textContent = config.help;
   document.body.classList.toggle('mini-traffic', key === 'trafficEscape');
   document.body.classList.toggle('mini-blockGrid', key === 'blockGrid');
+  document.body.classList.toggle('mini-mergeRush', key === 'mergeRush');
 
   let running = false;
   let starting = false;
@@ -334,9 +335,9 @@
         highTile < 128 ? 'Next target: 128' : 'Next target: ' + nextTarget;
       goal.classList.toggle('goal-hit', highTile >= 128);
 
-      if(highTile>=64&&!celebrated64){celebrated64=true;Arcade.milestone('🔢 64 reached — halfway to 128!','score')}
-      if(highTile>=128&&!celebrated128){celebrated128=true;Arcade.milestone('🎉 128 reached! Keep going for 256','perfect')}
-      if(highTile>=256&&!celebrated256){celebrated256=true;Arcade.milestone('🔥 256 reached! Huge run','perfect')}
+      if(highTile>=64&&!celebrated64){celebrated64=true;Arcade.feedback('score')}
+      if(highTile>=128&&!celebrated128){celebrated128=true;Arcade.feedback('perfect')}
+      if(highTile>=256&&!celebrated256){celebrated256=true;Arcade.feedback('perfect')}
     }
 
     function compress(line) {
