@@ -173,7 +173,13 @@
     document.addEventListener('pointercancel',stopControl);
     window.addEventListener('blur',clearRallyControl);
     document.addEventListener('visibilitychange',()=>{if(document.hidden)clearRallyControl()});
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'){e.preventDefault();paddle.x=Math.max(0,paddle.x-28)}if(e.key==='ArrowRight'){e.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+28)}});
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}
+      if((e.key===' '||e.key==='p'||e.key==='P')&&running){e.preventDefault();togglePause();return}
+      if(!running||paused)return;
+      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();paddle.x=Math.max(0,paddle.x-28)}
+      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+28)}
+    });
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
   </script>
