@@ -300,6 +300,17 @@
       body.game-active{
         -webkit-text-size-adjust:100%;
       }
+      /* Keep active mini-game controls comfortably tappable without making the HUD bulky. */
+      @media(max-width:600px){
+        body.game-active .mini-surface button:not(.traffic-car):not(.fit-answer):not(.piece-button){
+          min-width:44px;
+          min-height:44px;
+        }
+        body.game-active .mini-surface button:focus-visible{
+          outline:2px solid #93c5fd!important;
+          outline-offset:2px!important;
+        }
+      }
 </style>
 </head>
 <body>
