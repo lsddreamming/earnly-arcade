@@ -200,13 +200,20 @@
         const best = Arcade.best(info.key);
         const card = document.createElement('section');
         card.className = 'card game-card compact-game catalog-tile';
+        card.dataset.game = info.key;
         if (recommendedKeys.has(info.key)) card.classList.add('recommended-game');
 
         const heading = document.createElement('div');
         heading.className = 'game-title-row';
 
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'game-name-wrap';
+        const gameIcon = document.createElement('span');
+        gameIcon.className = 'game-icon-bubble';
+        gameIcon.textContent = info.icon;
         const title = document.createElement('h2');
-        title.textContent = info.icon + ' ' + info.name;
+        title.textContent = info.name;
+        titleWrap.append(gameIcon, title);
 
         const actions = document.createElement('div');
         actions.className = 'game-title-actions';
@@ -226,7 +233,7 @@
         playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
 
         actions.append(favorite, playCount);
-        heading.append(title, actions);
+        heading.append(titleWrap, actions);
 
         const rule = document.createElement('p');
         rule.className = 'reward-rule';
