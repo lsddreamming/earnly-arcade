@@ -4917,3 +4917,70 @@ body.earnly-gameplay-locked{
     height:auto!important;
   }
 }
+
+
+/* 0.15.37 Games catalog redesign: compact browse rows on phones.
+   One game per row removes the uneven masonry look and makes scanning easier. */
+@media (max-width:699px){
+  body.games-dashboard #games.compact-catalog-grid{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+  body.games-dashboard #games .catalog-tile{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-areas:
+      "badge badge"
+      "title action"
+      "rule action"
+      "best action"
+      "status status"!important;
+    column-gap:10px!important;
+    row-gap:4px!important;
+    width:100%!important;
+    min-height:0!important;
+    padding:11px 12px!important;
+    border-radius:16px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-recommended-badge{
+    grid-area:badge!important;margin:0 0 2px!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-row{
+    grid-area:title!important;display:flex!important;align-items:center!important;
+    gap:7px!important;min-width:0!important;
+  }
+  body.games-dashboard #games .catalog-tile h2{
+    font-size:16px!important;line-height:1.15!important;margin:0!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-title-actions{
+    margin:0!important;display:flex!important;align-items:center!important;gap:5px!important;
+  }
+  body.games-dashboard #games .catalog-tile .favorite-button{
+    width:30px!important;height:30px!important;min-width:30px!important;
+  }
+  body.games-dashboard #games .catalog-tile .play-pill{
+    min-height:30px!important;padding:4px 8px!important;font-size:10px!important;
+  }
+  body.games-dashboard #games .catalog-tile .reward-rule{
+    grid-area:rule!important;margin:1px 0!important;min-height:0!important;max-height:none!important;
+    font-size:10px!important;line-height:1.25!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-best{
+    grid-area:best!important;margin:1px 0!important;min-height:0!important;
+    font-size:9px!important;line-height:1.2!important;
+  }
+  body.games-dashboard #games .catalog-tile .game-best[hidden]{display:none!important}
+  body.games-dashboard #games .catalog-tile .game-play-button{
+    grid-area:action!important;align-self:center!important;
+    width:108px!important;min-width:108px!important;height:44px!important;min-height:44px!important;
+    margin:0!important;padding:6px 8px!important;font-size:12px!important;border-radius:12px!important;
+  }
+  body.games-dashboard #games .catalog-tile .status-line{
+    grid-area:status!important;margin:3px 0 0!important;padding:6px 8px!important;
+    font-size:9px!important;line-height:1.25!important;
+  }
+  body.games-dashboard #games .catalog-tile:has(.status-line) .game-play-button{
+    width:132px!important;min-width:132px!important;font-size:10px!important;
+  }
+}
