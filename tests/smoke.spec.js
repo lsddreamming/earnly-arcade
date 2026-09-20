@@ -528,6 +528,29 @@ test('Coin Catch reward curve lasts into deep runs and awards performance XP', a
   expect(xp.elite).toBe(30);
 });
 
+test('Coin Catch keeps live instructions visible long enough to read', async ({ page }) => {
+  await page.goto('/coincatch.html');
+  await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+  await page.reload();
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3400);
+
+  const tip = page.locator('#catchLiveTip');
+  await expect(tip).toBeVisible();
+  await expect(tip).toContainText('Swipe anywhere');
+  await expect(tip).toContainText('Catch coins');
+  await expect(tip).toContainText('Avoid bombs');
+
+  const pause = page.locator('.earnly-pause-button');
+  if (await pause.isVisible()) {
+    const pauseBox = await pause.boundingBox();
+    const tipBox = await tip.boundingBox();
+    expect(pauseBox).not.toBeNull();
+    expect(tipBox).not.toBeNull();
+    expect(tipBox.y).toBeGreaterThanOrEqual(pauseBox.y + pauseBox.height + 6);
+  }
+});
+
 test('Coin Catch accepts drag input at the very bottom of the screen', async ({ page }) => {
   await page.goto('/coincatch.html');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
