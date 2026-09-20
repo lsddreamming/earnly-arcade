@@ -800,3 +800,26 @@ test('player journey cloud contract includes mission and bonus-play state', asyn
   expect(serialized).toContain('shapeFitBonusPlays');
   expect(serialized).toContain('shapeFitPlayAdUnlocks');
 });
+
+
+test('paused gameplay keeps mobile scroll lock', async ({ page }) => {
+  await page.goto('/mini.html?game=perfectDrop');
+  await page.evaluate(() => {
+    const status = document.querySelector('#gameStatus');
+    status.classList.add('running');
+  });
+  await page.waitForTimeout(60);
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+
+  await page.evaluate(() => {
+    const status = document.querySelector('#gameStatus');
+    status.classList.remove('running');
+    document.body.classList.add('earnly-game-paused');
+  });
+  await page.waitForTimeout(60);
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+
+  await page.evaluate(() => document.body.classList.remove('earnly-game-paused'));
+  await page.waitForTimeout(60);
+  await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked/);
+});
