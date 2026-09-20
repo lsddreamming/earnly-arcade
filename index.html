@@ -644,10 +644,25 @@
       render();
     });
 
-    window.addEventListener('pageshow', render);
+    function resetHomeViewport() {
+      if (location.hash) return;
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      // iPhone Safari can restore an old Home-page offset, then move again as
+      // dynamic Home cards render. Two RAFs reset after that first layout pass.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => window.scrollTo({ top:0, left:0, behavior:'auto' }));
+      });
+    }
+
+    window.addEventListener('pageshow', () => {
+      render();
+      resetHomeViewport();
+    });
     window.addEventListener('focus', render);
     window.addEventListener('storage', render);
+    document.documentElement.style.overflowAnchor = 'none';
     render();
+    resetHomeViewport();
     refreshHomeAccountShortcut();
 
     // New testers need the quick explanation before they begin tapping around.
