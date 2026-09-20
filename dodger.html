@@ -97,6 +97,7 @@
     let lastFrame=0;
     let nextSpawnAt=0;
     let dragAnchorClientX=null;
+    let lastSecondShown=-1;
 
     function rewardFor(seconds,dodgedCount){
       let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
@@ -202,8 +203,14 @@
       }
       obstacles=survivors;
 
-      timeEl.textContent=seconds;
-      rewardPreviewEl.textContent=rewardFor(seconds,dodged);
+      if(seconds!==lastSecondShown){
+        lastSecondShown=seconds;
+        timeEl.textContent=seconds;
+        rewardPreviewEl.textContent=rewardFor(seconds,dodged);
+        if(seconds===10) setStatus('Speeding Up','running');
+        else if(seconds===20) setStatus('Final Stretch','running');
+        else if(seconds===11 || seconds===21) setStatus('Running','running');
+      }
 
       draw();
 
@@ -356,6 +363,7 @@
       lastSpawn=0;
       nextSpawnAt=0;
       dodged=0;
+      lastSecondShown=-1;
       timeEl.textContent='0';
       dodgedEl.textContent='0';
       rewardPreviewEl.textContent='0';
