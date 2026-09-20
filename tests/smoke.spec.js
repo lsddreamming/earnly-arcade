@@ -456,6 +456,14 @@ test('game start screen explains plays reward and controls before play', async (
   await expect(page.locator('#startButton')).toBeVisible();
 });
 
+test('mini games surface the live run reward clearly', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  const pill = page.locator('#runRewardPill');
+  await expect(pill).toBeVisible();
+  await expect(pill).toContainText('Run Reward');
+  await expect(page.locator('#rewardPreview')).toHaveText('0');
+});
+
 test('pre-game summary gets out of the way once gameplay starts', async ({ page }) => {
   await page.goto('/coincatch.html');
   const summary = page.locator('.game-start-summary');
