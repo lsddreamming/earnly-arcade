@@ -1690,7 +1690,7 @@
 
     const cell=55;
     const boardsNeeded=()=>level===1?2:level===2?3:level===3?4:level===4?5:level===5?6:7;
-    const roundSeconds=()=>[0,18,16,14,12,11,10,9][Math.min(7,level)];
+    const roundSeconds=()=>[0,16,14,12,10,9,8,7][Math.min(7,level)];
 
     function stopTimer(){
       if(timerId){clearInterval(timerId);timerId=null;}
@@ -1707,7 +1707,7 @@
       let lastTickAt=boardStartedAt;
       render();
       timerId=setInterval(()=>{
-        if(!alive||locked||miniPaused){lastTickAt=performance.now();return;}
+        if(!alive||miniPaused){lastTickAt=performance.now();return;}
         const now=performance.now();
         const elapsed=Math.max(0,now-lastTickAt);
         if(elapsed<900)return;
@@ -1790,9 +1790,9 @@
     let recentTrafficSignatures=[];
 
     function randomTrafficBoard(){
-      const targetCars=[0,6,7,8,8,9,9,9][Math.min(7,level)];
-      const minBlocked=Math.min(targetCars-1,[0,3,4,5,6,6,7,7][Math.min(7,level)]);
-      const maxInitiallyFree=level<=1?2:1;
+      const targetCars=[0,6,7,8,9,9,10,10][Math.min(7,level)];
+      const minBlocked=Math.min(targetCars-1,[0,5,6,7,8,8,9,9][Math.min(7,level)]);
+      const maxInitiallyFree=1;
 
       for(let attempt=0;attempt<240;attempt++){
         const candidate=[];
@@ -1800,7 +1800,7 @@
           let placed=false;
           for(let tries=0;tries<100&&!placed;tries++){
             const h=Math.random()<.5;
-            const len=Math.random()<(level>=4?.46:level>=2?.28:.18)?3:2;
+            const len=Math.random()<(level>=4?.52:level>=2?.34:.20)?3:2;
             const x=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?len:1)+1));
             const y=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?1:len)+1));
             const car={x,y,len,h,dir:Math.random()<.5?-1:1,seedId:id};
@@ -1993,7 +1993,7 @@
       cars.forEach((car,idx)=>{
         const b=document.createElement('button');
         b.type='button';
-        b.className='traffic-car'+(canExit(car)?' clear-path':'');
+        b.className='traffic-car';
         b.style.left=(car.x*cell+3)+'px';
         b.style.top=(car.y*cell+3)+'px';
         b.style.width=((car.h?car.len:1)*cell-6)+'px';
@@ -2003,7 +2003,7 @@
         const arrow=car.h ? (car.dir>0?'→':'←') : (car.dir>0?'↓':'↑');
         b.innerHTML='<span class="traffic-emoji">🚗</span><span class="traffic-arrow">'+arrow+'</span>';
         const directionName=({'→':'right','←':'left','↑':'up','↓':'down'}[arrow]||arrow);
-        b.setAttribute('aria-label','Car pointing '+directionName+(canExit(car)?' · clear path':' · path blocked'));
+        b.setAttribute('aria-label','Car pointing '+directionName);
         b.addEventListener('click',()=>tapCar(car,b));
         grid.append(b);
       });
