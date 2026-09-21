@@ -1,5 +1,5 @@
 name: Earnly signed iOS build
-# Push-triggered runs validate the App Store 1.0 source, run release contracts, and use test AdMob IDs.
+# Push-triggered runs validate the App Store 1.0 source, run release contracts, use test AdMob IDs, and reject stale gameplay hints.
 
 on:
   push:
