@@ -117,10 +117,10 @@
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
       overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
       tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
-    const lanes=[72,180,288];let lane=1,targetLane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
+    const lanes=[72,180,288];let lane=1,targetLane=1,playerX=lanes[1],obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
     function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
-    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;playerX=lanes[1];obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function drawCar(x,y,isPlayer,variant){
       ctx.save();ctx.translate(x,y);
       const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
@@ -139,16 +139,39 @@
       ctx.restore();
     }
     function draw(){
-      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#0b1220');sky.addColorStop(1,'#111827');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='#162033';ctx.fillRect(0,0,20,canvas.height);ctx.fillRect(340,0,20,canvas.height);
-      for(let y=-40+(roadOffset*2)%70;y<canvas.height;y+=70){ctx.fillStyle='#22c55e';ctx.fillRect(5,y,8,26);ctx.fillRect(347,y,8,26);ctx.fillStyle='#64748b';ctx.fillRect(3,y+31,12,4);ctx.fillRect(345,y+31,12,4)}
-      ctx.fillStyle='#475569';ctx.fillRect(20,0,320,canvas.height);
-      ctx.fillStyle='#1f2937';ctx.fillRect(30,0,300,canvas.height);
-      ctx.fillStyle='#f8fafc';ctx.globalAlpha=.72;ctx.fillRect(27,0,3,canvas.height);ctx.fillRect(330,0,3,canvas.height);ctx.globalAlpha=1;
-      ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;ctx.setLineDash([24,20]);ctx.lineDashOffset=roadOffset;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);ctx.lineDashOffset=0;
-      ctx.fillStyle='rgba(15,23,42,.84)';ctx.beginPath();ctx.roundRect(38,12,112,28,6);ctx.fill();ctx.fillStyle='#e2e8f0';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#06111f');sky.addColorStop(1,'#0a1524');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // Calm neon roadway: no bright moving white dashes. Traffic supplies the
+      // sense of speed while the road remains easy on the eyes.
+      ctx.fillStyle='#091525';ctx.fillRect(0,0,24,canvas.height);ctx.fillRect(336,0,24,canvas.height);
+      const road=ctx.createLinearGradient(24,0,336,0);
+      road.addColorStop(0,'#111c2b');road.addColorStop(.16,'#152131');road.addColorStop(.5,'#172434');road.addColorStop(.84,'#152131');road.addColorStop(1,'#111c2b');
+      ctx.fillStyle=road;ctx.fillRect(24,0,312,canvas.height);
+
+      // Soft shoulder glow replaces the harsh white edge lines.
+      ctx.fillStyle='rgba(34,211,238,.18)';ctx.fillRect(27,0,2,canvas.height);ctx.fillRect(331,0,2,canvas.height);
+      ctx.fillStyle='rgba(59,130,246,.08)';ctx.fillRect(29,0,5,canvas.height);ctx.fillRect(326,0,5,canvas.height);
+
+      // Fixed, low-contrast lane guides avoid flicker while keeping lanes clear.
+      ctx.save();
+      ctx.strokeStyle='rgba(125,211,252,.16)';
+      ctx.lineWidth=2;
+      ctx.shadowColor='rgba(34,211,238,.12)';
+      ctx.shadowBlur=5;
+      [126,234].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});
+      ctx.restore();
+
+      // A gentle glow under the player's lane gives orientation without motion.
+      const laneGlow=ctx.createRadialGradient(playerX,465,8,playerX,465,86);
+      laneGlow.addColorStop(0,'rgba(34,211,238,.11)');laneGlow.addColorStop(1,'rgba(34,211,238,0)');
+      ctx.fillStyle=laneGlow;ctx.fillRect(Math.max(24,playerX-92),372,184,150);
+
+      ctx.fillStyle='rgba(6,17,31,.82)';ctx.beginPath();ctx.roundRect(38,12,112,28,8);ctx.fill();
+      ctx.strokeStyle='rgba(56,189,248,.18)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#cbd5e1';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+
       obstacles.forEach(o=>drawCar(lanes[o.lane],o.y,false,o.variant||0));
-      drawCar(lanes[lane],465,true,0);
+      drawCar(playerX,465,true,0);
     }
     function finish(){if(!running)return;running=false;pauseStartedAt=0;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
       requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
@@ -156,7 +179,7 @@
       if(!running)return;
       if(!lastFrame)lastFrame=now;
       const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
-      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;timeEl.textContent=String(seconds);refreshReward();
+      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;playerX+=(lanes[targetLane]-playerX)*Math.min(1,.24*dt);timeEl.textContent=String(seconds);refreshReward();
       const spawnGap=Math.max(330,880-seconds*9);
       if(!lastSpawn||now-lastSpawn>=spawnGap){
         let nextLane=Math.floor(Math.random()*3);
