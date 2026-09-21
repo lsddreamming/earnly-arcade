@@ -848,17 +848,19 @@ test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
 });
 
 
-test('Traffic Escape exposes fast-road and path feedback', async ({ page }) => {
+test('Traffic Escape keeps fast-road feedback without revealing the safe car', async ({ page }) => {
   const jsResponse = await page.request.get('/mini-games.js');
   const source = await jsResponse.text();
   expect(source).toContain("Arcade.milestone('⚡ Fast road · '");
   expect(source).toContain("'⚡ Fast roads: '+fastClears");
   expect(source).toContain("'🏁 Best road: '");
-  expect(source).toContain("' clear-path':'')");
+  expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
+  expect(source).toContain("if(!alive||miniPaused){lastTickAt=performance.now();return;}");
+  expect(source).not.toContain("' clear-path':'')");
 
   const htmlResponse = await page.request.get('/mini.html');
   const html = await htmlResponse.text();
-  expect(html).toContain('.traffic-car.clear-path');
+  expect(html).not.toContain('.traffic-car.clear-path');
 });
 
 
