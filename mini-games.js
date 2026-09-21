@@ -1794,7 +1794,7 @@
       const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8][Math.min(7,level)]);
       const maxInitiallyFree=2;
 
-      for(let attempt=0;attempt<240;attempt++){
+      for(let attempt=0;attempt<400;attempt++){
         const candidate=[];
         for(let id=0;id<targetCars;id++){
           let placed=false;
@@ -1825,9 +1825,21 @@
         return candidate.map(({seedId,...car})=>car);
       }
 
-      // Extremely unlikely fallback: build a different simple solvable road
-      // rather than reusing one recognizable authored pattern.
-      const fallback=[
+      // Extremely unlikely fallback. Early levels keep a simpler road, while
+      // later levels fall back to a dense, solver-verified 10-car board so
+      // generator exhaustion never becomes an accidental easy round.
+      const fallback=level>=4?[
+        {x:3,y:3,len:3,h:false,dir:-1},
+        {x:4,y:5,len:2,h:true,dir:-1},
+        {x:0,y:1,len:2,h:false,dir:1},
+        {x:0,y:4,len:2,h:true,dir:1},
+        {x:2,y:2,len:2,h:true,dir:1},
+        {x:5,y:0,len:3,h:false,dir:-1},
+        {x:5,y:3,len:2,h:false,dir:-1},
+        {x:1,y:0,len:3,h:true,dir:1},
+        {x:4,y:3,len:2,h:false,dir:1},
+        {x:0,y:3,len:3,h:true,dir:1}
+      ]:[
         {x:0,y:0,len:2,h:true,dir:-1},
         {x:3,y:0,len:2,h:false,dir:-1},
         {x:1,y:2,len:2,h:true,dir:1},
