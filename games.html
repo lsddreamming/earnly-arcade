@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Games</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=6">
 </head>
 <body class="games-dashboard">
   <main class="container">
@@ -269,7 +269,11 @@
           else if (adStatus.remaining > 0) Arcade.out(info.key, render);
         });
 
-        card.append(heading, rule, bestLine, play);
+        const footer = document.createElement('div');
+        footer.className = 'game-card-footer';
+        footer.append(bestLine, play);
+
+        card.append(heading, rule, footer);
 
         if (!remaining) {
           const status = document.createElement('div');
