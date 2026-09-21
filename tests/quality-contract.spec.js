@@ -280,7 +280,8 @@ test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage gu
   expect(configure).toContain('const skAdNetworkBlock');
   expect(configure).toContain('NSUserTrackingUsageDescription');
 
-  expect(workflow).toContain("BUILD_ADMOB_MODE: ${{ inputs.admob_mode || 'test' }}");
+  expect(workflow).toContain("contains(github.event.head_commit.message, '[live]')");
+  expect(workflow).toContain("inputs.admob_mode == 'live'");
   expect(workflow).toContain('Run release contract tests');
   expect(workflow).toContain('Verify native release mode');
   expect(workflow).toContain('earnly-arcade-ios-signed-${{ env.BUILD_ADMOB_MODE }}');
