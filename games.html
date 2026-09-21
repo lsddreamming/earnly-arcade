@@ -216,6 +216,13 @@
         title.textContent = info.name;
         titleWrap.append(gameIcon, title);
 
+        if (recommendedKeys.has(info.key)) {
+          const badge = document.createElement('span');
+          badge.className = 'game-recommended-badge';
+          badge.textContent = '⭐ Starter';
+          titleWrap.append(badge);
+        }
+
         const actions = document.createElement('div');
         actions.className = 'game-title-actions';
 
@@ -239,13 +246,6 @@
         const rule = document.createElement('p');
         rule.className = 'reward-rule';
         rule.textContent = info.note;
-
-        if (recommendedKeys.has(info.key)) {
-          const badge=document.createElement('span');
-          badge.className='game-recommended-badge';
-          badge.textContent='⭐ Easy to start';
-          card.append(badge);
-        }
 
         const bestLine = document.createElement('div');
         bestLine.className = 'game-best';
