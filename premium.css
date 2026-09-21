@@ -1540,3 +1540,109 @@ textarea:focus-visible{
     padding-inline:8px!important;
   }
 }
+
+
+/* Premium pass v6 — explicit compact game footer */
+
+.games-dashboard #games .game-card-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+
+.games-dashboard #games .game-card-footer .game-best{
+  margin:0!important;
+}
+
+.games-dashboard #games .game-card-footer .game-play-button{
+  margin:0!important;
+}
+
+@media(max-width:700px){
+  body.games-dashboard #games .catalog-tile{
+    display:flex!important;
+    flex-direction:column!important;
+    height:auto!important;
+    min-height:0!important;
+    padding:11px 12px 11px 16px!important;
+    gap:7px!important;
+  }
+
+  body.games-dashboard #games .catalog-tile:has(.game-recommended-badge),
+  body.games-dashboard #games .catalog-tile:has(.status-line),
+  body.games-dashboard #games .catalog-tile:has(.game-recommended-badge):has(.status-line){
+    height:auto!important;
+    min-height:0!important;
+    padding-top:11px!important;
+  }
+
+  body.games-dashboard #games .game-title-row{
+    width:100%!important;
+    min-height:38px!important;
+    margin:0!important;
+  }
+
+  body.games-dashboard #games .reward-rule{
+    width:100%!important;
+    padding:0 0 0 46px!important;
+    margin:0!important;
+    min-height:0!important;
+    line-height:1.25!important;
+  }
+
+  body.games-dashboard #games .game-card-footer{
+    width:100%!important;
+    padding-left:46px!important;
+    min-height:40px!important;
+  }
+
+  body.games-dashboard #games .game-card-footer .game-best{
+    flex:0 1 auto!important;
+    justify-self:auto!important;
+    min-width:0!important;
+    max-width:calc(100% - 118px)!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+    font-size:9px!important;
+    padding:3px 7px!important;
+  }
+
+  body.games-dashboard #games .game-card-footer .game-play-button{
+    flex:0 0 108px!important;
+    width:108px!important;
+    min-width:108px!important;
+    height:40px!important;
+    min-height:40px!important;
+    justify-self:auto!important;
+    align-self:auto!important;
+    margin:0!important;
+  }
+
+  body.games-dashboard #games .catalog-tile:has(.status-line) .game-card-footer .game-play-button{
+    flex-basis:145px!important;
+    width:145px!important;
+    min-width:145px!important;
+  }
+
+  body.games-dashboard #games .status-line{
+    width:calc(100% - 46px)!important;
+    margin:0 0 0 46px!important;
+  }
+}
+
+@media(max-width:390px){
+  body.games-dashboard #games .game-card-footer{
+    padding-left:0!important;
+  }
+
+  body.games-dashboard #games .reward-rule{
+    padding-left:0!important;
+  }
+
+  body.games-dashboard #games .game-card-footer .game-best{
+    max-width:calc(100% - 108px)!important;
+  }
+}
