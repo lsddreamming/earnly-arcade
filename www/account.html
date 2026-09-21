@@ -15,6 +15,13 @@
   <title>Earnly Account & Data</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css">
+  <style>
+    .cloud-delete-zone{margin-top:14px;padding:14px;border:1px solid rgba(248,113,113,.28);border-radius:16px;background:rgba(127,29,29,.10)}
+    .cloud-delete-zone strong{display:block;color:#fecaca;margin-bottom:5px}
+    .cloud-delete-zone span{display:block;color:#aebbd0;font-size:.88rem;line-height:1.45;margin-bottom:10px}
+    button.danger,.button.danger{background:linear-gradient(135deg,#b91c1c,#dc2626)!important;border-color:rgba(252,165,165,.34)!important;color:#fff!important}
+    button.danger:disabled{opacity:.65!important}
+  </style>
 </head>
 <body>
   <main class="container">
@@ -121,10 +128,16 @@
           <button class="secondary" id="cloudRestoreButton" type="button">↩️ Restore Cloud Save</button>
         </div>
         <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
+
+        <div class="cloud-delete-zone">
+          <strong>Delete Earnly account</strong>
+          <span>Permanently deletes your Earnly login and server-stored profile, cloud save, Coin balance, and Coin ledger. Local progress on this device stays available as guest progress unless you reset it separately.</span>
+          <button class="mini-button danger" id="cloudDeleteButton" type="button">Delete Account</button>
+        </div>
       </div>
 
       <div class="data-note cloud-message" id="cloudMessage" aria-live="polite">
-        Cloud saves are private to your signed-in account. Cash redemption is not available in this version.
+        Cloud saves are private to your signed-in account. Arcade Coins are in-app points and cannot be redeemed or withdrawn in this version.
       </div>
 
       <div class="cloud-device-meta">
@@ -180,7 +193,7 @@
     <section class="card cloud-safety-card" style="text-align:left">
       <h2>🔐 Cloud & reward protection</h2>
       <p class="muted small" style="margin-bottom:0">
-        Signed-in progress is backed up with Earnly Cloud. Arcade Coin rewards are also reconciled against a secure server wallet. Cash redemption and payment processing are not enabled in this version.
+        Signed-in progress is backed up with Earnly Cloud. Arcade Coin rewards are also reconciled against a secure server ledger. Redemption, withdrawals, and payment processing are not enabled in this version.
       </p>
     </section>
 
@@ -215,6 +228,7 @@
     const cloudResetStatus = document.getElementById('cloudResetStatus');
     const cloudCreateButton = document.getElementById('cloudCreateButton');
     const cloudSignInButton = document.getElementById('cloudSignInButton');
+    const cloudDeleteButton = document.getElementById('cloudDeleteButton');
     const cloudSignupNotice = document.getElementById('cloudSignupNotice');
     const cloudSignupIcon = document.getElementById('cloudSignupIcon');
     const cloudSignupTitle = document.getElementById('cloudSignupTitle');
@@ -683,6 +697,33 @@
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not sign out.';
       }
+    });
+
+    cloudDeleteButton.addEventListener('click', () => {
+      Arcade.panel(
+        'Delete your Earnly account?',
+        'This permanently deletes your Earnly login and server-stored profile, cloud save, Coin balance, and Coin ledger. This cannot be undone. Local progress stored on this device will remain as guest progress unless you reset it separately.',
+        [
+          ['Keep Account', () => {}, 'secondary'],
+          ['Delete My Account', async () => {
+            const originalText = cloudDeleteButton.textContent;
+            cloudDeleteButton.disabled = true;
+            cloudDeleteButton.textContent = 'Deleting…';
+            cloudMessage.textContent = 'Deleting your Earnly account and cloud data…';
+            try {
+              await EarnlyCloud.deleteAccount();
+              cloudMessage.textContent = '✅ Account deleted. This device is now using local guest progress.';
+              Arcade.toast('✅ Earnly account deleted');
+              setTimeout(() => location.reload(), 650);
+            } catch (error) {
+              cloudMessage.textContent = error.message || 'Could not delete the account. Please try again.';
+              Arcade.toast('⚠️ Account deletion failed');
+              cloudDeleteButton.disabled = false;
+              cloudDeleteButton.textContent = originalText;
+            }
+          }, 'danger']
+        ]
+      );
     });
 
     cloudAutoSyncToggle.addEventListener('click', async () => {
