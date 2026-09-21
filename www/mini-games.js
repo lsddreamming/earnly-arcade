@@ -85,7 +85,7 @@
     surface.append(box);
   }
 
-  function finish(metric, secondary, extra = [], title) {
+  function finish(metric, secondary, extra = [], title, badgeText = '') {
     if (finished) return;
     finished = true;
     running = false;
@@ -134,6 +134,7 @@
       result,
       playsLeft,
       game:key,
+      badgeText,
       extra:resultExtra,
       onReplay:()=>{ resultShowing=false; startGame(); },
       onMorePlays:()=>{ resultShowing=false; Arcade.out(key, refreshChrome); }
@@ -1724,7 +1725,8 @@
             cleared,
             level,
             ['🚗 Cars cleared: '+cleared,'🚦 Level reached: '+level,'⏰ Time expired','Clear each road before the timer hits zero.'],
-            cleared>=70?'Traffic Pro':''
+            cleared>=70?'Traffic Pro':'',
+            '⏰ TIME EXPIRED'
           ),260);
           return;
         }
@@ -1905,7 +1907,8 @@
             cleared,
             level,
             ['🚗 Cars cleared: '+cleared,'🚦 Level reached: '+level,'💥 Crashes: 3/3','Reach a clear arrow path before tapping.'],
-            cleared>=70?'Traffic Pro':''
+            cleared>=70?'Traffic Pro':'',
+            '💥 3 CRASHES — RUN OVER'
           ),260);
           return;
         }
