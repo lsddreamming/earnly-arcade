@@ -72,7 +72,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '0.17.0';
+  const APP_VERSION = '1.0.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1617,19 +1617,32 @@ const Arcade = (() => {
       const relevantMissions = daily.missions.filter(mission =>
         mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins'
       );
+      const readyMissions = relevantMissions.filter(mission => mission.complete && !mission.claimed);
 
-      relevantMissions.forEach(mission => {
+      if (readyMissions.length) {
         const line = document.createElement('div');
+        const readyXP = readyMissions.reduce((sum, mission) => sum + Math.max(0, Number(mission.rewardXP) || 0), 0);
         line.className = 'result-highlight result-mission-update';
-        if (mission.claimed) {
-          line.textContent = mission.icon + ' ' + mission.title + ' · Claimed ✓';
-        } else if (mission.complete) {
-          line.textContent = '✅ ' + mission.title + ' complete · +' + mission.rewardXP + ' XP ready to claim';
-        } else {
-          line.textContent = mission.icon + ' ' + mission.title + ' · ' + mission.progress + '/' + mission.goal;
-        }
+        line.textContent = readyMissions.length === 1
+          ? '✅ ' + readyMissions[0].title + ' complete · +' + readyXP + ' XP ready to claim'
+          : '✅ ' + readyMissions.length + ' Daily Missions complete · +' + readyXP + ' XP ready to claim';
         notes.append(line);
-      });
+      } else {
+        const nextMission = relevantMissions
+          .filter(mission => !mission.claimed && !mission.complete)
+          .sort((a,b) => {
+            const aRatio = Math.max(0, Number(a.progress) || 0) / Math.max(1, Number(a.goal) || 1);
+            const bRatio = Math.max(0, Number(b.progress) || 0) / Math.max(1, Number(b.goal) || 1);
+            return bRatio - aRatio;
+          })[0];
+
+        if (nextMission) {
+          const line = document.createElement('div');
+          line.className = 'result-highlight result-mission-update';
+          line.textContent = nextMission.icon + ' ' + nextMission.title + ' · ' + nextMission.progress + '/' + nextMission.goal;
+          notes.append(line);
+        }
+      }
     }
 
     const goalParams = new URLSearchParams(location.search);
@@ -2628,7 +2641,7 @@ const Arcade = (() => {
       ['🎟️','Plays','3 free plays per game each day. Up to 2 rewarded ads can unlock +3 plays each for that game.'],
       ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
       ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
-      ['🎁','Rewards','Arcade Coins are in-app reward points. Cash redemption is not available in this version.']
+      ['🎁','Rewards','Arcade Coins are in-app points, not cash or cryptocurrency. Redemption and withdrawals are not available in this version.']
     ].forEach(([itemIcon,itemTitle,itemText]) => {
       const row = document.createElement('div');
       row.className = 'onboarding-row';
