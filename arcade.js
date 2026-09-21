@@ -1617,19 +1617,32 @@ const Arcade = (() => {
       const relevantMissions = daily.missions.filter(mission =>
         mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins'
       );
+      const readyMissions = relevantMissions.filter(mission => mission.complete && !mission.claimed);
 
-      relevantMissions.forEach(mission => {
+      if (readyMissions.length) {
         const line = document.createElement('div');
+        const readyXP = readyMissions.reduce((sum, mission) => sum + Math.max(0, Number(mission.rewardXP) || 0), 0);
         line.className = 'result-highlight result-mission-update';
-        if (mission.claimed) {
-          line.textContent = mission.icon + ' ' + mission.title + ' · Claimed ✓';
-        } else if (mission.complete) {
-          line.textContent = '✅ ' + mission.title + ' complete · +' + mission.rewardXP + ' XP ready to claim';
-        } else {
-          line.textContent = mission.icon + ' ' + mission.title + ' · ' + mission.progress + '/' + mission.goal;
-        }
+        line.textContent = readyMissions.length === 1
+          ? '✅ ' + readyMissions[0].title + ' complete · +' + readyXP + ' XP ready to claim'
+          : '✅ ' + readyMissions.length + ' Daily Missions complete · +' + readyXP + ' XP ready to claim';
         notes.append(line);
-      });
+      } else {
+        const nextMission = relevantMissions
+          .filter(mission => !mission.claimed && !mission.complete)
+          .sort((a,b) => {
+            const aRatio = Math.max(0, Number(a.progress) || 0) / Math.max(1, Number(a.goal) || 1);
+            const bRatio = Math.max(0, Number(b.progress) || 0) / Math.max(1, Number(b.goal) || 1);
+            return bRatio - aRatio;
+          })[0];
+
+        if (nextMission) {
+          const line = document.createElement('div');
+          line.className = 'result-highlight result-mission-update';
+          line.textContent = nextMission.icon + ' ' + nextMission.title + ' · ' + nextMission.progress + '/' + nextMission.goal;
+          notes.append(line);
+        }
+      }
     }
 
     const goalParams = new URLSearchParams(location.search);
