@@ -1646,3 +1646,22 @@ textarea:focus-visible{
     max-width:calc(100% - 108px)!important;
   }
 }
+
+
+/* Premium pass v7 — final Games alignment */
+
+.games-dashboard #games .game-card-footer.no-best{
+  justify-content:flex-end;
+}
+
+.games-dashboard #games .game-card-footer.no-best .game-play-button{
+  margin-left:auto!important;
+}
+
+@media(max-width:700px){
+  body.games-dashboard .games-start-here:not(.games-mission-strip) span{
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+  }
+}
