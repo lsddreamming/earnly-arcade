@@ -42,7 +42,7 @@
 
     <section class="games-start-here" aria-label="How to play Earnly">
       <strong>New here? Start in 3 steps</strong>
-      <span>1. Pick any game &nbsp; 2. Play for a score &nbsp; 3. Your results show Coins, XP, and plays left</span>
+      <span>1. Pick a game &nbsp; 2. Play for a score &nbsp; 3. Earn Coins + XP</span>
     </section>
 
     <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
@@ -270,7 +270,7 @@
         });
 
         const footer = document.createElement('div');
-        footer.className = 'game-card-footer';
+        footer.className = 'game-card-footer ' + (best.value ? 'has-best' : 'no-best');
         footer.append(bestLine, play);
 
         card.append(heading, rule, footer);
