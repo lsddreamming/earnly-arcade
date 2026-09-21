@@ -2337,3 +2337,21 @@ textarea:focus-visible{
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
 }
+
+
+/* Premium pass v12 — Profile bottom-nav clearance */
+
+/* The fixed iPhone tab bar must never cover the final Profile shortcuts. */
+@media(max-width:700px){
+  body.profile-dashboard.has-app-nav .profile-container{
+    padding-bottom:max(176px,calc(142px + env(safe-area-inset-bottom)))!important;
+  }
+
+  body.profile-dashboard .profile-shortcuts{
+    margin-bottom:18px!important;
+  }
+
+  body.profile-dashboard .profile-shortcuts a{
+    scroll-margin-bottom:140px;
+  }
+}
