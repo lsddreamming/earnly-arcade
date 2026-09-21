@@ -478,6 +478,19 @@ test('disabled result actions stay readable on mobile', async ({ page }) => {
   await expect(disabled).toHaveCSS('color','rgb(203, 213, 225)');
 });
 
+test('Lane Runner hides mobile navigation while steering', async ({ page }) => {
+  const width = page.viewportSize()?.width || 1280;
+  test.skip(width >= 700, 'Mobile-only gameplay chrome check');
+
+  await page.goto('/lanerunner.html');
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#laneControlZone')).toBeVisible();
+  await expect(page.locator('#arcadeBottomNav')).toBeHidden();
+});
+
 test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
