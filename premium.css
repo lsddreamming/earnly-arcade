@@ -699,3 +699,346 @@ textarea::placeholder{
     animation-iteration-count:1!important;
   }
 }
+
+
+/* Premium pass v2 — arcade depth + mobile polish */
+
+/* Make the product feel more like a native arcade dashboard without
+   changing any existing game/reward behavior. */
+body{
+  min-height:100dvh;
+}
+
+.home-dashboard::after,
+.games-dashboard::after,
+.rewards-dashboard::after,
+.profile-dashboard::after,
+.missions-dashboard::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+  opacity:.18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);
+  background-size:28px 28px;
+  -webkit-mask-image:linear-gradient(to bottom,black,transparent 72%);
+  mask-image:linear-gradient(to bottom,black,transparent 72%);
+}
+
+/* Home hero */
+.home-hero{
+  border:1px solid rgba(93,161,224,.22);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(85,220,255,.12),transparent 34%),
+    linear-gradient(145deg,rgba(18,38,63,.76),rgba(8,19,34,.55));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 34px rgba(0,0,0,.18);
+}
+
+.home-hero-icon{
+  transform:translateZ(0);
+}
+
+.home-hero-copy{
+  min-width:0;
+}
+
+.home-hero h1{
+  text-shadow:0 8px 30px rgba(0,0,0,.24);
+}
+
+.home-primary-play{
+  min-height:82px;
+  border-radius:22px;
+}
+
+.home-primary-play-icon{
+  display:grid;
+  place-items:center;
+  min-width:48px;
+  height:48px;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:15px;
+  background:rgba(3,57,31,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.home-primary-play b{
+  padding:8px 11px;
+  border-radius:12px;
+  background:rgba(0,0,0,.14);
+  white-space:nowrap;
+}
+
+@keyframes earnly-premium-sheen{
+  0%,72%{ transform:translateX(-170%) rotate(18deg); }
+  100%{ transform:translateX(520%) rotate(18deg); }
+}
+
+.home-primary-play::after{
+  animation:earnly-premium-sheen 5.8s ease-in-out infinite;
+}
+
+/* Make the balance / level section read like two premium stat cards */
+.home-overview{
+  padding:0;
+  overflow:hidden;
+}
+
+.home-overview>.home-metric{
+  padding:18px 17px 16px;
+  background:
+    radial-gradient(circle at 90% 0%,rgba(65,159,255,.11),transparent 45%),
+    linear-gradient(145deg,rgba(19,38,62,.94),rgba(10,22,38,.94));
+}
+
+.home-overview>.home-metric:first-child{
+  background:
+    radial-gradient(circle at 90% 0%,rgba(255,193,77,.11),transparent 44%),
+    linear-gradient(145deg,rgba(28,40,58,.97),rgba(11,23,39,.96));
+}
+
+.home-overview>.home-metric:first-child strong{
+  color:#ffd66b;
+  text-shadow:0 0 24px rgba(255,193,77,.12);
+}
+
+.home-overview>.home-metric:nth-child(2) strong{
+  color:#8ee8ff;
+  text-shadow:0 0 22px rgba(85,220,255,.12);
+}
+
+.home-metric-label{
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:#92a8c2;
+}
+
+.home-progress-row{
+  padding:15px 17px 17px;
+  background:rgba(5,15,27,.52);
+}
+
+.home-xp-bar{
+  height:9px;
+}
+
+.home-panel,
+.home-dashboard .continue-card,
+.home-account-shortcut{
+  border-radius:20px;
+}
+
+.home-action-row{
+  min-height:64px;
+}
+
+.home-action-icon{
+  display:grid;
+  place-items:center;
+  width:45px;
+  height:45px;
+  flex:0 0 45px;
+  border:1px solid rgba(88,148,202,.34);
+  border-radius:14px;
+  font-size:22px;
+}
+
+.home-row-button,
+.home-challenge-button{
+  min-height:44px;
+  border-radius:13px;
+  font-weight:900;
+}
+
+.daily-mission-row.claimed{
+  opacity:.78;
+}
+
+.home-progress-tile{
+  border:1px solid rgba(68,121,169,.38);
+  background:linear-gradient(145deg,rgba(20,39,63,.96),rgba(9,22,38,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 12px 28px rgba(0,0,0,.16);
+}
+
+/* Games catalog */
+.games-simple-note{
+  border:1px solid rgba(70,125,177,.34);
+  border-radius:16px;
+  background:rgba(9,24,42,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.catalog-tile{
+  border-radius:22px;
+}
+
+.catalog-tile.recommended-game{
+  border-color:rgba(80,179,255,.55);
+  background:
+    radial-gradient(circle at 90% 0%,rgba(86,221,255,.11),transparent 36%),
+    radial-gradient(circle at 5% 0%,rgba(79,139,255,.10),transparent 34%),
+    linear-gradient(145deg,rgba(23,45,73,.99),rgba(8,22,39,.99));
+}
+
+.game-icon-bubble{
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  flex:0 0 46px;
+  border:1px solid rgba(93,154,211,.38);
+  border-radius:15px;
+  background:
+    radial-gradient(circle at 35% 20%,rgba(93,211,255,.15),transparent 40%),
+    linear-gradient(145deg,#172e4a,#0d1c30);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 9px 20px rgba(0,0,0,.16);
+  font-size:23px;
+}
+
+.game-recommended-badge{
+  border:1px solid rgba(89,207,255,.34);
+  background:rgba(13,66,91,.52);
+  color:#91ebff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.favorite-button{
+  min-width:42px;
+  min-height:42px;
+  border-radius:13px;
+}
+
+.game-play-button{
+  min-height:48px;
+  border-radius:14px;
+  font-size:16px;
+  font-weight:900;
+}
+
+.compact-game .reward-rule{
+  color:#a8bad0;
+  line-height:1.45;
+}
+
+/* Game screen chrome */
+.game-header,
+.game-shell,
+.game-card,
+.game-guide-surface{
+  border-radius:20px;
+}
+
+canvas{
+  border-radius:18px;
+}
+
+.game-result-dialog{
+  border-radius:24px;
+}
+
+/* Rewards */
+.rewards-balance-card{
+  border-radius:24px;
+}
+
+.rewards-balance-card strong{
+  color:#ffd66b;
+}
+
+.rewards-option,
+.rewards-basic-item{
+  border-radius:18px;
+}
+
+/* Native-feeling navigation and touch sizes */
+.bottom-nav{
+  padding-bottom:max(8px,env(safe-area-inset-bottom));
+}
+
+.bottom-nav-item{
+  min-height:54px;
+  border-radius:14px;
+}
+
+.bottom-nav-item.active{
+  background:linear-gradient(180deg,rgba(47,140,255,.12),rgba(47,140,255,.035));
+}
+
+button,
+.button,
+a.home-row-button,
+a.quick-game{
+  -webkit-tap-highlight-color:transparent;
+}
+
+button:focus-visible,
+.button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
+  outline:2px solid #62ddff;
+  outline-offset:3px;
+}
+
+/* Prevent dense desktop-style spacing on iPhone-sized screens */
+@media(max-width:600px){
+  .home-container,
+  .games-dashboard .container,
+  .rewards-container,
+  .profile-container,
+  .missions-container{
+    padding-bottom:calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .home-hero{
+    margin-top:4px;
+    padding:12px 42px 12px 10px;
+  }
+
+  .home-primary-play{
+    min-height:78px;
+    padding-inline:14px;
+  }
+
+  .home-primary-play-copy small{
+    line-height:1.25;
+  }
+
+  .home-section{
+    margin-top:16px;
+  }
+
+  .compact-catalog-grid{
+    gap:13px;
+  }
+
+  .catalog-tile{
+    padding:15px;
+  }
+
+  .game-title-row{
+    gap:10px;
+  }
+}
+
+@media(max-width:360px){
+  .home-primary-play b{
+    padding:7px 8px;
+    font-size:13px;
+  }
+
+  .home-primary-play-copy small{
+    font-size:11px;
+  }
+
+  .game-title-actions{
+    gap:6px;
+  }
+}
