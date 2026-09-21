@@ -478,6 +478,23 @@ test('disabled result actions stay readable on mobile', async ({ page }) => {
   await expect(disabled).toHaveCSS('color','rgb(203, 213, 225)');
 });
 
+test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+  await page.route('https://cdn.jsdelivr.net/**', route => route.abort());
+
+  await page.goto('/lanerunner.html');
+  await expect(page.locator('#game')).toBeVisible();
+  await expect(page.locator('#startButton')).toBeVisible();
+
+  await page.locator('#startButton').click();
+  await page.waitForTimeout(3300);
+
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#game')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('core games always expose a result popup contract', async ({ page }) => {
   const games = [
     ['snake.html','Snake'],
