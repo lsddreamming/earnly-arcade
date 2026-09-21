@@ -8,6 +8,8 @@ const CORE_ASSETS = [
   './account.html',
   './settings.html',
   './stats.html',
+  './support.html',
+  './privacy.html',
   './snake.html',
   './blockdrop.html',
   './taprush.html',
