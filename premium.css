@@ -2355,3 +2355,234 @@ textarea:focus-visible{
     scroll-margin-bottom:140px;
   }
 }
+
+
+/* Premium pass v13 — Missions clearance + Snake game screen */
+
+/* Give long expandable Missions sections enough real scroll room above the
+   fixed iPhone tab bar. */
+@media(max-width:700px){
+  body.missions-dashboard.has-app-nav .missions-container{
+    padding-bottom:max(184px,calc(148px + env(safe-area-inset-bottom)))!important;
+  }
+
+  body.missions-dashboard .missions-detail-card:last-of-type{
+    margin-bottom:22px!important;
+    scroll-margin-bottom:145px;
+  }
+}
+
+/* Snake should feel like a focused arcade game, not another dashboard page. */
+body.snake-page{
+  min-height:100dvh;
+  background:
+    radial-gradient(circle at 50% -6%,rgba(34,197,94,.15),transparent 25rem),
+    radial-gradient(circle at 100% 38%,rgba(47,140,255,.07),transparent 24rem),
+    linear-gradient(180deg,#07131f,#061019 65%,#040a11);
+}
+
+body.snake-page .container{
+  width:min(100%,500px);
+}
+
+body.snake-page .topbar{
+  position:relative;
+  z-index:2;
+}
+
+body.snake-page .brand,
+body.snake-page .balance-chip{
+  border-color:rgba(75,132,180,.30);
+  background:rgba(10,25,42,.74);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+
+body.snake-page .snake-header{
+  position:relative;
+  overflow:hidden;
+  margin:4px 0 8px!important;
+  padding:12px;
+  border:1px solid rgba(54,151,103,.36);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 8% 0%,rgba(54,222,125,.10),transparent 34%),
+    linear-gradient(145deg,rgba(17,38,54,.96),rgba(7,23,31,.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 14px 32px rgba(0,0,0,.20);
+}
+
+body.snake-page .snake-header::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(112deg,rgba(255,255,255,.02),transparent 44%);
+}
+
+body.snake-page .game-title-status-row,
+body.snake-page .snake-stats{
+  position:relative;
+  z-index:1;
+}
+
+body.snake-page .game-title-status-row h1{
+  color:#f5fff8;
+  letter-spacing:-.04em;
+  text-shadow:0 8px 24px rgba(0,0,0,.20);
+}
+
+body.snake-page .game-status{
+  border:1px solid rgba(91,139,180,.38);
+  background:#0b1a2b;
+  color:#b8c9dc;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+body.snake-page .game-status.running{
+  border-color:rgba(48,224,124,.44);
+  background:rgba(8,73,43,.72);
+  color:#89f7b6;
+  box-shadow:0 0 18px rgba(42,207,112,.10);
+}
+
+body.snake-page .game-status.over{
+  border-color:rgba(255,92,108,.34);
+  background:rgba(82,25,34,.72);
+  color:#ffb5be;
+}
+
+body.snake-page .snake-stats{
+  gap:7px!important;
+}
+
+body.snake-page .snake-stats>span{
+  border:1px solid rgba(64,117,158,.34);
+  background:linear-gradient(145deg,rgba(16,35,55,.96),rgba(8,22,37,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+body.snake-page .snake-stats>span:nth-child(2){
+  border-color:rgba(255,193,77,.26);
+  background:
+    radial-gradient(circle at 80% 0%,rgba(255,193,77,.09),transparent 42%),
+    linear-gradient(145deg,rgba(29,39,51,.97),rgba(10,23,37,.96));
+}
+
+body.snake-page .snake-stats small{
+  color:#8098af;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+body.snake-page .snake-stats>span:nth-child(2) strong{
+  color:#ffd86b;
+  text-shadow:0 0 16px rgba(255,193,77,.10);
+}
+
+body.snake-page #startButton{
+  border-color:rgba(56,218,126,.34);
+  background:linear-gradient(135deg,#18c865,#07984a);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 10px 24px rgba(9,151,73,.16);
+  color:#fff;
+}
+
+body.snake-page #startButton:disabled{
+  opacity:1;
+  border-color:rgba(77,129,169,.30);
+  background:linear-gradient(145deg,#15263a,#0d1a2b);
+  color:#9fb2c7;
+  box-shadow:none;
+}
+
+body.snake-page canvas#game{
+  display:block;
+  width:min(100%,400px);
+  aspect-ratio:1;
+  margin-inline:auto;
+  border:2px solid rgba(65,213,127,.30)!important;
+  border-radius:21px!important;
+  background-color:#07150f;
+  background-image:
+    linear-gradient(rgba(67,160,98,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(67,160,98,.045) 1px,transparent 1px),
+    radial-gradient(circle at 50% 45%,rgba(24,100,57,.17),transparent 62%);
+  background-size:20px 20px,20px 20px,100% 100%;
+  box-shadow:
+    inset 0 0 40px rgba(0,0,0,.20),
+    0 18px 38px rgba(0,0,0,.28),
+    0 0 0 1px rgba(62,230,130,.07)!important;
+}
+
+body.snake-page .game-guide-overlay{
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(34,197,94,.10),transparent 40%),
+    linear-gradient(180deg,rgba(7,24,26,.94),rgba(6,18,27,.985));
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+
+body.snake-page .snake-start-callout{
+  border-color:#64e994;
+  background:linear-gradient(135deg,#19b95d,#0c8e45);
+  box-shadow:
+    0 0 0 5px rgba(34,197,94,.10),
+    0 12px 26px rgba(0,0,0,.26);
+}
+
+body.snake-page .snake-overlay-howto>div{
+  border-color:rgba(68,124,165,.35);
+  background:rgba(8,25,40,.88);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+body.snake-page .snake-overlay-howto b{
+  background:linear-gradient(135deg,#25c86b,#2788e8);
+}
+
+body.snake-page .desktop-controls .game-control{
+  border-color:rgba(70,124,171,.40);
+  background:linear-gradient(145deg,#1b3048,#101d30);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+body.snake-page>a.button.secondary.wide,
+body.snake-page .container>a.button.secondary.wide{
+  border-color:rgba(69,117,159,.32);
+  background:rgba(11,26,44,.68);
+  box-shadow:none;
+  color:#aebfd2;
+}
+
+@media(max-width:700px){
+  body.snake-page .container{
+    padding-inline:12px!important;
+    padding-bottom:max(34px,env(safe-area-inset-bottom))!important;
+  }
+
+  body.snake-page .snake-header{
+    padding:10px!important;
+  }
+
+  body.snake-page .game-title-status-row h1{
+    font-size:21px!important;
+  }
+
+  body.snake-page .snake-stats>span{
+    min-height:46px!important;
+  }
+
+  body.snake-page canvas#game{
+    width:min(100%,400px)!important;
+    max-height:min(53vh,400px)!important;
+  }
+
+  body.snake-page .desktop-controls{
+    display:none!important;
+  }
+}
