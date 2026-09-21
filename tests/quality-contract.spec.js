@@ -122,6 +122,7 @@ test('all mobile game screens hide the fixed app nav during live play', () => {
   const css = read('arcade.css');
 
   expect(css).toContain('body.game-active #arcadeBottomNav');
+  expect(css).toContain('body.game-active .topbar');
   expect(css).toContain('display:none!important');
   expect(css).toContain('body.game-active.has-app-nav .container');
   expect(css).toContain('padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px))!important');
