@@ -118,6 +118,16 @@ test('dedicated games keep the shared play, result, and out-of-plays contract', 
   }
 });
 
+test('Neon Dodger keeps the faster difficulty curve', () => {
+  const source = read('dodger.html');
+
+  expect(source).toContain('function trafficSpeedFor(seconds)');
+  expect(source).toContain('Math.min(9.4,4.4+Math.max(0,seconds)*.17)');
+  expect(source).toContain('function spawnDelayFor(seconds)');
+  expect(source).toContain('Math.max(250,650-Math.max(0,seconds)*13)');
+  expect(source).toContain('nextSpawnAt=now+560');
+});
+
 test('Neon Dodger keeps live play focused and result timing consistent', () => {
   const source = read('dodger.html');
 
