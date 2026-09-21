@@ -2628,7 +2628,7 @@ const Arcade = (() => {
       ['🎟️','Plays','3 free plays per game each day. Up to 2 rewarded ads can unlock +3 plays each for that game.'],
       ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
       ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
-      ['🎁','Rewards','Coins are prototype rewards today. Real cash-out is not connected yet.']
+      ['🎁','Rewards','Arcade Coins are in-app reward points. Cash redemption is not available in this version.']
     ].forEach(([itemIcon,itemTitle,itemText]) => {
       const row = document.createElement('div');
       row.className = 'onboarding-row';
