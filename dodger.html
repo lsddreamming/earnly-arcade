@@ -306,14 +306,23 @@
       obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
     }
 
+    function trafficSpeedFor(seconds){
+      return Math.min(9.4,4.4+Math.max(0,seconds)*.17);
+    }
+
+    function spawnDelayFor(seconds){
+      return Math.max(250,650-Math.max(0,seconds)*13);
+    }
+
     function spawn(now){
       const width=34+Math.random()*34;
+      const seconds=Math.max(0,(now-startTime)/1000);
       obstacles.push({
         x:Math.random()*(canvas.width-width),
         y:-32,
         w:width,
         h:24,
-        speed:3.2+Math.min(4,(now-startTime)/8000),
+        speed:trafficSpeedFor(seconds),
         color:['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)]
       });
     }
@@ -329,11 +338,11 @@
       const elapsed=Math.max(0,now-startTime);
       const seconds=Math.min(30,Math.floor(elapsed/1000));
 
-      if(!nextSpawnAt) nextSpawnAt=now+760;
+      if(!nextSpawnAt) nextSpawnAt=now+560;
       if(now>=nextSpawnAt){
         spawn(now);
         lastSpawn=now;
-        nextSpawnAt=now+Math.max(300,760-seconds*12);
+        nextSpawnAt=now+spawnDelayFor(seconds);
       }
 
       const frameScale=lastFrame?Math.min(2,(now-lastFrame)/16.667):1;
