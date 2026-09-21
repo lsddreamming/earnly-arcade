@@ -118,6 +118,16 @@ test('dedicated games keep the shared play, result, and out-of-plays contract', 
   }
 });
 
+test('Lane Runner smooth steering uses physical car position for collisions', () => {
+  const source = read('lanerunner.html');
+
+  expect(source).toContain("playerX+=(lanes[targetLane]-playerX)");
+  expect(source).toContain("Math.abs(lanes[o.lane]-playerX)<40");
+  expect(source).not.toContain("const crossedPlayer=o.lane===lane");
+  expect(source).toContain("Fixed, low-contrast lane guides avoid flicker");
+  expect(source).not.toContain("ctx.setLineDash([24,20])");
+});
+
 test('gameplay clocks start after the 3-2-1 countdown', () => {
   for (const file of dedicatedGames) {
     const source = read(file);
