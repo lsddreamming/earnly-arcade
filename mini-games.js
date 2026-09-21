@@ -126,7 +126,7 @@
 
     Arcade.gameResult({
       icon:config.icon,
-      title:title || config.name + ' Complete',
+      title:title || (badgeText ? config.name + ' — Run Over' : config.name + ' Complete'),
       scoreLabel:config.scoreLabel,
       score:clean,
       best:result?.best?.display || String(clean),
