@@ -144,6 +144,13 @@
     }
 
 
+    /* Ready-screen cleanup: controls appear once the run starts. */
+    @media (max-width: 699px) {
+      body.blockdrop-page:not(.game-active) .blockdrop-controls {
+        display:none !important;
+      }
+    }
+
     /* Active-run focus mode: prioritize board + controls on phones. */
     @media (max-width: 699px) {
       body.blockdrop-page.game-active .game-guide-strip,
