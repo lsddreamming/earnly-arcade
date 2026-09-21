@@ -122,6 +122,7 @@ test('Neon Dodger keeps live play focused and result timing consistent', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('body.dodger-page.game-active #arcadeBottomNav{display:none!important}');
+  expect(source).toContain('body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{display:none!important}');
   expect(source).toContain("extra:['⏱️ Time played: '+seconds+'s'");
   expect(source).not.toContain("Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000)");
 });
