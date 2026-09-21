@@ -23,7 +23,7 @@ const CORE_ASSETS = [
   './safecracker.html',
   './mini.html',
   './mini-games.js',
-  './arcade.css',
+  './arcade.css',\n  './premium.css',
   './arcade.js',
   './cloud.js',
   './manifest.webmanifest',
