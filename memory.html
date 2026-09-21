@@ -408,7 +408,7 @@
         starting=false;
         Arcade.out('memory',refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
       first=null;second=null;lock=true;moves=0;pairs=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
@@ -424,6 +424,7 @@
 
       Arcade.countdown(()=>{
         starting=false;
+        earnlyRunStartedAt=performance.now();
         lock=false;
         running=true;
         startButton.textContent='Game Running';
