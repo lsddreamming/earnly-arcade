@@ -5884,7 +5884,11 @@ body.home-dashboard.has-app-nav .home-container{
   body.game-active #arcadeBottomNav{
     display:none!important;
   }
+  body.game-active .topbar{
+    display:none!important;
+  }
   body.game-active.has-app-nav .container{
+    padding-top:max(8px,calc(env(safe-area-inset-top) + 4px))!important;
     padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px))!important;
   }
   body.game-active .toast{
