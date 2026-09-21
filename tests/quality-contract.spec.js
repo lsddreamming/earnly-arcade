@@ -197,6 +197,7 @@ test('current release keeps unreleased rewards and account deletion clear', () =
   expect(account).toContain('Delete My Account');
   expect(account).toContain('EarnlyCloud.deleteAccount()');
   expect(cloud).toContain("functions.invoke('delete-account'");
+  expect(cloud).toContain('body:{ confirm:true }');
   expect(cloud).toContain('Arcade.clearSyncEvents?.()');
   expect(cloud).toContain('deleteAccount,');
   expect(privacy).toContain('permanently delete their Earnly account');
