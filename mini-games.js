@@ -1791,8 +1791,8 @@
 
     function randomTrafficBoard(){
       const targetCars=[0,6,7,8,9,9,10,10][Math.min(7,level)];
-      const minBlocked=Math.min(targetCars-1,[0,5,6,7,8,8,9,9][Math.min(7,level)]);
-      const maxInitiallyFree=1;
+      const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8][Math.min(7,level)]);
+      const maxInitiallyFree=2;
 
       for(let attempt=0;attempt<240;attempt++){
         const candidate=[];
@@ -1800,7 +1800,7 @@
           let placed=false;
           for(let tries=0;tries<100&&!placed;tries++){
             const h=Math.random()<.5;
-            const len=Math.random()<(level>=4?.52:level>=2?.34:.20)?3:2;
+            const len=Math.random()<(level>=4?.46:level>=2?.30:.18)?3:2;
             const x=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?len:1)+1));
             const y=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?1:len)+1));
             const car={x,y,len,h,dir:Math.random()<.5?-1:1,seedId:id};
