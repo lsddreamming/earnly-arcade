@@ -107,7 +107,7 @@
         <span class="meta-pill">Time: <span id="time">0</span>s</span>
         <span class="meta-pill">Dodged: <span id="dodged">0</span></span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
-        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+        <span class="meta-pill"><span id="plays">0</span> <span id="playsLabel">plays left</span></span>
       </div>
     </header>
 
@@ -124,6 +124,7 @@
     const dodgedEl=document.getElementById('dodged');
     const rewardPreviewEl=document.getElementById('rewardPreview');
     const playsEl=document.getElementById('plays');
+    const playsLabelEl=document.getElementById('playsLabel');
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
@@ -170,7 +171,14 @@
     }
 
     function refreshChrome(){
-      playsEl.textContent=Arcade.remaining('dodger');
+      const remaining=Arcade.remaining('dodger');
+      if(running && remaining===0){
+        playsEl.textContent='Last';
+        playsLabelEl.textContent='play';
+      }else{
+        playsEl.textContent=remaining;
+        playsLabelEl.textContent=remaining===1?'play left':'plays left';
+      }
       balanceEl.textContent=Arcade.number('points').toLocaleString();
     }
 
@@ -180,41 +188,119 @@
       document.body.classList.toggle('game-active',mode==='running');
     }
 
+    function drawNeonCar(x,y,w,h,color,isPlayer=false){
+      ctx.save();
+
+      const radius=Math.min(8,h*.32);
+      ctx.shadowColor=color;
+      ctx.shadowBlur=isPlayer?17:12;
+
+      // Main body with tapered nose/rear so obstacles read as cars, not pills.
+      ctx.fillStyle=color;
+      ctx.beginPath();
+      ctx.moveTo(x+radius,y);
+      ctx.lineTo(x+w-radius,y);
+      ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
+      ctx.lineTo(x+w,y+h-radius);
+      ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
+      ctx.lineTo(x+radius,y+h);
+      ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
+      ctx.lineTo(x,y+radius);
+      ctx.quadraticCurveTo(x,y,x+radius,y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur=0;
+
+      // Dark windshield/cabin.
+      ctx.fillStyle='rgba(3,12,22,.76)';
+      ctx.beginPath();
+      ctx.roundRect(x+w*.23,y+h*.18,w*.54,h*.34,Math.max(2,radius*.45));
+      ctx.fill();
+
+      // Wheels.
+      ctx.fillStyle='#020617';
+      const wheelW=Math.max(3,w*.08);
+      const wheelH=Math.max(5,h*.27);
+      ctx.fillRect(x-wheelW*.35,y+h*.18,wheelW,wheelH);
+      ctx.fillRect(x+w-wheelW*.65,y+h*.18,wheelW,wheelH);
+      ctx.fillRect(x-wheelW*.35,y+h*.58,wheelW,wheelH);
+      ctx.fillRect(x+w-wheelW*.65,y+h*.58,wheelW,wheelH);
+
+      // Lights make travel direction easy to read.
+      ctx.fillStyle=isPlayer?'#bbf7d0':'#fde68a';
+      ctx.fillRect(x+w*.12,y+h*.70,Math.max(4,w*.13),Math.max(2,h*.10));
+      ctx.fillRect(x+w*.75,y+h*.70,Math.max(4,w*.13),Math.max(2,h*.10));
+
+      ctx.fillStyle=isPlayer?'#86efac':'#fb7185';
+      ctx.fillRect(x+w*.12,y+h*.12,Math.max(4,w*.13),Math.max(2,h*.09));
+      ctx.fillRect(x+w*.75,y+h*.12,Math.max(4,w*.13),Math.max(2,h*.09));
+
+      if(isPlayer){
+        ctx.strokeStyle='rgba(220,252,231,.58)';
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.roundRect(x+2,y+2,w-4,h-4,Math.max(3,radius-2));
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
 
       const gradient=ctx.createLinearGradient(0,0,0,canvas.height);
-      gradient.addColorStop(0,'#071521');
-      gradient.addColorStop(.58,'#0b1e34');
-      gradient.addColorStop(1,'#162b57');
+      gradient.addColorStop(0,'#06111d');
+      gradient.addColorStop(.58,'#091a2c');
+      gradient.addColorStop(1,'#102342');
       ctx.fillStyle=gradient;
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
-      // Subtle lane markers make movement easier to judge without adding HUD clutter.
-      ctx.save();
-      ctx.strokeStyle='rgba(103,232,249,.22)';
-      ctx.lineWidth=2;
-      ctx.setLineDash([16,18]);
-      [canvas.width/3,canvas.width*2/3].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});
-      ctx.restore();
+      // Calm road treatment: broad lane zones and continuous, low-contrast
+      // separators instead of repeated dashed marks.
+      const laneWidth=canvas.width/3;
+      ctx.fillStyle='rgba(56,189,248,.018)';
+      ctx.fillRect(0,0,laneWidth,canvas.height);
+      ctx.fillStyle='rgba(34,211,238,.028)';
+      ctx.fillRect(laneWidth,0,laneWidth,canvas.height);
+      ctx.fillStyle='rgba(56,189,248,.018)';
+      ctx.fillRect(laneWidth*2,0,laneWidth,canvas.height);
 
-      // Player car: compact neon silhouette with windshield and lights.
       ctx.save();
-      ctx.shadowColor='#39ff88';ctx.shadowBlur=16;
-      ctx.fillStyle='#36e57c';ctx.beginPath();ctx.roundRect(player.x,player.y,player.w,player.h,7);ctx.fill();
-      ctx.shadowBlur=0;
-      ctx.fillStyle='#052e2b';ctx.beginPath();ctx.roundRect(player.x+10,player.y+4,player.w-20,8,3);ctx.fill();
-      ctx.fillStyle='#bbf7d0';ctx.fillRect(player.x+5,player.y+17,8,3);ctx.fillRect(player.x+player.w-13,player.y+17,8,3);
-      ctx.restore();
-
-      obstacles.forEach(o=>{
-        ctx.save();
-        ctx.shadowColor=o.color;ctx.shadowBlur=12;ctx.fillStyle=o.color;
-        ctx.beginPath();ctx.roundRect(o.x,o.y,o.w,o.h,6);ctx.fill();
-        ctx.shadowBlur=0;ctx.fillStyle='rgba(15,23,42,.72)';
-        ctx.beginPath();ctx.roundRect(o.x+7,o.y+5,Math.max(12,o.w-14),7,3);ctx.fill();
-        ctx.restore();
+      ctx.strokeStyle='rgba(125,211,252,.13)';
+      ctx.lineWidth=1.5;
+      [laneWidth,laneWidth*2].forEach(x=>{
+        ctx.beginPath();
+        ctx.moveTo(x,0);
+        ctx.lineTo(x,canvas.height);
+        ctx.stroke();
       });
+      ctx.restore();
+
+      // Soft cyan shoulder glow frames the play area without flashing motion.
+      const leftGlow=ctx.createLinearGradient(0,0,22,0);
+      leftGlow.addColorStop(0,'rgba(34,211,238,.15)');
+      leftGlow.addColorStop(1,'rgba(34,211,238,0)');
+      ctx.fillStyle=leftGlow;
+      ctx.fillRect(0,0,24,canvas.height);
+
+      const rightGlow=ctx.createLinearGradient(canvas.width,0,canvas.width-22,0);
+      rightGlow.addColorStop(0,'rgba(34,211,238,.15)');
+      rightGlow.addColorStop(1,'rgba(34,211,238,0)');
+      ctx.fillStyle=rightGlow;
+      ctx.fillRect(canvas.width-24,0,24,canvas.height);
+
+      // Slight spotlight under the player helps eye tracking without adding
+      // more moving scenery.
+      const focus=ctx.createRadialGradient(player.x+player.w/2,player.y+player.h/2,8,player.x+player.w/2,player.y+player.h/2,82);
+      focus.addColorStop(0,'rgba(52,211,153,.085)');
+      focus.addColorStop(1,'rgba(52,211,153,0)');
+      ctx.fillStyle=focus;
+      ctx.fillRect(Math.max(0,player.x-66),Math.max(0,player.y-66),player.w+132,player.h+132);
+
+      drawNeonCar(player.x,player.y,player.w,player.h,'#36e57c',true);
+      obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
     }
 
     function spawn(now){
@@ -486,6 +572,7 @@
         earnlyRunStartedAt=performance.now();
         startButton.textContent='Game Running';
         setStatus('Running','running');
+        refreshChrome();
         requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
         startTime=0;
         lastSpawn=0;
