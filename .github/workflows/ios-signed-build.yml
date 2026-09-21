@@ -1,5 +1,5 @@
 name: Earnly signed iOS build
-# Push-triggered runs validate the App Store 1.0 source. Explicit [live] commits use production AdMob IDs; all other pushes stay in test mode.
+# Push-triggered runs validate the App Store 1.0 source. Explicit [live] commits use production AdMob IDs; ordinary pushes remain test-only.
 
 on:
   push:
