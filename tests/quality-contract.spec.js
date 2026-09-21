@@ -118,6 +118,14 @@ test('dedicated games keep the shared play, result, and out-of-plays contract', 
   }
 });
 
+test('Neon Dodger keeps live play focused and result timing consistent', () => {
+  const source = read('dodger.html');
+
+  expect(source).toContain('body.dodger-page.game-active #arcadeBottomNav{display:none!important}');
+  expect(source).toContain("extra:['⏱️ Time played: '+seconds+'s'");
+  expect(source).not.toContain("Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000)");
+});
+
 test('Lane Runner smooth steering uses physical car position for collisions', () => {
   const source = read('lanerunner.html');
 
