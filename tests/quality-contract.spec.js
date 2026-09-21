@@ -118,6 +118,20 @@ test('dedicated games keep the shared play, result, and out-of-plays contract', 
   }
 });
 
+test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
+  const source = read('mini-games.js');
+  const html = read('mini.html');
+
+  expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
+  expect(source).toContain("const targetCars=[0,6,7,8,9,9,10,10]");
+  expect(source).toContain("const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8]");
+  expect(source).toContain("const maxInitiallyFree=2");
+  expect(source).toContain("if(!alive||miniPaused){lastTickAt=performance.now();return;}");
+  expect(source).toContain("b.className='traffic-car';");
+  expect(source).not.toContain("' clear-path':'')");
+  expect(html).not.toContain('.traffic-car.clear-path');
+});
+
 test('Neon Dodger keeps the faster difficulty curve', () => {
   const source = read('dodger.html');
 
