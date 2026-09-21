@@ -5878,3 +5878,17 @@ body.home-dashboard.has-app-nav .home-container{
   box-shadow:none!important;
   text-shadow:none!important;
 }
+
+/* Focused mobile gameplay — keep live runs clear of the fixed app tab bar. */
+@media(max-width:700px){
+  body.game-active #arcadeBottomNav{
+    display:none!important;
+  }
+  body.game-active.has-app-nav .container{
+    padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px))!important;
+  }
+  body.game-active .toast{
+    bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px))!important;
+  }
+}
+
