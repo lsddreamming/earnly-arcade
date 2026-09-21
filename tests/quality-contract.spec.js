@@ -173,3 +173,31 @@ test('result replay checks the live play balance before acting', () => {
   expect(resultFlow).toContain("if (livePlays > 0)");
   expect(resultFlow).toContain("else if (typeof onMorePlays === 'function')");
 });
+
+
+test('current release keeps unreleased rewards and account deletion clear', () => {
+  const rewards = read('rewards.html');
+  const home = read('index.html');
+  const support = read('support.html');
+  const privacy = read('privacy.html');
+  const account = read('account.html');
+  const cloud = read('cloud.js');
+
+  // Do not market specific payout methods that the current App Store build
+  // does not actually offer.
+  expect(rewards).not.toMatch(/Bitcoin|Gift Cards|Redeem later|Coin-to-dollar|COMING SOON/i);
+  expect(rewards).toContain('Future reward options are being evaluated');
+  expect(rewards).toContain('They are not cash, cryptocurrency, or stored value');
+  expect(home).toContain('Optional rewarded ads unlock extra plays and do not directly award Coins');
+  expect(support).toContain('They are not cash, cryptocurrency, or stored value');
+  expect(privacy).toContain('cannot be redeemed, transferred, or withdrawn in this version');
+
+  // Account creation must have an in-app deletion path.
+  expect(account).toContain('id="cloudDeleteButton"');
+  expect(account).toContain('Delete My Account');
+  expect(account).toContain('EarnlyCloud.deleteAccount()');
+  expect(cloud).toContain("functions.invoke('delete-account'");
+  expect(cloud).toContain('Arcade.clearSyncEvents?.()');
+  expect(cloud).toContain('deleteAccount,');
+  expect(privacy).toContain('permanently delete their Earnly account');
+});
