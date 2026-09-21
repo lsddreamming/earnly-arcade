@@ -1,0 +1,656 @@
+/* Earnly Arcade premium visual pass
+   Layered after arcade.css so the pass is easy to tune or remove. */
+
+:root{
+  --bg:#07101f;
+  --panel:#101b2d;
+  --panel-2:#15243a;
+  --border:#294765;
+  --text:#f8fbff;
+  --muted:#9fb1c9;
+  --blue:#2f8cff;
+  --green:#17d66b;
+  --green-dark:#079449;
+  --gold:#ffc14d;
+  --red:#ff5c6c;
+  --premium-cyan:#55dcff;
+  --premium-purple:#8b5cf6;
+  --premium-shadow:0 20px 55px rgba(0,0,0,.34);
+  --premium-soft-shadow:0 12px 30px rgba(0,0,0,.22);
+}
+
+html{
+  background:#07101f;
+}
+
+body{
+  position:relative;
+  overflow-x:hidden;
+  background:
+    radial-gradient(circle at 12% -5%,rgba(47,140,255,.19),transparent 28rem),
+    radial-gradient(circle at 95% 12%,rgba(139,92,246,.10),transparent 24rem),
+    linear-gradient(180deg,#081321 0%,#07101f 52%,#050b15 100%);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Arial,sans-serif;
+  font-synthesis:none;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  z-index:-1;
+  inset:-20vh -25vw auto;
+  height:55vh;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 35% 35%,rgba(76,201,240,.10),transparent 28%),
+    radial-gradient(circle at 70% 10%,rgba(47,140,255,.12),transparent 34%);
+  filter:blur(20px);
+}
+
+.container{
+  position:relative;
+}
+
+h1,h2,h3,strong{
+  text-rendering:optimizeLegibility;
+}
+
+.page-header h1,
+.games-hero h1,
+.rewards-hero h1,
+.profile-hero h1,
+.missions-hero h1{
+  letter-spacing:-.045em;
+  text-wrap:balance;
+}
+
+.page-header p,
+.games-hero p,
+.rewards-hero p{
+  color:#a8b7cb;
+}
+
+.topbar,
+.rewards-topbar{
+  position:relative;
+  z-index:2;
+}
+
+.brand,
+.rewards-brand{
+  color:#f7fbff;
+  text-shadow:0 1px 16px rgba(85,220,255,.12);
+}
+
+.balance-chip,
+.rewards-top-actions>a,
+.rewards-top-actions>span{
+  border-color:rgba(92,141,190,.34);
+  background:linear-gradient(180deg,rgba(20,36,58,.92),rgba(11,23,40,.92));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 8px 22px rgba(0,0,0,.15);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+.card,
+.profile-edit-card,
+.profile-section,
+.profile-achievement-card,
+.missions-detail-card{
+  border-color:rgba(81,129,176,.34);
+  background:
+    linear-gradient(145deg,rgba(24,41,65,.96),rgba(11,23,39,.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    var(--premium-soft-shadow);
+}
+
+button,.button{
+  border:1px solid rgba(115,184,255,.18);
+  background:linear-gradient(135deg,#3196ff 0%,#4a67ff 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 10px 24px rgba(34,104,255,.20);
+  transition:transform 130ms ease,filter 130ms ease,box-shadow 130ms ease,border-color 130ms ease;
+}
+
+button:hover,.button:hover{
+  filter:brightness(1.055);
+  border-color:rgba(140,205,255,.32);
+}
+
+button:active,.button:active{
+  transform:translateY(1px) scale(.985);
+}
+
+.green{
+  border-color:rgba(73,255,159,.24);
+  background:linear-gradient(135deg,#19d56d,#08a84f);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 10px 25px rgba(12,180,89,.18);
+}
+
+.secondary{
+  border-color:rgba(111,142,181,.30);
+  background:linear-gradient(180deg,#263850,#1c2a3d);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 8px 18px rgba(0,0,0,.15);
+}
+
+.ghost{
+  border-color:rgba(91,142,190,.34);
+  background:rgba(13,28,47,.55);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+.claimed-button{
+  background:linear-gradient(145deg,rgba(10,83,49,.80),rgba(7,48,31,.92));
+  border-color:rgba(41,228,122,.42);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.progress-button{
+  background:linear-gradient(180deg,#182840,#111d30);
+  border-color:rgba(89,130,171,.42);
+}
+
+.challenge-progress,
+.xp-bar,
+.reward-ad-track{
+  background:#07101d;
+  border-color:rgba(65,104,145,.42);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.28);
+}
+
+.challenge-progress>span,
+.xp-bar>span{
+  background:linear-gradient(90deg,#1be078 0%,#4ad8d8 48%,#3297ff 100%);
+  box-shadow:0 0 16px rgba(55,207,255,.25);
+}
+
+/* Home */
+.home-dashboard{
+  background:
+    radial-gradient(circle at 8% 0%,rgba(27,151,255,.24),transparent 30rem),
+    radial-gradient(circle at 92% 15%,rgba(28,220,126,.08),transparent 26rem),
+    linear-gradient(180deg,#071423,#06101d 58%,#040a13);
+}
+
+.home-container{
+  padding-inline:18px;
+}
+
+.home-hero{
+  margin:2px 0 18px;
+  padding:13px 44px 13px 3px;
+  text-align:left;
+}
+
+.home-hero-icon{
+  border-radius:18px;
+  box-shadow:
+    0 14px 30px rgba(0,0,0,.25),
+    0 0 28px rgba(51,132,255,.19);
+}
+
+.home-eyebrow{
+  color:#65ddff;
+  font-weight:900;
+  letter-spacing:.16em;
+  text-shadow:0 0 20px rgba(101,221,255,.16);
+}
+
+.home-hero h1{
+  margin-top:4px;
+  color:#fff;
+  font-size:clamp(30px,8vw,40px);
+  line-height:1.02;
+  letter-spacing:-.052em;
+}
+
+.home-info-button{
+  border-color:rgba(83,185,229,.45);
+  background:linear-gradient(180deg,rgba(15,39,60,.96),rgba(7,24,40,.96));
+  color:#62e3ff;
+  box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.home-primary-play{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(71,255,151,.42);
+  background:
+    radial-gradient(circle at 10% 0%,rgba(108,255,170,.21),transparent 32%),
+    linear-gradient(120deg,#08a94f 0%,#11bd58 48%,#089648 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 18px 38px rgba(4,133,65,.24);
+}
+
+.home-primary-play::after{
+  content:"";
+  position:absolute;
+  inset:-60% auto -60% -20%;
+  width:34%;
+  transform:rotate(18deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);
+  pointer-events:none;
+}
+
+.home-primary-play strong{
+  letter-spacing:-.025em;
+}
+
+.home-section-heading{
+  color:#83dfff;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-shadow:0 0 18px rgba(83,214,255,.11);
+}
+
+.home-overview,
+.home-panel,
+.home-dashboard .continue-card,
+.home-account-shortcut,
+.home-install-banner,
+.home-transfer-banner{
+  border-color:rgba(61,115,163,.42);
+  background:
+    linear-gradient(145deg,rgba(20,38,62,.97),rgba(8,22,38,.97));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 16px 38px rgba(0,0,0,.22);
+}
+
+.home-dashboard .continue-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.home-dashboard .continue-card::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:3px;
+  background:linear-gradient(#52ddff,#387cff);
+  box-shadow:0 0 16px rgba(66,190,255,.42);
+}
+
+.home-action-icon{
+  background:linear-gradient(145deg,#13283f,#0c192a);
+  border-color:rgba(80,139,190,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.home-row-button{
+  box-shadow:0 9px 22px rgba(41,109,255,.18);
+}
+
+.home-metric{
+  transition:background 150ms ease,transform 150ms ease;
+}
+
+.home-metric:active{
+  transform:scale(.99);
+}
+
+.home-metric strong{
+  letter-spacing:-.045em;
+  text-shadow:0 3px 18px rgba(255,255,255,.035);
+}
+
+.home-metric-link{
+  color:#62dcff;
+  font-weight:900;
+}
+
+.home-count-pill{
+  border-color:rgba(77,131,178,.42);
+  background:#0c192a;
+  color:#e9f4ff;
+}
+
+.home-divider{
+  border-color:rgba(78,117,154,.23);
+}
+
+/* Games catalog */
+.games-dashboard{
+  background:
+    radial-gradient(circle at 50% -8%,rgba(53,133,255,.19),transparent 31rem),
+    radial-gradient(circle at 0% 42%,rgba(139,92,246,.08),transparent 24rem),
+    #07101f;
+}
+
+.games-eyebrow,
+.rewards-eyebrow,
+.rewards-kicker,
+.profile-eyebrow,
+.missions-eyebrow,
+.section-kicker{
+  color:#64ddff;
+  letter-spacing:.16em;
+  text-shadow:0 0 18px rgba(100,221,255,.14);
+}
+
+.games-hero h1{
+  font-size:clamp(34px,9vw,44px);
+}
+
+.games-start-here,
+.games-mission-strip,
+.game-browser-tools{
+  border-color:rgba(71,126,181,.38);
+  background:linear-gradient(145deg,rgba(18,35,58,.94),rgba(9,22,38,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 12px 30px rgba(0,0,0,.16);
+}
+
+.game-search-wrap{
+  border-color:rgba(72,124,174,.40)!important;
+  background:#0c1829!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.game-search-wrap input{
+  color:#f7fbff!important;
+}
+
+.game-search-wrap input::placeholder{
+  color:#8094ad;
+}
+
+.game-filter{
+  border-color:rgba(78,122,164,.36);
+  background:linear-gradient(180deg,#17263c,#101b2d);
+  color:#c8d6e7;
+  box-shadow:none;
+}
+
+.game-filter.active{
+  border-color:rgba(92,174,255,.65);
+  background:linear-gradient(135deg,#2b8dff,#415dff);
+  color:#fff;
+  box-shadow:0 8px 22px rgba(44,112,255,.22);
+}
+
+.compact-game,
+.game-card{
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(68,120,169,.42);
+  background:
+    radial-gradient(circle at 10% 0%,rgba(69,151,255,.07),transparent 32%),
+    linear-gradient(145deg,rgba(21,40,65,.98),rgba(8,21,37,.98));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 15px 34px rgba(0,0,0,.21);
+}
+
+.compact-game::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:3px;
+  background:linear-gradient(180deg,#50dfff,#6f63ff);
+  opacity:.85;
+}
+
+.play-pill,
+.meta-pill,
+.game-stat-badge{
+  border-color:rgba(73,126,176,.40);
+  background:#0c1828;
+  color:#ddebfb;
+}
+
+.game-status{
+  border-color:rgba(73,121,167,.40);
+  background:#0d1a2c;
+}
+
+.game-status.running{
+  border-color:rgba(32,222,116,.44);
+  background:rgba(7,58,35,.88);
+  color:#7dffb0;
+}
+
+/* Rewards */
+.rewards-dashboard{
+  background:
+    radial-gradient(circle at 50% -6%,rgba(50,135,255,.20),transparent 30rem),
+    radial-gradient(circle at 100% 30%,rgba(27,217,124,.065),transparent 25rem),
+    #07101f;
+}
+
+.rewards-brand{
+  text-decoration:none;
+  font-weight:900;
+}
+
+.rewards-hero{
+  text-align:left;
+}
+
+.rewards-hero h1{
+  font-size:clamp(34px,9vw,44px);
+}
+
+.rewards-balance-card{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(74,141,207,.48);
+  background:
+    radial-gradient(circle at 78% 8%,rgba(91,93,255,.16),transparent 31%),
+    linear-gradient(145deg,#193254,#0d1b30 74%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    var(--premium-shadow);
+}
+
+.rewards-balance-card::after{
+  content:"";
+  position:absolute;
+  right:-58px;
+  top:-62px;
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  background:rgba(67,173,255,.09);
+  filter:blur(2px);
+  pointer-events:none;
+}
+
+.rewards-balance-card>div:first-child strong{
+  letter-spacing:-.055em;
+  text-shadow:0 7px 28px rgba(0,0,0,.24);
+}
+
+.prototype-badge,
+.rewards-status-pill{
+  border-color:rgba(255,187,51,.56);
+  background:rgba(71,49,4,.76);
+  color:#ffdc78;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.reward-protection-card{
+  border-color:rgba(64,128,179,.38);
+  background:linear-gradient(145deg,#142942,#0b1a2d);
+  box-shadow:var(--premium-soft-shadow);
+}
+
+.reward-protection-card.ready{
+  border-color:rgba(32,217,110,.40);
+  background:linear-gradient(145deg,rgba(10,74,45,.72),rgba(8,38,29,.90));
+}
+
+.rewards-basic-item,
+.rewards-option{
+  border-color:rgba(66,117,164,.40);
+  background:linear-gradient(145deg,#16283f,#0d1a2c);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+.rewards-readiness{
+  overflow:hidden;
+  border:1px solid rgba(70,119,163,.38);
+  border-radius:18px;
+  background:linear-gradient(145deg,#13243a,#0a1728);
+  box-shadow:var(--premium-soft-shadow);
+}
+
+.rewards-readiness-row{
+  border-color:rgba(72,111,148,.23);
+}
+
+.rewards-readiness-row.ready>span{
+  background:rgba(8,87,48,.75);
+  color:#68f5a0;
+  box-shadow:0 0 18px rgba(28,208,104,.08);
+}
+
+.rewards-footnote{
+  border-color:rgba(65,111,153,.34);
+  background:rgba(10,23,39,.74);
+}
+
+/* Profile / missions / settings / account */
+.profile-dashboard,
+.missions-dashboard{
+  background:
+    radial-gradient(circle at 50% -10%,rgba(56,139,255,.19),transparent 31rem),
+    #07101f;
+}
+
+.profile-hero,
+.missions-weekly-card,
+.missions-player-strip,
+.profile-shortcuts a,
+.profile-key-stats>div,
+.profile-secondary-stats>div{
+  border-color:rgba(66,118,166,.38);
+  background:linear-gradient(145deg,#162a43,#0c1a2d);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 10px 26px rgba(0,0,0,.16);
+}
+
+.profile-avatar,
+.profile-settings-link{
+  border-color:rgba(82,140,191,.38);
+  background:linear-gradient(145deg,#17304d,#0d1d31);
+}
+
+.setting-row,
+.account-status,
+.cloud-auto-row,
+.account-tool-block{
+  border-color:rgba(70,119,164,.34)!important;
+}
+
+/* Game surfaces */
+canvas,
+.game-guide-surface,
+.memory-grid.game-guide-surface{
+  border-color:rgba(107,153,198,.58)!important;
+  background:#101d30;
+  box-shadow:
+    0 18px 40px rgba(0,0,0,.24),
+    0 0 0 1px rgba(255,255,255,.018);
+}
+
+.game-guide-step{
+  border-color:rgba(62,111,157,.40);
+  background:linear-gradient(145deg,#13253b,#0d192b);
+}
+
+.game-guide-overlay,
+.snake-board-overlay{
+  background:rgba(5,13,24,.68);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+
+.game-result-dialog,
+dialog{
+  border-color:rgba(83,137,187,.52);
+  background:
+    radial-gradient(circle at 50% 0%,rgba(62,142,255,.12),transparent 38%),
+    linear-gradient(145deg,#172b45,#0c192b);
+  box-shadow:0 30px 90px rgba(0,0,0,.60);
+}
+
+.result-main{
+  border-color:rgba(75,131,183,.35);
+  background:linear-gradient(145deg,#10243b,#091728);
+}
+
+/* Fine polish */
+.history-item{
+  border-color:rgba(71,109,145,.24);
+}
+
+.status-line,
+.reward-option,
+.meta-pill{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+input,textarea,select{
+  color:#f7fbff;
+  background:#0b1829;
+  border-color:rgba(74,126,176,.44);
+}
+
+input::placeholder,
+textarea::placeholder{
+  color:#7388a3;
+}
+
+::selection{
+  background:rgba(65,151,255,.35);
+  color:#fff;
+}
+
+@media (hover:hover){
+  .compact-game,
+  .home-panel,
+  .home-dashboard .continue-card,
+  .rewards-basic-item,
+  .rewards-option,
+  .profile-shortcuts a{
+    transition:transform 160ms ease,border-color 160ms ease,box-shadow 160ms ease;
+  }
+
+  .compact-game:hover,
+  .rewards-basic-item:hover,
+  .rewards-option:hover,
+  .profile-shortcuts a:hover{
+    transform:translateY(-2px);
+    border-color:rgba(83,156,220,.54);
+    box-shadow:0 18px 40px rgba(0,0,0,.24);
+  }
+}
+
+@media(max-width:390px){
+  .home-container,
+  .games-dashboard .container,
+  .rewards-container,
+  .profile-container,
+  .missions-container{
+    padding-inline:14px;
+  }
+
+  .home-hero h1,
+  .games-hero h1,
+  .rewards-hero h1{
+    letter-spacing:-.042em;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  *{
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+  }
+}
