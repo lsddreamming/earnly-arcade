@@ -512,7 +512,7 @@
         starting = false;
         Arcade.out('blockDrop', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       createBoard();
       pieceSerial = 0;
@@ -539,6 +539,7 @@
 
       Arcade.countdown(() => {
         starting = false;
+        earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         game = setInterval(moveDown, dropDelayMs());
