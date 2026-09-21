@@ -3,8 +3,7 @@ import { AdMob, AdmobConsentStatus } from '@capacitor-community/admob';
 
 const TEST_REWARDED_IOS = 'ca-app-pub-3940256099942544/1712485313';
 const PRODUCTION_REWARDED = {
-  extraPlays: 'ca-app-pub-8864401806510610/8249888009',
-  bonusCoins: 'ca-app-pub-8864401806510610/1831908609'
+  extraPlays: 'ca-app-pub-8864401806510610/8249888009'
 };
 
 const TEST_MODE = __EARNLY_ADMOB_TEST_MODE__;
