@@ -134,7 +134,6 @@
 
     Arcade.gameGuide({
       game:'dodger',
-        badgeText: survived ? '🏆 TRAFFIC SURVIVED!' : '💥 TRAFFIC RUN OVER',
       surface:canvas,
       steps:[
         { icon:'👆', title:'Start', text:'Tap the road' },
@@ -433,6 +432,7 @@
         result,
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
+        badgeText: survived ? '🏆 30 SECONDS SURVIVED!' : '💥 RUN OVER',
         extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
