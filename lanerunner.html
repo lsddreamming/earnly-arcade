@@ -124,18 +124,57 @@
     function drawCar(x,y,isPlayer,variant){
       ctx.save();ctx.translate(x,y);
       const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
-      ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=8;ctx.shadowOffsetY=5;
-      ctx.fillStyle='#0b1220';ctx.beginPath();ctx.ellipse(0,14,22,6,0,0,Math.PI*2);ctx.fill();
-      ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-      ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-19,10);ctx.lineTo(-17,-7);ctx.quadraticCurveTo(-15,-14,-7,-16);ctx.lineTo(8,-16);ctx.quadraticCurveTo(16,-14,18,-7);ctx.lineTo(20,10);ctx.quadraticCurveTo(18,15,13,16);ctx.lineTo(-13,16);ctx.quadraticCurveTo(-18,15,-19,10);ctx.closePath();ctx.fill();
-      ctx.fillStyle=isPlayer?'#7dd3fc':'#bae6fd';ctx.beginPath();ctx.moveTo(-10,-10);ctx.lineTo(-6,-14);ctx.lineTo(7,-14);ctx.lineTo(11,-10);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#111827';ctx.beginPath();ctx.roundRect(-14,-5,28,9,3);ctx.fill();
+      const trim=isPlayer?'#fecaca':variant===1?'#bae6fd':variant===2?'#fef3c7':'#ddd6fe';
+      const halfWidth=variant===2&&!isPlayer?21:19;
+      const nose=variant===1&&!isPlayer?-18:-16;
+
+      // Soft shadow grounds each car without adding more fast-moving road detail.
+      ctx.fillStyle='rgba(2,6,23,.46)';ctx.beginPath();ctx.ellipse(0,15,23,6,0,0,Math.PI*2);ctx.fill();
+
+      ctx.shadowColor=isPlayer?'rgba(239,68,68,.20)':'rgba(56,189,248,.10)';
+      ctx.shadowBlur=isPlayer?10:6;
+      ctx.fillStyle=body;
+      ctx.beginPath();
+      ctx.moveTo(-halfWidth,10);ctx.lineTo(-halfWidth+2,-7);
+      ctx.quadraticCurveTo(-halfWidth+4,nose,-7,nose);
+      ctx.lineTo(8,nose);ctx.quadraticCurveTo(halfWidth-3,nose,halfWidth-1,-7);
+      ctx.lineTo(halfWidth+1,10);ctx.quadraticCurveTo(halfWidth-1,16,13,16);
+      ctx.lineTo(-13,16);ctx.quadraticCurveTo(-halfWidth,15,-halfWidth,10);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;
+
+      // Different roof/window silhouettes make traffic readable at a glance.
+      ctx.fillStyle=trim;
+      ctx.beginPath();
+      if(variant===2&&!isPlayer){
+        ctx.moveTo(-11,-9);ctx.lineTo(-7,-14);ctx.lineTo(8,-14);ctx.lineTo(12,-9);
+      }else if(variant===3&&!isPlayer){
+        ctx.moveTo(-9,-9);ctx.lineTo(-4,-15);ctx.lineTo(5,-15);ctx.lineTo(10,-9);
+      }else{
+        ctx.moveTo(-10,-10);ctx.lineTo(-6,-14);ctx.lineTo(7,-14);ctx.lineTo(11,-10);
+      }
+      ctx.closePath();ctx.fill();
+
+      ctx.fillStyle='#0b1220';ctx.beginPath();ctx.roundRect(-14,-5,28,9,3);ctx.fill();
       ctx.fillStyle=body;ctx.fillRect(-11,-4,22,7);
-      ctx.fillStyle='#020617';ctx.beginPath();ctx.roundRect(-23,-7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,-7,6,12,2);ctx.fill();
+
+      if(variant===2&&!isPlayer){
+        ctx.fillStyle='#111827';ctx.beginPath();ctx.roundRect(-9,-18,18,4,2);ctx.fill();
+        ctx.fillStyle='#fef3c7';ctx.font='bold 5px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('CITY',0,-16);
+      }else if(variant===3&&!isPlayer){
+        ctx.fillStyle='rgba(255,255,255,.20)';ctx.fillRect(-12,1,24,2);
+      }
+
+      ctx.fillStyle='#020617';
+      ctx.beginPath();ctx.roundRect(-23,-7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,-7,6,12,2);ctx.fill();
       ctx.beginPath();ctx.roundRect(-23,7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,7,6,12,2);ctx.fill();
-      ctx.fillStyle=isPlayer?'#fef08a':'#f8fafc';ctx.fillRect(-13,-13,6,3);ctx.fillRect(7,-13,6,3);
+
+      ctx.fillStyle=isPlayer?'#fef08a':'#dbeafe';ctx.fillRect(-13,-13,6,3);ctx.fillRect(7,-13,6,3);
       ctx.fillStyle='#fb7185';ctx.fillRect(-13,12,6,3);ctx.fillRect(7,12,6,3);
-      if(isPlayer){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1)}
+
+      if(isPlayer){
+        ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1);
+        ctx.strokeStyle='rgba(254,240,138,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(-15,-17,30,35,7);ctx.stroke();
+      }
       ctx.restore();
     }
     function draw(){
@@ -195,7 +234,8 @@
       for(let i=obstacles.length-1;i>=0;i--){
         const o=obstacles[i],prevY=o.y;o.y+=o.speed*dt;
         // Check the full path between frames so fast traffic cannot tunnel through the player's car.
-        const crossedPlayer=o.lane===lane&&prevY<495&&o.y>430;
+        const overlapsPlayerX=Math.abs(lanes[o.lane]-playerX)<40;
+        const crossedPlayer=overlapsPlayerX&&prevY<495&&o.y>430;
         if(crossedPlayer){finish();return}
         if(o.y>550){
           obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);
