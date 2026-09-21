@@ -1046,9 +1046,9 @@ test('game results show daily mission progress and claim readiness', async ({ pa
 
   const result = page.locator('dialog.game-result-dialog');
   await expect(result).toBeVisible();
-  await expect(result.locator('.result-mission-update')).toHaveCount(3);
-  await expect(result).toContainText('Warm Up · 1/3');
+  await expect(result.locator('.result-mission-update')).toHaveCount(1);
   await expect(result).toContainText('Mix It Up · 1/2');
+  await expect(result).not.toContainText('Warm Up · 1/3');
 
   await page.evaluate(() => {
     document.querySelector('dialog.game-result-dialog')?.close();
@@ -1060,9 +1060,8 @@ test('game results show daily mission progress and claim readiness', async ({ pa
       coins:1, result:{xpAward:10}, playsLeft:1, game:'shapeFit'
     });
   });
-  await expect(result).toContainText('Warm Up complete · +20 XP ready to claim');
-  await expect(result).toContainText('Mix It Up complete · +25 XP ready to claim');
-  await expect(result).toContainText('Coin Hunt complete · +25 XP ready to claim');
+  await expect(result.locator('.result-mission-update')).toHaveCount(1);
+  await expect(result).toContainText('3 Daily Missions complete · +70 XP ready to claim');
 });
 
 
@@ -1113,8 +1112,8 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
       game:'shapeFit', extra:['⏱️ Time played: 5s']
     });
   });
-  await expect(page.locator('dialog.game-result-dialog')).toContainText('Warm Up · 1/3');
-  await expect(page.locator('dialog.game-result-dialog')).toContainText('Coin Hunt · 5/15');
+  await expect(page.locator('dialog.game-result-dialog .result-mission-update')).toHaveCount(1);
+  await expect(page.locator('dialog.game-result-dialog')).toContainText('Mix It Up · 1/2');
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
 
   await page.evaluate(() => {
