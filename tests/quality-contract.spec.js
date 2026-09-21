@@ -118,6 +118,15 @@ test('dedicated games keep the shared play, result, and out-of-plays contract', 
   }
 });
 
+test('all mobile game screens hide the fixed app nav during live play', () => {
+  const css = read('arcade.css');
+
+  expect(css).toContain('body.game-active #arcadeBottomNav');
+  expect(css).toContain('display:none!important');
+  expect(css).toContain('body.game-active.has-app-nav .container');
+  expect(css).toContain('padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px))!important');
+});
+
 test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   const source = read('mini-games.js');
   const html = read('mini.html');
