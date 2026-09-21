@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Rewards</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=8">
 </head>
 <body class="rewards-dashboard">
   <main class="container rewards-container">
@@ -28,8 +28,8 @@
 
     <header class="rewards-hero">
       <span class="rewards-eyebrow">REWARDS</span>
-      <h1>Your Earnly balance</h1>
-      <p>Track Arcade Coins, reward activity, and what you unlock as you play.</p>
+      <h1>Play now. Redeem later.</h1>
+      <p>Build your Arcade Coin balance now. Gift card and Bitcoin rewards are planned for a future release.</p>
     </header>
 
     <section class="rewards-balance-card">
@@ -37,11 +37,43 @@
         <span class="rewards-balance-label">Arcade Coins</span>
         <strong><span id="balance">0</span> <small>🪙</small></strong>
       </div>
-      <span class="prototype-badge">ARCADE REWARDS</span>
-      <p>Arcade Coins are in-app reward points. Cash redemption is not available in this version.</p>
+      <span class="prototype-badge">REWARDS BUILDING</span>
+      <p>Arcade Coins are your Earnly reward balance. Real-value redemption is not live yet, so Coins do not have a fixed cash value today.</p>
       <div class="rewards-balance-meta">
         <span>Today <strong id="todayEarned">+0</strong></span>
         <span>Lifetime <strong id="lifetimeEarned">0</strong></span>
+      </div>
+    </section>
+
+    <section class="reward-vision-card" aria-label="Future Earnly real rewards">
+      <div class="reward-vision-head">
+        <span class="reward-vision-icon">🏆</span>
+        <div>
+          <span class="rewards-kicker">REAL REWARDS ROADMAP</span>
+          <h2>Gift cards + Bitcoin are planned</h2>
+        </div>
+        <span class="rewards-status-pill">Coming Soon</span>
+      </div>
+
+      <p class="reward-vision-copy">Earnly is being designed so game-earned Arcade Coins can eventually be redeemed for real rewards. The exact Coin-to-dollar rate and minimum cash-out will be set after real ad revenue is measured.</p>
+
+      <div class="reward-funding-strip">
+        <span>📺 Ad-funded rewards</span>
+        <strong>Target: 25%–50% of net ad revenue back to players</strong>
+        <small>The final share can change based on ad rates, payout fees, fraud costs, taxes, and operating costs.</small>
+      </div>
+
+      <div class="reward-future-options">
+        <div class="reward-future-option">
+          <span>🎁</span>
+          <div><strong>Gift Cards</strong><small>Planned redemption option</small></div>
+          <b>COMING SOON</b>
+        </div>
+        <div class="reward-future-option">
+          <span>₿</span>
+          <div><strong>Bitcoin / sats</strong><small>Planned real-value payout option</small></div>
+          <b>COMING SOON</b>
+        </div>
       </div>
     </section>
 
@@ -57,8 +89,8 @@
     <section class="rewards-section">
       <div class="rewards-section-heading">
         <div>
-          <span class="rewards-kicker">BALANCE BASICS</span>
-          <h2>What each number means</h2>
+          <span class="rewards-kicker">HOW EARNLY WORKS</span>
+          <h2>Coins, XP, and plays</h2>
         </div>
       </div>
       <div class="rewards-basics">
@@ -71,33 +103,19 @@
     <section class="rewards-section">
       <div class="rewards-section-heading">
         <div>
-          <span class="rewards-kicker">CASH-OUT READINESS</span>
-          <h2>3 of 6 pieces working</h2>
+          <span class="rewards-kicker">REWARD LAUNCH ROADMAP</span>
+          <h2>3 of 6 foundations ready</h2>
         </div>
         <span class="rewards-status-pill">Growing</span>
       </div>
 
       <div class="rewards-readiness">
-        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Arcade Coin earning</strong><small>Earn from games, bonuses, and challenges</small></div></div>
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Game-earned Arcade Coins</strong><small>Coins come from gameplay, bonuses, and challenges</small></div></div>
         <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Secure Coin wallet & ledger</strong><small>Server-backed when you sign in</small></div></div>
-        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Extra-play rewarded ads</strong><small>Optional ads can unlock extra plays</small></div></div>
-        <div class="rewards-readiness-row"><span>4</span><div><strong>Cash redemption</strong><small>Planned for a future version</small></div></div>
-        <div class="rewards-readiness-row"><span>5</span><div><strong>Payout protection</strong><small>Added before cash redemption launches</small></div></div>
-        <div class="rewards-readiness-row"><span>6</span><div><strong>Payment provider</strong><small>Added before withdrawals are enabled</small></div></div>
-      </div>
-    </section>
-
-    <section class="rewards-section">
-      <div class="rewards-section-heading">
-        <div>
-          <span class="rewards-kicker">PLANNED OPTIONS</span>
-          <h2>Future redemption options</h2>
-        </div>
-      </div>
-      <div class="rewards-options">
-        <div class="rewards-option primary"><span>💵</span><strong>Cash</strong><small>Planned first</small></div>
-        <div class="rewards-option"><span>🎁</span><strong>Gift cards</strong><small>Possible later</small></div>
-        <div class="rewards-option"><span>₿</span><strong>Bitcoin</strong><small>Possible later</small></div>
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Rewarded ads for extra plays</strong><small>Ads support the economy without directly minting Coins</small></div></div>
+        <div class="rewards-readiness-row"><span>4</span><div><strong>Set the real Coin exchange rate</strong><small>Based on measured ad revenue and sustainable payout math</small></div></div>
+        <div class="rewards-readiness-row"><span>5</span><div><strong>Payout & fraud protection</strong><small>Verify balances and stop abuse before real rewards launch</small></div></div>
+        <div class="rewards-readiness-row"><span>6</span><div><strong>Gift card + Bitcoin redemption</strong><small>Enable real withdrawals after the economy is validated</small></div></div>
       </div>
     </section>
 
@@ -114,7 +132,8 @@
     <details class="rewards-footnote">
       <summary>How Arcade Coins work</summary>
       <p>Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads unlock extra plays, not Coins.</p>
-      <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server wallet. Cash redemption is not available in this version.</p>
+      <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server wallet. Gift card and Bitcoin redemption are planned but are not available in this version.</p>
+      <p>Earnly's target is to fund the future player reward pool with roughly 25%–50% of net ad revenue. The final percentage, Coin value, minimum redemption, and available payout methods may change before launch.</p>
     </details>
   </main>
 
