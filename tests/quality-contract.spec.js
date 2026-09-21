@@ -135,6 +135,8 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(source).toContain("const targetCars=[0,6,7,8,9,9,10,10]");
   expect(source).toContain("const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8]");
   expect(source).toContain("const maxInitiallyFree=2");
+  expect(source).toContain("for(let attempt=0;attempt<400;attempt++)");
+  expect(source).toContain("const fallback=level>=4?[");
   expect(source).toContain("if(!alive||miniPaused){lastTickAt=performance.now();return;}");
   expect(source).toContain("b.className='traffic-car';");
   expect(source).not.toContain("' clear-path':'')");
