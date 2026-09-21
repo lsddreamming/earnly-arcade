@@ -40,7 +40,7 @@ jobs:
         run: npm install
 
       - name: Run release contract tests
-        run: npx playwright test tests/quality-contract.spec.js
+        run: npx playwright test tests/quality-contract.spec.js --config=playwright.contract.config.js
 
       - name: Build native web bundle
         run: npm run native:web
