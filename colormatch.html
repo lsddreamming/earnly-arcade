@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Color Match</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=24">
   <style>
     html,body,.container{touch-action:manipulation}
     .color-board{max-width:390px;margin:12px auto;padding:18px;border:1px solid #475569;border-radius:20px;background:#152236;touch-action:manipulation}
@@ -24,17 +24,60 @@
     @keyframes colorRewardBump{0%{transform:scale(1)}45%{transform:scale(1.08);box-shadow:0 0 18px rgba(250,204,21,.22)}100%{transform:scale(1)}}
     .color-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.color-choice{min-height:58px;margin:0;font-size:15px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
     @media(max-width:600px){
-      body.colormatch-page main.container{padding-top:8px!important;padding-bottom:92px!important}
-      body.colormatch-page .topbar{margin-bottom:4px!important}
-      body.colormatch-page .page-header{margin:0 0 5px!important}
-      body.colormatch-page .page-header h1{font-size:20px!important;margin:2px 0 5px!important}
+      body.colormatch-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;padding-bottom:92px!important}
+      body.colormatch-page .topbar{margin-bottom:6px!important}
+      body.colormatch-page .page-header{
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(245,158,11,.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(245,158,11,.10),transparent 38%),
+          radial-gradient(circle at 12% 100%,rgba(236,72,153,.07),transparent 34%),
+          linear-gradient(145deg,rgba(27,38,60,.97),rgba(10,22,38,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
+      }
+      body.colormatch-page .page-header h1{font-size:22px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
       body.colormatch-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;width:100%!important}
-      body.colormatch-page .meta-pill{font-size:9px!important;padding:4px 2px!important;min-height:28px!important;text-align:center!important}
+      body.colormatch-page .meta-pill{
+        min-height:37px!important;
+        padding:4px 3px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:11px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
+      }
       body.colormatch-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
-      body.colormatch-page .color-board{width:min(92vw,390px)!important;box-sizing:border-box!important;margin:6px auto!important;padding:14px!important}
+      body.colormatch-page .color-board{
+        width:min(92vw,390px)!important;
+        box-sizing:border-box!important;
+        margin:7px auto!important;
+        padding:15px!important;
+        border:2px solid rgba(245,158,11,.26)!important;
+        border-radius:20px!important;
+        background:
+          radial-gradient(circle at 50% 0%,rgba(245,158,11,.05),transparent 40%),
+          linear-gradient(180deg,#15253b,#0d1a2c)!important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.025),
+          0 18px 38px rgba(0,0,0,.24)!important
+      }
       body.colormatch-page .color-rule{font-size:11px!important;margin-bottom:5px!important}
       body.colormatch-page .color-word{font-size:42px!important;margin:12px 0 16px!important}
-      body.colormatch-page .color-choice{min-height:62px!important;font-size:16px!important;font-weight:800!important}
+      body.colormatch-page .color-choice{
+        min-height:62px!important;
+        font-size:16px!important;
+        font-weight:850!important;
+        border-radius:14px!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 18px rgba(0,0,0,.12)!important
+      }
       body.colormatch-page.game-active .topbar,
       body.colormatch-page.game-active .game-guide-strip,
       body.colormatch-page.game-active .game-guide-more,
@@ -129,9 +172,10 @@
     }
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
-      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
+      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
       clearInterval(timer);timer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;lastRewardShown=0;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';refreshReward();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
+      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
     }
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
       if(!running||pauseStartedAt)return;
