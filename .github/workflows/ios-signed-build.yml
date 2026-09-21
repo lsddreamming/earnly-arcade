@@ -1,5 +1,5 @@
 name: Earnly signed iOS build
-# Push-triggered runs validate the App Store 1.0 source, run release contracts, use test AdMob IDs, and reject stale gameplay hints.
+# Push-triggered runs validate the App Store 1.0 source. Explicit [live] commits use production AdMob IDs; all other pushes stay in test mode.
 
 on:
   push:
@@ -22,8 +22,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 35
     env:
-      BUILD_ADMOB_MODE: ${{ inputs.admob_mode || 'test' }}
-      EARNLY_ADMOB_TEST_MODE: ${{ inputs.admob_mode == 'live' && '0' || '1' }}
+      BUILD_ADMOB_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.admob_mode) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live]') && 'live') || 'test' }}
+      EARNLY_ADMOB_TEST_MODE: ${{ ((github.event_name == 'workflow_dispatch' && inputs.admob_mode == 'live') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[live]'))) && '0' || '1' }}
       TEAM_ID: 27R798NCMZ
       BUNDLE_ID: com.earnly.arcade
       PROFILE_NAME: Earnly Arcade App Store
