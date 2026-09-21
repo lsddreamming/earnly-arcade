@@ -267,3 +267,20 @@ test('current release keeps unreleased rewards and account deletion clear', () =
   expect(cloud).toContain('deleteAccount,');
   expect(privacy).toContain('permanently delete their Earnly account');
 });
+
+
+test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage guarded', () => {
+  const configure = read('scripts/configure-ios.mjs');
+  const workflow = read('.github/workflows/ios-signed-build.yml');
+
+  expect(configure).toContain("'cstr6suwn9.skadnetwork'");
+  expect(configure).toContain("'4fzdc2evr5.skadnetwork'");
+  expect(configure).toContain("'3qcr597p9d.skadnetwork'");
+  expect(configure).toContain('const skAdNetworkBlock');
+  expect(configure).toContain('NSUserTrackingUsageDescription');
+
+  expect(workflow).toContain("BUILD_ADMOB_MODE: ${{ inputs.admob_mode || 'test' }}");
+  expect(workflow).toContain('Run release contract tests');
+  expect(workflow).toContain('Verify native release mode');
+  expect(workflow).toContain('earnly-arcade-ios-signed-${{ env.BUILD_ADMOB_MODE }}');
+});
