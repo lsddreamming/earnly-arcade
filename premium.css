@@ -1112,3 +1112,64 @@ textarea:focus-visible{
     gap:8px;
   }
 }
+
+
+/* Premium pass v4 — home finishing pass */
+
+/* Keep the Continue Playing heading visually separate from its card. */
+.home-dashboard .continue-card{
+  overflow:visible;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+.continue-card .home-section-heading{
+  position:relative;
+  z-index:1;
+  margin:0 2px 9px;
+  padding:0;
+}
+
+/* Compact daily missions: button and progress should not make each row feel
+   like a full-size card. */
+.daily-mission-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:0 8px;
+  padding:8px 12px 9px;
+}
+
+.daily-mission-row .home-action-row{
+  grid-column:1 / -1;
+  padding:0 0 7px;
+}
+
+.daily-mission-row .home-challenge-progress{
+  grid-column:1;
+  align-self:center;
+  margin:0;
+}
+
+.daily-mission-row .home-challenge-button{
+  grid-column:2;
+  align-self:center;
+  min-height:32px;
+  margin:0;
+  padding:6px 10px;
+  white-space:nowrap;
+}
+
+.daily-mission-row + .daily-mission-row{
+  border-top:1px solid rgba(148,163,184,.14)!important;
+}
+
+@media(max-width:390px){
+  .daily-mission-row{
+    padding-inline:10px;
+  }
+  .daily-mission-row .home-challenge-button{
+    padding-inline:9px;
+  }
+}
