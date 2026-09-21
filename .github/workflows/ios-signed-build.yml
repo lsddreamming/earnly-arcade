@@ -1,4 +1,5 @@
 name: Earnly signed iOS build
+# Push-triggered runs are signing validation builds and use test AdMob IDs.
 
 on:
   push:
