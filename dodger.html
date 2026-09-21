@@ -422,7 +422,7 @@
         result,
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
+        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
       });
