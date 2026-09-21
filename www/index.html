@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Arcade</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+</head>
+<body class="home-dashboard">
+  <main class="container home-container">
+    <header class="home-hero">
+      <img class="home-hero-icon" src="earnly-icon.svg" alt="">
+      <div class="home-hero-copy">
+        <span class="home-eyebrow">EARNLY ARCADE</span>
+        <h1>Play. Earn. Level Up.</h1>
+      </div>
+      <button class="home-info-button" id="howEarnlyWorks" type="button" aria-label="How Earnly works" title="How Earnly works">ⓘ</button>
+    </header>
+
+    <a class="home-primary-play" href="games.html" aria-label="Browse Earnly games and start playing">
+      <span class="home-primary-play-icon">🎮</span>
+      <span class="home-primary-play-copy"><strong>Play Games</strong><small>Pick a game · earn XP + Arcade Coins</small></span>
+      <b>Play →</b>
+    </a>
+
+    <section class="home-install-banner browser-only" id="installCard">
+      <div class="home-install-main">
+        <div class="home-install-icon"><img src="earnly-icon.svg" alt=""></div>
+        <div class="home-install-copy">
+          <strong id="installTitle">Add Earnly to your iPhone</strong>
+          <span id="installText">Open it like an app.</span>
+        </div>
+      </div>
+      <div class="home-install-actions">
+        <button class="home-install-button" id="installButton" type="button">Add</button>
+        <button class="home-install-dismiss" id="installDismiss" type="button" aria-label="Hide install suggestion">×</button>
+      </div>
+    </section>
+
+    <section class="home-transfer-banner" id="transferCard" hidden>
+      <div class="home-transfer-copy">
+        <strong>📲 Restore your Safari progress</strong>
+        <span>This Home Screen version started fresh. If you copied your Earnly progress in Safari, bring it over now.</span>
+      </div>
+      <div class="home-transfer-actions">
+        <button class="green" id="transferRestoreButton" type="button">Restore Progress</button>
+        <button class="secondary" id="transferLaterButton" type="button">Later</button>
+      </div>
+    </section>
+
+    <section class="home-section continue-card" id="continueCard" hidden>
+      <div class="home-section-heading">
+        <span>Continue playing</span>
+      </div>
+      <div class="home-action-row">
+        <div class="home-action-icon" id="continueIcon">🎮</div>
+        <div class="home-action-copy">
+          <strong id="continueName">Game</strong>
+          <span id="continueMeta">Ready to play</span>
+        </div>
+        <a class="home-row-button" id="continueButton" href="games.html">Play</a>
+      </div>
+    </section>
+
+    <section class="home-overview" aria-label="Earnly overview">
+      <a class="home-metric" href="rewards.html" aria-label="View Arcade Coin rewards">
+        <span class="home-metric-label">Arcade Coins</span>
+        <strong><span id="points" aria-live="polite">0</span> <small>🪙</small></strong>
+        <span class="home-metric-link">Rewards →</span>
+      </a>
+
+      <a class="home-metric" href="profile.html" aria-label="View profile">
+        <span class="home-metric-label">Level</span>
+        <strong><span id="profileLevel">1</span> <small>⭐</small></strong>
+        <span class="home-metric-link"><span id="profileName">Player</span> →</span>
+      </a>
+
+      <div class="home-progress-row">
+        <div class="home-progress-copy">
+          <span id="streak">🔥 0 day streak</span>
+          <span id="profileXP">0 / 100 XP</span>
+        </div>
+        <div class="xp-bar home-xp-bar"><span id="profileXPBar"></span></div>
+      </div>
+    </section>
+
+    <section class="home-section">
+      <div class="home-section-heading">
+        <span>Today</span>
+      </div>
+      <div class="home-panel">
+        <div class="home-action-row">
+          <div class="home-action-icon">🎁</div>
+          <div class="home-action-copy">
+            <strong>Daily Bonus</strong>
+            <span id="bonusText">Claim +10 Arcade Coins</span>
+          </div>
+          <button class="home-row-button green" id="dailyBonusButton" type="button">Claim</button>
+        </div>
+
+        <div class="home-divider"></div>
+
+        <div class="home-challenge-row" id="challengeCard">
+          <div class="home-action-row home-action-row-top">
+            <div class="home-action-icon">🎯</div>
+            <div class="home-action-copy">
+              <strong id="challengeTitle">Daily Challenge</strong>
+              <span id="challengeDescription">Loading today’s challenge…</span>
+            </div>
+            <span class="home-count-pill" id="challengeCount">0 / 1</span>
+          </div>
+          <div class="challenge-progress home-challenge-progress" aria-hidden="true"><span id="challengeBar"></span></div>
+          <button class="home-challenge-button" id="challengeButton" type="button" disabled>Keep Playing</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section" id="dailyMissionsSection">
+      <div class="home-section-heading">
+        <span>Daily Missions</span>
+        <span class="home-count-pill" id="dailyMissionCount">0/3</span>
+      </div>
+      <div class="home-panel" id="dailyMissionList"></div>
+    </section>
+
+    <details class="home-section home-disclosure" id="streakRewardCard">
+      <summary>
+        <div>
+          <strong>🔥 Streak Rewards</strong>
+          <span id="streakRewardText">Build your streak for bonus XP</span>
+        </div>
+        <span class="home-count-pill" id="streakRewardCount">0/3</span>
+      </summary>
+      <div class="streak-reward-list home-streak-list" id="streakRewardList"></div>
+    </details>
+
+    <section class="home-section">
+      <div class="home-section-heading">
+        <span>Progress</span>
+      </div>
+      <div class="home-progress-grid">
+        <a class="home-progress-tile" href="stats.html">
+          <span class="home-progress-icon">📅</span>
+          <div>
+            <strong>Weekly Missions</strong>
+            <span id="weeklyText">0 of 4 complete</span>
+          </div>
+          <b id="weeklyCount">0/4</b>
+        </a>
+
+        <a class="home-progress-tile" href="games.html#achievements">
+          <span class="home-progress-icon">🏆</span>
+          <div>
+            <strong>Achievements</strong>
+            <span id="achievementText">0 unlocked</span>
+          </div>
+          <b>→</b>
+        </a>
+      </div>
+    </section>
+
+    <a class="home-account-shortcut" id="homeAccountShortcut" href="account.html" aria-label="Sign in to Earnly on this browser">
+      <span class="home-account-shortcut-icon">🔐</span>
+      <span class="home-account-shortcut-copy">
+        <strong id="homeAccountTitle">Sign in on this browser</strong>
+        <small id="homeAccountText">Restore your Coins, levels, scores, and missions.</small>
+      </span>
+      <b id="homeAccountAction">Sign In →</b>
+    </a>
+
+    <details class="home-prototype-note">
+      <summary>About Earnly Arcade</summary>
+      <p>
+        Games, daily rewards, optional rewarded ads for extra plays, achievements, and Arcade Coins are being tested.
+        Real cash-out and a live ad network are not connected yet.
+      </p>
+    </details>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const installCard = document.getElementById('installCard');
+    const installTitle = document.getElementById('installTitle');
+    const installText = document.getElementById('installText');
+    const installButton = document.getElementById('installButton');
+    const installDismiss = document.getElementById('installDismiss');
+    const transferCard = document.getElementById('transferCard');
+    const transferRestoreButton = document.getElementById('transferRestoreButton');
+    const transferLaterButton = document.getElementById('transferLaterButton');
+    const homeAccountShortcut = document.getElementById('homeAccountShortcut');
+    const homeAccountTitle = document.getElementById('homeAccountTitle');
+    const homeAccountText = document.getElementById('homeAccountText');
+    const homeAccountAction = document.getElementById('homeAccountAction');
+    const points = document.getElementById('points');
+    const streak = document.getElementById('streak');
+    const bonusText = document.getElementById('bonusText');
+    const bonusButton = document.getElementById('dailyBonusButton');
+    const dailyMissionCount = document.getElementById('dailyMissionCount');
+    const dailyMissionList = document.getElementById('dailyMissionList');
+    const streakRewardText = document.getElementById('streakRewardText');
+    const streakRewardCount = document.getElementById('streakRewardCount');
+    const streakRewardList = document.getElementById('streakRewardList');
+    const challengeTitle = document.getElementById('challengeTitle');
+    const challengeDescription = document.getElementById('challengeDescription');
+    const challengeCount = document.getElementById('challengeCount');
+    const challengeBar = document.getElementById('challengeBar');
+    const challengeButton = document.getElementById('challengeButton');
+    const challengeCard = document.getElementById('challengeCard');
+    const achievementText = document.getElementById('achievementText');
+    const profileName = document.getElementById('profileName');
+    const profileLevel = document.getElementById('profileLevel');
+    const profileXP = document.getElementById('profileXP');
+    const profileXPBar = document.getElementById('profileXPBar');
+    const continueCard = document.getElementById('continueCard');
+    const continueIcon = document.getElementById('continueIcon');
+    const continueName = document.getElementById('continueName');
+    const continueMeta = document.getElementById('continueMeta');
+    const continueButton = document.getElementById('continueButton');
+    const weeklyText = document.getElementById('weeklyText');
+    const weeklyCount = document.getElementById('weeklyCount');
+
+    const challengeGamePages = {
+      snake:'snake.html',
+      blockDrop:'blockdrop.html',
+      tapRush:'taprush.html',
+      memory:'memory.html',
+      dodger:'dodger.html',
+      brickBreaker:'brickbreaker.html',
+      jungleHopper:'junglehopper.html',
+      towerStack:'towerstack.html',
+      coinCatch:'coincatch.html',
+      colorMatch:'colormatch.html',
+      paddleRally:'paddlerally.html',
+      laneRunner:'lanerunner.html',
+      safeCracker:'safecracker.html',
+      blockGrid:'mini.html?game=blockGrid',
+      mergeRush:'mini.html?game=mergeRush',
+      perfectDrop:'mini.html?game=perfectDrop',
+      spiralDrop:'mini.html?game=spiralDrop',
+      shapeFit:'mini.html?game=shapeFit',
+      bounceRun:'mini.html?game=bounceRun',
+      trafficEscape:'mini.html?game=trafficEscape'
+    };
+
+    function challengeDestination(challenge) {
+      const page = challengeGamePages[challenge.game] || 'games.html';
+      if (!challenge.game) return page;
+      return page + (page.includes('?') ? '&' : '?') + 'goal=daily';
+    }
+
+    function challengeGameLabel(challenge) {
+      return challenge.game ? (Arcade.names[challenge.game] || 'Game') : 'a Game';
+    }
+
+    function savedTimeLabel(value) {
+      const time = value ? new Date(value).getTime() : 0;
+      if (!time || Number.isNaN(time)) return 'Waiting for the first cloud backup.';
+      const minutes = Math.max(0, Math.floor((Date.now() - time) / 60000));
+      if (minutes < 1) return 'Saved to Earnly Cloud just now.';
+      if (minutes < 60) return 'Saved to Earnly Cloud ' + minutes + ' min ago.';
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return 'Saved to Earnly Cloud ' + hours + ' hr' + (hours === 1 ? '' : 's') + ' ago.';
+      return 'Last cloud backup ' + new Date(time).toLocaleDateString() + '.';
+    }
+
+    function openChallengeGame() {
+      const challenge = Arcade.challengeStatus();
+      if (challenge.claimed || challenge.complete) return;
+      location.href = challengeDestination(challenge);
+    }
+
+    async function refreshHomeAccountShortcut() {
+      let signedIn = false;
+
+      try {
+        if (window.EarnlyCloud?.ready) {
+          signedIn = !!(await EarnlyCloud.session())?.user;
+        }
+      } catch {}
+
+      const sync = Arcade.syncStatus();
+      const conflict = localStorage.getItem('arcadeCloudConflict');
+      const syncError = localStorage.getItem('arcadeCloudSyncError');
+      const rewardError = localStorage.getItem('arcadeServerRewardError');
+      const needsAttention = signedIn && !!(conflict || syncError);
+
+      homeAccountShortcut.classList.toggle('connected', signedIn && !needsAttention);
+      homeAccountShortcut.classList.toggle('attention', needsAttention);
+      homeAccountShortcut.setAttribute(
+        'aria-label',
+        signedIn ? 'Open your connected Earnly account' : 'Sign in to Earnly on this browser'
+      );
+      homeAccountTitle.textContent = needsAttention
+        ? 'Earnly backup needs attention'
+        : (signedIn ? 'Earnly account connected' : 'Sign in on this browser');
+      homeAccountText.textContent = !signedIn
+        ? 'Restore your Coins, levels, scores, and missions.'
+        : (needsAttention
+            ? 'Open Account to protect your latest progress.'
+            : (rewardError
+                ? 'Progress backed up · reward updates are retrying automatically.'
+                : (sync.pending
+                    ? 'Saving ' + sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + ' automatically…'
+                    : savedTimeLabel(localStorage.getItem('arcadeLastCloudSave')))));
+      homeAccountAction.textContent = needsAttention ? 'Fix →' : (signedIn ? 'Account ✓' : 'Sign In →');
+    }
+
+    function render() {
+      const install = Arcade.installStatus();
+      const installDismissed = localStorage.getItem('earnlyInstallSuggestionDismissed') === '1';
+      installCard.hidden = install.standalone || installDismissed;
+
+      const transferDismissed = localStorage.getItem('arcadeTransferDismissed') === '1';
+      transferCard.hidden = !(install.standalone && !Arcade.hasMeaningfulProgress() && !transferDismissed);
+      if (install.isIOS && !install.canPrompt) {
+        installTitle.textContent = 'Add Earnly to your iPhone';
+        installText.textContent = 'Open it like an app.';
+        installButton.textContent = 'Add';
+      } else if (install.canPrompt) {
+        installTitle.textContent = 'Install Earnly';
+        installText.textContent = 'Open it from your Home Screen.';
+        installButton.textContent = 'Install';
+      } else {
+        installTitle.textContent = 'Add Earnly to Home Screen';
+        installText.textContent = 'Open it like an app.';
+        installButton.textContent = 'Add';
+      }
+
+      points.textContent = Arcade.number('points').toLocaleString();
+
+      const xp = Arcade.xpStatus();
+      profileName.textContent = Arcade.profileName();
+      profileLevel.textContent = xp.level;
+      profileXP.textContent = xp.current + ' / ' + xp.needed + ' XP';
+      profileXPBar.style.width = xp.progress + '%';
+
+      const gameMeta = {
+        snake:['🐍','Snake','snake.html'],
+        blockDrop:['🧱','Block Drop','blockdrop.html'],
+        tapRush:['🎯','Tap Rush','taprush.html'],
+        memory:['🧠','Memory Match','memory.html'],
+        dodger:['🚗','Neon Dodger','dodger.html'],
+        brickBreaker:['💥','Brick Breaker','brickbreaker.html'],
+        jungleHopper:['🐸','Jungle Hopper','junglehopper.html'],
+        towerStack:['🏗️','Tower Stack','towerstack.html'],
+        coinCatch:['💰','Coin Catch','coincatch.html'],
+        colorMatch:['🎨','Color Match','colormatch.html'],
+        paddleRally:['🏓','Paddle Rally','paddlerally.html'],
+        laneRunner:['🏎️','Lane Runner','lanerunner.html'],
+        safeCracker:['🔐','Safe Cracker','safecracker.html'],
+        blockGrid:['🧩','Block Grid','mini.html?game=blockGrid'],
+        mergeRush:['🔢','Merge Rush','mini.html?game=mergeRush'],
+        perfectDrop:['🎯','Perfect Drop','mini.html?game=perfectDrop'],
+        spiralDrop:['🌀','Spiral Drop','mini.html?game=spiralDrop'],
+        shapeFit:['🧠','Shape Fit','mini.html?game=shapeFit'],
+        bounceRun:['⚪','Bounce Run','mini.html?game=bounceRun'],
+        trafficEscape:['🚦','Traffic Escape','mini.html?game=trafficEscape']
+      };
+      const recent = Arcade.recentGames()[0];
+      const recentInfo = recent && gameMeta[recent];
+
+      if (recentInfo) {
+        const best = Arcade.best(recent);
+        const playsLeft = Arcade.remaining(recent);
+        const adStatus = Arcade.playAdStatus(recent);
+
+        continueCard.hidden = false;
+        continueIcon.textContent = recentInfo[0];
+        continueName.textContent = recentInfo[1];
+        continueButton.href = recentInfo[2];
+        continueButton.className = 'home-row-button';
+        continueButton.dataset.game = recent;
+
+        if (playsLeft > 0) {
+          continueMeta.textContent =
+            '🏆 ' + best.display + ' · ' + playsLeft + ' play' + (playsLeft === 1 ? '' : 's') + ' left';
+          continueButton.textContent = 'Play';
+          continueButton.removeAttribute('data-out-of-plays');
+        } else if (adStatus.remaining > 0) {
+          continueMeta.textContent =
+            '🏆 ' + best.display + ' · Out of plays · ' + adStatus.remaining +
+            ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today';
+          continueButton.textContent = 'Get +' + Arcade.PLAY_AD_BONUS + ' Plays';
+          continueButton.className = 'home-row-button green';
+          continueButton.dataset.outOfPlays = '1';
+        } else {
+          continueMeta.textContent =
+            '🏆 ' + best.display + ' · Out of plays · Free plays refill tomorrow';
+          continueButton.textContent = 'View Game';
+          continueButton.removeAttribute('data-out-of-plays');
+        }
+      } else {
+        continueCard.hidden = true;
+      }
+
+      const bonus = Arcade.dailyBonusStatus();
+      streak.textContent = '🔥 ' + bonus.streak + ' day' + (bonus.streak === 1 ? '' : 's') + ' streak';
+      bonusText.textContent = bonus.claimed ? 'Claimed today · come back tomorrow' : 'Claim +' + bonus.reward + ' Arcade Coins';
+      bonusButton.disabled = bonus.claimed;
+      bonusButton.className = bonus.claimed ? 'home-row-button claimed-button' : 'home-row-button green';
+      bonusButton.textContent = bonus.claimed ? 'Claimed ✓' : 'Claim +' + bonus.reward;
+
+      const dailyMissions = Arcade.dailyMissionStatus();
+      dailyMissionCount.textContent = dailyMissions.claimed + '/' + dailyMissions.total;
+      dailyMissionList.replaceChildren();
+      dailyMissions.missions.forEach((mission, index) => {
+        const row = document.createElement('div');
+        row.className = 'home-challenge-row daily-mission-row' + (mission.claimed ? ' claimed' : '');
+        if (index) row.style.borderTop = '1px solid rgba(148,163,184,.14)';
+
+        const top = document.createElement('div');
+        top.className = 'home-action-row home-action-row-top';
+        const icon = document.createElement('div');
+        icon.className = 'home-action-icon';
+        icon.textContent = mission.icon;
+        const copy = document.createElement('div');
+        copy.className = 'home-action-copy';
+        const title = document.createElement('strong');
+        title.textContent = mission.title;
+        const desc = document.createElement('span');
+        desc.textContent = mission.description + ' · +' + mission.rewardXP + ' XP';
+        copy.append(title, desc);
+        const count = document.createElement('span');
+        count.className = 'home-count-pill';
+        count.textContent = mission.progress + ' / ' + mission.goal;
+        top.append(icon, copy, count);
+
+        const progress = document.createElement('div');
+        progress.className = 'challenge-progress home-challenge-progress';
+        progress.setAttribute('aria-hidden', 'true');
+        const bar = document.createElement('span');
+        bar.style.width = Math.min(100, mission.progress / mission.goal * 100) + '%';
+        progress.append(bar);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = mission.claimed ? 'home-challenge-button claimed-button' :
+          (mission.complete ? 'home-challenge-button green' : 'home-challenge-button progress-button');
+        button.disabled = mission.claimed;
+        button.textContent = mission.claimed ? 'Claimed ✓' :
+          (mission.complete ? 'Claim +' + mission.rewardXP + ' XP' : 'Keep Playing');
+        button.addEventListener('click', () => {
+          if (mission.complete) {
+            Arcade.claimDailyMission(mission.id);
+            render();
+          } else {
+            location.href = 'games.html';
+          }
+        });
+        row.append(top, progress, button);
+        dailyMissionList.append(row);
+      });
+
+      const streakRewards = Arcade.streakRewardStatus();
+      streakRewardCount.textContent = streakRewards.claimed + '/' + streakRewards.total;
+      streakRewardText.textContent = streakRewards.ready
+        ? streakRewards.ready + ' reward' + (streakRewards.ready === 1 ? '' : 's') + ' ready to claim'
+        : 'Current streak: ' + streakRewards.streak + ' day' + (streakRewards.streak === 1 ? '' : 's');
+
+      streakRewardList.replaceChildren();
+      streakRewards.rewards.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'streak-reward' + (item.claimed ? ' claimed' : (item.reached ? ' ready' : ''));
+
+        const icon = document.createElement('div');
+        icon.className = 'streak-reward-icon';
+        icon.textContent = item.icon;
+
+        const copy = document.createElement('div');
+        copy.className = 'streak-reward-copy';
+
+        const title = document.createElement('strong');
+        title.textContent = item.days + '-Day Streak';
+
+        const detail = document.createElement('span');
+        detail.textContent = item.claimed ? '+' + item.rewardXP + ' XP claimed' :
+          (item.reached ? '+' + item.rewardXP + ' XP ready' : 'Reach day ' + item.days + ' · +' + item.rewardXP + ' XP');
+
+        copy.append(title, detail);
+        row.append(icon, copy);
+
+        if (item.reached && !item.claimed) {
+          const claim = document.createElement('button');
+          claim.className = 'green';
+          claim.type = 'button';
+          claim.textContent = 'Claim';
+          claim.addEventListener('click', () => {
+            Arcade.claimStreakReward(item.days);
+            render();
+          });
+          row.append(claim);
+        } else {
+          const state = document.createElement('div');
+          state.className = 'game-stat-badge';
+          state.textContent = item.claimed ? '✓' : item.days + 'd';
+          row.append(state);
+        }
+
+        streakRewardList.append(row);
+      });
+
+      const challenge = Arcade.challengeStatus();
+      challengeTitle.textContent = challenge.title;
+      challengeDescription.textContent = challenge.description;
+      challengeCount.textContent = challenge.progress + ' / ' + challenge.goal;
+      challengeBar.style.width = Math.min(100, challenge.progress / challenge.goal * 100) + '%';
+
+      const challengePlayable = !challenge.claimed && !challenge.complete;
+      challengeCard.classList.toggle('playable', challengePlayable);
+      if (challengePlayable) {
+        challengeCard.setAttribute('role', 'link');
+        challengeCard.setAttribute('tabindex', '0');
+        challengeCard.setAttribute('aria-label', 'Play ' + challengeGameLabel(challenge) + ' for ' + challenge.title);
+      } else {
+        challengeCard.removeAttribute('role');
+        challengeCard.removeAttribute('tabindex');
+        challengeCard.removeAttribute('aria-label');
+      }
+
+      if (challenge.claimed) {
+        challengeButton.disabled = true;
+        challengeButton.className = 'home-challenge-button claimed-button';
+        challengeButton.textContent = 'Challenge complete ✓';
+      } else if (challenge.complete) {
+        challengeButton.disabled = false;
+        challengeButton.className = 'home-challenge-button green';
+        challengeButton.textContent = 'Claim +' + challenge.reward + ' Coins';
+      } else {
+        challengeButton.disabled = false;
+        challengeButton.className = 'home-challenge-button progress-button mission-play-button';
+        challengeButton.textContent = challenge.game
+          ? 'Play ' + challengeGameLabel(challenge) + ' →'
+          : 'Pick a Game →';
+      }
+
+      const weekly = Arcade.weeklyStatus();
+      weeklyText.textContent = weekly.completed + ' of ' + weekly.total + ' complete' +
+        (weekly.allClaimed ? ' · Weekly Sweep ✓' : '');
+      weeklyCount.textContent = weekly.completed + '/' + weekly.total;
+
+      const achievement = Arcade.achievementSummary();
+      achievementText.textContent = achievement.unlocked + ' of ' + achievement.total + ' unlocked';
+    }
+
+    continueButton.addEventListener('click', event => {
+      const game = continueButton.dataset.game;
+      if (!game || continueButton.dataset.outOfPlays !== '1') return;
+
+      event.preventDefault();
+      Arcade.out(game, render);
+    });
+
+    bonusButton.addEventListener('click', () => {
+      const result = Arcade.claimDailyBonus();
+      if (result.claimed) Arcade.toast('🪙 +10 Arcade Coins · 🔥 ' + result.streak + ' day streak');
+      render();
+    });
+
+    challengeButton.addEventListener('click', () => {
+      const challenge = Arcade.challengeStatus();
+      if (!challenge.complete && !challenge.claimed) {
+        openChallengeGame();
+        return;
+      }
+      const result = Arcade.claimChallenge();
+      if (result) Arcade.toast('🔥 Challenge complete · +' + result.reward + ' Coins');
+      render();
+    });
+
+    challengeCard.addEventListener('click', event => {
+      if (event.target.closest('button')) return;
+      openChallengeGame();
+    });
+
+    challengeCard.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const challenge = Arcade.challengeStatus();
+      if (challenge.complete || challenge.claimed) return;
+      event.preventDefault();
+      openChallengeGame();
+    });
+
+    installButton.addEventListener('click', async () => {
+      await Arcade.requestInstall();
+      render();
+    });
+
+    installDismiss.addEventListener('click', () => {
+      localStorage.setItem('earnlyInstallSuggestionDismissed', '1');
+      render();
+    });
+
+    transferRestoreButton.addEventListener('click', async () => {
+      try {
+        const result = await Arcade.restoreTransferFromClipboard();
+        Arcade.toast('✅ Restored ' + result.restored + ' Earnly data items');
+        setTimeout(() => location.reload(), 450);
+      } catch (error) {
+        Arcade.panel(
+          '📲 Restore Safari Progress',
+          (error.message || 'The progress code could not be restored.') +
+          '\n\nOpen Earnly in normal Safari → Profile → Account → Copy Progress Code. Then return here and tap Restore Progress again.',
+          [['Open Account', () => { location.href = 'account.html#transfer'; }, 'green'], ['Close', () => {}, 'secondary']]
+        );
+      }
+    });
+
+    transferLaterButton.addEventListener('click', () => {
+      localStorage.setItem('arcadeTransferDismissed', '1');
+      render();
+    });
+
+    window.addEventListener('earnly-install-available', render);
+    window.addEventListener('earnly-install-changed', render);
+    window.addEventListener('earnly-cloud-ready', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-cloud-auth-change', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-cloud-synced', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-cloud-conflict', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-server-rewards-synced', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-server-reward-error', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-data-change', refreshHomeAccountShortcut);
+    window.addEventListener('online', refreshHomeAccountShortcut);
+    window.addEventListener('offline', refreshHomeAccountShortcut);
+
+    document.getElementById('howEarnlyWorks').addEventListener('click', () => Arcade.showOnboarding(true));
+
+    window.addEventListener('earnly-mission-claimed', () => {
+      // claimDailyMission already shows the app toast; avoid stacking a second
+      // celebration over the mission list on small screens.
+      render();
+    });
+    window.addEventListener('earnly-bonus-plays-unlocked', event => {
+      const detail = event.detail || {};
+      Arcade.milestone('🎟️ +' + (detail.playsGranted || Arcade.PLAY_AD_BONUS) + ' ' + (detail.gameName || 'game') + ' plays', 'perfect');
+      render();
+    });
+
+    function resetHomeViewport() {
+      if (location.hash) return;
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      // iPhone Safari can restore an old Home-page offset, then move again as
+      // dynamic Home cards render. Two RAFs reset after that first layout pass.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => window.scrollTo({ top:0, left:0, behavior:'auto' }));
+      });
+    }
+
+    window.addEventListener('pageshow', () => {
+      render();
+      resetHomeViewport();
+    });
+    window.addEventListener('focus', render);
+    window.addEventListener('storage', render);
+    document.documentElement.style.overflowAnchor = 'none';
+    render();
+    resetHomeViewport();
+    refreshHomeAccountShortcut();
+
+    // New testers need the quick explanation before they begin tapping around.
+    // showOnboarding() quietly skips returning players who already completed a
+    // game or dismissed the walkthrough, so this only appears when useful.
+    setTimeout(() => Arcade.showOnboarding(), 450);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

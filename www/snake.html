@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Snake</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css?v=13">
+</head>
+<body class="snake-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="snake-header">
+      <div class="game-title-status-row">
+        <h1>🐍 Earnly Snake</h1>
+        <span class="game-status title-status" id="gameStatus">Ready</span>
+      </div>
+      <div class="snake-stats">
+        <span><small>Score</small><strong id="score">0</strong></span>
+        <span><small>Reward</small><strong><span id="rewardPreview">0</span> 🪙</strong></span>
+        <span><small>Plays</small><strong id="plays">0</strong></span>
+      </div>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+
+    <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
+
+    <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
+      <button class="game-control" type="button" data-direction="UP">⬆️</button>
+      <div style="width:100%">
+        <button class="game-control" type="button" data-direction="LEFT">⬅️</button>
+        <button class="game-control" type="button" data-direction="DOWN">⬇️</button>
+        <button class="game-control" type="button" data-direction="RIGHT">➡️</button>
+      </div>
+    </div>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <div id="snakeControlLayer" class="snake-control-layer" aria-hidden="true" hidden></div>
+
+  <script src="arcade.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+    const controlLayer = document.getElementById('snakeControlLayer');
+
+    const snakeGuide = Arcade.gameGuide({
+      game:'snake',
+      surface:canvas,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the board or press Enter/Return' },
+        { icon:'↔️', title:'Control', text:'Steer anywhere' },
+        { icon:'🍎', title:'Goal', text:'Eat apples, avoid crashes' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap Anywhere in This Box',
+      overlayText:'Tap here, or press Enter/Return on a computer. Then wait for 3 · 2 · 1 · GO!',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'While playing, the entire screen becomes the controller. Swipe normally or keep one finger down and steer anywhere.',
+        'Eat apples to grow. Hitting a wall or your own body ends the run.'
+      ],
+      reward:'Earn 1 Coin every 3 apples, plus milestone bonuses. Max 30 Coins per run.'
+    });
+
+    if (snakeGuide?.overlay) {
+      const startCallout = document.createElement('div');
+      startCallout.className = 'snake-start-callout';
+      startCallout.textContent = '▶ START SNAKE';
+
+      const howTo = document.createElement('div');
+      howTo.className = 'snake-overlay-howto';
+
+      [
+        ['1', 'Tap', 'Tap anywhere inside this dark box'],
+        ['2', 'Steer', 'After GO, swipe or keep one finger down anywhere'],
+        ['3', 'Eat', 'Grab red apples and do not hit the walls']
+      ].forEach(([number, title, text]) => {
+        const row = document.createElement('div');
+        const badge = document.createElement('b');
+        badge.textContent = number;
+        const copy = document.createElement('span');
+        const strong = document.createElement('strong');
+        strong.textContent = title;
+        const small = document.createElement('small');
+        small.textContent = text;
+        copy.append(strong, small);
+        row.append(badge, copy);
+        howTo.append(row);
+      });
+
+      snakeGuide.overlay.append(startCallout, howTo);
+    }
+
+    const box = 20;
+    const MAX_SNAKE_COINS = 30;
+
+    let snake = [{ x: 200, y: 200 }];
+    let direction = 'RIGHT';
+    let nextDirection = 'RIGHT';
+    let food = { x: 100, y: 100 };
+    let score = 0;
+    let game = null;
+    let starting = false;
+
+    function snakeReward(apples) {
+      let coins = Math.floor(apples / 3);
+
+      if (apples >= 10) coins += 2;
+      if (apples >= 25) coins += 3;
+      if (apples >= 50) coins += 4;
+
+      return Math.min(coins, MAX_SNAKE_COINS);
+    }
+
+
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('snake');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+      rewardPreviewEl.textContent = snakeReward(score);
+    }
+
+    function setStatus(text, mode) {
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function setDirection(newDirection) {
+      // Ignore steering while idle, paused, or in the 3-2-1 countdown.
+      // This prevents a key/button press from preloading the first turn of a
+      // fresh run before GO.
+      if (starting || game === null || game === 'paused') return;
+
+      const opposite = {
+        LEFT: 'RIGHT',
+        RIGHT: 'LEFT',
+        UP: 'DOWN',
+        DOWN: 'UP'
+      };
+
+      if (newDirection !== opposite[direction]) {
+        nextDirection = newDirection;
+      }
+    }
+
+    document.querySelectorAll('[data-direction]').forEach(button => {
+      button.addEventListener('click', () => setDirection(button.dataset.direction));
+    });
+
+    document.addEventListener('keydown', event => {
+      const target = event.target;
+      const tag = target?.tagName;
+      const isInteractive =
+        target?.isContentEditable ||
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        tag === 'A' ||
+        tag === 'BUTTON';
+
+      const pressedStartKey =
+        event.key === 'Enter' ||
+        event.code === 'Enter' ||
+        event.code === 'NumpadEnter';
+
+      if (pressedStartKey && game === null && !starting) {
+        const allowFromStartButton = target === startButton;
+        if (!isInteractive || allowFromStartButton) {
+          event.preventDefault();
+          startGame();
+          return;
+        }
+      }
+
+      if (!event.key.startsWith('Arrow')) return;
+      event.preventDefault();
+      const map = {
+        ArrowLeft: 'LEFT',
+        ArrowRight: 'RIGHT',
+        ArrowUp: 'UP',
+        ArrowDown: 'DOWN'
+      };
+      setDirection(map[event.key]);
+    });
+
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipePointer = null;
+    let swipeSurface = null;
+    const swipeThreshold = 18;
+
+    function enableFullScreenSteering() {
+      controlLayer.hidden = false;
+      document.documentElement.classList.add('snake-game-active');
+      document.body.classList.add('snake-game-active');
+    }
+
+    function disableFullScreenSteering() {
+      controlLayer.hidden = true;
+      swipePointer = null;
+      swipeSurface = null;
+      document.documentElement.classList.remove('snake-game-active', 'snake-gesture-active');
+      document.body.classList.remove('snake-game-active');
+    }
+
+    function beginSteering(event) {
+      event.preventDefault();
+      if (starting || game === null || game === 'paused' || swipePointer !== null) return;
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      swipePointer = event.pointerId;
+      swipeSurface = event.currentTarget;
+      swipeStartX = event.clientX;
+      swipeStartY = event.clientY;
+      document.documentElement.classList.add('snake-gesture-active');
+
+      try {
+        swipeSurface.setPointerCapture?.(event.pointerId);
+      } catch {}
+    }
+
+    canvas.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+
+      if (game === null) {
+        if (!starting) startGame();
+        return;
+      }
+
+      beginSteering(event);
+    });
+
+    controlLayer.addEventListener('pointerdown', beginSteering);
+
+    function steerFromPointer(event) {
+      const dx = event.clientX - swipeStartX;
+      const dy = event.clientY - swipeStartY;
+      if (Math.abs(dx) < swipeThreshold && Math.abs(dy) < swipeThreshold) return false;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setDirection(dx > 0 ? 'RIGHT' : 'LEFT');
+      } else {
+        setDirection(dy > 0 ? 'DOWN' : 'UP');
+      }
+
+      // Start measuring again from the latest turn. This lets a player keep
+      // one finger down and draw a new direction without lifting it.
+      swipeStartX = event.clientX;
+      swipeStartY = event.clientY;
+
+      return true;
+    }
+
+    function finishSwipe(event) {
+      if (swipePointer !== event.pointerId) return;
+
+      steerFromPointer(event);
+      swipePointer = null;
+      document.documentElement.classList.remove('snake-gesture-active');
+
+      try {
+        swipeSurface?.releasePointerCapture?.(event.pointerId);
+      } catch {}
+      swipeSurface = null;
+
+      event.preventDefault();
+    }
+
+    document.addEventListener('pointerup', finishSwipe, { passive:false });
+
+    document.addEventListener('pointercancel', event => {
+      if (swipePointer !== event.pointerId) return;
+      swipePointer = null;
+      swipeSurface = null;
+      document.documentElement.classList.remove('snake-gesture-active');
+    }, { passive:false });
+
+    document.addEventListener('pointermove', event => {
+      if (swipePointer !== event.pointerId) return;
+      event.preventDefault();
+      steerFromPointer(event);
+    }, { passive:false });
+
+    document.addEventListener('touchmove', event => {
+      if (controlLayer.hidden) return;
+      event.preventDefault();
+    }, { passive:false });
+
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+    function randomFood() {
+      let next;
+      do {
+        next = {
+          x: Math.floor(Math.random() * 20) * box,
+          y: Math.floor(Math.random() * 20) * box
+        };
+      } while (snake.some(part => part.x === next.x && part.y === next.y));
+      return next;
+    }
+
+    function drawSnakeBody() {
+      if (snake.length > 1) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 15;
+        ctx.beginPath();
+        ctx.moveTo(snake[0].x + box / 2, snake[0].y + box / 2);
+        for (let index = 1; index < snake.length; index += 1) {
+          ctx.lineTo(snake[index].x + box / 2, snake[index].y + box / 2);
+        }
+        ctx.stroke();
+      }
+
+      for (let index = snake.length - 1; index >= 1; index -= 1) {
+        const part = snake[index];
+        const isTail = index === snake.length - 1;
+        const radius = isTail && snake.length > 3 ? 6 : 7.5;
+
+        ctx.fillStyle = index % 2 ? '#4ade80' : '#34d399';
+        ctx.beginPath();
+        ctx.arc(part.x + box / 2, part.y + box / 2, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(21,128,61,.38)';
+        ctx.beginPath();
+        ctx.arc(part.x + box / 2 - 2, part.y + box / 2 + 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawSnakeHead() {
+      const head = snake[0];
+      const angle = { RIGHT:0, DOWN:Math.PI/2, LEFT:Math.PI, UP:-Math.PI/2 }[direction] || 0;
+
+      ctx.save();
+      ctx.translate(head.x + box / 2, head.y + box / 2);
+      ctx.rotate(angle);
+
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 9.5, 8.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#0f7a36';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      [-4, 4].forEach(y => {
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(4, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(5, y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.strokeStyle = '#fb7185';
+      ctx.lineWidth = 1.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(8, 1);
+      ctx.lineTo(12, 1);
+      ctx.moveTo(12, 1);
+      ctx.lineTo(14, -1);
+      ctx.moveTo(12, 1);
+      ctx.lineTo(14, 3);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawApple() {
+      const centerX = food.x + box / 2;
+      const centerY = food.y + box / 2;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+
+      ctx.strokeStyle = '#854d0e';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, -5);
+      ctx.lineTo(2, -9);
+      ctx.stroke();
+
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(5, -7, 4, 2.2, -0.55, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(0, -5);
+      ctx.bezierCurveTo(-3, -8, -8, -7, -9, -2);
+      ctx.bezierCurveTo(-10, 4, -6, 8, 0, 9);
+      ctx.bezierCurveTo(6, 8, 10, 4, 9, -2);
+      ctx.bezierCurveTo(8, -7, 3, -8, 0, -5);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.beginPath();
+      ctx.ellipse(-4, -2, 1.5, 3, 0.45, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function draw() {
+      direction = nextDirection;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawSnakeBody();
+      drawSnakeHead();
+      drawApple();
+
+      let snakeX = snake[0].x;
+      let snakeY = snake[0].y;
+
+      if (direction === 'LEFT') snakeX -= box;
+      if (direction === 'RIGHT') snakeX += box;
+      if (direction === 'UP') snakeY -= box;
+      if (direction === 'DOWN') snakeY += box;
+
+      const newHead = { x: snakeX, y: snakeY };
+
+      if (
+        snakeX < 0 ||
+        snakeY < 0 ||
+        snakeX >= canvas.width ||
+        snakeY >= canvas.height ||
+        snake.some(part => part.x === newHead.x && part.y === newHead.y)
+      ) {
+        gameOver();
+        return;
+      }
+
+      if (snakeX === food.x && snakeY === food.y) {
+        score += 1;
+        Arcade.feedback('score');
+        scoreEl.textContent = score;
+        rewardPreviewEl.textContent = snakeReward(score);
+
+        if (score === 10) Arcade.milestone('🐍 10 apples · Bonus unlocked!');
+        if (score === 25) Arcade.milestone('🔥 25 apples · You’re on fire!');
+        if (score === 50) Arcade.milestone('🏆 50 apples · Monster run!', 'perfect');
+
+        food = randomFood();
+      } else {
+        snake.pop();
+      }
+
+      snake.unshift(newHead);
+    }
+
+    function gameOver() {
+      if (game === null) return;
+      clearInterval(game);
+      game = null;
+      pauseStartedAt = 0;
+      disableFullScreenSteering();
+
+      const earned = snakeReward(score);
+      Arcade.earn(earned, 'Snake', { kind:'game', game:'snake', metric:score });
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('snake', score);
+      refreshChrome();
+
+      starting = false;
+      startButton.disabled = false;
+      startButton.textContent = '👆 Tap Game to Play Again · or press Enter';
+      setStatus('Game Over', 'over');
+
+      Arcade.gameResult({
+        icon:'🐍',
+        title:'Snake Run Over',
+        scoreLabel:'Apples',
+        score,
+        best:result.best.display,
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('snake'),
+        game:'snake',
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('snake', refreshChrome)
+      });
+    }
+
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame() {
+      if (game !== null || starting) return;
+      starting = true;
+
+      if (!Arcade.consume('snake')) {
+        starting = false;
+          Arcade.out('snake', refreshChrome);
+        return;
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+
+      snake = [{ x: 200, y: 200 }];
+      direction = 'RIGHT';
+      nextDirection = 'RIGHT';
+      score = 0;
+      scoreEl.textContent = '0';
+      rewardPreviewEl.textContent = '0';
+      food = randomFood();
+
+      refreshChrome();
+      startButton.disabled = true;
+      startButton.textContent = 'Get Ready…';
+      setStatus('Get Ready');
+      enableFullScreenSteering();
+
+      Arcade.countdown(() => {
+        starting = false;
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        game = setInterval(draw, 120);
+      });
+    }
+
+    Arcade.installPauseControl({
+      isRunning:()=>game!==null,
+      pause:()=>{
+        if(game===null||game==='paused'||pauseStartedAt)return;
+        pauseStartedAt=performance.now();
+        clearInterval(game);
+        game='paused';
+      },
+      resume:()=>{
+        if(game!=='paused'||!pauseStartedAt)return;
+        totalPausedMs+=performance.now()-pauseStartedAt;
+        pauseStartedAt=0;
+        clearInterval(game);
+        game=setInterval(draw,120);
+      }
+    });
+    startButton.addEventListener('click', startGame);
+    refreshChrome();
+    draw();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

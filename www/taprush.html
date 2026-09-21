@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Tap Rush</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    html,body,.container{touch-action:manipulation}
+    .tap-board{
+      position:relative;
+      width:min(88vw,380px);
+      aspect-ratio:4/5;
+      margin:14px auto;
+      border:2px solid #64748b;
+      border-radius:20px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 30% 20%,rgba(59,130,246,.15),transparent 28%),
+        #182334;
+      touch-action:manipulation;
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+    }
+    .target{
+      position:absolute;
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      border:4px solid rgba(255,255,255,.9);
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      box-shadow:0 8px 20px rgba(34,197,94,.35);
+      transform:translate(-50%,-50%);
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+      touch-action:manipulation;
+    }
+    .target:active{transform:translate(-50%,-50%) scale(.92)}
+    .tap-help{margin-top:8px}
+    @media(max-width:699px){
+      body.taprush-page main.container{padding-top:8px!important}
+      body.taprush-page .topbar{margin-bottom:6px!important}
+      body.taprush-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
+      body.taprush-page .page-header h1{font-size:22px!important;line-height:1.1!important;margin:0!important}
+      body.taprush-page .game-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:0!important;width:100%!important}
+      body.taprush-page .meta-pill{min-height:34px!important;padding:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:10px!important;border-radius:11px!important}
+      body.taprush-page #startButton{min-height:42px!important;margin:5px 0!important}
+      body.taprush-page .tap-board{width:min(80vw,330px)!important;margin:6px auto 8px!important}
+      body.taprush-page.game-active .game-guide-strip,
+      body.taprush-page.game-active .game-preflight,
+      body.taprush-page.game-active .game-guide-more,
+      body.taprush-page.game-active #startButton{display:none!important}
+      body.taprush-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
+      body.taprush-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
+      body.taprush-page.game-active .tap-board{width:min(88vw,360px)!important;margin-top:3px!important}
+      body.taprush-page.game-active .container>a.button.wide.secondary{display:none!important}
+      body.taprush-page.game-active{overscroll-behavior:none;touch-action:none}
+      body.taprush-page.game-active main.container{overscroll-behavior:none;touch-action:none}
+      body.taprush-page.game-active .tap-board{touch-action:none!important}
+      body.taprush-page.game-active .target{width:68px;height:68px}
+    }
+  </style>
+</head>
+<body class="taprush-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🎯 Tap Rush</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Hits: <span id="hits">0</span></span>
+        <span class="meta-pill">Time: <span id="time">20</span>s</span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+
+    <div class="tap-board touch-surface" id="board" aria-label="Tap Rush game area">
+      <button class="target touch-surface" id="target" type="button" aria-label="Tap target" hidden></button>
+    </div>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const board = document.getElementById('board');
+    const target = document.getElementById('target');
+    const hitsEl = document.getElementById('hits');
+    const timeEl = document.getElementById('time');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'tapRush',
+      surface:board,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the game area' },
+        { icon:'🎯', title:'Control', text:'Tap the green target' },
+        { icon:'⏱️', title:'Goal', text:'Get max hits in 20 sec' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Hit the green target as fast as it moves',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Every successful tap moves the target to a new spot. Keep your eyes moving and tap quickly.',
+        'The round lasts 20 seconds.'
+      ],
+      reward:'Earn Coins from hits and milestones. Max 20 Coins per run.'
+    });
+
+    const ROUND_SECONDS = 20;
+    const MAX_COINS = 20;
+
+    let hits = 0;
+    let timeLeft = ROUND_SECONDS;
+    let timer = null;
+    let running = false;
+    let starting = false;
+    let roundEndsAt = 0;
+    let targetLocked = false;
+
+    function rewardForHits(value) {
+      let coins = Math.floor(value / 5);
+      if (value >= 20) coins += 2;
+      if (value >= 35) coins += 3;
+      if (value >= 50) coins += 5;
+      return Math.min(coins, MAX_COINS);
+    }
+
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('tapRush');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+      rewardPreviewEl.textContent = rewardForHits(hits);
+    }
+
+    function setStatus(text, mode) {
+      document.body.classList.toggle('game-active', mode === 'running');
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function moveTarget() {
+      const rect = board.getBoundingClientRect();
+      const targetSize = parseFloat(getComputedStyle(target).width) || 64;
+      const radius = targetSize / 2;
+      const edgePad = 8;
+      const safeRadius = radius + edgePad;
+      const minDistance = Math.min(120, Math.max(78, rect.width * .28));
+      const oldX = parseFloat(target.style.left) || rect.width / 2;
+      const oldY = parseFloat(target.style.top) || rect.height / 2;
+      let x = oldX, y = oldY;
+      // Avoid unfair tiny hops where the next target appears under the same finger.
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const nextX = safeRadius + Math.random() * Math.max(1, rect.width - safeRadius * 2);
+        const nextY = safeRadius + Math.random() * Math.max(1, rect.height - safeRadius * 2);
+        x = nextX; y = nextY;
+        if (Math.hypot(nextX - oldX, nextY - oldY) >= minDistance) break;
+      }
+      target.style.left = x + 'px';
+      target.style.top = y + 'px';
+    }
+
+    function updateTimer() {
+      if (!running) return;
+      timeLeft = Math.max(0, Math.ceil((roundEndsAt - performance.now()) / 1000));
+      timeEl.textContent = String(timeLeft);
+      if (timeLeft <= 0) finishGame();
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(updateTimer, 100);
+      updateTimer();
+    }
+
+    function finishGame() {
+      if (!running) return;
+      running = false;
+      targetLocked = true;
+      clearInterval(timer);
+      timer = null;
+      roundEndsAt = 0;
+      pauseStartedAt = 0;
+      target.hidden = true;
+
+      const earned = rewardForHits(hits);
+      Arcade.earn(earned, 'Tap Rush', { kind:'game', game:'tapRush', metric:hits });
+      Arcade.feedback(hits > 0 ? 'success' : 'fail');
+      timeLeft = 0;
+      timeEl.textContent = '0';
+      const result = Arcade.recordResult('tapRush', hits);
+
+      const best = Math.max(hits, Arcade.number('tapRushBest'));
+      localStorage.setItem('tapRushBest', String(best));
+
+      starting = false;
+      refreshChrome();
+      startButton.disabled = false;
+      startButton.textContent = '👆 Tap Game to Play Again';
+      setStatus('Game Over', 'over');
+
+      Arcade.gameResult({
+        icon:'🎯',
+        title:'Time!',
+        scoreLabel:'Targets Hit',
+        score:hits,
+        best:best + ' hits',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('tapRush'),
+        game:'tapRush',
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('tapRush', refreshChrome)
+      });
+    }
+
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame() {
+      if (running || starting) return;
+      starting = true;
+
+      if (!Arcade.consume('tapRush')) {
+        starting = false;
+        Arcade.out('tapRush', refreshChrome);
+        return;
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+
+      clearInterval(timer);
+      timer = null;
+      roundEndsAt = 0;
+      hits = 0;
+      targetLocked = true;
+      timeLeft = ROUND_SECONDS;
+      hitsEl.textContent = '0';
+      timeEl.textContent = String(timeLeft);
+      rewardPreviewEl.textContent = '0';
+      running = false;
+
+      refreshChrome();
+      setStatus('Get Ready');
+      startButton.disabled = true;
+      startButton.textContent = 'Get Ready…';
+      target.hidden = true;
+
+      Arcade.countdown(() => {
+        starting = false;
+        running = true;
+        setStatus('Running', 'running');
+        startButton.textContent = 'Game Running';
+        target.hidden = false;
+        targetLocked = false;
+        moveTarget();
+
+        roundEndsAt = performance.now() + ROUND_SECONDS * 1000;
+        startTimer();
+      });
+    }
+
+    board.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (event.target === target) return;
+      event.preventDefault();
+      if (!running && !starting) startGame();
+    });
+
+    target.addEventListener('pointerdown', event => {
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+      if (!running || targetLocked) return;
+
+      // The timer display updates in small intervals, but scoring must honor
+      // the exact deadline. A tap after the real 20-second mark cannot sneak
+      // in before the next timer tick closes the run.
+      if (roundEndsAt && performance.now() >= roundEndsAt) {
+        timeLeft = 0;
+        timeEl.textContent = '0';
+        finishGame();
+        return;
+      }
+
+      // Lock immediately so one physical tap cannot register twice on browsers
+      // that dispatch overlapping touch/pointer activity during rapid play.
+      targetLocked = true;
+
+      const previousReward = rewardForHits(hits);
+      hits += 1;
+      const newReward = rewardForHits(hits);
+      // Keep rapid play clean: normal hits stay quiet. Give feedback only when
+      // the run actually earns another Coin or reaches a named achievement.
+      if (newReward > previousReward && hits !== 20 && hits !== 35 && hits !== 50) Arcade.feedback('score');
+      hitsEl.textContent = String(hits);
+      rewardPreviewEl.textContent = newReward;
+
+      if (hits === 20) Arcade.milestone('🎯 20 hits · Quick Fingers!');
+      if (hits === 35) Arcade.milestone('🔥 35 hits · Blazing fast!');
+      if (hits === 50) Arcade.milestone('🏆 50 hits · Elite reflexes!', 'perfect');
+
+      moveTarget();
+      const unlockRoundEndsAt = roundEndsAt;
+      requestAnimationFrame(()=>{
+        if(running && roundEndsAt===unlockRoundEndsAt && !document.body.classList.contains('earnly-game-paused')) targetLocked=false;
+      });
+    });
+
+    Arcade.installPauseControl({
+      isRunning:()=>running,
+      pause:()=>{
+        targetLocked=true;
+        pauseStartedAt=performance.now();
+        timeLeft=Math.max(0,(roundEndsAt-performance.now())/1000);
+        clearInterval(timer);timer=null;target.hidden=true;
+      },
+      resume:()=>{
+        if(!running || !pauseStartedAt) return;
+        const pausedFor=performance.now()-pauseStartedAt;
+        totalPausedMs+=pausedFor;pauseStartedAt=0;
+        roundEndsAt=performance.now()+timeLeft*1000;
+        target.hidden=false;
+        targetLocked=false;
+        startTimer();
+      }
+    });
+    const cancelTapState=()=>{ targetLocked = running; };
+    window.addEventListener('blur', cancelTapState);
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) cancelTapState(); });
+    target.addEventListener('contextmenu', event => event.preventDefault());
+    board.addEventListener('contextmenu', event => event.preventDefault());
+    document.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && !running && !starting) {
+        event.preventDefault();
+        startGame();
+      }
+    });
+    startButton.addEventListener('click', startGame);
+
+    refreshChrome();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

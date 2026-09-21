@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Lane Runner</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    html,body,.container{touch-action:manipulation}
+    .lane-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.28),inset 0 0 0 1px rgba(148,163,184,.16)}
+    @media(max-width:600px){
+      .topbar{margin-bottom:4px}
+      .page-header{margin:4px 0 7px}
+      .page-header h1{margin:0 0 4px;font-size:clamp(26px,7.5vw,32px)}
+      .game-meta{gap:4px;margin:4px 0 5px}
+      .meta-pill{padding:4px 7px;font-size:10px}
+      .game-status{padding:4px 8px;font-size:10px}
+      .lane-board{margin-top:6px}
+      body.lanerunner-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
+      body.lanerunner-page .meta-pill{font-size:9px;padding:4px 2px;min-height:28px;text-align:center}
+      body.lanerunner-page.game-active .game-guide-strip,body.lanerunner-page.game-active .game-guide-more,body.lanerunner-page.game-active .game-guide-overlay,body.lanerunner-page.game-active .game-overlay,body.lanerunner-page.game-active .game-preflight,body.lanerunner-page.game-active .game-guide,body.lanerunner-page.game-active .game-guide-card,body.lanerunner-page.game-active .game-guide-reward,body.lanerunner-page.game-active .game-guide-tip,body.lanerunner-page.game-active [data-game-guide],body.lanerunner-page.game-active a.button.secondary{display:none!important}
+      body.lanerunner-page.game-active .topbar,body.lanerunner-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.lanerunner-page.game-active .page-header h1{font-size:22px!important;margin:0 0 4px!important}
+      body.lanerunner-page.game-active .game-status{padding:3px 8px;font-size:9px}
+      body.lanerunner-page.game-active .game-meta{margin:2px 0 4px}
+      body.lanerunner-page.game-active .meta-pill{background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.18);border-radius:10px}
+      body.lanerunner-page.game-active main.container{padding-top:8px;padding-bottom:74px}
+      body.lanerunner-page.game-active .page-header{margin:0 0 3px}
+      body.lanerunner-page.game-active .lane-control-zone{box-shadow:inset 0 0 0 1px rgba(56,189,248,.08);background:linear-gradient(180deg,#17243a,#111c30)}
+      body.lanerunner-page.game-active .lane-control-zone:active{transform:scale(.99)}
+      body.lanerunner-page.game-active .lane-board{width:min(90vw,360px)!important;margin:4px auto!important}
+      body.lanerunner-page .lane-control-zone{display:none}
+      body.lanerunner-page.game-active .lane-control-zone{display:flex;width:min(90vw,360px);height:48px;margin:3px auto 0;border:1px solid #334155;border-radius:14px;background:#17243a;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;color:#cbd5e1;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    }
+  </style>
+</head>
+<body class="lanerunner-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>🏎️ Lane Runner</h1>
+      <div class="game-meta"><span class="meta-pill">Time: <span id="time">0</span>s</span>
+        <span class="meta-pill">Passed: <span id="passed">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <canvas class="lane-board touch-surface" id="game" width="360" height="520" aria-label="Lane Runner game board"></canvas>
+    <div class="lane-control-zone" id="laneControlZone">↔️ Swipe anywhere here to change lanes</div>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('laneRunner'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('laneRunner')){ Arcade.out('laneRunner',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const canvas=document.getElementById('game'),laneControlZone=document.getElementById('laneControlZone'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
+    Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
+      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
+      tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
+    const lanes=[72,180,288];let lane=1,targetLane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
+    function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
+    function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
+    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function drawCar(x,y,isPlayer,variant){
+      ctx.save();ctx.translate(x,y);
+      const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
+      ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=8;ctx.shadowOffsetY=5;
+      ctx.fillStyle='#0b1220';ctx.beginPath();ctx.ellipse(0,14,22,6,0,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+      ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-19,10);ctx.lineTo(-17,-7);ctx.quadraticCurveTo(-15,-14,-7,-16);ctx.lineTo(8,-16);ctx.quadraticCurveTo(16,-14,18,-7);ctx.lineTo(20,10);ctx.quadraticCurveTo(18,15,13,16);ctx.lineTo(-13,16);ctx.quadraticCurveTo(-18,15,-19,10);ctx.closePath();ctx.fill();
+      ctx.fillStyle=isPlayer?'#7dd3fc':'#bae6fd';ctx.beginPath();ctx.moveTo(-10,-10);ctx.lineTo(-6,-14);ctx.lineTo(7,-14);ctx.lineTo(11,-10);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#111827';ctx.beginPath();ctx.roundRect(-14,-5,28,9,3);ctx.fill();
+      ctx.fillStyle=body;ctx.fillRect(-11,-4,22,7);
+      ctx.fillStyle='#020617';ctx.beginPath();ctx.roundRect(-23,-7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,-7,6,12,2);ctx.fill();
+      ctx.beginPath();ctx.roundRect(-23,7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,7,6,12,2);ctx.fill();
+      ctx.fillStyle=isPlayer?'#fef08a':'#f8fafc';ctx.fillRect(-13,-13,6,3);ctx.fillRect(7,-13,6,3);
+      ctx.fillStyle='#fb7185';ctx.fillRect(-13,12,6,3);ctx.fillRect(7,12,6,3);
+      if(isPlayer){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1)}
+      ctx.restore();
+    }
+    function draw(){
+      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#0b1220');sky.addColorStop(1,'#111827');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#162033';ctx.fillRect(0,0,20,canvas.height);ctx.fillRect(340,0,20,canvas.height);
+      for(let y=-40+(roadOffset*2)%70;y<canvas.height;y+=70){ctx.fillStyle='#22c55e';ctx.fillRect(5,y,8,26);ctx.fillRect(347,y,8,26);ctx.fillStyle='#64748b';ctx.fillRect(3,y+31,12,4);ctx.fillRect(345,y+31,12,4)}
+      ctx.fillStyle='#475569';ctx.fillRect(20,0,320,canvas.height);
+      ctx.fillStyle='#1f2937';ctx.fillRect(30,0,300,canvas.height);
+      ctx.fillStyle='#f8fafc';ctx.globalAlpha=.72;ctx.fillRect(27,0,3,canvas.height);ctx.fillRect(330,0,3,canvas.height);ctx.globalAlpha=1;
+      ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;ctx.setLineDash([24,20]);ctx.lineDashOffset=roadOffset;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);ctx.lineDashOffset=0;
+      ctx.fillStyle='rgba(15,23,42,.84)';ctx.beginPath();ctx.roundRect(38,12,112,28,6);ctx.fill();ctx.fillStyle='#e2e8f0';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+      obstacles.forEach(o=>drawCar(lanes[o.lane],o.y,false,o.variant||0));
+      drawCar(lanes[lane],465,true,0);
+    }
+    function finish(){if(!running)return;running=false;pauseStartedAt=0;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
+      requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
+    function loop(now){
+      if(!running)return;
+      if(!lastFrame)lastFrame=now;
+      const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
+      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;timeEl.textContent=String(seconds);refreshReward();
+      const spawnGap=Math.max(330,880-seconds*9);
+      if(!lastSpawn||now-lastSpawn>=spawnGap){
+        let nextLane=Math.floor(Math.random()*3);
+        if(nextLane===lastSpawnLane&&sameLaneSpawns>=2){
+          const alternatives=[0,1,2].filter(v=>v!==lastSpawnLane);
+          nextLane=alternatives[Math.floor(Math.random()*alternatives.length)];
+        }
+        sameLaneSpawns=nextLane===lastSpawnLane?sameLaneSpawns+1:1;
+        lastSpawnLane=nextLane;
+        obstacles.push({lane:nextLane,y:-28,speed:3.4+Math.min(5.2,seconds*.075),variant:1+Math.floor(Math.random()*3)});
+        lastSpawn=now;
+      }
+      for(let i=obstacles.length-1;i>=0;i--){
+        const o=obstacles[i],prevY=o.y;o.y+=o.speed*dt;
+        // Check the full path between frames so fast traffic cannot tunnel through the player's car.
+        const crossedPlayer=o.lane===lane&&prevY<495&&o.y>430;
+        if(crossedPlayer){finish();return}
+        if(o.y>550){
+          obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);
+          if(passed===1||passed%10===0)Arcade.feedback('score');
+        }
+      }
+      draw();animation=requestAnimationFrame(loop);
+    }
+    function setLane(n){const next=Math.max(0,Math.min(2,n));if(next===lane)return;lane=next;targetLane=next;Arcade.feedback('move')}
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running||pauseStartedAt)return;
+      pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;
+    },resume:()=>{
+      if(!running||!pauseStartedAt)return;
+      const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;lastFrame=0;cancelAnimationFrame(animation);animation=null;animation=requestAnimationFrame(loop);
+    }});
+    let swipeStartX=null,swipeStartY=null,swipeLastX=null,swipeChangedLane=false;
+    canvas.addEventListener('pointerdown',e=>{
+      if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
+      e.preventDefault();
+      if(!running){if(!starting)startGame();swipeStartX=null;swipeStartY=null;return}
+      swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false;
+    },{passive:false});
+    canvas.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}},{passive:false});
+    canvas.addEventListener('pointerup',e=>{
+      if(!running||swipeStartX===null)return;
+      const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
+      swipeStartX=null;swipeStartY=null;
+      if(!swipeChangedLane&&Math.abs(dx)>=28&&Math.abs(dx)>Math.abs(dy)*1.15){
+        e.preventDefault();
+        setLane(lane+(dx>0?1:-1));
+      }
+      swipeLastX=null;
+      swipeChangedLane=false;
+    },{passive:false});
+    canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
+    function laneSwipeStart(e){if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false}
+    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(!swipeChangedLane&&Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1))}swipeChangedLane=false}
+    function laneSwipeMove(e){if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}}
+    laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointermove',laneSwipeMove,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
+    document.addEventListener('pointerdown',e=>{if(!running||e.target===canvas||laneControlZone.contains(e.target)||e.clientY<window.innerHeight-145)return;laneSwipeStart(e)},{passive:false});
+    document.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||e.target===canvas||laneControlZone.contains(e.target))return;laneSwipeMove(e)},{passive:false});
+    document.addEventListener('pointerup',e=>{if(!running||swipeStartX===null)return;laneSwipeEnd(e)},{passive:false});
+    document.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();startGame();return}
+      if(!running)return;
+      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();setLane(lane-1)}
+      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();setLane(lane+1)}
+    });
+    startButton.addEventListener('click',startGame);reset();refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

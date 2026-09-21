@@ -14,83 +14,20 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Dodger</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=19">
+  <link rel="stylesheet" href="premium.css">
   <style>
-    .dodger-board{
-      display:block;
-      width:min(88vw,350px);
-      height:auto;
-      margin:7px auto;
-      touch-action:none;
-      -webkit-user-select:none;
-      user-select:none;
-      -webkit-touch-callout:none;
-      border-radius:20px;
-      border:2px solid rgba(34,211,238,.30);
-      background:#07131f;
-      box-shadow:
-        inset 0 0 34px rgba(0,0,0,.26),
-        0 18px 38px rgba(0,0,0,.28),
-        0 0 0 1px rgba(34,211,238,.05)
-    }
+    .dodger-board{display:block;width:min(88vw,350px);height:auto;margin:7px auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;border:1px solid rgba(148,163,184,.18);box-shadow:0 14px 34px rgba(0,0,0,.28)}
     @media(max-width:600px){
-      body.dodger-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important}
-      body.dodger-page .topbar{margin-bottom:6px!important}
-      body.dodger-page .page-header{
-        margin:2px 0 7px!important;
-        padding:11px!important;
-        gap:6px!important;
-        border:1px solid rgba(34,211,238,.28)!important;
-        border-radius:18px!important;
-        background:
-          radial-gradient(circle at 88% 0%,rgba(34,211,238,.10),transparent 38%),
-          radial-gradient(circle at 12% 100%,rgba(168,85,247,.07),transparent 34%),
-          linear-gradient(145deg,rgba(17,38,61,.97),rgba(8,22,37,.97))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important;
-      }
-      body.dodger-page .game-title-status-row h1{font-size:22px!important;letter-spacing:-.035em!important}
       body.dodger-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
-      body.dodger-page .meta-pill{
-        min-height:37px!important;
-        padding:4px 3px!important;
-        display:flex!important;
-        align-items:center!important;
-        justify-content:center!important;
-        text-align:center!important;
-        font-size:9px!important;
-        font-weight:850!important;
-        border:1px solid rgba(67,119,164,.34)!important;
-        border-radius:11px!important;
-        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
-      }
-      body.dodger-page .meta-pill:nth-child(3){
-        border-color:rgba(255,193,77,.28)!important;
-        background:
-          radial-gradient(circle at 80% 0%,rgba(255,193,77,.09),transparent 42%),
-          linear-gradient(145deg,rgba(29,39,51,.97),rgba(10,23,37,.96))!important;
-        color:#ffd86b!important
-      }
+      body.dodger-page .meta-pill{padding:4px 2px;font-size:9px;text-align:center;min-height:28px}
       body.dodger-page.game-active .game-guide-strip,body.dodger-page.game-active .game-guide-more,body.dodger-page.game-active .game-guide-overlay,body.dodger-page.game-active .game-overlay,body.dodger-page.game-active .game-preflight,body.dodger-page.game-active .game-guide,body.dodger-page.game-active .game-guide-card,body.dodger-page.game-active .game-guide-reward,body.dodger-page.game-active .game-guide-tip,body.dodger-page.game-active [data-game-guide],body.dodger-page.game-active a.button.secondary{display:none!important}
-      body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{display:none!important}
-      body.dodger-page.game-active .earnly-pause-button{width:auto!important;min-width:112px!important;min-height:40px!important;margin:2px auto 0!important;padding:8px 14px!important;font-size:12px!important;border-radius:12px!important}
+      body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
       body.dodger-page.game-active .page-header{margin:0 0 4px}
       body.dodger-page.game-active .game-title-status-row h1{font-size:22px!important;margin:0!important}
       body.dodger-page.game-active .game-meta{margin:3px 0 4px}
       body.dodger-page.game-active .game-status{padding:3px 8px;font-size:9px}
-      body.dodger-page.game-active .dodger-board{
-        width:min(92vw,calc((100dvh - 205px) * .66),365px);
-        margin:5px auto 4px;
-        border-color:rgba(34,211,238,.48)!important;
-        box-shadow:
-          inset 0 0 42px rgba(0,0,0,.24),
-          0 18px 38px rgba(0,0,0,.28),
-          0 0 22px rgba(34,211,238,.08)!important;
-        -webkit-tap-highlight-color:transparent
-      }
+      body.dodger-page.game-active .dodger-board{width:min(92vw,calc((100dvh - 205px) * .66),365px);margin:5px auto 4px;-webkit-tap-highlight-color:transparent}
       body.dodger-page.game-active,body.dodger-page.game-active .container,body.dodger-page.game-active .dodger-board{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-      body.dodger-page.game-active #arcadeBottomNav{display:none!important}
-      body.dodger-page.game-active main.container{padding-bottom:max(18px,env(safe-area-inset-bottom))!important}
     }
   </style>
 </head>
@@ -110,7 +47,7 @@
         <span class="meta-pill">Time: <span id="time">0</span>s</span>
         <span class="meta-pill">Dodged: <span id="dodged">0</span></span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
-        <span class="meta-pill"><span id="plays">0</span> <span id="playsLabel">plays left</span></span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
     </header>
 
@@ -127,14 +64,12 @@
     const dodgedEl=document.getElementById('dodged');
     const rewardPreviewEl=document.getElementById('rewardPreview');
     const playsEl=document.getElementById('plays');
-    const playsLabelEl=document.getElementById('playsLabel');
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
 
     Arcade.gameGuide({
       game:'dodger',
-        badgeText: survived ? '🏆 TRAFFIC SURVIVED!' : '💥 TRAFFIC RUN OVER',
       surface:canvas,
       steps:[
         { icon:'👆', title:'Start', text:'Tap the road' },
@@ -175,14 +110,7 @@
     }
 
     function refreshChrome(){
-      const remaining=Arcade.remaining('dodger');
-      if(running && remaining===0){
-        playsEl.textContent='Last';
-        playsLabelEl.textContent='play';
-      }else{
-        playsEl.textContent=remaining;
-        playsLabelEl.textContent=remaining===1?'play left':'plays left';
-      }
+      playsEl.textContent=Arcade.remaining('dodger');
       balanceEl.textContent=Arcade.number('points').toLocaleString();
     }
 
@@ -192,138 +120,50 @@
       document.body.classList.toggle('game-active',mode==='running');
     }
 
-    function drawNeonCar(x,y,w,h,color,isPlayer=false){
-      ctx.save();
-
-      const radius=Math.min(8,h*.32);
-      ctx.shadowColor=color;
-      ctx.shadowBlur=isPlayer?17:12;
-
-      // Main body with tapered nose/rear so obstacles read as cars, not pills.
-      ctx.fillStyle=color;
-      ctx.beginPath();
-      ctx.moveTo(x+radius,y);
-      ctx.lineTo(x+w-radius,y);
-      ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
-      ctx.lineTo(x+w,y+h-radius);
-      ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
-      ctx.lineTo(x+radius,y+h);
-      ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
-      ctx.lineTo(x,y+radius);
-      ctx.quadraticCurveTo(x,y,x+radius,y);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.shadowBlur=0;
-
-      // Dark windshield/cabin.
-      ctx.fillStyle='rgba(3,12,22,.76)';
-      ctx.beginPath();
-      ctx.roundRect(x+w*.23,y+h*.18,w*.54,h*.34,Math.max(2,radius*.45));
-      ctx.fill();
-
-      // Wheels.
-      ctx.fillStyle='#020617';
-      const wheelW=Math.max(3,w*.08);
-      const wheelH=Math.max(5,h*.27);
-      ctx.fillRect(x-wheelW*.35,y+h*.18,wheelW,wheelH);
-      ctx.fillRect(x+w-wheelW*.65,y+h*.18,wheelW,wheelH);
-      ctx.fillRect(x-wheelW*.35,y+h*.58,wheelW,wheelH);
-      ctx.fillRect(x+w-wheelW*.65,y+h*.58,wheelW,wheelH);
-
-      // Lights make travel direction easy to read.
-      ctx.fillStyle=isPlayer?'#bbf7d0':'#fde68a';
-      ctx.fillRect(x+w*.12,y+h*.70,Math.max(4,w*.13),Math.max(2,h*.10));
-      ctx.fillRect(x+w*.75,y+h*.70,Math.max(4,w*.13),Math.max(2,h*.10));
-
-      ctx.fillStyle=isPlayer?'#86efac':'#fb7185';
-      ctx.fillRect(x+w*.12,y+h*.12,Math.max(4,w*.13),Math.max(2,h*.09));
-      ctx.fillRect(x+w*.75,y+h*.12,Math.max(4,w*.13),Math.max(2,h*.09));
-
-      if(isPlayer){
-        ctx.strokeStyle='rgba(220,252,231,.58)';
-        ctx.lineWidth=1;
-        ctx.beginPath();
-        ctx.roundRect(x+2,y+2,w-4,h-4,Math.max(3,radius-2));
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-
     function draw(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
 
       const gradient=ctx.createLinearGradient(0,0,0,canvas.height);
-      gradient.addColorStop(0,'#06111d');
-      gradient.addColorStop(.58,'#091a2c');
-      gradient.addColorStop(1,'#102342');
+      gradient.addColorStop(0,'#0f172a');
+      gradient.addColorStop(1,'#172554');
       ctx.fillStyle=gradient;
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
-      // Calm road treatment: broad lane zones and continuous, low-contrast
-      // separators instead of repeated dashed marks.
-      const laneWidth=canvas.width/3;
-      ctx.fillStyle='rgba(56,189,248,.018)';
-      ctx.fillRect(0,0,laneWidth,canvas.height);
-      ctx.fillStyle='rgba(34,211,238,.028)';
-      ctx.fillRect(laneWidth,0,laneWidth,canvas.height);
-      ctx.fillStyle='rgba(56,189,248,.018)';
-      ctx.fillRect(laneWidth*2,0,laneWidth,canvas.height);
-
+      // Subtle lane markers make movement easier to judge without adding HUD clutter.
       ctx.save();
-      ctx.strokeStyle='rgba(125,211,252,.13)';
-      ctx.lineWidth=1.5;
-      [laneWidth,laneWidth*2].forEach(x=>{
-        ctx.beginPath();
-        ctx.moveTo(x,0);
-        ctx.lineTo(x,canvas.height);
-        ctx.stroke();
-      });
+      ctx.strokeStyle='rgba(96,165,250,.18)';
+      ctx.lineWidth=2;
+      ctx.setLineDash([16,18]);
+      [canvas.width/3,canvas.width*2/3].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});
       ctx.restore();
 
-      // Soft cyan shoulder glow frames the play area without flashing motion.
-      const leftGlow=ctx.createLinearGradient(0,0,22,0);
-      leftGlow.addColorStop(0,'rgba(34,211,238,.15)');
-      leftGlow.addColorStop(1,'rgba(34,211,238,0)');
-      ctx.fillStyle=leftGlow;
-      ctx.fillRect(0,0,24,canvas.height);
+      // Player car: compact neon silhouette with windshield and lights.
+      ctx.save();
+      ctx.shadowColor='#22c55e';ctx.shadowBlur=12;
+      ctx.fillStyle='#22c55e';ctx.beginPath();ctx.roundRect(player.x,player.y,player.w,player.h,7);ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#052e2b';ctx.beginPath();ctx.roundRect(player.x+10,player.y+4,player.w-20,8,3);ctx.fill();
+      ctx.fillStyle='#bbf7d0';ctx.fillRect(player.x+5,player.y+17,8,3);ctx.fillRect(player.x+player.w-13,player.y+17,8,3);
+      ctx.restore();
 
-      const rightGlow=ctx.createLinearGradient(canvas.width,0,canvas.width-22,0);
-      rightGlow.addColorStop(0,'rgba(34,211,238,.15)');
-      rightGlow.addColorStop(1,'rgba(34,211,238,0)');
-      ctx.fillStyle=rightGlow;
-      ctx.fillRect(canvas.width-24,0,24,canvas.height);
-
-      // Slight spotlight under the player helps eye tracking without adding
-      // more moving scenery.
-      const focus=ctx.createRadialGradient(player.x+player.w/2,player.y+player.h/2,8,player.x+player.w/2,player.y+player.h/2,82);
-      focus.addColorStop(0,'rgba(52,211,153,.085)');
-      focus.addColorStop(1,'rgba(52,211,153,0)');
-      ctx.fillStyle=focus;
-      ctx.fillRect(Math.max(0,player.x-66),Math.max(0,player.y-66),player.w+132,player.h+132);
-
-      drawNeonCar(player.x,player.y,player.w,player.h,'#36e57c',true);
-      obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
-    }
-
-    function trafficSpeedFor(seconds){
-      return Math.min(15.0,6.5+Math.max(0,seconds)*.30);
-    }
-
-    function spawnDelayFor(seconds){
-      return Math.max(190,560-Math.max(0,seconds)*16);
+      obstacles.forEach(o=>{
+        ctx.save();
+        ctx.shadowColor=o.color;ctx.shadowBlur=8;ctx.fillStyle=o.color;
+        ctx.beginPath();ctx.roundRect(o.x,o.y,o.w,o.h,6);ctx.fill();
+        ctx.shadowBlur=0;ctx.fillStyle='rgba(15,23,42,.72)';
+        ctx.beginPath();ctx.roundRect(o.x+7,o.y+5,Math.max(12,o.w-14),7,3);ctx.fill();
+        ctx.restore();
+      });
     }
 
     function spawn(now){
       const width=34+Math.random()*34;
-      const seconds=Math.max(0,(now-startTime)/1000);
       obstacles.push({
         x:Math.random()*(canvas.width-width),
         y:-32,
         w:width,
         h:24,
-        speed:trafficSpeedFor(seconds),
+        speed:3.2+Math.min(4,(now-startTime)/8000),
         color:['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)]
       });
     }
@@ -339,11 +179,11 @@
       const elapsed=Math.max(0,now-startTime);
       const seconds=Math.min(30,Math.floor(elapsed/1000));
 
-      if(!nextSpawnAt) nextSpawnAt=now+560;
+      if(!nextSpawnAt) nextSpawnAt=now+760;
       if(now>=nextSpawnAt){
         spawn(now);
         lastSpawn=now;
-        nextSpawnAt=now+spawnDelayFor(seconds);
+        nextSpawnAt=now+Math.max(300,760-seconds*12);
       }
 
       const frameScale=lastFrame?Math.min(2,(now-lastFrame)/16.667):1;
@@ -419,7 +259,7 @@
 
       starting=false;
       refreshChrome();
-      setStatus(survived?'You Survived!':'Traffic Jammed!','over');
+      setStatus(survived?'You Survived!':'Game Over','over');
       startButton.disabled=false;
       startButton.textContent='👆 Tap Game to Play Again';
 
@@ -433,7 +273,7 @@
         result,
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
-        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
       });
@@ -554,8 +394,7 @@
         starting=false;
         Arcade.out('dodger',refreshChrome);
         return;
-      }
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
 
       cancelAnimationFrame(animation);
       animation=null;
@@ -582,10 +421,8 @@
       Arcade.countdown(()=>{
         starting=false;
         running=true;
-        earnlyRunStartedAt=performance.now();
         startButton.textContent='Game Running';
         setStatus('Running','running');
-        refreshChrome();
         requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
         startTime=0;
         lastSpawn=0;

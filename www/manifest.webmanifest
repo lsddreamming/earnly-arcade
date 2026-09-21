@@ -1,0 +1,48 @@
+{
+  "id": "./",
+  "name": "Earnly Arcade",
+  "short_name": "Earnly",
+  "description": "Play arcade games, earn Arcade Coins and XP, complete missions, build streaks, and unlock achievements.",
+  "lang": "en-US",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#07101f",
+  "theme_color": "#07101f",
+  "orientation": "portrait-primary",
+  "categories": ["games", "entertainment"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./earnly-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play Games",
+      "short_name": "Games",
+      "description": "Open the Earnly Arcade game library.",
+      "url": "./games.html",
+      "icons": [{"src":"./earnly-icon.svg","sizes":"any","type":"image/svg+xml"}]
+    },
+    {
+      "name": "Weekly Missions",
+      "short_name": "Missions",
+      "description": "Check missions, streaks, and progress.",
+      "url": "./stats.html",
+      "icons": [{"src":"./earnly-icon.svg","sizes":"any","type":"image/svg+xml"}]
+    },
+    {
+      "name": "Rewards",
+      "short_name": "Rewards",
+      "description": "View Arcade Coins and available rewards.",
+      "url": "./rewards.html",
+      "icons": [{"src":"./earnly-icon.svg","sizes":"any","type":"image/svg+xml"}]
+    }
+  ]
+}

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Games</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css?v=6">
+</head>
+<body class="games-dashboard">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="index.html">🎮 Earnly</a>
+      <div class="game-title-actions">
+        <a class="balance-chip" href="profile.html">👤 L<span id="level">1</span></a>
+        <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+      </div>
+    </div>
+
+    <header class="games-hero">
+      <span class="games-eyebrow">ARCADE</span>
+      <h1>Pick a game</h1>
+      <p>Choose a game, use a free play, and earn XP plus score-based Arcade Coins.</p>
+    </header>
+
+    <div class="games-simple-note">
+      <span>🎟️ 3 free plays per game</span>
+      <details>
+        <summary>ⓘ Rewards</summary>
+        <p>Play games to earn XP and score-based Arcade Coins. Optional rewarded ads only unlock extra plays.</p>
+      </details>
+    </div>
+
+    <section class="games-start-here" aria-label="How to play Earnly">
+      <strong>New here? Start in 3 steps</strong>
+      <span>1. Pick a game &nbsp; 2. Play for a score &nbsp; 3. Earn Coins + XP</span>
+    </section>
+
+    <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
+      <strong>🎯 Missions</strong>
+      <span id="gamesMissionSummary">0/3 complete</span>
+      <span class="play-pill" id="gamesMissionCount">0/3</span>
+      <span class="mission-arrow" aria-hidden="true">›</span>
+    </a>
+
+    <div id="quickSections"></div>
+
+    <section class="game-browser-tools" aria-label="Find a game">
+      <label class="game-search-wrap" for="gameSearch">
+        <span>🔎</span>
+        <input id="gameSearch" type="search" inputmode="search" autocomplete="off" placeholder="Search games…" aria-label="Search games">
+      </label>
+      <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
+        <button type="button" class="game-filter active" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="game-filter" data-filter="new" aria-pressed="false">✨ New</button>
+        <button type="button" class="game-filter" data-filter="action" aria-pressed="false">⚡ Action</button>
+        <button type="button" class="game-filter" data-filter="quick" aria-pressed="false">⏱️ Quick</button>
+        <button type="button" class="game-filter" data-filter="classic" aria-pressed="false">🕹️ Classic</button>
+        <button type="button" class="game-filter" data-filter="brain" aria-pressed="false">🧠 Brain</button>
+      </div>
+    </section>
+
+    <div id="games" class="game-list compact-catalog-grid"></div>
+
+    <a class="button wide secondary games-back-home" href="index.html">← Back Home</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const gameInfo = [
+      { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
+      { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines · speeds up · deep runs earn bonus XP', href:'blockdrop.html' },
+      { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge', href:'taprush.html' },
+      { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs in fewer moves', href:'memory.html' },
+      { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Survive falling obstacles', href:'dodger.html' },
+      { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Clear levels · faster ball · bigger rewards', href:'brickbreaker.html' },
+      { key:'jungleHopper', icon:'🐸', name:'Jungle Hopper', note:'Tap through jungle vine gaps', href:'junglehopper.html' },
+      { key:'towerStack', icon:'🏗️', name:'Tower Stack', note:'Tap to build the tallest tower', href:'towerstack.html' },
+      { key:'coinCatch', icon:'💰', name:'Coin Catch', note:'Harder every level · deep runs earn bonus XP', href:'coincatch.html' },
+      { key:'colorMatch', icon:'🎨', name:'Color Match', note:'Match the ink color before time runs out', href:'colormatch.html' },
+      { key:'paddleRally', icon:'🏓', name:'Paddle Rally', note:'Solo pong · keep the rally alive', href:'paddlerally.html' },
+      { key:'laneRunner', icon:'🏎️', name:'Lane Runner', note:'Switch lanes and dodge traffic', href:'lanerunner.html' },
+      { key:'safeCracker', icon:'🔐', name:'Safe Cracker', note:'Stop the marker in the shrinking green zone', href:'safecracker.html' },
+      { key:'blockGrid', icon:'🧩', name:'Block Grid', note:'Place blocks · clear rows and columns', href:'mini.html?game=blockGrid' },
+      { key:'mergeRush', icon:'🔢', name:'Merge Rush', note:'Swipe and merge matching numbers', href:'mini.html?game=mergeRush' },
+      { key:'perfectDrop', icon:'🎯', name:'Perfect Drop', note:'Time each drop into the target', href:'mini.html?game=perfectDrop' },
+      { key:'spiralDrop', icon:'🌀', name:'Spiral Drop', note:'Guide the ball through shrinking gaps', href:'mini.html?game=spiralDrop' },
+      { key:'shapeFit', icon:'🧠', name:'Shape Fit', note:'Match silhouettes as your streak grows', href:'mini.html?game=shapeFit' },
+      { key:'bounceRun', icon:'⚪', name:'Bounce Run', note:'Tap to jump over obstacles · gets faster as you level up', href:'mini.html?game=bounceRun' },
+      { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' }
+    ];
+
+    const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
+    const gameTags = {
+      snake:['classic'],
+      blockDrop:['classic','brain'],
+      tapRush:['quick'],
+      memory:['brain'],
+      dodger:['action'],
+      brickBreaker:['classic','action'],
+      jungleHopper:['action'],
+      towerStack:['action'],
+      coinCatch:['action'],
+      colorMatch:['quick','brain'],
+      paddleRally:['classic','action'],
+      laneRunner:['action'],
+      safeCracker:['quick'],
+      blockGrid:['new','classic','brain'],
+      mergeRush:['new','classic','brain'],
+      perfectDrop:['new','quick'],
+      spiralDrop:['new','action'],
+      shapeFit:['new','brain','quick'],
+      bounceRun:['new','action'],
+      trafficEscape:['new','brain']
+    };
+    let activeGameFilter = 'all';
+    let gameSearchText = '';
+
+    const gameSearch = document.getElementById('gameSearch');
+    gameSearch?.addEventListener('input', event => {
+      gameSearchText = event.target.value.trim().toLowerCase();
+      render();
+    });
+
+    function renderQuickSection(title, keys) {
+      const games = keys.map(key => byKey[key]).filter(Boolean);
+      if (!games.length) return null;
+
+      const section = document.createElement('section');
+      section.className = 'quick-section';
+
+      const heading = document.createElement('h2');
+      heading.textContent = title;
+
+      const grid = document.createElement('div');
+      grid.className = 'quick-grid';
+
+      games.forEach(info => {
+        const link = document.createElement('a');
+        link.className = 'button quick-game';
+        link.href = info.href;
+        link.textContent = info.icon + ' ' + info.name;
+        grid.append(link);
+      });
+
+      section.append(heading, grid);
+      return section;
+    }
+
+    function renderQuickSections() {
+      const root = document.getElementById('quickSections');
+      root.replaceChildren();
+
+      const favoriteSection = renderQuickSection('⭐ Favorites', Arcade.favorites());
+      if (favoriteSection) root.append(favoriteSection);
+    }
+
+    function renderMissionStrip() {
+      const status = Arcade.dailyMissionStatus();
+      const count = document.getElementById('gamesMissionCount');
+      const summary = document.getElementById('gamesMissionSummary');
+      if (!count || !summary) return;
+
+      count.textContent = status.completed + '/' + status.total;
+      const ready = status.missions.filter(mission => mission.complete && !mission.claimed).length;
+      summary.textContent = ready
+        ? ready + ' reward' + (ready === 1 ? '' : 's') + ' ready to claim'
+        : status.completed + '/' + status.total + ' complete';
+    }
+
+    function render() {
+      document.getElementById('balance').textContent = Arcade.number('points').toLocaleString();
+      document.getElementById('level').textContent = Arcade.xpStatus().level;
+      renderQuickSections();
+      renderMissionStrip();
+
+      const root = document.getElementById('games');
+      root.replaceChildren();
+
+      const visibleGames = gameInfo.filter(info => {
+        const matchesFilter = activeGameFilter === 'all' || (gameTags[info.key] || []).includes(activeGameFilter);
+        const haystack = (info.name + ' ' + info.note).toLowerCase();
+        const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
+        return matchesFilter && matchesSearch;
+      });
+      const gamesToRender = visibleGames;
+      const recommendedKeys = new Set(['tapRush','snake','bounceRun']);
+
+      gamesToRender.forEach(info => {
+        const remaining = Arcade.remaining(info.key);
+        const adStatus = Arcade.playAdStatus(info.key);
+        const best = Arcade.best(info.key);
+        const card = document.createElement('section');
+        card.className = 'card game-card compact-game catalog-tile';
+        card.dataset.game = info.key;
+        if (recommendedKeys.has(info.key)) card.classList.add('recommended-game');
+
+        const heading = document.createElement('div');
+        heading.className = 'game-title-row';
+
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'game-name-wrap';
+        const gameIcon = document.createElement('span');
+        gameIcon.className = 'game-icon-bubble';
+        gameIcon.textContent = info.icon;
+        const title = document.createElement('h2');
+        title.textContent = info.name;
+        titleWrap.append(gameIcon, title);
+
+        if (recommendedKeys.has(info.key)) {
+          const badge = document.createElement('span');
+          badge.className = 'game-recommended-badge';
+          badge.textContent = '⭐ Starter';
+          titleWrap.append(badge);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'game-title-actions';
+
+        const favorite = document.createElement('button');
+        favorite.className = 'favorite-button';
+        favorite.type = 'button';
+        favorite.setAttribute('aria-label', (Arcade.isFavorite(info.key) ? 'Remove ' : 'Add ') + info.name + ' favorite');
+        favorite.textContent = Arcade.isFavorite(info.key) ? '★' : '☆';
+        favorite.addEventListener('click', () => {
+          Arcade.toggleFavorite(info.key);
+          render();
+        });
+
+        const playCount = document.createElement('span');
+        playCount.className = 'play-pill';
+        playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
+
+        actions.append(favorite, playCount);
+        heading.append(titleWrap, actions);
+
+        const rule = document.createElement('p');
+        rule.className = 'reward-rule';
+        rule.textContent = info.note;
+
+        const bestLine = document.createElement('div');
+        bestLine.className = 'game-best';
+        bestLine.hidden = !best.value;
+        bestLine.textContent = best.value ? '🏆 Best: ' + best.display : '';
+
+        const play = document.createElement('button');
+        play.className = 'wide game-play-button';
+        play.disabled = !remaining && adStatus.remaining <= 0;
+        play.textContent = remaining
+          ? 'Play'
+          : (adStatus.remaining > 0 ? '▶ Watch Ad · +3 Plays' : 'Come Back Tomorrow');
+        play.setAttribute(
+          'aria-label',
+          remaining
+            ? 'Play '+info.name
+            : (adStatus.remaining > 0 ? 'Watch rewarded ad for 3 more '+info.name+' plays' : info.name+' plays refill tomorrow')
+        );
+        play.addEventListener('click', () => {
+          if (remaining) location.href = info.href;
+          else if (adStatus.remaining > 0) Arcade.out(info.key, render);
+        });
+
+        const footer = document.createElement('div');
+        footer.className = 'game-card-footer ' + (best.value ? 'has-best' : 'no-best');
+        footer.append(bestLine, play);
+
+        card.append(heading, rule, footer);
+
+        if (!remaining) {
+          const status = document.createElement('div');
+          status.className = 'status-line ' + (adStatus.remaining > 0 ? 'warning' : '');
+          status.textContent = adStatus.remaining > 0
+            ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +3 plays each'
+            : 'Daily bonus-play limit reached · free plays refill tomorrow';
+          card.append(status);
+        }
+
+        root.append(card);
+      });
+
+      if (!visibleGames.length) {
+        const empty = document.createElement('div');
+        empty.className = 'game-browser-empty';
+        empty.innerHTML = '<strong>No games found</strong><span>Try another search or category.</span>';
+        root.append(empty);
+      }
+    }
+    const gameFilters = document.getElementById('gameFilters');
+
+    gameFilters.addEventListener('click', event => {
+      const button = event.target.closest('[data-filter]');
+      if (!button) return;
+      activeGameFilter = button.dataset.filter || 'all';
+      gameFilters.querySelectorAll('.game-filter').forEach(item => {
+        const selected = item === button;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+      render();
+    });
+
+
+    render();
+    window.addEventListener('pageshow', render);
+    window.addEventListener('focus', render);
+    window.addEventListener('storage', render);
+    window.addEventListener('earnly-data-change', render);
+    window.addEventListener('earnly-cloud-synced', render);
+    window.addEventListener('earnly-server-rewards-synced', render);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

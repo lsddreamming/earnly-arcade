@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Settings</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="profile.html">← Profile</a>
+      <span class="balance-chip">⚙️ Settings</span>
+    </div>
+
+    <header class="page-header">
+      <h1>⚙️ App Settings</h1>
+      <p>Tune how Earnly feels on your phone.</p>
+    </header>
+
+    <section class="card" style="text-align:left">
+      <h2>🎮 Game Feel</h2>
+      <div class="setting-list">
+        <div class="setting-row">
+          <div>
+            <strong>🔊 Game Sounds</strong>
+            <span>Countdowns, scoring, records, achievements, and game effects.</span>
+          </div>
+          <button class="toggle-button" id="soundToggle" type="button">On</button>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <strong>📳 Haptics</strong>
+            <span>Small vibration feedback where the device/browser supports it.</span>
+          </div>
+          <button class="toggle-button" id="hapticsToggle" type="button">On</button>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <strong>✨ Motion & Animations</strong>
+            <span>Turn off most transitions and animation if you prefer a calmer interface.</span>
+          </div>
+          <button class="toggle-button" id="motionToggle" type="button">On</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card display-settings-card" style="text-align:left">
+      <h2>👀 Display</h2>
+      <p class="muted small">Choose the text size that feels best on your phone. It applies across Earnly, including games and the bottom navigation.</p>
+      <div class="text-size-options" id="textSizeOptions" role="group" aria-label="Text size">
+        <button type="button" data-text-scale="compact"><strong>Compact</strong><span>100%</span></button>
+        <button type="button" data-text-scale="comfortable"><strong>Comfortable</strong><span>110%</span></button>
+        <button type="button" data-text-scale="large"><strong>Large</strong><span>120%</span></button>
+        <button type="button" data-text-scale="xlarge"><strong>Extra Large</strong><span>130%</span></button>
+      </div>
+      <div class="text-size-preview">
+        <span>Preview</span>
+        <strong>Earnly should be easy to read.</strong>
+      </div>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>📱 App Status</h2>
+      <div class="app-status-grid">
+        <div class="app-status-card"><strong id="networkStatus">Online</strong><span>Network</span></div>
+        <div class="app-status-card"><strong id="installStatus">Browser</strong><span>Launch Mode</span></div>
+        <div class="app-status-card"><strong id="versionStatus">Loading…</strong><span>App Version</span></div>
+        <div class="app-status-card"><strong id="queueStatus">0</strong><span>Backend Events</span></div>
+      </div>
+      <button class="wide ghost browser-only" id="installButton" type="button" style="margin-top:12px">📱 Install / Add to Home Screen</button>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>🧪 Testing Tools</h2>
+      <p class="muted small">Reset today’s play limits for testing without changing your Coins, XP, scores, achievements, or streak.</p>
+      <div class="test-readiness" id="testReadiness">
+        <div><span id="testAccountIcon">○</span><strong>Account</strong><small id="testAccountText">Checking…</small></div>
+        <div><span id="testBackupIcon">○</span><strong>Cloud backup</strong><small id="testBackupText">Checking…</small></div>
+        <div><span id="testGameIcon">○</span><strong>Game test</strong><small id="testGameText">Checking…</small></div>
+        <div><span id="testQueueIcon">○</span><strong>Backend queue</strong><small id="testQueueText">Checking…</small></div>
+      </div>
+      <button class="wide secondary" id="resetTestPlaysButton" type="button">🎟️ Reset Test Plays</button>
+      <button class="wide secondary" id="copyTestReportButton" type="button">📋 Copy Test Report</button>
+      <p class="muted tiny test-report-note">The report includes app status and progress totals—never your password or payment information.</p>
+    </section>
+
+    <section class="card" style="text-align:left">
+      <h2>🧭 Help & Data</h2>
+      <div class="data-actions">
+        <button class="wide secondary" id="walkthroughButton" type="button">❓ Replay Earnly Walkthrough</button>
+        <a class="button wide secondary" href="support.html">🛟 Help & Support</a>
+        <a class="button wide secondary" href="account.html">💾 Backup & Restore Progress</a>
+      </div>
+    </section>
+
+    <a class="button wide" href="profile.html">← Back to Profile</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const soundToggle = document.getElementById('soundToggle');
+    const hapticsToggle = document.getElementById('hapticsToggle');
+    const motionToggle = document.getElementById('motionToggle');
+    const textSizeButtons = Array.from(document.querySelectorAll('[data-text-scale]'));
+
+    function setToggle(button, enabled) {
+      button.textContent = enabled ? 'On' : 'Off';
+      button.className = 'toggle-button ' + (enabled ? 'green' : 'secondary');
+      button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    }
+
+    function render() {
+      const status = Arcade.appStatus();
+
+      setToggle(soundToggle, status.sound);
+      setToggle(hapticsToggle, status.haptics);
+      setToggle(motionToggle, !status.reducedMotion);
+
+      textSizeButtons.forEach(button => {
+        const active = button.dataset.textScale === status.textScale;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      document.getElementById('networkStatus').textContent = status.online ? '🌐 Online' : '📴 Offline';
+      document.getElementById('installStatus').textContent = status.install.standalone ? '📱 Installed' : '🌍 Browser';
+      document.getElementById('versionStatus').textContent = 'v' + status.version;
+      document.getElementById('queueStatus').textContent = status.sync.pending.toLocaleString();
+      renderTestReadiness();
+    }
+
+    function setTestState(prefix, ready, text) {
+      document.getElementById(prefix + 'Icon').textContent = ready ? '✓' : '○';
+      document.getElementById(prefix + 'Icon').className = ready ? 'ready' : '';
+      document.getElementById(prefix + 'Text').textContent = text;
+    }
+
+    async function renderTestReadiness() {
+      const status = Arcade.appStatus();
+      let signedIn = false;
+      try {
+        if (window.EarnlyCloud?.ready) signedIn = !!(await EarnlyCloud.session())?.user;
+      } catch {}
+
+      const lastSave = localStorage.getItem('arcadeLastCloudSave');
+      const games = Arcade.number('gamesCompletedEver');
+      setTestState('testAccount', signedIn, signedIn ? 'Connected' : 'Sign in to test cloud restore');
+      setTestState('testBackup', !!lastSave, lastSave ? 'A cloud save exists' : 'No cloud save on this browser yet');
+      setTestState('testGame', games > 0, games > 0 ? games + ' completed game' + (games === 1 ? '' : 's') : 'Finish one game');
+      setTestState('testQueue', status.sync.pending === 0, status.sync.pending === 0 ? 'All caught up' : status.sync.pending + ' update' + (status.sync.pending === 1 ? '' : 's') + ' waiting');
+    }
+
+    async function copyTestReport() {
+      const status = Arcade.appStatus();
+      const xp = Arcade.xpStatus();
+      let signedIn = false;
+      try {
+        if (window.EarnlyCloud?.ready) signedIn = !!(await EarnlyCloud.session())?.user;
+      } catch {}
+
+      const report = [
+        'Earnly Arcade Test Report',
+        'Version: v' + status.version,
+        'Mode: ' + (status.install.standalone ? 'Installed app' : 'Browser'),
+        'Network: ' + (status.online ? 'Online' : 'Offline'),
+        'Account: ' + (signedIn ? 'Connected' : 'Signed out'),
+        'Player: ' + Arcade.profileName(),
+        'Level: ' + xp.level + ' (' + xp.xp + ' total XP)',
+        'Coins: ' + Arcade.number('points'),
+        'Games completed: ' + Arcade.number('gamesCompletedEver'),
+        'Backend events waiting: ' + status.sync.pending,
+        'Last cloud save: ' + (localStorage.getItem('arcadeLastCloudSave') || 'None on this browser'),
+        'Cloud conflict: ' + (localStorage.getItem('arcadeCloudConflict') ? 'Yes' : 'No'),
+        'Generated: ' + new Date().toISOString()
+      ].join('\n');
+
+      try {
+        await navigator.clipboard.writeText(report);
+        Arcade.toast('📋 Test report copied');
+      } catch {
+        Arcade.panel('Test Report', report, [['Close', () => {}, 'secondary']]);
+      }
+    }
+
+    soundToggle.addEventListener('click', () => {
+      Arcade.setSoundEnabled(!Arcade.soundEnabled());
+      render();
+    });
+
+    hapticsToggle.addEventListener('click', () => {
+      Arcade.setHapticsEnabled(!Arcade.hapticsEnabled());
+      render();
+    });
+
+    motionToggle.addEventListener('click', () => {
+      Arcade.setReducedMotionEnabled(!Arcade.reducedMotionEnabled());
+      render();
+    });
+
+    textSizeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        Arcade.setTextScale(button.dataset.textScale);
+        render();
+      });
+    });
+
+    document.getElementById('resetTestPlaysButton').addEventListener('click', () => {
+      Arcade.resetPrototypePlays();
+      render();
+    });
+    document.getElementById('copyTestReportButton').addEventListener('click', copyTestReport);
+
+    document.getElementById('walkthroughButton').addEventListener('click', () => Arcade.showOnboarding(true));
+    document.getElementById('installButton').addEventListener('click', async () => {
+      await Arcade.requestInstall();
+      render();
+    });
+
+    window.addEventListener('online', render);
+    window.addEventListener('offline', render);
+    window.addEventListener('pageshow', render);
+    window.addEventListener('storage', render);
+    window.addEventListener('earnly-cloud-ready', render);
+    window.addEventListener('earnly-cloud-auth-change', render);
+    window.addEventListener('earnly-cloud-synced', render);
+    window.addEventListener('earnly-data-change', render);
+    render();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

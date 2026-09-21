@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Block Drop</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    .blockdrop-board {
+      width: min(66vw, 250px);
+      height: auto;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+
+    .blockdrop-controls,
+    .blockdrop-controls * {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .blockdrop-controls {
+      touch-action: none;
+    }
+
+    .blockdrop-controls .game-control {
+      touch-action: none;
+    }
+
+    @media (max-height: 750px) {
+      .blockdrop-board { width: min(60vw, 225px); }
+    }
+
+    @media (max-width: 699px) {
+      body.blockdrop-page main.container { padding-top: 8px !important; }
+      body.blockdrop-page .topbar { margin-bottom: 6px !important; }
+      body.blockdrop-page .page-header {
+        margin: 2px 0 6px !important;
+        padding: 0 !important;
+        gap: 5px !important;
+      }
+      body.blockdrop-page .page-header h1 {
+        font-size: 22px !important;
+        line-height: 1.1 !important;
+        margin: 0 !important;
+      }
+      body.blockdrop-page .game-meta {
+        display: grid !important;
+        grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+        gap: 6px !important;
+        margin: 0 !important;
+        width: 100% !important;
+      }
+      body.blockdrop-page .meta-pill {
+        min-height: 38px !important;
+        padding: 5px 4px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        font-size: 10px !important;
+        border-radius: 12px !important;
+      }
+      body.blockdrop-page .blockdrop-reward-pill {
+        border-color: rgba(250,204,21,.48) !important;
+        color: #fde68a !important;
+        background: rgba(120,84,8,.16) !important;
+      }
+      body.blockdrop-page .blockdrop-reward-pill strong { color:#fff7b2; font-size:13px; }
+      body.blockdrop-page .blockdrop-reward-pill.reward-bump { animation:blockRewardBump .34s ease; }
+      @keyframes blockRewardBump { 0%{transform:scale(1)} 45%{transform:scale(1.06);box-shadow:0 0 16px rgba(250,204,21,.2)} 100%{transform:scale(1)} }
+      body.blockdrop-page #startButton {
+        min-height: 42px !important;
+        margin: 5px 0 !important;
+      }
+      body.blockdrop-page .blockdrop-board {
+        width: min(58vw, 220px) !important;
+        margin: 6px auto 8px !important;
+        display: block !important;
+        touch-action: none !important;
+      }
+      body.blockdrop-page .blockdrop-controls {
+        display: grid !important;
+        grid-template-columns: repeat(3,1fr) !important;
+        gap: 7px !important;
+        width: min(100%,360px) !important;
+        margin: 4px auto 8px !important;
+      }
+      body.blockdrop-page .blockdrop-controls .game-control {
+        min-height: 48px !important;
+        margin: 0 !important;
+        padding: 8px 6px !important;
+        border-radius: 14px !important;
+        font-size: 18px !important;
+      }
+      body.blockdrop-page #dropButton {
+        grid-column: 1 / -1 !important;
+        min-height: 44px !important;
+        font-size: 15px !important;
+      }
+      body.blockdrop-page .container > a.button.wide.secondary {
+        margin-top: 6px !important;
+      }
+    }
+
+
+    /* Active-run focus mode: prioritize board + controls on phones. */
+    @media (max-width: 699px) {
+      body.blockdrop-page.game-active .game-guide-strip,
+      body.blockdrop-page.game-active .game-preflight,
+      body.blockdrop-page.game-active .game-guide-more,
+      body.blockdrop-page.game-active #startButton {
+        display: none !important;
+      }
+      body.blockdrop-page.game-active .topbar { margin-bottom: 4px !important; }
+      body.blockdrop-page.game-active .page-header {
+        margin-bottom: 4px !important;
+        padding-bottom: 0 !important;
+      }
+      body.blockdrop-page.game-active .page-header h1 {
+        font-size: 22px !important;
+        margin-bottom: 4px !important;
+      }
+      body.blockdrop-page.game-active .game-meta {
+        gap: 5px !important;
+        margin-top: 2px !important;
+      }
+      body.blockdrop-page.game-active .blockdrop-board {
+        width: min(62vw, 235px) !important;
+        margin-top: 6px !important;
+        margin-bottom: 8px !important;
+      }
+      body.blockdrop-page.game-active .blockdrop-controls {
+        margin-top: 2px !important;
+        margin-bottom: 8px !important;
+      }
+      body.blockdrop-page.game-active .topbar {
+        min-height: 30px !important;
+      }
+      body.blockdrop-page.game-active .page-header {
+        gap: 3px !important;
+      }
+      body.blockdrop-page.game-active .game-status {
+        font-size: 10px !important;
+        padding: 4px 8px !important;
+      }
+      body.blockdrop-page.game-active .meta-pill {
+        font-size: 10px !important;
+        padding: 5px 8px !important;
+      }
+      body.blockdrop-page.game-active .container > a.button.wide.secondary {
+        display: none !important;
+      }
+      body.blockdrop-page.game-active main.container {
+        padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+      }
+    }
+  </style>
+</head>
+<body class="blockdrop-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🧱 Block Drop</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Score: <span id="score">0</span></span>
+        <span class="meta-pill">Lines: <span id="lines">0</span></span>
+        <span class="meta-pill blockdrop-reward-pill" id="runRewardPill" aria-label="Arcade Coins earned this run">🪙 <strong id="rewardPreview">0</strong></span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+
+    <canvas id="game" class="blockdrop-board touch-surface" width="300" height="600" aria-label="Block Drop game board"></canvas>
+
+    <div class="controls blockdrop-controls" aria-label="Block Drop controls">
+      <button class="game-control" id="leftButton" type="button" aria-label="Move left">⬅️</button>
+      <button class="game-control" id="rotateButton" type="button" aria-label="Rotate">🔄</button>
+      <button class="game-control" id="rightButton" type="button" aria-label="Move right">➡️</button>
+      <button class="game-control" id="dropButton" type="button" aria-label="Hold to drop piece faster">⬇️ Drop</button>
+    </div>
+
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const scoreEl = document.getElementById('score');
+    const linesEl = document.getElementById('lines');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const runRewardPill = document.getElementById('runRewardPill');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'blockDrop',
+      surface:canvas,
+      detailsAfter:'.blockdrop-controls',
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the board' },
+        { icon:'↔️', title:'Control', text:'Drag pieces, tap rotate' },
+        { icon:'🧱', title:'Goal', text:'Fill complete rows' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Drag left/right to move · tap to rotate · drag down to drop',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Fill a complete horizontal row to clear it. The run ends when a new piece can no longer fit.',
+        'You can also use the Left, Rotate, Right, and Drop buttons below the board.'
+      ],
+      reward:'Earn up to 5 Coins per run. After that, keep clearing lines for bonus XP and a higher best score.'
+    });
+
+    const rows = 20;
+    const cols = 10;
+    const blockSize = 30;
+
+    const pieceShapes = [
+      [[1,1,1,1]],
+      [[1,1],[1,1]],
+      [[0,1,0],[1,1,1]],
+      [[1,0,0],[1,1,1]],
+      [[0,0,1],[1,1,1]],
+      [[0,1,1],[1,1,0]],
+      [[1,1,0],[0,1,1]]
+    ];
+
+    const colors = ['#38bdf8','#facc15','#a78bfa','#fb923c','#60a5fa','#4ade80','#f87171'];
+
+    let board = [];
+    let score = 0;
+    let lines = 0;
+    let lastRewardShown = 0;
+    let game = null;
+    let starting = false;
+    let ending = false;
+    let currentPiece = null;
+    let currentColor = colors[0];
+    let pieceX = 0;
+    let pieceY = 0;
+    let pieceSerial = 0;
+
+    function rewardForLines(value) { return Math.min(Math.max(0, Number(value) || 0), 5); }
+
+    function refreshReward() {
+      const reward = rewardForLines(lines);
+      rewardPreviewEl.textContent = reward >= 5 ? 'MAX 5 · XP ↑' : String(reward);
+      runRewardPill.setAttribute('aria-label', reward >= 5
+        ? 'Maximum 5 Arcade Coins reached. Keep clearing lines for performance XP and a higher best score.'
+        : reward + ' Arcade Coins earned this run');
+      if (game && game !== 'paused' && reward > lastRewardShown) {
+        runRewardPill.classList.remove('reward-bump');
+        void runRewardPill.offsetWidth;
+        runRewardPill.classList.add('reward-bump');
+      }
+      lastRewardShown = reward;
+    }
+
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('blockDrop');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+    }
+
+    function setStatus(text, mode) {
+      document.body.classList.toggle('game-active', mode === 'running');
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function createBoard() {
+      board = Array.from({ length: rows }, () => Array(cols).fill(null));
+    }
+
+    function newPiece() {
+      pieceSerial += 1;
+      const index = Math.floor(Math.random() * pieceShapes.length);
+      currentPiece = pieceShapes[index].map(row => row.slice());
+      currentColor = colors[index];
+      pieceX = Math.floor((cols - currentPiece[0].length) / 2);
+      pieceY = 0;
+
+      if (collision(currentPiece, pieceX, pieceY)) {
+        gameOver();
+        return false;
+      }
+      return true;
+    }
+
+    function collision(piece, newX, newY) {
+      for (let y = 0; y < piece.length; y++) {
+        for (let x = 0; x < piece[y].length; x++) {
+          if (!piece[y][x]) continue;
+          const boardX = newX + x;
+          const boardY = newY + y;
+
+          if (boardX < 0 || boardX >= cols || boardY >= rows) return true;
+          if (boardY >= 0 && board[boardY][boardX]) return true;
+        }
+      }
+      return false;
+    }
+
+    function mergePiece() {
+      for (let y = 0; y < currentPiece.length; y++) {
+        for (let x = 0; x < currentPiece[y].length; x++) {
+          if (currentPiece[y][x]) board[pieceY + y][pieceX + x] = currentColor;
+        }
+      }
+      clearLines();
+    }
+
+    function clearLines() {
+      let clearedNow = 0;
+      for (let y = rows - 1; y >= 0; y--) {
+        if (board[y].every(Boolean)) {
+          board.splice(y, 1);
+          board.unshift(Array(cols).fill(null));
+          score += 100;
+          lines += 1;
+          clearedNow += 1;
+          Arcade.feedback('line');
+          if (lines === 3) Arcade.milestone('🧱 3 lines · Line Clearer!');
+          if (lines === 10) Arcade.milestone('🔥 10 lines · Block Drop streak!', 'perfect');
+          scoreEl.textContent = score;
+          linesEl.textContent = lines;
+          refreshReward();
+          y += 1;
+        }
+      }
+      if (clearedNow && game && game !== 'paused') restartDropTimer();
+    }
+
+    function dropDelayMs() {
+      return Math.max(220, 600 - Math.floor(lines / 2) * 45);
+    }
+
+    function restartDropTimer() {
+      if (!game || game === 'paused') return;
+      clearInterval(game);
+      game = setInterval(moveDown, dropDelayMs());
+    }
+
+    function moveDown() {
+      if (!game || game === 'paused' || starting) return;
+      if (!collision(currentPiece, pieceX, pieceY + 1)) {
+        pieceY += 1;
+      } else {
+        mergePiece();
+        if (!newPiece()) return;
+      }
+      if (game && game !== 'paused') draw();
+    }
+
+    function moveLeft() {
+      if (!game || game === 'paused' || starting) return;
+      if (!collision(currentPiece, pieceX - 1, pieceY)) pieceX -= 1;
+      draw();
+    }
+
+    function moveRight() {
+      if (!game || game === 'paused' || starting) return;
+      if (!collision(currentPiece, pieceX + 1, pieceY)) pieceX += 1;
+      draw();
+    }
+
+    function rotatePiece() {
+      if (!game || game === 'paused' || starting) return;
+      const rotated = [];
+
+      for (let x = 0; x < currentPiece[0].length; x++) {
+        rotated[x] = [];
+        for (let y = currentPiece.length - 1; y >= 0; y--) {
+          rotated[x].push(currentPiece[y][x]);
+        }
+      }
+
+      if (!collision(rotated, pieceX, pieceY)) currentPiece = rotated;
+      draw();
+    }
+
+    function drawBlock(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x * blockSize + 1, y * blockSize + 1, blockSize - 2, blockSize - 2);
+      ctx.fillStyle = 'rgba(255,255,255,.16)';
+      ctx.fillRect(x * blockSize + 3, y * blockSize + 3, blockSize - 6, 4);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (board[y][x]) drawBlock(x, y, board[y][x]);
+        }
+      }
+
+      if (currentPiece) {
+        for (let y = 0; y < currentPiece.length; y++) {
+          for (let x = 0; x < currentPiece[y].length; x++) {
+            if (currentPiece[y][x]) drawBlock(pieceX + x, pieceY + y, currentColor);
+          }
+        }
+      }
+    }
+
+    function gameOver() {
+      if (game === null || ending) return;
+      ending = true;
+
+      clearInterval(game);
+      game = null;
+      blockDragPointer = null;
+      blockDragPieceSerial = 0;
+      blockDragX = 0;
+      blockDragY = 0;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
+
+      const earned = rewardForLines(lines);
+      Arcade.earn(earned, 'Block Drop', { kind:'game', game:'blockDrop', metric:lines });
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('blockDrop', lines);
+      refreshChrome();
+
+      starting = false;
+      startButton.disabled = false;
+      startButton.textContent = '👆 Tap Game to Play Again';
+      setStatus('Game Over', 'over');
+
+      Arcade.gameResult({
+        icon:'🧱',
+        title:'Block Drop Over',
+        scoreLabel:'Lines Cleared',
+        score:lines,
+        best:result.best.display,
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('blockDrop'),
+        game:'blockDrop',
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','Board score: ' + score],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('blockDrop', refreshChrome)
+      });
+    }
+
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame() {
+      if (game || starting) return;
+      ending = false;
+      starting = true;
+
+      if (!Arcade.consume('blockDrop')) {
+        starting = false;
+        Arcade.out('blockDrop', refreshChrome);
+        return;
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+
+      createBoard();
+      pieceSerial = 0;
+      blockDragPointer = null;
+      blockDragX = 0;
+      blockDragY = 0;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
+      score = 0;
+      lines = 0;
+      ending = false;
+      lastRewardShown = 0;
+      scoreEl.textContent = '0';
+      linesEl.textContent = '0';
+      refreshReward();
+      newPiece();
+
+      refreshChrome();
+      startButton.disabled = true;
+      startButton.textContent = 'Get Ready…';
+      document.body.classList.add('game-active');
+      setStatus('Get Ready');
+      draw();
+
+      Arcade.countdown(() => {
+        starting = false;
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        game = setInterval(moveDown, dropDelayMs());
+      });
+    }
+
+    function bindTapControl(id, fn) {
+      const button = document.getElementById(id);
+
+      button.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        fn();
+      });
+
+      button.addEventListener('contextmenu', event => event.preventDefault());
+    }
+
+    function bindHoldControl(id, fn) {
+      const button = document.getElementById(id);
+      let holdDelay = null;
+      let holdInterval = null;
+
+      const stop = () => {
+        clearTimeout(holdDelay);
+        clearInterval(holdInterval);
+        holdDelay = null;
+        holdInterval = null;
+      };
+
+      const start = event => {
+        event.preventDefault();
+        stop();
+        // Only arm auto-repeat during an active run. This prevents a held
+        // control from waking up after game over or while the game is paused.
+        if (!game || game === 'paused') return;
+        fn();
+
+        holdDelay = setTimeout(() => {
+          if (!game || game === 'paused') return;
+          holdInterval = setInterval(() => {
+            if (!game || game === 'paused') { stop(); return; }
+            fn();
+          }, 85);
+        }, 240);
+      };
+
+      button.addEventListener('pointerdown', start);
+      button.addEventListener('pointerup', stop);
+      button.addEventListener('pointercancel', stop);
+      button.addEventListener('pointerleave', stop);
+      button.addEventListener('contextmenu', event => event.preventDefault());
+    }
+
+    Arcade.installPauseControl({
+      isRunning:()=>!!game,
+      pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
+      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,dropDelayMs());}
+    });
+
+    bindHoldControl('leftButton', moveLeft);
+    bindHoldControl('rightButton', moveRight);
+    bindTapControl('rotateButton', rotatePiece);
+    bindHoldControl('dropButton', moveDown);
+
+    let blockDragPointer = null;
+    let blockDragPieceSerial = 0;
+    let blockDragX = 0;
+    let blockDragY = 0;
+    let blockDragTotalX = 0;
+    let blockDragTotalY = 0;
+    const blockStep = 26;
+    const tapSlop = 12;
+
+    canvas.addEventListener('pointerdown', event => {
+      event.preventDefault();
+
+      if (!game) {
+        if (!starting) startGame();
+        return;
+      }
+      if (game === 'paused' || starting || blockDragPointer !== null || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+
+      blockDragPointer = event.pointerId;
+      blockDragPieceSerial = pieceSerial;
+      blockDragX = event.clientX;
+      blockDragY = event.clientY;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
+      canvas.setPointerCapture?.(event.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', event => {
+      if (blockDragPointer !== event.pointerId || !game || game === 'paused' || starting) return;
+      event.preventDefault();
+
+      const dx = event.clientX - blockDragX;
+      const dy = event.clientY - blockDragY;
+      blockDragTotalX += Math.abs(dx);
+      blockDragTotalY += Math.abs(dy);
+
+      if (Math.abs(dx) >= blockStep) {
+        const moves = Math.max(1, Math.floor(Math.abs(dx) / blockStep));
+        for (let i = 0; i < moves; i++) {
+          dx > 0 ? moveRight() : moveLeft();
+        }
+        blockDragX = event.clientX;
+      }
+
+      if (dy >= blockStep) {
+        const moves = Math.max(1, Math.floor(dy / blockStep));
+        for (let i = 0; i < moves; i++) {
+          const beforePiece = pieceSerial;
+          moveDown();
+          // If this swipe locked the current piece and spawned a new one,
+          // end ownership of the gesture immediately. The same finger movement
+          // must never continue dropping or rotating the next piece.
+          if (pieceSerial !== beforePiece) {
+            blockDragPointer = null;
+            blockDragPieceSerial = 0;
+            blockDragTotalX = 0;
+            blockDragTotalY = 0;
+            try { canvas.releasePointerCapture?.(event.pointerId); } catch {}
+            return;
+          }
+        }
+        blockDragY = event.clientY;
+      }
+    });
+
+    canvas.addEventListener('pointerup', event => {
+      if (blockDragPointer !== event.pointerId) return;
+      event.preventDefault();
+      const startedOnSamePiece = blockDragPieceSerial === pieceSerial;
+
+      const wasTap =
+        blockDragTotalX < tapSlop &&
+        blockDragTotalY < tapSlop &&
+        Math.abs(event.clientX - blockDragX) < tapSlop &&
+        Math.abs(event.clientY - blockDragY) < tapSlop;
+
+      blockDragPointer = null;
+      blockDragPieceSerial = 0;
+      if (wasTap && game && game !== 'paused' && !starting && startedOnSamePiece) rotatePiece();
+    });
+
+    canvas.addEventListener('pointercancel', () => {
+      blockDragPointer = null;
+      blockDragPieceSerial = 0;
+      blockDragTotalX = 0;
+      blockDragTotalY = 0;
+    });
+
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+    document.addEventListener('keydown', event => {
+      if (!event.key.startsWith('Arrow')) return;
+      event.preventDefault();
+      if (event.key === 'ArrowLeft') moveLeft();
+      if (event.key === 'ArrowRight') moveRight();
+      if (event.key === 'ArrowDown') moveDown();
+      if (event.key === 'ArrowUp') rotatePiece();
+    });
+
+    startButton.addEventListener('click', startGame);
+    createBoard();
+    draw();
+    refreshChrome();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

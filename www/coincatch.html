@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Coin Catch</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    .catch-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px;border:1px solid rgba(56,189,248,.28);box-shadow:0 16px 42px rgba(0,0,0,.32)}
+    @media(max-width:699px){
+      body.coincatch-page main.container{padding-top:8px!important}
+      body.coincatch-page .topbar{min-height:38px!important;margin-bottom:3px!important}
+      body.coincatch-page .page-header{margin:0 0 3px!important;padding:0!important;gap:3px!important}
+      body.coincatch-page .page-header h1{font-size:18px!important;line-height:1.15!important;margin:2px 0 4px!important;display:block!important;visibility:visible!important;white-space:nowrap!important}
+      body.coincatch-page .game-meta{display:flex!important;justify-content:center!important;gap:6px!important;margin:0!important;width:100%!important}
+      body.coincatch-page .meta-pill{min-height:24px!important;min-width:58px!important;padding:2px 7px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:10px!important;border-radius:999px!important}
+      body.coincatch-page #startButton{min-height:38px!important;margin:3px 0!important;padding:8px 12px!important}
+      body.coincatch-page .catch-board-wrap{position:relative;width:min(82vw,330px);margin:5px auto 7px}
+      body.coincatch-page .catch-board{width:100%!important;max-height:62vh!important;margin:0!important;display:block!important}
+      body.coincatch-page .catch-hud{position:absolute;top:12px;z-index:6;height:40px;width:clamp(82px,28%,100px);padding:0 7px;border-radius:13px;background:rgba(2,6,23,.24);border:2px solid rgba(56,189,248,.38);box-shadow:0 5px 16px rgba(0,0,0,.24),0 0 12px rgba(56,189,248,.08);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:5px;line-height:1;text-align:center;font-size:14px;font-weight:900;color:#f8fafc;box-sizing:border-box}
+      body.coincatch-page .catch-hud-left{left:10px;border-color:rgba(250,204,21,.55);box-shadow:0 5px 18px rgba(0,0,0,.34),0 0 14px rgba(250,204,21,.16)}
+      body.coincatch-page .catch-hud-center{left:50%;transform:translateX(-50%)}
+      body.coincatch-page .catch-hud-right{right:10px;border-color:rgba(248,113,113,.52);box-shadow:0 5px 18px rgba(0,0,0,.34),0 0 14px rgba(248,113,113,.14)}
+      body.coincatch-page .catch-hud strong{font-size:18px;color:#fff;text-shadow:0 1px 5px rgba(255,255,255,.12)}
+      body.coincatch-page .catch-hud-center strong{font-size:17px}
+      body.coincatch-page.game-active .catch-hud{background:rgba(2,6,23,.14);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px)}
+      body.coincatch-page.game-active .page-header h1{display:none!important}
+      body.coincatch-page.game-active .earnly-pause-button{pointer-events:auto!important;position:relative!important;z-index:2!important}
+      body.coincatch-page.game-active .game-meta{display:none!important}
+      body.coincatch-page.game-active .topbar{display:none!important}
+      body.coincatch-page.game-active .page-header{position:fixed!important;top:max(env(safe-area-inset-top),8px)!important;left:50%!important;transform:translateX(-50%)!important;z-index:75!important;width:auto!important;min-height:0!important;margin:0!important;padding:0!important;pointer-events:auto!important}
+      body.coincatch-page.game-active .game-guide-strip,
+      body.coincatch-page.game-active .game-preflight,
+      body.coincatch-page.game-active .game-guide-more,
+      body.coincatch-page.game-active .game-guide-overlay,
+      body.coincatch-page.game-active .game-overlay,
+      body.coincatch-page.game-active .game-guide,
+      body.coincatch-page.game-active .game-guide-card,
+      body.coincatch-page.game-active .game-guide-reward,
+      body.coincatch-page.game-active .game-guide-tip,
+      body.coincatch-page.game-active [data-game-guide],
+      body.coincatch-page.game-active #startButton{display:none!important}
+      body.coincatch-page.game-active .container>a.button.wide.secondary{display:none!important}
+      body.coincatch-page.game-active .catch-board-wrap{width:min(94vw,calc((100dvh - 210px) * .72),380px)!important;max-width:380px!important;flex:0 0 auto!important;min-height:0!important;margin:10px auto 0!important;display:block!important}
+      body.coincatch-page.game-active .catch-board{width:100%!important;height:auto!important;max-width:100%!important;margin:0!important;display:block!important}
+      body.coincatch-page.game-active .page-header{gap:0!important}
+      body.coincatch-page.game-active .game-status{display:none!important}
+      body.coincatch-page.game-active{overflow:hidden!important;touch-action:none!important}
+      body.coincatch-page.game-active #arcadeBottomNav{display:none!important}
+      body.coincatch-page.game-active main.container{height:calc(100dvh - env(safe-area-inset-bottom,0px) - 74px)!important;min-height:0!important;padding:6px 12px 4px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;box-sizing:border-box!important;overflow:hidden!important}
+    }
+    .catch-board-wrap{position:relative}
+    .catch-earned-hud{position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:6;min-height:30px;padding:5px 11px;border-radius:999px;background:rgba(15,23,42,.26);border:1px solid rgba(250,204,21,.5);box-shadow:0 4px 14px rgba(0,0,0,.18),0 0 12px rgba(250,204,21,.10);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:5px;color:#fde68a;font-size:11px;font-weight:900;white-space:nowrap}
+    .catch-earned-hud strong{font-size:15px;color:#fff}
+    body.coincatch-page.game-active .catch-earned-hud{background:rgba(15,23,42,.18)}
+    .catch-earned-hud.bump{animation:coinEarnPulse .36s ease}
+    .catch-live-tip{
+      display:none;
+      position:fixed;
+      left:50%;
+      top:calc(max(env(safe-area-inset-top),8px) + 132px);
+      transform:translateX(-50%) translateY(-4px);
+      z-index:72;
+      width:min(92vw,430px);
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(125,211,252,.28);
+      background:rgba(15,23,42,.82);
+      color:#e2e8f0;
+      box-shadow:0 8px 22px rgba(0,0,0,.2);
+      font-size:11px;
+      font-weight:900;
+      text-align:center;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .22s ease,transform .22s ease;
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+    body.coincatch-page.game-active .catch-live-tip.show{
+      display:block;
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+    @keyframes coinEarnPulse{0%{transform:translateX(-50%) scale(1)}45%{transform:translateX(-50%) scale(1.08);box-shadow:0 0 20px rgba(250,204,21,.32)}100%{transform:translateX(-50%) scale(1)}}
+    .level-banner{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.94);z-index:8;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 24px;border-radius:16px;background:rgba(2,6,23,.82);border:1px solid rgba(250,204,21,.45);box-shadow:0 14px 35px rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;backdrop-filter:blur(7px)}
+    .level-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    .level-banner strong{font-size:23px;letter-spacing:.08em;color:#fde047}
+    .level-banner small{font-size:11px;font-weight:800;color:#cbd5e1}
+    body.coincatch-page main.container{position:relative}
+    .catch-control-zone{display:none}
+    @media(max-width:699px){
+      body.coincatch-page.game-active .catch-control-zone{display:flex;flex:0 0 42px;height:42px;margin:6px auto 0;width:min(94vw,380px);border:1px solid rgba(56,189,248,.24);border-radius:16px;background:linear-gradient(180deg,rgba(30,41,59,.9),rgba(15,23,42,.96));align-items:center;justify-content:center;gap:8px;color:#94a3b8;font-size:12px;font-weight:800;letter-spacing:.02em;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+      body.coincatch-page.game-active .catch-control-zone span{font-size:20px;color:#e2e8f0}
+    }
+  </style>
+</head>
+<body class="coincatch-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>💰 Coin Catch</h1>
+      <div class="game-meta">
+        <span class="meta-pill">🪙 <span id="rewardPreview">0</span></span>
+        <span class="meta-pill">🎟️ <span id="plays">0</span></span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <div class="catch-live-tip" id="catchLiveTip" aria-live="polite">↔ Swipe anywhere · 🪙 Catch coins · 💣 Avoid bombs</div>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <div class="catch-board-wrap">
+      <div class="level-banner" id="levelBanner" aria-live="polite"><strong id="levelBannerTitle">LEVEL 2</strong><small id="levelBannerText">Get ready</small></div>
+      <div class="catch-hud catch-hud-left">💰 <strong id="score">0</strong></div>
+      <div class="catch-hud catch-hud-center">L<strong id="level">1</strong></div>
+      <div class="catch-hud catch-hud-right">⏱ <strong><span id="time">20</span>s</strong></div>
+      <div class="catch-earned-hud" id="earnedHud">🪙 Arcade Coins <strong id="earnedCoins">+0</strong></div>
+      <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
+    </div>
+    <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe anywhere below Pause to move basket"><span>↔</span> Swipe anywhere below Pause to move</div>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){
+      document.body.classList.toggle('game-active',mode==='running');
+      statusEl.textContent=text;statusEl.className='game-status'+(mode?' '+mode:'');
+      if(mode==='running')requestAnimationFrame(()=>{
+        hideActiveGuideChrome();
+        const board=document.querySelector('.catch-board-wrap');
+        if(!board)return;
+        const r=board.getBoundingClientRect();
+        const viewH=window.visualViewport?.height||window.innerHeight;
+        if(r.bottom>viewH-78||r.top<0)board.scrollIntoView({block:'center',behavior:'auto'});
+      });
+    }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('coinCatch'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('coinCatch')){ Arcade.out('coinCatch',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+    const catchControlZone=document.getElementById('catchControlZone');
+    const catchLiveTip=document.getElementById('catchLiveTip');
+    const levelBanner=document.getElementById('levelBanner'),levelBannerTitle=document.getElementById('levelBannerTitle'),levelBannerText=document.getElementById('levelBannerText');
+    const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),earnedHudEl=document.getElementById('earnedHud'),earnedCoinsEl=document.getElementById('earnedCoins');
+    Arcade.gameGuide({
+      game:'coinCatch',surface:canvas,
+      steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
+      overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Move under falling coins. Avoid the bombs.',replayTitle:'Tap to Play Again',
+      tips:['Move with your finger/mouse, or use ← → / A D on a keyboard.','Survive each 20-second level to advance. Every level gets faster with more bombs.'],
+      reward:'Keep advancing through harder levels. The 25-Coin max now takes a deep run, and high scores also earn bonus XP.'
+    });
+    const basket={x:137,y:448,w:86,h:24};
+    const LEVEL_SECONDS=20;
+    const LEVEL_BANNER_MS=1500;
+    const START_TIP_MS=6000;
+    let liveTipTimer=null;
+    let drops=[],score=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
+    function showLiveTip(text,duration=START_TIP_MS){
+      clearTimeout(liveTipTimer);
+      catchLiveTip.textContent=text;
+      catchLiveTip.classList.add('show');
+      liveTipTimer=setTimeout(()=>{
+        catchLiveTip.classList.remove('show');
+        liveTipTimer=null;
+      },duration);
+    }
+    function rewardFor(v){
+      const catches=Math.max(0,Math.floor(Number(v)||0));
+      let c=catches>=6 ? 1+Math.floor((catches-6)/12) : 0;
+      if(catches>=75)c+=1;
+      if(catches>=150)c+=1;
+      if(catches>=225)c+=1;
+      return Math.min(c,25);
+    }
+    let lastRewardShown=0;
+    function refreshReward(){
+      const reward=rewardFor(score);
+      rewardPreviewEl.textContent=String(reward);
+      earnedCoinsEl.textContent=reward>=25?'MAX +25 · XP ↑':'+'+reward;
+      earnedHudEl.setAttribute('aria-label', reward>=25
+        ? 'Maximum 25 Arcade Coins reached. Keep playing for performance XP and a higher best score.'
+        : reward+' Arcade Coins earned this run');
+      if(running&&reward>lastRewardShown){
+        earnedHudEl.classList.remove('bump');
+        void earnedHudEl.offsetWidth;
+        earnedHudEl.classList.add('bump');
+        if(reward===5||reward===10||reward===15||reward===20||reward===25){
+          Arcade.feedback('success',{message:'🪙 '+reward+' Arcade Coins this run'});
+        }
+      }
+      lastRewardShown=Math.max(lastRewardShown,reward);
+    }
+    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function spawn(now){
+      const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
+      const previous=drops[drops.length-1];
+      let x=18+Math.random()*(canvas.width-36);
+      if(previous && previous.y<90 && Math.abs(x-previous.x)<44){
+        x=previous.x<canvas.width/2
+          ? Math.min(canvas.width-18,previous.x+58+Math.random()*42)
+          : Math.max(18,previous.x-58-Math.random()*42);
+      }
+      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:2.6+Math.min(7,(level-1)*.8)+Math.random()*1.05});
+      lastSpawn=now;
+    }
+    function drawCoin(d){
+      const spin=.45+.55*Math.abs(Math.sin((d.y+d.x)*.045));
+      ctx.save();
+      ctx.translate(d.x,d.y);
+      ctx.scale(spin,1);
+      const glow=ctx.createRadialGradient(0,0,2,0,0,18);
+      glow.addColorStop(0,'#fff7b2');
+      glow.addColorStop(.45,'#facc15');
+      glow.addColorStop(1,'#d97706');
+      ctx.fillStyle=glow;
+      ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=3;ctx.strokeStyle='#fde68a';ctx.stroke();
+      ctx.fillStyle='#92400e';ctx.font='900 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1);
+      ctx.restore();
+    }
+    function drawBomb(d){
+      ctx.save();ctx.translate(d.x,d.y);
+      const grad=ctx.createRadialGradient(-4,-5,2,0,0,16);
+      grad.addColorStop(0,'#64748b');grad.addColorStop(.45,'#1f2937');grad.addColorStop(1,'#05070b');
+      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,2,14,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle='#94a3b8';ctx.stroke();
+      ctx.strokeStyle='#f59e0b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(7,-10);ctx.quadraticCurveTo(11,-18,17,-18);ctx.stroke();
+      ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(18,-19,3,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    function drawBasket(){
+      const x=basket.x,y=basket.y,w=basket.w,h=basket.h;
+      ctx.save();
+      ctx.shadowColor='rgba(34,197,94,.34)';ctx.shadowBlur=16;
+      const grad=ctx.createLinearGradient(x,y,x,y+h+12);
+      grad.addColorStop(0,'#4ade80');grad.addColorStop(1,'#15803d');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.moveTo(x+7,y);ctx.lineTo(x+w-7,y);ctx.lineTo(x+w-15,y+h+12);ctx.lineTo(x+15,y+h+12);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#bbf7d0';ctx.fillRect(x+5,y-7,w-10,8);
+      ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=2;
+      for(let k=1;k<4;k++){const px=x+(w*k/4);ctx.beginPath();ctx.moveTo(px,y+4);ctx.lineTo(px-4,y+h+7);ctx.stroke()}
+      ctx.restore();
+    }
+    function draw(){
+      const bg=ctx.createLinearGradient(0,0,0,canvas.height);
+      bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');
+      ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='rgba(56,189,248,.07)';
+      for(let y=30;y<canvas.height;y+=52){ctx.fillRect(0,y,canvas.width,1)}
+      for(let x=45;x<canvas.width;x+=90){ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(x,0,1,canvas.height)}
+      ctx.fillStyle='rgba(255,255,255,.035)';
+      ctx.font='900 82px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(String(level),canvas.width/2,canvas.height*.43);
+      ctx.fillStyle='rgba(226,232,240,.42)';ctx.font='800 11px Arial';
+      ctx.fillText('LEVEL '+level,canvas.width/2,28);
+      if(running&&!transitioning){
+        const urgency=Math.max(0,Math.min(1,(5-timeLeft)/5));
+        if(urgency>0){
+          ctx.save();
+          ctx.fillStyle='rgba(239,68,68,'+(0.04+urgency*.08)+')';
+          ctx.fillRect(0,0,canvas.width,5);
+          ctx.restore();
+        }
+      }
+      drops.forEach(d=>{if(d.bomb)drawBomb(d);else drawCoin(d)});
+      drawBasket();
+    }
+    let levelBannerTimer=null;
+    function showLevelBanner(){
+      clearTimeout(levelBannerTimer);
+      const bombChance=Math.round(Math.min(.46,.10+(level-1)*.05)*100);
+      levelBannerTitle.textContent='LEVEL '+level;
+      levelBannerText.textContent=(level===1?'Steady drops':'Faster drops')+' · Bomb chance '+bombChance+'%';
+      levelBanner.classList.add('show');
+      levelBannerTimer=setTimeout(()=>{
+        if(document.body.classList.contains('earnly-game-paused'))return;
+        levelBanner.classList.remove('show');levelBannerTimer=null;
+      },LEVEL_BANNER_MS);
+    }
+    function nextLevel(){
+      if(!running||transitioning)return;
+      transitioning=true;
+      clearInterval(timer);timer=null;
+      level+=1;levelEl.textContent=String(level);timeLeft=LEVEL_SECONDS;timeEl.textContent=String(timeLeft);
+      drops=[];lastSpawn=performance.now();lastFrame=0;levelEndsAt=0;
+      Arcade.feedback('success');
+      // Keep the shared game guide in active-run mode during the level banner.
+      // It keys off the status text, so "Level 2" alone could make the
+      // pre-game "Catch the Coins" overlay reappear over live gameplay.
+      setStatus('Running · Level '+level,'running');
+      // gameGuide can mistake a level transition for a new idle state; force any
+      // pre-game/out-of-plays UI closed while this same paid run continues.
+      document.body.classList.add('game-active');
+      document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
+      document.querySelectorAll('[role="dialog"],.modal,.game-modal,.out-of-plays,.out-panel').forEach(el=>{
+        const t=(el.textContent||'').toLowerCase();
+        if(t.includes('out of plays')){el.remove()}
+      });
+      showLevelBanner();
+      clearTimeout(levelBannerTimer);
+      levelBannerTimer=setTimeout(()=>{
+        if(!running||document.body.classList.contains('earnly-game-paused'))return;
+        levelBanner.classList.remove('show');levelBannerTimer=null;
+        transitioning=false;
+        levelEndsAt=performance.now()+LEVEL_SECONDS*1000;
+        timer=setInterval(tickTimer,250);
+      },LEVEL_BANNER_MS);
+      showLiveTip('LEVEL '+level+' · '+(level===2?'Faster drops':'Stay sharp')+' · '+Math.round(Math.min(.46,.10+(level-1)*.05)*100)+'% bombs',2200);
+    }
+    let levelEndsAt=0;
+    function tickTimer(){
+      if(!running||transitioning)return;
+      timeLeft=Math.max(0,Math.ceil((levelEndsAt-performance.now())/1000));
+      timeEl.textContent=String(timeLeft);
+      if(timeLeft<=5 && timeLeft>0){
+        statusEl.textContent='Next level in '+timeLeft+'s';
+      }else if(statusEl.textContent.startsWith('Next level in ')){
+        statusEl.textContent='Running · Level '+level;
+      }
+      if(performance.now()>=levelEndsAt)nextLevel();
+    }
+    function finish(hitBomb=false){
+      if(!running)return;
+      running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTouchControls();
+      // Freeze the final HUD before awarding so the result screen always matches the run.
+      scoreEl.textContent=String(score);levelEl.textContent=String(level);timeEl.textContent=String(Math.max(0,timeLeft));
+      const earned=rewardFor(score);rewardPreviewEl.textContent=String(earned);
+      Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
+      Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Run Complete','over');draw();
+      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Run Complete',badgeText:hitBomb?'💥 BOMB HIT':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
+        extra:['🏁 Level reached: '+level,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+    }
+    function loop(now){
+      if(!running)return;
+      if(transitioning){draw();animation=requestAnimationFrame(loop);return}
+      if(!lastFrame)lastFrame=now;const dt=Math.min(50,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
+      if(!lastSpawn||now-lastSpawn<0)lastSpawn=now;
+      const interval=Math.max(220,650-(level-1)*65);if(now-lastSpawn>=interval)spawn(now);
+      for(let i=drops.length-1;i>=0;i--){
+        const d=drops[i];d.y+=d.speed*dt;
+        const basketTop=basket.y-7;
+        const basketBottom=basket.y+basket.h+12;
+        const catchLeft=basket.x+5;
+        const catchRight=basket.x+basket.w-5;
+        const overlapsBasket=d.y+d.r>=basketTop&&d.y-d.r<=basketBottom&&d.x+d.r>=catchLeft&&d.x-d.r<=catchRight;
+        if(overlapsBasket){
+          drops.splice(i,1);
+          if(d.bomb){finish(true);return}
+          score++;scoreEl.textContent=String(score);refreshReward();
+          if(score===1 || score%5===0) Arcade.feedback('score');
+        }else if(d.y-d.r>canvas.height)drops.splice(i,1);
+      }
+      draw();animation=requestAnimationFrame(loop);
+    }
+    function setBasketX(x){basket.x=Math.max(0,Math.min(canvas.width-basket.w,x))}
+    let dragLastClientX=null;
+    function beginBasketDrag(clientX){dragLastClientX=clientX}
+    function dragBasket(clientX){
+      if(dragLastClientX===null){dragLastClientX=clientX;return}
+      const r=canvas.getBoundingClientRect();
+      const scale=canvas.width/Math.max(1,r.width);
+      setBasketX(basket.x+(clientX-dragLastClientX)*scale);
+      dragLastClientX=clientX;
+    }
+    function moveBy(deltaX){
+      const r=canvas.getBoundingClientRect();
+      const scale=canvas.width/Math.max(1,r.width);
+      basket.x=Math.max(0,Math.min(canvas.width-basket.w,basket.x+deltaX*scale));
+    }
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame(){
+      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
+      reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');clearTouchControls();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
+        document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
+        showLiveTip('↔ Swipe anywhere · 🪙 Catch coins · 💣 Avoid bombs',START_TIP_MS);
+        levelEndsAt=performance.now()+LEVEL_SECONDS*1000;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);});
+    }
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{if(!running||!pauseStartedAt)return;const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;if(transitioning){
+      showLevelBanner();
+      clearTimeout(levelBannerTimer);
+      levelBannerTimer=setTimeout(()=>{
+        if(!running||document.body.classList.contains('earnly-game-paused'))return;
+        levelBanner.classList.remove('show');levelBannerTimer=null;
+        transitioning=false;
+        levelEndsAt=performance.now()+LEVEL_SECONDS*1000;
+        timer=setInterval(tickTimer,250);
+        animation=requestAnimationFrame(loop);
+      },850);
+      return;
+    }timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);}});
+    let controlPointer=null;
+    canvas.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      if(!running){if(!starting)startGame();return}
+      if(transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
+      controlPointer=e.pointerId;
+      beginBasketDrag(e.clientX);
+      try{canvas.setPointerCapture?.(e.pointerId)}catch{}
+    });
+    const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null;dragLastClientX=null};
+    canvas.addEventListener('pointerup',stopControl);
+    canvas.addEventListener('pointercancel',stopControl);
+
+    function canStartGlobalBasketDrag(e){
+      if(!running || transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return false;
+      if(e.target===canvas || catchControlZone.contains(e.target))return false;
+      const target=e.target instanceof Element?e.target:null;
+      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-modal'))return false;
+      const pauseButton=document.querySelector('.earnly-pause-button');
+      const minY=pauseButton?pauseButton.getBoundingClientRect().bottom+4:0;
+      return e.clientY>=minY;
+    }
+    document.addEventListener('pointerdown',e=>{
+      if(!canStartGlobalBasketDrag(e))return;
+      e.preventDefault();
+      controlPointer=e.pointerId;
+      beginBasketDrag(e.clientX);
+    },{passive:false});
+    document.addEventListener('pointermove',e=>{
+      if(!running||controlPointer!==e.pointerId)return;
+      e.preventDefault();
+      dragBasket(e.clientX);
+    },{passive:false});
+    document.addEventListener('pointerup',stopControl);
+    document.addEventListener('pointercancel',stopControl);
+
+    let zonePointer=null,zoneLastX=0;
+    function clearTouchControls(){
+      controlPointer=null;
+      zonePointer=null;
+      dragLastClientX=null;
+      zoneLastX=0;
+    }
+    catchControlZone.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      if(!running){if(!starting)startGame();return}
+      if(transitioning || zonePointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return;
+      zonePointer=e.pointerId;zoneLastX=e.clientX;
+      try{catchControlZone.setPointerCapture?.(e.pointerId)}catch{}
+    },{passive:false});
+    catchControlZone.addEventListener('pointermove',e=>{
+      if(!running||zonePointer!==e.pointerId)return;
+      e.preventDefault();
+      moveBy(e.clientX-zoneLastX);
+      zoneLastX=e.clientX;
+    },{passive:false});
+    const stopZone=e=>{if(e&&zonePointer!==e.pointerId)return;zonePointer=null};
+    catchControlZone.addEventListener('pointerup',stopZone);
+    catchControlZone.addEventListener('pointercancel',stopZone);
+    window.addEventListener('blur',clearTouchControls);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTouchControls()});
+    document.addEventListener('contextmenu',e=>{if(running&&Arcade.inExpandedGameZone(e,canvas,130))e.preventDefault()});
+
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
+    startButton.addEventListener('click',startGame);reset();refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

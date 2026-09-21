@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Safe Cracker</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    html,body,.container{touch-action:manipulation}
+    body.safecracker-page.game-active,body.safecracker-page.game-active .container,body.safecracker-page.game-active .safe-board,body.safecracker-page.game-active .safe-tap-zone{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    body.safecracker-page.game-active .safe-board,body.safecracker-page.game-active .safe-tap-zone{-webkit-tap-highlight-color:transparent}
+    .safe-board{display:block;width:min(88vw,360px);height:auto;margin:8px auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}
+    @media(max-width:600px){
+      .topbar{margin-bottom:4px}
+      .page-header{margin:4px 0 7px}
+      .page-header h1{margin:0 0 4px;font-size:clamp(26px,7.5vw,32px)}
+      .game-meta{gap:4px;margin:4px 0 5px}
+      .meta-pill{padding:4px 7px;font-size:10px}
+      .game-status{padding:4px 8px;font-size:10px}
+      .safe-board{margin-top:6px}
+      body.safecracker-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
+      body.safecracker-page .meta-pill{padding:4px 2px;font-size:9px;text-align:center;min-height:28px}
+      body.safecracker-page .safe-board{width:min(92vw,380px);border:1px solid rgba(148,163,184,.18);box-shadow:0 14px 34px rgba(0,0,0,.28)}
+      body.safecracker-page.game-active .game-guide-strip,body.safecracker-page.game-active .game-guide-more,body.safecracker-page.game-active .game-guide-overlay,body.safecracker-page.game-active .game-overlay,body.safecracker-page.game-active a.button.secondary{display:none!important}
+      body.safecracker-page.game-active .topbar,body.safecracker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.safecracker-page.game-active .page-header{margin:0 0 4px}
+      body.safecracker-page.game-active .page-header h1{font-size:22px!important;margin:0 0 4px!important}
+      body.safecracker-page.game-active .game-meta{margin:2px 0 4px}
+      body.safecracker-page.game-active .game-status{padding:3px 8px;font-size:9px}
+      body.safecracker-page.game-active .safe-board{margin:5px auto 4px;width:min(94vw,390px)}
+      body.safecracker-page .safe-tap-zone{display:none}
+      body.safecracker-page.game-active .safe-tap-zone{display:flex;width:min(92vw,380px);height:46px;margin:7px auto 0;border:1px solid rgba(34,197,94,.38);border-radius:16px;background:linear-gradient(180deg,#183629,#10261d);align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:900;color:#dcfce7;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      body.safecracker-page.game-active .safe-tap-zone:active{transform:scale(.985);background:#1d4733}
+    }
+      .safe-round-timer{max-width:360px;margin:6px auto 8px;text-align:center;font-size:12px;font-weight:900;color:#fbbf24;min-height:18px}
+    .safe-round-timer.urgent{color:#f87171;animation:safeTimerPulse .55s ease-in-out infinite alternate}
+    @keyframes safeTimerPulse{from{transform:scale(1)}to{transform:scale(1.04)}}
+</style>
+</head>
+<body class="safecracker-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>🔐 Safe Cracker</h1>
+      <div class="game-meta"><span class="meta-pill">Locks: <span id="score">0</span></span>
+        <span class="meta-pill">Lives: <span id="lives">3</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <canvas class="safe-board touch-surface" id="game" width="360" height="300" aria-label="Safe Cracker timing game"></canvas>
+    <div class="safe-tap-zone" id="safeTapZone">🔓 TAP ANYWHERE TO CRACK</div>
+    <div class="safe-round-timer" id="safeRoundTimer" aria-live="off"></div>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('safeCracker'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('safeCracker')){ Arcade.out('safeCracker',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const canvas=document.getElementById('game'),safeTapZone=document.getElementById('safeTapZone'),safeRoundTimer=document.getElementById('safeRoundTimer'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),livesEl=document.getElementById('lives'),rewardPreviewEl=document.getElementById('rewardPreview');
+    Arcade.gameGuide({game:'safeCracker',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎯',title:'Time it',text:'Stop inside the green zone'},{icon:'🔐',title:'Goal',text:'Crack as many locks as possible'}],
+      overlayIcon:'🔐',overlayTitle:'Stop in the Green',overlayText:'Tap fast: you have only a few seconds before the safe costs you a life.',replayTitle:'Tap to Play Again',
+      tips:['Each successful lock makes the target smaller and the marker faster.','You get 3 misses before the run ends.'],reward:'Locks cracked can earn up to 25 Coins.'});
+    let score=0,lives=3,targetX=120,targetW=90,marker=30,dir=1,speed=3,running=false,starting=false,animation=null,bounces=0,maxBounces=4,roundStartedAt=0,roundLimit=5200,lastAttemptAt=0,roundLocked=false;
+    function rewardFor(v){let c=Math.floor(v/2);if(v>=8)c+=2;if(v>=15)c+=4;if(v>=25)c+=5;return Math.min(c,25)}
+    function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
+    function newTarget(){roundLocked=false;targetW=Math.max(28,90-score*3);targetX=25+Math.random()*(310-targetW);speed=Math.min(9,3+score*.22);bounces=0;roundStartedAt=performance.now();roundLimit=Math.max(2600,5200-score*110)}
+    function reset(){cancelAnimationFrame(animation);animation=null;score=0;lives=3;marker=30;dir=1;bounces=0;speed=3;targetX=25;targetW=90;roundStartedAt=0;roundLimit=0;lastAttemptAt=0;roundLocked=false;safeRoundTimer.textContent='';safeRoundTimer.classList.remove('urgent');scoreEl.textContent='0';livesEl.textContent='3';newTarget();refreshReward();draw()}
+    function draw(){
+      const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1627');bg.addColorStop(1,'#101b2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#162338';ctx.beginPath();ctx.roundRect(18,70,324,150,18);ctx.fill();
+      ctx.fillStyle='#94a3b8';ctx.font='800 11px Arial';ctx.textAlign='center';ctx.fillText('LINE UP THE PIN',180,98);
+      ctx.fillStyle='#07101e';ctx.beginPath();ctx.roundRect(25,128,310,38,10);ctx.fill();
+      const glow=ctx.createLinearGradient(targetX,0,targetX+targetW,0);glow.addColorStop(0,'#16a34a');glow.addColorStop(.5,'#4ade80');glow.addColorStop(1,'#16a34a');ctx.fillStyle=glow;ctx.beginPath();ctx.roundRect(targetX,128,targetW,38,8);ctx.fill();
+      ctx.shadowColor='#fff';ctx.shadowBlur=9;ctx.fillStyle='#fff';ctx.fillRect(marker-2.5,108,5,78);ctx.shadowBlur=0;ctx.beginPath();ctx.moveTo(marker-10,105);ctx.lineTo(marker+10,105);ctx.lineTo(marker,91);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#cbd5e1';ctx.font='800 12px Arial';ctx.fillText('TAP WHEN THE PIN IS IN GREEN',180,203);
+      ctx.fillStyle='#64748b';ctx.font='700 10px Arial';ctx.fillText('Target shrinks • Speed increases',180,239);
+      if(running){const left=Math.max(0,(roundLimit-(performance.now()-roundStartedAt))/1000);ctx.fillStyle=left<1.6?'#f87171':'#fbbf24';ctx.font='900 15px Arial';ctx.fillText('ACT NOW  '+left.toFixed(1)+'s',180,272)}
+    }
+    function finish(){if(!running)return;running=false;roundLocked=true;safeRoundTimer.textContent='';safeRoundTimer.classList.remove('urgent');cancelAnimationFrame(animation);animation=null;pauseStartedAt=0;roundStartedAt=0;roundLimit=0;lastAttemptAt=0;const earned=rewardFor(score);Arcade.earn(earned,'Safe Cracker',{kind:'game',game:'safeCracker',metric:score});const result=Arcade.recordResult('safeCracker',score);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Locked Out','over');draw();
+      Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
+    function attempt(){
+      if(!running||roundLocked||document.body.classList.contains('earnly-game-paused'))return;
+      // Enforce the exact round deadline here too. The animation frame that
+      // detects timeout can arrive a few milliseconds after a user's tap.
+      if(roundStartedAt && performance.now()-roundStartedAt>=roundLimit){
+        loseLife('Too slow');
+        return;
+      }
+      roundLocked=true;
+      const now=performance.now();
+      // iPhone can occasionally deliver near-duplicate pointer input when a
+      // tap crosses nested gameplay zones. One physical tap should crack once.
+      if(now-lastAttemptAt<140){roundLocked=false;return}
+      lastAttemptAt=now;
+      const hit=marker>=targetX&&marker<=targetX+targetW;
+      if(hit){score++;scoreEl.textContent=String(score);Arcade.feedback('perfect');newTarget();marker=dir>0?30:330;refreshReward()}
+      else{loseLife('Missed the green')}
+    }
+    function loseLife(reason){if(!running)return;lives--;livesEl.textContent=String(lives);Arcade.feedback('fail');if(lives<=0){finish();return}setStatus(reason+' · '+lives+' lives','running');newTarget();marker=dir>0?30:330}
+    function loop(){if(!running)return;const roundLeft=Math.max(0,roundLimit-(performance.now()-roundStartedAt));safeRoundTimer.textContent='⏱ '+(roundLeft/1000).toFixed(1)+'s to tap';safeRoundTimer.classList.toggle('urgent',roundLeft<=1600);if(roundLeft<=0){loseLife('Too slow');if(!running)return}marker+=speed*dir;if(marker>=332){marker=332;dir=-1;bounces++;if(bounces>=maxBounces){loseLife('Too many passes');if(!running)return}}else if(marker<=28){marker=28;dir=1;bounces++;if(bounces>=maxBounces){loseLife('Too many passes');if(!running)return}}draw();animation=requestAnimationFrame(loop)}
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;startButton.textContent='Game Running';setStatus('Running','running');document.querySelectorAll('.game-guide-overlay,.game-overlay').forEach(el=>el.style.display='none');requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));animation=requestAnimationFrame(loop)})}
+    canvas.addEventListener('pointerdown',e=>{if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();if(!running){if(!starting)startGame();return}attempt()});
+    safeTapZone.addEventListener('pointerdown',e=>{if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();attempt()},{passive:false});
+    document.addEventListener('pointerdown',e=>{
+      if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
+      if(e.target.closest('a,button,.pause-control,[role="button"]')||e.target===canvas||safeTapZone.contains(e.target))return;
+      e.preventDefault();
+      attempt();
+    },{passive:false});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(running&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();attempt()}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{if(!running||!pauseStartedAt)return;const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;if(roundStartedAt)roundStartedAt+=pausedFor;pauseStartedAt=0;cancelAnimationFrame(animation);animation=requestAnimationFrame(loop);}});
+    startButton.addEventListener('click',startGame);reset();refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Jungle Hopper</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    .jungle-board{
+      width:min(88vw,360px);
+      height:auto;
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+    }
+
+    @media(max-width:699px){
+      body.junglehopper-page main.container{padding-top:8px!important}
+      body.junglehopper-page .topbar{margin-bottom:6px!important}
+      body.junglehopper-page .page-header{
+        margin:2px 0 6px!important;padding:0!important;gap:5px!important
+      }
+      body.junglehopper-page .page-header h1{
+        font-size:22px!important;line-height:1.1!important;margin:0!important
+      }
+      body.junglehopper-page .game-meta{
+        display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        gap:6px!important;margin:0!important;width:100%!important
+      }
+      body.junglehopper-page .meta-pill{
+        min-height:38px!important;padding:5px 4px!important;
+        display:flex!important;align-items:center!important;justify-content:center!important;
+        text-align:center!important;font-size:10px!important;border-radius:12px!important
+      }
+      body.junglehopper-page #startButton{
+        min-height:42px!important;margin:5px 0!important
+      }
+      body.junglehopper-page .jungle-board{
+        width:min(76vw,300px)!important;
+        max-height:58vh!important;
+        margin:6px auto 8px!important;display:block!important
+      }
+      body.junglehopper-page .container>a.button.wide.secondary{margin-top:6px!important}
+      body.junglehopper-page.game-active .game-guide-strip,
+      body.junglehopper-page.game-active .game-preflight,
+      body.junglehopper-page.game-active .game-guide-more,
+      body.junglehopper-page.game-active #startButton{display:none!important}
+      body.junglehopper-page.game-active .page-header{margin-bottom:3px!important}
+      body.junglehopper-page.game-active .jungle-board{
+        width:min(82vw,320px)!important;max-height:68vh!important;margin-top:3px!important
+      }
+      body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
+    }
+  </style>
+</head>
+<body class="junglehopper-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🐸 Jungle Hopper</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Vines: <span id="score">0</span></span>
+        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill">Speed: <span id="speedPreview">1.0</span>x</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">👆 Tap the Jungle to Start</button>
+
+    <canvas class="jungle-board touch-surface" id="game" width="360" height="560" aria-label="Jungle Hopper game board"></canvas>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const speedPreviewEl = document.getElementById('speedPreview');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+
+    Arcade.gameGuide({
+      game:'jungleHopper',
+      surface:canvas,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the jungle' },
+        { icon:'🐸', title:'Control', text:'Keep tapping to hop' },
+        { icon:'🌿', title:'Goal', text:'Pass through vine gaps' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Keep tapping to hop upward and time each vine gap',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'Each tap gives the frog an upward hop. Gravity pulls it back down.',
+        'Touching a vine, the top, or the ground ends the run.'
+      ],
+      reward:'Longer runs and milestones can earn up to 25 Coins.'
+    });
+
+    const frog = { x: 82, y: 270, r: 15, vy: 0 };
+    const gravity = 0.42;
+    const hopPower = -6.9;
+    const obstacleWidth = 58;
+    const BASE_GAP_SIZE = 150;
+    const MIN_GAP_SIZE = 108;
+    const BASE_SPEED = 2.35;
+    const MAX_SPEED = 5.1;
+
+    function difficultyFor(value) {
+      // Long runs gradually get faster and tighter instead of staying flat forever.
+      const speed = Math.min(MAX_SPEED, BASE_SPEED + value * 0.026);
+      const gapSize = Math.max(MIN_GAP_SIZE, BASE_GAP_SIZE - value * 0.42);
+      return { speed, gapSize };
+    }
+    const MAX_COINS = 25;
+
+    let obstacles = [];
+    let score = 0;
+    let running = false;
+    let starting = false;
+    let animation = null;
+    let frame = 0;
+    let lastHopAt = 0;
+
+    function rewardFor(value) {
+      let coins = Math.floor(value / 2);
+      if (value >= 10) coins += 2;
+      if (value >= 20) coins += 3;
+      if (value >= 30) coins += 5;
+      return Math.min(coins, MAX_COINS);
+    }
+
+    function refreshChrome() {
+      playsEl.textContent = Arcade.remaining('jungleHopper');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+      rewardPreviewEl.textContent = rewardFor(score);
+    }
+
+    function setStatus(text, mode) {
+      document.body.classList.toggle('game-active', mode === 'running');
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function spawnObstacle(x = canvas.width + 25) {
+      const margin = 76;
+      const { gapSize } = difficultyFor(score);
+      const gapY = margin + gapSize / 2 + Math.random() * (canvas.height - margin * 2 - gapSize);
+      obstacles.push({ x, gapY, gapSize, scored: false });
+    }
+
+    function resetGame() {
+      // A replay must own exactly one animation loop and begin from a fully
+      // neutral frog state, even if the previous run ended mid-frame.
+      if (animation !== null) {
+        cancelAnimationFrame(animation);
+        animation = null;
+      }
+      frog.y = 270;
+      frog.vy = 0;
+      obstacles = [];
+      score = 0;
+      frame = 0;
+      lastHopAt = 0;
+      scoreEl.textContent = '0';
+      rewardPreviewEl.textContent = '0';
+      speedPreviewEl.textContent = '1.0';
+      spawnObstacle(canvas.width + 85);
+      spawnObstacle(canvas.width + 85 + 210);
+      spawnObstacle(canvas.width + 85 + 420);
+    }
+
+    function drawJungle() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, '#0f3d2e');
+      sky.addColorStop(.62, '#14532d');
+      sky.addColorStop(1, '#052e16');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(34,197,94,.14)';
+      for (let i = 0; i < 8; i++) {
+        const x = (i * 57 + frame * .25) % (canvas.width + 80) - 40;
+        ctx.beginPath();
+        ctx.arc(x, 72 + (i % 3) * 110, 42, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = '#064e3b';
+      ctx.fillRect(0, canvas.height - 28, canvas.width, 28);
+    }
+
+    function drawVinePart(x, y, h, fromTop) {
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(x + 17, y, obstacleWidth - 34, h);
+
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(x + obstacleWidth / 2, y);
+      ctx.lineTo(x + obstacleWidth / 2, y + h);
+      ctx.stroke();
+
+      ctx.fillStyle = '#4ade80';
+      const leafY = fromTop ? y + h - 14 : y + 14;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.ellipse(
+          x + 10 + i * 13,
+          leafY + (i % 2 ? 7 : -5),
+          10,
+          5,
+          (i % 2 ? -.5 : .5),
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+    }
+
+    function drawObstacle(o) {
+      const topH = Math.max(0, o.gapY - o.gapSize / 2);
+      const bottomY = o.gapY + o.gapSize / 2;
+      drawVinePart(o.x, 0, topH, true);
+      drawVinePart(o.x, bottomY, canvas.height - bottomY, false);
+    }
+
+    function drawFrog() {
+      ctx.save();
+      ctx.translate(frog.x, frog.y);
+      ctx.rotate(Math.max(-.35, Math.min(.55, frog.vy * .045)));
+
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(0, 1, 18, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(-9, -11, 8, 0, Math.PI * 2);
+      ctx.arc(9, -11, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-9, -12, 4, 0, Math.PI * 2);
+      ctx.arc(9, -12, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#111827';
+      ctx.beginPath();
+      ctx.arc(-8, -12, 2, 0, Math.PI * 2);
+      ctx.arc(8, -12, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#14532d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-9, 10);
+      ctx.lineTo(-20, 17);
+      ctx.moveTo(9, 10);
+      ctx.lineTo(20, 17);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function draw() {
+      drawJungle();
+      obstacles.forEach(drawObstacle);
+      drawFrog();
+
+      if (!running) {
+        ctx.fillStyle = 'rgba(15,23,42,.55)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '700 21px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Tap to hop through the vines', canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
+      const nearestX = Math.max(rx, Math.min(cx, rx + rw));
+      const nearestY = Math.max(ry, Math.min(cy, ry + rh));
+      const dx = cx - nearestX;
+      const dy = cy - nearestY;
+      return dx * dx + dy * dy < r * r;
+    }
+
+    function hop(force = false) {
+      if (!running || document.body.classList.contains('earnly-game-paused')) return;
+      const now = performance.now();
+      // Ignore duplicate synthetic/near-simultaneous taps, but keep normal rapid hopping responsive.
+      if (!force && now - lastHopAt < 55) return;
+      lastHopAt = now;
+      Arcade.feedback('hop');
+      frog.vy = hopPower;
+    }
+
+    function loop() {
+      if (!running) return;
+
+      frame += 1;
+      frog.vy += gravity;
+      frog.y += frog.vy;
+
+      for (const o of obstacles) {
+        const { speed } = difficultyFor(score);
+        o.x -= speed;
+
+        if (!o.scored && o.x + obstacleWidth < frog.x) {
+          o.scored = true;
+          score += 1;
+          scoreEl.textContent = score;
+          rewardPreviewEl.textContent = rewardFor(score);
+          const difficulty=difficultyFor(score);
+          speedPreviewEl.textContent=(difficulty.speed/BASE_SPEED).toFixed(1);
+          if(score===10 || score===20 || score===30){
+            Arcade.feedback('score',{message:'🐸 Faster vines · '+speedPreviewEl.textContent+'x speed'});
+          }
+
+          if (score === 10) Arcade.milestone('🐸 10 vines · Jungle Pro!');
+          if (score === 20) Arcade.milestone('🌿 20 vines · Deep jungle!', 'perfect');
+          if (score === 30) Arcade.milestone('🏆 30 vines · Legendary hop!', 'perfect');
+        }
+
+        const topH = o.gapY - o.gapSize / 2;
+        const bottomY = o.gapY + o.gapSize / 2;
+
+        if (
+          circleRectCollision(frog.x, frog.y, frog.r, o.x, 0, obstacleWidth, topH) ||
+          circleRectCollision(frog.x, frog.y, frog.r, o.x, bottomY, obstacleWidth, canvas.height - bottomY)
+        ) {
+          finishGame();
+          return;
+        }
+      }
+
+      obstacles = obstacles.filter(o => o.x + obstacleWidth > -20);
+      if (obstacles.length && obstacles[obstacles.length - 1].x < canvas.width - 190) {
+        spawnObstacle(canvas.width + 30);
+      }
+
+      if (frog.y - frog.r <= 0 || frog.y + frog.r >= canvas.height - 28) {
+        finishGame();
+        return;
+      }
+
+      draw();
+      animation = requestAnimationFrame(loop);
+    }
+
+    function finishGame() {
+      if (!running) return;
+      running = false;
+      pauseStartedAt = 0;
+      cancelAnimationFrame(animation);
+      animation = null;
+
+      const earned = rewardFor(score);
+      Arcade.earn(earned, 'Jungle Hopper', { kind:'game', game:'jungleHopper', metric:score });
+      Arcade.feedback('fail');
+      const result = Arcade.recordResult('jungleHopper', score);
+
+      const best = Math.max(score, Arcade.number('jungleHopperBest'));
+      localStorage.setItem('jungleHopperBest', String(best));
+
+      starting = false;
+      refreshChrome();
+      setStatus('Game Over', 'over');
+      startButton.disabled = false;
+      startButton.textContent = '👆 Tap Jungle to Play Again';
+      draw();
+
+      Arcade.gameResult({
+        icon:'🐸',
+        title:'Jungle Run Over',
+        scoreLabel:'Vines Passed',
+        score,
+        best:best + ' vines',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('jungleHopper'),
+        game:'jungleHopper',
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('jungleHopper',refreshChrome)
+      });
+    }
+
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame() {
+      if (running || starting) return;
+      starting = true;
+
+      if (!Arcade.consume('jungleHopper')) {
+        starting = false;
+        Arcade.out('jungleHopper', refreshChrome);
+        return;
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+
+      resetGame();
+      running = false;
+      startButton.disabled = true;
+      startButton.textContent = 'Get Ready…';
+      setStatus('Get Ready');
+      refreshChrome();
+      draw();
+
+      Arcade.countdown(() => {
+        starting = false;
+        running = true;
+        startButton.textContent = 'Game Running';
+        setStatus('Running', 'running');
+        hop(true);
+        animation = requestAnimationFrame(loop);
+      });
+    }
+
+    function handleJungleInput() {
+      if (!running) {
+        if (!starting) startGame();
+        return;
+      }
+      hop();
+    }
+
+    canvas.addEventListener('touchstart', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.touches.length !== 1) return;
+      handleJungleInput();
+    }, { passive:false });
+
+    canvas.addEventListener('touchmove', event => {
+      event.preventDefault();
+    }, { passive:false });
+
+    canvas.addEventListener('touchend', event => {
+      event.preventDefault();
+    }, { passive:false });
+
+    canvas.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'touch' || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+      handleJungleInput();
+    });
+
+    document.addEventListener('pointerdown', event => {
+      if (event.target === canvas || !Arcade.inExpandedGameZone(event, canvas, 135)) return;
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+      handleJungleInput();
+    }, { passive:false });
+
+    canvas.addEventListener('dblclick', event => {
+      event.preventDefault();
+      event.stopPropagation();
+    }, { passive:false });
+
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+    document.addEventListener('keydown', event => {
+      if (event.code === 'Space' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        // Do not let keyboard input during idle/countdown preload a hop.
+        if (running) hop();
+      }
+    });
+
+    Arcade.installPauseControl({
+      isRunning:()=>running,
+      pause:()=>{
+        if(!running||pauseStartedAt)return;
+        pauseStartedAt=performance.now();
+        cancelAnimationFrame(animation);
+        animation=null;
+      },
+      resume:()=>{
+        if(!running||!pauseStartedAt)return;
+        totalPausedMs+=performance.now()-pauseStartedAt;
+        pauseStartedAt=0;
+        cancelAnimationFrame(animation);
+        animation=null;
+        animation=requestAnimationFrame(loop);
+      }
+    });
+    startButton.addEventListener('click', startGame);
+    resetGame();
+    refreshChrome();
+    draw();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

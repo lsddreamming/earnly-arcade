@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Color Match</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    html,body,.container{touch-action:manipulation}
+    .color-board{max-width:390px;margin:12px auto;padding:18px;border:1px solid #475569;border-radius:20px;background:#152236;touch-action:manipulation}
+    .color-rule{color:#94a3b8;font-size:12px;margin-bottom:8px}.color-word{font-size:44px;font-weight:900;letter-spacing:.02em;margin:16px 0 20px}
+    .color-reward-hud{width:max-content;max-width:100%;margin:0 auto 4px;padding:6px 11px;border:1px solid rgba(250,204,21,.46);border-radius:999px;background:rgba(120,84,8,.16);color:#fde68a;font-size:11px;font-weight:900;box-sizing:border-box}
+    .color-reward-hud strong{font-size:15px;color:#fff7b2}.color-reward-hud.reward-bump{animation:colorRewardBump .34s ease}
+    @keyframes colorRewardBump{0%{transform:scale(1)}45%{transform:scale(1.08);box-shadow:0 0 18px rgba(250,204,21,.22)}100%{transform:scale(1)}}
+    .color-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.color-choice{min-height:58px;margin:0;font-size:15px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+    @media(max-width:600px){
+      body.colormatch-page main.container{padding-top:8px!important;padding-bottom:92px!important}
+      body.colormatch-page .topbar{margin-bottom:4px!important}
+      body.colormatch-page .page-header{margin:0 0 5px!important}
+      body.colormatch-page .page-header h1{font-size:20px!important;margin:2px 0 5px!important}
+      body.colormatch-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;width:100%!important}
+      body.colormatch-page .meta-pill{font-size:9px!important;padding:4px 2px!important;min-height:28px!important;text-align:center!important}
+      body.colormatch-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
+      body.colormatch-page .color-board{width:min(92vw,390px)!important;box-sizing:border-box!important;margin:6px auto!important;padding:14px!important}
+      body.colormatch-page .color-rule{font-size:11px!important;margin-bottom:5px!important}
+      body.colormatch-page .color-word{font-size:42px!important;margin:12px 0 16px!important}
+      body.colormatch-page .color-choice{min-height:62px!important;font-size:16px!important;font-weight:800!important}
+      body.colormatch-page.game-active .topbar,
+      body.colormatch-page.game-active .game-guide-strip,
+      body.colormatch-page.game-active .game-guide-more,
+      body.colormatch-page.game-active #startButton,
+      body.colormatch-page.game-active a.button.secondary{display:none!important}
+      body.colormatch-page.game-active main.container{padding-top:8px!important}
+      body.colormatch-page.game-active .page-header{margin-bottom:4px!important}
+      body.colormatch-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
+      body.colormatch-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+      body.colormatch-page.game-active .color-board{width:min(94vw,400px)!important;margin:4px auto!important;padding:16px!important}
+      body.colormatch-page.game-active .color-word{font-size:50px!important;margin:16px 0 20px!important}
+      body.colormatch-page.game-active .color-choice{min-height:72px!important;font-size:17px!important}
+    }
+  </style>
+</head>
+<body class="colormatch-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+    <header class="page-header">
+      <h1>🎨 Color Match</h1>
+      <div class="game-meta"><span class="meta-pill">Matches: <span id="score">0</span></span>
+        <span class="meta-pill">Streak: <span id="streak">0</span></span>
+        <span class="meta-pill">Time: <span id="time">25</span>s</span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <div class="color-board touch-surface" id="board" aria-label="Color Match game area">
+      <div class="color-rule">Tap the button that names the <strong>INK COLOR</strong></div>
+      <div class="color-reward-hud" id="runRewardPill" aria-live="polite">🪙 Run Reward <strong id="rewardPreview">0</strong></div>
+      <div class="color-word" id="word">READY</div>
+      <div class="color-choices" id="choices"></div>
+    </div>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+  <script src="arcade.js"></script>
+  <script>
+    const playsEl=document.getElementById('plays');
+    const balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus');
+    const startButton=document.getElementById('startButton');
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
+    function refreshChrome(){ playsEl.textContent=Arcade.remaining('colorMatch'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
+    function beginPlay(){
+      if(!Arcade.consume('colorMatch')){ Arcade.out('colorMatch',refreshChrome); return false; }
+      refreshChrome(); return true;
+    }
+    
+    const board=document.getElementById('board'),wordEl=document.getElementById('word'),choices=document.getElementById('choices');
+    const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),runRewardPill=document.getElementById('runRewardPill');
+    const colors=[['RED','#ef4444'],['BLUE','#3b82f6'],['GREEN','#22c55e'],['YELLOW','#facc15']];
+    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,answer='',answerLocked=false,roundEndsAt=0;
+    Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Think',text:'Match the ink color'},{icon:'⚡',title:'Goal',text:'Get max matches in 25 sec'}],
+      overlayIcon:'🎨',overlayTitle:'Match the Ink Color',overlayText:'Ignore the word itself. Tap the color the word is painted.',replayTitle:'Tap to Play Again',
+      tips:['Example: the word RED may be painted blue. In that case tap BLUE.','Keyboard players can press 1, 2, 3, or 4 for the four buttons.'],reward:'Fast correct matches can earn up to 22 Coins.'});
+    function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=35)c+=4;return Math.min(c,22)}
+    let lastRewardShown=0;
+    function refreshReward(){
+      const reward=rewardFor(score);
+      rewardPreviewEl.textContent=String(reward);
+      if(running&&reward>lastRewardShown){
+        runRewardPill.classList.remove('reward-bump');
+        void runRewardPill.offsetWidth;
+        runRewardPill.classList.add('reward-bump');
+      }
+      lastRewardShown=reward;
+    }
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    function nextRound(){
+      answerLocked=false;
+      const ink=colors[Math.floor(Math.random()*colors.length)],word=colors[Math.floor(Math.random()*colors.length)];
+      answer=ink[0];wordEl.textContent=word[0];wordEl.style.color=ink[1];choices.replaceChildren();
+      shuffle([...colors]).forEach(([name,color],idx)=>{const b=document.createElement('button');b.type='button';b.className='color-choice';b.textContent=(idx+1)+' · '+name;b.style.border='2px solid '+color;b.style.background='#1f2937';b.addEventListener('click',()=>choose(name));choices.append(b)});
+    }
+    function choose(name){
+      if(!running||answerLocked||document.body.classList.contains('earnly-game-paused'))return;
+      if(roundEndsAt && performance.now()>=roundEndsAt){finish();return}
+      answerLocked=true;
+      if(name===answer){score++;streak++;Arcade.feedback('score')}
+      else{streak=0;Arcade.feedback('fail')}
+      scoreEl.textContent=String(score);streakEl.textContent=String(streak);refreshReward();nextRound();
+    }
+    function finish(){
+      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;roundEndsAt=0;pauseStartedAt=0;answer='';
+      const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';choices.replaceChildren();
+      Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=25?'🔥 Your brain ignored the trick.':'Focus on the ink, not the word.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
+    }
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    function startGame(){
+      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;
+      clearInterval(timer);timer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;lastRewardShown=0;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';refreshReward();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
+    }
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running||pauseStartedAt)return;
+      pauseStartedAt=performance.now();clearInterval(timer);timer=null;
+    },resume:()=>{
+      if(!running||!pauseStartedAt)return;
+      const pausedFor=Math.max(0,performance.now()-pauseStartedAt);
+      totalPausedMs+=pausedFor;if(roundEndsAt)roundEndsAt+=pausedFor;pauseStartedAt=0;
+      clearInterval(timer);timer=null;
+      timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100);
+    }});
+    board.addEventListener('pointerdown',e=>{if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
+    startButton.addEventListener('click',startGame);refreshChrome();
+  
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Rewards</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css?v=8">
+</head>
+<body class="rewards-dashboard">
+  <main class="container rewards-container">
+    <div class="rewards-topbar">
+      <a class="rewards-brand" href="index.html">🎮 Earnly</a>
+      <div class="rewards-top-actions">
+        <a href="profile.html">👤 Profile</a>
+        <span>🪙 <b id="topBalance">0</b></span>
+      </div>
+    </div>
+
+    <header class="rewards-hero">
+      <span class="rewards-eyebrow">REWARDS</span>
+      <h1>Play now. Redeem later.</h1>
+      <p>Build your Arcade Coin balance now. Gift card and Bitcoin rewards are planned for a future release.</p>
+    </header>
+
+    <section class="rewards-balance-card">
+      <div>
+        <span class="rewards-balance-label">Arcade Coins</span>
+        <strong><span id="balance">0</span> <small>🪙</small></strong>
+      </div>
+      <span class="prototype-badge">REWARDS BUILDING</span>
+      <p>Arcade Coins are your Earnly reward balance. Real-value redemption is not live yet, so Coins do not have a fixed cash value today.</p>
+      <div class="rewards-balance-meta">
+        <span>Today <strong id="todayEarned">+0</strong></span>
+        <span>Lifetime <strong id="lifetimeEarned">0</strong></span>
+      </div>
+    </section>
+
+    <section class="reward-vision-card" aria-label="Future Earnly real rewards">
+      <div class="reward-vision-head">
+        <span class="reward-vision-icon">🏆</span>
+        <div>
+          <span class="rewards-kicker">REAL REWARDS ROADMAP</span>
+          <h2>Gift cards + Bitcoin are planned</h2>
+        </div>
+        <span class="rewards-status-pill">Coming Soon</span>
+      </div>
+
+      <p class="reward-vision-copy">Earnly is being designed so game-earned Arcade Coins can eventually be redeemed for real rewards. The exact Coin-to-dollar rate and minimum cash-out will be set after real ad revenue is measured.</p>
+
+      <div class="reward-funding-strip">
+        <span>📺 Ad-funded rewards</span>
+        <strong>A portion of Earnly’s ad revenue helps fund player rewards</strong>
+        <small>Reward values may vary as ad rates, payout costs, and the Earnly economy change.</small>
+      </div>
+
+      <div class="reward-future-options">
+        <div class="reward-future-option">
+          <span>🎁</span>
+          <div><strong>Gift Cards</strong><small>Planned redemption option</small></div>
+          <b>COMING SOON</b>
+        </div>
+        <div class="reward-future-option">
+          <span>₿</span>
+          <div><strong>Bitcoin / sats</strong><small>Planned real-value payout option</small></div>
+          <b>COMING SOON</b>
+        </div>
+      </div>
+    </section>
+
+    <section class="reward-protection-card" id="rewardProtectionCard">
+      <span class="reward-protection-icon" id="rewardProtectionIcon">🔐</span>
+      <div>
+        <strong id="rewardProtectionTitle">Checking Coin protection…</strong>
+        <small id="rewardProtectionText">Confirming your Earnly account and secure wallet.</small>
+      </div>
+      <a id="rewardProtectionAction" href="account.html">Account →</a>
+    </section>
+
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">HOW EARNLY WORKS</span>
+          <h2>Coins, XP, and plays</h2>
+        </div>
+      </div>
+      <div class="rewards-basics">
+        <div class="rewards-basic-item"><span>🪙</span><div><strong>Coins</strong><small>In-app reward points</small></div></div>
+        <div class="rewards-basic-item"><span>⭐</span><div><strong>XP</strong><small>Levels and profile progress</small></div></div>
+        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>3 free + up to 2 bonus unlocks/game</small></div></div>
+      </div>
+    </section>
+
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">REWARD LAUNCH ROADMAP</span>
+          <h2>3 of 6 foundations ready</h2>
+        </div>
+        <span class="rewards-status-pill">Growing</span>
+      </div>
+
+      <div class="rewards-readiness">
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Game-earned Arcade Coins</strong><small>Coins come from gameplay, bonuses, and challenges</small></div></div>
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Secure Coin wallet & ledger</strong><small>Server-backed when you sign in</small></div></div>
+        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Rewarded ads for extra plays</strong><small>Ads support the economy without directly minting Coins</small></div></div>
+        <div class="rewards-readiness-row"><span>4</span><div><strong>Set the real Coin exchange rate</strong><small>Based on measured ad revenue and sustainable payout math</small></div></div>
+        <div class="rewards-readiness-row"><span>5</span><div><strong>Payout & fraud protection</strong><small>Verify balances and stop abuse before real rewards launch</small></div></div>
+        <div class="rewards-readiness-row"><span>6</span><div><strong>Gift card + Bitcoin redemption</strong><small>Enable real withdrawals after the economy is validated</small></div></div>
+      </div>
+    </section>
+
+    <section class="rewards-section">
+      <div class="rewards-section-heading">
+        <div>
+          <span class="rewards-kicker">ACTIVITY</span>
+          <h2>Recent earnings</h2>
+        </div>
+      </div>
+      <div class="rewards-history" id="history"></div>
+    </section>
+
+    <details class="rewards-footnote">
+      <summary>How Arcade Coins work</summary>
+      <p>Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads unlock extra plays, not Coins.</p>
+      <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server wallet. Gift card and Bitcoin redemption are planned but are not available in this version.</p>
+      <p>A portion of Earnly’s ad revenue is intended to help fund the future player reward pool. Coin value, minimum redemption, reward amounts, and available payout methods may change before launch.</p>
+    </details>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const protectionCard = document.getElementById('rewardProtectionCard');
+    const protectionIcon = document.getElementById('rewardProtectionIcon');
+    const protectionTitle = document.getElementById('rewardProtectionTitle');
+    const protectionText = document.getElementById('rewardProtectionText');
+    const protectionAction = document.getElementById('rewardProtectionAction');
+
+    async function renderRewardProtection() {
+      const pendingRewards = Arcade.pendingSyncEvents().filter(event =>
+        event?.type === 'coin_award' && event?.payload?.server
+      ).length;
+      let signedIn = false;
+      let wallet = null;
+
+      try {
+        if (window.EarnlyCloud?.ready) {
+          signedIn = !!(await EarnlyCloud.session())?.user;
+          if (signedIn) wallet = await EarnlyCloud.walletInfo();
+        }
+      } catch {}
+
+      protectionCard.classList.toggle('ready', signedIn);
+      protectionCard.classList.toggle('warning', signedIn && pendingRewards > 0);
+      protectionIcon.textContent = signedIn ? (pendingRewards ? '⏳' : '🛡️') : '🔐';
+      protectionTitle.textContent = signedIn
+        ? (pendingRewards ? 'Coin rewards waiting to verify' : 'Secure Coin wallet connected')
+        : 'Protect your Arcade Coins';
+      protectionText.textContent = !signedIn
+        ? 'Sign in to attach your progress and Coin wallet to your Earnly account.'
+        : (pendingRewards
+            ? pendingRewards + ' Coin reward' + (pendingRewards === 1 ? '' : 's') + ' will verify when Earnly syncs.'
+            : (wallet
+                ? 'Server-protected balance: ' + Number(wallet.balance || 0).toLocaleString() + ' Coins.'
+                : 'Your signed-in rewards are checked against Earnly Cloud.'));
+      protectionAction.textContent = signedIn ? 'Manage →' : 'Sign In →';
+    }
+
+    function render() {
+      const balance = Arcade.number('points');
+      document.getElementById('balance').textContent = balance.toLocaleString();
+      document.getElementById('topBalance').textContent = balance.toLocaleString();
+
+      const dailyCoins = Arcade.dailyCoinStatus();
+      document.getElementById('todayEarned').textContent = '+' + dailyCoins.earned.toLocaleString();
+      document.getElementById('lifetimeEarned').textContent = dailyCoins.lifetime.toLocaleString();
+
+      const root = document.getElementById('history');
+      const items = Arcade.history();
+      root.replaceChildren();
+
+      if (!items.length) {
+        const p = document.createElement('p');
+        p.className = 'rewards-empty';
+        p.textContent = 'New earnings will appear here as you play and claim rewards.';
+        root.append(p);
+        return;
+      }
+
+      items.slice(0, 8).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'history-item';
+
+        const source = document.createElement('span');
+        source.className = 'history-source';
+        source.textContent = item.source;
+
+        const value = document.createElement('span');
+        value.className = 'history-value';
+        value.textContent = '+' + item.amount + ' 🪙';
+
+        row.append(source, value);
+        root.append(row);
+      });
+    }
+
+    render();
+    window.addEventListener('pageshow', render);
+    window.addEventListener('focus', render);
+    window.addEventListener('storage', render);
+    window.addEventListener('earnly-cloud-ready', renderRewardProtection);
+    window.addEventListener('earnly-cloud-auth-change', renderRewardProtection);
+    window.addEventListener('earnly-server-rewards-synced', () => {
+      render();
+      renderRewardProtection();
+    });
+    window.addEventListener('earnly-data-change', () => {
+      render();
+      renderRewardProtection();
+    });
+    renderRewardProtection();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

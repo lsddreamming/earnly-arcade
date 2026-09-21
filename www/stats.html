@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Stats & Missions</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css?v=13">
+</head>
+<body class="missions-dashboard">
+  <main class="container missions-container">
+    <div class="topbar">
+      <a class="brand" href="index.html">🎮 Earnly</a>
+      <div class="game-title-actions">
+        <a class="balance-chip" href="profile.html">👤 L<span id="level">1</span></a>
+        <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+      </div>
+    </div>
+
+    <header class="missions-hero">
+      <span class="missions-eyebrow">MISSIONS</span>
+      <h1>Level up this week</h1>
+      <p>Complete missions, earn XP, and keep your streak moving.</p>
+    </header>
+
+    <section class="missions-player-strip">
+      <div>
+        <strong><span id="playerName">Player</span> · L<span id="playerLevel">1</span></strong>
+        <span id="xpText">0 / 100 XP</span>
+      </div>
+      <span id="totalXP">0 total XP</span>
+      <div class="xp-bar"><span id="xpBar"></span></div>
+    </section>
+
+    <section class="missions-weekly-card">
+      <div class="missions-weekly-head">
+        <div>
+          <h2>📅 This week</h2>
+          <span id="weekReset">Resets Monday</span>
+        </div>
+        <strong id="weekCount">0/4</strong>
+      </div>
+      <div class="mission-list" id="missionList"></div>
+      <div class="status-line success" id="weeklySweep" hidden></div>
+    </section>
+
+    <section class="missions-highlights" aria-label="Lifetime highlights">
+      <div><strong id="gamesCompleted">0</strong><span>Games</span></div>
+      <div><strong id="lifetimeXP">0</strong><span>XP</span></div>
+      <div><strong id="lifetimeCoins">0</strong><span>Coins</span></div>
+      <div><strong id="achievementCount">0</strong><span>Badges</span></div>
+      <div><strong id="differentGames">0/20</strong><span>Explored</span></div>
+      <div><strong id="weeklyClears">0</strong><span>Sweeps</span></div>
+    </section>
+
+    <details class="missions-detail-card" open>
+      <summary>🔥 Streak progress <span id="streakValue">0 days</span></summary>
+      <div class="streak-track">
+        <div class="streak-step" data-days="3"><strong>🔥 3</strong><span>Heating Up</span></div>
+        <div class="streak-step" data-days="7"><strong>📅 7</strong><span>Week Warrior</span></div>
+        <div class="streak-step" data-days="14"><strong>⚡ 14</strong><span>Locked In</span></div>
+      </div>
+      <p class="muted small" id="nextStreak"></p>
+      <div class="streak-reward-list" id="streakRewardList"></div>
+    </details>
+
+    <details class="missions-detail-card">
+      <summary>🎮 Game performance <span>View stats</span></summary>
+      <p class="muted small" id="mostPlayedText">Detailed run stats start tracking from this update.</p>
+      <div class="game-stats-list" id="gameStatsList"></div>
+    </details>
+
+    <details class="missions-detail-card">
+      <summary>🏆 Personal bests <span>View all</span></summary>
+      <div class="best-grid" id="bestGrid"></div>
+    </details>
+
+    <details class="missions-detail-card">
+      <summary>🕘 Recent activity <span>Newest first</span></summary>
+      <div class="activity-list" id="activityList"></div>
+    </details>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const gameInfo = [
+      ['snake','🐍','Snake'],
+      ['blockDrop','🧱','Block Drop'],
+      ['tapRush','🎯','Tap Rush'],
+      ['memory','🧠','Memory Match'],
+      ['dodger','🚗','Neon Dodger'],
+      ['brickBreaker','💥','Brick Breaker'],
+      ['jungleHopper','🐸','Jungle Hopper'],
+      ['towerStack','🏗️','Tower Stack'],
+      ['coinCatch','💰','Coin Catch'],
+      ['colorMatch','🎨','Color Match'],
+      ['paddleRally','🏓','Paddle Rally'],
+      ['laneRunner','🏎️','Lane Runner'],
+      ['safeCracker','🔐','Safe Cracker'],
+      ['blockGrid','🧩','Block Grid'],
+      ['mergeRush','🔢','Merge Rush'],
+      ['perfectDrop','🎯','Perfect Drop'],
+      ['spiralDrop','🌀','Spiral Drop'],
+      ['shapeFit','🧠','Shape Fit'],
+      ['bounceRun','⚪','Bounce Run'],
+      ['trafficEscape','🚦','Traffic Escape']
+    ];
+
+    const missionGamePages = {
+      snake:'snake.html',
+      blockDrop:'blockdrop.html',
+      tapRush:'taprush.html',
+      memory:'memory.html',
+      dodger:'dodger.html',
+      brickBreaker:'brickbreaker.html',
+      jungleHopper:'junglehopper.html',
+      towerStack:'towerstack.html',
+      coinCatch:'coincatch.html',
+      colorMatch:'colormatch.html',
+      paddleRally:'paddlerally.html',
+      laneRunner:'lanerunner.html',
+      safeCracker:'safecracker.html',
+      blockGrid:'mini.html?game=blockGrid',
+      mergeRush:'mini.html?game=mergeRush',
+      perfectDrop:'mini.html?game=perfectDrop',
+      spiralDrop:'mini.html?game=spiralDrop',
+      shapeFit:'mini.html?game=shapeFit',
+      bounceRun:'mini.html?game=bounceRun',
+      trafficEscape:'mini.html?game=trafficEscape'
+    };
+
+    function missionDestination(mission) {
+      const page = missionGamePages[mission.game] || 'games.html';
+      if (!mission.game) return page;
+      return page + (page.includes('?') ? '&' : '?') + 'goal=weekly&mission=' + encodeURIComponent(mission.id);
+    }
+
+    function missionGameLabel(mission) {
+      if (!mission.game) return 'a Game';
+      const info = gameInfo.find(item => item[0] === mission.game);
+      return info ? info[2] : 'Game';
+    }
+
+    function timeAgo(iso) {
+      const then = new Date(iso).getTime();
+      if (!Number.isFinite(then)) return '';
+      const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+      if (seconds < 60) return 'just now';
+      if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+      if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+      return Math.floor(seconds / 86400) + 'd ago';
+    }
+
+    function activityIcon(type) {
+      return ({
+        game:'🎮',
+        reward:'🪙',
+        challenge:'🔥',
+        weekly:'📅'
+      })[type] || '✨';
+    }
+
+    function renderMissions() {
+      const weekly = Arcade.weeklyStatus();
+      document.getElementById('weekCount').textContent = weekly.completed + '/' + weekly.total;
+
+      const reset = new Date(weekly.nextReset);
+      document.getElementById('weekReset').textContent =
+        'Resets ' + reset.toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' });
+
+      const root = document.getElementById('missionList');
+      root.replaceChildren();
+
+      weekly.missions.forEach(mission => {
+        const card = document.createElement('div');
+        card.className = 'mission-card' + (mission.complete ? ' complete' : '');
+
+        const head = document.createElement('div');
+        head.className = 'mission-head';
+
+        const title = document.createElement('div');
+        title.className = 'mission-title';
+        title.textContent = mission.icon + ' ' + mission.title;
+
+        const reward = document.createElement('div');
+        reward.className = 'mission-reward';
+        reward.textContent = '+' + mission.rewardXP + ' XP';
+
+        head.append(title, reward);
+
+        const desc = document.createElement('div');
+        desc.className = 'mission-description';
+        desc.textContent = mission.description;
+
+        const progressRow = document.createElement('div');
+        progressRow.className = 'mission-progress-row';
+        progressRow.innerHTML = '<span>Progress</span><strong>' + mission.progress + ' / ' + mission.goal + '</strong>';
+
+        const bar = document.createElement('div');
+        bar.className = 'mission-progress';
+        const fill = document.createElement('span');
+        fill.style.width = Math.min(100, mission.progress / mission.goal * 100) + '%';
+        bar.append(fill);
+
+        card.append(head, desc, progressRow, bar);
+
+        if (mission.claimed) {
+          const claimed = document.createElement('div');
+          claimed.className = 'status-line success';
+          claimed.textContent = 'Claimed ✓';
+          card.append(claimed);
+        } else {
+          const button = document.createElement('button');
+          button.className = 'wide' + (mission.complete ? ' green' : ' secondary mission-play-button');
+          button.disabled = false;
+          button.textContent = mission.complete
+            ? 'Claim +' + mission.rewardXP + ' XP'
+            : (mission.game ? 'Play ' + missionGameLabel(mission) + ' →' : 'Choose a Game →');
+
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            if (mission.complete) {
+              if (Arcade.claimWeeklyMission(mission.id)) render();
+              return;
+            }
+            location.href = missionDestination(mission);
+          });
+          card.append(button);
+
+          if (!mission.complete) {
+            card.classList.add('playable');
+            card.setAttribute('role', 'link');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-label', 'Play ' + missionGameLabel(mission) + ' for ' + mission.title);
+            card.addEventListener('click', event => {
+              if (event.target.closest('button')) return;
+              location.href = missionDestination(mission);
+            });
+            card.addEventListener('keydown', event => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              location.href = missionDestination(mission);
+            });
+          }
+        }
+
+        root.append(card);
+      });
+
+      const sweep = document.getElementById('weeklySweep');
+      if (weekly.allClearClaimed) {
+        sweep.hidden = false;
+        sweep.textContent = '🏅 Weekly Sweep complete · +' + weekly.allClearRewardXP + ' bonus XP claimed';
+      } else if (weekly.allClaimed) {
+        sweep.hidden = false;
+        sweep.textContent = '🏅 Weekly Sweep ready!';
+      } else {
+        sweep.hidden = true;
+      }
+    }
+
+    function renderGameStats() {
+      const root = document.getElementById('gameStatsList');
+      root.replaceChildren();
+      const all = Arcade.allGameStats();
+
+      const iconByGame = Object.fromEntries(gameInfo.map(info => [info[0], info[1]]));
+      const most = Arcade.mostPlayedGame();
+
+      document.getElementById('mostPlayedText').textContent = most
+        ? 'Most played: ' + (iconByGame[most.game] || '🎮') + ' ' + most.name + ' · ' + most.runs + ' runs'
+        : 'Detailed run stats start tracking as you finish games.';
+
+      all.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'game-stat-row';
+
+        const copy = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = (iconByGame[item.game] || '🎮') + ' ' + item.name;
+
+        const detail = document.createElement('span');
+        detail.textContent = item.runs
+          ? item.runs + ' runs · Avg ' + item.average + ' ' + item.best.label + ' · Best ' + item.best.display
+          : 'No tracked runs yet';
+
+        copy.append(title, detail);
+
+        const badge = document.createElement('div');
+        badge.className = 'game-stat-badge';
+        badge.textContent = item.runs + ' run' + (item.runs === 1 ? '' : 's');
+
+        row.append(copy, badge);
+        root.append(row);
+      });
+    }
+
+    function renderBests() {
+      const root = document.getElementById('bestGrid');
+      root.replaceChildren();
+
+      gameInfo.forEach(info => {
+        const best = Arcade.best(info[0]);
+        const card = document.createElement('div');
+        card.className = 'best-card';
+
+        const title = document.createElement('strong');
+        title.textContent = info[1] + ' ' + info[2];
+
+        const value = document.createElement('span');
+        value.textContent = best.display;
+
+        card.append(title, value);
+        root.append(card);
+      });
+    }
+
+    function renderActivity() {
+      const root = document.getElementById('activityList');
+      root.replaceChildren();
+      const items = Arcade.activity();
+
+      if (!items.length) {
+        const empty = document.createElement('p');
+        empty.className = 'muted';
+        empty.textContent = 'Your game finishes, mission claims, and daily rewards will appear here.';
+        root.append(empty);
+        return;
+      }
+
+      items.slice(0, 14).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'activity-item';
+
+        const icon = document.createElement('div');
+        icon.className = 'activity-icon';
+        icon.textContent = activityIcon(item.type);
+
+        const copy = document.createElement('div');
+        copy.className = 'activity-copy';
+
+        const title = document.createElement('strong');
+        title.textContent = item.title;
+
+        const detail = document.createElement('span');
+        detail.textContent = item.detail || '';
+
+        const time = document.createElement('span');
+        time.className = 'activity-time';
+        time.textContent = timeAgo(item.time);
+
+        copy.append(title);
+        if (item.detail) copy.append(detail);
+        copy.append(time);
+        row.append(icon, copy);
+        root.append(row);
+      });
+    }
+
+    function renderStreakRewards() {
+      const root = document.getElementById('streakRewardList');
+      root.replaceChildren();
+      const status = Arcade.streakRewardStatus();
+
+      status.rewards.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'streak-reward' + (item.claimed ? ' claimed' : (item.reached ? ' ready' : ''));
+
+        const icon = document.createElement('div');
+        icon.className = 'streak-reward-icon';
+        icon.textContent = item.icon;
+
+        const copy = document.createElement('div');
+        copy.className = 'streak-reward-copy';
+        const title = document.createElement('strong');
+        title.textContent = item.title;
+        const detail = document.createElement('span');
+        detail.textContent = item.claimed ? '+' + item.rewardXP + ' XP claimed' :
+          (item.reached ? '+' + item.rewardXP + ' XP ready to claim' : '+' + item.rewardXP + ' XP at day ' + item.days);
+        copy.append(title, detail);
+
+        row.append(icon, copy);
+
+        if (item.reached && !item.claimed) {
+          const button = document.createElement('button');
+          button.className = 'green';
+          button.type = 'button';
+          button.textContent = 'Claim';
+          button.addEventListener('click', () => {
+            Arcade.claimStreakReward(item.days);
+            render();
+          });
+          row.append(button);
+        } else {
+          const badge = document.createElement('div');
+          badge.className = 'game-stat-badge';
+          badge.textContent = item.claimed ? '✓' : item.days + 'd';
+          row.append(badge);
+        }
+
+        root.append(row);
+      });
+    }
+
+    function renderStreak(streak) {
+      document.getElementById('streakValue').textContent =
+        streak + ' day' + (streak === 1 ? '' : 's');
+
+      document.querySelectorAll('.streak-step').forEach(step => {
+        const days = Number(step.dataset.days);
+        step.classList.toggle('reached', streak >= days);
+      });
+
+      const next = [3,7,14].find(days => streak < days);
+      document.getElementById('nextStreak').textContent = next
+        ? (next - streak) + ' more day' + (next - streak === 1 ? '' : 's') + ' to the next streak badge.'
+        : 'All current streak badges unlocked. 🔥';
+    }
+
+    function render() {
+      const stats = Arcade.stats();
+      const xp = Arcade.xpStatus();
+
+      document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
+      document.getElementById('level').textContent = xp.level;
+      document.getElementById('playerName').textContent = stats.name;
+      document.getElementById('playerLevel').textContent = xp.level;
+      document.getElementById('xpText').textContent = xp.current + ' / ' + xp.needed + ' XP';
+      document.getElementById('totalXP').textContent = xp.xp.toLocaleString() + ' total XP';
+      document.getElementById('xpBar').style.width = xp.progress + '%';
+
+      document.getElementById('gamesCompleted').textContent = stats.gamesCompleted.toLocaleString();
+      document.getElementById('lifetimeXP').textContent = stats.xp.toLocaleString();
+      document.getElementById('lifetimeCoins').textContent = stats.lifetimeCoins.toLocaleString();
+      document.getElementById('achievementCount').textContent = stats.achievements + '/' + stats.totalAchievements;
+      document.getElementById('differentGames').textContent = stats.differentGames + '/' + gameInfo.length;
+      document.getElementById('weeklyClears').textContent = stats.weeklyClears;
+
+      renderMissions();
+      renderStreak(stats.streak);
+      renderStreakRewards();
+      renderGameStats();
+      renderBests();
+      renderActivity();
+    }
+
+    render();
+    window.addEventListener('pageshow', render);
+    window.addEventListener('focus', render);
+    window.addEventListener('storage', render);
+    window.addEventListener('earnly-data-change', render);
+    window.addEventListener('earnly-cloud-synced', render);
+    window.addEventListener('earnly-server-rewards-synced', render);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

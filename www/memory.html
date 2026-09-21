@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Earnly">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="earnly-icon.svg">
+  <title>Earnly Memory Match</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css">
+  <style>
+    .memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px auto;max-width:390px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .memory-card.matched{background:#14532d;border-color:#22c55e}
+    .memory-card.revealed{background:#243044}
+    .timer-danger{animation:memoryTimerPulse .7s ease-in-out infinite alternate;border-color:#ef4444!important;color:#fecaca!important}
+    .memory-reward-hud{width:max-content;max-width:100%;margin:5px auto 1px;padding:6px 11px;border:1px solid rgba(250,204,21,.46);border-radius:999px;background:rgba(120,84,8,.15);color:#fde68a;font-size:11px;font-weight:900;box-sizing:border-box;transition:transform .18s ease,box-shadow .18s ease}
+    .memory-reward-hud strong{font-size:14px;color:#fff7b2}
+    .memory-reward-hud.reward-change{animation:memoryRewardPulse .3s ease}
+    @keyframes memoryRewardPulse{0%{transform:scale(1)}45%{transform:scale(1.05);box-shadow:0 0 16px rgba(250,204,21,.18)}100%{transform:scale(1)}}
+    @keyframes memoryTimerPulse{from{transform:scale(1)}to{transform:scale(1.04);box-shadow:0 0 14px rgba(239,68,68,.35)}}
+    @media(max-width:699px){
+      body.memory-page main.container{padding-top:8px!important}
+      body.memory-page .topbar{margin-bottom:6px!important}
+      body.memory-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
+      body.memory-page .page-header h1{font-size:20px!important;line-height:1.05!important;margin:0!important}
+      body.memory-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
+      body.memory-page .meta-pill{min-height:31px!important;padding:3px 2px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;border-radius:10px!important}
+      body.memory-page .memory-reward-hud{margin:3px auto 0!important;padding:5px 10px!important;font-size:10px!important}
+      body.memory-page #startButton{min-height:42px!important;margin:5px 0!important}
+      body.memory-page .memory-grid{width:min(84vw,350px)!important;gap:7px!important;margin:7px auto 9px!important}
+      body.memory-page .memory-card{border-radius:13px!important;font-size:27px!important}
+      body.memory-page.game-active .game-guide-strip,
+      body.memory-page.game-active .game-preflight,
+      body.memory-page.game-active .game-guide-more,
+      body.memory-page.game-active #startButton{display:none!important}
+      body.memory-page.game-active .memory-grid{width:min(90vw,375px)!important;gap:8px!important;margin-top:5px!important}
+      body.memory-page.game-active .memory-card{font-size:30px!important}
+      body.memory-page.game-active .container>a.button.wide.secondary{display:none!important}
+    }
+  </style>
+</head>
+<body class="memory-page">
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+    </div>
+
+    <header class="page-header">
+      <h1>🧠 Memory Match</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Moves: <span id="moves">0</span></span>
+        <span class="meta-pill">Pairs: <span id="pairs">0</span>/8</span>
+        <span class="meta-pill">Time: <span id="time">1:00</span></span>
+        <span class="meta-pill"><span id="plays">0</span> plays left</span>
+      </div>
+      <div class="memory-reward-hud" id="memoryRewardHud" aria-live="polite">🪙 Clear Reward <strong id="rewardPreview">15</strong></div>
+      <span class="game-status" id="gameStatus">Ready</span>
+    </header>
+
+    <button class="green wide" id="startButton" type="button">👆 Tap the Cards to Start</button>
+    <div class="memory-grid touch-surface" id="grid" aria-label="Memory Match cards"></div>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const grid = document.getElementById('grid');
+    const movesEl = document.getElementById('moves');
+    const pairsEl = document.getElementById('pairs');
+    const timeEl = document.getElementById('time');
+    const playsEl = document.getElementById('plays');
+    const balanceEl = document.getElementById('balance');
+    const statusEl = document.getElementById('gameStatus');
+    const startButton = document.getElementById('startButton');
+    const rewardPreviewEl = document.getElementById('rewardPreview');
+    const memoryRewardHud = document.getElementById('memoryRewardHud');
+
+    Arcade.gameGuide({
+      game:'memory',
+      surface:grid,
+      steps:[
+        { icon:'👆', title:'Start', text:'Tap the cards' },
+        { icon:'🃏', title:'Control', text:'Flip 2 cards at a time' },
+        { icon:'🧠', title:'Goal', text:'Match all 8 pairs' }
+      ],
+      overlayIcon:'👆',
+      overlayTitle:'Tap to Start',
+      overlayText:'Flip two cards at a time and remember where the matches are',
+      replayTitle:'Tap to Play Again',
+      tips:[
+        'A move is counted each time you reveal two cards. Matching cards stay face-up.',
+        'You have 60 seconds to match all 8 pairs. The final 10 seconds are the danger zone.'
+      ],
+      reward:'Beat the 60-second clock. Faster clears and fewer moves earn the best reward, up to 15 Coins.'
+    });
+
+    const icons = ['🍎','⭐','🎲','🍕','🚀','🐸','🎧','💎'];
+    let cards = [];
+    let first = null;
+    let second = null;
+    let lock = true;
+    let moves = 0;
+    let pairs = 0;
+    let running = false;
+    let starting = false;
+    let gameTimer = null;
+    const ROUND_SECONDS = 60;
+    let timeLeft = ROUND_SECONDS;
+
+    function renderTime(){
+      const minutes=Math.floor(timeLeft/60);
+      const seconds=timeLeft%60;
+      timeEl.textContent=minutes+':'+String(seconds).padStart(2,'0');
+      timeEl.closest('.meta-pill')?.classList.toggle('timer-danger',timeLeft<=10 && timeLeft>0);
+    }
+
+    function startTimer(){
+      clearInterval(gameTimer);
+      gameTimer=setInterval(()=>{
+        timeLeft=Math.max(0,timeLeft-1);
+        renderTime();
+        if(timeLeft===10) Arcade.milestone('⏰ 10 seconds left! Hurry!','perfect');
+        if(timeLeft<=0) timeUp();
+      },1000);
+    }
+
+    function stopTimer(){
+      clearInterval(gameTimer);
+      gameTimer=null;
+    }
+
+    function refreshChrome(){
+      playsEl.textContent = Arcade.remaining('memory');
+      balanceEl.textContent = Arcade.number('points').toLocaleString();
+    }
+
+    function setStatus(text,mode){
+      document.body.classList.toggle('game-active',mode==='running');
+      statusEl.textContent = text;
+      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+    }
+
+    function shuffle(items){
+      for(let i=items.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [items[i],items[j]]=[items[j],items[i]];
+      }
+      return items;
+    }
+
+    function rewardForMoves(value){
+      let reward = 8;
+      if(value <= 16) reward += 7;
+      else if(value <= 20) reward += 5;
+      else if(value <= 24) reward += 3;
+      else if(value <= 30) reward += 1;
+      return Math.min(reward,15);
+    }
+
+    let lastRewardPreview = 15;
+    function refreshRewardPreview(){
+      const reward = rewardForMoves(moves);
+      rewardPreviewEl.textContent = String(reward);
+      if(running && reward !== lastRewardPreview){
+        memoryRewardHud.classList.remove('reward-change');
+        void memoryRewardHud.offsetWidth;
+        memoryRewardHud.classList.add('reward-change');
+      }
+      lastRewardPreview = reward;
+    }
+
+    function render(){
+      grid.replaceChildren();
+      cards.forEach((card,index)=>{
+        const button=document.createElement('button');
+        button.className='memory-card';
+        button.type='button';
+        button.dataset.index=index;
+        button.textContent=card.matched || card.revealed ? card.icon : '❓';
+        if(card.matched) button.classList.add('matched');
+        else if(card.revealed) button.classList.add('revealed');
+        button.disabled = !running || lock || card.matched || card.revealed;
+        button.addEventListener('click',()=>flip(index));
+        grid.append(button);
+      });
+    }
+
+    function flip(index){
+      if(!running || lock) return;
+      const card=cards[index];
+      if(card.matched || card.revealed) return;
+
+      card.revealed=true;
+      Arcade.feedback('flip');
+      render();
+
+      if(first===null){
+        first=index;
+        return;
+      }
+
+      second=index;
+      lock=true;
+      moves+=1;
+      movesEl.textContent=moves;
+      refreshRewardPreview();
+
+      if(cards[first].icon===cards[second].icon){
+        Arcade.feedback('match');
+        cards[first].matched=true;
+        cards[second].matched=true;
+        pairs+=1;
+        pairsEl.textContent=pairs;
+        if(pairs===4) Arcade.milestone('🧠 Half the board matched!');
+        if(pairs===7) Arcade.milestone('✨ One pair left!', 'perfect');
+        cards[first].revealed=false;
+        cards[second].revealed=false;
+        first=null;
+        second=null;
+        lock=false;
+        render();
+
+        if(pairs===8) finishGame();
+      } else {
+        const mismatchFirst=first;
+        const mismatchSecond=second;
+        const token=++mismatchToken;
+        const hideMismatch=()=>{
+          if(token!==mismatchToken || !running) return;
+          if(pauseStartedAt){ setTimeout(hideMismatch,80); return; }
+          cards[mismatchFirst].revealed=false;
+          cards[mismatchSecond].revealed=false;
+          if(first===mismatchFirst) first=null;
+          if(second===mismatchSecond) second=null;
+          lock=false;
+          render();
+        };
+        setTimeout(hideMismatch,650);
+      }
+    }
+
+    function timeUp(){
+      if(!running) return;
+      running=false;
+      lock=true;
+      mismatchToken++;
+      pauseStartedAt=0;
+      stopTimer();
+      starting=false;
+      Arcade.feedback('fail');
+      refreshChrome();
+      setStatus('Time Up','over');
+      startButton.disabled=false;
+      startButton.textContent='👆 Tap Cards to Try Again';
+      rewardPreviewEl.textContent='0';
+      lastRewardPreview=0;
+      render();
+      Arcade.gameResult({
+        icon:'⏰',
+        title:'Time Up!',
+        scoreLabel:'Pairs Found',
+        score:pairs+'/8',
+        coins:0,
+        playsLeft:Arcade.remaining('memory'),
+        game:'memory',
+        extra:['🧠 '+moves+' moves made','Match all 8 pairs before the 60-second clock hits zero.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('memory',refreshChrome)
+      });
+    }
+
+    function finishGame(){
+      if(!running)return;
+      running=false;
+      lock=true;
+      mismatchToken++;
+      pauseStartedAt=0;
+      stopTimer();
+      const earned=rewardForMoves(moves);
+      Arcade.earn(earned,'Memory Match', { kind:'game', game:'memory', metric:moves });
+      Arcade.feedback('success');
+      const result=Arcade.recordResult('memory', moves);
+
+      const previous=Arcade.number('memoryBestMoves');
+      if(!previous || moves<previous) localStorage.setItem('memoryBestMoves',String(moves));
+      const best=Number(localStorage.getItem('memoryBestMoves'))||moves;
+
+      starting=false;
+      refreshChrome();
+      setStatus('Complete','over');
+      startButton.disabled=false;
+      startButton.textContent='👆 Tap Cards to Play Again';
+      render();
+
+      Arcade.gameResult({
+        icon:'🧠',
+        title:'Board Cleared!',
+        scoreLabel:'Moves',
+        score:moves,
+        best:best + ' moves',
+        coins:earned,
+        result,
+        playsLeft:Arcade.remaining('memory'),
+        game:'memory',
+        extra:['⏱️ Time left: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        onReplay:startGame,
+        onMorePlays:()=>Arcade.out('memory',refreshChrome)
+      });
+    }
+
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0,mismatchToken=0;
+    function startGame(){
+      if(running || starting) return;
+      starting=true;
+      if(!Arcade.consume('memory')){
+        starting=false;
+        Arcade.out('memory',refreshChrome);
+        return;
+      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+
+      mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
+      first=null;second=null;lock=true;moves=0;pairs=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
+      movesEl.textContent='0';
+      pairsEl.textContent='0';
+      lastRewardPreview=rewardForMoves(0);
+      rewardPreviewEl.textContent=String(lastRewardPreview);
+      startButton.disabled=true;
+      startButton.textContent='Get Ready…';
+      setStatus('Get Ready');
+      refreshChrome();
+      render();
+
+      Arcade.countdown(()=>{
+        starting=false;
+        lock=false;
+        running=true;
+        startButton.textContent='Game Running';
+        setStatus('Running','running');
+        startTimer();
+        render();
+      });
+    }
+
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+      if(!running || pauseStartedAt) return;
+      pauseStartedAt=performance.now();lock=true;stopTimer();render();
+    },resume:()=>{
+      if(!running || !pauseStartedAt) return;
+      totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;
+      // If a mismatch was waiting to flip back when pause began, keep input
+      // locked until that pending pair is actually hidden. Otherwise resume
+      // could let the player open a third card before the old mismatch clears.
+      lock=first!==null && second!==null;
+      startTimer();render();
+    }});
+    grid.addEventListener('pointerdown',event=>{
+      if(event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0)) return;
+      if(!running && !starting){
+        event.preventDefault();
+        startGame();
+      }
+    });
+
+    startButton.addEventListener('click',startGame);
+    cards=[...icons,...icons].map(icon=>({icon,revealed:false,matched:false}));
+    render();
+    refreshChrome();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>
