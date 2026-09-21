@@ -22,6 +22,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 35
     env:
+      BUILD_ADMOB_MODE: ${{ inputs.admob_mode || 'test' }}
       EARNLY_ADMOB_TEST_MODE: ${{ inputs.admob_mode == 'live' && '0' || '1' }}
       TEAM_ID: 27R798NCMZ
       BUNDLE_ID: com.earnly.arcade
@@ -38,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Run release contract tests
+        run: npx playwright test tests/quality-contract.spec.js
+
       - name: Build native web bundle
         run: npm run native:web
 
@@ -47,6 +51,28 @@ jobs:
           npx cap add ios
           npx cap sync ios
           node scripts/configure-ios.mjs
+
+      - name: Verify native release mode
+        run: |
+          if [ "$BUILD_ADMOB_MODE" = "live" ]; then
+            EXPECTED_APP_ID="ca-app-pub-8864401806510610~7658950353"
+            EXPECTED_TEST_MODE="false"
+          else
+            EXPECTED_APP_ID="ca-app-pub-3940256099942544~1458002511"
+            EXPECTED_TEST_MODE="true"
+          fi
+          grep -q "<string>$EXPECTED_APP_ID</string>" ios/App/App/Info.plist
+          if grep -q "NSUserTrackingUsageDescription" ios/App/App/Info.plist; then
+            echo "Unexpected ATT usage text in non-personalized v1.0 build"
+            exit 1
+          fi
+          grep -Eq "TEST_MODE[[:space:]]*=[[:space:]]*$EXPECTED_TEST_MODE" www/native-ads.js
+          SK_COUNT=$(grep -c "<key>SKAdNetworkIdentifier</key>" ios/App/App/Info.plist)
+          if [ "$SK_COUNT" -lt 50 ]; then
+            echo "Expected at least 50 SKAdNetwork IDs; found $SK_COUNT"
+            exit 1
+          fi
+          echo "Verified $BUILD_ADMOB_MODE native ad mode with $SK_COUNT SKAdNetwork IDs."
 
       - name: Install signing certificate
         env:
@@ -145,7 +171,7 @@ jobs:
       - name: Upload signed IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: earnly-arcade-ios-signed-${{ inputs.admob_mode }}
+          name: earnly-arcade-ios-signed-${{ env.BUILD_ADMOB_MODE }}
           path: build/export/*.ipa
           retention-days: 7
 
