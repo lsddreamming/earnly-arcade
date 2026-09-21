@@ -273,9 +273,9 @@ test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage gu
   const configure = read('scripts/configure-ios.mjs');
   const workflow = read('.github/workflows/ios-signed-build.yml');
 
-  expect(configure).toContain("'cstr6suwn9.skadnetwork'");
-  expect(configure).toContain("'4fzdc2evr5.skadnetwork'");
-  expect(configure).toContain("'3qcr597p9d.skadnetwork'");
+  expect(configure).toContain('cstr6suwn9.skadnetwork');
+  expect(configure).toContain('4fzdc2evr5.skadnetwork');
+  expect(configure).toContain('3qcr597p9d.skadnetwork');
   expect(configure).toContain('const skAdNetworkBlock');
   expect(configure).toContain('NSUserTrackingUsageDescription');
 
