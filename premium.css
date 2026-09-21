@@ -2099,3 +2099,241 @@ textarea:focus-visible{
     min-height:60px;
   }
 }
+
+
+/* Premium pass v11 — Missions challenge board */
+
+.missions-dashboard .missions-hero{
+  margin:2px 0 12px;
+  text-align:left;
+}
+
+.missions-dashboard .missions-hero h1{
+  margin:4px 0 4px;
+  font-size:clamp(30px,8vw,40px);
+  line-height:1.04;
+  letter-spacing:-.045em;
+}
+
+.missions-dashboard .missions-hero p{
+  max-width:430px;
+  color:#a5b5c9;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.missions-dashboard .missions-player-strip{
+  position:relative;
+  overflow:hidden;
+  padding:12px 13px;
+  border-radius:17px;
+  border-color:rgba(75,132,186,.40);
+  background:
+    radial-gradient(circle at 90% 0%,rgba(74,157,255,.10),transparent 38%),
+    linear-gradient(145deg,rgba(20,39,63,.96),rgba(9,22,38,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 11px 26px rgba(0,0,0,.16);
+}
+
+.missions-dashboard .missions-player-strip strong{
+  font-size:11px;
+}
+
+.missions-dashboard .missions-player-strip span{
+  font-size:9px;
+}
+
+.missions-dashboard .missions-player-strip .xp-bar{
+  height:7px;
+}
+
+.missions-dashboard .missions-weekly-card{
+  position:relative;
+  overflow:hidden;
+  margin-bottom:12px;
+  padding:14px;
+  border-radius:20px;
+  border-color:rgba(80,145,205,.46);
+  background:
+    radial-gradient(circle at 92% 2%,rgba(67,153,255,.13),transparent 34%),
+    radial-gradient(circle at 0% 100%,rgba(139,92,246,.07),transparent 32%),
+    linear-gradient(145deg,rgba(22,43,69,.98),rgba(9,22,38,.98));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 38px rgba(0,0,0,.20);
+}
+
+.missions-dashboard .missions-weekly-head h2{
+  font-size:15px;
+  letter-spacing:-.02em;
+}
+
+.missions-dashboard .missions-weekly-head span{
+  margin-top:3px;
+  font-size:9px;
+}
+
+.missions-dashboard .missions-weekly-head>strong{
+  min-width:46px;
+  padding:6px 9px;
+  border-color:rgba(94,163,225,.40);
+  background:rgba(11,28,48,.72);
+  color:#dff4ff;
+  font-size:10px;
+  text-align:center;
+}
+
+.missions-dashboard .mission-list{
+  gap:8px;
+  margin-top:11px;
+}
+
+.missions-dashboard .mission-card{
+  position:relative;
+  overflow:hidden;
+  padding:11px 12px;
+  border:1px solid rgba(73,126,176,.34);
+  border-radius:14px;
+  background:
+    linear-gradient(145deg,rgba(17,34,56,.94),rgba(9,22,38,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.missions-dashboard .mission-card.playable::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:3px;
+  background:linear-gradient(#55dcff,#4777ff);
+}
+
+.missions-dashboard .mission-card.complete{
+  border-color:rgba(39,204,116,.34);
+  background:
+    radial-gradient(circle at 90% 0%,rgba(31,214,118,.08),transparent 36%),
+    linear-gradient(145deg,rgba(14,43,42,.88),rgba(8,25,35,.94));
+}
+
+.missions-dashboard .mission-head{
+  align-items:center;
+}
+
+.missions-dashboard .mission-title{
+  color:#f7fbff;
+  font-size:11.5px;
+  font-weight:900;
+}
+
+.missions-dashboard .mission-reward{
+  padding:4px 7px;
+  border:1px solid rgba(255,193,77,.20);
+  border-radius:999px;
+  background:rgba(255,193,77,.08);
+  color:#ffd66b;
+  font-size:9px;
+  font-weight:900;
+}
+
+.missions-dashboard .mission-description{
+  margin:4px 0 7px;
+  color:#9fb1c7;
+  font-size:9.5px;
+  line-height:1.4;
+}
+
+.missions-dashboard .mission-progress-row{
+  margin-bottom:5px;
+  color:#8fa4bc;
+  font-size:8.5px;
+}
+
+.missions-dashboard .mission-progress{
+  height:7px;
+  border:1px solid rgba(67,108,150,.36);
+  background:#07111e;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.28);
+}
+
+.missions-dashboard .mission-progress>span{
+  background:linear-gradient(90deg,#22d879,#52d7dc,#3c8cff);
+  box-shadow:0 0 14px rgba(73,202,255,.20);
+}
+
+.missions-dashboard .mission-card button{
+  min-height:38px;
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:12px;
+  font-size:9.5px;
+  font-weight:900;
+}
+
+.missions-dashboard .missions-highlights{
+  gap:7px;
+  margin-bottom:12px;
+}
+
+.missions-dashboard .missions-highlights>div{
+  min-height:58px;
+  padding:9px 6px;
+  border-radius:13px;
+  border-color:rgba(69,119,166,.34);
+  background:
+    radial-gradient(circle at 78% 0%,rgba(67,151,255,.07),transparent 42%),
+    linear-gradient(145deg,rgba(18,35,57,.94),rgba(9,21,36,.96));
+}
+
+.missions-dashboard .missions-highlights strong{
+  font-size:16px;
+}
+
+.missions-dashboard .missions-highlights span{
+  margin-top:3px;
+  font-size:7.5px;
+}
+
+.missions-dashboard .missions-detail-card{
+  border-radius:17px;
+  border-color:rgba(70,121,168,.34);
+  background:linear-gradient(145deg,rgba(17,34,56,.94),rgba(9,22,38,.95));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.missions-dashboard .missions-detail-card summary{
+  padding:12px 0;
+  font-size:10.5px;
+}
+
+.missions-dashboard .streak-step{
+  border-radius:12px;
+  border-color:rgba(72,122,168,.34);
+  background:#0d1c2f;
+}
+
+.missions-dashboard .streak-step.reached{
+  border-color:rgba(255,152,65,.38);
+  background:linear-gradient(145deg,rgba(81,39,16,.62),rgba(26,27,34,.86));
+}
+
+.missions-dashboard .streak-reward,
+.missions-dashboard .game-stat-row{
+  border:1px solid rgba(67,115,160,.30);
+  background:rgba(10,25,43,.76);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+.missions-dashboard .streak-reward.ready{
+  border-color:rgba(36,205,117,.38);
+  background:rgba(8,58,38,.50);
+}
+
+@media(max-width:600px){
+  .missions-dashboard .missions-container{
+    padding-inline:14px;
+  }
+
+  .missions-dashboard .missions-weekly-card{
+    padding:12px;
+  }
+
+  .missions-dashboard .missions-highlights{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
