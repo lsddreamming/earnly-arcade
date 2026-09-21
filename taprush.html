@@ -298,7 +298,8 @@
         starting = false;
         Arcade.out('tapRush', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      }
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       clearInterval(timer);
       timer = null;
@@ -320,6 +321,7 @@
       Arcade.countdown(() => {
         starting = false;
         running = true;
+        earnlyRunStartedAt = performance.now();
         setStatus('Running', 'running');
         startButton.textContent = 'Game Running';
         target.hidden = false;
