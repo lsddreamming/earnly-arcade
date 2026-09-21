@@ -9,9 +9,11 @@ const appId = testMode
 
 let plist = await readFile(plistPath, 'utf8');
 
+const trackingUsageRegex = /\s*<key>NSUserTrackingUsageDescription<\/key>\s*<string>[^<]*<\/string>/g;
+plist = plist.replace(trackingUsageRegex, '');
+
 const keys = [
   '<key>GADApplicationIdentifier</key>',
-  '<key>NSUserTrackingUsageDescription</key>',
   '<key>SKAdNetworkItems</key>'
 ];
 
@@ -19,8 +21,6 @@ if (!keys.some(key => plist.includes(key))) {
   const block = [
     '  <key>GADApplicationIdentifier</key>',
     '  <string>' + appId + '</string>',
-    '  <key>NSUserTrackingUsageDescription</key>',
-    '  <string>Earnly uses device information to deliver and measure optional rewarded ads.</string>',
     '  <key>SKAdNetworkItems</key>',
     '  <array>',
     '    <dict>',
