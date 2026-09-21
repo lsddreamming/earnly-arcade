@@ -272,6 +272,7 @@ test('current release keeps unreleased rewards and account deletion clear', () =
 test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage guarded', () => {
   const configure = read('scripts/configure-ios.mjs');
   const workflow = read('.github/workflows/ios-signed-build.yml');
+  const arcadeVersionSource = read('arcade.js');
 
   expect(configure).toContain('cstr6suwn9.skadnetwork');
   expect(configure).toContain('4fzdc2evr5.skadnetwork');
@@ -283,4 +284,6 @@ test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage gu
   expect(workflow).toContain('Run release contract tests');
   expect(workflow).toContain('Verify native release mode');
   expect(workflow).toContain('earnly-arcade-ios-signed-${{ env.BUILD_ADMOB_MODE }}');
+  expect(workflow).toContain('MARKETING_VERSION=1.0');
+  expect(arcadeVersionSource).toContain("const APP_VERSION = '1.0.0';");
 });
