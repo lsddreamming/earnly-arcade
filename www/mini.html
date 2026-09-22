@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Arcade</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=28">
   <style>
     .mini-surface{width:min(92vw,390px);min-height:390px;margin:10px auto;border:1px solid #475569;border-radius:20px;background:#111c2d;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
     .mini-grid{display:grid;gap:5px;padding:12px}.mini-cell{aspect-ratio:1;border:1px solid #334155;border-radius:7px;background:#162235;display:grid;place-items:center;font-weight:900;min-width:0}
@@ -78,8 +78,7 @@
     .traffic-car{position:absolute;margin:0;padding:0;border-radius:10px;border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;gap:2px;font-size:18px;transition:transform .2s ease,filter .16s ease}
     .traffic-emoji{font-size:18px}.traffic-arrow{font-size:17px;font-weight:900;color:#fff}
     .traffic-car.escaping{filter:brightness(1.25)}
-    .traffic-car.clear-path{box-shadow:0 0 0 1px rgba(134,239,172,.32),0 0 10px rgba(34,197,94,.12)}
-    .traffic-car.clear-path:active{filter:brightness(1.18)}
+    .traffic-car:active{filter:brightness(1.12)}
     .traffic-car.blocked{animation:trafficShake .22s linear;box-shadow:0 0 0 2px rgba(248,113,113,.5)}
     @keyframes trafficShake{0%,100%{translate:0 0}25%{translate:-5px 0}75%{translate:5px 0}}
     .mini-help{color:#94a3b8;font-size:11px;margin:8px 16px 14px;text-align:center}
@@ -334,6 +333,178 @@
           outline-offset:2px!important;
         }
       }
+
+    /* Premium mini-game shell v28 */
+    body.mini-blockGrid{--mini-accent:96,165,250}
+    body.mini-mergeRush{--mini-accent:168,85,247}
+    body.mini-perfectDrop{--mini-accent:250,204,21}
+    body.mini-spiralDrop{--mini-accent:34,211,238}
+    body.mini-shapeFit{--mini-accent:74,222,128}
+    body.mini-bounceRun{--mini-accent:96,165,250}
+    body.mini-traffic{--mini-accent:251,146,60}
+
+    @media(max-width:600px){
+      body.mini-blockGrid main.container,
+      body.mini-mergeRush main.container,
+      body.mini-perfectDrop main.container,
+      body.mini-spiralDrop main.container,
+      body.mini-shapeFit main.container,
+      body.mini-bounceRun main.container,
+      body.mini-traffic main.container{
+        padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;
+      }
+
+      body:not(.game-active).mini-blockGrid .page-header,
+      body:not(.game-active).mini-mergeRush .page-header,
+      body:not(.game-active).mini-perfectDrop .page-header,
+      body:not(.game-active).mini-spiralDrop .page-header,
+      body:not(.game-active).mini-shapeFit .page-header,
+      body:not(.game-active).mini-bounceRun .page-header,
+      body:not(.game-active).mini-traffic .page-header{
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(var(--mini-accent),.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(var(--mini-accent),.10),transparent 38%),
+          linear-gradient(145deg,rgba(18,38,61,.97),rgba(8,22,37,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important;
+      }
+
+      body:not(.game-active).mini-blockGrid .page-header h1,
+      body:not(.game-active).mini-mergeRush .page-header h1,
+      body:not(.game-active).mini-perfectDrop .page-header h1,
+      body:not(.game-active).mini-spiralDrop .page-header h1,
+      body:not(.game-active).mini-shapeFit .page-header h1,
+      body:not(.game-active).mini-bounceRun .page-header h1,
+      body:not(.game-active).mini-traffic .page-header h1{
+        font-size:22px!important;
+        line-height:1.05!important;
+        margin:0!important;
+        letter-spacing:-.035em!important;
+      }
+
+      body:not(.game-active).mini-blockGrid .game-meta,
+      body:not(.game-active).mini-mergeRush .game-meta,
+      body:not(.game-active).mini-perfectDrop .game-meta,
+      body:not(.game-active).mini-spiralDrop .game-meta,
+      body:not(.game-active).mini-shapeFit .game-meta,
+      body:not(.game-active).mini-bounceRun .game-meta,
+      body:not(.game-active).mini-traffic .game-meta{
+        display:grid!important;
+        grid-template-columns:repeat(4,minmax(0,1fr))!important;
+        gap:4px!important;
+        width:100%!important;
+        margin:0!important;
+      }
+
+      body:not(.game-active).mini-blockGrid .meta-pill,
+      body:not(.game-active).mini-mergeRush .meta-pill,
+      body:not(.game-active).mini-perfectDrop .meta-pill,
+      body:not(.game-active).mini-spiralDrop .meta-pill,
+      body:not(.game-active).mini-shapeFit .meta-pill,
+      body:not(.game-active).mini-bounceRun .meta-pill,
+      body:not(.game-active).mini-traffic .meta-pill{
+        min-height:37px!important;
+        padding:4px 3px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:11px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+      }
+
+      body:not(.game-active) .run-reward-pill{
+        border-color:rgba(255,193,77,.34)!important;
+        background:rgba(92,61,8,.20)!important;
+        color:#ffd86b!important;
+      }
+
+      body.game-active.mini-blockGrid main.container,
+      body.game-active.mini-mergeRush main.container,
+      body.game-active.mini-perfectDrop main.container,
+      body.game-active.mini-spiralDrop main.container,
+      body.game-active.mini-shapeFit main.container,
+      body.game-active.mini-bounceRun main.container,
+      body.game-active.mini-traffic main.container{
+        padding-top:max(10px,env(safe-area-inset-top))!important;
+      }
+    }
+
+    body.mini-blockGrid .mini-surface,
+    body.mini-mergeRush .mini-surface,
+    body.mini-perfectDrop .mini-surface,
+    body.mini-spiralDrop .mini-surface,
+    body.mini-shapeFit .mini-surface,
+    body.mini-bounceRun .mini-surface,
+    body.mini-traffic .mini-surface{
+      border:2px solid rgba(var(--mini-accent),.30)!important;
+      background:
+        radial-gradient(circle at 50% 0%,rgba(var(--mini-accent),.05),transparent 38%),
+        linear-gradient(180deg,#111f32,#0b1728)!important;
+      box-shadow:
+        inset 0 0 36px rgba(0,0,0,.18),
+        0 18px 38px rgba(0,0,0,.24),
+        0 0 18px rgba(var(--mini-accent),.05)!important;
+    }
+
+    body.game-active.mini-blockGrid .mini-surface,
+    body.game-active.mini-mergeRush .mini-surface,
+    body.game-active.mini-perfectDrop .mini-surface,
+    body.game-active.mini-spiralDrop .mini-surface,
+    body.game-active.mini-shapeFit .mini-surface,
+    body.game-active.mini-bounceRun .mini-surface,
+    body.game-active.mini-traffic .mini-surface{
+      border-color:rgba(var(--mini-accent),.46)!important;
+      box-shadow:
+        inset 0 0 42px rgba(0,0,0,.18),
+        0 18px 38px rgba(0,0,0,.28),
+        0 0 22px rgba(var(--mini-accent),.08)!important;
+    }
+
+    .mini-cell{
+      border-color:rgba(92,124,164,.42)!important;
+      background:linear-gradient(145deg,#17273a,#101d2f)!important;
+    }
+    .mini-cell.filled{
+      background:linear-gradient(145deg,#4d8dff,#2563eb)!important;
+      border-color:#7fb1ff!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 10px rgba(59,130,246,.10)!important;
+    }
+    .piece-button{
+      background:linear-gradient(145deg,#203248,#132238)!important;
+      border-color:rgba(92,124,164,.42)!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+    }
+    .piece-button.selected{
+      background:linear-gradient(145deg,#17513a,#103626)!important;
+      border-color:rgba(74,222,128,.78)!important;
+      box-shadow:0 0 0 2px rgba(34,197,94,.14),0 0 18px rgba(34,197,94,.10)!important;
+    }
+    .merge-tile{
+      background:linear-gradient(145deg,#253449,#172437)!important;
+      border-color:rgba(92,124,164,.40)!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+    }
+    .fit-dot.on{
+      background:linear-gradient(145deg,#58ec91,#22c55e)!important;
+      border-color:#86efac!important;
+      box-shadow:0 0 14px rgba(34,197,94,.18)!important;
+    }
+    .fit-answer{
+      background:linear-gradient(145deg,#203148,#142338)!important;
+      border-color:rgba(92,124,164,.42)!important;
+    }
+    .traffic-grid{
+      border:2px solid rgba(251,146,60,.30)!important;
+      box-shadow:inset 0 0 28px rgba(0,0,0,.18),0 12px 28px rgba(0,0,0,.18)!important;
+    }
 </style>
 </head>
 <body>

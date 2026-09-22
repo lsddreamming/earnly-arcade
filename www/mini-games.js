@@ -9,7 +9,7 @@
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
-    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels have denser traffic, fewer obvious exits, and tighter timers.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
+    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap only cars with a clear arrow path. Every cleared road raises density and tightens the timer. Three crashes ends the run.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
   };
 
   const config = configs[key] || configs.blockGrid;
@@ -1690,8 +1690,10 @@
     surface.replaceChildren(wrap);
 
     const cell=55;
-    const boardsNeeded=()=>level===1?2:level===2?3:level===3?4:level===4?5:level===5?6:7;
-    const roundSeconds=()=>[0,18,16,14,12,11,10,9][Math.min(7,level)];
+    // One solved road advances the level. The previous 2–7 roads per level
+    // allowed skilled players to clear 200+ cars before seeing the full curve.
+    const boardsNeeded=()=>1;
+    const roundSeconds=()=>[0,16,14,12,10,9,8,7][Math.min(7,level)];
 
     function stopTimer(){
       if(timerId){clearInterval(timerId);timerId=null;}
@@ -1708,7 +1710,7 @@
       let lastTickAt=boardStartedAt;
       render();
       timerId=setInterval(()=>{
-        if(!alive||locked||miniPaused){lastTickAt=performance.now();return;}
+        if(!alive||miniPaused){lastTickAt=performance.now();return;}
         const now=performance.now();
         const elapsed=Math.max(0,now-lastTickAt);
         if(elapsed<900)return;
@@ -1792,17 +1794,17 @@
     let recentTrafficSignatures=[];
 
     function randomTrafficBoard(){
-      const targetCars=[0,6,7,8,8,9,9,9][Math.min(7,level)];
-      const minBlocked=Math.min(targetCars-1,[0,3,4,5,6,6,7,7][Math.min(7,level)]);
-      const maxInitiallyFree=level<=1?2:1;
+      const targetCars=[0,6,7,8,9,9,10,10][Math.min(7,level)];
+      const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8][Math.min(7,level)]);
+      const maxInitiallyFree=2;
 
-      for(let attempt=0;attempt<240;attempt++){
+      for(let attempt=0;attempt<400;attempt++){
         const candidate=[];
         for(let id=0;id<targetCars;id++){
           let placed=false;
           for(let tries=0;tries<100&&!placed;tries++){
             const h=Math.random()<.5;
-            const len=Math.random()<(level>=4?.46:level>=2?.28:.18)?3:2;
+            const len=Math.random()<(level>=4?.46:level>=2?.30:.18)?3:2;
             const x=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?len:1)+1));
             const y=Math.floor(Math.random()*(TRAFFIC_GRID_SIZE-(h?1:len)+1));
             const car={x,y,len,h,dir:Math.random()<.5?-1:1,seedId:id};
@@ -1827,9 +1829,21 @@
         return candidate.map(({seedId,...car})=>car);
       }
 
-      // Extremely unlikely fallback: build a different simple solvable road
-      // rather than reusing one recognizable authored pattern.
-      const fallback=[
+      // Extremely unlikely fallback. Early levels keep a simpler road, while
+      // later levels fall back to a dense, solver-verified 10-car board so
+      // generator exhaustion never becomes an accidental easy round.
+      const fallback=level>=4?[
+        {x:3,y:3,len:3,h:false,dir:-1},
+        {x:4,y:5,len:2,h:true,dir:-1},
+        {x:0,y:1,len:2,h:false,dir:1},
+        {x:0,y:4,len:2,h:true,dir:1},
+        {x:2,y:2,len:2,h:true,dir:1},
+        {x:5,y:0,len:3,h:false,dir:-1},
+        {x:5,y:3,len:2,h:false,dir:-1},
+        {x:1,y:0,len:3,h:true,dir:1},
+        {x:4,y:3,len:2,h:false,dir:1},
+        {x:0,y:3,len:3,h:true,dir:1}
+      ]:[
         {x:0,y:0,len:2,h:true,dir:-1},
         {x:3,y:0,len:2,h:false,dir:-1},
         {x:1,y:2,len:2,h:true,dir:1},
@@ -1996,7 +2010,7 @@
       cars.forEach((car,idx)=>{
         const b=document.createElement('button');
         b.type='button';
-        b.className='traffic-car'+(canExit(car)?' clear-path':'');
+        b.className='traffic-car';
         b.style.left=(car.x*cell+3)+'px';
         b.style.top=(car.y*cell+3)+'px';
         b.style.width=((car.h?car.len:1)*cell-6)+'px';
@@ -2006,7 +2020,7 @@
         const arrow=car.h ? (car.dir>0?'→':'←') : (car.dir>0?'↓':'↑');
         b.innerHTML='<span class="traffic-emoji">🚗</span><span class="traffic-arrow">'+arrow+'</span>';
         const directionName=({'→':'right','←':'left','↑':'up','↓':'down'}[arrow]||arrow);
-        b.setAttribute('aria-label','Car pointing '+directionName+(canExit(car)?' · clear path':' · path blocked'));
+        b.setAttribute('aria-label','Car pointing '+directionName);
         b.addEventListener('click',()=>tapCar(car,b));
         grid.append(b);
       });

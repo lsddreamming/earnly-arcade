@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Block Drop</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=15">
   <style>
     .blockdrop-board {
       width: min(66vw, 250px);
@@ -43,17 +43,24 @@
     }
 
     @media (max-width: 699px) {
-      body.blockdrop-page main.container { padding-top: 8px !important; }
+      body.blockdrop-page main.container { padding-top: max(14px, calc(env(safe-area-inset-top) + 8px)) !important; }
       body.blockdrop-page .topbar { margin-bottom: 6px !important; }
       body.blockdrop-page .page-header {
-        margin: 2px 0 6px !important;
-        padding: 0 !important;
-        gap: 5px !important;
+        margin: 2px 0 7px !important;
+        padding: 11px !important;
+        gap: 6px !important;
+        border: 1px solid rgba(91,129,185,.34) !important;
+        border-radius: 18px !important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(139,92,246,.10),transparent 38%),
+          linear-gradient(145deg,rgba(20,38,63,.97),rgba(9,22,38,.97)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18) !important;
       }
       body.blockdrop-page .page-header h1 {
         font-size: 22px !important;
         line-height: 1.1 !important;
         margin: 0 !important;
+        letter-spacing: -.035em !important;
       }
       body.blockdrop-page .game-meta {
         display: grid !important;
@@ -63,14 +70,18 @@
         width: 100% !important;
       }
       body.blockdrop-page .meta-pill {
-        min-height: 38px !important;
+        min-height: 40px !important;
         padding: 5px 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
         font-size: 10px !important;
+        font-weight: 850 !important;
+        border: 1px solid rgba(68,117,163,.34) !important;
         border-radius: 12px !important;
+        background: linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
       }
       body.blockdrop-page .blockdrop-reward-pill {
         border-color: rgba(250,204,21,.48) !important;
@@ -86,9 +97,21 @@
       }
       body.blockdrop-page .blockdrop-board {
         width: min(58vw, 220px) !important;
-        margin: 6px auto 8px !important;
+        margin: 7px auto 9px !important;
         display: block !important;
         touch-action: none !important;
+        border: 2px solid rgba(92,133,255,.32) !important;
+        border-radius: 18px !important;
+        background:
+          linear-gradient(rgba(96,165,250,.045) 1px,transparent 1px),
+          linear-gradient(90deg,rgba(96,165,250,.045) 1px,transparent 1px),
+          radial-gradient(circle at 50% 28%,rgba(76,91,186,.12),transparent 58%),
+          #08111f !important;
+        background-size: 30px 30px,30px 30px,100% 100% !important;
+        box-shadow:
+          inset 0 0 34px rgba(0,0,0,.28),
+          0 16px 36px rgba(0,0,0,.26),
+          0 0 0 1px rgba(92,133,255,.06) !important;
       }
       body.blockdrop-page .blockdrop-controls {
         display: grid !important;
@@ -98,22 +121,35 @@
         margin: 4px auto 8px !important;
       }
       body.blockdrop-page .blockdrop-controls .game-control {
-        min-height: 48px !important;
+        min-height: 50px !important;
         margin: 0 !important;
         padding: 8px 6px !important;
+        border: 1px solid rgba(77,126,175,.42) !important;
         border-radius: 14px !important;
+        background: linear-gradient(145deg,#1a3049,#101d31) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.035) !important;
         font-size: 18px !important;
       }
       body.blockdrop-page #dropButton {
         grid-column: 1 / -1 !important;
-        min-height: 44px !important;
+        min-height: 46px !important;
+        border-color: rgba(84,127,255,.55) !important;
+        background: linear-gradient(135deg,#2745a8,#1d4ed8) !important;
         font-size: 15px !important;
+        font-weight: 900 !important;
       }
       body.blockdrop-page .container > a.button.wide.secondary {
         margin-top: 6px !important;
       }
     }
 
+
+    /* Ready-screen cleanup: controls appear once the run starts. */
+    @media (max-width: 699px) {
+      body.blockdrop-page:not(.game-active) .blockdrop-controls {
+        display:none !important;
+      }
+    }
 
     /* Active-run focus mode: prioritize board + controls on phones. */
     @media (max-width: 699px) {
@@ -476,7 +512,7 @@
         starting = false;
         Arcade.out('blockDrop', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       createBoard();
       pieceSerial = 0;
@@ -503,6 +539,7 @@
 
       Arcade.countdown(() => {
         starting = false;
+        earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         game = setInterval(moveDown, dropDelayMs());

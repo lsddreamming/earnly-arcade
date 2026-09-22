@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Jungle Hopper</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=21">
   <style>
     .jungle-board{
       width:min(88vw,360px);
@@ -26,22 +26,42 @@
     }
 
     @media(max-width:699px){
-      body.junglehopper-page main.container{padding-top:8px!important}
+      body.junglehopper-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important}
       body.junglehopper-page .topbar{margin-bottom:6px!important}
       body.junglehopper-page .page-header{
-        margin:2px 0 6px!important;padding:0!important;gap:5px!important
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(74,222,128,.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(74,222,128,.10),transparent 38%),
+          radial-gradient(circle at 12% 100%,rgba(34,197,94,.07),transparent 34%),
+          linear-gradient(145deg,rgba(16,42,44,.97),rgba(8,25,35,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
       }
       body.junglehopper-page .page-header h1{
-        font-size:22px!important;line-height:1.1!important;margin:0!important
+        font-size:22px!important;line-height:1.1!important;margin:0!important;letter-spacing:-.035em!important
       }
       body.junglehopper-page .game-meta{
-        display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
-        gap:6px!important;margin:0!important;width:100%!important
+        display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+        gap:4px!important;margin:0!important;width:100%!important
       }
       body.junglehopper-page .meta-pill{
-        min-height:38px!important;padding:5px 4px!important;
+        min-height:38px!important;padding:5px 3px!important;
         display:flex!important;align-items:center!important;justify-content:center!important;
-        text-align:center!important;font-size:10px!important;border-radius:12px!important
+        text-align:center!important;font-size:9px!important;font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:11px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
+      }
+      body.junglehopper-page .meta-pill:nth-child(2){
+        border-color:rgba(255,193,77,.30)!important;
+        background:
+          radial-gradient(circle at 80% 0%,rgba(255,193,77,.10),transparent 42%),
+          linear-gradient(145deg,rgba(29,39,51,.97),rgba(10,23,37,.96))!important;
+        color:#ffd86b!important
       }
       body.junglehopper-page #startButton{
         min-height:42px!important;margin:5px 0!important
@@ -49,7 +69,15 @@
       body.junglehopper-page .jungle-board{
         width:min(76vw,300px)!important;
         max-height:58vh!important;
-        margin:6px auto 8px!important;display:block!important
+        margin:7px auto 9px!important;
+        display:block!important;
+        border:2px solid rgba(74,222,128,.34)!important;
+        border-radius:20px!important;
+        background:#08291f!important;
+        box-shadow:
+          inset 0 0 38px rgba(0,0,0,.24),
+          0 18px 38px rgba(0,0,0,.26),
+          0 0 0 1px rgba(74,222,128,.05)!important
       }
       body.junglehopper-page .container>a.button.wide.secondary{margin-top:6px!important}
       body.junglehopper-page.game-active .game-guide-strip,
@@ -58,7 +86,14 @@
       body.junglehopper-page.game-active #startButton{display:none!important}
       body.junglehopper-page.game-active .page-header{margin-bottom:3px!important}
       body.junglehopper-page.game-active .jungle-board{
-        width:min(82vw,320px)!important;max-height:68vh!important;margin-top:3px!important
+        width:min(82vw,320px)!important;
+        max-height:68vh!important;
+        margin-top:3px!important;
+        border-color:rgba(74,222,128,.50)!important;
+        box-shadow:
+          inset 0 0 44px rgba(0,0,0,.22),
+          0 18px 38px rgba(0,0,0,.28),
+          0 0 22px rgba(74,222,128,.08)!important
       }
       body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
@@ -194,9 +229,9 @@
 
     function drawJungle() {
       const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      sky.addColorStop(0, '#0f3d2e');
-      sky.addColorStop(.62, '#14532d');
-      sky.addColorStop(1, '#052e16');
+      sky.addColorStop(0, '#0b3b32');
+      sky.addColorStop(.58, '#146b3a');
+      sky.addColorStop(1, '#06331d');
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -213,17 +248,17 @@
     }
 
     function drawVinePart(x, y, h, fromTop) {
-      ctx.fillStyle = '#166534';
+      ctx.fillStyle = '#145f32';
       ctx.fillRect(x + 17, y, obstacleWidth - 34, h);
 
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#39e67a';
+      ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.moveTo(x + obstacleWidth / 2, y);
       ctx.lineTo(x + obstacleWidth / 2, y + h);
       ctx.stroke();
 
-      ctx.fillStyle = '#4ade80';
+      ctx.fillStyle = '#74f0a1';
       const leafY = fromTop ? y + h - 14 : y + 14;
       for (let i = 0; i < 4; i++) {
         ctx.beginPath();
@@ -252,7 +287,9 @@
       ctx.translate(frog.x, frog.y);
       ctx.rotate(Math.max(-.35, Math.min(.55, frog.vy * .045)));
 
-      ctx.fillStyle = '#22c55e';
+      ctx.shadowColor = '#39ff88';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#35e77c';
       ctx.beginPath();
       ctx.ellipse(0, 1, 18, 15, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -284,6 +321,7 @@
       ctx.lineTo(20, 17);
       ctx.stroke();
 
+      ctx.shadowBlur = 0;
       ctx.restore();
     }
 
@@ -420,7 +458,8 @@
         starting = false;
         Arcade.out('jungleHopper', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      }
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       resetGame();
       running = false;
@@ -433,6 +472,7 @@
       Arcade.countdown(() => {
         starting = false;
         running = true;
+        earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         hop(true);

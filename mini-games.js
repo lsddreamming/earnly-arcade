@@ -9,7 +9,7 @@
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
-    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap a car only when its arrow path is clear. Later levels have denser traffic, fewer obvious exits, and tighter timers.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
+    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap only cars with a clear arrow path. Every cleared road raises density and tightens the timer. Three crashes ends the run.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
   };
 
   const config = configs[key] || configs.blockGrid;
@@ -1690,7 +1690,9 @@
     surface.replaceChildren(wrap);
 
     const cell=55;
-    const boardsNeeded=()=>level===1?2:level===2?3:level===3?4:level===4?5:level===5?6:7;
+    // One solved road advances the level. The previous 2–7 roads per level
+    // allowed skilled players to clear 200+ cars before seeing the full curve.
+    const boardsNeeded=()=>1;
     const roundSeconds=()=>[0,16,14,12,10,9,8,7][Math.min(7,level)];
 
     function stopTimer(){

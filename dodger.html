@@ -109,7 +109,7 @@
       <div class="game-meta">
         <span class="meta-pill">Time: <span id="time">0</span>s</span>
         <span class="meta-pill">Dodged: <span id="dodged">0</span></span>
-        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
+        <span class="meta-pill">Run: <span id="rewardPreview">0</span> 🪙 · <span id="xpPreview">+10</span> XP</span>
         <span class="meta-pill"><span id="plays">0</span> <span id="playsLabel">plays left</span></span>
       </div>
     </header>
@@ -126,6 +126,7 @@
     const timeEl=document.getElementById('time');
     const dodgedEl=document.getElementById('dodged');
     const rewardPreviewEl=document.getElementById('rewardPreview');
+    const xpPreviewEl=document.getElementById('xpPreview');
     const playsEl=document.getElementById('plays');
     const playsLabelEl=document.getElementById('playsLabel');
     const balanceEl=document.getElementById('balance');
@@ -306,19 +307,30 @@
       obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
     }
 
+    function difficultyFor(seconds){
+      if(seconds>=24) return {label:'MAX',speed:11.6,delay:270};
+      if(seconds>=18) return {label:'INTENSE',speed:10.1,delay:320};
+      if(seconds>=12) return {label:'FAST',speed:8.7,delay:385};
+      if(seconds>=6) return {label:'WARMING UP',speed:7.4,delay:455};
+      return {label:'CRUISE',speed:6.2,delay:540};
+    }
+
     function trafficSpeedFor(seconds){
-      return Math.min(15.0,6.5+Math.max(0,seconds)*.30);
+      const stage=difficultyFor(seconds);
+      return Math.min(12.2,stage.speed+Math.max(0,seconds%6)*.10);
     }
 
     function spawnDelayFor(seconds){
-      return Math.max(190,560-Math.max(0,seconds)*16);
+      return difficultyFor(seconds).delay;
     }
 
     function spawn(now){
-      const width=34+Math.random()*34;
+      const width=34+Math.random()*28;
       const seconds=Math.max(0,(now-startTime)/1000);
+      const laneWidth=canvas.width/3;
+      const lane=Math.floor(Math.random()*3);
       obstacles.push({
-        x:Math.random()*(canvas.width-width),
+        x:lane*laneWidth+(laneWidth-width)/2+(Math.random()-.5)*Math.min(20,laneWidth-width-6),
         y:-32,
         w:width,
         h:24,
@@ -381,9 +393,8 @@
         lastSecondShown=seconds;
         timeEl.textContent=seconds;
         rewardPreviewEl.textContent=rewardFor(seconds,dodged);
-        if(seconds===10) setStatus('Speeding Up','running');
-        else if(seconds===20) setStatus('Final Stretch','running');
-        else if(seconds===11 || seconds===21) setStatus('Running','running');
+        xpPreviewEl.textContent='+10';
+        if([0,6,12,18,24].includes(seconds)) setStatus(difficultyFor(seconds).label,'running');
       }
 
       draw();
@@ -555,7 +566,7 @@
         Arcade.out('dodger',refreshChrome);
         return;
       }
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       cancelAnimationFrame(animation);
       animation=null;

@@ -200,6 +200,7 @@ test('result popup clearly shows rewards, time, and replay state', async ({ page
   await expect(dialog).toContainText('NEW BEST');
   await expect(dialog).toContainText('Coins Earned');
   await expect(dialog).toContainText('XP Earned');
+  await expect(dialog).toContainText('Level');
   await expect(dialog).toContainText('2');
   await expect(dialog).toContainText('Time played: 33s');
   await expect(dialog.getByRole('button', { name:/Play Again · 2 Left/ })).toBeVisible();

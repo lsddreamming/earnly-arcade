@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Tower Stack</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=22">
   <style>
     .tower-board{
       width:min(88vw,360px);
@@ -25,26 +25,77 @@
       -webkit-touch-callout:none;
     }
     @media(max-width:699px){
-      body.towerstack-page main.container{padding-top:8px!important}
-      body.towerstack-page .topbar{margin-bottom:3px!important;min-height:38px!important}
-      body.towerstack-page .page-header{margin:0 0 3px!important;padding:0!important;gap:3px!important}
-      body.towerstack-page .page-header h1{font-size:18px!important;line-height:1!important;margin:0!important}
-      body.towerstack-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
-      body.towerstack-page .meta-pill{min-height:27px!important;padding:2px 1px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;font-size:8px!important;border-radius:8px!important}
+      body.towerstack-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important}
+      body.towerstack-page .topbar{margin-bottom:6px!important;min-height:38px!important}
+      body.towerstack-page .page-header{
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(96,165,250,.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(96,165,250,.10),transparent 38%),
+          radial-gradient(circle at 12% 100%,rgba(168,85,247,.06),transparent 34%),
+          linear-gradient(145deg,rgba(18,38,61,.97),rgba(8,22,37,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
+      }
+      body.towerstack-page .page-header h1{font-size:22px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
+      body.towerstack-page .game-meta{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
+      body.towerstack-page .meta-pill{
+        min-height:36px!important;
+        padding:4px 2px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        text-align:center!important;
+        font-size:8px!important;
+        font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:10px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
+      }
+      body.towerstack-page .meta-pill:nth-child(4){
+        border-color:rgba(255,193,77,.30)!important;
+        background:
+          radial-gradient(circle at 80% 0%,rgba(255,193,77,.10),transparent 42%),
+          linear-gradient(145deg,rgba(29,39,51,.97),rgba(10,23,37,.96))!important;
+        color:#ffd86b!important
+      }
       body.towerstack-page #startButton{min-height:38px!important;margin:3px 0!important;padding:8px 12px!important}
-      body.towerstack-page .tower-board{width:min(78vw,315px)!important;max-height:59vh!important;margin:6px auto 8px!important;display:block!important}
+      body.towerstack-page .tower-board{
+        width:min(78vw,315px)!important;
+        max-height:59vh!important;
+        margin:7px auto 9px!important;
+        display:block!important;
+        border:2px solid rgba(96,165,250,.34)!important;
+        background:#07111f!important;
+        box-shadow:
+          inset 0 0 38px rgba(0,0,0,.24),
+          0 18px 38px rgba(0,0,0,.26),
+          0 0 0 1px rgba(96,165,250,.05)!important
+      }
       body.towerstack-page.game-active .game-guide-strip,
       body.towerstack-page.game-active .game-preflight,
       body.towerstack-page.game-active .game-guide-more,
       body.towerstack-page.game-active #startButton{display:none!important}
-      body.towerstack-page.game-active .tower-board{width:min(86vw,340px)!important;max-height:69vh!important;margin-top:3px!important}
+      body.towerstack-page.game-active .tower-board{
+        width:min(86vw,340px)!important;
+        max-height:69vh!important;
+        margin-top:3px!important;
+        border-color:rgba(96,165,250,.50)!important;
+        box-shadow:
+          inset 0 0 44px rgba(0,0,0,.22),
+          0 18px 38px rgba(0,0,0,.28),
+          0 0 22px rgba(96,165,250,.08)!important
+      }
       body.towerstack-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
     .tower-board{border:1px solid rgba(96,165,250,.32);border-radius:20px;box-shadow:0 18px 46px rgba(0,0,0,.34),0 0 0 1px rgba(255,255,255,.04)}
     body.towerstack-page .game-status{font-weight:800;letter-spacing:.02em}
-    body.towerstack-page.game-active .page-header h1{font-size:19px!important}
-    body.towerstack-page.game-active .page-header{gap:3px!important;margin-bottom:3px!important}
-    body.towerstack-page.game-active .topbar{min-height:40px!important;margin-bottom:3px!important}
+    body.towerstack-page.game-active .page-header h1{font-size:22px!important}
+    body.towerstack-page.game-active .page-header{gap:5px!important;margin-bottom:4px!important}
+    body.towerstack-page.game-active .topbar{min-height:40px!important;margin-bottom:4px!important}
     @media(max-width:699px){
       body.towerstack-page.game-active .tower-board{width:min(90vw,350px)!important;max-height:72vh!important}
     }
@@ -386,7 +437,8 @@
         starting = false;
         Arcade.out('towerStack', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      }
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       resetGame();
       running = false;
@@ -399,6 +451,7 @@
       Arcade.countdown(() => {
         starting = false;
         running = true;
+        earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         animation = requestAnimationFrame(loop);

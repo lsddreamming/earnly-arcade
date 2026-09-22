@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Memory Match</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=18">
   <style>
     .memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px auto;max-width:390px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -27,22 +27,105 @@
     @keyframes memoryRewardPulse{0%{transform:scale(1)}45%{transform:scale(1.05);box-shadow:0 0 16px rgba(250,204,21,.18)}100%{transform:scale(1)}}
     @keyframes memoryTimerPulse{from{transform:scale(1)}to{transform:scale(1.04);box-shadow:0 0 14px rgba(239,68,68,.35)}}
     @media(max-width:699px){
-      body.memory-page main.container{padding-top:8px!important}
+      body.memory-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important}
       body.memory-page .topbar{margin-bottom:6px!important}
-      body.memory-page .page-header{margin:2px 0 6px!important;padding:0!important;gap:5px!important}
-      body.memory-page .page-header h1{font-size:20px!important;line-height:1.05!important;margin:0!important}
+      body.memory-page .page-header{
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(245,158,11,.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(245,158,11,.10),transparent 38%),
+          radial-gradient(circle at 12% 100%,rgba(236,72,153,.06),transparent 34%),
+          linear-gradient(145deg,rgba(25,38,60,.97),rgba(10,22,38,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important;
+      }
+      body.memory-page .page-header h1{font-size:21px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
       body.memory-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
-      body.memory-page .meta-pill{min-height:31px!important;padding:3px 2px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;border-radius:10px!important}
-      body.memory-page .memory-reward-hud{margin:3px auto 0!important;padding:5px 10px!important;font-size:10px!important}
+      body.memory-page .meta-pill{
+        min-height:37px!important;
+        padding:4px 3px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:11px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+      }
+      body.memory-page .memory-reward-hud{
+        margin:5px auto 0!important;
+        padding:6px 11px!important;
+        border-color:rgba(255,193,77,.34)!important;
+        background:rgba(92,61,8,.22)!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+        font-size:10px!important;
+      }
       body.memory-page #startButton{min-height:42px!important;margin:5px 0!important}
-      body.memory-page .memory-grid{width:min(84vw,350px)!important;gap:7px!important;margin:7px auto 9px!important}
-      body.memory-page .memory-card{border-radius:13px!important;font-size:27px!important}
+      body.memory-page .memory-grid{
+        width:min(84vw,350px)!important;
+        gap:8px!important;
+        margin:8px auto 10px!important;
+        padding:8px!important;
+        border:1px solid rgba(245,158,11,.20)!important;
+        border-radius:20px!important;
+        background:
+          radial-gradient(circle at 50% 0%,rgba(245,158,11,.06),transparent 42%),
+          linear-gradient(180deg,rgba(11,25,42,.80),rgba(7,17,30,.88))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.02),0 16px 34px rgba(0,0,0,.20)!important;
+      }
+      body.memory-page .memory-card{
+        border:1px solid rgba(88,130,176,.36)!important;
+        border-radius:14px!important;
+        background:
+          radial-gradient(circle at 28% 18%,rgba(255,255,255,.035),transparent 32%),
+          linear-gradient(145deg,#182b43,#0e1c2f)!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 6px 14px rgba(0,0,0,.14)!important;
+        font-size:27px!important;
+      }
+      /* iOS dims disabled buttons by default. Revealed/matched cards are
+         intentionally disabled while visible, so force their artwork back
+         to full brightness. */
+      body.memory-page .memory-card:disabled{
+        opacity:1!important;
+        -webkit-text-fill-color:currentColor!important;
+      }
+      body.memory-page .memory-card.revealed{
+        opacity:1!important;
+        border-color:rgba(125,184,255,.82)!important;
+        background:
+          radial-gradient(circle at 32% 20%,rgba(255,255,255,.14),transparent 34%),
+          linear-gradient(145deg,#355474,#203852)!important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.10),
+          0 0 20px rgba(96,165,250,.18)!important;
+        transform:translateY(-1px);
+        text-shadow:0 0 12px rgba(255,255,255,.30)!important;
+        font-size:34px!important;
+      }
+      body.memory-page .memory-card.matched{
+        opacity:1!important;
+        border-color:rgba(74,222,128,.90)!important;
+        background:
+          radial-gradient(circle at 32% 20%,rgba(255,255,255,.13),transparent 34%),
+          linear-gradient(145deg,#237551,#174d38)!important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.10),
+          0 0 22px rgba(34,197,94,.22)!important;
+        text-shadow:0 0 12px rgba(255,255,255,.30)!important;
+        font-size:34px!important;
+      }
       body.memory-page.game-active .game-guide-strip,
       body.memory-page.game-active .game-preflight,
       body.memory-page.game-active .game-guide-more,
       body.memory-page.game-active #startButton{display:none!important}
       body.memory-page.game-active .memory-grid{width:min(90vw,375px)!important;gap:8px!important;margin-top:5px!important}
       body.memory-page.game-active .memory-card{font-size:30px!important}
+      body.memory-page.game-active .memory-reward-hud{margin-top:3px!important}
       body.memory-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
   </style>
@@ -325,7 +408,7 @@
         starting=false;
         Arcade.out('memory',refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
       first=null;second=null;lock=true;moves=0;pairs=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
@@ -341,6 +424,7 @@
 
       Arcade.countdown(()=>{
         starting=false;
+        earnlyRunStartedAt=performance.now();
         lock=false;
         running=true;
         startButton.textContent='Game Running';

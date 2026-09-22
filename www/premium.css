@@ -2586,3 +2586,34 @@ body.snake-page .container>a.button.secondary.wide{
     display:none!important;
   }
 }
+
+
+/* Premium pass v14 — Snake active-run focus */
+
+/* Keep Snake clear of the iPhone status bar. The older compact-HUD rule
+   forced an 8px top inset and could place the Games/balance row under the
+   clock when launched as a Home Screen app. */
+@media(max-width:700px){
+  body.snake-page .container{
+    padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;
+  }
+
+  /* During a live run the player already knows the rules. Remove the two
+     instruction rows so the board becomes the visual focus and sits higher. */
+  body.snake-page.snake-game-active .game-start-summary,
+  body.snake-page.snake-game-active .game-guide-strip{
+    display:none!important;
+  }
+
+  body.snake-page.snake-game-active .snake-header{
+    margin-bottom:7px!important;
+  }
+
+  body.snake-page.snake-game-active .game-guide-surface-wrap{
+    margin-top:7px!important;
+  }
+
+  body.snake-page.snake-game-active canvas#game{
+    max-height:min(62vh,400px)!important;
+  }
+}

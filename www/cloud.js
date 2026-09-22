@@ -115,6 +115,42 @@
     }
   }
 
+  async function deleteAccount(){
+    accountTransition = true;
+    try {
+      const current = await user();
+      if (!current) throw new Error('Sign in before deleting your account.');
+
+      const { data, error } = await requireClient().functions.invoke('delete-account', {
+        body:{ confirm:true }
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Account deletion failed.');
+
+      // The server account and all cloud rows are deleted via ON DELETE CASCADE.
+      // Keep this device's game progress as guest progress, but remove all
+      // account-specific sync state so it can never leak into another account.
+      try { await requireClient().auth.signOut({ scope:'local' }); } catch {}
+      try { Arcade.clearSyncEvents?.(); } catch {}
+
+      [
+        'arcadeLastCloudSave',
+        'arcadeLastCloudRestore',
+        'arcadeLastCloudHash',
+        'arcadeCloudConflict',
+        'arcadeCloudSyncError',
+        'arcadeCloudOfflinePending',
+        'arcadeServerRewardError',
+        'arcadeFreshDeviceRestoreDone'
+      ].forEach(key => localStorage.removeItem(key));
+
+      window.dispatchEvent(new CustomEvent('earnly-account-deleted'));
+      return true;
+    } finally {
+      accountTransition = false;
+    }
+  }
+
   async function cloudSaveInfo(){
     const current = await user();
     if (!current) return null;
@@ -686,6 +722,7 @@
     sendPasswordReset,
     updatePassword,
     signOut,
+    deleteAccount,
     cloudSaveInfo,
     walletInfo,
     syncServerRewards,

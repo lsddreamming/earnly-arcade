@@ -14,25 +14,72 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Paddle Rally</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=25">
   <style>html,body,.container{touch-action:manipulation}.rally-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}
     .rally-control-zone{display:none}
     @media(max-width:600px){
-      body.paddlerally-page main.container{padding-top:8px!important;padding-bottom:92px!important}
-      body.paddlerally-page .topbar{margin-bottom:4px!important}
-      body.paddlerally-page .page-header{margin:0 0 5px!important}
-      body.paddlerally-page .page-header h1{font-size:20px!important;margin:2px 0 5px!important}
+      body.paddlerally-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;padding-bottom:92px!important}
+      body.paddlerally-page .topbar{margin-bottom:6px!important}
+      body.paddlerally-page .page-header{
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(59,130,246,.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(59,130,246,.10),transparent 38%),
+          radial-gradient(circle at 12% 100%,rgba(34,211,238,.06),transparent 34%),
+          linear-gradient(145deg,rgba(18,38,61,.97),rgba(8,22,37,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
+      }
+      body.paddlerally-page .page-header h1{font-size:22px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
       body.paddlerally-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;width:100%!important}
-      body.paddlerally-page .meta-pill{font-size:9px!important;padding:4px 2px!important;min-height:28px!important;text-align:center!important}
+      body.paddlerally-page .meta-pill{
+        min-height:37px!important;
+        padding:4px 3px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:11px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
+      }
+      body.paddlerally-page .meta-pill:nth-child(3){
+        border-color:rgba(255,193,77,.30)!important;
+        color:#ffd86b!important
+      }
       body.paddlerally-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
-      body.paddlerally-page .rally-board{width:min(88vw,350px)!important;margin:5px auto!important;display:block!important}
+      body.paddlerally-page .rally-board{
+        width:min(88vw,350px)!important;
+        margin:6px auto!important;
+        display:block!important;
+        border:2px solid rgba(59,130,246,.34)!important;
+        background:#081522!important;
+        box-shadow:
+          inset 0 0 38px rgba(0,0,0,.22),
+          0 18px 38px rgba(0,0,0,.26),
+          0 0 18px rgba(59,130,246,.06)!important
+      }
       body.paddlerally-page.game-active .game-guide-strip,body.paddlerally-page.game-active .game-guide-more,body.paddlerally-page.game-active a.button.secondary{display:none!important}
-      body.paddlerally-page.game-active .topbar,body.paddlerally-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.paddlerally-page.game-active .topbar,body.paddlerally-page.game-active #startButton{display:none!important}
+      body.paddlerally-page.game-active .earnly-pause-button,body.paddlerally-page.game-active #pauseButton{width:auto!important;min-width:112px!important;min-height:40px!important;margin:2px auto 0!important;padding:8px 14px!important;font-size:12px!important;border-radius:12px!important}
       body.paddlerally-page.game-active main.container{padding-top:8px!important}
       body.paddlerally-page.game-active .page-header{margin-bottom:3px!important}
       body.paddlerally-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
-      body.paddlerally-page.game-active .rally-board{width:min(90vw,358px)!important;margin:3px auto!important}
-      body.paddlerally-page.game-active .rally-control-zone{display:flex;width:min(90vw,358px);height:52px;margin:4px auto 0;border:1px solid #334155;border-radius:14px;background:#17243a;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;color:#cbd5e1;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      body.paddlerally-page.game-active .rally-board{
+        width:min(90vw,358px)!important;
+        margin:3px auto!important;
+        border-color:rgba(59,130,246,.50)!important;
+        box-shadow:
+          inset 0 0 44px rgba(0,0,0,.20),
+          0 18px 38px rgba(0,0,0,.28),
+          0 0 22px rgba(59,130,246,.08)!important
+      }
+      body.paddlerally-page.game-active .rally-control-zone{display:flex;width:min(90vw,358px);height:52px;margin:4px auto 0;border:1px solid rgba(59,130,246,.36);border-radius:14px;background:linear-gradient(180deg,#1a3049,#101d31);box-shadow:inset 0 1px 0 rgba(255,255,255,.03);align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:850;color:#dbeafe;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
       body.paddlerally-page.game-active .game-status{font-size:9px!important;padding:3px 7px!important}
     }
   </style>
@@ -132,8 +179,8 @@
     }
     function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x-paddle.w/2))}
     let earnlyRunStartedAt=0;
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now();clearRallyControl();cancelAnimationFrame(animation);animation=null;lastFrame=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0;clearRallyControl();cancelAnimationFrame(animation);animation=null;lastFrame=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     function togglePause(){if(!running)return;if(!paused){paused=true;clearRallyControl();pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{if(!pauseStartedAt)return;paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
     pauseButton.addEventListener('click',togglePause);
     let controlPointer=null,controlLastX=null;

@@ -10,6 +10,7 @@ const allowedExtensions = new Set([
 const excluded = new Set([
   'native-ads-entry.js',
   'playwright.config.js',
+  'playwright.contract.config.js',
   'service-worker.js'
 ]);
 
