@@ -1,0 +1,45 @@
+name: Upload verified Earnly 1.0 review build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  upload:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Download signed build 1.0 (14)
+        uses: actions/download-artifact@v4
+        with:
+          name: earnly-arcade-ios-signed-live
+          run-id: 35861469703
+          github-token: ${{ github.token }}
+          path: ipa
+
+      - name: Verify exact reviewed package
+        run: |
+          test -f ipa/App.ipa
+          echo 'e0304db07644382a1987644377dd50cb391dec645f19cca83b50aaa6e22e5b25  ipa/App.ipa' | shasum -a 256 -c -
+          unzip -p ipa/App.ipa Payload/App.app/public/account.html | grep -q 'id="cloudDeleteButton"'
+          unzip -p ipa/App.ipa Payload/App.app/public/cloud.js | grep -q "functions.invoke('delete-account'"
+
+      - name: Upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_API_PRIVATE_KEY }}
+        run: |
+          test -n "$ASC_KEY_ID" && test -n "$ASC_ISSUER" && test -n "$ASC_PRIVATE_KEY"
+          key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          umask 077
+          printf '%s' "$ASC_PRIVATE_KEY" > "$key_path"
+          xcrun altool --upload-app \
+            --file "$PWD/ipa/App.ipa" \
+            --type ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER" \
+            --p8-file-path "$key_path"
