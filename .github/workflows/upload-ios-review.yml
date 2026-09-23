@@ -29,17 +29,27 @@ jobs:
 
       - name: Upload to App Store Connect
         env:
+          ASC_APPLE_ID: ${{ secrets.ASC_APPLE_ID }}
+          ASC_UPLOAD_PASSWORD: ${{ secrets.ASC_APP_SPECIFIC_PASSWORD }}
           ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_API_PRIVATE_KEY }}
         run: |
-          test -n "$ASC_KEY_ID" && test -n "$ASC_ISSUER" && test -n "$ASC_PRIVATE_KEY"
-          key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
-          umask 077
-          printf '%s' "$ASC_PRIVATE_KEY" > "$key_path"
-          xcrun altool --upload-app \
-            --file "$PWD/ipa/App.ipa" \
-            --type ios \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER" \
-            --p8-file-path "$key_path"
+          if [ -n "$ASC_APPLE_ID" ] && [ -n "$ASC_UPLOAD_PASSWORD" ]; then
+            xcrun altool --upload-app \
+              --file "$PWD/ipa/App.ipa" \
+              --type ios \
+              --username "$ASC_APPLE_ID" \
+              --password '@env:ASC_UPLOAD_PASSWORD'
+          else
+            test -n "$ASC_KEY_ID" && test -n "$ASC_ISSUER" && test -n "$ASC_PRIVATE_KEY"
+            key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+            umask 077
+            printf '%s' "$ASC_PRIVATE_KEY" > "$key_path"
+            xcrun altool --upload-app \
+              --file "$PWD/ipa/App.ipa" \
+              --type ios \
+              --apiKey "$ASC_KEY_ID" \
+              --apiIssuer "$ASC_ISSUER" \
+              --p8-file-path "$key_path"
+          fi
