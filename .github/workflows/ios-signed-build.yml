@@ -45,6 +45,13 @@ jobs:
       - name: Build native web bundle
         run: npm run native:web
 
+      - name: Verify account deletion is packaged for review
+        run: |
+          grep -q 'id="cloudDeleteButton"' www/account.html
+          grep -q 'Delete My Account' www/account.html
+          grep -q "functions.invoke('delete-account'" www/cloud.js
+          grep -q 'cannot be redeemed or withdrawn in this version' www/account.html
+
       - name: Generate iOS project
         run: |
           rm -rf ios build
