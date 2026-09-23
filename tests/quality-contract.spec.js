@@ -144,13 +144,13 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger keeps the faster difficulty curve', () => {
+test('Neon Dodger keeps the release difficulty curve', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('function trafficSpeedFor(seconds)');
-  expect(source).toContain('Math.min(9.4,4.4+Math.max(0,seconds)*.17)');
+  expect(source).toContain('Math.min(15.0,6.5+Math.max(0,seconds)*.30)');
   expect(source).toContain('function spawnDelayFor(seconds)');
-  expect(source).toContain('Math.max(250,650-Math.max(0,seconds)*13)');
+  expect(source).toContain('Math.max(190,560-Math.max(0,seconds)*16)');
   expect(source).toContain('nextSpawnAt=now+560');
 });
 
