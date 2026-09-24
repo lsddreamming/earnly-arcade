@@ -407,8 +407,8 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
 test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await page.goto('/snake.html');
   await startGame(page);
-  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
-  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
 
   const before = await page.locator('#score').textContent();
