@@ -28,16 +28,72 @@
       window.adConfig = function(options){ window.adsbygoogle.push(options); };
     }
 
+    if (!window.__earnlyH5PreloadConfigured) {
+      window.__earnlyH5PreloadConfigured = true;
+      window.adConfig({ preloadAdBreaks:'on' });
+    }
+
     if (!document.querySelector('script[data-earnly-h5-ads]')) {
       const script = document.createElement('script');
       script.async = true;
       script.crossOrigin = 'anonymous';
       script.dataset.earnlyH5Ads = '1';
+      script.dataset.adClient = ADSENSE_CLIENT;
       script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' +
         encodeURIComponent(ADSENSE_CLIENT);
       document.head.append(script);
     }
     return true;
+  }
+
+  function requestRewardConfirmation(showAdFn, decline){
+    const existing = document.querySelector('dialog[data-earnly-h5-reward-confirm]');
+    if (existing) existing.remove();
+
+    const dialog = document.createElement('dialog');
+    dialog.dataset.earnlyH5RewardConfirm = '1';
+    dialog.className = 'earnly-h5-reward-confirm';
+    dialog.innerHTML =
+      '<h2>📺 Ad ready</h2>' +
+      '<p>Watch this rewarded ad to unlock +1 play and jump straight back in.</p>';
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+
+    const watch = document.createElement('button');
+    watch.type = 'button';
+    watch.className = 'wide green';
+    watch.textContent = 'Watch Ad → +1 Play';
+    watch.addEventListener('click', () => {
+      watch.disabled = true;
+      cancel.disabled = true;
+      // Google requires showAdFn() to be called from the direct user action.
+      showAdFn();
+      try { dialog.close(); } catch {}
+      dialog.remove();
+    });
+
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'wide secondary';
+    cancel.textContent = 'Not Now';
+    cancel.addEventListener('click', () => {
+      try { dialog.close(); } catch {}
+      dialog.remove();
+      decline();
+    });
+
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      try { dialog.close(); } catch {}
+      dialog.remove();
+      decline();
+    }, { once:true });
+
+    actions.append(watch, cancel);
+    dialog.append(actions);
+    document.body.append(dialog);
+    dialog.showModal();
   }
 
   function showRewarded(name = 'extra_play'){
@@ -63,9 +119,10 @@
           type:'reward',
           name:String(name || 'extra_play').slice(0, 80),
           beforeReward:showAdFn => {
-            // The player already explicitly chose Earnly's "Watch ad → Play
-            // Again" button, so immediately accept Google's reward offer.
-            showAdFn();
+            requestRewardConfirmation(
+              showAdFn,
+              () => settle({ earned:false, dismissed:true, status:'declined' })
+            );
           },
           adDismissed:() => settle({ earned:false, dismissed:true, status:'dismissed' }),
           adViewed:() => settle({ earned:true, status:'viewed' }),
