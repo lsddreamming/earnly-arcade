@@ -11,7 +11,8 @@ const excluded = new Set([
   'native-ads-entry.js',
   'playwright.config.js',
   'playwright.contract.config.js',
-  'service-worker.js'
+  'service-worker.js',
+  'web-ads.js'
 ]);
 
 await rm(outDir, { recursive:true, force:true });
