@@ -331,6 +331,10 @@ const Arcade = (() => {
     return queued;
   }
 
+  function trackEvent(type, payload = {}) {
+    return queueEvent(type, payload);
+  }
+
   function syncStatus() {
     const events = pendingSyncEvents();
     return {
@@ -2224,6 +2228,13 @@ const Arcade = (() => {
       return;
     }
 
+    queueEvent('rewarded_ad_started', {
+      game:g,
+      unlockNumber:adStatus.used + 1,
+      dailyLimit:adStatus.limit,
+      unlocksLeft:adStatus.remaining
+    });
+
     busy = true;
 
     const gameName = names[g] || 'game';
@@ -2390,6 +2401,12 @@ const Arcade = (() => {
     const rewardedLabel = window.EarnlyNativeAds?.isNative
       ? (window.EarnlyNativeAds.testMode ? 'Watch test ad' : 'Watch ad')
       : 'Watch demo ad';
+
+    queueEvent('one_more_run_shown', {
+      game:g,
+      unlocksLeft:status.remaining,
+      dailyLimit:status.limit
+    });
 
     panel(
       'One more run?',
@@ -2782,6 +2799,7 @@ const Arcade = (() => {
     close.textContent = force ? 'Close' : 'Maybe Later';
     close.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
+      if (!force) queueEvent('onboarding_dismissed', {});
       closeModalThen(() => {});
     });
 
@@ -2790,12 +2808,14 @@ const Arcade = (() => {
     play.textContent = 'Start Playing →';
     play.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
+      if (!force) queueEvent('onboarding_completed', { destination:'games.html' });
       closeModalThen(() => { location.href = 'games.html'; });
     });
 
     actions.append(close,play);
     modal.append(head,list,actions);
     modal.showModal();
+    if (!force) queueEvent('onboarding_shown', { landingPath:(location.pathname.split('/').pop() || 'index.html') });
   }
 
     let installPromptEvent = null;
@@ -3343,6 +3363,7 @@ const Arcade = (() => {
     syncStatus,
     pendingSyncEvents,
     clearSyncEvents,
+    trackEvent,
     acquisitionContext,
     captureAcquisition,
     snapshotData,
