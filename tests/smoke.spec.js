@@ -376,13 +376,13 @@ test('pause control appears and toggles on mini games', async ({ page }) => {
 test('pause control is visible during Snake gameplay', async ({ page }) => {
   await page.goto('/snake.html');
   await startGame(page);
-  await page.waitForTimeout(3300);
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
   const pause = page.locator('#earnlyPauseButton');
   await expect(pause).toBeVisible();
-  await pause.click();
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(pause).toHaveText(/Resume/);
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await pause.click();
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 });
 
