@@ -2191,7 +2191,7 @@ const Arcade = (() => {
             return;
           }
 
-          toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+          toast('🎟️ +1 ' + gameName + ' play');
           if (typeof done === 'function') done();
         })
         .catch(error => {
@@ -2210,8 +2210,8 @@ const Arcade = (() => {
     }
 
     panel(
-      'Unlocking ' + PLAY_AD_BONUS + ' ' + gameName + ' plays…',
-      'This demo simulates a future rewarded ad. Keep this screen open to unlock your extra plays.',
+      'Unlocking 1 ' + gameName + ' play…',
+      'Keep this screen open. When the demo ends, you’ll jump straight back into the game.',
       [['Cancel', () => {}, 'secondary']]
     );
 
@@ -2219,7 +2219,7 @@ const Arcade = (() => {
 
     const reward = document.createElement('div');
     reward.className = 'reward-ad-pill';
-    reward.textContent = '🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays';
+    reward.textContent = '🎟️ +1 ' + gameName + ' play';
 
     const progressWrap = document.createElement('div');
     progressWrap.className = 'reward-ad-progress';
@@ -2272,8 +2272,8 @@ const Arcade = (() => {
 
       const heading = modal.querySelector('h2');
       const message = modal.querySelector('.modal-message');
-      if (heading) heading.textContent = PLAY_AD_BONUS + ' ' + gameName + ' plays unlocked!';
-      if (message) message.textContent = 'You’re ready to jump back in.';
+      if (heading) heading.textContent = '1 ' + gameName + ' play unlocked!';
+      if (message) message.textContent = 'Loading your next run…';
 
       // Finish the reward UI before handing control back to the game.
       // Previously done() could start the replay/countdown underneath this
@@ -2282,7 +2282,7 @@ const Arcade = (() => {
         if (modal.open) modal.close();
         modal.className = '';
         busy = false;
-        toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+        toast('🎟️ +1 ' + gameName + ' play');
         done();
       }, 450);
     };
@@ -2322,9 +2322,9 @@ const Arcade = (() => {
 
     if (status.remaining <= 0) {
       panel(
-        'That’s today’s bonus-play limit',
-        'You’ve used both rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
-        [['Back to Arcade', () => location.href = 'games.html', 'secondary']]
+        'Free plays refill tomorrow',
+        'You’ve used both optional rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
+        [['Choose Another Game', () => location.href = 'games.html', 'secondary']]
       );
       return;
     }
@@ -2334,12 +2334,12 @@ const Arcade = (() => {
       : 'Watch demo ad';
 
     panel(
-      'Out of ' + gameName + ' plays',
-      'You’re out of plays for this game. Free plays refill daily. You have ' + status.remaining + ' of ' + status.limit + ' bonus-play unlock' +
-        (status.remaining === 1 ? '' : 's') + ' left today. Each rewarded ad unlocks +' + PLAY_AD_BONUS + ' plays.',
+      'One more run?',
+      'You used today’s free plays for ' + gameName + '. Watch one optional rewarded ad to unlock +1 play and jump straight back in. ' +
+        status.remaining + ' of ' + status.limit + ' ad unlock' + (status.remaining === 1 ? '' : 's') + ' left today.',
       [
-        [rewardedLabel + ' · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
-        ['Back to Arcade', () => location.href = 'games.html', 'secondary']
+        [rewardedLabel + ' → Play Again', () => playAd(g, done), 'green'],
+        ['Choose Another Game', () => location.href = 'games.html', 'secondary']
       ]
     );
   }
@@ -2686,7 +2686,7 @@ const Arcade = (() => {
     const title = document.createElement('h2');
     title.textContent = force ? 'How Earnly Works' : 'Welcome to Earnly';
     const subtitle = document.createElement('p');
-    subtitle.textContent = 'Four simple systems, one arcade.';
+    subtitle.textContent = force ? 'The quick version.' : 'Pick a game. Play. Level up.';
     headCopy.append(title, subtitle);
     head.append(icon, headCopy);
 
@@ -2694,10 +2694,9 @@ const Arcade = (() => {
     list.className = 'onboarding-list';
 
     [
-      ['🎟️','Plays','3 free plays per game each day. Up to 2 voluntary rewarded ads can unlock +1 play each for that game.'],
-      ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
-      ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
-      ['🎁','Rewards','Arcade Coins are in-app points, not cash or cryptocurrency. Redemption and withdrawals are not available in this version.']
+      ['🎮','Play','Start with 3 free plays per game every day.'],
+      ['🪙','Earn & level up','Good runs earn Arcade Coins and XP. Ads do not award Arcade Coins.'],
+      ['🔥','Keep the run going','Out of plays? Up to 2 optional rewarded ads per game each day unlock +1 play each.']
     ].forEach(([itemIcon,itemTitle,itemText]) => {
       const row = document.createElement('div');
       row.className = 'onboarding-row';
@@ -2722,7 +2721,7 @@ const Arcade = (() => {
 
     const close = document.createElement('button');
     close.className = 'onboarding-secondary';
-    close.textContent = force ? 'Close' : 'Stay Here';
+    close.textContent = force ? 'Close' : 'Maybe Later';
     close.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
       closeModalThen(() => {});
@@ -2730,7 +2729,7 @@ const Arcade = (() => {
 
     const play = document.createElement('button');
     play.className = 'onboarding-primary';
-    play.textContent = 'Play Games';
+    play.textContent = 'Start Playing →';
     play.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
       closeModalThen(() => { location.href = 'games.html'; });
