@@ -143,6 +143,11 @@
 
     async function loadBoard() {
       const game = select.value;
+      const viewKey = 'arcadeLeaderboardViewed:' + game;
+      if (!sessionStorage.getItem(viewKey)) {
+        sessionStorage.setItem(viewKey, '1');
+        Arcade.trackEvent?.('leaderboard_viewed', { game });
+      }
       const info = byKey[game] || [game,'🎮',Arcade.names[game] || 'Game'];
       document.getElementById('myAvatar').textContent = Arcade.profileIcon();
       document.getElementById('boardTitle').textContent = info[1] + ' ' + info[2] + ' · World Top 25';
