@@ -23,9 +23,12 @@ test('Bounce Run: 100,000 obstacle samples stay inside safety bounds',()=>{
 });
 
 const SHAPES=[
- {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},{name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
- {name:'S',cells:[[1,0],[2,0],[0,1],[1,1]]},{name:'I',cells:[[0,0],[1,0],[2,0],[3,0]]},
- {name:'O',cells:[[0,0],[1,0],[0,1],[1,1]]},{name:'J',cells:[[1,0],[1,1],[1,2],[0,2]]}
+ {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},
+ {name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
+ {name:'Square',cells:[[0,0],[1,0],[0,1],[1,1]]},
+ {name:'Zigzag',cells:[[0,0],[1,0],[1,1],[2,1]]},
+ {name:'Line',cells:[[0,0],[1,0],[2,0],[3,0]]},
+ {name:'Corner',cells:[[0,0],[0,1],[1,1]]}
 ];
 function rotate(cells,t){let a=cells.map(p=>[...p]);while(t--){a=a.map(([x,y])=>[3-y,x]);const minX=Math.min(...a.map(p=>p[0])),minY=Math.min(...a.map(p=>p[1]));a=a.map(([x,y])=>[x-minX,y-minY])}return a}
 function key(c){return c.map(p=>p.join(',')).sort().join('|')}
@@ -35,12 +38,14 @@ test('Shape Fit: 50,000 rounds always contain exactly one base-shape answer',()=
  for(let round=1;round<=50000;round++){
   const base=SHAPES[Math.floor(random()*SHAPES.length)], turns=round<4?0:Math.floor(random()*4);
   const answer={base,cells:rotate(base.cells,turns)};
-  const count=round<6?4:round<14?6:8;
+  const count=round<=3?3:round<=7?4:round<=13?6:8;
   const correctTurns=round<4?turns:(turns+1+Math.floor(random()*3))%4;
   const opts=[{base,cells:rotate(base.cells,correctTurns)}],used=new Set([base.name+':'+key(opts?.[0]?.cells||rotate(base.cells,correctTurns))]);
   let guard=0;
   while(opts.length<count&&guard++<500){
-   const sh=SHAPES[Math.floor(random()*SHAPES.length)],v={base:sh,cells:rotate(sh.cells,Math.floor(random()*4))},k=sh.name+':'+key(v.cells);
+   const sh=SHAPES[Math.floor(random()*SHAPES.length)];
+   if(sh===base)continue;
+   const v={base:sh,cells:rotate(sh.cells,Math.floor(random()*4))},k=sh.name+':'+key(v.cells);
    if(!used.has(k)){used.add(k);opts.push(v)}
   }
   expect(opts.length).toBe(count);
