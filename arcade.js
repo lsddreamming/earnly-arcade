@@ -87,6 +87,24 @@ const Arcade = (() => {
     return fileGameKeys[file] || '';
   }
 
+  function referralCode() {
+    let code = String(localStorage.getItem('arcadeReferralCode') || '').trim();
+    if (/^[A-Za-z0-9]{8,16}$/.test(code)) return code;
+
+    try {
+      const bytes = new Uint8Array(8);
+      crypto.getRandomValues(bytes);
+      code = Array.from(bytes).map(value => (value % 36).toString(36)).join('').slice(0, 10);
+    } catch {
+      code = Math.random().toString(36).slice(2, 12);
+    }
+
+    code = code.replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
+    if (code.length < 8) code = (code + 'earnly0000').slice(0, 10);
+    localStorage.setItem('arcadeReferralCode', code);
+    return code;
+  }
+
   function shareChallengeUrl(game, metric) {
     const href = gameHrefs[game];
     const score = Math.max(0, Math.floor(Number(metric) || 0));
@@ -99,10 +117,9 @@ const Arcade = (() => {
     url.searchParams.set('utm_content', game);
 
     const username = leaderboardUsername();
-    if (/^[A-Za-z0-9_]{3,18}$/.test(username)) {
-      url.searchParams.set('challenger', username);
-      url.searchParams.set('ref', 'player_' + username);
-    }
+    const hasUsername = /^[A-Za-z0-9_]{3,18}$/.test(username);
+    if (hasUsername) url.searchParams.set('challenger', username);
+    url.searchParams.set('ref', hasUsername ? 'player_' + username : 'guest_' + referralCode());
     return url.href;
   }
 
@@ -145,11 +162,12 @@ const Arcade = (() => {
       try {
         await navigator.share({ title, text, url });
         const username = leaderboardUsername();
+        const hasUsername = /^[A-Za-z0-9_]{3,18}$/.test(username);
         queueEvent('score_challenge_shared', {
           game,
           metric:score,
           method:'share',
-          creator:/^[A-Za-z0-9_]{3,18}$/.test(username) ? 'player_' + username : null
+          creator:hasUsername ? 'player_' + username : 'guest_' + referralCode()
         });
         return { shared:true, method:'share', url };
       } catch (error) {
@@ -160,11 +178,12 @@ const Arcade = (() => {
     const copied = await copyText(url);
     if (copied) {
       const username = leaderboardUsername();
+      const hasUsername = /^[A-Za-z0-9_]{3,18}$/.test(username);
       queueEvent('score_challenge_shared', {
         game,
         metric:score,
         method:'copy',
-        creator:/^[A-Za-z0-9_]{3,18}$/.test(username) ? 'player_' + username : null
+        creator:hasUsername ? 'player_' + username : 'guest_' + referralCode()
       });
       toast('🔥 Challenge link copied!');
       return { shared:true, method:'copy', url };
@@ -3610,6 +3629,7 @@ const Arcade = (() => {
     earn,
     panel,
     gameResult,
+    referralCode,
     shareChallengeUrl,
     shareScoreChallenge,
     mountSharedChallenge,
