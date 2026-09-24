@@ -16,97 +16,88 @@
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css">
 </head>
-<body>
+<body class="settings-page">
   <main class="container">
-    <div class="topbar">
-      <a class="brand" href="profile.html">← Profile</a>
-      <span class="balance-chip">⚙️ Settings</span>
-    </div>
-
-    <header class="page-header">
-      <h1>⚙️ App Settings</h1>
-      <p>Tune how Earnly feels on your phone.</p>
+    <header class="settings-header">
+      <a href="profile.html" aria-label="Back to Profile">← <span>Profile</span></a>
+      <h1>Settings</h1>
     </header>
 
-    <section class="card" style="text-align:left">
-      <h2>🎮 Game Feel</h2>
+    <section class="card settings-section" aria-labelledby="game-feel-title">
+      <div class="settings-section-heading"><span class="settings-section-icon" aria-hidden="true">🎮</span><div><h2 id="game-feel-title">Game feel</h2><p>Make every round feel right for you.</p></div></div>
       <div class="setting-list">
         <div class="setting-row">
           <div>
-            <strong>🔊 Game Sounds</strong>
-            <span>Countdowns, scoring, records, achievements, and game effects.</span>
+            <strong>Game sounds</strong>
+            <span>Music and effects during games.</span>
           </div>
-          <button class="toggle-button" id="soundToggle" type="button">On</button>
+          <div class="setting-actions"><button class="mini-button secondary" id="soundPreview" type="button">Try sound</button><button class="toggle-button" id="soundToggle" type="button">On</button></div>
         </div>
 
         <div class="setting-row">
           <div>
-            <strong>📳 Haptics</strong>
-            <span>Small vibration feedback where the device/browser supports it.</span>
+            <strong>Haptics</strong>
+            <span>Gentle vibration on supported devices.</span>
           </div>
           <button class="toggle-button" id="hapticsToggle" type="button">On</button>
         </div>
 
         <div class="setting-row">
           <div>
-            <strong>✨ Motion & Animations</strong>
-            <span>Turn off most transitions and animation if you prefer a calmer interface.</span>
+            <strong>Animations</strong>
+            <span>Turn off for a calmer experience.</span>
           </div>
           <button class="toggle-button" id="motionToggle" type="button">On</button>
         </div>
       </div>
     </section>
 
-    <section class="card display-settings-card" style="text-align:left">
-      <h2>👀 Display</h2>
-      <p class="muted small">Choose the text size that feels best on your phone. It applies across Earnly, including games and the bottom navigation.</p>
+    <section class="card settings-section display-settings-card" aria-labelledby="display-title">
+      <div class="settings-section-heading"><span class="settings-section-icon" aria-hidden="true">Aa</span><div><h2 id="display-title">Text size</h2><p>Choose what is easiest to read.</p></div></div>
       <div class="text-size-options" id="textSizeOptions" role="group" aria-label="Text size">
-        <button type="button" data-text-scale="compact"><strong>Compact</strong><span>100%</span></button>
+        <button type="button" data-text-scale="compact"><strong>Standard</strong><span>100%</span></button>
         <button type="button" data-text-scale="comfortable"><strong>Comfortable</strong><span>110%</span></button>
         <button type="button" data-text-scale="large"><strong>Large</strong><span>120%</span></button>
-        <button type="button" data-text-scale="xlarge"><strong>Extra Large</strong><span>130%</span></button>
+        <button type="button" data-text-scale="xlarge"><strong>Extra large</strong><span>130%</span></button>
       </div>
       <div class="text-size-preview">
-        <span>Preview</span>
-        <strong>Earnly should be easy to read.</strong>
+        <span>PREVIEW</span>
+        <strong>Ready for one more round?</strong>
       </div>
     </section>
 
-    <section class="card" style="text-align:left">
-      <h2>📱 App Status</h2>
+    <section class="card settings-section" aria-labelledby="app-status-title">
+      <div class="settings-section-heading"><span class="settings-section-icon" aria-hidden="true">📱</span><div><h2 id="app-status-title">App status</h2><p>Your current connection and version.</p></div></div>
       <div class="app-status-grid">
-        <div class="app-status-card"><strong id="networkStatus">Online</strong><span>Network</span></div>
-        <div class="app-status-card"><strong id="installStatus">Browser</strong><span>Launch Mode</span></div>
-        <div class="app-status-card"><strong id="versionStatus">Loading…</strong><span>App Version</span></div>
-        <div class="app-status-card"><strong id="queueStatus">0</strong><span>Backend Events</span></div>
+        <div class="app-status-card"><span>Connection</span><strong id="networkStatus">Online</strong></div>
+        <div class="app-status-card"><span>Playing on</span><strong id="installStatus">Browser</strong></div>
+        <div class="app-status-card"><span>Version</span><strong id="versionStatus">Loading…</strong></div>
+        <div class="app-status-card"><span>Updates waiting</span><strong id="queueStatus">0</strong></div>
       </div>
-      <button class="wide ghost browser-only" id="installButton" type="button" style="margin-top:12px">📱 Install / Add to Home Screen</button>
+      <button class="wide ghost browser-only" id="installButton" type="button">Add to Home Screen</button>
     </section>
 
-    <section class="card" style="text-align:left">
-      <h2>🧪 Testing Tools</h2>
-      <p class="muted small">Reset today’s play limits for testing without changing your Coins, XP, scores, achievements, or streak.</p>
+    <section class="card settings-section" aria-labelledby="help-title">
+      <div class="settings-section-heading"><span class="settings-section-icon" aria-hidden="true">?</span><div><h2 id="help-title">Help & data</h2><p>Get support or manage your progress.</p></div></div>
+      <div class="data-actions">
+        <button class="wide secondary" id="walkthroughButton" type="button">Replay walkthrough</button>
+        <a class="button wide secondary" href="support.html">Help & support</a>
+        <a class="button wide secondary" href="account.html">Backup & restore progress</a>
+      </div>
+    </section>
+
+    <details class="card settings-section settings-diagnostics">
+      <summary>Testing & diagnostics <span>For troubleshooting</span></summary>
+      <p class="muted small">Check your account, saved progress, and pending updates.</p>
       <div class="test-readiness" id="testReadiness">
         <div><span id="testAccountIcon">○</span><strong>Account</strong><small id="testAccountText">Checking…</small></div>
         <div><span id="testBackupIcon">○</span><strong>Cloud backup</strong><small id="testBackupText">Checking…</small></div>
         <div><span id="testGameIcon">○</span><strong>Game test</strong><small id="testGameText">Checking…</small></div>
         <div><span id="testQueueIcon">○</span><strong>Backend queue</strong><small id="testQueueText">Checking…</small></div>
       </div>
-      <button class="wide secondary" id="resetTestPlaysButton" type="button">🎟️ Reset Test Plays</button>
-      <button class="wide secondary" id="copyTestReportButton" type="button">📋 Copy Test Report</button>
-      <p class="muted tiny test-report-note">The report includes app status and progress totals—never your password or payment information.</p>
-    </section>
-
-    <section class="card" style="text-align:left">
-      <h2>🧭 Help & Data</h2>
-      <div class="data-actions">
-        <button class="wide secondary" id="walkthroughButton" type="button">❓ Replay Earnly Walkthrough</button>
-        <a class="button wide secondary" href="support.html">🛟 Help & Support</a>
-        <a class="button wide secondary" href="account.html">💾 Backup & Restore Progress</a>
-      </div>
-    </section>
-
-    <a class="button wide" href="profile.html">← Back to Profile</a>
+      <button class="wide secondary" id="copyTestReportButton" type="button">Copy test report</button>
+      <p class="muted tiny test-report-note">Includes app status and progress totals. No passwords or payment information.</p>
+    </details>
   </main>
 
   <script src="arcade.js"></script>
@@ -126,6 +117,7 @@
       const status = Arcade.appStatus();
 
       setToggle(soundToggle, status.sound);
+      document.getElementById('soundPreview').disabled = !status.sound;
       setToggle(hapticsToggle, status.haptics);
       setToggle(motionToggle, !status.reducedMotion);
 
@@ -199,6 +191,7 @@
       Arcade.setSoundEnabled(!Arcade.soundEnabled());
       render();
     });
+    document.getElementById('soundPreview').addEventListener('click', () => Arcade.feedback('coin'));
 
     hapticsToggle.addEventListener('click', () => {
       Arcade.setHapticsEnabled(!Arcade.hapticsEnabled());
@@ -217,10 +210,6 @@
       });
     });
 
-    document.getElementById('resetTestPlaysButton').addEventListener('click', () => {
-      Arcade.resetPrototypePlays();
-      render();
-    });
     document.getElementById('copyTestReportButton').addEventListener('click', copyTestReport);
 
     document.getElementById('walkthroughButton').addEventListener('click', () => Arcade.showOnboarding(true));
