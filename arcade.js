@@ -255,6 +255,64 @@ const Arcade = (() => {
     }
   }
 
+  function cleanAttributionToken(value, max = 64) {
+    return String(value || '')
+      .trim()
+      .slice(0, max)
+      .replace(/[^A-Za-z0-9._-]/g, '');
+  }
+
+  function readAttribution(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || 'null');
+      return value && typeof value === 'object' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function acquisitionContext() {
+    return {
+      first:readAttribution('arcadeAcquisitionFirst'),
+      latest:readAttribution('arcadeAcquisitionLatest')
+    };
+  }
+
+  function captureAcquisition() {
+    const params = new URLSearchParams(location.search || '');
+    const incoming = {
+      creator:cleanAttributionToken(params.get('ref') || params.get('creator'), 40),
+      source:cleanAttributionToken(params.get('utm_source') || params.get('source'), 40),
+      campaign:cleanAttributionToken(params.get('utm_campaign') || params.get('campaign'), 64),
+      content:cleanAttributionToken(params.get('utm_content') || params.get('content'), 64),
+      challenge:cleanAttributionToken(params.get('challenge'), 64)
+    };
+    const meaningful = Object.values(incoming).some(Boolean);
+    if (!meaningful) return acquisitionContext();
+
+    const touch = {
+      ...incoming,
+      path:(location.pathname.split('/').pop() || 'index.html').slice(0, 80),
+      capturedAt:new Date().toISOString()
+    };
+
+    const existingFirst = readAttribution('arcadeAcquisitionFirst');
+    if (!existingFirst) localStorage.setItem('arcadeAcquisitionFirst', JSON.stringify(touch));
+    localStorage.setItem('arcadeAcquisitionLatest', JSON.stringify(touch));
+
+    const signature = JSON.stringify(incoming);
+    if (sessionStorage.getItem('arcadeAcquisitionSession') !== signature) {
+      sessionStorage.setItem('arcadeAcquisitionSession', signature);
+      queueEvent('acquisition_attributed', {
+        ...incoming,
+        firstTouch:!existingFirst,
+        landingPath:touch.path
+      });
+    }
+
+    return acquisitionContext();
+  }
+
   function queueEvent(type, payload = {}) {
     const events = pendingSyncEvents();
     events.push({
@@ -271,6 +329,10 @@ const Arcade = (() => {
       detail:{ type:queued.type, payload:queued.payload, eventId:queued.id }
     }));
     return queued;
+  }
+
+  function trackEvent(type, payload = {}) {
+    return queueEvent(type, payload);
   }
 
   function syncStatus() {
@@ -2166,6 +2228,13 @@ const Arcade = (() => {
       return;
     }
 
+    queueEvent('rewarded_ad_started', {
+      game:g,
+      unlockNumber:adStatus.used + 1,
+      dailyLimit:adStatus.limit,
+      unlocksLeft:adStatus.remaining
+    });
+
     busy = true;
 
     const gameName = names[g] || 'game';
@@ -2332,6 +2401,12 @@ const Arcade = (() => {
     const rewardedLabel = window.EarnlyNativeAds?.isNative
       ? (window.EarnlyNativeAds.testMode ? 'Watch test ad' : 'Watch ad')
       : 'Watch demo ad';
+
+    queueEvent('one_more_run_shown', {
+      game:g,
+      unlocksLeft:status.remaining,
+      dailyLimit:status.limit
+    });
 
     panel(
       'One more run?',
@@ -2724,6 +2799,7 @@ const Arcade = (() => {
     close.textContent = force ? 'Close' : 'Maybe Later';
     close.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
+      if (!force) queueEvent('onboarding_dismissed', {});
       closeModalThen(() => {});
     });
 
@@ -2732,12 +2808,14 @@ const Arcade = (() => {
     play.textContent = 'Start Playing →';
     play.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
+      if (!force) queueEvent('onboarding_completed', { destination:'games.html' });
       closeModalThen(() => { location.href = 'games.html'; });
     });
 
     actions.append(close,play);
     modal.append(head,list,actions);
     modal.showModal();
+    if (!force) queueEvent('onboarding_shown', { landingPath:(location.pathname.split('/').pop() || 'index.html') });
   }
 
     let installPromptEvent = null;
@@ -3032,6 +3110,7 @@ const Arcade = (() => {
     document.head.append(sdk);
   }
 
+  captureAcquisition();
   repairLifetimeCounters();
   repairGameStats();
   applyTextScale();
@@ -3284,6 +3363,9 @@ const Arcade = (() => {
     syncStatus,
     pendingSyncEvents,
     clearSyncEvents,
+    trackEvent,
+    acquisitionContext,
+    captureAcquisition,
     snapshotData,
     hasMeaningfulProgress,
     transferCode,
