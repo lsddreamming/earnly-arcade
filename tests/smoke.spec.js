@@ -54,6 +54,21 @@ test('leaderboard and profile pages expose growth engagement tracking', async ({
   expect(profile).toContain("Arcade.trackEvent?.('profile_identity_saved'");
 });
 
+test('guest score challenge links get anonymous referral codes', async ({ page }) => {
+  await page.goto('/snake.html');
+  const result = await page.evaluate(() => {
+    localStorage.removeItem('arcadeUsername');
+    localStorage.removeItem('arcadeReferralCode');
+    const href = Arcade.shareChallengeUrl('snake', 9);
+    return { href, code:Arcade.referralCode() };
+  });
+  const url = new URL(result.href);
+
+  expect(result.code).toMatch(/^[A-Za-z0-9]{8,16}$/);
+  expect(url.searchParams.get('ref')).toBe('guest_' + result.code);
+  expect(url.searchParams.get('challenger')).toBeNull();
+});
+
 test('score challenge links carry player attribution', async ({ page }) => {
   await page.goto('/snake.html');
   const href = await page.evaluate(() => {
