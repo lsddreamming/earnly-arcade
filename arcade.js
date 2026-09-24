@@ -101,6 +101,7 @@ const Arcade = (() => {
     const username = leaderboardUsername();
     if (/^[A-Za-z0-9_]{3,18}$/.test(username)) {
       url.searchParams.set('challenger', username);
+      url.searchParams.set('ref', 'player_' + username);
     }
     return url.href;
   }
@@ -143,7 +144,13 @@ const Arcade = (() => {
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url });
-        queueEvent('score_challenge_shared', { game, metric:score, method:'share' });
+        const username = leaderboardUsername();
+        queueEvent('score_challenge_shared', {
+          game,
+          metric:score,
+          method:'share',
+          creator:/^[A-Za-z0-9_]{3,18}$/.test(username) ? 'player_' + username : null
+        });
         return { shared:true, method:'share', url };
       } catch (error) {
         if (error?.name === 'AbortError') return { shared:false, cancelled:true, url };
@@ -152,7 +159,13 @@ const Arcade = (() => {
 
     const copied = await copyText(url);
     if (copied) {
-      queueEvent('score_challenge_shared', { game, metric:score, method:'copy' });
+      const username = leaderboardUsername();
+      queueEvent('score_challenge_shared', {
+        game,
+        metric:score,
+        method:'copy',
+        creator:/^[A-Za-z0-9_]{3,18}$/.test(username) ? 'player_' + username : null
+      });
       toast('🔥 Challenge link copied!');
       return { shared:true, method:'copy', url };
     }
@@ -173,6 +186,12 @@ const Arcade = (() => {
     const challengerRaw = String(params.get('challenger') || '').trim();
     const challenger = /^[A-Za-z0-9_]{3,18}$/.test(challengerRaw) ? challengerRaw : '';
     const config = bestConfig[game] || { label:'points', lower:false };
+
+    queueEvent('score_challenge_opened', {
+      game,
+      metric:score,
+      creator:challenger ? 'player_' + challenger : null
+    });
 
     const banner = document.createElement('div');
     banner.id = 'earnlySharedChallenge';
