@@ -213,6 +213,25 @@ test('native rewarded ads stay play-only in the current release', () => {
   expect(arcade).not.toContain("showRewarded('bonusCoins')");
 });
 
+test('web H5 rewarded ads stay approval-gated and native-safe', () => {
+  const webAds = read('web-ads.js');
+  const arcade = read('arcade.js');
+  const nativeBuild = read('scripts/build-native-web.mjs');
+
+  expect(webAds).toContain("const ADSENSE_CLIENT = ''");
+  expect(webAds).toContain("type:'reward'");
+  expect(webAds).toContain("adViewed:() => settle({ earned:true");
+  expect(webAds).toContain("adDismissed:() => settle({ earned:false");
+  expect(webAds).toContain("status:'not-configured'");
+  expect(webAds).not.toContain('grantPlays(');
+  expect(webAds).not.toContain('Arcade.earn');
+
+  expect(arcade).toContain("webAds.showRewarded('extra_play_' + g)");
+  expect(arcade).toContain("if (!result?.earned)");
+  expect(arcade).toContain('const detail = grantRewardedPlayUnlock(g);');
+  expect(nativeBuild).toContain("'web-ads.js'");
+});
+
 test('rewarded play unlocks stay play-only and guarded against duplicate grants', () => {
   const arcade = read('arcade.js');
 
