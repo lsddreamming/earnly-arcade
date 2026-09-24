@@ -1251,6 +1251,21 @@ body{animation:app-fade-in 180ms ease both}
 }
 .result-highlight{color:#fde68a;font-weight:900}
 .result-actions{margin-top:12px}
+.challenge-share-button{border-color:#fb923c55;background:#43140755;color:#fed7aa}
+.challenge-share-button:hover{border-color:#fb923c99;background:#7c2d1244}
+.shared-challenge-banner{
+  display:grid;
+  gap:2px;
+  margin:8px 0 12px;
+  padding:10px 13px;
+  border:1px solid rgba(251,146,60,.38);
+  border-radius:14px;
+  background:linear-gradient(135deg,rgba(124,45,18,.26),rgba(120,53,15,.12));
+  box-shadow:0 10px 26px rgba(0,0,0,.16);
+}
+.shared-challenge-banner strong{font-size:13px;color:#ffedd5}
+.shared-challenge-banner span{font-size:11px;color:#fed7aa}
+body.game-active .shared-challenge-banner{display:none!important}
 .milestone-pop{
   position:fixed;
   left:50%;
