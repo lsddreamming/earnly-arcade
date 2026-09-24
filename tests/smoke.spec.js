@@ -99,6 +99,29 @@ test('result screen offers score sharing for completed runs', async ({ page }) =
   await expect(dialog.getByRole('button', { name:'🔥 Challenge a Friend' })).toBeVisible();
 });
 
+test('beating a shared challenge records the viral conversion', async ({ page }) => {
+  await page.goto('/snake.html?challenge=10&challenger=TestPlayer&ref=player_TestPlayer&utm_source=player_share&utm_campaign=score_challenge&utm_content=snake');
+
+  await page.evaluate(() => {
+    Arcade.gameResult({
+      icon:'🐍', title:'Snake', scoreLabel:'Apples', score:11,
+      best:'11 apples', coins:2, result:{newBest:true,xpAward:10},
+      playsLeft:2, game:'snake', extra:['⏱️ Time played: 20s']
+    });
+  });
+
+  const dialog = page.locator('dialog.game-result-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Challenge beaten');
+  await expect(dialog).toContainText('@TestPlayer');
+
+  const event = await page.evaluate(() => Arcade.pendingSyncEvents().find(item => item.type === 'score_challenge_completed'));
+  expect(event.payload.game).toBe('snake');
+  expect(event.payload.metric).toBe(11);
+  expect(event.payload.target).toBe(10);
+  expect(event.payload.creator).toBe('player_TestPlayer');
+});
+
 const pages = [
   'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html',
   'snake.html','blockdrop.html','brickbreaker.html','coincatch.html',
