@@ -2228,17 +2228,22 @@ const Arcade = (() => {
       return;
     }
 
-    queueEvent('rewarded_ad_started', {
-      game:g,
-      unlockNumber:adStatus.used + 1,
-      dailyLimit:adStatus.limit,
-      unlocksLeft:adStatus.remaining
-    });
-
     busy = true;
 
     const gameName = names[g] || 'game';
     const nativeAds = window.EarnlyNativeAds;
+    const webAds = window.EarnlyWebAds;
+    const adProvider = nativeAds?.isNative
+      ? 'admob_ios'
+      : (webAds?.enabled ? 'adsense_h5' : 'demo');
+
+    queueEvent('rewarded_ad_started', {
+      game:g,
+      unlockNumber:adStatus.used + 1,
+      dailyLimit:adStatus.limit,
+      unlocksLeft:adStatus.remaining,
+      provider:adProvider
+    });
 
     if (nativeAds?.isNative) {
       busy = true;
@@ -2246,6 +2251,12 @@ const Arcade = (() => {
 
       Promise.resolve(nativeAds.showRewarded('extraPlays'))
         .then(result => {
+          queueEvent('rewarded_ad_outcome', {
+            game:g,
+            provider:'admob_ios',
+            status:String(result?.reason || (result?.earned ? 'viewed' : 'not-earned')),
+            earned:!!result?.earned
+          });
           if (!result?.earned) {
             busy = false;
             toast('Ad closed before a reward was earned.');
@@ -2265,6 +2276,12 @@ const Arcade = (() => {
         })
         .catch(error => {
           console.warn('Earnly rewarded ad failed', error);
+          queueEvent('rewarded_ad_outcome', {
+            game:g,
+            provider:'admob_ios',
+            status:'error',
+            earned:false
+          });
           busy = false;
           panel(
             'Rewarded ad unavailable',
@@ -2278,11 +2295,16 @@ const Arcade = (() => {
       return;
     }
 
-    const webAds = window.EarnlyWebAds;
     if (webAds?.enabled) {
       toast('📺 Loading rewarded ad…');
       Promise.resolve(webAds.showRewarded('extra_play_' + g))
         .then(result => {
+          queueEvent('rewarded_ad_outcome', {
+            game:g,
+            provider:'adsense_h5',
+            status:String(result?.status || (result?.earned ? 'viewed' : 'not-earned')),
+            earned:!!result?.earned
+          });
           if (!result?.earned) {
             busy = false;
             const dismissed = !!result?.dismissed;
@@ -2311,6 +2333,12 @@ const Arcade = (() => {
         })
         .catch(error => {
           console.warn('Earnly web rewarded ad failed', error);
+          queueEvent('rewarded_ad_outcome', {
+            game:g,
+            provider:'adsense_h5',
+            status:'error',
+            earned:false
+          });
           busy = false;
           panel(
             'Rewarded ad unavailable',
@@ -2376,6 +2404,12 @@ const Arcade = (() => {
 
       // Re-check the cap at completion too. This protects against duplicate
       // completion callbacks or another tab granting the same unlock.
+      queueEvent('rewarded_ad_outcome', {
+        game:g,
+        provider:'demo',
+        status:'viewed',
+        earned:true
+      });
       const detail = grantRewardedPlayUnlock(g);
       if (!detail) {
         busy = false;
@@ -2421,7 +2455,15 @@ const Arcade = (() => {
 
     modal.addEventListener('close', () => {
       clearInterval(timer);
-      if (!finished) busy = false;
+      if (!finished) {
+        queueEvent('rewarded_ad_outcome', {
+          game:g,
+          provider:'demo',
+          status:'dismissed',
+          earned:false
+        });
+        busy = false;
+      }
     }, { once:true });
   }
 
