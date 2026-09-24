@@ -2278,6 +2278,52 @@ const Arcade = (() => {
       return;
     }
 
+    const webAds = window.EarnlyWebAds;
+    if (webAds?.enabled) {
+      toast('📺 Loading rewarded ad…');
+      Promise.resolve(webAds.showRewarded('extra_play_' + g))
+        .then(result => {
+          if (!result?.earned) {
+            busy = false;
+            const dismissed = !!result?.dismissed;
+            panel(
+              dismissed ? 'Reward not earned' : 'Rewarded ad unavailable',
+              dismissed
+                ? 'The ad was closed before completion, so your play balance was not changed.'
+                : 'No rewarded ad was available right now. Your play balance was not changed.',
+              [
+                ['Try Again', () => playAd(g, done), 'green'],
+                ['Choose Another Game', () => location.href = 'games.html', 'secondary']
+              ]
+            );
+            return;
+          }
+
+          const detail = grantRewardedPlayUnlock(g);
+          busy = false;
+          if (!detail) {
+            if (typeof done === 'function') done();
+            return;
+          }
+
+          toast('🎟️ +1 ' + gameName + ' play');
+          if (typeof done === 'function') done();
+        })
+        .catch(error => {
+          console.warn('Earnly web rewarded ad failed', error);
+          busy = false;
+          panel(
+            'Rewarded ad unavailable',
+            'The rewarded ad could not load right now. Your play balance was not changed.',
+            [
+              ['Try Again', () => playAd(g, done), 'green'],
+              ['Choose Another Game', () => location.href = 'games.html', 'secondary']
+            ]
+          );
+        });
+      return;
+    }
+
     panel(
       'Unlocking 1 ' + gameName + ' play…',
       'Keep this screen open. When the demo ends, you’ll jump straight back into the game.',
@@ -2400,7 +2446,7 @@ const Arcade = (() => {
 
     const rewardedLabel = window.EarnlyNativeAds?.isNative
       ? (window.EarnlyNativeAds.testMode ? 'Watch test ad' : 'Watch ad')
-      : 'Watch demo ad';
+      : (window.EarnlyWebAds?.enabled ? 'Watch ad' : 'Watch demo ad');
 
     queueEvent('one_more_run_shown', {
       game:g,
@@ -3079,6 +3125,25 @@ const Arcade = (() => {
     document.body.classList.add('has-app-nav');
   }
 
+  function isNativeRuntime() {
+    try {
+      if (window.Capacitor?.isNativePlatform?.()) return true;
+    } catch {}
+    return location.protocol === 'capacitor:' ||
+      location.protocol === 'ionic:' ||
+      !!window.EarnlyNativeAds?.isNative;
+  }
+
+  function bootWebAds() {
+    if (isNativeRuntime()) return;
+    if (window.EarnlyWebAds || document.querySelector('script[data-earnly-web-ads]')) return;
+    const script = document.createElement('script');
+    script.src = 'web-ads.js';
+    script.dataset.earnlyWebAds = '1';
+    script.async = true;
+    document.head.append(script);
+  }
+
   function bootCloudClient() {
     const file = location.pathname.split('/').pop() || 'index.html';
     if (file === 'account.html') return;
@@ -3120,6 +3185,7 @@ const Arcade = (() => {
   mountConnectionBanner();
   mountLaunchSplash();
   registerServiceWorker();
+  bootWebAds();
   bootCloudClient();
 
   let gameplayLockedScrollY = 0;
