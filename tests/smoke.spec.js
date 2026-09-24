@@ -1,5 +1,24 @@
 const { test, expect } = require('@playwright/test');
 
+async function startGame(page) {
+  const startButton = page.locator('#startButton');
+  if (await startButton.isVisible().catch(() => false)) {
+    await startButton.click();
+    return;
+  }
+
+  const candidates = ['#surface', '#game', 'canvas.touch-surface', '.game-guide-surface'];
+  for (const selector of candidates) {
+    const target = page.locator(selector).first();
+    if (await target.isVisible().catch(() => false)) {
+      await target.click({ position:{ x:120, y:120 } });
+      return;
+    }
+  }
+
+  throw new Error('No visible game start control or touch surface found');
+}
+
 test('creator attribution records sanitized first and latest touch', async ({ page }) => {
   await page.goto('/index.html?ref=creator_42&utm_source=tiktok&utm_campaign=launch-wave&utm_content=snake-hook&challenge=beat-me');
   const attribution = await page.evaluate(() => Arcade.acquisitionContext());
@@ -81,14 +100,9 @@ for (const game of miniGames) {
     await expect(page.locator('#gameTitle')).toBeVisible();
     await expect(page.locator('#surface')).toBeVisible();
 
-    // Start through the same play surface a real user sees.
+    // Start through the same control a real player uses on this device.
     const surface = page.locator('#surface');
-    const startButton = page.locator('#startButton');
-    if (await startButton.count()) {
-      await startButton.click();
-    } else {
-      await surface.click({ position: { x: 120, y: 150 } });
-    }
+    await startGame(page);
     await page.waitForTimeout(250);
     await expect(surface).toBeVisible();
     expect(errors).toEqual([]);
@@ -203,7 +217,7 @@ test('every mini game starts without runtime errors', async ({ page }) => {
     const onError = err => errors.push(err.message);
     page.on('pageerror', onError);
     await page.goto('/mini.html?game=' + game);
-    await page.locator('#startButton').click();
+    await startGame(page);
     await page.waitForTimeout(120);
     expect(errors, game + ' produced a runtime error').toEqual([]);
     await expect(page.locator('#gameStatus')).not.toHaveText('Ready');
@@ -216,7 +230,7 @@ test('Spiral Drop removes desktop key handlers when a run ends', async ({ page }
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await page.goto('/mini.html?game=spiralDrop');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   await page.keyboard.down('ArrowLeft');
   await page.waitForTimeout(80);
@@ -231,7 +245,7 @@ test('Bounce Run advertises and accepts keyboard jump controls', async ({ page }
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await page.goto('/mini.html?game=bounceRun');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   await expect(page.locator('#surface')).toContainText('');
   await page.keyboard.press('Space');
@@ -346,7 +360,7 @@ test('closing a result popup leaves no running gameplay lock behind', async ({ p
 test('pause control appears and toggles on mini games', async ({ page }) => {
   for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
     await page.goto('/mini.html?game=' + game);
-    await page.locator('#startButton').click();
+    await startGame(page);
     await page.waitForTimeout(3300);
     const pause = page.locator('#earnlyPauseButton');
     await expect(pause, game + ' pause button').toBeVisible();
@@ -362,7 +376,7 @@ test('pause control appears and toggles on mini games', async ({ page }) => {
 
 test('pause control is visible during Snake gameplay', async ({ page }) => {
   await page.goto('/snake.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   const pause = page.locator('#earnlyPauseButton');
   await expect(pause).toBeVisible();
@@ -381,7 +395,7 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
     localStorage.setItem('snakeBonusPlays', '0');
   });
   await page.reload();
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
@@ -393,7 +407,7 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
 
 test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await page.goto('/snake.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
@@ -419,7 +433,7 @@ test('rapid Snake game-over calls only award and show results once', async ({ pa
     localStorage.setItem('snakeBonusPlays','0');
   });
   await page.reload();
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   const before = await page.locator('#balance').textContent();
   await page.evaluate(() => { gameOver(); gameOver(); gameOver(); });
@@ -441,7 +455,7 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
   expect(speeds.opening).toBeCloseTo(6, 3);
   expect(speeds.late).toBeGreaterThan(13);
 
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   const result = await page.evaluate(() => {
     const before = paddle.x;
@@ -459,7 +473,7 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
 
 test('Brick Breaker end state clears pending level transition', async ({ page }) => {
   await page.goto('/brickbreaker.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   await page.evaluate(() => {
     starting = true;
@@ -475,7 +489,7 @@ test('Brick Breaker end state clears pending level transition', async ({ page })
 
 test('Block Drop held controls cannot survive pause or game over', async ({ page }) => {
   await page.goto('/blockdrop.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
 
   const left = page.locator('#leftButton');
@@ -540,14 +554,14 @@ test('driving games hide mobile navigation during live play', async ({ page }) =
   test.skip(width >= 700, 'Mobile-only gameplay chrome check');
 
   await page.goto('/lanerunner.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   await expect(page.locator('#gameStatus')).toHaveText('Running');
   await expect(page.locator('#laneControlZone')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 
   await page.goto('/dodger.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
   await expect(page.locator('#gameStatus')).toHaveText('Running');
   await expect(page.locator('#game')).toBeVisible();
@@ -563,7 +577,7 @@ test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ p
   await expect(page.locator('#game')).toBeVisible();
   await expect(page.locator('#startButton')).toBeVisible();
 
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
 
   await expect(page.locator('#gameStatus')).toHaveText('Running');
@@ -650,7 +664,7 @@ test('pre-game summary gets out of the way once gameplay starts', async ({ page 
   const summary = page.locator('.game-start-summary');
   await expect(summary).toBeVisible();
 
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
 
   await expect(page.locator('body')).toHaveClass(/game-active/);
@@ -722,7 +736,7 @@ test('Coin Catch keeps live instructions visible long enough to read', async ({ 
   await page.goto('/coincatch.html');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
   await page.reload();
-  await page.locator('#startButton').click();
+  await startGame(page);
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout: 5000 });
 
   const tip = page.locator('#catchLiveTip');
@@ -745,7 +759,7 @@ test('Coin Catch accepts drag input at the very bottom of the screen', async ({ 
   await page.goto('/coincatch.html');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
   await page.reload();
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
 
   const result = await page.evaluate(() => {
@@ -769,7 +783,7 @@ test('Coin Catch accepts drag input at the very bottom of the screen', async ({ 
 
 test('Coin Catch HUD stays inside the board and shows live run rewards', async ({ page }) => {
   await page.goto('/coincatch.html');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(3300);
 
   const board = await page.locator('.catch-board-wrap').boundingBox();
@@ -882,7 +896,7 @@ test('Shape Fit always renders exactly one valid matching choice', async ({ page
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen','1'));
   await page.reload();
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(2500);
 
   const targetBase = await page.locator('.fit-shape').getAttribute('data-base');
@@ -949,7 +963,7 @@ test('new player flow keeps plays and results consistent', async ({ page }) => {
   await page.goto('/mini.html?game=shapeFit');
   await expect(page.locator('#plays')).toHaveText('3');
 
-  await page.locator('#startButton').click();
+  await startGame(page);
   await page.waitForTimeout(120);
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
   await expect(page.locator('#plays')).toHaveText('2');
@@ -984,7 +998,7 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
   });
   await page.reload();
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
-  await page.locator('#startButton').click();
+  await startGame(page);
   const outDialog=page.locator('dialog');
   await expect(outDialog).toContainText('One more run?');
   await expect(outDialog).toContainText('Watch one optional rewarded ad');
@@ -1024,7 +1038,7 @@ test('one-more-run gate grants exactly one play then returns control', async ({ 
   });
   await page.reload();
 
-  await page.locator('#startButton').click();
+  await startGame(page);
   const gate = page.locator('dialog');
   await expect(gate).toContainText('One more run?');
   await gate.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
@@ -1280,7 +1294,7 @@ test('player journey cloud contract includes mission and bonus-play state', asyn
 
 test('paused gameplay keeps mobile scroll lock', async ({ page }) => {
   await page.goto('/mini.html?game=perfectDrop');
-  await page.locator('#startButton').click();
+  await startGame(page);
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
   await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
 
