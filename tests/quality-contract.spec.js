@@ -228,8 +228,16 @@ test('web H5 rewarded ads stay approval-gated and native-safe', () => {
 
   expect(arcade).toContain("webAds.showRewarded('extra_play_' + g)");
   expect(arcade).toContain("if (!result?.earned)");
+  expect(arcade).toContain("provider:'adsense_h5'");
+  expect(arcade).toContain("provider:'admob_ios'");
+  expect(arcade).toContain("provider:'demo'");
+  expect(arcade).toContain("queueEvent('rewarded_ad_outcome'");
   expect(arcade).toContain('const detail = grantRewardedPlayUnlock(g);');
   expect(nativeBuild).toContain("'web-ads.js'");
+
+  const cloud = read('cloud.js');
+  expect(cloud).toContain("'rewarded_ad_outcome'");
+  expect(cloud).toContain("'provider','status','earned'");
 });
 
 test('rewarded play unlocks stay play-only and guarded against duplicate grants', () => {
