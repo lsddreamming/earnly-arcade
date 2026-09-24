@@ -230,8 +230,17 @@
         catchLiveTip.style.removeProperty('top');
       }
       catchLiveTip.classList.add('show');
+      // Pause visibility updates from a MutationObserver after status becomes
+      // Running, so measure again on the next frame before the player reads it.
+      requestAnimationFrame(()=>{
+        const livePauseButton=document.querySelector('.earnly-pause-button');
+        if(livePauseButton && !livePauseButton.hidden){
+          catchLiveTip.style.top=Math.ceil(livePauseButton.getBoundingClientRect().bottom+8)+'px';
+        }
+      });
       liveTipTimer=setTimeout(()=>{
         catchLiveTip.classList.remove('show');
+        catchLiveTip.style.removeProperty('top');
         liveTipTimer=null;
       },duration);
     }
