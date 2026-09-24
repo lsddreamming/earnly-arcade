@@ -2617,3 +2617,53 @@ body.snake-page .container>a.button.secondary.wide{
     max-height:min(62vh,400px)!important;
   }
 }
+
+/* Rewards: clear balance, useful activity, and optional roadmap detail. */
+body.rewards-dashboard .rewards-container{max-width:620px;padding-bottom:max(118px,calc(92px + env(safe-area-inset-bottom)))}
+body.rewards-dashboard .rewards-topbar{margin-bottom:20px}
+body.rewards-dashboard .rewards-hero{margin-bottom:18px}
+body.rewards-dashboard .rewards-eyebrow,body.rewards-dashboard .rewards-kicker{font-size:11px;letter-spacing:.13em}
+body.rewards-dashboard .rewards-hero h1{margin:5px 0 6px;font-size:clamp(30px,8vw,38px);line-height:1.1}
+body.rewards-dashboard .rewards-hero p{font-size:14px;line-height:1.4;color:#b8c8da}
+body.rewards-dashboard .rewards-balance-card{gap:12px;padding:20px;margin-bottom:14px;border-radius:22px}
+body.rewards-dashboard .rewards-balance-label{font-size:13px;color:#c3d4e8}
+body.rewards-dashboard .rewards-balance-card>div:first-child strong{font-size:clamp(36px,10vw,48px);color:#ffe49d;line-height:1.08}
+body.rewards-dashboard .rewards-balance-card p{font-size:13px;line-height:1.45;color:#d0dbea;margin:0}
+body.rewards-dashboard .rewards-balance-meta{grid-column:1 / -1}
+body.rewards-dashboard .prototype-badge{font-size:10px;line-height:1.2;white-space:nowrap;align-self:start}
+body.rewards-dashboard .reward-protection-card{margin:0 0 22px;padding:14px;border-radius:16px}
+body.rewards-dashboard .reward-protection-card strong{font-size:14px;line-height:1.3}
+body.rewards-dashboard .reward-protection-card small{font-size:12px;line-height:1.4}
+body.rewards-dashboard .reward-protection-card>a{font-size:12px;white-space:nowrap}
+body.rewards-dashboard .rewards-section{margin-bottom:23px}
+body.rewards-dashboard .rewards-section-heading{margin-bottom:10px}
+body.rewards-dashboard .rewards-section-heading h2{font-size:20px;line-height:1.2}
+body.rewards-dashboard .rewards-basics{gap:9px}
+body.rewards-dashboard .rewards-basic-item{padding:13px;border-radius:16px}
+body.rewards-dashboard .rewards-basic-item>span{font-size:23px;margin-bottom:8px}
+body.rewards-dashboard .rewards-basic-item strong{font-size:14px}
+body.rewards-dashboard .rewards-basic-item small{font-size:11px;line-height:1.35;color:#b9c9dc}
+body.rewards-dashboard .rewards-history{padding:0 16px}
+body.rewards-dashboard .history-item{padding:12px 0;font-size:14px}
+body.rewards-dashboard .history-value{font-size:14px}
+body.rewards-dashboard .rewards-empty{font-size:13px}
+body.rewards-dashboard .rewards-future{padding:18px;border:1px solid rgba(255,193,77,.35);border-radius:20px;background:linear-gradient(145deg,#1a2b43,#0d1c30)}
+body.rewards-dashboard .rewards-future .rewards-section-heading{align-items:center}
+body.rewards-dashboard .rewards-future>p{margin:0 0 14px;color:#c3d2e2;font-size:13px;line-height:1.5}
+body.rewards-dashboard .rewards-status-pill{font-size:10px;padding:6px 9px;white-space:nowrap}
+body.rewards-dashboard .rewards-roadmap{border-top:1px solid rgba(151,184,215,.2)}
+body.rewards-dashboard .rewards-roadmap summary{display:flex;align-items:center;gap:8px;min-height:50px;padding:10px 0;color:#edf6ff;font-size:14px;font-weight:700;cursor:pointer;list-style:none}
+body.rewards-dashboard .rewards-roadmap summary::-webkit-details-marker{display:none}
+body.rewards-dashboard .rewards-roadmap summary::after{content:'⌄';margin-left:auto;color:#9fd1ff;font-size:20px}
+body.rewards-dashboard .rewards-roadmap[open] summary::after{transform:rotate(180deg)}
+body.rewards-dashboard .rewards-roadmap summary span{margin-left:auto;color:#a9bdd2;font-size:11px;font-weight:500;text-align:right}
+body.rewards-dashboard .rewards-readiness{margin:0 0 14px}
+body.rewards-dashboard .rewards-readiness-row{padding:12px;gap:12px}
+body.rewards-dashboard .rewards-readiness-row strong{font-size:13px;line-height:1.3}
+body.rewards-dashboard .rewards-readiness-row small{font-size:11px;line-height:1.4;color:#b1c3d7}
+body.rewards-dashboard .rewards-future-copy{padding:0 0 10px;color:#bbcadb;font-size:12px;line-height:1.5}
+body.rewards-dashboard .rewards-future-copy p{margin:0 0 8px}
+body.rewards-dashboard .rewards-footnote{margin-bottom:16px}
+body.rewards-dashboard .rewards-footnote summary{color:#b4c8dd;font-size:12px;cursor:pointer}
+body.rewards-dashboard .rewards-footnote p{color:#aebfd2;font-size:12px}
+@media(max-width:390px){body.rewards-dashboard .rewards-balance-card{grid-template-columns:1fr}body.rewards-dashboard .prototype-badge{grid-row:2;justify-self:start}body.rewards-dashboard .rewards-basics{grid-template-columns:1fr 1fr}body.rewards-dashboard .rewards-basic-item:last-child{grid-column:1 / -1}body.rewards-dashboard .rewards-roadmap summary span{display:none}}
