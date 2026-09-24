@@ -3047,6 +3047,11 @@ const Arcade = (() => {
     }
   }
 
+  // Activate the shared gameplay scroll lock on every arcade page. The helper
+  // waits for DOMContentLoaded when necessary, so calling it here is safe even
+  // when arcade.js is loaded in the document head.
+  setupGameplayScrollLock();
+
   function installPauseControl(options = {}) {
     const status = document.getElementById('gameStatus');
     if (!status || document.getElementById('earnlyPauseButton')) return null;
