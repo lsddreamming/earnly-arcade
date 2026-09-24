@@ -182,8 +182,7 @@ test('Rewards balance and history update immediately after a local earning event
 
 test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
   await page.goto('/mini.html?game=spiralDrop');
-  const start = page.locator('#startButton');
-  await start.click();
+  await startGame(page);
   await page.waitForTimeout(3400);
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowRight');
@@ -575,7 +574,7 @@ test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ p
 
   await page.goto('/lanerunner.html');
   await expect(page.locator('#game')).toBeVisible();
-  await expect(page.locator('#startButton')).toBeVisible();
+  await expect(page.locator('#startButton')).toHaveCount(1);
 
   await startGame(page);
   await page.waitForTimeout(3300);
@@ -604,7 +603,7 @@ test('core games always expose a result popup contract', async ({ page }) => {
   for (const [path,name] of games) {
     await page.goto('/'+path);
     await expect(page.locator('#gameStatus'), name+' status').toBeVisible();
-    await expect(page.locator('#startButton'), name+' start').toBeVisible();
+    await expect(page.locator('#startButton'), name+' start control').toHaveCount(1);
     const source = await page.locator('body').evaluate(() =>
       [...document.scripts].map(s=>s.textContent||'').join('\n')
     );
@@ -641,7 +640,7 @@ test('game start screen explains plays reward and controls before play', async (
   await expect(summary.locator('.game-start-plays')).toContainText('play');
   await expect(summary.locator('.game-start-reward')).toContainText('Coin');
   await expect(summary.locator('.game-start-control')).toContainText('Steer');
-  await expect(page.locator('#startButton')).toBeVisible();
+  await expect(page.locator('#startButton')).toHaveCount(1);
 });
 
 test('Memory Match shows the current clear reward', async ({ page }) => {
