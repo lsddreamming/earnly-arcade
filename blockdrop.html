@@ -22,6 +22,11 @@
       margin-top: 12px;
       margin-bottom: 12px;
     }
+    .blockdrop-playfield { display:flex; align-items:flex-start; justify-content:center; gap:10px; }
+    .blockdrop-playfield .blockdrop-board { margin-left:0 !important; margin-right:0 !important; }
+    .blockdrop-previews { display:grid; gap:8px; margin-top:12px; }
+    .blockdrop-preview { padding:5px; text-align:center; color:#cbd5e1; font-size:11px; font-weight:800; border:1px solid rgba(91,129,185,.34); border-radius:13px; background:#101d31; }
+    .blockdrop-preview canvas { display:block; width:56px; height:56px; margin-top:4px; border-radius:9px; background:#0b1626; }
 
     .blockdrop-controls,
     .blockdrop-controls * {
@@ -224,7 +229,13 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
-    <canvas id="game" class="blockdrop-board touch-surface" width="300" height="600" aria-label="Block Drop game board"></canvas>
+    <div class="blockdrop-playfield">
+      <canvas id="game" class="blockdrop-board touch-surface" width="300" height="600" aria-label="Block Drop game board"></canvas>
+      <div class="blockdrop-previews" aria-label="Upcoming pieces">
+        <div class="blockdrop-preview">Next<canvas id="nextPiece" width="64" height="64" aria-label="Next piece"></canvas></div>
+        <div class="blockdrop-preview">Then<canvas id="thenPiece" width="64" height="64" aria-label="Piece after next"></canvas></div>
+      </div>
+    </div>
 
     <div class="controls blockdrop-controls" aria-label="Block Drop controls">
       <button class="game-control" id="leftButton" type="button" aria-label="Move left">⬅️</button>
@@ -240,6 +251,7 @@
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    const previewCanvases = [document.getElementById('nextPiece'), document.getElementById('thenPiece')];
 
     const scoreEl = document.getElementById('score');
     const linesEl = document.getElementById('lines');
@@ -298,6 +310,7 @@
     let pieceX = 0;
     let pieceY = 0;
     let pieceSerial = 0;
+    let upcomingPieces = [];
 
     function rewardForLines(value) { return Math.min(Math.max(0, Number(value) || 0), 5); }
 
@@ -332,17 +345,35 @@
 
     function newPiece() {
       pieceSerial += 1;
-      const index = Math.floor(Math.random() * pieceShapes.length);
+      const index = upcomingPieces.shift();
+      upcomingPieces.push(Math.floor(Math.random() * pieceShapes.length));
       currentPiece = pieceShapes[index].map(row => row.slice());
       currentColor = colors[index];
       pieceX = Math.floor((cols - currentPiece[0].length) / 2);
       pieceY = 0;
+      drawPreviews();
 
       if (collision(currentPiece, pieceX, pieceY)) {
         gameOver();
         return false;
       }
       return true;
+    }
+
+    function drawPreviews() {
+      previewCanvases.forEach((preview, position) => {
+        const context = preview.getContext('2d');
+        context.clearRect(0, 0, 64, 64);
+        const shape = pieceShapes[upcomingPieces[position]];
+        if (!shape) return;
+        const size = 13;
+        const left = (64 - shape[0].length * size) / 2;
+        const top = (64 - shape.length * size) / 2;
+        context.fillStyle = colors[upcomingPieces[position]];
+        shape.forEach((row, y) => row.forEach((filled, x) => {
+          if (filled) context.fillRect(left + x * size + 1, top + y * size + 1, size - 2, size - 2);
+        }));
+      });
     }
 
     function collision(piece, newX, newY) {
@@ -523,10 +554,11 @@
         starting = false;
         Arcade.out('blockDrop', refreshChrome);
         return;
-      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       createBoard();
       pieceSerial = 0;
+      upcomingPieces = Array.from({ length:2 }, () => Math.floor(Math.random() * pieceShapes.length));
       blockDragPointer = null;
       blockDragX = 0;
       blockDragY = 0;
