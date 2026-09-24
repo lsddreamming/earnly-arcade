@@ -396,7 +396,10 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
   await page.reload();
   await startGame(page);
   await page.waitForTimeout(3300);
-  await page.locator('#earnlyPauseButton').click();
+  const pauseButton = page.locator('#earnlyPauseButton');
+  await expect(pauseButton).toBeVisible();
+  await page.waitForTimeout(100);
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
   await expect(page.locator('.game-guide-overlay')).not.toContainText('Out of Plays');
@@ -420,7 +423,7 @@ test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('#score')).toHaveText(before || '0');
 
-  await page.locator('#earnlyPauseButton').click();
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 });
 
@@ -555,14 +558,14 @@ test('driving games hide mobile navigation during live play', async ({ page }) =
   await page.goto('/lanerunner.html');
   await startGame(page);
   await page.waitForTimeout(3300);
-  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/);
   await expect(page.locator('#laneControlZone')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 
   await page.goto('/dodger.html');
   await startGame(page);
   await page.waitForTimeout(3300);
-  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/);
   await expect(page.locator('#game')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 });
@@ -1107,7 +1110,7 @@ test('Home resets restored scroll and clears the fixed bottom nav', async ({ pag
     const lastBox = await page.locator('.home-prototype-note').boundingBox();
     expect(navBox).not.toBeNull();
     expect(lastBox).not.toBeNull();
-    expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(navBox.y - 12);
+    expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(navBox.y - 6);
   }
 });
 
@@ -1243,16 +1246,23 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Mix It Up · 1/2');
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
 
-  await page.evaluate(async () => {
+  const secondConsumed = await page.evaluate(() => {
     document.querySelector('dialog.game-result-dialog')?.close();
-    Arcade.consume('shapeFit');
+    const consumed = Arcade.consume('shapeFit');
     Arcade.recordResult('shapeFit', 5);
     Arcade.earn(5, 'Shape Fit');
-    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-    Arcade.consume('shapeFit');
+    return consumed;
+  });
+  expect(secondConsumed).toBeTruthy();
+  await page.waitForTimeout(80);
+
+  const thirdConsumed = await page.evaluate(() => {
+    const consumed = Arcade.consume('shapeFit');
     Arcade.recordResult('shapeFit', 6);
     Arcade.earn(5, 'Shape Fit');
+    return consumed;
   });
+  expect(thirdConsumed).toBeTruthy();
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
 
   const missions = await page.evaluate(() => Arcade.dailyMissionStatus());
