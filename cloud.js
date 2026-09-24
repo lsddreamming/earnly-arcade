@@ -375,6 +375,101 @@
     }
   }
 
+  const GROWTH_EVENT_TYPES = new Set([
+    'acquisition_attributed',
+    'onboarding_shown',
+    'onboarding_completed',
+    'onboarding_dismissed',
+    'play_started',
+    'game_result',
+    'one_more_run_shown',
+    'rewarded_ad_started',
+    'rewarded_play_unlock',
+    'leaderboard_viewed',
+    'profile_identity_saved'
+  ]);
+
+  function isGrowthEvent(event){
+    return !!event?.id && GROWTH_EVENT_TYPES.has(String(event.type || ''));
+  }
+
+  function growthEventBody(event){
+    const attribution = Arcade.acquisitionContext?.() || {};
+    const touch = attribution.first || attribution.latest || {};
+    const payload = event?.payload && typeof event.payload === 'object' ? event.payload : {};
+    const propertyKeys = [
+      'metric','best','newBest','xpAward','performanceXP','level',
+      'playsUsed','bonusPlays','unlockNumber','dailyLimit','playsGranted',
+      'unlocksLeft','firstTouch','rank','hasUsername','avatarKey'
+    ];
+    const properties = {};
+    propertyKeys.forEach(key => {
+      const value = payload[key];
+      if (value === null || typeof value === 'boolean' || typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))) {
+        properties[key] = value;
+      }
+    });
+
+    return {
+      eventId:event.id,
+      deviceId:event.deviceId || Arcade.deviceId(),
+      eventType:event.type,
+      creator:payload.creator || touch.creator || null,
+      source:payload.source || touch.source || null,
+      campaign:payload.campaign || touch.campaign || null,
+      content:payload.content || touch.content || null,
+      challenge:payload.challenge || touch.challenge || null,
+      game:payload.game || null,
+      landingPath:payload.landingPath || touch.path || (location.pathname.split('/').pop() || 'index.html'),
+      clientCreatedAt:event.createdAt || null,
+      properties
+    };
+  }
+
+  let growthSyncPromise = null;
+
+  async function syncGrowthEvents(){
+    if (growthSyncPromise) return growthSyncPromise;
+    if (!navigator.onLine) return { skipped:'offline', synced:0 };
+
+    growthSyncPromise = (async () => {
+      const events = Arcade.pendingSyncEvents().filter(isGrowthEvent).slice(0, 25);
+      if (!events.length) return { synced:0 };
+
+      let synced = 0;
+      for (const event of events) {
+        let response;
+        try {
+          response = await fetch(SUPABASE_URL + '/functions/v1/track-growth', {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              'apikey':SUPABASE_PUBLISHABLE_KEY
+            },
+            body:JSON.stringify(growthEventBody(event))
+          });
+        } catch {
+          break;
+        }
+
+        if (!response.ok) break;
+        const data = await response.json().catch(() => null);
+        if (!data?.ok) break;
+
+        Arcade.clearSyncEvents(event.id);
+        synced += 1;
+      }
+
+      return { synced, pending:Arcade.pendingSyncEvents().filter(isGrowthEvent).length };
+    })();
+
+    try {
+      return await growthSyncPromise;
+    } finally {
+      growthSyncPromise = null;
+    }
+  }
+
   function snapshotSignature(snapshot){
     const data = snapshot?.data && typeof snapshot.data === 'object' ? snapshot.data : {};
     const ordered = Object.keys(data).sort().map(key => [key, data[key]]);
@@ -389,11 +484,14 @@
 
   function clearSnapshotSyncedEvents(){
     const ids = Arcade.pendingSyncEvents()
-      .filter(event => !(
-        event?.type === 'coin_award' &&
-        event?.payload?.server &&
-        typeof event.payload.server === 'object'
-      ))
+      .filter(event => {
+        const serverReward = (
+          event?.type === 'coin_award' &&
+          event?.payload?.server &&
+          typeof event.payload.server === 'object'
+        );
+        return !serverReward && !isGrowthEvent(event);
+      })
       .map(event => event.id)
       .filter(Boolean);
 
@@ -784,6 +882,9 @@
         localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
       }
       scheduleAutoSync(event.detail?.type || 'data-change', 650);
+      if (GROWTH_EVENT_TYPES.has(String(event.detail?.type || ''))) {
+        syncGrowthEvents().catch(() => {});
+      }
 
       if (event.detail?.type === 'game_result' && event.detail?.payload?.newBest) {
         const payload = event.detail.payload;
@@ -799,9 +900,16 @@
     window.addEventListener('online', () => {
       retryAttempt = 0;
       scheduleAutoSync('online', 300);
+      syncGrowthEvents().catch(() => {});
     });
-    window.addEventListener('pageshow', () => scheduleAutoSync('pageshow', 850));
-    window.addEventListener('focus', () => scheduleAutoSync('focus', 1000));
+    window.addEventListener('pageshow', () => {
+      scheduleAutoSync('pageshow', 850);
+      syncGrowthEvents().catch(() => {});
+    });
+    window.addEventListener('focus', () => {
+      scheduleAutoSync('focus', 1000);
+      syncGrowthEvents().catch(() => {});
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         scheduleAutoSync('foreground', 650);
@@ -810,7 +918,10 @@
       }
     });
 
-    setTimeout(() => scheduleAutoSync('cloud-ready', 200), 0);
+    setTimeout(() => {
+      scheduleAutoSync('cloud-ready', 200);
+      syncGrowthEvents().catch(() => {});
+    }, 0);
     window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   }
 
@@ -834,6 +945,7 @@
     cloudSaveInfo,
     walletInfo,
     syncServerRewards,
+    syncGrowthEvents,
     maybeRestoreFreshDevice,
     saveProgress,
     autoSaveProgress,
