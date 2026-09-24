@@ -29,7 +29,7 @@ for (const game of miniGames) {
 
     // Start through the same play surface a real user sees.
     const surface = page.locator('#surface');
-    const startButton = page.locator('#startBtn');
+    const startButton = page.locator('#startButton');
     if (await startButton.count()) {
       await startButton.click();
     } else {
@@ -114,7 +114,7 @@ test('Rewards balance and history update immediately after a local earning event
 
 test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
   await page.goto('/mini.html?game=spiralDrop');
-  const start = page.locator('#startBtn');
+  const start = page.locator('#startButton');
   await start.click();
   await page.waitForTimeout(3400);
   await page.keyboard.press('ArrowLeft');
@@ -149,7 +149,7 @@ test('every mini game starts without runtime errors', async ({ page }) => {
     const onError = err => errors.push(err.message);
     page.on('pageerror', onError);
     await page.goto('/mini.html?game=' + game);
-    await page.locator('#startBtn').click();
+    await page.locator('#startButton').click();
     await page.waitForTimeout(120);
     expect(errors, game + ' produced a runtime error').toEqual([]);
     await expect(page.locator('#gameStatus')).not.toHaveText('Ready');
@@ -162,7 +162,7 @@ test('Spiral Drop removes desktop key handlers when a run ends', async ({ page }
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await page.goto('/mini.html?game=spiralDrop');
-  await page.locator('#startBtn').click();
+  await page.locator('#startButton').click();
   await page.waitForTimeout(3300);
   await page.keyboard.down('ArrowLeft');
   await page.waitForTimeout(80);
@@ -177,7 +177,7 @@ test('Bounce Run advertises and accepts keyboard jump controls', async ({ page }
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   await page.goto('/mini.html?game=bounceRun');
-  await page.locator('#startBtn').click();
+  await page.locator('#startButton').click();
   await page.waitForTimeout(3300);
   await expect(page.locator('#surface')).toContainText('');
   await page.keyboard.press('Space');
@@ -202,7 +202,7 @@ test('result popup clearly shows rewards, time, and replay state', async ({ page
   await expect(dialog).toContainText('XP Earned');
   await expect(dialog).toContainText('2');
   await expect(dialog).toContainText('Time played: 33s');
-  await expect(dialog.getByRole('button', { name:/Play Again · 2 Left/ })).toBeVisible();
+  await expect(dialog.getByRole('button', { name:/Play Again · 3 Left/ })).toBeVisible();
 });
 
 test('rewarded plays cannot be unlocked while plays remain', async ({ page }) => {
@@ -291,7 +291,7 @@ test('closing a result popup leaves no running gameplay lock behind', async ({ p
 test('pause control appears and toggles on mini games', async ({ page }) => {
   for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
     await page.goto('/mini.html?game=' + game);
-    await page.locator('#startBtn').click();
+    await page.locator('#startButton').click();
     await page.waitForTimeout(3300);
     const pause = page.locator('#earnlyPauseButton');
     await expect(pause, game + ' pause button').toBeVisible();
@@ -366,7 +366,7 @@ test('rapid Snake game-over calls only award and show results once', async ({ pa
   await page.waitForTimeout(3300);
   const before = await page.locator('#balance').textContent();
   await page.evaluate(() => { gameOver(); gameOver(); gameOver(); });
-  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
   await expect(page.locator('#gameStatus')).toHaveText('Game Over');
   const after = await page.locator('#balance').textContent();
   expect(Number(after)).toBeGreaterThanOrEqual(Number(before));
@@ -412,7 +412,7 @@ test('Brick Breaker end state clears pending level transition', async ({ page })
   });
   await page.waitForTimeout(180);
   await expect(page.locator('body')).not.toHaveAttribute('data-late-level-restart','yes');
-  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
 
@@ -432,9 +432,9 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
 
   await page.evaluate(() => { gameOver(); gameOver(); gameOver(); });
   await expect(page.locator('#gameStatus')).toHaveText('Game Over');
-  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
   await page.waitForTimeout(220);
-  await expect(page.locator('.game-result-modal')).toHaveCount(1);
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
 
@@ -666,7 +666,7 @@ test('Coin Catch keeps live instructions visible long enough to read', async ({ 
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
   await page.reload();
   await page.locator('#startButton').click();
-  await page.waitForTimeout(3400);
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout: 5000 });
 
   const tip = page.locator('#catchLiveTip');
   await expect(tip).toBeVisible();
@@ -825,7 +825,7 @@ test('Shape Fit always renders exactly one valid matching choice', async ({ page
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen','1'));
   await page.reload();
-  await page.locator('#startBtn').click();
+  await page.locator('#startButton').click();
   await page.waitForTimeout(2500);
 
   const targetBase = await page.locator('.fit-shape').getAttribute('data-base');
@@ -837,7 +837,7 @@ test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
   const jsResponse = await page.request.get('/mini-games.js');
   const source = await jsResponse.text();
   expect(source).toContain("title.classList.toggle('urgent',timeLeft<=1800)");
-  expect(source).toContain("Arcade.milestone('🧠 '+currentStage+'!','perfect')");
+  expect(source).toContain("if(lastStage&&currentStage!==lastStage)Arcade.feedback('perfect')");
   expect(source).toContain("wrap.classList.add('fit-success')");
   expect(source).toContain("wrap.classList.add('fit-miss')");
 
@@ -851,7 +851,8 @@ test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
 test('Traffic Escape keeps fast-road feedback without revealing the safe car', async ({ page }) => {
   const jsResponse = await page.request.get('/mini-games.js');
   const source = await jsResponse.text();
-  expect(source).toContain("Arcade.milestone('⚡ Fast road · '");
+  expect(source).toContain("if(quick)fastClears++");
+  expect(source).toContain("'⚡ Fast clear · '+roadTime.toFixed(1)+'s!'");
   expect(source).toContain("'⚡ Fast roads: '+fastClears");
   expect(source).toContain("'🏁 Best road: '");
   expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
@@ -889,7 +890,7 @@ test('new player flow keeps plays and results consistent', async ({ page }) => {
   await page.goto('/mini.html?game=shapeFit');
   await expect(page.locator('.game-start-plays')).toContainText('3 plays left');
 
-  await page.locator('#startBtn').click();
+  await page.locator('#startButton').click();
   await page.waitForTimeout(120);
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
   await expect(page.locator('.game-start-plays')).toContainText('2 plays left');
@@ -1035,7 +1036,7 @@ test('mission claims and rewarded plays emit polished feedback events', async ({
 
   const home = await (await page.request.get('/index.html')).text();
   expect(home).toContain("earnly-mission-claimed");
-  expect(home).toContain("Mission complete · +");
+  expect(arcade).toContain("Daily mission complete · +");
   expect(home).toContain("earnly-bonus-plays-unlocked");
 });
 
