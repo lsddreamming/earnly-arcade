@@ -255,6 +255,64 @@ const Arcade = (() => {
     }
   }
 
+  function cleanAttributionToken(value, max = 64) {
+    return String(value || '')
+      .trim()
+      .slice(0, max)
+      .replace(/[^A-Za-z0-9._-]/g, '');
+  }
+
+  function readAttribution(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || 'null');
+      return value && typeof value === 'object' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function acquisitionContext() {
+    return {
+      first:readAttribution('arcadeAcquisitionFirst'),
+      latest:readAttribution('arcadeAcquisitionLatest')
+    };
+  }
+
+  function captureAcquisition() {
+    const params = new URLSearchParams(location.search || '');
+    const incoming = {
+      creator:cleanAttributionToken(params.get('ref') || params.get('creator'), 40),
+      source:cleanAttributionToken(params.get('utm_source') || params.get('source'), 40),
+      campaign:cleanAttributionToken(params.get('utm_campaign') || params.get('campaign'), 64),
+      content:cleanAttributionToken(params.get('utm_content') || params.get('content'), 64),
+      challenge:cleanAttributionToken(params.get('challenge'), 64)
+    };
+    const meaningful = Object.values(incoming).some(Boolean);
+    if (!meaningful) return acquisitionContext();
+
+    const touch = {
+      ...incoming,
+      path:(location.pathname.split('/').pop() || 'index.html').slice(0, 80),
+      capturedAt:new Date().toISOString()
+    };
+
+    const existingFirst = readAttribution('arcadeAcquisitionFirst');
+    if (!existingFirst) localStorage.setItem('arcadeAcquisitionFirst', JSON.stringify(touch));
+    localStorage.setItem('arcadeAcquisitionLatest', JSON.stringify(touch));
+
+    const signature = JSON.stringify(incoming);
+    if (sessionStorage.getItem('arcadeAcquisitionSession') !== signature) {
+      sessionStorage.setItem('arcadeAcquisitionSession', signature);
+      queueEvent('acquisition_attributed', {
+        ...incoming,
+        firstTouch:!existingFirst,
+        landingPath:touch.path
+      });
+    }
+
+    return acquisitionContext();
+  }
+
   function queueEvent(type, payload = {}) {
     const events = pendingSyncEvents();
     events.push({
@@ -3032,6 +3090,7 @@ const Arcade = (() => {
     document.head.append(sdk);
   }
 
+  captureAcquisition();
   repairLifetimeCounters();
   repairGameStats();
   applyTextScale();
@@ -3284,6 +3343,8 @@ const Arcade = (() => {
     syncStatus,
     pendingSyncEvents,
     clearSyncEvents,
+    acquisitionContext,
+    captureAcquisition,
     snapshotData,
     hasMeaningfulProgress,
     transferCode,
