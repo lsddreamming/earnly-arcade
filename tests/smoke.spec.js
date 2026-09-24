@@ -1215,3 +1215,38 @@ test('repairs impossible daily coin counters and uses live catalog total', async
   expect(totalGames).toBe(20);
   await expect(page.locator('#differentGames')).toContainText('/20');
 });
+
+
+test('global leaderboards expose all games and editable player identity', async ({ page }) => {
+  await page.goto('/leaderboards.html');
+  await expect(page.locator('#gameSelect option')).toHaveCount(20);
+  await expect(page.locator('#boardTitle')).toContainText('World Top 25');
+  await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
+
+  await page.goto('/profile.html');
+  await expect(page.locator('#usernameInput')).toBeVisible();
+  await expect(page.locator('#avatarPicker .avatar-choice')).toHaveCount(16);
+  await expect(page.locator('a[href="leaderboards.html"]')).toContainText('World Ranks');
+});
+
+test('leaderboard sync is server-routed and new bests submit automatically', async ({ page }) => {
+  const cloud = await (await page.request.get('/cloud.js')).text();
+  expect(cloud).toContain("functions.invoke('leaderboard'");
+  expect(cloud).toContain("functions.invoke('leaderboard-report'");
+  expect(cloud).toContain("action:'submit'");
+  expect(cloud).toContain("action:'list'");
+  expect(cloud).toContain("event.detail?.type === 'game_result' && event.detail?.payload?.newBest");
+
+  const arcade = await (await page.request.get('/arcade.js')).text();
+  expect(arcade).toContain("arcadeProfileIcon");
+  expect(arcade).toContain("arcadeUsername");
+  expect(arcade).toContain("profileAvatars");
+});
+
+test('leaderboards include report-and-hide moderation controls', async ({ page }) => {
+  const html = await (await page.request.get('/leaderboards.html')).text();
+  expect(html).toContain('Report & Hide');
+  expect(html).toContain('reportLeaderboardPlayer');
+  expect(html).toContain('arcadeBlockedLeaderboardUsers');
+  expect(html).toContain('support.html');
+});
