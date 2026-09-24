@@ -220,9 +220,14 @@ test('web H5 rewarded ads stay approval-gated and native-safe', () => {
 
   expect(webAds).toContain("const ADSENSE_CLIENT = ''");
   expect(webAds).toContain("type:'reward'");
+  expect(webAds).toContain("window.adConfig({ preloadAdBreaks:'on' })");
+  expect(webAds).toContain("script.dataset.adClient = ADSENSE_CLIENT");
+  expect(webAds).toContain("requestRewardConfirmation(");
+  expect(webAds).toContain("showAdFn();");
   expect(webAds).toContain("adViewed:() => settle({ earned:true");
   expect(webAds).toContain("adDismissed:() => settle({ earned:false");
   expect(webAds).toContain("status:'not-configured'");
+  expect(webAds).not.toContain('immediately accept');
   expect(webAds).not.toContain('grantPlays(');
   expect(webAds).not.toContain('Arcade.earn');
 
