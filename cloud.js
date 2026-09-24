@@ -384,6 +384,7 @@
     'game_result',
     'one_more_run_shown',
     'rewarded_ad_started',
+    'rewarded_ad_outcome',
     'rewarded_play_unlock',
     'leaderboard_viewed',
     'profile_identity_saved'
@@ -400,7 +401,8 @@
     const propertyKeys = [
       'metric','best','newBest','xpAward','performanceXP','level',
       'playsUsed','bonusPlays','unlockNumber','dailyLimit','playsGranted',
-      'unlocksLeft','firstTouch','rank','hasUsername','avatarKey'
+      'unlocksLeft','firstTouch','rank','hasUsername','avatarKey',
+      'provider','status','earned'
     ];
     const properties = {};
     propertyKeys.forEach(key => {
