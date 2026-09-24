@@ -428,8 +428,13 @@
 
   let growthSyncPromise = null;
 
+  function growthSyncEnabled(){
+    return !['localhost','127.0.0.1','::1'].includes(location.hostname);
+  }
+
   async function syncGrowthEvents(){
     if (growthSyncPromise) return growthSyncPromise;
+    if (!growthSyncEnabled()) return { skipped:'local-test', synced:0 };
     if (!navigator.onLine) return { skipped:'offline', synced:0 };
 
     growthSyncPromise = (async () => {
@@ -946,6 +951,7 @@
     walletInfo,
     syncServerRewards,
     syncGrowthEvents,
+    growthSyncEnabled,
     maybeRestoreFreshDevice,
     saveProgress,
     autoSaveProgress,
