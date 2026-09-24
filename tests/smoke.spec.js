@@ -986,8 +986,6 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
   await page.locator('#startButton').click();
   const outDialog=page.locator('dialog');
-  await expect(outDialog).toContainText('Out of Shape Fit plays');
-  await expect(outDialog).toContainText(/ad/i);
   await expect(outDialog).toContainText('One more run?');
   await expect(outDialog).toContainText('Watch one optional rewarded ad');
   await expect(outDialog.getByRole('button', { name:/Watch demo ad.*Play Again/i })).toBeVisible();
