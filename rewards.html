@@ -15,6 +15,40 @@
   <title>Earnly Rewards</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=30">
+  <style>
+    .rewards-dashboard .rewards-hero { margin:8px 2px 14px; }
+    .rewards-dashboard .rewards-hero h1 { font-size:clamp(30px,8vw,38px); line-height:1.08; }
+    .rewards-dashboard .rewards-hero p { max-width:38rem; font-size:14px; line-height:1.45; }
+    .rewards-dashboard .rewards-balance-card { gap:12px; padding:20px; margin-bottom:12px; }
+    .rewards-dashboard .rewards-balance-card>div:first-child strong { font-size:clamp(36px,10vw,48px); }
+    .rewards-dashboard .rewards-balance-card p { max-width:none; font-size:12px; line-height:1.45; }
+    .rewards-dashboard .prototype-badge { align-self:start; font-size:9px; white-space:nowrap; }
+    .rewards-dashboard .rewards-balance-meta>span { font-size:11px; padding:7px 10px; }
+    .rewards-dashboard .rewards-balance-meta strong { font-size:12px; color:#ffe188; }
+    .rewards-play-link { display:inline-flex; justify-content:center; align-items:center; grid-column:1/-1; min-height:46px; border-radius:13px; background:#17b968; color:#061c16; font-weight:900; text-decoration:none; }
+    .rewards-now-later { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 16px; }
+    .rewards-now-later article { padding:15px; border:1px solid #335475; border-radius:17px; background:linear-gradient(145deg,#182d49,#0d1d31); }
+    .rewards-now-later span { display:block; margin-bottom:7px; color:#81dcff; font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .rewards-now-later strong { display:block; font-size:16px; line-height:1.25; }
+    .rewards-now-later p { margin:6px 0 0; color:#b2c1d2; font-size:12px; line-height:1.4; }
+    .rewards-dashboard .rewards-section { margin-bottom:18px; }
+    .rewards-dashboard .rewards-basic-item { padding:12px; }
+    .rewards-dashboard .rewards-basic-item small { font-size:10px; }
+    .rewards-roadmap { margin:8px 0 20px; border:1px solid #345171; border-radius:18px; background:#101f33; overflow:hidden; }
+    .rewards-roadmap summary { padding:16px; cursor:pointer; font-size:15px; font-weight:850; list-style:none; }
+    .rewards-roadmap summary::-webkit-details-marker { display:none; }
+    .rewards-roadmap summary::after { content:'⌄'; float:right; font-size:20px; line-height:16px; color:#8cdbff; }
+    .rewards-roadmap[open] summary::after { transform:rotate(180deg); }
+    .rewards-roadmap .roadmap-inner { padding:0 15px 16px; }
+    .rewards-roadmap .roadmap-inner>p { color:#aebfd2; font-size:12px; line-height:1.5; }
+    .rewards-roadmap .rewards-readiness-row { padding:10px; }
+    @media(max-width:480px) {
+      .rewards-now-later { grid-template-columns:1fr; }
+      .rewards-dashboard .rewards-balance-card { grid-template-columns:1fr auto; padding:16px; }
+      .rewards-dashboard .prototype-badge { font-size:8px; padding:7px; }
+      .rewards-dashboard .rewards-basic-item { padding:9px; }
+    }
+  </style>
 </head>
 <body class="rewards-dashboard">
   <main class="container rewards-container">
@@ -28,8 +62,8 @@
 
     <header class="rewards-hero">
       <span class="rewards-eyebrow">REWARDS</span>
-      <h1>Play now. Build your balance.</h1>
-      <p>Earn Arcade Coins through play now. Future reward options are being evaluated and are not available in this version.</p>
+      <h1>Your Arcade Coins</h1>
+      <p>Earn Coins by playing games. Redemption is not available in this version.</p>
     </header>
 
     <section class="rewards-balance-card">
@@ -37,44 +71,18 @@
         <span class="rewards-balance-label">Arcade Coins</span>
         <strong><span id="balance">0</span> <small>🪙</small></strong>
       </div>
-      <span class="prototype-badge">REWARDS BUILDING</span>
-      <p>Arcade Coins are in-app reward points. They are not cash, cryptocurrency, or stored value, and they cannot be redeemed, transferred, or withdrawn in this version.</p>
+      <span class="prototype-badge">IN-APP POINTS</span>
+      <p>Coins track your game rewards. They cannot be cashed out, transferred, or spent in this version.</p>
       <div class="rewards-balance-meta">
         <span>Today <strong id="todayEarned">+0</strong></span>
         <span>Lifetime <strong id="lifetimeEarned">0</strong></span>
       </div>
+      <a class="rewards-play-link" href="games.html">Play games →</a>
     </section>
 
-    <section class="reward-vision-card" aria-label="Earnly future rewards roadmap">
-      <div class="reward-vision-head">
-        <span class="reward-vision-icon">🏆</span>
-        <div>
-          <span class="rewards-kicker">FUTURE REWARDS ROADMAP</span>
-          <h2>Future reward options are being evaluated</h2>
-        </div>
-        <span class="rewards-status-pill">ROADMAP</span>
-      </div>
-
-      <p class="reward-vision-copy">Earnly is exploring future reward redemption for game-earned Arcade Coins. Any future program, eligibility rules, redemption rate, minimum, regions, and reward methods will be defined before launch and may change.</p>
-
-      <div class="reward-funding-strip">
-        <span>📺 Future reward funding</span>
-        <strong>Earnly may use a portion of ad revenue to help fund future rewards</strong>
-        <small>Future reward availability and values are not guaranteed and may change as the Earnly economy develops.</small>
-      </div>
-
-      <div class="reward-future-options">
-        <div class="reward-future-option">
-          <span>🎁</span>
-          <div><strong>Reward methods</strong><small>Still being evaluated · not available now</small></div>
-          <b>NOT LIVE</b>
-        </div>
-        <div class="reward-future-option">
-          <span>🛡️</span>
-          <div><strong>Eligibility & safeguards</strong><small>Rules and availability will be defined before launch</small></div>
-          <b>ROADMAP</b>
-        </div>
-      </div>
+    <section class="rewards-now-later" aria-label="Current and future rewards">
+      <article><span>✓ Available now</span><strong>Earn Coins and level up</strong><p>Play games, complete challenges, and track your progress.</p></article>
+      <article><span>◷ Being explored</span><strong>Possible future rewards</strong><p>Future reward options are being evaluated. No redemption is live.</p></article>
     </section>
 
     <section class="reward-protection-card" id="rewardProtectionCard">
@@ -94,46 +102,37 @@
         </div>
       </div>
       <div class="rewards-basics">
-        <div class="rewards-basic-item"><span>🪙</span><div><strong>Coins</strong><small>In-app reward points</small></div></div>
-        <div class="rewards-basic-item"><span>⭐</span><div><strong>XP</strong><small>Levels and profile progress</small></div></div>
-        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>3 free + up to 2 voluntary +1-play unlocks/game</small></div></div>
+        <div class="rewards-basic-item"><span>🪙</span><div><strong>Coins</strong><small>Earned from games</small></div></div>
+        <div class="rewards-basic-item"><span>⭐</span><div><strong>XP</strong><small>Raises your level</small></div></div>
+        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>Turns to play a game</small></div></div>
       </div>
     </section>
 
     <section class="rewards-section">
-      <div class="rewards-section-heading">
-        <div>
-          <span class="rewards-kicker">REWARD LAUNCH ROADMAP</span>
-          <h2>3 of 6 foundations ready</h2>
-        </div>
-        <span class="rewards-status-pill">Growing</span>
-      </div>
+      <div class="rewards-section-heading"><div><span class="rewards-kicker">ACTIVITY</span><h2>Recent earnings</h2></div></div>
+      <div class="rewards-history" id="history"></div>
+    </section>
 
-      <div class="rewards-readiness">
+    <details class="rewards-roadmap">
+      <summary>See the future rewards plan</summary>
+      <div class="roadmap-inner">
+        <p>Earnly is exploring reward redemption. Methods, eligibility, rates, minimums, and regions would be set before launch and may change. A future program may be funded partly by ad revenue; availability and value are not guaranteed.</p>
+        <div class="rewards-readiness">
         <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Game-earned Arcade Coins</strong><small>Coins come from gameplay, bonuses, and challenges</small></div></div>
         <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Secure Coin balance & ledger</strong><small>Server-backed when you sign in</small></div></div>
         <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Rewarded ads for extra plays</strong><small>Ads support the economy without directly minting Coins</small></div></div>
         <div class="rewards-readiness-row"><span>4</span><div><strong>Define any future redemption rate</strong><small>Based on measured revenue, costs, eligibility, and sustainable payout math</small></div></div>
         <div class="rewards-readiness-row"><span>5</span><div><strong>Payout & fraud protection</strong><small>Verify balances and stop abuse before real rewards launch</small></div></div>
         <div class="rewards-readiness-row"><span>6</span><div><strong>Future reward redemption</strong><small>Launch eligible reward methods only after the economy and safeguards are validated</small></div></div>
-      </div>
-    </section>
-
-    <section class="rewards-section">
-      <div class="rewards-section-heading">
-        <div>
-          <span class="rewards-kicker">ACTIVITY</span>
-          <h2>Recent earnings</h2>
         </div>
       </div>
-      <div class="rewards-history" id="history"></div>
-    </section>
+    </details>
 
     <details class="rewards-footnote">
       <summary>How Arcade Coins work</summary>
-      <p>Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads unlock extra plays, not Coins.</p>
-      <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server ledger. Future reward options are being evaluated but are not available in this version.</p>
-      <p>Arcade Coins have no fixed cash value in this version. Future reward availability, eligibility, redemption rates, minimums, regions, and payout methods may change before launch.</p>
+      <p>Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads offer voluntary +1-play unlocks, not Coins.</p>
+      <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server ledger.</p>
+      <p>Arcade Coins are in-app points. They are not cash, cryptocurrency, or stored value. They have no fixed cash value and cannot be redeemed, transferred, or withdrawn in this version. Future reward terms may change before launch.</p>
     </details>
   </main>
 
