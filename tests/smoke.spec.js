@@ -1224,6 +1224,7 @@ test('global leaderboards expose all games and editable player identity', async 
   await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
 
   await page.goto('/profile.html');
+  await page.locator('details.profile-edit-card > summary').click();
   await expect(page.locator('#usernameInput')).toBeVisible();
   await expect(page.locator('#avatarPicker .avatar-choice')).toHaveCount(16);
   await expect(page.locator('a[href="leaderboards.html"]')).toContainText('World Ranks');
