@@ -386,7 +386,8 @@
     'rewarded_ad_started',
     'rewarded_play_unlock',
     'leaderboard_viewed',
-    'profile_identity_saved'
+    'profile_identity_saved',
+    'score_challenge_shared'
   ]);
 
   function isGrowthEvent(event){
@@ -400,7 +401,7 @@
     const propertyKeys = [
       'metric','best','newBest','xpAward','performanceXP','level',
       'playsUsed','bonusPlays','unlockNumber','dailyLimit','playsGranted',
-      'unlocksLeft','firstTouch','rank','hasUsername','avatarKey'
+      'unlocksLeft','firstTouch','rank','hasUsername','avatarKey','method'
     ];
     const properties = {};
     propertyKeys.forEach(key => {
