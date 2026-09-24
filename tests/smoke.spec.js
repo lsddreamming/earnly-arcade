@@ -1,3 +1,19 @@
+test('creator attribution records sanitized first and latest touch', async ({ page }) => {
+  await page.goto('/index.html?ref=creator_42&utm_source=tiktok&utm_campaign=launch-wave&utm_content=snake-hook&challenge=beat-me');
+  const attribution = await page.evaluate(() => Arcade.acquisitionContext());
+
+  expect(attribution.first.creator).toBe('creator_42');
+  expect(attribution.first.source).toBe('tiktok');
+  expect(attribution.first.campaign).toBe('launch-wave');
+  expect(attribution.first.content).toBe('snake-hook');
+  expect(attribution.first.challenge).toBe('beat-me');
+  expect(attribution.latest.creator).toBe('creator_42');
+
+  const event = await page.evaluate(() => Arcade.pendingSyncEvents().find(item => item.type === 'acquisition_attributed'));
+  expect(event.payload.creator).toBe('creator_42');
+  expect(event.payload.firstTouch).toBeTruthy();
+});
+
 const { test, expect } = require('@playwright/test');
 
 const pages = [
