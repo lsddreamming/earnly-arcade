@@ -82,7 +82,7 @@ const Arcade = (() => {
   };
 
   const FREE_PLAYS = 3;
-  const PLAY_AD_BONUS = 3;
+  const PLAY_AD_BONUS = 1;
   const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
   const DAILY_MISSION_VERSION = '1';
@@ -91,7 +91,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -1630,6 +1630,14 @@ const Arcade = (() => {
       statsBox.append(stat);
     });
 
+    const levelState = xpStatus();
+    const levelProgress = document.createElement('div');
+    levelProgress.className = 'result-level-progress';
+    levelProgress.innerHTML =
+      '<div><strong>⭐ Level ' + levelState.level + '</strong><span>' +
+      levelState.current + ' / ' + levelState.needed + ' XP</span></div>' +
+      '<i aria-label="Level progress"><b style="width:' + levelState.progress.toFixed(1) + '%"></b></i>';
+
     const notes = document.createElement('div');
     notes.className = 'result-notes';
 
@@ -1748,7 +1756,7 @@ const Arcade = (() => {
     if (resultPlaysLeft > 0) {
       primary.textContent = '▶ Play Again · ' + resultPlaysLeft + ' Left';
     } else if (resultAdStatus.remaining > 0) {
-      primary.textContent = '▶ Watch Ad · +' + resultAdStatus.bonus + ' Plays';
+      primary.textContent = '📺 Watch Ad · +1 Play & Replay';
     } else {
       primary.textContent = '🎟️ Plays Refill Tomorrow';
       primary.disabled = true;
@@ -1769,6 +1777,8 @@ const Arcade = (() => {
         modal.className = '';
         if (livePlays > 0) {
           if (typeof onReplay === 'function') onReplay();
+        } else if (game && typeof onReplay === 'function') {
+          playAd(game, onReplay);
         } else if (typeof onMorePlays === 'function') {
           onMorePlays();
         } else if (game) {
@@ -1789,7 +1799,7 @@ const Arcade = (() => {
     });
 
     actions.append(primary, back);
-    modal.append(hero, main, statsBox);
+    modal.append(hero, main, statsBox, levelProgress);
     if (notes.childElementCount) modal.append(notes);
     modal.append(actions);
     modal.showModal();
@@ -2684,7 +2694,7 @@ const Arcade = (() => {
     list.className = 'onboarding-list';
 
     [
-      ['🎟️','Plays','3 free plays per game each day. Up to 2 rewarded ads can unlock +3 plays each for that game.'],
+      ['🎟️','Plays','3 free plays per game each day. Up to 2 voluntary rewarded ads can unlock +1 play each for that game.'],
       ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
       ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
       ['🎁','Rewards','Arcade Coins are in-app points, not cash or cryptocurrency. Redemption and withdrawals are not available in this version.']
