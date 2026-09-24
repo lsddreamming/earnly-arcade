@@ -433,7 +433,18 @@
         }
       }
 
-      if (!collision(rotated, pieceX, pieceY)) currentPiece = rotated;
+      // Try the original position first, then small wall/floor kicks. A turn
+      // beside an edge should slide into the board rather than be discarded.
+      const kicks = [[0,0],[-1,0],[1,0],[-2,0],[2,0],[-3,0],[3,0],
+        [0,-1],[-1,-1],[1,-1],[-2,-1],[2,-1],
+        [0,-2],[-1,-2],[1,-2]];
+      for (const [dx, dy] of kicks) {
+        if (collision(rotated, pieceX + dx, pieceY + dy)) continue;
+        currentPiece = rotated;
+        pieceX += dx;
+        pieceY += dy;
+        break;
+      }
       draw();
     }
 
