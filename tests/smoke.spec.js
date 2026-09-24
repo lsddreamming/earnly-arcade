@@ -932,11 +932,53 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
   await page.locator('#startButton').click();
   const outDialog=page.locator('dialog');
-  await expect(outDialog).toContainText('Out of Shape Fit plays');
-  await expect(outDialog).toContainText(/ad/i);
+  await expect(outDialog).toContainText('One more run?');
+  await expect(outDialog).toContainText('Watch one optional rewarded ad');
+  await expect(outDialog.getByRole('button', { name:/Watch demo ad.*Play Again/i })).toBeVisible();
+  await expect(outDialog.getByRole('button', { name:'Choose Another Game' })).toBeVisible();
   await expect(outDialog).not.toContainText(/spend .*coin/i);
 });
 
+
+test('first visit onboarding gets players to gameplay fast', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const dialog = page.locator('dialog.onboarding-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Welcome to Earnly');
+  await expect(dialog).toContainText('Start with 3 free plays per game every day.');
+  await expect(dialog).toContainText('Ads do not award Arcade Coins.');
+  await expect(dialog).toContainText('Out of plays?');
+  await expect(dialog.locator('.onboarding-row')).toHaveCount(3);
+
+  await dialog.getByRole('button', { name:'Start Playing →' }).click();
+  await expect(page).toHaveURL(/games\.html$/);
+  expect(await page.evaluate(() => localStorage.getItem('arcadeOnboardingSeen'))).toBe('1');
+});
+
+test('one-more-run gate grants exactly one play then returns control', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    const d = new Date();
+    const day = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    localStorage.setItem('arcadePlayDay', day);
+    localStorage.setItem('shapeFitGamesPlayed', '3');
+    localStorage.setItem('shapeFitBonusPlays', '0');
+    localStorage.setItem('shapeFitPlayAdUnlocks', '0');
+  });
+  await page.reload();
+
+  await page.locator('#startButton').click();
+  const gate = page.locator('dialog');
+  await expect(gate).toContainText('One more run?');
+  await gate.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
+  await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
+  await page.waitForTimeout(3400);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
+  expect(await page.evaluate(() => Arcade.playAdStatus('shapeFit').used)).toBe(1);
+});
 
 test('account cloud flow exposes offline and restore safeguards', async ({ page }) => {
   const cloud = await (await page.request.get('/cloud.js')).text();
