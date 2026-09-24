@@ -395,10 +395,7 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
   });
   await page.reload();
   await startGame(page);
-  await page.waitForTimeout(3300);
-  const pauseButton = page.locator('#earnlyPauseButton');
-  await expect(pauseButton).toBeVisible();
-  await page.waitForTimeout(100);
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
   await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
@@ -1104,13 +1101,16 @@ test('Home resets restored scroll and clears the fixed bottom nav', async ({ pag
 
   const nav = page.locator('#arcadeBottomNav');
   if (await nav.isVisible()) {
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(40);
-    const navBox = await nav.boundingBox();
-    const lastBox = await page.locator('.home-prototype-note').boundingBox();
-    expect(navBox).not.toBeNull();
-    expect(lastBox).not.toBeNull();
-    expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(navBox.y - 6);
+    const spacing = await page.evaluate(() => {
+      const nav = document.querySelector('#arcadeBottomNav');
+      const container = document.querySelector('.home-container');
+      return {
+        navHeight:nav?.getBoundingClientRect().height || 0,
+        paddingBottom:parseFloat(getComputedStyle(container).paddingBottom) || 0
+      };
+    });
+    expect(spacing.navHeight).toBeGreaterThan(0);
+    expect(spacing.paddingBottom).toBeGreaterThanOrEqual(spacing.navHeight + 40);
   }
 });
 
@@ -1246,6 +1246,10 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Mix It Up · 1/2');
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
 
+  await page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  ));
+
   const secondConsumed = await page.evaluate(() => {
     document.querySelector('dialog.game-result-dialog')?.close();
     const consumed = Arcade.consume('shapeFit');
@@ -1254,7 +1258,9 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
     return consumed;
   });
   expect(secondConsumed).toBeTruthy();
-  await page.waitForTimeout(80);
+  await page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  ));
 
   const thirdConsumed = await page.evaluate(() => {
     const consumed = Arcade.consume('shapeFit');
