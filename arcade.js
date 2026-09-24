@@ -2558,7 +2558,10 @@ const Arcade = (() => {
       if (playsLeft <= 0) {
         overlayIcon.textContent = '🎟️';
         overlayTitle.textContent = 'Out of Plays';
-        overlayText.textContent = 'Tap here to see today’s play options';
+        const adStatus = playAdStatus(game);
+        overlayText.textContent = adStatus.remaining > 0
+          ? 'Tap here to watch a rewarded ad and unlock +' + PLAY_AD_BONUS + ' plays'
+          : 'Today’s rewarded-play limit is reached';
         return;
       }
 
