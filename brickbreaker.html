@@ -750,7 +750,7 @@
     function canStartGlobalPaddleDrag(event){
       if(!running || event.target===canvas || event.isPrimary===false || (event.pointerType==='mouse'&&event.button!==0)) return false;
       const target=event.target instanceof Element?event.target:null;
-      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-modal')) return false;
+      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-dialog')) return false;
       const pauseButton=document.querySelector('.earnly-pause-button');
       const minY=pauseButton?pauseButton.getBoundingClientRect().bottom+4:0;
       return event.clientY>=minY;
