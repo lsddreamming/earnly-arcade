@@ -200,7 +200,7 @@ test('result popup clearly shows rewards, time, and replay state', async ({ page
   await expect(dialog).toContainText('NEW BEST');
   await expect(dialog).toContainText('Coins Earned');
   await expect(dialog).toContainText('XP Earned');
-  await expect(dialog).toContainText('2');
+  await expect(dialog.locator('.result-stat').filter({ hasText:'Plays Left' })).toContainText('3');
   await expect(dialog).toContainText('Time played: 33s');
   await expect(dialog.getByRole('button', { name:/Play Again · 3 Left/ })).toBeVisible();
 });
@@ -339,13 +339,15 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
 test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await page.goto('/snake.html');
   await page.locator('#startButton').click();
-  await page.waitForTimeout(3300);
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
 
   const before = await page.locator('#score').textContent();
   await page.keyboard.press('ArrowDown');
-  await page.locator('#game').click({ position:{x:200,y:320} });
+  const gameBox = await page.locator('#game').boundingBox();
+  expect(gameBox).not.toBeNull();
+  await page.mouse.click(gameBox.x + Math.min(200, gameBox.width / 2), gameBox.y + Math.min(320, gameBox.height / 2));
   await page.waitForTimeout(350);
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('#score')).toHaveText(before || '0');
@@ -852,7 +854,7 @@ test('Traffic Escape keeps fast-road feedback without revealing the safe car', a
   const jsResponse = await page.request.get('/mini-games.js');
   const source = await jsResponse.text();
   expect(source).toContain("if(quick)fastClears++");
-  expect(source).toContain("'⚡ Fast clear · '+roadTime.toFixed(1)+'s!'");
+  expect(source).toContain("'⚡ Fast clear · '+roadTime.toFixed(1)+'s! · '");
   expect(source).toContain("'⚡ Fast roads: '+fastClears");
   expect(source).toContain("'🏁 Best road: '");
   expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
