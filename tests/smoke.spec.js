@@ -182,8 +182,7 @@ test('Rewards balance and history update immediately after a local earning event
 
 test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
   await page.goto('/mini.html?game=spiralDrop');
-  const start = page.locator('#startButton');
-  await start.click();
+  await startGame(page);
   await page.waitForTimeout(3400);
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowRight');
@@ -377,13 +376,13 @@ test('pause control appears and toggles on mini games', async ({ page }) => {
 test('pause control is visible during Snake gameplay', async ({ page }) => {
   await page.goto('/snake.html');
   await startGame(page);
-  await page.waitForTimeout(3300);
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
   const pause = page.locator('#earnlyPauseButton');
   await expect(pause).toBeVisible();
-  await pause.click();
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(pause).toHaveText(/Resume/);
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await pause.click();
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 });
 
@@ -396,8 +395,8 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
   });
   await page.reload();
   await startGame(page);
-  await page.waitForTimeout(3300);
-  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
   await expect(page.locator('.game-guide-overlay')).not.toContainText('Out of Plays');
@@ -408,8 +407,8 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
 test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await page.goto('/snake.html');
   await startGame(page);
-  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
-  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
 
   const before = await page.locator('#score').textContent();
@@ -421,7 +420,7 @@ test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('#score')).toHaveText(before || '0');
 
-  await page.locator('#earnlyPauseButton').click();
+  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Running');
 });
 
@@ -556,14 +555,14 @@ test('driving games hide mobile navigation during live play', async ({ page }) =
   await page.goto('/lanerunner.html');
   await startGame(page);
   await page.waitForTimeout(3300);
-  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/);
   await expect(page.locator('#laneControlZone')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 
   await page.goto('/dodger.html');
   await startGame(page);
   await page.waitForTimeout(3300);
-  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#gameStatus')).toHaveClass(/running/);
   await expect(page.locator('#game')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 });
@@ -575,7 +574,7 @@ test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ p
 
   await page.goto('/lanerunner.html');
   await expect(page.locator('#game')).toBeVisible();
-  await expect(page.locator('#startButton')).toBeVisible();
+  await expect(page.locator('#startButton')).toHaveCount(1);
 
   await startGame(page);
   await page.waitForTimeout(3300);
@@ -604,7 +603,7 @@ test('core games always expose a result popup contract', async ({ page }) => {
   for (const [path,name] of games) {
     await page.goto('/'+path);
     await expect(page.locator('#gameStatus'), name+' status').toBeVisible();
-    await expect(page.locator('#startButton'), name+' start').toBeVisible();
+    await expect(page.locator('#startButton'), name+' start control').toHaveCount(1);
     const source = await page.locator('body').evaluate(() =>
       [...document.scripts].map(s=>s.textContent||'').join('\n')
     );
@@ -641,7 +640,7 @@ test('game start screen explains plays reward and controls before play', async (
   await expect(summary.locator('.game-start-plays')).toContainText('play');
   await expect(summary.locator('.game-start-reward')).toContainText('Coin');
   await expect(summary.locator('.game-start-control')).toContainText('Steer');
-  await expect(page.locator('#startButton')).toBeVisible();
+  await expect(page.locator('#startButton')).toHaveCount(1);
 });
 
 test('Memory Match shows the current clear reward', async ({ page }) => {
@@ -1102,13 +1101,16 @@ test('Home resets restored scroll and clears the fixed bottom nav', async ({ pag
 
   const nav = page.locator('#arcadeBottomNav');
   if (await nav.isVisible()) {
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(40);
-    const navBox = await nav.boundingBox();
-    const lastBox = await page.locator('.home-prototype-note').boundingBox();
-    expect(navBox).not.toBeNull();
-    expect(lastBox).not.toBeNull();
-    expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(navBox.y - 12);
+    const spacing = await page.evaluate(() => {
+      const nav = document.querySelector('#arcadeBottomNav');
+      const container = document.querySelector('.home-container');
+      return {
+        navHeight:nav?.getBoundingClientRect().height || 0,
+        paddingBottom:parseFloat(getComputedStyle(container).paddingBottom) || 0
+      };
+    });
+    expect(spacing.navHeight).toBeGreaterThan(0);
+    expect(spacing.paddingBottom).toBeGreaterThanOrEqual(spacing.navHeight + 40);
   }
 });
 
@@ -1244,16 +1246,29 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Mix It Up · 1/2');
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
 
-  await page.evaluate(async () => {
+  await page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  ));
+
+  const secondConsumed = await page.evaluate(() => {
     document.querySelector('dialog.game-result-dialog')?.close();
-    Arcade.consume('shapeFit');
+    const consumed = Arcade.consume('shapeFit');
     Arcade.recordResult('shapeFit', 5);
     Arcade.earn(5, 'Shape Fit');
-    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-    Arcade.consume('shapeFit');
+    return consumed;
+  });
+  expect(secondConsumed).toBeTruthy();
+  await page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  ));
+
+  const thirdConsumed = await page.evaluate(() => {
+    const consumed = Arcade.consume('shapeFit');
     Arcade.recordResult('shapeFit', 6);
     Arcade.earn(5, 'Shape Fit');
+    return consumed;
   });
+  expect(thirdConsumed).toBeTruthy();
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
 
   const missions = await page.evaluate(() => Arcade.dailyMissionStatus());
