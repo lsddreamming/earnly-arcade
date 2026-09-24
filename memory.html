@@ -355,7 +355,7 @@
         coins:0,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:['🧠 '+moves+' moves made','Match all 8 pairs before the 60-second clock hits zero.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((earnlyRunStartedAt ? performance.now()-earnlyRunStartedAt-totalPausedMs : ROUND_SECONDS*1000)/1000))+'s','🧠 '+moves+' moves made','Match all 8 pairs before the 60-second clock hits zero.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
@@ -394,7 +394,7 @@
         result,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:['⏱️ Time left: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','⏱️ Time left: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
