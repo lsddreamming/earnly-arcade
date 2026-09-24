@@ -223,6 +223,12 @@
     function showLiveTip(text,duration=START_TIP_MS){
       clearTimeout(liveTipTimer);
       catchLiveTip.textContent=text;
+      const pauseButton=document.querySelector('.earnly-pause-button');
+      if(pauseButton && !pauseButton.hidden){
+        catchLiveTip.style.top=Math.ceil(pauseButton.getBoundingClientRect().bottom+8)+'px';
+      }else{
+        catchLiveTip.style.removeProperty('top');
+      }
       catchLiveTip.classList.add('show');
       liveTipTimer=setTimeout(()=>{
         catchLiveTip.classList.remove('show');
