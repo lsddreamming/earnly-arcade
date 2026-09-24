@@ -884,18 +884,20 @@ test('new player flow keeps plays and results consistent', async ({ page }) => {
   await page.goto('/games.html');
   await page.evaluate(() => {
     localStorage.clear();
-    localStorage.setItem('arcadePlayDay', new Date().toDateString());
+    const d=new Date();
+    const day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    localStorage.setItem('arcadePlayDay', day);
   });
   await page.reload();
 
   await expect(page.locator('#games')).toBeVisible();
   await page.goto('/mini.html?game=shapeFit');
-  await expect(page.locator('.game-start-plays')).toContainText('3 plays left');
+  await expect(page.locator('#plays')).toHaveText('3');
 
   await page.locator('#startButton').click();
   await page.waitForTimeout(120);
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
-  await expect(page.locator('.game-start-plays')).toContainText('2 plays left');
+  await expect(page.locator('#plays')).toHaveText('2');
 
   await page.evaluate(() => {
     Arcade.gameResult({
@@ -912,22 +914,26 @@ test('new player flow keeps plays and results consistent', async ({ page }) => {
 
   await page.reload();
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
-  await expect(page.locator('.game-start-plays')).toContainText('2 plays left');
+  await expect(page.locator('#plays')).toHaveText('2');
 });
 
 test('out-of-plays flow offers rewarded plays without spending coins', async ({ page }) => {
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => {
+    const d=new Date();
+    const day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    localStorage.setItem('arcadePlayDay', day);
     localStorage.setItem('shapeFitGamesPlayed', '3');
     localStorage.setItem('shapeFitBonusPlays', '0');
     localStorage.setItem('shapeFitPlayAdUnlocks', '0');
-    window.dispatchEvent(new Event('earnly-data-change'));
   });
   await page.reload();
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
-  await expect(page.locator('.game-guide-overlay')).toContainText('Out of Plays');
-  await expect(page.locator('.game-guide-overlay')).toContainText(/ad/i);
-  await expect(page.locator('.game-guide-overlay')).not.toContainText(/spend .*coin/i);
+  await page.locator('#startButton').click();
+  const outDialog=page.locator('dialog');
+  await expect(outDialog).toContainText('Out of Shape Fit plays');
+  await expect(outDialog).toContainText(/ad/i);
+  await expect(outDialog).not.toContainText(/spend .*coin/i);
 });
 
 
@@ -1127,11 +1133,12 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Mix It Up · 1/2');
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(2);
 
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     document.querySelector('dialog.game-result-dialog')?.close();
     Arcade.consume('shapeFit');
     Arcade.recordResult('shapeFit', 5);
     Arcade.earn(5, 'Shape Fit');
+    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
     Arcade.consume('shapeFit');
     Arcade.recordResult('shapeFit', 6);
     Arcade.earn(5, 'Shape Fit');
@@ -1176,24 +1183,18 @@ test('player journey cloud contract includes mission and bonus-play state', asyn
 
 test('paused gameplay keeps mobile scroll lock', async ({ page }) => {
   await page.goto('/mini.html?game=perfectDrop');
-  await page.evaluate(() => {
-    const status = document.querySelector('#gameStatus');
-    status.classList.add('running');
-  });
-  await page.waitForTimeout(60);
+  await page.locator('#startButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
   await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
 
-  await page.evaluate(() => {
-    const status = document.querySelector('#gameStatus');
-    status.classList.remove('running');
-    document.body.classList.add('earnly-game-paused');
-  });
-  await page.waitForTimeout(60);
+  const pause=page.locator('#earnlyPauseButton');
+  await pause.click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
 
-  await page.evaluate(() => document.body.classList.remove('earnly-game-paused'));
-  await page.waitForTimeout(60);
-  await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked/);
+  await pause.click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
 });
 
 
