@@ -14,33 +14,73 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Lane Runner</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css">
+  <link rel="stylesheet" href="premium.css?v=26">
   <style>
     html,body,.container{touch-action:manipulation}
-    .lane-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.28),inset 0 0 0 1px rgba(148,163,184,.16)}
+    .lane-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:20px;border:2px solid rgba(34,211,238,.28);background:#071522;box-shadow:inset 0 0 34px rgba(0,0,0,.22),0 16px 36px rgba(0,0,0,.28),0 0 0 1px rgba(34,211,238,.04)}
     @media(max-width:600px){
-      .topbar{margin-bottom:4px}
-      .page-header{margin:4px 0 7px}
-      .page-header h1{margin:0 0 4px;font-size:clamp(26px,7.5vw,32px)}
+      body.lanerunner-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important}
+      body.lanerunner-page .topbar{margin-bottom:6px}
+      body.lanerunner-page .page-header{
+        margin:2px 0 7px!important;
+        padding:11px!important;
+        gap:6px!important;
+        border:1px solid rgba(34,211,238,.30)!important;
+        border-radius:18px!important;
+        background:
+          radial-gradient(circle at 88% 0%,rgba(34,211,238,.10),transparent 38%),
+          radial-gradient(circle at 12% 100%,rgba(168,85,247,.06),transparent 34%),
+          linear-gradient(145deg,rgba(18,38,61,.97),rgba(8,22,37,.97))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
+      }
+      body.lanerunner-page .page-header h1{margin:0!important;font-size:22px!important;line-height:1.05!important;letter-spacing:-.035em!important}
       .game-meta{gap:4px;margin:4px 0 5px}
       .meta-pill{padding:4px 7px;font-size:10px}
       .game-status{padding:4px 8px;font-size:10px}
       .lane-board{margin-top:6px}
       body.lanerunner-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
-      body.lanerunner-page .meta-pill{font-size:9px;padding:4px 2px;min-height:28px;text-align:center}
+      body.lanerunner-page .meta-pill{
+        min-height:37px!important;
+        padding:4px 3px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        text-align:center!important;
+        font-size:9px!important;
+        font-weight:850!important;
+        border:1px solid rgba(67,119,164,.34)!important;
+        border-radius:11px!important;
+        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
+      }
+      body.lanerunner-page .meta-pill:nth-child(3){
+        border-color:rgba(255,193,77,.30)!important;
+        color:#ffd86b!important
+      }
       body.lanerunner-page.game-active .game-guide-strip,body.lanerunner-page.game-active .game-guide-more,body.lanerunner-page.game-active .game-guide-overlay,body.lanerunner-page.game-active .game-overlay,body.lanerunner-page.game-active .game-preflight,body.lanerunner-page.game-active .game-guide,body.lanerunner-page.game-active .game-guide-card,body.lanerunner-page.game-active .game-guide-reward,body.lanerunner-page.game-active .game-guide-tip,body.lanerunner-page.game-active [data-game-guide],body.lanerunner-page.game-active a.button.secondary{display:none!important}
-      body.lanerunner-page.game-active .topbar,body.lanerunner-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.lanerunner-page.game-active .topbar,body.lanerunner-page.game-active #startButton{display:none!important}
+      body.lanerunner-page.game-active .earnly-pause-button{width:auto!important;min-width:112px!important;min-height:40px!important;margin:2px auto 0!important;padding:8px 14px!important;font-size:12px!important;border-radius:12px!important}
       body.lanerunner-page.game-active .page-header h1{font-size:22px!important;margin:0 0 4px!important}
       body.lanerunner-page.game-active .game-status{padding:3px 8px;font-size:9px}
       body.lanerunner-page.game-active .game-meta{margin:2px 0 4px}
-      body.lanerunner-page.game-active .meta-pill{background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.18);border-radius:10px}
-      body.lanerunner-page.game-active main.container{padding-top:8px;padding-bottom:74px}
+      body.lanerunner-page.game-active .meta-pill{background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;border:1px solid rgba(67,119,164,.34)!important;border-radius:11px!important}
+      body.lanerunner-page.game-active main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;padding-bottom:74px}
       body.lanerunner-page.game-active .page-header{margin:0 0 3px}
-      body.lanerunner-page.game-active .lane-control-zone{box-shadow:inset 0 0 0 1px rgba(56,189,248,.08);background:linear-gradient(180deg,#17243a,#111c30)}
+      body.lanerunner-page.game-active .lane-control-zone{box-shadow:inset 0 1px 0 rgba(255,255,255,.03);background:linear-gradient(180deg,#173047,#0f1d30);border-color:rgba(34,211,238,.34)!important;color:#dff8ff!important}
       body.lanerunner-page.game-active .lane-control-zone:active{transform:scale(.99)}
-      body.lanerunner-page.game-active .lane-board{width:min(90vw,360px)!important;margin:4px auto!important}
+      body.lanerunner-page.game-active .lane-board{
+        width:min(90vw,360px)!important;
+        margin:4px auto!important;
+        border:2px solid rgba(34,211,238,.38)!important;
+        box-shadow:
+          inset 0 0 38px rgba(0,0,0,.22),
+          0 18px 38px rgba(0,0,0,.28),
+          0 0 20px rgba(34,211,238,.07)!important
+      }
       body.lanerunner-page .lane-control-zone{display:none}
       body.lanerunner-page.game-active .lane-control-zone{display:flex;width:min(90vw,360px);height:48px;margin:3px auto 0;border:1px solid #334155;border-radius:14px;background:#17243a;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;color:#cbd5e1;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      body.lanerunner-page.game-active #arcadeBottomNav{display:none!important}
+      body.lanerunner-page.game-active main.container{padding-bottom:max(18px,env(safe-area-inset-bottom))!important}
     }
   </style>
 </head>
@@ -75,43 +115,105 @@
       if(!Arcade.consume('laneRunner')){ Arcade.out('laneRunner',refreshChrome); return false; }
       refreshChrome(); return true;
     }
-    
+
     const canvas=document.getElementById('game'),laneControlZone=document.getElementById('laneControlZone'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
       overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
       tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
-    const lanes=[72,180,288];let lane=1,targetLane=1,obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
+    const lanes=[72,180,288];let lane=1,targetLane=1,playerX=lanes[1],obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
     function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
-    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;playerX=lanes[1];obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function drawCar(x,y,isPlayer,variant){
       ctx.save();ctx.translate(x,y);
       const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
-      ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=8;ctx.shadowOffsetY=5;
-      ctx.fillStyle='#0b1220';ctx.beginPath();ctx.ellipse(0,14,22,6,0,0,Math.PI*2);ctx.fill();
-      ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-      ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-19,10);ctx.lineTo(-17,-7);ctx.quadraticCurveTo(-15,-14,-7,-16);ctx.lineTo(8,-16);ctx.quadraticCurveTo(16,-14,18,-7);ctx.lineTo(20,10);ctx.quadraticCurveTo(18,15,13,16);ctx.lineTo(-13,16);ctx.quadraticCurveTo(-18,15,-19,10);ctx.closePath();ctx.fill();
-      ctx.fillStyle=isPlayer?'#7dd3fc':'#bae6fd';ctx.beginPath();ctx.moveTo(-10,-10);ctx.lineTo(-6,-14);ctx.lineTo(7,-14);ctx.lineTo(11,-10);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#111827';ctx.beginPath();ctx.roundRect(-14,-5,28,9,3);ctx.fill();
+      const trim=isPlayer?'#fecaca':variant===1?'#bae6fd':variant===2?'#fef3c7':'#ddd6fe';
+      const halfWidth=variant===2&&!isPlayer?21:19;
+      const nose=variant===1&&!isPlayer?-18:-16;
+
+      // Soft shadow grounds each car without adding more fast-moving road detail.
+      ctx.fillStyle='rgba(2,6,23,.46)';ctx.beginPath();ctx.ellipse(0,15,23,6,0,0,Math.PI*2);ctx.fill();
+
+      ctx.shadowColor=isPlayer?'rgba(239,68,68,.20)':'rgba(56,189,248,.10)';
+      ctx.shadowBlur=isPlayer?10:6;
+      ctx.fillStyle=body;
+      ctx.beginPath();
+      ctx.moveTo(-halfWidth,10);ctx.lineTo(-halfWidth+2,-7);
+      ctx.quadraticCurveTo(-halfWidth+4,nose,-7,nose);
+      ctx.lineTo(8,nose);ctx.quadraticCurveTo(halfWidth-3,nose,halfWidth-1,-7);
+      ctx.lineTo(halfWidth+1,10);ctx.quadraticCurveTo(halfWidth-1,16,13,16);
+      ctx.lineTo(-13,16);ctx.quadraticCurveTo(-halfWidth,15,-halfWidth,10);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;
+
+      // Different roof/window silhouettes make traffic readable at a glance.
+      ctx.fillStyle=trim;
+      ctx.beginPath();
+      if(variant===2&&!isPlayer){
+        ctx.moveTo(-11,-9);ctx.lineTo(-7,-14);ctx.lineTo(8,-14);ctx.lineTo(12,-9);
+      }else if(variant===3&&!isPlayer){
+        ctx.moveTo(-9,-9);ctx.lineTo(-4,-15);ctx.lineTo(5,-15);ctx.lineTo(10,-9);
+      }else{
+        ctx.moveTo(-10,-10);ctx.lineTo(-6,-14);ctx.lineTo(7,-14);ctx.lineTo(11,-10);
+      }
+      ctx.closePath();ctx.fill();
+
+      ctx.fillStyle='#0b1220';ctx.beginPath();ctx.roundRect(-14,-5,28,9,3);ctx.fill();
       ctx.fillStyle=body;ctx.fillRect(-11,-4,22,7);
-      ctx.fillStyle='#020617';ctx.beginPath();ctx.roundRect(-23,-7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,-7,6,12,2);ctx.fill();
+
+      if(variant===2&&!isPlayer){
+        ctx.fillStyle='#111827';ctx.beginPath();ctx.roundRect(-9,-18,18,4,2);ctx.fill();
+        ctx.fillStyle='#fef3c7';ctx.font='bold 5px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('CITY',0,-16);
+      }else if(variant===3&&!isPlayer){
+        ctx.fillStyle='rgba(255,255,255,.20)';ctx.fillRect(-12,1,24,2);
+      }
+
+      ctx.fillStyle='#020617';
+      ctx.beginPath();ctx.roundRect(-23,-7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,-7,6,12,2);ctx.fill();
       ctx.beginPath();ctx.roundRect(-23,7,6,12,2);ctx.fill();ctx.beginPath();ctx.roundRect(17,7,6,12,2);ctx.fill();
-      ctx.fillStyle=isPlayer?'#fef08a':'#f8fafc';ctx.fillRect(-13,-13,6,3);ctx.fillRect(7,-13,6,3);
+
+      ctx.fillStyle=isPlayer?'#fef08a':'#dbeafe';ctx.fillRect(-13,-13,6,3);ctx.fillRect(7,-13,6,3);
       ctx.fillStyle='#fb7185';ctx.fillRect(-13,12,6,3);ctx.fillRect(7,12,6,3);
-      if(isPlayer){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1)}
+
+      if(isPlayer){
+        ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1);
+        ctx.strokeStyle='rgba(254,240,138,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(-15,-17,30,35,7);ctx.stroke();
+      }
       ctx.restore();
     }
     function draw(){
-      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#0b1220');sky.addColorStop(1,'#111827');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='#162033';ctx.fillRect(0,0,20,canvas.height);ctx.fillRect(340,0,20,canvas.height);
-      for(let y=-40+(roadOffset*2)%70;y<canvas.height;y+=70){ctx.fillStyle='#22c55e';ctx.fillRect(5,y,8,26);ctx.fillRect(347,y,8,26);ctx.fillStyle='#64748b';ctx.fillRect(3,y+31,12,4);ctx.fillRect(345,y+31,12,4)}
-      ctx.fillStyle='#475569';ctx.fillRect(20,0,320,canvas.height);
-      ctx.fillStyle='#1f2937';ctx.fillRect(30,0,300,canvas.height);
-      ctx.fillStyle='#f8fafc';ctx.globalAlpha=.72;ctx.fillRect(27,0,3,canvas.height);ctx.fillRect(330,0,3,canvas.height);ctx.globalAlpha=1;
-      ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;ctx.setLineDash([24,20]);ctx.lineDashOffset=roadOffset;[130,230].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});ctx.setLineDash([]);ctx.lineDashOffset=0;
-      ctx.fillStyle='rgba(15,23,42,.84)';ctx.beginPath();ctx.roundRect(38,12,112,28,6);ctx.fill();ctx.fillStyle='#e2e8f0';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#06111f');sky.addColorStop(1,'#0a1524');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // Calm neon roadway: no bright moving white dashes. Traffic supplies the
+      // sense of speed while the road remains easy on the eyes.
+      ctx.fillStyle='#091525';ctx.fillRect(0,0,24,canvas.height);ctx.fillRect(336,0,24,canvas.height);
+      const road=ctx.createLinearGradient(24,0,336,0);
+      road.addColorStop(0,'#111c2b');road.addColorStop(.16,'#152131');road.addColorStop(.5,'#172434');road.addColorStop(.84,'#152131');road.addColorStop(1,'#111c2b');
+      ctx.fillStyle=road;ctx.fillRect(24,0,312,canvas.height);
+
+      // Soft shoulder glow replaces the harsh white edge lines.
+      ctx.fillStyle='rgba(34,211,238,.18)';ctx.fillRect(27,0,2,canvas.height);ctx.fillRect(331,0,2,canvas.height);
+      ctx.fillStyle='rgba(59,130,246,.08)';ctx.fillRect(29,0,5,canvas.height);ctx.fillRect(326,0,5,canvas.height);
+
+      // Fixed, low-contrast lane guides avoid flicker while keeping lanes clear.
+      ctx.save();
+      ctx.strokeStyle='rgba(125,211,252,.16)';
+      ctx.lineWidth=2;
+      ctx.shadowColor='rgba(34,211,238,.12)';
+      ctx.shadowBlur=5;
+      [126,234].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});
+      ctx.restore();
+
+      // A gentle glow under the player's lane gives orientation without motion.
+      const laneGlow=ctx.createRadialGradient(playerX,465,8,playerX,465,86);
+      laneGlow.addColorStop(0,'rgba(34,211,238,.11)');laneGlow.addColorStop(1,'rgba(34,211,238,0)');
+      ctx.fillStyle=laneGlow;ctx.fillRect(Math.max(24,playerX-92),372,184,150);
+
+      ctx.fillStyle='rgba(6,17,31,.82)';ctx.beginPath();ctx.roundRect(38,12,112,28,8);ctx.fill();
+      ctx.strokeStyle='rgba(56,189,248,.18)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#cbd5e1';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
+
       obstacles.forEach(o=>drawCar(lanes[o.lane],o.y,false,o.variant||0));
-      drawCar(lanes[lane],465,true,0);
+      drawCar(playerX,465,true,0);
     }
     function finish(){if(!running)return;running=false;pauseStartedAt=0;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
       requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
@@ -119,7 +221,7 @@
       if(!running)return;
       if(!lastFrame)lastFrame=now;
       const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
-      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;timeEl.textContent=String(seconds);refreshReward();
+      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;playerX+=(lanes[targetLane]-playerX)*Math.min(1,.24*dt);timeEl.textContent=String(seconds);refreshReward();
       const spawnGap=Math.max(330,880-seconds*9);
       if(!lastSpawn||now-lastSpawn>=spawnGap){
         let nextLane=Math.floor(Math.random()*3);
@@ -135,7 +237,8 @@
       for(let i=obstacles.length-1;i>=0;i--){
         const o=obstacles[i],prevY=o.y;o.y+=o.speed*dt;
         // Check the full path between frames so fast traffic cannot tunnel through the player's car.
-        const crossedPlayer=o.lane===lane&&prevY<495&&o.y>430;
+        const overlapsPlayerX=Math.abs(lanes[o.lane]-playerX)<40;
+        const crossedPlayer=overlapsPlayerX&&prevY<495&&o.y>430;
         if(crossedPlayer){finish();return}
         if(o.y>550){
           obstacles.splice(i,1);passed++;passedEl.textContent=String(passed);
@@ -146,8 +249,8 @@
     }
     function setLane(n){const next=Math.max(0,Math.min(2,n));if(next===lane)return;lane=next;targetLane=next;Arcade.feedback('move')}
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;startAt=performance.now();lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
+    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();startAt=earnlyRunStartedAt;lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
       if(!running||pauseStartedAt)return;
       pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;
@@ -189,7 +292,7 @@
       if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();setLane(lane+1)}
     });
     startButton.addEventListener('click',startGame);reset();refreshChrome();
-  
+
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>

@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Snake</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=13">
+  <link rel="stylesheet" href="premium.css?v=14">
 </head>
 <body class="snake-page">
   <main class="container">
@@ -523,7 +523,7 @@
         starting = false;
           Arcade.out('snake', refreshChrome);
         return;
-      } earnlyRunStartedAt=performance.now(); totalPausedMs=0; pauseStartedAt=0; 
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       snake = [{ x: 200, y: 200 }];
       direction = 'RIGHT';
@@ -541,6 +541,7 @@
 
       Arcade.countdown(() => {
         starting = false;
+        earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
         game = setInterval(draw, 120);

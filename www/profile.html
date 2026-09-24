@@ -15,6 +15,22 @@
   <title>Earnly Profile</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=12">
+  <style>
+    .profile-avatar{display:grid;place-items:center}
+    .global-profile-card{margin-top:14px;padding:14px;border:1px solid #334155;border-radius:16px;background:linear-gradient(145deg,#132238,#0d192a)}
+    .global-profile-head{display:grid;gap:3px;margin-bottom:11px}
+    .global-profile-head strong{font-size:14px;color:#f8fafc}
+    .global-profile-head span,.global-profile-status{font-size:11px;color:#94a3b8}
+    .global-profile-fields{display:grid;gap:10px}
+    .global-profile-fields label{display:grid;gap:5px;font-size:11px;font-weight:800;color:#cbd5e1}
+    .global-profile-fields input{width:100%;min-height:42px;border:1px solid #475569;border-radius:12px;background:#0b1728;color:#fff;padding:9px 11px;font:inherit}
+    .avatar-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
+    .avatar-choice{min-width:0;min-height:42px;padding:4px;border:1px solid #334155;border-radius:12px;background:#162438;font-size:22px}
+    .avatar-choice.selected{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.18);background:#17345c}
+    .global-profile-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .global-profile-status.ok{color:#86efac}.global-profile-status.error{color:#fca5a5}
+    @media(max-width:520px){.avatar-picker{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  </style>
 </head>
 <body class="profile-dashboard">
   <main class="container profile-container">
@@ -26,7 +42,7 @@
     <header class="profile-hero">
       <span class="profile-eyebrow">PLAYER HUB</span>
       <div class="profile-hero-row">
-        <div class="profile-avatar">🎮</div>
+        <div class="profile-avatar" id="profileAvatar" aria-label="Profile icon">🎮</div>
         <div class="profile-hero-copy">
           <h1 id="nameDisplay">Player</h1>
           <div class="profile-level-line">Level <strong id="level">1</strong> · <span id="totalXP">0 total XP</span></div>
@@ -47,8 +63,29 @@
         <button type="submit">Save</button>
       </form>
       <div class="profile-edit-footer">
-        <span>Nickname is stored on this device.</span>
+        <span>Nickname is your in-app display name.</span>
         <button class="mini-button secondary" id="soundButton" type="button">🔊 Game Sounds On</button>
+      </div>
+
+      <div class="global-profile-card">
+        <div class="global-profile-head">
+          <strong>🌎 Global leaderboard profile</strong>
+          <span>Your unique username and icon appear next to world-record scores.</span>
+        </div>
+        <div class="global-profile-fields">
+          <label>
+            Leaderboard username
+            <input id="usernameInput" type="text" maxlength="18" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Example: Justin92" aria-label="Global leaderboard username">
+          </label>
+          <div>
+            <div class="global-profile-head"><strong>Choose profile icon</strong><span>Tap any icon. You can change it anytime.</span></div>
+            <div class="avatar-picker" id="avatarPicker" role="group" aria-label="Choose profile icon"></div>
+          </div>
+          <div class="global-profile-actions">
+            <button class="green" id="saveGlobalProfile" type="button">Save Global Profile</button>
+            <span class="global-profile-status" id="globalProfileStatus">Sign in to compete on world leaderboards.</span>
+          </div>
+        </div>
       </div>
     </details>
 
@@ -92,6 +129,7 @@
       <a href="games.html"><span>🕹️</span><strong>Games</strong><small>Keep playing</small></a>
       <a href="settings.html"><span>⚙️</span><strong>Settings</strong><small>Game feel</small></a>
       <a href="account.html"><span>☁️</span><strong>Account</strong><small>Cloud save & data</small></a>
+      <a href="leaderboards.html"><span>🏆</span><strong>World Ranks</strong><small>Top players</small></a>
     </section>
   </main>
 
@@ -159,7 +197,10 @@
 
       document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
       document.getElementById('nameDisplay').textContent = stats.name;
+      document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
       document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
+      const usernameInput = document.getElementById('usernameInput');
+      if (document.activeElement !== usernameInput) usernameInput.value = Arcade.leaderboardUsername();
       document.getElementById('level').textContent = xp.level;
       document.getElementById('xpText').textContent = xp.current + ' / ' + xp.needed + ' XP';
       document.getElementById('totalXP').textContent = xp.xp.toLocaleString() + ' total XP';
@@ -186,6 +227,72 @@
         Arcade.soundEnabled() ? '🔊 Game Sounds On' : '🔇 Game Sounds Off';
     }
 
+    function renderAvatarPicker() {
+      const root = document.getElementById('avatarPicker');
+      root.replaceChildren();
+      Object.entries(Arcade.profileAvatars).forEach(([key, emoji]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'avatar-choice' + (Arcade.profileIconKey() === key ? ' selected' : '');
+        button.textContent = emoji;
+        button.setAttribute('aria-label', 'Use ' + key + ' profile icon');
+        button.addEventListener('click', () => {
+          Arcade.setProfileIcon(key);
+          renderAvatarPicker();
+          document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
+        });
+        root.append(button);
+      });
+    }
+
+    async function syncPublicProfileFromCloud() {
+      if (!window.EarnlyCloud) return;
+      try {
+        const remote = await EarnlyCloud.profile();
+        if (!remote) return;
+        if (remote.username) localStorage.setItem('arcadeUsername', remote.username);
+        if (remote.avatar_key && Arcade.profileAvatars[remote.avatar_key]) {
+          localStorage.setItem('arcadeProfileIcon', remote.avatar_key);
+        }
+        if (remote.display_name) localStorage.setItem('arcadeProfileName', remote.display_name);
+        render();
+        renderAvatarPicker();
+        document.getElementById('globalProfileStatus').textContent = remote.username
+          ? '@' + remote.username + ' · ready for world rankings'
+          : 'Choose a unique username to enter world rankings.';
+      } catch {}
+    }
+
+    document.getElementById('saveGlobalProfile').addEventListener('click', async () => {
+      const status = document.getElementById('globalProfileStatus');
+      const button = document.getElementById('saveGlobalProfile');
+      button.disabled = true;
+      status.className = 'global-profile-status';
+      status.textContent = 'Saving…';
+      try {
+        if (!window.EarnlyCloud) throw new Error('Cloud connection is still loading.');
+        const saved = await EarnlyCloud.updatePublicProfile({
+          displayName:Arcade.profileName(),
+          username:document.getElementById('usernameInput').value,
+          avatarKey:Arcade.profileIconKey()
+        });
+        status.className = 'global-profile-status ok';
+        status.textContent = '@' + saved.username + ' · global profile saved';
+        Arcade.trackEvent?.('profile_identity_saved', {
+          hasUsername:!!saved.username,
+          avatarKey:saved.avatar_key || Arcade.profileIconKey()
+        });
+        Arcade.toast('🌎 Global profile ready!');
+        render();
+        renderAvatarPicker();
+      } catch (error) {
+        status.className = 'global-profile-status error';
+        status.textContent = error?.message || 'Could not save global profile.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
     document.getElementById('soundButton').addEventListener('click', () => {
       Arcade.setSoundEnabled(!Arcade.soundEnabled());
       render();
@@ -199,6 +306,10 @@
     });
 
     render();
+    renderAvatarPicker();
+    window.addEventListener('earnly-cloud-ready', syncPublicProfileFromCloud);
+    window.addEventListener('earnly-cloud-auth-change', syncPublicProfileFromCloud);
+    if (window.EarnlyCloud) syncPublicProfileFromCloud();
     window.addEventListener('pageshow', render);
     window.addEventListener('focus', render);
     window.addEventListener('storage', render);

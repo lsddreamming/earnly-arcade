@@ -52,6 +52,11 @@
       <span class="mission-arrow" aria-hidden="true">›</span>
     </a>
 
+    <a class="games-start-here" href="leaderboards.html" aria-label="Open world leaderboards">
+      <strong>🏆 World Leaderboards</strong>
+      <span>See the top players · chase a world record →</span>
+    </a>
+
     <div id="quickSections"></div>
 
     <section class="game-browser-tools" aria-label="Find a game">
@@ -257,12 +262,12 @@
         play.disabled = !remaining && adStatus.remaining <= 0;
         play.textContent = remaining
           ? 'Play'
-          : (adStatus.remaining > 0 ? '▶ Watch Ad · +3 Plays' : 'Come Back Tomorrow');
+          : (adStatus.remaining > 0 ? '📺 Watch Ad · +1 Play' : 'Come Back Tomorrow');
         play.setAttribute(
           'aria-label',
           remaining
             ? 'Play '+info.name
-            : (adStatus.remaining > 0 ? 'Watch rewarded ad for 3 more '+info.name+' plays' : info.name+' plays refill tomorrow')
+            : (adStatus.remaining > 0 ? 'Watch a voluntary rewarded ad for 1 more '+info.name+' play' : info.name+' plays refill tomorrow')
         );
         play.addEventListener('click', () => {
           if (remaining) location.href = info.href;
@@ -279,7 +284,7 @@
           const status = document.createElement('div');
           status.className = 'status-line ' + (adStatus.remaining > 0 ? 'warning' : '');
           status.textContent = adStatus.remaining > 0
-            ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +3 plays each'
+            ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +1 play each'
             : 'Daily bonus-play limit reached · free plays refill tomorrow';
           card.append(status);
         }

@@ -39,6 +39,25 @@ const Arcade = (() => {
     trafficEscape: 'Traffic Escape'
   };
 
+  const profileAvatars = {
+    gamepad:'🎮',
+    rocket:'🚀',
+    bolt:'⚡',
+    fire:'🔥',
+    alien:'👾',
+    frog:'🐸',
+    brain:'🧠',
+    trophy:'🏆',
+    gem:'💎',
+    fox:'🦊',
+    cat:'🐱',
+    dog:'🐶',
+    robot:'🤖',
+    snake:'🐍',
+    star:'⭐',
+    crown:'👑'
+  };
+
   const bestConfig = {
     snake: { key: 'snakeBest', label: 'apples', lower: false },
     blockDrop: { key: 'blockDropBestLines', label: 'lines', lower: false },
@@ -63,7 +82,7 @@ const Arcade = (() => {
   };
 
   const FREE_PLAYS = 3;
-  const PLAY_AD_BONUS = 3;
+  const PLAY_AD_BONUS = 1;
   const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
   const DAILY_MISSION_VERSION = '1';
@@ -72,7 +91,7 @@ const Arcade = (() => {
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
   const DATA_SCHEMA_VERSION = 1;
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.0';
 
   const streakRewardDefinitions = [
     { days:3, icon:'🔥', title:'3-Day Streak', rewardXP:25 },
@@ -236,6 +255,64 @@ const Arcade = (() => {
     }
   }
 
+  function cleanAttributionToken(value, max = 64) {
+    return String(value || '')
+      .trim()
+      .slice(0, max)
+      .replace(/[^A-Za-z0-9._-]/g, '');
+  }
+
+  function readAttribution(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || 'null');
+      return value && typeof value === 'object' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function acquisitionContext() {
+    return {
+      first:readAttribution('arcadeAcquisitionFirst'),
+      latest:readAttribution('arcadeAcquisitionLatest')
+    };
+  }
+
+  function captureAcquisition() {
+    const params = new URLSearchParams(location.search || '');
+    const incoming = {
+      creator:cleanAttributionToken(params.get('ref') || params.get('creator'), 40),
+      source:cleanAttributionToken(params.get('utm_source') || params.get('source'), 40),
+      campaign:cleanAttributionToken(params.get('utm_campaign') || params.get('campaign'), 64),
+      content:cleanAttributionToken(params.get('utm_content') || params.get('content'), 64),
+      challenge:cleanAttributionToken(params.get('challenge'), 64)
+    };
+    const meaningful = Object.values(incoming).some(Boolean);
+    if (!meaningful) return acquisitionContext();
+
+    const touch = {
+      ...incoming,
+      path:(location.pathname.split('/').pop() || 'index.html').slice(0, 80),
+      capturedAt:new Date().toISOString()
+    };
+
+    const existingFirst = readAttribution('arcadeAcquisitionFirst');
+    if (!existingFirst) localStorage.setItem('arcadeAcquisitionFirst', JSON.stringify(touch));
+    localStorage.setItem('arcadeAcquisitionLatest', JSON.stringify(touch));
+
+    const signature = JSON.stringify(incoming);
+    if (sessionStorage.getItem('arcadeAcquisitionSession') !== signature) {
+      sessionStorage.setItem('arcadeAcquisitionSession', signature);
+      queueEvent('acquisition_attributed', {
+        ...incoming,
+        firstTouch:!existingFirst,
+        landingPath:touch.path
+      });
+    }
+
+    return acquisitionContext();
+  }
+
   function queueEvent(type, payload = {}) {
     const events = pendingSyncEvents();
     events.push({
@@ -252,6 +329,10 @@ const Arcade = (() => {
       detail:{ type:queued.type, payload:queued.payload, eventId:queued.id }
     }));
     return queued;
+  }
+
+  function trackEvent(type, payload = {}) {
+    return queueEvent(type, payload);
   }
 
   function syncStatus() {
@@ -635,6 +716,27 @@ const Arcade = (() => {
     return value || 'Player';
   }
 
+  function profileIconKey() {
+    const saved = localStorage.getItem('arcadeProfileIcon') || 'gamepad';
+    return Object.prototype.hasOwnProperty.call(profileAvatars, saved) ? saved : 'gamepad';
+  }
+
+  function profileIcon() {
+    return profileAvatars[profileIconKey()] || profileAvatars.gamepad;
+  }
+
+  function setProfileIcon(value) {
+    const key = Object.prototype.hasOwnProperty.call(profileAvatars, value) ? value : 'gamepad';
+    localStorage.setItem('arcadeProfileIcon', key);
+    queueEvent('profile_icon_changed', { avatarKey:key });
+    return { key, emoji:profileAvatars[key] };
+  }
+
+  function leaderboardUsername() {
+    return (localStorage.getItem('arcadeUsername') || '').trim();
+  }
+
+
   function setProfileName(value) {
     const cleaned = String(value || '')
       .replace(/[<>]/g, '')
@@ -915,6 +1017,9 @@ const Arcade = (() => {
     const xp = xpStatus();
     return {
       name: profileName(),
+      avatar: profileIcon(),
+      avatarKey: profileIconKey(),
+      username: leaderboardUsername(),
       level: xp.level,
       xp: xp.xp,
       gamesCompleted: number('gamesCompletedEver'),
@@ -1587,6 +1692,14 @@ const Arcade = (() => {
       statsBox.append(stat);
     });
 
+    const levelState = xpStatus();
+    const levelProgress = document.createElement('div');
+    levelProgress.className = 'result-level-progress';
+    levelProgress.innerHTML =
+      '<div><strong>⭐ Level ' + levelState.level + '</strong><span>' +
+      levelState.current + ' / ' + levelState.needed + ' XP</span></div>' +
+      '<i aria-label="Level progress"><b style="width:' + levelState.progress.toFixed(1) + '%"></b></i>';
+
     const notes = document.createElement('div');
     notes.className = 'result-notes';
 
@@ -1705,7 +1818,7 @@ const Arcade = (() => {
     if (resultPlaysLeft > 0) {
       primary.textContent = '▶ Play Again · ' + resultPlaysLeft + ' Left';
     } else if (resultAdStatus.remaining > 0) {
-      primary.textContent = '▶ Watch Ad · +' + resultAdStatus.bonus + ' Plays';
+      primary.textContent = '📺 Watch Ad · +1 Play & Replay';
     } else {
       primary.textContent = '🎟️ Plays Refill Tomorrow';
       primary.disabled = true;
@@ -1726,6 +1839,8 @@ const Arcade = (() => {
         modal.className = '';
         if (livePlays > 0) {
           if (typeof onReplay === 'function') onReplay();
+        } else if (game && typeof onReplay === 'function') {
+          playAd(game, onReplay);
         } else if (typeof onMorePlays === 'function') {
           onMorePlays();
         } else if (game) {
@@ -1746,7 +1861,7 @@ const Arcade = (() => {
     });
 
     actions.append(primary, back);
-    modal.append(hero, main, statsBox);
+    modal.append(hero, main, statsBox, levelProgress);
     if (notes.childElementCount) modal.append(notes);
     modal.append(actions);
     modal.showModal();
@@ -2113,6 +2228,13 @@ const Arcade = (() => {
       return;
     }
 
+    queueEvent('rewarded_ad_started', {
+      game:g,
+      unlockNumber:adStatus.used + 1,
+      dailyLimit:adStatus.limit,
+      unlocksLeft:adStatus.remaining
+    });
+
     busy = true;
 
     const gameName = names[g] || 'game';
@@ -2138,7 +2260,7 @@ const Arcade = (() => {
             return;
           }
 
-          toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+          toast('🎟️ +1 ' + gameName + ' play');
           if (typeof done === 'function') done();
         })
         .catch(error => {
@@ -2157,8 +2279,8 @@ const Arcade = (() => {
     }
 
     panel(
-      'Unlocking ' + PLAY_AD_BONUS + ' ' + gameName + ' plays…',
-      'This demo simulates a future rewarded ad. Keep this screen open to unlock your extra plays.',
+      'Unlocking 1 ' + gameName + ' play…',
+      'Keep this screen open. When the demo ends, you’ll jump straight back into the game.',
       [['Cancel', () => {}, 'secondary']]
     );
 
@@ -2166,7 +2288,7 @@ const Arcade = (() => {
 
     const reward = document.createElement('div');
     reward.className = 'reward-ad-pill';
-    reward.textContent = '🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays';
+    reward.textContent = '🎟️ +1 ' + gameName + ' play';
 
     const progressWrap = document.createElement('div');
     progressWrap.className = 'reward-ad-progress';
@@ -2219,8 +2341,8 @@ const Arcade = (() => {
 
       const heading = modal.querySelector('h2');
       const message = modal.querySelector('.modal-message');
-      if (heading) heading.textContent = PLAY_AD_BONUS + ' ' + gameName + ' plays unlocked!';
-      if (message) message.textContent = 'You’re ready to jump back in.';
+      if (heading) heading.textContent = '1 ' + gameName + ' play unlocked!';
+      if (message) message.textContent = 'Loading your next run…';
 
       // Finish the reward UI before handing control back to the game.
       // Previously done() could start the replay/countdown underneath this
@@ -2229,7 +2351,7 @@ const Arcade = (() => {
         if (modal.open) modal.close();
         modal.className = '';
         busy = false;
-        toast('🎟️ +' + PLAY_AD_BONUS + ' ' + gameName + ' plays');
+        toast('🎟️ +1 ' + gameName + ' play');
         done();
       }, 450);
     };
@@ -2269,9 +2391,9 @@ const Arcade = (() => {
 
     if (status.remaining <= 0) {
       panel(
-        'That’s today’s bonus-play limit',
-        'You’ve used both rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
-        [['Back to Arcade', () => location.href = 'games.html', 'secondary']]
+        'Free plays refill tomorrow',
+        'You’ve used both optional rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
+        [['Choose Another Game', () => location.href = 'games.html', 'secondary']]
       );
       return;
     }
@@ -2280,13 +2402,19 @@ const Arcade = (() => {
       ? (window.EarnlyNativeAds.testMode ? 'Watch test ad' : 'Watch ad')
       : 'Watch demo ad';
 
+    queueEvent('one_more_run_shown', {
+      game:g,
+      unlocksLeft:status.remaining,
+      dailyLimit:status.limit
+    });
+
     panel(
-      'Out of ' + gameName + ' plays',
-      'You’re out of plays for this game. Free plays refill daily. You have ' + status.remaining + ' of ' + status.limit + ' bonus-play unlock' +
-        (status.remaining === 1 ? '' : 's') + ' left today. Each rewarded ad unlocks +' + PLAY_AD_BONUS + ' plays.',
+      'One more run?',
+      'You used today’s free plays for ' + gameName + '. Watch one optional rewarded ad to unlock +1 play and jump straight back in. ' +
+        status.remaining + ' of ' + status.limit + ' ad unlock' + (status.remaining === 1 ? '' : 's') + ' left today.',
       [
-        [rewardedLabel + ' · +' + PLAY_AD_BONUS + ' plays', () => playAd(g, done), 'green'],
-        ['Back to Arcade', () => location.href = 'games.html', 'secondary']
+        [rewardedLabel + ' → Play Again', () => playAd(g, done), 'green'],
+        ['Choose Another Game', () => location.href = 'games.html', 'secondary']
       ]
     );
   }
@@ -2558,7 +2686,10 @@ const Arcade = (() => {
       if (playsLeft <= 0) {
         overlayIcon.textContent = '🎟️';
         overlayTitle.textContent = 'Out of Plays';
-        overlayText.textContent = 'Tap here to see today’s play options';
+        const adStatus = playAdStatus(game);
+        overlayText.textContent = adStatus.remaining > 0
+          ? 'Tap here to watch a rewarded ad and unlock +' + PLAY_AD_BONUS + ' plays'
+          : 'Today’s rewarded-play limit is reached';
         return;
       }
 
@@ -2630,7 +2761,7 @@ const Arcade = (() => {
     const title = document.createElement('h2');
     title.textContent = force ? 'How Earnly Works' : 'Welcome to Earnly';
     const subtitle = document.createElement('p');
-    subtitle.textContent = 'Four simple systems, one arcade.';
+    subtitle.textContent = force ? 'The quick version.' : 'Pick a game. Play. Level up.';
     headCopy.append(title, subtitle);
     head.append(icon, headCopy);
 
@@ -2638,10 +2769,9 @@ const Arcade = (() => {
     list.className = 'onboarding-list';
 
     [
-      ['🎟️','Plays','3 free plays per game each day. Up to 2 rewarded ads can unlock +3 plays each for that game.'],
-      ['🪙','Arcade Coins','Earned from game rewards, daily bonuses, and challenges. Ads do not directly award Coins.'],
-      ['⭐','XP','Builds your level through games, missions, streaks, and achievements.'],
-      ['🎁','Rewards','Arcade Coins are in-app points, not cash or cryptocurrency. Redemption and withdrawals are not available in this version.']
+      ['🎮','Play','Start with 3 free plays per game every day.'],
+      ['🪙','Earn & level up','Good runs earn Arcade Coins and XP. Ads do not award Arcade Coins.'],
+      ['🔥','Keep the run going','Out of plays? Up to 2 optional rewarded ads per game each day unlock +1 play each.']
     ].forEach(([itemIcon,itemTitle,itemText]) => {
       const row = document.createElement('div');
       row.className = 'onboarding-row';
@@ -2666,23 +2796,26 @@ const Arcade = (() => {
 
     const close = document.createElement('button');
     close.className = 'onboarding-secondary';
-    close.textContent = force ? 'Close' : 'Stay Here';
+    close.textContent = force ? 'Close' : 'Maybe Later';
     close.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
+      if (!force) queueEvent('onboarding_dismissed', {});
       closeModalThen(() => {});
     });
 
     const play = document.createElement('button');
     play.className = 'onboarding-primary';
-    play.textContent = 'Play Games';
+    play.textContent = 'Start Playing →';
     play.addEventListener('click', () => {
       localStorage.setItem('arcadeOnboardingSeen', '1');
+      if (!force) queueEvent('onboarding_completed', { destination:'games.html' });
       closeModalThen(() => { location.href = 'games.html'; });
     });
 
     actions.append(close,play);
     modal.append(head,list,actions);
     modal.showModal();
+    if (!force) queueEvent('onboarding_shown', { landingPath:(location.pathname.split('/').pop() || 'index.html') });
   }
 
     let installPromptEvent = null;
@@ -2848,7 +2981,7 @@ const Arcade = (() => {
     }, { once:true });
   }
 
-  
+
   function mountDesktopNav() {
     if (!document.body || document.getElementById('arcadeDesktopNav')) return;
 
@@ -2857,7 +2990,7 @@ const Arcade = (() => {
 
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const gameFiles = new Set([
-      'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
+      'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
       'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
     ]);
@@ -2900,7 +3033,7 @@ const Arcade = (() => {
 
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const gameFiles = new Set([
-      'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
+      'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
       'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
     ]);
@@ -2977,6 +3110,7 @@ const Arcade = (() => {
     document.head.append(sdk);
   }
 
+  captureAcquisition();
   repairLifetimeCounters();
   repairGameStats();
   applyTextScale();
@@ -3047,6 +3181,11 @@ const Arcade = (() => {
     }
   }
 
+  // Activate the shared gameplay scroll lock on every arcade page. The helper
+  // waits for DOMContentLoaded when necessary, so calling it here is safe even
+  // when arcade.js is loaded in the document head.
+  setupGameplayScrollLock();
+
   function installPauseControl(options = {}) {
     const status = document.getElementById('gameStatus');
     if (!status || document.getElementById('earnlyPauseButton')) return null;
@@ -3096,7 +3235,7 @@ const Arcade = (() => {
       if (!paused) return;
       const target = event.target instanceof Element ? event.target : null;
       if (target === button || button.contains(target)) return;
-      if (target?.closest('a,.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-modal')) return;
+      if (target?.closest('a,.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-dialog')) return;
       if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Escape')) return;
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -3154,7 +3293,7 @@ const Arcade = (() => {
     if (!element) return false;
     return !!element.closest(
       'a,button,input,textarea,select,summary,[role="button"],' +
-      '.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-modal,.toast'
+      '.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-dialog,.toast'
     );
   }
 
@@ -3194,6 +3333,11 @@ const Arcade = (() => {
     achievementSummary,
     profileName,
     setProfileName,
+    profileAvatars,
+    profileIconKey,
+    profileIcon,
+    setProfileIcon,
+    leaderboardUsername,
     xpStatus,
     addXP,
     favorites,
@@ -3219,6 +3363,9 @@ const Arcade = (() => {
     syncStatus,
     pendingSyncEvents,
     clearSyncEvents,
+    trackEvent,
+    acquisitionContext,
+    captureAcquisition,
     snapshotData,
     hasMeaningfulProgress,
     transferCode,

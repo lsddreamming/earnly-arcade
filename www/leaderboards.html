@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <title>Earnly World Leaderboards</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="premium.css?v=12">
+  <style>
+    .leaderboard-hero{padding:18px;border:1px solid #334155;border-radius:22px;background:radial-gradient(circle at 85% 0%,rgba(250,204,21,.12),transparent 38%),linear-gradient(145deg,#15263c,#0d1929);margin-bottom:14px}
+    .leaderboard-hero h1{margin:4px 0 6px;font-size:28px}
+    .leaderboard-hero p{margin:0;color:#94a3b8;font-size:13px;line-height:1.45}
+    .leaderboard-toolbar{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center;margin:12px 0}
+    .leaderboard-toolbar select{min-width:0;width:100%;min-height:46px;padding:10px 12px;border-radius:14px;border:1px solid #475569;background:#101d2e;color:#fff;font:inherit;font-weight:800}
+    .leaderboard-card{overflow:hidden;border:1px solid #334155;border-radius:20px;background:#0d1929;box-shadow:0 16px 34px rgba(0,0,0,.22)}
+    .leaderboard-head{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:13px 14px;border-bottom:1px solid #26364a;background:#122238}
+    .leaderboard-head strong{font-size:14px}.leaderboard-head span{font-size:10px;color:#94a3b8}
+    .leaderboard-list{display:grid}
+    .leader-row{display:grid;grid-template-columns:38px 44px minmax(0,1fr) auto 34px;gap:9px;align-items:center;padding:11px 13px;border-bottom:1px solid rgba(51,65,85,.55)}
+    .leader-row:last-child{border-bottom:0}
+    .leader-row.you{background:rgba(59,130,246,.10);box-shadow:inset 3px 0 #60a5fa}
+    .leader-rank{font-weight:1000;text-align:center;color:#cbd5e1}
+    .leader-row:nth-child(1) .leader-rank{color:#fde047;font-size:18px}
+    .leader-row:nth-child(2) .leader-rank{color:#e2e8f0;font-size:17px}
+    .leader-row:nth-child(3) .leader-rank{color:#fdba74;font-size:17px}
+    .leader-avatar{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;border:1px solid #334155;background:#17273b;font-size:22px}
+    .leader-player{min-width:0;display:grid;gap:2px}.leader-player strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.leader-player small{font-size:9px;color:#94a3b8}
+    .leader-score{text-align:right}.leader-score strong{display:block;font-size:15px;color:#f8fafc}.leader-score small{font-size:8px;color:#86efac;font-weight:900}
+    .leader-moderate{width:32px;height:32px;min-width:32px;padding:0;border:1px solid #334155;border-radius:10px;background:#172438;color:#94a3b8;font-weight:900}
+    .leader-moderate:hover{color:#fff;border-color:#64748b}
+    .leaderboard-empty{padding:30px 20px;text-align:center;color:#94a3b8}
+    .leaderboard-note{margin:10px 2px;color:#64748b;font-size:10px;line-height:1.4}
+    .world-record{display:none;margin:10px 0 0;padding:10px 12px;border:1px solid rgba(250,204,21,.35);border-radius:14px;background:rgba(113,63,18,.16);color:#fde68a;font-size:12px;font-weight:900}
+    .world-record.show{display:block}
+    @media(max-width:520px){.leaderboard-toolbar{grid-template-columns:1fr}.leader-row{grid-template-columns:32px 38px minmax(0,1fr) auto 30px;padding:10px 7px;gap:6px}.leader-avatar{width:36px;height:36px;font-size:20px}}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <a class="brand" href="games.html">← Games</a>
+      <a class="balance-chip" href="profile.html"><span id="myAvatar">🎮</span> Profile</a>
+    </div>
+
+    <header class="leaderboard-hero">
+      <span class="games-eyebrow">WORLD RANKINGS</span>
+      <h1>🏆 Earnly Leaderboards</h1>
+      <p>Every personal best can compete globally. Pick a game and see who holds the top score.</p>
+      <div class="world-record" id="worldRecord"></div>
+    </header>
+
+    <section class="leaderboard-toolbar">
+      <select id="gameSelect" aria-label="Choose leaderboard game"></select>
+      <a class="button secondary" href="profile.html">Edit username & icon</a>
+    </section>
+
+    <section class="leaderboard-card" aria-live="polite">
+      <div class="leaderboard-head">
+        <strong id="boardTitle">World Top 25</strong>
+        <span id="boardRule">Higher score wins</span>
+      </div>
+      <div class="leaderboard-list" id="leaderboardList">
+        <div class="leaderboard-empty">Loading world rankings…</div>
+      </div>
+    </section>
+
+    <p class="leaderboard-note">A ✓ means the score matched a recent server-synced reward run. Use the flag beside a player to report and hide an inappropriate username. <a href="support.html">Contact support</a> for anything else.</p>
+    <a class="button wide secondary" href="games.html">← Back to Games</a>
+  </main>
+
+  <script src="arcade.js"></script>
+  <script>
+    const gameInfo = [
+      ['snake','🐍','Snake'],['blockDrop','🧱','Block Drop'],['tapRush','🎯','Tap Rush'],
+      ['memory','🧠','Memory Match'],['dodger','🚗','Neon Dodger'],['brickBreaker','💥','Brick Breaker'],
+      ['jungleHopper','🐸','Jungle Hopper'],['towerStack','🏗️','Tower Stack'],['coinCatch','💰','Coin Catch'],
+      ['colorMatch','🎨','Color Match'],['paddleRally','🏓','Paddle Rally'],['laneRunner','🏎️','Lane Runner'],
+      ['safeCracker','🔐','Safe Cracker'],['blockGrid','🧩','Block Grid'],['mergeRush','🔢','Merge Rush'],
+      ['perfectDrop','🎯','Perfect Drop'],['spiralDrop','🌀','Spiral Drop'],['shapeFit','🧠','Shape Fit'],
+      ['bounceRun','⚪','Bounce Run'],['trafficEscape','🚦','Traffic Escape']
+    ];
+    const byKey = Object.fromEntries(gameInfo.map(item => [item[0], item]));
+    const select = document.getElementById('gameSelect');
+    const list = document.getElementById('leaderboardList');
+    const record = document.getElementById('worldRecord');
+    const myUsername = () => (Arcade.leaderboardUsername?.() || '').toLowerCase();
+
+    function blockedUsers() {
+      try {
+        const value = JSON.parse(localStorage.getItem('arcadeBlockedLeaderboardUsers') || '[]');
+        return new Set((Array.isArray(value) ? value : []).map(item => String(item).toLowerCase()));
+      } catch {
+        return new Set();
+      }
+    }
+
+    function hideLeaderboardUser(username) {
+      const blocked = blockedUsers();
+      blocked.add(String(username || '').toLowerCase());
+      localStorage.setItem('arcadeBlockedLeaderboardUsers', JSON.stringify([...blocked].slice(-100)));
+    }
+
+    function reportAndHide(entry, game) {
+      Arcade.panel(
+        'Report @' + entry.username + '?',
+        'This hides the player from your leaderboard and sends a username report when you are signed in.',
+        [
+          ['⚑ Report & Hide', async () => {
+            hideLeaderboardUser(entry.username);
+            try {
+              if (window.EarnlyCloud) await EarnlyCloud.reportLeaderboardPlayer(entry.username, game);
+              Arcade.toast('⚑ Player reported and hidden');
+            } catch (error) {
+              Arcade.toast('🙈 Player hidden. Sign in to send the report.');
+            }
+            loadBoard();
+          }, 'green'],
+          ['Cancel', () => {}, 'secondary']
+        ]
+      );
+    }
+
+    gameInfo.forEach(([key,icon,name]) => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = icon + ' ' + name;
+      select.append(option);
+    });
+
+    const requested = new URLSearchParams(location.search).get('game');
+    if (byKey[requested]) select.value = requested;
+
+    function scoreText(entry, data) {
+      return Number(entry.score || 0).toLocaleString() + ' ' + (data.label || 'points');
+    }
+
+    async function loadBoard() {
+      const game = select.value;
+      const viewKey = 'arcadeLeaderboardViewed:' + game;
+      if (!sessionStorage.getItem(viewKey)) {
+        sessionStorage.setItem(viewKey, '1');
+        Arcade.trackEvent?.('leaderboard_viewed', { game });
+      }
+      const info = byKey[game] || [game,'🎮',Arcade.names[game] || 'Game'];
+      document.getElementById('myAvatar').textContent = Arcade.profileIcon();
+      document.getElementById('boardTitle').textContent = info[1] + ' ' + info[2] + ' · World Top 25';
+      document.getElementById('boardRule').textContent = game === 'memory' ? 'Fewest moves wins' : 'Highest score wins';
+      list.innerHTML = '<div class="leaderboard-empty">Loading world rankings…</div>';
+      record.classList.remove('show');
+
+      try {
+        if (!window.EarnlyCloud) throw new Error('Leaderboard connection is still loading.');
+        const localBest = Arcade.best(game).value;
+        if (localBest > 0 && Arcade.leaderboardUsername()) {
+          try { await EarnlyCloud.submitLeaderboardScore(game, localBest); } catch {}
+        }
+        const data = await EarnlyCloud.leaderboard(game, 25);
+        const hidden = blockedUsers();
+        const entries = (data.entries || []).filter(entry => !hidden.has(String(entry.username || '').toLowerCase()));
+        list.replaceChildren();
+
+        if (!entries.length) {
+          const empty = document.createElement('div');
+          empty.className = 'leaderboard-empty';
+          empty.textContent = 'No global score yet. Be the first player on this board.';
+          list.append(empty);
+          return;
+        }
+
+        const me = myUsername();
+        entries.forEach(entry => {
+          const row = document.createElement('div');
+          row.className = 'leader-row' + (me && String(entry.username).toLowerCase() === me ? ' you' : '');
+
+          const rank = document.createElement('div');
+          rank.className = 'leader-rank';
+          rank.textContent = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : '#' + entry.rank;
+
+          const avatar = document.createElement('div');
+          avatar.className = 'leader-avatar';
+          avatar.textContent = entry.avatar || '🎮';
+
+          const player = document.createElement('div');
+          player.className = 'leader-player';
+          const name = document.createElement('strong');
+          name.textContent = '@' + entry.username;
+          const meta = document.createElement('small');
+          meta.textContent = entry.rank === 1 ? 'WORLD RECORD' : (row.classList.contains('you') ? 'YOU' : 'GLOBAL PLAYER');
+          player.append(name, meta);
+
+          const score = document.createElement('div');
+          score.className = 'leader-score';
+          const value = document.createElement('strong');
+          value.textContent = scoreText(entry, data);
+          score.append(value);
+          if (entry.verified) {
+            const verified = document.createElement('small');
+            verified.textContent = '✓ SERVER SYNCED';
+            score.append(verified);
+          }
+
+          const moderate = document.createElement('button');
+          moderate.type = 'button';
+          moderate.className = 'leader-moderate';
+          moderate.textContent = '⚑';
+          moderate.setAttribute('aria-label', 'Report and hide @' + entry.username);
+          moderate.hidden = row.classList.contains('you');
+          moderate.addEventListener('click', () => reportAndHide(entry, game));
+
+          row.append(rank, avatar, player, score, moderate);
+          list.append(row);
+        });
+
+        const top = entries[0];
+        record.textContent = '🌎 World Record · @' + top.username + ' · ' + scoreText(top, data);
+        record.classList.add('show');
+      } catch (error) {
+        list.innerHTML = '<div class="leaderboard-empty">' + (error?.message || 'Could not load world rankings.') + '</div>';
+      }
+    }
+
+    select.addEventListener('change', () => {
+      const url = new URL(location.href);
+      url.searchParams.set('game', select.value);
+      history.replaceState(null, '', url);
+      loadBoard();
+    });
+
+    window.addEventListener('earnly-cloud-ready', loadBoard);
+    window.addEventListener('earnly-leaderboard-updated', loadBoard);
+    if (window.EarnlyCloud) loadBoard();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>
