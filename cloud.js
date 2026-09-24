@@ -387,7 +387,8 @@
     'rewarded_play_unlock',
     'leaderboard_viewed',
     'profile_identity_saved',
-    'score_challenge_shared'
+    'score_challenge_shared',
+    'score_challenge_opened'
   ]);
 
   function isGrowthEvent(event){
