@@ -54,6 +54,51 @@ test('leaderboard and profile pages expose growth engagement tracking', async ({
   expect(profile).toContain("Arcade.trackEvent?.('profile_identity_saved'");
 });
 
+test('score challenge links carry player attribution', async ({ page }) => {
+  await page.goto('/snake.html');
+  const href = await page.evaluate(() => {
+    localStorage.setItem('arcadeUsername', 'TestPlayer');
+    return Arcade.shareChallengeUrl('snake', 14);
+  });
+  const url = new URL(href);
+
+  expect(url.pathname).toContain('snake.html');
+  expect(url.searchParams.get('challenge')).toBe('14');
+  expect(url.searchParams.get('utm_source')).toBe('player_share');
+  expect(url.searchParams.get('utm_campaign')).toBe('score_challenge');
+  expect(url.searchParams.get('utm_content')).toBe('snake');
+  expect(url.searchParams.get('challenger')).toBe('TestPlayer');
+  expect(url.searchParams.get('ref')).toBe('player_TestPlayer');
+});
+
+test('opening a shared score challenge shows the target and records funnel events', async ({ page }) => {
+  await page.goto('/snake.html?challenge=14&challenger=TestPlayer&ref=player_TestPlayer&utm_source=player_share&utm_campaign=score_challenge&utm_content=snake');
+
+  const banner = page.locator('#earnlySharedChallenge');
+  await expect(banner).toBeVisible();
+  await expect(banner).toContainText('@TestPlayer challenged you');
+  await expect(banner).toContainText('Beat 14');
+
+  const events = await page.evaluate(() => Arcade.pendingSyncEvents().map(item => ({ type:item.type, payload:item.payload })));
+  expect(events.some(item => item.type === 'acquisition_attributed' && item.payload.creator === 'player_TestPlayer')).toBeTruthy();
+  expect(events.some(item => item.type === 'score_challenge_opened' && item.payload.game === 'snake' && item.payload.metric === 14)).toBeTruthy();
+});
+
+test('result screen offers score sharing for completed runs', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    Arcade.gameResult({
+      icon:'🔷', title:'Shape Fit', scoreLabel:'Score', score:18,
+      best:'18 points', coins:4, result:{newBest:true,xpAward:10},
+      playsLeft:2, game:'shapeFit', extra:['⏱️ Time played: 33s']
+    });
+  });
+
+  const dialog = page.locator('dialog.game-result-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name:'🔥 Challenge a Friend' })).toBeVisible();
+});
+
 const pages = [
   'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html',
   'snake.html','blockdrop.html','brickbreaker.html','coincatch.html',
