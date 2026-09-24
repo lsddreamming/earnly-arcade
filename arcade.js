@@ -1903,6 +1903,36 @@ const Arcade = (() => {
       });
     }
 
+    if (game && currentGameKey() === game) {
+      const challengeParams = new URLSearchParams(location.search);
+      const challengeTarget = Math.max(0, Math.floor(Number(challengeParams.get('challenge')) || 0));
+      if (challengeTarget > 0) {
+        const challengeConfig = bestConfig[game] || { label:'points', lower:false };
+        const cleanScore = Math.max(0, Math.floor(Number(score) || 0));
+        const beaten = challengeConfig.lower ? cleanScore < challengeTarget : cleanScore > challengeTarget;
+        if (beaten) {
+          const challengerRaw = String(challengeParams.get('challenger') || '').trim();
+          const challenger = /^[A-Za-z0-9_]{3,18}$/.test(challengerRaw) ? challengerRaw : '';
+          const completeKey = 'earnlyChallengeComplete:' + game + ':' + challengeTarget;
+          if (!sessionStorage.getItem(completeKey)) {
+            sessionStorage.setItem(completeKey, '1');
+            queueEvent('score_challenge_completed', {
+              game,
+              metric:cleanScore,
+              target:challengeTarget,
+              creator:challenger ? 'player_' + challenger : null
+            });
+          }
+          const line = document.createElement('div');
+          line.className = 'result-highlight result-challenge-win';
+          line.textContent = challenger
+            ? '🔥 Challenge beaten · You beat @' + challenger + '!'
+            : '🔥 Challenge beaten!';
+          notes.append(line);
+        }
+      }
+    }
+
     if (game) {
       const daily = dailyMissionStatus();
       const relevantMissions = daily.missions.filter(mission =>
