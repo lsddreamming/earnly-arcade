@@ -278,6 +278,10 @@
         });
         status.className = 'global-profile-status ok';
         status.textContent = '@' + saved.username + ' · global profile saved';
+        Arcade.trackEvent?.('profile_identity_saved', {
+          hasUsername:!!saved.username,
+          avatarKey:saved.avatar_key || Arcade.profileIconKey()
+        });
         Arcade.toast('🌎 Global profile ready!');
         render();
         renderAvatarPicker();
