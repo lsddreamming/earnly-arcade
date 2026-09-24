@@ -51,25 +51,29 @@ function generateRun(count, seed = 1234567) {
 }
 
 test('Spiral Drop avoids long same-lane streaks across many generated rows', () => {
-  for(let seed=1; seed<=100; seed++){
+  let problem=null;
+  for(let seed=1; seed<=100 && !problem; seed++){
     const rows=generateRun(500,seed);
     for(let i=2;i<rows.length;i++){
       const a=Math.abs(rows[i]-rows[i-1]);
       const b=Math.abs(rows[i-1]-rows[i-2]);
       // Three nearly stationary openings in a row create the free-fall exploit.
-      expect(a < 30 && b < 30, 'same-lane streak seed '+seed+' row '+i).toBeFalsy();
+      if(a<30 && b<30){problem={seed,row:i,a,b};break}
     }
   }
+  expect(problem,'first long same-lane streak').toBeNull();
 });
 
 test('Spiral Drop does not settle into repeated A-B-A-B lanes', () => {
-  for(let seed=101; seed<=200; seed++){
+  let problem=null;
+  for(let seed=101; seed<=200 && !problem; seed++){
     const rows=generateRun(500,seed);
     let repeated=0;
     for(let i=3;i<rows.length;i++){
       const abab=Math.abs(rows[i]-rows[i-2])<20 && Math.abs(rows[i-1]-rows[i-3])<20;
       repeated=abab?repeated+1:0;
-      expect(repeated, 'ABAB streak seed '+seed+' row '+i).toBeLessThan(2);
+      if(repeated>=2){problem={seed,row:i,repeated};break}
     }
   }
+  expect(problem,'first repeated A-B-A-B lane streak').toBeNull();
 });
