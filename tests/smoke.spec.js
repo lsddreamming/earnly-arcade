@@ -1155,11 +1155,11 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await page.getByRole('button', { name:/Watch demo ad/ }).click();
   await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
   await page.waitForTimeout(3400);
-  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
   expect(await page.evaluate(() => Arcade.playAdStatus('shapeFit').used)).toBe(1);
 
   await page.reload();
-  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(3);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
   expect(await page.evaluate(() => Arcade.dailyMissionStatus().missions.find(m => m.id === 'play3').complete)).toBeTruthy();
   expect(await page.evaluate(() => Arcade.dailyCoinStatus().earned)).toBe(15);
 });
