@@ -1193,8 +1193,8 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   expect(missions.missions.find(m => m.id === 'coins15').complete).toBeTruthy();
 
   await page.evaluate(() => Arcade.out('shapeFit'));
-  await expect(page.locator('dialog')).toContainText('Out of Shape Fit plays');
-  await page.getByRole('button', { name:/Watch demo ad/ }).click();
+  await expect(page.locator('dialog')).toContainText('One more run?');
+  await page.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
   await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
   await page.waitForTimeout(3400);
   expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
