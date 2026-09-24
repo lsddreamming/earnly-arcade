@@ -39,6 +39,165 @@ const Arcade = (() => {
     trafficEscape: 'Traffic Escape'
   };
 
+  const gameHrefs = {
+    snake:'snake.html',
+    blockDrop:'blockdrop.html',
+    tapRush:'taprush.html',
+    memory:'memory.html',
+    dodger:'dodger.html',
+    brickBreaker:'brickbreaker.html',
+    jungleHopper:'junglehopper.html',
+    towerStack:'towerstack.html',
+    coinCatch:'coincatch.html',
+    colorMatch:'colormatch.html',
+    paddleRally:'paddlerally.html',
+    laneRunner:'lanerunner.html',
+    safeCracker:'safecracker.html',
+    blockGrid:'mini.html?game=blockGrid',
+    mergeRush:'mini.html?game=mergeRush',
+    perfectDrop:'mini.html?game=perfectDrop',
+    spiralDrop:'mini.html?game=spiralDrop',
+    shapeFit:'mini.html?game=shapeFit',
+    bounceRun:'mini.html?game=bounceRun',
+    trafficEscape:'mini.html?game=trafficEscape'
+  };
+
+  const fileGameKeys = {
+    'snake.html':'snake',
+    'blockdrop.html':'blockDrop',
+    'taprush.html':'tapRush',
+    'memory.html':'memory',
+    'dodger.html':'dodger',
+    'brickbreaker.html':'brickBreaker',
+    'junglehopper.html':'jungleHopper',
+    'towerstack.html':'towerStack',
+    'coincatch.html':'coinCatch',
+    'colormatch.html':'colorMatch',
+    'paddlerally.html':'paddleRally',
+    'lanerunner.html':'laneRunner',
+    'safecracker.html':'safeCracker'
+  };
+
+  function currentGameKey() {
+    const file = (location.pathname.split('/').pop() || '').toLowerCase();
+    if (file === 'mini.html') {
+      const key = new URLSearchParams(location.search).get('game') || '';
+      return names[key] ? key : '';
+    }
+    return fileGameKeys[file] || '';
+  }
+
+  function shareChallengeUrl(game, metric) {
+    const href = gameHrefs[game];
+    const score = Math.max(0, Math.floor(Number(metric) || 0));
+    if (!href || !score) return '';
+
+    const url = new URL(href, location.href);
+    url.searchParams.set('challenge', String(score));
+    url.searchParams.set('utm_source', 'player_share');
+    url.searchParams.set('utm_campaign', 'score_challenge');
+    url.searchParams.set('utm_content', game);
+
+    const username = leaderboardUsername();
+    if (/^[A-Za-z0-9_]{3,18}$/.test(username)) {
+      url.searchParams.set('challenger', username);
+    }
+    return url.href;
+  }
+
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+
+    try {
+      const field = document.createElement('textarea');
+      field.value = text;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.append(field);
+      field.select();
+      const copied = document.execCommand('copy');
+      field.remove();
+      return !!copied;
+    } catch {
+      return false;
+    }
+  }
+
+  async function shareScoreChallenge(game, metric) {
+    const url = shareChallengeUrl(game, metric);
+    if (!url) return { shared:false, reason:'invalid' };
+
+    const score = Math.max(0, Math.floor(Number(metric) || 0));
+    const config = bestConfig[game] || { label:'points' };
+    const title = 'Beat my ' + (names[game] || 'Earnly') + ' score';
+    const text = game === 'memory'
+      ? 'I finished Memory Match in ' + score + ' moves on Earnly Arcade. Can you do it in fewer?'
+      : 'I scored ' + score + ' ' + config.label + ' in ' + (names[game] || 'Earnly Arcade') + '. Can you beat me?';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        queueEvent('score_challenge_shared', { game, metric:score, method:'share' });
+        return { shared:true, method:'share', url };
+      } catch (error) {
+        if (error?.name === 'AbortError') return { shared:false, cancelled:true, url };
+      }
+    }
+
+    const copied = await copyText(url);
+    if (copied) {
+      queueEvent('score_challenge_shared', { game, metric:score, method:'copy' });
+      toast('🔥 Challenge link copied!');
+      return { shared:true, method:'copy', url };
+    }
+
+    toast('Could not share the challenge link.');
+    return { shared:false, reason:'copy-failed', url };
+  }
+
+  function mountSharedChallenge() {
+    if (!document.body || document.getElementById('earnlySharedChallenge')) return null;
+    const game = currentGameKey();
+    if (!game) return null;
+
+    const params = new URLSearchParams(location.search);
+    const score = Math.max(0, Math.floor(Number(params.get('challenge')) || 0));
+    if (!score) return null;
+
+    const challengerRaw = String(params.get('challenger') || '').trim();
+    const challenger = /^[A-Za-z0-9_]{3,18}$/.test(challengerRaw) ? challengerRaw : '';
+    const config = bestConfig[game] || { label:'points', lower:false };
+
+    const banner = document.createElement('div');
+    banner.id = 'earnlySharedChallenge';
+    banner.className = 'shared-challenge-banner';
+    banner.setAttribute('role', 'status');
+
+    const strong = document.createElement('strong');
+    strong.textContent = challenger ? '🔥 @' + challenger + ' challenged you' : '🔥 Score challenge';
+
+    const copy = document.createElement('span');
+    copy.textContent = config.lower
+      ? 'Finish in fewer than ' + score + ' ' + config.label + '.'
+      : 'Beat ' + score + ' ' + config.label + '.';
+
+    banner.append(strong, copy);
+
+    const container = document.querySelector('.container');
+    const anchor = document.getElementById('arcadeDesktopNav') || container?.querySelector('.topbar');
+    if (anchor) anchor.insertAdjacentElement('afterend', banner);
+    else if (container) container.prepend(banner);
+    else document.body.prepend(banner);
+
+    return banner;
+  }
+
   const profileAvatars = {
     gamepad:'🎮',
     rocket:'🚀',
@@ -1849,6 +2008,23 @@ const Arcade = (() => {
       });
     });
 
+    let share = null;
+    if (game && Math.max(0, Math.floor(Number(score) || 0)) > 0) {
+      share = document.createElement('button');
+      share.type = 'button';
+      share.className = 'wide secondary challenge-share-button';
+      share.textContent = '🔥 Challenge a Friend';
+      share.addEventListener('click', async () => {
+        if (share.disabled) return;
+        share.disabled = true;
+        try {
+          await shareScoreChallenge(game, score);
+        } finally {
+          share.disabled = false;
+        }
+      });
+    }
+
     const back = document.createElement('button');
     back.className = 'wide secondary' + (goalReturn ? ' goal-return-button' : '');
     back.textContent = goalReturn ? goalReturn.label : '← Games';
@@ -1860,7 +2036,9 @@ const Arcade = (() => {
       });
     });
 
-    actions.append(primary, back);
+    actions.append(primary);
+    if (share) actions.append(share);
+    actions.append(back);
     modal.append(hero, main, statsBox, levelProgress);
     if (notes.childElementCount) modal.append(notes);
     modal.append(actions);
@@ -3117,6 +3295,7 @@ const Arcade = (() => {
   applyMotionPreference();
   mountBottomNav();
   mountDesktopNav();
+  mountSharedChallenge();
   mountConnectionBanner();
   mountLaunchSplash();
   registerServiceWorker();
@@ -3382,6 +3561,9 @@ const Arcade = (() => {
     earn,
     panel,
     gameResult,
+    shareChallengeUrl,
+    shareScoreChallenge,
+    mountSharedChallenge,
     milestone,
     toast,
     soundEnabled,
