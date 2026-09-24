@@ -133,6 +133,7 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   const html = read('mini.html');
 
   expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
+  expect(source).toContain('const boardsNeeded=()=>1;');
   expect(source).toContain("const targetCars=[0,6,7,8,9,9,10,10]");
   expect(source).toContain("const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8]");
   expect(source).toContain("const maxInitiallyFree=2");
@@ -144,13 +145,15 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger keeps the release difficulty curve', () => {
+test('Neon Dodger keeps the faster staged difficulty curve', () => {
   const source = read('dodger.html');
 
+  expect(source).toContain('function difficultyFor(seconds)');
+  expect(source).toContain("if(seconds>=24) return {label:'MAX',speed:11.6,delay:270}");
   expect(source).toContain('function trafficSpeedFor(seconds)');
-  expect(source).toContain('Math.min(15.0,6.5+Math.max(0,seconds)*.30)');
+  expect(source).toContain('Math.min(12.2,stage.speed+Math.max(0,seconds%6)*.10)');
   expect(source).toContain('function spawnDelayFor(seconds)');
-  expect(source).toContain('Math.max(190,560-Math.max(0,seconds)*16)');
+  expect(source).toContain('return difficultyFor(seconds).delay;');
   expect(source).toContain('nextSpawnAt=now+560');
 });
 
@@ -214,7 +217,7 @@ test('rewarded play unlocks stay play-only and guarded against duplicate grants'
   const arcade = read('arcade.js');
 
   expect(arcade).toContain('const FREE_PLAYS = 3;');
-  expect(arcade).toContain('const PLAY_AD_BONUS = 3;');
+  expect(arcade).toContain('const PLAY_AD_BONUS = 1;');
   expect(arcade).toContain('const PLAY_AD_DAILY_LIMIT = 2;');
   expect(arcade).toContain("if (latestStatus.remaining <= 0 || remaining(g) > 0) return null;");
   expect(arcade).toContain("if (remaining(g) > 0)");
@@ -236,7 +239,20 @@ test('result replay checks the live play balance before acting', () => {
 
   expect(resultFlow).toContain('const livePlays = game ? remaining(game) : resultPlaysLeft;');
   expect(resultFlow).toContain("if (livePlays > 0)");
+  expect(resultFlow).toContain("playAd(game, onReplay)");
   expect(resultFlow).toContain("else if (typeof onMorePlays === 'function')");
+});
+
+test('result screen shows level progress and a single-play rewarded replay', () => {
+  const arcade = read('arcade.js');
+  const games = read('games.html');
+  const rewards = read('rewards.html');
+  expect(arcade).toContain("levelProgress.className = 'result-level-progress'");
+  expect(arcade).toContain("'📺 Watch Ad · +1 Play & Replay'");
+  expect(arcade).toContain('const PLAY_AD_BONUS = 1;');
+  expect(games).toContain('📺 Watch Ad · +1 Play');
+  expect(games).not.toContain('+3 Plays');
+  expect(rewards).toContain('voluntary +1-play unlocks');
 });
 
 
@@ -286,5 +302,5 @@ test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage gu
   expect(workflow).toContain('Verify native release mode');
   expect(workflow).toContain('earnly-arcade-ios-signed-${{ env.BUILD_ADMOB_MODE }}');
   expect(workflow).toContain('MARKETING_VERSION=1.0');
-  expect(arcadeVersionSource).toContain("const APP_VERSION = '1.0.0';");
+  expect(arcadeVersionSource).toContain("const APP_VERSION = '1.1.0';");
 });
