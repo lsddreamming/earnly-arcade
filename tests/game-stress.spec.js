@@ -11,41 +11,55 @@ function bounceSample(cleared, random){
 }
 
 test('Bounce Run: 100,000 obstacle samples stay inside safety bounds',()=>{
-  const random=rng(81); let minDelay=Infinity,maxSpeed=0,maxWidth=0;
+  const random=rng(81); let minDelay=Infinity,maxSpeed=0,maxWidth=0,problem=null;
   for(let i=0;i<100000;i++){
-    const cleared=i%101, s=bounceSample(cleared,random);
-    minDelay=Math.min(minDelay,s.delay);maxSpeed=Math.max(maxSpeed,s.speed);maxWidth=Math.max(maxWidth,s.width);
-    expect(s.delay).toBeGreaterThanOrEqual(24);
-    expect(s.speed).toBeLessThanOrEqual(10);
-    expect(s.width).toBeLessThanOrEqual(96);
+    const cleared=i%101, sample=bounceSample(cleared,random);
+    minDelay=Math.min(minDelay,sample.delay);maxSpeed=Math.max(maxSpeed,sample.speed);maxWidth=Math.max(maxWidth,sample.width);
+    if(!problem && (sample.delay<24 || sample.speed>10 || sample.width>96)){
+      problem={i,cleared,...sample};
+    }
   }
-  expect(minDelay).toBeGreaterThanOrEqual(24);expect(maxSpeed).toBeLessThanOrEqual(10);expect(maxWidth).toBeLessThanOrEqual(96);
+  expect(problem,'first out-of-bounds obstacle sample').toBeNull();
+  expect({minDelay,maxSpeed,maxWidth}).toEqual(expect.objectContaining({
+    minDelay:expect.any(Number),maxSpeed:expect.any(Number),maxWidth:expect.any(Number)
+  }));
+  expect(minDelay).toBeGreaterThanOrEqual(24);
+  expect(maxSpeed).toBeLessThanOrEqual(10);
+  expect(maxWidth).toBeLessThanOrEqual(96);
 });
 
 const SHAPES=[
- {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},{name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
- {name:'S',cells:[[1,0],[2,0],[0,1],[1,1]]},{name:'I',cells:[[0,0],[1,0],[2,0],[3,0]]},
- {name:'O',cells:[[0,0],[1,0],[0,1],[1,1]]},{name:'J',cells:[[1,0],[1,1],[1,2],[0,2]]}
+ {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},
+ {name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
+ {name:'Square',cells:[[0,0],[1,0],[0,1],[1,1]]},
+ {name:'Zigzag',cells:[[0,0],[1,0],[1,1],[2,1]]},
+ {name:'Line',cells:[[0,0],[1,0],[2,0],[3,0]]},
+ {name:'Corner',cells:[[0,0],[0,1],[1,1]]}
 ];
 function rotate(cells,t){let a=cells.map(p=>[...p]);while(t--){a=a.map(([x,y])=>[3-y,x]);const minX=Math.min(...a.map(p=>p[0])),minY=Math.min(...a.map(p=>p[1]));a=a.map(([x,y])=>[x-minX,y-minY])}return a}
 function key(c){return c.map(p=>p.join(',')).sort().join('|')}
 
 test('Shape Fit: 50,000 rounds always contain exactly one base-shape answer',()=>{
- const random=rng(203);
+ const random=rng(203); let problem=null;
  for(let round=1;round<=50000;round++){
   const base=SHAPES[Math.floor(random()*SHAPES.length)], turns=round<4?0:Math.floor(random()*4);
   const answer={base,cells:rotate(base.cells,turns)};
-  const count=round<6?4:round<14?6:8;
+  const count=round<=3?3:round<=7?4:round<=13?6:8;
   const correctTurns=round<4?turns:(turns+1+Math.floor(random()*3))%4;
   const opts=[{base,cells:rotate(base.cells,correctTurns)}],used=new Set([base.name+':'+key(opts?.[0]?.cells||rotate(base.cells,correctTurns))]);
   let guard=0;
   while(opts.length<count&&guard++<500){
-   const sh=SHAPES[Math.floor(random()*SHAPES.length)],v={base:sh,cells:rotate(sh.cells,Math.floor(random()*4))},k=sh.name+':'+key(v.cells);
+   const sh=SHAPES[Math.floor(random()*SHAPES.length)];
+   if(sh===base)continue;
+   const v={base:sh,cells:rotate(sh.cells,Math.floor(random()*4))},k=sh.name+':'+key(v.cells);
    if(!used.has(k)){used.add(k);opts.push(v)}
   }
-  expect(opts.length).toBe(count);
-  expect(opts.filter(o=>o.base===answer.base).length).toBe(1);
+  const matching=opts.filter(o=>o.base===answer.base).length;
+  if(!problem && (opts.length!==count || matching!==1)){
+    problem={round,base:base.name,expectedChoices:count,actualChoices:opts.length,matching,guard};
+  }
  }
+ expect(problem,'first invalid Shape Fit round').toBeNull();
 });
 
 const N=6;
@@ -91,14 +105,17 @@ function trafficBoard(level,random){
 }
 
 test('Traffic Escape: 3,500 harder boards stay valid and solvable',()=>{
- const random=rng(9901);
+ const random=rng(9901); let problem=null;
  for(let i=0;i<3500;i++){
   const level=1+(i%7), board=trafficBoard(level,random);
-  expect(board.every((c,idx)=>board.every((o,j)=>idx===j||!overlap(c,o)))).toBeTruthy();
-  expect(solvable(board)).toBeTruthy();
+  const noOverlap=board.every((c,idx)=>board.every((o,j)=>idx===j||!overlap(c,o)));
+  const canSolve=solvable(board);
   const free=board.filter(c=>canExit(board,c)).length;
-  expect(free).toBeGreaterThanOrEqual(1);
-  expect(free).toBeLessThanOrEqual(level>=4?2:5);
-  if(level>=4)expect(board.length).toBeGreaterThanOrEqual(9);
+  const validFree=free>=1 && free<=(level>=4?2:5);
+  const validSize=level<4 || board.length>=9;
+  if(!problem && (!noOverlap || !canSolve || !validFree || !validSize)){
+    problem={i,level,noOverlap,canSolve,free,size:board.length};
+  }
  }
+ expect(problem,'first invalid Traffic Escape board').toBeNull();
 });

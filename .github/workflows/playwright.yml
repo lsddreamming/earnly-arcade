@@ -11,22 +11,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  simulation-and-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm install
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm test
-      - name: Upload failure report
+      - run: npx playwright install --with-deps chromium
+      - name: Run simulations and source contracts once
+        run: npx playwright test tests/game-stress.spec.js tests/spiral-drop.spec.js tests/quality-contract.spec.js --project=desktop-chromium
+      - name: Upload simulation failure report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-simulations
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  smoke:
+    name: smoke (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: desktop-chromium
+            browser: chromium
+          - project: mobile-webkit
+            browser: webkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run smoke suite
+        run: npx playwright test tests/smoke.spec.js --project=${{ matrix.project }}
+      - name: Upload smoke failure report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/

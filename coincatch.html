@@ -178,6 +178,12 @@
     const balanceEl=document.getElementById('balance');
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
+    function hideActiveGuideChrome(){
+      document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{
+        el.hidden=true;
+        el.style.display='none';
+      });
+    }
     function setStatus(text,mode){
       document.body.classList.toggle('game-active',mode==='running');
       statusEl.textContent=text;statusEl.className='game-status'+(mode?' '+mode:'');
@@ -217,9 +223,24 @@
     function showLiveTip(text,duration=START_TIP_MS){
       clearTimeout(liveTipTimer);
       catchLiveTip.textContent=text;
+      const pauseButton=document.querySelector('.earnly-pause-button');
+      if(pauseButton && !pauseButton.hidden){
+        catchLiveTip.style.top=Math.ceil(pauseButton.getBoundingClientRect().bottom+8)+'px';
+      }else{
+        catchLiveTip.style.removeProperty('top');
+      }
       catchLiveTip.classList.add('show');
+      // Pause visibility updates from a MutationObserver after status becomes
+      // Running, so measure again on the next frame before the player reads it.
+      requestAnimationFrame(()=>{
+        const livePauseButton=document.querySelector('.earnly-pause-button');
+        if(livePauseButton && !livePauseButton.hidden){
+          catchLiveTip.style.top=Math.ceil(livePauseButton.getBoundingClientRect().bottom+8)+'px';
+        }
+      });
       liveTipTimer=setTimeout(()=>{
         catchLiveTip.classList.remove('show');
+        catchLiveTip.style.removeProperty('top');
         liveTipTimer=null;
       },duration);
     }
@@ -469,7 +490,7 @@
       if(!running || transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return false;
       if(e.target===canvas || catchControlZone.contains(e.target))return false;
       const target=e.target instanceof Element?e.target:null;
-      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-modal'))return false;
+      if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-dialog'))return false;
       const pauseButton=document.querySelector('.earnly-pause-button');
       const minY=pauseButton?pauseButton.getBoundingClientRect().bottom+4:0;
       return e.clientY>=minY;
