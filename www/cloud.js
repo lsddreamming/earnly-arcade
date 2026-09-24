@@ -115,6 +115,42 @@
     }
   }
 
+  async function deleteAccount(){
+    accountTransition = true;
+    try {
+      const current = await user();
+      if (!current) throw new Error('Sign in before deleting your account.');
+
+      const { data, error } = await requireClient().functions.invoke('delete-account', {
+        body:{ confirm:true }
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Account deletion failed.');
+
+      // The server account and all cloud rows are deleted via ON DELETE CASCADE.
+      // Keep this device's game progress as guest progress, but remove all
+      // account-specific sync state so it can never leak into another account.
+      try { await requireClient().auth.signOut({ scope:'local' }); } catch {}
+      try { Arcade.clearSyncEvents?.(); } catch {}
+
+      [
+        'arcadeLastCloudSave',
+        'arcadeLastCloudRestore',
+        'arcadeLastCloudHash',
+        'arcadeCloudConflict',
+        'arcadeCloudSyncError',
+        'arcadeCloudOfflinePending',
+        'arcadeServerRewardError',
+        'arcadeFreshDeviceRestoreDone'
+      ].forEach(key => localStorage.removeItem(key));
+
+      window.dispatchEvent(new CustomEvent('earnly-account-deleted'));
+      return true;
+    } finally {
+      accountTransition = false;
+    }
+  }
+
   async function cloudSaveInfo(){
     const current = await user();
     if (!current) return null;
@@ -339,6 +375,106 @@
     }
   }
 
+  const GROWTH_EVENT_TYPES = new Set([
+    'acquisition_attributed',
+    'onboarding_shown',
+    'onboarding_completed',
+    'onboarding_dismissed',
+    'play_started',
+    'game_result',
+    'one_more_run_shown',
+    'rewarded_ad_started',
+    'rewarded_play_unlock',
+    'leaderboard_viewed',
+    'profile_identity_saved'
+  ]);
+
+  function isGrowthEvent(event){
+    return !!event?.id && GROWTH_EVENT_TYPES.has(String(event.type || ''));
+  }
+
+  function growthEventBody(event){
+    const attribution = Arcade.acquisitionContext?.() || {};
+    const touch = attribution.first || attribution.latest || {};
+    const payload = event?.payload && typeof event.payload === 'object' ? event.payload : {};
+    const propertyKeys = [
+      'metric','best','newBest','xpAward','performanceXP','level',
+      'playsUsed','bonusPlays','unlockNumber','dailyLimit','playsGranted',
+      'unlocksLeft','firstTouch','rank','hasUsername','avatarKey'
+    ];
+    const properties = {};
+    propertyKeys.forEach(key => {
+      const value = payload[key];
+      if (value === null || typeof value === 'boolean' || typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))) {
+        properties[key] = value;
+      }
+    });
+
+    return {
+      eventId:event.id,
+      deviceId:event.deviceId || Arcade.deviceId(),
+      eventType:event.type,
+      creator:payload.creator || touch.creator || null,
+      source:payload.source || touch.source || null,
+      campaign:payload.campaign || touch.campaign || null,
+      content:payload.content || touch.content || null,
+      challenge:payload.challenge || touch.challenge || null,
+      game:payload.game || null,
+      landingPath:payload.landingPath || touch.path || (location.pathname.split('/').pop() || 'index.html'),
+      clientCreatedAt:event.createdAt || null,
+      properties
+    };
+  }
+
+  let growthSyncPromise = null;
+
+  function growthSyncEnabled(){
+    return !['localhost','127.0.0.1','::1'].includes(location.hostname);
+  }
+
+  async function syncGrowthEvents(){
+    if (growthSyncPromise) return growthSyncPromise;
+    if (!growthSyncEnabled()) return { skipped:'local-test', synced:0 };
+    if (!navigator.onLine) return { skipped:'offline', synced:0 };
+
+    growthSyncPromise = (async () => {
+      const events = Arcade.pendingSyncEvents().filter(isGrowthEvent).slice(0, 25);
+      if (!events.length) return { synced:0 };
+
+      let synced = 0;
+      for (const event of events) {
+        let response;
+        try {
+          response = await fetch(SUPABASE_URL + '/functions/v1/track-growth', {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              'apikey':SUPABASE_PUBLISHABLE_KEY
+            },
+            body:JSON.stringify(growthEventBody(event))
+          });
+        } catch {
+          break;
+        }
+
+        if (!response.ok) break;
+        const data = await response.json().catch(() => null);
+        if (!data?.ok) break;
+
+        Arcade.clearSyncEvents(event.id);
+        synced += 1;
+      }
+
+      return { synced, pending:Arcade.pendingSyncEvents().filter(isGrowthEvent).length };
+    })();
+
+    try {
+      return await growthSyncPromise;
+    } finally {
+      growthSyncPromise = null;
+    }
+  }
+
   function snapshotSignature(snapshot){
     const data = snapshot?.data && typeof snapshot.data === 'object' ? snapshot.data : {};
     const ordered = Object.keys(data).sort().map(key => [key, data[key]]);
@@ -353,11 +489,14 @@
 
   function clearSnapshotSyncedEvents(){
     const ids = Arcade.pendingSyncEvents()
-      .filter(event => !(
-        event?.type === 'coin_award' &&
-        event?.payload?.server &&
-        typeof event.payload.server === 'object'
-      ))
+      .filter(event => {
+        const serverReward = (
+          event?.type === 'coin_award' &&
+          event?.payload?.server &&
+          typeof event.payload.server === 'object'
+        );
+        return !serverReward && !isGrowthEvent(event);
+      })
       .map(event => event.id)
       .filter(Boolean);
 
@@ -426,12 +565,18 @@
       };
     }
 
+    const profilePayload = {
+      user_id:current.id,
+      display_name:displayName
+    };
+    const savedAvatar = localStorage.getItem('arcadeProfileIcon');
+    const savedUsername = (localStorage.getItem('arcadeUsername') || '').trim();
+    if (savedAvatar && Arcade.profileAvatars?.[savedAvatar]) profilePayload.avatar_key = savedAvatar;
+    if (/^[A-Za-z0-9_]{3,18}$/.test(savedUsername)) profilePayload.username = savedUsername;
+
     const { error:profileError } = await requireClient()
       .from('profiles')
-      .upsert({
-        user_id:current.id,
-        display_name:displayName
-      }, { onConflict:'user_id' });
+      .upsert(profilePayload, { onConflict:'user_id' });
     if (profileError) throw profileError;
 
     const { data, error } = await requireClient()
@@ -614,12 +759,99 @@
 
     const { data, error } = await requireClient()
       .from('profiles')
-      .select('display_name,updated_at')
+      .select('display_name,username,avatar_key,updated_at')
       .eq('user_id', current.id)
       .maybeSingle();
 
     if (error) throw error;
     return data || null;
+  }
+
+
+  async function updatePublicProfile({ displayName, username, avatarKey } = {}){
+    const current = await user();
+    if (!current) throw new Error('Sign in to create a global player profile.');
+
+    const cleanDisplay = String(displayName || Arcade.profileName() || 'Player').trim().slice(0,32) || 'Player';
+    const cleanUsername = String(username || '').trim();
+    const cleanAvatar = Arcade.profileAvatars?.[avatarKey] ? avatarKey : Arcade.profileIconKey();
+
+    if (!/^[A-Za-z0-9_]{3,18}$/.test(cleanUsername)) {
+      throw new Error('Username must be 3–18 letters, numbers, or underscores.');
+    }
+
+    const { data, error } = await requireClient()
+      .from('profiles')
+      .upsert({
+        user_id:current.id,
+        display_name:cleanDisplay,
+        username:cleanUsername,
+        avatar_key:cleanAvatar,
+        updated_at:new Date().toISOString()
+      }, { onConflict:'user_id' })
+      .select('display_name,username,avatar_key,updated_at')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') throw new Error('That username is already taken.');
+      if (error.code === '23514') throw new Error('That username is not allowed. Try another.');
+      throw error;
+    }
+
+    localStorage.setItem('arcadeProfileName', data.display_name || cleanDisplay);
+    localStorage.setItem('arcadeUsername', data.username || cleanUsername);
+    localStorage.setItem('arcadeProfileIcon', data.avatar_key || cleanAvatar);
+    window.dispatchEvent(new CustomEvent('earnly-public-profile-updated', { detail:data }));
+    scheduleAutoSync('public-profile', 250);
+    return data;
+  }
+
+  async function leaderboard(game, limit = 25){
+    const { data, error } = await requireClient().functions.invoke('leaderboard', {
+      body:{ action:'list', game:String(game || ''), limit:Math.max(1, Math.min(50, Number(limit) || 25)) }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+
+  async function submitLeaderboardScore(game, score){
+    const currentSession = await session();
+    if (!currentSession?.user) return { skipped:'signed-out' };
+
+    let username = Arcade.leaderboardUsername?.() || '';
+    if (!username) {
+      const remoteProfile = await profile();
+      if (remoteProfile?.username) {
+        username = remoteProfile.username;
+        localStorage.setItem('arcadeUsername', remoteProfile.username);
+        if (remoteProfile.avatar_key) localStorage.setItem('arcadeProfileIcon', remoteProfile.avatar_key);
+      }
+    }
+    if (!username) return { skipped:'username-required' };
+
+    const { data, error } = await requireClient().functions.invoke('leaderboard', {
+      headers:{ Authorization:'Bearer ' + currentSession.access_token },
+      body:{ action:'submit', game:String(game || ''), score:Math.floor(Number(score) || 0) }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    window.dispatchEvent(new CustomEvent('earnly-leaderboard-updated', { detail:data }));
+    return data;
+  }
+
+  async function reportLeaderboardPlayer(username, game){
+    const currentSession = await session();
+    if (!currentSession?.user) throw new Error('Sign in to report a player.');
+
+    const { data, error } = await requireClient().functions.invoke('leaderboard-report', {
+      headers:{ Authorization:'Bearer ' + currentSession.access_token },
+      body:{ username:String(username || '').trim(), game:String(game || '').trim() }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
   }
 
   if (client) {
@@ -655,13 +887,34 @@
         localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
       }
       scheduleAutoSync(event.detail?.type || 'data-change', 650);
+      if (GROWTH_EVENT_TYPES.has(String(event.detail?.type || ''))) {
+        syncGrowthEvents().catch(() => {});
+      }
+
+      if (event.detail?.type === 'game_result' && event.detail?.payload?.newBest) {
+        const payload = event.detail.payload;
+        submitLeaderboardScore(payload.game, payload.best)
+          .then(result => {
+            if (result?.saved && result.rank && result.rank <= 25) {
+              Arcade.toast('🌎 World rank #' + result.rank + ' in ' + (Arcade.names[payload.game] || 'this game') + '!');
+            }
+          })
+          .catch(() => {});
+      }
     });
     window.addEventListener('online', () => {
       retryAttempt = 0;
       scheduleAutoSync('online', 300);
+      syncGrowthEvents().catch(() => {});
     });
-    window.addEventListener('pageshow', () => scheduleAutoSync('pageshow', 850));
-    window.addEventListener('focus', () => scheduleAutoSync('focus', 1000));
+    window.addEventListener('pageshow', () => {
+      scheduleAutoSync('pageshow', 850);
+      syncGrowthEvents().catch(() => {});
+    });
+    window.addEventListener('focus', () => {
+      scheduleAutoSync('focus', 1000);
+      syncGrowthEvents().catch(() => {});
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         scheduleAutoSync('foreground', 650);
@@ -670,7 +923,10 @@
       }
     });
 
-    setTimeout(() => scheduleAutoSync('cloud-ready', 200), 0);
+    setTimeout(() => {
+      scheduleAutoSync('cloud-ready', 200);
+      syncGrowthEvents().catch(() => {});
+    }, 0);
     window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   }
 
@@ -680,15 +936,22 @@
     session,
     user,
     profile,
+    updatePublicProfile,
+    leaderboard,
+    submitLeaderboardScore,
+    reportLeaderboardPlayer,
     signUp,
     signIn,
     signInAndRestore,
     sendPasswordReset,
     updatePassword,
     signOut,
+    deleteAccount,
     cloudSaveInfo,
     walletInfo,
     syncServerRewards,
+    syncGrowthEvents,
+    growthSyncEnabled,
     maybeRestoreFreshDevice,
     saveProgress,
     autoSaveProgress,
