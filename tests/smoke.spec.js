@@ -1,3 +1,5 @@
+const { test, expect } = require('@playwright/test');
+
 test('creator attribution records sanitized first and latest touch', async ({ page }) => {
   await page.goto('/index.html?ref=creator_42&utm_source=tiktok&utm_campaign=launch-wave&utm_content=snake-hook&challenge=beat-me');
   const attribution = await page.evaluate(() => Arcade.acquisitionContext());
@@ -12,9 +14,45 @@ test('creator attribution records sanitized first and latest touch', async ({ pa
   const event = await page.evaluate(() => Arcade.pendingSyncEvents().find(item => item.type === 'acquisition_attributed'));
   expect(event.payload.creator).toBe('creator_42');
   expect(event.payload.firstTouch).toBeTruthy();
+  expect(await page.evaluate(() => EarnlyCloud.growthSyncEnabled())).toBeFalsy();
 });
 
-const { test, expect } = require('@playwright/test');
+test('growth events are routed to the locked server ingestion function', async ({ page }) => {
+  await page.goto('/index.html');
+  const cloud = await (await page.request.get('/cloud.js')).text();
+
+  expect(cloud).toContain("'/functions/v1/track-growth'");
+  expect(cloud).toContain("'apikey':SUPABASE_PUBLISHABLE_KEY");
+  expect(cloud).toContain("GROWTH_EVENT_TYPES");
+  expect(cloud).toContain("return !serverReward && !isGrowthEvent(event)");
+  expect(cloud).toContain("syncGrowthEvents().catch(() => {})");
+});
+
+test('first-visit onboarding records shown and completion funnel events', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const dialog = page.locator('dialog.onboarding-dialog');
+  await expect(dialog).toBeVisible();
+
+  let types = await page.evaluate(() => Arcade.pendingSyncEvents().map(item => item.type));
+  expect(types).toContain('onboarding_shown');
+
+  await dialog.getByRole('button', { name:'Start Playing →' }).click();
+  await expect(page).toHaveURL(/games\.html$/);
+  types = await page.evaluate(() => Arcade.pendingSyncEvents().map(item => item.type));
+  expect(types).toContain('onboarding_completed');
+});
+
+test('leaderboard and profile pages expose growth engagement tracking', async ({ page }) => {
+  const leaderboard = await (await page.request.get('/leaderboards.html')).text();
+  const profile = await (await page.request.get('/profile.html')).text();
+
+  expect(leaderboard).toContain("Arcade.trackEvent?.('leaderboard_viewed'");
+  expect(leaderboard).toContain("'arcadeLeaderboardViewed:' + game");
+  expect(profile).toContain("Arcade.trackEvent?.('profile_identity_saved'");
+});
 
 const pages = [
   'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html',
