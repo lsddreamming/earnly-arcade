@@ -39,6 +39,25 @@ const Arcade = (() => {
     trafficEscape: 'Traffic Escape'
   };
 
+  const profileAvatars = {
+    gamepad:'🎮',
+    rocket:'🚀',
+    bolt:'⚡',
+    fire:'🔥',
+    alien:'👾',
+    frog:'🐸',
+    brain:'🧠',
+    trophy:'🏆',
+    gem:'💎',
+    fox:'🦊',
+    cat:'🐱',
+    dog:'🐶',
+    robot:'🤖',
+    snake:'🐍',
+    star:'⭐',
+    crown:'👑'
+  };
+
   const bestConfig = {
     snake: { key: 'snakeBest', label: 'apples', lower: false },
     blockDrop: { key: 'blockDropBestLines', label: 'lines', lower: false },
@@ -635,6 +654,27 @@ const Arcade = (() => {
     return value || 'Player';
   }
 
+  function profileIconKey() {
+    const saved = localStorage.getItem('arcadeProfileIcon') || 'gamepad';
+    return Object.prototype.hasOwnProperty.call(profileAvatars, saved) ? saved : 'gamepad';
+  }
+
+  function profileIcon() {
+    return profileAvatars[profileIconKey()] || profileAvatars.gamepad;
+  }
+
+  function setProfileIcon(value) {
+    const key = Object.prototype.hasOwnProperty.call(profileAvatars, value) ? value : 'gamepad';
+    localStorage.setItem('arcadeProfileIcon', key);
+    queueEvent('profile_icon_changed', { avatarKey:key });
+    return { key, emoji:profileAvatars[key] };
+  }
+
+  function leaderboardUsername() {
+    return (localStorage.getItem('arcadeUsername') || '').trim();
+  }
+
+
   function setProfileName(value) {
     const cleaned = String(value || '')
       .replace(/[<>]/g, '')
@@ -915,6 +955,9 @@ const Arcade = (() => {
     const xp = xpStatus();
     return {
       name: profileName(),
+      avatar: profileIcon(),
+      avatarKey: profileIconKey(),
+      username: leaderboardUsername(),
       level: xp.level,
       xp: xp.xp,
       gamesCompleted: number('gamesCompletedEver'),
@@ -2860,7 +2903,7 @@ const Arcade = (() => {
 
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const gameFiles = new Set([
-      'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
+      'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
       'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
     ]);
@@ -2903,7 +2946,7 @@ const Arcade = (() => {
 
     const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     const gameFiles = new Set([
-      'games.html','snake.html','blockdrop.html','taprush.html','memory.html',
+      'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
       'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
     ]);
@@ -3202,6 +3245,11 @@ const Arcade = (() => {
     achievementSummary,
     profileName,
     setProfileName,
+    profileAvatars,
+    profileIconKey,
+    profileIcon,
+    setProfileIcon,
+    leaderboardUsername,
     xpStatus,
     addXP,
     favorites,

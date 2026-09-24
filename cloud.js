@@ -462,12 +462,18 @@
       };
     }
 
+    const profilePayload = {
+      user_id:current.id,
+      display_name:displayName
+    };
+    const savedAvatar = localStorage.getItem('arcadeProfileIcon');
+    const savedUsername = (localStorage.getItem('arcadeUsername') || '').trim();
+    if (savedAvatar && Arcade.profileAvatars?.[savedAvatar]) profilePayload.avatar_key = savedAvatar;
+    if (/^[A-Za-z0-9_]{3,18}$/.test(savedUsername)) profilePayload.username = savedUsername;
+
     const { error:profileError } = await requireClient()
       .from('profiles')
-      .upsert({
-        user_id:current.id,
-        display_name:displayName
-      }, { onConflict:'user_id' });
+      .upsert(profilePayload, { onConflict:'user_id' });
     if (profileError) throw profileError;
 
     const { data, error } = await requireClient()
@@ -650,12 +656,99 @@
 
     const { data, error } = await requireClient()
       .from('profiles')
-      .select('display_name,updated_at')
+      .select('display_name,username,avatar_key,updated_at')
       .eq('user_id', current.id)
       .maybeSingle();
 
     if (error) throw error;
     return data || null;
+  }
+
+
+  async function updatePublicProfile({ displayName, username, avatarKey } = {}){
+    const current = await user();
+    if (!current) throw new Error('Sign in to create a global player profile.');
+
+    const cleanDisplay = String(displayName || Arcade.profileName() || 'Player').trim().slice(0,32) || 'Player';
+    const cleanUsername = String(username || '').trim();
+    const cleanAvatar = Arcade.profileAvatars?.[avatarKey] ? avatarKey : Arcade.profileIconKey();
+
+    if (!/^[A-Za-z0-9_]{3,18}$/.test(cleanUsername)) {
+      throw new Error('Username must be 3–18 letters, numbers, or underscores.');
+    }
+
+    const { data, error } = await requireClient()
+      .from('profiles')
+      .upsert({
+        user_id:current.id,
+        display_name:cleanDisplay,
+        username:cleanUsername,
+        avatar_key:cleanAvatar,
+        updated_at:new Date().toISOString()
+      }, { onConflict:'user_id' })
+      .select('display_name,username,avatar_key,updated_at')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') throw new Error('That username is already taken.');
+      if (error.code === '23514') throw new Error('That username is not allowed. Try another.');
+      throw error;
+    }
+
+    localStorage.setItem('arcadeProfileName', data.display_name || cleanDisplay);
+    localStorage.setItem('arcadeUsername', data.username || cleanUsername);
+    localStorage.setItem('arcadeProfileIcon', data.avatar_key || cleanAvatar);
+    window.dispatchEvent(new CustomEvent('earnly-public-profile-updated', { detail:data }));
+    scheduleAutoSync('public-profile', 250);
+    return data;
+  }
+
+  async function leaderboard(game, limit = 25){
+    const { data, error } = await requireClient().functions.invoke('leaderboard', {
+      body:{ action:'list', game:String(game || ''), limit:Math.max(1, Math.min(50, Number(limit) || 25)) }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+
+  async function submitLeaderboardScore(game, score){
+    const currentSession = await session();
+    if (!currentSession?.user) return { skipped:'signed-out' };
+
+    let username = Arcade.leaderboardUsername?.() || '';
+    if (!username) {
+      const remoteProfile = await profile();
+      if (remoteProfile?.username) {
+        username = remoteProfile.username;
+        localStorage.setItem('arcadeUsername', remoteProfile.username);
+        if (remoteProfile.avatar_key) localStorage.setItem('arcadeProfileIcon', remoteProfile.avatar_key);
+      }
+    }
+    if (!username) return { skipped:'username-required' };
+
+    const { data, error } = await requireClient().functions.invoke('leaderboard', {
+      headers:{ Authorization:'Bearer ' + currentSession.access_token },
+      body:{ action:'submit', game:String(game || ''), score:Math.floor(Number(score) || 0) }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    window.dispatchEvent(new CustomEvent('earnly-leaderboard-updated', { detail:data }));
+    return data;
+  }
+
+  async function reportLeaderboardPlayer(username, game){
+    const currentSession = await session();
+    if (!currentSession?.user) throw new Error('Sign in to report a player.');
+
+    const { data, error } = await requireClient().functions.invoke('leaderboard-report', {
+      headers:{ Authorization:'Bearer ' + currentSession.access_token },
+      body:{ username:String(username || '').trim(), game:String(game || '').trim() }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
   }
 
   if (client) {
@@ -691,6 +784,17 @@
         localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
       }
       scheduleAutoSync(event.detail?.type || 'data-change', 650);
+
+      if (event.detail?.type === 'game_result' && event.detail?.payload?.newBest) {
+        const payload = event.detail.payload;
+        submitLeaderboardScore(payload.game, payload.best)
+          .then(result => {
+            if (result?.saved && result.rank && result.rank <= 25) {
+              Arcade.toast('🌎 World rank #' + result.rank + ' in ' + (Arcade.names[payload.game] || 'this game') + '!');
+            }
+          })
+          .catch(() => {});
+      }
     });
     window.addEventListener('online', () => {
       retryAttempt = 0;
@@ -716,6 +820,10 @@
     session,
     user,
     profile,
+    updatePublicProfile,
+    leaderboard,
+    submitLeaderboardScore,
+    reportLeaderboardPlayer,
     signUp,
     signIn,
     signInAndRestore,
