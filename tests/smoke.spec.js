@@ -297,7 +297,7 @@ test('all arcade games expose a consistent play balance', async ({ page }) => {
     localStorage.removeItem('arcadePlayDay');
     return Object.keys(Arcade.names).map(game => [game, Arcade.remaining(game)]);
   });
-  expect(balances.length).toBe(20);
+  expect(balances.length).toBe(22);
   for (const [game, plays] of balances) {
     expect(plays, game + ' should begin with three daily plays').toBe(3);
   }
@@ -750,7 +750,7 @@ test('Coin Catch reward curve lasts into deep runs and awards performance XP', a
     const elite = Arcade.recordResult('coinCatch', 350);
     return { strong:strong.performanceXP, elite:elite.performanceXP };
   });
-  expect(xp.strong).toBe(20);
+  expect(xp.strong).toBe(22);
   expect(xp.elite).toBe(30);
 });
 
@@ -1165,7 +1165,7 @@ test('daily missions track games, variety, and coins', async ({ page }) => {
   expect(status.missions.find(m => m.id === 'coins15').complete).toBeTruthy();
 
   const claimed = await page.evaluate(() => Arcade.claimDailyMission('play3'));
-  expect(claimed.xp).toBe(20);
+  expect(claimed.xp).toBe(22);
   const after = await page.evaluate(() => Arcade.dailyMissionStatus());
   expect(after.missions.find(m => m.id === 'play3').claimed).toBeTruthy();
 });
@@ -1361,14 +1361,14 @@ test('repairs impossible daily coin counters and uses live catalog total', async
 
   await page.goto('/profile.html');
   const totalGames = await page.evaluate(() => Object.keys(Arcade.names).length);
-  expect(totalGames).toBe(20);
+  expect(totalGames).toBe(22);
   await expect(page.locator('#differentGames')).toContainText('/20');
 });
 
 
 test('global leaderboards expose all games and editable player identity', async ({ page }) => {
   await page.goto('/leaderboards.html');
-  await expect(page.locator('#gameSelect option')).toHaveCount(20);
+  await expect(page.locator('#gameSelect option')).toHaveCount(22);
   await expect(page.locator('#boardTitle')).toContainText('World Top 25');
   await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
 
