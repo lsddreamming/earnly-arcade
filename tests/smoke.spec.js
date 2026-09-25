@@ -551,6 +551,35 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Merge Rush shows combos danger pressure and reachable controls', async ({ page }) => {
+  await page.goto('/mini.html?game=mergeRush');
+  await startGame(page);
+  await page.waitForTimeout(2500);
+
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('.merge-callout')).toBeVisible();
+  await expect(page.locator('.merge-goal i b')).toHaveCount(1);
+  await expect(page.locator('#miniGameExit')).toBeVisible();
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+
+  const source = await (await page.request.get('/mini-games.js')).text();
+  expect(source).toContain("comboStreak++");
+  expect(source).toContain("COMBO x");
+  expect(source).toContain("Board almost full — make space!");
+  expect(source).toContain("Best merge combo: x");
+});
+
+test('Merge Rush web and iOS copies stay in sync', async ({ page }) => {
+  const webJs = await (await page.request.get('/mini-games.js')).text();
+  const iosJs = await (await page.request.get('/www/mini-games.js')).text();
+  const webHtml = await (await page.request.get('/mini.html')).text();
+  const iosHtml = await (await page.request.get('/www/mini.html')).text();
+  expect(iosJs).toBe(webJs);
+  expect(iosHtml).toBe(webHtml);
+  expect(webHtml).toContain('.merge-callout.danger');
+  expect(webHtml).toContain('body.mini-mergeRush.game-active #miniGameExit');
+});
+
 test('Block Grid highlights legal placements and keeps quit reachable', async ({ page }) => {
   await page.goto('/mini.html?game=blockGrid');
   await startGame(page);
