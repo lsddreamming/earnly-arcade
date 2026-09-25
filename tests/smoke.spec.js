@@ -362,14 +362,9 @@ test('closing a result popup leaves no running gameplay lock behind', async ({ p
 
 
 
-test('Star Defender starts from the real mobile intro button', async ({ page }, testInfo) => {
+test('Star Defender keeps the legacy intro overlay hidden', async ({ page }) => {
   await page.goto('/stardefender.html');
-  const start = page.locator('#starStartOverlay');
-  await expect(start).toBeVisible();
-  if (testInfo.project.use.hasTouch) await start.tap();
-  else await start.click();
-  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
-  await expect(start).toBeHidden();
+  await expect(page.locator('#starStartOverlay')).toBeHidden();
 });
 
 test('Star Defender keeps the physical TAP TO START button visible on iPhone', async ({ page }, testInfo) => {
