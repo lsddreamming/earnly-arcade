@@ -3110,8 +3110,168 @@ const Arcade = (() => {
     document.head.append(sdk);
   }
 
+
+  const compactLeaderboardGames = {
+    'snake.html':'snake',
+    'blockdrop.html':'blockDrop',
+    'taprush.html':'tapRush',
+    'memory.html':'memory',
+    'dodger.html':'dodger',
+    'brickbreaker.html':'brickBreaker',
+    'junglehopper.html':'jungleHopper',
+    'towerstack.html':'towerStack',
+    'coincatch.html':'coinCatch',
+    'colormatch.html':'colorMatch',
+    'paddlerally.html':'paddleRally',
+    'lanerunner.html':'laneRunner',
+    'safecracker.html':'safeCracker'
+  };
+
+  function currentCompactLeaderboardGame() {
+    const file = (location.pathname.split('/').pop() || '').toLowerCase();
+    if (compactLeaderboardGames[file]) return compactLeaderboardGames[file];
+    if (file !== 'mini.html') return '';
+
+    const requested = new URLSearchParams(location.search).get('game') || '';
+    const allowed = new Set(['blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape']);
+    return allowed.has(requested) ? requested : '';
+  }
+
+  function compactLeaderboardScore(entry, data) {
+    const value = Math.max(0, Math.floor(Number(entry?.score) || 0));
+    return value.toLocaleString() + (data?.label ? ' ' + data.label : '');
+  }
+
+  function compactLeaderboardGap(myBest, thirdScore) {
+    const mine = Math.max(0, Math.floor(Number(myBest) || 0));
+    const target = Math.max(0, Math.floor(Number(thirdScore) || 0));
+    if (!target) return '';
+    if (mine >= target) return '🏆 You are in Top 3 range!';
+    return '🔥 ' + (target - mine).toLocaleString() + ' points from Top 3';
+  }
+
+  function mountCompactLeaderboard() {
+    if (!document.body || document.getElementById('earnlyCompactLeaderboard')) return;
+    const game = currentCompactLeaderboardGame();
+    if (!game) return;
+
+    const container = document.querySelector('.container');
+    if (!container) return;
+
+    const backLink = [...container.querySelectorAll('a.button.wide.secondary')]
+      .find(link => /back to games/i.test(link.textContent || ''));
+    const host = backLink?.parentElement || container;
+
+    const card = document.createElement('section');
+    card.id = 'earnlyCompactLeaderboard';
+    card.className = 'compact-leaderboard-card';
+    card.setAttribute('aria-label', 'Top three global players');
+
+    const top = document.createElement('div');
+    top.className = 'compact-leaderboard-head';
+
+    const titleWrap = document.createElement('div');
+    const eyebrow = document.createElement('span');
+    eyebrow.className = 'compact-leaderboard-eyebrow';
+    eyebrow.textContent = 'GLOBAL CHALLENGE';
+    const title = document.createElement('strong');
+    title.textContent = '🏆 Top 3 to Beat';
+    titleWrap.append(eyebrow, title);
+
+    const fullLink = document.createElement('a');
+    fullLink.className = 'compact-leaderboard-link';
+    fullLink.href = 'leaderboards.html?game=' + encodeURIComponent(game);
+    fullLink.textContent = 'View all →';
+    top.append(titleWrap, fullLink);
+
+    const list = document.createElement('div');
+    list.className = 'compact-leaderboard-list';
+    list.innerHTML = '<div class="compact-leaderboard-loading">Loading world scores…</div>';
+
+    const target = document.createElement('div');
+    target.className = 'compact-leaderboard-target';
+    target.textContent = 'Set a personal best and chase the podium.';
+
+    card.append(top, list, target);
+    if (backLink) host.insertBefore(card, backLink);
+    else host.append(card);
+
+    const render = async () => {
+      if (!window.EarnlyCloud?.leaderboard) return false;
+
+      try {
+        const localBest = best(game).value;
+        if (localBest > 0 && leaderboardUsername()) {
+          try { await window.EarnlyCloud.submitLeaderboardScore(game, localBest); } catch {}
+        }
+
+        const data = await window.EarnlyCloud.leaderboard(game, 3);
+        const entries = (data?.entries || []).slice(0, 3);
+        list.replaceChildren();
+
+        if (!entries.length) {
+          const empty = document.createElement('div');
+          empty.className = 'compact-leaderboard-empty';
+          empty.textContent = 'No world score yet — your run could be #1.';
+          list.append(empty);
+          target.textContent = localBest > 0
+            ? 'Your best: ' + localBest.toLocaleString()
+            : 'Play now and claim the first spot.';
+          return true;
+        }
+
+        entries.forEach((entry, index) => {
+          const row = document.createElement('div');
+          row.className = 'compact-leaderboard-row';
+
+          const rank = document.createElement('span');
+          rank.className = 'compact-leaderboard-rank';
+          rank.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+
+          const avatar = document.createElement('span');
+          avatar.className = 'compact-leaderboard-avatar';
+          avatar.textContent = entry.avatar || '🎮';
+
+          const player = document.createElement('span');
+          player.className = 'compact-leaderboard-player';
+          player.textContent = '@' + (entry.username || 'player');
+
+          const score = document.createElement('strong');
+          score.className = 'compact-leaderboard-score';
+          score.textContent = compactLeaderboardScore(entry, data);
+
+          row.append(rank, avatar, player, score);
+          list.append(row);
+        });
+
+        const thirdScore = entries.length >= 3 ? Number(entries[2].score || 0) : 0;
+        const gap = compactLeaderboardGap(localBest, thirdScore);
+        const mine = localBest > 0 ? 'Your best: ' + localBest.toLocaleString() : 'No personal best yet';
+        target.textContent = gap ? mine + ' · ' + gap : mine + ' · Beat a score above to climb the board';
+        return true;
+      } catch {
+        list.innerHTML = '<div class="compact-leaderboard-empty">World scores unavailable right now.</div>';
+        target.textContent = 'Your best: ' + Math.max(0, Number(best(game).value) || 0).toLocaleString();
+        return true;
+      }
+    };
+
+    let attempts = 0;
+    const loadWhenReady = () => {
+      attempts += 1;
+      render().then(done => {
+        if (!done && attempts < 30) setTimeout(loadWhenReady, 250);
+      });
+    };
+    loadWhenReady();
+
+    window.addEventListener('earnly-leaderboard-updated', () => render(), { passive:true });
+    window.addEventListener('earnly-run-recorded', () => render(), { passive:true });
+  }
+
   captureAcquisition();
   repairLifetimeCounters();
+  mountCompactLeaderboard();
   repairGameStats();
   applyTextScale();
   applyMotionPreference();
