@@ -361,6 +361,16 @@ test('closing a result popup leaves no running gameplay lock behind', async ({ p
 });
 
 
+
+test('Star Defender starts from the real mobile intro button', async ({ page }) => {
+  await page.goto('/stardefender.html');
+  const start = page.locator('#starStartOverlay');
+  await expect(start).toBeVisible();
+  await start.tap();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
+  await expect(start).toBeHidden();
+});
+
 test('pause control appears and toggles on mini games', async ({ page }) => {
   for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
     await page.goto('/mini.html?game=' + game);
