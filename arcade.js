@@ -1,4 +1,17 @@
 // Earnly web game engine. Native builds can attach rewarded ads through Capacitor.
+// Force a unique Star Defender URL so iPhone Safari/WebKit cannot reuse a stale
+// pre-fix document from history or an older service-worker cache.
+(function forceFreshStarDefenderDocument(){
+  try {
+    if (!/\/stardefender\.html$/i.test(location.pathname)) return;
+    const build = '20260925b';
+    const url = new URL(location.href);
+    if (url.searchParams.get('sd') === build) return;
+    url.searchParams.set('sd', build);
+    location.replace(url.href);
+  } catch {}
+})();
+
 (function loadEarnlyNativeBridge(){
   try {
     if (!window.Capacitor?.isNativePlatform?.()) return;
