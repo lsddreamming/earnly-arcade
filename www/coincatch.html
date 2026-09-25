@@ -91,6 +91,7 @@
       body.coincatch-page.game-active [data-game-guide],
       body.coincatch-page.game-active #startButton{display:none!important}
       body.coincatch-page.game-active .container>a.button.wide.secondary{display:none!important}
+      body.coincatch-page.game-active .coincatch-exit{display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)}
       body.coincatch-page.game-active .catch-board-wrap{width:min(94vw,calc((100dvh - 210px) * .72),380px)!important;max-width:380px!important;flex:0 0 auto!important;min-height:0!important;margin:10px auto 0!important;display:block!important}
       body.coincatch-page.game-active .catch-board{width:100%!important;height:auto!important;max-width:100%!important;margin:0!important;display:block!important}
       body.coincatch-page.game-active .page-header{gap:0!important}
@@ -102,6 +103,8 @@
     .catch-board-wrap{position:relative}
     .catch-earned-hud{position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:6;min-height:30px;padding:5px 11px;border-radius:999px;background:rgba(15,23,42,.26);border:1px solid rgba(250,204,21,.5);box-shadow:0 4px 14px rgba(0,0,0,.18),0 0 12px rgba(250,204,21,.10);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:5px;color:#fde68a;font-size:11px;font-weight:900;white-space:nowrap}
     .catch-earned-hud strong{font-size:15px;color:#fff}
+    .catch-miss-hud{position:absolute;left:50%;top:94px;transform:translateX(-50%);z-index:6;min-height:25px;padding:4px 10px;border-radius:999px;background:rgba(15,23,42,.28);border:1px solid rgba(248,113,113,.46);color:#fecaca;font-size:10px;font-weight:900;white-space:nowrap;pointer-events:none}
+    .catch-miss-hud.danger{border-color:#ef4444;background:rgba(69,10,10,.72);color:#fff;box-shadow:0 0 16px rgba(239,68,68,.18)}
     body.coincatch-page.game-active .catch-earned-hud{background:rgba(15,23,42,.18)}
     .catch-earned-hud.bump{animation:coinEarnPulse .36s ease}
     .catch-live-tip{
@@ -167,10 +170,11 @@
       <div class="catch-hud catch-hud-center">L<strong id="level">1</strong></div>
       <div class="catch-hud catch-hud-right">⏱ <strong><span id="time">20</span>s</strong></div>
       <div class="catch-earned-hud" id="earnedHud">🪙 Arcade Coins <strong id="earnedCoins">+0</strong></div>
+      <div class="catch-miss-hud" id="catchMissHud">❌ Strikes <strong id="misses">0</strong>/5</div>
       <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
     </div>
     <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe anywhere below Pause to move basket"><span>↔</span> Swipe anywhere below Pause to move</div>
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <a class="button wide secondary coincatch-exit" id="coinCatchExit" href="games.html">✕ Quit Game</a>
   </main>
   <script src="arcade.js"></script>
   <script>
@@ -201,25 +205,26 @@
       if(!Arcade.consume('coinCatch')){ Arcade.out('coinCatch',refreshChrome); return false; }
       refreshChrome(); return true;
     }
-
+    
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
     const catchControlZone=document.getElementById('catchControlZone');
     const catchLiveTip=document.getElementById('catchLiveTip');
     const levelBanner=document.getElementById('levelBanner'),levelBannerTitle=document.getElementById('levelBannerTitle'),levelBannerText=document.getElementById('levelBannerText');
-    const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),earnedHudEl=document.getElementById('earnedHud'),earnedCoinsEl=document.getElementById('earnedCoins');
+    const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),earnedHudEl=document.getElementById('earnedHud'),earnedCoinsEl=document.getElementById('earnedCoins'),catchMissHud=document.getElementById('catchMissHud'),missesEl=document.getElementById('misses');
     Arcade.gameGuide({
       game:'coinCatch',surface:canvas,
       steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
-      overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Move under falling coins. Avoid the bombs.',replayTitle:'Tap to Play Again',
-      tips:['Move with your finger/mouse, or use ← → / A D on a keyboard.','Survive each 20-second level to advance. Every level gets faster with more bombs.'],
+      overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Catch coins. A missed coin costs 1 strike; catching a bomb costs 2. Five strikes ends the run.',replayTitle:'Tap to Play Again',
+      tips:['Move with your finger/mouse, or use ← → / A D on a keyboard.','Strikes carry across levels: missed coin = 1, caught bomb = 2, 5 strikes ends the run.'],
       reward:'Keep advancing through harder levels. The 25-Coin max now takes a deep run, and high scores also earn bonus XP.'
     });
     const basket={x:137,y:448,w:86,h:24};
     const LEVEL_SECONDS=20;
+    const MAX_MISSES=5;
     const LEVEL_BANNER_MS=1500;
     const START_TIP_MS=6000;
     let liveTipTimer=null;
-    let drops=[],score=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
+    let drops=[],score=0,misses=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
     function showLiveTip(text,duration=START_TIP_MS){
       clearTimeout(liveTipTimer);
       catchLiveTip.textContent=text;
@@ -270,7 +275,7 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
       const previous=drops[drops.length-1];
@@ -401,17 +406,27 @@
       }
       if(performance.now()>=levelEndsAt)nextLevel();
     }
-    function finish(hitBomb=false){
+    function finish(reason=''){
       if(!running)return;
       running=false;transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');levelBanner.classList.remove('show');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTouchControls();
       // Freeze the final HUD before awarding so the result screen always matches the run.
-      scoreEl.textContent=String(score);levelEl.textContent=String(level);timeEl.textContent=String(Math.max(0,timeLeft));
+      scoreEl.textContent=String(score);levelEl.textContent=String(level);timeEl.textContent=String(Math.max(0,timeLeft));missesEl.textContent=String(misses);
       const earned=rewardFor(score);rewardPreviewEl.textContent=String(earned);
       Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
-      Arcade.feedback(hitBomb?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
-      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(hitBomb?'Bomb Hit':'Run Complete','over');draw();
-      Arcade.gameResult({icon:'💰',title:hitBomb?'Boom! Run Over':'Run Complete',badgeText:hitBomb?'💥 BOMB HIT':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
-        extra:['🏁 Level reached: '+level,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',hitBomb?'💣 Watch for bombs next run.':score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+      Arcade.feedback(reason?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus(reason?'5 Strikes':'Run Complete','over');draw();
+      Arcade.gameResult({icon:'💰',title:reason?'Coin Catch — Run Over':'Run Complete',badgeText:reason?'❌ 5 STRIKES':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
+        extra:['🏁 Level reached: '+level,'❌ Strikes: '+misses+'/'+MAX_MISSES,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+    }
+    function addMiss(amount,reason){
+      if(!running)return true;
+      misses=Math.min(MAX_MISSES,misses+Math.max(1,amount||1));
+      missesEl.textContent=String(misses);
+      catchMissHud.classList.toggle('danger',misses>=MAX_MISSES-1);
+      Arcade.feedback('fail');
+      showLiveTip(reason+' · '+misses+'/'+MAX_MISSES+' strikes',1500);
+      if(misses>=MAX_MISSES){finish('strikes');return true}
+      return false;
     }
     function loop(now){
       if(!running)return;
@@ -428,10 +443,13 @@
         const overlapsBasket=d.y+d.r>=basketTop&&d.y-d.r<=basketBottom&&d.x+d.r>=catchLeft&&d.x-d.r<=catchRight;
         if(overlapsBasket){
           drops.splice(i,1);
-          if(d.bomb){finish(true);return}
+          if(d.bomb){if(addMiss(2,'💣 Bomb caught'))return;continue}
           score++;scoreEl.textContent=String(score);refreshReward();
           if(score===1 || score%5===0) Arcade.feedback('score');
-        }else if(d.y-d.r>canvas.height)drops.splice(i,1);
+        }else if(d.y-d.r>canvas.height){
+          drops.splice(i,1);
+          if(!d.bomb && addMiss(1,'🪙 Missed coin'))return;
+        }
       }
       draw();animation=requestAnimationFrame(loop);
     }
@@ -538,7 +556,7 @@
 
     document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
-
+  
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
