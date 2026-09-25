@@ -1439,3 +1439,34 @@ test('leaderboards include report-and-hide moderation controls', async ({ page }
   expect(html).toContain('arcadeBlockedLeaderboardUsers');
   expect(html).toContain('support.html');
 });
+
+
+test('result leaderboard loads after a run when cloud leaderboard is available', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    window.EarnlyCloud = {
+      leaderboard: async () => ({ entries:[{ rank:1, username:'tester', avatar:'🎮', score:225 }], label:'points', lowerIsBetter:false }),
+      submitLeaderboardScore: async () => ({ ok:true })
+    };
+    Arcade.gameResult({
+      icon:'👾', title:'Star Defender Run Over', scoreLabel:'POINTS', score:30,
+      best:'30 points', coins:0, result:{newBest:true,xpAward:35}, playsLeft:2,
+      game:'starDefender'
+    });
+  });
+  await expect(page.locator('.result-leaderboard')).toContainText('WORLD TOP 3');
+  await expect(page.locator('.result-leaderboard')).toContainText('@tester');
+  await expect(page.locator('.result-leaderboard')).not.toContainText('Could not load');
+});
+
+test('Neon Maze shows a real iPhone start button and compacts live play', async ({ page }, testInfo) => {
+  await page.goto('/neonmaze.html');
+  const start = page.locator('#startButton');
+  await expect(start).toBeVisible();
+  await expect(start).toHaveText(/TAP TO START/i);
+  if (testInfo.project.use.hasTouch) await start.tap();
+  else await start.click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', {timeout:5000});
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('.game-guide-strip')).toBeHidden();
+});
