@@ -14,16 +14,35 @@
     .maze-page .maze-controls button:first-child{grid-column:2}.maze-page .maze-controls button:nth-child(2){grid-column:1}.maze-page .maze-controls button:nth-child(3){grid-column:2}.maze-page .maze-controls button:nth-child(4){grid-column:3}
     .maze-page .page-header{padding:12px;margin:5px 0 7px}.maze-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
     .maze-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.maze-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
+    /* The shared touch stylesheet hides #startButton on coarse-pointer devices.
+       Neon Maze needs a real, always-visible iPhone start control. */
+    .maze-page #startButton{
+      display:block!important;width:min(94vw,390px)!important;margin:8px auto!important;
+      min-height:54px!important;font-size:16px!important;font-weight:900!important;
+      touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;
+      position:relative!important;z-index:60!important;
+    }
     .maze-page .maze-tip{color:#a9bbd6;text-align:center;font-size:11px;margin:6px auto}
-    .maze-page.game-active .topbar,.maze-page.game-active #startButton,.maze-page.game-active #arcadeBottomNav,.maze-page.game-active .maze-tip,.maze-page.game-active .back-games{display:none!important}
-    .maze-page.game-active .page-header{padding:9px;margin:0 0 3px}.maze-page.game-active .maze-board{margin:4px auto}.maze-page.game-active main.container{padding-bottom:8px}
+    .maze-page.game-active .topbar,.maze-page.game-active #startButton,.maze-page.game-active #arcadeBottomNav,.maze-page.game-active .maze-tip,.maze-page.game-active .back-games,.maze-page.game-active .compact-leaderboard-card,.maze-page.game-active .game-guide-strip,.maze-page.game-active .game-guide-more{display:none!important}
+    .maze-page.game-active .page-header{
+      display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+      align-items:center!important;gap:4px 6px!important;padding:6px 8px!important;margin:0!important
+    }
+    .maze-page.game-active .game-title-status-row{grid-column:1!important;grid-row:1!important;justify-content:flex-start!important;gap:6px!important;margin:0!important}
+    .maze-page.game-active .game-title-status-row h1{font-size:18px!important;line-height:1.05!important;white-space:nowrap!important;margin:0!important}
+    .maze-page.game-active .title-status{padding:4px 7px!important;font-size:10px!important}
+    .maze-page.game-active #earnlyPauseButton{grid-column:2!important;grid-row:1!important;min-width:72px!important;min-height:30px!important;margin:0!important;padding:5px 8px!important;font-size:11px!important}
+    .maze-page.game-active .game-meta{grid-column:1/-1!important;grid-row:2!important;margin:0!important;gap:4px!important}
+    .maze-page.game-active .meta-pill{padding:5px 2px!important;min-height:0!important;font-size:10px!important}
+    .maze-page.game-active .maze-board{width:min(94vw,390px,calc((100dvh - 148px)*.79))!important;margin:3px auto!important}
+    .maze-page.game-active main.container{padding-bottom:8px}
   </style>
 </head>
 <body class="maze-page"><main class="container">
   <div class="topbar"><a class="brand" href="games.html">← Games</a><a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a></div>
   <header class="page-header"><div class="game-title-status-row"><h1>🟡 Neon Maze</h1><span class="game-status title-status" id="gameStatus">Ready</span></div>
     <div class="game-meta"><span class="meta-pill">Chips: <span id="chips">0</span></span><span class="meta-pill">❤️ <span id="lives">3</span></span><span class="meta-pill">⏱️ <span id="time">40</span>s</span><span class="meta-pill">🎟️ <span id="plays">0</span></span></div></header>
-  <button class="green wide" id="startButton" type="button">▶ Play Neon Maze</button>
+  <button class="green wide" id="startButton" type="button" aria-label="Tap to start Neon Maze">▶ TAP TO START</button>
   <canvas id="game" class="maze-board touch-surface" width="330" height="390" aria-label="Neon Maze collectible chase board"></canvas>
   <div class="maze-controls" aria-label="Move through maze"><button type="button" data-dir="up" aria-label="Up">⬆️</button><button type="button" data-dir="left" aria-label="Left">⬅️</button><button type="button" data-dir="down" aria-label="Down">⬇️</button><button type="button" data-dir="right" aria-label="Right">➡️</button></div>
   <p class="maze-tip">Swipe anywhere or use the arrows · collect glowing chips · avoid ghosts</p>
@@ -46,7 +65,7 @@
     function ghostStep(){for(const g of ghosts){const options=Object.values(dirs).map(([dx,dy])=>({x:g.x+dx,y:g.y+dy})).filter(p=>open(p.x,p.y));if(!options.length)continue;options.sort((a,b)=>(Math.abs(a.x-player.x)+Math.abs(a.y-player.y))-(Math.abs(b.x-player.x)+Math.abs(b.y-player.y)));const choice=Math.random()<Math.min(.72,.36+wave*.08)?options[0]:options[rnd(options.length)];g.x=choice.x;g.y=choice.y}collision()}
     function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;elapsed+=dt;grace=Math.max(0,grace-dt);moveClock+=dt;ghostClock+=dt;if(held&&moveClock>.13){moveClock=0;move(held)}if(ghostClock>Math.max(.19,.52-wave*.035)){ghostClock=0;ghostStep()}chrome();draw();if(elapsed>=40)finish();if(running)raf=requestAnimationFrame(loop)}
     function finish(){if(!running)return;running=false;cancelAnimationFrame(raf);raf=0;held='';touch=null;const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000)),earned=Math.min(15,Math.floor(collected/6));Arcade.earn(earned,'Neon Maze',{kind:'game',game:'neonMaze',metric:collected,aux:wave});const result=Arcade.recordResult('neonMaze',collected);chrome();status('Run Over');E.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'🟡',title:'Neon Maze Run Over',scoreLabel:'CHIPS COLLECTED',score:collected,best:Arcade.best('neonMaze').display,coins:earned,result,playsLeft:Arcade.remaining('neonMaze'),game:'neonMaze',extra:['⏱️ Time played: '+seconds+'s','👻 Wave reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('neonMaze',chrome)});draw()}
-    function start(){if(running||starting)return;starting=true;if(!Arcade.consume('neonMaze')){starting=false;Arcade.out('neonMaze',chrome);return}collected=elapsed=moveClock=ghostClock=pauseTotal=0;lives=3;wave=1;held='';resetBoard();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;last=startedAt=performance.now();status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
+    function start(){if(running||starting)return;starting=true;E.startButton.disabled=true;E.startButton.textContent='Starting…';if(!Arcade.consume('neonMaze')){starting=false;E.startButton.disabled=false;E.startButton.textContent='▶ TAP TO START';Arcade.out('neonMaze',chrome);return}collected=elapsed=moveClock=ghostClock=pauseTotal=0;lives=3;wave=1;held='';resetBoard();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;E.startButton.disabled=false;last=startedAt=performance.now();status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
     const button=e=>{const dir=e.currentTarget.dataset.dir;if(running){e.preventDefault();move(dir);held=dir;moveClock=0}};
     document.querySelectorAll('[data-dir]').forEach(b=>{b.addEventListener('pointerdown',button);b.addEventListener('pointerup',()=>held='');b.addEventListener('pointercancel',()=>held='')});
     document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target)||e.target.closest('[data-dir]'))return;touch={x:e.clientX,y:e.clientY};e.preventDefault()},{passive:false});
@@ -55,7 +74,11 @@
     document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'}[e.key];if(dir&&running){e.preventDefault();if(held!==dir)move(dir);held=dir}else if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();start()}});
     document.addEventListener('keyup',e=>{const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'}[e.key];if(held===dir)held=''});window.addEventListener('blur',()=>held='');
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);held='';touch=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();raf=requestAnimationFrame(loop)}});
-    E.startButton.addEventListener('click',start);resetBoard();chrome();draw();
+    const startFromButton=event=>{event?.preventDefault?.();event?.stopPropagation?.();start()};
+    E.startButton.addEventListener('pointerup',startFromButton);
+    E.startButton.addEventListener('touchend',startFromButton,{passive:false});
+    E.startButton.addEventListener('click',startFromButton);
+    resetBoard();chrome();draw();
   })();
   </script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="cloud.js"></script>
 </body></html>
