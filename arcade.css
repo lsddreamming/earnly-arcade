@@ -6056,3 +6056,31 @@ body.home-dashboard.has-app-nav .home-container{
   0%,100%{box-shadow:0 0 0 1px rgba(59,130,246,.08) inset,0 0 18px rgba(34,211,238,.08),0 16px 34px rgba(0,0,0,.24)}
   50%{box-shadow:0 0 0 1px rgba(59,130,246,.12) inset,0 0 28px rgba(34,211,238,.16),0 16px 34px rgba(0,0,0,.24)}
 }
+
+
+/* Leaderboard placement: obvious before play, tiny while a run is active. */
+.compact-leaderboard-card.during-game-hidden{display:none!important}
+.compact-leaderboard-record-chip{
+  display:none;
+  align-items:center;
+  justify-content:center;
+  width:max-content;
+  max-width:calc(100% - 24px);
+  margin:4px auto 8px;
+  padding:6px 10px;
+  border:1px solid rgba(250,204,21,.34);
+  border-radius:999px;
+  background:rgba(80,55,8,.22);
+  color:#fde68a;
+  font-size:10px;
+  font-weight:900;
+  text-decoration:none;
+  box-shadow:0 0 14px rgba(250,204,21,.08);
+}
+.compact-leaderboard-record-chip.show{display:inline-flex}
+@media(max-width:699px){
+  .compact-leaderboard-card{margin:8px 0 10px;padding:11px}
+  .compact-leaderboard-head{margin-bottom:7px}
+  .compact-leaderboard-row{min-height:36px;padding:5px 7px}
+  .compact-leaderboard-target{margin-top:7px;padding:6px 8px}
+}
