@@ -768,6 +768,16 @@
       if (event.key === 'ArrowUp') rotatePiece();
     });
 
+    // Start taps are also handled on the whole playfield. This makes the
+    // iPhone start path resilient when WebKit hit-testing briefly targets the
+    // preview/flex wrapper instead of the canvas during responsive layout.
+    document.querySelector('.blockdrop-playfield')?.addEventListener('pointerdown', event => {
+      if (game || starting) return;
+      if (event.target?.closest?.('.blockdrop-preview')) return;
+      event.preventDefault();
+      startGame();
+    });
+
     startButton.addEventListener('click', startGame);
     createBoard();
     draw();
