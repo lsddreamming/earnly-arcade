@@ -551,6 +551,104 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Safe Cracker awards a bonus lock every fourth clean hit', async ({ page }) => {
+  await page.goto('/safecracker.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+
+  const result = await page.evaluate(() => {
+    score=3;
+    hitStreak=3;
+    bestStreak=3;
+    targetX=120;
+    targetW=90;
+    marker=150;
+    roundStartedAt=performance.now();
+    roundLimit=5000;
+    roundLocked=false;
+    lastAttemptAt=0;
+    attempt();
+    return {
+      score,
+      hitStreak,
+      bestStreak,
+      combo:document.getElementById('safeComboLine').textContent
+    };
+  });
+
+  expect(result.score).toBe(5);
+  expect(result.hitStreak).toBe(4);
+  expect(result.bestStreak).toBe(4);
+  expect(result.combo).toContain('+1 BONUS LOCK');
+  await expect(page.locator('#safeCrackerExit')).toBeVisible();
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+});
+
+test('Coin Catch uses five persistent strikes instead of instant bomb death', async ({ page }) => {
+  await page.goto('/coincatch.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+
+  const state = await page.evaluate(() => {
+    addMiss(1,'test miss');
+    const afterOne=misses;
+    addMiss(2,'test bomb');
+    const afterBomb=misses;
+    return { afterOne, afterBomb, max:MAX_MISSES, running };
+  });
+  expect(state.max).toBe(5);
+  expect(state.afterOne).toBe(1);
+  expect(state.afterBomb).toBe(3);
+  expect(state.running).toBeTruthy();
+  await expect(page.locator('#catchMissHud')).toContainText('3');
+  await expect(page.locator('#coinCatchExit')).toBeVisible();
+
+  const source = await (await page.request.get('/coincatch.html')).text();
+  expect(source).toContain("if(!d.bomb && addMiss(1,'🪙 Missed coin'))return");
+  expect(source).toContain("if(d.bomb){if(addMiss(2,'💣 Bomb caught'))return;continue}");
+  expect(source).not.toContain("if(d.bomb){finish(true);return}");
+});
+
+test('Memory Match gives two free mismatches then removes four seconds', async ({ page }) => {
+  await page.goto('/memory.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+
+  const state = await page.evaluate(() => {
+    mistakes=2;
+    timeLeft=50;
+    first=null;
+    second=null;
+    lock=false;
+    const a=0;
+    const b=cards.findIndex((card,index)=>index!==a && card.icon!==cards[a].icon);
+    flip(a);
+    flip(b);
+    return {
+      mistakes,
+      timeLeft,
+      message:document.getElementById('memoryPenaltyLine').textContent
+    };
+  });
+
+  expect(state.mistakes).toBe(3);
+  expect(state.timeLeft).toBe(46);
+  expect(state.message).toContain('−4s');
+  await expect(page.locator('#memoryExit')).toBeVisible();
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+});
+
+test('recent polish stays identical between web and iOS bundles', async ({ page }) => {
+  for (const path of ['safecracker.html','coincatch.html','memory.html']) {
+    const web = await (await page.request.get('/'+path)).text();
+    const ios = await (await page.request.get('/www/'+path)).text();
+    expect(ios, path+' iOS copy').toBe(web);
+  }
+  const webMini = await (await page.request.get('/mini-games.js')).text();
+  const iosMini = await (await page.request.get('/www/mini-games.js')).text();
+  expect(iosMini).toBe(webMini);
+});
+
 test('Merge Rush shows combos danger pressure and reachable controls', async ({ page }) => {
   await page.goto('/mini.html?game=mergeRush');
   await startGame(page);
