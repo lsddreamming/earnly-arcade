@@ -607,11 +607,14 @@ test('Block Drop keeps quit pause previews and scroll lock usable on iPhone', as
 
 test('Block Drop web and iOS copies keep the same interaction contract', async ({ page }) => {
   const web = await (await page.request.get('/blockdrop.html')).text();
-  expect(web).toContain('blockdrop-exit');
-  expect(web).toContain('drawGhostBlock');
-  expect(web).toContain('const kickYs = [0,-1,-2,-3]');
-  expect(web).toContain('Tap to Start Block Drop');
-  expect(web).toContain('Arcade.isProtectedGameControlTarget(event.target)');
+  const ios = await (await page.request.get('/www/blockdrop.html')).text();
+  for (const source of [web, ios]) {
+    expect(source).toContain('blockdrop-exit');
+    expect(source).toContain('drawGhostBlock');
+    expect(source).toContain('const kickYs = [0,-1,-2,-3]');
+    expect(source).toContain('Tap to Start Block Drop');
+    expect(source).toContain('Arcade.isProtectedGameControlTarget(event.target)');
+  }
 });
 
 test('Top 3 stays visible during mobile play without covering the board', async ({ page }) => {
