@@ -362,23 +362,25 @@ test('closing a result popup leaves no running gameplay lock behind', async ({ p
 
 
 
-test('Star Defender starts from the real mobile intro button', async ({ page }) => {
+test('Star Defender starts from the real mobile intro button', async ({ page }, testInfo) => {
   await page.goto('/stardefender.html');
   const start = page.locator('#starStartOverlay');
   await expect(start).toBeVisible();
-  await start.tap();
+  if (testInfo.project.use.hasTouch) await start.tap();
+  else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
   await expect(start).toBeHidden();
 });
 
-test('Star Defender keeps the physical TAP TO START button visible on iPhone', async ({ page }) => {
+test('Star Defender keeps the physical TAP TO START button visible on iPhone', async ({ page }, testInfo) => {
   await page.goto('/stardefender.html');
   const start = page.locator('#startButton');
   await expect(start).toBeVisible();
   await expect(start).toHaveText(/TAP TO START/i);
   const display = await start.evaluate(el => getComputedStyle(el).display);
   expect(display).not.toBe('none');
-  await start.tap();
+  if (testInfo.project.use.hasTouch) await start.tap();
+  else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
 });
 
