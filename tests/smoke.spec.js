@@ -551,6 +551,35 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Block Grid highlights legal placements and keeps quit reachable', async ({ page }) => {
+  await page.goto('/mini.html?game=blockGrid');
+  await startGame(page);
+  await page.waitForTimeout(2500);
+
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('.piece-button.selected')).toHaveCount(1);
+  expect(await page.locator('.mini-cell.valid-start').count()).toBeGreaterThan(0);
+  await expect(page.locator('#miniGameExit')).toBeVisible();
+  await expect(page.locator('#miniGameExit')).toHaveAttribute('href','games.html');
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+});
+
+test('Block Grid guards against unusable trays and syncs to iOS', async ({ page }) => {
+  const webJs = await (await page.request.get('/mini-games.js')).text();
+  const iosJs = await (await page.request.get('/www/mini-games.js')).text();
+  const webHtml = await (await page.request.get('/mini.html')).text();
+  const iosHtml = await (await page.request.get('/www/mini.html')).text();
+
+  expect(iosJs).toBe(webJs);
+  expect(iosHtml).toBe(webHtml);
+  expect(webJs).toContain('function pieceCanFit(piece)');
+  expect(webJs).toContain('const fitting=PIECES.filter(pieceCanFit)');
+  expect(webJs).toContain("legalStarts.add(x+','+y)");
+  expect(webJs).toContain("caption.textContent=!fits?'NO FIT'");
+  expect(webHtml).toContain('.mini-cell.valid-start:not(.filled)');
+  expect(webHtml).toContain('id="miniGameExit"');
+});
+
 test('Color Match teaches the rule and scores the actual ink color', async ({ page }) => {
   await page.goto('/colormatch.html');
   await expect(page.locator('.color-example')).toContainText('RED');
