@@ -54,6 +54,13 @@
     @media (max-width: 699px) {
       body.blockdrop-page main.container { padding-top: max(14px, calc(env(safe-area-inset-top) + 8px)) !important; }
       body.blockdrop-page .topbar { margin-bottom: 6px !important; }
+      /* Block Drop uses its own always-visible Quit control while a run is
+         active. Remove the fixed app nav from this game on phones so WebKit
+         can never layer it over the tall board during hit testing. */
+      body.blockdrop-page #arcadeBottomNav { display:none !important; }
+      body.blockdrop-page.has-app-nav main.container {
+        padding-bottom:max(28px,calc(env(safe-area-inset-bottom) + 18px)) !important;
+      }
       body.blockdrop-page .page-header {
         margin: 2px 0 7px !important;
         padding: 11px !important;
@@ -103,6 +110,19 @@
       body.blockdrop-page #startButton {
         min-height: 42px !important;
         margin: 5px 0 !important;
+      }
+      body.blockdrop-page .blockdrop-board-start{
+        width:min(88%,320px)!important;
+        min-height:40px!important;
+        margin:3px auto 2px!important;
+        padding:8px 12px!important;
+        border:1px solid rgba(34,211,238,.44)!important;
+        border-radius:12px!important;
+        background:linear-gradient(135deg,rgba(8,145,178,.30),rgba(37,99,235,.30))!important;
+        color:#cffafe!important;
+        font-size:12px!important;
+        font-weight:900!important;
+        box-shadow:0 0 18px rgba(34,211,238,.08)!important;
       }
       body.blockdrop-page .blockdrop-board {
         width: min(58vw, 220px) !important;
@@ -165,7 +185,8 @@
       body.blockdrop-page.game-active .game-guide-strip,
       body.blockdrop-page.game-active .game-preflight,
       body.blockdrop-page.game-active .game-guide-more,
-      body.blockdrop-page.game-active #startButton {
+      body.blockdrop-page.game-active #startButton,
+      body.blockdrop-page.game-active #blockDropBoardStart {
         display: none !important;
       }
       body.blockdrop-page.game-active .topbar { margin-bottom: 4px !important; }
@@ -250,6 +271,7 @@
     </header>
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <button class="blockdrop-board-start" id="blockDropBoardStart" type="button" aria-label="Start Block Drop">▶ Tap to Start Block Drop</button>
 
     <div class="blockdrop-playfield">
       <canvas id="game" class="blockdrop-board touch-surface" width="300" height="600" aria-label="Block Drop game board"></canvas>
@@ -283,6 +305,7 @@
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
     const startButton = document.getElementById('startButton');
+    const boardStartButton = document.getElementById('blockDropBoardStart');
 
     Arcade.gameGuide({
       game:'blockDrop',
@@ -779,6 +802,7 @@
     });
 
     startButton.addEventListener('click', startGame);
+    boardStartButton?.addEventListener('click', startGame);
     createBoard();
     draw();
     refreshChrome();
