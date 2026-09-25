@@ -21,8 +21,17 @@
     .star-page.game-active .topbar,.star-page.game-active #startButton,.star-page.game-active #starStartOverlay,.star-page.game-active #arcadeBottomNav,.star-page.game-active .star-tip,.star-page.game-active .back-games{display:none!important}
     .star-page .game-guide-overlay{display:none!important}
     .star-page .game-guide-surface-wrap{position:relative}
-    .star-page .game-guide-surface-wrap #starStartOverlay{display:flex!important}
-    .star-page.game-active .game-guide-surface-wrap #starStartOverlay{display:none!important}
+    .star-page #starStartOverlay{
+      display:flex!important;position:relative!important;inset:auto!important;z-index:30!important;
+      width:min(94vw,390px)!important;height:auto!important;min-height:58px!important;
+      margin:8px auto!important;padding:10px 14px!important;border-radius:16px!important;
+      flex-direction:row!important;gap:9px!important;background:linear-gradient(135deg,#075985,#1d4ed8)!important;
+      box-shadow:0 0 0 2px rgba(103,232,249,.42),0 10px 26px rgba(0,0,0,.28)!important;
+    }
+    .star-page #starStartOverlay strong{font-size:15px!important}
+    .star-page #starStartOverlay span{display:none!important}
+    .star-page #starStartOverlay b{margin:0!important;padding:0!important;border:0!important;background:transparent!important;font-size:15px!important;color:white!important}
+    .star-page.game-active #starStartOverlay{display:none!important}
     .star-start-overlay{
       position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
       width:100%;height:100%;margin:0;padding:24px;border:0;border-radius:inherit;
@@ -70,7 +79,7 @@
     starStartOverlay.className='star-start-overlay';
     starStartOverlay.setAttribute('aria-label','Start Star Defender');
     starStartOverlay.innerHTML='<strong>👾 Star Defender</strong><span>Drag anywhere to steer · auto-fire enabled</span><b>▶ TAP TO START</b>';
-    starGuide?.wrapper?.append(starStartOverlay);
+    starGuide?.wrapper?.insertAdjacentElement('beforebegin',starStartOverlay);
     function chrome(){els.score.textContent=score;els.lives.textContent=lives;els.coins.textContent=Math.min(15,Math.floor(score/80));els.plays.textContent=running&&!Arcade.remaining('starDefender')?'Last':Arcade.remaining('starDefender');els.balance.textContent=Arcade.number('points').toLocaleString()}
     function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active);if(starStartOverlay)starStartOverlay.hidden=active}
     function alien(x,y,color){ctx.save();ctx.translate(x,y);ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=color;ctx.fillRect(-12,-7,24,13);ctx.fillRect(-16,-2,5,7);ctx.fillRect(11,-2,5,7);ctx.fillRect(-8,6,4,5);ctx.fillRect(4,6,4,5);ctx.shadowBlur=0;ctx.fillStyle='#081126';ctx.fillRect(-7,-2,4,4);ctx.fillRect(3,-2,4,4);ctx.restore()}
