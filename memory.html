@@ -123,6 +123,7 @@
         text-shadow:0 0 12px rgba(255,255,255,.30)!important;
         font-size:34px!important;
       }
+      body.memory-page.game-active .topbar{display:none!important}
       body.memory-page.game-active .game-guide-strip,
       body.memory-page.game-active .game-preflight,
       body.memory-page.game-active .game-guide-more,
@@ -130,8 +131,8 @@
       body.memory-page.game-active .memory-grid{width:min(90vw,375px)!important;gap:8px!important;margin-top:5px!important}
       body.memory-page.game-active .memory-card{font-size:30px!important}
       body.memory-page.game-active .memory-reward-hud{margin-top:3px!important}
-      body.memory-page.game-active .container>a.button.wide.secondary{display:none!important}
-      body.memory-page.game-active .memory-exit{display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)}
+      body.memory-page.game-active .container>a.button.wide.secondary:not(#memoryExit){display:none!important}
+      body.memory-page.game-active #memoryExit{display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)}
       body.memory-page.game-active #earnlyPauseButton{position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;right:9px!important;z-index:1300!important;width:auto!important;min-width:86px!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border-radius:12px!important;font-size:12px!important;font-weight:900!important;backdrop-filter:blur(8px)}
       body.memory-page.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important}
     }
