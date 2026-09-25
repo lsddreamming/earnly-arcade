@@ -3067,7 +3067,7 @@ const Arcade = (() => {
     }, { once:true });
   }
 
-  
+
   function mountDesktopNav() {
     if (!document.body || document.getElementById('arcadeDesktopNav')) return;
 
@@ -3281,9 +3281,8 @@ const Arcade = (() => {
     target.textContent = 'Set a personal best and chase the podium.';
 
     card.append(top, list, target);
-    // Keep the challenge visible before play instead of burying it below the
-    // board/controls. During a run, collapse to a tiny #1 score chip so it
-    // never steals gameplay space.
+    // Keep all three leaders visible before and during play. The active layout
+    // shrinks the rows without covering the board or controls.
     if (header) header.insertAdjacentElement('afterend', card);
     else if (playfield) playfield.insertAdjacentElement('beforebegin', card);
     else if (backLink) host.insertBefore(card, backLink);
@@ -3298,8 +3297,8 @@ const Arcade = (() => {
     const syncVisibility = () => {
       const active = document.body.classList.contains('game-active') ||
         !!document.querySelector('.game-status.running');
-      card.classList.toggle('during-game-hidden', active);
-      recordChip.classList.toggle('show', active);
+      card.classList.toggle('during-game-compact', active);
+      recordChip.classList.toggle('show', false);
     };
     syncVisibility();
     const visibilityObserver = new MutationObserver(syncVisibility);

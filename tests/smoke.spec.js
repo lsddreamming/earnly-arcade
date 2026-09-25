@@ -512,6 +512,24 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Top 3 stays visible during mobile play without covering the board', async ({ page }) => {
+  for (const url of ['/brickbreaker.html', '/mini.html?game=trafficEscape']) {
+    await page.goto(url);
+    const podium = page.locator('#earnlyCompactLeaderboard');
+    await expect(podium).toBeVisible();
+    await page.evaluate(() => document.body.classList.add('game-active'));
+    await expect(podium).toHaveClass(/during-game-compact/);
+    await expect(podium).toBeVisible();
+    await expect(podium.locator('.compact-leaderboard-head')).toContainText('Top 3');
+    const layout = await page.evaluate(() => {
+      const card = document.querySelector('#earnlyCompactLeaderboard').getBoundingClientRect();
+      const board = document.querySelector('canvas#game, #surface')?.getBoundingClientRect();
+      return { cardBottom:card.bottom, boardTop:board?.top ?? Infinity };
+    });
+    expect(layout.cardBottom).toBeLessThanOrEqual(layout.boardTop);
+  }
+});
+
 
 test('result popup supports accurate failure badges', async ({ page }) => {
   await page.goto('/index.html');

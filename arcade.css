@@ -6058,8 +6058,30 @@ body.home-dashboard.has-app-nav .home-container{
 }
 
 
-/* Leaderboard placement: obvious before play, tiny while a run is active. */
-.compact-leaderboard-card.during-game-hidden{display:none!important}
+/* Keep the podium readable during play without overlapping the board. */
+.compact-leaderboard-card.during-game-compact{
+  margin:5px 0 7px;
+  padding:7px 9px;
+  border-radius:12px;
+  animation:none;
+}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-head{margin-bottom:4px}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-head strong{font-size:12px}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-eyebrow,
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-target,
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-link,
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-avatar{display:none}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-list{gap:2px}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-row{
+  grid-template-columns:20px minmax(0,1fr) auto;
+  min-height:22px;
+  padding:2px 6px;
+  border-radius:7px;
+  gap:4px;
+}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-rank{font-size:13px}
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-player,
+.compact-leaderboard-card.during-game-compact .compact-leaderboard-score{font-size:10px}
 .compact-leaderboard-record-chip{
   display:none;
   align-items:center;
