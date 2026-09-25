@@ -201,7 +201,25 @@
         padding: 5px 8px !important;
       }
       body.blockdrop-page.game-active .container > a.button.wide.secondary {
-        display: none !important;
+        display: inline-flex !important;
+      }
+      body.blockdrop-page.game-active .blockdrop-exit {
+        position: fixed !important;
+        top: max(10px, env(safe-area-inset-top)) !important;
+        left: 10px !important;
+        z-index: 1200 !important;
+        width: auto !important;
+        min-height: 38px !important;
+        margin: 0 !important;
+        padding: 8px 11px !important;
+        border: 1px solid rgba(248,113,113,.55) !important;
+        border-radius: 12px !important;
+        background: rgba(69,10,10,.92) !important;
+        color: #fecaca !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,.35) !important;
+        backdrop-filter: blur(8px);
       }
       body.blockdrop-page.game-active main.container {
         padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
@@ -244,7 +262,7 @@
       <button class="game-control" id="dropButton" type="button" aria-label="Hold to drop piece faster">⬇️ Drop</button>
     </div>
 
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <a class="button wide secondary blockdrop-exit" id="blockDropExit" href="games.html">✕ Quit Game</a>
   </main>
 
   <script src="arcade.js"></script>
