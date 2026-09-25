@@ -18,7 +18,9 @@ const dedicatedGames = [
   'colormatch.html',
   'paddlerally.html',
   'lanerunner.html',
-  'safecracker.html'
+  'safecracker.html',
+  'stardefender.html',
+  'neonmaze.html'
 ];
 
 const expectedGameKeys = [
@@ -41,7 +43,9 @@ const expectedGameKeys = [
   'spiralDrop',
   'shapeFit',
   'bounceRun',
-  'trafficEscape'
+  'trafficEscape',
+  'starDefender',
+  'neonMaze'
 ];
 
 function objectKeysNear(source, label) {
@@ -80,7 +84,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('all 20 catalog games stay registered consistently', () => {
+test('all 22 catalog games stay registered consistently', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
@@ -90,7 +94,7 @@ test('all 20 catalog games stay registered consistently', () => {
   const miniConfigs = objectKeysNear(mini, 'const configs');
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
-  expect(new Set(catalog).size).toBe(20);
+  expect(new Set(catalog).size).toBe(22);
   expect([...catalog].sort()).toEqual([...expectedGameKeys].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys].sort());
@@ -179,7 +183,8 @@ test('Lane Runner smooth steering uses physical car position for collisions', ()
 test('gameplay clocks start after the 3-2-1 countdown', () => {
   for (const file of dedicatedGames) {
     const source = read(file);
-    const startIndex = source.indexOf('function startGame');
+    const modern = file === 'stardefender.html' || file === 'neonmaze.html';
+    const startIndex = source.indexOf(modern ? 'function start()' : 'function startGame');
     const countdownIndex = source.indexOf('Arcade.countdown', startIndex);
 
     expect(startIndex, file + ' startGame should exist').toBeGreaterThanOrEqual(0);
@@ -187,12 +192,12 @@ test('gameplay clocks start after the 3-2-1 countdown', () => {
 
     const beforeCountdown = source.slice(startIndex, countdownIndex);
     expect(beforeCountdown, file + ' should not count countdown time').not.toMatch(
-      /earnlyRunStartedAt\s*=\s*performance\.now\(\)/
+      modern ? /startedAt\s*=\s*performance\.now\(\)/ : /earnlyRunStartedAt\s*=\s*performance\.now\(\)/
     );
 
     const countdownBody = source.slice(countdownIndex, countdownIndex + 700);
     expect(countdownBody, file + ' should start its play clock inside countdown completion').toMatch(
-      /earnlyRunStartedAt\s*=\s*performance\.now\(\)/
+      modern ? /startedAt\s*=\s*performance\.now\(\)/ : /earnlyRunStartedAt\s*=\s*performance\.now\(\)/
     );
   }
 

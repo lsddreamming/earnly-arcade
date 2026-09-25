@@ -36,7 +36,9 @@ const Arcade = (() => {
     spiralDrop: 'Spiral Drop',
     shapeFit: 'Shape Fit',
     bounceRun: 'Bounce Run',
-    trafficEscape: 'Traffic Escape'
+    trafficEscape: 'Traffic Escape',
+    starDefender: 'Star Defender',
+    neonMaze: 'Neon Maze'
   };
 
   const profileAvatars = {
@@ -78,7 +80,9 @@ const Arcade = (() => {
     spiralDrop: { key: 'spiralDropBest', label: 'rows', lower: false },
     shapeFit: { key: 'shapeFitBest', label: 'correct', lower: false },
     bounceRun: { key: 'bounceRunBest', label: 'distance', lower: false },
-    trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false }
+    trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false },
+    starDefender: { key: 'starDefenderBest', label: 'points', lower: false },
+    neonMaze: { key: 'neonMazeBest', label: 'chips', lower: false }
   };
 
   const FREE_PLAYS = 3;
@@ -3078,7 +3082,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonmaze.html','mini.html'
     ]);
 
     let active = 'home';
@@ -3121,7 +3125,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonmaze.html','mini.html'
     ]);
 
     let active = 'home';
@@ -3210,7 +3214,9 @@ const Arcade = (() => {
     'colormatch.html':'colorMatch',
     'paddlerally.html':'paddleRally',
     'lanerunner.html':'laneRunner',
-    'safecracker.html':'safeCracker'
+    'safecracker.html':'safeCracker',
+    'stardefender.html':'starDefender',
+    'neonmaze.html':'neonMaze'
   };
 
   function currentCompactLeaderboardGame() {

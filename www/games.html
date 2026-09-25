@@ -101,7 +101,9 @@
       { key:'spiralDrop', icon:'🌀', name:'Spiral Drop', note:'Guide the ball through shrinking gaps', href:'mini.html?game=spiralDrop' },
       { key:'shapeFit', icon:'🧠', name:'Shape Fit', note:'Match silhouettes as your streak grows', href:'mini.html?game=shapeFit' },
       { key:'bounceRun', icon:'⚪', name:'Bounce Run', note:'Tap to jump over obstacles · gets faster as you level up', href:'mini.html?game=bounceRun' },
-      { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' }
+      { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' },
+      { key:'starDefender', icon:'👾', name:'Star Defender', note:'Retro alien waves · dodge and fire', href:'stardefender.html' },
+      { key:'neonMaze', icon:'🟡', name:'Neon Maze', note:'Collect chips · avoid roaming ghosts', href:'neonmaze.html' }
     ];
 
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
@@ -125,7 +127,9 @@
       spiralDrop:['new','action'],
       shapeFit:['new','brain','quick'],
       bounceRun:['new','action'],
-      trafficEscape:['new','brain']
+      trafficEscape:['new','brain'],
+      starDefender:['new','classic','action'],
+      neonMaze:['new','classic','action']
     };
     let activeGameFilter = 'all';
     let gameSearchText = '';

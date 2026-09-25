@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a"><meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Neon Maze · Earnly Arcade</title>
+  <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="arcade.css"><link rel="stylesheet" href="premium.css?v=19">
+  <style>
+    body.maze-page{overscroll-behavior:none}
+    .maze-page .maze-board{display:block;width:min(94vw,390px,calc((100dvh - 255px)*.79));height:auto;margin:8px auto;border:2px solid #415eaa;border-radius:18px;background:#080c21;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 0 25px #365ad838}
+    .maze-page .maze-controls{display:grid;grid-template-columns:repeat(3,68px);gap:5px;justify-content:center;margin:4px auto 8px}
+    .maze-page .maze-controls button{height:43px;padding:5px;border-radius:12px;font-size:22px;touch-action:manipulation}
+    .maze-page .maze-controls button:first-child{grid-column:2}.maze-page .maze-controls button:nth-child(2){grid-column:1}.maze-page .maze-controls button:nth-child(3){grid-column:2}.maze-page .maze-controls button:nth-child(4){grid-column:3}
+    .maze-page .page-header{padding:12px;margin:5px 0 7px}.maze-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
+    .maze-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.maze-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
+    .maze-page .maze-tip{color:#a9bbd6;text-align:center;font-size:11px;margin:6px auto}
+    .maze-page.game-active .topbar,.maze-page.game-active #startButton,.maze-page.game-active #arcadeBottomNav,.maze-page.game-active .maze-tip,.maze-page.game-active .back-games{display:none!important}
+    .maze-page.game-active .page-header{padding:9px;margin:0 0 3px}.maze-page.game-active .maze-board{margin:4px auto}.maze-page.game-active main.container{padding-bottom:8px}
+  </style>
+</head>
+<body class="maze-page"><main class="container">
+  <div class="topbar"><a class="brand" href="games.html">← Games</a><a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a></div>
+  <header class="page-header"><div class="game-title-status-row"><h1>🟡 Neon Maze</h1><span class="game-status title-status" id="gameStatus">Ready</span></div>
+    <div class="game-meta"><span class="meta-pill">Chips: <span id="chips">0</span></span><span class="meta-pill">❤️ <span id="lives">3</span></span><span class="meta-pill">⏱️ <span id="time">40</span>s</span><span class="meta-pill">🎟️ <span id="plays">0</span></span></div></header>
+  <button class="green wide" id="startButton" type="button">▶ Play Neon Maze</button>
+  <canvas id="game" class="maze-board touch-surface" width="330" height="390" aria-label="Neon Maze collectible chase board"></canvas>
+  <div class="maze-controls" aria-label="Move through maze"><button type="button" data-dir="up" aria-label="Up">⬆️</button><button type="button" data-dir="left" aria-label="Left">⬅️</button><button type="button" data-dir="down" aria-label="Down">⬇️</button><button type="button" data-dir="right" aria-label="Right">➡️</button></div>
+  <p class="maze-tip">Swipe anywhere or use the arrows · collect glowing chips · avoid ghosts</p>
+  <a class="button wide secondary back-games" href="games.html">← Back to Games</a>
+  </main><script src="arcade.js"></script><script>
+  (()=>{
+    const c=document.getElementById('game'),ctx=c.getContext('2d'),E=Object.fromEntries(['chips','lives','time','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
+    const map=['###########','#.........#','#.###.###.#','#...#.#...#','###.#.#.###','#...#.....#','#.#####.#.#','#.....#.#.#','#.###.#.#.#','#.#.....#.#','#.#.#####.#','#.........#','###########'];
+    const S=30,dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};let chips=new Set(),player={x:1,y:1},ghosts=[],lives=3,collected=0,wave=1,elapsed=0,moveClock=0,ghostClock=0,held='',running=false,starting=false,paused=false,last=0,raf=0,startedAt=0,pauseTotal=0,pausedAt=0,touch=null,grace=0;
+    Arcade.gameGuide({game:'neonMaze',surface:c,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Swipe or arrows'},{icon:'🟡',title:'Goal',text:'Collect chips'}],overlayIcon:'🟡',overlayTitle:'Neon Maze',overlayText:'Swipe anywhere to collect chips and avoid ghosts.',replayTitle:'Play Again',tips:['Three ghost hits end the run.','Clear the maze to start a new wave with faster ghosts.','Swipe anywhere, use the arrow buttons, or press arrow keys / WASD.'],reward:'Earn up to 15 Arcade Coins per run.'});
+    const id=(x,y)=>y*11+x,open=(x,y)=>map[y]?.[x]==='.',rnd=n=>Math.floor(Math.random()*n);
+    function resetBoard(){chips=new Set();for(let y=1;y<12;y++)for(let x=1;x<10;x++)if(open(x,y))chips.add(id(x,y));player={x:1,y:1};chips.delete(id(1,1));ghosts=[{x:9,y:11,color:'#ff63ac'},{x:9,y:1,color:'#65e0ff'},...(wave>1?[{x:1,y:11,color:'#b785ff'}]:[])];grace=1.4}
+    function chrome(){E.chips.textContent=collected;E.lives.textContent=lives;E.time.textContent=Math.max(0,40-Math.floor(elapsed));E.plays.textContent=running&&!Arcade.remaining('neonMaze')?'Last':Arcade.remaining('neonMaze');E.balance.textContent=Arcade.number('points').toLocaleString()}
+    function status(text,active=false){E.gameStatus.textContent=text;E.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active)}
+    function draw(){ctx.fillStyle='#070d22';ctx.fillRect(0,0,330,390);for(let y=0;y<13;y++)for(let x=0;x<11;x++){const px=x*S,py=y*S;if(map[y][x]==='#'){ctx.fillStyle='#18336c';ctx.fillRect(px+1,py+1,28,28);ctx.strokeStyle='#3979db';ctx.strokeRect(px+3,py+3,24,24)}else{ctx.fillStyle='#0d1b38';ctx.fillRect(px+1,py+1,28,28);if(chips.has(id(x,y))){ctx.save();ctx.shadowColor='#ffd668';ctx.shadowBlur=10;ctx.fillStyle='#ffe177';ctx.beginPath();ctx.arc(px+15,py+15,3.6,0,Math.PI*2);ctx.fill();ctx.restore()}}}
+      for(const g of ghosts){ctx.save();ctx.shadowColor=g.color;ctx.shadowBlur=13;ctx.fillStyle=g.color;ctx.beginPath();ctx.arc(g.x*S+15,g.y*S+14,10,Math.PI,0);ctx.lineTo(g.x*S+25,g.y*S+25);ctx.lineTo(g.x*S+20,g.y*S+21);ctx.lineTo(g.x*S+15,g.y*S+25);ctx.lineTo(g.x*S+10,g.y*S+21);ctx.lineTo(g.x*S+5,g.y*S+25);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#071326';ctx.fillRect(g.x*S+10,g.y*S+13,3,4);ctx.fillRect(g.x*S+17,g.y*S+13,3,4);ctx.restore()}
+      if(grace<=0||Math.floor(grace*8)%2===0){ctx.save();ctx.shadowColor='#ffe45b';ctx.shadowBlur=16;ctx.fillStyle='#ffdd55';ctx.beginPath();ctx.arc(player.x*S+15,player.y*S+15,11,0,Math.PI*2);ctx.fill();ctx.fillStyle='#0d1b38';ctx.beginPath();ctx.moveTo(player.x*S+15,player.y*S+15);ctx.lineTo(player.x*S+27,player.y*S+9);ctx.lineTo(player.x*S+27,player.y*S+21);ctx.fill();ctx.restore()}}
+    function collision(){if(grace>0)return;for(const g of ghosts)if(g.x===player.x&&g.y===player.y){lives--;grace=1.4;player={x:1,y:1};chrome();Arcade.feedback('fail');if(lives<=0)finish();return}}
+    function move(dir){if(!running||paused)return;const d=dirs[dir];if(!d)return;const x=player.x+d[0],y=player.y+d[1];if(!open(x,y))return;player={x,y};const tile=id(x,y);if(chips.delete(tile)){collected++;chrome();if(!chips.size){wave++;resetBoard();Arcade.feedback('success')}}collision();draw()}
+    function ghostStep(){for(const g of ghosts){const options=Object.values(dirs).map(([dx,dy])=>({x:g.x+dx,y:g.y+dy})).filter(p=>open(p.x,p.y));if(!options.length)continue;options.sort((a,b)=>(Math.abs(a.x-player.x)+Math.abs(a.y-player.y))-(Math.abs(b.x-player.x)+Math.abs(b.y-player.y)));const choice=Math.random()<Math.min(.72,.36+wave*.08)?options[0]:options[rnd(options.length)];g.x=choice.x;g.y=choice.y}collision()}
+    function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;elapsed+=dt;grace=Math.max(0,grace-dt);moveClock+=dt;ghostClock+=dt;if(held&&moveClock>.13){moveClock=0;move(held)}if(ghostClock>Math.max(.19,.52-wave*.035)){ghostClock=0;ghostStep()}chrome();draw();if(elapsed>=40)finish();if(running)raf=requestAnimationFrame(loop)}
+    function finish(){if(!running)return;running=false;cancelAnimationFrame(raf);raf=0;held='';touch=null;const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000)),earned=Math.min(15,Math.floor(collected/6));Arcade.earn(earned,'Neon Maze',{kind:'game',game:'neonMaze',metric:collected,aux:wave});const result=Arcade.recordResult('neonMaze',collected);chrome();status('Run Over');E.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'🟡',title:'Neon Maze Run Over',scoreLabel:'CHIPS COLLECTED',score:collected,best:Arcade.best('neonMaze').display,coins:earned,result,playsLeft:Arcade.remaining('neonMaze'),game:'neonMaze',extra:['⏱️ Time played: '+seconds+'s','👻 Wave reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('neonMaze',chrome)});draw()}
+    function start(){if(running||starting)return;starting=true;if(!Arcade.consume('neonMaze')){starting=false;Arcade.out('neonMaze',chrome);return}collected=elapsed=moveClock=ghostClock=pauseTotal=0;lives=3;wave=1;held='';resetBoard();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;last=startedAt=performance.now();status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
+    const button=e=>{const dir=e.currentTarget.dataset.dir;if(running){e.preventDefault();move(dir);held=dir;moveClock=0}};
+    document.querySelectorAll('[data-dir]').forEach(b=>{b.addEventListener('pointerdown',button);b.addEventListener('pointerup',()=>held='');b.addEventListener('pointercancel',()=>held='')});
+    document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target)||e.target.closest('[data-dir]'))return;touch={x:e.clientX,y:e.clientY};e.preventDefault()},{passive:false});
+    document.addEventListener('pointermove',e=>{if(!running||!touch)return;const dx=e.clientX-touch.x,dy=e.clientY-touch.y;if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;const dir=Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'down':'up';move(dir);touch={x:e.clientX,y:e.clientY};e.preventDefault()},{passive:false});
+    document.addEventListener('pointerup',()=>touch=null);document.addEventListener('pointercancel',()=>touch=null);
+    document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'}[e.key];if(dir&&running){e.preventDefault();if(held!==dir)move(dir);held=dir}else if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();start()}});
+    document.addEventListener('keyup',e=>{const dir={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'}[e.key];if(held===dir)held=''});window.addEventListener('blur',()=>held='');
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);held='';touch=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();raf=requestAnimationFrame(loop)}});
+    E.startButton.addEventListener('click',start);resetBoard();chrome();draw();
+  })();
+  </script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="cloud.js"></script>
+</body></html>
