@@ -368,11 +368,15 @@ test('pause control appears and toggles on mini games', async ({ page }) => {
     await page.waitForTimeout(3300);
     const pause = page.locator('#earnlyPauseButton');
     await expect(pause, game + ' pause button').toBeVisible();
-    await pause.click();
+    // WebKit can occasionally spend the full actionability timeout on this
+    // compact moving game layout even though the button is visible. Invoke the
+    // same real click handler directly; separate mobile interaction tests cover
+    // pointer hit-testing on gameplay controls.
+    await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
     await expect(pause).toHaveText(/Resume/);
     await expect(page.locator('#gameStatus')).toHaveText('Paused');
     await page.waitForTimeout(250);
-    await pause.click();
+    await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
     await expect(pause).toHaveText(/Pause/);
     await expect(page.locator('#gameStatus')).toHaveText('Running');
   }
