@@ -20,6 +20,10 @@
     .memory-card{aspect-ratio:1;border:1px solid #475569;border-radius:16px;background:#172033;font-size:30px;padding:0;margin:0;min-width:0;min-height:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     .memory-card.matched{background:#14532d;border-color:#22c55e}
     .memory-card.revealed{background:#243044}
+    .memory-penalty-line{min-height:24px;margin:4px auto 1px;text-align:center;color:#94a3b8;font-size:10px;font-weight:900}
+    .memory-penalty-line.warn{color:#fde68a}
+    .memory-penalty-line.hit{color:#fca5a5;animation:memoryPenaltyPulse .32s ease}
+    @keyframes memoryPenaltyPulse{0%{transform:scale(.96)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
     .timer-danger{animation:memoryTimerPulse .7s ease-in-out infinite alternate;border-color:#ef4444!important;color:#fecaca!important}
     .memory-reward-hud{width:max-content;max-width:100%;margin:5px auto 1px;padding:6px 11px;border:1px solid rgba(250,204,21,.46);border-radius:999px;background:rgba(120,84,8,.15);color:#fde68a;font-size:11px;font-weight:900;box-sizing:border-box;transition:transform .18s ease,box-shadow .18s ease}
     .memory-reward-hud strong{font-size:14px;color:#fff7b2}
@@ -127,6 +131,9 @@
       body.memory-page.game-active .memory-card{font-size:30px!important}
       body.memory-page.game-active .memory-reward-hud{margin-top:3px!important}
       body.memory-page.game-active .container>a.button.wide.secondary{display:none!important}
+      body.memory-page.game-active .memory-exit{display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)}
+      body.memory-page.game-active #earnlyPauseButton{position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;right:9px!important;z-index:1300!important;width:auto!important;min-width:86px!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border-radius:12px!important;font-size:12px!important;font-weight:900!important;backdrop-filter:blur(8px)}
+      body.memory-page.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important}
     }
   </style>
 </head>
@@ -146,12 +153,13 @@
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
       <div class="memory-reward-hud" id="memoryRewardHud" aria-live="polite">🪙 Clear Reward <strong id="rewardPreview">15</strong></div>
+      <div class="memory-penalty-line" id="memoryPenaltyLine" aria-live="polite">First 2 mismatches are free · then −4s each</div>
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Cards to Start</button>
     <div class="memory-grid touch-surface" id="grid" aria-label="Memory Match cards"></div>
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <a class="button wide secondary memory-exit" id="memoryExit" href="games.html">✕ Quit Game</a>
   </main>
 
   <script src="arcade.js"></script>
@@ -166,6 +174,7 @@
     const startButton = document.getElementById('startButton');
     const rewardPreviewEl = document.getElementById('rewardPreview');
     const memoryRewardHud = document.getElementById('memoryRewardHud');
+    const memoryPenaltyLine = document.getElementById('memoryPenaltyLine');
 
     Arcade.gameGuide({
       game:'memory',
@@ -181,7 +190,7 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'A move is counted each time you reveal two cards. Matching cards stay face-up.',
-        'You have 60 seconds to match all 8 pairs. The final 10 seconds are the danger zone.'
+        'You have 60 seconds. The first 2 mismatches are free; each later mismatch costs 4 seconds.'
       ],
       reward:'Beat the 60-second clock. Faster clears and fewer moves earn the best reward, up to 15 Coins.'
     });
@@ -193,6 +202,9 @@
     let lock = true;
     let moves = 0;
     let pairs = 0;
+    let mistakes = 0;
+    const FREE_MISTAKES = 2;
+    const MISMATCH_PENALTY_SECONDS = 4;
     let running = false;
     let starting = false;
     let gameTimer = null;
@@ -314,6 +326,17 @@
 
         if(pairs===8) finishGame();
       } else {
+        mistakes+=1;
+        if(mistakes<=FREE_MISTAKES){
+          memoryPenaltyLine.className='memory-penalty-line warn';
+          memoryPenaltyLine.textContent='Mismatch '+mistakes+'/'+FREE_MISTAKES+' free · no time penalty';
+        }else{
+          timeLeft=Math.max(0,timeLeft-MISMATCH_PENALTY_SECONDS);
+          renderTime();
+          memoryPenaltyLine.className='memory-penalty-line hit';
+          memoryPenaltyLine.textContent='Mismatch '+mistakes+' · −'+MISMATCH_PENALTY_SECONDS+'s';
+          if(timeLeft<=0){timeUp();return}
+        }
         const mismatchFirst=first;
         const mismatchSecond=second;
         const token=++mismatchToken;
@@ -355,7 +378,7 @@
         coins:0,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((earnlyRunStartedAt ? performance.now()-earnlyRunStartedAt-totalPausedMs : ROUND_SECONDS*1000)/1000))+'s','🧠 '+moves+' moves made','Match all 8 pairs before the 60-second clock hits zero.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((earnlyRunStartedAt ? performance.now()-earnlyRunStartedAt-totalPausedMs : ROUND_SECONDS*1000)/1000))+'s','🧠 '+moves+' moves made','❌ Mismatches: '+mistakes,'Match all 8 pairs before the 60-second clock hits zero.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
@@ -394,7 +417,7 @@
         result,
         playsLeft:Arcade.remaining('memory'),
         game:'memory',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','⏱️ Time left: '+timeEl.textContent,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','⏱️ Time left: '+timeEl.textContent,'❌ Mismatches: '+mistakes,moves<=16?'🏆 Near-perfect memory run.':moves<=24?'✨ Sharp Memory pace.':'Try to clear it in fewer moves.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('memory',refreshChrome)
       });
@@ -408,10 +431,11 @@
         starting=false;
         Arcade.out('memory',refreshChrome);
         return;
-      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
+      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       mismatchToken++;cards=shuffle([...icons,...icons].map(icon=>({icon,revealed:false,matched:false})));
-      first=null;second=null;lock=true;moves=0;pairs=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
+      first=null;second=null;lock=true;moves=0;pairs=0;mistakes=0;running=false;timeLeft=ROUND_SECONDS;stopTimer();renderTime();
+      memoryPenaltyLine.className='memory-penalty-line';memoryPenaltyLine.textContent='First 2 mismatches are free · then −4s each';
       movesEl.textContent='0';
       pairsEl.textContent='0';
       lastRewardPreview=rewardForMoves(0);
