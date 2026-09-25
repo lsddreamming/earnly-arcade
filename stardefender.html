@@ -49,8 +49,45 @@
     .star-start-overlay span{margin-top:8px;color:#b8cae2;font-size:13px;font-weight:700}
     .star-start-overlay b{margin-top:14px;padding:10px 16px;border:1px solid rgba(86,229,255,.55);border-radius:999px;background:rgba(37,99,235,.34);color:#dff8ff;font-size:13px}
     .star-start-overlay:active{transform:scale(.995)}
-    .star-page.game-active .page-header{margin:0 0 3px;padding:9px}
-    .star-page.game-active .star-board{margin:4px auto}
+
+    /* Live-play compact mode: prioritize the board on iPhone. */
+    .star-page.game-active .compact-leaderboard-card,
+    .star-page.game-active .game-guide-strip,
+    .star-page.game-active .game-guide-more{display:none!important}
+    .star-page.game-active .page-header{
+      display:grid!important;
+      grid-template-columns:minmax(0,1fr) auto!important;
+      align-items:center!important;
+      gap:4px 6px!important;
+      margin:0!important;
+      padding:6px 8px!important;
+    }
+    .star-page.game-active .game-title-status-row{
+      grid-column:1!important;grid-row:1!important;
+      justify-content:flex-start!important;gap:6px!important;margin:0!important;
+    }
+    .star-page.game-active .game-title-status-row h1{
+      margin:0!important;font-size:18px!important;line-height:1.05!important;white-space:nowrap!important;
+    }
+    .star-page.game-active .title-status{
+      padding:4px 7px!important;font-size:10px!important;line-height:1!important;
+    }
+    .star-page.game-active #earnlyPauseButton{
+      grid-column:2!important;grid-row:1!important;
+      min-width:72px!important;min-height:30px!important;
+      margin:0!important;padding:5px 8px!important;font-size:11px!important;
+    }
+    .star-page.game-active .game-meta{
+      grid-column:1/-1!important;grid-row:2!important;
+      margin:0!important;gap:4px!important;
+    }
+    .star-page.game-active .meta-pill{
+      padding:5px 2px!important;min-height:0!important;font-size:10px!important;line-height:1.1!important;
+    }
+    .star-page.game-active .star-board{
+      width:min(94vw,390px,calc((100dvh - 132px)*.69))!important;
+      margin:3px auto!important;
+    }
     .star-page.game-active main.container{padding-bottom:max(8px,env(safe-area-inset-bottom))}
     @media(max-height:720px){.star-page .star-board{width:min(84vw,330px,calc((100dvh - 220px)*.69))}}
   </style>
