@@ -1,6 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
 async function startGame(page) {
+  const boardStart = page.locator('#blockDropBoardStart');
+  if (await boardStart.isVisible().catch(() => false)) {
+    await boardStart.click();
+    return;
+  }
   const startButton = page.locator('#startButton');
   if (await startButton.isVisible().catch(() => false)) {
     await startButton.click();

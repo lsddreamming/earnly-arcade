@@ -648,6 +648,10 @@
     function resetHomeViewport() {
       if (location.hash) return;
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      // The site's smooth-scroll rule can animate this reset for hundreds of
+      // milliseconds on WebKit. Home should return to the top immediately.
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.scrollTo(0, 0);
       // iPhone Safari can restore an old Home-page offset, then move again as
       // dynamic Home cards render. Two RAFs reset after that first layout pass.
       requestAnimationFrame(() => {
