@@ -68,8 +68,8 @@
           0 16px 36px rgba(0,0,0,.28),
           0 0 18px rgba(34,197,94,.06)
       }
-      body.safecracker-page.game-active .game-guide-strip,body.safecracker-page.game-active .game-guide-more,body.safecracker-page.game-active .game-guide-overlay,body.safecracker-page.game-active .game-overlay,body.safecracker-page.game-active a.button.secondary{display:none!important}
-      body.safecracker-page.game-active .topbar,body.safecracker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.safecracker-page.game-active .game-guide-strip,body.safecracker-page.game-active .game-guide-more,body.safecracker-page.game-active .game-guide-overlay,body.safecracker-page.game-active .game-overlay{display:none!important}
+      body.safecracker-page.game-active .topbar,body.safecracker-page.game-active #startButton{display:none!important}
       body.safecracker-page.game-active .page-header{margin:0 0 4px}
       body.safecracker-page.game-active .page-header h1{font-size:22px!important;margin:0 0 4px!important}
       body.safecracker-page.game-active .game-meta{margin:2px 0 4px}
@@ -93,9 +93,18 @@
         touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none
       }
       body.safecracker-page.game-active .safe-tap-zone:active{transform:scale(.985);background:#1d4733}
+      body.safecracker-page.game-active .safecracker-exit{
+        display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)
+      }
+      body.safecracker-page.game-active #earnlyPauseButton{
+        position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;right:9px!important;z-index:1300!important;width:auto!important;min-width:86px!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border-radius:12px!important;font-size:12px!important;font-weight:900!important;backdrop-filter:blur(8px)
+      }
+      body.safecracker-page.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important}
     }
-      .safe-round-timer{max-width:360px;margin:6px auto 8px;text-align:center;font-size:12px;font-weight:900;color:#fbbf24;min-height:18px}
+      .safe-round-timer{max-width:360px;margin:6px auto 5px;text-align:center;font-size:12px;font-weight:900;color:#fbbf24;min-height:18px}
     .safe-round-timer.urgent{color:#f87171;animation:safeTimerPulse .55s ease-in-out infinite alternate}
+    .safe-combo-line{min-height:24px;margin:0 auto 6px;text-align:center;color:#86efac;font-size:11px;font-weight:900}
+    .safe-combo-line.hot{color:#fde68a;text-shadow:0 0 12px rgba(250,204,21,.25)}
     @keyframes safeTimerPulse{from{transform:scale(1)}to{transform:scale(1.04)}}
 </style>
 </head>
@@ -117,7 +126,8 @@
     <canvas class="safe-board touch-surface" id="game" width="360" height="300" aria-label="Safe Cracker timing game"></canvas>
     <div class="safe-tap-zone" id="safeTapZone">🔓 TAP ANYWHERE TO CRACK</div>
     <div class="safe-round-timer" id="safeRoundTimer" aria-live="off"></div>
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <div class="safe-combo-line" id="safeComboLine" aria-live="polite">Build a 4-hit streak for a bonus lock</div>
+    <a class="button wide secondary safecracker-exit" id="safeCrackerExit" href="games.html">✕ Quit Game</a>
   </main>
   <script src="arcade.js"></script>
   <script>
@@ -132,15 +142,15 @@
       refreshChrome(); return true;
     }
     
-    const canvas=document.getElementById('game'),safeTapZone=document.getElementById('safeTapZone'),safeRoundTimer=document.getElementById('safeRoundTimer'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),livesEl=document.getElementById('lives'),rewardPreviewEl=document.getElementById('rewardPreview');
+    const canvas=document.getElementById('game'),safeTapZone=document.getElementById('safeTapZone'),safeRoundTimer=document.getElementById('safeRoundTimer'),safeComboLine=document.getElementById('safeComboLine'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),livesEl=document.getElementById('lives'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'safeCracker',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎯',title:'Time it',text:'Stop inside the green zone'},{icon:'🔐',title:'Goal',text:'Crack as many locks as possible'}],
       overlayIcon:'🔐',overlayTitle:'Stop in the Green',overlayText:'Tap fast: you have only a few seconds before the safe costs you a life.',replayTitle:'Tap to Play Again',
       tips:['Each successful lock makes the target smaller and the marker faster.','You get 3 misses before the run ends.'],reward:'Locks cracked can earn up to 25 Coins.'});
-    let score=0,lives=3,targetX=120,targetW=90,marker=30,dir=1,speed=3,running=false,starting=false,animation=null,bounces=0,maxBounces=4,roundStartedAt=0,roundLimit=5200,lastAttemptAt=0,roundLocked=false;
+    let score=0,lives=3,hitStreak=0,bestStreak=0,targetX=120,targetW=90,marker=30,dir=1,speed=3,running=false,starting=false,animation=null,bounces=0,maxBounces=4,roundStartedAt=0,roundLimit=5200,lastAttemptAt=0,roundLocked=false;
     function rewardFor(v){let c=Math.floor(v/2);if(v>=8)c+=2;if(v>=15)c+=4;if(v>=25)c+=5;return Math.min(c,25)}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
     function newTarget(){roundLocked=false;targetW=Math.max(28,90-score*3);targetX=25+Math.random()*(310-targetW);speed=Math.min(9,3+score*.22);bounces=0;roundStartedAt=performance.now();roundLimit=Math.max(2600,5200-score*110)}
-    function reset(){cancelAnimationFrame(animation);animation=null;score=0;lives=3;marker=30;dir=1;bounces=0;speed=3;targetX=25;targetW=90;roundStartedAt=0;roundLimit=0;lastAttemptAt=0;roundLocked=false;safeRoundTimer.textContent='';safeRoundTimer.classList.remove('urgent');scoreEl.textContent='0';livesEl.textContent='3';newTarget();refreshReward();draw()}
+    function reset(){cancelAnimationFrame(animation);animation=null;score=0;lives=3;hitStreak=0;bestStreak=0;marker=30;dir=1;bounces=0;speed=3;targetX=25;targetW=90;roundStartedAt=0;roundLimit=0;lastAttemptAt=0;roundLocked=false;safeRoundTimer.textContent='';safeRoundTimer.classList.remove('urgent');safeComboLine.className='safe-combo-line';safeComboLine.textContent='Build a 4-hit streak for a bonus lock';scoreEl.textContent='0';livesEl.textContent='3';newTarget();refreshReward();draw()}
     function draw(){
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1627');bg.addColorStop(1,'#101b2d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle='#162338';ctx.beginPath();ctx.roundRect(18,70,324,150,18);ctx.fill();
@@ -153,7 +163,7 @@
       if(running){const left=Math.max(0,(roundLimit-(performance.now()-roundStartedAt))/1000);ctx.fillStyle=left<1.6?'#f87171':'#fbbf24';ctx.font='900 15px Arial';ctx.fillText('ACT NOW  '+left.toFixed(1)+'s',180,272)}
     }
     function finish(){if(!running)return;running=false;roundLocked=true;safeRoundTimer.textContent='';safeRoundTimer.classList.remove('urgent');cancelAnimationFrame(animation);animation=null;pauseStartedAt=0;roundStartedAt=0;roundLimit=0;lastAttemptAt=0;const earned=rewardFor(score);Arcade.earn(earned,'Safe Cracker',{kind:'game',game:'safeCracker',metric:score});const result=Arcade.recordResult('safeCracker',score);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Locked Out','over');draw();
-      Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
+      Arcade.gameResult({icon:'🔐',title:'Safe Run Over',scoreLabel:'Locks Cracked',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('safeCracker'),game:'safeCracker',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🔥 Best hit streak: '+bestStreak,score>=15?'🔥 Master timing!':'Wait until the marker is centered.'],onReplay:startGame,onMorePlays:()=>Arcade.out('safeCracker',refreshChrome)})}
     function attempt(){
       if(!running||roundLocked||document.body.classList.contains('earnly-game-paused'))return;
       // Enforce the exact round deadline here too. The animation frame that
@@ -169,10 +179,26 @@
       if(now-lastAttemptAt<140){roundLocked=false;return}
       lastAttemptAt=now;
       const hit=marker>=targetX&&marker<=targetX+targetW;
-      if(hit){score++;scoreEl.textContent=String(score);Arcade.feedback('perfect');newTarget();marker=dir>0?30:330;refreshReward()}
+      if(hit){
+        score++;
+        hitStreak++;
+        bestStreak=Math.max(bestStreak,hitStreak);
+        let bonus=0;
+        if(hitStreak%4===0){
+          bonus=1;
+          score+=bonus;
+          safeComboLine.className='safe-combo-line hot';
+          safeComboLine.textContent='🔥 '+hitStreak+' HIT STREAK · +1 BONUS LOCK';
+          Arcade.milestone('🔥 '+hitStreak+' straight · Bonus lock!','perfect');
+        }else{
+          safeComboLine.className='safe-combo-line';
+          safeComboLine.textContent='✓ '+hitStreak+' hit streak · '+(4-(hitStreak%4))+' to bonus';
+        }
+        scoreEl.textContent=String(score);Arcade.feedback('perfect');newTarget();marker=dir>0?30:330;refreshReward()
+      }
       else{loseLife('Missed the green')}
     }
-    function loseLife(reason){if(!running)return;lives--;livesEl.textContent=String(lives);Arcade.feedback('fail');if(lives<=0){finish();return}setStatus(reason+' · '+lives+' lives','running');newTarget();marker=dir>0?30:330}
+    function loseLife(reason){if(!running)return;hitStreak=0;safeComboLine.className='safe-combo-line';safeComboLine.textContent='Streak reset · build 4 clean hits for a bonus';lives--;livesEl.textContent=String(lives);Arcade.feedback('fail');if(lives<=0){finish();return}setStatus(reason+' · '+lives+' lives','running');newTarget();marker=dir>0?30:330}
     function loop(){if(!running)return;const roundLeft=Math.max(0,roundLimit-(performance.now()-roundStartedAt));safeRoundTimer.textContent='⏱ '+(roundLeft/1000).toFixed(1)+'s to tap';safeRoundTimer.classList.toggle('urgent',roundLeft<=1600);if(roundLeft<=0){loseLife('Too slow');if(!running)return}marker+=speed*dir;if(marker>=332){marker=332;dir=-1;bounces++;if(bounces>=maxBounces){loseLife('Too many passes');if(!running)return}}else if(marker<=28){marker=28;dir=1;bounces++;if(bounces>=maxBounces){loseLife('Too many passes');if(!running)return}}draw();animation=requestAnimationFrame(loop)}
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
@@ -181,11 +207,11 @@
     safeTapZone.addEventListener('pointerdown',e=>{if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();attempt()},{passive:false});
     document.addEventListener('pointerdown',e=>{
       if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
-      if(e.target.closest('a,button,.pause-control,[role="button"]')||e.target===canvas||safeTapZone.contains(e.target))return;
+      if(Arcade.isProtectedGameControlTarget(e.target)||e.target===canvas||safeTapZone.contains(e.target))return;
       e.preventDefault();
       attempt();
     },{passive:false});
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(running&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();attempt()}});
+    document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(running&&(e.code==='Space'||e.key==='Enter')){e.preventDefault();attempt()}});
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{if(!running||!pauseStartedAt)return;const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;if(roundStartedAt)roundStartedAt+=pausedFor;pauseStartedAt=0;cancelAnimationFrame(animation);animation=requestAnimationFrame(loop);}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   
