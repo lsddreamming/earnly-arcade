@@ -18,7 +18,15 @@
   <style>
     html,body,.container{touch-action:manipulation}
     .color-board{max-width:390px;margin:12px auto;padding:18px;border:1px solid #475569;border-radius:20px;background:#152236;touch-action:manipulation}
-    .color-rule{color:#94a3b8;font-size:12px;margin-bottom:8px}.color-word{font-size:44px;font-weight:900;letter-spacing:.02em;margin:16px 0 20px}
+    .color-rule{color:#cbd5e1;font-size:12px;margin-bottom:7px;font-weight:800}.color-word{font-size:44px;font-weight:900;letter-spacing:.02em;margin:14px 0 12px}
+    .color-example{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto 8px;padding:7px 9px;border:1px solid rgba(59,130,246,.28);border-radius:11px;background:rgba(15,23,42,.55);color:#cbd5e1;font-size:10px;font-weight:750}
+    .color-example-word{color:#3b82f6;font-size:15px;font-weight:950;letter-spacing:.04em}
+    .color-feedback{min-height:24px;margin:0 0 8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:850}
+    .color-feedback.good{color:#86efac}.color-feedback.bad{color:#fca5a5}
+    .color-choice{position:relative;overflow:hidden}
+    .color-choice::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 55%)}
+    .color-choice.correct-flash{transform:scale(.98);box-shadow:0 0 0 2px rgba(134,239,172,.55),0 0 20px rgba(34,197,94,.18)!important}
+    .color-choice.wrong-flash{transform:scale(.98);box-shadow:0 0 0 2px rgba(252,165,165,.55),0 0 20px rgba(239,68,68,.16)!important}
     .color-reward-hud{width:max-content;max-width:100%;margin:0 auto 4px;padding:6px 11px;border:1px solid rgba(250,204,21,.46);border-radius:999px;background:rgba(120,84,8,.16);color:#fde68a;font-size:11px;font-weight:900;box-sizing:border-box}
     .color-reward-hud strong{font-size:15px;color:#fff7b2}.color-reward-hud.reward-bump{animation:colorRewardBump .34s ease}
     @keyframes colorRewardBump{0%{transform:scale(1)}45%{transform:scale(1.08);box-shadow:0 0 18px rgba(250,204,21,.22)}100%{transform:scale(1)}}
@@ -70,7 +78,9 @@
           0 18px 38px rgba(0,0,0,.24)!important
       }
       body.colormatch-page .color-rule{font-size:11px!important;margin-bottom:5px!important}
-      body.colormatch-page .color-word{font-size:42px!important;margin:12px 0 16px!important}
+      body.colormatch-page .color-example{margin-bottom:6px!important;padding:6px 7px!important;font-size:9.5px!important}
+      body.colormatch-page .color-word{font-size:42px!important;margin:10px 0 10px!important}
+      body.colormatch-page .color-feedback{min-height:22px!important;margin-bottom:7px!important;font-size:10px!important}
       body.colormatch-page .color-choice{
         min-height:62px!important;
         font-size:16px!important;
@@ -82,14 +92,48 @@
       body.colormatch-page.game-active .game-guide-strip,
       body.colormatch-page.game-active .game-guide-more,
       body.colormatch-page.game-active #startButton,
-      body.colormatch-page.game-active a.button.secondary{display:none!important}
+      body.colormatch-page.game-active .color-example{display:none!important}
       body.colormatch-page.game-active main.container{padding-top:8px!important}
       body.colormatch-page.game-active .page-header{margin-bottom:4px!important}
       body.colormatch-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
       body.colormatch-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important}
       body.colormatch-page.game-active .color-board{width:min(94vw,400px)!important;margin:4px auto!important;padding:16px!important}
-      body.colormatch-page.game-active .color-word{font-size:50px!important;margin:16px 0 20px!important}
+      body.colormatch-page.game-active .color-word{font-size:50px!important;margin:14px 0 10px!important}
       body.colormatch-page.game-active .color-choice{min-height:72px!important;font-size:17px!important}
+      body.colormatch-page.game-active .colormatch-exit{
+        position:fixed!important;
+        top:max(8px,env(safe-area-inset-top))!important;
+        left:9px!important;
+        z-index:1200!important;
+        width:auto!important;
+        min-height:38px!important;
+        margin:0!important;
+        padding:8px 11px!important;
+        border:1px solid rgba(248,113,113,.55)!important;
+        border-radius:12px!important;
+        background:rgba(69,10,10,.92)!important;
+        color:#fecaca!important;
+        font-size:12px!important;
+        font-weight:900!important;
+        box-shadow:0 8px 24px rgba(0,0,0,.35)!important;
+        backdrop-filter:blur(8px)
+      }
+      body.colormatch-page.game-active #earnlyPauseButton{
+        position:fixed!important;
+        top:max(8px,env(safe-area-inset-top))!important;
+        right:9px!important;
+        z-index:1200!important;
+        width:auto!important;
+        min-width:86px!important;
+        min-height:38px!important;
+        margin:0!important;
+        padding:8px 11px!important;
+        border-radius:12px!important;
+        font-size:12px!important;
+        font-weight:900!important;
+        backdrop-filter:blur(8px)
+      }
+      body.colormatch-page.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important}
     }
   </style>
 </head>
@@ -109,12 +153,14 @@
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <div class="color-board touch-surface" id="board" aria-label="Color Match game area">
-      <div class="color-rule">Tap the button that names the <strong>INK COLOR</strong></div>
+      <div class="color-rule">Choose the <strong>COLOR YOU SEE</strong> — ignore what the word says.</div>
+      <div class="color-example"><span class="color-example-word">RED</span><span>painted blue → tap <strong>BLUE</strong></span></div>
       <div class="color-reward-hud" id="runRewardPill" aria-live="polite">🪙 Run Reward <strong id="rewardPreview">0</strong></div>
       <div class="color-word" id="word">READY</div>
+      <div class="color-feedback" id="colorFeedback" aria-live="polite">Look at the ink color, not the word.</div>
       <div class="color-choices" id="choices"></div>
     </div>
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <a class="button wide secondary colormatch-exit" id="colorMatchExit" href="games.html">✕ Quit Game</a>
   </main>
   <script src="arcade.js"></script>
   <script>
@@ -130,12 +176,12 @@
     }
     
     const board=document.getElementById('board'),wordEl=document.getElementById('word'),choices=document.getElementById('choices');
-    const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),runRewardPill=document.getElementById('runRewardPill');
+    const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),runRewardPill=document.getElementById('runRewardPill'),feedbackEl=document.getElementById('colorFeedback');
     const colors=[['RED','#ef4444'],['BLUE','#3b82f6'],['GREEN','#22c55e'],['YELLOW','#facc15']];
-    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,answer='',answerLocked=false,roundEndsAt=0;
-    Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Think',text:'Match the ink color'},{icon:'⚡',title:'Goal',text:'Get max matches in 25 sec'}],
-      overlayIcon:'🎨',overlayTitle:'Match the Ink Color',overlayText:'Ignore the word itself. Tap the color the word is painted.',replayTitle:'Tap to Play Again',
-      tips:['Example: the word RED may be painted blue. In that case tap BLUE.','Keyboard players can press 1, 2, 3, or 4 for the four buttons.'],reward:'Fast correct matches can earn up to 22 Coins.'});
+    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,feedbackTimer=null,answer='',answerLocked=false,roundEndsAt=0;
+    Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Rule',text:'Pick the COLOR YOU SEE'},{icon:'🚫',title:'Ignore',text:'Do not follow the word'}],
+      overlayIcon:'🎨',overlayTitle:'Pick the Color You See',overlayText:'If RED is painted blue, tap BLUE. The word is the trick.',replayTitle:'Tap to Play Again',
+      tips:['Look only at the ink color. Example: RED painted blue = tap BLUE.','Keyboard players can press 1, 2, 3, or 4 for the four buttons.'],reward:'Fast correct matches can earn up to 22 Coins.'});
     function rewardFor(v){let c=Math.floor(v/4);if(v>=15)c+=2;if(v>=25)c+=3;if(v>=35)c+=4;return Math.min(c,22)}
     let lastRewardShown=0;
     function refreshReward(){
@@ -153,20 +199,31 @@
       answerLocked=false;
       const ink=colors[Math.floor(Math.random()*colors.length)],word=colors[Math.floor(Math.random()*colors.length)];
       answer=ink[0];wordEl.textContent=word[0];wordEl.style.color=ink[1];choices.replaceChildren();
-      shuffle([...colors]).forEach(([name,color],idx)=>{const b=document.createElement('button');b.type='button';b.className='color-choice';b.textContent=(idx+1)+' · '+name;b.style.border='2px solid '+color;b.style.background='#1f2937';b.addEventListener('click',()=>choose(name));choices.append(b)});
+      shuffle([...colors]).forEach(([name,color],idx)=>{const b=document.createElement('button');b.type='button';b.className='color-choice';b.dataset.color=name;b.textContent=(idx+1)+' · '+name;b.style.border='2px solid '+color;b.style.background=color+'20';b.style.color='#f8fafc';b.addEventListener('click',()=>choose(name,b));choices.append(b)});
     }
-    function choose(name){
+    function choose(name,button=null){
       if(!running||answerLocked||document.body.classList.contains('earnly-game-paused'))return;
       if(roundEndsAt && performance.now()>=roundEndsAt){finish();return}
       answerLocked=true;
-      if(name===answer){score++;streak++;Arcade.feedback('score')}
+      const expected=answer;
+      const correct=name===expected;
+      if(correct){score++;streak++;Arcade.feedback('score')}
       else{streak=0;Arcade.feedback('fail')}
+      if(button)button.classList.add(correct?'correct-flash':'wrong-flash');
+      feedbackEl.className='color-feedback '+(correct?'good':'bad');
+      feedbackEl.textContent=correct?'✓ Correct · '+expected:'✕ Ink was '+expected;
+      clearTimeout(feedbackTimer);
+      feedbackTimer=setTimeout(()=>{
+        if(!running)return;
+        feedbackEl.className='color-feedback';
+        feedbackEl.textContent='Look at the ink color, not the word.';
+      },650);
       scoreEl.textContent=String(score);streakEl.textContent=String(streak);refreshReward();nextRound();
     }
     function finish(){
-      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;roundEndsAt=0;pauseStartedAt=0;answer='';
+      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;clearTimeout(feedbackTimer);feedbackTimer=null;roundEndsAt=0;pauseStartedAt=0;answer='';
       const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
-      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';choices.replaceChildren();
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';feedbackEl.className='color-feedback';feedbackEl.textContent='Round complete';choices.replaceChildren();
       Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
         extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=25?'🔥 Your brain ignored the trick.':'Focus on the ink, not the word.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
     }
@@ -174,7 +231,7 @@
     function startGame(){
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
-      clearInterval(timer);timer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;lastRewardShown=0;scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';refreshReward();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      clearInterval(timer);timer=null;clearTimeout(feedbackTimer);feedbackTimer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;lastRewardShown=0;feedbackEl.className='color-feedback';feedbackEl.textContent='Look at the ink color, not the word.';scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';refreshReward();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
     }
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
@@ -188,7 +245,7 @@
       timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100);
     }});
     board.addEventListener('pointerdown',e=>{if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
+    document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
     startButton.addEventListener('click',startGame);refreshChrome();
   
   </script>
