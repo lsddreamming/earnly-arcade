@@ -1114,7 +1114,7 @@ const Arcade = (() => {
     }
   }
 
-  function claimDailyMission(id) {
+  function claimDailyMission(id, options = {}) {
     const status = dailyMissionStatus();
     const mission = status.missions.find(item => item.id === id);
     if (!mission || !mission.complete || mission.claimed) return false;
@@ -1124,8 +1124,10 @@ const Arcade = (() => {
     writeArray('arcadeDailyMissionClaims', claims);
     const xpResult = addXP(mission.rewardXP);
     logActivity('mission', mission.title + ' completed', '+' + mission.rewardXP + ' XP');
-    feedback(xpResult.leveledUp ? 'level' : 'success');
-    toast(mission.icon + ' Daily mission complete · +' + mission.rewardXP + ' XP');
+    if (!options.silent) {
+      feedback(xpResult.leveledUp ? 'level' : 'success');
+      toast(mission.icon + ' Daily mission complete · +' + mission.rewardXP + ' XP');
+    }
     queueEvent('daily_mission_claimed', { id:mission.id, rewardXP:mission.rewardXP });
     window.dispatchEvent(new CustomEvent('earnly-mission-claimed', {
       detail:{ id:mission.id, title:mission.title, icon:mission.icon, rewardXP:mission.rewardXP }
@@ -1773,6 +1775,22 @@ const Arcade = (() => {
       loadResultLeaderboard();
     }
 
+    let autoMissionClaims = [];
+    let autoMissionXP = 0;
+    if (game) {
+      const readyDailyMissions = dailyMissionStatus().missions.filter(mission =>
+        (mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins') &&
+        mission.complete && !mission.claimed
+      );
+      autoMissionClaims = readyDailyMissions
+        .map(mission => claimDailyMission(mission.id, { silent:true }))
+        .filter(Boolean);
+      autoMissionXP = autoMissionClaims.reduce((sum, claim) => sum + Math.max(0, Number(claim.xp) || 0), 0);
+      if (autoMissionClaims.length) {
+        feedback(autoMissionClaims.some(claim => claim.leveledUp) ? 'level' : 'success');
+      }
+    }
+
     const statsBox = document.createElement('div');
     statsBox.className = 'result-stats';
 
@@ -1782,7 +1800,7 @@ const Arcade = (() => {
     const resultPlaysLeft = game ? remaining(game) : Math.max(0, Number(playsLeft) || 0);
     const statData = [
       ['🪙', '+' + coins, 'Coins Earned'],
-      ['⭐', '+' + (result?.xpAward || 0), 'XP Earned'],
+      ['⭐', '+' + ((result?.xpAward || 0) + autoMissionXP), 'XP Earned'],
       ['🎟️', String(resultPlaysLeft), resultPlaysLeft === 1 ? 'Play Left' : 'Plays Left']
     ];
 
@@ -1831,30 +1849,39 @@ const Arcade = (() => {
       const relevantMissions = daily.missions.filter(mission =>
         mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins'
       );
-      const readyMissions = relevantMissions.filter(mission => mission.complete && !mission.claimed);
 
-      if (readyMissions.length) {
+      if (autoMissionClaims.length) {
         const line = document.createElement('div');
-        const readyXP = readyMissions.reduce((sum, mission) => sum + Math.max(0, Number(mission.rewardXP) || 0), 0);
         line.className = 'result-highlight result-mission-update';
-        line.textContent = readyMissions.length === 1
-          ? '✅ ' + readyMissions[0].title + ' complete · +' + readyXP + ' XP ready to claim'
-          : '✅ ' + readyMissions.length + ' Daily Missions complete · +' + readyXP + ' XP ready to claim';
+        line.textContent = autoMissionClaims.length === 1
+          ? '✅ ' + autoMissionClaims[0].mission.title + ' complete · +' + autoMissionXP + ' XP added'
+          : '✅ ' + autoMissionClaims.length + ' Daily Missions complete · +' + autoMissionXP + ' XP added';
         notes.append(line);
       } else {
-        const nextMission = relevantMissions
-          .filter(mission => !mission.claimed && !mission.complete)
-          .sort((a,b) => {
-            const aRatio = Math.max(0, Number(a.progress) || 0) / Math.max(1, Number(a.goal) || 1);
-            const bRatio = Math.max(0, Number(b.progress) || 0) / Math.max(1, Number(b.goal) || 1);
-            return bRatio - aRatio;
-          })[0];
-
-        if (nextMission) {
+        const readyMissions = relevantMissions.filter(mission => mission.complete && !mission.claimed);
+        if (readyMissions.length) {
           const line = document.createElement('div');
+          const readyXP = readyMissions.reduce((sum, mission) => sum + Math.max(0, Number(mission.rewardXP) || 0), 0);
           line.className = 'result-highlight result-mission-update';
-          line.textContent = nextMission.icon + ' ' + nextMission.title + ' · ' + nextMission.progress + '/' + nextMission.goal;
+          line.textContent = readyMissions.length === 1
+            ? '✅ ' + readyMissions[0].title + ' complete · +' + readyXP + ' XP ready'
+            : '✅ ' + readyMissions.length + ' Daily Missions complete · +' + readyXP + ' XP ready';
           notes.append(line);
+        } else {
+          const nextMission = relevantMissions
+            .filter(mission => !mission.claimed && !mission.complete)
+            .sort((a,b) => {
+              const aRatio = Math.max(0, Number(a.progress) || 0) / Math.max(1, Number(a.goal) || 1);
+              const bRatio = Math.max(0, Number(b.progress) || 0) / Math.max(1, Number(b.goal) || 1);
+              return bRatio - aRatio;
+            })[0];
+
+          if (nextMission) {
+            const line = document.createElement('div');
+            line.className = 'result-highlight result-mission-update';
+            line.textContent = nextMission.icon + ' ' + nextMission.title + ' · ' + nextMission.progress + '/' + nextMission.goal;
+            notes.append(line);
+          }
         }
       }
     }
