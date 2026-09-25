@@ -3,7 +3,7 @@
   const key = params.get('game') || 'blockGrid';
 
   const configs = {
-    blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Place pieces on the 8×8 board. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
+    blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Pick a piece, then tap a glowing green square. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
@@ -181,7 +181,7 @@
     grid.className = 'mini-grid';
     grid.style.gridTemplateColumns = 'repeat(8,1fr)';
     trayEl.className = 'piece-tray';
-    const guide=document.createElement('div');guide.className='mini-guide';guide.innerHTML='<strong>🧩 Pick a piece, then tap the board</strong><span>Fill a full row or column to clear it. Use all 3 pieces for a new set.</span>';progressEl.className='block-grid-progress';wrap.append(guide,progressEl,grid,trayEl);
+    const guide=document.createElement('div');guide.className='mini-guide';guide.innerHTML='<strong>🧩 Pick a piece → tap a glowing green square</strong><span>Green squares are legal placements. Fill a full row or column to clear it.</span>';progressEl.className='block-grid-progress';wrap.append(guide,progressEl,grid,trayEl);
     surface.replaceChildren(wrap);
 
     const randomPiece = () => PIECES[Math.floor(Math.random() * PIECES.length)].map(p => [...p]);
@@ -190,23 +190,32 @@
       return piece.every(([dx,dy]) => x+dx < 8 && y+dy < 8 && !board[y+dy][x+dx]);
     }
 
+    function pieceCanFit(piece) {
+      if (!piece) return false;
+      for (let y=0;y<8;y++) for (let x=0;x<8;x++) if (canPlace(piece,x,y)) return true;
+      return false;
+    }
+
     function anyMove() {
-      return tray.some(piece => {
-        if (!piece) return false;
-        for (let y=0;y<8;y++) for (let x=0;x<8;x++) if (canPlace(piece,x,y)) return true;
-        return false;
-      });
+      return tray.some(pieceCanFit);
+    }
+
+    function selectNextPiece() {
+      const next=tray.findIndex(pieceCanFit);
+      const fallback=tray.findIndex(Boolean);
+      selected=next>=0?next:(fallback>=0?fallback:0);
     }
 
     function refillTray() {
       tray=[randomPiece(),randomPiece(),randomPiece()];
-      selected=0;
+      // If the board still has a legal move, always offer at least one fitting
+      // piece so a random tray cannot end a run unfairly.
+      if (!tray.some(pieceCanFit)) {
+        const fitting=PIECES.filter(pieceCanFit);
+        if (fitting.length) tray[0]=fitting[Math.floor(Math.random()*fitting.length)].map(p=>[...p]);
+      }
+      selectNextPiece();
       Arcade.feedback('score');
-    }
-
-    function selectNextPiece() {
-      const next=tray.findIndex(Boolean);
-      selected=next>=0?next:0;
     }
 
     function clearLines() {
@@ -225,6 +234,12 @@
     }
 
     function render() {
+      if (tray[selected] && !pieceCanFit(tray[selected])) selectNextPiece();
+      const selectedPiece=tray[selected];
+      const legalStarts=new Set();
+      if(selectedPiece){
+        for(let y=0;y<8;y++)for(let x=0;x<8;x++)if(canPlace(selectedPiece,x,y))legalStarts.add(x+','+y);
+      }
       const occupied=board.flat().filter(Boolean).length;
       const room=Math.max(0,64-occupied);
       const stage=score<100?'Warm-up':score<250?'Grid Builder':score<500?'Combo Zone':'Grid Master';
@@ -233,8 +248,10 @@
       for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
         const cell = document.createElement('button');
         cell.type='button';
-        cell.className='mini-cell' + (board[y][x] ? ' filled' : '') + (lastPlaced.some(([px,py])=>px===x&&py===y) ? ' just-placed' : '');
+        const legalStart=legalStarts.has(x+','+y);
+        cell.className='mini-cell' + (board[y][x] ? ' filled' : '') + (legalStart ? ' valid-start' : '') + (lastPlaced.some(([px,py])=>px===x&&py===y) ? ' just-placed' : '');
         cell.disabled=!alive;
+        cell.setAttribute('aria-label',legalStart?'Legal placement':'Board square');
         cell.addEventListener('click',()=>place(x,y));
         grid.append(cell);
       }
@@ -242,7 +259,8 @@
       tray.forEach((piece,idx)=>{
         const b=document.createElement('button');
         b.type='button';
-        b.className='piece-button' + (piece && idx===selected ? ' selected' : '') + (!piece ? ' used' : '');
+        const fits=pieceCanFit(piece);
+        b.className='piece-button' + (piece && idx===selected ? ' selected' : '') + (!piece ? ' used' : '') + (piece && !fits ? ' no-fit' : '');
         b.disabled=!alive || !piece;
 
         const preview=document.createElement('span');
@@ -258,10 +276,11 @@
           b.setAttribute('aria-label','Piece already used');
           caption.textContent='✓ USED';
         }else{
-          b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece');
-          caption.textContent=idx===selected?'SELECTED':'TAP TO PICK';
+          b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece' + (!fits ? ', no legal placement right now' : ''));
+          caption.textContent=!fits?'NO FIT':(idx===selected?'SELECTED':'TAP TO PICK');
           b.addEventListener('click',()=>{
             if(!alive || miniPaused || inputLocked || selected===idx)return;
+            if(!fits){Arcade.feedback('fail');return;}
             selected=idx;Arcade.feedback('move');render();
           });
         }
