@@ -95,7 +95,7 @@ const Arcade = (() => {
     bounceRun: { key: 'bounceRunBest', label: 'distance', lower: false },
     trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false },
     starDefender: { key: 'starDefenderBest', label: 'points', lower: false },
-    neonMaze: { key: 'neonMazeBest', label: 'chips', lower: false }
+    neonMaze: { key: 'neonMazeBest', label: 'cells', lower: false }
   };
 
   const FREE_PLAYS = 3;
