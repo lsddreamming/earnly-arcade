@@ -367,8 +367,16 @@ test('Star Defender starts from the real mobile intro button', async ({ page }) 
   const start = page.locator('#starStartOverlay');
   await expect(start).toBeVisible();
   await start.tap();
+  await expect(start).toBeHidden();
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
   await expect(start).toBeHidden();
+});
+
+test('Star Defender starts when an iPhone taps the board', async ({ page }) => {
+  await page.goto('/stardefender.html');
+  await page.locator('#game').tap();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
+  await expect(page.locator('#starStartOverlay')).toBeHidden();
 });
 
 test('pause control appears and toggles on mini games', async ({ page }) => {
