@@ -1672,6 +1672,90 @@ const Arcade = (() => {
       main.append(bestLine);
     }
 
+    const leaderboardBox = document.createElement('div');
+    leaderboardBox.className = 'result-leaderboard';
+    leaderboardBox.setAttribute('aria-live', 'polite');
+    if (game) {
+      leaderboardBox.innerHTML =
+        '<div class="result-leaderboard-head"><strong>🏆 WORLD TOP 3</strong><span>Checking rank…</span></div>' +
+        '<div class="result-leaderboard-loading">Loading global scores…</div>';
+
+      const loadResultLeaderboard = async () => {
+        let attempts = 0;
+        while (!window.EarnlyCloud?.leaderboard && attempts < 24) {
+          attempts += 1;
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+        if (!window.EarnlyCloud?.leaderboard) {
+          leaderboardBox.innerHTML = '<div class="result-leaderboard-empty">World rankings are unavailable right now.</div>';
+          return;
+        }
+
+        try {
+          const localBest = best(game).value;
+          if (localBest > 0 && leaderboardUsername()) {
+            try { await window.EarnlyCloud.submitLeaderboardScore(game, localBest); } catch {}
+          }
+
+          const data = await window.EarnlyCloud.leaderboard(game, 25);
+          const entries = Array.isArray(data?.entries) ? data.entries : [];
+          const topThree = entries.slice(0, 3);
+          const myName = String(leaderboardUsername() || '').toLowerCase();
+          const myEntry = myName
+            ? entries.find(entry => String(entry.username || '').toLowerCase() === myName)
+            : null;
+
+          leaderboardBox.replaceChildren();
+          const head = document.createElement('div');
+          head.className = 'result-leaderboard-head';
+          const headTitle = document.createElement('strong');
+          headTitle.textContent = '🏆 WORLD TOP 3';
+          const rank = document.createElement('span');
+          rank.textContent = myEntry ? 'You: #' + myEntry.rank : (myName ? 'You: outside Top 25' : 'Set a username to rank');
+          head.append(headTitle, rank);
+          leaderboardBox.append(head);
+
+          if (!topThree.length) {
+            const empty = document.createElement('div');
+            empty.className = 'result-leaderboard-empty';
+            empty.textContent = 'No global scores yet — your best could take #1.';
+            leaderboardBox.append(empty);
+          } else {
+            topThree.forEach((entry, index) => {
+              const row = document.createElement('div');
+              row.className = 'result-leaderboard-mini-row' +
+                (myName && String(entry.username || '').toLowerCase() === myName ? ' you' : '');
+              const medal = document.createElement('span');
+              medal.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+              const player = document.createElement('span');
+              player.textContent = (entry.avatar || '🎮') + ' @' + (entry.username || 'player');
+              const scoreEl = document.createElement('strong');
+              scoreEl.textContent = compactLeaderboardScore(entry, data);
+              row.append(medal, player, scoreEl);
+              leaderboardBox.append(row);
+            });
+          }
+
+          const footer = document.createElement('a');
+          footer.className = 'result-leaderboard-footer';
+          footer.href = 'leaderboards.html?game=' + encodeURIComponent(game);
+          const third = topThree[2] ? Number(topThree[2].score || 0) : 0;
+          const mine = myEntry ? Number(myEntry.score || localBest || 0) : Number(localBest || 0);
+          if (myEntry) {
+            footer.textContent = '🌎 Your world rank: #' + myEntry.rank + ' · View full leaderboard →';
+          } else if (third > mine && mine > 0) {
+            footer.textContent = '🔥 ' + (third - mine).toLocaleString() + ' from Top 3 · View leaderboard →';
+          } else {
+            footer.textContent = '🌎 View full world leaderboard →';
+          }
+          leaderboardBox.append(footer);
+        } catch {
+          leaderboardBox.innerHTML = '<div class="result-leaderboard-empty">Could not load world rankings right now.</div>';
+        }
+      };
+      loadResultLeaderboard();
+    }
+
     const statsBox = document.createElement('div');
     statsBox.className = 'result-stats';
 
@@ -1861,7 +1945,9 @@ const Arcade = (() => {
     });
 
     actions.append(primary, back);
-    modal.append(hero, main, statsBox, levelProgress);
+    modal.append(hero, main);
+    if (game) modal.append(leaderboardBox);
+    modal.append(statsBox, levelProgress);
     if (notes.childElementCount) modal.append(notes);
     modal.append(actions);
     modal.showModal();
