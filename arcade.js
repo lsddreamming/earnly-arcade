@@ -3159,8 +3159,10 @@ const Arcade = (() => {
     if (!container) return;
 
     const backLink = [...container.querySelectorAll('a.button.wide.secondary')]
-      .find(link => /back to games/i.test(link.textContent || ''));
-    const host = backLink?.parentElement || container;
+      .find(link => /back to games|quit game/i.test(link.textContent || ''));
+    const header = container.querySelector('.page-header, .snake-header');
+    const playfield = container.querySelector('.blockdrop-playfield, canvas.touch-surface, canvas#game');
+    const host = header?.parentElement || container;
 
     const card = document.createElement('section');
     card.id = 'earnlyCompactLeaderboard';
@@ -3193,8 +3195,30 @@ const Arcade = (() => {
     target.textContent = 'Set a personal best and chase the podium.';
 
     card.append(top, list, target);
-    if (backLink) host.insertBefore(card, backLink);
+    // Keep the challenge visible before play instead of burying it below the
+    // board/controls. During a run, collapse to a tiny #1 score chip so it
+    // never steals gameplay space.
+    if (header) header.insertAdjacentElement('afterend', card);
+    else if (playfield) playfield.insertAdjacentElement('beforebegin', card);
+    else if (backLink) host.insertBefore(card, backLink);
     else host.append(card);
+
+    const recordChip = document.createElement('a');
+    recordChip.className = 'compact-leaderboard-record-chip';
+    recordChip.href = fullLink.href;
+    recordChip.textContent = '🏆 Top score';
+    card.insertAdjacentElement('afterend', recordChip);
+
+    const syncVisibility = () => {
+      const active = document.body.classList.contains('game-active') ||
+        !!document.querySelector('.game-status.running');
+      card.classList.toggle('during-game-hidden', active);
+      recordChip.classList.toggle('show', active);
+    };
+    syncVisibility();
+    const visibilityObserver = new MutationObserver(syncVisibility);
+    visibilityObserver.observe(document.body, {subtree:true, attributes:true, attributeFilter:['class']});
+    window.addEventListener('pagehide', () => visibilityObserver.disconnect(), {once:true});
 
     const render = async () => {
       if (!window.EarnlyCloud?.leaderboard) return false;
@@ -3208,6 +3232,12 @@ const Arcade = (() => {
         const data = await window.EarnlyCloud.leaderboard(game, 3);
         const entries = (data?.entries || []).slice(0, 3);
         list.replaceChildren();
+        if (entries[0]) {
+          recordChip.textContent = '🏆 #1 ' + compactLeaderboardScore(entries[0], data);
+          recordChip.setAttribute('aria-label', 'Top global score: ' + compactLeaderboardScore(entries[0], data));
+        } else {
+          recordChip.textContent = '🏆 Be #1';
+        }
 
         if (!entries.length) {
           const empty = document.createElement('div');
