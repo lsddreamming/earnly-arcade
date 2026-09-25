@@ -18,6 +18,13 @@
     .star-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
     .star-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
     .star-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
+    /* iPhone/coarse-pointer override: the shared stylesheet hides #startButton on touch devices. */
+    .star-page #startButton{
+      display:block!important;width:min(94vw,390px)!important;margin:8px auto!important;
+      min-height:54px!important;font-size:16px!important;font-weight:900!important;
+      touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;
+      position:relative!important;z-index:60!important;
+    }
     .star-page.game-active .topbar,.star-page.game-active #startButton,.star-page.game-active #starStartOverlay,.star-page.game-active #arcadeBottomNav,.star-page.game-active .star-tip,.star-page.game-active .back-games{display:none!important}
     .star-page .game-guide-overlay{display:none!important}
     .star-page .game-guide-surface-wrap{position:relative}
@@ -60,7 +67,7 @@
         <span class="meta-pill">🎟️ <span id="plays">0</span></span>
       </div>
     </header>
-    <button class="green wide" id="startButton" type="button">▶ Play Star Defender</button>
+    <button class="green wide" id="startButton" type="button" aria-label="Tap to start Star Defender">▶ TAP TO START</button>
     <canvas id="game" class="star-board touch-surface" width="330" height="480" aria-label="Star Defender alien shooter game board"></canvas>
     <p class="star-tip">Drag anywhere to steer · your ship fires automatically · dodge alien shots</p>
     <a class="button wide secondary back-games" href="games.html">← Back to Games</a>
@@ -72,6 +79,12 @@
     const els=Object.fromEntries(['score','lives','coins','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
     const W=330,H=480,shipY=426,stars=Array.from({length:52},(_,i)=>({x:(i*97+23)%W,y:(i*173+41)%H,r:i%7===0?1.5:.7}));
     let running=false,starting=false,paused=false,frame=0,last=0,elapsed=0,score=0,kills=0,lives=3,wave=0,shipX=W/2,invincible=0,fireClock=0,enemyClock=0,shotClock=0,bullets=[],enemyShots=[],aliens=[],particles=[],raf=0,startedAt=0,pausedAt=0,pauseTotal=0,keys=new Set(),pointer=null;
+    // Bind the real DOM start button before any guide/overlay setup. This keeps
+    // Star Defender startable on iPhone even if shared guide initialization fails.
+    const startFromStaticButton=event=>{event?.preventDefault?.();event?.stopPropagation?.();start()};
+    els.startButton.addEventListener('pointerup',startFromStaticButton);
+    els.startButton.addEventListener('touchend',startFromStaticButton,{passive:false});
+    els.startButton.addEventListener('click',startFromStaticButton);
     const starGuide=Arcade.gameGuide({game:'starDefender',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Drag to steer'},{icon:'👾',title:'Goal',text:'Defeat alien waves'}],overlayIcon:'👾',overlayTitle:'Star Defender',overlayText:'Drag anywhere to steer. Your ship fires automatically.',replayTitle:'Play Again',tips:['Dodge the pink alien shots. Three hits end your run.','Clear waves for bonus points. A run lasts at most 45 seconds.','Use ← → or A / D on a keyboard. Enter or Space starts.'],reward:'Earn up to 15 Arcade Coins per run.'});
     const starStartOverlay=document.createElement('button');
     starStartOverlay.id='starStartOverlay';
@@ -116,7 +129,7 @@
     }
     function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;move(dt);draw();if(running)raf=requestAnimationFrame(loop)}
     function finish(){if(!running)return;running=false;if(starStartOverlay)starStartOverlay.hidden=false;cancelAnimationFrame(raf);raf=0;pointer=null;keys.clear();score=Math.max(0,score);const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000));const earned=Math.min(15,Math.floor(score/80));Arcade.earn(earned,'Star Defender',{kind:'game',game:'starDefender',metric:score,aux:kills});const result=Arcade.recordResult('starDefender',score);chrome();status('Run Over');els.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'👾',title:'Star Defender Run Over',scoreLabel:'POINTS',score, best:Arcade.best('starDefender').display,coins:earned,result,playsLeft:Arcade.remaining('starDefender'),game:'starDefender',extra:['⏱️ Time played: '+seconds+'s','👾 Aliens defeated: '+kills,'🌌 Wave reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('starDefender',chrome)});draw()}
-    function start(){if(running||starting)return;starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ Play Star Defender';Arcade.out('starDefender',chrome);return}elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
+    function start(){if(running||starting)return;starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ TAP TO START';Arcade.out('starDefender',chrome);return}elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
     function steer(clientX){const r=canvas.getBoundingClientRect();shipX=Math.max(19,Math.min(W-19,(clientX-r.left)*W/r.width))}
     document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target))return;pointer=e.pointerId;steer(e.clientX);e.preventDefault()},{passive:false});
     document.addEventListener('pointermove',e=>{if(!running||pointer!==e.pointerId)return;steer(e.clientX);e.preventDefault()},{passive:false});
@@ -141,7 +154,7 @@
     const startFromRealButton=event=>{event.preventDefault();event.stopPropagation();start()};
     starStartOverlay.addEventListener('pointerup',startFromRealButton);
     starStartOverlay.addEventListener('click',startFromRealButton);
-    els.startButton.addEventListener('click',start);
+    // Static start-button listeners are bound before guide initialization above.
     // Capture-phase fallback: the shared guide can sit above the canvas on
     // iPhone. Any primary tap inside the visible Star Defender board/guide
     // region starts an idle run before an overlay can swallow the event.
