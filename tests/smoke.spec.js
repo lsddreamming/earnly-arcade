@@ -379,6 +379,23 @@ test('Star Defender keeps the physical TAP TO START button visible on iPhone', a
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
 });
 
+test('Star Defender collapses nonessential chrome during live mobile play', async ({ page }, testInfo) => {
+  await page.goto('/stardefender.html');
+  const start = page.locator('#startButton');
+  if (testInfo.project.use.hasTouch) await start.tap();
+  else await start.click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('.game-guide-strip')).toBeHidden();
+  const layout = await page.evaluate(() => {
+    const board = document.querySelector('#game').getBoundingClientRect();
+    const header = document.querySelector('.page-header').getBoundingClientRect();
+    return { boardTop:board.top, headerBottom:header.bottom, headerHeight:header.height };
+  });
+  expect(layout.boardTop).toBeLessThan(210);
+  expect(layout.headerHeight).toBeLessThan(100);
+});
+
 test('pause control appears and toggles on mini games', async ({ page }) => {
   for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
     await page.goto('/mini.html?game=' + game);
