@@ -551,6 +551,56 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Color Match teaches the rule and scores the actual ink color', async ({ page }) => {
+  await page.goto('/colormatch.html');
+  await expect(page.locator('.color-example')).toContainText('RED');
+  await expect(page.locator('.color-example')).toContainText('tap BLUE');
+  await expect(page.locator('.color-rule')).toContainText('COLOR YOU SEE');
+
+  await startGame(page);
+  await page.waitForTimeout(3300);
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+
+  const correctAnswer = await page.evaluate(() => answer);
+  await page.locator('.color-choice[data-color="' + correctAnswer + '"]').click();
+  await expect(page.locator('#score')).toHaveText('1');
+  await expect(page.locator('#colorFeedback')).toContainText('Correct');
+
+  const nextAnswer = await page.evaluate(() => answer);
+  const wrongChoice = await page.locator('.color-choice').evaluateAll((buttons, expected) => {
+    const match = buttons.find(button => button.dataset.color !== expected);
+    return match?.dataset.color || '';
+  }, nextAnswer);
+  expect(wrongChoice).toBeTruthy();
+  await page.locator('.color-choice[data-color="' + wrongChoice + '"]').click();
+  await expect(page.locator('#streak')).toHaveText('0');
+  await expect(page.locator('#colorFeedback')).toContainText('Ink was ' + nextAnswer);
+});
+
+test('Color Match keeps quit pause and iOS interaction parity', async ({ page }) => {
+  const web = await (await page.request.get('/colormatch.html')).text();
+  const ios = await (await page.request.get('/www/colormatch.html')).text();
+  expect(ios).toBe(web);
+  expect(web).toContain('id="colorMatchExit"');
+  expect(web).toContain('id="colorFeedback"');
+  expect(web).toContain("b.dataset.color=name");
+  expect(web).toContain("Arcade.isProtectedGameControlTarget(e.target)");
+
+  await page.goto('/colormatch.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+  await expect(page.locator('#colorMatchExit')).toBeVisible();
+  await expect(page.locator('#colorMatchExit')).toHaveAttribute('href','games.html');
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await expect(page.locator('#colorMatchExit')).toBeVisible();
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+});
+
 test('Block Drop wall and floor kicks keep rotations playable at edges', async ({ page }) => {
   await page.goto('/blockdrop.html');
   await startGame(page);
