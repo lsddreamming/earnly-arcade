@@ -19,6 +19,8 @@
     .mini-surface{width:min(92vw,390px);min-height:390px;margin:10px auto;border:1px solid #475569;border-radius:20px;background:#111c2d;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
     .mini-grid{display:grid;gap:5px;padding:12px}.mini-cell{aspect-ratio:1;border:1px solid #334155;border-radius:7px;background:#162235;display:grid;place-items:center;font-weight:900;min-width:0}
     .mini-cell.filled{background:#3b82f6;border-color:#60a5fa}.mini-cell.target{box-shadow:inset 0 0 0 2px #22c55e}
+    .mini-cell.valid-start:not(.filled){border-color:#22c55e;background:rgba(34,197,94,.11);box-shadow:inset 0 0 0 1px rgba(34,197,94,.26),0 0 12px rgba(34,197,94,.06)}
+    .piece-button.no-fit{border-color:#7f1d1d;background:#2a1820;opacity:.72}.piece-button.no-fit small{color:#fca5a5}
     .piece-tray{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 12px 12px}
     .piece-button{margin:0;min-width:0;min-height:74px;padding:8px 6px;display:grid;place-items:center;align-content:center;gap:5px;border:1px solid #475569;border-radius:14px;background:#263244;color:#d7e2f1}
     .piece-button.selected{border-color:#22c55e;background:#123a28;box-shadow:0 0 0 2px rgba(34,197,94,.18)}
@@ -150,7 +152,7 @@
       body.mini-blockGrid.game-active .piece-button{min-height:66px;border-radius:12px}
       body.mini-blockGrid.game-active .mini-cell{border-radius:6px}
     }
-
+  
       @media(max-width:600px){
         body.mini-blockGrid.game-active .page-header{position:relative!important;transform:none!important;top:auto!important}
         body.mini-blockGrid.game-active .page-header h1,body.mini-blockGrid.game-active .game-meta{visibility:visible!important;opacity:1!important}
@@ -505,6 +507,47 @@
       border:2px solid rgba(251,146,60,.30)!important;
       box-shadow:inset 0 0 28px rgba(0,0,0,.18),0 12px 28px rgba(0,0,0,.18)!important;
     }
+
+    @media(max-width:600px){
+      body.mini-blockGrid.game-active #miniGameExit{
+        display:inline-flex!important;
+        position:fixed!important;
+        top:max(8px,env(safe-area-inset-top))!important;
+        left:9px!important;
+        z-index:1300!important;
+        width:auto!important;
+        min-height:38px!important;
+        margin:0!important;
+        padding:8px 11px!important;
+        border:1px solid rgba(248,113,113,.55)!important;
+        border-radius:12px!important;
+        background:rgba(69,10,10,.92)!important;
+        color:#fecaca!important;
+        font-size:12px!important;
+        font-weight:900!important;
+        box-shadow:0 8px 24px rgba(0,0,0,.35)!important;
+        backdrop-filter:blur(8px)
+      }
+      body.mini-blockGrid.game-active #earnlyPauseButton{
+        position:fixed!important;
+        top:max(8px,env(safe-area-inset-top))!important;
+        right:9px!important;
+        z-index:1300!important;
+        width:auto!important;
+        min-width:86px!important;
+        min-height:38px!important;
+        margin:0!important;
+        padding:8px 11px!important;
+        border-radius:12px!important;
+        font-size:12px!important;
+        font-weight:900!important;
+        backdrop-filter:blur(8px)
+      }
+      body.mini-blockGrid.game-active main.container{
+        padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important
+      }
+    }
+
 </style>
 </head>
 <body>
@@ -526,7 +569,7 @@
     <button class="green wide" id="startButton" type="button" aria-describedby="miniHelp">👆 Tap Game to Start</button>
     <div class="mini-surface touch-surface" id="surface" role="region" aria-label="Game play area"></div>
     <div class="mini-help" id="miniHelp" aria-live="polite"></div>
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <a class="button wide secondary mini-exit" id="miniGameExit" href="games.html">✕ Quit Game</a>
   </main>
   <script src="arcade.js"></script>
   <script src="mini-games.js"></script>
