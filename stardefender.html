@@ -94,6 +94,20 @@
     document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;const k=e.key.toLowerCase();if(e.key==='ArrowLeft'||e.key==='ArrowRight'||k==='a'||k==='d'){if(running){e.preventDefault();keys.add(e.key.startsWith('Arrow')?e.key:k)}}else if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();start()}});
     document.addEventListener('keyup',e=>keys.delete(e.key.startsWith('Arrow')?e.key:e.key.toLowerCase()));window.addEventListener('blur',()=>keys.clear());
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);keys.clear();pointer=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();raf=requestAnimationFrame(loop)}});
+    // The shared guide overlay sits above the canvas before a run. Treat a
+    // tap anywhere on the board/guide surface as Start so mobile players are
+    // never left tapping a non-responsive intro screen.
+    const startFromBoard = event => {
+      if (running || starting) return;
+      event?.preventDefault?.();
+      start();
+    };
+    canvas.addEventListener('pointerdown', startFromBoard, {passive:false});
+    canvas.addEventListener('click', startFromBoard);
+    const guideOverlay = canvas.parentElement?.querySelector?.('.game-guide-overlay') ||
+      document.querySelector('.game-guide-overlay');
+    guideOverlay?.addEventListener('pointerdown', startFromBoard, {passive:false});
+    guideOverlay?.addEventListener('click', startFromBoard);
     els.startButton.addEventListener('click',start);chrome();draw();
   })();
   </script>
