@@ -6084,3 +6084,24 @@ body.home-dashboard.has-app-nav .home-container{
   .compact-leaderboard-row{min-height:36px;padding:5px 7px}
   .compact-leaderboard-target{margin-top:7px;padding:6px 8px}
 }
+
+
+/* World ranking inside every results screen */
+.result-leaderboard{
+  display:grid;
+  gap:5px;
+  padding:10px;
+  border:1px solid rgba(34,211,238,.34);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(8,28,48,.96),rgba(16,18,45,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 0 20px rgba(34,211,238,.08);
+}
+.result-leaderboard-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 4px}
+.result-leaderboard-head strong{color:#fde68a;font-size:11px;letter-spacing:.08em}
+.result-leaderboard-head span{color:#67e8f9;font-size:10px;font-weight:900}
+.result-leaderboard-mini-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;background:rgba(15,23,42,.72);border:1px solid rgba(71,85,105,.5);font-size:10px}
+.result-leaderboard-mini-row.you{border-color:rgba(34,211,238,.55);background:rgba(8,145,178,.12);box-shadow:0 0 12px rgba(34,211,238,.08)}
+.result-leaderboard-mini-row span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-weight:800}
+.result-leaderboard-mini-row strong{color:#fff;white-space:nowrap}
+.result-leaderboard-footer{display:block;margin-top:2px;padding:7px 8px;border-radius:10px;background:linear-gradient(90deg,rgba(8,145,178,.16),rgba(126,34,206,.14));color:#bae6fd;text-align:center;text-decoration:none;font-size:10px;font-weight:900}
+.result-leaderboard-loading,.result-leaderboard-empty{padding:8px;color:#94a3b8;text-align:center;font-size:10px}
