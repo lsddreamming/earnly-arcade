@@ -9,8 +9,8 @@
   <style>
     body.maze-page{overscroll-behavior:none}
     .maze-page .maze-board{display:block;width:min(94vw,390px,calc((100dvh - 255px)*.79));height:auto;margin:8px auto;border:2px solid #415eaa;border-radius:18px;background:#080c21;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 0 25px #365ad838}
-    .maze-page .maze-controls{display:grid;grid-template-columns:repeat(3,68px);gap:5px;justify-content:center;margin:4px auto 8px}
-    .maze-page .maze-controls button{height:43px;padding:5px;border-radius:12px;font-size:22px;touch-action:manipulation}
+    .maze-page .maze-controls{display:grid;grid-template-columns:repeat(3,60px);gap:4px;justify-content:center;margin:0 auto 4px}
+    .maze-page .maze-controls button{height:44px;padding:4px;border-radius:12px;font-size:20px;touch-action:manipulation}
     .maze-page .maze-controls button:first-child{grid-column:2}.maze-page .maze-controls button:nth-child(2){grid-column:1}.maze-page .maze-controls button:nth-child(3){grid-column:2}.maze-page .maze-controls button:nth-child(4){grid-column:3}
     .maze-page .page-header{padding:12px;margin:5px 0 7px}.maze-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
     .maze-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.maze-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
@@ -51,10 +51,10 @@
   (()=>{
     const c=document.getElementById('game'),ctx=c.getContext('2d'),E=Object.fromEntries(['chips','lives','time','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
     const map=['###########','#.........#','#.###.###.#','#...#.#...#','###.#.#.###','#...#.....#','#.#####.#.#','#.....#.#.#','#.###.#.#.#','#.#.....#.#','#.#.#####.#','#.........#','###########'];
-    const S=30,dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};let chips=new Set(),player={x:1,y:1},sentinels=[],lives=3,collected=0,wave=1,elapsed=0,moveClock=0,sentryClock=0,held='',running=false,starting=false,paused=false,last=0,raf=0,startedAt=0,pauseTotal=0,pausedAt=0,touch=null,grace=0;
+    const S=30,dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};let chips=new Set(),player={x:1,y:1},sentinels=[],lives=3,collected=0,wave=1,elapsed=0,moveClock=0,sentryClock=0,held='',running=false,starting=false,paused=false,last=0,raf=0,startedAt=0,pauseTotal=0,pausedAt=0,touch=null,grace=0,pickupFlash=0,sectorFlash=0,hitFlash=0;
     Arcade.gameGuide({game:'neonMaze',surface:c,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Swipe or arrows'},{icon:'🔷',title:'Goal',text:'Collect energy cells'}],overlayIcon:'⚡',overlayTitle:'Neon Maze',overlayText:'Swipe anywhere to collect energy cells and evade sentry drones.',replayTitle:'Play Again',tips:['Three sentry hits end the run.','Clear the grid to open a new sector with faster sentries.','Swipe anywhere, use the arrow buttons, or press arrow keys / WASD.'],reward:'Earn up to 15 Arcade Coins per run.'});
     const id=(x,y)=>y*11+x,open=(x,y)=>map[y]?.[x]==='.',rnd=n=>Math.floor(Math.random()*n);
-    function resetBoard(){chips=new Set();for(let y=1;y<12;y++)for(let x=1;x<10;x++)if(open(x,y))chips.add(id(x,y));player={x:1,y:1};chips.delete(id(1,1));sentinels=[{x:9,y:11,color:'#ff4fd8',accent:'#7c3aed'},{x:9,y:1,color:'#39e8ff',accent:'#2563eb'},...(wave>1?[{x:1,y:11,color:'#a78bfa',accent:'#ec4899'}]:[])];grace=1.4}
+    function resetBoard(){chips=new Set();for(let y=1;y<12;y++)for(let x=1;x<10;x++)if(open(x,y))chips.add(id(x,y));player={x:1,y:1};chips.delete(id(1,1));sentinels=[{x:9,y:11,color:'#ff4fd8',accent:'#7c3aed'},{x:9,y:1,color:'#39e8ff',accent:'#2563eb'},...(wave>2?[{x:1,y:11,color:'#a78bfa',accent:'#ec4899'}]:[])];grace=1.4}
     function chrome(){E.chips.textContent=collected;E.lives.textContent=lives;E.time.textContent=Math.max(0,60-Math.floor(elapsed));E.plays.textContent=running&&!Arcade.remaining('neonMaze')?'Last':Arcade.remaining('neonMaze');E.balance.textContent=Arcade.number('points').toLocaleString()}
     function status(text,active=false){E.gameStatus.textContent=text;E.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active)}
     function roundRect(x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath()}
@@ -88,13 +88,25 @@
       }}
       for(const s of sentinels)drawSentinel(s);
       if(grace<=0||Math.floor(grace*8)%2===0)drawCore();
+      if(pickupFlash>0){
+        ctx.save();ctx.globalAlpha=Math.min(1,pickupFlash/.12);ctx.strokeStyle='#9ffcff';ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(player.x*S+15,player.y*S+15,12+(1-pickupFlash/.12)*10,0,Math.PI*2);ctx.stroke();ctx.restore();
+      }
+      if(hitFlash>0){
+        ctx.save();ctx.globalAlpha=Math.min(.28,hitFlash);ctx.fillStyle='#ff477e';ctx.fillRect(0,0,c.width,c.height);ctx.restore();
+      }
+      if(sectorFlash>0){
+        ctx.save();ctx.globalAlpha=Math.min(.88,sectorFlash/.8);ctx.fillStyle='rgba(8,20,48,.72)';ctx.fillRect(42,160,246,70);
+        ctx.textAlign='center';ctx.fillStyle='#8ffcff';ctx.font='900 24px system-ui';ctx.fillText('SECTOR '+wave,165,190);
+        ctx.fillStyle='#d9fbff';ctx.font='700 12px system-ui';ctx.fillText('Sentries are getting smarter',165,211);ctx.restore();
+      }
     }
-    function collision(){if(grace>0)return;for(const g of sentinels)if(g.x===player.x&&g.y===player.y){lives--;grace=1.4;player={x:1,y:1};chrome();Arcade.feedback('fail');if(lives<=0)finish();return}}
-    function move(dir){if(!running||paused)return;const d=dirs[dir];if(!d)return;const x=player.x+d[0],y=player.y+d[1];if(!open(x,y))return;player={x,y};const tile=id(x,y);if(chips.delete(tile)){collected++;chrome();if(!chips.size){wave++;resetBoard();Arcade.feedback('success')}}collision();draw()}
-    function sentryStep(){for(const g of sentinels){const options=Object.values(dirs).map(([dx,dy])=>({x:g.x+dx,y:g.y+dy})).filter(p=>open(p.x,p.y));if(!options.length)continue;options.sort((a,b)=>(Math.abs(a.x-player.x)+Math.abs(a.y-player.y))-(Math.abs(b.x-player.x)+Math.abs(b.y-player.y)));const choice=Math.random()<Math.min(.72,.36+wave*.08)?options[0]:options[rnd(options.length)];g.x=choice.x;g.y=choice.y}collision()}
-    function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;elapsed+=dt;grace=Math.max(0,grace-dt);moveClock+=dt;sentryClock+=dt;if(held&&moveClock>.13){moveClock=0;move(held)}if(sentryClock>Math.max(.19,.52-wave*.035)){sentryClock=0;sentryStep()}chrome();draw();if(elapsed>=60)finish();if(running)raf=requestAnimationFrame(loop)}
+    function collision(){if(grace>0)return;for(const g of sentinels)if(g.x===player.x&&g.y===player.y){lives--;grace=1.4;hitFlash=.32;player={x:1,y:1};chrome();Arcade.feedback('fail');if(lives<=0)finish();return}}
+    function move(dir){if(!running||paused)return;const d=dirs[dir];if(!d)return;const x=player.x+d[0],y=player.y+d[1];if(!open(x,y))return;player={x,y};const tile=id(x,y);if(chips.delete(tile)){collected++;pickupFlash=.12;chrome();if(!chips.size){wave++;sectorFlash=.8;resetBoard();Arcade.feedback('success')}}collision();draw()}
+    function sentryStep(){for(const g of sentinels){const options=Object.values(dirs).map(([dx,dy])=>({x:g.x+dx,y:g.y+dy})).filter(p=>open(p.x,p.y));if(!options.length)continue;options.sort((a,b)=>(Math.abs(a.x-player.x)+Math.abs(a.y-player.y))-(Math.abs(b.x-player.x)+Math.abs(b.y-player.y)));const choice=Math.random()<Math.min(.70,.34+(wave-1)*.07)?options[0]:options[rnd(options.length)];g.x=choice.x;g.y=choice.y}collision()}
+    function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;elapsed+=dt;grace=Math.max(0,grace-dt);pickupFlash=Math.max(0,pickupFlash-dt);sectorFlash=Math.max(0,sectorFlash-dt);hitFlash=Math.max(0,hitFlash-dt);moveClock+=dt;sentryClock+=dt;if(held&&moveClock>.13){moveClock=0;move(held)}if(sentryClock>Math.max(.24,.54-(wave-1)*.035)){sentryClock=0;sentryStep()}chrome();draw();if(elapsed>=60)finish();if(running)raf=requestAnimationFrame(loop)}
     function finish(){if(!running)return;running=false;cancelAnimationFrame(raf);raf=0;held='';touch=null;const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000)),earned=Math.min(15,Math.floor(collected/6));Arcade.earn(earned,'Neon Maze',{kind:'game',game:'neonMaze',metric:collected,aux:wave});const result=Arcade.recordResult('neonMaze',collected);chrome();status('Run Over');E.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'⚡',title:'Neon Maze Run Over',scoreLabel:'ENERGY CELLS',score:collected,best:Arcade.best('neonMaze').display,coins:earned,result,playsLeft:Arcade.remaining('neonMaze'),game:'neonMaze',extra:['⏱️ Time played: '+seconds+'s','🤖 Sector reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('neonMaze',chrome)});draw()}
-    function start(){if(running||starting)return;starting=true;E.startButton.disabled=true;E.startButton.textContent='Starting…';if(!Arcade.consume('neonMaze')){starting=false;E.startButton.disabled=false;E.startButton.textContent='▶ TAP TO START';Arcade.out('neonMaze',chrome);return}collected=elapsed=moveClock=sentryClock=pauseTotal=0;lives=3;wave=1;held='';resetBoard();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;E.startButton.disabled=false;last=startedAt=performance.now();status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
+    function start(){if(running||starting)return;starting=true;E.startButton.disabled=true;E.startButton.textContent='Starting…';if(!Arcade.consume('neonMaze')){starting=false;E.startButton.disabled=false;E.startButton.textContent='▶ TAP TO START';Arcade.out('neonMaze',chrome);return}collected=elapsed=moveClock=sentryClock=pauseTotal=pickupFlash=sectorFlash=hitFlash=0;lives=3;wave=1;held='';resetBoard();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;E.startButton.disabled=false;last=startedAt=performance.now();status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
     const button=e=>{const dir=e.currentTarget.dataset.dir;if(running){e.preventDefault();move(dir);held=dir;moveClock=0}};
     document.querySelectorAll('[data-dir]').forEach(b=>{b.addEventListener('pointerdown',button);b.addEventListener('pointerup',()=>held='');b.addEventListener('pointercancel',()=>held='')});
     document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target)||e.target.closest('[data-dir]'))return;touch={x:e.clientX,y:e.clientY,moved:false};e.preventDefault()},{passive:false});
