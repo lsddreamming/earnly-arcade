@@ -108,7 +108,21 @@
       document.querySelector('.game-guide-overlay');
     guideOverlay?.addEventListener('pointerdown', startFromBoard, {passive:false});
     guideOverlay?.addEventListener('click', startFromBoard);
-    els.startButton.addEventListener('click',start);chrome();draw();
+    els.startButton.addEventListener('click',start);
+    // Capture-phase fallback: the shared guide can sit above the canvas on
+    // iPhone. Any primary tap inside the visible Star Defender board/guide
+    // region starts an idle run before an overlay can swallow the event.
+    document.addEventListener('pointerdown', event => {
+      if (running || starting || event.isPrimary === false) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX, y = event.clientY;
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        start();
+      }
+    }, {capture:true,passive:false});
+    chrome();draw();
   })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
