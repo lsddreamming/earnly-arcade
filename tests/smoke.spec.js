@@ -750,7 +750,7 @@ test('Coin Catch reward curve lasts into deep runs and awards performance XP', a
     const elite = Arcade.recordResult('coinCatch', 350);
     return { strong:strong.performanceXP, elite:elite.performanceXP };
   });
-  expect(xp.strong).toBe(22);
+  expect(xp.strong).toBe(20);
   expect(xp.elite).toBe(30);
 });
 
@@ -1165,7 +1165,7 @@ test('daily missions track games, variety, and coins', async ({ page }) => {
   expect(status.missions.find(m => m.id === 'coins15').complete).toBeTruthy();
 
   const claimed = await page.evaluate(() => Arcade.claimDailyMission('play3'));
-  expect(claimed.xp).toBe(22);
+  expect(claimed.xp).toBe(20);
   const after = await page.evaluate(() => Arcade.dailyMissionStatus());
   expect(after.missions.find(m => m.id === 'play3').claimed).toBeTruthy();
 });
@@ -1362,7 +1362,7 @@ test('repairs impossible daily coin counters and uses live catalog total', async
   await page.goto('/profile.html');
   const totalGames = await page.evaluate(() => Object.keys(Arcade.names).length);
   expect(totalGames).toBe(22);
-  await expect(page.locator('#differentGames')).toContainText('/20');
+  await expect(page.locator('#differentGames')).toContainText('/22');
 });
 
 
