@@ -18,7 +18,19 @@
     .star-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
     .star-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
     .star-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
-    .star-page.game-active .topbar,.star-page.game-active #startButton,.star-page.game-active #arcadeBottomNav,.star-page.game-active .star-tip,.star-page.game-active .back-games{display:none!important}
+    .star-page.game-active .topbar,.star-page.game-active #startButton,.star-page.game-active #starStartOverlay,.star-page.game-active #arcadeBottomNav,.star-page.game-active .star-tip,.star-page.game-active .back-games{display:none!important}
+    .star-page .game-guide-overlay{display:none!important}
+    .star-page .game-guide-surface-wrap{position:relative}
+    .star-start-overlay{
+      position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      width:100%;height:100%;margin:0;padding:24px;border:0;border-radius:inherit;
+      background:linear-gradient(180deg,rgba(6,11,28,.42),rgba(6,11,28,.72));color:#fff;
+      touch-action:manipulation;-webkit-tap-highlight-color:transparent;cursor:pointer;
+    }
+    .star-start-overlay strong{font-size:26px;line-height:1.1;text-shadow:0 0 18px rgba(86,229,255,.45)}
+    .star-start-overlay span{margin-top:8px;color:#b8cae2;font-size:13px;font-weight:700}
+    .star-start-overlay b{margin-top:14px;padding:10px 16px;border:1px solid rgba(86,229,255,.55);border-radius:999px;background:rgba(37,99,235,.34);color:#dff8ff;font-size:13px}
+    .star-start-overlay:active{transform:scale(.995)}
     .star-page.game-active .page-header{margin:0 0 3px;padding:9px}
     .star-page.game-active .star-board{margin:4px auto}
     .star-page.game-active main.container{padding-bottom:max(8px,env(safe-area-inset-bottom))}
@@ -49,9 +61,16 @@
     const els=Object.fromEntries(['score','lives','coins','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
     const W=330,H=480,shipY=426,stars=Array.from({length:52},(_,i)=>({x:(i*97+23)%W,y:(i*173+41)%H,r:i%7===0?1.5:.7}));
     let running=false,starting=false,paused=false,frame=0,last=0,elapsed=0,score=0,kills=0,lives=3,wave=0,shipX=W/2,invincible=0,fireClock=0,enemyClock=0,shotClock=0,bullets=[],enemyShots=[],aliens=[],particles=[],raf=0,startedAt=0,pausedAt=0,pauseTotal=0,keys=new Set(),pointer=null;
-    Arcade.gameGuide({game:'starDefender',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Drag to steer'},{icon:'👾',title:'Goal',text:'Defeat alien waves'}],overlayIcon:'👾',overlayTitle:'Star Defender',overlayText:'Drag anywhere to steer. Your ship fires automatically.',replayTitle:'Play Again',tips:['Dodge the pink alien shots. Three hits end your run.','Clear waves for bonus points. A run lasts at most 45 seconds.','Use ← → or A / D on a keyboard. Enter or Space starts.'],reward:'Earn up to 15 Arcade Coins per run.'});
+    const starGuide=Arcade.gameGuide({game:'starDefender',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Drag to steer'},{icon:'👾',title:'Goal',text:'Defeat alien waves'}],overlayIcon:'👾',overlayTitle:'Star Defender',overlayText:'Drag anywhere to steer. Your ship fires automatically.',replayTitle:'Play Again',tips:['Dodge the pink alien shots. Three hits end your run.','Clear waves for bonus points. A run lasts at most 45 seconds.','Use ← → or A / D on a keyboard. Enter or Space starts.'],reward:'Earn up to 15 Arcade Coins per run.'});
+    const starStartOverlay=document.createElement('button');
+    starStartOverlay.id='starStartOverlay';
+    starStartOverlay.type='button';
+    starStartOverlay.className='star-start-overlay';
+    starStartOverlay.setAttribute('aria-label','Start Star Defender');
+    starStartOverlay.innerHTML='<strong>👾 Star Defender</strong><span>Drag anywhere to steer · auto-fire enabled</span><b>▶ TAP TO START</b>';
+    starGuide?.wrapper?.append(starStartOverlay);
     function chrome(){els.score.textContent=score;els.lives.textContent=lives;els.coins.textContent=Math.min(15,Math.floor(score/80));els.plays.textContent=running&&!Arcade.remaining('starDefender')?'Last':Arcade.remaining('starDefender');els.balance.textContent=Arcade.number('points').toLocaleString()}
-    function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active)}
+    function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active);if(starStartOverlay)starStartOverlay.hidden=active}
     function alien(x,y,color){ctx.save();ctx.translate(x,y);ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=color;ctx.fillRect(-12,-7,24,13);ctx.fillRect(-16,-2,5,7);ctx.fillRect(11,-2,5,7);ctx.fillRect(-8,6,4,5);ctx.fillRect(4,6,4,5);ctx.shadowBlur=0;ctx.fillStyle='#081126';ctx.fillRect(-7,-2,4,4);ctx.fillRect(3,-2,4,4);ctx.restore()}
     function draw(){
       ctx.fillStyle='#070d20';ctx.fillRect(0,0,W,H);
@@ -85,8 +104,8 @@
       if(elapsed>=45)finish();
     }
     function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;move(dt);draw();if(running)raf=requestAnimationFrame(loop)}
-    function finish(){if(!running)return;running=false;cancelAnimationFrame(raf);raf=0;pointer=null;keys.clear();score=Math.max(0,score);const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000));const earned=Math.min(15,Math.floor(score/80));Arcade.earn(earned,'Star Defender',{kind:'game',game:'starDefender',metric:score,aux:kills});const result=Arcade.recordResult('starDefender',score);chrome();status('Run Over');els.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'👾',title:'Star Defender Run Over',scoreLabel:'POINTS',score, best:Arcade.best('starDefender').display,coins:earned,result,playsLeft:Arcade.remaining('starDefender'),game:'starDefender',extra:['⏱️ Time played: '+seconds+'s','👾 Aliens defeated: '+kills,'🌌 Wave reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('starDefender',chrome)});draw()}
-    function start(){if(running||starting)return;starting=true;if(!Arcade.consume('starDefender')){starting=false;Arcade.out('starDefender',chrome);return}elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;startedAt=performance.now();last=startedAt;status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
+    function finish(){if(!running)return;running=false;if(starStartOverlay)starStartOverlay.hidden=false;cancelAnimationFrame(raf);raf=0;pointer=null;keys.clear();score=Math.max(0,score);const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000));const earned=Math.min(15,Math.floor(score/80));Arcade.earn(earned,'Star Defender',{kind:'game',game:'starDefender',metric:score,aux:kills});const result=Arcade.recordResult('starDefender',score);chrome();status('Run Over');els.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'👾',title:'Star Defender Run Over',scoreLabel:'POINTS',score, best:Arcade.best('starDefender').display,coins:earned,result,playsLeft:Arcade.remaining('starDefender'),game:'starDefender',extra:['⏱️ Time played: '+seconds+'s','👾 Aliens defeated: '+kills,'🌌 Wave reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('starDefender',chrome)});draw()}
+    function start(){if(running||starting)return;starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ Play Star Defender';Arcade.out('starDefender',chrome);return}elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
     function steer(clientX){const r=canvas.getBoundingClientRect();shipX=Math.max(19,Math.min(W-19,(clientX-r.left)*W/r.width))}
     document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target))return;pointer=e.pointerId;steer(e.clientX);e.preventDefault()},{passive:false});
     document.addEventListener('pointermove',e=>{if(!running||pointer!==e.pointerId)return;steer(e.clientX);e.preventDefault()},{passive:false});
@@ -108,6 +127,9 @@
       document.querySelector('.game-guide-overlay');
     guideOverlay?.addEventListener('pointerdown', startFromBoard, {passive:false});
     guideOverlay?.addEventListener('click', startFromBoard);
+    const startFromRealButton=event=>{event.preventDefault();event.stopPropagation();start()};
+    starStartOverlay.addEventListener('click',startFromRealButton);
+    starStartOverlay.addEventListener('touchend',startFromRealButton,{passive:false});
     els.startButton.addEventListener('click',start);
     // Capture-phase fallback: the shared guide can sit above the canvas on
     // iPhone. Any primary tap inside the visible Star Defender board/guide
