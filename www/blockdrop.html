@@ -564,7 +564,7 @@
       const clampedX = Math.max(0, Math.min(pieceX, cols - rotatedWidth));
       const preferredKick = clampedX - pieceX;
       const kickXs = [...new Set([preferredKick,0,-1,1,-2,2,-3,3])];
-      const kickYs = [0,-1,-2];
+      const kickYs = [0,-1,-2,-3];
 
       for (const dy of kickYs) {
         for (const dx of kickXs) {
