@@ -551,6 +551,69 @@ test('Block Drop held controls cannot survive pause or game over', async ({ page
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Block Drop wall and floor kicks keep rotations playable at edges', async ({ page }) => {
+  await page.goto('/blockdrop.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+
+  const result = await page.evaluate(() => {
+    createBoard();
+
+    currentPiece = [[1],[1],[1],[1]];
+    pieceX = 9;
+    pieceY = 4;
+    const rightOk = rotatePiece();
+    const right = { ok:rightOk, x:pieceX, y:pieceY, width:currentPiece[0].length, height:currentPiece.length };
+
+    currentPiece = [[1,1,1,1]];
+    pieceX = 3;
+    pieceY = 19;
+    const floorOk = rotatePiece();
+    const floor = { ok:floorOk, x:pieceX, y:pieceY, width:currentPiece[0].length, height:currentPiece.length };
+
+    return { right, floor };
+  });
+
+  expect(result.right.ok).toBeTruthy();
+  expect(result.right.width).toBe(4);
+  expect(result.right.x).toBeLessThanOrEqual(6);
+  expect(result.floor.ok).toBeTruthy();
+  expect(result.floor.height).toBe(4);
+  expect(result.floor.y).toBeLessThanOrEqual(16);
+});
+
+test('Block Drop keeps quit pause previews and scroll lock usable on iPhone', async ({ page }) => {
+  await page.goto('/blockdrop.html');
+  await expect(page.locator('#nextPiece')).toBeVisible();
+  await expect(page.locator('#thenPiece')).toBeVisible();
+  await expect(page.locator('.blockdrop-preview').nth(1)).toContainText('After');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#blockDropExit')).toBeVisible();
+  await expect(page.locator('#blockDropExit')).toHaveAttribute('href','games.html');
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await expect(page.locator('#blockDropExit')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+});
+
+test('Block Drop web and iOS copies keep the same interaction contract', async ({ page }) => {
+  const web = await (await page.request.get('/blockdrop.html')).text();
+  expect(web).toContain('blockdrop-exit');
+  expect(web).toContain('drawGhostBlock');
+  expect(web).toContain('const kickYs = [0,-1,-2,-3]');
+  expect(web).toContain('Tap to Start Block Drop');
+  expect(web).toContain('Arcade.isProtectedGameControlTarget(event.target)');
+});
+
 test('Top 3 stays visible during mobile play without covering the board', async ({ page }) => {
   for (const url of ['/brickbreaker.html', '/mini.html?game=trafficEscape']) {
     await page.goto(url);
