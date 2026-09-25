@@ -21,6 +21,8 @@
     .star-page.game-active .topbar,.star-page.game-active #startButton,.star-page.game-active #starStartOverlay,.star-page.game-active #arcadeBottomNav,.star-page.game-active .star-tip,.star-page.game-active .back-games{display:none!important}
     .star-page .game-guide-overlay{display:none!important}
     .star-page .game-guide-surface-wrap{position:relative}
+    .star-page .game-guide-surface-wrap #starStartOverlay{display:flex!important}
+    .star-page.game-active .game-guide-surface-wrap #starStartOverlay{display:none!important}
     .star-start-overlay{
       position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
       width:100%;height:100%;margin:0;padding:24px;border:0;border-radius:inherit;
@@ -128,8 +130,8 @@
     guideOverlay?.addEventListener('pointerdown', startFromBoard, {passive:false});
     guideOverlay?.addEventListener('click', startFromBoard);
     const startFromRealButton=event=>{event.preventDefault();event.stopPropagation();start()};
+    starStartOverlay.addEventListener('pointerup',startFromRealButton);
     starStartOverlay.addEventListener('click',startFromRealButton);
-    starStartOverlay.addEventListener('touchend',startFromRealButton,{passive:false});
     els.startButton.addEventListener('click',start);
     // Capture-phase fallback: the shared guide can sit above the canvas on
     // iPhone. Any primary tap inside the visible Star Defender board/guide
