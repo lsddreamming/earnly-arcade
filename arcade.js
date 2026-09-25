@@ -4,7 +4,7 @@
 (function forceFreshStarDefenderDocument(){
   try {
     if (!/\/stardefender\.html$/i.test(location.pathname)) return;
-    const build = '20260925c';
+    const build = '20260925d';
     const url = new URL(location.href);
     if (url.searchParams.get('sd') === build) return;
     url.searchParams.set('sd', build);
