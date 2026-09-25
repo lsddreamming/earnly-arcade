@@ -371,6 +371,17 @@ test('Star Defender starts from the real mobile intro button', async ({ page }) 
   await expect(start).toBeHidden();
 });
 
+test('Star Defender keeps the physical TAP TO START button visible on iPhone', async ({ page }) => {
+  await page.goto('/stardefender.html');
+  const start = page.locator('#startButton');
+  await expect(start).toBeVisible();
+  await expect(start).toHaveText(/TAP TO START/i);
+  const display = await start.evaluate(el => getComputedStyle(el).display);
+  expect(display).not.toBe('none');
+  await start.tap();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
+});
+
 test('pause control appears and toggles on mini games', async ({ page }) => {
   for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
     await page.goto('/mini.html?game=' + game);
