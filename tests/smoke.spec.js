@@ -1470,3 +1470,15 @@ test('Neon Maze shows a real iPhone start button and compacts live play', async 
   await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
 });
+
+
+test('Neon Maze uses original energy-core and sentry visual language', async ({ page }) => {
+  const html = await (await page.request.get('/neonmaze.html')).text();
+  expect(html).toContain('collect energy cells');
+  expect(html).toContain('sentry drones');
+  expect(html).toContain('ENERGY CELLS');
+  expect(html).toContain('drawSentinel');
+  expect(html).toContain('drawCore');
+  expect(html).not.toContain('avoid ghosts');
+  expect(html).not.toContain('ghost hits');
+});
