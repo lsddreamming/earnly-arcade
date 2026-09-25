@@ -1635,7 +1635,7 @@ const Arcade = (() => {
       title = 'Run Complete',
       scoreLabel = 'Score',
       score = 0,
-      best = '',
+      best: bestDisplay = '',
       extra = [],
       coins = 0,
       result = null,
@@ -1682,10 +1682,10 @@ const Arcade = (() => {
 
     main.append(label, value);
 
-    if (best) {
+    if (bestDisplay) {
       const bestLine = document.createElement('div');
       bestLine.className = 'result-best';
-      bestLine.textContent = (result?.newBest ? 'Previous best beaten · New best: ' : '🏆 Best: ') + best;
+      bestLine.textContent = (result?.newBest ? 'Previous best beaten · New best: ' : '🏆 Best: ') + bestDisplay;
       main.append(bestLine);
     }
 
