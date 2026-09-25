@@ -1224,7 +1224,7 @@ test('mission claims and rewarded plays emit polished feedback events', async ({
 });
 
 
-test('game results show daily mission progress and claim readiness', async ({ page }) => {
+test('game results show daily mission progress and auto-apply completed rewards', async ({ page }) => {
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => {
     localStorage.clear();
@@ -1253,7 +1253,10 @@ test('game results show daily mission progress and claim readiness', async ({ pa
     });
   });
   await expect(result.locator('.result-mission-update')).toHaveCount(1);
-  await expect(result).toContainText('3 Daily Missions complete · +70 XP ready to claim');
+  await expect(result).toContainText('3 Daily Missions complete · +70 XP added');
+  await expect(result.locator('.result-stat').nth(1)).toContainText('+80');
+  const claimed = await page.evaluate(() => Arcade.dailyMissionStatus().missions.filter(m => m.claimed).length);
+  expect(claimed).toBe(3);
 });
 
 
@@ -1471,6 +1474,36 @@ test('Neon Maze shows a real iPhone start button and compacts live play', async 
   await expect(page.locator('.game-guide-strip')).toBeHidden();
 });
 
+
+test('Neon Maze keeps one move per swipe with a fair 60-second run', async ({ page }, testInfo) => {
+  await page.goto('/neonmaze.html');
+  const start = page.locator('#startButton');
+  if (testInfo.project.use.hasTouch) await start.tap();
+  else await start.click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running', {timeout:5000});
+
+  const initialTime = Number(await page.locator('#time').textContent());
+  expect(initialTime).toBeGreaterThanOrEqual(58);
+  expect(initialTime).toBeLessThanOrEqual(60);
+
+  await page.evaluate(() => {
+    const canvas = document.getElementById('game');
+    const fire = (type, x, y) => canvas.dispatchEvent(new PointerEvent(type, {
+      bubbles:true, cancelable:true, pointerId:42, pointerType:'touch', clientX:x, clientY:y
+    }));
+    fire('pointerdown', 80, 120);
+    fire('pointermove', 260, 120);
+    fire('pointermove', 460, 120);
+    fire('pointerup', 460, 120);
+  });
+  await expect(page.locator('#chips')).toHaveText('1');
+
+  const html = await (await page.request.get('/neonmaze.html')).text();
+  expect(html).toContain('touch.moved=true');
+  expect(html).toContain('elapsed>=60');
+  expect(html).toContain('grid-template-columns:repeat(3,60px)');
+  expect(html).toContain('Sentries are getting smarter');
+});
 
 test('Neon Maze uses original energy-core and sentry visual language', async ({ page }) => {
   const html = await (await page.request.get('/neonmaze.html')).text();
