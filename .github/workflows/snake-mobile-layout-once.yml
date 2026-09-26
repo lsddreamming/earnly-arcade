@@ -20,68 +20,45 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Apply and refine isolated Snake UI patch
+      - name: Apply validated refinements and resolve legacy style collisions
         shell: python
         run: |
           from pathlib import Path
           import subprocess, textwrap
-          source = subprocess.check_output(['git','show','145b153235469e900fc6085474fc5eae2808e652:.github/workflows/snake-mobile-layout-once.yml'], text=True)
-          patch = source.split('        run: |\n',1)[1].split('      - run: npm install',1)[0]
-          exec(compile(textwrap.dedent(patch), '<original-snake-patch>', 'exec'))
-          css_path = Path('snake-ui.css')
-          css = css_path.read_text()
-          css = css.replace('z-index:60;', 'z-index:80;').replace('z-index:61 !important;', 'z-index:81 !important;')
-          replacements = [
-            ('margin:0 0 4px !important; padding:0 !important; background:#071621', 'margin:0 !important; padding:0 !important; background:#071621'),
-            ('padding:4px 0 !important; margin:0 0 4px !important;', 'padding:0 !important; margin:0 0 4px !important;'),
-            ('gap:8px !important; margin:0 0 6px !important;', 'gap:8px !important; margin:0 0 2px !important;'),
-            ('padding:4px 7px 6px !important;', 'padding:0 7px 5px !important;'),
-            ('margin:0 0 3px !important; gap:5px !important;', 'margin:0 !important; gap:5px !important;'),
-            ('margin:5px 0 4px !important;', 'margin:0 !important;'),
-            ('margin:3px 0 7px;', 'margin:2px 0 4px;'),
-            ('margin:2px auto 0 !important;', 'margin:0 auto !important;'),
-            ('height:auto !important; aspect-ratio:1;', 'height:var(--snake-board-size,auto) !important; max-height:none !important; aspect-ratio:1; box-sizing:border-box !important;')
-          ]
-          for old, new in replacements:
-            assert old in css, 'Missing Snake refinement: '+old
-            css = css.replace(old,new,1)
-          for dest in ['snake-ui.css','www/snake-ui.css']:
-            Path(dest).write_text(css)
-          tests_path = Path('tests/snake-mobile.cases.js')
-          tests = tests_path.read_text()
-          assert tests.count("pointerId:8,pointerType:'touch'") == 3
-          tests = tests.replace("pointerId:8,pointerType:'touch'", "pointerId:8,pointerType:'touch',isPrimary:true")
-          old = "expect(ready.board.y).toBeLessThan(300);"
-          new = "expect(ready.board.y).toBeLessThan(290); expect(ready.board.y).toBeGreaterThan(ready.leaderboard.bottom);"
-          assert old in tests
-          tests = tests.replace(old,new,1)
-          old = "expect(live.leaderboard.height).toBeLessThan(95);"
-          new = """expect(live.leaderboard.height).toBeLessThan(95);
-              expect(live.board.width).toBeGreaterThanOrEqual(Math.min(size.width-28,300));
-              expect(Math.abs(live.board.width-live.board.height)).toBeLessThan(2);
-              expect(live.board.y).toBeGreaterThanOrEqual(live.leaderboard.bottom);
-              const rowsInside = await page.evaluate(() => {
-                const frame=document.getElementById('earnlyCompactLeaderboard').getBoundingClientRect();
-                return [...document.querySelectorAll('#earnlyCompactLeaderboard .compact-leaderboard-row')].every(row => {
-                  const r=row.getBoundingClientRect(); return r.top>=frame.top && r.bottom<=frame.bottom && r.left>=frame.left && r.right<=frame.right;
-                });
-              });
-              expect(rowsInside).toBe(true);"""
-          assert old in tests
-          tests = tests.replace(old,new,1)
-          tests += r'''
-          test('Snake mobile: physical Quit stays above the real countdown overlay',async({page},info)=>{
-            await page.setViewportSize({width:390,height:844}); await snakeFixture(page); await page.goto('/snake.html');
-            await press(page.locator('#startButton'),info);
-            await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
-            await expect(page.locator('#snakeExit')).toHaveText('× Quit');
-            await press(page.locator('#snakeExit'),info);
-            await expect(page).toHaveURL(/games\.html/);
-            await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active/);
-          });
+          source = subprocess.check_output(['git','show','24b0bd62f63d9ff48d99d03113e6f87837096284:.github/workflows/snake-mobile-layout-once.yml'], text=True)
+          patch = source.split('        run: |\n',1)[1].split('      - name: Install dependencies',1)[0]
+          exec(compile(textwrap.dedent(patch), '<snake-layout-refinements>', 'exec'))
+          css = Path('snake-ui.css').read_text()
+          css = css.replace('min-height:44px; min-width:90px;', 'min-height:44px !important; min-width:90px !important;')
+          css = css.replace('min-height:44px; min-width:82px;', 'min-height:44px !important; min-width:82px !important;')
+          old = 'body.snake-page.game-guide-page #game {'
+          new = 'body.snake-page.game-guide-page canvas#game, body.snake-page.game-guide-page.snake-game-active canvas#game {'
+          assert old in css
+          css = css.replace(old,new,1)
+          css += '''
+          /* Session buttons must not move or shrink when the run starts or pauses. */
+          body.snake-page .snake-toolbar,
+          body.snake-page .snake-toolbar #snakeExit,
+          body.snake-page .snake-toolbar #earnlyPauseButton {
+            animation:none !important; transition:none !important; transform:none !important;
+          }
+          body.snake-page.game-guide-page .snake-toolbar #snakeExit,
+          body.snake-page.game-guide-page .snake-toolbar #earnlyPauseButton {
+            height:44px !important; min-height:44px !important; max-height:none !important;
+            box-sizing:border-box !important; flex-shrink:0 !important;
+          }
           '''
-          tests_path.write_text(tests)
-          print('Refined compact spacing, square viewport fitting and true primary touch events.')
+          for p in ['snake-ui.css','www/snake-ui.css']: Path(p).write_text(css)
+          html = Path('snake.html').read_text()
+          old = 'const available = bottom - top - (active ? 16 : 52);'
+          new = "const bottomInset = active ? Math.max(16, parseFloat(getComputedStyle(document.querySelector('main.container')).paddingBottom) || 0) : 52;\n                  const available = bottom - top - bottomInset;"
+          assert old in html
+          html = html.replace(old,new,1)
+          for p in ['snake.html','www/snake.html']: Path(p).write_text(html)
+          tests = Path('tests/snake-mobile.cases.js').read_text()
+          tests = tests.replace('expect(control.height).toBeGreaterThanOrEqual(44);', 'expect(control.height, id + " must retain a full-size touch target").toBeGreaterThanOrEqual(44);')
+          Path('tests/snake-mobile.cases.js').write_text(tests)
+          print('Removed legacy active canvas cap and enforced stable 44px Pause/Quit hit targets.')
       - name: Install dependencies
         run: npm install > /tmp/snake-npm.log 2>&1 || { tail -100 /tmp/snake-npm.log; exit 1; }
       - name: Install both browser engines
