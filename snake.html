@@ -41,12 +41,16 @@
 
     <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
 
-    <div class="controls desktop-controls" aria-label="Snake keyboard alternative controls">
-      <button class="game-control" type="button" data-direction="UP">⬆️</button>
-      <div style="width:100%">
-        <button class="game-control" type="button" data-direction="LEFT">⬅️</button>
-        <button class="game-control" type="button" data-direction="DOWN">⬇️</button>
-        <button class="game-control" type="button" data-direction="RIGHT">➡️</button>
+    <div class="controls desktop-controls snake-control-dock" id="snakeControlDock" aria-label="Snake direction controls">
+      <div class="snake-control-caption">
+        <strong>Steer</strong>
+        <span>Swipe anywhere or tap arrows</span>
+      </div>
+      <div class="snake-dpad" role="group" aria-label="Direction buttons">
+        <button class="game-control snake-dpad-up" type="button" data-direction="UP" aria-label="Move up">↑</button>
+        <button class="game-control snake-dpad-left" type="button" data-direction="LEFT" aria-label="Move left">←</button>
+        <button class="game-control snake-dpad-down" type="button" data-direction="DOWN" aria-label="Move down">↓</button>
+        <button class="game-control snake-dpad-right" type="button" data-direction="RIGHT" aria-label="Move right">→</button>
       </div>
     </div>
 
@@ -153,6 +157,14 @@
       document.getElementById('snakeExit').textContent = /running|ready…|get ready|paused/i.test(text) ? '× Quit' : '← Games';
     }
 
+    function syncDirectionButtons(activeDirection = '') {
+      document.querySelectorAll('#snakeControlDock [data-direction]').forEach(button => {
+        const active = button.dataset.direction === activeDirection;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
     function setDirection(newDirection) {
       // Ignore steering while idle, paused, or in the 3-2-1 countdown.
       // This prevents a key/button press from preloading the first turn of a
@@ -168,6 +180,7 @@
 
       if (newDirection !== opposite[direction]) {
         nextDirection = newDirection;
+        syncDirectionButtons(newDirection);
       }
     }
 
@@ -229,6 +242,7 @@
       swipeSurface = null;
       document.documentElement.classList.remove('snake-game-active', 'snake-gesture-active');
       document.body.classList.remove('snake-game-active');
+      syncDirectionButtons('');
     }
 
     function beginSteering(event) {
@@ -510,7 +524,7 @@
         title:'Snake Run Over',
         scoreLabel:'Apples',
         score,
-        best:result.best.display,
+        best:result.best.display + ' saved on this device',
         coins:earned,
         result,
         playsLeft:Arcade.remaining('snake'),
@@ -536,6 +550,7 @@
       snake = [{ x: 200, y: 200 }];
       direction = 'RIGHT';
       nextDirection = 'RIGHT';
+      syncDirectionButtons('RIGHT');
       score = 0;
       scoreEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
@@ -613,8 +628,13 @@
           ? nav.getBoundingClientRect().top : viewportHeight;
         const bottom = Math.min(viewportHeight, navTop);
         const top = wrapper.getBoundingClientRect().top;
-        const bottomInset = active ? Math.max(16, parseFloat(getComputedStyle(document.querySelector('main.container')).paddingBottom) || 0) : 52;
-                  const available = bottom - top - bottomInset;
+        const controlDock = document.getElementById('snakeControlDock');
+        const dockHeight = active && controlDock && getComputedStyle(controlDock).display !== 'none'
+          ? controlDock.getBoundingClientRect().height + 12 : 0;
+        const bottomInset = active
+          ? Math.max(16, dockHeight + 10, parseFloat(getComputedStyle(document.querySelector('main.container')).paddingBottom) || 0)
+          : 52;
+        const available = bottom - top - bottomInset;
         const side = Math.max(160, Math.floor(Math.min(innerWidth - 28, 440, available)));
         document.body.style.setProperty('--snake-board-size', side + 'px');
       });

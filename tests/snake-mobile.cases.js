@@ -16,7 +16,9 @@ async function geometry(page) {
   return page.evaluate(() => {
     const box = s => { const r=document.querySelector(s).getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}; };
     const nav=document.getElementById('arcadeBottomNav');
+    const dock=document.getElementById('snakeControlDock');
     return {board:box('#game'),header:box('.snake-header'),leaderboard:box('#earnlyCompactLeaderboard'),stats:box('.snake-stats'),
+      dock:getComputedStyle(dock).display==='none'?null:box('#snakeControlDock'),
       navTop:getComputedStyle(nav).display==='none'?innerHeight:nav.getBoundingClientRect().top,
       overflow:document.documentElement.scrollWidth-innerWidth,
       rows:[...document.querySelectorAll('#earnlyCompactLeaderboard .compact-leaderboard-row')].map(x=>x.getBoundingClientRect().y)};
@@ -30,6 +32,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     await expect(start).toBeInViewport();
     for(const selector of ['.game-start-summary','.game-guide-strip','.game-guide-overlay']) await expect(page.locator(selector)).toBeHidden();
     await expect(page.locator('.snake-quick-tip')).toContainText('Swipe anywhere');
+    await expect(page.locator('#snakeControlDock')).toBeHidden();
     await expect.poll(async()=> (await geometry(page)).board.bottom).toBeLessThan(size.height-40);
     const ready=await geometry(page); console.log('SNAKE_READY',size.width,JSON.stringify(ready));
     expect(ready.board.y).toBeLessThan(290); expect(ready.board.y).toBeGreaterThan(ready.leaderboard.bottom); expect(ready.stats.height).toBeLessThan(40);
@@ -39,6 +42,17 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     expect(Math.max(...ready.rows)-Math.min(...ready.rows)).toBeLessThan(3);
     await info.attach('snake-ready-'+size.width,{body:await page.screenshot(),contentType:'image/png'});
     await press(start,info); await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+    // Freeze autonomous movement only while validating the physical dock. On a
+    // wide WebKit viewport the real Snake can otherwise reach a wall while
+    // Playwright waits for post-layout stability, making a valid button vanish.
+    await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
+    await expect(page.locator('#snakeControlDock')).toBeVisible();
+    await expect(page.locator('#snakeControlDock')).toContainText('Swipe anywhere or tap arrows');
+    await expect(page.locator('#snakeControlDock [data-direction]')).toHaveCount(4);
+    // Physical taps prove the controller sits above the full-screen swipe layer.
+    await press(page.locator('#snakeControlDock [data-direction="UP"]'),info);
+    await expect(page.locator('#snakeControlDock [data-direction="UP"]')).toHaveAttribute('aria-pressed','true');
+    expect(await page.evaluate(()=>nextDirection)).toBe('UP');
     // Physical click/tap, never DOM .click(): proves the full-screen controller is not covering Pause.
     await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
     await expect(quit).toHaveText('× Quit'); await expect(quit).toBeInViewport(); await expect(pause).toBeInViewport();
@@ -46,8 +60,12 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     const live=await geometry(page); console.log('SNAKE_ACTIVE',size.width,JSON.stringify(live));
     expect(live.board.y).toBeLessThan(250); expect(live.board.bottom).toBeLessThanOrEqual(size.height);
     expect(live.leaderboard.height).toBeLessThan(95);
-    expect(live.board.width).toBeGreaterThanOrEqual(Math.min(size.width-28,300));
+    expect(live.board.width).toBeGreaterThanOrEqual(size.height <= 600 ? 220 : Math.min(size.width-28,300));
     expect(Math.abs(live.board.width-live.board.height)).toBeLessThan(2);
+    expect(live.dock).not.toBeNull();
+    expect(live.dock.height).toBeGreaterThanOrEqual(100);
+    expect(live.dock.y).toBeGreaterThanOrEqual(live.board.bottom);
+    expect(live.dock.bottom).toBeLessThanOrEqual(size.height);
     expect(live.board.y).toBeGreaterThanOrEqual(live.leaderboard.bottom);
     const rowsInside = await page.evaluate(() => {
       const frame=document.getElementById('earnlyCompactLeaderboard').getBoundingClientRect();
@@ -61,7 +79,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
       expect(control.y).toBeGreaterThanOrEqual(0); expect(control.bottom||control.y+control.height).toBeLessThan(live.board.y);
     }
     const state=await page.evaluate(()=>JSON.stringify({snake,nextDirection,score}));
-    await page.keyboard.press('ArrowUp'); await page.waitForTimeout(300);
+    await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300);
     expect(await page.evaluate(()=>JSON.stringify({snake,nextDirection,score}))).toBe(state);
     await info.attach('snake-paused-'+size.width,{body:await page.screenshot(),contentType:'image/png'});
     // Reset only this test fixture before resuming; inspection may pause near a wall.
@@ -104,6 +122,7 @@ test('Snake mobile: bottom steering results and replay still work',async({page},
     const selected=nextDirection; gameOver(); return selected;
   });
   expect(steering).toBe('UP'); await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('dialog.game-result-dialog .result-best')).toContainText('saved on this device');
   await expect(page.locator('body')).not.toHaveClass(/snake-game-active/);
   await press(page.locator('dialog.game-result-dialog button').filter({hasText:/Play Again/}).first(),info);
   await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
