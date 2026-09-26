@@ -20,29 +20,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Apply Snake patch and deterministic UI fixture assertions
+      - name: Apply final Snake patch and navigation assertions
         shell: python
         run: |
           from pathlib import Path
           import subprocess, textwrap
-          source = subprocess.check_output(['git','show','0d32e32b8a8ed7fdd0e66b05b39c1fc10eda3483:.github/workflows/snake-mobile-layout-once.yml'], text=True)
+          source = subprocess.check_output(['git','show','6a2f7d5906499111e1a8aa2698a4f558e20ed606:.github/workflows/snake-mobile-layout-once.yml'], text=True)
           patch = source.split('\n        run: |\n',1)[1].split('\n      - name: Install dependencies',1)[0]
-          exec(compile(textwrap.dedent(patch), '<snake-complete-patch>', 'exec'))
+          exec(compile(textwrap.dedent(patch), '<snake-final-patch>', 'exec'))
           p = Path('tests/snake-mobile.cases.js')
           t = p.read_text()
-          old = "    await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Running');\n    const before=await page.evaluate(()=>({points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')}));\n    await press(quit,info); await expect(page).toHaveURL(/games\\.html/);"
-          new = """    // Reset only this test fixture before resuming; inspection may pause near a wall.
-              // Actual production speed, timers, input dispatch and handlers remain unchanged.
-              const before=await page.evaluate(()=>{
-                snake=[{x:0,y:200}]; direction=nextDirection='RIGHT';
-                return {points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')};
-              });
-              await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Running');
-              await press(quit,info); await expect(page).toHaveURL(/games\\.html/);
-              await page.waitForFunction(()=>!!window.Arcade);"""
-          assert old in t, 'Resume/navigation test block missing'
+          old = 'await page.waitForFunction(()=>!!window.Arcade);'
+          new = "await page.waitForFunction(()=>typeof Arcade !== 'undefined');"
+          assert t.count(old) == 1
           p.write_text(t.replace(old,new,1))
-          print('UI fixtures avoid unrelated wall death and wait for destination scripts to load.')
+          print('Navigation assertion now waits for the actual global lexical engine binding.')
       - name: Install dependencies
         run: npm install > /tmp/snake-npm.log 2>&1 || { tail -100 /tmp/snake-npm.log; exit 1; }
       - name: Install both browser engines
