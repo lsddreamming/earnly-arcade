@@ -24,6 +24,23 @@ async function startGame(page) {
   throw new Error('No visible game start control or touch surface found');
 }
 
+test('iOS release command forces live ads and v1.1 build metadata', async ({ page }) => {
+  const pkg = JSON.parse(await (await page.request.get('/package.json')).text());
+  const release = pkg.scripts?.['native:ios:release'] || '';
+  expect(release).toContain('EARNLY_ADMOB_TEST_MODE=0');
+  expect(release).toContain('EARNLY_IOS_MARKETING_VERSION=1.1');
+  expect(release).toContain('EARNLY_IOS_BUILD_NUMBER=2');
+
+  const configure = await (await page.request.get('/scripts/configure-ios.mjs')).text();
+  expect(configure).toContain("ca-app-pub-8864401806510610~7658950353");
+  expect(configure).toContain("marketingVersion = process.env.EARNLY_IOS_MARKETING_VERSION || '1.1'");
+  expect(configure).toContain("buildNumber = process.env.EARNLY_IOS_BUILD_NUMBER || '2'");
+
+  const ads = await (await page.request.get('/native-ads-entry.js')).text();
+  expect(ads).toContain("ca-app-pub-8864401806510610/8249888009");
+  expect(ads).toContain("const TEST_MODE = __EARNLY_ADMOB_TEST_MODE__");
+});
+
 test('release legal pages are present linked and bundled for iOS', async ({ page }) => {
   for (const path of ['privacy.html','support.html','terms.html']) {
     const response=await page.request.get('/'+path);
