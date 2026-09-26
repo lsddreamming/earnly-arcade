@@ -2617,3 +2617,52 @@ body.snake-page .container>a.button.secondary.wide{
     max-height:min(62vh,400px)!important;
   }
 }
+/* Settings: compact, readable controls on a phone. */
+body.settings-page .container{max-width:680px;padding:max(16px,env(safe-area-inset-top)) 16px max(120px,calc(env(safe-area-inset-bottom) + 100px))}
+.settings-header{display:flex;align-items:center;justify-content:space-between;min-height:58px;margin:0 0 16px;border-bottom:1px solid rgba(146,184,226,.18)}
+.settings-header a{color:#c9ddf5;text-decoration:none;font-size:15px;font-weight:650;min-width:76px}
+.settings-header h1{margin:0;font-size:22px;letter-spacing:-.025em}
+.settings-header::after{content:"";width:76px}
+body.settings-page .settings-section{padding:20px;margin:0 0 14px;text-align:left;border:1px solid #355174;border-radius:22px;background:linear-gradient(145deg,#1a2c46,#101d31);box-shadow:0 12px 28px rgba(0,0,0,.16)}
+.settings-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.settings-section-icon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:12px;background:#203b61;color:#dff4ff;font-size:18px;font-weight:800}
+.settings-section-heading h2{margin:0;font-size:20px;line-height:1.15;letter-spacing:-.025em}
+.settings-section-heading p{margin:4px 0 0;color:#b7c9df;font-size:13px;line-height:1.35}
+body.settings-page .setting-list{gap:0}
+body.settings-page .setting-row{grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:14px 0;border:0;border-top:1px solid rgba(154,190,229,.17);border-radius:0;background:none!important;box-shadow:none}
+body.settings-page .setting-row:first-child{border-top:0;padding-top:0}
+body.settings-page .setting-row:last-child{padding-bottom:0}
+body.settings-page .setting-row strong{font-size:16px;line-height:1.2;color:#fff}
+body.settings-page .setting-row span{font-size:13px;line-height:1.4;color:#b7c9df;margin-top:4px}
+body.settings-page .toggle-button{min-width:66px;min-height:42px;padding:8px 12px;font-size:14px;border-radius:12px}
+body.settings-page .setting-actions{display:flex;align-items:center;gap:8px}
+body.settings-page .setting-actions .mini-button{min-height:42px;margin:0;padding:8px 10px;border-radius:12px;font-size:12px;white-space:nowrap}
+body.settings-page .text-size-options{gap:9px;margin-top:0}
+body.settings-page .text-size-options button{min-height:62px;padding:10px 13px;border-radius:14px;border-color:#47617e;background:#15243a;color:#fff}
+body.settings-page .text-size-options button strong{font-size:15px}
+body.settings-page .text-size-options button span{font-size:12px;color:#b4c9e0}
+body.settings-page .text-size-options button.active{border-color:#69b5ff;background:#1e416d;box-shadow:inset 0 0 0 1px #69b5ff}
+body.settings-page .text-size-preview{margin-top:12px;padding:12px 14px;border-color:#385778;background:#102039}
+body.settings-page .text-size-preview span{font-size:10px;letter-spacing:.1em}
+body.settings-page .text-size-preview strong{font-size:16px;line-height:1.35}
+body.settings-page .app-status-grid{gap:8px}
+body.settings-page .app-status-card{padding:11px 12px;border-radius:13px;border-color:#38516d;background:#132238}
+body.settings-page .app-status-card span{display:block;font-size:12px;color:#b4c9df;line-height:1.2}
+body.settings-page .app-status-card strong{display:block;margin:5px 0 0;font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+body.settings-page #installButton{margin:12px 0 0;min-height:46px;font-size:14px}
+body.settings-page .data-actions{gap:8px;margin:0}
+body.settings-page .data-actions .wide{display:flex;align-items:center;justify-content:flex-start;min-height:48px;padding:10px 15px;margin:0;text-align:left;font-size:15px;border-radius:13px}
+body.settings-page .settings-diagnostics{padding:0}
+body.settings-page .settings-diagnostics summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;cursor:pointer;font-size:16px;font-weight:700;list-style:none}
+body.settings-page .settings-diagnostics summary::-webkit-details-marker{display:none}
+body.settings-page .settings-diagnostics summary::after{content:"⌄";font-size:20px;color:#a9cfff}
+body.settings-page .settings-diagnostics[open] summary::after{transform:rotate(180deg)}
+body.settings-page .settings-diagnostics summary span{margin-left:auto;color:#a8bdd5;font-size:12px;font-weight:500}
+body.settings-page .settings-diagnostics>p,body.settings-page .settings-diagnostics>.test-readiness,body.settings-page .settings-diagnostics>button{margin-left:20px;margin-right:20px}
+body.settings-page .settings-diagnostics>.test-readiness{margin-bottom:12px}
+body.settings-page .settings-diagnostics>button{width:calc(100% - 40px);margin-bottom:8px}
+body.settings-page .settings-diagnostics>.test-report-note{padding-bottom:16px}
+body.settings-page .test-readiness strong{font-size:13px}
+body.settings-page .test-readiness small{font-size:11px;color:#afc1d6}
+@media(max-width:390px){body.settings-page .container{padding-left:12px;padding-right:12px}body.settings-page .settings-section{padding:16px}body.settings-page .settings-diagnostics{padding:0}body.settings-page .settings-diagnostics summary{padding:16px}body.settings-page .app-status-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){body.settings-page .setting-row:has(.setting-actions){grid-template-columns:1fr}body.settings-page .setting-actions{justify-content:flex-end}}
