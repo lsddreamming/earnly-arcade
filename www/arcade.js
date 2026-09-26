@@ -2496,6 +2496,42 @@ const Arcade = (() => {
     }, { once:true });
   }
 
+  function resumeGameAfterRewardedPlay(g, done) {
+    if (typeof done === 'function') {
+      try { done(); } catch (error) { console.error('Earnly rewarded return callback failed', error); }
+    }
+
+    // Some games historically passed only a HUD-refresh callback to Arcade.out.
+    // After the reward is granted, verify that the next run actually began.
+    // If the game is still idle, press its normal Start control so every game
+    // honors the promised "Watch ad → Play Again" flow without bypassing its
+    // own consume/countdown/start logic.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (remaining(g) <= 0) return;
+
+      const status = document.getElementById('gameStatus');
+      const text = String(status?.textContent || '').trim().toLowerCase();
+      const active =
+        status?.classList.contains('running') ||
+        text.includes('running') ||
+        text.includes('get ready') ||
+        text.includes('starting') ||
+        text.includes('paused');
+
+      if (active) return;
+
+      const candidates = [
+        document.getElementById('startButton'),
+        document.getElementById('blockDropBoardStart')
+      ].filter(Boolean);
+
+      const start = candidates.find(button => !button.disabled && button.offsetParent !== null) ||
+        candidates.find(button => !button.disabled);
+
+      if (start) start.click();
+    }));
+  }
+
   function out(g, done) {
     const playsNow = remaining(g);
     if (playsNow > 0) {
@@ -2530,7 +2566,7 @@ const Arcade = (() => {
       'You used today’s free plays for ' + gameName + '. Watch one optional rewarded ad to unlock +1 play and jump straight back in. ' +
         status.remaining + ' of ' + status.limit + ' ad unlock' + (status.remaining === 1 ? '' : 's') + ' left today.',
       [
-        [rewardedLabel + ' → Play Again', () => playAd(g, done), 'green'],
+        [rewardedLabel + ' → Play Again', () => playAd(g, () => resumeGameAfterRewardedPlay(g, done)), 'green'],
         ['Choose Another Game', () => location.href = 'games.html', 'secondary']
       ]
     );
