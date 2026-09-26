@@ -24,6 +24,65 @@ async function startGame(page) {
   throw new Error('No visible game start control or touch surface found');
 }
 
+test('launch gate exposes account deletion clearly on web and iOS', async ({ page }) => {
+  const web = await (await page.request.get('/account.html')).text();
+  const ios = await (await page.request.get('/www/account.html')).text();
+  expect(ios).toBe(web);
+  expect(web).toContain('id="delete-account"');
+  expect(web).toContain('id="cloudDeleteButton"');
+  expect(web).toContain('Delete My Account');
+  expect(web).toContain('EarnlyCloud.deleteAccount()');
+
+  await page.goto('/profile.html');
+  const accountLink = page.locator('a[href="account.html"]').filter({hasText:'Account & Data'});
+  await expect(accountLink).toBeVisible();
+  await expect(accountLink).toContainText('Cloud, backup & delete');
+
+  await page.goto('/account.html#delete-account');
+  await page.evaluate(() => {
+    document.getElementById('cloudSignedOut').hidden = true;
+    document.getElementById('cloudSignedIn').hidden = false;
+  });
+  await expect(page.locator('#delete-account')).toBeVisible();
+  await expect(page.locator('#cloudDeleteButton')).toBeVisible();
+});
+
+test('rewarded play flow returns directly into the same game', async ({ page }) => {
+  await page.goto('/mini.html?game=shapeFit');
+  await page.evaluate(() => {
+    const d=new Date();
+    const day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    localStorage.setItem('arcadePlayDay', day);
+    localStorage.setItem('shapeFitGamesPlayed','3');
+    localStorage.setItem('shapeFitBonusPlays','0');
+    localStorage.setItem('shapeFitPlayAdUnlocks','0');
+    localStorage.setItem('arcadeOnboardingSeen','1');
+  });
+  await page.reload();
+
+  await startGame(page);
+  const gate=page.locator('dialog');
+  await expect(gate).toContainText('One more run?');
+  await gate.getByRole('button',{name:/Watch demo ad.*Play Again/i}).click();
+  await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
+  await page.waitForTimeout(3900);
+
+  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:5000});
+  await expect(page).toHaveURL(/mini\.html\?game=shapeFit/);
+  expect(await page.evaluate(() => Arcade.playAdStatus('shapeFit').used)).toBe(1);
+});
+
+test('profile global identity save stays wired to world rankings', async ({ page }) => {
+  const profile = await (await page.request.get('/profile.html')).text();
+  const cloud = await (await page.request.get('/cloud.js')).text();
+  expect(profile).toContain('Save Global Profile');
+  expect(profile).toContain('EarnlyCloud.updatePublicProfile');
+  expect(profile).toContain("profile_identity_saved");
+  expect(profile).toContain('leaderboards.html');
+  expect(cloud).toContain('updatePublicProfile');
+  expect(cloud).toContain('leaderboard');
+});
+
 test('creator attribution records sanitized first and latest touch', async ({ page }) => {
   await page.goto('/index.html?ref=creator_42&utm_source=tiktok&utm_campaign=launch-wave&utm_content=snake-hook&challenge=beat-me');
   const attribution = await page.evaluate(() => Arcade.acquisitionContext());
