@@ -321,6 +321,7 @@ test('results use game-specific leaderboard gap copy without duplicate best text
     expect(source).toContain("compactLeaderboardGap(localBest, thirdScore, data?.label)");
     expect(source).toContain("away from Top 3 · View leaderboard →");
     expect(source).not.toContain("Previous best beaten · New best:");
-    expect(source).not.toContain(" from Top 3 · View leaderboard →");
+    expect(source).not.toContain("footer.textContent = '🔥 ' + (third - mine).toLocaleString() + ' from Top 3 · View leaderboard →';");
+    expect(source).not.toContain("return '🔥 ' + (target - mine).toLocaleString() + ' points from Top 3';");
   }
 });
