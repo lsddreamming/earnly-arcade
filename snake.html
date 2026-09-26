@@ -567,11 +567,24 @@
         refreshChrome();
         Arcade.feedback('fail');
         const duration = Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000));
+
+        if (score > 0 && window.EarnlyCloud?.submitLeaderboardScore) {
+          window.EarnlyCloud.submitLeaderboardScore('snake', score)
+            .then(submission => {
+              if (submission?.rank) {
+                Arcade.toast('🌎 Test score submitted · world rank #' + submission.rank);
+              } else if (!submission?.skipped) {
+                Arcade.toast('🌎 Test score submitted to the Snake leaderboard');
+              }
+            })
+            .catch(() => Arcade.toast('⚠️ Leaderboard submission will retry on a future run'));
+        }
+
         Arcade.panel(
           '🧪 Snake Test Run',
           'Score: ' + score + ' apple' + (score === 1 ? '' : 's') + ' · ' + duration + 's' +
           (reason ? ' · ' + reason.replace(/^[^\w]+\s*/, '') : '') +
-          '\n\nPrivate test run: no Coins, XP, best score, missions, or leaderboard changes.',
+          '\n\nLeaderboard eligible: this score can update your world Snake best. No Coins, XP, saved-device best, missions, achievements, or plays are changed.',
           [
             ['🧪 Test Again', () => startGame({ testRun:true }), 'green'],
             ['← Games', () => { location.href = 'games.html'; }, 'secondary']
@@ -632,7 +645,7 @@
         return;
       }
       if (snakeTestRun) {
-        Arcade.toast('🧪 Private test run · rewards and leaderboard are disabled');
+        Arcade.toast('🧪 Private test run · rewards off · leaderboard on');
       }
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
