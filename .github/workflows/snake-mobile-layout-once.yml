@@ -20,45 +20,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Apply validated refinements and resolve legacy style collisions
+      - name: Apply Snake patch and deterministic UI fixture assertions
         shell: python
         run: |
           from pathlib import Path
           import subprocess, textwrap
-          source = subprocess.check_output(['git','show','24b0bd62f63d9ff48d99d03113e6f87837096284:.github/workflows/snake-mobile-layout-once.yml'], text=True)
+          source = subprocess.check_output(['git','show','0d32e32b8a8ed7fdd0e66b05b39c1fc10eda3483:.github/workflows/snake-mobile-layout-once.yml'], text=True)
           patch = source.split('        run: |\n',1)[1].split('      - name: Install dependencies',1)[0]
-          exec(compile(textwrap.dedent(patch), '<snake-layout-refinements>', 'exec'))
-          css = Path('snake-ui.css').read_text()
-          css = css.replace('min-height:44px; min-width:90px;', 'min-height:44px !important; min-width:90px !important;')
-          css = css.replace('min-height:44px; min-width:82px;', 'min-height:44px !important; min-width:82px !important;')
-          old = 'body.snake-page.game-guide-page #game {'
-          new = 'body.snake-page.game-guide-page canvas#game, body.snake-page.game-guide-page.snake-game-active canvas#game {'
-          assert old in css
-          css = css.replace(old,new,1)
-          css += '''
-          /* Session buttons must not move or shrink when the run starts or pauses. */
-          body.snake-page .snake-toolbar,
-          body.snake-page .snake-toolbar #snakeExit,
-          body.snake-page .snake-toolbar #earnlyPauseButton {
-            animation:none !important; transition:none !important; transform:none !important;
-          }
-          body.snake-page.game-guide-page .snake-toolbar #snakeExit,
-          body.snake-page.game-guide-page .snake-toolbar #earnlyPauseButton {
-            height:44px !important; min-height:44px !important; max-height:none !important;
-            box-sizing:border-box !important; flex-shrink:0 !important;
-          }
-          '''
-          for p in ['snake-ui.css','www/snake-ui.css']: Path(p).write_text(css)
-          html = Path('snake.html').read_text()
-          old = 'const available = bottom - top - (active ? 16 : 52);'
-          new = "const bottomInset = active ? Math.max(16, parseFloat(getComputedStyle(document.querySelector('main.container')).paddingBottom) || 0) : 52;\n                  const available = bottom - top - bottomInset;"
-          assert old in html
-          html = html.replace(old,new,1)
-          for p in ['snake.html','www/snake.html']: Path(p).write_text(html)
-          tests = Path('tests/snake-mobile.cases.js').read_text()
-          tests = tests.replace('expect(control.height).toBeGreaterThanOrEqual(44);', 'expect(control.height, id + " must retain a full-size touch target").toBeGreaterThanOrEqual(44);')
-          Path('tests/snake-mobile.cases.js').write_text(tests)
-          print('Removed legacy active canvas cap and enforced stable 44px Pause/Quit hit targets.')
+          exec(compile(textwrap.dedent(patch), '<snake-complete-patch>', 'exec'))
+          p = Path('tests/snake-mobile.cases.js')
+          t = p.read_text()
+          old = "    await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Running');\n    const before=await page.evaluate(()=>({points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')}));\n    await press(quit,info); await expect(page).toHaveURL(/games\\.html/);"
+          new = """    // The layout inspection can pause next to a wall. Reset only this test fixture
+              // before resuming, so an autonomous wall collision cannot replace the Quit target.
+              // Production speed, timers, input dispatch and pause/quit handlers remain unmodified.
+              const before=await page.evaluate(()=>{
+                snake=[{x:0,y:200}]; direction=nextDirection='RIGHT';
+                return {points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')};
+              });
+              await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Running');
+              await press(quit,info); await expect(page).toHaveURL(/games\\.html/);
+              await page.waitForFunction(()=>!!window.Arcade);"""
+          assert old in t, 'Resume/navigation test block missing'
+          p.write_text(t.replace(old,new,1))
+          print('UI fixtures now avoid unrelated wall death and wait for destination scripts to load.')
       - name: Install dependencies
         run: npm install > /tmp/snake-npm.log 2>&1 || { tail -100 /tmp/snake-npm.log; exit 1; }
       - name: Install both browser engines
