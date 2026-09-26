@@ -15,7 +15,7 @@
   <title>Earnly Snake</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
-  <link rel="stylesheet" href="snake-ui.css?v=1">
+  <link rel="stylesheet" href="snake-ui.css?v=2">
 </head>
 <body class="snake-page">
   <main class="container">
@@ -125,6 +125,7 @@
     let snake = [{ x: 200, y: 200 }];
     let direction = 'RIGHT';
     let nextDirection = 'RIGHT';
+    const queuedDirections = [];
     let food = { x: 100, y: 100 };
     let score = 0;
     let game = null;
@@ -201,14 +202,30 @@
         DOWN: 'UP'
       };
 
-      if (newDirection !== opposite[direction]) {
-        nextDirection = newDirection;
-        syncDirectionButtons(newDirection);
-      }
+      // Keep two quick turns. A second tap before the next movement tick
+      // should become the following turn instead of being lost.
+      const lastDirection = queuedDirections.at(-1) || direction;
+      if (newDirection === lastDirection || newDirection === opposite[lastDirection]) return;
+      if (queuedDirections.length >= 2) return;
+      queuedDirections.push(newDirection);
+      nextDirection = queuedDirections[0];
+      syncDirectionButtons(newDirection);
     }
 
     document.querySelectorAll('[data-direction]').forEach(button => {
-      button.addEventListener('click', () => setDirection(button.dataset.direction));
+      let lastPointerDown = 0;
+      button.addEventListener('pointerdown', event => {
+        if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        event.preventDefault();
+        lastPointerDown = performance.now();
+        setDirection(button.dataset.direction);
+      });
+      // Keyboard activation still produces a click. Ignore a duplicate click
+      // from a touch press that was already handled on pointerdown.
+      button.addEventListener('click', () => {
+        if (performance.now() - lastPointerDown < 500) return;
+        setDirection(button.dataset.direction);
+      });
     });
 
     document.addEventListener('keydown', event => {
@@ -491,7 +508,8 @@
     }
 
     function draw() {
-      direction = nextDirection;
+      direction = queuedDirections.shift() || direction;
+      nextDirection = queuedDirections[0] || direction;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -639,6 +657,7 @@
       snake = [{ x: 200, y: 200 }];
       direction = 'RIGHT';
       nextDirection = 'RIGHT';
+      queuedDirections.length = 0;
       syncDirectionButtons('RIGHT');
       score = 0;
       clearTimeout(appleFlashTimer);
