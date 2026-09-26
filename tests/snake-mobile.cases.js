@@ -225,7 +225,7 @@ test('Snake: apple pickup flashes immediately and wall deaths explain what happe
 });
 
 
-async function privateTesterFixture(page, enabled) {
+async function unlimitedAccountFixture(page, enabled) {
   await page.route('**/cloud.js', r => r.fulfill({contentType:'application/javascript',body:''}));
   await page.route('https://cdn.jsdelivr.net/**', r => r.fulfill({contentType:'application/javascript',body:''}));
   await page.addInitScript(({enabled}) => {
@@ -233,69 +233,104 @@ async function privateTesterFixture(page, enabled) {
     const day = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     localStorage.setItem('arcadeOnboardingSeen','1');
     localStorage.setItem('arcadePlayDay', day);
-    localStorage.setItem('snakeGamesPlayed','3');
-    localStorage.setItem('snakeBonusPlays','0');
-    localStorage.setItem('snakePlayAdUnlocks','99');
-    const state = {loaded:true,isTester:enabled,snakeUnlimited:enabled};
+    for (const key of ['snake','blockDrop','tapRush','memory','dodger','brickBreaker','jungleHopper','towerStack','coinCatch','colorMatch','paddleRally','laneRunner','safeCracker','blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape','starDefender','neonMaze']) {
+      localStorage.setItem(key + 'GamesPlayed','99');
+      localStorage.setItem(key + 'BonusPlays','0');
+      localStorage.setItem(key + 'PlayAdUnlocks','99');
+    }
+    const state = {loaded:true,isTester:enabled,unlimitedPlays:enabled,snakeUnlimited:enabled};
+    if (enabled) sessionStorage.setItem('earnlyUnlimitedPlays','1');
+    else sessionStorage.removeItem('earnlyUnlimitedPlays');
+    window.__leaderboardSubmissions = [];
     window.EarnlyCloud = {
       testerAccess:() => ({...state}),
       refreshTesterAccess:async() => ({...state}),
       leaderboard:async () => ({entries:[],label:'apples',lowerIsBetter:false}),
-      submitLeaderboardScore:async () => ({ok:true})
+      submitLeaderboardScore:async (game, score) => {
+        window.__leaderboardSubmissions.push({game,score});
+        return {ok:true,saved:true,rank:7};
+      }
     };
   }, {enabled});
 }
 
-test('Private Snake tester access is invisible to normal accounts at zero plays', async ({page}) => {
+test('Unlimited account keeps plays available across every game without a tester button', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
-  await privateTesterFixture(page, false);
+  await unlimitedAccountFixture(page, true);
+  await page.goto('/games.html');
+
+  const result = await page.evaluate(() => {
+    const keys = Object.keys(Arcade.names);
+    const before = Object.fromEntries(keys.map(key => [key, Arcade.remaining(key)]));
+    const countersBefore = Object.fromEntries(keys.map(key => [key, Arcade.number(key + 'GamesPlayed')]));
+    const consumed = Object.fromEntries(keys.map(key => [key, Arcade.consume(key)]));
+    const after = Object.fromEntries(keys.map(key => [key, Arcade.remaining(key)]));
+    const countersAfter = Object.fromEntries(keys.map(key => [key, Arcade.number(key + 'GamesPlayed')]));
+    return {keys,before,after,consumed,countersBefore,countersAfter,unlimited:Arcade.hasUnlimitedPlays()};
+  });
+
+  expect(result.unlimited).toBe(true);
+  for (const key of result.keys) {
+    expect(result.before[key]).toBe(ArcadeFreePlaysFallback = 3);
+    expect(result.after[key]).toBe(3);
+    expect(result.consumed[key]).toBe(true);
+    expect(result.countersAfter[key]).toBe(result.countersBefore[key]);
+  }
+
+  await expect(page.locator('body')).not.toContainText('Private Test Run');
+  await expect(page.locator('body')).not.toContainText('Private tester access');
+  const snake = page.locator('[data-game="snake"]');
+  await expect(snake.locator('.game-play-button')).toHaveText('Play');
+});
+
+test('Normal account still runs out of plays normally', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await unlimitedAccountFixture(page, false);
   await page.goto('/games.html');
   const snake = page.locator('[data-game="snake"]');
   await expect(snake).toContainText('0 plays left');
   await expect(snake.locator('.game-play-button')).toHaveText('Come Back Tomorrow');
-  await expect(snake).not.toContainText('Private Test');
-  await expect(snake).not.toContainText('Private tester access');
+  expect(await page.evaluate(() => Arcade.hasUnlimitedPlays())).toBe(false);
 });
 
-test('Private Snake tester can run at zero plays without rewards or progression', async ({page},info) => {
+test('Unlimited account Snake run is a normal leaderboard-eligible run', async ({page},info) => {
   await page.setViewportSize({width:390,height:844});
-  await privateTesterFixture(page, true);
-  await page.goto('/games.html');
-  const snakeCard = page.locator('[data-game="snake"]');
-  await expect(snakeCard.locator('.game-play-button')).toHaveText('🧪 Private Test Run');
-  await expect(snakeCard).toContainText('Private tester access');
-  await press(snakeCard.locator('.game-play-button'),info);
-  await expect(page).toHaveURL(/snake\.html\?test=1/);
-  await expect(page.locator('#startButton')).toHaveText('🧪 Start Private Test Run');
+  await unlimitedAccountFixture(page, true);
+  await page.goto('/snake.html');
 
   const before = await page.evaluate(() => ({
     points:Arcade.number('points'),
     best:Arcade.best('snake').value,
     runs:Arcade.number('gameRuns_snake'),
-    games:Arcade.number('gamesCompletedEver'),
-    plays:Arcade.remaining('snake')
+    plays:Arcade.remaining('snake'),
+    played:Arcade.number('snakeGamesPlayed')
   }));
 
   await press(page.locator('#startButton'),info);
   await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
-  expect(await page.evaluate(()=>snakeTestRun)).toBe(true);
+  expect(await page.evaluate(()=>snakeTestRun)).toBe(false);
+
   await page.evaluate(() => {
     clearInterval(game);
     game=setInterval(()=>{},10000);
     score=9;
-    gameOver('🧪 Forced tester finish');
+    gameOver('🧪 Forced unlimited-account finish');
   });
 
-  await expect(page.locator('dialog')).toBeVisible();
-  await expect(page.locator('dialog')).toContainText('Private test run');
-  await expect(page.locator('dialog')).toContainText('no Coins, XP, best score, missions, or leaderboard changes');
+  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('dialog.game-result-dialog')).not.toContainText('Private test run');
+  await expect.poll(async () => page.evaluate(() => window.__leaderboardSubmissions.some(item => item.game === 'snake' && item.score >= 9))).toBe(true);
 
   const after = await page.evaluate(() => ({
     points:Arcade.number('points'),
     best:Arcade.best('snake').value,
     runs:Arcade.number('gameRuns_snake'),
-    games:Arcade.number('gamesCompletedEver'),
-    plays:Arcade.remaining('snake')
+    plays:Arcade.remaining('snake'),
+    played:Arcade.number('snakeGamesPlayed')
   }));
-  expect(after).toEqual(before);
+  expect(after.plays).toBe(3);
+  expect(after.played).toBe(before.played);
+  expect(after.runs).toBe(before.runs + 1);
+  expect(after.best).toBeGreaterThanOrEqual(9);
+  expect(after.points).toBeGreaterThanOrEqual(before.points);
 });
