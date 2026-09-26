@@ -42,6 +42,10 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     expect(Math.max(...ready.rows)-Math.min(...ready.rows)).toBeLessThan(3);
     await info.attach('snake-ready-'+size.width,{body:await page.screenshot(),contentType:'image/png'});
     await press(start,info); await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+    // Freeze autonomous movement only while validating the physical dock. On a
+    // wide WebKit viewport the real Snake can otherwise reach a wall while
+    // Playwright waits for post-layout stability, making a valid button vanish.
+    await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
     await expect(page.locator('#snakeControlDock')).toBeVisible();
     await expect(page.locator('#snakeControlDock')).toContainText('Swipe anywhere or tap arrows');
     await expect(page.locator('#snakeControlDock [data-direction]')).toHaveCount(4);
