@@ -145,3 +145,81 @@ test('Snake mobile: physical Quit stays above the real countdown overlay',async(
   await expect(page).toHaveURL(/games\.html/);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active/);
 });
+
+
+test('Snake: moving into a vacating tail cell is legal, but a growing tail stays solid', async ({page},info) => {
+  await page.setViewportSize({width:390,height:844});
+  await snakeFixture(page);
+  await page.goto('/snake.html');
+  await press(page.locator('#startButton'),info);
+  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+
+  const legal = await page.evaluate(() => {
+    clearInterval(game);
+    game = setInterval(()=>{},10000);
+    snake = [
+      {x:40,y:40},
+      {x:40,y:60},
+      {x:60,y:60},
+      {x:60,y:40}
+    ];
+    direction = nextDirection = 'RIGHT';
+    food = {x:200,y:200};
+    draw();
+    return {gameAlive:game!==null,head:snake[0],length:snake.length};
+  });
+  expect(legal.gameAlive).toBe(true);
+  expect(legal.head).toEqual({x:60,y:40});
+  expect(legal.length).toBe(4);
+
+  const growingCollision = await page.evaluate(() => {
+    clearInterval(game);
+    game = setInterval(()=>{},10000);
+    snake = [
+      {x:40,y:40},
+      {x:40,y:60},
+      {x:60,y:60},
+      {x:60,y:40}
+    ];
+    direction = nextDirection = 'RIGHT';
+    food = {x:60,y:40};
+    draw();
+    return game;
+  });
+  expect(growingCollision).toBeNull();
+  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('dialog.game-result-dialog')).toContainText('Hit your tail');
+});
+
+test('Snake: apple pickup flashes immediately and wall deaths explain what happened', async ({page},info) => {
+  await page.setViewportSize({width:390,height:844});
+  await snakeFixture(page);
+  await page.goto('/snake.html');
+  await press(page.locator('#startButton'),info);
+  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+
+  const pickup = await page.evaluate(() => {
+    clearInterval(game);
+    game = setInterval(()=>{},10000);
+    snake = [{x:40,y:40}];
+    direction = nextDirection = 'RIGHT';
+    food = {x:60,y:40};
+    score = 0;
+    draw();
+    return {score,head:snake[0],flashing:canvas.classList.contains('snake-apple-collected')};
+  });
+  expect(pickup.score).toBe(1);
+  expect(pickup.head).toEqual({x:60,y:40});
+  expect(pickup.flashing).toBe(true);
+
+  await page.evaluate(() => {
+    clearInterval(game);
+    game = setInterval(()=>{},10000);
+    snake = [{x:380,y:200}];
+    direction = nextDirection = 'RIGHT';
+    food = {x:100,y:100};
+    draw();
+  });
+  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('dialog.game-result-dialog')).toContainText('Hit the wall');
+});
