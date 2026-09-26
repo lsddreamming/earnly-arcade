@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Games</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=32">
+  <link rel="stylesheet" href="premium.css?v=33">
 </head>
 <body class="games-dashboard">
   <main class="container">
@@ -29,7 +29,7 @@
     <header class="games-hero">
       <span class="games-eyebrow">ARCADE</span>
       <h1>Pick a game</h1>
-      <p>Choose a game, use a free play, and earn XP plus score-based Arcade Coins.</p>
+      <p>Find your next run.</p>
     </header>
 
     <div class="games-simple-note">
@@ -259,9 +259,12 @@
         bestLine.hidden = !best.value;
         bestLine.textContent = best.value ? '🏆 Best: ' + best.display : '';
 
-        const play = document.createElement('button');
+        // A direct link gives iPhone taps immediate native navigation and keeps
+        // the destination usable even while cloud data refreshes in the background.
+        const play = document.createElement(remaining ? 'a' : 'button');
         play.className = 'wide game-play-button';
-        play.disabled = !remaining && adStatus.remaining <= 0 && !privateSnakeTester;
+        if (remaining) play.href = info.href;
+        else play.disabled = adStatus.remaining <= 0 && !privateSnakeTester;
         play.textContent = remaining
           ? 'Play'
           : (privateSnakeTester
@@ -275,9 +278,8 @@
                 ? 'Start a private Snake test run with no rewards'
                 : (adStatus.remaining > 0 ? 'Watch a voluntary rewarded ad for 1 more '+info.name+' play' : info.name+' plays refill tomorrow'))
         );
-        play.addEventListener('click', () => {
-          if (remaining) location.href = info.href;
-          else if (privateSnakeTester) location.href = 'snake.html?test=1';
+        if (!remaining) play.addEventListener('click', () => {
+          if (privateSnakeTester) location.href = 'snake.html?test=1';
           else if (adStatus.remaining > 0) Arcade.out(info.key, render);
         });
 
@@ -325,7 +327,6 @@
 
     render();
     window.addEventListener('pageshow', render);
-    window.addEventListener('focus', render);
     window.addEventListener('storage', render);
     window.addEventListener('earnly-data-change', render);
     window.addEventListener('earnly-cloud-synced', render);

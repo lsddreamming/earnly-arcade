@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Games</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=6">
+  <link rel="stylesheet" href="premium.css?v=33">
 </head>
 <body class="games-dashboard">
   <main class="container">
@@ -29,33 +29,29 @@
     <header class="games-hero">
       <span class="games-eyebrow">ARCADE</span>
       <h1>Pick a game</h1>
-      <p>Choose a game, use a free play, and earn XP plus score-based Arcade Coins.</p>
+      <p>Find your next run.</p>
     </header>
 
     <div class="games-simple-note">
       <span>🎟️ 3 free plays per game</span>
       <details>
-        <summary>ⓘ Rewards</summary>
-        <p>Play games to earn XP and score-based Arcade Coins. Optional rewarded ads only unlock extra plays.</p>
+        <summary>ⓘ How it works</summary>
+        <p>Pick a game and play for a score to earn XP and Arcade Coins. Optional rewarded ads unlock extra plays.</p>
       </details>
     </div>
 
-    <section class="games-start-here" aria-label="How to play Earnly">
-      <strong>New here? Start in 3 steps</strong>
-      <span>1. Pick a game &nbsp; 2. Play for a score &nbsp; 3. Earn Coins + XP</span>
-    </section>
-
-    <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
-      <strong>🎯 Missions</strong>
-      <span id="gamesMissionSummary">0/3 complete</span>
-      <span class="play-pill" id="gamesMissionCount">0/3</span>
-      <span class="mission-arrow" aria-hidden="true">›</span>
-    </a>
-
-    <a class="games-start-here" href="leaderboards.html" aria-label="Open world leaderboards">
-      <strong>🏆 World Leaderboards</strong>
-      <span>See the top players · chase a world record →</span>
-    </a>
+    <div class="games-shortcuts" aria-label="Arcade shortcuts">
+      <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
+        <strong>🎯 Missions</strong>
+        <span id="gamesMissionSummary">0/3 complete</span>
+        <span class="play-pill" id="gamesMissionCount">0/3</span>
+        <span class="mission-arrow" aria-hidden="true">›</span>
+      </a>
+      <a class="games-start-here games-leaderboard-link" href="leaderboards.html" aria-label="Open world leaderboards">
+        <strong>🏆 Leaderboards</strong>
+        <span>World top scores →</span>
+      </a>
+    </div>
 
     <div id="quickSections"></div>
 
@@ -263,9 +259,12 @@
         bestLine.hidden = !best.value;
         bestLine.textContent = best.value ? '🏆 Best: ' + best.display : '';
 
-        const play = document.createElement('button');
+        // A direct link gives iPhone taps immediate native navigation and keeps
+        // the destination usable even while cloud data refreshes in the background.
+        const play = document.createElement(remaining ? 'a' : 'button');
         play.className = 'wide game-play-button';
-        play.disabled = !remaining && adStatus.remaining <= 0 && !privateSnakeTester;
+        if (remaining) play.href = info.href;
+        else play.disabled = adStatus.remaining <= 0 && !privateSnakeTester;
         play.textContent = remaining
           ? 'Play'
           : (privateSnakeTester
@@ -279,9 +278,8 @@
                 ? 'Start a private Snake test run with no rewards'
                 : (adStatus.remaining > 0 ? 'Watch a voluntary rewarded ad for 1 more '+info.name+' play' : info.name+' plays refill tomorrow'))
         );
-        play.addEventListener('click', () => {
-          if (remaining) location.href = info.href;
-          else if (privateSnakeTester) location.href = 'snake.html?test=1';
+        if (!remaining) play.addEventListener('click', () => {
+          if (privateSnakeTester) location.href = 'snake.html?test=1';
           else if (adStatus.remaining > 0) Arcade.out(info.key, render);
         });
 
@@ -329,7 +327,6 @@
 
     render();
     window.addEventListener('pageshow', render);
-    window.addEventListener('focus', render);
     window.addEventListener('storage', render);
     window.addEventListener('earnly-data-change', render);
     window.addEventListener('earnly-cloud-synced', render);
