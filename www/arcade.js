@@ -1674,7 +1674,7 @@ const Arcade = (() => {
     if (best) {
       const bestLine = document.createElement('div');
       bestLine.className = 'result-best';
-      bestLine.textContent = (result?.newBest ? 'Previous best beaten · New best: ' : '🏆 Best: ') + best;
+      bestLine.textContent = result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + best;
       main.append(bestLine);
     }
 
@@ -1750,7 +1750,8 @@ const Arcade = (() => {
           if (myEntry) {
             footer.textContent = '🌎 Your world rank: #' + myEntry.rank + ' · View full leaderboard →';
           } else if (third > mine && mine > 0) {
-            footer.textContent = '🔥 ' + (third - mine).toLocaleString() + ' from Top 3 · View leaderboard →';
+            const gap = third - mine;
+            footer.textContent = '🔥 ' + gap.toLocaleString() + ' ' + leaderboardUnitLabel(data?.label || scoreLabel, gap) + ' away from Top 3 · View leaderboard →';
           } else {
             footer.textContent = '🌎 View full world leaderboard →';
           }
@@ -3297,12 +3298,39 @@ const Arcade = (() => {
     return value.toLocaleString() + (data?.label ? ' ' + data.label : '');
   }
 
-  function compactLeaderboardGap(myBest, thirdScore) {
+  function leaderboardUnitLabel(label, value) {
+    const raw = String(label || 'points').trim().toLowerCase() || 'points';
+    const plural = raw === 'score' ? 'points' : raw;
+    if (Number(value) !== 1) return plural;
+
+    const singular = {
+      points:'point',
+      apples:'apple',
+      rows:'row',
+      cars:'car',
+      coins:'coin',
+      moves:'move',
+      blocks:'block',
+      seconds:'second',
+      matches:'match',
+      passes:'pass',
+      waves:'wave',
+      bricks:'brick',
+      dodges:'dodge'
+    };
+    if (singular[plural]) return singular[plural];
+    if (plural.endsWith('ies')) return plural.slice(0, -3) + 'y';
+    if (plural.endsWith('s') && !plural.endsWith('ss')) return plural.slice(0, -1);
+    return plural;
+  }
+
+  function compactLeaderboardGap(myBest, thirdScore, label) {
     const mine = Math.max(0, Math.floor(Number(myBest) || 0));
     const target = Math.max(0, Math.floor(Number(thirdScore) || 0));
     if (!target) return '';
     if (mine >= target) return '🏆 You are in Top 3 range!';
-    return '🔥 ' + (target - mine).toLocaleString() + ' points from Top 3';
+    const gap = target - mine;
+    return '🔥 ' + gap.toLocaleString() + ' ' + leaderboardUnitLabel(label, gap) + ' away from Top 3';
   }
 
   function mountCompactLeaderboard() {
@@ -3429,7 +3457,7 @@ const Arcade = (() => {
         });
 
         const thirdScore = entries.length >= 3 ? Number(entries[2].score || 0) : 0;
-        const gap = compactLeaderboardGap(localBest, thirdScore);
+        const gap = compactLeaderboardGap(localBest, thirdScore, data?.label);
         const mine = localBest > 0 ? 'Your best: ' + localBest.toLocaleString() : 'No personal best yet';
         target.textContent = gap ? mine + ' · ' + gap : mine + ' · Beat a score above to climb the board';
         return true;

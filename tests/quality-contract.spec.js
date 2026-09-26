@@ -309,3 +309,18 @@ test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage gu
   expect(workflow).toContain('MARKETING_VERSION=1.0');
   expect(arcadeVersionSource).toContain("const APP_VERSION = '1.1.0';");
 });
+
+
+test('results use game-specific leaderboard gap copy without duplicate best text', () => {
+  const arcade = read('arcade.js');
+  const nativeArcade = read('www/arcade.js');
+
+  for (const source of [arcade, nativeArcade]) {
+    expect(source).toContain("Previous best beaten!");
+    expect(source).toContain("function leaderboardUnitLabel(label, value)");
+    expect(source).toContain("compactLeaderboardGap(localBest, thirdScore, data?.label)");
+    expect(source).toContain("away from Top 3 · View leaderboard →");
+    expect(source).not.toContain("Previous best beaten · New best:");
+    expect(source).not.toContain(" from Top 3 · View leaderboard →");
+  }
+});

@@ -364,6 +364,8 @@ test('result popup clearly shows rewards, time, and replay state', async ({ page
   const dialog = page.locator('dialog.game-result-dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('NEW BEST');
+  await expect(dialog.locator('.result-best')).toHaveText('Previous best beaten!');
+  await expect(dialog).not.toContainText('New best:');
   await expect(dialog).toContainText('Coins Earned');
   await expect(dialog).toContainText('XP Earned');
   await expect(dialog).toContainText('Level');
