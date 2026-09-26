@@ -30,31 +30,46 @@
     return current?.user || null;
   }
 
-  let testerState = Object.freeze({ loaded:false, isTester:false, snakeUnlimited:false });
+  let testerState = Object.freeze({
+    loaded:sessionStorage.getItem('earnlyUnlimitedPlays') === '1',
+    isTester:sessionStorage.getItem('earnlyUnlimitedPlays') === '1',
+    unlimitedPlays:sessionStorage.getItem('earnlyUnlimitedPlays') === '1',
+    snakeUnlimited:sessionStorage.getItem('earnlyUnlimitedPlays') === '1'
+  });
 
   function testerAccess(){
     return { ...testerState };
   }
 
+  function cacheUnlimitedPlayAccess(enabled){
+    if (enabled) sessionStorage.setItem('earnlyUnlimitedPlays', '1');
+    else sessionStorage.removeItem('earnlyUnlimitedPlays');
+  }
+
   async function refreshTesterAccess(){
     const current = await session();
     if (!current?.user) {
-      testerState = Object.freeze({ loaded:true, isTester:false, snakeUnlimited:false });
+      cacheUnlimitedPlayAccess(false);
+      testerState = Object.freeze({ loaded:true, isTester:false, unlimitedPlays:false, snakeUnlimited:false });
       window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
       return testerAccess();
     }
 
     const { data, error } = await requireClient().rpc('my_tester_entitlements');
     if (error) {
-      testerState = Object.freeze({ loaded:true, isTester:false, snakeUnlimited:false });
+      cacheUnlimitedPlayAccess(false);
+      testerState = Object.freeze({ loaded:true, isTester:false, unlimitedPlays:false, snakeUnlimited:false });
       window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
       return testerAccess();
     }
 
+    const unlimited = data?.unlimitedPlays === true;
+    cacheUnlimitedPlayAccess(unlimited);
     testerState = Object.freeze({
       loaded:true,
       isTester:data?.isTester === true,
-      snakeUnlimited:data?.snakeUnlimited === true
+      unlimitedPlays:unlimited,
+      snakeUnlimited:data?.snakeUnlimited === true || unlimited
     });
     window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
     return testerAccess();
@@ -896,7 +911,8 @@
       }
 
       if (event === 'SIGNED_OUT' || !currentSession?.user) {
-        testerState = Object.freeze({ loaded:true, isTester:false, snakeUnlimited:false });
+        cacheUnlimitedPlayAccess(false);
+        testerState = Object.freeze({ loaded:true, isTester:false, unlimitedPlays:false, snakeUnlimited:false });
         window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
       } else {
         refreshTesterAccess().catch(() => {});

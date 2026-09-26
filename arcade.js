@@ -1163,8 +1163,15 @@ const Arcade = (() => {
 
   }
 
+  function hasUnlimitedPlays() {
+    const cloudState = window.EarnlyCloud?.testerAccess?.();
+    if (cloudState?.loaded === true) return cloudState.unlimitedPlays === true;
+    return sessionStorage.getItem('earnlyUnlimitedPlays') === '1';
+  }
+
   function remaining(g) {
     refreshDaily();
+    if (hasUnlimitedPlays()) return FREE_PLAYS;
     return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
   }
 
@@ -1213,12 +1220,16 @@ const Arcade = (() => {
     consumeLocks.add(g);
 
     try {
-      setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+      const unlimited = hasUnlimitedPlays();
+      if (!unlimited) {
+        setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+      }
       markRecent(g);
       queueEvent('play_started', {
         game:g,
         playsUsed:number(g + 'GamesPlayed'),
-        bonusPlays:number(g + 'BonusPlays')
+        bonusPlays:number(g + 'BonusPlays'),
+        unlimitedPlays:unlimited
       });
       return true;
     } finally {
@@ -3708,6 +3719,7 @@ const Arcade = (() => {
     FREE_PLAYS,
     PLAY_AD_BONUS,
     PLAY_AD_DAILY_LIMIT,
+    hasUnlimitedPlays,
     remaining,
     playAdStatus,
     resetPrototypePlays,
