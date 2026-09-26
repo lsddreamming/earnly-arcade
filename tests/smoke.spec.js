@@ -1097,10 +1097,18 @@ test('game catalog search filters cleanly and recovers', async ({ page }) => {
 test('game start screen explains plays reward and controls before play', async ({ page }) => {
   await page.goto('/snake.html');
   const summary = page.locator('.game-start-summary');
-  await expect(summary).toBeVisible();
-  await expect(summary.locator('.game-start-plays')).toContainText('play');
-  await expect(summary.locator('.game-start-reward')).toContainText('Coin');
-  await expect(summary.locator('.game-start-control')).toContainText('Steer');
+  if (await page.evaluate(() => matchMedia('(max-width:699px)').matches)) {
+    await expect(summary).toBeHidden();
+    await expect(page.locator('.snake-stats')).toContainText('Plays');
+    await expect(page.locator('.snake-quick-tip')).toContainText('Swipe anywhere');
+    await page.locator('.game-guide-more summary').click();
+    await expect(page.locator('.game-guide-more')).toContainText('Max 30 Coins per run');
+  } else {
+    await expect(summary).toBeVisible();
+    await expect(summary.locator('.game-start-plays')).toContainText('play');
+    await expect(summary.locator('.game-start-reward')).toContainText('Coin');
+    await expect(summary.locator('.game-start-control')).toContainText('Steer');
+  }
   await expect(page.locator('#startButton')).toHaveCount(1);
 });
 
@@ -1925,3 +1933,5 @@ test('Neon Maze uses original energy-core and sentry visual language', async ({ 
 
 // Guard the actual entry layout at narrow and large iPhone sizes.
 require('./compact-game-entry.cases.js');
+
+require('./snake-mobile.cases');

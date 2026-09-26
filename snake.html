@@ -15,11 +15,12 @@
   <title>Earnly Snake</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=14">
+  <link rel="stylesheet" href="snake-ui.css?v=1">
 </head>
 <body class="snake-page">
   <main class="container">
-    <div class="topbar">
-      <a class="brand" href="games.html">← Games</a>
+    <div class="topbar snake-toolbar" aria-label="Snake navigation and pause">
+      <a id="snakeExit" class="brand snake-exit" href="games.html">← Games</a>
       <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
     </div>
 
@@ -35,7 +36,8 @@
       </div>
     </header>
 
-    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <button class="green wide" id="startButton" type="button">▶ Start Snake</button>
+    <p class="snake-quick-tip">Swipe anywhere to steer · Eat apples, avoid walls</p>
 
     <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
 
@@ -48,7 +50,7 @@
       </div>
     </div>
 
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <a class="button wide secondary snake-back-link" href="games.html">← Back to Games</a>
   </main>
 
   <div id="snakeControlLayer" class="snake-control-layer" aria-hidden="true" hidden></div>
@@ -123,6 +125,7 @@
     let score = 0;
     let game = null;
     let starting = false;
+    let snakeRunGeneration = 0;
 
     function snakeReward(apples) {
       let coins = Math.floor(apples / 3);
@@ -139,11 +142,15 @@
       playsEl.textContent = Arcade.remaining('snake');
       balanceEl.textContent = Arcade.number('points').toLocaleString();
       rewardPreviewEl.textContent = snakeReward(score);
+      if (game === null && !starting) {
+        startButton.textContent = Arcade.remaining('snake') > 0 ? '▶ Start Snake' : '🎟 Get More Plays';
+      }
     }
 
     function setStatus(text, mode) {
       statusEl.textContent = text;
       statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
+      document.getElementById('snakeExit').textContent = /running|ready…|get ready|paused/i.test(text) ? '× Quit' : '← Games';
     }
 
     function setDirection(newDirection) {
@@ -495,7 +502,7 @@
 
       starting = false;
       startButton.disabled = false;
-      startButton.textContent = '👆 Tap Game to Play Again · or press Enter';
+      startButton.textContent = Arcade.remaining('snake') > 0 ? '▶ Play Again' : '🎟 Get More Plays';
       setStatus('Game Over', 'over');
 
       Arcade.gameResult({
@@ -517,6 +524,7 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame() {
       if (game !== null || starting) return;
+      const runGeneration = ++snakeRunGeneration;
       starting = true;
 
       if (!Arcade.consume('snake')) {
@@ -536,10 +544,12 @@
       refreshChrome();
       startButton.disabled = true;
       startButton.textContent = 'Get Ready…';
+      window.scrollTo(0, 0);
       setStatus('Get Ready');
       enableFullScreenSteering();
 
       Arcade.countdown(() => {
+        if (runGeneration !== snakeRunGeneration || !starting) return;
         starting = false;
         earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
@@ -548,7 +558,7 @@
       });
     }
 
-    Arcade.installPauseControl({
+    const snakePauseControl = Arcade.installPauseControl({
       isRunning:()=>game!==null,
       pause:()=>{
         if(game===null||game==='paused'||pauseStartedAt)return;
@@ -564,6 +574,60 @@
         game=setInterval(draw,120);
       }
     });
+    // Keep the existing shared Pause/Resume control above the full-screen steering layer.
+    const snakeToolbar = document.querySelector('.snake-toolbar');
+    if (snakePauseControl) snakeToolbar.append(snakePauseControl.button);
+
+    // Quit abandons the run just like the old Games link; it does not grant rewards.
+    function stopSnakeRun() {
+      snakeRunGeneration += 1;
+      clearInterval(game);
+      game = null;
+      starting = false;
+      pauseStartedAt = 0;
+      disableFullScreenSteering();
+      startButton.disabled = false;
+      setStatus('Ready');
+      snakePauseControl?.sync();
+      Arcade.setGameplayScrollLock(false);
+      refreshChrome();
+    }
+    document.getElementById('snakeExit').addEventListener('click', stopSnakeRun);
+    window.addEventListener('pagehide', stopSnakeRun);
+
+    // Fit a square board to the actual visible iPhone viewport, not a guessed header height.
+    let snakeFitFrame = 0;
+    function fitSnakeBoard() {
+      cancelAnimationFrame(snakeFitFrame);
+      snakeFitFrame = requestAnimationFrame(() => {
+        if (!matchMedia('(max-width:699px)').matches) {
+          document.body.style.removeProperty('--snake-board-size');
+          return;
+        }
+        const wrapper = snakeGuide?.wrapper;
+        if (!wrapper) return;
+        const active = document.body.classList.contains('snake-game-active');
+        const viewportHeight = window.visualViewport?.height || innerHeight;
+        const nav = document.getElementById('arcadeBottomNav');
+        const navTop = nav && getComputedStyle(nav).display !== 'none'
+          ? nav.getBoundingClientRect().top : viewportHeight;
+        const bottom = Math.min(viewportHeight, navTop);
+        const top = wrapper.getBoundingClientRect().top;
+        const bottomInset = active ? Math.max(16, parseFloat(getComputedStyle(document.querySelector('main.container')).paddingBottom) || 0) : 52;
+                  const available = bottom - top - bottomInset;
+        const side = Math.max(160, Math.floor(Math.min(innerWidth - 28, 440, available)));
+        document.body.style.setProperty('--snake-board-size', side + 'px');
+      });
+    }
+    new MutationObserver(fitSnakeBoard).observe(statusEl, {childList:true,subtree:true,attributes:true});
+    const snakeLayoutObserver = new ResizeObserver(fitSnakeBoard);
+    for (const element of [snakeToolbar, document.querySelector('.snake-header'), document.getElementById('earnlyCompactLeaderboard'), document.getElementById('arcadeBottomNav')]) {
+      if (element) snakeLayoutObserver.observe(element);
+    }
+    window.addEventListener('resize', fitSnakeBoard);
+    window.visualViewport?.addEventListener('resize', fitSnakeBoard);
+    window.addEventListener('pageshow', fitSnakeBoard);
+    fitSnakeBoard();
     startButton.addEventListener('click', startGame);
     refreshChrome();
     draw();
