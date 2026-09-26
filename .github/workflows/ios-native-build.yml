@@ -46,6 +46,12 @@ jobs:
           npx cap sync ios
           node scripts/configure-ios.mjs
 
+      - name: Verify iOS release metadata
+        run: |
+          grep -q "MARKETING_VERSION = 1.1;" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "CURRENT_PROJECT_VERSION = 2;" ios/App/App.xcodeproj/project.pbxproj
+          echo "Verified Earnly Arcade iOS 1.1 build 2"
+
       - name: Show Xcode version
         run: xcodebuild -version
 
