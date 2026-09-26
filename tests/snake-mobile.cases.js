@@ -271,7 +271,7 @@ test('Unlimited account keeps plays available across every game without a tester
 
   expect(result.unlimited).toBe(true);
   for (const key of result.keys) {
-    expect(result.before[key]).toBe(ArcadeFreePlaysFallback = 3);
+    expect(result.before[key]).toBe(3);
     expect(result.after[key]).toBe(3);
     expect(result.consumed[key]).toBe(true);
     expect(result.countersAfter[key]).toBe(result.countersBefore[key]);
