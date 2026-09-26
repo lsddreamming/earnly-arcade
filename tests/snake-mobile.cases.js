@@ -237,11 +237,15 @@ async function privateTesterFixture(page, enabled) {
     localStorage.setItem('snakeBonusPlays','0');
     localStorage.setItem('snakePlayAdUnlocks','99');
     const state = {loaded:true,isTester:enabled,snakeUnlimited:enabled};
+    window.__testerLeaderboardSubmissions = [];
     window.EarnlyCloud = {
       testerAccess:() => ({...state}),
       refreshTesterAccess:async() => ({...state}),
       leaderboard:async () => ({entries:[],label:'apples',lowerIsBetter:false}),
-      submitLeaderboardScore:async () => ({ok:true})
+      submitLeaderboardScore:async (game, score) => {
+        window.__testerLeaderboardSubmissions.push({game,score});
+        return {ok:true,saved:true,rank:7};
+      }
     };
   }, {enabled});
 }
@@ -257,13 +261,14 @@ test('Private Snake tester access is invisible to normal accounts at zero plays'
   await expect(snake).not.toContainText('Private tester access');
 });
 
-test('Private Snake tester can run at zero plays without rewards or progression', async ({page},info) => {
+test('Private Snake tester can submit leaderboard scores without rewards or progression', async ({page},info) => {
   await page.setViewportSize({width:390,height:844});
   await privateTesterFixture(page, true);
   await page.goto('/games.html');
   const snakeCard = page.locator('[data-game="snake"]');
   await expect(snakeCard.locator('.game-play-button')).toHaveText('🧪 Private Test Run');
   await expect(snakeCard).toContainText('Private tester access');
+  await expect(snakeCard).toContainText('leaderboard scores count');
   await press(snakeCard.locator('.game-play-button'),info);
   await expect(page).toHaveURL(/snake\.html\?test=1/);
   await expect(page.locator('#startButton')).toHaveText('🧪 Start Private Test Run');
@@ -287,8 +292,9 @@ test('Private Snake tester can run at zero plays without rewards or progression'
   });
 
   await expect(page.locator('dialog')).toBeVisible();
-  await expect(page.locator('dialog')).toContainText('Private test run');
-  await expect(page.locator('dialog')).toContainText('no Coins, XP, best score, missions, or leaderboard changes');
+  await expect(page.locator('dialog')).toContainText('Leaderboard eligible');
+  await expect(page.locator('dialog')).toContainText('No Coins, XP, saved-device best, missions, achievements, or plays are changed');
+  await expect.poll(async () => page.evaluate(() => window.__testerLeaderboardSubmissions)).toEqual([{game:'snake',score:9}]);
 
   const after = await page.evaluate(() => ({
     points:Arcade.number('points'),
