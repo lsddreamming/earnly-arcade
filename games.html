@@ -295,7 +295,7 @@
           const status = document.createElement('div');
           status.className = 'status-line ' + (adStatus.remaining > 0 && !privateSnakeTester ? 'warning' : '');
           status.textContent = privateSnakeTester
-            ? '🧪 Private tester access · test runs earn no Coins, XP, best score, missions, or leaderboard changes'
+            ? '🧪 Private tester access · leaderboard scores count · no Coins, XP, saved best, missions, achievements, or play use'
             : (adStatus.remaining > 0
                 ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +1 play each'
                 : 'Daily bonus-play limit reached · free plays refill tomorrow');
