@@ -2722,5 +2722,75 @@ body.games-dashboard #games .game-card-footer .game-play-button:not(:disabled):a
   body.games-dashboard #games .game-card-footer{min-height:44px!important}
   body.games-dashboard #games .game-card-footer .game-play-button{min-height:44px!important;height:44px!important}
   body.games-dashboard #games .reward-rule{font-size:12px!important;line-height:1.35!important}
-  body.games-dashboard #games .game-card-footer .game-best{font-size:10.5px!important}
+body.games-dashboard #games .game-card-footer .game-best{font-size:10.5px!important}
+}
+
+/* Neon blue page polish: emphasis stays on actions and current progress. */
+:root{--earnly-neon:#39caff;--earnly-neon-soft:rgba(57,202,255,.34)}
+body.home-dashboard,body.games-dashboard,body.missions-dashboard,
+body.rewards-dashboard,body.profile-dashboard,body.leaderboards-dashboard,
+body.settings-dashboard,body.account-dashboard,body.support-dashboard{
+  background:radial-gradient(circle at 50% -8%,rgba(26,151,255,.23),transparent 28rem),
+    radial-gradient(circle at 100% 22%,rgba(44,109,255,.09),transparent 24rem),
+    linear-gradient(180deg,#081626 0%,#07111f 48%,#050c18 100%);
+}
+.home-eyebrow,.games-eyebrow,.missions-eyebrow,.profile-eyebrow,
+.rewards-eyebrow,.rewards-kicker,.section-kicker{color:#75e1ff!important}
+.home-primary-play,.rewards-balance-card,.profile-dashboard .profile-hero,
+.missions-dashboard .missions-weekly-card,.leaderboards-dashboard .leaderboard-hero{
+  border-color:rgba(68,202,255,.52)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 0 24px rgba(31,158,255,.14),0 14px 32px rgba(0,0,0,.22)!important;
+}
+.home-primary-play{
+  background:radial-gradient(circle at 92% 0%,rgba(72,225,255,.25),transparent 48%),
+    linear-gradient(120deg,#11497e,#2455b0 74%,#2c72d0)!important;
+}
+.leaderboards-dashboard .leaderboard-hero{
+  background:radial-gradient(circle at 88% 0%,rgba(57,202,255,.18),transparent 45%),
+    linear-gradient(145deg,#193553,#0d1c30)!important;
+}
+.home-primary-play b,.rewards-play-link{
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+  text-shadow:0 1px 3px rgba(0,20,46,.45);
+}
+.home-overview,.home-panel,.home-dashboard .continue-card,
+.profile-dashboard .profile-key-stats>div,.profile-dashboard .profile-secondary-stats>div,
+.missions-dashboard .missions-player-strip,.missions-dashboard .missions-highlights>div,
+.rewards-dashboard .rewards-basic-item,.rewards-dashboard .rewards-now-later article,
+.leaderboards-dashboard .leaderboard-card,.settings-dashboard .card,
+.account-dashboard .card,.support-dashboard .card{
+  border-color:rgba(80,177,244,.33)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.065),0 10px 25px rgba(0,0,0,.16)!important;
+}
+.home-section-heading>span:first-child,.profile-dashboard .profile-section-head h2,
+.rewards-dashboard .rewards-section-heading h2,.missions-dashboard .missions-weekly-head h2,
+.leaderboards-dashboard .leaderboard-head strong{color:#f9fcff;text-shadow:0 0 18px rgba(68,199,255,.12)}
+.home-xp-bar>span,.profile-dashboard .xp-bar>span,.missions-dashboard .xp-bar>span{
+  background:linear-gradient(90deg,#287cff,#44dfff)!important;
+  box-shadow:0 0 14px rgba(57,202,255,.43);
+}
+.home-row-button:not(:disabled),.home-challenge-button:not(:disabled),
+.profile-dashboard .profile-shortcuts a,.leaderboards-dashboard .leaderboard-toolbar select{
+  border-color:rgba(83,195,255,.38)!important;
+}
+.leaderboards-dashboard .leaderboard-card,.leaderboards-dashboard .leaderboard-toolbar select,
+.settings-dashboard .app-status-card,.settings-dashboard .text-size-preview,
+.support-dashboard .support-faq details{
+  background:linear-gradient(145deg,#162d49,#0d1b30)!important;
+}
+.settings-dashboard .setting-row,.settings-dashboard .text-size-options button,
+.account-dashboard .cloud-auth-fields input,.profile-dashboard .global-profile-fields input{
+  border-color:rgba(83,177,236,.36)!important;
+}
+.support-dashboard .support-faq details[open]{border-color:var(--earnly-neon-soft)!important}
+.leaderboards-dashboard .leaderboard-toolbar select:focus-visible,
+.settings-dashboard button:focus-visible,.account-dashboard input:focus-visible{
+  outline:2px solid var(--earnly-neon);outline-offset:2px;
+}
+@media(max-width:700px){
+  .home-primary-play{min-height:76px!important}
+  .leaderboards-dashboard .leaderboard-toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .leaderboards-dashboard .leaderboard-toolbar select,
+  .leaderboards-dashboard .leaderboard-toolbar .button{width:100%;min-height:44px}
+  .settings-dashboard .setting-row>div{min-width:0}
 }
