@@ -422,6 +422,9 @@
 
       ctx.save();
       ctx.translate(centerX, centerY);
+      // Keep the artwork comfortably inside its 20px grid cell so an apple
+      // cannot visually overlap a snake that is actually travelling beside it.
+      ctx.scale(.82, .82);
 
       ctx.strokeStyle = '#854d0e';
       ctx.lineWidth = 2;
@@ -453,6 +456,17 @@
       ctx.restore();
     }
 
+    let appleFlashTimer = 0;
+
+    function flashApplePickup() {
+      clearTimeout(appleFlashTimer);
+      canvas.classList.remove('snake-apple-collected');
+      // Force a class restart so back-to-back apples still produce feedback.
+      void canvas.offsetWidth;
+      canvas.classList.add('snake-apple-collected');
+      appleFlashTimer = setTimeout(() => canvas.classList.remove('snake-apple-collected'), 220);
+    }
+
     function draw() {
       direction = nextDirection;
 
@@ -471,21 +485,33 @@
       if (direction === 'DOWN') snakeY += box;
 
       const newHead = { x: snakeX, y: snakeY };
-
-      if (
+      const willEat = snakeX === food.x && snakeY === food.y;
+      const hitWall =
         snakeX < 0 ||
         snakeY < 0 ||
         snakeX >= canvas.width ||
-        snakeY >= canvas.height ||
-        snake.some(part => part.x === newHead.x && part.y === newHead.y)
-      ) {
-        gameOver();
+        snakeY >= canvas.height;
+
+      // On a normal move the tail leaves its current cell on this same tick,
+      // so moving into that vacated tail cell is legal. When eating, the tail
+      // stays put because the snake grows, so the full body remains solid.
+      const solidBody = willEat ? snake : snake.slice(0, -1);
+      const hitSelf = solidBody.some(part => part.x === newHead.x && part.y === newHead.y);
+
+      if (hitWall) {
+        gameOver('🧱 Hit the wall');
         return;
       }
 
-      if (snakeX === food.x && snakeY === food.y) {
+      if (hitSelf) {
+        gameOver('🐍 Hit your tail');
+        return;
+      }
+
+      if (willEat) {
         score += 1;
         Arcade.feedback('score');
+        flashApplePickup();
         scoreEl.textContent = score;
         rewardPreviewEl.textContent = snakeReward(score);
 
@@ -501,7 +527,7 @@
       snake.unshift(newHead);
     }
 
-    function gameOver() {
+    function gameOver(reason = '') {
       if (game === null) return;
       clearInterval(game);
       game = null;
@@ -529,7 +555,10 @@
         result,
         playsLeft:Arcade.remaining('snake'),
         game:'snake',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.'],
+        extra:[
+          '⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',
+          reason || (score >= 25 ? '🔥 Serious snake run.' : score >= 10 ? '🐍 Nice growth streak.' : 'Keep growing that snake.')
+        ],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('snake', refreshChrome)
       });
@@ -552,6 +581,8 @@
       nextDirection = 'RIGHT';
       syncDirectionButtons('RIGHT');
       score = 0;
+      clearTimeout(appleFlashTimer);
+      canvas.classList.remove('snake-apple-collected');
       scoreEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
       food = randomFood();
