@@ -2617,3 +2617,34 @@ body.snake-page .container>a.button.secondary.wide{
     max-height:min(62vh,400px)!important;
   }
 }
+
+/* Shared navigation and page rhythm */
+.bottom-nav{gap:2px!important;padding:5px 7px max(5px,env(safe-area-inset-bottom))!important}
+.bottom-nav-item{min-height:47px!important;gap:2px!important;padding:4px 1px!important;border-radius:11px!important}
+.bottom-nav-icon{font-size:18px!important}
+.bottom-nav-label{font-size:10px!important;letter-spacing:.01em}
+.bottom-nav-item.active{background:rgba(47,140,255,.14)!important}
+.bottom-nav-item.active::after{bottom:1px!important;width:18px!important;height:2px!important}
+.bottom-nav-item:focus-visible,.desktop-nav-item:focus-visible{outline:2px solid #69d6ff;outline-offset:2px}
+.has-app-nav .container{padding-bottom:max(90px,calc(65px + env(safe-area-inset-bottom)))!important}
+@media(max-width:700px){
+  .container{padding-left:max(14px,env(safe-area-inset-left))!important;padding-right:max(14px,env(safe-area-inset-right))!important}
+  .topbar,.rewards-topbar{min-height:40px!important;gap:8px!important;margin-bottom:8px!important}
+  .topbar .brand,.rewards-brand{font-size:15px!important;white-space:nowrap}
+  .topbar .balance-chip,.rewards-top-actions>a,.rewards-top-actions>span{min-height:36px!important;padding:6px 9px!important;font-size:12px!important}
+  .game-title-actions,.rewards-top-actions{gap:5px!important}
+  .games-hero,.missions-hero,.profile-hero,.rewards-hero,.leaderboard-hero{margin-top:3px!important;margin-bottom:10px!important}
+  .games-hero h1,.missions-hero h1,.profile-hero h1,.rewards-hero h1,.leaderboard-hero h1{line-height:1.08!important}
+  .games-hero p,.missions-hero p,.rewards-hero p,.leaderboard-hero p{line-height:1.35!important}
+  .games-dashboard .games-hero p{display:none}
+  .games-dashboard .games-simple-note{margin:4px 0 8px!important}
+  .games-dashboard .games-start-here{margin:5px 0!important;padding:9px 11px!important}
+  .games-dashboard .games-mission-strip{margin-top:8px!important}
+  .games-dashboard .game-browser-tools{margin-top:12px!important}
+  .leaderboard-hero{padding:14px!important}
+  .leaderboard-toolbar{margin:8px 0!important}
+}
+.games-how-to summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;list-style:none;color:#dbeafe;font-weight:800;font-size:12px}
+.games-how-to summary::-webkit-details-marker{display:none}
+.games-how-to[open] summary span{transform:rotate(180deg)}
+.games-how-to p{margin:7px 0 0;color:#a8b7cb;font-size:12px;line-height:1.4}
