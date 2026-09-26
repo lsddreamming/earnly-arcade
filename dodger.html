@@ -147,7 +147,7 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'Keep your car away from every falling obstacle. One collision ends the run.',
-        'The difficulty increases as the timer climbs toward 30 seconds.',
+        'Traffic begins closing two lanes at once. Read the open lane and move before the row reaches you.',
         'On a computer, use ← → or A / D. Press Enter or Space to start a run.'
       ],
       reward:'Survival time and obstacles dodged earn up to 20 Coins.'
@@ -165,6 +165,8 @@
     let nextSpawnAt=0;
     let dragAnchorClientX=null;
     let lastSecondShown=-1;
+    let lastOpenLane=1;
+    let lastLaneStep=1;
 
     function rewardFor(seconds,dodgedCount){
       let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
@@ -308,16 +310,15 @@
     }
 
     function difficultyFor(seconds){
-      if(seconds>=24) return {label:'MAX',speed:11.6,delay:270};
-      if(seconds>=18) return {label:'INTENSE',speed:10.1,delay:320};
-      if(seconds>=12) return {label:'FAST',speed:8.7,delay:385};
-      if(seconds>=6) return {label:'WARMING UP',speed:7.4,delay:455};
-      return {label:'CRUISE',speed:6.2,delay:540};
+      if(seconds>=24) return {label:'LANE SHIFT',speed:8.2,delay:940,pairChance:1};
+      if(seconds>=18) return {label:'TWO-LANE TRAFFIC',speed:7.9,delay:980,pairChance:1};
+      if(seconds>=12) return {label:'FIND THE GAP',speed:7.5,delay:1060,pairChance:.85};
+      if(seconds>=6) return {label:'FIND THE GAP',speed:7.1,delay:1140,pairChance:.65};
+      return {label:'CRUISE',speed:6.5,delay:1100,pairChance:0};
     }
 
     function trafficSpeedFor(seconds){
-      const stage=difficultyFor(seconds);
-      return Math.min(12.2,stage.speed+Math.max(0,seconds%6)*.10);
+      return difficultyFor(seconds).speed;
     }
 
     function spawnDelayFor(seconds){
@@ -325,17 +326,34 @@
     }
 
     function spawn(now){
-      const width=34+Math.random()*28;
       const seconds=Math.max(0,(now-startTime)/1000);
       const laneWidth=canvas.width/3;
-      const lane=Math.floor(Math.random()*3);
-      obstacles.push({
-        x:lane*laneWidth+(laneWidth-width)/2+(Math.random()-.5)*Math.min(20,laneWidth-width-6),
-        y:-32,
-        w:width,
-        h:24,
-        speed:trafficSpeedFor(seconds),
-        color:['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)]
+      const paired=Math.random()<difficultyFor(seconds).pairChance;
+      let lanes;
+      if(paired){
+        // Shift the opening by one lane per wave. A player can always reach
+        // the next gap; repeating the same safe edge cannot win the run.
+        const options=[lastOpenLane-1,lastOpenLane+1].filter(lane=>lane>=0 && lane<3);
+        const next=options.length===2
+          ? options[Math.random()<.72 ? (lastLaneStep>0 ? 1 : 0) : (lastLaneStep>0 ? 0 : 1)]
+          : options[0];
+        lastLaneStep=next-lastOpenLane;
+        lastOpenLane=next;
+        lanes=[0,1,2].filter(lane=>lane!==next);
+      }else{
+        lanes=[Math.floor(Math.random()*3)];
+      }
+      const color=['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)];
+      lanes.forEach(lane=>{
+        const width=paired?72:52;
+        obstacles.push({
+          x:lane*laneWidth+(laneWidth-width)/2,
+          y:-32,
+          w:width,
+          h:28,
+          speed:trafficSpeedFor(seconds),
+          color
+        });
       });
     }
 
@@ -579,6 +597,8 @@
       nextSpawnAt=0;
       dodged=0;
       lastSecondShown=-1;
+      lastOpenLane=1;
+      lastLaneStep=1;
       timeEl.textContent='0';
       dodgedEl.textContent='0';
       rewardPreviewEl.textContent='0';
