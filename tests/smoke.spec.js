@@ -24,6 +24,24 @@ async function startGame(page) {
   throw new Error('No visible game start control or touch surface found');
 }
 
+test('release legal pages are present linked and bundled for iOS', async ({ page }) => {
+  for (const path of ['privacy.html','support.html','terms.html']) {
+    const response=await page.request.get('/'+path);
+    expect(response.ok(), path).toBeTruthy();
+    const ios=await page.request.get('/www/'+path);
+    expect(ios.ok(), 'iOS '+path).toBeTruthy();
+  }
+  const privacy=await (await page.request.get('/privacy.html')).text();
+  const support=await (await page.request.get('/support.html')).text();
+  const terms=await (await page.request.get('/terms.html')).text();
+  expect(privacy).toContain('terms.html');
+  expect(support).toContain('terms.html');
+  expect(terms).toContain('privacy.html');
+  expect(terms).toContain('Account &amp; Data → Delete Account');
+  const sw=await (await page.request.get('/service-worker.js')).text();
+  expect(sw).toContain("'./terms.html'");
+});
+
 test('launch gate exposes account deletion clearly on web and iOS', async ({ page }) => {
   const web = await (await page.request.get('/account.html')).text();
   const ios = await (await page.request.get('/www/account.html')).text();
@@ -138,7 +156,7 @@ test('leaderboard and profile pages expose growth engagement tracking', async ({
 });
 
 const pages = [
-  'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html',
+  'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html','privacy.html','support.html','terms.html',
   'snake.html','blockdrop.html','brickbreaker.html','coincatch.html',
   'colormatch.html','dodger.html','junglehopper.html','lanerunner.html',
   'memory.html','paddlerally.html','safecracker.html','taprush.html','towerstack.html'
