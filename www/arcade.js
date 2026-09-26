@@ -1,4 +1,17 @@
 // Earnly web game engine. Native builds can attach rewarded ads through Capacitor.
+// Force a unique Star Defender URL so iPhone Safari/WebKit cannot reuse a stale
+// pre-fix document from history or an older service-worker cache.
+(function forceFreshStarDefenderDocument(){
+  try {
+    if (!/\/stardefender\.html$/i.test(location.pathname)) return;
+    const build = '20260925d';
+    const url = new URL(location.href);
+    if (url.searchParams.get('sd') === build) return;
+    url.searchParams.set('sd', build);
+    location.replace(url.href);
+  } catch {}
+})();
+
 (function loadEarnlyNativeBridge(){
   try {
     if (!window.Capacitor?.isNativePlatform?.()) return;
@@ -82,7 +95,7 @@ const Arcade = (() => {
     bounceRun: { key: 'bounceRunBest', label: 'distance', lower: false },
     trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false },
     starDefender: { key: 'starDefenderBest', label: 'points', lower: false },
-    neonMaze: { key: 'neonMazeBest', label: 'chips', lower: false }
+    neonMaze: { key: 'neonMazeBest', label: 'cells', lower: false }
   };
 
   const FREE_PLAYS = 3;
@@ -1150,8 +1163,15 @@ const Arcade = (() => {
 
   }
 
+  function hasUnlimitedPlays() {
+    const cloudState = window.EarnlyCloud?.testerAccess?.();
+    if (cloudState?.loaded === true) return cloudState.unlimitedPlays === true;
+    return sessionStorage.getItem('earnlyUnlimitedPlays') === '1';
+  }
+
   function remaining(g) {
     refreshDaily();
+    if (hasUnlimitedPlays()) return FREE_PLAYS;
     return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
   }
 
@@ -1200,12 +1220,16 @@ const Arcade = (() => {
     consumeLocks.add(g);
 
     try {
-      setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+      const unlimited = hasUnlimitedPlays();
+      if (!unlimited) {
+        setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+      }
       markRecent(g);
       queueEvent('play_started', {
         game:g,
         playsUsed:number(g + 'GamesPlayed'),
-        bonusPlays:number(g + 'BonusPlays')
+        bonusPlays:number(g + 'BonusPlays'),
+        unlimitedPlays:unlimited
       });
       return true;
     } finally {
@@ -1624,7 +1648,7 @@ const Arcade = (() => {
       title = 'Run Complete',
       scoreLabel = 'Score',
       score = 0,
-      best = '',
+      best: bestDisplay = '',
       extra = [],
       coins = 0,
       result = null,
@@ -1671,10 +1695,10 @@ const Arcade = (() => {
 
     main.append(label, value);
 
-    if (best) {
+    if (bestDisplay) {
       const bestLine = document.createElement('div');
       bestLine.className = 'result-best';
-      bestLine.textContent = result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + best;
+      bestLine.textContent = result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + bestDisplay;
       main.append(bestLine);
     }
 
@@ -3695,6 +3719,7 @@ const Arcade = (() => {
     FREE_PLAYS,
     PLAY_AD_BONUS,
     PLAY_AD_DAILY_LIMIT,
+    hasUnlimitedPlays,
     remaining,
     playAdStatus,
     resetPrototypePlays,
