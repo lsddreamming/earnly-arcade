@@ -1843,7 +1843,7 @@ test('Neon Maze shows a real iPhone start button and compacts live play', async 
 });
 
 
-test('Neon Maze keeps one move per swipe with a fair 60-second run', async ({ page }, testInfo) => {
+test('Neon Maze supports continuous swipe steering and extendable sector runs', async ({ page }, testInfo) => {
   await page.goto('/neonmaze.html');
   const start = page.locator('#startButton');
   if (testInfo.project.use.hasTouch) await start.tap();
@@ -1851,8 +1851,8 @@ test('Neon Maze keeps one move per swipe with a fair 60-second run', async ({ pa
   await expect(page.locator('#gameStatus')).toHaveText('Running', {timeout:5000});
 
   const initialTime = Number(await page.locator('#time').textContent());
-  expect(initialTime).toBeGreaterThanOrEqual(58);
-  expect(initialTime).toBeLessThanOrEqual(60);
+  expect(initialTime).toBeGreaterThanOrEqual(88);
+  expect(initialTime).toBeLessThanOrEqual(90);
 
   await page.evaluate(() => {
     const canvas = document.getElementById('game');
@@ -1861,16 +1861,22 @@ test('Neon Maze keeps one move per swipe with a fair 60-second run', async ({ pa
     }));
     fire('pointerdown', 80, 120);
     fire('pointermove', 260, 120);
-    fire('pointermove', 460, 120);
-    fire('pointerup', 460, 120);
+    fire('pointerup', 260, 120);
   });
-  await expect(page.locator('#chips')).toHaveText('1');
+  await page.waitForTimeout(520);
+  const cells = Number(await page.locator('#chips').textContent());
+  expect(cells).toBeGreaterThan(1);
+  expect(cells).toBeLessThanOrEqual(6);
 
   const html = await (await page.request.get('/neonmaze.html')).text();
-  expect(html).toContain('touch.moved=true');
-  expect(html).toContain('elapsed>=60');
-  expect(html).toContain('grid-template-columns:repeat(3,60px)');
+  expect(html).toContain('START_TIME=90,SECTOR_BONUS=35,MAX_TIME=120');
+  expect(html).toContain('timeLeft=Math.min(MAX_TIME,timeLeft+SECTOR_BONUS)');
+  expect(html).toContain("if(held!==dir){held=dir;move(dir);moveClock=0}");
+  expect(html).toContain('moveClock>.16');
+  expect(html).toContain('-webkit-touch-callout:none');
   expect(html).toContain('Sentries are getting smarter');
+  expect(html).not.toContain('touch.moved=true');
+  expect(html).not.toContain('elapsed>=60');
 });
 
 test('Neon Maze uses original energy-core and sentry visual language', async ({ page }) => {
