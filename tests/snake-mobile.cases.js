@@ -232,6 +232,8 @@ async function unlimitedAccountFixture(page, enabled) {
     const now = new Date();
     const day = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     localStorage.setItem('arcadeOnboardingSeen','1');
+    localStorage.setItem('arcadeUsername','DREAMER');
+    localStorage.setItem('arcadeProfileName','DREAMER');
     localStorage.setItem('arcadePlayDay', day);
     for (const key of ['snake','blockDrop','tapRush','memory','dodger','brickBreaker','jungleHopper','towerStack','coinCatch','colorMatch','paddleRally','laneRunner','safeCracker','blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape','starDefender','neonMaze']) {
       localStorage.setItem(key + 'GamesPlayed','99');
