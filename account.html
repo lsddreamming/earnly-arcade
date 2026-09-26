@@ -32,7 +32,7 @@
 
     <header class="page-header">
       <h1>☁️ Account & Data</h1>
-      <p>Your Earnly progress saves automatically when you’re signed in and can be restored on another device.</p>
+      <p>Sign in, sync progress, back up your data, or permanently delete your Earnly account here.</p>
     </header>
 
     <section class="card cloud-account-card" style="text-align:left">
@@ -129,7 +129,7 @@
         </div>
         <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
 
-        <div class="cloud-delete-zone">
+        <div class="cloud-delete-zone" id="delete-account">
           <strong>Delete Earnly account</strong>
           <span>Permanently deletes your Earnly login and server-stored profile, cloud save, Coin balance, and Coin ledger. Local progress on this device stays available as guest progress unless you reset it separately.</span>
           <button class="mini-button danger" id="cloudDeleteButton" type="button">Delete Account</button>
@@ -310,6 +310,11 @@
         }
 
         cloudEmailDisplay.textContent = current.user.email || 'Earnly account';
+        if (location.hash === '#delete-account') {
+          requestAnimationFrame(() => {
+            document.getElementById('delete-account')?.scrollIntoView({ block:'center', behavior:'auto' });
+          });
+        }
         const autoOn = EarnlyCloud.autoSyncEnabled();
         cloudAutoSyncToggle.textContent = autoOn ? 'On' : 'Off';
         cloudAutoSyncToggle.classList.toggle('active', autoOn);
