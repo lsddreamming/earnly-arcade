@@ -862,7 +862,8 @@ test('Block Drop ready screen stays compact and board-forward on iPhone', async 
   await expect(page.locator('#startButton')).toBeHidden();
   await expect(page.locator('.game-start-summary')).toBeHidden();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
-  await expect(page.locator('.game-guide-more')).toBeHidden();
+  await expect(page.locator('.game-guide-more summary')).toBeVisible();
+  await expect(page.locator('.game-guide-more')).not.toHaveAttribute('open', '');
   await expect(page.locator('.game-guide-overlay')).toBeHidden();
   await expect(page.locator('#blockDropExit')).toBeHidden();
   await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
@@ -1920,3 +1921,7 @@ test('Neon Maze uses original energy-core and sentry visual language', async ({ 
   expect(html).not.toContain('avoid ghosts');
   expect(html).not.toContain('ghost hits');
 });
+
+
+// Guard the actual entry layout at narrow and large iPhone sizes.
+require('./compact-game-entry.cases.js');

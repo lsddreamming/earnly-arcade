@@ -37,12 +37,14 @@
     .maze-page.game-active .maze-board{width:min(94vw,390px,calc((100dvh - 148px)*.79))!important;margin:3px auto!important}
     .maze-page.game-active main.container{padding-bottom:8px}
   </style>
+  <link rel="stylesheet" href="compact-game-entry.css?v=1">
 </head>
 <body class="maze-page"><main class="container">
   <div class="topbar"><a class="brand" href="games.html">← Games</a><a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a></div>
   <header class="page-header"><div class="game-title-status-row"><h1>⚡ Neon Maze</h1><span class="game-status title-status" id="gameStatus">Ready</span></div>
     <div class="game-meta"><span class="meta-pill">Cells: <span id="chips">0</span></span><span class="meta-pill">❤️ <span id="lives">3</span></span><span class="meta-pill">⏱️ <span id="time">90</span>s</span><span class="meta-pill">🎟️ <span id="plays">0</span></span></div></header>
   <button class="green wide" id="startButton" type="button" aria-label="Tap to start Neon Maze">▶ TAP TO START</button>
+  <p class="entry-quick-tip">Swipe to steer · clear a sector for +35s</p>
   <canvas id="game" class="maze-board touch-surface" width="330" height="390" aria-label="Neon Maze energy-cell grid with sentry drones"></canvas>
   <div class="maze-controls" aria-label="Move through maze"><button type="button" data-dir="up" aria-label="Up">⬆️</button><button type="button" data-dir="left" aria-label="Left">⬅️</button><button type="button" data-dir="down" aria-label="Down">⬇️</button><button type="button" data-dir="right" aria-label="Right">➡️</button></div>
   <p class="maze-tip">Swipe anywhere or use the arrows · collect energy cells · evade sentry drones</p>
