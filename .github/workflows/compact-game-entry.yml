@@ -31,12 +31,14 @@ jobs:
             let after = before;
             if (file === 'blockdrop.html') {
               const stray = '    }\n    }\n\n    /* iPhone ready-screen polish:';
-              assert(after.includes(stray), 'Expected stray Block Drop style brace not found; review instead of guessing');
-              after = after.replace(stray,'    }\n\n    /* iPhone ready-screen polish:');
+              const clean = '    }\n\n    /* iPhone ready-screen polish:';
+              assert(after.includes(stray)||after.includes(clean), 'Expected Block Drop style marker missing; review instead of guessing');
+              after = after.replace(stray,clean);
             }
-            assert(!after.includes('compact-game-entry.css'), 'Layout link already exists; review patch');
-            after = after.replace('</head>','  <link rel="stylesheet" href="compact-game-entry.css?v=1">\n</head>');
-            if (file === 'neonmaze.html') {
+            if (!after.includes('compact-game-entry.css')) {
+              after = after.replace('</head>','  <link rel="stylesheet" href="compact-game-entry.css?v=1">\n</head>');
+            }
+            if (file === 'neonmaze.html' && !after.includes('class="entry-quick-tip"')) {
               const button = '<button class="green wide" id="startButton" type="button" aria-label="Tap to start Neon Maze">▶ TAP TO START</button>';
               assert(after.includes(button), 'Neon Maze start button changed; review patch');
               after = after.replace(button,button+'\n  <p class="entry-quick-tip">Swipe to steer · clear a sector for +35s</p>');
@@ -48,16 +50,24 @@ jobs:
           }
           fs.copyFileSync('compact-game-entry.css','www/compact-game-entry.css');
           const smoke = 'tests/smoke.spec.js';
-          const source = fs.readFileSync(smoke,'utf8');
+          let source = fs.readFileSync(smoke,'utf8');
+          const title = "test('Block Drop ready screen stays compact and board-forward on iPhone'";
+          const first = source.indexOf(title);
+          assert(first>=0, 'Existing entry test missing');
+          const last = source.indexOf("\ntest('",first+title.length);
+          assert(last>first);
+          let entry = source.slice(first,last);
+          entry = entry.replace("await expect(page.locator('.game-guide-more')).toBeHidden();", "await expect(page.locator('.game-guide-more summary')).toBeVisible();\n  await expect(page.locator('.game-guide-more')).not.toHaveAttribute('open', '');");
+          source = source.slice(0,first)+entry+source.slice(last);
           const include = "require('./compact-game-entry.cases.js');";
-          assert(!source.includes(include));
-          fs.writeFileSync(smoke,source+'\n\n// Guard the actual entry layout at narrow and large iPhone sizes.\n'+include+'\n');
+          if (!source.includes(include)) source+='\n\n// Guard the actual entry layout at narrow and large iPhone sizes.\n'+include+'\n';
+          fs.writeFileSync(smoke,source);
           let worker = fs.readFileSync('service-worker.js','utf8');
           const cache = worker.match(/earnly-arcade-v1\.1-cache-v(\d+)/);
           assert(cache, 'Expected v1.1 cache name missing');
           worker = worker.replace(cache[0],'earnly-arcade-v1.1-cache-v'+(Number(cache[1])+1));
           assert(worker.includes('const CORE_ASSETS = ['));
-          worker = worker.replace('const CORE_ASSETS = [',"const CORE_ASSETS = [\n  './compact-game-entry.css',");
+          if (!worker.includes("'./compact-game-entry.css'")) worker = worker.replace('const CORE_ASSETS = [',"const CORE_ASSETS = [\n  './compact-game-entry.css',");
           fs.writeFileSync('service-worker.js',worker);
           if (fs.existsSync('www/service-worker.js')) fs.writeFileSync('www/service-worker.js',worker);
           console.log('Web/iOS assets synced; cache refreshed without touching account data or balances.');
@@ -69,7 +79,7 @@ jobs:
       - name: Verify both browsers and report actual viewport geometry
         run: |
           set +e
-          npx playwright test tests/smoke.spec.js --grep 'compact entry:' --project=desktop-chromium --project=mobile-webkit --reporter=json > /tmp/entry-results.json 2>/tmp/entry-server.log
+          npx playwright test tests/smoke.spec.js --grep 'compact entry:|Block Drop ready screen' --project=desktop-chromium --project=mobile-webkit --reporter=json > /tmp/entry-results.json 2>/tmp/entry-server.log
           code=$?
           node <<'NODE'
           const fs=require('node:fs');
