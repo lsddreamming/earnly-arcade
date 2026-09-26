@@ -15,6 +15,47 @@
   <title>Earnly Snake</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=14">
+  <style>
+    /* Snake mobile polish: keep the board and run controls above the fold. */
+    .snake-page .snake-live-actions{display:none;gap:10px;margin:8px 0 10px;position:relative;z-index:120}
+    .snake-page .snake-live-actions button{min-height:46px;border-radius:14px;font-weight:900;font-size:16px;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .snake-page #snakeQuitButton{background:linear-gradient(180deg,#7f1d1d,#450a0a);border:1px solid rgba(248,113,113,.65);color:#fff}
+    .snake-page .snake-quick-hint{display:none}
+    @media(max-width:700px){
+      .snake-page .container{padding-top:8px}
+      .snake-page .topbar{min-height:48px;margin-bottom:8px}
+      .snake-page .snake-header{padding:12px 14px;margin-bottom:8px}
+      .snake-page .game-title-status-row{gap:8px;margin-bottom:8px}
+      .snake-page .game-title-status-row h1{font-size:25px;line-height:1.05}
+      .snake-page .snake-stats{gap:7px}
+      .snake-page .snake-stats>span{padding:9px 10px;min-height:56px}
+      .snake-page .snake-stats small{font-size:11px}
+      .snake-page .snake-stats strong{font-size:18px}
+      .snake-page .game-start-summary{display:none!important}
+      .snake-page .game-guide-steps{display:none!important}
+      .snake-page .game-guide-overlay .snake-overlay-howto{display:none!important}
+      .snake-page .game-guide-overlay{padding:18px!important;min-height:0!important}
+      .snake-page .game-guide-overlay p{margin:5px 0!important}
+      .snake-page .snake-start-callout{margin-top:8px!important}
+      .snake-page .game-guide-details{margin-top:8px!important}
+      .snake-page.snake-game-active .topbar{display:none!important}
+      .snake-page.snake-game-active .snake-header{padding:7px 10px;margin:0 0 6px;background:transparent;border:0;box-shadow:none}
+      .snake-page.snake-game-active .game-title-status-row{display:none!important}
+      .snake-page.snake-game-active .snake-stats{grid-template-columns:repeat(3,1fr);gap:6px}
+      .snake-page.snake-game-active .snake-stats>span{min-height:40px;padding:5px 8px;border-radius:12px}
+      .snake-page.snake-game-active .snake-stats small{font-size:9px;letter-spacing:.08em}
+      .snake-page.snake-game-active .snake-stats strong{font-size:15px}
+      .snake-page.snake-game-active .snake-live-actions{display:grid;grid-template-columns:1fr 1fr}
+      .snake-page.snake-game-active #earnlyPauseButton{display:block!important;position:static!important;width:100%!important;margin:0!important;min-height:46px!important}
+      .snake-page.snake-game-active #startButton{display:none!important}
+      .snake-page.snake-game-active .compact-leaderboard,
+      .snake-page.snake-game-active .game-leaderboard,
+      .snake-page.snake-game-active [data-compact-leaderboard]{max-height:104px;overflow:hidden;margin:5px 0 7px!important}
+      .snake-page.snake-game-active canvas#game{margin-top:4px!important}
+      .snake-page.snake-game-active .desktop-controls{display:none!important}
+      .snake-page.snake-game-active .snake-quick-hint{display:block;text-align:center;font-size:12px;color:#94a3b8;margin:4px 0 6px}
+    }
+  </style>
 </head>
 <body class="snake-page">
   <main class="container">
@@ -35,7 +76,12 @@
       </div>
     </header>
 
-    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <button class="green wide" id="startButton" type="button">▶ START SNAKE</button>
+    <div class="snake-live-actions" id="snakeLiveActions">
+      <button class="secondary" id="snakePauseSlot" type="button" aria-hidden="true" tabindex="-1" hidden></button>
+      <button id="snakeQuitButton" type="button">✕ Quit Game</button>
+    </div>
+    <div class="snake-quick-hint">Swipe anywhere to steer</div>
 
     <canvas id="game" class="touch-surface" width="400" height="400" aria-label="Snake game board"></canvas>
 
@@ -548,7 +594,7 @@
       });
     }
 
-    Arcade.installPauseControl({
+    const pauseControl = Arcade.installPauseControl({
       isRunning:()=>game!==null,
       pause:()=>{
         if(game===null||game==='paused'||pauseStartedAt)return;
@@ -564,6 +610,28 @@
         game=setInterval(draw,120);
       }
     });
+    if (pauseControl?.button) {
+      const actions = document.getElementById('snakeLiveActions');
+      const placeholder = document.getElementById('snakePauseSlot');
+      placeholder?.remove();
+      actions?.prepend(pauseControl.button);
+    }
+
+    document.getElementById('snakeQuitButton')?.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (game && game !== 'paused') clearInterval(game);
+      game = null;
+      starting = false;
+      pauseStartedAt = 0;
+      disableFullScreenSteering();
+      document.body.classList.remove('earnly-game-paused');
+      document.documentElement.classList.remove('earnly-gameplay-locked');
+      document.body.classList.remove('earnly-gameplay-locked');
+      document.body.style.top = '';
+      window.location.href = 'games.html';
+    });
+
     startButton.addEventListener('click', startGame);
     refreshChrome();
     draw();
