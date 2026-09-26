@@ -30,6 +30,36 @@
     return current?.user || null;
   }
 
+  let testerState = Object.freeze({ loaded:false, isTester:false, snakeUnlimited:false });
+
+  function testerAccess(){
+    return { ...testerState };
+  }
+
+  async function refreshTesterAccess(){
+    const current = await session();
+    if (!current?.user) {
+      testerState = Object.freeze({ loaded:true, isTester:false, snakeUnlimited:false });
+      window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
+      return testerAccess();
+    }
+
+    const { data, error } = await requireClient().rpc('my_tester_entitlements');
+    if (error) {
+      testerState = Object.freeze({ loaded:true, isTester:false, snakeUnlimited:false });
+      window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
+      return testerAccess();
+    }
+
+    testerState = Object.freeze({
+      loaded:true,
+      isTester:data?.isTester === true,
+      snakeUnlimited:data?.snakeUnlimited === true
+    });
+    window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
+    return testerAccess();
+  }
+
   async function signUp(email, password){
     const emailRedirectTo = new URL('account.html', window.location.href).href.split('#')[0];
     const result = await requireClient().auth.signUp({
@@ -865,6 +895,13 @@
         }));
       }
 
+      if (event === 'SIGNED_OUT' || !currentSession?.user) {
+        testerState = Object.freeze({ loaded:true, isTester:false, snakeUnlimited:false });
+        window.dispatchEvent(new CustomEvent('earnly-tester-access', { detail:testerAccess() }));
+      } else {
+        refreshTesterAccess().catch(() => {});
+      }
+
       if (currentSession?.user && event !== 'SIGNED_OUT') {
         if (accountTransition) return;
         maybeRestoreFreshDevice()
@@ -926,6 +963,7 @@
     setTimeout(() => {
       scheduleAutoSync('cloud-ready', 200);
       syncGrowthEvents().catch(() => {});
+      refreshTesterAccess().catch(() => {});
     }, 0);
     window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   }
@@ -935,6 +973,8 @@
     client,
     session,
     user,
+    testerAccess,
+    refreshTesterAccess,
     profile,
     updatePublicProfile,
     leaderboard,

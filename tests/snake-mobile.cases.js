@@ -223,3 +223,79 @@ test('Snake: apple pickup flashes immediately and wall deaths explain what happe
   await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Hit the wall');
 });
+
+
+async function privateTesterFixture(page, enabled) {
+  await page.route('**/cloud.js', r => r.fulfill({contentType:'application/javascript',body:''}));
+  await page.route('https://cdn.jsdelivr.net/**', r => r.fulfill({contentType:'application/javascript',body:''}));
+  await page.addInitScript(({enabled}) => {
+    const now = new Date();
+    const day = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    localStorage.setItem('arcadeOnboardingSeen','1');
+    localStorage.setItem('arcadePlayDay', day);
+    localStorage.setItem('snakeGamesPlayed','3');
+    localStorage.setItem('snakeBonusPlays','0');
+    localStorage.setItem('snakePlayAdUnlocks','99');
+    const state = {loaded:true,isTester:enabled,snakeUnlimited:enabled};
+    window.EarnlyCloud = {
+      testerAccess:() => ({...state}),
+      refreshTesterAccess:async() => ({...state}),
+      leaderboard:async () => ({entries:[],label:'apples',lowerIsBetter:false}),
+      submitLeaderboardScore:async () => ({ok:true})
+    };
+  }, {enabled});
+}
+
+test('Private Snake tester access is invisible to normal accounts at zero plays', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await privateTesterFixture(page, false);
+  await page.goto('/games.html');
+  const snake = page.locator('[data-game="snake"]');
+  await expect(snake).toContainText('0 plays left');
+  await expect(snake.locator('.game-play-button')).toHaveText('Come Back Tomorrow');
+  await expect(snake).not.toContainText('Private Test');
+  await expect(snake).not.toContainText('Private tester access');
+});
+
+test('Private Snake tester can run at zero plays without rewards or progression', async ({page},info) => {
+  await page.setViewportSize({width:390,height:844});
+  await privateTesterFixture(page, true);
+  await page.goto('/games.html');
+  const snakeCard = page.locator('[data-game="snake"]');
+  await expect(snakeCard.locator('.game-play-button')).toHaveText('🧪 Private Test Run');
+  await expect(snakeCard).toContainText('Private tester access');
+  await press(snakeCard.locator('.game-play-button'),info);
+  await expect(page).toHaveURL(/snake\.html\?test=1/);
+  await expect(page.locator('#startButton')).toHaveText('🧪 Start Private Test Run');
+
+  const before = await page.evaluate(() => ({
+    points:Arcade.number('points'),
+    best:Arcade.best('snake').value,
+    runs:Arcade.number('gameRuns_snake'),
+    games:Arcade.number('gamesCompletedEver'),
+    plays:Arcade.remaining('snake')
+  }));
+
+  await press(page.locator('#startButton'),info);
+  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+  expect(await page.evaluate(()=>snakeTestRun)).toBe(true);
+  await page.evaluate(() => {
+    clearInterval(game);
+    game=setInterval(()=>{},10000);
+    score=9;
+    gameOver('🧪 Forced tester finish');
+  });
+
+  await expect(page.locator('dialog')).toBeVisible();
+  await expect(page.locator('dialog')).toContainText('Private test run');
+  await expect(page.locator('dialog')).toContainText('no Coins, XP, best score, missions, or leaderboard changes');
+
+  const after = await page.evaluate(() => ({
+    points:Arcade.number('points'),
+    best:Arcade.best('snake').value,
+    runs:Arcade.number('gameRuns_snake'),
+    games:Arcade.number('gamesCompletedEver'),
+    plays:Arcade.remaining('snake')
+  }));
+  expect(after).toEqual(before);
+});

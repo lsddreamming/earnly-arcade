@@ -130,6 +130,8 @@
     let game = null;
     let starting = false;
     let snakeRunGeneration = 0;
+    let snakeTestRun = false;
+    let snakeTesterAccess = false;
 
     function snakeReward(apples) {
       let coins = Math.floor(apples / 3);
@@ -142,12 +144,33 @@
     }
 
 
+    function currentTesterState() {
+      const state = window.EarnlyCloud?.testerAccess?.() || {};
+      snakeTesterAccess = state.loaded === true && state.snakeUnlimited === true;
+      return snakeTesterAccess;
+    }
+
+    async function refreshTesterState() {
+      try {
+        const state = await window.EarnlyCloud?.refreshTesterAccess?.();
+        snakeTesterAccess = state?.loaded === true && state?.snakeUnlimited === true;
+      } catch {
+        snakeTesterAccess = false;
+      }
+      refreshChrome();
+      return snakeTesterAccess;
+    }
+
     function refreshChrome() {
-      playsEl.textContent = Arcade.remaining('snake');
+      const plays = Arcade.remaining('snake');
+      const tester = currentTesterState();
+      playsEl.textContent = plays;
       balanceEl.textContent = Arcade.number('points').toLocaleString();
-      rewardPreviewEl.textContent = snakeReward(score);
+      rewardPreviewEl.textContent = snakeTestRun ? 'TEST' : snakeReward(score);
       if (game === null && !starting) {
-        startButton.textContent = Arcade.remaining('snake') > 0 ? '▶ Start Snake' : '🎟 Get More Plays';
+        startButton.textContent = plays > 0
+          ? '▶ Start Snake'
+          : (tester ? '🧪 Start Private Test Run' : '🎟 Get More Plays');
       }
     }
 
@@ -208,7 +231,7 @@
         const allowFromStartButton = target === startButton;
         if (!isInteractive || allowFromStartButton) {
           event.preventDefault();
-          startGame();
+          startFromPrimaryAction();
           return;
         }
       }
@@ -265,7 +288,7 @@
       event.preventDefault();
 
       if (game === null) {
-        if (!starting) startGame();
+        if (!starting) startFromPrimaryAction();
         return;
       }
 
@@ -534,6 +557,29 @@
       pauseStartedAt = 0;
       disableFullScreenSteering();
 
+      const finishedTestRun = snakeTestRun;
+      snakeTestRun = false;
+
+      if (finishedTestRun) {
+        starting = false;
+        startButton.disabled = false;
+        setStatus('Test Complete', 'over');
+        refreshChrome();
+        Arcade.feedback('fail');
+        const duration = Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000));
+        Arcade.panel(
+          '🧪 Snake Test Run',
+          'Score: ' + score + ' apple' + (score === 1 ? '' : 's') + ' · ' + duration + 's' +
+          (reason ? ' · ' + reason.replace(/^[^\w]+\s*/, '') : '') +
+          '\n\nPrivate test run: no Coins, XP, best score, missions, or leaderboard changes.',
+          [
+            ['🧪 Test Again', () => startGame({ testRun:true }), 'green'],
+            ['← Games', () => { location.href = 'games.html'; }, 'secondary']
+          ]
+        );
+        return;
+      }
+
       const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake', { kind:'game', game:'snake', metric:score });
       Arcade.feedback('fail');
@@ -565,16 +611,30 @@
     }
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
-    function startGame() {
+    function startGame(options = {}) {
       if (game !== null || starting) return;
+      const requestedTestRun = options?.testRun === true;
+      const allowedTestRun = requestedTestRun && currentTesterState();
+
+      if (requestedTestRun && !allowedTestRun) {
+        refreshTesterState();
+        return;
+      }
+
       const runGeneration = ++snakeRunGeneration;
       starting = true;
+      snakeTestRun = allowedTestRun;
 
-      if (!Arcade.consume('snake')) {
+      if (!snakeTestRun && !Arcade.consume('snake')) {
         starting = false;
-          Arcade.out('snake', refreshChrome);
+        snakeTestRun = false;
+        Arcade.out('snake', refreshChrome);
         return;
-      } earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
+      }
+      if (snakeTestRun) {
+        Arcade.toast('🧪 Private test run · rewards and leaderboard are disabled');
+      }
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       snake = [{ x: 200, y: 200 }];
       direction = 'RIGHT';
@@ -630,6 +690,7 @@
       clearInterval(game);
       game = null;
       starting = false;
+      snakeTestRun = false;
       pauseStartedAt = 0;
       disableFullScreenSteering();
       startButton.disabled = false;
@@ -679,7 +740,30 @@
     window.visualViewport?.addEventListener('resize', fitSnakeBoard);
     window.addEventListener('pageshow', fitSnakeBoard);
     fitSnakeBoard();
-    startButton.addEventListener('click', startGame);
+
+    async function startFromPrimaryAction() {
+      if (Arcade.remaining('snake') > 0) {
+        startGame();
+        return;
+      }
+      if (currentTesterState()) {
+        startGame({ testRun:true });
+        return;
+      }
+      const tester = await refreshTesterState();
+      if (tester) startGame({ testRun:true });
+      else startGame();
+    }
+
+    startButton.addEventListener('click', startFromPrimaryAction);
+    window.addEventListener('earnly-tester-access', event => {
+      snakeTesterAccess = event.detail?.loaded === true && event.detail?.snakeUnlimited === true;
+      refreshChrome();
+    });
+    window.addEventListener('earnly-cloud-ready', () => setTimeout(refreshTesterState, 0));
+    if (new URLSearchParams(location.search).get('test') === '1') {
+      setTimeout(refreshTesterState, 0);
+    }
     refreshChrome();
     draw();
   </script>
