@@ -207,6 +207,8 @@
       gamesToRender.forEach(info => {
         const remaining = Arcade.remaining(info.key);
         const adStatus = Arcade.playAdStatus(info.key);
+        const testerState = window.EarnlyCloud?.testerAccess?.() || {};
+        const privateSnakeTester = info.key === 'snake' && testerState.loaded === true && testerState.snakeUnlimited === true;
         const best = Arcade.best(info.key);
         const card = document.createElement('section');
         card.className = 'card game-card compact-game catalog-tile';
@@ -263,18 +265,23 @@
 
         const play = document.createElement('button');
         play.className = 'wide game-play-button';
-        play.disabled = !remaining && adStatus.remaining <= 0;
+        play.disabled = !remaining && adStatus.remaining <= 0 && !privateSnakeTester;
         play.textContent = remaining
           ? 'Play'
-          : (adStatus.remaining > 0 ? '📺 Watch Ad · +1 Play' : 'Come Back Tomorrow');
+          : (privateSnakeTester
+              ? '🧪 Private Test Run'
+              : (adStatus.remaining > 0 ? '📺 Watch Ad · +1 Play' : 'Come Back Tomorrow'));
         play.setAttribute(
           'aria-label',
           remaining
             ? 'Play '+info.name
-            : (adStatus.remaining > 0 ? 'Watch a voluntary rewarded ad for 1 more '+info.name+' play' : info.name+' plays refill tomorrow')
+            : (privateSnakeTester
+                ? 'Start a private Snake test run with no rewards'
+                : (adStatus.remaining > 0 ? 'Watch a voluntary rewarded ad for 1 more '+info.name+' play' : info.name+' plays refill tomorrow'))
         );
         play.addEventListener('click', () => {
           if (remaining) location.href = info.href;
+          else if (privateSnakeTester) location.href = 'snake.html?test=1';
           else if (adStatus.remaining > 0) Arcade.out(info.key, render);
         });
 
@@ -286,10 +293,12 @@
 
         if (!remaining) {
           const status = document.createElement('div');
-          status.className = 'status-line ' + (adStatus.remaining > 0 ? 'warning' : '');
-          status.textContent = adStatus.remaining > 0
-            ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +1 play each'
-            : 'Daily bonus-play limit reached · free plays refill tomorrow';
+          status.className = 'status-line ' + (adStatus.remaining > 0 && !privateSnakeTester ? 'warning' : '');
+          status.textContent = privateSnakeTester
+            ? '🧪 Private tester access · test runs earn no Coins, XP, best score, missions, or leaderboard changes'
+            : (adStatus.remaining > 0
+                ? adStatus.remaining + ' of ' + adStatus.limit + ' bonus unlock' + (adStatus.remaining === 1 ? '' : 's') + ' left today · +1 play each'
+                : 'Daily bonus-play limit reached · free plays refill tomorrow');
           card.append(status);
         }
 
@@ -325,6 +334,8 @@
     window.addEventListener('earnly-data-change', render);
     window.addEventListener('earnly-cloud-synced', render);
     window.addEventListener('earnly-server-rewards-synced', render);
+    window.addEventListener('earnly-tester-access', render);
+    window.addEventListener('earnly-cloud-ready', () => setTimeout(render, 0));
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
