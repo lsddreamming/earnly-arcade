@@ -2,6 +2,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const plistPath = path.join(process.cwd(), 'ios', 'App', 'App', 'Info.plist');
+const projectPath = path.join(process.cwd(), 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
+const marketingVersion = process.env.EARNLY_IOS_MARKETING_VERSION || '1.1';
+const buildNumber = process.env.EARNLY_IOS_BUILD_NUMBER || '2';
 const testMode = process.env.EARNLY_ADMOB_TEST_MODE !== '0';
 const appId = testMode
   ? 'ca-app-pub-3940256099942544~1458002511'
@@ -93,10 +96,15 @@ plist = plist.replace(
 );
 
 await writeFile(plistPath, plist);
+
+let project = await readFile(projectPath, 'utf8');
+project = project
+  .replace(/MARKETING_VERSION = [^;]+;/g, 'MARKETING_VERSION = ' + marketingVersion + ';')
+  .replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, 'CURRENT_PROJECT_VERSION = ' + buildNumber + ';');
+await writeFile(projectPath, project);
+
 console.log(
-  'Configured iOS AdMob app ID in ' +
-  (testMode ? 'TEST' : 'LIVE') +
-  ' mode with ' +
-  skAdNetworkIds.length +
-  ' SKAdNetwork IDs'
+  'Configured iOS ' + marketingVersion + ' build ' + buildNumber +
+  ' · AdMob ' + (testMode ? 'TEST' : 'LIVE') +
+  ' · ' + skAdNetworkIds.length + ' SKAdNetwork IDs'
 );
