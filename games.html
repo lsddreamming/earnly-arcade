@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Games</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=31">
+  <link rel="stylesheet" href="premium.css?v=32">
 </head>
 <body class="games-dashboard">
   <main class="container">
@@ -35,27 +35,23 @@
     <div class="games-simple-note">
       <span>🎟️ 3 free plays per game</span>
       <details>
-        <summary>ⓘ Rewards</summary>
-        <p>Play games to earn XP and score-based Arcade Coins. Optional rewarded ads only unlock extra plays.</p>
+        <summary>ⓘ How it works</summary>
+        <p>Pick a game and play for a score to earn XP and Arcade Coins. Optional rewarded ads unlock extra plays.</p>
       </details>
     </div>
 
-    <details class="games-start-here games-how-to">
-      <summary>New here? How to play <span aria-hidden="true">⌄</span></summary>
-      <p>Pick a game, play for a score, then earn Arcade Coins and XP.</p>
-    </details>
-
-    <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
-      <strong>🎯 Missions</strong>
-      <span id="gamesMissionSummary">0/3 complete</span>
-      <span class="play-pill" id="gamesMissionCount">0/3</span>
-      <span class="mission-arrow" aria-hidden="true">›</span>
-    </a>
-
-    <a class="games-start-here" href="leaderboards.html" aria-label="Open world leaderboards">
-      <strong>🏆 World Leaderboards</strong>
-      <span>See the top players · chase a world record →</span>
-    </a>
+    <div class="games-shortcuts" aria-label="Arcade shortcuts">
+      <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
+        <strong>🎯 Missions</strong>
+        <span id="gamesMissionSummary">0/3 complete</span>
+        <span class="play-pill" id="gamesMissionCount">0/3</span>
+        <span class="mission-arrow" aria-hidden="true">›</span>
+      </a>
+      <a class="games-start-here games-leaderboard-link" href="leaderboards.html" aria-label="Open world leaderboards">
+        <strong>🏆 Leaderboards</strong>
+        <span>World top scores →</span>
+      </a>
+    </div>
 
     <div id="quickSections"></div>
 

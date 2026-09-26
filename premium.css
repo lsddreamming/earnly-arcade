@@ -2648,3 +2648,23 @@ body.snake-page .container>a.button.secondary.wide{
 .games-how-to summary::-webkit-details-marker{display:none}
 .games-how-to[open] summary span{transform:rotate(180deg)}
 .games-how-to p{margin:7px 0 0;color:#a8b7cb;font-size:12px;line-height:1.4}
+
+/* iPhone catalog, mission and rewards density pass */
+.games-shortcuts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:8px 0}
+.games-shortcuts .games-start-here{min-width:0;min-height:46px;margin:0!important;padding:8px 10px!important;display:flex!important;align-items:center!important;gap:5px!important;text-decoration:none!important}
+.games-shortcuts .games-start-here strong{font-size:12px!important;white-space:nowrap}
+.games-shortcuts .games-start-here .play-pill{margin-left:auto!important}
+.games-shortcuts .games-leaderboard-link{justify-content:center!important}
+.games-shortcuts .games-leaderboard-link span{display:none!important}
+@media(max-width:700px){
+  .games-shortcuts #gamesMissionSummary,.games-shortcuts .mission-arrow{display:none!important}
+  .games-dashboard .games-simple-note{margin:2px 0 5px!important}
+  .games-dashboard .game-browser-tools{margin:6px 0 9px!important}
+  .missions-dashboard .missions-hero{margin-bottom:7px!important}
+  .missions-dashboard .missions-weekly-card{padding:11px!important}
+  .missions-dashboard .mission-list{gap:7px!important;margin-top:9px!important}
+  .missions-dashboard .mission-card{padding:10px 11px!important}
+  .missions-dashboard .mission-description{margin:3px 0 5px!important}
+  .missions-dashboard .mission-card button.wide{width:auto!important;min-height:42px!important;margin-top:8px!important;padding:8px 14px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:11px!important}
+  .rewards-dashboard .rewards-hero{margin-bottom:8px!important}
+}
