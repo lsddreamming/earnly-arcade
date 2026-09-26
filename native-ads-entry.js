@@ -50,9 +50,9 @@ async function showRewarded(kind = 'extraPlays') {
   const loaded = await AdMob.prepareRewardVideoAd({
     adId,
     isTesting: TEST_MODE,
-    // Version 1.0 requests non-personalized rewarded ads. This keeps the
-    // launch build simpler for App Store privacy/ATT while still allowing
-    // rewarded ads to function.
+    // Earnly requests non-personalized rewarded ads. This keeps the
+    // App Store privacy/ATT path simpler while still allowing optional
+    // rewarded-play ads to function.
     npa: true
   });
 
