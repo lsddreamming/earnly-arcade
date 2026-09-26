@@ -118,6 +118,7 @@ test('Snake mobile: bottom steering results and replay still work',async({page},
     const selected=nextDirection; gameOver(); return selected;
   });
   expect(steering).toBe('UP'); await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('dialog.game-result-dialog .result-best')).toContainText('saved on this device');
   await expect(page.locator('body')).not.toHaveClass(/snake-game-active/);
   await press(page.locator('dialog.game-result-dialog button').filter({hasText:/Play Again/}).first(),info);
   await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
