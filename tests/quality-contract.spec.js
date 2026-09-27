@@ -149,18 +149,24 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger keeps the lane-choice difficulty curve', () => {
+test('Neon Dodger keeps the 60-second switchback difficulty curve', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('function difficultyFor(seconds)');
-  expect(source).toContain("if(seconds>=24) return {label:'LANE SHIFT',speed:8.2,delay:940,pairChance:1};");
-  expect(source).toContain("if(seconds>=18) return {label:'TWO-LANE TRAFFIC',speed:7.9,delay:980,pairChance:1};");
-  expect(source).toContain('const paired=Math.random()<difficultyFor(seconds).pairChance;');
+  expect(source).toContain("if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90};");
+  expect(source).toContain("if(seconds>=42) return {label:'SWITCHBACK',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88};");
+  expect(source).toContain("if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84};");
+  expect(source).toContain('const paired=Math.random()<stage.pairChance;');
+  expect(source).toContain('Math.random()<stage.farShiftChance');
+  expect(source).toContain('const width=paired?stage.blockWidth:52;');
   expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
-  expect(source).toContain('lastLaneStep=next-lastOpenLane;');
   expect(source).toContain('function spawnDelayFor(seconds)');
   expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds);');
   expect(source).toContain('nextSpawnAt=now+560');
+  expect(source).toContain('const seconds=Math.min(60,Math.floor(elapsed/1000));');
+  expect(source).toContain('if(elapsed>=60000)');
+  expect(source).toContain('finishGame(true,60);');
+  expect(source).toContain('🏆 60 SECONDS SURVIVED!');
 });
 
 test('Neon Dodger keeps live play focused and result timing consistent', () => {

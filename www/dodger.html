@@ -139,7 +139,7 @@
       steps:[
         { icon:'👆', title:'Start', text:'Tap the road' },
         { icon:'↔️', title:'Control', text:'Drag left or right' },
-        { icon:'⏱️', title:'Goal', text:'Survive 30 seconds' }
+        { icon:'⏱️', title:'Goal', text:'Survive 60 seconds' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
@@ -147,7 +147,7 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'Keep your car away from every falling obstacle. One collision ends the run.',
-        'Traffic begins closing two lanes at once. Read the open lane and move before the row reaches you.',
+        'Traffic closes two lanes at once, then late switchbacks can force an edge-to-edge move. Read the opening early.',
         'On a computer, use ← → or A / D. Press Enter or Space to start a run.'
       ],
       reward:'Survival time and obstacles dodged earn up to 20 Coins.'
@@ -166,13 +166,14 @@
     let dragAnchorClientX=null;
     let lastSecondShown=-1;
     let lastOpenLane=1;
-    let lastLaneStep=1;
 
     function rewardFor(seconds,dodgedCount){
-      let coins=Math.floor(seconds/3)+Math.floor(dodgedCount/5);
-      if(seconds>=15) coins+=2;
-      if(seconds>=25) coins+=3;
-      if(seconds>=30) coins+=4;
+      // A full run is now twice as long, so rewards are stretched too.
+      // Players still have to survive deep into the run to reach the cap.
+      let coins=Math.floor(seconds/6)+Math.floor(dodgedCount/12);
+      if(seconds>=20) coins+=1;
+      if(seconds>=40) coins+=2;
+      if(seconds>=60) coins+=3;
       return Math.min(coins,20);
     }
 
@@ -310,11 +311,14 @@
     }
 
     function difficultyFor(seconds){
-      if(seconds>=24) return {label:'LANE SHIFT',speed:8.2,delay:940,pairChance:1};
-      if(seconds>=18) return {label:'TWO-LANE TRAFFIC',speed:7.9,delay:980,pairChance:1};
-      if(seconds>=12) return {label:'FIND THE GAP',speed:7.5,delay:1060,pairChance:.85};
-      if(seconds>=6) return {label:'FIND THE GAP',speed:7.1,delay:1140,pairChance:.65};
-      return {label:'CRUISE',speed:6.5,delay:1100,pairChance:0};
+      // Difficulty rises by decisions, not just raw speed: later waves close
+      // two lanes, narrow the safe corridor, and can force edge-to-edge shifts.
+      if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90};
+      if(seconds>=42) return {label:'SWITCHBACK',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88};
+      if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84};
+      if(seconds>=20) return {label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80};
+      if(seconds>=10) return {label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76};
+      return {label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72};
     }
 
     function trafficSpeedFor(seconds){
@@ -328,16 +332,22 @@
     function spawn(now){
       const seconds=Math.max(0,(now-startTime)/1000);
       const laneWidth=canvas.width/3;
-      const paired=Math.random()<difficultyFor(seconds).pairChance;
+      const stage=difficultyFor(seconds);
+      const paired=Math.random()<stage.pairChance;
       let lanes;
       if(paired){
-        // Shift the opening by one lane per wave. A player can always reach
-        // the next gap; repeating the same safe edge cannot win the run.
-        const options=[lastOpenLane-1,lastOpenLane+1].filter(lane=>lane>=0 && lane<3);
-        const next=options.length===2
-          ? options[Math.random()<.72 ? (lastLaneStep>0 ? 1 : 0) : (lastLaneStep>0 ? 0 : 1)]
-          : options[0];
-        lastLaneStep=next-lastOpenLane;
+        // Later stages add true switchbacks. From an edge, some waves force
+        // the opening all the way to the opposite edge instead of letting a
+        // player camp near the same safe lane for the whole run.
+        let next;
+        const farLane=lastOpenLane===0?2:lastOpenLane===2?0:null;
+        if(farLane!==null && Math.random()<stage.farShiftChance){
+          next=farLane;
+        }else if(lastOpenLane===1){
+          next=Math.random()<.5?0:2;
+        }else{
+          next=1;
+        }
         lastOpenLane=next;
         lanes=[0,1,2].filter(lane=>lane!==next);
       }else{
@@ -345,7 +355,7 @@
       }
       const color=['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)];
       lanes.forEach(lane=>{
-        const width=paired?72:52;
+        const width=paired?stage.blockWidth:52;
         obstacles.push({
           x:lane*laneWidth+(laneWidth-width)/2,
           y:-32,
@@ -366,7 +376,7 @@
 
       if(!startTime) startTime=now;
       const elapsed=Math.max(0,now-startTime);
-      const seconds=Math.min(30,Math.floor(elapsed/1000));
+      const seconds=Math.min(60,Math.floor(elapsed/1000));
 
       if(!nextSpawnAt) nextSpawnAt=now+560;
       if(now>=nextSpawnAt){
@@ -412,13 +422,13 @@
         timeEl.textContent=seconds;
         rewardPreviewEl.textContent=rewardFor(seconds,dodged);
         xpPreviewEl.textContent='+10';
-        if([0,6,12,18,24].includes(seconds)) setStatus(difficultyFor(seconds).label,'running');
+        if([0,10,20,30,42,52].includes(seconds)) setStatus(difficultyFor(seconds).label,'running');
       }
 
       draw();
 
-      if(elapsed>=30000){
-        finishGame(true,30);
+      if(elapsed>=60000){
+        finishGame(true,60);
         return;
       }
 
@@ -461,8 +471,8 @@
         result,
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
-        badgeText: survived ? '🏆 30 SECONDS SURVIVED!' : '💥 RUN OVER',
-        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 30-second survival!':'Keep weaving through traffic.'],
+        badgeText: survived ? '🏆 60 SECONDS SURVIVED!' : '💥 RUN OVER',
+        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 60-second survival!':'Keep weaving through traffic.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
       });
@@ -598,7 +608,6 @@
       dodged=0;
       lastSecondShown=-1;
       lastOpenLane=1;
-      lastLaneStep=1;
       timeEl.textContent='0';
       dodgedEl.textContent='0';
       rewardPreviewEl.textContent='0';

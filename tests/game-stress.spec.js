@@ -122,19 +122,20 @@ test('Traffic Escape: 3,500 harder boards stay valid and solvable',()=>{
 
 
 function dodgerDifficulty(seconds){
-  if(seconds>=24)return{label:'LANE SHIFT',speed:8.2,delay:940,pairChance:1};
-  if(seconds>=18)return{label:'TWO-LANE TRAFFIC',speed:7.9,delay:980,pairChance:1};
-  if(seconds>=12)return{label:'FIND THE GAP',speed:7.5,delay:1060,pairChance:.85};
-  if(seconds>=6)return{label:'FIND THE GAP',speed:7.1,delay:1140,pairChance:.65};
-  return{label:'CRUISE',speed:6.5,delay:1100,pairChance:0};
+  if(seconds>=52)return{label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90};
+  if(seconds>=42)return{label:'SWITCHBACK',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88};
+  if(seconds>=30)return{label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84};
+  if(seconds>=20)return{label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80};
+  if(seconds>=10)return{label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76};
+  return{label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72};
 }
 
-test('Neon Dodger: 50,000 lane-choice waves always leave a reachable gap',()=>{
+test('Neon Dodger: 50,000 lane-choice waves keep a fair gap while exercising switchbacks',()=>{
   const random=rng(4407);
-  let lastOpenLane=1,lastLaneStep=1,pairedWaves=0,problem=null;
+  let lastOpenLane=1,pairedWaves=0,farShifts=0,problem=null;
 
   for(let i=0;i<50000;i++){
-    const seconds=i%36;
+    const seconds=i%60;
     const stage=dodgerDifficulty(seconds);
     const paired=random()<stage.pairChance;
     const previousOpen=lastOpenLane;
@@ -142,18 +143,25 @@ test('Neon Dodger: 50,000 lane-choice waves always leave a reachable gap',()=>{
 
     if(paired){
       pairedWaves++;
-      const options=[lastOpenLane-1,lastOpenLane+1].filter(lane=>lane>=0&&lane<3);
-      const next=options.length===2
-        ? options[random()<.72?(lastLaneStep>0?1:0):(lastLaneStep>0?0:1)]
-        : options[0];
-      lastLaneStep=next-lastOpenLane;
+      let next;
+      const farLane=lastOpenLane===0?2:lastOpenLane===2?0:null;
+      if(farLane!==null && random()<stage.farShiftChance){
+        next=farLane;
+      }else if(lastOpenLane===1){
+        next=random()<.5?0:2;
+      }else{
+        next=1;
+      }
       lastOpenLane=next;
       blocked=[0,1,2].filter(lane=>lane!==next);
 
-      const reachable=Math.abs(lastOpenLane-previousOpen)===1;
+      const shift=Math.abs(lastOpenLane-previousOpen);
+      if(shift===2) farShifts++;
+      const validShift=shift===1||shift===2;
       const validGap=lastOpenLane>=0&&lastOpenLane<3&&blocked.length===2&&!blocked.includes(lastOpenLane);
-      if(!problem&&(!reachable||!validGap)){
-        problem={i,seconds,previousOpen,lastOpenLane,lastLaneStep,blocked};
+      const validWidth=stage.blockWidth>=72&&stage.blockWidth<=90;
+      if(!problem&&(!validShift||!validGap||!validWidth)){
+        problem={i,seconds,previousOpen,lastOpenLane,shift,blocked,blockWidth:stage.blockWidth};
       }
     }else{
       blocked=[Math.floor(random()*3)];
@@ -162,11 +170,12 @@ test('Neon Dodger: 50,000 lane-choice waves always leave a reachable gap',()=>{
       }
     }
 
-    if(!problem&&seconds>=18&&!paired){
+    if(!problem&&seconds>=30&&!paired){
       problem={i,seconds,reason:'late wave was not paired'};
     }
   }
 
   expect(problem,'first unfair Neon Dodger wave').toBeNull();
-  expect(pairedWaves).toBeGreaterThan(25000);
+  expect(pairedWaves).toBeGreaterThan(30000);
+  expect(farShifts).toBeGreaterThan(3000);
 });
