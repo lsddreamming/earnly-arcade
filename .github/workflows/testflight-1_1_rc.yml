@@ -57,6 +57,20 @@ jobs:
       - name: Run release contracts
         run: npx playwright test -c playwright.contract.config.js
 
+      - name: Start local QA server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > "$RUNNER_TEMP/earnly-http.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/earnly-http.pid"
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/index.html >/dev/null; then
+              echo "QA server is ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/earnly-http.log" || true
+          exit 1
+
       - name: Run desktop and iPhone smoke QA
         run: npx playwright test tests/smoke.spec.js --project=desktop-chromium --project=mobile-webkit
 
