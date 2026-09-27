@@ -149,16 +149,18 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger keeps the 60-second switchback difficulty curve', () => {
+test('Neon Dodger keeps the 60-second targeted and double-shift curve', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('function difficultyFor(seconds)');
-  expect(source).toContain("if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90};");
-  expect(source).toContain("if(seconds>=42) return {label:'SWITCHBACK',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88};");
-  expect(source).toContain("if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84};");
+  expect(source).toContain("if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.65,followUpGapMs:420};");
+  expect(source).toContain("if(seconds>=42) return {label:'DOUBLE SHIFT',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.50,followUpGapMs:460};");
+  expect(source).toContain("if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.35,followUpGapMs:500};");
   expect(source).toContain('const paired=Math.random()<stage.pairChance;');
   expect(source).toContain('Math.random()<stage.farShiftChance');
-  expect(source).toContain('const width=paired?stage.blockWidth:52;');
+  expect(source).toContain('lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];');
+  expect(source).toContain('const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;');
+  expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth');
   expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
   expect(source).toContain('function spawnDelayFor(seconds)');
   expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds);');
