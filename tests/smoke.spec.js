@@ -1229,7 +1229,13 @@ test('Coin Catch keeps live instructions visible long enough to read', async ({ 
     const tipBox = await tip.boundingBox();
     expect(pauseBox).not.toBeNull();
     expect(tipBox).not.toBeNull();
-    expect(tipBox.y).toBeGreaterThanOrEqual(pauseBox.y + pauseBox.height + 6);
+    // The phone pause control is docked at the bottom; on wider screens it
+    // can still sit in the header. Either way, instructions must not cover it.
+    const separated = tipBox.y + tipBox.height + 6 <= pauseBox.y ||
+      pauseBox.y + pauseBox.height + 6 <= tipBox.y ||
+      tipBox.x + tipBox.width + 6 <= pauseBox.x ||
+      pauseBox.x + pauseBox.width + 6 <= tipBox.x;
+    expect(separated).toBe(true);
   }
 });
 
