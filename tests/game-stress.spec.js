@@ -168,7 +168,7 @@ test('Neon Dodger: 50,000 targeted and double-shift waves keep an escape',()=>{
         const firstOpen=lastOpenLane;
         const followUpOpen=firstOpen===1?(random()<.5?0:2):1;
         const followUpBlocked=[0,1,2].filter(lane=>lane!==followUpOpen);
-        const validTiming=stage.followUpGapMs>=420&&stage.delay-stage.followUpGapMs>=200;
+        const validTiming=stage.followUpGapMs>=420&&stage.delay>=760;
         if(!problem&&(!validTiming||Math.abs(followUpOpen-firstOpen)!==1||followUpBlocked.includes(followUpOpen))){
           problem={i,seconds,firstOpen,followUpOpen,followUpBlocked,gapMs:stage.followUpGapMs};
         }
