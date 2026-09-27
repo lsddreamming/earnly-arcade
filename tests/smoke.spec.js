@@ -255,7 +255,12 @@ test('mobile catalog shows two browsable game choices per row', async ({ page })
   expect(second).toBeTruthy();
   expect(Math.abs(first.y - second.y)).toBeLessThan(2);
   expect(second.x).toBeGreaterThan(first.x + first.width - 2);
-  expect(first.height).toBeLessThanOrEqual(190);
+  expect(first.height).toBeLessThanOrEqual(150);
+  const favorite = await cards.first().locator('.favorite-button').boundingBox();
+  const play = await cards.first().locator('.game-play-button').boundingBox();
+  expect(favorite).toBeTruthy();
+  expect(favorite.y - first.y).toBeLessThan(22);
+  expect(play.height).toBeGreaterThanOrEqual(44);
   await expect(cards.first().locator('.reward-rule')).toBeVisible();
   await expect(cards.first().locator('.game-play-button')).toContainText(/Play · 3 left/);
 });
