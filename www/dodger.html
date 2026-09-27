@@ -168,7 +168,7 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'Keep your car away from every falling obstacle. One collision ends the run.',
-        'Traffic closes two lanes at once, then late switchbacks can force an edge-to-edge move. Read the opening early.',
+        'Early traffic aims for your lane. Later, two traffic rows can arrive close together: follow the open lane, then switch again.',
         'On a computer, use ← → or A / D. Press Enter or Space to start a run.'
       ],
       reward:'Survival time and obstacles dodged earn up to 20 Coins.'
@@ -332,14 +332,14 @@
     }
 
     function difficultyFor(seconds){
-      // Difficulty rises by decisions, not just raw speed: later waves close
-      // two lanes, narrow the safe corridor, and can force edge-to-edge shifts.
-      if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90};
-      if(seconds>=42) return {label:'SWITCHBACK',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88};
-      if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84};
-      if(seconds>=20) return {label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80};
-      if(seconds>=10) return {label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76};
-      return {label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72};
+      // Later traffic asks for two consecutive lane choices. Keep the raw
+      // speed close to the current curve and leave a readable gap between rows.
+      if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.65,followUpGapMs:420};
+      if(seconds>=42) return {label:'DOUBLE SHIFT',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.50,followUpGapMs:460};
+      if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.35,followUpGapMs:500};
+      if(seconds>=20) return {label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80,followUpChance:.20,followUpGapMs:560};
+      if(seconds>=10) return {label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76,followUpChance:0,followUpGapMs:0};
+      return {label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72,followUpChance:0,followUpGapMs:0};
     }
 
     function trafficSpeedFor(seconds){
@@ -372,20 +372,33 @@
         lastOpenLane=next;
         lanes=[0,1,2].filter(lane=>lane!==next);
       }else{
-        lanes=[Math.floor(Math.random()*3)];
+        // A single car follows the lane occupied at spawn time; idling in one
+        // lane is no longer a reliable way through the opening seconds.
+        lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];
       }
       const color=['#ef4444','#f97316','#eab308','#a855f7'][Math.floor(Math.random()*4)];
-      lanes.forEach(lane=>{
-        const width=paired?stage.blockWidth:52;
-        obstacles.push({
-          x:lane*laneWidth+(laneWidth-width)/2,
-          y:-32,
-          w:width,
-          h:28,
-          speed:trafficSpeedFor(seconds),
-          color
+      function addTrafficRow(blocked, y, width, rowColor){
+        blocked.forEach(lane=>{
+          obstacles.push({
+            x:lane*laneWidth+(laneWidth-width)/2,
+            y,
+            w:width,
+            h:28,
+            speed:trafficSpeedFor(seconds),
+            color:rowColor
+          });
         });
-      });
+      }
+      addTrafficRow(lanes,-32,paired?stage.blockWidth:52,color);
+      if(paired && Math.random()<stage.followUpChance){
+        // The second row trails the first by 420–560 ms at the same speed.
+        // Its safe lane is adjacent, so the player can clear row one and
+        // move one lane before row two arrives; never demand a blind jump.
+        const followUpOpen=lastOpenLane===1?(Math.random()<.5?0:2):1;
+        const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;
+        addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth,'#e879f9');
+        lastOpenLane=followUpOpen;
+      }
     }
 
     function intersects(a,b){
