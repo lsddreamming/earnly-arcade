@@ -221,12 +221,22 @@ test('games page links into playable games', async ({ page }) => {
   expect(await links.count()).toBeGreaterThan(0);
 });
 
-test('games catalog keeps disabled actions readable and avoids duplicate mobile Home control', async ({ page }) => {
+test('games catalog keeps Play bright, disabled actions readable, and avoids duplicate mobile Home control', async ({ page }) => {
   await page.goto('/games.html');
-  const play = page.locator('#games .game-play-button').first();
-  await play.evaluate(node => { node.disabled = true; });
-  await expect(play).toHaveCSS('opacity', '1');
-  await expect(play).toHaveCSS('color', 'rgb(203, 213, 225)');
+
+  const livePlay = page.locator('#games .game-play-button').first();
+  await expect(livePlay).toHaveCSS('color', 'rgb(255, 255, 255)');
+
+  await page.locator('#games .game-card-footer').first().evaluate(footer => {
+    const button = document.createElement('button');
+    button.className = 'wide game-play-button qa-disabled-play';
+    button.disabled = true;
+    button.textContent = 'Come Back Tomorrow';
+    footer.append(button);
+  });
+  const disabledPlay = page.locator('#games .qa-disabled-play');
+  await expect(disabledPlay).toHaveCSS('opacity', '1');
+  await expect(disabledPlay).toHaveCSS('color', 'rgb(203, 213, 225)');
 
   const backHome = page.locator('.games-back-home');
   const width = page.viewportSize()?.width || 1280;
