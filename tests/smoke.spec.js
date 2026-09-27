@@ -1945,3 +1945,41 @@ test('Neon Maze uses original energy-core and sentry visual language', async ({ 
 require('./compact-game-entry.cases.js');
 
 require('./snake-mobile.cases');
+
+
+test('Tap Rush penalizes misses instead of allowing random board tapping', async ({ page }) => {
+  await page.goto('/taprush.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+
+  const state = await page.evaluate(() => {
+    const before = roundEndsAt - performance.now();
+    board.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles:true,
+      cancelable:true,
+      pointerId:41,
+      pointerType:'touch',
+      isPrimary:true,
+      clientX:8,
+      clientY:8
+    }));
+    const after = roundEndsAt - performance.now();
+    return {
+      penalty: before - after,
+      misses,
+      status: statusEl.textContent
+    };
+  });
+
+  expect(state.misses).toBe(1);
+  expect(state.penalty).toBeGreaterThan(650);
+  expect(state.penalty).toBeLessThan(900);
+  expect(state.status).toContain('Miss 1');
+  await expect(page.locator('#board')).toHaveClass(/tap-miss/);
+
+  const web = await (await page.request.get('/taprush.html')).text();
+  const ios = await (await page.request.get('/www/taprush.html')).text();
+  expect(ios).toBe(web);
+  expect(web).toContain('const MISS_PENALTY_MS = 750');
+});
