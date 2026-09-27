@@ -92,7 +92,7 @@
     const record = document.getElementById('worldRecord');
     const myUsername = () => (Arcade.leaderboardUsername?.() || '').toLowerCase();
     let boardLoadId = 0;
-    let localLeaderboardSubmitInFlight = false;
+    let localLeaderboardSubmitDepth = 0;
     let leaderboardRefreshTimer = 0;
 
     function blockedUsers() {
@@ -157,8 +157,7 @@
       document.getElementById('boardTitle').textContent = info[1] + ' ' + info[2] + ' · World Top 25';
       document.getElementById('boardRule').textContent = game === 'memory' ? 'Fewest moves wins' : 'Highest score wins';
 
-      const hasRenderedRows = !!list.querySelector('.leader-row');
-      if (showLoading && !hasRenderedRows) {
+      if (showLoading) {
         list.innerHTML = '<div class="leaderboard-empty">Loading world rankings…</div>';
         record.classList.remove('show');
       }
@@ -167,13 +166,13 @@
         if (!window.EarnlyCloud) throw new Error('Leaderboard connection is still loading.');
         const localBest = Arcade.best(game).value;
         if (submitLocalBest && localBest > 0 && Arcade.leaderboardUsername()) {
-          localLeaderboardSubmitInFlight = true;
+          localLeaderboardSubmitDepth += 1;
           try {
             await EarnlyCloud.submitLeaderboardScore(game, localBest);
           } catch {
             // A leaderboard read can still succeed even if the best-score sync is temporarily unavailable.
           } finally {
-            localLeaderboardSubmitInFlight = false;
+            localLeaderboardSubmitDepth = Math.max(0, localLeaderboardSubmitDepth - 1);
           }
         }
 
@@ -250,7 +249,7 @@
     }
 
     function refreshBoardWithoutResubmit() {
-      if (localLeaderboardSubmitInFlight) return;
+      if (localLeaderboardSubmitDepth > 0) return;
       clearTimeout(leaderboardRefreshTimer);
       leaderboardRefreshTimer = setTimeout(() => {
         loadBoard({ submitLocalBest:false, showLoading:false });
