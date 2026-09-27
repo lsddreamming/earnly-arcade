@@ -178,6 +178,15 @@ test('Neon Dodger keeps live play focused and result timing consistent', () => {
   expect(source).not.toContain("Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000)");
 });
 
+test('Neon Dodger keeps Pause and Resume within thumb reach on mobile', () => {
+  const source = read('dodger.html');
+  expect(source).toContain('body.dodger-page.game-active .earnly-pause-button{');
+  expect(source).toContain('position:fixed!important;');
+  expect(source).toContain('bottom:calc(18px + env(safe-area-inset-bottom))!important;');
+  expect(source).toContain('min-height:56px!important;');
+  expect(source).toContain('body.dodger-page.game-active.earnly-game-paused .earnly-pause-button{');
+});
+
 test('Lane Runner smooth steering uses physical car position for collisions', () => {
   const source = read('lanerunner.html');
 
