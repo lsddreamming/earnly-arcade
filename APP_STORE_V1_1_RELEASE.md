@@ -6,8 +6,10 @@ Prepared for the next iOS update. This file is release documentation only; it do
 - App: Earnly Arcade
 - Bundle ID: com.earnly.arcade
 - Marketing version: 1.1
-- Build number: 2
+- Build number: 3
 - In-app engine version: 1.1.0
+- Release candidate: RC1
+- Green source baseline: `533075205110359215d5415ce4f53c01fe712a86`
 
 ## Reviewer paths
 - The arcade is playable as a guest. An account is not required to access games.
@@ -37,7 +39,7 @@ Use:
 This forces:
 - EARNLY_ADMOB_TEST_MODE=0
 - EARNLY_IOS_MARKETING_VERSION=1.1
-- EARNLY_IOS_BUILD_NUMBER=2
+- EARNLY_IOS_BUILD_NUMBER=3
 
 Normal CI intentionally uses AdMob test mode.
 
