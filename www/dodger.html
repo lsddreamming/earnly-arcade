@@ -73,7 +73,28 @@
       }
       body.dodger-page.game-active .game-guide-strip,body.dodger-page.game-active .game-guide-more,body.dodger-page.game-active .game-guide-overlay,body.dodger-page.game-active .game-overlay,body.dodger-page.game-active .game-preflight,body.dodger-page.game-active .game-guide,body.dodger-page.game-active .game-guide-card,body.dodger-page.game-active .game-guide-reward,body.dodger-page.game-active .game-guide-tip,body.dodger-page.game-active [data-game-guide],body.dodger-page.game-active a.button.secondary{display:none!important}
       body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{display:none!important}
-      body.dodger-page.game-active .earnly-pause-button{width:auto!important;min-width:112px!important;min-height:40px!important;margin:2px auto 0!important;padding:8px 14px!important;font-size:12px!important;border-radius:12px!important}
+      /* Keep Pause and Resume in thumb reach while the road is on screen. */
+      body.dodger-page.game-active .earnly-pause-button{
+        position:fixed!important;
+        right:max(16px,env(safe-area-inset-right))!important;
+        bottom:calc(18px + env(safe-area-inset-bottom))!important;
+        width:124px!important;
+        min-width:124px!important;
+        min-height:56px!important;
+        margin:0!important;
+        padding:12px 16px!important;
+        font-size:16px!important;
+        border-radius:18px!important;
+        border:2px solid rgba(103,232,249,.85)!important;
+        background:#12314a!important;
+        box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 18px rgba(34,211,238,.3)!important;
+        z-index:120!important;
+        touch-action:manipulation;
+      }
+      body.dodger-page.game-active.earnly-game-paused .earnly-pause-button{
+        border-color:#86efac!important;
+        background:#14532d!important;
+      }
       body.dodger-page.game-active .page-header{margin:0 0 4px}
       body.dodger-page.game-active .game-title-status-row h1{font-size:22px!important;margin:0!important}
       body.dodger-page.game-active .game-meta{margin:3px 0 4px}
