@@ -118,7 +118,7 @@ body.snake-page .snake-quick-tip { display:none; }
     border:1px solid #3e6482 !important;
     color:#f8fafc !important;
     box-shadow:inset 0 1px rgba(255,255,255,.06),0 5px 12px rgba(0,0,0,.22);
-    touch-action:manipulation !important;
+    touch-action:none !important;
     -webkit-tap-highlight-color:transparent;
   }
   body.snake-page.game-guide-page .snake-dpad .game-control:active,

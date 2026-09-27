@@ -149,15 +149,17 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger keeps the faster staged difficulty curve', () => {
+test('Neon Dodger keeps the lane-choice difficulty curve', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('function difficultyFor(seconds)');
-  expect(source).toContain("if(seconds>=24) return {label:'MAX',speed:11.6,delay:270}");
-  expect(source).toContain('function trafficSpeedFor(seconds)');
-  expect(source).toContain('Math.min(12.2,stage.speed+Math.max(0,seconds%6)*.10)');
+  expect(source).toContain("if(seconds>=24) return {label:'LANE SHIFT',speed:8.2,delay:940,pairChance:1};");
+  expect(source).toContain("if(seconds>=18) return {label:'TWO-LANE TRAFFIC',speed:7.9,delay:980,pairChance:1};");
+  expect(source).toContain('const paired=Math.random()<difficultyFor(seconds).pairChance;');
+  expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
+  expect(source).toContain('lastLaneStep=next-lastOpenLane;');
   expect(source).toContain('function spawnDelayFor(seconds)');
-  expect(source).toContain('return difficultyFor(seconds).delay;');
+  expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds);');
   expect(source).toContain('nextSpawnAt=now+560');
 });
 
