@@ -97,6 +97,9 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
 test('Snake mobile: quit remains usable while paused',async({page},info)=>{
   await page.setViewportSize({width:390,height:844}); await snakeFixture(page); await page.goto('/snake.html');
   await press(page.locator('#startButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+  // Hold autonomous movement while Playwright waits for the physical Pause
+  // target to settle; otherwise Snake can reach a wall and hide Pause first.
+  await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
   await press(page.locator('#earnlyPauseButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await press(page.locator('#snakeExit'),info); await expect(page).toHaveURL(/games\.html/);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active|earnly-game-paused/);
