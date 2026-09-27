@@ -1834,6 +1834,28 @@ const Arcade = (() => {
     const notes = document.createElement('div');
     notes.className = 'result-notes';
 
+    if (
+      game &&
+      number('gamesCompletedEver') === 1 &&
+      localStorage.getItem('arcadeFirstRunExplained') !== '1'
+    ) {
+      const firstRun = document.createElement('div');
+      firstRun.className = 'result-highlight result-first-run';
+
+      const firstRunTitle = document.createElement('strong');
+      firstRunTitle.textContent = '🎉 First run complete';
+
+      const firstRunCopy = document.createElement('span');
+      const firstRunXP = (result?.xpAward || 0) + autoMissionXP;
+      firstRunCopy.textContent =
+        '🪙 +' + Math.max(0, Number(coins) || 0) + ' Coins = game rewards · ⭐ +' +
+        Math.max(0, Number(firstRunXP) || 0) + ' XP = level progress';
+
+      firstRun.append(firstRunTitle, firstRunCopy);
+      notes.append(firstRun);
+      localStorage.setItem('arcadeFirstRunExplained', '1');
+    }
+
     (Array.isArray(extra) ? extra : [extra]).filter(Boolean).forEach(text => {
       const line = document.createElement('div');
       line.textContent = text;
@@ -2925,7 +2947,7 @@ const Arcade = (() => {
       return;
     }
 
-    modal.className = 'onboarding-dialog';
+    modal.className = 'onboarding-dialog' + (force ? ' onboarding-info-dialog' : ' onboarding-first-visit');
     modal.replaceChildren();
 
     const head = document.createElement('div');
@@ -2937,61 +2959,114 @@ const Arcade = (() => {
 
     const headCopy = document.createElement('div');
     const title = document.createElement('h2');
-    title.textContent = force ? 'How Earnly Works' : 'Welcome to Earnly';
+    title.textContent = force ? 'How Earnly Works' : 'Welcome to Earnly Arcade';
     const subtitle = document.createElement('p');
-    subtitle.textContent = force ? 'The quick version.' : 'Pick a game. Play. Level up.';
+    subtitle.textContent = force ? 'The quick version.' : 'Three things. Then you’re playing.';
     headCopy.append(title, subtitle);
     head.append(icon, headCopy);
 
-    const list = document.createElement('div');
-    list.className = 'onboarding-list';
+    const content = document.createElement('div');
+    content.className = 'onboarding-content';
 
-    [
-      ['🎮','Play','Start with 3 free plays per game every day.'],
-      ['🪙','Earn & level up','Good runs earn Arcade Coins and XP. Ads do not award Arcade Coins.'],
-      ['🔥','Keep the run going','Out of plays? Up to 2 optional rewarded ads per game each day unlock +1 play each.']
-    ].forEach(([itemIcon,itemTitle,itemText]) => {
-      const row = document.createElement('div');
-      row.className = 'onboarding-row';
+    if (force) {
+      const list = document.createElement('div');
+      list.className = 'onboarding-list';
 
-      const badge = document.createElement('span');
-      badge.className = 'onboarding-row-icon';
-      badge.textContent = itemIcon;
+      [
+        ['🎟️','Plays','Each game starts with 3 free plays every day.'],
+        ['🪙','Coins + XP','Game runs can earn Arcade Coins and XP. Ads do not award Arcade Coins.'],
+        ['🔥','More plays','Up to 2 optional rewarded ads per game each day can unlock +1 play each.']
+      ].forEach(([itemIcon,itemTitle,itemText]) => {
+        const row = document.createElement('div');
+        row.className = 'onboarding-row';
 
-      const copy = document.createElement('div');
-      const strong = document.createElement('strong');
-      strong.textContent = itemTitle;
-      const text = document.createElement('span');
-      text.textContent = itemText;
-      copy.append(strong,text);
+        const badge = document.createElement('span');
+        badge.className = 'onboarding-row-icon';
+        badge.textContent = itemIcon;
 
-      row.append(badge,copy);
-      list.append(row);
-    });
+        const copy = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = itemTitle;
+        const text = document.createElement('span');
+        text.textContent = itemText;
+        copy.append(strong,text);
+
+        row.append(badge,copy);
+        list.append(row);
+      });
+
+      content.append(list);
+    } else {
+      const flow = document.createElement('div');
+      flow.className = 'onboarding-flow';
+      [
+        ['🎟️','3 plays','Pick a game'],
+        ['🎮','Play','Chase a score'],
+        ['🪙 ⭐','Earn','Coins + XP']
+      ].forEach(([itemIcon,itemTitle,itemText], index) => {
+        const step = document.createElement('div');
+        step.className = 'onboarding-flow-step';
+
+        const stepIcon = document.createElement('span');
+        stepIcon.className = 'onboarding-flow-icon';
+        stepIcon.textContent = itemIcon;
+
+        const strong = document.createElement('strong');
+        strong.textContent = itemTitle;
+
+        const small = document.createElement('small');
+        small.textContent = itemText;
+
+        step.append(stepIcon,strong,small);
+        flow.append(step);
+
+        if (index < 2) {
+          const arrow = document.createElement('span');
+          arrow.className = 'onboarding-flow-arrow';
+          arrow.textContent = '→';
+          flow.append(arrow);
+        }
+      });
+
+      const starter = document.createElement('div');
+      starter.className = 'onboarding-starter';
+      starter.innerHTML =
+        '<span class="onboarding-starter-icon">🎯</span>' +
+        '<div><small>START HERE</small><strong>Tap Rush</strong><span>20 seconds · just tap the targets</span></div>';
+
+      content.append(flow,starter);
+    }
 
     const actions = document.createElement('div');
     actions.className = 'onboarding-actions';
 
-    const close = document.createElement('button');
-    close.className = 'onboarding-secondary';
-    close.textContent = force ? 'Close' : 'Maybe Later';
-    close.addEventListener('click', () => {
+    const secondary = document.createElement('button');
+    secondary.className = 'onboarding-secondary';
+    secondary.textContent = force ? 'Close' : 'Browse Games';
+    secondary.addEventListener('click', () => {
+      if (force) {
+        closeModalThen(() => {});
+        return;
+      }
       localStorage.setItem('arcadeOnboardingSeen', '1');
-      if (!force) queueEvent('onboarding_dismissed', {});
-      closeModalThen(() => {});
+      queueEvent('onboarding_completed', { destination:'games.html', path:'browse' });
+      closeModalThen(() => { location.href = 'games.html'; });
     });
 
     const play = document.createElement('button');
     play.className = 'onboarding-primary';
-    play.textContent = 'Start Playing →';
+    play.textContent = force ? 'Browse Games →' : 'Play Tap Rush →';
     play.addEventListener('click', () => {
-      localStorage.setItem('arcadeOnboardingSeen', '1');
-      if (!force) queueEvent('onboarding_completed', { destination:'games.html' });
-      closeModalThen(() => { location.href = 'games.html'; });
+      const destination = force ? 'games.html' : 'taprush.html';
+      if (!force) {
+        localStorage.setItem('arcadeOnboardingSeen', '1');
+        queueEvent('onboarding_completed', { destination, starterGame:'tapRush', path:'starter' });
+      }
+      closeModalThen(() => { location.href = destination; });
     });
 
-    actions.append(close,play);
-    modal.append(head,list,actions);
+    actions.append(secondary,play);
+    modal.append(head,content,actions);
     modal.showModal();
     if (!force) queueEvent('onboarding_shown', { landingPath:(location.pathname.split('/').pop() || 'index.html') });
   }
