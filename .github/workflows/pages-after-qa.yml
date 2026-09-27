@@ -48,9 +48,13 @@ jobs:
         run: |
           mkdir -p _pages
           cp -- ./*.html ./*.css ./*.js ./*.svg ./*.webmanifest ./CNAME _pages/
+          # The existing branch-backed site also serves the native web mirror
+          # at /www/, so keep that URL tree available after the source switch.
+          cp -R -- ./www _pages/www
           printf '' > _pages/.nojekyll
           test "$(cat _pages/CNAME)" = 'earnlyarcade.com'
           test -s _pages/index.html
+          test -s _pages/www/index.html
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
