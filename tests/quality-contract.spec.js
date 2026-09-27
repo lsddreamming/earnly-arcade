@@ -187,6 +187,26 @@ test('Neon Dodger keeps Pause and Resume within thumb reach on mobile', () => {
   expect(source).toContain('body.dodger-page.game-active.earnly-game-paused .earnly-pause-button{');
 });
 
+test('the mobile pause dock covers dedicated, mini, and Paddle Rally games without breaking bottom swipes', () => {
+  const css = read('arcade.css');
+  const shared = read('arcade.js');
+  const minis = read('mini-games.js');
+  const rally = read('paddlerally.html');
+  expect(css).toContain('html body.game-active:not(.pause-in-header) #earnlyPauseButton');
+  expect(css).toContain('html body.paddlerally-page #pauseButton:not([hidden])');
+  expect(css).toContain('bottom:calc(18px + env(safe-area-inset-bottom))!important;');
+  expect(shared).toContain("document.body.append(button);");
+  for (const game of dedicatedGames.filter(file => file !== 'paddlerally.html')) {
+    expect(read(game), game).toContain('Arcade.installPauseControl(');
+  }
+  expect(minis).toContain('Arcade.installPauseControl(');
+  expect(rally).toContain("document.body.append(pauseButton);");
+  for (const game of ['coincatch.html', 'brickbreaker.html']) {
+    const source = read(game);
+    expect(source, game).toContain('pauseBottom<boardTop?pauseBottom+4:Math.max(0,boardTop-110)');
+  }
+});
+
 test('Lane Runner smooth steering uses physical car position for collisions', () => {
   const source = read('lanerunner.html');
 

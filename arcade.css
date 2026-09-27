@@ -4812,6 +4812,44 @@ body.earnly-gameplay-locked{
   background:#14532d;
 }
 
+/* Thumb-reachable Pause/Resume for every game on phones. The shared control
+   has an ID, so this also overrides older page-specific header positions. */
+@media(max-width:600px){
+  html body.game-active:not(.pause-in-header) #earnlyPauseButton,
+  html body.paddlerally-page #pauseButton:not([hidden]){
+    position:fixed!important;
+    top:auto!important;
+    left:auto!important;
+    right:max(16px,env(safe-area-inset-right))!important;
+    bottom:calc(18px + env(safe-area-inset-bottom))!important;
+    transform:none!important;
+    grid-column:auto!important;
+    grid-row:auto!important;
+    display:block!important;
+    width:124px!important;
+    min-width:124px!important;
+    min-height:56px!important;
+    margin:0!important;
+    padding:12px 16px!important;
+    border:2px solid rgba(103,232,249,.85)!important;
+    border-radius:18px!important;
+    background:#12314a!important;
+    color:#f8fafc!important;
+    box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 18px rgba(34,211,238,.3)!important;
+    font-size:16px!important;
+    font-weight:900!important;
+    line-height:1.2!important;
+    z-index:1400!important;
+    touch-action:manipulation;
+  }
+  html body.game-active.earnly-game-paused #earnlyPauseButton,
+  html body.paddlerally-page.earnly-game-paused #pauseButton:not([hidden]){
+    border-color:#86efac!important;
+    background:#14532d!important;
+    box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 18px rgba(74,222,128,.3)!important;
+  }
+}
+
 /* Block Grid progression */
 .block-grid-progress{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:7px 0 9px}
 .block-grid-progress>span{display:grid;gap:2px;padding:7px 9px;border:1px solid #334155;border-radius:10px;background:#111c2d;text-align:center}

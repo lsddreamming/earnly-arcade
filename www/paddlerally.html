@@ -111,7 +111,8 @@
     const statusEl=document.getElementById('gameStatus');
     const startButton=document.getElementById('startButton');
     const pauseButton=document.getElementById('pauseButton');
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
+    if(window.matchMedia('(max-width:600px)').matches)document.body.append(pauseButton);
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'||mode==='paused'); }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('paddleRally'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
       if(!Arcade.consume('paddleRally')){ Arcade.out('paddleRally',refreshChrome); return false; }
@@ -136,7 +137,7 @@
     }
     function clearRallyControl(){controlPointer=null;controlLastX=null}
     function finish(){
-      if(!running)return;running=false;paused=false;clearRallyControl();pauseButton.hidden=true;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;
+      if(!running)return;running=false;paused=false;document.body.classList.remove('earnly-game-paused');clearRallyControl();pauseButton.hidden=true;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;
       const earned=rewardFor(score);Arcade.earn(earned,'Paddle Rally',{kind:'game',game:'paddleRally',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('paddleRally',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Missed','over');draw();
       Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
@@ -181,7 +182,7 @@
     let earnlyRunStartedAt=0;
     function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0;clearRallyControl();cancelAnimationFrame(animation);animation=null;lastFrame=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    function togglePause(){if(!running)return;if(!paused){paused=true;clearRallyControl();pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused');}else{if(!pauseStartedAt)return;paused=false;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
+    function togglePause(){if(!running)return;if(!paused){paused=true;document.body.classList.add('earnly-game-paused');clearRallyControl();pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused','paused');}else{if(!pauseStartedAt)return;paused=false;document.body.classList.remove('earnly-game-paused');totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
     pauseButton.addEventListener('click',togglePause);
     let controlPointer=null,controlLastX=null;
     function beginRelativeControl(e,target){

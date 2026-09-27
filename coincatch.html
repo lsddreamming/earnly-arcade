@@ -229,7 +229,7 @@
       clearTimeout(liveTipTimer);
       catchLiveTip.textContent=text;
       const pauseButton=document.querySelector('.earnly-pause-button');
-      if(pauseButton && !pauseButton.hidden){
+      if(pauseButton && !pauseButton.hidden && pauseButton.getBoundingClientRect().bottom<canvas.getBoundingClientRect().top){
         catchLiveTip.style.top=Math.ceil(pauseButton.getBoundingClientRect().bottom+8)+'px';
       }else{
         catchLiveTip.style.removeProperty('top');
@@ -239,8 +239,10 @@
       // Running, so measure again on the next frame before the player reads it.
       requestAnimationFrame(()=>{
         const livePauseButton=document.querySelector('.earnly-pause-button');
-        if(livePauseButton && !livePauseButton.hidden){
+        if(livePauseButton && !livePauseButton.hidden && livePauseButton.getBoundingClientRect().bottom<canvas.getBoundingClientRect().top){
           catchLiveTip.style.top=Math.ceil(livePauseButton.getBoundingClientRect().bottom+8)+'px';
+        }else{
+          catchLiveTip.style.removeProperty('top');
         }
       });
       liveTipTimer=setTimeout(()=>{
@@ -510,7 +512,9 @@
       const target=e.target instanceof Element?e.target:null;
       if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-dialog'))return false;
       const pauseButton=document.querySelector('.earnly-pause-button');
-      const minY=pauseButton?pauseButton.getBoundingClientRect().bottom+4:0;
+      const boardTop=canvas.getBoundingClientRect().top;
+      const pauseBottom=pauseButton?.getBoundingClientRect().bottom;
+      const minY=pauseBottom<boardTop?pauseBottom+4:Math.max(0,boardTop-110);
       return e.clientY>=minY;
     }
     document.addEventListener('pointerdown',e=>{

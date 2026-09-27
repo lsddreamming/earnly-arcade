@@ -3602,6 +3602,9 @@ const Arcade = (() => {
     const host = titleRow?.parentElement || status.parentElement || status;
     if (titleRow) titleRow.insertAdjacentElement('afterend', button);
     else host.append(button);
+    // Some game headers use transforms, which would anchor a fixed button to
+    // the header instead of the viewport. Put the mobile dock on the body.
+    if (window.matchMedia('(max-width:600px)').matches) document.body.append(button);
 
     const sync = () => {
       const active = !!isRunning();
