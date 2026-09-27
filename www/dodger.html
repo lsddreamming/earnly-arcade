@@ -160,7 +160,7 @@
       steps:[
         { icon:'👆', title:'Start', text:'Tap the road' },
         { icon:'↔️', title:'Control', text:'Drag left or right' },
-        { icon:'⏱️', title:'Goal', text:'Survive 60 seconds' }
+        { icon:'⏱️', title:'Goal', text:'Survive as long as you can' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
@@ -168,7 +168,7 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'Keep your car away from every falling obstacle. One collision ends the run.',
-        'Early traffic aims for your lane. Later, two traffic rows can arrive close together: follow the open lane, then switch again.',
+        'Early traffic aims for your lane. Later, follow the open lane through two or three rows. Your run ends when you crash.',
         'On a computer, use ← → or A / D. Press Enter or Space to start a run.'
       ],
       reward:'Survival time and obstacles dodged earn up to 20 Coins.'
@@ -189,8 +189,7 @@
     let lastOpenLane=1;
 
     function rewardFor(seconds,dodgedCount){
-      // A full run is now twice as long, so rewards are stretched too.
-      // Players still have to survive deep into the run to reach the cap.
+      // Survival rewards remain capped even though the run can continue.
       let coins=Math.floor(seconds/6)+Math.floor(dodgedCount/12);
       if(seconds>=20) coins+=1;
       if(seconds>=40) coins+=2;
@@ -332,11 +331,13 @@
     }
 
     function difficultyFor(seconds){
-      // Later traffic asks for two consecutive lane choices. Keep the raw
-      // speed close to the current curve and leave a readable gap between rows.
-      if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.65,followUpGapMs:420};
-      if(seconds>=42) return {label:'DOUBLE SHIFT',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.50,followUpGapMs:460};
-      if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.35,followUpGapMs:500};
+      // Later traffic asks for consecutive lane choices at readable intervals.
+      // The last stage stays constant so endurance never becomes impossible.
+      if(seconds>=90) return {label:'ENDURANCE',speed:8.6,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:1};
+      if(seconds>=60) return {label:'TRIPLE SHIFT',speed:8.4,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:.90};
+      if(seconds>=52) return {label:'NEON GAUNTLET',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.95,followUpGapMs:420,thirdRowChance:.75};
+      if(seconds>=42) return {label:'SWITCHBACKS',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.85,followUpGapMs:460,thirdRowChance:.55};
+      if(seconds>=30) return {label:'TRIPLE TRAFFIC',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.65,followUpGapMs:500,thirdRowChance:.35};
       if(seconds>=20) return {label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80,followUpChance:.20,followUpGapMs:560};
       if(seconds>=10) return {label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76,followUpChance:0,followUpGapMs:0};
       return {label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72,followUpChance:0,followUpGapMs:0};
@@ -394,10 +395,20 @@
         // The second row trails the first by 420–560 ms at the same speed.
         // Its safe lane is adjacent, so the player can clear row one and
         // move one lane before row two arrives; never demand a blind jump.
-        const followUpOpen=lastOpenLane===1?(Math.random()<.5?0:2):1;
+        const firstOpen=lastOpenLane;
+        const followUpOpen=firstOpen===1?(Math.random()<.5?0:2):1;
         const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;
         addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth,'#e879f9');
         lastOpenLane=followUpOpen;
+        if(Math.random()<(stage.thirdRowChance||0)){
+          // From the middle, open the opposite edge so camping or reversing
+          // back to the first gap cannot clear the full pattern.
+          const thirdOpen=followUpOpen===1?(firstOpen===0?2:0):1;
+          const thirdY=followUpY-stage.speed*stage.followUpGapMs/16.667;
+          addTrafficRow([0,1,2].filter(lane=>lane!==thirdOpen),thirdY,stage.blockWidth,'#22d3ee');
+          lastOpenLane=thirdOpen;
+          return stage.followUpGapMs*2;
+        }
         return stage.followUpGapMs;
       }
       return 0;
@@ -412,7 +423,7 @@
 
       if(!startTime) startTime=now;
       const elapsed=Math.max(0,now-startTime);
-      const seconds=Math.min(60,Math.floor(elapsed/1000));
+      const seconds=Math.floor(elapsed/1000);
 
       if(!nextSpawnAt) nextSpawnAt=now+560;
       if(now>=nextSpawnAt){
@@ -441,7 +452,7 @@
           h:Math.max(1,o.h-6)
         };
         if(intersects(hitPlayer,hitObstacle)){
-          finishGame(false,seconds);
+          finishGame(seconds);
           return;
         }
         if(o.y>canvas.height){
@@ -459,20 +470,15 @@
         timeEl.textContent=seconds;
         rewardPreviewEl.textContent=rewardFor(seconds,dodged);
         xpPreviewEl.textContent='+10';
-        if([0,10,20,30,42,52].includes(seconds)) setStatus(difficultyFor(seconds).label,'running');
+        if([0,10,20,30,42,52,60,90].includes(seconds)) setStatus(difficultyFor(seconds).label,'running');
       }
 
       draw();
 
-      if(elapsed>=60000){
-        finishGame(true,60);
-        return;
-      }
-
       animation=requestAnimationFrame(loop);
     }
 
-    function finishGame(survived,seconds){
+    function finishGame(seconds){
       if(!running) return;
       running=false;
       pauseStartedAt=0;
@@ -486,7 +492,7 @@
       dodgedEl.textContent=dodged;
       rewardPreviewEl.textContent=earned;
       Arcade.earn(earned,'Neon Dodger', { kind:'game', game:'dodger', metric:seconds, aux:dodged });
-      Arcade.feedback(survived?'success':'fail');
+      Arcade.feedback('fail');
       const result=Arcade.recordResult('dodger', seconds);
 
       const best=Math.max(seconds,Arcade.number('dodgerBest'));
@@ -494,13 +500,13 @@
 
       starting=false;
       refreshChrome();
-      setStatus(survived?'You Survived!':'Traffic Jammed!','over');
+      setStatus('Traffic Jammed!','over');
       startButton.disabled=false;
       startButton.textContent='👆 Tap Game to Play Again';
 
       Arcade.gameResult({
-        icon:survived?'🚗':'💥',
-        title:survived?'You Survived!':'Run Over',
+        icon:'💥',
+        title:'Run Over',
         scoreLabel:'Seconds Survived',
         score:seconds + 's',
         best:best + 's',
@@ -508,8 +514,8 @@
         result,
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
-        badgeText: survived ? '🏆 60 SECONDS SURVIVED!' : '💥 RUN OVER',
-        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged, survived?'🏆 Full 60-second survival!':'Keep weaving through traffic.'],
+        badgeText: seconds>=60 ? '🏆 60-SECOND CLUB' : '💥 RUN OVER',
+        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged,seconds>=60?'🏆 You reached the endurance lanes!':'Keep weaving through traffic.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
       });
