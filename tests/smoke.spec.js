@@ -244,6 +244,29 @@ test('games catalog keeps Play bright, disabled actions readable, and avoids dup
   else await expect(backHome).toBeVisible();
 });
 
+test('mobile catalog shows two browsable game choices per row', async ({ page }) => {
+  test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
+  await page.goto('/games.html');
+  const cards = page.locator('#games .catalog-tile');
+  await expect(cards).toHaveCount(22);
+  const first = await cards.nth(0).boundingBox();
+  const second = await cards.nth(1).boundingBox();
+  expect(first).toBeTruthy();
+  expect(second).toBeTruthy();
+  expect(Math.abs(first.y - second.y)).toBeLessThan(2);
+  expect(second.x).toBeGreaterThan(first.x + first.width - 2);
+  expect(first.height).toBeLessThanOrEqual(190);
+  await expect(cards.first().locator('.reward-rule')).toBeVisible();
+  await expect(cards.first().locator('.game-play-button')).toContainText(/Play · 3 left/);
+});
+
+test('Pick for me opens a playable game without searching', async ({ page }) => {
+  await page.goto('/games.html');
+  await page.evaluate(() => { Math.random = () => 0; });
+  await page.locator('#surpriseGame').click();
+  await expect(page).toHaveURL(/\/snake\.html$/);
+});
+
 test('core navigation never points to a missing internal page', async ({ page }) => {
   const entryPages = ['/index.html','/games.html','/rewards.html','/profile.html','/account.html','/settings.html','/stats.html'];
   const hrefs = new Set();

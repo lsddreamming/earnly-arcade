@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Games</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=35">
+  <link rel="stylesheet" href="premium.css?v=36">
 </head>
 <body class="games-dashboard">
   <main class="container">
@@ -40,19 +40,6 @@
       </details>
     </div>
 
-    <div class="games-shortcuts" aria-label="Arcade shortcuts">
-      <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
-        <strong>🎯 Missions</strong>
-        <span id="gamesMissionSummary">0/3 complete</span>
-        <span class="play-pill" id="gamesMissionCount">0/3</span>
-        <span class="mission-arrow" aria-hidden="true">›</span>
-      </a>
-      <a class="games-start-here games-leaderboard-link" href="leaderboards.html" aria-label="Open world leaderboards">
-        <strong>🏆 Leaderboards</strong>
-        <span>World top scores →</span>
-      </a>
-    </div>
-
     <div id="quickSections"></div>
 
     <section class="game-browser-tools" aria-label="Find a game">
@@ -70,7 +57,24 @@
       </div>
     </section>
 
+    <div class="game-browse-heading">
+      <p class="game-browse-count" id="gameBrowseCount" aria-live="polite">22 games to explore</p>
+      <button class="game-surprise-button" id="surpriseGame" type="button">🎲 Pick for me</button>
+    </div>
     <div id="games" class="game-list compact-catalog-grid"></div>
+
+    <div class="games-shortcuts" aria-label="Arcade shortcuts">
+      <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
+        <strong>🎯 Missions</strong>
+        <span id="gamesMissionSummary">0/3 complete</span>
+        <span class="play-pill" id="gamesMissionCount">0/3</span>
+        <span class="mission-arrow" aria-hidden="true">›</span>
+      </a>
+      <a class="games-start-here games-leaderboard-link" href="leaderboards.html" aria-label="Open world leaderboards">
+        <strong>🏆 Leaderboards</strong>
+        <span>World top scores →</span>
+      </a>
+    </div>
 
     <a class="button wide secondary games-back-home" href="index.html">← Back Home</a>
   </main>
@@ -197,8 +201,17 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const gamesToRender = visibleGames;
-      const recommendedKeys = new Set(['tapRush','snake','bounceRun']);
+      const browseOrder = ['tapRush','dodger','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const gamesToRender = activeGameFilter === 'all' && !gameSearchText
+        ? visibleGames.sort((a,b) => {
+            const aIndex = browseOrder.indexOf(a.key);
+            const bIndex = browseOrder.indexOf(b.key);
+            return (aIndex < 0 ? 100 : aIndex) - (bIndex < 0 ? 100 : bIndex);
+          })
+        : visibleGames;
+      document.getElementById('gameBrowseCount').textContent = visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's') + (gameSearchText || activeGameFilter !== 'all' ? ' found' : ' to explore');
+      document.getElementById('surpriseGame').disabled = visibleGames.length === 0;
+      const recommendedKeys = new Set(['tapRush','dodger','snake']);
 
       gamesToRender.forEach(info => {
         const remaining = Arcade.remaining(info.key);
@@ -266,7 +279,7 @@
         if (remaining) play.href = info.href;
         else play.disabled = adStatus.remaining <= 0 && !privateSnakeTester;
         play.textContent = remaining
-          ? 'Play'
+          ? 'Play · ' + remaining + ' left'
           : (privateSnakeTester
               ? '🧪 Private Test Run'
               : (adStatus.remaining > 0 ? '📺 Watch Ad · +1 Play' : 'Come Back Tomorrow'));
@@ -322,6 +335,16 @@
         item.setAttribute('aria-pressed', selected ? 'true' : 'false');
       });
       render();
+    });
+
+    document.getElementById('surpriseGame').addEventListener('click', () => {
+      const choices = gameInfo.filter(info =>
+        (activeGameFilter === 'all' || (gameTags[info.key] || []).includes(activeGameFilter)) &&
+        (!gameSearchText || (info.name + ' ' + info.note).toLowerCase().includes(gameSearchText))
+      );
+      const playable = choices.filter(info => Arcade.remaining(info.key) > 0);
+      const pool = playable.length ? playable : choices;
+      if (pool.length) location.href = pool[Math.floor(Math.random() * pool.length)].href;
     });
 
 
