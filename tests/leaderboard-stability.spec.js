@@ -1,5 +1,24 @@
 const { test, expect } = require('@playwright/test');
 
+test('Snake leaderboard visibility settles without rewriting its own class', async ({ page }) => {
+  await page.goto('/snake.html');
+  const mutations = await page.evaluate(async () => {
+    const card = document.querySelector('#earnlyCompactLeaderboard');
+    if (!card) throw new Error('Snake leaderboard did not mount');
+    let changes = 0;
+    const observer = new MutationObserver(records => { changes += records.length; });
+    observer.observe(card, { attributes:true, attributeFilter:['class'] });
+    document.body.classList.add('game-active');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const active = card.classList.contains('during-game-compact');
+    document.body.classList.remove('game-active');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    observer.disconnect();
+    return { changes, active, settled:!card.classList.contains('during-game-compact') };
+  });
+  expect(mutations).toEqual({ changes:2, active:true, settled:true });
+});
+
 test('leaderboard refresh events do not resubmit the local best or blank rendered rows', async ({ page }) => {
   await page.goto('/leaderboards.html');
 

@@ -3493,12 +3493,15 @@ const Arcade = (() => {
     const syncVisibility = () => {
       const active = document.body.classList.contains('game-active') ||
         !!document.querySelector('.game-status.running');
-      card.classList.toggle('during-game-compact', active);
-      recordChip.classList.toggle('show', false);
+      if (card.classList.contains('during-game-compact') !== active) {
+        card.classList.toggle('during-game-compact', active);
+      }
     };
     syncVisibility();
     const visibilityObserver = new MutationObserver(syncVisibility);
-    visibilityObserver.observe(document.body, {subtree:true, attributes:true, attributeFilter:['class']});
+    visibilityObserver.observe(document.body, {attributes:true, attributeFilter:['class']});
+    const gameStatus = document.querySelector('.game-status');
+    if (gameStatus) visibilityObserver.observe(gameStatus, {attributes:true, attributeFilter:['class']});
     window.addEventListener('pagehide', () => visibilityObserver.disconnect(), {once:true});
 
     const render = async () => {
