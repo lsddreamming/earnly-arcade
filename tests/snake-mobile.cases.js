@@ -282,7 +282,8 @@ test('Unlimited account keeps plays available across every game without a tester
   await expect(page.locator('body')).not.toContainText('Private Test Run');
   await expect(page.locator('body')).not.toContainText('Private tester access');
   const snake = page.locator('[data-game="snake"]');
-  await expect(snake.locator('.game-play-button')).toHaveText('Play');
+  await expect(snake.locator('.game-play-button')).toContainText('Play');
+  await expect(snake.locator('.game-play-button')).toHaveAttribute('href','snake.html');
 });
 
 test('Normal account still runs out of plays normally', async ({page}) => {
