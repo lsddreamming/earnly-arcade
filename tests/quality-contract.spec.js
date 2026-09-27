@@ -163,7 +163,7 @@ test('Neon Dodger keeps the 60-second targeted and double-shift curve', () => {
   expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth');
   expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
   expect(source).toContain('function spawnDelayFor(seconds)');
-  expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds);');
+  expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds)+followUpGapMs;');
   expect(source).toContain('nextSpawnAt=now+560');
   expect(source).toContain('const seconds=Math.min(60,Math.floor(elapsed/1000));');
   expect(source).toContain('if(elapsed>=60000)');
