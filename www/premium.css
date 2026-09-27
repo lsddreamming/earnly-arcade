@@ -2839,16 +2839,16 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
     flex-direction:column!important;
     align-items:stretch!important;
     width:100%!important;
-    height:184px!important;
-    min-height:184px!important;
+    height:148px!important;
+    min-height:148px!important;
     padding:11px!important;
-    gap:6px!important;
+    gap:4px!important;
     border-radius:16px!important;
   }
   body.games-dashboard #games .catalog-tile:has(.status-line),
   body.games-dashboard #games .catalog-tile:has(.game-recommended-badge):has(.status-line){
-    height:222px!important;
-    min-height:222px!important;
+    height:188px!important;
+    min-height:188px!important;
   }
   body.games-dashboard #games .catalog-tile .game-title-row{
     display:block!important;
@@ -2857,13 +2857,15 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
     height:auto!important;
     margin:0!important;
   }
-  body.games-dashboard #games .catalog-tile .game-name-wrap{
+  body.games-dashboard #games .catalog-tile .game-title-row > .game-name-wrap{
     display:flex!important;
     align-items:center!important;
+    position:static!important;
     width:100%!important;
     height:auto!important;
     min-height:36px!important;
-    padding-right:35px!important;
+    margin:0!important;
+    padding:0 39px 0 0!important;
     gap:7px!important;
   }
   body.games-dashboard #games .catalog-tile .game-icon-bubble{
@@ -2872,13 +2874,14 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
   }
   body.games-dashboard #games .catalog-tile .game-name-wrap h2{
     font-size:14px!important;line-height:1.15!important;
+    padding:0!important;
     white-space:normal!important;overflow:hidden!important;
     display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   }
   body.games-dashboard #games .catalog-tile .game-recommended-badge{display:none!important}
-  body.games-dashboard #games .catalog-tile .game-title-actions{
-    position:absolute!important;top:9px!important;right:9px!important;
-    width:auto!important;margin:0!important;
+  body.games-dashboard #games .catalog-tile .game-title-row > .game-title-actions{
+    position:absolute!important;top:0!important;right:0!important;
+    width:auto!important;margin:0!important;margin-top:0!important;
   }
   body.games-dashboard #games .catalog-tile .favorite-button{
     width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
@@ -2887,7 +2890,7 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
   body.games-dashboard #games .catalog-tile .play-pill{display:none!important}
   body.games-dashboard #games .catalog-tile .reward-rule{
     display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;
-    width:100%!important;height:auto!important;min-height:32px!important;max-height:36px!important;
+    width:100%!important;height:auto!important;min-height:0!important;max-height:32px!important;
     margin:0!important;padding:0!important;overflow:hidden!important;
     white-space:normal!important;text-overflow:clip!important;
     font-size:11px!important;line-height:1.35!important;
