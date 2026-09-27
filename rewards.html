@@ -23,6 +23,9 @@
     .rewards-dashboard .rewards-balance-card>div:first-child strong { font-size:clamp(36px,10vw,48px); }
     .rewards-dashboard .rewards-balance-card p { max-width:none; font-size:12px; line-height:1.45; }
     .rewards-dashboard .prototype-badge { align-self:start; font-size:9px; white-space:nowrap; }
+    .rewards-history-toggle{width:100%;margin:8px 0 0;min-height:38px;border:1px solid #335475;border-radius:12px;background:#102038;color:#b8d7f5;font:inherit;font-size:11px;font-weight:800}
+    .rewards-history-toggle[hidden]{display:none}
+    .rewards-dashboard .rewards-hero p,.rewards-dashboard .rewards-now-later p,.rewards-dashboard .reward-protection-card small{color:#b3c2d3!important}
     .rewards-dashboard .rewards-balance-meta>span { font-size:11px; padding:7px 10px; }
     .rewards-dashboard .rewards-balance-meta strong { font-size:12px; color:#ffe188; }
     .rewards-play-link { display:inline-flex; justify-content:center; align-items:center; grid-column:1/-1; min-height:46px; border-radius:13px; background:#17b968; color:#061c16; font-weight:900; text-decoration:none; }
@@ -110,6 +113,7 @@
     <section class="rewards-section">
       <div class="rewards-section-heading"><div><span class="rewards-kicker">ACTIVITY</span><h2>Recent earnings</h2></div></div>
       <div class="rewards-history" id="history"></div>
+      <button class="rewards-history-toggle" id="historyToggle" type="button" hidden>Show more</button>
     </section>
 
     <details class="rewards-roadmap">
@@ -142,6 +146,7 @@
     const protectionTitle = document.getElementById('rewardProtectionTitle');
     const protectionText = document.getElementById('rewardProtectionText');
     const protectionAction = document.getElementById('rewardProtectionAction');
+    let showAllEarnings = false;
 
     async function renderRewardProtection() {
       const pendingRewards = Arcade.pendingSyncEvents().filter(event =>
@@ -161,15 +166,15 @@
       protectionCard.classList.toggle('warning', signedIn && pendingRewards > 0);
       protectionIcon.textContent = signedIn ? (pendingRewards ? '⏳' : '🛡️') : '🔐';
       protectionTitle.textContent = signedIn
-        ? (pendingRewards ? 'Coin rewards waiting to verify' : 'Secure Coin balance connected')
+        ? (pendingRewards ? 'Coin rewards waiting to verify' : 'Coins securely saved')
         : 'Protect your Arcade Coins';
       protectionText.textContent = !signedIn
         ? 'Sign in to attach your progress and Coin balance to your Earnly account.'
         : (pendingRewards
             ? pendingRewards + ' Coin reward' + (pendingRewards === 1 ? '' : 's') + ' will verify when Earnly syncs.'
             : (wallet
-                ? 'Server-protected balance: ' + Number(wallet.balance || 0).toLocaleString() + ' Coins.'
-                : 'Your signed-in rewards are checked against Earnly Cloud.'));
+                ? 'Saved securely: ' + Number(wallet.balance || 0).toLocaleString() + ' Coins.'
+                : 'Your signed-in Coins are securely saved with your Earnly account.'));
       protectionAction.textContent = signedIn ? 'Manage →' : 'Sign In →';
     }
 
@@ -183,8 +188,11 @@
       document.getElementById('lifetimeEarned').textContent = dailyCoins.lifetime.toLocaleString();
 
       const root = document.getElementById('history');
+      const toggle = document.getElementById('historyToggle');
       const items = Arcade.history();
       root.replaceChildren();
+      toggle.hidden = items.length <= 5;
+      toggle.textContent = showAllEarnings ? 'Show less' : 'Show more';
 
       if (!items.length) {
         const p = document.createElement('p');
@@ -194,7 +202,7 @@
         return;
       }
 
-      items.slice(0, 8).forEach(item => {
+      items.slice(0, showAllEarnings ? 12 : 5).forEach(item => {
         const row = document.createElement('div');
         row.className = 'history-item';
 
@@ -210,6 +218,11 @@
         root.append(row);
       });
     }
+
+    document.getElementById('historyToggle').addEventListener('click', () => {
+      showAllEarnings = !showAllEarnings;
+      render();
+    });
 
     render();
     window.addEventListener('pageshow', render);

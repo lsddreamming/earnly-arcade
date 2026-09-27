@@ -15,6 +15,26 @@
   <title>Earnly Stats & Missions</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=35">
+  <style>
+    .missions-complete-toggle{
+      width:100%;
+      min-height:44px;
+      margin:10px 0 0;
+      padding:10px 12px;
+      border:1px solid rgba(52,211,153,.38);
+      border-radius:13px;
+      background:rgba(10,55,45,.72);
+      color:#9ff3c7;
+      font:inherit;
+      font-size:12px;
+      font-weight:850;
+      text-align:left;
+    }
+    .missions-complete-toggle[hidden]{display:none}
+    @media(max-width:699px){
+      .missions-dashboard .missions-weekly-card:has(.missions-complete-toggle:not([hidden])){padding-bottom:11px}
+    }
+  </style>
 </head>
 <body class="missions-dashboard">
   <main class="container missions-container">
@@ -49,6 +69,7 @@
         </div>
         <strong id="weekCount">0/4</strong>
       </div>
+      <button class="missions-complete-toggle" id="completedMissionsToggle" type="button" hidden></button>
       <div class="mission-list" id="missionList"></div>
       <div class="status-line success" id="weeklySweep" hidden></div>
     </section>
@@ -173,6 +194,8 @@
       })[type] || '✨';
     }
 
+    let showCompletedMissions = false;
+
     function renderMissions() {
       const weekly = Arcade.weeklyStatus();
       document.getElementById('weekCount').textContent = weekly.completed + '/' + weekly.total;
@@ -182,6 +205,12 @@
         'Resets ' + reset.toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' });
 
       const root = document.getElementById('missionList');
+      const completeToggle = document.getElementById('completedMissionsToggle');
+      completeToggle.hidden = !weekly.allClaimed;
+      completeToggle.textContent = showCompletedMissions
+        ? '✅ Weekly missions complete · ' + weekly.completed + '/' + weekly.total + ' · Hide details'
+        : '✅ Weekly missions complete · ' + weekly.completed + '/' + weekly.total + ' · View details';
+      root.hidden = weekly.allClaimed && !showCompletedMissions;
       root.replaceChildren();
 
       weekly.missions.forEach(mission => {
@@ -270,7 +299,13 @@
       } else {
         sweep.hidden = true;
       }
+      if (weekly.allClaimed && !showCompletedMissions) sweep.hidden = true;
     }
+
+    document.getElementById('completedMissionsToggle').addEventListener('click', () => {
+      showCompletedMissions = !showCompletedMissions;
+      renderMissions();
+    });
 
     function renderGameStats() {
       const root = document.getElementById('gameStatsList');
