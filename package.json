@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
+    "test:contracts": "playwright test -c playwright.contract.config.js",
     "test:mobile": "playwright test --project=mobile-webkit",
     "test:smoke": "playwright test tests/smoke.spec.js",
     "native:web": "node scripts/build-native-web.mjs",
