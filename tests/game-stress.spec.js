@@ -122,20 +122,22 @@ test('Traffic Escape: 3,500 harder boards stay valid and solvable',()=>{
 
 
 function dodgerDifficulty(seconds){
-  if(seconds>=52)return{label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.65,followUpGapMs:420};
-  if(seconds>=42)return{label:'DOUBLE SHIFT',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.50,followUpGapMs:460};
-  if(seconds>=30)return{label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.35,followUpGapMs:500};
+  if(seconds>=90)return{label:'ENDURANCE',speed:8.6,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:1};
+  if(seconds>=60)return{label:'TRIPLE SHIFT',speed:8.4,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:.90};
+  if(seconds>=52)return{label:'NEON GAUNTLET',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.95,followUpGapMs:420,thirdRowChance:.75};
+  if(seconds>=42)return{label:'SWITCHBACKS',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.85,followUpGapMs:460,thirdRowChance:.55};
+  if(seconds>=30)return{label:'TRIPLE TRAFFIC',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.65,followUpGapMs:500,thirdRowChance:.35};
   if(seconds>=20)return{label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80,followUpChance:.20,followUpGapMs:560};
   if(seconds>=10)return{label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76,followUpChance:0,followUpGapMs:0};
   return{label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72,followUpChance:0,followUpGapMs:0};
 }
 
-test('Neon Dodger: 50,000 targeted and double-shift waves keep an escape',()=>{
+test('Neon Dodger: 50,000 endurance waves keep a timed escape',()=>{
   const random=rng(4407);
-  let lastOpenLane=1,pairedWaves=0,farShifts=0,followUps=0,problem=null;
+  let lastOpenLane=1,pairedWaves=0,farShifts=0,followUps=0,triples=0,problem=null;
 
   for(let i=0;i<50000;i++){
-    const seconds=i%60;
+    const seconds=i%120;
     const stage=dodgerDifficulty(seconds);
     const paired=random()<stage.pairChance;
     const previousOpen=lastOpenLane;
@@ -173,6 +175,14 @@ test('Neon Dodger: 50,000 targeted and double-shift waves keep an escape',()=>{
           problem={i,seconds,firstOpen,followUpOpen,followUpBlocked,gapMs:stage.followUpGapMs};
         }
         lastOpenLane=followUpOpen;
+        if(random()<(stage.thirdRowChance||0)){
+          triples++;
+          const thirdOpen=followUpOpen===1?(firstOpen===0?2:0):1;
+          const thirdBlocked=[0,1,2].filter(lane=>lane!==thirdOpen);
+          const validTriple=Math.abs(thirdOpen-followUpOpen)===1&&thirdBlocked.length===2&&!thirdBlocked.includes(thirdOpen)&&stage.followUpGapMs>=420;
+          if(!problem&&!validTriple) problem={i,seconds,firstOpen,followUpOpen,thirdOpen,thirdBlocked};
+          lastOpenLane=thirdOpen;
+        }
       }
     }else{
       const playerLane=i%3;
@@ -190,5 +200,6 @@ test('Neon Dodger: 50,000 targeted and double-shift waves keep an escape',()=>{
   expect(problem,'first unfair Neon Dodger wave').toBeNull();
   expect(pairedWaves).toBeGreaterThan(30000);
   expect(farShifts).toBeGreaterThan(3000);
-  expect(followUps).toBeGreaterThan(8000);
+  expect(followUps).toBeGreaterThan(15000);
+  expect(triples).toBeGreaterThan(5000);
 });
