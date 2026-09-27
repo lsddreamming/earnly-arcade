@@ -569,7 +569,7 @@
     });
 
     document.addEventListener('keydown',event=>{
-      if(!running) return;
+      if(!running || document.body.classList.contains('earnly-game-paused') || Arcade.isProtectedGameControlTarget(event.target)) return;
       if(event.key==='ArrowLeft' || event.key==='a' || event.key==='A'){event.preventDefault();player.x=Math.max(0,player.x-24);}
       if(event.key==='ArrowRight' || event.key==='d' || event.key==='D'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
     });
