@@ -398,7 +398,9 @@
         const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;
         addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth,'#e879f9');
         lastOpenLane=followUpOpen;
+        return stage.followUpGapMs;
       }
+      return 0;
     }
 
     function intersects(a,b){
@@ -414,9 +416,10 @@
 
       if(!nextSpawnAt) nextSpawnAt=now+560;
       if(now>=nextSpawnAt){
-        spawn(now);
+        const followUpGapMs=spawn(now);
         lastSpawn=now;
-        nextSpawnAt=now+spawnDelayFor(seconds);
+        // Give the following wave its full approach time after the second row.
+        nextSpawnAt=now+spawnDelayFor(seconds)+followUpGapMs;
       }
 
       const frameScale=lastFrame?Math.min(2,(now-lastFrame)/16.667):1;
