@@ -119,3 +119,54 @@ test('Traffic Escape: 3,500 harder boards stay valid and solvable',()=>{
  }
  expect(problem,'first invalid Traffic Escape board').toBeNull();
 });
+
+
+function dodgerDifficulty(seconds){
+  if(seconds>=24)return{label:'LANE SHIFT',speed:8.2,delay:940,pairChance:1};
+  if(seconds>=18)return{label:'TWO-LANE TRAFFIC',speed:7.9,delay:980,pairChance:1};
+  if(seconds>=12)return{label:'FIND THE GAP',speed:7.5,delay:1060,pairChance:.85};
+  if(seconds>=6)return{label:'FIND THE GAP',speed:7.1,delay:1140,pairChance:.65};
+  return{label:'CRUISE',speed:6.5,delay:1100,pairChance:0};
+}
+
+test('Neon Dodger: 50,000 lane-choice waves always leave a reachable gap',()=>{
+  const random=rng(4407);
+  let lastOpenLane=1,lastLaneStep=1,pairedWaves=0,problem=null;
+
+  for(let i=0;i<50000;i++){
+    const seconds=i%36;
+    const stage=dodgerDifficulty(seconds);
+    const paired=random()<stage.pairChance;
+    const previousOpen=lastOpenLane;
+    let blocked;
+
+    if(paired){
+      pairedWaves++;
+      const options=[lastOpenLane-1,lastOpenLane+1].filter(lane=>lane>=0&&lane<3);
+      const next=options.length===2
+        ? options[random()<.72?(lastLaneStep>0?1:0):(lastLaneStep>0?0:1)]
+        : options[0];
+      lastLaneStep=next-lastOpenLane;
+      lastOpenLane=next;
+      blocked=[0,1,2].filter(lane=>lane!==next);
+
+      const reachable=Math.abs(lastOpenLane-previousOpen)===1;
+      const validGap=lastOpenLane>=0&&lastOpenLane<3&&blocked.length===2&&!blocked.includes(lastOpenLane);
+      if(!problem&&(!reachable||!validGap)){
+        problem={i,seconds,previousOpen,lastOpenLane,lastLaneStep,blocked};
+      }
+    }else{
+      blocked=[Math.floor(random()*3)];
+      if(!problem&&(blocked.length!==1||blocked[0]<0||blocked[0]>2)){
+        problem={i,seconds,blocked};
+      }
+    }
+
+    if(!problem&&seconds>=18&&!paired){
+      problem={i,seconds,reason:'late wave was not paired'};
+    }
+  }
+
+  expect(problem,'first unfair Neon Dodger wave').toBeNull();
+  expect(pairedWaves).toBeGreaterThan(25000);
+});
