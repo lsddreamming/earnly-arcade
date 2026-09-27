@@ -44,6 +44,20 @@ jobs:
           fi
           echo "RC app source matches green baseline $RC_BASE_SHA"
 
+      - name: Verify green baseline workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for RUN_ID in 36352907329 36352907334 36353287806; do
+            CONCLUSION="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq '.conclusion')"
+            HEAD_SHA="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq '.head_sha')"
+            echo "Run $RUN_ID · $CONCLUSION · $HEAD_SHA"
+            test "$CONCLUSION" = "success"
+            test "$HEAD_SHA" = "$RC_BASE_SHA"
+          done
+          echo "Verified baseline QA, native iOS build, and QA-gated Pages deployment."
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -71,8 +85,12 @@ jobs:
           cat "$RUNNER_TEMP/earnly-http.log" || true
           exit 1
 
-      - name: Run desktop and iPhone smoke QA
-        run: npx playwright test tests/smoke.spec.js --project=desktop-chromium --project=mobile-webkit
+      - name: Recheck first-time onboarding on desktop and iPhone
+        run: |
+          npx playwright test tests/smoke.spec.js \
+            --project=desktop-chromium \
+            --project=mobile-webkit \
+            --grep 'first-visit onboarding|first visit onboarding|first completed run'
 
       - name: Build native web bundle
         run: npm run native:web
