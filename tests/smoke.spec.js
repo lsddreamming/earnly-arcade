@@ -157,10 +157,15 @@ test('first-visit onboarding records shown and completion funnel events', async 
   let types = await page.evaluate(() => Arcade.pendingSyncEvents().map(item => item.type));
   expect(types).toContain('onboarding_shown');
 
-  await dialog.getByRole('button', { name:'Start Playing →' }).click();
-  await expect(page).toHaveURL(/games\.html$/);
-  types = await page.evaluate(() => Arcade.pendingSyncEvents().map(item => item.type));
-  expect(types).toContain('onboarding_completed');
+  await dialog.getByRole('button', { name:'Play Tap Rush →' }).click();
+  await expect(page).toHaveURL(/taprush\.html$/);
+  const funnel = await page.evaluate(() => ({
+    seen:localStorage.getItem('arcadeOnboardingSeen'),
+    events:Arcade.pendingSyncEvents().filter(item => item.type === 'onboarding_completed')
+  }));
+  expect(funnel.seen).toBe('1');
+  expect(funnel.events.length).toBeGreaterThan(0);
+  expect(funnel.events.at(-1)?.payload?.starterGame).toBe('tapRush');
 });
 
 test('leaderboard and profile pages expose growth engagement tracking', async ({ page }) => {
@@ -1548,15 +1553,65 @@ test('first visit onboarding gets players to gameplay fast', async ({ page }) =>
 
   const dialog = page.locator('dialog.onboarding-dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Welcome to Earnly');
-  await expect(dialog).toContainText('Start with 3 free plays per game every day.');
-  await expect(dialog).toContainText('Ads do not award Arcade Coins.');
-  await expect(dialog).toContainText('Out of plays?');
-  await expect(dialog.locator('.onboarding-row')).toHaveCount(3);
+  await expect(dialog).toContainText('Welcome to Earnly Arcade');
+  await expect(dialog).toContainText('Three things. Then you’re playing.');
+  await expect(dialog.locator('.onboarding-flow-step')).toHaveCount(3);
+  await expect(dialog).toContainText('3 plays');
+  await expect(dialog).toContainText('Coins + XP');
+  await expect(dialog).toContainText('Tap Rush');
+  await expect(dialog).toContainText('20 seconds · just tap the targets');
+  await expect(dialog.getByRole('button', { name:'Browse Games' })).toBeVisible();
 
-  await dialog.getByRole('button', { name:'Start Playing →' }).click();
-  await expect(page).toHaveURL(/games\.html$/);
+  await dialog.getByRole('button', { name:'Play Tap Rush →' }).click();
+  await expect(page).toHaveURL(/taprush\.html$/);
   expect(await page.evaluate(() => localStorage.getItem('arcadeOnboardingSeen'))).toBe('1');
+});
+
+test('first completed run explains Coins and XP once', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('arcadeOnboardingSeen','1');
+  });
+  await page.reload();
+
+  await page.evaluate(() => {
+    const result = Arcade.recordResult('tapRush', 7);
+    Arcade.gameResult({
+      icon:'🎯',
+      title:'Tap Rush Complete',
+      scoreLabel:'Hits',
+      score:7,
+      coins:3,
+      result,
+      playsLeft:2,
+      game:'tapRush'
+    });
+  });
+
+  const dialog = page.locator('dialog.game-result-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('.result-first-run')).toContainText('First run complete');
+  await expect(dialog.locator('.result-first-run')).toContainText('🪙 +3 Coins = game rewards');
+  await expect(dialog.locator('.result-first-run')).toContainText('XP = level progress');
+  expect(await page.evaluate(() => localStorage.getItem('arcadeFirstRunExplained'))).toBe('1');
+
+  await page.evaluate(() => {
+    document.querySelector('dialog')?.close();
+    const result = Arcade.recordResult('tapRush', 8);
+    Arcade.gameResult({
+      icon:'🎯',
+      title:'Tap Rush Complete',
+      scoreLabel:'Hits',
+      score:8,
+      coins:3,
+      result,
+      playsLeft:1,
+      game:'tapRush'
+    });
+  });
+  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+  await expect(page.locator('.result-first-run')).toHaveCount(0);
 });
 
 test('one-more-run gate grants exactly one play then returns control', async ({ page }) => {
