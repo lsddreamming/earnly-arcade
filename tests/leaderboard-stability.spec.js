@@ -41,7 +41,7 @@ test('leaderboard web and bundled iOS copies stay identical', async ({ page }) =
   const web = await (await page.request.get('/leaderboards.html')).text();
   const ios = await (await page.request.get('/www/leaderboards.html')).text();
   expect(ios).toBe(web);
-  expect(web).toContain('localLeaderboardSubmitInFlight');
+  expect(web).toContain('localLeaderboardSubmitDepth');
   expect(web).toContain('refreshBoardWithoutResubmit');
   expect(web).not.toContain("window.addEventListener('earnly-leaderboard-updated', loadBoard)");
 });
