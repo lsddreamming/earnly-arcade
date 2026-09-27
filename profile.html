@@ -30,6 +30,14 @@
     .global-profile-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .global-profile-status.ok{color:#86efac}.global-profile-status.error{color:#fca5a5}
     @media(max-width:520px){.avatar-picker{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    .profile-section.is-empty-favorites{padding:11px 13px}
+    .profile-section.is-empty-favorites .profile-section-head{margin:0}
+    .profile-section.is-empty-favorites .profile-section-head h2{font-size:13px}
+    .profile-section.is-empty-favorites .profile-favorites{display:none}
+    .profile-dashboard .profile-secondary-stats span,
+    .profile-dashboard .profile-shortcuts small,
+    .profile-dashboard .profile-level-line,
+    .profile-dashboard .profile-xp-line{color:#aebfd2!important}
   </style>
 </head>
 <body class="profile-dashboard">
@@ -125,11 +133,11 @@
     </section>
 
     <section class="profile-shortcuts" aria-label="Profile shortcuts">
+      <a href="leaderboards.html"><span>🏆</span><strong>World Ranks</strong><small>Top players</small></a>
       <a href="stats.html"><span>📅</span><strong>Missions</strong><small>Goals & activity</small></a>
       <a href="games.html"><span>🕹️</span><strong>Games</strong><small>Keep playing</small></a>
       <a href="settings.html"><span>⚙️</span><strong>Settings</strong><small>Game feel</small></a>
       <a href="account.html"><span>☁️</span><strong>Account & Data</strong><small>Cloud, backup & delete</small></a>
-      <a href="leaderboards.html"><span>🏆</span><strong>World Ranks</strong><small>Top players</small></a>
     </section>
   </main>
 
@@ -149,16 +157,24 @@
 
     function renderFavorites() {
       const root = document.getElementById('favoriteGames');
+      const section = root.closest('.profile-section');
+      const headingTitle = section?.querySelector('.profile-section-head h2');
+      const editLink = section?.querySelector('.profile-section-head a');
       root.replaceChildren();
       const favorites = Arcade.favorites();
 
       if (!favorites.length) {
-        const empty = document.createElement('p');
-        empty.className = 'muted';
-        empty.textContent = 'Tap ☆ on the Games page to add favorites.';
-        root.append(empty);
+        section?.classList.add('is-empty-favorites');
+        if (headingTitle) headingTitle.textContent = '☆ Add favorite games';
+        if (editLink) editLink.textContent = 'Browse →';
+        root.hidden = true;
         return;
       }
+
+      section?.classList.remove('is-empty-favorites');
+      if (headingTitle) headingTitle.textContent = '⭐ Favorites';
+      if (editLink) editLink.textContent = 'Edit';
+      root.hidden = false;
 
       favorites.forEach(key => {
         const info = byKey[key];
