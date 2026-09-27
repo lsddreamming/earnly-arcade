@@ -122,17 +122,17 @@ test('Traffic Escape: 3,500 harder boards stay valid and solvable',()=>{
 
 
 function dodgerDifficulty(seconds){
-  if(seconds>=52)return{label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90};
-  if(seconds>=42)return{label:'SWITCHBACK',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88};
-  if(seconds>=30)return{label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84};
-  if(seconds>=20)return{label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80};
-  if(seconds>=10)return{label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76};
-  return{label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72};
+  if(seconds>=52)return{label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.65,followUpGapMs:420};
+  if(seconds>=42)return{label:'DOUBLE SHIFT',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.50,followUpGapMs:460};
+  if(seconds>=30)return{label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.35,followUpGapMs:500};
+  if(seconds>=20)return{label:'TWO-LANE TRAFFIC',speed:7.7,delay:980,pairChance:.95,farShiftChance:.18,blockWidth:80,followUpChance:.20,followUpGapMs:560};
+  if(seconds>=10)return{label:'FIND THE GAP',speed:7.2,delay:1060,pairChance:.72,farShiftChance:0,blockWidth:76,followUpChance:0,followUpGapMs:0};
+  return{label:'CRUISE',speed:6.5,delay:1120,pairChance:.10,farShiftChance:0,blockWidth:72,followUpChance:0,followUpGapMs:0};
 }
 
-test('Neon Dodger: 50,000 lane-choice waves keep a fair gap while exercising switchbacks',()=>{
+test('Neon Dodger: 50,000 targeted and double-shift waves keep an escape',()=>{
   const random=rng(4407);
-  let lastOpenLane=1,pairedWaves=0,farShifts=0,problem=null;
+  let lastOpenLane=1,pairedWaves=0,farShifts=0,followUps=0,problem=null;
 
   for(let i=0;i<50000;i++){
     const seconds=i%60;
@@ -163,9 +163,21 @@ test('Neon Dodger: 50,000 lane-choice waves keep a fair gap while exercising swi
       if(!problem&&(!validShift||!validGap||!validWidth)){
         problem={i,seconds,previousOpen,lastOpenLane,shift,blocked,blockWidth:stage.blockWidth};
       }
+      if(random()<stage.followUpChance){
+        followUps++;
+        const firstOpen=lastOpenLane;
+        const followUpOpen=firstOpen===1?(random()<.5?0:2):1;
+        const followUpBlocked=[0,1,2].filter(lane=>lane!==followUpOpen);
+        const validTiming=stage.followUpGapMs>=420&&stage.delay>=760;
+        if(!problem&&(!validTiming||Math.abs(followUpOpen-firstOpen)!==1||followUpBlocked.includes(followUpOpen))){
+          problem={i,seconds,firstOpen,followUpOpen,followUpBlocked,gapMs:stage.followUpGapMs};
+        }
+        lastOpenLane=followUpOpen;
+      }
     }else{
-      blocked=[Math.floor(random()*3)];
-      if(!problem&&(blocked.length!==1||blocked[0]<0||blocked[0]>2)){
+      const playerLane=i%3;
+      blocked=[playerLane];
+      if(!problem&&(blocked.length!==1||blocked[0]!==playerLane)){
         problem={i,seconds,blocked};
       }
     }
@@ -178,4 +190,5 @@ test('Neon Dodger: 50,000 lane-choice waves keep a fair gap while exercising swi
   expect(problem,'first unfair Neon Dodger wave').toBeNull();
   expect(pairedWaves).toBeGreaterThan(30000);
   expect(farShifts).toBeGreaterThan(3000);
+  expect(followUps).toBeGreaterThan(8000);
 });
