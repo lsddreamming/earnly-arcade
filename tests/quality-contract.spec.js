@@ -149,26 +149,28 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger keeps the 60-second targeted and double-shift curve', () => {
+test('Neon Dodger runs until collision with fair triple-shift traffic', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('function difficultyFor(seconds)');
-  expect(source).toContain("if(seconds>=52) return {label:'FINAL SPRINT',speed:8.4,delay:760,pairChance:1,farShiftChance:.78,blockWidth:90,followUpChance:.65,followUpGapMs:420};");
-  expect(source).toContain("if(seconds>=42) return {label:'DOUBLE SHIFT',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.50,followUpGapMs:460};");
-  expect(source).toContain("if(seconds>=30) return {label:'LANE SHIFT',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.35,followUpGapMs:500};");
+  expect(source).toContain("if(seconds>=90) return {label:'ENDURANCE',speed:8.6,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:1};");
+  expect(source).toContain("if(seconds>=60) return {label:'TRIPLE SHIFT',speed:8.4,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:.90};");
+  expect(source).toContain("if(seconds>=42) return {label:'SWITCHBACKS',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.85,followUpGapMs:460,thirdRowChance:.55};");
+  expect(source).toContain("if(seconds>=30) return {label:'TRIPLE TRAFFIC',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.65,followUpGapMs:500,thirdRowChance:.35};");
   expect(source).toContain('const paired=Math.random()<stage.pairChance;');
   expect(source).toContain('Math.random()<stage.farShiftChance');
   expect(source).toContain('lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];');
   expect(source).toContain('const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;');
   expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth');
+  expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==thirdOpen),thirdY,stage.blockWidth');
   expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
   expect(source).toContain('function spawnDelayFor(seconds)');
   expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds)+followUpGapMs;');
   expect(source).toContain('nextSpawnAt=now+560');
-  expect(source).toContain('const seconds=Math.min(60,Math.floor(elapsed/1000));');
-  expect(source).toContain('if(elapsed>=60000)');
-  expect(source).toContain('finishGame(true,60);');
-  expect(source).toContain('🏆 60 SECONDS SURVIVED!');
+  expect(source).toContain('const seconds=Math.floor(elapsed/1000);');
+  expect(source).not.toContain('if(elapsed>=60000)');
+  expect(source).toContain('finishGame(seconds);');
+  expect(source).toContain('🏆 60-SECOND CLUB');
 });
 
 test('Neon Dodger keeps live play focused and result timing consistent', () => {

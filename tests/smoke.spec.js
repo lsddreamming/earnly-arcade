@@ -1038,6 +1038,27 @@ test('driving games hide mobile navigation during live play', async ({ page }) =
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 });
 
+test('Neon Dodger endurance makes three readable lane changes', async ({ page }) => {
+  await page.goto('/dodger.html');
+  const pattern = await page.evaluate(() => {
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      startTime = performance.now() - 95000;
+      lastOpenLane = 1;
+      obstacles = [];
+      const extraDelay = spawn(performance.now());
+      return { extraDelay, rows: [...new Set(obstacles.map(car => car.y))].map(y =>
+        obstacles.filter(car => car.y === y).map(car => Math.round((car.x + car.w / 2) / 110 - .5))
+      ) };
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+  expect(pattern.extraDelay).toBe(840);
+  expect(pattern.rows).toEqual([[1, 2], [0, 2], [0, 1]]);
+});
+
 test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
