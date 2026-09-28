@@ -1145,7 +1145,10 @@ test('game catalog search filters cleanly and recovers', async ({ page }) => {
   const search = page.locator('#gameSearch');
   await expect(search).toBeVisible();
 
+  await page.locator('#gameFilters [data-filter="quick"]').click();
+  await expect(page.locator('#games')).not.toContainText('Snake');
   await search.fill('snake');
+  await expect(page.locator('#gameFilters [data-filter="all"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#games .game-card')).toHaveCount(1);
   await expect(page.locator('#games .game-card')).toContainText('Snake');
 

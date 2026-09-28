@@ -183,6 +183,16 @@
     const gameSearch = document.getElementById('gameSearch');
     gameSearch?.addEventListener('input', event => {
       gameSearchText = event.target.value.trim().toLowerCase();
+      // Typing a name searches the whole catalog, even after a category was
+      // selected. Players can choose a category again to narrow the results.
+      if (gameSearchText && activeGameFilter !== 'all') {
+        activeGameFilter = 'all';
+        document.querySelectorAll('#gameFilters .game-filter').forEach(item => {
+          const selected = item.dataset.filter === 'all';
+          item.classList.toggle('active', selected);
+          item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+      }
       render();
     });
 
