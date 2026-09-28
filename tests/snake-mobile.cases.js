@@ -144,6 +144,9 @@ test('Snake mobile: bottom steering results and replay still work',async({page},
   await expect(page.locator('body')).not.toHaveClass(/snake-game-active/);
   await press(page.locator('dialog.game-result-dialog button').filter({hasText:/Play Again/}).first(),info);
   await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+  // Keep the replay alive while checking Pause; its movement can otherwise
+  // reach a wall before a physical WebKit tap settles.
+  await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
   await press(page.locator('#earnlyPauseButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
 });
 test('Snake mobile: web native assets and cache stay aligned',async({request})=>{

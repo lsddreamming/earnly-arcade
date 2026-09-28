@@ -384,9 +384,12 @@
     function randomFood() {
       let next;
       do {
+        // Keep food off the outermost row/column. Those cells remain fully
+        // playable, but reserving the edge for steering makes wall approaches
+        // easier to read on a phone and avoids forcing risky wall-hugging turns.
         next = {
-          x: Math.floor(Math.random() * 20) * box,
-          y: Math.floor(Math.random() * 20) * box
+          x: (1 + Math.floor(Math.random() * 18)) * box,
+          y: (1 + Math.floor(Math.random() * 18)) * box
         };
       } while (snake.some(part => part.x === next.x && part.y === next.y));
       return next;
@@ -523,6 +526,14 @@
       nextDirection = queuedDirections[0] || direction;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the wall on the true canvas boundary. The outermost grid cells are
+      // still playable; the snake only crashes when its next cell is outside it.
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56,189,248,.78)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3);
+      ctx.restore();
 
       drawSnakeBody();
       drawSnakeHead();
