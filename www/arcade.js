@@ -1688,19 +1688,29 @@ const Arcade = (() => {
     main.className = 'result-main';
 
     const label = document.createElement('span');
-    label.textContent = scoreLabel;
+    label.textContent = 'THIS RUN';
 
     const value = document.createElement('strong');
     value.textContent = String(score);
 
-    main.append(label, value);
+    const runUnit = document.createElement('small');
+    runUnit.className = 'result-run-unit';
+    runUnit.textContent = leaderboardUnitLabel(scoreLabel, score);
 
+    main.append(label, value, runUnit);
+
+    let bestLine = null;
     if (bestDisplay) {
-      const bestLine = document.createElement('div');
+      bestLine = document.createElement('div');
       bestLine.className = 'result-best';
-      bestLine.textContent = bestDisplay.endsWith(' saved on this device')
-        ? '🏆 ' + (result?.newBest ? 'New best' : 'Best') + ' on this device: ' + bestDisplay.slice(0, -' saved on this device'.length)
-        : result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + bestDisplay;
+      const normalizedBest = bestDisplay.endsWith(' saved on this device')
+        ? bestDisplay.slice(0, -' saved on this device'.length)
+        : bestDisplay;
+      bestLine.textContent = leaderboardUsername()
+        ? '🏆 ' + (result?.newBest ? 'New Personal Best: ' : 'Personal Best: ') + normalizedBest
+        : bestDisplay.endsWith(' saved on this device')
+          ? '🏆 ' + (result?.newBest ? 'New best' : 'Best') + ' on this device: ' + normalizedBest
+          : result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + normalizedBest;
       main.append(bestLine);
     }
 
@@ -1736,6 +1746,12 @@ const Arcade = (() => {
           const myEntry = myName
             ? entries.find(entry => String(entry.username || '').toLowerCase() === myName)
             : null;
+
+          if (bestLine && myName && myEntry) {
+            bestLine.textContent =
+              '🏆 ' + (result?.newBest ? 'New Personal Best: ' : 'Personal Best: ') +
+              compactLeaderboardScore(myEntry, data);
+          }
 
           leaderboardBox.replaceChildren();
           const head = document.createElement('div');
@@ -1774,7 +1790,25 @@ const Arcade = (() => {
           const third = topThree[2] ? Number(topThree[2].score || 0) : 0;
           const mine = myEntry ? Number(myEntry.score || localBest || 0) : Number(localBest || 0);
           if (myEntry) {
-            footer.textContent = '🌎 Your global best: ' + compactLeaderboardScore(myEntry, data) + ' · Rank #' + myEntry.rank + ' →';
+            const myRank = Math.max(1, Number(myEntry.rank) || 1);
+            if (myRank === 1) {
+              footer.classList.add('world-number-one');
+              footer.textContent = '👑 WORLD #1 · Personal Best ' + compactLeaderboardScore(myEntry, data) + ' →';
+            } else {
+              const nextRank = entries.find(entry => Number(entry.rank) === myRank - 1);
+              if (nextRank) {
+                const nextScore = Number(nextRank.score || 0);
+                const gap = data?.lowerIsBetter
+                  ? Math.max(0, mine - nextScore)
+                  : Math.max(0, nextScore - mine);
+                footer.textContent = gap > 0
+                  ? '🌎 Rank #' + myRank + ' · ' + gap.toLocaleString() + ' ' +
+                    leaderboardUnitLabel(data?.label || scoreLabel, gap) + ' to #' + (myRank - 1) + ' →'
+                  : '🌎 Rank #' + myRank + ' · Personal Best ' + compactLeaderboardScore(myEntry, data) + ' →';
+              } else {
+                footer.textContent = '🌎 Rank #' + myRank + ' · Personal Best ' + compactLeaderboardScore(myEntry, data) + ' →';
+              }
+            }
           } else if (third > mine && mine > 0) {
             const gap = third - mine;
             footer.textContent = '🔥 ' + gap.toLocaleString() + ' ' + leaderboardUnitLabel(data?.label || scoreLabel, gap) + ' away from Top 3 · View leaderboard →';
@@ -1858,11 +1892,15 @@ const Arcade = (() => {
       localStorage.setItem('arcadeFirstRunExplained', '1');
     }
 
-    (Array.isArray(extra) ? extra : [extra]).filter(Boolean).forEach(text => {
-      const line = document.createElement('div');
-      line.textContent = text;
-      notes.append(line);
-    });
+    const extraLines = (Array.isArray(extra) ? extra : [extra])
+      .map(text => String(text || '').trim())
+      .filter(Boolean);
+    if (extraLines.length) {
+      const summary = document.createElement('div');
+      summary.className = 'result-summary';
+      summary.textContent = extraLines.join(' · ');
+      notes.append(summary);
+    }
 
     if (result?.leveledUp) {
       const line = document.createElement('div');
