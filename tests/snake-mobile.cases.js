@@ -98,6 +98,17 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     expect(await page.evaluate(()=>({points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')}))).toEqual(before);
   });
 }
+test('Snake mobile: transparent steering layer never blocks a physical board tap',async({page},info)=>{
+  await page.setViewportSize({width:390,height:844}); await snakeFixture(page); await page.goto('/snake.html');
+  await press(page.locator('#startButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});
+  await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
+  await expect(page.locator('#snakeControlLayer')).toHaveCSS('pointer-events','none');
+  await press(page.locator('#earnlyPauseButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  // This must be a real physical tap/click on the canvas, not DOM dispatch.
+  await press(page.locator('#game'),info);
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+});
+
 test('Snake mobile: quit remains usable while paused',async({page},info)=>{
   await page.setViewportSize({width:390,height:844}); await snakeFixture(page); await page.goto('/snake.html');
   await press(page.locator('#startButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:6000});

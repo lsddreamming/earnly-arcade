@@ -1,6 +1,6 @@
 /* Snake v1.1: one compact entry, an unobstructed board, and real session controls. */
 body.snake-page .snake-toolbar { position:relative; z-index:80; }
-body.snake-page #snakeControlLayer { z-index:40 !important; }
+body.snake-page #snakeControlLayer { z-index:40 !important; pointer-events:none !important; }
 body.snake-page .snake-toolbar #earnlyPauseButton { position:relative !important; inset:auto !important; margin:0 !important; z-index:81 !important; min-height:44px !important; min-width:90px !important; }
 body.snake-page .snake-toolbar #earnlyPauseButton[hidden] { display:none !important; }
 body.snake-page #snakeExit { display:inline-flex; align-items:center; justify-content:center; min-height:44px !important; min-width:82px !important; padding:8px 12px; border-radius:12px; touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
