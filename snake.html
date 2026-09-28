@@ -315,7 +315,15 @@
       beginSteering(event);
     });
 
-    controlLayer.addEventListener('pointerdown', beginSteering);
+    // The transparent full-screen layer is visual/state-only. It must never sit
+    // on top of the board or the physical Pause/Quit/D-pad controls.
+    // Listen at document level instead so players can still begin a swipe from
+    // any non-interactive part of the active game screen.
+    document.addEventListener('pointerdown', event => {
+      if (controlLayer.hidden || event.target === canvas) return;
+      if (event.target?.closest?.('button,a,input,select,textarea,[data-direction]')) return;
+      beginSteering(event);
+    }, { passive:false });
 
     function steerFromPointer(event) {
       const dx = event.clientX - swipeStartX;
@@ -692,7 +700,8 @@
         (event.type === 'keydown' && event.key.startsWith('Arrow')) ||
         (event.type === 'pointerdown' &&
           (event.target?.closest?.('#snakeControlDock [data-direction]') ||
-           event.target?.closest?.('#game,#snakeControlLayer'))),
+           event.target?.closest?.('#game') ||
+           (!controlLayer.hidden && !event.target?.closest?.('button,a,input,select,textarea')))),
       pause:()=>{
         if(game===null||game==='paused'||pauseStartedAt)return;
         pauseStartedAt=performance.now();
