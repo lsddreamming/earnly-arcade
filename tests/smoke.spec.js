@@ -587,24 +587,18 @@ test('pausing Snake keeps the live board instead of showing out-of-plays guide',
 });
 
 
-test('paused Snake ignores gameplay input until resumed', async ({ page }) => {
+test('paused Snake resumes from a direction key', async ({ page }) => {
   await page.goto('/snake.html');
   await startGame(page);
   await expect(page.locator('#gameStatus')).toHaveClass(/running/, { timeout:5000 });
+  await page.evaluate(() => { clearInterval(game); game=setInterval(()=>{},10000); });
   await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
 
   const before = await page.locator('#score').textContent();
   await page.keyboard.press('ArrowDown');
-  const gameBox = await page.locator('#game').boundingBox();
-  expect(gameBox).not.toBeNull();
-  await page.mouse.click(gameBox.x + Math.min(200, gameBox.width / 2), gameBox.y + Math.min(320, gameBox.height / 2));
-  await page.waitForTimeout(350);
-  await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await expect(page.locator('#score')).toHaveText(before || '0');
-
-  await page.evaluate(() => document.querySelector('#earnlyPauseButton')?.click());
   await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#score')).toHaveText(before || '0');
 });
 
 

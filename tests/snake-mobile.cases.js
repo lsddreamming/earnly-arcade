@@ -80,7 +80,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     }
     await info.attach('snake-paused-'+size.width,{body:await page.screenshot(),contentType:'image/png'});
     const before=await page.evaluate(()=>{
-      snake=[{x:0,y:200}]; direction=nextDirection='RIGHT';
+      snake=[{x:200,y:200}]; direction=nextDirection='RIGHT';
       return {points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')};
     });
     await press(page.locator('#snakeControlDock [data-direction="UP"]'),info);
@@ -107,8 +107,8 @@ test('Snake mobile: quit cancels a pending countdown without a ghost run',async(
   await page.evaluate(()=>{Arcade.countdown=callback=>{window.pendingSnakeStart=callback;};});
   await press(page.locator('#startButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
   // Hold navigation in this test so the cancelled callback can be delivered on the old document.
-  await page.evaluate(()=>document.getElementById('snakeExit').addEventListener('click',e=>e.preventDefault()));
-  await press(page.locator('#snakeExit'),info); await page.evaluate(()=>window.pendingSnakeStart());
+  await page.evaluate(()=>document.getElementById('snakeQuit').addEventListener('click',e=>e.preventDefault()));
+  await press(page.locator('#snakeQuit'),info); await page.evaluate(()=>window.pendingSnakeStart());
   await expect(page.locator('#gameStatus')).toHaveText('Ready');
   expect(await page.evaluate(()=>({game,starting,hidden:controlLayer.hidden}))).toEqual({game:null,starting:false,hidden:true});
   await expect(page.locator('#earnlyPauseButton')).toBeHidden();
@@ -137,12 +137,12 @@ test('Snake mobile: web native assets and cache stay aligned',async({request})=>
   const worker=await(await request.get('/service-worker.js')).text(); expect(worker).toContain("'./snake-ui.css'");
 });
 
-test('Snake mobile: physical Quit stays above the real countdown overlay',async({page},info)=>{
+test('Snake mobile: physical Quit stays usable during the countdown overlay',async({page},info)=>{
   await page.setViewportSize({width:390,height:844}); await snakeFixture(page); await page.goto('/snake.html');
   await press(page.locator('#startButton'),info);
   await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
-  await expect(page.locator('#snakeExit')).toHaveText('× Quit');
-  await press(page.locator('#snakeExit'),info);
+  await expect(page.locator('#snakeQuit')).toHaveText('× Quit');
+  await press(page.locator('#snakeQuit'),info);
   await expect(page).toHaveURL(/games\.html/);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active/);
 });

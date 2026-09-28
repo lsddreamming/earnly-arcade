@@ -28,6 +28,7 @@ body.snake-page .snake-session-controls #earnlyPauseButton[hidden] { display:non
   body.snake-page.game-guide-page main.container { padding:8px 14px 100px !important; padding-top:max(8px,env(safe-area-inset-top)) !important; }
   body.snake-page.game-guide-page.snake-game-active main.container { padding-bottom:max(16px,env(safe-area-inset-bottom)) !important; }
   body.snake-page.game-guide-page .snake-toolbar { display:flex !important; align-items:center !important; justify-content:space-between !important; position:sticky !important; top:env(safe-area-inset-top,0px); min-height:44px !important; gap:8px !important; margin:0 !important; padding:0 !important; background:#071621 !important; }
+  body.snake-page.game-guide-page.snake-game-active .snake-toolbar { display:none !important; }
   body.snake-page.game-guide-page .snake-toolbar .balance-chip { font-size:13px; padding:6px 10px; }
   body.snake-page.game-guide-page .snake-toolbar #earnlyPauseButton { font-size:14px !important; padding:9px 13px !important; border-radius:12px !important; touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   body.snake-page.game-guide-page .snake-header { display:block !important; padding:0 !important; margin:0 0 4px !important; background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
