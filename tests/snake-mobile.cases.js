@@ -87,6 +87,8 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     await expect(page.locator('#gameStatus')).toHaveText('Running');
     await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
     await page.keyboard.press('ArrowUp'); await expect(page.locator('#gameStatus')).toHaveText('Running');
+    await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
+    await press(page.locator('#game'),info); await expect(page.locator('#gameStatus')).toHaveText('Running');
     await press(quit,info); await expect(page).toHaveURL(/games\.html/);
     await page.waitForFunction(()=>typeof Arcade !== 'undefined');
     expect(await page.evaluate(()=>({points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')}))).toEqual(before);
