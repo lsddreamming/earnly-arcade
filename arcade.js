@@ -3706,12 +3706,26 @@ const Arcade = (() => {
     // While paused, game input must be inert. Keep normal page/navigation
     // controls usable, but block taps, swipes and gameplay keys from reaching
     // the board until Resume is pressed.
+    const resumePaused = () => {
+      if (!paused) return;
+      paused = false;
+      resume();
+      button.textContent = '⏸ Pause';
+      status.textContent = 'Running';
+      status.classList.add('running');
+      document.body.classList.remove('earnly-game-paused');
+      sync();
+    };
     const blockPausedGameInput = event => {
       if (!paused) return;
       const target = event.target instanceof Element ? event.target : null;
       if (target === button || button.contains(target)) return;
       if (target?.closest('a,.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-dialog')) return;
       if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Escape')) return;
+      if (options.resumeOnInput?.(event)) {
+        resumePaused();
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
     };
@@ -3731,12 +3745,7 @@ const Arcade = (() => {
         status.classList.remove('running');
         document.body.classList.add('earnly-game-paused');
       } else {
-        paused = false;
-        resume();
-        button.textContent = '⏸ Pause';
-        status.textContent = 'Running';
-        status.classList.add('running');
-        document.body.classList.remove('earnly-game-paused');
+        resumePaused();
       }
       sync();
     });
@@ -3760,7 +3769,7 @@ const Arcade = (() => {
       });
     }, {once:true});
     sync();
-    return { button, isPaused:() => paused, sync };
+    return { button, isPaused:() => paused, resume:resumePaused, sync };
   }
 
   function isProtectedGameControlTarget(target) {

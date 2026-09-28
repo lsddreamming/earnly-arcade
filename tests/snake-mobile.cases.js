@@ -27,7 +27,7 @@ async function geometry(page) {
 for (const size of [{width:320,height:568},{width:390,height:844},{width:440,height:956}]) {
   test(`Snake mobile ${size.width}px: compact entry and real pause quit controls`, async ({page},info) => {
     await page.setViewportSize(size); await snakeFixture(page); await page.goto('/snake.html');
-    const start=page.locator('#startButton'), pause=page.locator('#earnlyPauseButton'), quit=page.locator('#snakeExit');
+    const start=page.locator('#startButton'), pause=page.locator('#earnlyPauseButton'), quit=page.locator('#snakeQuit');
     await expect(page.locator('#earnlyCompactLeaderboard .compact-leaderboard-row')).toHaveCount(3);
     await expect(start).toBeInViewport();
     for(const selector of ['.game-start-summary','.game-guide-strip','.game-guide-overlay']) await expect(page.locator(selector)).toBeHidden();
@@ -74,21 +74,19 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
       });
     });
     expect(rowsInside).toBe(true);
-    for (const id of ['snakeExit','earnlyPauseButton']) {
+    for (const id of ['snakeQuit','earnlyPauseButton']) {
       const control=await page.locator('#'+id).boundingBox(); expect(control.height, id + " must retain a full-size touch target").toBeGreaterThanOrEqual(44);
-      expect(control.y).toBeGreaterThanOrEqual(0); expect(control.bottom||control.y+control.height).toBeLessThan(live.board.y);
+      expect(control.y).toBeGreaterThanOrEqual(live.dock.bottom); expect(control.y+control.height).toBeLessThanOrEqual(size.height);
     }
-    const state=await page.evaluate(()=>JSON.stringify({snake,nextDirection,score}));
-    await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300);
-    expect(await page.evaluate(()=>JSON.stringify({snake,nextDirection,score}))).toBe(state);
     await info.attach('snake-paused-'+size.width,{body:await page.screenshot(),contentType:'image/png'});
-    // Reset only this test fixture before resuming; inspection may pause near a wall.
-    // Actual production speed, timers, input dispatch and handlers remain unchanged.
     const before=await page.evaluate(()=>{
       snake=[{x:0,y:200}]; direction=nextDirection='RIGHT';
       return {points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')};
     });
-    await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Running');
+    await press(page.locator('#snakeControlDock [data-direction="UP"]'),info);
+    await expect(page.locator('#gameStatus')).toHaveText('Running');
+    await press(pause,info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
+    await page.keyboard.press('ArrowUp'); await expect(page.locator('#gameStatus')).toHaveText('Running');
     await press(quit,info); await expect(page).toHaveURL(/games\.html/);
     await page.waitForFunction(()=>typeof Arcade !== 'undefined');
     expect(await page.evaluate(()=>({points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')}))).toEqual(before);
@@ -101,7 +99,7 @@ test('Snake mobile: quit remains usable while paused',async({page},info)=>{
   // target to settle; otherwise Snake can reach a wall and hide Pause first.
   await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
   await press(page.locator('#earnlyPauseButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await press(page.locator('#snakeExit'),info); await expect(page).toHaveURL(/games\.html/);
+  await press(page.locator('#snakeQuit'),info); await expect(page).toHaveURL(/games\.html/);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active|earnly-game-paused/);
 });
 test('Snake mobile: quit cancels a pending countdown without a ghost run',async({page},info)=>{
