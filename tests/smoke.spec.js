@@ -859,6 +859,7 @@ test('Color Match teaches the rule and scores the actual ink color', async ({ pa
   await startGame(page);
   await page.waitForTimeout(3300);
   await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('.color-example')).toBeHidden();
 
   const correctAnswer = await page.evaluate(() => answer);
   await page.locator('.color-choice[data-color="' + correctAnswer + '"]').click();
