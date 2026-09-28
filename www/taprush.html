@@ -295,8 +295,8 @@
         game:'tapRush',
         extra:[
           '⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',
-          misses ? '❌ Misses: '+misses+' · −'+(misses*MISS_PENALTY_MS/1000).toFixed(2)+'s total' : '🎯 Perfect accuracy · 0 misses',
-          hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : 'Beat your pace next run.'
+          misses ? '❌ Misses: '+misses+' · −'+(misses*MISS_PENALTY_MS/1000).toFixed(2)+'s total' : hits ? '🎯 Perfect accuracy · 0 misses' : '🎯 No targets hit yet',
+          hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : hits ? 'Beat your pace next run.' : 'Tap the green target to score next run.'
         ],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('tapRush', refreshChrome)

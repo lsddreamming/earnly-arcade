@@ -2094,3 +2094,14 @@ test('Tap Rush penalizes misses instead of allowing random board tapping', async
   expect(ios).toBe(web);
   expect(web).toContain('const MISS_PENALTY_MS = 750');
 });
+
+test('Tap Rush zero-hit result gives accurate first-run feedback', async ({ page }) => {
+  await page.goto('/taprush.html');
+  await startGame(page);
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await page.evaluate(() => finishGame());
+  const result = page.locator('dialog.game-result-dialog');
+  await expect(result).toContainText('No targets hit yet');
+  await expect(result).toContainText('Tap the green target to score next run.');
+  await expect(result).not.toContainText('Perfect accuracy');
+});
