@@ -2030,7 +2030,8 @@ test('Neon Maze supports continuous swipe steering and extendable sector runs', 
   expect(cells).toBeLessThanOrEqual(6);
 
   const html = await (await page.request.get('/neonmaze.html')).text();
-  expect(html).toContain('START_TIME=90,SECTOR_BONUS=35,MAX_TIME=120');\n  expect(html).toContain('const dt=Math.max(0,Math.min(.05,(now-last)/1000||0));');
+  expect(html).toContain('START_TIME=90,SECTOR_BONUS=35,MAX_TIME=120');
+  expect(html).toContain('const dt=Math.max(0,Math.min(.05,(now-last)/1000||0));');
   expect(html).toContain('timeLeft=Math.min(MAX_TIME,timeLeft+SECTOR_BONUS)');
   expect(html).toContain('const initialSteps=Math.min(2,Math.max(1,Math.floor(distance/70)))');
   expect(html).toContain("if(steer!==dir){held='';steer=dir;for(let step=0;step<initialSteps;step++)move(dir);moveClock=0}");
