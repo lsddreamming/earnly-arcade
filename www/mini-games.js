@@ -30,6 +30,7 @@
   surface.setAttribute('aria-label', config.name + ' play area');
   document.getElementById('scoreLabel').textContent = config.scoreLabel;
   document.getElementById('secondaryLabel').textContent = config.secondaryLabel;
+  if (key === 'blockGrid') secondaryEl.textContent = '0';
   helpEl.textContent = config.help;
   document.body.classList.toggle('mini-traffic', key === 'trafficEscape');
   document.body.classList.toggle('mini-blockGrid', key === 'blockGrid');

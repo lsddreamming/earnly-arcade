@@ -819,6 +819,7 @@ test('Merge Rush web and iOS copies stay in sync', async ({ page }) => {
 
 test('Block Grid highlights legal placements and keeps quit reachable', async ({ page }) => {
   await page.goto('/mini.html?game=blockGrid');
+  await expect(page.locator('#secondary')).toHaveText('0');
   await startGame(page);
   await page.waitForTimeout(2500);
 
@@ -828,6 +829,9 @@ test('Block Grid highlights legal placements and keeps quit reachable', async ({
   await expect(page.locator('#miniGameExit')).toBeVisible();
   await expect(page.locator('#miniGameExit')).toHaveAttribute('href','games.html');
   await expect(page.locator('#earnlyPauseButton')).toBeVisible();
+  if (page.viewportSize().width > 600) {
+    await expect(page.locator('.mini-guide')).toHaveCSS('display', 'grid');
+  }
 });
 
 test('Block Grid guards against unusable trays and syncs to iOS', async ({ page }) => {
