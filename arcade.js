@@ -1698,7 +1698,9 @@ const Arcade = (() => {
     if (bestDisplay) {
       const bestLine = document.createElement('div');
       bestLine.className = 'result-best';
-      bestLine.textContent = result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + bestDisplay;
+      bestLine.textContent = bestDisplay.endsWith(' saved on this device')
+        ? '🏆 ' + (result?.newBest ? 'New best' : 'Best') + ' on this device: ' + bestDisplay.slice(0, -' saved on this device'.length)
+        : result?.newBest ? 'Previous best beaten!' : '🏆 Best: ' + bestDisplay;
       main.append(bestLine);
     }
 
@@ -1772,7 +1774,7 @@ const Arcade = (() => {
           const third = topThree[2] ? Number(topThree[2].score || 0) : 0;
           const mine = myEntry ? Number(myEntry.score || localBest || 0) : Number(localBest || 0);
           if (myEntry) {
-            footer.textContent = '🌎 Your world rank: #' + myEntry.rank + ' · View full leaderboard →';
+            footer.textContent = '🌎 Your global best: ' + compactLeaderboardScore(myEntry, data) + ' · Rank #' + myEntry.rank + ' →';
           } else if (third > mine && mine > 0) {
             const gap = third - mine;
             footer.textContent = '🔥 ' + gap.toLocaleString() + ' ' + leaderboardUnitLabel(data?.label || scoreLabel, gap) + ' away from Top 3 · View leaderboard →';
