@@ -3511,10 +3511,6 @@ const Arcade = (() => {
 
       try {
         const localBest = best(game).value;
-        if (localBest > 0 && leaderboardUsername()) {
-          try { await window.EarnlyCloud.submitLeaderboardScore(game, localBest); } catch {}
-        }
-
         const data = await window.EarnlyCloud.leaderboard(game, 3);
         const entries = (data?.entries || []).slice(0, 3);
         list.replaceChildren();

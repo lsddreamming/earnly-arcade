@@ -19,6 +19,31 @@ test('Snake leaderboard visibility settles without rewriting its own class', asy
   expect(mutations).toEqual({ changes:2, active:true, settled:true });
 });
 
+test('compact leaderboard refresh does not submit the saved best again', async ({ page }) => {
+  await page.goto('/snake.html');
+  const counts = await page.evaluate(async () => {
+    let submits = 0;
+    let lists = 0;
+    window.EarnlyCloud = {
+      submitLeaderboardScore: async () => {
+        submits += 1;
+        window.dispatchEvent(new CustomEvent('earnly-leaderboard-updated'));
+        return { saved:true };
+      },
+      leaderboard: async () => {
+        lists += 1;
+        return { label:'points', entries:[{ rank:1, username:'qa_player', score:42 }] };
+      }
+    };
+    window.dispatchEvent(new CustomEvent('earnly-leaderboard-updated'));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return { submits, lists, text:document.querySelector('#earnlyCompactLeaderboard')?.textContent };
+  });
+  expect(counts.submits).toBe(0);
+  expect(counts.lists).toBeGreaterThanOrEqual(1);
+  expect(counts.text).toContain('@qa_player');
+});
+
 test('leaderboard refresh events do not resubmit the local best or blank rendered rows', async ({ page }) => {
   await page.goto('/leaderboards.html');
 
