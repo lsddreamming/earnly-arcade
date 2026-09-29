@@ -962,13 +962,22 @@ test('Block Drop ready screen stays compact and board-forward on iPhone', async 
   await expect(page.locator('.game-guide-more')).not.toHaveAttribute('open', '');
   await expect(page.locator('.game-guide-overlay')).toBeHidden();
   await expect(page.locator('#blockDropExit')).toBeHidden();
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
-  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
-  const layout = await page.evaluate(() => ({
-    boardTop:document.querySelector('#game')?.getBoundingClientRect().top || Infinity,
-    viewportHeight:innerHeight
-  }));
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const card = document.querySelector('#earnlyCompactLeaderboard')?.getBoundingClientRect();
+    const board = document.querySelector('#game')?.getBoundingClientRect();
+    const listStyle = getComputedStyle(document.querySelector('#earnlyCompactLeaderboard .compact-leaderboard-list'));
+    return {
+      cardHeight: card?.height || 0,
+      boardTop: board?.top || Infinity,
+      viewportHeight: innerHeight,
+      columns: listStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+    };
+  });
+  expect(layout.cardHeight).toBeLessThan(150);
   expect(layout.boardTop).toBeLessThan(layout.viewportHeight * 0.75);
+  expect(layout.columns).toBe(3);
 });
 
 test('Block Drop wall and floor kicks keep rotations playable at edges', async ({ page }) => {
