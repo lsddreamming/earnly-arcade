@@ -768,10 +768,10 @@ test('Brick Breaker restores a paid Continue after reload without spending a Pla
   await page.reload();
   await expect(page.locator('dialog[open]')).toContainText('Restore paid Continue');
   await page.getByRole('button',{name:'Restore board'}).click();
-  const restored=await page.evaluate(()=>({level,levelBroken,totalBroken,levelsCleared,
-    firstBrickAlive:bricks[0].alive,waiting:awaitingNextLevel,spent:continueUsed}));
-  expect(restored).toEqual({level:2,levelBroken:1,totalBroken:46,levelsCleared:1,
-    firstBrickAlive:false,waiting:true,spent:true});
+  await expect.poll(()=>page.evaluate(()=>({level,levelBroken,totalBroken,levelsCleared,
+    firstBrickAlive:bricks[0].alive,waiting:awaitingNextLevel,spent:continueUsed})))
+    .toEqual({level:2,levelBroken:1,totalBroken:46,levelsCleared:1,
+      firstBrickAlive:false,waiting:true,spent:true});
   expect(await page.locator('#plays').textContent()).toBe(plays);
   await page.locator('#startButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Running · Level 2');
