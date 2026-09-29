@@ -524,14 +524,14 @@ test('Star Defender collapses nonessential chrome during live mobile play', asyn
   if (testInfo.project.use.hasTouch) await start.tap();
   else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
   const layout = await page.evaluate(() => {
     const board = document.querySelector('#game').getBoundingClientRect();
     const header = document.querySelector('.page-header').getBoundingClientRect();
     return { boardTop:board.top, headerBottom:header.bottom, headerHeight:header.height };
   });
-  expect(layout.boardTop).toBeLessThan(210);
+  expect(layout.boardTop).toBeLessThan(250);
   expect(layout.headerHeight).toBeLessThan(100);
 });
 
@@ -662,14 +662,14 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
 test('Returning Brick Breaker players reach the board without repeated cards', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await expect(page.locator('.game-guide-strip')).toBeVisible();
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
-  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
+  await expect(page.locator('#earnlyCompactLeaderboard a')).toHaveCount(0);
 
   await page.evaluate(() => localStorage.setItem('earnlyGameGuideSeen:brickBreaker', '1'));
   await page.reload();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
   await expect(page.locator('.game-start-summary')).toBeHidden();
-  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
   await expect(page.locator('#game')).toBeVisible();
 });
 
@@ -748,10 +748,20 @@ test('Brick Breaker Continue keeps the wall and score and waits for Play', async
   await expect(page.locator('#gameStatus')).toHaveText('Running · Level 2');
 });
 
-test('Brick Breaker can quit from the bottom control while paused', async ({ page }) => {
+test('Brick Breaker keeps Quit and Pause directly under the board', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await startGame(page);
   await expect(page.locator('#brickQuit')).toBeVisible();
+  const controls = await page.evaluate(() => {
+    const board=document.querySelector('#game').getBoundingClientRect();
+    const quit=document.querySelector('#brickQuit').getBoundingClientRect();
+    const pause=document.querySelector('#earnlyPauseButton').getBoundingClientRect();
+    return { boardBottom:board.bottom, quitTop:quit.top, pauseTop:pause.top,
+      quitBottom:quit.bottom, pauseBottom:pause.bottom };
+  });
+  expect(controls.quitTop).toBeGreaterThanOrEqual(controls.boardBottom);
+  expect(controls.quitTop-controls.boardBottom).toBeLessThan(32);
+  expect(Math.abs(controls.pauseTop-controls.quitTop)).toBeLessThan(8);
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await page.locator('#brickQuit').click();
@@ -1010,17 +1020,17 @@ test('Block Drop ready screen stays compact and board-forward on iPhone', async 
   const layout = await page.evaluate(() => {
     const card = document.querySelector('#earnlyCompactLeaderboard')?.getBoundingClientRect();
     const board = document.querySelector('#game')?.getBoundingClientRect();
-    const listStyle = getComputedStyle(document.querySelector('#earnlyCompactLeaderboard .compact-leaderboard-list'));
+    const tickerStyle = getComputedStyle(document.querySelector('#earnlyCompactLeaderboard'));
     return {
       cardHeight: card?.height || 0,
       boardTop: board?.top || Infinity,
       viewportHeight: innerHeight,
-      columns: listStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+      layout: tickerStyle.display
     };
   });
-  expect(layout.cardHeight).toBeLessThan(150);
+  expect(layout.cardHeight).toBeLessThan(50);
   expect(layout.boardTop).toBeLessThan(layout.viewportHeight * 0.75);
-  expect(layout.columns).toBe(3);
+  expect(layout.layout).toBe('flex');
 });
 
 test('Block Drop wall and floor kicks keep rotations playable at edges', async ({ page }) => {
@@ -1089,23 +1099,25 @@ test('Block Drop web and iOS copies keep the same interaction contract', async (
   }
 });
 
-test('Brick Breaker gives the board room during a run while other games keep compact rankings', async ({ page }) => {
+test('Game leaderboards use one nonclickable neon ticker above the board', async ({ page }) => {
   for (const url of ['/brickbreaker.html', '/mini.html?game=trafficEscape']) {
     await page.goto(url);
-    const podium = page.locator('#earnlyCompactLeaderboard');
-    await expect(podium).toBeHidden();
-    await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+    const ticker = page.locator('#earnlyCompactLeaderboard');
+    await expect(ticker).toBeVisible();
+    await expect(ticker).toHaveClass(/leaderboard-ticker/);
+    await expect(ticker.locator('a,button')).toHaveCount(0);
     await page.evaluate(() => document.body.classList.add('game-active'));
-    await expect(podium).toHaveClass(/during-game-compact/);
-    await expect(podium).toBeVisible();
-    await expect(podium.locator('.compact-leaderboard-ticker')).toBeVisible();
-    if (url.includes('brickbreaker')) await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
+    await expect(ticker).toBeVisible();
     const layout = await page.evaluate(() => {
       const card = document.querySelector('#earnlyCompactLeaderboard').getBoundingClientRect();
       const board = document.querySelector('canvas#game, #surface')?.getBoundingClientRect();
-      return { cardBottom:card.bottom, boardTop:board?.top ?? Infinity };
+      const track = getComputedStyle(document.querySelector('.leaderboard-ticker-track'));
+      return { cardBottom:card.bottom, cardHeight:card.height,
+        boardTop:board?.top ?? Infinity, direction:track.animationName };
     });
     expect(layout.cardBottom).toBeLessThanOrEqual(layout.boardTop);
+    expect(layout.cardHeight).toBeLessThan(50);
+    expect(layout.direction).toBe('earnlyTopPlayersRight');
   }
 });
 
@@ -2098,7 +2110,7 @@ test('Neon Maze shows a real iPhone start button and compacts live play', async 
   if (testInfo.project.use.hasTouch) await start.tap();
   else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', {timeout:5000});
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
 });
 
