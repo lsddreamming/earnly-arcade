@@ -59,6 +59,21 @@ test('release legal pages are present linked and bundled for iOS', async ({ page
   expect(sw).toContain("'./terms.html'");
 });
 
+test('Account sign-in shows validation beside the button on mobile', async ({ page }) => {
+  await page.goto('/account.html');
+  await page.locator('#cloudEmail').fill('review@example.com');
+  await page.locator('#cloudPassword').fill('short');
+  await page.locator('#cloudSignInButton').click();
+  const feedback=page.locator('#cloudAuthFeedback');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toContainText('at least 6 characters');
+  const positions=await page.evaluate(()=>({
+    button:document.querySelector('#cloudSignInButton').getBoundingClientRect().bottom,
+    feedback:document.querySelector('#cloudAuthFeedback').getBoundingClientRect().top
+  }));
+  expect(positions.feedback-positions.button).toBeLessThan(20);
+});
+
 test('launch gate exposes account deletion clearly on web and iOS', async ({ page }) => {
   const web = await (await page.request.get('/account.html')).text();
   const ios = await (await page.request.get('/www/account.html')).text();

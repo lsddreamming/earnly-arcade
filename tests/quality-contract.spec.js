@@ -5,6 +5,15 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
+test('iOS archive replaces the generated placeholder with the branded opaque icon', () => {
+  const png=fs.readFileSync(path.join(ROOT,'ios-icon-1024.png'));
+  expect(png.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(png.readUInt32BE(16)).toBe(1024);
+  expect(png.readUInt32BE(20)).toBe(1024);
+  expect(png[25]).toBe(2); // RGB, no alpha channel
+  expect(read('scripts/configure-ios.mjs')).toContain('await copyFile(iconSource, iconDestination)');
+});
+
 const dedicatedGames = [
   'snake.html',
   'blockdrop.html',

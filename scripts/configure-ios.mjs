@@ -1,8 +1,10 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { copyFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const plistPath = path.join(process.cwd(), 'ios', 'App', 'App', 'Info.plist');
 const projectPath = path.join(process.cwd(), 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
+const iconSource = path.join(process.cwd(), 'ios-icon-1024.png');
+const iconDestination = path.join(process.cwd(), 'ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png');
 const marketingVersion = process.env.EARNLY_IOS_MARKETING_VERSION || '1.1';
 const buildNumber = process.env.EARNLY_IOS_BUILD_NUMBER || '2';
 const testMode = process.env.EARNLY_ADMOB_TEST_MODE !== '0';
@@ -102,6 +104,10 @@ project = project
   .replace(/MARKETING_VERSION = [^;]+;/g, 'MARKETING_VERSION = ' + marketingVersion + ';')
   .replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, 'CURRENT_PROJECT_VERSION = ' + buildNumber + ';');
 await writeFile(projectPath, project);
+
+// `cap add ios` regenerates an Xcode placeholder icon. Install the branded
+// opaque icon after generation for every simulator and signed archive build.
+await copyFile(iconSource, iconDestination);
 
 console.log(
   'Configured iOS ' + marketingVersion + ' build ' + buildNumber +
