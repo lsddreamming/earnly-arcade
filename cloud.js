@@ -285,6 +285,22 @@
     return data || null;
   }
 
+  async function spendContinue(eventId, game){
+    const current = await user();
+    if (!current) throw new Error('Sign in to spend Coins and continue.');
+    // Apply pending awards first, then let the database check the real balance.
+    await syncServerRewards();
+    const { data, error } = await requireClient().rpc('spend_game_continue', {
+      p_event_id:eventId,
+      p_game:game
+    });
+    if (error) throw new Error(error.message || 'Could not spend Coins.');
+    if (!data?.wallet) throw new Error('Could not confirm your Coin balance.');
+    Arcade.applyServerWallet?.(data.wallet);
+    if (data.charged) Arcade.recordCoinSpend?.(data.amount, 'Brick Breaker Continue');
+    return data;
+  }
+
   async function syncServerRewards(){
     if (rewardSyncPromise) return rewardSyncPromise;
 
@@ -1005,6 +1021,7 @@
     deleteAccount,
     cloudSaveInfo,
     walletInfo,
+    spendContinue,
     syncServerRewards,
     syncGrowthEvents,
     growthSyncEnabled,
