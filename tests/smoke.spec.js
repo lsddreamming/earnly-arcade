@@ -659,6 +659,20 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
   expect(result.navDisplay).toBe('none');
 });
 
+test('Returning Brick Breaker players reach the board without repeated cards', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  await expect(page.locator('.game-guide-strip')).toBeVisible();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+
+  await page.evaluate(() => localStorage.setItem('earnlyGameGuideSeen:brickBreaker', '1'));
+  await page.reload();
+  await expect(page.locator('.game-guide-strip')).toBeHidden();
+  await expect(page.locator('.game-start-summary')).toBeHidden();
+  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+  await expect(page.locator('#game')).toBeVisible();
+});
+
 test('Brick Breaker waits for Play between levels without using another play', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await startGame(page);
