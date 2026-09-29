@@ -4926,6 +4926,15 @@ body.earnly-gameplay-locked{
   z-index:55;
 }
 .earnly-pause-button[hidden]{display:none!important}
+.earnly-quit-button{
+  position:fixed;left:16px;bottom:16px;z-index:1400;
+  display:flex;align-items:center;justify-content:center;
+  min-width:92px;min-height:44px;padding:8px 14px;
+  border:1px solid #64748b;border-radius:14px;
+  background:#253247;color:#f8fafc;font-weight:850;text-decoration:none;
+  touch-action:manipulation
+}
+.earnly-quit-button[hidden]{display:none!important}
 .earnly-game-paused .earnly-pause-button{
   border-color:#22c55e;
   background:#14532d;
@@ -4934,6 +4943,12 @@ body.earnly-gameplay-locked{
 /* Thumb-reachable Pause/Resume for every game on phones. The shared control
    has an ID, so this also overrides older page-specific header positions. */
 @media(max-width:600px){
+  .earnly-quit-button{
+    left:max(16px,env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));
+    width:124px;min-height:56px;padding:12px 16px;
+    border:2px solid rgba(148,163,184,.8);border-radius:18px;
+    box-shadow:0 8px 26px rgba(0,0,0,.5);font-size:16px;line-height:1.2
+  }
   html body.game-active:not(.pause-in-header) #earnlyPauseButton,
   html body.paddlerally-page #pauseButton:not([hidden]){
     position:fixed!important;

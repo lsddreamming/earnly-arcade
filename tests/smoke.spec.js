@@ -556,6 +556,18 @@ test('pause control appears and toggles on mini games', async ({ page }) => {
   }
 });
 
+test('shared bottom Quit exits a paused mini-game without showing results', async ({ page }) => {
+  await page.goto('/mini.html?game=blockGrid');
+  await startGame(page);
+  const quit = page.locator('#earnlyQuitButton');
+  await expect(quit).toBeVisible({ timeout:5000 });
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await quit.click();
+  await expect(page).toHaveURL(/\/games\.html$/);
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(0);
+});
+
 test('pause control is visible during Snake gameplay', async ({ page }) => {
   await page.goto('/snake.html');
   await startGame(page);

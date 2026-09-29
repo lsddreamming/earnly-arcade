@@ -3671,6 +3671,19 @@ const Arcade = (() => {
     button.className = 'secondary earnly-pause-button';
     button.textContent = '⏸ Pause';
     button.hidden = true;
+    // Pages with a tailored exit already place it beside their own controls.
+    const hasGameExit = ['snakeQuit','blockDropExit','brickQuit','coinCatchExit']
+      .some(id => document.getElementById(id));
+    const quit = hasGameExit ? null : document.createElement('a');
+    if (quit) {
+      quit.id = 'earnlyQuitButton';
+      quit.className = 'earnly-quit-button';
+      quit.href = 'games.html';
+      quit.textContent = '× Quit';
+      quit.setAttribute('aria-label', 'Quit game and return to Games');
+      quit.hidden = true;
+      document.body.append(quit);
+    }
 
     // Keep pause beside the status when there is room, but never bury it
     // inside a title row where a long game name can squeeze it off-screen.
@@ -3697,10 +3710,12 @@ const Arcade = (() => {
       if (!active) {
         button.textContent = '⏸ Pause';
         button.hidden = true;
+        if (quit) quit.hidden = true;
         document.body.classList.remove('earnly-game-paused');
         return;
       }
       button.hidden = false;
+      if (quit) quit.hidden = false;
     };
 
     // While paused, game input must be inert. Keep normal page/navigation
