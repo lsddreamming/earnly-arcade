@@ -21,14 +21,15 @@ async function geometry(page) {
       dock:getComputedStyle(dock).display==='none'?null:box('#snakeControlDock'),
       navTop:getComputedStyle(nav).display==='none'?innerHeight:nav.getBoundingClientRect().top,
       overflow:document.documentElement.scrollWidth-innerWidth,
-      rows:[...document.querySelectorAll('#earnlyCompactLeaderboard .compact-leaderboard-row')].map(x=>x.getBoundingClientRect().y)};
+      rows:[...document.querySelectorAll('#earnlyCompactLeaderboard .leaderboard-ticker-entry')].map(x=>x.getBoundingClientRect().y)};
   });
 }
 for (const size of [{width:320,height:568},{width:390,height:844},{width:440,height:956}]) {
   test(`Snake mobile ${size.width}px: compact entry and real pause quit controls`, async ({page},info) => {
     await page.setViewportSize(size); await snakeFixture(page); await page.goto('/snake.html');
     const start=page.locator('#startButton'), pause=page.locator('#earnlyPauseButton'), quit=page.locator('#snakeQuit');
-    await expect(page.locator('#earnlyCompactLeaderboard .compact-leaderboard-row')).toHaveCount(3);
+    await expect(page.locator('#earnlyCompactLeaderboard .leaderboard-ticker-entry')).toHaveCount(3);
+    await expect(page.locator('#earnlyCompactLeaderboard a, #earnlyCompactLeaderboard button')).toHaveCount(0);
     await expect(start).toBeInViewport();
     for(const selector of ['.game-start-summary','.game-guide-strip','.game-guide-overlay']) await expect(page.locator(selector)).toBeHidden();
     await expect(page.locator('.snake-quick-tip')).toContainText('Swipe anywhere');
@@ -36,7 +37,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     await expect.poll(async()=> (await geometry(page)).board.bottom).toBeLessThan(size.height-40);
     const ready=await geometry(page); console.log('SNAKE_READY',size.width,JSON.stringify(ready));
     expect(ready.board.y).toBeLessThan(290); expect(ready.board.y).toBeGreaterThan(ready.leaderboard.bottom); expect(ready.stats.height).toBeLessThan(40);
-    expect(ready.leaderboard.height).toBeLessThan(110); expect(ready.board.width).toBeGreaterThanOrEqual(150);
+    expect(ready.leaderboard.height).toBeLessThan(50); expect(ready.board.width).toBeGreaterThanOrEqual(150);
     expect(Math.abs(ready.board.width-ready.board.height)).toBeLessThan(2);
     expect(ready.board.bottom).toBeLessThanOrEqual(ready.navTop-40); expect(ready.overflow).toBeLessThanOrEqual(1);
     expect(Math.max(...ready.rows)-Math.min(...ready.rows)).toBeLessThan(3);
@@ -59,7 +60,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     await expect(page.locator('#arcadeBottomNav')).toBeHidden();
     const live=await geometry(page); console.log('SNAKE_ACTIVE',size.width,JSON.stringify(live));
     expect(live.board.y).toBeLessThan(250); expect(live.board.bottom).toBeLessThanOrEqual(size.height);
-    expect(live.leaderboard.height).toBeLessThan(95);
+    expect(live.leaderboard.height).toBeLessThan(50);
     expect(live.board.width).toBeGreaterThanOrEqual(size.height <= 600 ? 220 : Math.min(size.width-28,300));
     expect(Math.abs(live.board.width-live.board.height)).toBeLessThan(2);
     expect(live.dock).not.toBeNull();
@@ -67,13 +68,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     expect(live.dock.y).toBeGreaterThanOrEqual(live.board.bottom);
     expect(live.dock.bottom).toBeLessThanOrEqual(size.height);
     expect(live.board.y).toBeGreaterThanOrEqual(live.leaderboard.bottom);
-    const tickerInside = await page.evaluate(() => {
-      const frame=document.getElementById('earnlyCompactLeaderboard').getBoundingClientRect();
-      const ticker=document.querySelector('#earnlyCompactLeaderboard .compact-leaderboard-ticker');
-      const r=ticker.getBoundingClientRect();
-      return getComputedStyle(ticker).display!=='none' && r.top>=frame.top && r.bottom<=frame.bottom;
-    });
-    expect(tickerInside).toBe(true);
+    expect(await page.locator('#earnlyCompactLeaderboard').evaluate(el => getComputedStyle(el).overflow)).toBe('hidden');
     for (const id of ['snakeQuit','earnlyPauseButton']) {
       const control=await page.locator('#'+id).boundingBox(); expect(control.height, id + " must retain a full-size touch target").toBeGreaterThanOrEqual(44);
       expect(control.y).toBeGreaterThanOrEqual(live.dock.bottom); expect(control.y+control.height).toBeLessThanOrEqual(size.height);
