@@ -101,12 +101,14 @@
       body.brick-breaker-page.game-active.awaiting-next-level #startButton{display:block!important;visibility:visible!important;pointer-events:auto!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
-      body.brick-breaker-page.game-active .game-guide-more,
-      body.brick-breaker-page.game-active .power-legend{visibility:hidden!important;pointer-events:none!important}
+      body.brick-breaker-page.game-active .game-guide-more{visibility:hidden!important;pointer-events:none!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
       body.brick-breaker-page.game-active .game-guide-more{max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;overflow:hidden!important}
-      body.brick-breaker-page.game-active .power-legend{margin-top:5px!important;margin-bottom:8px!important}
+      body.brick-breaker-page.game-active .power-legend{visibility:visible!important;pointer-events:none!important;gap:5px!important;margin:5px auto 2px!important;font-size:10px!important;line-height:1.2!important}
+      body.brick-breaker-page.game-active .power-legend span{padding:3px 6px!important}
+      body.brick-breaker-page .brick-live-tip{display:none}
+      body.brick-breaker-page.game-active .brick-live-tip{display:block;margin:2px auto 8px;color:#a8c6d9;text-align:center;font-size:11px;line-height:1.25}
       body.brick-breaker-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.brick-breaker-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
       body.brick-breaker-page.game-active .brick-board{
@@ -156,6 +158,7 @@
     <div class="power-legend" aria-label="Brick Breaker power-ups">
       <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Break for a power-up</span><span>◆ Armored</span>
     </div>
+    <p class="brick-live-tip">Drag below Pause to steer · Keep the ball in play · ◆ bricks take two hits</p>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
 
