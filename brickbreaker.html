@@ -226,6 +226,67 @@
     let continueUsed=false;
     let continueEventId='';
     let continuePending=false;
+    const continueKey='earnlyBrickPaidContinueV1';
+    let recoveryChecking=false;
+    function savedContinue(){
+      try{
+        const value=JSON.parse(localStorage.getItem(continueKey));
+        return value?.version===1 && /^brick_[a-zA-Z0-9_-]+$/.test(value.eventId)
+          && Array.isArray(value.bricks) && value.bricks.length<=63 ? value : null;
+      }catch{return null}
+    }
+    function saveContinue(eventId){
+      const elapsedMs=earnlyRunStartedAt ? Math.max(0,performance.now()-earnlyRunStartedAt-totalPausedMs) : 0;
+      localStorage.setItem(continueKey,JSON.stringify({version:1,eventId,level,levelBroken,totalBroken,
+        levelsCleared,levelGoal,layoutName,paddleX:paddle.x,bricks,elapsedMs}));
+    }
+    function readyContinue(){
+      continueUsed=true;
+      balls=[makeBall(paddle.x+paddle.w/2,paddle.y-14)];
+      awaitingNextLevel=true;
+      levelWaitStartedAt=performance.now();
+      document.body.classList.add('awaiting-next-level');
+      draw();
+      setStatus('Paused · Continue ready · Level '+level,'running');
+      startButton.disabled=false;
+      startButton.textContent='▶ Play · Level '+level;
+    }
+    async function recoverContinue(){
+      const saved=savedContinue();
+      if(!saved || recoveryChecking || awaitingNextLevel || running || starting) return;
+      recoveryChecking=true;
+      try{
+        if(!window.EarnlyCloud?.continueReceipt) throw new Error('Wallet is still loading.');
+        const receipt=await window.EarnlyCloud.continueReceipt(saved.eventId,'brickBreaker');
+        if(!receipt){
+          // An unconfirmed payment can still be settling. Keep its event ID
+          // and let the player check again without another debit.
+          Arcade.panel('Continue payment pending','No confirmed 25-Coin charge was found yet.',[
+            ['Check again',()=>recoverContinue(),'green'],
+            ['New game',()=>localStorage.removeItem(continueKey),'secondary']
+          ]);
+          return;
+        }
+        Arcade.panel('🪙 Restore paid Continue','Your 25-Coin Continue is ready. Restore the board and score without another charge.',[
+          ['Restore board',()=>{
+            level=saved.level;levelBroken=saved.levelBroken;totalBroken=saved.totalBroken;
+            levelsCleared=saved.levelsCleared;levelGoal=saved.levelGoal;layoutName=saved.layoutName;
+            bricks=saved.bricks;paddle.w=levelPaddleWidth();
+            paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,saved.paddleX));
+            earnlyRunStartedAt=performance.now()-Math.max(0,saved.elapsedMs||0);
+            totalPausedMs=0;pauseStartedAt=0;
+            levelEl.textContent=level; bricksEl.textContent=levelBroken;
+            rewardPreviewEl.textContent=currentReward();
+            refreshChrome();readyContinue();
+          },'green'],
+          ['Later',()=>{},'secondary']
+        ]);
+      }catch(error){
+        Arcade.panel('Continue recovery','Could not check your purchase yet. '+(error?.message||''),[
+          ['Try again',()=>recoverContinue(),'green'],['Later',()=>{},'secondary']
+        ]);
+      }finally{recoveryChecking=false}
+    }
 
     function levelSpeed(){
       // Give Level 1 a calmer launch, then ramp hard enough that deep runs
@@ -671,6 +732,7 @@
 
     function playNextLevel(){
       if(!awaitingNextLevel) return;
+      if(continueUsed) localStorage.removeItem(continueKey);
       totalPausedMs+=performance.now()-levelWaitStartedAt;
       levelWaitStartedAt=0;
       awaitingNextLevel=false;
@@ -747,8 +809,8 @@
           waitingDialog?.addEventListener('cancel',preventWaitingCancel);
           try{
             if(!window.EarnlyCloud?.spendContinue) throw new Error('Coin wallet is still loading. Try again.');
+            saveContinue(continueEventId);
             await window.EarnlyCloud.spendContinue(continueEventId,'brickBreaker');
-            continueUsed=true;
             continueEventId='';
             waitingDialog?.removeEventListener('cancel',preventWaitingCancel);
             if(waitingDialog?.open) waitingDialog.close();
@@ -756,14 +818,7 @@
             refreshChrome();
             // The wall, score, level, and paddle remain. Only the lost ball and
             // transient effects reset; the next launch waits for Play.
-            balls=[makeBall(paddle.x+paddle.w/2,paddle.y-14)];
-            awaitingNextLevel=true;
-            levelWaitStartedAt=performance.now();
-            document.body.classList.add('awaiting-next-level');
-            draw();
-            setStatus('Paused · Continue ready · Level '+level,'running');
-            startButton.disabled=false;
-            startButton.textContent='▶ Play · Level '+level;
+            readyContinue();
           }catch(error){
             waitingDialog?.removeEventListener('cancel',preventWaitingCancel);
             if(waitingDialog?.open) waitingDialog.close();
@@ -780,6 +835,7 @@
     }
 
     function settleRun(){
+      localStorage.removeItem(continueKey);
 
       const earned=currentReward();
       Arcade.earn(earned,'Brick Breaker', {
@@ -914,6 +970,7 @@
       if(continuePending) return;
       if(awaitingNextLevel){playNextLevel();return}
       if(running || starting) return;
+      if(savedContinue()){recoverContinue();return}
       starting=true;
       if(!Arcade.consume('brickBreaker')){
         starting=false;
@@ -1021,6 +1078,10 @@
     resetBricks();
     refreshChrome();
     draw();
+    if(savedContinue()){
+      window.addEventListener('earnly-cloud-ready',recoverContinue,{once:true});
+      setTimeout(recoverContinue,1000);
+    }
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
