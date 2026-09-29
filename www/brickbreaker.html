@@ -96,6 +96,7 @@
          Reserve the hidden blocks' vertical space so starting a run cannot make
          Safari jump the board upward underneath the player's finger. */
       body.brick-breaker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.brick-breaker-page.game-active.awaiting-next-level #startButton{visibility:visible!important;pointer-events:auto!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
       body.brick-breaker-page.game-active .game-guide-more,
@@ -207,6 +208,8 @@
     let levelsCleared=0;
     let running=false;
     let starting=false;
+    let awaitingNextLevel=false;
+    let levelWaitStartedAt=0;
     let animation=null;
     let levelTimer=null;
     let particles=[];
@@ -622,7 +625,10 @@
       // briefly changes the active layout and iPhone can otherwise jump the page.
       const levelScrollY=window.scrollY||window.pageYOffset||0;
       running=false;
-      starting=true;
+      starting=false;
+      awaitingNextLevel=true;
+      levelWaitStartedAt=performance.now();
+      document.body.classList.add('awaiting-next-level');
       cancelAnimationFrame(animation);
       animation=null;
 
@@ -649,28 +655,32 @@
 
       Arcade.milestone('🏁 '+layoutName.toUpperCase()+' · LEVEL '+clearedLevel+' CLEAR! · +'+bonus+' bonus', 'perfect');
       setStatus('Level '+level+' · Speed '+levelSpeed().toFixed(1),'running');
-      startButton.textContent='🚀 Level '+level+' · '+layoutName+' · +'+bonus+' bonus banked';
+      startButton.disabled=false;
+      startButton.textContent='▶ Play Level '+level;
+      setStatus('Level '+level+' · Ready when you are','running');
       requestAnimationFrame(()=>window.scrollTo(0,levelScrollY));
+    }
 
-      clearTimeout(levelTimer);
-      levelResumeDelay=performance.now()+850;
-      levelTimer=setTimeout(()=>{
-        levelTimer=null;
-        levelResumeDelay=0;
-        starting=false;
-        running=true;
-        startButton.textContent='Game Running · Level '+level;
-        setStatus('Running · Level '+level,'running');
-        window.scrollTo(0,levelScrollY);
-        lastFrame=0;
-        animation=requestAnimationFrame(loop);
-      },850);
+    function playNextLevel(){
+      if(!awaitingNextLevel) return;
+      totalPausedMs+=performance.now()-levelWaitStartedAt;
+      levelWaitStartedAt=0;
+      awaitingNextLevel=false;
+      document.body.classList.remove('awaiting-next-level');
+      startButton.disabled=true;
+      startButton.textContent='Game Running · Level '+level;
+      running=true;
+      setStatus('Running · Level '+level,'running');
+      lastFrame=0;
+      animation=requestAnimationFrame(loop);
     }
 
     function finishGame(){
       if(!running && !starting) return;
       running=false;
       starting=false;
+      awaitingNextLevel=false;
+      document.body.classList.remove('awaiting-next-level');
       dragging=false;
       dragPointer=null;
       dragLastClientX=null;
@@ -749,7 +759,8 @@
       event.preventDefault();
 
       if(!running){
-        if(!starting) startGame();
+        if(awaitingNextLevel) playNextLevel();
+        else if(!starting) startGame();
         return;
       }
 
@@ -813,6 +824,7 @@
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
 
     document.addEventListener('keydown',event=>{
+      if((event.key==='Enter'||event.key===' ')&&awaitingNextLevel){event.preventDefault();playNextLevel();return}
       if((event.key==='Enter'||event.key===' ')&&!running&&!starting){event.preventDefault();startGame();return}
       if(!running) return;
       if(event.key==='ArrowLeft'||event.key==='a'||event.key==='A'){event.preventDefault();paddle.x=Math.max(0,paddle.x-24);}
@@ -821,6 +833,7 @@
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0,levelResumeDelay=0;
     function startGame(){
+      if(awaitingNextLevel){playNextLevel();return}
       if(running || starting) return;
       starting=true;
       if(!Arcade.consume('brickBreaker')){
@@ -829,6 +842,8 @@
         return;
       }
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
+      awaitingNextLevel=false;levelWaitStartedAt=0;
+      document.body.classList.remove('awaiting-next-level');
 
       clearTimeout(levelTimer);
       levelTimer=null;
@@ -910,7 +925,8 @@
       }
     });
     function quitBrickRun(){
-      running=false;starting=false;
+      running=false;starting=false;awaitingNextLevel=false;levelWaitStartedAt=0;
+      document.body.classList.remove('awaiting-next-level');
       clearTimeout(levelTimer);levelTimer=null;levelResumeDelay=0;
       cancelAnimationFrame(animation);animation=null;
       dragging=false;dragPointer=null;dragLastClientX=null;
