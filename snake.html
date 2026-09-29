@@ -133,6 +133,7 @@
     let score = 0;
     let game = null;
     let starting = false;
+    let lastWallAppleScore = -5;
     let snakeRunGeneration = 0;
     let snakeTestRun = false;
     let snakeTesterAccess = false;
@@ -383,16 +384,26 @@
 
     function randomFood() {
       let next;
+      const wallApple = score >= 3 && score - lastWallAppleScore >= 5 && Math.random() < 0.18;
       do {
-        // Keep food off the outermost row/column. Those cells remain fully
-        // playable, but reserving the edge for steering makes wall approaches
-        // easier to read on a phone and avoids forcing risky wall-hugging turns.
-        next = {
+        // Most apples leave room for a safe turn. An occasional edge apple
+        // keeps wall approaches in play without clustering them together.
+        next = wallApple ? {
+          x: Math.floor(Math.random() * 20) * box,
+          y: Math.floor(Math.random() * 20) * box
+        } : {
           x: (1 + Math.floor(Math.random() * 18)) * box,
           y: (1 + Math.floor(Math.random() * 18)) * box
         };
-      } while (snake.some(part => part.x === next.x && part.y === next.y));
+      } while ((wallApple && next.x !== 0 && next.y !== 0 && next.x !== canvas.width - box && next.y !== canvas.height - box) ||
+        snake.some(part => part.x === next.x && part.y === next.y));
+      if (wallApple) lastWallAppleScore = score;
       return next;
+    }
+
+    function snakeTickMs() {
+      // Reach the previous 120 ms pace after 30 apples, in small steps.
+      return Math.max(120, 180 - Math.floor(score / 3) * 6);
     }
 
     function drawSnakeBody() {
@@ -588,6 +599,10 @@
       }
 
       snake.unshift(newHead);
+      if (willEat && game !== null && game !== 'paused') {
+        clearInterval(game);
+        game = setInterval(draw, snakeTickMs());
+      }
     }
 
     function gameOver(reason = '') {
@@ -682,6 +697,7 @@
       queuedDirections.length = 0;
       syncDirectionButtons('RIGHT');
       score = 0;
+      lastWallAppleScore = -5;
       clearTimeout(appleFlashTimer);
       canvas.classList.remove('snake-apple-collected');
       scoreEl.textContent = '0';
@@ -701,7 +717,7 @@
         earnlyRunStartedAt = performance.now();
         startButton.textContent = 'Game Running';
         setStatus('Running', 'running');
-        game = setInterval(draw, 120);
+        game = setInterval(draw, snakeTickMs());
       });
     }
 
@@ -724,7 +740,7 @@
         totalPausedMs+=performance.now()-pauseStartedAt;
         pauseStartedAt=0;
         clearInterval(game);
-        game=setInterval(draw,120);
+        game=setInterval(draw,snakeTickMs());
       }
     });
     // Put both session actions below the direction controls, above the swipe layer.
