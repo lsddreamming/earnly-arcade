@@ -68,7 +68,7 @@ test('Account sign-in shows validation beside the button on mobile', async ({ pa
   await expect(feedback).toBeVisible();
   await expect(feedback).toContainText('at least 6 characters');
   const positions=await page.evaluate(()=>({
-    button:document.querySelector('#cloudSignInButton').getBoundingClientRect().bottom,
+    button:document.querySelector('#cloudCreateButton').getBoundingClientRect().bottom,
     feedback:document.querySelector('#cloudAuthFeedback').getBoundingClientRect().top
   }));
   expect(positions.feedback-positions.button).toBeLessThan(20);
