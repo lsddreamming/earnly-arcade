@@ -97,7 +97,7 @@
       /* Instructions are for pre-game only. During play keep the HUD + board clean.
          Reserve the hidden blocks' vertical space so starting a run cannot make
          Safari jump the board upward underneath the player's finger. */
-      body.brick-breaker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
+      body.brick-breaker-page.game-active #startButton{display:none!important;pointer-events:none!important}
       body.brick-breaker-page.game-active.awaiting-next-level #startButton{display:block!important;visibility:visible!important;pointer-events:auto!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
@@ -110,7 +110,7 @@
       body.brick-breaker-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.brick-breaker-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
       body.brick-breaker-page.game-active .brick-board{
-        width:min(86vw,calc((100dvh - 210px) * .72),340px)!important;
+        width:min(86vw,calc((100dvh - 285px) * .72),340px)!important;
         height:auto!important;
         margin-top:3px!important;
         border-color:rgba(96,165,250,.50)!important;
