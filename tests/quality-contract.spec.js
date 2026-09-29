@@ -368,10 +368,12 @@ test('results use game-specific leaderboard gap copy without duplicate best text
 });
 
 
-test('Snake keeps apples off the wall row and draws the true playable boundary', () => {
+test('Snake keeps most apples inside, occasionally uses the wall row, and draws the true playable boundary', () => {
   for (const source of [read('snake.html'), read('www/snake.html')]) {
     expect(source).toContain('(1 + Math.floor(Math.random() * 18)) * box');
-    expect(source).not.toContain('Math.floor(Math.random() * 20) * box');
+    expect(source).toContain('score - lastWallAppleScore >= 5');
+    expect(source).toContain('Math.floor(Math.random() * 20) * box');
+    expect(source).toContain('Math.max(120, 180 - Math.floor(score / 3) * 6)');
     expect(source).toContain("ctx.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3)");
     expect(source).toContain('snakeX >= canvas.width');
     expect(source).toContain('snakeY >= canvas.height');
