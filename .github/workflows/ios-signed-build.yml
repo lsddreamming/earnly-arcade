@@ -58,6 +58,7 @@ jobs:
           npx cap add ios
           npx cap sync ios
           node scripts/configure-ios.mjs
+          cmp ios-icon-1024.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
 
       - name: Verify native release mode
         run: |
@@ -142,6 +143,13 @@ jobs:
             MARKETING_VERSION=1.0 \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
+
+      - name: Verify replacement archive version and icon
+        run: |
+          APP_PLIST="build/EarnlyArcade.xcarchive/Products/Applications/App.app/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PLIST")" = "1.0"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PLIST")" = "${{ github.run_number }}"
+          test -s build/EarnlyArcade.xcarchive/Products/Applications/App.app/Assets.car
 
       - name: Create App Store export options
         run: |
