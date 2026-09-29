@@ -1084,7 +1084,7 @@ test('Block Drop wall and floor kicks keep rotations playable at edges', async (
   expect(result.floor.y).toBeLessThanOrEqual(16);
 });
 
-test('Block Drop keeps quit pause previews and scroll lock usable on iPhone', async ({ page }) => {
+test('Block Drop keeps quit pause previews and scroll lock usable on iPhone', async ({ page }, testInfo) => {
   await page.goto('/blockdrop.html');
   await expect(page.locator('#nextPiece')).toBeVisible();
   await expect(page.locator('#thenPiece')).toBeVisible();
@@ -1097,6 +1097,20 @@ test('Block Drop keeps quit pause previews and scroll lock usable on iPhone', as
   await expect(page.locator('#blockDropExit')).toHaveAttribute('href','games.html');
   await expect(page.locator('#earnlyPauseButton')).toBeVisible();
   await expect(page.locator('body')).toHaveClass(/earnly-gameplay-locked/);
+
+  if(testInfo.project.use.hasTouch){
+  const layout=await page.evaluate(()=>{
+    const controls=document.querySelector('.blockdrop-controls').getBoundingClientRect();
+    const pause=document.querySelector('#earnlyPauseButton').getBoundingClientRect();
+    const quit=document.querySelector('#blockDropExit').getBoundingClientRect();
+    return {controlsBottom:controls.bottom,pauseTop:pause.top,quitTop:quit.top,
+      pauseBottom:pause.bottom,quitBottom:quit.bottom,viewport:innerHeight};
+  });
+  expect(layout.pauseTop).toBeGreaterThanOrEqual(layout.controlsBottom-2);
+  expect(Math.abs(layout.pauseTop-layout.quitTop)).toBeLessThan(3);
+  expect(layout.pauseBottom).toBeLessThanOrEqual(layout.viewport+2);
+  expect(layout.quitBottom).toBeLessThanOrEqual(layout.viewport+2);
+  }
 
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
