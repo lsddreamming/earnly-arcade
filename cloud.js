@@ -1012,7 +1012,7 @@
       if (currentSession?.user && event !== 'SIGNED_OUT') {
         if (accountTransition) return;
         accountTransition = true;
-        prepareSessionProgress(currentSession.user.id)
+        setTimeout(() => prepareSessionProgress(currentSession.user.id)
           .then(() => maybeRestoreFreshDevice())
           .then(result => {
             accountTransition = false;
@@ -1026,7 +1026,7 @@
           .catch(error => {
             accountTransition = false;
             localStorage.setItem('arcadeCloudSyncError', 'Account switch needs attention: ' + String(error?.message || error));
-          });
+          }), 0);
       }
     });
 
