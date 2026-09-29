@@ -151,7 +151,7 @@
     <a class="brick-quit-button" id="brickQuit" href="games.html">× Quit</a>
     <div id="powerTimers" class="power-timers" aria-live="off"></div>
     <div class="power-legend" aria-label="Brick Breaker power-ups">
-      <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Bonus Brick</span><span>◆ Armored</span>
+      <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Break for a power-up</span><span>◆ Armored</span>
     </div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
@@ -198,6 +198,8 @@
     let wideUntil=0;
     const powerTimersEl=document.getElementById('powerTimers');
     let lastPowerTimerMarkup='';
+    let randomDropsThisLevel=0;
+    let lastDropBroken=-10;
     let bricks=[];
     let level=1;
     let levelBroken=0;
@@ -287,12 +289,14 @@
     }
 
     function maybeDropPowerUp(brick){
-      // Keep power-ups exciting instead of flooding the board:
-      // about a 7% drop chance, never more than one falling pickup at once.
-      if(powerUps.length || Math.random()>.07) return;
+      // At most one surprise drop per board. Give it breathing room after
+      // another pickup, while the lightning brick remains a guaranteed drop.
+      if(powerUps.length || randomDropsThisLevel>=1 || totalBroken-lastDropBroken<10 || Math.random()>.045) return;
       const types=['multi','wide','fire'];
       const type=types[Math.floor(Math.random()*types.length)];
       powerUps.push({x:brick.x+brick.w/2,y:brick.y+brick.h/2,vy:2.1,type,r:11});
+      randomDropsThisLevel++;
+      lastDropBroken=totalBroken;
     }
 
     function refreshChrome(){
@@ -347,10 +351,14 @@
             color:colors[(r+level-1)%colors.length],
             hp:elite?3:(hard?2:1),
             maxHp:elite?3:(hard?2:1),
-            special:level>=3 && ((r*cols+col+level)%17===0)
+            special:false
           });
         }
       }
+      // One visible bonus brick per board from level 3 onward.
+      if(level>=3 && bricks.length) bricks[Math.floor(bricks.length*.55)].special=true;
+      randomDropsThisLevel=0;
+      lastDropBroken=totalBroken;
       levelGoal=bricks.length;
       brickGoalEl.textContent=levelGoal;
       setStatus('Level '+level+' · '+layoutName);
@@ -358,6 +366,7 @@
 
     function updatePowerTimers(now=performance.now()){
       const timers=[];
+      if(balls.length>1) timers.push('<span class="power-timer">🔵 '+balls.length+' balls in play</span>');
       const wideLeft=Math.max(0,wideUntil-now);
       const fireLeft=Math.max(0,fireUntil-now);
       if(wideLeft>0){
@@ -478,7 +487,8 @@
           const types=['multi','wide','fire'];
           const type=types[Math.floor(Math.random()*types.length)];
           powerUps=[{x:b.x+b.w/2,y:b.y+b.h/2,vy:2.1,type,r:11}];
-          Arcade.milestone('⚡ BONUS BRICK! Catch the power-up!','perfect');
+          lastDropBroken=totalBroken;
+          Arcade.milestone('⚡ BONUS BRICK! Catch the '+(type==='multi'?'3-ball':type==='wide'?'wide paddle':'fireball')+'!','perfect');
         }else{
           maybeDropPowerUp(b);
         }
