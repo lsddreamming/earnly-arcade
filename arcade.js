@@ -1700,8 +1700,9 @@ const Arcade = (() => {
 
     main.append(label, value);
 
+    let bestLine = null;
     if (bestDisplay) {
-      const bestLine = document.createElement('div');
+      bestLine = document.createElement('div');
       bestLine.className = 'result-best';
       bestLine.textContent = bestDisplay.endsWith(' saved on this device')
         ? '🏆 ' + (result?.newBest ? 'New best' : 'Best') + ' on this device: ' + bestDisplay.slice(0, -' saved on this device'.length)
@@ -1741,6 +1742,18 @@ const Arcade = (() => {
           const myEntry = myName
             ? entries.find(entry => String(entry.username || '').toLowerCase() === myName)
             : null;
+
+          // A fresh browser can have a lower device best than the player's
+          // existing cloud record. Correct the initial local-only celebration
+          // once the signed-in leaderboard result confirms the older best.
+          const globalBest = Number(myEntry?.score);
+          const olderGlobalBest = myEntry && Number.isFinite(globalBest) &&
+            (bestConfig[game]?.lower ? globalBest < score : globalBest > score);
+          if (result?.newBest && olderGlobalBest) {
+            badge.textContent = score > 0 ? '✓ RUN COMPLETE' : 'RUN OVER';
+            badge.classList.remove('best');
+            if (bestLine) bestLine.textContent = '🏆 Personal best: ' + compactLeaderboardScore(myEntry, data);
+          }
 
           leaderboardBox.replaceChildren();
           const head = document.createElement('div');
