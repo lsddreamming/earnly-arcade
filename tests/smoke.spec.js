@@ -666,6 +666,7 @@ test('Brick Breaker waits for Play between levels without using another play', a
   const playsBefore = await page.locator('#plays').textContent();
   await page.evaluate(() => advanceLevel());
   await expect(page.locator('#startButton')).toHaveText('▶ Play Level 2');
+  await expect(page.locator('#startButton')).toBeVisible();
   await expect(page.locator('#gameStatus')).toContainText('Ready when you are');
   await page.waitForTimeout(1200);
   const waiting = await page.evaluate(() => ({ running, awaitingNextLevel }));
