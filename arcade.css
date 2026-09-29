@@ -6319,6 +6319,18 @@ body.snake-game-active .compact-leaderboard-card .compact-leaderboard-ticker{dis
 html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker{position:absolute!important;top:2px!important;left:8px!important;right:8px!important;line-height:24px!important}
 .compact-leaderboard-ticker-track{animation-name:earnlyScoresRight!important;animation-duration:18s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important}
 
+/* Use the same one-line, read-only ranking before play as during a run. */
+body #earnlyCompactLeaderboard.compact-leaderboard-card{
+  display:block!important;box-sizing:border-box!important;
+  min-height:30px!important;max-height:30px!important;
+  padding:2px 8px!important;margin:5px 0 7px!important;
+  overflow:hidden!important;pointer-events:none!important
+}
+body #earnlyCompactLeaderboard.compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target){display:none!important}
+body #earnlyCompactLeaderboard.compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
+body .compact-leaderboard-record-chip{display:none!important}
+body:not(.game-active):not(.snake-page):not(.blockdrop-page):not(.maze-page) .compact-leaderboard-record-chip{display:none!important}
+
 @media(max-width:600px){
   html body .earnly-session-dock{display:flex;align-items:center;justify-content:center;gap:8px;width:min(100%,440px);min-height:54px;margin:6px auto 3px;position:relative;z-index:1410}
   html body .earnly-session-dock:has(> #earnlyPauseButton[hidden]){display:none}

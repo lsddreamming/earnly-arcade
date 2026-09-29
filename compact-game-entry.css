@@ -246,3 +246,12 @@
     margin:3px auto 6px !important;
   }
 }
+
+@media(max-width:699px){
+  body:is(.blockdrop-page,.maze-page).game-guide-page:not(.game-active) #earnlyCompactLeaderboard.compact-leaderboard-card{
+    display:block!important;min-height:30px!important;max-height:30px!important;
+    padding:2px 8px!important;margin:5px 0 7px!important
+  }
+  body:is(.blockdrop-page,.maze-page).game-guide-page:not(.game-active) #earnlyCompactLeaderboard.compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target){display:none!important}
+  body:is(.blockdrop-page,.maze-page).game-guide-page:not(.game-active) #earnlyCompactLeaderboard.compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
+}
