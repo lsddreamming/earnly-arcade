@@ -6302,7 +6302,7 @@ body.home-dashboard.has-app-nav .home-container{
 
 /* Give the board priority after the player has learned a game. The global
    ranking remains available from the small score link above the board. */
-body.game-guide-page:not(.game-active) .compact-leaderboard-card{display:none!important}
-body.game-guide-page:not(.game-active) .compact-leaderboard-record-chip{display:inline-flex!important}
+body:not(.game-active) .compact-leaderboard-card{display:none!important}
+body:not(.game-active) .compact-leaderboard-record-chip{display:inline-flex!important}
 body.game-guide-returning .game-guide-strip,
 body.game-guide-returning .game-start-summary{display:none!important}
