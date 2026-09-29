@@ -6304,5 +6304,46 @@ body.home-dashboard.has-app-nav .home-container{
    ranking remains available from the small score link above the board. */
 body:not(.game-active):not(.snake-page):not(.blockdrop-page):not(.maze-page) .compact-leaderboard-card{display:none!important}
 body:not(.game-active):not(.snake-page):not(.blockdrop-page):not(.maze-page) .compact-leaderboard-record-chip{display:inline-flex!important}
+
+/* A single, noninteractive neon score line during live play. */
+.compact-leaderboard-ticker{display:none;overflow:hidden;white-space:nowrap;pointer-events:none;color:#8df5ff;text-shadow:0 0 6px #08d9ff,0 0 16px #0aa6e8;font-size:12px;font-weight:900;letter-spacing:.04em;line-height:24px}
+.compact-leaderboard-ticker-track{display:flex;width:max-content;gap:36px;animation:earnlyScoresRight 24s linear infinite}
+.compact-leaderboard-ticker-track>span{flex:none}
+@keyframes earnlyScoresRight{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+body.game-active .compact-leaderboard-card,
+body.snake-game-active .compact-leaderboard-card{padding:2px 8px!important;margin:3px 0 5px!important;overflow:hidden!important;max-height:30px!important;min-height:30px!important;box-sizing:border-box!important}
+body.game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target),
+body.snake-game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target){display:none!important}
+body.game-active .compact-leaderboard-card .compact-leaderboard-ticker,
+body.snake-game-active .compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
+html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker{position:absolute!important;top:2px!important;left:8px!important;right:8px!important;line-height:24px!important}
+.compact-leaderboard-ticker-track{animation-duration:18s!important;animation-iteration-count:infinite!important}
+
+/* Use the same one-line, read-only ranking before play as during a run. */
+body #earnlyCompactLeaderboard.compact-leaderboard-card{
+  display:block!important;box-sizing:border-box!important;
+  min-height:30px!important;max-height:30px!important;
+  padding:2px 8px!important;margin:5px 0 7px!important;
+  overflow:hidden!important;pointer-events:none!important
+}
+body #earnlyCompactLeaderboard.compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target){display:none!important}
+body #earnlyCompactLeaderboard.compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
+body .compact-leaderboard-record-chip{display:none!important}
+body:not(.game-active):not(.snake-page):not(.blockdrop-page):not(.maze-page) .compact-leaderboard-record-chip{display:none!important}
+
+@media(max-width:600px){
+  html body .earnly-session-dock{display:flex;align-items:center;justify-content:center;gap:8px;width:min(100%,440px);min-height:54px;margin:6px auto 3px;position:relative;z-index:1410}
+  html body .earnly-session-dock:has(> #earnlyPauseButton[hidden]){display:none}
+  html body .earnly-session-dock #earnlyPauseButton,
+  html body .earnly-session-dock :is(#earnlyQuitButton,#brickQuit,#coinCatchExit){position:relative!important;inset:auto!important;transform:none!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:1 1 0!important;width:auto!important;min-width:0!important;min-height:48px!important;height:48px!important;margin:0!important;padding:8px 12px!important;box-sizing:border-box!important;border-radius:13px!important;font-size:16px!important;font-weight:900!important;text-decoration:none!important;z-index:1410!important}
+  html body .earnly-session-dock #earnlyPauseButton[hidden],
+  html body .earnly-session-dock #earnlyQuitButton[hidden]{display:none!important}
+  html body.brick-breaker-page.game-active .earnly-session-dock #earnlyPauseButton,
+  html body.brick-breaker-page.game-active .earnly-session-dock #brickQuit{
+    position:relative!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    width:auto!important;max-width:none!important;min-width:0!important;min-height:48px!important;height:48px!important;
+    flex:1 1 0!important;margin:0!important;transform:none!important
+  }
+}
 body.game-guide-returning .game-guide-strip,
 body.game-guide-returning .game-start-summary{display:none!important}
