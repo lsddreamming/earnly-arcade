@@ -659,6 +659,22 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
   expect(result.navDisplay).toBe('none');
 });
 
+test('Brick Breaker waits for Play between levels without using another play', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+  const playsBefore = await page.locator('#plays').textContent();
+  await page.evaluate(() => advanceLevel());
+  await expect(page.locator('#startButton')).toHaveText('▶ Play Level 2');
+  await expect(page.locator('#gameStatus')).toContainText('Ready when you are');
+  await page.waitForTimeout(1200);
+  const waiting = await page.evaluate(() => ({ running, awaitingNextLevel }));
+  expect(waiting).toEqual({ running:false, awaitingNextLevel:true });
+  await page.locator('#startButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running · Level 2');
+  expect(await page.locator('#plays').textContent()).toBe(playsBefore);
+});
+
 test('Brick Breaker end state clears pending level transition', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await startGame(page);
