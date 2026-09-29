@@ -6317,7 +6317,7 @@ body.snake-game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.
 body.game-active .compact-leaderboard-card .compact-leaderboard-ticker,
 body.snake-game-active .compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
 html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker{position:absolute!important;top:2px!important;left:8px!important;right:8px!important;line-height:24px!important}
-.compact-leaderboard-ticker-track{animation-duration:18s!important;animation-iteration-count:infinite!important}
+.compact-leaderboard-ticker-track{animation-name:earnlyScoresRight!important;animation-duration:18s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important}
 
 @media(max-width:600px){
   html body .earnly-session-dock{display:flex;align-items:center;justify-content:center;gap:8px;width:min(100%,440px);min-height:54px;margin:6px auto 3px;position:relative;z-index:1410}
