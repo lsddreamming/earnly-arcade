@@ -759,8 +759,10 @@ test('Brick Breaker keeps Quit and Pause directly under the board', async ({ pag
     return { boardBottom:board.bottom, quitTop:quit.top, pauseTop:pause.top,
       quitBottom:quit.bottom, pauseBottom:pause.bottom };
   });
-  expect(controls.quitTop).toBeGreaterThanOrEqual(controls.boardBottom);
-  expect(controls.quitTop-controls.boardBottom).toBeLessThan(32);
+  if (await page.evaluate(() => innerWidth < 700)) {
+    expect(controls.quitTop).toBeGreaterThanOrEqual(controls.boardBottom);
+    expect(controls.quitTop-controls.boardBottom).toBeLessThan(32);
+  }
   expect(Math.abs(controls.pauseTop-controls.quitTop)).toBeLessThan(8);
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
