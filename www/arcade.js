@@ -1443,6 +1443,11 @@ const Arcade = (() => {
     localStorage.setItem('arcadeHistory', JSON.stringify(items.slice(0, 20)));
   }
 
+  function recordCoinSpend(amount, source) {
+    const spent = Math.max(0, Math.floor(Number(amount) || 0));
+    if (spent) logTransaction(-spent, source || 'Game continue');
+  }
+
   function history() {
     try {
       const items = JSON.parse(localStorage.getItem('arcadeHistory') || '[]');
@@ -3890,6 +3895,7 @@ const Arcade = (() => {
     claimWeeklyMission,
     activity,
     earn,
+    recordCoinSpend,
     panel,
     gameResult,
     milestone,
