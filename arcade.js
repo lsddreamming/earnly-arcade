@@ -3453,153 +3453,57 @@ const Arcade = (() => {
     if (!document.body || document.getElementById('earnlyCompactLeaderboard')) return;
     const game = currentCompactLeaderboardGame();
     if (!game) return;
-
     const container = document.querySelector('.container');
     if (!container) return;
 
-    const backLink = [...container.querySelectorAll('a.button.wide.secondary')]
-      .find(link => /back to games|quit game/i.test(link.textContent || ''));
     const header = container.querySelector('.page-header, .snake-header');
     const playfield = container.querySelector('.blockdrop-playfield, canvas.touch-surface, canvas#game');
-    const host = header?.parentElement || container;
+    const ticker = document.createElement('section');
+    ticker.id = 'earnlyCompactLeaderboard';
+    ticker.className = 'leaderboard-ticker';
+    ticker.setAttribute('aria-label', 'Top players for this game');
 
-    const card = document.createElement('section');
-    card.id = 'earnlyCompactLeaderboard';
-    card.className = 'compact-leaderboard-card';
-    card.setAttribute('aria-label', 'Top three global players');
-
-    const top = document.createElement('div');
-    top.className = 'compact-leaderboard-head';
-
-    const titleWrap = document.createElement('div');
-    const eyebrow = document.createElement('span');
-    eyebrow.className = 'compact-leaderboard-eyebrow';
-    eyebrow.textContent = 'GLOBAL CHALLENGE';
-    const title = document.createElement('strong');
-    title.textContent = '🏆 Top 3 to Beat';
-    titleWrap.append(eyebrow, title);
-
-    const fullLink = document.createElement('a');
-    fullLink.className = 'compact-leaderboard-link';
-    fullLink.href = 'leaderboards.html?game=' + encodeURIComponent(game);
-    fullLink.textContent = 'View all →';
-    top.append(titleWrap, fullLink);
-
-    const list = document.createElement('div');
-    list.className = 'compact-leaderboard-list';
-    list.innerHTML = '<div class="compact-leaderboard-loading">Loading world scores…</div>';
-    const ticker = document.createElement('div');
-    ticker.className = 'compact-leaderboard-ticker';
-    ticker.setAttribute('aria-label', 'Top players');
-    const tickerTrack = document.createElement('span');
-    tickerTrack.className = 'compact-leaderboard-ticker-track';
-    ticker.append(tickerTrack);
-    const updateTicker = (message) => {
-      ticker.setAttribute('aria-label', message);
-      tickerTrack.replaceChildren();
-      for (let i = 0; i < 2; i++) {
-        const segment = document.createElement('span');
-        segment.textContent = '✦  ' + message + '  ✦';
-        segment.setAttribute('aria-hidden', 'true');
-        tickerTrack.append(segment);
-      }
-    };
-    updateTicker('WORLD TOP PLAYERS · Loading scores…');
-
-    const target = document.createElement('div');
-    target.className = 'compact-leaderboard-target';
-    target.textContent = 'Set a personal best and chase the podium.';
-
-    card.append(top, list, target, ticker);
-    // Keep all three leaders visible before and during play. The active layout
-    // shrinks the rows without covering the board or controls.
-    if (header) header.insertAdjacentElement('afterend', card);
-    else if (playfield) playfield.insertAdjacentElement('beforebegin', card);
-    else if (backLink) host.insertBefore(card, backLink);
-    else host.append(card);
-
-    const recordChip = document.createElement('a');
-    recordChip.className = 'compact-leaderboard-record-chip';
-    recordChip.href = fullLink.href;
-    recordChip.textContent = '🏆 Top score';
-    card.insertAdjacentElement('afterend', recordChip);
-
-    const syncVisibility = () => {
-      const active = document.body.classList.contains('game-active') ||
-        !!document.querySelector('.game-status.running');
-      if (card.classList.contains('during-game-compact') !== active) {
-        card.classList.toggle('during-game-compact', active);
-      }
-    };
-    syncVisibility();
-    const visibilityObserver = new MutationObserver(syncVisibility);
-    visibilityObserver.observe(document.body, {attributes:true, attributeFilter:['class']});
-    const gameStatus = document.querySelector('.game-status');
-    if (gameStatus) visibilityObserver.observe(gameStatus, {attributes:true, attributeFilter:['class']});
-    window.addEventListener('pagehide', () => visibilityObserver.disconnect(), {once:true});
+    const label = document.createElement('span');
+    label.className = 'leaderboard-ticker-label';
+    label.textContent = '🏆 TOP PLAYERS';
+    const windowEl = document.createElement('div');
+    windowEl.className = 'leaderboard-ticker-window';
+    const track = document.createElement('div');
+    track.className = 'leaderboard-ticker-track';
+    track.textContent = 'Loading world scores…';
+    windowEl.append(track);
+    ticker.append(label, windowEl);
+    if (header) header.insertAdjacentElement('afterend', ticker);
+    else if (playfield) playfield.insertAdjacentElement('beforebegin', ticker);
+    else container.prepend(ticker);
 
     const render = async () => {
       if (!window.EarnlyCloud?.leaderboard) return false;
-
       try {
-        const localBest = best(game).value;
         const data = await window.EarnlyCloud.leaderboard(game, 3);
         const entries = (data?.entries || []).slice(0, 3);
-        updateTicker(entries.length ? entries.map((entry, index) =>
-          '#' + (index + 1) + ' @' + (entry.username || 'player') + ' ' + compactLeaderboardScore(entry, data)
-        ).join('     ✦     ') : 'Be the first player on the world board');
-        list.replaceChildren();
-        if (entries[0]) {
-          recordChip.textContent = '🏆 #1 ' + compactLeaderboardScore(entries[0], data);
-          recordChip.setAttribute('aria-label', 'Top global score: ' + compactLeaderboardScore(entries[0], data));
-        } else {
-          recordChip.textContent = '🏆 Be #1';
-        }
-
+        track.replaceChildren();
         if (!entries.length) {
-          const empty = document.createElement('div');
-          empty.className = 'compact-leaderboard-empty';
-          empty.textContent = 'No world score yet — your run could be #1.';
-          list.append(empty);
-          target.textContent = localBest > 0
-            ? 'Your best: ' + localBest.toLocaleString()
-            : 'Play now and claim the first spot.';
-          return true;
+          track.textContent = 'Be the first player on this leaderboard ✦';
+        } else {
+          entries.forEach((entry, index) => {
+            const item = document.createElement('span');
+            item.className = 'leaderboard-ticker-entry';
+            const rank = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+            item.textContent = rank + ' @' + (entry.username || 'player') + ' · ' + compactLeaderboardScore(entry, data);
+            track.append(item);
+            if (index < entries.length - 1) {
+              const separator = document.createElement('span');
+              separator.className = 'leaderboard-ticker-separator';
+              separator.textContent = '✦';
+              track.append(separator);
+            }
+          });
         }
-
-        entries.forEach((entry, index) => {
-          const row = document.createElement('div');
-          row.className = 'compact-leaderboard-row';
-
-          const rank = document.createElement('span');
-          rank.className = 'compact-leaderboard-rank';
-          rank.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-
-          const avatar = document.createElement('span');
-          avatar.className = 'compact-leaderboard-avatar';
-          avatar.textContent = entry.avatar || '🎮';
-
-          const player = document.createElement('span');
-          player.className = 'compact-leaderboard-player';
-          player.textContent = '@' + (entry.username || 'player');
-
-          const score = document.createElement('strong');
-          score.className = 'compact-leaderboard-score';
-          score.textContent = compactLeaderboardScore(entry, data);
-
-          row.append(rank, avatar, player, score);
-          list.append(row);
-        });
-
-        const thirdScore = entries.length >= 3 ? Number(entries[2].score || 0) : 0;
-        const gap = compactLeaderboardGap(localBest, thirdScore, data?.label);
-        const mine = localBest > 0 ? 'Your best: ' + localBest.toLocaleString() : 'No personal best yet';
-        target.textContent = gap ? mine + ' · ' + gap : mine + ' · Beat a score above to climb the board';
+        ticker.setAttribute('aria-label', 'Top players: ' + track.textContent);
         return true;
       } catch {
-        updateTicker('World scores unavailable right now');
-        list.innerHTML = '<div class="compact-leaderboard-empty">World scores unavailable right now.</div>';
-        target.textContent = 'Your best: ' + Math.max(0, Number(best(game).value) || 0).toLocaleString();
+        track.textContent = 'World scores unavailable right now';
         return true;
       }
     };
@@ -3612,9 +3516,8 @@ const Arcade = (() => {
       });
     };
     loadWhenReady();
-
-    window.addEventListener('earnly-leaderboard-updated', () => render(), { passive:true });
-    window.addEventListener('earnly-run-recorded', () => render(), { passive:true });
+    window.addEventListener('earnly-leaderboard-updated', render, { passive:true });
+    window.addEventListener('earnly-run-recorded', render, { passive:true });
   }
 
   captureAcquisition();
@@ -3730,23 +3633,6 @@ const Arcade = (() => {
     // Some game headers use transforms, which would anchor a fixed button to
     // the header instead of the viewport. Put the mobile dock on the body.
     if (window.matchMedia('(max-width:600px)').matches) document.body.append(button);
-
-    // Keep the session actions immediately below the board on compact screens.
-    // Snake and Block Drop have their own tailored control docks.
-    if (window.matchMedia('(max-width:600px)').matches &&
-        !document.body.classList.contains('snake-page') &&
-        !document.body.classList.contains('blockdrop-page')) {
-      const board = document.querySelector('canvas#game, .blockdrop-playfield, canvas.touch-surface');
-      if (board) {
-        const dock = document.createElement('div');
-        dock.className = 'earnly-session-dock';
-        const tailoredQuit = ['brickQuit','coinCatchExit'].map(id => document.getElementById(id)).find(Boolean);
-        const surface = board.closest('.game-guide-surface-wrap') || board;
-        surface.insertAdjacentElement('afterend', dock);
-        dock.append(button);
-        if (tailoredQuit || quit) dock.append(tailoredQuit || quit);
-      }
-    }
 
     const sync = () => {
       const active = !!isRunning();
