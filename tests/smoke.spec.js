@@ -1046,7 +1046,7 @@ test('Block Drop web and iOS copies keep the same interaction contract', async (
   }
 });
 
-test('Top 3 stays visible during mobile play without covering the board', async ({ page }) => {
+test('Brick Breaker gives the board room during a run while other games keep compact rankings', async ({ page }) => {
   for (const url of ['/brickbreaker.html', '/mini.html?game=trafficEscape']) {
     await page.goto(url);
     const podium = page.locator('#earnlyCompactLeaderboard');
@@ -1054,6 +1054,11 @@ test('Top 3 stays visible during mobile play without covering the board', async 
     await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
     await page.evaluate(() => document.body.classList.add('game-active'));
     await expect(podium).toHaveClass(/during-game-compact/);
+    if (url.includes('brickbreaker')) {
+      await expect(podium).toBeHidden();
+      await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
+      continue;
+    }
     await expect(podium).toBeVisible();
     await expect(podium.locator('.compact-leaderboard-head')).toContainText('Top 3');
     const layout = await page.evaluate(() => {
