@@ -301,6 +301,17 @@
     return data;
   }
 
+  async function continueReceipt(eventId, game){
+    const current = await user();
+    if (!current) throw new Error('Sign in to restore your Continue.');
+    const { data, error } = await requireClient().from('coin_spends')
+      .select('client_event_id,game,amount')
+      .eq('user_id',current.id).eq('client_event_id',eventId).eq('game',game)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.amount === 25 ? data : null;
+  }
+
   async function syncServerRewards(){
     if (rewardSyncPromise) return rewardSyncPromise;
 
@@ -1022,6 +1033,7 @@
     cloudSaveInfo,
     walletInfo,
     spendContinue,
+    continueReceipt,
     syncServerRewards,
     syncGrowthEvents,
     growthSyncEnabled,
