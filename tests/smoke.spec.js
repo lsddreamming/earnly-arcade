@@ -1097,13 +1097,9 @@ test('Brick Breaker gives the board room during a run while other games keep com
     await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
     await page.evaluate(() => document.body.classList.add('game-active'));
     await expect(podium).toHaveClass(/during-game-compact/);
-    if (url.includes('brickbreaker')) {
-      await expect(podium).toBeHidden();
-      await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
-      continue;
-    }
     await expect(podium).toBeVisible();
-    await expect(podium.locator('.compact-leaderboard-head')).toContainText('Top 3');
+    await expect(podium.locator('.compact-leaderboard-ticker')).toBeVisible();
+    if (url.includes('brickbreaker')) await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
     const layout = await page.evaluate(() => {
       const card = document.querySelector('#earnlyCompactLeaderboard').getBoundingClientRect();
       const board = document.querySelector('canvas#game, #surface')?.getBoundingClientRect();
