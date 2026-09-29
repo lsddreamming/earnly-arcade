@@ -2631,6 +2631,14 @@ const Arcade = (() => {
     if (!game || !surface) return null;
 
     document.body.classList.add('game-guide-page');
+    // Returning players have already learned the controls. Keep their board
+    // and Start button near the top, even if they reopen the game tomorrow.
+    const guideSeenKey = 'earnlyGameGuideSeen:' + game;
+    try {
+      if (localStorage.getItem(guideSeenKey) === '1' || best(game).value > 0) {
+        document.body.classList.add('game-guide-returning');
+      }
+    } catch {}
 
     const surfaceRect = surface.getBoundingClientRect();
     const surfaceRadius = getComputedStyle(surface).borderRadius;
@@ -2878,6 +2886,8 @@ const Arcade = (() => {
       // Paused is still an active run. Keep the real game board visible and
       // frozen instead of replacing it with the Ready/Out-of-Plays guide.
       if (active) {
+        document.body.classList.add('game-guide-returning');
+        try { localStorage.setItem(guideSeenKey, '1'); } catch {}
         overlay.classList.add('hidden');
         return;
       }
