@@ -662,6 +662,17 @@ test('Brick Breaker end state clears pending level transition', async ({ page })
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
 });
 
+test('Brick Breaker can quit from the bottom control while paused', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  await startGame(page);
+  await expect(page.locator('#brickQuit')).toBeVisible();
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await page.locator('#brickQuit').click();
+  await expect(page).toHaveURL(/\/games\.html$/);
+  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(0);
+});
+
 
 test('Block Drop held controls cannot survive pause or game over', async ({ page }) => {
   await page.goto('/blockdrop.html');
