@@ -67,13 +67,13 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     expect(live.dock.y).toBeGreaterThanOrEqual(live.board.bottom);
     expect(live.dock.bottom).toBeLessThanOrEqual(size.height);
     expect(live.board.y).toBeGreaterThanOrEqual(live.leaderboard.bottom);
-    const rowsInside = await page.evaluate(() => {
+    const tickerInside = await page.evaluate(() => {
       const frame=document.getElementById('earnlyCompactLeaderboard').getBoundingClientRect();
-      return [...document.querySelectorAll('#earnlyCompactLeaderboard .compact-leaderboard-row')].every(row => {
-        const r=row.getBoundingClientRect(); return r.top>=frame.top && r.bottom<=frame.bottom && r.left>=frame.left && r.right<=frame.right;
-      });
+      const ticker=document.querySelector('#earnlyCompactLeaderboard .compact-leaderboard-ticker');
+      const r=ticker.getBoundingClientRect();
+      return getComputedStyle(ticker).display!=='none' && r.top>=frame.top && r.bottom<=frame.bottom;
     });
-    expect(rowsInside).toBe(true);
+    expect(tickerInside).toBe(true);
     for (const id of ['snakeQuit','earnlyPauseButton']) {
       const control=await page.locator('#'+id).boundingBox(); expect(control.height, id + " must retain a full-size touch target").toBeGreaterThanOrEqual(44);
       expect(control.y).toBeGreaterThanOrEqual(live.dock.bottom); expect(control.y+control.height).toBeLessThanOrEqual(size.height);
