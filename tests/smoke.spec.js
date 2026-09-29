@@ -748,6 +748,36 @@ test('Brick Breaker Continue keeps the wall and score and waits for Play', async
   await expect(page.locator('#gameStatus')).toHaveText('Running · Level 2');
 });
 
+test('Brick Breaker restores a paid Continue after reload without spending a Play or Coins', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+  await page.evaluate(() => {
+    window.EarnlyCloud={ spendContinue:async()=>({ charged:true, amount:25 }) };
+    level=2;resetBricks();bricks[0].alive=false;
+    levelBroken=1;totalBroken=46;levelsCleared=1;
+    running=true;finishGame();
+  });
+  await page.getByRole('button',{name:'🪙 Continue · 25 Coins'}).click();
+  await expect(page.locator('#startButton')).toHaveText('▶ Play · Level 2');
+  const plays=await page.locator('#plays').textContent();
+  await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:`
+    window.EarnlyCloud={continueReceipt:async()=>({amount:25})};
+    window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
+  `}));
+  await page.reload();
+  await expect(page.locator('dialog[open]')).toContainText('Restore paid Continue');
+  await page.getByRole('button',{name:'Restore board'}).click();
+  const restored=await page.evaluate(()=>({level,levelBroken,totalBroken,levelsCleared,
+    firstBrickAlive:bricks[0].alive,waiting:awaitingNextLevel,spent:continueUsed}));
+  expect(restored).toEqual({level:2,levelBroken:1,totalBroken:46,levelsCleared:1,
+    firstBrickAlive:false,waiting:true,spent:true});
+  expect(await page.locator('#plays').textContent()).toBe(plays);
+  await page.locator('#startButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running · Level 2');
+  expect(await page.evaluate(()=>localStorage.getItem('earnlyBrickPaidContinueV1'))).toBeNull();
+});
+
 test('Brick Breaker can quit from the bottom control while paused', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await startGame(page);
