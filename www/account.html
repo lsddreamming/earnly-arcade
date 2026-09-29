@@ -701,6 +701,8 @@
           cloudMessage.textContent = '✅ Signed in. Automatic cloud sync is on.';
         }
         showAuthFeedback(cloudMessage.textContent);
+        render();
+        setTimeout(() => { location.href = 'index.html'; }, 900);
       } catch (error) {
         showAuthFeedback(error.message || 'Could not sign in.',true);
       } finally {
@@ -713,6 +715,7 @@
       try {
         await EarnlyCloud.signOut();
         cloudMessage.textContent = 'Signed out. Your local Earnly progress stays on this device.';
+        render();
         await renderCloud();
       } catch (error) {
         cloudMessage.textContent = error.message || 'Could not sign out.';

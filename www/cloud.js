@@ -99,6 +99,9 @@
     accountTransition = true;
     try {
       const auth = await signIn(email, password);
+      // Progress lives in shared browser storage. Keep the previous player's
+      // data on this device before looking at the newly signed-in account.
+      switchLocalProgress(auth.user.id);
       const remote = await cloudSaveInfo();
       const localDeviceId = Arcade.deviceId();
       let restore;
@@ -152,8 +155,15 @@
   async function signOut(){
     accountTransition = true;
     try {
+      const current = await user();
+      if (current && localStorage.getItem(LOCAL_OWNER_KEY) === current.id) {
+        saveLocalProgress(current.id);
+      }
       const { error } = await requireClient().auth.signOut();
       if (error) throw error;
+      if (localStorage.getItem(LOCAL_OWNER_KEY) === current?.id) {
+        loadLocalProgress(null);
+      }
       return true;
     } finally {
       accountTransition = false;
@@ -213,6 +223,32 @@
   let freshRestorePromise = null;
   let accountTransition = false;
   let rewardSyncPromise = null;
+
+  const LOCAL_OWNER_KEY = 'earnlyLocalProgressOwner';
+  const LOCAL_PROGRESS_PREFIX = 'earnlyLocalProgress:';
+  function saveLocalProgress(owner){
+    localStorage.setItem(LOCAL_PROGRESS_PREFIX + (owner || 'guest'), JSON.stringify(Arcade.snapshotData()));
+  }
+  function loadLocalProgress(owner){
+    const raw = localStorage.getItem(LOCAL_PROGRESS_PREFIX + (owner || 'guest'));
+    const snapshot = raw ? JSON.parse(raw) : {
+      app:'Earnly Arcade', schemaVersion:1, data:{}
+    };
+    Arcade.restoreSnapshot(snapshot);
+    Arcade.clearSyncEvents?.();
+    for (const key of ['arcadeLastCloudSave','arcadeLastCloudRestore','arcadeLastCloudHash',
+      'arcadeCloudConflict','arcadeCloudSyncError','arcadeFreshDeviceRestoreDone']) {
+      localStorage.removeItem(key);
+    }
+    if (owner) localStorage.setItem(LOCAL_OWNER_KEY, owner);
+    else localStorage.removeItem(LOCAL_OWNER_KEY);
+  }
+  function switchLocalProgress(nextOwner){
+    const previousOwner = localStorage.getItem(LOCAL_OWNER_KEY);
+    if (previousOwner === nextOwner) return;
+    saveLocalProgress(previousOwner);
+    loadLocalProgress(nextOwner);
+  }
 
   async function maybeRestoreFreshDevice(){
     if (freshRestorePromise) return freshRestorePromise;
@@ -299,6 +335,17 @@
     Arcade.applyServerWallet?.(data.wallet);
     if (data.charged) Arcade.recordCoinSpend?.(data.amount, 'Brick Breaker Continue');
     return data;
+  }
+
+  async function continueReceipt(eventId, game){
+    const current = await user();
+    if (!current) throw new Error('Sign in to restore your Continue.');
+    const { data, error } = await requireClient().from('coin_spends')
+      .select('client_event_id,game,amount')
+      .eq('user_id',current.id).eq('client_event_id',eventId).eq('game',game)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.amount === 25 ? data : null;
   }
 
   async function syncServerRewards(){
@@ -1022,6 +1069,7 @@
     cloudSaveInfo,
     walletInfo,
     spendContinue,
+    continueReceipt,
     syncServerRewards,
     syncGrowthEvents,
     growthSyncEnabled,
