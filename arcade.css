@@ -6307,9 +6307,9 @@ body:not(.game-active):not(.snake-page):not(.blockdrop-page):not(.maze-page) .co
 
 /* A single, noninteractive neon score line during live play. */
 .compact-leaderboard-ticker{display:none;overflow:hidden;white-space:nowrap;pointer-events:none;color:#8df5ff;text-shadow:0 0 6px #08d9ff,0 0 16px #0aa6e8;font-size:12px;font-weight:900;letter-spacing:.04em;line-height:24px}
-.compact-leaderboard-ticker-track{display:flex;width:max-content;gap:36px;animation:earnlyScoresRight 24s linear infinite}
-.compact-leaderboard-ticker-track>span{flex:none}
-@keyframes earnlyScoresRight{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.compact-leaderboard-ticker-track{display:flex;width:max-content;gap:0;animation:earnlyScoresLeft 11s linear infinite}
+.compact-leaderboard-ticker-track>span{flex:none;padding-right:36px}
+@keyframes earnlyScoresLeft{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 body.game-active .compact-leaderboard-card,
 body.snake-game-active .compact-leaderboard-card{padding:2px 8px!important;margin:3px 0 5px!important;overflow:hidden!important;max-height:30px!important;min-height:30px!important;box-sizing:border-box!important}
 body.game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target),
@@ -6317,7 +6317,7 @@ body.snake-game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.
 body.game-active .compact-leaderboard-card .compact-leaderboard-ticker,
 body.snake-game-active .compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
 html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker{position:absolute!important;top:2px!important;left:8px!important;right:8px!important;line-height:24px!important}
-.compact-leaderboard-ticker-track{animation-name:earnlyScoresRight!important;animation-duration:18s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important}
+.compact-leaderboard-ticker-track{animation-name:earnlyScoresLeft!important;animation-duration:11s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important;animation-play-state:running!important}
 
 /* Use the same one-line, read-only ranking before play as during a run. */
 body #earnlyCompactLeaderboard.compact-leaderboard-card{
