@@ -36,7 +36,8 @@ for (const file of ['blockdrop.html','neonmaze.html']) {
       await page.goto('/'+file);
       const start = page.locator(file === 'blockdrop.html' ? '#blockDropBoardStart' : '#startButton');
       const leaders = page.locator('#earnlyCompactLeaderboard');
-      await expect(leaders.locator('.compact-leaderboard-row')).toHaveCount(3);
+      await expect(leaders.locator('.leaderboard-ticker-entry')).toHaveCount(3);
+      await expect(leaders.locator('a,button')).toHaveCount(0);
       await expect(start).toBeVisible();
       await expect(start).toBeInViewport();
       await expect(page.locator('.game-start-summary')).toBeHidden();
@@ -55,14 +56,14 @@ for (const file of ['blockdrop.html','neonmaze.html']) {
           board:box('#game'),
           leaderboard:box('#earnlyCompactLeaderboard'),
           stats:box('.game-meta'),
-          rows:[...document.querySelectorAll('.compact-leaderboard-row')].map(el => el.getBoundingClientRect().y),
+          rows:[...document.querySelectorAll('.leaderboard-ticker-entry')].map(el => el.getBoundingClientRect().y),
           overflow:document.documentElement.scrollWidth-innerWidth,
           filter:getComputedStyle(document.querySelector('#game')).filter,
-          playerFont:parseFloat(getComputedStyle(document.querySelector('.compact-leaderboard-player')).fontSize)
+          playerFont:parseFloat(getComputedStyle(document.querySelector('.leaderboard-ticker-entry')).fontSize)
         };
       });
       console.log('ENTRY_GEOMETRY', file, size.width, JSON.stringify(layout));
-      expect(layout.leaderboard.height).toBeLessThan(145);
+      expect(layout.leaderboard.height).toBeLessThan(50);
       expect(Math.max(...layout.rows)-Math.min(...layout.rows)).toBeLessThan(3);
       expect(layout.stats.height).toBeLessThan(55);
       expect(layout.board.y).toBeLessThan(360);
@@ -71,7 +72,7 @@ for (const file of ['blockdrop.html','neonmaze.html']) {
       expect(layout.board.right).toBeLessThanOrEqual(size.width+1);
       expect(layout.overflow).toBeLessThanOrEqual(1);
       expect(layout.filter).toBe('none');
-      expect(layout.playerFont).toBeGreaterThanOrEqual(12);
+      expect(layout.playerFont).toBeGreaterThanOrEqual(11);
       const ratio = file === 'blockdrop.html' ? 2 : 390/330;
       expect(Math.abs(layout.board.height/layout.board.width-ratio)).toBeLessThan(.035);
       await testInfo.attach(`${file}-${size.width}-ready`, {body:await page.screenshot(),contentType:'image/png'});
