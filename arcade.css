@@ -6316,6 +6316,7 @@ body.game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.compac
 body.snake-game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target){display:none!important}
 body.game-active .compact-leaderboard-card .compact-leaderboard-ticker,
 body.snake-game-active .compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
+html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker{position:absolute!important;top:2px!important;left:8px!important;right:8px!important;line-height:24px!important}
 @media(prefers-reduced-motion:reduce){.compact-leaderboard-ticker-track{animation:none}}
 
 @media(max-width:600px){
