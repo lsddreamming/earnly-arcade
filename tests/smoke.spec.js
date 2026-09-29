@@ -2134,6 +2134,24 @@ test('result leaderboard loads after a run when cloud leaderboard is available',
   await expect(page.locator('.result-leaderboard')).not.toContainText('Could not load');
 });
 
+test('result does not claim a new personal best below the confirmed global best', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    localStorage.setItem('arcadeUsername','DREAMER');
+    window.EarnlyCloud = {
+      leaderboard:async()=>({entries:[{rank:1,username:'DREAMER',score:14}],label:'lines',lowerIsBetter:false}),
+      submitLeaderboardScore:async()=>({ok:true})
+    };
+    Arcade.gameResult({icon:'🧱',title:'Block Drop Over',scoreLabel:'Lines Cleared',
+      score:8,best:'8 lines',coins:5,result:{newBest:true,xpAward:45},
+      playsLeft:3,game:'blockDrop'});
+  });
+  const dialog=page.locator('dialog.game-result-dialog');
+  await expect(dialog.locator('.result-leaderboard')).toContainText('Your global best: 14 lines');
+  await expect(dialog.locator('.result-badge')).toHaveText('✓ RUN COMPLETE');
+  await expect(dialog.locator('.result-best')).toHaveText('🏆 Personal best: 14 lines');
+});
+
 test('Neon Maze shows a real iPhone start button and compacts live play', async ({ page }, testInfo) => {
   await page.goto('/neonmaze.html');
   const start = page.locator('#startButton');
