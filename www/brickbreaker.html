@@ -224,6 +224,7 @@
     let lastFrame=0;
     let continueUsed=false;
     let continueEventId='';
+    let continuePending=false;
 
     function levelSpeed(){
       // Give Level 1 a calmer launch, then ramp hard enough that deep runs
@@ -733,12 +734,24 @@
         ['🪙 Continue · 25 Coins',async()=>{
           stopCancel();
           if(!continueEventId) continueEventId='brick_'+(crypto.randomUUID?.() || String(Date.now())+'_'+Math.random().toString(36).slice(2)).replace(/[^a-zA-Z0-9_-]/g,'');
-          setStatus('Confirming Continue…','over');
+          continuePending=true;
+          setStatus('Running · Confirming Continue…','running');
+          Arcade.panel('🪙 Confirming Continue','Checking your Coin wallet. Keep this screen open for a moment.',[
+            ['Please wait…',()=>{},'secondary']
+          ]);
+          const waitingDialog=document.querySelector('dialog[aria-modal="true"]');
+          const waitingButton=waitingDialog?.querySelector('button');
+          if(waitingButton) waitingButton.disabled=true;
+          const preventWaitingCancel=event=>event.preventDefault();
+          waitingDialog?.addEventListener('cancel',preventWaitingCancel);
           try{
             if(!window.EarnlyCloud?.spendContinue) throw new Error('Coin wallet is still loading. Try again.');
             await window.EarnlyCloud.spendContinue(continueEventId,'brickBreaker');
             continueUsed=true;
             continueEventId='';
+            waitingDialog?.removeEventListener('cancel',preventWaitingCancel);
+            if(waitingDialog?.open) waitingDialog.close();
+            continuePending=false;
             refreshChrome();
             // The wall, score, level, and paddle remain. Only the lost ball and
             // transient effects reset; the next launch waits for Play.
@@ -747,10 +760,14 @@
             levelWaitStartedAt=performance.now();
             document.body.classList.add('awaiting-next-level');
             draw();
-            setStatus('Continue ready · Level '+level,'running');
+            setStatus('Paused · Continue ready · Level '+level,'running');
             startButton.disabled=false;
             startButton.textContent='▶ Play · Level '+level;
           }catch(error){
+            waitingDialog?.removeEventListener('cancel',preventWaitingCancel);
+            if(waitingDialog?.open) waitingDialog.close();
+            continuePending=false;
+            setStatus('Ball Lost · Level '+level,'over');
             showContinueResult(error?.message || 'Could not spend Coins. Try again.');
           }
         },'green'],
@@ -815,6 +832,7 @@
 
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
+      if(continuePending) return;
 
       if(!running){
         if(awaitingNextLevel) playNextLevel();
@@ -882,6 +900,7 @@
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
 
     document.addEventListener('keydown',event=>{
+      if(continuePending) return;
       if((event.key==='Enter'||event.key===' ')&&awaitingNextLevel){event.preventDefault();playNextLevel();return}
       if((event.key==='Enter'||event.key===' ')&&!running&&!starting){event.preventDefault();startGame();return}
       if(!running) return;
@@ -891,6 +910,7 @@
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0,levelResumeDelay=0;
     function startGame(){
+      if(continuePending) return;
       if(awaitingNextLevel){playNextLevel();return}
       if(running || starting) return;
       starting=true;
@@ -991,7 +1011,10 @@
       dragging=false;dragPointer=null;dragLastClientX=null;
       setStatus('Ready');
     }
-    document.getElementById('brickQuit').addEventListener('click',quitBrickRun);
+    document.getElementById('brickQuit').addEventListener('click',event=>{
+      if(continuePending){event.preventDefault();return}
+      quitBrickRun();
+    });
     window.addEventListener('pagehide',quitBrickRun);
     startButton.addEventListener('click',startGame);
     resetBricks();

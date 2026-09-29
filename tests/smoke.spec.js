@@ -712,7 +712,7 @@ test('Brick Breaker Continue keeps the wall and score and waits for Play', async
   await startGame(page);
   await page.waitForTimeout(3300);
   await page.evaluate(() => {
-    window.EarnlyCloud = { spendContinue:async () => ({ charged:true, amount:25 }) };
+    window.EarnlyCloud = { spendContinue:() => new Promise(resolve => { window.completeContinue = resolve; }) };
     running = false;
     level = 2;
     resetBricks();
@@ -727,7 +727,15 @@ test('Brick Breaker Continue keeps the wall and score and waits for Play', async
   });
   const plays = await page.locator('#plays').textContent();
   await page.getByRole('button', { name:'🪙 Continue · 25 Coins' }).click();
+  await expect(page.locator('dialog[open]')).toContainText('Confirming Continue');
+  await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
+  await page.evaluate(() => startGame());
+  expect(await page.locator('#plays').textContent()).toBe(plays);
+  expect(await page.evaluate(() => ({ running, waiting:awaitingNextLevel, pending:continuePending })))
+    .toEqual({ running:false, waiting:false, pending:true });
+  await page.evaluate(() => window.completeContinue({ charged:true, amount:25 }));
   await expect(page.locator('#startButton')).toHaveText('▶ Play · Level 2');
+  await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
   const restored = await page.evaluate(() => ({
     level, levelBroken, totalBroken, levelsCleared,
     firstBrickAlive:bricks[0].alive, waiting:awaitingNextLevel,
