@@ -33,9 +33,7 @@
     .power-timer.urgent{animation:powerTimerPulse .55s ease-in-out infinite alternate;border-color:#ef4444;color:#fecaca}
     .brick-quit-button{display:none;min-height:44px;align-items:center;justify-content:center;max-width:180px;margin:8px auto;border:1px solid #64748b;border-radius:14px;background:#253247;color:#f8fafc;font-weight:850;text-decoration:none}
     body.brick-breaker-page.game-active .brick-quit-button{display:flex;position:fixed;left:16px;bottom:16px;z-index:1400}
-    /* During a run, give the board the room used by the ranking panel.
-       Players can open world scores before playing or from the result screen. */
-    body.brick-breaker-page.game-active #earnlyCompactLeaderboard,
+    /* During a run the shared ranking card becomes a single neon ticker. */
     body.brick-breaker-page.game-active .compact-leaderboard-record-chip{display:none!important}
     @keyframes powerTimerPulse{from{transform:scale(1);box-shadow:0 0 0 rgba(239,68,68,0)}to{transform:scale(1.045);box-shadow:0 0 12px rgba(239,68,68,.42)}}
     /* Keep Brick Breaker notices above the playfield so they never hide bricks, balls, or drops. */
