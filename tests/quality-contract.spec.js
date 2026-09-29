@@ -359,7 +359,8 @@ test('results use game-specific leaderboard gap copy without duplicate best text
   for (const source of [arcade, nativeArcade]) {
     expect(source).toContain("Previous best beaten!");
     expect(source).toContain("function leaderboardUnitLabel(label, value)");
-    expect(source).toContain("compactLeaderboardGap(localBest, thirdScore, data?.label)");
+    expect(source).toContain("compactLeaderboardScore(entry, data)");
+    expect(source).toContain("ticker.className = 'leaderboard-ticker'");
     expect(source).toContain("away from Top 3 · View leaderboard →");
     expect(source).not.toContain("Previous best beaten · New best:");
     expect(source).not.toContain("footer.textContent = '🔥 ' + (third - mine).toLocaleString() + ' from Top 3 · View leaderboard →';");
