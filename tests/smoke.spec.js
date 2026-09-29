@@ -524,14 +524,14 @@ test('Star Defender collapses nonessential chrome during live mobile play', asyn
   if (testInfo.project.use.hasTouch) await start.tap();
   else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
   const layout = await page.evaluate(() => {
     const board = document.querySelector('#game').getBoundingClientRect();
     const header = document.querySelector('.page-header').getBoundingClientRect();
     return { boardTop:board.top, headerBottom:header.bottom, headerHeight:header.height };
   });
-  expect(layout.boardTop).toBeLessThan(210);
+  expect(layout.boardTop).toBeLessThan(250);
   expect(layout.headerHeight).toBeLessThan(100);
 });
 
@@ -662,14 +662,14 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
 test('Returning Brick Breaker players reach the board without repeated cards', async ({ page }) => {
   await page.goto('/brickbreaker.html');
   await expect(page.locator('.game-guide-strip')).toBeVisible();
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
-  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
+  await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
 
   await page.evaluate(() => localStorage.setItem('earnlyGameGuideSeen:brickBreaker', '1'));
   await page.reload();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
   await expect(page.locator('.game-start-summary')).toBeHidden();
-  await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+  await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
   await expect(page.locator('#game')).toBeVisible();
 });
 
@@ -1010,17 +1010,17 @@ test('Block Drop ready screen stays compact and board-forward on iPhone', async 
   const layout = await page.evaluate(() => {
     const card = document.querySelector('#earnlyCompactLeaderboard')?.getBoundingClientRect();
     const board = document.querySelector('#game')?.getBoundingClientRect();
-    const listStyle = getComputedStyle(document.querySelector('#earnlyCompactLeaderboard .compact-leaderboard-list'));
+    const tickerStyle = getComputedStyle(document.querySelector('#earnlyCompactLeaderboard .compact-leaderboard-ticker'));
     return {
       cardHeight: card?.height || 0,
       boardTop: board?.top || Infinity,
       viewportHeight: innerHeight,
-      columns: listStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+      ticker: tickerStyle.display
     };
   });
-  expect(layout.cardHeight).toBeLessThan(150);
+  expect(layout.cardHeight).toBeLessThan(50);
   expect(layout.boardTop).toBeLessThan(layout.viewportHeight * 0.75);
-  expect(layout.columns).toBe(3);
+  expect(layout.ticker).toBe('block');
 });
 
 test('Block Drop wall and floor kicks keep rotations playable at edges', async ({ page }) => {
@@ -1093,8 +1093,8 @@ test('Brick Breaker gives the board room during a run while other games keep com
   for (const url of ['/brickbreaker.html', '/mini.html?game=trafficEscape']) {
     await page.goto(url);
     const podium = page.locator('#earnlyCompactLeaderboard');
-    await expect(podium).toBeHidden();
-    await expect(page.locator('.compact-leaderboard-record-chip')).toBeVisible();
+    await expect(podium).toBeVisible();
+    await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
     await page.evaluate(() => document.body.classList.add('game-active'));
     await expect(podium).toHaveClass(/during-game-compact/);
     await expect(podium).toBeVisible();
@@ -2098,7 +2098,7 @@ test('Neon Maze shows a real iPhone start button and compacts live play', async 
   if (testInfo.project.use.hasTouch) await start.tap();
   else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', {timeout:5000});
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
 });
 
