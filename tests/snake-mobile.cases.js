@@ -245,6 +245,28 @@ test('Snake: apple pickup flashes immediately and wall deaths explain what happe
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Hit the wall');
 });
 
+test('Snake: wall apples are occasional and the run ramps to its former pace', async ({page}) => {
+  await snakeFixture(page);
+  await page.goto('/snake.html');
+  const result = await page.evaluate(() => {
+    const originalRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      snake = [{x:200,y:200}];
+      score = 0; lastWallAppleScore = -5;
+      const first = randomFood();
+      score = 3;
+      const wall = randomFood();
+      score = 4;
+      const next = randomFood();
+      score = 8;
+      const laterWall = randomFood();
+      return {first,wall,next,laterWall,speeds:[0,15,30].map(apples => {score=apples; return snakeTickMs();})};
+    } finally { Math.random = originalRandom; }
+  });
+  expect(result).toEqual({first:{x:20,y:20},wall:{x:0,y:0},next:{x:20,y:20},laterWall:{x:0,y:0},speeds:[180,150,120]});
+});
+
 
 async function unlimitedAccountFixture(page, enabled) {
   await page.route('**/cloud.js', r => r.fulfill({contentType:'application/javascript',body:''}));
