@@ -924,7 +924,9 @@
       pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
       resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,dropDelayMs());}
     });
-    document.getElementById('blockDropSessionActions').prepend(document.getElementById('earnlyPauseButton'));
+    if (window.matchMedia('(max-width:699px)').matches) {
+      document.getElementById('blockDropSessionActions').prepend(document.getElementById('earnlyPauseButton'));
+    }
 
     bindHoldControl('leftButton', moveLeft);
     bindHoldControl('rightButton', moveRight);
