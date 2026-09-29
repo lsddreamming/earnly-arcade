@@ -148,6 +148,16 @@
         min-height:54px!important
       }
     }
+    @media(min-width:700px){
+      body.brick-breaker-page.game-active #brickControls #brickQuit{
+        position:fixed!important;left:16px!important;bottom:16px!important;
+        width:150px;z-index:1400
+      }
+      html body.brick-breaker-page.game-active:not(.pause-in-header) #brickControls #earnlyPauseButton{
+        position:fixed!important;right:16px!important;bottom:16px!important;
+        width:150px!important;flex:none!important;z-index:1400!important
+      }
+    }
   </style>
 </head>
 <body class="brick-breaker-page">
