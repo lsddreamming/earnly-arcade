@@ -222,6 +222,8 @@
     let levelGoal=35;
     let layoutName='Classic Wall';
     let lastFrame=0;
+    let continueUsed=false;
+    let continueEventId='';
 
     function levelSpeed(){
       // Give Level 1 a calmer launch, then ramp hard enough that deep runs
@@ -695,9 +697,8 @@
       animation=null;
       lastFrame=0;
 
-      // Game Over is a hard stop. Clear moving/transient objects now so no
-      // old ball, falling pickup, particle, or timed power-up can survive
-      // behind the result dialog or leak into Play Again.
+      // Clear moving objects while keeping the wall and paddle position
+      // available if the player buys a Continue.
       balls=[];
       powerUps=[];
       particles=[];
@@ -707,7 +708,60 @@
       wideUntil=0;
       updatePowerTimers();
       paddle.w=paddle.baseW;
-      paddle.x=(canvas.width-paddle.w)/2;
+
+      refreshChrome();
+      setStatus('Ball Lost · Level '+level,'over');
+      if(!continueUsed){
+        showContinueResult();
+      }else{
+        settleRun();
+      }
+    }
+
+    function showContinueResult(message=''){
+      const preview=currentReward();
+      const balance=Arcade.number('points');
+      const detail='Level '+level+' · '+totalBroken+' bricks broken · '+preview+' Coins pending. '
+        +'Continue for 25 Coins to keep this board and score. Your available Coins will decrease by 25. '
+        +'Balance shown: '+balance+' Coins. One Continue per run.'+(message?' '+message:'');
+      const resultDialog=document.querySelector('dialog[aria-modal="true"]');
+      // An accidental Escape must not dismiss an unsettled run.
+      const preventCancel=event=>event.preventDefault();
+      resultDialog?.addEventListener('cancel',preventCancel);
+      const stopCancel=()=>resultDialog?.removeEventListener('cancel',preventCancel);
+      Arcade.panel('💥 Brick Run Over',detail,[
+        ['🪙 Continue · 25 Coins',async()=>{
+          stopCancel();
+          if(!continueEventId) continueEventId='brick_'+(crypto.randomUUID?.() || String(Date.now())+'_'+Math.random().toString(36).slice(2)).replace(/[^a-zA-Z0-9_-]/g,'');
+          setStatus('Confirming Continue…','over');
+          try{
+            if(!window.EarnlyCloud?.spendContinue) throw new Error('Coin wallet is still loading. Try again.');
+            await window.EarnlyCloud.spendContinue(continueEventId,'brickBreaker');
+            continueUsed=true;
+            continueEventId='';
+            refreshChrome();
+            // The wall, score, level, and paddle remain. Only the lost ball and
+            // transient effects reset; the next launch waits for Play.
+            balls=[makeBall(paddle.x+paddle.w/2,paddle.y-14)];
+            awaitingNextLevel=true;
+            levelWaitStartedAt=performance.now();
+            document.body.classList.add('awaiting-next-level');
+            draw();
+            setStatus('Continue ready · Level '+level,'running');
+            startButton.disabled=false;
+            startButton.textContent='▶ Play · Level '+level;
+          }catch(error){
+            showContinueResult(error?.message || 'Could not spend Coins. Try again.');
+          }
+        },'green'],
+        ['End Run · Keep '+preview+' Coin'+(preview===1?'':'s'),()=>{
+          stopCancel();
+          settleRun();
+        },'secondary']
+      ]);
+    }
+
+    function settleRun(){
 
       const earned=currentReward();
       Arcade.earn(earned,'Brick Breaker', {
@@ -846,6 +900,7 @@
         return;
       }
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
+      continueUsed=false;continueEventId='';
       awaitingNextLevel=false;levelWaitStartedAt=0;
       document.body.classList.remove('awaiting-next-level');
 
