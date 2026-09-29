@@ -414,6 +414,7 @@ test('result popup clearly shows rewards, time, and replay state', async ({ page
   await expect(dialog).toContainText('Level');
   await expect(dialog.locator('.result-stat').filter({ hasText:'Plays Left' })).toContainText('3');
   await expect(dialog).toContainText('Time played: 33s');
+  await expect(dialog.locator('.result-summary')).toHaveCount(1);
   await expect(dialog.getByRole('button', { name:/Play Again · 3 Left/ })).toBeVisible();
 });
 
@@ -1973,22 +1974,52 @@ test('leaderboards include report-and-hide moderation controls', async ({ page }
 });
 
 
-test('result leaderboard loads after a run when cloud leaderboard is available', async ({ page }) => {
+test('result leaderboard loads after a run and makes the personal world rank clear', async ({ page }) => {
   await page.goto('/index.html');
   await page.evaluate(() => {
+    localStorage.setItem('arcadeUsername', 'tester');
     window.EarnlyCloud = {
       leaderboard: async () => ({ entries:[{ rank:1, username:'tester', avatar:'🎮', score:225 }], label:'points', lowerIsBetter:false }),
       submitLeaderboardScore: async () => ({ ok:true })
     };
     Arcade.gameResult({
       icon:'👾', title:'Star Defender Run Over', scoreLabel:'POINTS', score:30,
-      best:'30 points', coins:0, result:{newBest:true,xpAward:35}, playsLeft:2,
+      best:'30 points', coins:0, result:{newBest:false,xpAward:35}, playsLeft:2,
       game:'starDefender'
     });
   });
+  await expect(page.locator('.result-main')).toContainText('THIS RUN');
+  await expect(page.locator('.result-main')).toContainText('30');
+  await expect(page.locator('.result-run-unit')).toHaveText('points');
+  await expect(page.locator('.result-best')).toHaveText('🏆 Personal Best: 225 points');
   await expect(page.locator('.result-leaderboard')).toContainText('WORLD TOP 3');
   await expect(page.locator('.result-leaderboard')).toContainText('@tester');
+  await expect(page.locator('.result-leaderboard-footer')).toContainText('WORLD #1');
   await expect(page.locator('.result-leaderboard')).not.toContainText('Could not load');
+});
+
+test('result leaderboard shows distance to the next world rank', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    localStorage.setItem('arcadeUsername', 'tester');
+    window.EarnlyCloud = {
+      leaderboard: async () => ({
+        entries:[
+          { rank:1, username:'leader', avatar:'👑', score:240 },
+          { rank:2, username:'tester', avatar:'🎮', score:225 }
+        ],
+        label:'points',
+        lowerIsBetter:false
+      }),
+      submitLeaderboardScore: async () => ({ ok:true })
+    };
+    Arcade.gameResult({
+      icon:'👾', title:'Star Defender Run Over', scoreLabel:'POINTS', score:30,
+      best:'225 points', coins:0, result:{newBest:false,xpAward:35}, playsLeft:2,
+      game:'starDefender'
+    });
+  });
+  await expect(page.locator('.result-leaderboard-footer')).toHaveText(/Rank #2 · 15 points to #1/);
 });
 
 test('Neon Maze shows a real iPhone start button and compacts live play', async ({ page }, testInfo) => {
