@@ -6299,3 +6299,10 @@ body.home-dashboard.has-app-nav .home-container{
 .result-leaderboard-mini-row strong{color:#fff;white-space:nowrap}
 .result-leaderboard-footer{display:block;margin-top:2px;padding:7px 8px;border-radius:10px;background:linear-gradient(90deg,rgba(8,145,178,.16),rgba(126,34,206,.14));color:#bae6fd;text-align:center;text-decoration:none;font-size:10px;font-weight:900}
 .result-leaderboard-loading,.result-leaderboard-empty{padding:8px;color:#94a3b8;text-align:center;font-size:10px}
+
+/* Give the board priority after the player has learned a game. The global
+   ranking remains available from the small score link above the board. */
+body.game-guide-page .compact-leaderboard-card{display:none!important}
+body.game-guide-page .compact-leaderboard-record-chip{display:inline-flex!important}
+body.game-guide-returning .game-guide-strip,
+body.game-guide-returning .game-start-summary{display:none!important}
