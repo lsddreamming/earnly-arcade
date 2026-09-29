@@ -1,6 +1,9 @@
 name: Upload verified Earnly 1.0 review build
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/upload-ios-review.yml']
   workflow_dispatch:
 
 permissions:
@@ -12,18 +15,18 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 30
     steps:
-      - name: Download signed build 1.0 (14)
+      - name: Download signed build 1.0 (15)
         uses: actions/download-artifact@v4
         with:
           name: earnly-arcade-ios-signed-live
-          run-id: 35861469703
+          run-id: 36634257537
           github-token: ${{ github.token }}
           path: ipa
 
       - name: Verify exact reviewed package
         run: |
           test -f ipa/App.ipa
-          echo 'e0304db07644382a1987644377dd50cb391dec645f19cca83b50aaa6e22e5b25  ipa/App.ipa' | shasum -a 256 -c -
+          echo 'c9e8ed8f1f337f2f6a0db2a693000f9dca71df38fc9f245afbf7e63f72141cd0  ipa/App.ipa' | shasum -a 256 -c -
           unzip -p ipa/App.ipa Payload/App.app/public/account.html | grep -q 'id="cloudDeleteButton"'
           unzip -p ipa/App.ipa Payload/App.app/public/cloud.js | grep -q "functions.invoke('delete-account'"
 
