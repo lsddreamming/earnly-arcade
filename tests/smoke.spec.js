@@ -702,7 +702,42 @@ test('Brick Breaker end state clears pending level transition', async ({ page })
   });
   await page.waitForTimeout(180);
   await expect(page.locator('body')).not.toHaveAttribute('data-late-level-restart','yes');
+  await expect(page.locator('dialog[open]')).toContainText('Continue · 25 Coins');
+  await page.getByRole('button', { name:/End Run/ }).click();
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
+});
+
+test('Brick Breaker Continue keeps the wall and score and waits for Play', async ({ page }) => {
+  await page.goto('/brickbreaker.html');
+  await startGame(page);
+  await page.waitForTimeout(3300);
+  await page.evaluate(() => {
+    window.EarnlyCloud = { spendContinue:async () => ({ charged:true, amount:25 }) };
+    running = false;
+    level = 2;
+    resetBricks();
+    bricks[0].alive = false;
+    levelBroken = 1;
+    totalBroken = 46;
+    levelsCleared = 1;
+    levelEl.textContent = '2';
+    bricksEl.textContent = '1';
+    running = true;
+    finishGame();
+  });
+  const plays = await page.locator('#plays').textContent();
+  await page.getByRole('button', { name:'🪙 Continue · 25 Coins' }).click();
+  await expect(page.locator('#startButton')).toHaveText('▶ Play · Level 2');
+  const restored = await page.evaluate(() => ({
+    level, levelBroken, totalBroken, levelsCleared,
+    firstBrickAlive:bricks[0].alive, waiting:awaitingNextLevel,
+    running, balls:balls.length
+  }));
+  expect(restored).toEqual({ level:2, levelBroken:1, totalBroken:46,
+    levelsCleared:1, firstBrickAlive:false, waiting:true, running:false, balls:1 });
+  expect(await page.locator('#plays').textContent()).toBe(plays);
+  await page.locator('#startButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running · Level 2');
 });
 
 test('Brick Breaker can quit from the bottom control while paused', async ({ page }) => {
