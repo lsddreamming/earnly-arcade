@@ -250,6 +250,29 @@
     loadLocalProgress(nextOwner);
   }
 
+  async function prepareSessionProgress(nextOwner){
+    const previousOwner = localStorage.getItem(LOCAL_OWNER_KEY);
+    if (previousOwner === nextOwner) return;
+    if (previousOwner) {
+      switchLocalProgress(nextOwner);
+      return;
+    }
+
+    // Existing players predate account-scoped local storage. Recognize their
+    // established cloud profile before moving any progress. A newly confirmed
+    // account has no matching profile/save and must not inherit this browser's
+    // old username, wallet, or game history.
+    const localUsername = (localStorage.getItem('arcadeUsername') || '').trim().toLowerCase();
+    const remoteProfile = await profile();
+    const remoteSave = await cloudSaveInfo();
+    if ((localUsername && remoteProfile?.username?.toLowerCase() === localUsername) ||
+        (!localUsername && remoteSave && remoteSave.device_id === Arcade.deviceId())) {
+      localStorage.setItem(LOCAL_OWNER_KEY, nextOwner);
+      return;
+    }
+    switchLocalProgress(nextOwner);
+  }
+
   async function maybeRestoreFreshDevice(){
     if (freshRestorePromise) return freshRestorePromise;
 
@@ -636,6 +659,9 @@
   async function saveProgress(options = {}){
     const current = await user();
     if (!current) throw new Error('Sign in before saving to Earnly Cloud.');
+    if (localStorage.getItem(LOCAL_OWNER_KEY) !== current.id) {
+      throw new Error('Your account is still being matched with this device. Reopen Account & Data before syncing.');
+    }
 
     if (!options.skipRewardSync) {
       await syncServerRewards();
@@ -763,6 +789,7 @@
   }
 
   async function autoSaveProgress(reason = 'change'){
+    if (accountTransition) return { skipped:'account-transition' };
     if (!autoSyncEnabled()) return { skipped:'disabled' };
     if (!navigator.onLine) {
       localStorage.setItem('arcadeCloudOfflinePending', new Date().toISOString());
@@ -780,6 +807,7 @@
     try {
       const current = await user();
       if (!current) return { skipped:'signed-out' };
+      if (localStorage.getItem(LOCAL_OWNER_KEY) !== current.id) return { skipped:'account-unverified' };
 
       const rewardSync = await syncServerRewards();
       const remote = await cloudSaveInfo();
@@ -983,8 +1011,11 @@
 
       if (currentSession?.user && event !== 'SIGNED_OUT') {
         if (accountTransition) return;
-        maybeRestoreFreshDevice()
+        accountTransition = true;
+        prepareSessionProgress(currentSession.user.id)
+          .then(() => maybeRestoreFreshDevice())
           .then(result => {
+            accountTransition = false;
             if (result?.auto) {
               const onAccountPage = /\/account\.html$/.test(location.pathname);
               if (!onAccountPage) setTimeout(() => location.reload(), 300);
@@ -992,8 +1023,9 @@
             }
             scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
           })
-          .catch(() => {
-            scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
+          .catch(error => {
+            accountTransition = false;
+            localStorage.setItem('arcadeCloudSyncError', 'Account switch needs attention: ' + String(error?.message || error));
           });
       }
     });
