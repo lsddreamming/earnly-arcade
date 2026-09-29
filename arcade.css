@@ -6317,7 +6317,7 @@ body.snake-game-active .compact-leaderboard-card :is(.compact-leaderboard-head,.
 body.game-active .compact-leaderboard-card .compact-leaderboard-ticker,
 body.snake-game-active .compact-leaderboard-card .compact-leaderboard-ticker{display:block!important}
 html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker{position:absolute!important;top:2px!important;left:8px!important;right:8px!important;line-height:24px!important}
-@media(prefers-reduced-motion:reduce){.compact-leaderboard-ticker-track{animation:none}}
+.compact-leaderboard-ticker-track{animation-duration:18s!important;animation-iteration-count:infinite!important}
 
 @media(max-width:600px){
   html body .earnly-session-dock{display:flex;align-items:center;justify-content:center;gap:8px;width:min(100%,440px);min-height:54px;margin:6px auto 3px;position:relative;z-index:1410}
@@ -6326,6 +6326,12 @@ html body.snake-page.snake-game-active #earnlyCompactLeaderboard .compact-leader
   html body .earnly-session-dock :is(#earnlyQuitButton,#brickQuit,#coinCatchExit){position:relative!important;inset:auto!important;transform:none!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:1 1 0!important;width:auto!important;min-width:0!important;min-height:48px!important;height:48px!important;margin:0!important;padding:8px 12px!important;box-sizing:border-box!important;border-radius:13px!important;font-size:16px!important;font-weight:900!important;text-decoration:none!important;z-index:1410!important}
   html body .earnly-session-dock #earnlyPauseButton[hidden],
   html body .earnly-session-dock #earnlyQuitButton[hidden]{display:none!important}
+  html body.brick-breaker-page.game-active .earnly-session-dock #earnlyPauseButton,
+  html body.brick-breaker-page.game-active .earnly-session-dock #brickQuit{
+    position:relative!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    width:auto!important;max-width:none!important;min-width:0!important;min-height:48px!important;height:48px!important;
+    flex:1 1 0!important;margin:0!important;transform:none!important
+  }
 }
 body.game-guide-returning .game-guide-strip,
 body.game-guide-returning .game-start-summary{display:none!important}
