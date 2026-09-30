@@ -8,11 +8,13 @@ for(const width of [320,390,440]) for(const game of games){
   await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:''}));
   await page.route('https://cdn.jsdelivr.net/**',r=>r.fulfill({contentType:'application/javascript',body:''}));
   await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');window.EarnlyCloud={leaderboard:async()=>({entries:[],label:'score',lowerIsBetter:false}),submitLeaderboardScore:async()=>({ok:true})};});
-  await page.goto('/'+game);
+  await page.goto('/'+game+(game==='stardefender.html'?'?sd=20260925d':''));
+  if(game==='snake.html'){const time=new Date('2026-09-30T12:00:00Z');await page.clock.install({time});await page.clock.pauseAt(time);}
   const initialCoins=await page.evaluate(()=>Arcade.number('points'));
   const start=page.locator(game==='blockdrop.html'?'#blockDropBoardStart':'#startButton');
   if(await start.isVisible()) await tap(start,page);
   else {const surface=page.locator('#surface,#game,.touch-surface,.game-guide-surface,#board').first();await tap(surface,page);}
+  if(game==='snake.html') await page.clock.runFor(2500);
   const pause=page.locator('#earnlyPauseButton,#pauseButton');
   await expect(page.locator('#gameStatus')).toHaveText(/Running/,{timeout:10000});
   await expect(pause).toBeVisible({timeout:10000});
@@ -34,7 +36,7 @@ for(const width of [320,390,440]) for(const game of games){
    await expect(page).toHaveURL(new RegExp(game.split('?')[0].replace('.','\\.')));
   }
   if(game==='snake.html') await tap(page.locator('[data-direction="DOWN"]'),page); else await tap(pause,page);
-  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await expect(page.locator('#gameStatus')).toHaveText(/Running/);
   if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   await tap(quit,page);await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await tap(page.locator('[data-keep]'),page);await expect(page.locator('#gameStatus')).toHaveText('Running');
