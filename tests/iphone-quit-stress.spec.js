@@ -49,6 +49,7 @@ for(const width of [320,390,440]) for(const game of games){
   await tap(quit,page);
   await tap(page.locator('[data-quit]'),page);
   await expect(page).toHaveURL(/games\.html$/);
+  await page.waitForFunction(()=>typeof Arcade!=='undefined'&&typeof Arcade.number==='function');
   await expect(page.locator('.game-result-dialog')).toHaveCount(0);
   expect(await page.evaluate(()=>Arcade.number('points'))).toBe(initialCoins);
   expect(errors).toEqual([]);
