@@ -6362,3 +6362,7 @@ html body .earnly-session-dock #earnlyPauseButton{flex:3 1 0!important}
 /* Override the older equal-width session layouts, including tailored docks. */
 html body .earnly-session-dock :is(#earnlyQuitButton,#brickQuit,#coinCatchExit),html body.brick-breaker-page.game-active .earnly-session-dock #brickQuit,html body.snake-page.snake-game-active #snakeQuit,html body.blockdrop-page.game-active #blockDropExit{flex:0 0 80px!important;width:80px!important;max-width:80px!important;min-width:0!important;font-size:12px!important}
 html body.brick-breaker-page.game-active .earnly-session-dock #earnlyPauseButton{flex:3 1 0!important}
+/* Keep the next goal visible without adding another results card. */
+.result-best-target { color:#7dd3fc; font-size:12px; line-height:1.5; margin-top:6px; }
+.result-best-target:empty { display:none; }
+.daily-challenge-intro { color:#b8cce5; font-size:12px; line-height:1.5; margin:0 0 10px; }
