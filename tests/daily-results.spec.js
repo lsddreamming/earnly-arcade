@@ -1,5 +1,9 @@
 const { test, expect } = require('@playwright/test');
 
+test.beforeEach(async ({page}) => {
+  await page.addInitScript(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+});
+
 test('daily challenges show three goals and award each XP reward only once', async ({ page }) => {
   await page.goto('/index.html');
   await expect(page.locator('#dailyMissionsSection')).toContainText('Daily Challenges');
@@ -34,7 +38,7 @@ for (const scenario of [
     await expect(dialog.locator('.result-best-target')).toContainText(scenario.text);
     await dialog.locator('.result-actions button').first().click();
     await expect(dialog).not.toBeVisible();
-    expect(await page.evaluate(() => window.replayed)).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.replayed)).toBe(true);
   });
 }
 
