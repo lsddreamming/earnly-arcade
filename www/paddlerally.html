@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Paddle Rally</title>
   <link rel="stylesheet" href="arcade.css">
-  <link rel="stylesheet" href="premium.css?v=25">
+  <link rel="stylesheet" href="premium.css?v=32">
   <style>html,body,.container{touch-action:manipulation}.rally-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}
     .rally-control-zone{display:none}
     @media(max-width:600px){
@@ -118,7 +118,7 @@
       if(!Arcade.consume('paddleRally')){ Arcade.out('paddleRally',refreshChrome); return false; }
       refreshChrome(); return true;
     }
-
+    
     const canvas=document.getElementById('game'),rallyControlZone=document.getElementById('rallyControlZone'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),speedEl=document.getElementById('speed'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'paddleRally',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the paddle'},{icon:'🏓',title:'Goal',text:'Keep the rally alive'}],
       overlayIcon:'🏓',overlayTitle:'Keep the Ball Alive',overlayText:'Move the paddle under the ball. Each return makes it faster.',replayTitle:'Tap to Play Again',
@@ -215,7 +215,7 @@
 
     document.addEventListener('pointerdown',e=>{
       const bottomControl=running&&!paused&&e.clientY>=window.innerHeight-150;
-      if(e.target===canvas||rallyControlZone.contains(e.target))return;
+      if(Arcade.isProtectedGameControlTarget(e.target)||e.target===canvas||rallyControlZone.contains(e.target))return;
       if(!bottomControl&&!Arcade.inExpandedGameZone(e,canvas,130))return;
       if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
@@ -243,7 +243,7 @@
       if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+28)}
     });
     startButton.addEventListener('click',startGame);reset();refreshChrome();
-
+  
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
