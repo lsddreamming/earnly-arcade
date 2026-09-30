@@ -1775,9 +1775,11 @@ const Arcade = (() => {
           if (result?.newBest && olderGlobalBest) {
             badge.textContent = score > 0 ? '✓ RUN COMPLETE' : 'RUN OVER';
             badge.classList.remove('best');
-            if (bestLine) bestLine.textContent = '🏆 Personal best: ' + compactLeaderboardScore(myEntry, data);
           }
-          if (olderGlobalBest) renderBestTarget(globalBest, false);
+          if (olderGlobalBest) {
+            if (bestLine) bestLine.textContent = '🏆 Personal best: ' + compactLeaderboardScore(myEntry, data);
+            renderBestTarget(globalBest, false);
+          }
 
           leaderboardBox.replaceChildren();
           const head = document.createElement('div');
