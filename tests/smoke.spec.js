@@ -579,6 +579,7 @@ test('shared bottom Quit exits a paused mini-game without showing results', asyn
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await quit.click();
+  await page.locator('.earnly-quit-dialog [data-quit]').click();
   await expect(page).toHaveURL(/\/games\.html$/);
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(0);
 });
@@ -800,6 +801,7 @@ test('Brick Breaker can quit from the bottom control while paused', async ({ pag
   await page.locator('#earnlyPauseButton').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await page.locator('#brickQuit').click();
+  await page.locator('.earnly-quit-dialog [data-quit]').click();
   await expect(page).toHaveURL(/\/games\.html$/);
   await expect(page.locator('dialog.game-result-dialog')).toHaveCount(0);
 });
@@ -2283,4 +2285,25 @@ test('Tap Rush zero-hit result gives accurate first-run feedback', async ({ page
   await expect(result).toContainText('No targets hit yet');
   await expect(result).toContainText('Tap the green target to score next run.');
   await expect(result).not.toContainText('Perfect accuracy');
+});
+
+test('Quit confirmation keeps a live run and preserves an already paused run', async ({page}) => {
+  await page.goto('/mini.html?game=blockGrid');
+  await startGame(page);
+  const quit=page.locator('#earnlyQuitButton');
+  const pause=page.locator('#earnlyPauseButton');
+  await expect(quit).toBeVisible();
+  await quit.click();
+  await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await page.locator('[data-keep]').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await pause.click();
+  await quit.click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.earnly-quit-dialog')).toHaveCount(0);
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await quit.click();
+  await page.locator('[data-quit]').click();
+  await expect(page).toHaveURL(/games\.html$/);
 });

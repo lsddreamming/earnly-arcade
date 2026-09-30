@@ -93,7 +93,7 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     if(info.project.use.hasTouch) await page.touchscreen.tap(tapX,tapY);
     else await page.mouse.click(tapX,tapY);
     await expect(page.locator('#gameStatus')).toHaveText('Running');
-    await press(quit,info); await expect(page).toHaveURL(/games\.html/);
+    await press(quit,info); await press(page.locator('[data-quit]'),info); await expect(page).toHaveURL(/games\.html/);
     await page.waitForFunction(()=>typeof Arcade !== 'undefined');
     expect(await page.evaluate(()=>({points:Arcade.number('points'),runs:Arcade.number('gameRuns_snake')}))).toEqual(before);
   });
@@ -116,7 +116,7 @@ test('Snake mobile: quit remains usable while paused',async({page},info)=>{
   // target to settle; otherwise Snake can reach a wall and hide Pause first.
   await page.evaluate(()=>{ clearInterval(game); game=setInterval(()=>{},10000); });
   await press(page.locator('#earnlyPauseButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await press(page.locator('#snakeQuit'),info); await expect(page).toHaveURL(/games\.html/);
+  await press(page.locator('#snakeQuit'),info); await press(page.locator('[data-quit]'),info); await expect(page).toHaveURL(/games\.html/);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active|earnly-game-paused/);
 });
 test('Snake mobile: quit cancels a pending countdown without a ghost run',async({page},info)=>{
@@ -125,7 +125,7 @@ test('Snake mobile: quit cancels a pending countdown without a ghost run',async(
   await press(page.locator('#startButton'),info); await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
   // Hold navigation in this test so the cancelled callback can be delivered on the old document.
   await page.evaluate(()=>document.getElementById('snakeQuit').addEventListener('click',e=>e.preventDefault()));
-  await press(page.locator('#snakeQuit'),info); await page.evaluate(()=>window.pendingSnakeStart());
+  await press(page.locator('#snakeQuit'),info); await press(page.locator('[data-quit]'),info); await page.evaluate(()=>window.pendingSnakeStart());
   await expect(page.locator('#gameStatus')).toHaveText('Ready');
   expect(await page.evaluate(()=>({game,starting,hidden:controlLayer.hidden}))).toEqual({game:null,starting:false,hidden:true});
   await expect(page.locator('#earnlyPauseButton')).toBeHidden();
@@ -162,7 +162,7 @@ test('Snake mobile: physical Quit stays usable during the countdown overlay',asy
   await press(page.locator('#startButton'),info);
   await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
   await expect(page.locator('#snakeQuit')).toHaveText('× Quit');
-  await press(page.locator('#snakeQuit'),info);
+  await press(page.locator('#snakeQuit'),info); await press(page.locator('[data-quit]'),info);
   await expect(page).toHaveURL(/games\.html/);
   await expect(page.locator('body')).not.toHaveClass(/earnly-gameplay-locked|snake-game-active/);
 });
