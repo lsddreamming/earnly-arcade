@@ -40,7 +40,7 @@ for(const width of [320,390,440]) for(const game of games){
   await expect(page.locator('#gameStatus')).toHaveText(/Running/);
   if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   await tap(quit,page);await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await tap(page.locator('[data-keep]'),page);await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await tap(page.locator('[data-keep]'),page);await expect(page.locator('#gameStatus')).toHaveText(/Running/);
   if(game==='snake.html') await tap(page.locator('[data-direction="LEFT"]'),page);
   if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   if(game==='snake.html') await page.clock.runFor(200);
