@@ -12,14 +12,14 @@ for(const width of [320,390,440]) for(const game of games){
   const start=page.locator(game==='blockdrop.html'?'#blockDropBoardStart':'#startButton');
   if(await start.isVisible()) await start.tap();
   else {const surface=page.locator('#surface,#game,canvas.touch-surface').first();await surface.tap();}
-  const pause=page.locator('#earnlyPauseButton');
+  const pause=page.locator('#earnlyPauseButton,#pauseButton');
   await expect(pause).toBeVisible({timeout:10000});
   await pause.tap();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  const quit=page.locator('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton').filter({visible:true}).first();
+  const quit=page.locator('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton,.earnly-game-exit').filter({visible:true}).first();
   await expect(quit).toBeVisible();
   await expect(quit).toBeInViewport();
-  const sizes=await page.evaluate(()=>{const p=document.querySelector('#earnlyPauseButton').getBoundingClientRect();const q=[...document.querySelectorAll('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton')].find(x=>x.getBoundingClientRect().width&&getComputedStyle(x).display!=='none').getBoundingClientRect();return{pauseWidth:p.width,pauseHeight:p.height,quitWidth:q.width,quitHeight:q.height};});
+  const sizes=await page.evaluate(()=>{const p=document.querySelector('#earnlyPauseButton,#pauseButton').getBoundingClientRect();const q=[...document.querySelectorAll('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton,.earnly-game-exit')].find(x=>x.getBoundingClientRect().width&&getComputedStyle(x).display!=='none').getBoundingClientRect();return{pauseWidth:p.width,pauseHeight:p.height,quitWidth:q.width,quitHeight:q.height};});
   expect(sizes.pauseHeight).toBeGreaterThanOrEqual(44);expect(sizes.quitHeight).toBeGreaterThanOrEqual(44);expect(sizes.pauseWidth).toBeGreaterThan(sizes.quitWidth);
   for(let i=0;i<5;i++){
    await quit.tap(); const dialog=page.locator('.earnly-quit-dialog');
