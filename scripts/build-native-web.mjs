@@ -11,6 +11,7 @@ const excluded = new Set([
   'native-ads-entry.js',
   'playwright.config.js',
   'playwright.contract.config.js',
+  'playwright.iphone-qa.config.js',
   'service-worker.js'
 ]);
 
