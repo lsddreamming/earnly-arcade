@@ -3686,6 +3686,52 @@ const Arcade = (() => {
   // when arcade.js is loaded in the document head.
   setupGameplayScrollLock();
 
+  // Intercept before individual games clean up their run or navigate away.
+  const markGameExits = () => document.querySelectorAll('a[href="games.html"]').forEach(link => {
+    if (/quit|back to games/i.test(link.textContent || '')) link.classList.add('earnly-game-exit');
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markGameExits, {once:true});
+  else markGameExits();
+  let confirmedQuit = null;
+  let quitPrompt = null;
+  window.addEventListener('click', event => {
+    const exit = event.target instanceof Element && event.target.closest(
+      '#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton,#miniGameExit,.back-games,.earnly-game-exit'
+    );
+    if (!exit || exit === confirmedQuit) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (quitPrompt) return;
+    const pauseButton = document.getElementById('earnlyPauseButton');
+    const alreadyPaused = document.body.classList.contains('earnly-game-paused');
+    if (pauseButton && !pauseButton.hidden && !alreadyPaused) pauseButton.click();
+    const pausedForPrompt = !alreadyPaused && document.body.classList.contains('earnly-game-paused');
+    const dialog = document.createElement('dialog');
+    dialog.className = 'earnly-quit-dialog modal-backdrop';
+    dialog.setAttribute('aria-labelledby', 'earnlyQuitTitle');
+    dialog.innerHTML = '<h2 id="earnlyQuitTitle">Quit this game?</h2><p>Are you sure you want to quit this game?</p><div class="earnly-quit-actions"><button type="button" data-keep>Keep Playing</button><button type="button" class="secondary" data-quit>Quit Game</button></div>';
+    document.body.append(dialog);
+    quitPrompt = dialog;
+    const close = keep => {
+      dialog.close();
+      dialog.remove();
+      quitPrompt = null;
+      if (keep) {
+        if (pausedForPrompt) pauseButton.click();
+        exit.focus();
+      } else {
+        confirmedQuit = exit;
+        exit.click();
+        confirmedQuit = null;
+      }
+    };
+    dialog.querySelector('[data-keep]').addEventListener('click', () => close(true));
+    dialog.querySelector('[data-quit]').addEventListener('click', () => close(false));
+    dialog.addEventListener('cancel', event => { event.preventDefault(); close(true); });
+    dialog.showModal();
+    dialog.querySelector('[data-keep]').focus();
+  }, {capture:true});
+
   function installPauseControl(options = {}) {
     const status = document.getElementById('gameStatus');
     if (!status || document.getElementById('earnlyPauseButton')) return null;
