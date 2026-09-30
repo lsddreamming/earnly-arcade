@@ -104,6 +104,7 @@
     <div class="rally-control-zone" id="rallyControlZone" aria-label="Swipe left or right to move paddle">↔️ Swipe here to move paddle</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
   </main>
+  <a id="earnlyQuitButton" class="earnly-quit-button" href="games.html" aria-label="Quit game and return to Games" hidden>× Quit</a>
   <script src="arcade.js"></script>
   <script>
     const playsEl=document.getElementById('plays');
@@ -112,7 +113,7 @@
     const startButton=document.getElementById('startButton');
     const pauseButton=document.getElementById('pauseButton');
     if(window.matchMedia('(max-width:600px)').matches)document.body.append(pauseButton);
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'||mode==='paused'); }
+    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'||mode==='paused'); document.getElementById('earnlyQuitButton').hidden=mode!=='running'&&mode!=='paused'; }
     function refreshChrome(){ playsEl.textContent=Arcade.remaining('paddleRally'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
     function beginPlay(){
       if(!Arcade.consume('paddleRally')){ Arcade.out('paddleRally',refreshChrome); return false; }
@@ -215,7 +216,7 @@
 
     document.addEventListener('pointerdown',e=>{
       const bottomControl=running&&!paused&&e.clientY>=window.innerHeight-150;
-      if(e.target===canvas||rallyControlZone.contains(e.target))return;
+      if(Arcade.isProtectedGameControlTarget(e.target)||e.target===canvas||rallyControlZone.contains(e.target))return;
       if(!bottomControl&&!Arcade.inExpandedGameZone(e,canvas,130))return;
       if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();

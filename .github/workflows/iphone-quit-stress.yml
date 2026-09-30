@@ -1,0 +1,34 @@
+name: Earnly iPhone quit stress
+on:
+  push:
+    branches: [test/iphone-quit-stress]
+  workflow_dispatch:
+concurrency:
+  group: earnly-iphone-stress
+  cancel-in-progress: true
+jobs:
+  iphone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [candidate, live]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: Four parallel iPhone testers
+        env:
+          EARNLY_QA_BASE_URL: ${{ matrix.target == 'live' && 'https://earnlyarcade.com' || '' }}
+        run: npx playwright test -c playwright.iphone-qa.config.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-quit-qa-${{ matrix.target }}
+          path: |
+            iphone-qa-report/
+            test-results/

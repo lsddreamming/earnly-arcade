@@ -3702,7 +3702,7 @@ const Arcade = (() => {
     event.preventDefault();
     event.stopImmediatePropagation();
     if (quitPrompt) return;
-    const pauseButton = document.getElementById('earnlyPauseButton');
+    const pauseButton = document.getElementById('earnlyPauseButton') || document.getElementById('pauseButton');
     const alreadyPaused = document.body.classList.contains('earnly-game-paused');
     if (pauseButton && !pauseButton.hidden && !alreadyPaused) pauseButton.click();
     const pausedForPrompt = !alreadyPaused && document.body.classList.contains('earnly-game-paused');
