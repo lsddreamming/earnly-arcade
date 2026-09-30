@@ -12,10 +12,11 @@ for(const width of [320,390,440]) for(const game of games){
   const initialCoins=await page.evaluate(()=>Arcade.number('points'));
   const start=page.locator(game==='blockdrop.html'?'#blockDropBoardStart':'#startButton');
   if(await start.isVisible()) await tap(start,page);
-  else {const surface=page.locator('#surface,#game,canvas.touch-surface').first();await tap(surface,page);}
+  else {const surface=page.locator('#surface,#game,.touch-surface,.game-guide-surface,#board').first();await tap(surface,page);}
   const pause=page.locator('#earnlyPauseButton,#pauseButton');
-  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+  await expect(page.locator('#gameStatus')).toHaveText(/Running/,{timeout:10000});
   await expect(pause).toBeVisible({timeout:10000});
+  if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   await tap(pause,page);
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   const primary=page.locator('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton').filter({visible:true});
@@ -32,9 +33,13 @@ for(const width of [320,390,440]) for(const game of games){
    await expect(dialog).toHaveCount(0);await expect(page.locator('#gameStatus')).toHaveText('Paused');
    await expect(page).toHaveURL(new RegExp(game.split('?')[0].replace('.','\\.')));
   }
-  await tap(pause,page);await expect(page.locator('#gameStatus')).toHaveText('Running');
+  if(game==='snake.html') await tap(page.locator('[data-direction="DOWN"]'),page); else await tap(pause,page);
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   await tap(quit,page);await expect(page.locator('#gameStatus')).toHaveText('Paused');
   await tap(page.locator('[data-keep]'),page);await expect(page.locator('#gameStatus')).toHaveText('Running');
+  if(game==='snake.html') await tap(page.locator('[data-direction="LEFT"]'),page);
+  if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   await tap(pause,page);await tap(quit,page);
   await tap(page.locator('[data-quit]'),page);
   await expect(page).toHaveURL(/games\.html$/);
