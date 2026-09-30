@@ -18,6 +18,7 @@ for(const width of [320,390,440]) for(const game of games){
   if(game==='snake.html') await page.clock.runFor(2500);
   const pause=page.locator('#earnlyPauseButton,#pauseButton');
   await expect(page.locator('#gameStatus')).toHaveClass(/running/,{timeout:10000});
+  await expect(page.locator('#gameStatus')).not.toHaveText(/ready/i,{timeout:10000});
   await expect(pause).toBeVisible({timeout:10000});
   if(game==='junglehopper.html') await tap(page.locator('#game'),page);
   await tap(pause,page);
