@@ -94,6 +94,9 @@ for (const file of ['blockdrop.html','neonmaze.html']) {
         await expect(page.locator('#thenPiece')).toBeVisible();
         if (testInfo.project.use.hasTouch) await page.locator('#blockDropExit').tap();
         else await page.locator('#blockDropExit').click();
+        await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
+        if (testInfo.project.use.hasTouch) await page.locator('[data-quit]').tap();
+        else await page.locator('[data-quit]').click();
         await expect(page).toHaveURL(/games\.html/);
       }
     });
