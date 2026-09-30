@@ -1710,6 +1710,29 @@ const Arcade = (() => {
       main.append(bestLine);
     }
 
+    const bestTarget = document.createElement('div');
+    bestTarget.className = 'result-best-target';
+    bestTarget.setAttribute('aria-live', 'polite');
+    function renderBestTarget(record, newBest) {
+      const config = bestConfig[game];
+      const runScore = Number(score);
+      if (!config || !Number.isFinite(runScore) || runScore <= 0 || !record) {
+        bestTarget.textContent = '';
+        return;
+      }
+      const gap = config.lower ? runScore - record : record - runScore;
+      bestTarget.textContent = newBest
+        ? '✨ Personal best set — can you beat it again?'
+        : gap > 0
+          ? (config.lower ? '🎯 Use ' : '🎯 Just ') + gap.toLocaleString() + ' ' +
+            leaderboardUnitLabel(config.label, gap) + (config.lower ? ' fewer to match your best' : ' to match your best')
+          : '🎯 You matched your best — go for a new record!';
+    }
+    if (game) {
+      renderBestTarget(best(game).value, result?.newBest);
+      main.append(bestTarget);
+    }
+
     const leaderboardBox = document.createElement('div');
     leaderboardBox.className = 'result-leaderboard';
     leaderboardBox.setAttribute('aria-live', 'polite');
@@ -1752,7 +1775,10 @@ const Arcade = (() => {
           if (result?.newBest && olderGlobalBest) {
             badge.textContent = score > 0 ? '✓ RUN COMPLETE' : 'RUN OVER';
             badge.classList.remove('best');
+          }
+          if (olderGlobalBest) {
             if (bestLine) bestLine.textContent = '🏆 Personal best: ' + compactLeaderboardScore(myEntry, data);
+            renderBestTarget(globalBest, false);
           }
 
           leaderboardBox.replaceChildren();

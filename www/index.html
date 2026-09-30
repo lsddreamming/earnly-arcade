@@ -128,9 +128,10 @@
 
     <section class="home-section" id="dailyMissionsSection">
       <div class="home-section-heading">
-        <span>Daily Missions</span>
+        <span>Daily Challenges</span>
         <span class="home-count-pill" id="dailyMissionCount">0/3</span>
       </div>
+      <p class="daily-challenge-intro">Three goals every day · XP rewards added after your run</p>
       <div class="home-panel" id="dailyMissionList"></div>
     </section>
 
@@ -452,8 +453,8 @@
         button.className = mission.claimed ? 'home-challenge-button claimed-button' :
           (mission.complete ? 'home-challenge-button green' : 'home-challenge-button progress-button');
         button.disabled = mission.claimed;
-        button.textContent = mission.claimed ? 'Claimed ✓' :
-          (mission.complete ? 'Claim +' + mission.rewardXP + ' XP' : 'Keep Playing');
+        button.textContent = mission.claimed ? 'Completed ✓' :
+          (mission.complete ? 'Claim +' + mission.rewardXP + ' XP' : mission.type === 'variety' ? 'Try Another Game →' : 'Play →');
         button.addEventListener('click', () => {
           if (mission.complete) {
             Arcade.claimDailyMission(mission.id);
