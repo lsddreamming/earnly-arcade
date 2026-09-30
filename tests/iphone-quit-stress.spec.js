@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+async function tap(locator,page){await expect(locator).toBeVisible();await expect(locator).toBeInViewport();const b=await locator.boundingBox();await page.touchscreen.tap(b.x+b.width/2,b.y+b.height/2);}
 const games=['snake','blockdrop','brickbreaker','coincatch','colormatch','dodger','junglehopper','lanerunner','memory','paddlerally','safecracker','taprush','towerstack','neonmaze','stardefender'].map(x=>x+'.html').concat(['blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'].map(x=>'mini.html?game='+x));
 for(const width of [320,390,440]) for(const game of games){
  test('iPhone '+width+' '+game+' repeated safe exits',async({page})=>{
@@ -10,30 +11,31 @@ for(const width of [320,390,440]) for(const game of games){
   await page.goto('/'+game);
   const initialCoins=await page.evaluate(()=>Arcade.number('points'));
   const start=page.locator(game==='blockdrop.html'?'#blockDropBoardStart':'#startButton');
-  if(await start.isVisible()) await start.tap();
-  else {const surface=page.locator('#surface,#game,canvas.touch-surface').first();await surface.tap();}
+  if(await start.isVisible()) await tap(start,page);
+  else {const surface=page.locator('#surface,#game,canvas.touch-surface').first();await tap(surface,page);}
   const pause=page.locator('#earnlyPauseButton,#pauseButton');
   await expect(pause).toBeVisible({timeout:10000});
-  await pause.tap();
+  await tap(pause,page);
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  const quit=page.locator('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton,.earnly-game-exit').filter({visible:true}).first();
+  const primary=page.locator('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton').filter({visible:true});
+  const quit=await primary.count()?primary.first():page.locator('.earnly-game-exit').filter({visible:true}).first();
   await expect(quit).toBeVisible();
   await expect(quit).toBeInViewport();
-  const sizes=await page.evaluate(()=>{const p=document.querySelector('#earnlyPauseButton,#pauseButton').getBoundingClientRect();const q=[...document.querySelectorAll('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton,.earnly-game-exit')].find(x=>x.getBoundingClientRect().width&&getComputedStyle(x).display!=='none').getBoundingClientRect();return{pauseWidth:p.width,pauseHeight:p.height,quitWidth:q.width,quitHeight:q.height};});
+  const sizes=await page.evaluate(()=>{const p=document.querySelector('#earnlyPauseButton,#pauseButton').getBoundingClientRect();const candidates=[...document.querySelectorAll('#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton'),...document.querySelectorAll('.earnly-game-exit')];const q=candidates.find(x=>x.getBoundingClientRect().width&&getComputedStyle(x).display!=='none').getBoundingClientRect();return{pauseWidth:p.width,pauseHeight:p.height,quitWidth:q.width,quitHeight:q.height};});
   expect(sizes.pauseHeight).toBeGreaterThanOrEqual(44);expect(sizes.quitHeight).toBeGreaterThanOrEqual(44);expect(sizes.pauseWidth).toBeGreaterThan(sizes.quitWidth);
   for(let i=0;i<5;i++){
-   await quit.tap(); const dialog=page.locator('.earnly-quit-dialog');
+   await tap(quit,page); const dialog=page.locator('.earnly-quit-dialog');
    await expect(dialog).toBeVisible();await expect(dialog).toContainText('Are you sure you want to quit this game?');
    await expect(page.locator('#gameStatus')).toHaveText('Paused');
-   await page.locator('[data-keep]').tap();
+   await tap(page.locator('[data-keep]'),page);
    await expect(dialog).toHaveCount(0);await expect(page.locator('#gameStatus')).toHaveText('Paused');
    await expect(page).toHaveURL(new RegExp(game.split('?')[0].replace('.','\\.')));
   }
-  await pause.tap();await expect(page.locator('#gameStatus')).toHaveText('Running');
-  await quit.tap();await expect(page.locator('#gameStatus')).toHaveText('Paused');
-  await page.locator('[data-keep]').tap();await expect(page.locator('#gameStatus')).toHaveText('Running');
-  await pause.tap();await quit.tap();
-  await page.locator('[data-quit]').tap();
+  await tap(pause,page);await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await tap(quit,page);await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await tap(page.locator('[data-keep]'),page);await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await tap(pause,page);await tap(quit,page);
+  await tap(page.locator('[data-quit]'),page);
   await expect(page).toHaveURL(/games\.html$/);
   await expect(page.locator('.game-result-dialog')).toHaveCount(0);
   expect(await page.evaluate(()=>Arcade.number('points'))).toBe(initialCoins);
