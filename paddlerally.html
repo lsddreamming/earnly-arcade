@@ -215,7 +215,7 @@
 
     document.addEventListener('pointerdown',e=>{
       const bottomControl=running&&!paused&&e.clientY>=window.innerHeight-150;
-      if(e.target===canvas||rallyControlZone.contains(e.target))return;
+      if(Arcade.isProtectedGameControlTarget(e.target)||e.target===canvas||rallyControlZone.contains(e.target))return;
       if(!bottomControl&&!Arcade.inExpandedGameZone(e,canvas,130))return;
       if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
       e.preventDefault();
