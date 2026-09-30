@@ -6358,3 +6358,7 @@ html body .earnly-session-dock #earnlyPauseButton{flex:3 1 0!important}
 .earnly-quit-dialog p{margin:0 0 20px;line-height:1.5}
 .earnly-quit-actions{display:flex;gap:10px}
 .earnly-quit-actions button{min-height:48px;flex:1;padding:10px;border-radius:12px}
+
+/* Override the older equal-width session layouts, including tailored docks. */
+html body .earnly-session-dock :is(#earnlyQuitButton,#brickQuit,#coinCatchExit),html body.brick-breaker-page.game-active .earnly-session-dock #brickQuit,html body.snake-page.snake-game-active #snakeQuit,html body.blockdrop-page.game-active #blockDropExit{flex:0 0 80px!important;width:80px!important;max-width:80px!important;min-width:0!important;font-size:12px!important}
+html body.brick-breaker-page.game-active .earnly-session-dock #earnlyPauseButton{flex:3 1 0!important}
