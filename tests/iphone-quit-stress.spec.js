@@ -14,6 +14,7 @@ for(const width of [320,390,440]) for(const game of games){
   if(await start.isVisible()) await tap(start,page);
   else {const surface=page.locator('#surface,#game,canvas.touch-surface').first();await tap(surface,page);}
   const pause=page.locator('#earnlyPauseButton,#pauseButton');
+  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
   await expect(pause).toBeVisible({timeout:10000});
   await tap(pause,page);
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
