@@ -1,0 +1,28 @@
+name: Earnly live iPhone verification
+on:
+  push:
+    branches: [test/iphone-live-container]
+  workflow_dispatch:
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Four parallel live iPhone testers
+        env:
+          EARNLY_QA_BASE_URL: https://earnlyarcade.com
+        run: npx playwright test -c playwright.iphone-qa.config.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-live-final
+          path: |
+            iphone-qa-report/
+            test-results/
