@@ -3,6 +3,9 @@ on:
   push:
     branches: [test/iphone-quit-stress]
   workflow_dispatch:
+concurrency:
+  group: earnly-iphone-stress
+  cancel-in-progress: true
 jobs:
   iphone:
     runs-on: ubuntu-latest
