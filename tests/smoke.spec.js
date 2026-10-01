@@ -2350,3 +2350,70 @@ test('Quit confirmation keeps a live run and preserves an already paused run', a
   await page.locator('[data-quit]').click();
   await expect(page).toHaveURL(/games\.html$/);
 });
+
+for (const prefix of ['', '/www']) {
+  test('native app hides browser installation and transfer prompts ' + prefix, async ({ page }) => {
+    await page.addInitScript(() => {
+      window.Capacitor = { isNativePlatform: () => true };
+      localStorage.setItem('arcadeOnboardingSeen', '1');
+    });
+    await page.route('**/native-ads.js', route => route.fulfill({ body: '' }));
+    await page.goto(prefix + '/index.html');
+    await expect(page.locator('#installCard')).toBeHidden();
+    await expect(page.locator('#transferCard')).toBeHidden();
+    expect(await page.evaluate(() => Arcade.installStatus())).toMatchObject({ native:true, installed:true, canPrompt:false });
+    expect(await page.evaluate(() => Arcade.requestInstall())).toEqual({ installed:true, method:'native' });
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await page.goto(prefix + '/settings.html');
+    await expect(page.locator('#installButton')).toBeHidden();
+    await expect(page.locator('#installStatus')).toHaveText('📱 iOS App');
+  });
+}
+
+test('ordinary browser keeps the option to install Earnly', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+  await page.goto('/index.html');
+  await expect(page.locator('#installCard')).toBeVisible();
+  expect(await page.evaluate(() => Arcade.installStatus())).toMatchObject({ native:false, installed:false });
+  await page.goto('/settings.html');
+  await expect(page.locator('#installButton')).toBeVisible();
+  await expect(page.locator('#installStatus')).toHaveText('🌍 Browser');
+});
+
+for (const rejects of [false, true]) {
+  test('fresh sign-in button ' + (rejects ? 'shows an authentication error' : 'connects and returns Home'), async ({ page }) => {
+    await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
+      contentType:'application/javascript',
+      body:`window.supabase={createClient:()=>{
+        let current=null;
+        const empty={select(){return this},eq(){return this},maybeSingle:async()=>({data:null,error:null})};
+        return {auth:{
+          getSession:async()=>({data:{session:current},error:null}),
+          signInWithPassword:async({email})=>{
+            await new Promise(resolve=>setTimeout(resolve,500));
+            if (${rejects}) return {data:null,error:{message:'Invalid login credentials'}};
+            current={user:{id:email,email},access_token:'test'};
+            return {data:current,error:null};
+          },
+          onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})
+        },from:()=>empty,rpc:async()=>({data:{},error:null})};
+      }};`
+    }));
+    await page.addInitScript(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+    await page.goto('/account.html');
+    await page.locator('#cloudEmail').fill('review@example.com');
+    await page.locator('#cloudPassword').fill('testpass');
+    await page.locator('#cloudSignInButton').click();
+    await expect(page.locator('#cloudSignInButton')).toHaveText('Connecting…');
+    await expect(page.locator('#cloudSignInButton')).toBeDisabled();
+    if (rejects) {
+      await expect(page.locator('#cloudAuthFeedback')).toContainText('Invalid login credentials');
+      await expect(page.locator('#cloudSignInButton')).toBeEnabled();
+      await expect(page.locator('#cloudSignedOut')).toBeVisible();
+    } else {
+      await expect(page.locator('#cloudBadge')).toHaveText('Connected');
+      await expect(page).toHaveURL(/\/index.html$/);
+      expect(await page.evaluate(() => localStorage.getItem('earnlyLocalProgressOwner'))).toBe('review@example.com');
+    }
+  });
+}

@@ -322,10 +322,10 @@
     function render() {
       const install = Arcade.installStatus();
       const installDismissed = localStorage.getItem('earnlyInstallSuggestionDismissed') === '1';
-      installCard.hidden = install.standalone || installDismissed;
+      installCard.hidden = install.native || install.standalone || installDismissed;
 
       const transferDismissed = localStorage.getItem('arcadeTransferDismissed') === '1';
-      transferCard.hidden = !(install.standalone && !Arcade.hasMeaningfulProgress() && !transferDismissed);
+      transferCard.hidden = !(!install.native && install.standalone && !Arcade.hasMeaningfulProgress() && !transferDismissed);
       if (install.isIOS && !install.canPrompt) {
         installTitle.textContent = 'Add Earnly to your iPhone';
         installText.textContent = 'Open it like an app.';

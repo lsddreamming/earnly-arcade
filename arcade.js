@@ -15,6 +15,7 @@
 (function loadEarnlyNativeBridge(){
   try {
     if (!window.Capacitor?.isNativePlatform?.()) return;
+    document.documentElement.classList.add('earnly-native');
     if (document.querySelector('script[data-earnly-native-ads]')) return;
 
     const script = document.createElement('script');
@@ -3145,6 +3146,7 @@ const Arcade = (() => {
   });
 
   function installStatus() {
+    const native = window.Capacitor?.isNativePlatform?.() === true;
     const standalone =
       window.matchMedia?.('(display-mode: standalone)').matches ||
       window.navigator.standalone === true;
@@ -3155,14 +3157,19 @@ const Arcade = (() => {
 
     return {
       standalone,
+      native,
       isIOS,
-      canPrompt:!!installPromptEvent,
-      installed:standalone || localStorage.getItem('arcadeInstalled') === '1'
+      canPrompt:!native && !!installPromptEvent,
+      installed:native || standalone || localStorage.getItem('arcadeInstalled') === '1'
     };
   }
 
   async function requestInstall() {
     const status = installStatus();
+
+    if (status.native) {
+      return { installed:true, method:'native' };
+    }
 
     if (status.standalone) {
       toast('📱 Earnly is already running like an installed app');
