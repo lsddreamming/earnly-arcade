@@ -323,9 +323,11 @@ test('current release keeps unreleased rewards and account deletion clear', () =
   // does not actually offer.
   expect(rewards).not.toMatch(/Bitcoin|Gift Cards|Redeem later|Coin-to-dollar|COMING SOON/i);
   expect(rewards).toContain('Future reward options are being evaluated');
-  expect(rewards).toContain('They are not cash, cryptocurrency, or stored value');
+  expect(rewards).toContain('not cash, cryptocurrency, or stored value');
+  expect(rewards).toContain('eligible in-game features such as Continue');
   expect(home).toContain('Optional rewarded ads unlock extra plays and do not directly award Coins');
-  expect(support).toContain('They are not cash, cryptocurrency, or stored value');
+  expect(support).toContain('not cash, cryptocurrency, or stored value');
+  expect(support).toContain('Some game features can spend Coins');
   expect(privacy).toContain('cannot be redeemed, transferred, or withdrawn in this version');
 
   // Account creation must have an in-app deletion path.
