@@ -35,7 +35,7 @@ jobs:
 
   smoke:
     name: smoke (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -43,15 +43,22 @@ jobs:
         include:
           - project: desktop-chromium
             browser: chromium
+            os: ubuntu-latest
           - project: mobile-webkit
             browser: webkit
+            os: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm install
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Install Chromium + Linux deps
+        if: matrix.project == 'desktop-chromium'
+        run: npx playwright install --with-deps chromium
+      - name: Install WebKit on macOS
+        if: matrix.project == 'mobile-webkit'
+        run: npx playwright install webkit
       - name: Run smoke suite
         run: npx playwright test tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js --project=${{ matrix.project }}
       - name: Upload smoke failure report
