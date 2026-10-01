@@ -1820,9 +1820,17 @@ test('one-more-run gate grants exactly one play then returns control', async ({ 
   await expect(gate).toContainText('One more run?');
   await gate.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
   await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
-  await page.waitForTimeout(3400);
-  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
-  expect(await page.evaluate(() => Arcade.playAdStatus('shapeFit').used)).toBe(1);
+  await expect.poll(
+    () => page.evaluate(() => Arcade.playAdStatus('shapeFit').used),
+    { timeout: 8000 }
+  ).toBe(1);
+  expect(await page.evaluate(() => Number(localStorage.getItem('shapeFitBonusPlays') || 0))).toBe(1);
+  await expect(page.locator('dialog.reward-ad-dialog')).toBeHidden({ timeout: 8000 });
+  await expect.poll(
+    () => page.evaluate(() => Number(localStorage.getItem('shapeFitGamesPlayed') || 0)),
+    { timeout: 5000 }
+  ).toBe(4);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
 });
 
 test('account cloud flow exposes offline and restore safeguards', async ({ page }) => {
@@ -2060,12 +2068,20 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
   await expect(page.locator('dialog')).toContainText('One more run?');
   await page.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
   await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
-  await page.waitForTimeout(3400);
-  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
-  expect(await page.evaluate(() => Arcade.playAdStatus('shapeFit').used)).toBe(1);
+  await expect.poll(
+    () => page.evaluate(() => Arcade.playAdStatus('shapeFit').used),
+    { timeout: 8000 }
+  ).toBe(1);
+  expect(await page.evaluate(() => Number(localStorage.getItem('shapeFitBonusPlays') || 0))).toBe(1);
+  await expect(page.locator('dialog.reward-ad-dialog')).toBeHidden({ timeout: 8000 });
+  await expect.poll(
+    () => page.evaluate(() => Number(localStorage.getItem('shapeFitGamesPlayed') || 0)),
+    { timeout: 5000 }
+  ).toBe(4);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
 
   await page.reload();
-  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(1);
+  expect(await page.evaluate(() => Arcade.remaining('shapeFit'))).toBe(0);
   expect(await page.evaluate(() => Arcade.dailyMissionStatus().missions.find(m => m.id === 'play3').complete)).toBeTruthy();
   expect(await page.evaluate(() => Arcade.dailyCoinStatus().earned)).toBe(15);
 });
