@@ -16,6 +16,23 @@
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
+    .continue-result-dialog{width:min(400px,calc(100% - 28px));box-sizing:border-box;padding:22px;border:1px solid #385a7b;border-radius:24px;background:radial-gradient(ellipse at top left,#1b3653,#0c1728 75%);text-align:left;max-height:calc(100dvh - 32px);overflow-y:auto;box-shadow:0 24px 80px #0009}
+    .continue-result-dialog h2{font-size:25px;letter-spacing:-.6px;margin:0 0 18px}
+    .continue-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .continue-summary div{background:#091728a8;border:1px solid #29465f;border-radius:14px;padding:14px 5px;text-align:center}
+    .continue-summary strong{display:block;font-size:25px;color:#f8fafc;line-height:1.2}
+    .continue-summary span{display:block;font-size:11px;color:#a9bed3;margin-top:6px}
+    .continue-result-dialog .modal-message{font-size:14px;line-height:1.5;color:#cbd5e1;margin:16px 0}
+    .continue-wallet{display:grid;gap:6px;background:#0a2031;border:1px solid #26788e;border-radius:14px;padding:14px}
+    .continue-wallet strong{font-size:15px;color:#e0faff}
+    .continue-wallet span{font-size:13px;color:#9ed5e3;font-variant-numeric:tabular-nums}
+    .continue-note{font-size:11px;line-height:1.5;color:#9aaec4;margin:10px 0 20px}
+    .continue-error{font-size:13px;color:#fecaca;background:#7f1d1d40;border-radius:10px;padding:10px;line-height:1.4}
+    .continue-result-dialog .modal-actions{gap:12px}
+    .continue-result-dialog .modal-actions button{min-height:52px;font-size:16px;border-radius:14px;margin:0;width:100%}
+    .continue-result-dialog .modal-actions .green{background:linear-gradient(135deg,#12ca70,#039b50);box-shadow:0 6px 22px #00bd6324}
+    .continue-result-dialog button:focus-visible{outline:2px solid #67e8f9;outline-offset:3px}
+
     .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
     /* While a run is active, turn the whole safe gameplay area into a fixed touch surface.
        This stops iPhone from scrolling/bouncing the page when the player drags the paddle. */
@@ -785,15 +802,13 @@
     function showContinueResult(message=''){
       const preview=currentReward();
       const balance=Arcade.number('points');
-      const detail='Level '+level+' · '+totalBroken+' bricks broken · '+preview+' Coins pending. '
-        +'Continue for 25 Coins to keep this board and score. Your available Coins will decrease by 25. '
-        +'Balance shown: '+balance+' Coins. One Continue per run.'+(message?' '+message:'');
+      const detail='Keep your board and score. Resume with a fresh ball.';
       const resultDialog=document.querySelector('dialog[aria-modal="true"]');
       // An accidental Escape must not dismiss an unsettled run.
       const preventCancel=event=>event.preventDefault();
       resultDialog?.addEventListener('cancel',preventCancel);
       const stopCancel=()=>resultDialog?.removeEventListener('cancel',preventCancel);
-      Arcade.panel('💥 Brick Run Over',detail,[
+      Arcade.panel('One more shot?',detail,[
         ['🪙 Continue · 25 Coins',async()=>{
           stopCancel();
           if(!continueEventId) continueEventId='brick_'+(crypto.randomUUID?.() || String(Date.now())+'_'+Math.random().toString(36).slice(2)).replace(/[^a-zA-Z0-9_-]/g,'');
@@ -831,7 +846,39 @@
           stopCancel();
           settleRun();
         },'secondary']
-      ]);
+      ], {
+        className:'continue-result-dialog',
+        render:(dialog, description)=>{
+          const summary=document.createElement('div');
+          summary.className='continue-summary';
+          for(const [label,value] of [['Level',level],['Bricks broken',totalBroken],['Coins this run',preview]]){
+            const stat=document.createElement('div');
+            const number=document.createElement('strong');
+            const caption=document.createElement('span');
+            number.textContent=Number(value).toLocaleString();
+            caption.textContent=label;
+            stat.append(number,caption);summary.append(stat);
+          }
+          description.before(summary);
+          const wallet=document.createElement('div');
+          wallet.className='continue-wallet';
+          const cost=document.createElement('strong');
+          cost.textContent='🪙 25 Coins to continue';
+          const balanceLine=document.createElement('span');
+          balanceLine.textContent=balance>=25 ? 'Balance: '+balance.toLocaleString()+' → '+(balance-25).toLocaleString()+' Coins' : 'Balance: '+balance.toLocaleString()+' Coins · '+(25-balance)+' more needed';
+          wallet.append(cost,balanceLine);
+          const note=document.createElement('p');
+          note.className='continue-note';
+          note.textContent='One Continue per run · 25 Coins deducted after confirmation';
+          dialog.querySelector('.modal-actions').before(wallet,note);
+          if(message){
+            const error=document.createElement('p');
+            error.className='continue-error';error.setAttribute('role','alert');
+            error.textContent=message;
+            note.after(error);
+          }
+        }
+      });
     }
 
     function settleRun(){

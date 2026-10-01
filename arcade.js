@@ -1596,9 +1596,9 @@ const Arcade = (() => {
     modal.close();
   }
 
-  function panel(title, message, actions) {
+  function panel(title, message, actions, options = {}) {
     if (modal.open) {
-      closeModalThen(() => panel(title, message, actions));
+      closeModalThen(() => panel(title, message, actions, options));
       return;
     }
 
@@ -1623,7 +1623,9 @@ const Arcade = (() => {
       actionBox.append(b);
     });
 
+    modal.className = options.className || '';
     modal.append(h, p, actionBox);
+    if (typeof options.render === 'function') options.render(modal, p);
     modal.showModal();
   }
 
