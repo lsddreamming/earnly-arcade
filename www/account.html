@@ -48,7 +48,7 @@
       </div>
 
       <div id="cloudSignedOut">
-        <p class="muted">Create an account or sign in to keep a secure copy of your Earnly progress.</p>
+        <p class="muted">Create a free account to protect your progress across devices, or sign in if you already have one.</p>
         <div class="cloud-auth-fields">
           <label>
             <span>Email</span>
@@ -60,15 +60,15 @@
           </label>
         </div>
         <div class="cloud-auth-actions">
-          <button class="green" id="cloudSignInButton" type="button">Sign In</button>
-          <button class="secondary" id="cloudCreateButton" type="button">Create Account &amp; Send Email</button>
+          <button class="green" id="cloudCreateButton" type="button">Create Free Account</button>
+          <button class="secondary" id="cloudSignInButton" type="button">Sign In</button>
         </div>
         <div class="cloud-auth-feedback" id="cloudAuthFeedback" role="status" aria-live="assertive" hidden></div>
         <button class="text-button cloud-forgot" id="cloudForgotButton" type="button">Forgot password?</button>
 
         <div class="cloud-signup-hint">
           <strong>New player?</strong>
-          <span>Tap Create Account once. Earnly will send a confirmation email, then you confirm it and come back to sign in.</span>
+          <span>Enter your email + password, tap Create Free Account once, then confirm the email Earnly sends you.</span>
         </div>
 
         <div class="cloud-signup-notice" id="cloudSignupNotice" hidden aria-live="assertive" role="status">
@@ -248,6 +248,7 @@
     const cloudSignupDifferentEmail = document.getElementById('cloudSignupDifferentEmail');
     const cloudLiveStatus = document.getElementById('cloudLiveStatus');
     const signupPendingKey = 'earnlySignupPending';
+    const signupPageViewedKey = 'earnlySignupPageViewed';
     let createCooldownTimer = null;
     let recoveryMode = new URLSearchParams(location.search).has('recovery');
 
@@ -318,9 +319,14 @@
         if (!signedIn) {
           cloudSaveStatus.textContent = '';
           setCloudLiveStatus('', '');
+          if (sessionStorage.getItem(signupPageViewedKey) !== '1') {
+            sessionStorage.setItem(signupPageViewedKey, '1');
+            trackSignup('signup_page_viewed', { stage:'signed_out_account' });
+          }
           return;
         }
 
+        completePendingSignup('email_confirmed');
         cloudEmailDisplay.textContent = current.user.email || 'Earnly account';
         if (location.hash === '#delete-account') {
           requestAnimationFrame(() => {
@@ -450,7 +456,20 @@
       cloudSignupNotice.className = 'cloud-signup-notice';
       cloudEmail.readOnly = false;
       cloudCreateButton.disabled = false;
-      cloudCreateButton.textContent = 'Create Account & Send Email';
+      cloudCreateButton.textContent = 'Create Free Account';
+    }
+
+    function trackSignup(type, payload = {}){
+      try {
+        Arcade.trackEvent?.(type, { landingPath:'account.html', ...payload });
+      } catch {}
+    }
+
+    function completePendingSignup(stage = 'confirmed'){
+      if (!localStorage.getItem(signupPendingKey)) return false;
+      trackSignup('signup_completed', { stage });
+      localStorage.removeItem(signupPendingKey);
+      return true;
     }
 
     function rememberSignupRequest(email){
@@ -505,7 +524,7 @@
           clearInterval(createCooldownTimer);
           createCooldownTimer = null;
           cloudCreateButton.disabled = false;
-          cloudCreateButton.textContent = 'Create Account & Send Email';
+          cloudCreateButton.textContent = 'Create Free Account';
           return;
         }
         render();
@@ -594,6 +613,7 @@
 
       try {
         const { email, password } = authValues();
+        trackSignup('signup_submitted', { stage:'create_account' });
 
         cloudSignupNotice.hidden = true;
         cloudCreateButton.disabled = true;
@@ -606,6 +626,7 @@
         cloudSignInButton.disabled = false;
 
         if (data.session) {
+          trackSignup('signup_completed', { stage:'instant_session' });
           localStorage.removeItem(signupPendingKey);
           cloudMessage.textContent = '✅ Account created and connected. Automatic cloud sync is on.';
           cloudCreateButton.textContent = 'Account Created ✓';
@@ -617,6 +638,7 @@
         cloudCreateButton.disabled = true;
         cloudCreateButton.textContent = 'Confirmation Email Sent ✓';
         rememberSignupRequest(email);
+        trackSignup('signup_email_sent', { stage:'confirmation_required' });
 
         showSignupNotice(
           'success',
@@ -634,6 +656,7 @@
         const raw = String(error?.message || '');
 
         if (/rate limit|too many|email.*limit/i.test(raw)) {
+          trackSignup('signup_error', { stage:'create_account', reason:'rate_limit' });
           const email = cloudEmail.value.trim();
           if (email) rememberSignupRequest(email);
           showSignupNotice(
@@ -648,6 +671,7 @@
         }
 
         if (/already registered|user already|already exists/i.test(raw)) {
+          trackSignup('signup_error', { stage:'create_account', reason:'existing_account' });
           showSignupNotice(
             'error',
             'That email already has an Earnly account',
@@ -656,12 +680,13 @@
           );
           cloudMessage.textContent = 'That email already has an account. Sign in instead.';
           cloudCreateButton.disabled = false;
-          cloudCreateButton.textContent = 'Create Account & Send Email';
+          cloudCreateButton.textContent = 'Create Free Account';
           return;
         }
 
+        trackSignup('signup_error', { stage:'create_account', reason:'other' });
         cloudCreateButton.disabled = false;
-        cloudCreateButton.textContent = 'Create Account & Send Email';
+        cloudCreateButton.textContent = 'Create Free Account';
         cloudMessage.textContent = raw || 'Could not create the account.';
       }
     });
@@ -677,7 +702,7 @@
         showAuthFeedback('Signing in and checking your cloud save…');
 
         const result = await EarnlyCloud.signInAndRestore(email, password);
-        localStorage.removeItem(signupPendingKey);
+        completePendingSignup('confirmed_then_sign_in');
         cloudPassword.value = '';
 
         if (result.restore?.auto) {

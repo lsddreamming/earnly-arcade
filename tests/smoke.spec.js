@@ -68,10 +68,37 @@ test('Account sign-in shows validation beside the button on mobile', async ({ pa
   await expect(feedback).toBeVisible();
   await expect(feedback).toContainText('at least 6 characters');
   const positions=await page.evaluate(()=>({
-    button:document.querySelector('#cloudCreateButton').getBoundingClientRect().bottom,
+    button:document.querySelector('#cloudSignInButton').getBoundingClientRect().bottom,
     feedback:document.querySelector('#cloudAuthFeedback').getBoundingClientRect().top
   }));
   expect(positions.feedback-positions.button).toBeLessThan(20);
+});
+
+test('account signup is unmistakable and exposes measurable funnel events', async ({ page }) => {
+  await page.goto('/account.html');
+  const create = page.locator('#cloudCreateButton');
+  const signIn = page.locator('#cloudSignInButton');
+  await expect(create).toHaveText('Create Free Account');
+  await expect(create).toHaveClass(/green/);
+  await expect(signIn).toHaveText('Sign In');
+  await expect(signIn).toHaveClass(/secondary/);
+
+  const order = await page.evaluate(() => {
+    const createButton = document.getElementById('cloudCreateButton');
+    const signInButton = document.getElementById('cloudSignInButton');
+    return createButton.compareDocumentPosition(signInButton) & Node.DOCUMENT_POSITION_FOLLOWING;
+  });
+  expect(order).toBeTruthy();
+
+  const account = await (await page.request.get('/account.html')).text();
+  const cloud = await (await page.request.get('/cloud.js')).text();
+  for (const type of ['signup_page_viewed','signup_submitted','signup_email_sent','signup_completed','signup_error']) {
+    expect(account).toContain(type);
+    expect(cloud).toContain(type);
+  }
+
+  await page.goto('/index.html');
+  await expect(page.locator('#homeAccountTitle')).toHaveText(/Create or Sign In|Earnly account connected/);
 });
 
 test('launch gate exposes account deletion clearly on web and iOS', async ({ page }) => {
