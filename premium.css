@@ -2915,3 +2915,126 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
   }
   body.games-dashboard .games-shortcuts{margin:16px 0 8px!important}
 }
+
+
+/* Mobile density pass — keep primary player actions higher without shrinking touch targets. */
+@media(max-width:600px){
+  body.home-dashboard .home-container,
+  body.games-dashboard .container,
+  body.rewards-dashboard .rewards-container,
+  body.profile-dashboard .profile-container,
+  body.missions-dashboard .missions-container,
+  body.account-dashboard .container,
+  body.settings-dashboard .container,
+  body.support-dashboard .container,
+  body.leaderboards-dashboard .container{
+    padding-top:max(12px,env(safe-area-inset-top))!important;
+    padding-bottom:max(28px,env(safe-area-inset-bottom))!important;
+  }
+
+  body.account-dashboard .topbar,
+  body.settings-dashboard .topbar,
+  body.support-dashboard .topbar,
+  body.leaderboards-dashboard .topbar,
+  .legal-header~* .topbar{
+    margin-bottom:8px!important;
+  }
+
+  body.account-dashboard .page-header,
+  body.settings-dashboard .page-header,
+  body.support-dashboard .page-header,
+  .legal-header{
+    margin:6px 0 12px!important;
+  }
+  body.account-dashboard .page-header h1,
+  body.settings-dashboard .page-header h1,
+  body.support-dashboard .page-header h1,
+  .legal-header h1{
+    margin-bottom:5px!important;
+    font-size:clamp(25px,7.5vw,31px)!important;
+  }
+  body.account-dashboard .page-header p,
+  body.settings-dashboard .page-header p,
+  body.support-dashboard .page-header p,
+  .legal-header p{
+    font-size:12px!important;
+    line-height:1.35!important;
+  }
+
+  body.account-dashboard .card,
+  body.settings-dashboard .card,
+  body.support-dashboard .card,
+  .legal-card{
+    margin:9px 0!important;
+    padding:14px!important;
+    border-radius:16px!important;
+  }
+  body.account-dashboard .account-advanced{padding:0!important}
+  body.account-dashboard .account-advanced summary{padding:11px 12px!important}
+  body.account-dashboard .account-advanced-body{padding:0 12px 12px!important}
+
+  body.home-dashboard .home-hero{
+    margin:0 0 10px!important;
+    padding:11px!important;
+    border-radius:18px!important;
+  }
+  body.home-dashboard .home-hero-icon{width:44px!important;height:44px!important}
+  body.home-dashboard .home-hero h1{font-size:23px!important}
+  body.home-dashboard .home-primary-play{
+    min-height:66px!important;
+    margin-bottom:10px!important;
+    border-radius:18px!important;
+  }
+  body.home-dashboard .home-section{margin-bottom:12px!important}
+  body.home-dashboard .home-action-row{padding:9px 10px!important}
+  body.home-dashboard .home-progress-tile{padding:9px!important}
+  body.home-dashboard .home-disclosure summary{padding:10px!important}
+
+  body.games-dashboard .topbar{margin-bottom:8px!important}
+  body.games-dashboard .games-hero{margin-bottom:8px!important}
+  body.games-dashboard .game-browser-tools{margin-top:8px!important}
+  body.games-dashboard .game-search-wrap{margin-bottom:7px!important}
+  body.games-dashboard .game-filter-row{gap:5px!important}
+
+  body.rewards-dashboard .rewards-topbar{margin-bottom:10px!important}
+  body.rewards-dashboard .rewards-hero{margin-bottom:10px!important}
+  body.rewards-dashboard .rewards-balance-card{margin-bottom:11px!important;padding:12px!important}
+  body.rewards-dashboard .rewards-section{margin-bottom:12px!important}
+  body.rewards-dashboard .reward-protection-card{margin:9px 0 12px!important}
+
+  body.profile-dashboard .topbar,
+  body.missions-dashboard .topbar{margin-bottom:8px!important}
+  body.profile-dashboard .profile-hero{padding:11px!important;margin-bottom:8px!important}
+  body.profile-dashboard .profile-key-stats,
+  body.missions-dashboard .missions-highlights{margin-bottom:7px!important}
+  body.profile-dashboard .profile-secondary-stats{margin-bottom:8px!important}
+  body.profile-dashboard .profile-section,
+  body.profile-dashboard .profile-achievement-card,
+  body.missions-dashboard .missions-detail-card{margin-bottom:8px!important}
+  body.missions-dashboard .missions-hero{margin-bottom:8px!important}
+  body.missions-dashboard .missions-player-strip,
+  body.missions-dashboard .missions-weekly-card{margin-bottom:8px!important}
+
+  body.leaderboards-dashboard .leaderboard-hero{
+    margin:0 0 8px!important;
+    padding:11px!important;
+    border-radius:16px!important;
+  }
+  body.leaderboards-dashboard .leaderboard-hero h1{
+    margin:3px 0!important;
+    font-size:25px!important;
+  }
+  body.leaderboards-dashboard .leaderboard-hero p{
+    margin:0!important;
+    font-size:10px!important;
+    line-height:1.35!important;
+  }
+  body.leaderboards-dashboard .leaderboard-toolbar{margin:6px 0 8px!important}
+
+  body.support-dashboard .support-contact{gap:9px!important}
+  body.support-dashboard .support-note{margin-bottom:0!important}
+
+  .legal-card h2{margin-top:14px!important;font-size:17px!important}
+  .legal-card h2:first-child{margin-top:0!important}
+  .legal-card p,.legal-card li{font-size:12px!important;line-height:1.45!important}
+}
