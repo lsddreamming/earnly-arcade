@@ -1,0 +1,28 @@
+name: Earnly result and replay stress tests
+on:
+  push:
+    branches: [qa/result-replay-stress-20261002]
+    paths: [scripts/qa-lifecycle.cjs, .github/workflows/lifecycle-stress.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  iphone-lifecycle:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install webkit
+      - name: Test all 22 games through results and replay
+        run: node scripts/qa-lifecycle.cjs
+        env:
+          EARNLY_QA_ENGINE: webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-replay-webkit
+          path: test-results/lifecycle
