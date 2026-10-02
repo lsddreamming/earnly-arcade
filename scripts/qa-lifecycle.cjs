@@ -185,7 +185,7 @@ async function ready(p) {
           });
           const time = new Date("2026-10-02T12:00:00Z");
           await p.clock.install({ time });
-          await p.clock.pauseAt(time);
+          await p.clock.pauseAt(new Date(time.getTime() + 1000));
           await p.goto("http://earnly-qa.test/" + url);
           await p.evaluate(() => {
             window.__qaCounts = { earn: 0, records: 0 };
@@ -258,6 +258,7 @@ async function ready(p) {
             );
             assert.equal(after.runs, round, "single completed run");
             assert.equal(after.used, round, "finish must not spend a play");
+            assert.equal(await p.locator("body").evaluate(e => e.classList.contains("earnly-game-paused")), false, "pause cleared after game over");
             await p.clock.fastForward(10000);
             assert.deepEqual(
               await snapshot(p, g),
