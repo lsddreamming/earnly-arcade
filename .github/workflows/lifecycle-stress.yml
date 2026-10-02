@@ -2,7 +2,6 @@ name: Earnly result and replay stress tests
 on:
   push:
     branches: [qa/result-replay-stress-20261002]
-    paths: [scripts/qa-lifecycle.cjs, .github/workflows/lifecycle-stress.yml]
   workflow_dispatch:
 permissions:
   contents: read

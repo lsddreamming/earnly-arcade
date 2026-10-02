@@ -922,7 +922,7 @@
     Arcade.installPauseControl({
       isRunning:()=>!!game,
       pause:()=>{pauseStartedAt=performance.now();clearInterval(game);game='paused';},
-      resume:()=>{totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,dropDelayMs());}
+      resume:()=>{if(game!=='paused')return;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;game=setInterval(moveDown,dropDelayMs());}
     });
     if (window.matchMedia('(max-width:699px)').matches) {
       document.getElementById('blockDropSessionActions').prepend(document.getElementById('earnlyPauseButton'));
