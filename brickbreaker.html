@@ -140,6 +140,18 @@
       }
       body.brick-breaker-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
+    /* Keep the first board above the bottom navigation on small phones. */
+    @media(max-width:699px){
+      body.brick-breaker-page:not(.game-active) .game-start-summary,
+      body.brick-breaker-page:not(.game-active) .game-guide-strip{display:none!important}
+      body.brick-breaker-page:not(.game-active) .page-header{padding:8px!important}
+      body.brick-breaker-page:not(.game-active) .page-header .game-title-status-row{flex-wrap:wrap!important;gap:5px!important;margin-bottom:5px!important}
+      body.brick-breaker-page:not(.game-active) .page-header .game-title-status-row h1{font-size:22px!important;line-height:1.15!important}
+      body.brick-breaker-page:not(.game-active) .page-header .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+      body.brick-breaker-page:not(.game-active) .page-header .meta-pill{min-height:32px!important;font-size:9px!important}
+      body.brick-breaker-page:not(.game-active) .game-guide-surface-wrap{width:fit-content!important;max-width:100%}
+      body.brick-breaker-page:not(.game-active) .brick-board{width:min(78vw,315px,calc((100dvh - 300px) * .72))!important}
+    }
     @media(max-width:600px){
       body.brick-breaker-page.game-active .brick-quit-button{
         position:fixed;left:max(16px,env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));

@@ -702,9 +702,27 @@ test('Brick Breaker starts fair and accepts bottom-screen paddle drags', async (
   expect(result.navDisplay).toBe('none');
 });
 
-test('Returning Brick Breaker players reach the board without repeated cards', async ({ page }) => {
+test('Brick Breaker first and returning starts keep the board clear of mobile navigation', async ({ page }) => {
   await page.goto('/brickbreaker.html');
-  await expect(page.locator('.game-guide-strip')).toBeVisible();
+  const mobile = (page.viewportSize()?.width || 1280) < 700;
+  if (mobile) {
+    await expect(page.locator('.game-guide-strip')).toBeHidden();
+    await expect(page.locator('.game-start-summary')).toBeHidden();
+    for (const [width, height] of [[320,740], [390,664], [390,844], [440,956]]) {
+      await page.setViewportSize({width, height});
+      const layout = await page.evaluate(() => {
+        const board = document.getElementById('game');
+        const rect = board.getBoundingClientRect();
+        const nav = document.getElementById('arcadeBottomNav').getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return {bottom:rect.bottom, navTop:nav.top, boardReceivesTap:!!hit?.closest('.game-guide-surface-wrap')};
+      });
+      expect(layout.bottom, width + 'px board overlaps navigation').toBeLessThanOrEqual(layout.navTop);
+      expect(layout.boardReceivesTap, width + 'px board-center tap').toBe(true);
+    }
+  } else {
+    await expect(page.locator('.game-guide-strip')).toBeVisible();
+  }
   await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
   await expect(page.locator('.compact-leaderboard-record-chip')).toBeHidden();
 
