@@ -187,6 +187,7 @@ async function ready(p) {
           await p.clock.install({ time });
           await p.clock.pauseAt(new Date(time.getTime() + 1000));
           await p.goto("http://earnly-qa.test/" + url);
+          if (g === "starDefender") await p.waitForURL(u => u.searchParams.has("sd"));
           await p.evaluate(() => {
             window.__qaCounts = { earn: 0, records: 0 };
             for (const [name, count] of [
