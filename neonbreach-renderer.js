@@ -74,6 +74,12 @@
       if(s.hit){c.save();c.globalAlpha=Math.min(.65,s.hit*5);c.globalCompositeOperation='screen';c.drawImage(sprite,-size*.666,-size*.15,size*1.333,size*1.333);c.restore()}
       c.globalAlpha=1;
       if(s.hp/(s.maxHp||1)<=.5){
+        // Three small exhaust puffs make damaged armor readable without a particle pool.
+        if(!calm)for(let i=0;i<3;i++){
+          const age=((time*.65+i/3+(s.phase||0)*.1)%1+1)%1;
+          c.fillStyle=`rgba(81,102,119,${(1-age)*.28})`;c.beginPath();
+          c.ellipse(-size*.14+Math.sin(age*4+i)*size*.025,size*(.32-age*.34),size*(.025+age*.065),size*(.035+age*.085),0,0,TAU);c.fill();
+        }
         c.strokeStyle='#07111d';c.lineWidth=Math.max(1,size*.012);c.beginPath();c.moveTo(-size*.15,size*.33);c.lineTo(-size*.09,size*.38);c.lineTo(-size*.13,size*.42);c.lineTo(-size*.06,size*.46);c.stroke();
         if(!calm&&Math.sin(time*13+(s.phase||0))>.5){c.strokeStyle='#ffdf96';c.lineWidth=1;c.beginPath();c.moveTo(-size*.09,size*.4);c.lineTo(-size*.19,size*.44);c.lineTo(-size*.13,size*.46);c.stroke()}
       }
@@ -205,7 +211,13 @@
       polygon([[-17,-26],[17,-26],[22,12],[-20,12]],'#627f91','#a3bcc6');
       polygon([[-12,-19],[12,-19],[14,5],[-13,5]],'#05131e',energy);
       text(s.overdrive>0?'OVR':'P-07',0,-8,7,energy,'center');
-      c.fillStyle=energy;for(let i=0;i<5;i++)c.fillRect(-8+i*4,-3,2,4);
+      // Receiver cells refill with the actual firing cooldown.
+      const ready=1-Math.max(0,Math.min(1,s.cooldown/(s.overdrive>0?.12:.24)));
+      for(let i=0;i<5;i++){c.fillStyle=i<Math.ceil(ready*5)?energy:'#203341';c.fillRect(-8+i*4,-3,2,4)}
+      if(s.overdrive>0){
+        c.strokeStyle=energy;c.globalAlpha=.5;c.lineWidth=1;
+        for(const side of [-1,1]){c.beginPath();c.moveTo(side*31,-65);c.lineTo(side*35,-43);c.lineTo(side*30,-34);c.stroke()}c.globalAlpha=1;
+      }
       for(const side of [-1,1]){c.fillStyle='#adc2c9';c.beginPath();c.arc(side*27,-17,1.6,0,TAU);c.fill()}
       c.restore();
       if(s.flash>0){
@@ -219,6 +231,15 @@
         c.fillStyle='#05101edb';c.fillRect(w/2-53,horizon+20,106,18);text(label,w/2,horizon+32,8,sightColor,'center');
       }
       if(hit>0){c.strokeStyle=kill>0?'#ffdf79':'#fff';c.lineWidth=2;c.beginPath();for(let i=0;i<4;i++){const a=Math.PI/4+i*Math.PI/2;c.moveTo(w/2+Math.cos(a)*5,horizon+Math.sin(a)*5);c.lineTo(w/2+Math.cos(a)*11,horizon+Math.sin(a)*11)}c.stroke()}
+      // A quiet segmented visor stays at the edges and fades as protection expires.
+      if(s.shield>0){
+        c.save();c.globalAlpha=Math.min(1,s.shield/1.5)*.65;c.strokeStyle='#76cfff';c.lineWidth=2;
+        for(const side of [-1,1]){
+          const edge=side<0?7:w-7,inside=edge-side*9;
+          for(let i=0;i<5;i++){const y=horizon-51+i*24;c.beginPath();c.moveTo(edge,y);c.lineTo(inside,y+6);c.lineTo(inside,y+15);c.lineTo(edge,y+21);c.stroke()}
+        }
+        c.restore();
+      }
       if(s.hurt>0){c.strokeStyle=s.shield>0?'#80d9ff':`rgba(255,77,108,${s.hurt*1.6})`;c.lineWidth=7;c.strokeRect(3,3,w-6,h-6)}
       if(damageFrom){
         const a=E.angle(Math.atan2(damageFrom.y-p.y,damageFrom.x-p.x)-p.a),dx=Math.sin(a),dy=-Math.cos(a);

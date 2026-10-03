@@ -205,3 +205,25 @@ test('Target sight respects cover and pickup HUD clears on expiry and replay',as
  });
  expect(result).toEqual({sameCover:true,sight:[181,154,255,255],notice:true,expired:true,reset:true,marker:true,removed:true});
 });
+
+test('Opening view provides a clear runway and enough space to move',()=>{
+ const s=E.create(),p=s.player;
+ expect(E.ray(p.x,p.y,p.a)).toBeGreaterThan(8);
+ for(let i=0;i<20;i++)E.tick(s,.05,{forward:1});
+ expect(p.y).toBeLessThan(14);expect(E.clear(p.x,p.y)).toBe(true);
+});
+
+test('Shield visor expires cleanly and damaged robots honor reduced motion',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.width=400;canvas.height=440;
+  const r=NeonBreachRenderer.create(canvas),c=canvas.getContext('2d'),s=NeonBreachEngine.create();
+  const pixels=()=>c.getImageData(4,145,22,145).data.slice(),same=(a,b)=>a.every((v,i)=>v===b[i]);
+  r.render(s);const clean=pixels();s.shield=8;r.render(s);const shield=pixels();s.shield=0;r.render(s);const expired=pixels();
+  s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies=[{x:7.5,y:5.5,hp:1,maxHp:4,type:'tank',phase:0}];
+  const original=Arcade.reducedMotionEnabled;Arcade.reducedMotionEnabled=()=>true;
+  r.render(s);const a=c.getImageData(80,100,240,220).data.slice();s.time=1;r.render(s);const b=c.getImageData(80,100,240,220).data.slice();Arcade.reducedMotionEnabled=original;
+  return {shield:!same(clean,shield),expired:same(clean,expired),calm:same(a,b)};
+ });
+ expect(result).toEqual({shield:true,expired:true,calm:true});
+});

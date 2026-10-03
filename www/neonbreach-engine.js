@@ -8,7 +8,7 @@ function wall(x,y){return MAP[Math.floor(y)]?.[Math.floor(x)]!=='0'}
 function clear(x,y,r=.22){return ![[-r,-r],[r,-r],[-r,r],[r,r]].some(([dx,dy])=>wall(x+dx,y+dy))}
 function ray(x,y,a,max=32){const dx=Math.cos(a)*.035,dy=Math.sin(a)*.035;let d=0;while(d<max&&!wall(x,y)){x+=dx;y+=dy;d+=.035}return d}
 function move(entity,dx,dy,r=.22){if(clear(entity.x+dx,entity.y,r))entity.x+=dx;if(clear(entity.x,entity.y+dy,r))entity.y+=dy}
-function create(random=Math.random){return {random,player:{x:8.5,y:15.5,a:-Math.PI/2,hp:100},enemies:[],shots:[],pickups:[],wave:0,kills:0,score:0,time:0,cooldown:0,flash:0,hurt:0,shield:0,overdrive:0,ended:false,nextWave:1.2,events:[],fired:0,hits:0,nav:null,navTimer:0}}
+function create(random=Math.random){return {random,player:{x:6.5,y:15.5,a:-Math.PI/2,hp:100},enemies:[],shots:[],pickups:[],wave:0,kills:0,score:0,time:0,cooldown:0,flash:0,hurt:0,shield:0,overdrive:0,ended:false,nextWave:1.2,events:[],fired:0,hits:0,nav:null,navTimer:0}}
 function emit(s,event){s.events.push(event);if(s.events.length>48)s.events.shift()}
 function difficulty(wave){
  const late=Math.max(0,wave-3),pressure=Math.min(1.1,wave*.04+late*.09+late*late*.009);
