@@ -41,5 +41,5 @@ pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused
 // Shared mobile dock is initially inserted after the canvas; move it below the thumb controls.
 let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pauseControl.button,document.getElementById('earnlyQuitButton'))}document.getElementById('breachControls').insertAdjacentElement('afterend',dock);
 function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',()=>{running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput()});
-new ResizeObserver(()=>{const r=canvas.getBoundingClientRect();canvas.height=Math.round(400*r.height/Math.max(1,r.width));render()}).observe(canvas);soundControls();chrome();render();
+new ResizeObserver(()=>{const r=canvas.getBoundingClientRect(),width=Math.round(Math.min(800,Math.max(400,r.width*Math.min(2,window.devicePixelRatio||1))));canvas.width=width;canvas.height=Math.round(width*r.height/Math.max(1,r.width));render()}).observe(canvas);soundControls();chrome();render();
 })();

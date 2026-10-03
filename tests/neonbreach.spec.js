@@ -98,3 +98,33 @@ test('Neon Breach phone controls never overlap and remain visible in landscape',
   for(let i=0;i<bounds.length;i++)for(let j=i+1;j<bounds.length;j++){const a=bounds[i],b=bounds[j];expect(a.right<=b.x||b.right<=a.x||a.bottom<=b.y||b.bottom<=a.y,`${a.id} overlaps ${b.id}`).toBe(true)}
  }
 });
+
+test('Textured arena hides robots behind cover and rendering never changes combat state',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.width=400;canvas.height=440;
+  const renderer=NeonBreachRenderer.create(canvas),ctx=canvas.getContext('2d');
+  const s=NeonBreachEngine.create();s.player={x:2.5,y:3.5,a:0,hp:100};
+  renderer.render(s);const empty=ctx.getImageData(90,100,220,200).data.slice();
+  s.enemies=[{x:5.5,y:3.5,type:'tank',elite:true,hp:5,maxHp:5,phase:0}];
+  const before=JSON.stringify(s);renderer.render(s,{dt:.016,running:true});
+  const covered=ctx.getImageData(90,100,220,200).data;
+  const same=empty.every((value,i)=>value===covered[i]);
+  const unchanged=before===JSON.stringify(s);
+  s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies[0].x=7.5;s.enemies[0].y=5.5;
+  renderer.render(s);const visible=ctx.getImageData(90,100,220,200).data.slice();
+  s.enemies=[];renderer.render(s);const clear=ctx.getImageData(90,100,220,200).data;
+  return {same,unchanged,visiblePixels:visible.reduce((n,value,i)=>n+(value!==clear[i]?1:0),0)};
+ });
+ expect(result.same).toBe(true);expect(result.unchanged).toBe(true);expect(result.visiblePixels).toBeGreaterThan(300);
+});
+
+test('High-density graphics remain bounded and preserve the canvas aspect ratio after rotation',async({page})=>{
+ await ready(page);
+ for(const viewport of [{width:430,height:932},{width:932,height:430},{width:320,height:568}]){
+  await page.setViewportSize(viewport);
+  await expect.poll(()=>page.locator('#game').evaluate(c=>{const r=c.getBoundingClientRect();return Math.abs(c.height/c.width-r.height/r.width)})).toBeLessThan(.003);
+  const size=await page.locator('#game').evaluate(c=>({width:c.width,height:c.height}));
+  expect(size.width).toBeGreaterThanOrEqual(400);expect(size.width).toBeLessThanOrEqual(800);expect(size.height).toBeGreaterThan(0);
+ }
+});
