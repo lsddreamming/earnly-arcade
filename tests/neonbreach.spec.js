@@ -1,5 +1,29 @@
 const {test,expect}=require('@playwright/test');
 const E=require('../neonbreach-engine.js');
+test('Expanded sector is connected and every spawn has a route to the player',()=>{
+ const s=E.create();E.navigation(s);let floor=0;
+ for(let y=0;y<E.MAP.length;y++)for(let x=0;x<E.MAP[y].length;x++)if(E.MAP[y][x]==='0'){floor++;expect(s.nav[y*E.MAP[0].length+x]).toBeGreaterThanOrEqual(0)}
+ expect(floor).toBeGreaterThan(210);
+ for(const wave of [1,4,7,10,16]){const run=E.create(()=>.37);run.wave=wave-1;E.spawn(run);expect(run.enemies).toHaveLength(E.difficulty(wave).count);for(const e of run.enemies){expect(E.clear(e.x,e.y)).toBe(true);expect(Math.hypot(e.x-run.player.x,e.y-run.player.y)).toBeGreaterThan(3)}}
+});
+test('Robots navigate around cover instead of getting trapped in the expanded map',()=>{
+ for(const pos of [[2.5,2.5],[12.5,2.5],[14.5,8.5],[5.5,12.5],[15.5,15.5]]){
+  const s=E.create();s.hurt=1000;s.wave=3;s.enemies=[{x:pos[0],y:pos[1],type:'rusher',hp:1,attack:1,phase:0}];
+  let closest=Infinity;for(let i=0;i<1600;i++){E.tick(s,.05);const e=s.enemies[0];expect(E.clear(e.x,e.y)).toBe(true);closest=Math.min(closest,Math.hypot(e.x-s.player.x,e.y-s.player.y));if(closest<.7)break}
+  expect(closest,`robot from ${pos} never reached player`).toBeLessThan(.7);
+ }
+});
+test('Higher waves pursue faster, fire more often and leave less recovery time',()=>{
+ const observed=[];
+ for(const wave of [2,7,12]){
+  const s=E.create();s.wave=wave;s.player={x:8.5,y:10.5,a:0,hp:100};s.hurt=1000;s.enemies=[{x:8.5,y:5.5,type:'rusher',hp:1,attack:1,phase:0}];
+  for(let i=0;i<20;i++)E.tick(s,.05);const distance=10.5-s.enemies[0].y;
+  s.enemies=[{x:6,y:10.5,type:'sentry',hp:2,attack:0,phase:0}];s.shots=[];E.tick(s,.01);const bolt=s.shots[0];
+  observed.push({distance,delay:s.enemies[0].attack,bolt:Math.hypot(bolt.vx,bolt.vy),rest:E.difficulty(wave).rest,count:E.difficulty(wave).count});
+ }
+ for(let i=1;i<observed.length;i++){expect(observed[i].distance).toBeLessThan(observed[i-1].distance);expect(observed[i].delay).toBeLessThan(observed[i-1].delay);expect(observed[i].bolt).toBeGreaterThan(observed[i-1].bolt);expect(observed[i].rest).toBeLessThan(observed[i-1].rest);expect(observed[i].count).toBeGreaterThan(observed[i-1].count)}
+ expect(E.difficulty(100).rusher*1.06).toBeLessThan(2.4);
+});
 test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('arcadeSound','off'))});
 test('Neon Breach shots respect cover, closest enemy, and cooldown',()=>{
  const s=E.create();s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies=[{x:7,y:5.5,hp:1,type:'rusher'},{x:9,y:5.5,hp:1,type:'rusher'}];expect(E.fire(s)).toBe(true);expect(s.kills).toBe(1);expect(E.fire(s)).toBe(false);expect(s.enemies).toHaveLength(1);
