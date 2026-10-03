@@ -2,12 +2,14 @@
 (()=>{
   'use strict';
   const TAU=Math.PI*2,TEX=256;
+  const zones=[{name:'FOUNDRY',color:'#ffc17c',code:'F-01'},{name:'REACTOR',color:'#74e5f2',code:'R-07'},{name:'VAULT',color:'#bca3ff',code:'V-03'}];
+  const zoneAt=x=>x<5.5?0:x>12.5?2:1;
   function surface(w=TEX,h=w){const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;return canvas}
   function polygon(c,points,fill,stroke){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.stroke()}}
   function gradient(c,x,y,w,h,colors){const g=c.createLinearGradient(x,y,x+w,y+h);colors.forEach((color,i)=>g.addColorStop(i/(colors.length-1),color));return g}
   function bolt(c,x,y){c.fillStyle='#050d16';c.beginPath();c.arc(x,y,3,0,TAU);c.fill();c.fillStyle='#7c97a7';c.fillRect(x-1,y-2,2,2)}
   function glow(c,x,y,w,h,color){c.shadowColor=color;c.shadowBlur=10;c.fillStyle=color;c.fillRect(x,y,w,h);c.shadowBlur=0;c.fillStyle='#efffff';c.globalAlpha=.6;c.fillRect(x,y,w,Math.max(1,h*.25));c.globalAlpha=1}
-  function wallTexture(kind){
+  function wallTexture(kind,zone=zones[1]){
     const canvas=surface(),c=canvas.getContext('2d');
     c.fillStyle=gradient(c,0,0,256,60,['#162432','#536473','#263746','#101e2b']);c.fillRect(0,0,256,256);
     // Deterministic brushed metal, with shallow scratches rather than noisy pixels.
@@ -17,23 +19,23 @@
     c.fillStyle='#0c1924';c.fillRect(23,127,212,4);c.fillStyle='#5d7580';c.fillRect(24,132,210,1);
     c.fillStyle='#738e9b';c.fillRect(0,0,256,3);c.fillStyle='#08131c';c.fillRect(0,253,256,3);
     for(const x of [4,246]){c.fillStyle='#0b1824';c.fillRect(x,0,6,256);c.fillStyle='#6a8392';c.fillRect(x,0,1,256)}
-    c.fillStyle='#030b12';c.fillRect(17,13,222,12);glow(c,27,16,202,4,kind===2?'#ffb853':'#74e5f2');
-    c.fillStyle='#070e16';c.fillRect(16,234,224,9);glow(c,29,237,198,2,kind===2?'#ffb853':'#339baa');
+    c.fillStyle='#030b12';c.fillRect(17,13,222,12);glow(c,27,16,202,4,zone.color);
+    c.fillStyle='#070e16';c.fillRect(16,234,224,9);glow(c,29,237,198,2,zone.color);
     for(const x of [25,231])for(const y of [48,121,141,211])bolt(c,x,y);
     if(kind===0){
       // Recessed air intake with individual louvers and a service label.
       c.fillStyle='#080f16';c.fillRect(45,65,164,48);
       for(let y=68;y<111;y+=7){c.fillStyle='#627783';c.fillRect(49,y,156,2);c.fillStyle='#243544';c.fillRect(49,y+2,156,3)}
       c.fillStyle='#14212c';c.fillRect(46,151,163,40);c.strokeStyle='#47616f';c.strokeRect(46,151,163,40);
-      c.fillStyle='#afc4cc';c.font='bold 13px monospace';c.fillText('SECTOR / 07',58,169);c.fillStyle='#6d8795';c.font='7px monospace';c.fillText('ATMOSPHERE CONTROL',58,183);
+      c.fillStyle=zone.color;c.font='bold 13px monospace';c.fillText(zone.name+' / 07',58,169);c.fillStyle='#8aa8b6';c.font='7px monospace';c.fillText('ATMOSPHERE CONTROL',58,183);
       for(let i=0;i<3;i++)glow(c,178+i*8,201,3,3,i===2?'#ffbd6e':'#61dcce');
     }else if(kind===1){
       // Armored structural panel, bevels and a recessed diagonal brace.
       polygon(c,[[43,58],[65,58],[210,202],[188,202]],'#09151f','#65808b');
       polygon(c,[[47,58],[58,58],[204,202],[193,202]],'#445b69');
-      c.fillStyle='#08151e';c.fillRect(158,63,48,22);c.fillStyle='#93b1bb';c.font='bold 11px monospace';c.fillText('B-07',166,78);
+      c.fillStyle='#08151e';c.fillRect(158,63,48,22);c.fillStyle=zone.color;c.font='bold 11px monospace';c.fillText(zone.code,166,78);
       for(const y of [156,166,176]){c.fillStyle='#0a1620';c.fillRect(47,y,54,4);c.fillStyle='#657b85';c.fillRect(47,y+4,54,1)}
-      glow(c,194,109,4,54,'#61d9e8');
+      glow(c,194,109,4,54,zone.color);
     }else if(kind===2){
       c.fillStyle='#0a1119';c.fillRect(43,57,170,151);
       for(const x of [49,135]){c.fillStyle=gradient(c,x,0,70,0,['#243541','#56616a','#283642']);c.fillRect(x,61,73,140)}
@@ -41,14 +43,14 @@
       for(const x of [111,139]){c.fillStyle='#7c8c90';c.fillRect(x,112,6,37);c.fillStyle='#111a20';c.fillRect(x+1,115,3,30)}
       c.save();c.beginPath();c.rect(45,188,166,16);c.clip();c.fillStyle='#b78235';c.fillRect(45,188,166,16);
       for(let x=28;x<230;x+=24)polygon(c,[[x,204],[x+14,204],[x+30,188],[x+16,188]],'#111b24');c.restore();
-      c.fillStyle='#edc780';c.font='bold 9px monospace';c.fillText('LOCKED / 07',87,81);
+      c.fillStyle=zone.color;c.font='bold 9px monospace';c.fillText(zone.name+' / SEALED',61,81);
       glow(c,69,222,118,3,'#f8b356');
     }else{
       c.fillStyle='#070f1a';c.fillRect(42,55,173,149);c.strokeStyle='#657986';c.strokeRect(42,55,173,149);
       c.fillStyle=gradient(c,0,60,0,138,['#104057','#051422']);c.fillRect(51,63,154,133);
       for(let y=68;y<193;y+=8){c.fillStyle='#75d7e611';c.fillRect(52,y,152,1)}
-      c.strokeStyle='#64e9e5';c.lineWidth=2;c.beginPath();c.moveTo(60,132);for(let i=0;i<12;i++)c.lineTo(60+i*12,132+Math.sin(i*1.7)*18);c.stroke();
-      c.fillStyle='#b0e4e6';c.font='bold 10px monospace';c.fillText('REACTOR 07',62,84);c.fillStyle='#55a1b7';c.font='7px monospace';c.fillText('SYSTEM / ONLINE',62,99);
+      c.strokeStyle=zone.color;c.lineWidth=2;c.beginPath();c.moveTo(60,132);for(let i=0;i<12;i++)c.lineTo(60+i*12,132+Math.sin(i*1.7)*18);c.stroke();
+      c.fillStyle=zone.color;c.font='bold 10px monospace';c.fillText(zone.name+' / '+zone.code,62,84);c.fillStyle='#7ca9ba';c.font='7px monospace';c.fillText('SYSTEM / ONLINE',62,99);
       for(let i=0;i<6;i++){c.fillStyle=i<4?'#5bcfc8':'#163f4d';c.fillRect(63+i*21,172,15,7)}
       glow(c,112,214,32,3,'#55ddcc');
     }
@@ -160,9 +162,9 @@
   const lamps=new Map();
   let materials;
   function create(){
-    if(!materials)materials={walls:[0,1,2,3].map(wallTexture),floor:planeTexture(false),ceiling:planeTexture(true)};
+    if(!materials){const sectors=zones.map(zone=>[0,1,2,3].map(kind=>wallTexture(kind,zone)));materials={sectors,walls:sectors[1],floor:planeTexture(false),ceiling:planeTexture(true)}};
     const robots=new Map();
     return {...materials,lamp(color){if(!lamps.has(color))lamps.set(color,lampTexture(color));return lamps.get(color)},robot(type,elite,frame){const key=`${type}-${!!elite}-${frame}`;if(!robots.has(key))robots.set(key,robotFrame(type,elite,frame));return robots.get(key)}};
   }
-  window.NeonBreachArt={create};
+  window.NeonBreachArt={create,zones,zoneAt};
 })();

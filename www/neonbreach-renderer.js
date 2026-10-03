@@ -5,14 +5,15 @@
   const colors={rusher:'#45e3ff',sentry:'#ff66bc',tank:'#b59aff',health:'#64ffc4',shield:'#69bcff',overdrive:'#ffdf78'};
   function create(canvas){
     const c=canvas.getContext('2d'),art=NeonBreachArt.create(),plane=document.createElement('canvas'),pc=plane.getContext('2d');
-    let planeImage;let effects=[],hit=0,kill=0,banner=0,bannerText='',motion=0,laser=null,damageFrom=null,streak=0,streakClock=0,streakBanner=0,sway=0,lastAngle=null;
+    let planeImage;let effects=[],hit=0,kill=0,banner=0,bannerText='',motion=0,laser=null,damageFrom=null,pickupNotice=null,streak=0,streakClock=0,streakBanner=0,sway=0,lastAngle=null;
     const lamps=[{x:2.5,y:5.5,color:'#ffc17c'},{x:8.5,y:9.5,color:'#61e4f0'},{x:14.5,y:12.5,color:'#b896ff'}];
     const reduced=()=>typeof Arcade!=='undefined'&&Arcade.reducedMotionEnabled();
-    function reset(){effects=[];hit=kill=banner=motion=streak=streakClock=streakBanner=sway=0;laser=damageFrom=null;lastAngle=null}
+    function reset(){effects=[];hit=kill=banner=motion=streak=streakClock=streakBanner=sway=0;laser=damageFrom=pickupNotice=null;lastAngle=null}
     function event(e){
       if(e.type==='wave'){banner=2;bannerText=`WAVE ${String(e.wave).padStart(2,'0')}`;streakClock=0}
       if(e.type==='fire')laser={x:e.x,y:e.y};
       if(e.type==='damage')damageFrom={x:e.x,y:e.y,shield:e.shield,life:.8};
+      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE'};
       if(e.type==='impact'){
         hit=.18;kill=e.killed?.7:kill;
         effects.push({...e,life:e.killed?.7:.22,total:e.killed?.7:.22});
@@ -96,6 +97,7 @@
       const scale=canvas.width/400,w=400,h=canvas.height/scale,p=s.player,horizon=h*.46,projection=w/(2*Math.tan(FOV/2)),depth=[],stride=1;
       hit=Math.max(0,hit-dt);kill=Math.max(0,kill-dt);banner=Math.max(0,banner-dt);streakClock=Math.max(0,streakClock-dt);streakBanner=Math.max(0,streakBanner-dt);if(moving)motion+=dt*9;
       if(damageFrom){damageFrom.life-=dt;if(damageFrom.life<=0)damageFrom=null}
+      if(pickupNotice){pickupNotice.life-=dt;if(pickupNotice.life<=0)pickupNotice=null}
       if(dt>0){const turn=lastAngle===null?0:E.angle(p.a-lastAngle);sway+=(Math.max(-5,Math.min(5,-turn*42))-sway)*Math.min(1,dt*12)}lastAngle=p.a;
       effects.forEach(e=>e.life-=dt);effects=effects.filter(e=>e.life>0);
       c.save();
@@ -109,7 +111,7 @@
         const height=projection/Math.max(.08,d),top=horizon-height/2;
         const material=[1,0,1,3,1,2][Math.abs(ray.mx*3+ray.my*5+ray.side)%6];
         const tx=Math.min(255,Math.floor(ray.u*256));
-        c.drawImage(art.walls[material],tx,0,1,256,x,top,stride,height);
+        c.drawImage(art.sectors[NeonBreachArt.zoneAt(ray.mx+.5)][material],tx,0,1,256,x,top,stride,height);
         c.fillStyle='#020a16';c.globalAlpha=Math.min(.8,.12+d*.035+(ray.side?.12:0));c.fillRect(x,top,stride,height);c.globalAlpha=1;
         if(ray.mx<5||ray.mx>12){c.fillStyle=ray.mx<5?'#ef9c54':'#9a64ed';c.globalAlpha=.055;c.fillRect(x,top,stride,height);c.globalAlpha=1}
         if(s.flash>0&&d<4){c.fillStyle=`rgba(90,230,255,${s.flash*Math.max(0,1-d/4)})`;c.fillRect(x,top,stride,height)}
@@ -210,7 +212,12 @@
         const alpha=s.flash/.1,endpoint=laser?view(laser.x,laser.y):null,endX=endpoint&&endpoint.z>.08?w/2+endpoint.x/endpoint.z*projection:w/2;c.globalAlpha=alpha;c.strokeStyle=s.overdrive>0?'#fff0ac':'#9effff';c.lineWidth=3;c.beginPath();c.moveTo(gx,gy-92);c.lineTo(Math.max(0,Math.min(w,endX)),horizon);c.stroke();c.lineWidth=9;c.globalAlpha=alpha*.18;c.stroke();c.globalAlpha=alpha;
         c.fillStyle='#ddffff';c.beginPath();c.arc(gx,gy-95,4+alpha*7,0,TAU);c.fill();c.globalAlpha=1;
       }
-      const spread=7+(s.flash/.1)*3;c.strokeStyle=hit>0?'#fff0a9':'#bfe7ef';c.lineWidth=1.5;c.beginPath();for(let i=0;i<4;i++){const a=i*Math.PI/2;c.moveTo(w/2+Math.cos(a)*spread,horizon+Math.sin(a)*spread);c.lineTo(w/2+Math.cos(a)*(spread+5),horizon+Math.sin(a)*(spread+5))}c.stroke();c.fillStyle='#dfffff';c.fillRect(w/2-1,horizon-1,2,2);
+      const target=running?E.aim(s):null,sightColor=target?(target.elite?'#ffcf78':colors[target.type]):'#bfe7ef';
+      const spread=(target?5:7)+(s.flash/.1)*3;c.strokeStyle=hit>0?'#fff0a9':sightColor;c.lineWidth=1.5;c.beginPath();for(let i=0;i<4;i++){const a=i*Math.PI/2;c.moveTo(w/2+Math.cos(a)*spread,horizon+Math.sin(a)*spread);c.lineTo(w/2+Math.cos(a)*(spread+5),horizon+Math.sin(a)*(spread+5))}c.stroke();c.fillStyle=target?sightColor:'#dfffff';c.fillRect(w/2-1,horizon-1,2,2);
+      if(target&&h>=300){
+        const label=(target.elite?'ELITE / ':'')+target.type.toUpperCase();
+        c.fillStyle='#05101edb';c.fillRect(w/2-53,horizon+20,106,18);text(label,w/2,horizon+32,8,sightColor,'center');
+      }
       if(hit>0){c.strokeStyle=kill>0?'#ffdf79':'#fff';c.lineWidth=2;c.beginPath();for(let i=0;i<4;i++){const a=Math.PI/4+i*Math.PI/2;c.moveTo(w/2+Math.cos(a)*5,horizon+Math.sin(a)*5);c.lineTo(w/2+Math.cos(a)*11,horizon+Math.sin(a)*11)}c.stroke()}
       if(s.hurt>0){c.strokeStyle=s.shield>0?'#80d9ff':`rgba(255,77,108,${s.hurt*1.6})`;c.lineWidth=7;c.strokeRect(3,3,w-6,h-6)}
       if(damageFrom){
@@ -227,12 +234,22 @@
       for(let y=0;y<E.MAP.length;y++)for(let x=0;x<E.MAP[y].length;x++)if(E.MAP[y][x]==='1'){c.fillStyle='#38566f';c.fillRect(rx+x*cell,ry+y*cell,Math.max(1,cell-.5),Math.max(1,cell-.5))}
       for(const enemy of s.enemies)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<6.5){c.fillStyle=enemy.elite?'#ffcf78':colors[enemy.type];c.fillRect(rx+enemy.x*cell-1,ry+enemy.y*cell-1,2,2)}
       c.save();c.translate(rx+p.x*cell,ry+p.y*cell);c.rotate(p.a);polygon([[3,0],[-2,-2],[-2,2]],'#e9ffff');c.restore();
-      if(s.wave>=6)text(s.wave>=10?'THREAT: EXTREME':'THREAT: HIGH',18,62,8,'#ffcf78');
+      for(const item of s.pickups){
+        const x=rx+item.x*cell,y=ry+item.y*cell;c.globalAlpha=Math.min(1,.35+item.life/4);c.strokeStyle=colors[item.type];c.lineWidth=1;
+        // Hollow diamonds distinguish supplies from solid hostile contacts.
+        c.beginPath();c.moveTo(x,y-2.5);c.lineTo(x+2.5,y);c.lineTo(x,y+2.5);c.lineTo(x-2.5,y);c.closePath();c.stroke();c.globalAlpha=1;
+      }
+      const zone=NeonBreachArt.zones[NeonBreachArt.zoneAt(p.x)];
+      text(zone.name+(s.wave>=6?(s.wave>=10?' / EXTREME':' / HIGH'):''),18,62,8,zone.color);
       const healthColor=p.hp<=25?'#ff7b92':s.shield>0?'#76cfff':'#78f4ce';text(s.shield>0?'SHIELD':'HULL',16,h-39,9,healthColor);text(`${p.hp}`,16,h-20,17,healthColor);c.fillStyle='#162e40';c.fillRect(16,h-12,85,3);c.fillStyle=healthColor;c.fillRect(16,h-12,85*p.hp/100,3);
       let by=h-39;for(const key of ['shield','overdrive'])if(s[key]>0){text(`${key==='shield'?'SHIELD':'RAPID FIRE'} ${Math.ceil(s[key])}s`,w-16,by,9,colors[key],'right');c.fillStyle='#263142';c.fillRect(w-91,by+6,75,3);c.fillStyle=colors[key];c.fillRect(w-91,by+6,75*s[key]/8,3);by-=29}
+      if(pickupNotice&&running){c.save();c.globalAlpha=Math.min(1,pickupNotice.life*3);text(pickupNotice.label,16,h-60,9,colors[pickupNotice.kind]);c.restore()}
       if(banner>0&&running){c.globalAlpha=Math.min(1,banner*2);text(bannerText,w/2,Math.min(horizon*.55,95),24,'#c5f9ff','center');text(s.wave===1?'BREACH THE PERIMETER':'REINFORCEMENTS DETECTED',w/2,Math.min(horizon*.55,95)+18,9,'#70cddd','center');c.globalAlpha=1}
       if(streakBanner>0&&banner===0&&running){c.globalAlpha=Math.min(1,streakBanner*3);text(streak===2?'DOUBLE TAKEDOWN':streak===3?'TRIPLE TAKEDOWN':`${streak} / SYSTEM WIPE`,w/2,78,12,'#ffdc9a','center');c.globalAlpha=1}
-      if(!s.enemies.length&&running&&banner===0&&streakBanner===0)text(s.wave?'SECTOR CLEAR · RECHARGING':'SCANNING FOR HOSTILES',w/2,65,10,'#88f8d7','center');
+      if(!s.enemies.length&&running&&banner===0&&streakBanner===0){
+        text(s.wave?`NEXT WAVE / ${Math.max(0,s.nextWave).toFixed(1)}s`:'SCANNING FOR HOSTILES',w/2,82,10,'#88f8d7','center');
+        if(s.wave){const progress=Math.max(0,Math.min(1,1-s.nextWave/E.difficulty(s.wave).rest));c.fillStyle='#193e49';c.fillRect(w/2-42,89,84,2);c.fillStyle='#88f8d7';c.fillRect(w/2-42,89,84*progress,2)}
+      }
       c.restore();
     }
     return {render,event,reset};

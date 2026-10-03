@@ -24,10 +24,15 @@ test('Higher waves pursue faster, fire more often and leave less recovery time',
  for(let i=1;i<observed.length;i++){expect(observed[i].distance).toBeLessThan(observed[i-1].distance);expect(observed[i].delay).toBeLessThan(observed[i-1].delay);expect(observed[i].bolt).toBeGreaterThan(observed[i-1].bolt);expect(observed[i].rest).toBeLessThan(observed[i-1].rest);expect(observed[i].count).toBeGreaterThan(observed[i-1].count)}
  expect(E.difficulty(100).rusher*1.06).toBeLessThan(2.4);
 });
-test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.setItem('arcadeSound','off'))});
+test.beforeEach(async({page})=>{
+ // Gameplay checks use isolated local profiles and never contact live account services.
+ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+ await page.addInitScript(()=>localStorage.setItem('arcadeSound','off'));
+});
 test('Neon Breach shots respect cover, closest enemy, and cooldown',()=>{
- const s=E.create();s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies=[{x:7,y:5.5,hp:1,type:'rusher'},{x:9,y:5.5,hp:1,type:'rusher'}];expect(E.fire(s)).toBe(true);expect(s.kills).toBe(1);expect(E.fire(s)).toBe(false);expect(s.enemies).toHaveLength(1);
- const covered=E.create();covered.player={x:2.5,y:3.5,a:0,hp:100};covered.enemies=[{x:5.5,y:3.5,hp:1,type:'rusher'}];expect(E.fire(covered)).toBe(false);expect(covered.kills).toBe(0);
+ const s=E.create();s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies=[{x:7,y:5.5,hp:1,type:'rusher'},{x:9,y:5.5,hp:1,type:'rusher'}];const before=JSON.stringify(s);expect(E.aim(s)).toBe(s.enemies[0]);expect(JSON.stringify(s)).toBe(before);expect(E.fire(s)).toBe(true);expect(s.kills).toBe(1);expect(E.fire(s)).toBe(false);expect(s.enemies).toHaveLength(1);
+ s.player.a=Math.PI/2;expect(E.aim(s)).toBe(null);
+ const covered=E.create();covered.player={x:2.5,y:3.5,a:0,hp:100};covered.enemies=[{x:5.5,y:3.5,hp:1,type:'rusher'}];expect(E.aim(covered)).toBe(null);expect(E.fire(covered)).toBe(false);expect(covered.kills).toBe(0);
 });
 test('Neon Breach collision, boosts, and end-state stay stable across 1000 seeded runs',()=>{
  for(let seed=1;seed<=1000;seed++){let n=seed;const random=()=>((n=(n*1664525+1013904223)>>>0)/4294967296);const s=E.create(random);E.spawn(s);expect(s.enemies.length).toBeGreaterThan(0);for(let i=0;i<200;i++){E.tick(s,.05,{forward:1,strafe:Math.sin(i),turn:2,fire:true});if(!E.clear(s.player.x,s.player.y)||!Number.isFinite(s.score))throw new Error('Unstable simulation seed '+seed)}const t=s.time;s.ended=true;E.tick(s,.05,{forward:1,fire:true});expect(s.time).toBe(t)}
@@ -166,4 +171,37 @@ test('Combat effects expire and replay clears old impacts and directional warnin
   return {visible:clean.some((v,i)=>v!==active[i]),expired:clean.every((v,i)=>v===expired[i]),reset:clean.every((v,i)=>v===replay[i])};
  });
  expect(result).toEqual({visible:true,expired:true,reset:true});
+});
+
+test('Repair feedback reports actual recovered hull and boost pickups keep their duration',()=>{
+ for(const [hp,amount] of [[40,30],[90,10],[100,0]]){
+  const s=E.create();s.player.hp=hp;s.pickups=[{x:s.player.x,y:s.player.y,type:'health',life:3}];
+  E.tick(s,.01);expect(s.events.find(e=>e.type==='pickup')).toMatchObject({kind:'health',amount});expect(s.player.hp).toBe(hp+amount);expect(s.pickups).toHaveLength(0);
+ }
+ for(const type of ['shield','overdrive']){
+  const s=E.create();s.pickups=[{x:s.player.x,y:s.player.y,type,life:3}];E.tick(s,.01);
+  expect(s.events.find(e=>e.type==='pickup')).toMatchObject({kind:type,amount:8});expect(s[type]).toBe(8);
+ }
+});
+
+test('Target sight respects cover and pickup HUD clears on expiry and replay',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.width=400;canvas.height=440;
+  const r=NeonBreachRenderer.create(canvas),c=canvas.getContext('2d'),s=NeonBreachEngine.create();
+  const pixels=(x,y,w,h)=>c.getImageData(x,y,w,h).data.slice();
+  const equal=(a,b)=>a.every((v,i)=>v===b[i]);
+  const paint=dt=>r.render(s,{running:true,dt:dt||0});
+  s.player={x:2.5,y:3.5,a:0,hp:100};paint();const empty=pixels(187,188,26,26);
+  s.enemies=[{x:5.5,y:3.5,hp:4,maxHp:4,type:'tank'}];paint();const covered=pixels(187,188,26,26);
+  const sameCover=equal(empty,covered);
+  s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies[0].x=7.5;s.enemies[0].y=5.5;
+  // Sample the fully covered center, not the antialiased fractional edge.
+  paint();const sight=[...pixels(199,202,1,1)];
+  const clean=pixels(10,365,130,20);r.event({type:'pickup',kind:'health',amount:10});paint();const repair=pixels(10,365,130,20);
+  paint(2);const expired=pixels(10,365,130,20);r.event({type:'pickup',kind:'shield',amount:8});r.reset();paint();const reset=pixels(10,365,130,20);
+  const radar=pixels(328,40,63,63);s.pickups=[{x:2.5,y:2.5,type:'health',life:18}];paint();const marked=pixels(328,40,63,63);s.pickups=[];paint();const removed=pixels(328,40,63,63);
+  return {sameCover,sight,notice:!equal(clean,repair),expired:equal(clean,expired),reset:equal(clean,reset),marker:!equal(radar,marked),removed:equal(radar,removed)};
+ });
+ expect(result).toEqual({sameCover:true,sight:[181,154,255,255],notice:true,expired:true,reset:true,marker:true,removed:true});
 });

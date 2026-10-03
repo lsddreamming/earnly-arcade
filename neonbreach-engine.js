@@ -42,14 +42,19 @@ function steer(s,e,visible){
  if(ray(e.x,e.y,a,d)<d-.07){tx=x+.5;ty=y+.5;a=Math.atan2(ty-e.y,tx-e.x)}return a;
 }
 
-function fire(s){
- if(s.ended||s.cooldown>0)return false;
- s.cooldown=s.overdrive>0?.12:.24;s.flash=.1;s.fired++;
+// The sight and the weapon use the same cover and aim checks.
+function aim(s){
  const p=s.player;let target=null,dist=Infinity;
  for(const e of s.enemies){
   const d=Math.hypot(e.x-p.x,e.y-p.y),diff=angle(Math.atan2(e.y-p.y,e.x-p.x)-p.a);
   if(Math.abs(diff)<Math.atan2(.32,d)+.025&&d<dist&&ray(p.x,p.y,Math.atan2(e.y-p.y,e.x-p.x),d)>=d-.07){target=e;dist=d}
  }
+ return target;
+}
+function fire(s){
+ if(s.ended||s.cooldown>0)return false;
+ s.cooldown=s.overdrive>0?.12:.24;s.flash=.1;s.fired++;
+ const p=s.player,target=aim(s);
  // Visual endpoints follow the accepted hit, or stop just in front of solid cover.
  const wallDistance=Math.max(0,ray(p.x,p.y,p.a)-.06);
  const endpoint=target?{x:target.x,y:target.y}:{x:p.x+Math.cos(p.a)*wallDistance,y:p.y+Math.sin(p.a)*wallDistance};
@@ -92,7 +97,7 @@ for(const e of s.enemies){
  }else if(d<.65&&e.attack<=0){damage(s,e.type==='tank'?25:14,e);e.attack=rules.meleeDelay;e.firing=.18;e.charge=0}
 }
 for(const b of s.shots){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(wall(b.x,b.y))b.life=0;if(Math.hypot(b.x-p.x,b.y-p.y)<.26){damage(s,18,{x:b.x-b.vx*.2,y:b.y-b.vy*.2});b.life=0}}s.shots=s.shots.filter(b=>b.life>0);
-for(const item of s.pickups){item.life-=dt;if(Math.hypot(item.x-p.x,item.y-p.y)<.55){if(item.type==='health')p.hp=Math.min(100,p.hp+30);else s[item.type]=8;emit(s,{type:'pickup',kind:item.type});item.life=0}}s.pickups=s.pickups.filter(i=>i.life>0);if(!s.enemies.length){s.nextWave-=dt;if(s.nextWave<=0){spawn(s)}}if(s.time>=180)s.ended=true;
+for(const item of s.pickups){item.life-=dt;if(Math.hypot(item.x-p.x,item.y-p.y)<.55){const before=p.hp;if(item.type==='health')p.hp=Math.min(100,p.hp+30);else s[item.type]=8;emit(s,{type:'pickup',kind:item.type,amount:item.type==='health'?p.hp-before:8});item.life=0}}s.pickups=s.pickups.filter(i=>i.life>0);if(!s.enemies.length){s.nextWave-=dt;if(s.nextWave<=0){spawn(s)}}if(s.time>=180)s.ended=true;
 }
-const api={MAP,difficulty,navigation,angle,wall,clear,ray,move,create,spawn,fire,tick};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NeonBreachEngine=api;
+const api={MAP,difficulty,navigation,angle,wall,clear,ray,move,create,spawn,aim,fire,tick};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NeonBreachEngine=api;
 })(typeof window!=='undefined'?window:globalThis);
