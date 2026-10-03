@@ -218,12 +218,23 @@ test('Shield visor expires cleanly and damaged robots honor reduced motion',asyn
  const result=await page.evaluate(()=>{
   const canvas=document.createElement('canvas');canvas.width=400;canvas.height=440;
   const r=NeonBreachRenderer.create(canvas),c=canvas.getContext('2d'),s=NeonBreachEngine.create();
-  const pixels=()=>c.getImageData(4,145,22,145).data.slice(),same=(a,b)=>a.every((v,i)=>v===b[i]);
-  r.render(s);const clean=pixels();s.shield=8;r.render(s);const shield=pixels();s.shield=0;r.render(s);const expired=pixels();
+  // Inspect effect drawing directly, avoiding backend-specific pixel equality.
+  // Keep real canvas drawing enabled while checking fade and motion behavior.
+  let visor=[],ellipses=[];
+  const stroke=c.stroke.bind(c),ellipse=c.ellipse.bind(c);
+  c.stroke=(...args)=>{if(c.strokeStyle==='#76cfff'&&c.lineWidth===2)visor.push(c.globalAlpha);return stroke(...args)};
+  c.ellipse=(...args)=>{ellipses.push(args);return ellipse(...args)};
+  r.render(s);const clean=visor.length;
+  s.shield=8;visor=[];r.render(s);const shield=visor.slice();
+  s.shield=.375;visor=[];r.render(s);const fading=visor.slice();
+  s.shield=0;visor=[];r.render(s);const expired=visor.length,restored=c.globalAlpha===1;
   s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies=[{x:7.5,y:5.5,hp:1,maxHp:4,type:'tank',phase:0}];
-  const original=Arcade.reducedMotionEnabled;Arcade.reducedMotionEnabled=()=>true;
-  r.render(s);const a=c.getImageData(80,100,240,220).data.slice();s.time=1;r.render(s);const b=c.getImageData(80,100,240,220).data.slice();Arcade.reducedMotionEnabled=original;
-  return {shield:!same(clean,shield),expired:same(clean,expired),calm:same(a,b)};
+  const original=Arcade.reducedMotionEnabled;
+  const sample=time=>{s.time=time;ellipses=[];r.render(s);return ellipses.slice()};
+  Arcade.reducedMotionEnabled=()=>false;const movingA=sample(0),movingB=sample(1);
+  Arcade.reducedMotionEnabled=()=>true;const calmA=sample(0),calmB=sample(1);Arcade.reducedMotionEnabled=original;
+  return {clean,shield:shield.length,fading:fading.length,dimmed:fading[0]<shield[0],expired,restored,
+   animated:JSON.stringify(movingA)!==JSON.stringify(movingB),calm:JSON.stringify(calmA)===JSON.stringify(calmB),smokeRemoved:calmA.length===movingA.length-3};
  });
- expect(result).toEqual({shield:true,expired:true,calm:true});
+ expect(result).toEqual({clean:0,shield:10,fading:10,dimmed:true,expired:0,restored:true,animated:true,calm:true,smokeRemoved:true});
 });
