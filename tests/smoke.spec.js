@@ -295,7 +295,7 @@ test('mobile catalog shows two browsable game choices per row', async ({ page })
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
-  await expect(cards).toHaveCount(22);
+  await expect(cards).toHaveCount(23);
   const first = await cards.nth(0).boundingBox();
   const second = await cards.nth(1).boundingBox();
   expect(first).toBeTruthy();
@@ -314,9 +314,10 @@ test('mobile catalog shows two browsable game choices per row', async ({ page })
 
 test('Pick for me opens a playable game without searching', async ({ page }) => {
   await page.goto('/games.html');
+  const firstGame = await page.evaluate(() => gameInfo[0].href);
   await page.evaluate(() => { Math.random = () => 0; });
   await page.locator('#surpriseGame').click();
-  await expect(page).toHaveURL(/\/snake\.html$/);
+  await expect(page).toHaveURL(new URL(firstGame, 'http://127.0.0.1:4173/').href);
 });
 
 test('core navigation never points to a missing internal page', async ({ page }) => {
@@ -478,7 +479,7 @@ test('all arcade games expose a consistent play balance', async ({ page }) => {
     localStorage.removeItem('arcadePlayDay');
     return Object.keys(Arcade.names).map(game => [game, Arcade.remaining(game)]);
   });
-  expect(balances.length).toBe(22);
+  expect(balances.length).toBe(23);
   for (const [game, plays] of balances) {
     expect(plays, game + ' should begin with three daily plays').toBe(3);
   }
@@ -2153,14 +2154,14 @@ test('repairs impossible daily coin counters and uses live catalog total', async
 
   await page.goto('/profile.html');
   const totalGames = await page.evaluate(() => Object.keys(Arcade.names).length);
-  expect(totalGames).toBe(22);
-  await expect(page.locator('#differentGames')).toContainText('/22');
+  expect(totalGames).toBe(23);
+  await expect(page.locator('#differentGames')).toContainText('/23');
 });
 
 
 test('global leaderboards expose all games and editable player identity', async ({ page }) => {
   await page.goto('/leaderboards.html');
-  await expect(page.locator('#gameSelect option')).toHaveCount(22);
+  await expect(page.locator('#gameSelect option')).toHaveCount(23);
   await expect(page.locator('#boardTitle')).toContainText('World Top 25');
   await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
 
