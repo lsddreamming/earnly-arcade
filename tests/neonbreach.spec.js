@@ -36,12 +36,15 @@ test('Neon Breach renders audible lasers and robot voice with bounded levels',as
   localStorage.setItem('arcadeSound','on');
   const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;
   const offline=new Offline(1,48000,16000);
-  window.AudioContext=function(){return {state:'running',sampleRate:16000,currentTime:0,destination:offline.destination,createGain:()=>offline.createGain(),createBuffer:(...a)=>offline.createBuffer(...a),createBufferSource:()=>offline.createBufferSource(),createOscillator:()=>offline.createOscillator(),createBiquadFilter:()=>offline.createBiquadFilter()}};
+  const session={type:'auto'};Object.defineProperty(navigator,'audioSession',{value:session,configurable:true});
+  window.AudioContext=function(){return {state:'running',sampleRate:16000,currentTime:0,destination:offline.destination,suspend:()=>Promise.resolve(),createGain:()=>offline.createGain(),createBuffer:(...a)=>offline.createBuffer(...a),createBufferSource:()=>offline.createBufferSource(),createOscillator:()=>offline.createOscillator(),createBiquadFilter:()=>offline.createBiquadFilter()}};
   NeonBreachAudio.unlock();NeonBreachAudio.effect('fire');const spoke=NeonBreachAudio.voice('acquired',true);const overlap=NeonBreachAudio.voice('heavy',true);
   const buffer=await offline.startRendering(),samples=buffer.getChannelData(0);let energy=0,peak=0;for(const n of samples){energy+=n*n;peak=Math.max(peak,Math.abs(n))}
-  return {spoke,overlap,peak,rms:Math.sqrt(energy/samples.length),clips:Object.keys(NeonBreachVoices.clips).length};
+  const activeType=session.type;NeonBreachAudio.suspend();localStorage.setItem('arcadeSound','off');NeonBreachAudio.unlock();
+  return {spoke,overlap,peak,rms:Math.sqrt(energy/samples.length),clips:Object.keys(NeonBreachVoices.clips).length,activeType,mutedType:session.type};
  });
  expect(result.spoke).toBe(true);expect(result.overlap).toBe(false);expect(result.clips).toBe(10);expect(result.peak).toBeGreaterThan(.15);expect(result.peak).toBeLessThan(1);expect(result.rms).toBeGreaterThan(.015);
+ expect(result.activeType).toBe('playback');expect(result.mutedType).toBe('auto');
 });
 
 test('Neon Breach sound and voice settings persist and stop playback on pause',async({page})=>{
@@ -58,7 +61,7 @@ test('Neon Breach sound and voice settings persist and stop playback on pause',a
  await page.locator('#earnlyPauseButton').click();const before=await page.evaluate(()=>audioChecks.effects.length);await page.waitForTimeout(350);
  expect(await page.evaluate(()=>audioChecks.effects.length)).toBe(before);expect(await page.evaluate(()=>audioChecks.suspends)).toBeGreaterThan(0);
  expect(await page.evaluate(()=>NeonBreachAudio.voice('acquired',true))).toBe(false);
- await page.locator('#voiceButton').click();await expect(page.locator('#voiceButton')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.locator('#voiceButton').focus();await page.keyboard.press(' ');await expect(page.locator('#voiceButton')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#gameStatus')).toHaveText('Paused');
  await page.reload();await expect(page.locator('#voiceButton')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed','false');
 });
 

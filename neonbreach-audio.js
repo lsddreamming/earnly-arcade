@@ -1,20 +1,30 @@
 /* Local, gesture-unlocked Web Audio. No microphone, network voice service, or speech queue. */
 (()=>{
   'use strict';
-  let context, master, voiceBuffer, voiceSource, lastVoice=-Infinity;
+  let context, master, voiceBuffer, voiceSource, lastVoice=-Infinity, previousSessionType=null;
   const sources=new Set();
-  const enabled=()=>window.Arcade?.soundEnabled()!==false;
+  const enabled=()=>typeof Arcade==='undefined'||Arcade.soundEnabled();
   const voicesEnabled=()=>localStorage.getItem('neonBreachVoice')!=='off';
+  function playbackSession(active){
+    // iOS otherwise routes Web Audio through the ringer's ambient channel.
+    // https://bugs.webkit.org/show_bug.cgi?id=237322
+    try{
+      const session=navigator.audioSession;if(!session)return;
+      if(active){if(previousSessionType===null)previousSessionType=session.type;session.type='playback'}
+      else if(previousSessionType!==null){session.type=previousSessionType;previousSessionType=null}
+    }catch{}
+  }
   function unlock(){
     if(!enabled())return;
     try{
       const Audio=window.AudioContext||window.webkitAudioContext;
       if(!Audio)return;
+      playbackSession(true);
       if(!context){context=new Audio();master=context.createGain();master.gain.value=.58;master.connect(context.destination)}
       if(context.state!=='running')Promise.resolve(context.resume()).catch(()=>{});
       // A source started inside the gesture also unlocks older iPhone WebKit.
       const source=context.createBufferSource();source.buffer=context.createBuffer(1,1,context.sampleRate);source.connect(master);source.start();
-    }catch{}
+    }catch{playbackSession(false)}
   }
   function ready(){return enabled()&&context?.state==='running'}
   function track(source,nodes=[]){
@@ -58,7 +68,7 @@
     source.start(0,clip.start/bank.rate,clip.length/bank.rate);return true;
   }
   function stop(){for(const source of sources){try{source.stop()}catch{}}sources.clear();voiceSource=null}
-  function suspend(){stop();if(context?.state==='running')Promise.resolve(context.suspend()).catch(()=>{})}
+  function suspend(){stop();playbackSession(false);if(context?.state==='running')Promise.resolve(context.suspend()).catch(()=>{})}
   function reset(){stop();lastVoice=-Infinity}
   window.NeonBreachAudio={unlock,effect,voice,stop,suspend,reset,voicesEnabled};
 })();

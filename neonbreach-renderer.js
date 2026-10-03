@@ -5,7 +5,7 @@
   const colors={rusher:'#45e3ff',sentry:'#ff66bc',tank:'#b59aff',health:'#64ffc4',shield:'#69bcff',overdrive:'#ffdf78'};
   function create(canvas){
     const c=canvas.getContext('2d');let effects=[],hit=0,kill=0,banner=0,bannerText='',motion=0;
-    const reduced=()=>window.Arcade?.reducedMotionEnabled?.();
+    const reduced=()=>typeof Arcade!=='undefined'&&Arcade.reducedMotionEnabled();
     function reset(){effects=[];hit=kill=banner=motion=0}
     function event(e){
       if(e.type==='wave'){banner=2;bannerText=`WAVE ${String(e.wave).padStart(2,'0')}`}
