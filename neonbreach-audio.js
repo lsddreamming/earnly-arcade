@@ -1,7 +1,7 @@
 /* Local, gesture-unlocked Web Audio. No microphone, network voice service, or speech queue. */
 (()=>{
   'use strict';
-  let context, master, voiceBuffer, voiceSource, lastVoice=-Infinity, previousSessionType=null;
+  let context, master, voiceBuffer, voiceSource, lastVoice=-Infinity, lastRobot=-Infinity, lastWall=-Infinity, previousSessionType=null;
   const sources=new Set();
   const enabled=()=>typeof Arcade==='undefined'||Arcade.soundEnabled();
   const voicesEnabled=()=>localStorage.getItem('neonBreachVoice')!=='off';
@@ -48,6 +48,8 @@
   }
   function effect(kind,rapid=false){
     if(!ready())return;
+    if(kind==='robot-fire'){if(context.currentTime-lastRobot<.12)return;lastRobot=context.currentTime;tone(480,1200,.12,.05,'triangle');tone(1700,470,.16,.035);return}
+    if(kind==='wall-impact'){if(context.currentTime-lastWall<.09)return;lastWall=context.currentTime;tone(1900,600,.09,.035,'triangle');noise(.04,.06,2500);return}
     if(kind==='fire'){tone(rapid?1800:1450,160,.16,.11,'sawtooth');tone(2400,430,.1,.10);noise(.035,.12,3500)}
     else if(kind==='hit'){tone(760,190,.08,.075,'square');noise(.06,.2,1700)}
     else if(kind==='kill'){tone(240,42,.22,.15,'triangle');noise(.24,.35,950);tone(1250,430,.12,.07,'sine',.025)}
@@ -69,6 +71,6 @@
   }
   function stop(){for(const source of sources){try{source.stop()}catch{}}sources.clear();voiceSource=null}
   function suspend(){stop();playbackSession(false);if(context?.state==='running')Promise.resolve(context.suspend()).catch(()=>{})}
-  function reset(){stop();lastVoice=-Infinity}
+  function reset(){stop();lastVoice=lastRobot=lastWall=-Infinity}
   window.NeonBreachAudio={unlock,effect,voice,stop,suspend,reset,voicesEnabled};
 })();

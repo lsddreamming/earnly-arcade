@@ -128,3 +128,42 @@ test('High-density graphics remain bounded and preserve the canvas aspect ratio 
   expect(size.width).toBeGreaterThanOrEqual(400);expect(size.width).toBeLessThanOrEqual(800);expect(size.height).toBeGreaterThan(0);
  }
 });
+
+test('Laser effects terminate at the accepted robot or the front of cover',()=>{
+ const covered=E.create();covered.player={x:2.5,y:3.5,a:0,hp:100};covered.enemies=[{x:5.5,y:3.5,type:'tank',hp:4}];
+ expect(E.fire(covered)).toBe(false);
+ const wall=covered.events.find(e=>e.type==='wall-impact');expect(wall.x).toBeGreaterThan(2.9);expect(wall.x).toBeLessThan(3);expect(E.wall(wall.x,wall.y)).toBe(false);
+ expect(covered.events.find(e=>e.type==='fire')).toMatchObject({x:wall.x,y:wall.y,hit:false});
+ const hit=E.create();hit.player={x:5.5,y:5.5,a:0,hp:100};hit.enemies=[{x:7,y:5.5,type:'sentry',hp:2,maxHp:2}];
+ expect(E.fire(hit)).toBe(true);expect(hit.events.find(e=>e.type==='fire')).toMatchObject({x:7,y:5.5,hit:true});expect(hit.events.some(e=>e.type==='wall-impact')).toBe(false);
+});
+
+test('Robot animation tracks movement and charging without changing attack timing',()=>{
+ const s=E.create();s.wave=7;s.player={x:8.5,y:10.5,a:0,hp:100};
+ const sentry={x:6,y:10.5,type:'sentry',hp:2,maxHp:2,attack:.3};s.enemies=[sentry];
+ E.tick(s,.01);expect(sentry.motion).toBe(0);expect(sentry.charge).toBeGreaterThan(.5);expect(s.shots).toHaveLength(0);
+ sentry.attack=0;E.tick(s,.01);expect(s.shots).toHaveLength(1);expect(sentry.firing).toBeGreaterThan(0);expect(sentry.charge).toBe(0);expect(sentry.attack).toBe(E.difficulty(7).shotDelay);
+ expect(s.events.filter(e=>e.type==='robot-fire')).toHaveLength(1);
+ s.enemies=[{x:8.5,y:6.5,type:'rusher',hp:1,attack:1}];E.tick(s,.05);expect(s.enemies[0].motion).toBeGreaterThan(0);expect(s.enemies[0].stride).toBeGreaterThan(0);
+});
+
+test('Damage indicators retain the attacker direction and damage protection still applies',()=>{
+ const s=E.create();s.wave=3;s.player={x:8.5,y:10.5,a:0,hp:100};s.enemies=[{x:8,y:10.5,type:'tank',hp:4,attack:0}];
+ E.tick(s,.01);expect(s.player.hp).toBe(75);expect(s.events.find(e=>e.type==='damage')).toMatchObject({x:8,y:10.5,shield:false});
+ s.enemies[0].attack=0;E.tick(s,.01);expect(s.player.hp).toBe(75);expect(s.events.filter(e=>e.type==='damage')).toHaveLength(1);
+});
+
+test('Combat effects expire and replay clears old impacts and directional warnings',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.width=400;canvas.height=440;
+  const renderer=NeonBreachRenderer.create(canvas),ctx=canvas.getContext('2d'),s=NeonBreachEngine.create();
+  s.player={x:2.5,y:3.5,a:0,hp:100};
+  const pixels=()=>ctx.getImageData(0,0,400,440).data.slice();renderer.render(s);const clean=pixels();
+  renderer.event({type:'wall-impact',x:2.96,y:3.5});renderer.event({type:'damage',x:2,y:3.5});renderer.render(s);const active=pixels();
+  renderer.render(s,{dt:2});const expired=pixels();
+  for(let i=0;i<80;i++)renderer.event({type:'wall-impact',x:2.96,y:3.5});renderer.event({type:'damage',x:2,y:3.5});renderer.reset();renderer.render(s);const replay=pixels();
+  return {visible:clean.some((v,i)=>v!==active[i]),expired:clean.every((v,i)=>v===expired[i]),reset:clean.every((v,i)=>v===replay[i])};
+ });
+ expect(result).toEqual({visible:true,expired:true,reset:true});
+});

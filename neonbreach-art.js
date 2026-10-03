@@ -149,11 +149,20 @@
     if(elite){plate([[-.06,.023],[0,-.068],[.06,.025]],'#73502c',accent);light(-.069,.684,.138,.017)}
     return canvas;
   }
+  function lampTexture(color){
+    const canvas=surface(384,320),c=canvas.getContext('2d'),x=192,top=20,bottom=280,radius=162;
+    c.save();c.beginPath();c.moveTo(x-37,top);c.lineTo(x+37,top);c.lineTo(x+radius,bottom);c.lineTo(x-radius,bottom);c.closePath();c.clip();
+    const beam=c.createLinearGradient(x-radius,0,x+radius,0);beam.addColorStop(0,color+'00');beam.addColorStop(.5,color+'0e');beam.addColorStop(1,color+'00');c.fillStyle=beam;c.fillRect(x-radius,top,radius*2,bottom-top);c.restore();
+    c.save();c.translate(x,bottom);c.scale(1,.18);const pool=c.createRadialGradient(0,0,0,0,0,radius);pool.addColorStop(0,color+'22');pool.addColorStop(1,color+'00');c.fillStyle=pool;c.fillRect(-radius,-radius,radius*2,radius*2);c.restore();
+    c.fillStyle='#071623';c.fillRect(x-51,top-2,102,5);c.fillStyle=color;c.fillRect(x-37,top,74,1.5);
+    return canvas;
+  }
+  const lamps=new Map();
   let materials;
   function create(){
     if(!materials)materials={walls:[0,1,2,3].map(wallTexture),floor:planeTexture(false),ceiling:planeTexture(true)};
     const robots=new Map();
-    return {...materials,robot(type,elite,frame){const key=`${type}-${!!elite}-${frame}`;if(!robots.has(key))robots.set(key,robotFrame(type,elite,frame));return robots.get(key)}};
+    return {...materials,lamp(color){if(!lamps.has(color))lamps.set(color,lampTexture(color));return lamps.get(color)},robot(type,elite,frame){const key=`${type}-${!!elite}-${frame}`;if(!robots.has(key))robots.set(key,robotFrame(type,elite,frame));return robots.get(key)}};
   }
   window.NeonBreachArt={create};
 })();
