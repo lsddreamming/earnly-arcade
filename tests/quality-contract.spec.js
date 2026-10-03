@@ -54,6 +54,7 @@ const expectedGameKeys = [
   'bounceRun',
   'trafficEscape',
   'starDefender',
+  'neonBreach',
   'neonMaze'
 ];
 
@@ -93,7 +94,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('all 22 catalog games stay registered consistently', () => {
+test('all 23 catalog games stay registered consistently', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
@@ -103,7 +104,7 @@ test('all 22 catalog games stay registered consistently', () => {
   const miniConfigs = objectKeysNear(mini, 'const configs');
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
-  expect(new Set(catalog).size).toBe(22);
+  expect(new Set(catalog).size).toBe(23);
   expect([...catalog].sort()).toEqual([...expectedGameKeys].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys].sort());
