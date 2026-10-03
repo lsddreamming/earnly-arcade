@@ -128,6 +128,7 @@
   <script src="arcade.js"></script>
   <script>
     const gameInfo = [
+      { key:'neonBreach', icon:'🤖', name:'Neon Breach', note:'First-person blaster · survive robot waves', href:'neonbreach.html' },
       { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
       { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines · speeds up · deep runs earn bonus XP', href:'blockdrop.html' },
       { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge', href:'taprush.html' },
@@ -154,6 +155,7 @@
 
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
     const gameTags = {
+      neonBreach:['new','action'],
       snake:['classic'],
       blockDrop:['classic','brain'],
       tapRush:['quick'],
@@ -262,7 +264,7 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['tapRush','dodger','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['neonBreach','tapRush','dodger','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);

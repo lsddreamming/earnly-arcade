@@ -60,7 +60,7 @@ jobs:
         if: matrix.project == 'mobile-webkit'
         run: npx playwright install webkit
       - name: Run smoke suite
-        run: npx playwright test tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js --project=${{ matrix.project }}
+        run: npx playwright test tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js tests/neonbreach.spec.js --project=${{ matrix.project }}
       - name: Upload smoke failure report
         if: failure()
         uses: actions/upload-artifact@v4
@@ -69,4 +69,13 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 7
+
+      - name: Upload Neon Breach viewport screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neonbreach-preview-${{ matrix.project }}
+          path: test-results/neonbreach-*.png
+          if-no-files-found: ignore
           retention-days: 7

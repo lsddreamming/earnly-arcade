@@ -52,6 +52,7 @@ const Arcade = (() => {
     bounceRun: 'Bounce Run',
     trafficEscape: 'Traffic Escape',
     starDefender: 'Star Defender',
+    neonBreach: 'Neon Breach',
     neonMaze: 'Neon Maze'
   };
 
@@ -96,6 +97,7 @@ const Arcade = (() => {
     bounceRun: { key: 'bounceRunBest', label: 'distance', lower: false },
     trafficEscape: { key: 'trafficEscapeBest', label: 'cars', lower: false },
     starDefender: { key: 'starDefenderBest', label: 'points', lower: false },
+    neonBreach: { key: 'neonBreachBest', label: 'points', lower: false },
     neonMaze: { key: 'neonMazeBest', label: 'cells', lower: false }
   };
 
@@ -3308,7 +3310,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonmaze.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neonmaze.html','mini.html'
     ]);
 
     let active = 'home';
@@ -3351,7 +3353,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonmaze.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neonmaze.html','mini.html'
     ]);
 
     let active = 'home';
@@ -3442,6 +3444,7 @@ const Arcade = (() => {
     'lanerunner.html':'laneRunner',
     'safecracker.html':'safeCracker',
     'stardefender.html':'starDefender',
+    'neonbreach.html':'neonBreach',
     'neonmaze.html':'neonMaze'
   };
 
