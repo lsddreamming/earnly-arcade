@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-arcade-v1.1-cache-v98';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-arcade-v1.1-cache-v99';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',
@@ -28,7 +28,7 @@ const CACHE_NAME = 'earnly-arcade-v1.1-cache-v98';const CORE_ASSETS = [
   './mini.html',
   './stardefender.html',
   './neonmaze.html',
-  './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js',
+  './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',
   './mini-games.js',
   './arcade.css',
   './premium.css',

@@ -22,3 +22,52 @@ test('Neon Breach appears in catalog search and New filter',async({page})=>{
 test('Neon Breach awards once and replay consumes one new play',async({page})=>{
  await page.goto('/neonbreach.html');await page.evaluate(()=>{const original=NeonBreachEngine.create;NeonBreachEngine.create=()=>{const s=original();s.time=179.99;s.score=450;s.kills=6;NeonBreachEngine.create=original;return s}});await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Run Over',{timeout:10000});await expect(page.locator('#balance')).toHaveText('3');await page.waitForTimeout(300);await expect(page.locator('#balance')).toHaveText('3');await page.getByRole('button',{name:/Play Again/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await expect(page.locator('#plays')).toHaveText('1');
 });
+
+test('Neon Breach emits one laser per accepted shot and preserves hit accuracy',()=>{
+ const s=E.create();E.fire(s);E.fire(s);expect(s.events.filter(e=>e.type==='fire')).toHaveLength(1);expect(s.fired).toBe(1);expect(s.hits).toBe(0);
+ s.cooldown=0;s.player={x:5.5,y:5.5,a:0,hp:100};s.enemies=[{x:7,y:5.5,hp:1,type:'rusher'}];E.fire(s);
+ expect(s.fired).toBe(2);expect(s.hits).toBe(1);expect(s.events.find(e=>e.type==='impact')).toMatchObject({killed:true,points:75});
+ for(let i=0;i<100;i++){s.cooldown=0;E.fire(s)}expect(s.events.length).toBeLessThanOrEqual(48);
+});
+
+test('Neon Breach renders audible lasers and robot voice with bounded levels',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const result=await page.evaluate(async()=>{
+  localStorage.setItem('arcadeSound','on');
+  const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  const offline=new Offline(1,48000,16000);
+  window.AudioContext=function(){return {state:'running',sampleRate:16000,currentTime:0,destination:offline.destination,createGain:()=>offline.createGain(),createBuffer:(...a)=>offline.createBuffer(...a),createBufferSource:()=>offline.createBufferSource(),createOscillator:()=>offline.createOscillator(),createBiquadFilter:()=>offline.createBiquadFilter()}};
+  NeonBreachAudio.unlock();NeonBreachAudio.effect('fire');const spoke=NeonBreachAudio.voice('acquired',true);const overlap=NeonBreachAudio.voice('heavy',true);
+  const buffer=await offline.startRendering(),samples=buffer.getChannelData(0);let energy=0,peak=0;for(const n of samples){energy+=n*n;peak=Math.max(peak,Math.abs(n))}
+  return {spoke,overlap,peak,rms:Math.sqrt(energy/samples.length),clips:Object.keys(NeonBreachVoices.clips).length};
+ });
+ expect(result.spoke).toBe(true);expect(result.overlap).toBe(false);expect(result.clips).toBe(10);expect(result.peak).toBeGreaterThan(.15);expect(result.peak).toBeLessThan(1);expect(result.rms).toBeGreaterThan(.015);
+});
+
+test('Neon Breach sound and voice settings persist and stop playback on pause',async({page})=>{
+ await page.goto('/neonbreach.html');
+ await page.evaluate(()=>{
+  window.audioChecks={effects:[],suspends:0,voices:0,stopped:0};
+  const original=NeonBreachAudio.effect;NeonBreachAudio.effect=(...args)=>{audioChecks.effects.push(args[0]);return original(...args)};
+  const originalSuspend=NeonBreachAudio.suspend;NeonBreachAudio.suspend=()=>{audioChecks.suspends++;originalSuspend()};
+  const originalStop=NeonBreachAudio.stop;NeonBreachAudio.stop=()=>{audioChecks.stopped++;originalStop()};
+ });
+ await page.locator('#voiceButton').click();await expect(page.locator('#voiceButton')).toHaveAttribute('aria-pressed','false');
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await page.keyboard.down(' ');await expect.poll(()=>page.evaluate(()=>audioChecks.effects.filter(x=>x==='fire').length)).toBeGreaterThan(1);await page.keyboard.up(' ');
+ await page.locator('#earnlyPauseButton').click();const before=await page.evaluate(()=>audioChecks.effects.length);await page.waitForTimeout(350);
+ expect(await page.evaluate(()=>audioChecks.effects.length)).toBe(before);expect(await page.evaluate(()=>audioChecks.suspends)).toBeGreaterThan(0);
+ expect(await page.evaluate(()=>NeonBreachAudio.voice('acquired',true))).toBe(false);
+ await page.locator('#voiceButton').click();await expect(page.locator('#voiceButton')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.reload();await expect(page.locator('#voiceButton')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed','false');
+});
+
+test('Neon Breach phone controls never overlap and remain visible in landscape',async({page})=>{
+ await page.setViewportSize({width:390,height:664});await ready(page);
+ for(const viewport of [{width:390,height:664},{width:844,height:390}]){
+  await page.setViewportSize(viewport);
+  const bounds=await page.locator('#fireButton,#earnlyPauseButton,#earnlyQuitButton,#soundButton,#voiceButton').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {id:n.id,x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height}}));
+  for(const r of bounds){expect(r.x,r.id).toBeGreaterThanOrEqual(0);expect(r.right,r.id).toBeLessThanOrEqual(viewport.width);expect(r.bottom,r.id).toBeLessThanOrEqual(viewport.height);expect(r.height,r.id).toBeGreaterThanOrEqual(32)}
+  for(let i=0;i<bounds.length;i++)for(let j=i+1;j<bounds.length;j++){const a=bounds[i],b=bounds[j];expect(a.right<=b.x||b.right<=a.x||a.bottom<=b.y||b.bottom<=a.y,`${a.id} overlaps ${b.id}`).toBe(true)}
+ }
+});

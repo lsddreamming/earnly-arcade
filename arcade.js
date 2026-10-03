@@ -2147,7 +2147,7 @@ const Arcade = (() => {
 
     try {
       if (!audioContext) audioContext = new AudioCtx();
-      if (audioContext.state === 'suspended') audioContext.resume();
+      if (audioContext.state === 'suspended') Promise.resolve(audioContext.resume()).catch(() => {});
       return audioContext;
     } catch {
       return null;
@@ -3887,6 +3887,7 @@ const Arcade = (() => {
       if (event.type !== 'keydown' && (target === button || button.contains(target))) return;
       if (target?.closest('a,.bottom-nav,.desktop-nav,.modal-backdrop,.game-result-dialog')) return;
       if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Escape')) return;
+      if (options.allowWhilePaused?.(event)) return;
       if (options.resumeOnInput?.(event)) {
         resumePaused();
         return;
