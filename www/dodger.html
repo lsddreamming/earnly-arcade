@@ -211,7 +211,7 @@
     let bestStyle=Math.max(0,Number(localStorage.getItem('arcadeDodgerStyleBest'))||0);
     let bestNear=Math.max(0,Number(localStorage.getItem('arcadeDodgerNearBest'))||0);
     let bestLevel=Math.max(1,Math.min(999,Math.floor(Number(localStorage.getItem('arcadeDodgerTopLevel')))||1));
-    let levelNoticeUntil=0,roadOffset=0,visualParticles=[],lastWhooshAt=-1000,audioEndTimer=0;
+    let levelNoticeUntil=0,roadOffset=0,visualParticles=[],lastWhooshAt=-1000,audioEndTimer=0,steeringLean=0,tireTrails=[];
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
     const soundButton=document.getElementById('soundButton');
     function soundControl(){const on=Arcade.soundEnabled();soundButton.textContent=on?'♫ On':'♫ Off';soundButton.setAttribute('aria-pressed',String(on));soundButton.setAttribute('aria-label',on?'Mute sound effects':'Enable sound effects');}
@@ -267,21 +267,33 @@
       ctx.save();
 
       const radius=6;
+      if(isPlayer&&!reducedMotion.matches){ctx.translate(x+w/2,y+h/2);ctx.rotate(steeringLean*.035);ctx.translate(-x-w/2,-y-h/2);}
+      // Ground shadow separates the body from its light, with a soft forward beam.
+      ctx.fillStyle='#02071299';ctx.beginPath();ctx.ellipse(x+w/2,y+h*.6,w*.64,h*.48,0,0,Math.PI*2);ctx.fill();
+      const beam=ctx.createLinearGradient(0,y-h*.7,0,y+4);beam.addColorStop(0,'#a5edff00');beam.addColorStop(1,isPlayer?'#b6f5ff24':'#b6f5ff0e');ctx.fillStyle=beam;
+      ctx.beginPath();ctx.moveTo(x+w*.13,y+4);ctx.lineTo(x-w*.18,y-h*.7);ctx.lineTo(x+w*1.18,y-h*.7);ctx.lineTo(x+w*.87,y+4);ctx.fill();
       ctx.shadowColor=color;ctx.shadowBlur=isPlayer?9:5;
       // Top-down sports-car silhouette, aligned with the road.
       const paint=ctx.createLinearGradient(x,y,x+w,y);
-      paint.addColorStop(0,color);paint.addColorStop(.45,'#e3faff');paint.addColorStop(.58,color);paint.addColorStop(1,color);
+      paint.addColorStop(0,'#172638');paint.addColorStop(.16,color);paint.addColorStop(.46,color);paint.addColorStop(.52,'#d7f4ff');paint.addColorStop(.59,color);paint.addColorStop(.84,color);paint.addColorStop(1,'#172638');
       ctx.fillStyle=paint;
       ctx.beginPath();ctx.moveTo(x+w*.2,y);ctx.lineTo(x+w*.8,y);
       ctx.quadraticCurveTo(x+w*.94,y+h*.08,x+w,y+h*.3);
       ctx.lineTo(x+w,y+h*.82);ctx.quadraticCurveTo(x+w,y+h,x+w*.78,y+h);
       ctx.lineTo(x+w*.22,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h*.82);
       ctx.lineTo(x,y+h*.3);ctx.quadraticCurveTo(x+w*.06,y+h*.08,x+w*.2,y);ctx.fill();
-      ctx.shadowBlur=0;
+      ctx.shadowBlur=0;ctx.strokeStyle='#e1faff70';ctx.lineWidth=.7;ctx.stroke();
       ctx.fillStyle='#061625';ctx.beginPath();ctx.roundRect(x+w*.16,y+h*.3,w*.68,h*.32,4);ctx.fill();
-      ctx.fillStyle='#5c91ac';ctx.beginPath();ctx.roundRect(x+w*.2,y+h*.31,w*.6,h*.12,2);ctx.fill();
+      const glass=ctx.createLinearGradient(0,y+h*.3,0,y+h*.46);glass.addColorStop(0,'#a8d8eb');glass.addColorStop(1,'#1d425c');
+      ctx.fillStyle=glass;ctx.beginPath();ctx.roundRect(x+w*.2,y+h*.31,w*.6,h*.13,2);ctx.fill();
+      ctx.strokeStyle='#d3faff88';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x+w*.25,y+h*.32);ctx.lineTo(x+w*.62,y+h*.32);ctx.stroke();
       ctx.fillStyle=color;ctx.fillRect(x+w*.25,y+h*.47,w*.5,h*.13);
-      ctx.fillStyle='#061625';ctx.fillRect(x+w*.18,y+h*.7,w*.64,h*.08);
+      ctx.fillStyle='#122e46';ctx.beginPath();ctx.roundRect(x+w*.21,y+h*.65,w*.58,h*.12,2);ctx.fill();
+      // Hood vents, mirrors and a rear spoiler give cars readable detail at phone size.
+      ctx.fillStyle='#061625aa';for(const side of [.23,.65])ctx.fillRect(x+w*side,y+h*.19,w*.12,h*.075);
+      ctx.fillStyle=color;ctx.fillRect(x-3,y+h*.39,4,4);ctx.fillRect(x+w-1,y+h*.39,4,4);
+      ctx.fillStyle='#061625';ctx.beginPath();ctx.roundRect(x+w*.1,y+h*.82,w*.8,3,1);ctx.fill();
+      ctx.strokeStyle='#c9f8ff60';ctx.beginPath();ctx.moveTo(x+w*.12,y+h*.81);ctx.lineTo(x+w*.88,y+h*.81);ctx.stroke();
       ctx.fillStyle='#020617';
       for(const side of [x-2,x+w-3])for(const axle of [.23,.73])ctx.fillRect(side,y+h*axle,5,h*.16);
       ctx.fillStyle='#e4ffff';ctx.fillRect(x+w*.17,y+h*.08,w*.2,3);ctx.fillRect(x+w*.63,y+h*.08,w*.2,3);
@@ -300,6 +312,13 @@
       gradient.addColorStop(1,'#102342');
       ctx.fillStyle=gradient;
       ctx.fillRect(0,0,canvas.width,canvas.height);
+      // A restrained asphalt texture and shoulder posts imply motion without covering gaps.
+      ctx.fillStyle='#b6e8ff05';
+      for(let row=0;row<22;row++){const y=(row*27+roadOffset*.65)%canvas.height;for(let col=0;col<8;col++)ctx.fillRect(22+col*39+(row%3)*5,y,8,1);}
+      for(let y=-80+(roadOffset%88);y<canvas.height;y+=88){
+        ctx.fillStyle='#08283b';ctx.fillRect(2,y,5,28);ctx.fillRect(canvas.width-7,y,5,28);
+        ctx.fillStyle='#77eaff88';ctx.fillRect(3,y,3,7);ctx.fillRect(canvas.width-6,y,3,7);
+      }
 
       // Calm road treatment: broad lane zones and continuous, low-contrast
       // separators instead of repeated dashed marks.
@@ -349,6 +368,7 @@
       ctx.fillStyle=focus;
       ctx.fillRect(Math.max(0,player.x-66),Math.max(0,player.y-66),player.w+132,player.h+132);
 
+      for(const trail of tireTrails){ctx.globalAlpha=Math.max(0,trail.life*.25);ctx.fillStyle='#5cc7e2';ctx.fillRect(trail.x,trail.y,2,7);ctx.fillRect(trail.x+player.w-8,trail.y,2,7);}ctx.globalAlpha=1;
       if(running&&!reducedMotion.matches){ctx.fillStyle='#67e8f92b';ctx.fillRect(player.x+5,player.y+player.h+3,4,12);ctx.fillRect(player.x+player.w-9,player.y+player.h+3,4,12);}
       drawNeonCar(player.x,player.y,player.w,player.h,bestNear>=8?'#d9a1ff':DodgerProgression.carColor(bestLevel),true);
       obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
@@ -459,6 +479,8 @@
       lastFrame=now;
       const visualDt=frameScale*16.667/1000;
       if(!reducedMotion.matches){roadOffset+=trafficSpeedFor(seconds)*frameScale;for(const p of visualParticles){p.life-=visualDt;p.x+=p.vx*visualDt;p.y+=p.vy*visualDt;}visualParticles=visualParticles.filter(p=>p.life>0).slice(-40);}else visualParticles=[];
+      steeringLean*=Math.exp(-visualDt*9);
+      if(!reducedMotion.matches){for(const trail of tireTrails){trail.life-=visualDt;trail.y+=trafficSpeedFor(seconds)*frameScale*.6;}tireTrails=tireTrails.filter(t=>t.life>0).slice(-24);if(Math.abs(steeringLean)>.2)tireTrails.push({x:player.x+3,y:player.y+player.h,life:.35});}else{steeringLean=0;tireTrails=[];}
       DodgerAudio.drive(dragging ? .32 : 0);
       obstacles.forEach(o=>{o.previousY=o.y;o.y+=o.speed*frameScale;});
 
@@ -558,7 +580,8 @@
     }
 
     function setPlayerX(x){
-      player.x=Math.max(0,Math.min(canvas.width-player.w,x));
+      const next=Math.max(0,Math.min(canvas.width-player.w,x));
+      steeringLean=Math.max(-1,Math.min(1,(next-player.x)/12));player.x=next;
     }
 
     let dragging = false;
@@ -643,8 +666,8 @@
 
     document.addEventListener('keydown',event=>{
       if(!running || document.body.classList.contains('earnly-game-paused') || Arcade.isProtectedGameControlTarget(event.target)) return;
-      if(event.key==='ArrowLeft' || event.key==='a' || event.key==='A'){event.preventDefault();player.x=Math.max(0,player.x-24);}
-      if(event.key==='ArrowRight' || event.key==='d' || event.key==='D'){event.preventDefault();player.x=Math.min(canvas.width-player.w,player.x+24);}
+      if(event.key==='ArrowLeft' || event.key==='a' || event.key==='A'){event.preventDefault();setPlayerX(player.x-24);}
+      if(event.key==='ArrowRight' || event.key==='d' || event.key==='D'){event.preventDefault();setPlayerX(player.x+24);}
     });
 
     function clearDragState(){
@@ -668,7 +691,7 @@
         Arcade.out('dodger',refreshChrome);
         return;
       }
-      clearTimeout(audioEndTimer);DodgerAudio.stop();DodgerAudio.unlock().then(ok=>{if(ok&&starting&&!document.hidden)DodgerAudio.effect('start');});roadOffset=0;visualParticles=[];lastWhooshAt=-1000;
+      clearTimeout(audioEndTimer);DodgerAudio.stop();DodgerAudio.unlock().then(ok=>{if(ok&&starting&&!document.hidden)DodgerAudio.effect('start');});roadOffset=0;visualParticles=[];lastWhooshAt=-1000;steeringLean=0;tireTrails=[];
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       cancelAnimationFrame(animation);
