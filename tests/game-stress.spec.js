@@ -152,7 +152,7 @@ test('Neon Dodger: 50,000 endurance waves keep a timed escape',()=>{
       if(shift===2) farShifts++;
       const validShift=shift===1||shift===2;
       const validGap=lastOpenLane>=0&&lastOpenLane<3&&blocked.length===2&&!blocked.includes(lastOpenLane);
-      const validWidth=stage.blockWidth>=72&&stage.blockWidth<=90;
+      const validWidth=stage.blockWidth>=48&&stage.blockWidth<=52;
       if(!problem&&(!validShift||!validGap||!validWidth)){
         problem={i,seconds,previousOpen,lastOpenLane,shift,blocked,blockWidth:stage.blockWidth};
       }

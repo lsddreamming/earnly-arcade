@@ -169,7 +169,7 @@ test('Neon Dodger runs until collision with fair triple-shift traffic', () => {
   expect(source).toContain('const paired=Math.random()<stage.pairChance;');
   expect(source).toContain('Math.random()<stage.farShiftChance');
   expect(source).toContain('lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];');
-  expect(source).toContain('const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;');
+  expect(source).toContain('const followUpY=-86-stage.speed*stage.followUpGapMs/16.667;');
   expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth');
   expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==thirdOpen),thirdY,stage.blockWidth');
   expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
@@ -188,7 +188,7 @@ test('Neon Dodger keeps live play focused and result timing consistent', () => {
 
   expect(source).toContain('body.dodger-page.game-active #arcadeBottomNav{display:none!important}');
   expect(source).toContain('body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{display:none!important}');
-  expect(source).toContain("extra:['⏱️ Time played: '+seconds+'s'");
+  expect(source).toContain("'⏱️ Time played: '+seconds+'s'");
   expect(source).not.toContain("Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000)");
 });
 

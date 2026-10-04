@@ -1261,7 +1261,7 @@ test('Neon Dodger later districts make four readable lane changes', async ({ pag
       obstacles = [];
       const extraDelay = spawn(performance.now());
       return { extraDelay, rows: [...new Set(obstacles.map(car => car.y))].map(y =>
-        obstacles.filter(car => car.y === y).map(car => Math.round((car.x + car.w / 2) / 110 - .5))
+        obstacles.filter(car => car.y === y).map(car => Math.floor((car.x + car.w / 2) / 110))
       ) };
     } finally {
       Math.random = originalRandom;

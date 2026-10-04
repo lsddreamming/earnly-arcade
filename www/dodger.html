@@ -114,6 +114,7 @@
       body.dodger-page.game-active main.container{padding-bottom:max(18px,env(safe-area-inset-bottom))!important}
     }
 
+    body.dodger-page.game-active .game-guide-overlay{display:none!important}
     body.dodger-page .game-guide-surface-wrap{display:flex;justify-content:center}
     .dodger-level{width:min(92vw,365px);margin:8px auto 4px;padding:8px 10px;background:#10243b;border:1px solid #296076;border-radius:12px;font-size:11px;display:grid;grid-template-columns:1fr auto;gap:5px;color:#98fbff;box-sizing:border-box}
     .dodger-level strong{font-size:11px}.dodger-level small{grid-column:1/-1;color:#b6cadd;font-size:10px}
@@ -143,7 +144,7 @@
       </div>
       <div class="game-meta">
         <span class="meta-pill">Time: <span id="time">0</span>s</span>
-        <span class="meta-pill">Dodged: <span id="dodged">0</span></span>
+        <span class="meta-pill">Score: <span id="dodged">0</span></span>
         <span class="meta-pill">Run: <span id="rewardPreview">0</span> 🪙 · <span id="xpPreview">+10</span> XP</span>
         <span class="meta-pill"><span id="plays">0</span> <span id="playsLabel">plays left</span></span>
       </div>
@@ -178,7 +179,7 @@
       steps:[
         { icon:'👆', title:'Start', text:'Tap the road' },
         { icon:'↔️', title:'Control', text:'Drag left or right' },
-        { icon:'🏁', title:'Goal', text:'Clear a district every 20 seconds' }
+        { icon:'🏁', title:'Goal', text:'Chain close passes. Beat your score.' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
@@ -186,13 +187,13 @@
       replayTitle:'Tap to Play Again',
       tips:[
         'Keep your car away from every falling obstacle. One collision ends the run.',
-        'Clear 20 seconds to reach the next district. Each level has faster traffic and more chained lane changes. Reach Level 3 for a cyan car and Level 5 for gold.',
+        'Pass close to traffic for bonus points. Chain passes within 5 seconds for up to ×5. Eight close passes in one run unlock violet. Clear 20 seconds to reach the next district. Each level has faster traffic and more chained lane changes. Reach Level 3 for a cyan car and Level 5 for gold.',
         'On a computer, use ← → or A / D. Press Enter or Space to start a run.'
       ],
       reward:'Survival time and obstacles dodged earn up to 20 Coins.'
     });
 
-    const player={x:140,y:445,w:50,h:24};
+    const player={x:149,y:425,w:32,h:54};
     let obstacles=[];
     let running=false;
     let starting=false;
@@ -206,13 +207,16 @@
     let lastSecondShown=-1;
     let lastOpenLane=1;
     let runLevel=1;
+    let styleScore=0,nearPasses=0,combo=0,bestCombo=0,lastNearSecond=-100,nearNoticeUntil=0;
+    let bestStyle=Math.max(0,Number(localStorage.getItem('arcadeDodgerStyleBest'))||0);
+    let bestNear=Math.max(0,Number(localStorage.getItem('arcadeDodgerNearBest'))||0);
     let bestLevel=Math.max(1,Math.min(999,Math.floor(Number(localStorage.getItem('arcadeDodgerTopLevel')))||1));
     let levelNoticeUntil=0,roadOffset=0,visualParticles=[],lastWhooshAt=-1000,audioEndTimer=0;
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
     const soundButton=document.getElementById('soundButton');
     function soundControl(){const on=Arcade.soundEnabled();soundButton.textContent=on?'♫ On':'♫ Off';soundButton.setAttribute('aria-pressed',String(on));soundButton.setAttribute('aria-label',on?'Mute sound effects':'Enable sound effects');}
     soundButton.addEventListener('click',()=>{localStorage.setItem('arcadeSound',Arcade.soundEnabled()?'off':'on');if(Arcade.soundEnabled()&&!pauseStartedAt)DodgerAudio.unlock();else DodgerAudio.suspend();soundControl();});
-    function nearEffect(o,now){if(now-lastWhooshAt<140)return;lastWhooshAt=now;DodgerAudio.effect('near',1);if(!reducedMotion.matches)for(let i=0;i<8;i++)visualParticles.push({x:player.x+(i%2?player.w:0),y:player.y+player.h/2,vx:(i%2?1:-1)*(18+i*5),vy:35+i*9,life:.38});}
+    function nearEffect(o,now){if(now-lastWhooshAt<140)return;lastWhooshAt=now;const seconds=(now-startTime)/1000;combo=seconds-lastNearSecond<=5?Math.min(5,combo+1):1;lastNearSecond=seconds;bestCombo=Math.max(bestCombo,combo);nearPasses++;styleScore+=100*combo;nearNoticeUntil=seconds+1.4;DodgerAudio.effect('near',combo);updateStyle(seconds);if(!reducedMotion.matches)for(let i=0;i<8;i++)visualParticles.push({x:player.x+(i%2?player.w:0),y:player.y+player.h/2,vx:(i%2?1:-1)*(18+i*5),vy:35+i*9,life:.38});}
 
     function updateLevel(seconds){
       const p=DodgerProgression.progress(seconds);
@@ -221,7 +225,15 @@
       document.getElementById('levelGoal').textContent='LEVEL '+p.level+' · '+p.label;
       document.getElementById('levelTarget').textContent=Math.ceil(p.remaining)+'s to Level '+(p.level+1);
       document.getElementById('levelProgress').style.width=(p.fraction*100)+'%';
-      document.getElementById('levelCareer').textContent='Best: Level '+bestLevel+' · '+(bestLevel>=5?'Gold car unlocked':bestLevel>=3?'Reach Level 5 · gold car':p.nextUnlock);
+      updateStyle(seconds);
+    }
+
+    function updateStyle(seconds){
+      dodgedEl.textContent=styleScore.toLocaleString();
+      const target=bestNear>=8?Math.max(10,bestNear+1):8;
+      document.getElementById('levelCareer').textContent=seconds<nearNoticeUntil
+        ?'CLOSE PASS! ×'+combo+' · +'+(100*combo)+' points'
+        :'Best: Level '+bestLevel+' · Score '+bestStyle.toLocaleString()+' · Close passes '+nearPasses+'/'+target+(bestNear<8?' · unlock violet':'');
     }
 
     function rewardFor(seconds,dodgedCount){
@@ -254,60 +266,27 @@
     function drawNeonCar(x,y,w,h,color,isPlayer=false){
       ctx.save();
 
-      const radius=Math.min(8,h*.32);
-      ctx.shadowColor=color;
-      ctx.shadowBlur=isPlayer?17:12;
-
-      // Main body with tapered nose/rear so obstacles read as cars, not pills.
-      ctx.fillStyle=color;
-      ctx.beginPath();
-      ctx.moveTo(x+radius,y);
-      ctx.lineTo(x+w-radius,y);
-      ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
-      ctx.lineTo(x+w,y+h-radius);
-      ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
-      ctx.lineTo(x+radius,y+h);
-      ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
-      ctx.lineTo(x,y+radius);
-      ctx.quadraticCurveTo(x,y,x+radius,y);
-      ctx.closePath();
-      ctx.fill();
-
+      const radius=6;
+      ctx.shadowColor=color;ctx.shadowBlur=isPlayer?9:5;
+      // Top-down sports-car silhouette, aligned with the road.
+      const paint=ctx.createLinearGradient(x,y,x+w,y);
+      paint.addColorStop(0,color);paint.addColorStop(.45,'#e3faff');paint.addColorStop(.58,color);paint.addColorStop(1,color);
+      ctx.fillStyle=paint;
+      ctx.beginPath();ctx.moveTo(x+w*.2,y);ctx.lineTo(x+w*.8,y);
+      ctx.quadraticCurveTo(x+w*.94,y+h*.08,x+w,y+h*.3);
+      ctx.lineTo(x+w,y+h*.82);ctx.quadraticCurveTo(x+w,y+h,x+w*.78,y+h);
+      ctx.lineTo(x+w*.22,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h*.82);
+      ctx.lineTo(x,y+h*.3);ctx.quadraticCurveTo(x+w*.06,y+h*.08,x+w*.2,y);ctx.fill();
       ctx.shadowBlur=0;
-
-      // Dark windshield/cabin.
-      ctx.fillStyle='rgba(3,12,22,.76)';
-      ctx.beginPath();
-      ctx.roundRect(x+w*.23,y+h*.18,w*.54,h*.34,Math.max(2,radius*.45));
-      ctx.fill();
-
-      ctx.fillStyle='rgba(230,255,255,.5)';ctx.fillRect(x+w*.13,y+h*.55,w*.74,1);
-      ctx.fillStyle='rgba(230,255,255,.2)';ctx.fillRect(x+w*.08,y+h*.28,w*.08,h*.25);
-      // Wheels.
+      ctx.fillStyle='#061625';ctx.beginPath();ctx.roundRect(x+w*.16,y+h*.3,w*.68,h*.32,4);ctx.fill();
+      ctx.fillStyle='#5c91ac';ctx.beginPath();ctx.roundRect(x+w*.2,y+h*.31,w*.6,h*.12,2);ctx.fill();
+      ctx.fillStyle=color;ctx.fillRect(x+w*.25,y+h*.47,w*.5,h*.13);
+      ctx.fillStyle='#061625';ctx.fillRect(x+w*.18,y+h*.7,w*.64,h*.08);
       ctx.fillStyle='#020617';
-      const wheelW=Math.max(3,w*.08);
-      const wheelH=Math.max(5,h*.27);
-      ctx.fillRect(x-wheelW*.35,y+h*.18,wheelW,wheelH);
-      ctx.fillRect(x+w-wheelW*.65,y+h*.18,wheelW,wheelH);
-      ctx.fillRect(x-wheelW*.35,y+h*.58,wheelW,wheelH);
-      ctx.fillRect(x+w-wheelW*.65,y+h*.58,wheelW,wheelH);
-
-      // Lights make travel direction easy to read.
-      ctx.fillStyle=isPlayer?'#bbf7d0':'#fde68a';
-      ctx.fillRect(x+w*.12,y+h*.70,Math.max(4,w*.13),Math.max(2,h*.10));
-      ctx.fillRect(x+w*.75,y+h*.70,Math.max(4,w*.13),Math.max(2,h*.10));
-
-      ctx.fillStyle=isPlayer?'#86efac':'#fb7185';
-      ctx.fillRect(x+w*.12,y+h*.12,Math.max(4,w*.13),Math.max(2,h*.09));
-      ctx.fillRect(x+w*.75,y+h*.12,Math.max(4,w*.13),Math.max(2,h*.09));
-
-      if(isPlayer){
-        ctx.strokeStyle='rgba(220,252,231,.58)';
-        ctx.lineWidth=1;
-        ctx.beginPath();
-        ctx.roundRect(x+2,y+2,w-4,h-4,Math.max(3,radius-2));
-        ctx.stroke();
-      }
+      for(const side of [x-2,x+w-3])for(const axle of [.23,.73])ctx.fillRect(side,y+h*axle,5,h*.16);
+      ctx.fillStyle='#e4ffff';ctx.fillRect(x+w*.17,y+h*.08,w*.2,3);ctx.fillRect(x+w*.63,y+h*.08,w*.2,3);
+      ctx.fillStyle='#ff537a';ctx.fillRect(x+w*.15,y+h*.9,w*.22,3);ctx.fillRect(x+w*.63,y+h*.9,w*.22,3);
+      if(isPlayer){ctx.strokeStyle='#e0ffffaa';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x+3,y+4,w-6,h-8,radius);ctx.stroke();}
 
       ctx.restore();
     }
@@ -371,7 +350,7 @@
       ctx.fillRect(Math.max(0,player.x-66),Math.max(0,player.y-66),player.w+132,player.h+132);
 
       if(running&&!reducedMotion.matches){ctx.fillStyle='#67e8f92b';ctx.fillRect(player.x+5,player.y+player.h+3,4,12);ctx.fillRect(player.x+player.w-9,player.y+player.h+3,4,12);}
-      drawNeonCar(player.x,player.y,player.w,player.h,DodgerProgression.carColor(bestLevel),true);
+      drawNeonCar(player.x,player.y,player.w,player.h,bestNear>=8?'#d9a1ff':DodgerProgression.carColor(bestLevel),true);
       obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
       for(const p of visualParticles){ctx.globalAlpha=Math.max(0,p.life/.38);ctx.fillStyle='#a5ffff';ctx.fillRect(p.x,p.y,2,2);}ctx.globalAlpha=1;
     }
@@ -418,23 +397,23 @@
       function addTrafficRow(blocked, y, width, rowColor){
         blocked.forEach(lane=>{
           obstacles.push({
-            x:lane*laneWidth+(laneWidth-width)/2,
+            x:lane*laneWidth+(laneWidth-width)/2+(Math.random()-.5)*40,
             y,
             w:width,
-            h:28,
+            h:62+Math.floor(Math.random()*3)*8,
             speed:trafficSpeedFor(seconds),
             color:rowColor
           });
         });
       }
-      addTrafficRow(lanes,-32,paired?stage.blockWidth:52,color);
+      addTrafficRow(lanes,-86,paired?stage.blockWidth:42,color);
       if(paired && Math.random()<stage.followUpChance){
         // The second row trails the first by 360–420 ms at the same speed.
         // Its safe lane is adjacent, so the player can clear row one and
         // move one lane before row two arrives; never demand a blind jump.
         const firstOpen=lastOpenLane;
         const followUpOpen=firstOpen===1?(Math.random()<.5?0:2):1;
-        const followUpY=-32-stage.speed*stage.followUpGapMs/16.667;
+        const followUpY=-86-stage.speed*stage.followUpGapMs/16.667;
         addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth,'#e879f9');
         lastOpenLane=followUpOpen;
         if(Math.random()<(stage.thirdRowChance||0)){
@@ -481,7 +460,7 @@
       const visualDt=frameScale*16.667/1000;
       if(!reducedMotion.matches){roadOffset+=trafficSpeedFor(seconds)*frameScale;for(const p of visualParticles){p.life-=visualDt;p.x+=p.vx*visualDt;p.y+=p.vy*visualDt;}visualParticles=visualParticles.filter(p=>p.life>0).slice(-40);}else visualParticles=[];
       DodgerAudio.drive(dragging ? .32 : 0);
-      obstacles.forEach(o=>o.y+=o.speed*frameScale);
+      obstacles.forEach(o=>{o.previousY=o.y;o.y+=o.speed*frameScale;});
 
       const survivors=[];
       const hitPlayer={
@@ -493,18 +472,20 @@
       for(const o of obstacles){
         const hitObstacle={
           x:o.x+4,
-          y:o.y+3,
+          y:Math.min(o.y,o.previousY)+3,
           w:Math.max(1,o.w-8),
-          h:Math.max(1,o.h-6)
+          h:Math.max(1,o.h-6+o.y-o.previousY)
         };
         if(intersects(hitPlayer,hitObstacle)){
           finishGame(seconds);
           return;
         }
-        if(!o.nearPlayed&&o.y>player.y+player.h){o.nearPlayed=true;const gap=Math.max(o.x-(player.x+player.w),player.x-(o.x+o.w));if(gap>=-4&&gap<28)nearEffect(o,now);}
+        // Record the closest gap while alongside, never after steering toward a departed car.
+        if(o.y+o.h>player.y&&o.previousY<player.y+player.h){const gap=Math.max(o.x-(player.x+player.w),player.x-(o.x+o.w));if(gap>=0)o.nearGap=Math.min(o.nearGap??Infinity,gap);}
+        if(!o.nearPlayed&&o.y>player.y+player.h){o.nearPlayed=true;if(o.nearGap<=18)nearEffect(o,now);}
         if(o.y>canvas.height){
           dodged+=1;
-          dodgedEl.textContent=dodged;
+          styleScore+=10;updateStyle(elapsed/1000);
 
         }else{
           survivors.push(o);
@@ -512,6 +493,7 @@
       }
       obstacles=survivors;
 
+      if(combo&&(elapsed/1000-lastNearSecond)>5){combo=0;updateStyle(elapsed/1000);}
       if(seconds!==lastSecondShown){
         lastSecondShown=seconds;
         timeEl.textContent=seconds;
@@ -537,7 +519,7 @@
 
       const earned=rewardFor(seconds,dodged);
       timeEl.textContent=seconds;
-      dodgedEl.textContent=dodged;
+      bestStyle=Math.max(bestStyle,styleScore);bestNear=Math.max(bestNear,nearPasses);localStorage.setItem('arcadeDodgerStyleBest',String(bestStyle));localStorage.setItem('arcadeDodgerNearBest',String(bestNear));updateStyle(seconds);
       rewardPreviewEl.textContent=earned;
       Arcade.earn(earned,'Neon Dodger', { kind:'game', game:'dodger', metric:seconds, aux:dodged });
       DodgerAudio.stop();DodgerAudio.effect('crash');clearTimeout(audioEndTimer);audioEndTimer=setTimeout(()=>{if(!running&&!starting)DodgerAudio.suspend();},700);
@@ -563,7 +545,7 @@
         playsLeft:Arcade.remaining('dodger'),
         game:'dodger',
         badgeText:'🏁 LEVEL '+runLevel,
-        extra:['⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged,'🏁 Level reached: '+runLevel+' · Best: '+bestLevel,'Next goal: Level '+(runLevel+1)+' at '+(runLevel*20)+'s'],
+        extra:['Style score: '+styleScore.toLocaleString()+' · Best: '+bestStyle.toLocaleString(),'Close passes: '+nearPasses+' · Best combo: ×'+bestCombo,(bestNear>=8?'Violet car unlocked':'Unlock violet: 8 close passes in one run'),'⏱️ Time played: '+seconds+'s','🚧 Obstacles dodged: ' + dodged,'🏁 Level reached: '+runLevel+' · Best: '+bestLevel,'Next goal: Level '+(runLevel+1)+' at '+(runLevel*20)+'s'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('dodger',refreshChrome)
       });
@@ -698,7 +680,7 @@
       startTime=0;
       lastSpawn=0;
       nextSpawnAt=0;
-      dodged=0;
+      dodged=0;styleScore=0;nearPasses=0;combo=0;bestCombo=0;lastNearSecond=-100;nearNoticeUntil=0;
       lastSecondShown=-1;
       lastOpenLane=1;
       runLevel=1;levelNoticeUntil=0;updateLevel(0);
