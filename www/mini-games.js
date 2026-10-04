@@ -1,9 +1,10 @@
 (() => {
   const params = new URLSearchParams(location.search);
-  const key = params.get('game') || 'blockGrid';
+  const requested = params.get('game');
+  if (!requested || requested === 'blockGrid') { location.replace('neondrift.html'); return; }
+  const key = ['mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'].includes(requested) ? requested : 'mergeRush';
 
   const configs = {
-    blockGrid:{icon:'🧩',name:'Block Grid',scoreLabel:'Score',secondaryLabel:'Lines',help:'Pick a piece, then tap a glowing green square. Full rows and columns disappear.',reward:v=>Math.min(25,Math.floor(v/40)+(v>=250?3:0)+(v>=500?5:0))},
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
@@ -12,7 +13,7 @@
     trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap only cars with a clear arrow path. Every cleared road raises density and tightens the timer. Three crashes ends the run.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
   };
 
-  const config = configs[key] || configs.blockGrid;
+  const config = configs[key] || configs.mergeRush;
   const surface = document.getElementById('surface');
   const scoreEl = document.getElementById('score');
   const secondaryEl = document.getElementById('secondary');
@@ -32,7 +33,6 @@
   document.getElementById('secondaryLabel').textContent = config.secondaryLabel;
   helpEl.textContent = config.help;
   document.body.classList.toggle('mini-traffic', key === 'trafficEscape');
-  document.body.classList.toggle('mini-blockGrid', key === 'blockGrid');
   document.body.classList.toggle('mini-mergeRush', key === 'mergeRush');
   document.body.classList.toggle('mini-perfectDrop', key === 'perfectDrop');
   document.body.classList.toggle('mini-spiralDrop', key === 'spiralDrop');
@@ -141,12 +141,6 @@
     });
   }
 
-  const PIECES = [
-    [[0,0]], [[0,0],[1,0]], [[0,0],[0,1]], [[0,0],[1,0],[2,0]],
-    [[0,0],[0,1],[0,2]], [[0,0],[1,0],[0,1]], [[0,0],[1,0],[1,1]],
-    [[0,0],[0,1],[1,1]], [[0,0],[1,0],[0,1],[1,1]]
-  ];
-
   function pauseAwareDelay(callback, delay=0) {
     let remaining=Math.max(0,delay);
     let lastChecked=performance.now();
@@ -170,182 +164,6 @@
       setTimeout(wait,Math.min(80,Math.max(16,remaining)));
     };
     setTimeout(wait,Math.min(80,Math.max(0,remaining)));
-  }
-
-  function makeBlockGrid() {
-    let board, tray, selected, score, lines, piecesPlaced, alive, inputLocked=false, celebrated100, celebrated250, lastLineMilestone, lastClear=0,lastPlaced=[];
-    const wrap = document.createElement('div');
-    const grid = document.createElement('div');
-    const trayEl = document.createElement('div');
-    const progressEl = document.createElement('div');
-    grid.className = 'mini-grid';
-    grid.style.gridTemplateColumns = 'repeat(8,1fr)';
-    trayEl.className = 'piece-tray';
-    const guide=document.createElement('div');guide.className='mini-guide';guide.innerHTML='<strong>🧩 Pick a piece → tap a glowing green square</strong><span>Green squares are legal placements. Fill a full row or column to clear it.</span>';progressEl.className='block-grid-progress';wrap.append(guide,progressEl,grid,trayEl);
-    surface.replaceChildren(wrap);
-
-    const randomPiece = () => PIECES[Math.floor(Math.random() * PIECES.length)].map(p => [...p]);
-
-    function canPlace(piece, x, y) {
-      return piece.every(([dx,dy]) => x+dx < 8 && y+dy < 8 && !board[y+dy][x+dx]);
-    }
-
-    function pieceCanFit(piece) {
-      if (!piece) return false;
-      for (let y=0;y<8;y++) for (let x=0;x<8;x++) if (canPlace(piece,x,y)) return true;
-      return false;
-    }
-
-    function anyMove() {
-      return tray.some(pieceCanFit);
-    }
-
-    function selectNextPiece() {
-      const next=tray.findIndex(pieceCanFit);
-      const fallback=tray.findIndex(Boolean);
-      selected=next>=0?next:(fallback>=0?fallback:0);
-    }
-
-    function refillTray() {
-      tray=[randomPiece(),randomPiece(),randomPiece()];
-      // If the board still has a legal move, always offer at least one fitting
-      // piece so a random tray cannot end a run unfairly.
-      if (!tray.some(pieceCanFit)) {
-        const fitting=PIECES.filter(pieceCanFit);
-        if (fitting.length) tray[0]=fitting[Math.floor(Math.random()*fitting.length)].map(p=>[...p]);
-      }
-      selectNextPiece();
-      Arcade.feedback('score');
-    }
-
-    function clearLines() {
-      const rows=[], cols=[];
-      for (let y=0;y<8;y++) if (board[y].every(Boolean)) rows.push(y);
-      for (let x=0;x<8;x++) if (board.every(row => row[x])) cols.push(x);
-      rows.forEach(y => board[y].fill(0));
-      cols.forEach(x => board.forEach(row => row[x]=0));
-      const count = rows.length + cols.length;
-      lastClear=count;
-      if (count) {
-        lines += count;
-        score += count * 25;
-        Arcade.feedback(count > 1 ? 'perfect' : 'score');
-      }
-    }
-
-    function render() {
-      if (tray[selected] && !pieceCanFit(tray[selected])) selectNextPiece();
-      const selectedPiece=tray[selected];
-      const legalStarts=new Set();
-      if(selectedPiece){
-        for(let y=0;y<8;y++)for(let x=0;x<8;x++)if(canPlace(selectedPiece,x,y))legalStarts.add(x+','+y);
-      }
-      const occupied=board.flat().filter(Boolean).length;
-      const room=Math.max(0,64-occupied);
-      const stage=score<100?'Warm-up':score<250?'Grid Builder':score<500?'Combo Zone':'Grid Master';
-      progressEl.innerHTML='<span><strong>'+stage+'</strong><small>'+piecesPlaced+' pieces placed</small></span><span><strong>'+room+'</strong><small>open spaces</small></span>'+(lastClear?'<span class="block-grid-clear"><strong>+'+lastClear+'</strong><small>line'+(lastClear===1?'':'s')+' cleared</small></span>':'');
-      grid.replaceChildren();
-      for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
-        const cell = document.createElement('button');
-        cell.type='button';
-        const legalStart=legalStarts.has(x+','+y);
-        cell.className='mini-cell' + (board[y][x] ? ' filled' : '') + (legalStart ? ' valid-start' : '') + (lastPlaced.some(([px,py])=>px===x&&py===y) ? ' just-placed' : '');
-        cell.disabled=!alive;
-        cell.setAttribute('aria-label',legalStart?'Legal placement':'Board square');
-        cell.addEventListener('click',()=>place(x,y));
-        grid.append(cell);
-      }
-      trayEl.replaceChildren();
-      tray.forEach((piece,idx)=>{
-        const b=document.createElement('button');
-        b.type='button';
-        const fits=pieceCanFit(piece);
-        b.className='piece-button' + (piece && idx===selected ? ' selected' : '') + (!piece ? ' used' : '') + (piece && !fits ? ' no-fit' : '');
-        b.disabled=!alive || !piece;
-
-        const preview=document.createElement('span');
-        preview.className='piece-preview';
-        for(let py=0;py<4;py++)for(let px=0;px<4;px++){
-          const dot=document.createElement('span');
-          dot.className='piece-preview-cell' + (piece && piece.some(([dx,dy])=>dx===px&&dy===py) ? ' on' : '');
-          preview.append(dot);
-        }
-
-        const caption=document.createElement('small');
-        if(!piece){
-          b.setAttribute('aria-label','Piece already used');
-          caption.textContent='✓ USED';
-        }else{
-          b.setAttribute('aria-label',(idx===selected?'Selected ':'Select ') + piece.length + '-block piece' + (!fits ? ', no legal placement right now' : ''));
-          caption.textContent=!fits?'NO FIT':(idx===selected?'SELECTED':'TAP TO PICK');
-          b.addEventListener('click',()=>{
-            if(!alive || miniPaused || inputLocked || selected===idx)return;
-            if(!fits){Arcade.feedback('fail');return;}
-            selected=idx;Arcade.feedback('move');render();
-          });
-        }
-
-        b.append(preview,caption);
-        trayEl.append(b);
-      });
-      ui(score, lines);
-    }
-
-    function place(x,y) {
-      if (!alive || miniPaused || inputLocked)return;
-      if (!tray[selected] || !canPlace(tray[selected],x,y)) {
-        Arcade.feedback('fail');
-        return;
-      }
-      inputLocked=true;
-      const piece=tray[selected];
-      lastPlaced=piece.map(([dx,dy])=>[x+dx,y+dy]);piece.forEach(([dx,dy])=>board[y+dy][x+dx]=1);
-      score += piece.length * 3;
-      piecesPlaced++;
-      clearLines();
-      tray[selected]=null;
-
-      if (tray.every(piece=>!piece)) {
-        refillTray();
-      } else {
-        selectNextPiece();
-      }
-
-      render();
-      // Release on the next frame, after this physical tap/click has fully
-      // completed. This prevents rapid duplicate mobile events placing twice.
-      requestAnimationFrame(()=>{if(alive)inputLocked=false});
-      pauseAwareDelay(()=>{lastPlaced=[]},220);if(lastClear) pauseAwareDelay(()=>{if(alive){lastClear=0;render()}},650);
-      // Make progression visible without changing Block Grid's scoring or
-      // reward economy. Each milestone fires once per run.
-      // The placement/clear action already provides feedback. Track these
-      // milestones silently so one move never stacks extra effects on top.
-      if(score>=100&&!celebrated100)celebrated100=true;
-      if(score>=250&&!celebrated250)celebrated250=true;
-      const lineMark=Math.floor(lines/5)*5;
-      if(lineMark>=5&&lineMark>lastLineMilestone)lastLineMilestone=lineMark;
-      if (!anyMove()) {
-        alive=false;
-        finish(score,lines,['🧩 Lines cleared: '+lines,'🧱 Pieces placed: '+piecesPlaced,'⭐ Board score: '+score,'Save room for the pieces still in your tray.'],'Board Full');
-      }
-    }
-
-    return {
-      start() {
-        board=Array.from({length:8},()=>Array(8).fill(0));
-        tray=[randomPiece(),randomPiece(),randomPiece()];
-        selected=0;score=0;lines=0;piecesPlaced=0;lastClear=0;lastPlaced=[];inputLocked=false;alive=true;celebrated100=false;celebrated250=false;lastLineMilestone=0;
-        render();
-      },
-      adjustPauseTime(){inputLocked=false},
-      stop(){
-        alive=false;
-        inputLocked=false;
-        lastPlaced=[];
-        lastClear=0;
-        selected=0;
-      }
-    };
   }
 
   function makeMergeRush() {
@@ -2103,7 +1921,6 @@
   }
 
   const factories = {
-    blockGrid:makeBlockGrid,
     mergeRush:makeMergeRush,
     perfectDrop:makePerfectDrop,
     spiralDrop:makeSpiralDrop,
@@ -2129,7 +1946,7 @@
     finished=false;
     resultShowing=false;
     running=false;
-    ui(0,key==='blockGrid'?0:key==='mergeRush'?2:1);
+    ui(0,key==='mergeRush'?2:1);
     refreshChrome();
     setStatus('Get Ready');
     startButton.disabled=true;
@@ -2150,7 +1967,7 @@
         requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
       }
       startButton.textContent='Game Running';
-      engine=(factories[key]||makeBlockGrid)();
+      engine=(factories[key]||makeMergeRush)();
       engine.start();
     });
   }
@@ -2193,6 +2010,6 @@
   });
 
   showIdle();
-  ui(0,key==='blockGrid'?0:key==='mergeRush'?2:1);
+  ui(0,key==='mergeRush'?2:1);
   refreshChrome();
 })();

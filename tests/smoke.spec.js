@@ -236,7 +236,7 @@ for (const path of pages) {
   });
 }
 
-const miniGames = ['blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'];
+const miniGames = ['mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'];
 
 for (const game of miniGames) {
   test('mini game ' + game + ' renders and can start', async ({ page }) => {
@@ -487,7 +487,7 @@ test('all arcade games expose a consistent play balance', async ({ page }) => {
 
 
 test('result popup replaces an existing result instead of stacking dialogs', async ({ page }) => {
-  await page.goto('/mini.html?game=blockGrid');
+  await page.goto('/mini.html?game=mergeRush');
   await page.evaluate(() => {
     const base = {icon:'🧩', title:'Block Grid', scoreLabel:'Score', best:'10 points', coins:1, result:{xpAward:10}, playsLeft:2, game:'blockGrid'};
     Arcade.gameResult({...base, score:9, extra:['⏱️ Time played: 10s']});
@@ -600,7 +600,7 @@ test('pause control appears and toggles on mini games', async ({ page }) => {
 });
 
 test('shared bottom Quit exits a paused mini-game without showing results', async ({ page }) => {
-  await page.goto('/mini.html?game=blockGrid');
+  await page.goto('/mini.html?game=mergeRush');
   await startGame(page);
   const quit = page.locator('#earnlyQuitButton');
   await expect(quit).toBeVisible({ timeout:5000 });
@@ -1001,37 +1001,11 @@ test('Merge Rush web and iOS copies stay in sync', async ({ page }) => {
   expect(webHtml).toContain('body.mini-mergeRush.game-active #miniGameExit');
 });
 
-test('Block Grid highlights legal placements and keeps quit reachable', async ({ page }) => {
+test('retired Block Grid links redirect to Neon Drift without consuming a play', async ({ page }) => {
   await page.goto('/mini.html?game=blockGrid');
-  await expect(page.locator('#secondary')).toHaveText('0');
-  await startGame(page);
-  await page.waitForTimeout(2500);
-
-  await expect(page.locator('#gameStatus')).toHaveText('Running');
-  await expect(page.locator('.piece-button.selected')).toHaveCount(1);
-  expect(await page.locator('.mini-cell.valid-start').count()).toBeGreaterThan(0);
-  await expect(page.locator('#miniGameExit')).toBeVisible();
-  await expect(page.locator('#miniGameExit')).toHaveAttribute('href','games.html');
-  await expect(page.locator('#earnlyPauseButton')).toBeVisible();
-  if (page.viewportSize().width > 600) {
-    await expect(page.locator('.mini-guide')).toHaveCSS('display', 'grid');
-  }
-});
-
-test('Block Grid guards against unusable trays and syncs to iOS', async ({ page }) => {
-  const webJs = await (await page.request.get('/mini-games.js')).text();
-  const iosJs = await (await page.request.get('/www/mini-games.js')).text();
-  const webHtml = await (await page.request.get('/mini.html')).text();
-  const iosHtml = await (await page.request.get('/www/mini.html')).text();
-
-  expect(iosJs).toBe(webJs);
-  expect(iosHtml).toBe(webHtml);
-  expect(webJs).toContain('function pieceCanFit(piece)');
-  expect(webJs).toContain('const fitting=PIECES.filter(pieceCanFit)');
-  expect(webJs).toContain("legalStarts.add(x+','+y)");
-  expect(webJs).toContain("caption.textContent=!fits?'NO FIT'");
-  expect(webHtml).toContain('.mini-cell.valid-start:not(.filled)');
-  expect(webHtml).toContain('id="miniGameExit"');
+  await expect(page).toHaveURL(/neondrift.html/);
+  await expect(page.locator('#plays')).toHaveText('3');
+  await expect(page.locator('#gameStatus')).toHaveText('Ready');
 });
 
 test('Color Match teaches the rule and scores the actual ink color', async ({ page }) => {
@@ -2350,7 +2324,7 @@ test('Tap Rush zero-hit result gives accurate first-run feedback', async ({ page
 });
 
 test('Quit confirmation keeps a live run and preserves an already paused run', async ({page}) => {
-  await page.goto('/mini.html?game=blockGrid');
+  await page.goto('/mini.html?game=mergeRush');
   await startGame(page);
   const quit=page.locator('#earnlyQuitButton');
   const pause=page.locator('#earnlyPauseButton');

@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 async function tap(locator,page){await expect(locator).toBeVisible();await expect(locator).toBeInViewport();const b=await locator.boundingBox();await page.touchscreen.tap(b.x+b.width/2,b.y+b.height/2);}
-const games=['snake','blockdrop','brickbreaker','coincatch','colormatch','dodger','junglehopper','lanerunner','memory','paddlerally','safecracker','taprush','towerstack','neonmaze','stardefender'].map(x=>x+'.html').concat(['blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'].map(x=>'mini.html?game='+x));
+const games=['snake','blockdrop','brickbreaker','coincatch','colormatch','dodger','junglehopper','lanerunner','memory','paddlerally','safecracker','taprush','towerstack','neonmaze','stardefender','neondrift'].map(x=>x+'.html').concat(['mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'].map(x=>'mini.html?game='+x));
 for(const width of [320,390,440]) for(const game of games){
  test('iPhone '+width+' '+game+' repeated safe exits',async({page})=>{
   await page.setViewportSize({width,height:width===320?740:width===390?844:956});

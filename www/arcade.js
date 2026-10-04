@@ -44,7 +44,7 @@ const Arcade = (() => {
     paddleRally: 'Paddle Rally',
     laneRunner: 'Lane Runner',
     safeCracker: 'Safe Cracker',
-    blockGrid: 'Block Grid',
+    neonDrift: 'Neon Drift',
     mergeRush: 'Merge Rush',
     perfectDrop: 'Perfect Drop',
     spiralDrop: 'Spiral Drop',
@@ -89,7 +89,7 @@ const Arcade = (() => {
     paddleRally: { key: 'paddleRallyBest', label: 'rallies', lower: false },
     laneRunner: { key: 'laneRunnerBest', label: 'seconds', lower: false },
     safeCracker: { key: 'safeCrackerBest', label: 'locks', lower: false },
-    blockGrid: { key: 'blockGridBest', label: 'points', lower: false },
+    neonDrift: { key: 'neonDriftBest', label: 'points', lower: false },
     mergeRush: { key: 'mergeRushBest', label: 'points', lower: false },
     perfectDrop: { key: 'perfectDropBest', label: 'hits', lower: false },
     spiralDrop: { key: 'spiralDropBest', label: 'rows', lower: false },
@@ -147,7 +147,7 @@ const Arcade = (() => {
     { id:'paddleRally12', title:'🏓 Rally Time', description:'Return 12 balls in one Paddle Rally run', goal:12, reward:10, type:'score', game:'paddleRally' },
     { id:'laneRunner20', title:'🏎️ Highway Run', description:'Survive 20 seconds in Lane Runner', goal:20, reward:10, type:'score', game:'laneRunner' },
     { id:'safeCracker8', title:'🔐 Crack the Safe', description:'Crack 8 locks in one Safe Cracker run', goal:8, reward:10, type:'score', game:'safeCracker' },
-    { id:'blockGrid250', title:'🧩 Grid Builder', description:'Score 250 points in Block Grid', goal:250, reward:10, type:'score', game:'blockGrid' },
+    { id:'neonDrift750', title:'🏁 Midnight Driver', description:'Score 750 points in Neon Drift', goal:750, reward:10, type:'score', game:'neonDrift' },
     { id:'mergeRush800', title:'🔢 Merge Machine', description:'Score 800 points in Merge Rush', goal:800, reward:10, type:'score', game:'mergeRush' },
     { id:'perfectDrop10', title:'🎯 Drop Zone', description:'Land 10 hits in Perfect Drop', goal:10, reward:10, type:'score', game:'perfectDrop' },
     { id:'spiralDrop10', title:'🌀 Spiral Dive', description:'Pass 10 rows in Spiral Drop', goal:10, reward:10, type:'score', game:'spiralDrop' },
@@ -383,7 +383,8 @@ const Arcade = (() => {
     if (key.startsWith('weekly')) return true;
     if (key.startsWith('gameRuns_') || key.startsWith('gameMetricTotal_')) return true;
 
-    return Object.keys(names).some(game =>
+    // Retired games remain transferable without joining the active catalog.
+    return [...Object.keys(names), 'blockGrid'].some(game =>
       key === game + 'Best' ||
       key === game + 'BestLines' ||
       key === game + 'BestMoves' ||
@@ -1043,7 +1044,7 @@ const Arcade = (() => {
       level: xp.level,
       xp: xp.xp,
       gamesCompleted: number('gamesCompletedEver'),
-      differentGames: readArray('arcadeGamesEver').length,
+      differentGames: readArray('arcadeGamesEver').filter(game => names[game]).length,
       lifetimeCoins: number('lifetimePoints'),
       currentCoins: number('points'),
       achievements: achievement.unlocked,
@@ -1294,7 +1295,8 @@ const Arcade = (() => {
       { id:'paddleRally15', icon:'🏓', title:'Rally Pro', description:'Return the ball 15 times in Paddle Rally', unlocked:number('paddleRallyBest') >= 15 },
       { id:'laneRunner25', icon:'🏎️', title:'Road Runner', description:'Survive 25 seconds in Lane Runner', unlocked:number('laneRunnerBest') >= 25 },
       { id:'safeCracker10', icon:'🔐', title:'Safe Cracker', description:'Crack 10 locks in Safe Cracker', unlocked:number('safeCrackerBest') >= 10 },
-      { id:'blockGrid300', icon:'🧩', title:'Grid Master', description:'Score 300 points in Block Grid', unlocked:number('blockGridBest') >= 300 },
+      ...(number('blockGridBest') >= 300 ? [{ id:'blockGrid300', icon:'🧩', title:'Grid Master', description:'Legacy Block Grid achievement', unlocked:true }] : []),
+      { id:'neonDrift1500', icon:'🏁', title:'Midnight Ace', description:'Score 1,500 points in Neon Drift', unlocked:number('neonDriftBest') >= 1500 },
       { id:'mergeRush1024', icon:'🔢', title:'Merge Master', description:'Score 1,024 points in Merge Rush', unlocked:number('mergeRushBest') >= 1024 },
       { id:'perfectDrop12', icon:'🎯', title:'Dead Center', description:'Land 12 hits in Perfect Drop', unlocked:number('perfectDropBest') >= 12 },
       { id:'spiralDrop15', icon:'🌀', title:'Spiral Pro', description:'Pass 15 rings in Spiral Drop', unlocked:number('spiralDropBest') >= 15 },
@@ -3310,7 +3312,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neonmaze.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','neonmaze.html','mini.html'
     ]);
 
     let active = 'home';
@@ -3353,7 +3355,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neonmaze.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','neonmaze.html','mini.html'
     ]);
 
     let active = 'home';
@@ -3445,6 +3447,7 @@ const Arcade = (() => {
     'safecracker.html':'safeCracker',
     'stardefender.html':'starDefender',
     'neonbreach.html':'neonBreach',
+    'neondrift.html':'neonDrift',
     'neonmaze.html':'neonMaze'
   };
 
@@ -3454,7 +3457,7 @@ const Arcade = (() => {
     if (file !== 'mini.html') return '';
 
     const requested = new URLSearchParams(location.search).get('game') || '';
-    const allowed = new Set(['blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape']);
+    const allowed = new Set(['mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape']);
     return allowed.has(requested) ? requested : '';
   }
 

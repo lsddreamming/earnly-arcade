@@ -278,7 +278,7 @@ async function unlimitedAccountFixture(page, enabled) {
     localStorage.setItem('arcadeUsername','DREAMER');
     localStorage.setItem('arcadeProfileName','DREAMER');
     localStorage.setItem('arcadePlayDay', day);
-    for (const key of ['snake','blockDrop','tapRush','memory','dodger','brickBreaker','jungleHopper','towerStack','coinCatch','colorMatch','paddleRally','laneRunner','safeCracker','blockGrid','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape','starDefender','neonMaze']) {
+    for (const key of ['snake','blockDrop','tapRush','memory','dodger','brickBreaker','jungleHopper','towerStack','coinCatch','colorMatch','paddleRally','laneRunner','safeCracker','neonDrift','mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape','starDefender','neonMaze']) {
       localStorage.setItem(key + 'GamesPlayed','99');
       localStorage.setItem(key + 'BonusPlays','0');
       localStorage.setItem(key + 'PlayAdUnlocks','99');

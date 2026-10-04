@@ -1,0 +1,46 @@
+body.drift-page{background:#080b1b;color:#e7f6ff;-webkit-user-select:none;user-select:none;--drift-cyan:#5affec;--drift-pink:#ff59be}
+body.drift-page main.container{width:min(100%,480px)!important;max-width:480px!important;padding:12px 14px 88px!important;margin:auto!important}
+.drift-page .page-header{margin:4px 0 8px!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+.drift-page .game-title-status-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.drift-page h1{font-size:24px!important;margin:0!important;letter-spacing:-1px}
+.drift-page .game-status{margin:0!important;font-size:10px!important;padding:4px 8px!important}
+.drift-page .game-meta{display:grid!important;grid-template-columns:repeat(4,1fr);gap:5px!important;margin:7px 0 0!important}
+.drift-page .meta-pill{display:flex;gap:5px;justify-content:center;font-size:10px!important;padding:6px 2px!important;min-height:28px!important;background:#111c30!important;border-color:#294158!important}
+.drift-page .meta-pill b{color:#fff;font-size:13px}
+.drift-arena{position:relative;overflow:hidden;border-radius:20px;border:1px solid #41637b;background:#080e20;box-shadow:0 0 28px #38dbc514}
+.drift-arena canvas{display:block;width:100%!important;height:auto!important;aspect-ratio:400/520;touch-action:none!important;max-height:none!important}
+.drift-message{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(180deg,#070d2488,#070d24dd 60%,#070d2477);text-align:center;padding:14px}
+.drift-message[hidden],.drift-callout[hidden]{display:none!important}
+.drift-message small{font:700 10px monospace;letter-spacing:3px;color:#8fa4c0;margin-bottom:14px}
+.drift-message strong{font-size:clamp(48px,15vw,72px);font-weight:950;font-style:italic;line-height:.85;letter-spacing:-4px;text-shadow:3px 3px #183854}
+.drift-message em{font-style:inherit;color:#5affec;text-shadow:0 0 32px #5affec66}
+.drift-message>span{font-size:12px;color:#d0dfec;margin:22px 0 18px}
+.drift-message #startButton{position:static!important;display:flex!important;align-items:center;justify-content:space-between;width:86%;max-width:290px;min-height:52px;margin:0!important;background:#5affec!important;color:#072329!important;border:0!important;border-radius:12px;font-weight:900;font-size:13px;letter-spacing:1px;box-shadow:0 0 25px #5affec30}
+.drift-message #startButton span{font-size:22px}
+.drift-message p{font-size:10px;line-height:1.7;color:#8ca1bb;margin:14px 0 0}
+.drift-telemetry{display:flex;justify-content:space-between;align-items:center;margin:7px 2px;color:#8aa8c0;font:10px monospace;gap:5px}
+.drift-telemetry b{color:#5affec;font-size:15px}.drift-telemetry #driftState{font-size:9px;letter-spacing:1px;color:#e2eaff}
+.drift-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.drift-controls button{min-height:57px;background:linear-gradient(135deg,#17334a,#122536)!important;border:1px solid #3b7184!important;border-radius:14px;color:#5affec!important;font-size:25px;font-weight:800;touch-action:none!important;-webkit-touch-callout:none}
+.drift-controls button span{font-size:11px;letter-spacing:1px;vertical-align:middle}.drift-controls button.held{background:#215063!important;box-shadow:inset 0 0 18px #5affec33;border-color:#5affec!important}
+.drift-page .earnly-session-dock{display:flex!important;position:static!important;margin:8px 0 0!important;width:100%!important;gap:9px;align-items:center}
+.drift-page .earnly-session-dock #earnlyPauseButton,.drift-page .earnly-session-dock #earnlyQuitButton{position:static!important;transform:none!important;inset:auto!important;margin:0!important;width:auto!important;min-height:40px!important;padding:8px!important;font-size:12px!important;border-radius:12px!important;flex:3}
+.drift-page .earnly-session-dock #earnlyQuitButton{flex:1;min-width:65px!important}
+.drift-page .earnly-session-dock [hidden]{display:none!important}
+.drift-tip{font-size:11px;line-height:1.7;text-align:center;color:#9eafc6;margin:12px 0}.drift-tip span{font-size:10px;color:#75859d}
+.drift-callout{position:absolute;top:16%;left:0;right:0;text-align:center;color:#5affec;font-size:19px;font-weight:900;letter-spacing:2px;text-shadow:0 2px 4px #000,0 0 15px #032824;pointer-events:none}
+body.drift-page.game-active main.container{padding-top:max(8px,env(safe-area-inset-top))!important;padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
+.drift-page.game-active .drift-tip,.drift-page.game-active .back-games{display:none!important}
+.drift-page.game-active .drift-arena{width:min(100%,calc((100dvh - 230px) * .76923));margin:0 auto}
+.drift-page.game-active .drift-message{pointer-events:none}.drift-page.game-active .drift-message strong{font-size:35px;letter-spacing:0}
+.drift-page.game-active #startButton{display:none!important}
+@media(max-height:500px) and (orientation:landscape){body.drift-page.game-active main.container{max-width:760px!important;width:100%!important;display:grid;grid-template-columns:1fr 1fr;column-gap:16px}.drift-page.game-active .page-header{grid-column:2;grid-row:1}.drift-page.game-active .drift-arena{grid-column:1;grid-row:1/6;width:auto;height:calc(100dvh - 20px);aspect-ratio:400/520}.drift-page.game-active .drift-arena canvas{height:100%!important}.drift-page.game-active .drift-telemetry,.drift-page.game-active .drift-controls,.drift-page.game-active .earnly-session-dock{grid-column:2}.drift-page.game-active .compact-leaderboard{display:none!important}}
+@media(prefers-reduced-motion:reduce){.drift-page *{transition:none!important;animation:none!important}}
+/* Override shared canvas margins and fixed pause positioning on this tailored screen. */
+body.drift-page main.container .drift-arena canvas#game{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+body.drift-page.game-active #arcadeDesktopNav,body.drift-page.game-active .topbar{display:none!important}
+body.drift-page.game-active main.container .drift-arena{width:min(100%,calc((100dvh - 270px) * .76923))}
+body.drift-page main.container #driftControls button{height:57px;min-height:57px!important;margin:0!important;padding:8px 10px!important;line-height:1!important}
+body.drift-page main.container .earnly-session-dock>#earnlyPauseButton,body.drift-page main.container .earnly-session-dock>#earnlyQuitButton{position:static!important;transform:none!important;inset:auto!important;min-height:40px!important;height:40px!important;margin:0!important;padding:8px!important;width:auto!important;line-height:1!important;font-size:12px!important;flex:3!important}
+body.drift-page main.container .earnly-session-dock>#earnlyQuitButton{flex:1!important}
+@media(max-height:500px) and (orientation:landscape){body.drift-page.game-active main.container .drift-arena{width:auto;height:calc(100dvh - 20px)}body.drift-page.game-active #earnlyCompactLeaderboard{display:none!important}}

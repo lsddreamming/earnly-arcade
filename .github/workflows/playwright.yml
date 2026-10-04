@@ -60,7 +60,7 @@ jobs:
         if: matrix.project == 'mobile-webkit'
         run: npx playwright install webkit
       - name: Run smoke suite
-        run: npx playwright test tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js tests/neonbreach.spec.js --project=${{ matrix.project }}
+        run: npx playwright test tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js tests/neonbreach.spec.js tests/neondrift.spec.js --project=${{ matrix.project }}
       - name: Upload smoke failure report
         if: failure()
         uses: actions/upload-artifact@v4

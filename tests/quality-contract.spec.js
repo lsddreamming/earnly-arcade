@@ -46,7 +46,7 @@ const expectedGameKeys = [
   'paddleRally',
   'laneRunner',
   'safeCracker',
-  'blockGrid',
+  'neonDrift',
   'mergeRush',
   'perfectDrop',
   'spiralDrop',
@@ -109,7 +109,6 @@ test('all 23 catalog games stay registered consistently', () => {
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys].sort());
   expect([...miniConfigs].sort()).toEqual([
-    'blockGrid',
     'bounceRun',
     'mergeRush',
     'perfectDrop',
