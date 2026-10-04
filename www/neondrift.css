@@ -44,3 +44,8 @@ body.drift-page main.container #driftControls button{height:57px;min-height:57px
 body.drift-page main.container .earnly-session-dock>#earnlyPauseButton,body.drift-page main.container .earnly-session-dock>#earnlyQuitButton{position:static!important;transform:none!important;inset:auto!important;min-height:40px!important;height:40px!important;margin:0!important;padding:8px!important;width:auto!important;line-height:1!important;font-size:12px!important;flex:3!important}
 body.drift-page main.container .earnly-session-dock>#earnlyQuitButton{flex:1!important}
 @media(max-height:500px) and (orientation:landscape){body.drift-page.game-active main.container .drift-arena{width:auto;height:calc(100dvh - 20px)}body.drift-page.game-active #earnlyCompactLeaderboard{display:none!important}}
+.drift-status-tools{display:flex;align-items:center;gap:7px}
+body.drift-page main.container button.drift-sound{padding:4px 8px!important;min-height:32px!important;margin:0!important;border:1px solid #386172!important;border-radius:9px!important;background:#142839!important;color:#8cfff1!important;font-size:11px!important;line-height:1!important;touch-action:manipulation}
+body.drift-page button.drift-sound[aria-pressed=false]{color:#b2bdd0!important;border-color:#394353!important}
+.drift-callout{left:8%;right:8%;padding:9px 8px;border:1px solid #5affec44;border-radius:10px;background:#081727c9;font-size:15px;letter-spacing:1px;box-shadow:0 8px 24px #0004}
+@media(max-width:360px){.drift-page h1{font-size:21px!important}.drift-status-tools{gap:4px}}

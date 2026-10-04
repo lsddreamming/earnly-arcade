@@ -27,7 +27,7 @@ test('Neon Drift steering has controllable inertia and later sectors add traffic
  const easy=E.difficulty(0),hard=E.difficulty(80);expect(hard.speed).toBeGreaterThan(easy.speed);expect(hard.halfWidth).toBeLessThan(easy.halfWidth);expect(hard.interval).toBeLessThan(easy.interval);expect(hard.pairs).toBe(true);
  const run=E.create(seeded(5));run.time=60;for(let i=0;i<250;i++){run.hurt=2;E.tick(run,.05);const groups=new Map();for(const c of run.traffic){const key=Math.round((c.z-c.speed*(run.time-60))*100);groups.set(key,(groups.get(key)||0)+1);}expect(run.traffic.length).toBeLessThanOrEqual(12);}
 });
-test('Neon Drift web assets and 1.1 mirror stay identical',()=>{for(const file of ['neondrift.html','neondrift.css','neondrift.js','neondrift-engine.js','neondrift-renderer.js'])expect(fs.readFileSync('www/'+file,'utf8')).toBe(fs.readFileSync(file,'utf8'));});
+test('Neon Drift web assets and 1.1 mirror stay identical',()=>{for(const file of ['neondrift.html','neondrift.css','neondrift.js','neondrift-engine.js','neondrift-renderer.js','neondrift-audio.js'])expect(fs.readFileSync('www/'+file,'utf8')).toBe(fs.readFileSync(file,'utf8'));});
 
 test.beforeEach(async({page})=>{
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
@@ -81,4 +81,30 @@ test('Neon Drift can be completed by a traffic-aware driver across 200 seeded ro
 test('Neon Drift countdown rejects repeated start input and mini fallback remains playable',async({page})=>{
  await page.goto('/neondrift.html');await page.evaluate(()=>{const b=document.getElementById('startButton');b.click();b.click();b.click();});await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await expect(page.locator('#plays')).toHaveText('2');
  await page.goto('/mini.html?game=unknown');await expect(page.locator('#gameTitle')).toHaveText('Merge Rush');if(await page.locator('#startButton').isVisible())await page.locator('#startButton').click();else await page.locator('#surface').click();await expect(page.locator('.merge-grid')).toBeVisible({timeout:10000});
+});
+
+test('Neon Drift effects produce bounded audio and mute prevents new sounds',async({page})=>{
+ await page.goto('/neondrift.html');
+ const result=await page.evaluate(async()=>{
+  localStorage.setItem('arcadeSound','on');const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;const offline=new Offline(1,48000,16000);let made=0;
+  const session={type:'auto'};Object.defineProperty(navigator,'audioSession',{value:session,configurable:true});
+  window.AudioContext=function(){return {state:'running',sampleRate:16000,currentTime:0,destination:offline.destination,suspend:()=>Promise.resolve(),createGain:()=>offline.createGain(),createBuffer:(...a)=>offline.createBuffer(...a),createBufferSource:()=>{made++;return offline.createBufferSource();},createOscillator:()=>{made++;return offline.createOscillator();},createBiquadFilter:()=>offline.createBiquadFilter()};};
+  await NeonDriftAudio.unlock();NeonDriftAudio.effect('start');NeonDriftAudio.effect('near',3);NeonDriftAudio.effect('crash');NeonDriftAudio.effect('stage');NeonDriftAudio.effect('complete');NeonDriftAudio.drive(.7);
+  const buffer=await offline.startRendering(),samples=buffer.getChannelData(0);let energy=0,peak=0;for(const n of samples){energy+=n*n;peak=Math.max(peak,Math.abs(n));}
+  const active=session.type;NeonDriftAudio.suspend();localStorage.setItem('arcadeSound','off');const before=made;await NeonDriftAudio.unlock();NeonDriftAudio.effect('near');NeonDriftAudio.drive(1);
+  return {rms:Math.sqrt(energy/samples.length),peak,active,restored:session.type,mutedSources:made-before};
+ });
+ expect(result.rms).toBeGreaterThan(.01);expect(result.peak).toBeLessThan(1);expect(result.peak).toBeGreaterThan(.1);expect(result.active).toBe('playback');expect(result.restored).toBe('auto');expect(result.mutedSources).toBe(0);
+});
+test('Neon Drift sound toggle persists and stays usable while paused',async({page})=>{
+ await page.goto('/neondrift.html');await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed','false');await page.evaluate(()=>{window.audioCalls={unlocks:0,stops:0};NeonDriftAudio.unlock=async()=>{audioCalls.unlocks++;return true;};NeonDriftAudio.suspend=()=>audioCalls.stops++;});
+ await page.locator('#soundButton').click();await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed','true');await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await page.locator('#earnlyPauseButton').click();await expect.poll(()=>page.evaluate(()=>audioCalls.stops)).toBeGreaterThan(0);
+ const before=await page.evaluate(()=>audioCalls.unlocks);await page.locator('#soundButton').click();await page.locator('#soundButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');expect(await page.evaluate(()=>audioCalls.unlocks)).toBe(before);
+ await page.locator('#soundButton').focus();await page.keyboard.press('Enter');await expect(page.locator('#gameStatus')).toHaveText('Paused');await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed','false');expect(await page.evaluate(()=>localStorage.getItem('arcadeSound'))).toBe('off');
+ await page.locator('#rightButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await expect(page.locator('#gameStatus')).toHaveText('Paused');
+});
+test('Neon Drift reduced-motion setting suppresses smoke and sparks',async({page})=>{
+ await page.goto('/neondrift.html');await page.emulateMedia({reducedMotion:'reduce'});
+ const counts=await page.evaluate(()=>{const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),original=ctx.arc.bind(ctx);let circles=0;ctx.arc=(...args)=>{circles++;original(...args);};const r=NeonDriftRenderer.create(canvas),s=NeonDriftEngine.create();s.vx=130;r.event({type:'crash'},s);for(let i=0;i<20;i++)r.render(s,{dt:.05});return circles;});
+ expect(counts).toBe(0);
 });
