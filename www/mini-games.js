@@ -5,7 +5,7 @@
   const key = ['mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'].includes(requested) ? requested : 'mergeRush';
 
   const configs = {
-    mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
+    mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'Make 64 in 48 swipes. Equal numbers merge. Clear targets to score.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
     perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
@@ -167,186 +167,42 @@
   }
 
   function makeMergeRush() {
-    let board=Array(16).fill(0), score=0, moves=0, alive=false, startX=0, startY=0, celebrated64=false, celebrated128=false, celebrated256=false, lastMergeValue=0, mergeCount=0, bestMerge=0, swipeMerges=0, comboStreak=0, bestCombo=0, dangerShown=false;
-    const wrap=document.createElement('div');
-    wrap.className='merge-wrap';
-
-    const rules=document.createElement('div');
-    rules.className='merge-rules';
-    rules.innerHTML =
-      '<span>1️⃣ Swipe the whole board</span>' +
-      '<span>2️⃣ Equal tiles that touch merge</span>' +
-      '<span>🎯 Goal: reach <strong>128</strong></span>' +
-      '<span>🏁 Ends when no moves remain</span>';
-
-    const grid=document.createElement('div');
-    grid.className='merge-grid';
-    grid.style.touchAction='none';
-
-    const progress=document.createElement('div');
-    progress.className='merge-progress';
-
-    const callout=document.createElement('div');
-    callout.className='merge-callout';
-    callout.setAttribute('aria-live','polite');
-    callout.textContent='Swipe to combine matching tiles';
-
-    const goal=document.createElement('div');
-    goal.className='merge-goal';
-    goal.innerHTML='<strong>Next target: 128</strong><span>2 + 2 = 4 · 4 + 4 = 8 · 8 + 8 = 16…</span><i><b></b></i>';
-
-    wrap.append(rules,progress,callout,grid,goal);
-    surface.replaceChildren(wrap);
-
-    function spawn() {
-      const empty=board.map((v,i)=>v ? null : i).filter(v=>v!==null);
-      if (!empty.length) return;
-      board[empty[Math.floor(Math.random()*empty.length)]] = Math.random()<.9 ? 2 : 4;
-    }
-
-    const high=()=>Math.max(0,...board);
-
-    function render() {
-      grid.replaceChildren();
-      board.forEach(v=>{
-        const d=document.createElement('div');
-        d.className='merge-tile';
-        d.textContent=v||'';
-        if (v) {
-          const power=Math.max(1,Math.log2(v));
-          const hue=(212-power*23+360)%360;
-          const light=Math.min(64,30+power*4.5);
-          d.dataset.value=String(v);
-          d.style.background='linear-gradient(145deg,hsl('+hue+' 82% '+(light+7)+'%),hsl('+hue+' 78% '+Math.max(22,light-6)+'%))';
-          d.style.borderColor='hsl('+hue+' 72% '+Math.min(78,light+16)+'%)';
-          d.style.boxShadow='inset 0 1px 0 rgba(255,255,255,.18),0 8px 18px hsla('+hue+',80%,45%,.14)';
-        }
+    let game=null,state=null,alive=false,startX=0,startY=0;
+    const wrap=document.createElement('div');wrap.className='merge-wrap';
+    const rules=document.createElement('div');rules.className='merge-rules';
+    rules.innerHTML='<span>Swipe to slide every tile</span><span>Equal numbers merge</span><span>Make 64 in 48 swipes</span><span>Only cleared targets score</span>';
+    const grid=document.createElement('div');grid.className='merge-grid';grid.style.touchAction='none';
+    const progress=document.createElement('div');progress.className='merge-progress';
+    const callout=document.createElement('div');callout.className='merge-callout';callout.setAttribute('aria-live','polite');
+    const goal=document.createElement('div');goal.className='merge-goal';
+    goal.innerHTML='<strong>Make 64</strong><span>Only targets score · every swipe costs 1 move</span><i><b></b></i>';
+    wrap.append(rules,progress,callout,grid,goal);surface.replaceChildren(wrap);
+    const high=()=>Math.max(0,...state.board);
+    function render(){
+      grid.replaceChildren();state.board.forEach(v=>{
+        const d=document.createElement('div');d.className='merge-tile';d.textContent=v||'';
+        if(v){const power=Math.log2(v),hue=(212-power*23+360)%360,light=Math.min(64,30+power*4.5);d.dataset.value=String(v);d.style.background='linear-gradient(145deg,hsl('+hue+' 82% '+(light+7)+'%),hsl('+hue+' 78% '+Math.max(22,light-6)+'%))';d.style.borderColor='hsl('+hue+' 72% '+Math.min(78,light+16)+'%)';d.style.boxShadow='inset 0 1px 0 rgba(255,255,255,.18),0 8px 18px hsla('+hue+',80%,45%,.14)';}
         grid.append(d);
       });
-      const highTile=high();
-      const stage=highTile<16?'Warm-up':highTile<64?'Building':highTile<128?'Almost There':highTile<256?'Goal Crusher':'Merge Master';
-      const filled=board.filter(Boolean).length;
-      const danger=filled>=13;
-      wrap.classList.toggle('merge-danger',danger);
-      progress.innerHTML='<span><strong>'+stage+'</strong><small>'+moves+' moves</small></span><span><strong>'+highTile+'</strong><small>highest tile</small></span><span><strong>'+(comboStreak?('x'+comboStreak):mergeCount)+'</strong><small>'+(comboStreak?'merge combo':'merges')+'</small></span><span><strong>'+filled+'/16</strong><small>'+(danger?'DANGER':'board filled')+'</small></span>';
-      ui(score,highTile);
-      const nextTarget = highTile < 128 ? 128 : Math.pow(2, Math.ceil(Math.log2(highTile + 1)));
-      goal.querySelector('strong').textContent =
-        highTile < 128 ? 'Next target: 128' : 'Next target: ' + nextTarget;
-      goal.classList.toggle('goal-hit', highTile >= 128);
-      const targetValue=highTile<128?128:nextTarget;
-      const progressPct=Math.max(4,Math.min(100,(highTile/targetValue)*100));
-      goal.querySelector('i b').style.width=progressPct+'%';
-      if(danger && !dangerShown){
-        dangerShown=true;
-        callout.className='merge-callout danger';
-        callout.textContent='⚠️ Board almost full — make space!';
-        Arcade.feedback('fail');
-      }else if(!danger){
-        dangerShown=false;
-      }
-
-      // Milestones are shown by the goal/progress UI. Keep render() silent
-      // so a swipe that creates 64/128/256 does not stack milestone feedback
-      // on top of the merge feedback from that same move.
-      if(highTile>=64&&!celebrated64)celebrated64=true;
-      if(highTile>=128&&!celebrated128)celebrated128=true;
-      if(highTile>=256&&!celebrated256)celebrated256=true;
+      const filled=state.board.filter(Boolean).length;wrap.classList.toggle('merge-danger',filled>=13||state.left<=8);
+      progress.innerHTML='<span><strong>'+state.target+'</strong><small>target tile</small></span><span><strong>'+state.left+'</strong><small>swipes left</small></span><span><strong>'+state.next+'</strong><small>next tile</small></span><span><strong>'+state.cleared+'</strong><small>targets cleared</small></span>';
+      wrap.dataset.swipes=String(state.left);wrap.dataset.target=String(state.target);
+      goal.querySelector('strong').textContent='Make '+state.target+' · earn '+(100*Math.pow(2,state.cleared))+' points';
+      goal.querySelector('i b').style.width=Math.max(3,Math.min(100,high()/state.target*100))+'%';
+      ui(state.score,high());
     }
-
-    function compress(line) {
-      const a=line.filter(Boolean);
-      for (let i=0;i<a.length-1;i++) {
-        if (a[i]===a[i+1]) {
-          a[i]*=2;
-          score+=a[i];
-          lastMergeValue=Math.max(lastMergeValue,a[i]);
-          mergeCount++;
-          swipeMerges++;
-          bestMerge=Math.max(bestMerge,a[i]);
-          a.splice(i+1,1);
-        }
-      }
-      while(a.length<4)a.push(0);
-      return a;
-    }
-
-    function canMove() {
-      if (board.some(v=>!v)) return true;
-      for(let y=0;y<4;y++)for(let x=0;x<4;x++){
-        const v=board[y*4+x];
-        if(x<3 && board[y*4+x+1]===v) return true;
-        if(y<3 && board[(y+1)*4+x]===v) return true;
-      }
-      return false;
-    }
-
-    function move(dir) {
+    function move(dir){
       if(!alive||miniPaused)return;
-      // Track the strongest merge from this swipe only. Without resetting it,
-      // a previous merge can leak into a later non-merging move and replay
-      // stale "tile created" feedback.
-      lastMergeValue=0;
-      swipeMerges=0;
-      const old=[...board], next=Array(16).fill(0);
-      for(let n=0;n<4;n++){
-        let line=[];
-        for(let k=0;k<4;k++){
-          let x,y;
-          if(dir==='left'){x=k;y=n}
-          if(dir==='right'){x=3-k;y=n}
-          if(dir==='up'){x=n;y=k}
-          if(dir==='down'){x=n;y=3-k}
-          line.push(board[y*4+x]);
-        }
-        line=compress(line);
-        for(let k=0;k<4;k++){
-          let x,y;
-          if(dir==='left'){x=k;y=n}
-          if(dir==='right'){x=3-k;y=n}
-          if(dir==='up'){x=n;y=k}
-          if(dir==='down'){x=n;y=3-k}
-          next[y*4+x]=line[k];
-        }
-      }
-      const changed=old.some((v,i)=>v!==next[i]);
-      board=next;
-      if(changed){
-        moves++;spawn();
-        if(lastMergeValue){
-          comboStreak++;
-          bestCombo=Math.max(bestCombo,comboStreak);
-          Arcade.feedback(lastMergeValue>=64||swipeMerges>=2?'perfect':'score');
-          const merged=lastMergeValue;
-          const mergedCount=swipeMerges;
-          lastMergeValue=0;
-          render();
-          goal.classList.add('merge-pop');
-          callout.className='merge-callout hot';
-          callout.textContent=mergedCount>=2
-            ? '🔥 '+mergedCount+' merges · COMBO x'+comboStreak
-            : '✨ '+merged+' tile · COMBO x'+comboStreak;
-          goal.querySelector('span').textContent='✨ '+merged+' tile created!';
-          pauseAwareDelay(()=>{goal.classList.remove('merge-pop');if(alive){callout.className='merge-callout';callout.textContent=wrap.classList.contains('merge-danger')?'⚠️ Board almost full — make space!':'Swipe to combine matching tiles';render()}},650);
-        }else{
-          comboStreak=0;
-          Arcade.feedback('move');
-          callout.className='merge-callout';
-          callout.textContent='Keep matching equal numbers';
-          render()
-        }
-      }else{
-        Arcade.feedback('fail');
-        goal.classList.remove('merge-shake');
-        void goal.offsetWidth;
-        goal.classList.add('merge-shake');
-      }
-      if(!canMove()){
-        alive=false;
-        finish(score,high(),['🔢 Highest tile: '+high(),'✨ Total merges: '+mergeCount,'🔥 Best merge combo: x'+bestCombo,'💥 Biggest merge: '+bestMerge,'👆 Moves: '+moves,high()>=128?'🏆 128 goal reached!':'🎯 Goal: reach 128','Swipe the whole board to combine matching numbers.'],'No More Moves');
-      }
+      const previous=state;state=game.move(dir);render();
+      goal.classList.remove('merge-pop','merge-shake');
+      callout.className='merge-callout';
+      if(state.clearedNow){callout.classList.add('hot');callout.textContent='🎯 '+previous.target+' made! +'+(state.score-previous.score)+' points · new swipe budget';goal.classList.add('merge-pop');Arcade.feedback('perfect');}
+      else if(!state.changed){callout.textContent='No tiles moved · 1 swipe used';goal.classList.add('merge-shake');Arcade.feedback('fail');}
+      else if(state.left<=8){callout.classList.add('danger');callout.textContent=state.left+' swipes left — make '+state.target;Arcade.feedback(state.biggest?'score':'move');}
+      else if(state.board.filter(Boolean).length>=13){callout.classList.add('danger');callout.textContent='⚠️ Board almost full — make space!';Arcade.feedback(state.biggest?'score':'move');}
+      else{callout.textContent='Swipe to slide every tile. Equal numbers merge.';Arcade.feedback(state.biggest>=32?'perfect':state.biggest?'score':'move');}
+      if(state.over){alive=false;finish(state.score,high(),['🎯 Targets cleared: '+state.cleared,'🔢 Highest tile: '+high(),'👆 Swipes used: '+state.moves,'Next target: '+state.target,'Points come from cleared targets. Keep your largest tile in a corner.'],state.reason);}
     }
-
     let swipePointer=null;
     function beginSwipe(e){
       if(!alive || miniPaused || swipePointer!==null)return;
@@ -390,22 +246,9 @@
     document.addEventListener('keydown',onKey);
 
     return {
-      start(){board=Array(16).fill(0);score=0;moves=0;lastMergeValue=0;swipeMerges=0;mergeCount=0;comboStreak=0;bestCombo=0;bestMerge=0;dangerShown=false;alive=true;celebrated64=false;celebrated128=false;celebrated256=false;callout.className='merge-callout';callout.textContent='Swipe to combine matching tiles';spawn();spawn();render()},
-      adjustPauseTime(){ if(miniPaused) swipePointer=null; },
-      stop(){
-        alive=false;
-        swipePointer=null;
-        startX=0;
-        startY=0;
-        lastMergeValue=0;
-        swipeMerges=0;
-        comboStreak=0;
-        goal.classList.remove('merge-pop','merge-shake');
-        callout.className='merge-callout';
-        document.removeEventListener('keydown',onKey);
-        document.removeEventListener('pointerdown',onWideSwipeDown);
-        document.removeEventListener('pointerup',onWideSwipeUp);
-      }
+      start(){game=MergeRushRules.create();state=game.snapshot();alive=true;callout.className='merge-callout';callout.textContent='Swipe to slide every tile. Equal numbers merge.';render()},
+      adjustPauseTime(){if(miniPaused)swipePointer=null;},
+      stop(){alive=false;swipePointer=null;startX=0;startY=0;goal.classList.remove('merge-pop','merge-shake');document.removeEventListener('keydown',onKey);document.removeEventListener('pointerdown',onWideSwipeDown);document.removeEventListener('pointerup',onWideSwipeUp);}
     };
   }
 

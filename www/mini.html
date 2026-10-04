@@ -188,7 +188,7 @@
       /* Merge Rush mobile gameplay polish */
       body.mini-mergeRush.game-active .topbar,body.mini-mergeRush.game-active #startButton{display:none!important}
       body.mini-mergeRush.game-active .game-guide-strip,body.mini-mergeRush.game-active .game-guide-more,body.mini-mergeRush.game-active .game-guide-overlay,body.mini-mergeRush.game-active .game-overlay{display:none!important}
-      body.mini-mergeRush.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important;padding-bottom:76px!important}
+      body.mini-mergeRush.game-active main.container{padding-top:max(8px,env(safe-area-inset-top))!important;padding-bottom:76px!important}
       body.mini-mergeRush.game-active .page-header{margin:0 0 4px!important}
       body.mini-mergeRush.game-active .page-header h1{font-size:21px!important;line-height:1.1!important;margin:0 0 3px!important}
       body.mini-mergeRush.game-active .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important;margin:2px 0!important}
@@ -208,7 +208,7 @@
       body.mini-mergeRush.game-active .merge-callout{margin:0 4px 5px!important;min-height:27px!important}
       body.mini-mergeRush.game-active .merge-goal{margin:7px 4px 0!important;padding:6px 8px!important}
       body.mini-mergeRush.game-active #miniGameExit{
-        display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)
+        display:none!important
       }
       body.mini-mergeRush.game-active #earnlyPauseButton{
         position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;right:9px!important;z-index:1300!important;width:auto!important;min-width:86px!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border-radius:12px!important;font-size:12px!important;font-weight:900!important;backdrop-filter:blur(8px)
@@ -510,7 +510,7 @@
       border-color:rgba(74,222,128,.78)!important;
       box-shadow:0 0 0 2px rgba(34,197,94,.14),0 0 18px rgba(34,197,94,.10)!important;
     }
-    .merge-tile{
+    .merge-tile:empty{
       background:linear-gradient(145deg,#253449,#172437)!important;
       border-color:rgba(92,124,164,.40)!important;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
@@ -569,6 +569,11 @@
       }
     }
 
+
+    @media(max-width:700px){
+      body.mini-mergeRush.game-active .mini-surface{width:min(94vw,400px,calc(100svh - 340px))!important}
+      body.mini-mergeRush.game-active .mini-help{display:none!important}
+    }
 </style>
 </head>
 <body>
@@ -593,6 +598,7 @@
     <a class="button wide secondary mini-exit" id="miniGameExit" href="games.html">✕ Quit Game</a>
   </main>
   <script src="arcade.js"></script>
+  <script src="mergerush-rules.js"></script>
   <script src="mini-games.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>

@@ -980,14 +980,14 @@ test('Merge Rush shows combos danger pressure and reachable controls', async ({ 
   await expect(page.locator('#gameStatus')).toHaveText('Running');
   await expect(page.locator('.merge-callout')).toBeVisible();
   await expect(page.locator('.merge-goal i b')).toHaveCount(1);
-  await expect(page.locator('#miniGameExit')).toBeVisible();
+  await expect(page.locator('#miniGameExit')).not.toBeVisible();
   await expect(page.locator('#earnlyPauseButton')).toBeVisible();
 
   const source = await (await page.request.get('/mini-games.js')).text();
-  expect(source).toContain("comboStreak++");
-  expect(source).toContain("COMBO x");
+  expect(source).toContain("state=game.move(dir)");
+  expect(source).toContain("Only targets score");
   expect(source).toContain("Board almost full — make space!");
-  expect(source).toContain("Best merge combo: x");
+  expect(source).toContain("Targets cleared:");
 });
 
 test('Merge Rush web and iOS copies stay in sync', async ({ page }) => {

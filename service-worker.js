@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-dodger-free-steering-20261004';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-merge-targets-20261004';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',
@@ -30,7 +30,7 @@ const CACHE_NAME = 'earnly-dodger-free-steering-20261004';const CORE_ASSETS = [
   './neonmaze.html',
   './neondrift.html', './neondrift.css', './neondrift.js', './neondrift-engine.js', './neondrift-renderer.js', './neondrift-audio.js',
   './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-art.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',
-  './mini-games.js',
+  './mini-games.js', './mergerush-rules.js',
   './arcade.css',
   './premium.css',
   './arcade.js',
