@@ -2425,7 +2425,8 @@ test('Neon Dodger districts unlock cars and preserve a saved highest level', asy
 
 test('Neon Dodger hides Quit during swipes and exposes it after pausing', async ({page}) => {
   await page.setViewportSize({width:390,height:664});await page.goto('/dodger.html');
-  await startGame(page);await page.waitForTimeout(3300);
+  await startGame(page);await page.waitForFunction(()=>running);
+  await page.evaluate(()=>{obstacles=[];nextSpawnAt=performance.now()+60000;});
   await expect(page.locator('#earnlyPauseButton')).toBeVisible();await expect(page.locator('#earnlyQuitButton')).toBeHidden();
   const zone=await page.locator('#swipeZone').boundingBox();const pauseBox=await page.locator('#earnlyPauseButton').boundingBox();expect(zone.y+zone.height+12).toBeLessThanOrEqual(pauseBox.y);
   await page.mouse.move(zone.x+zone.width*.5,zone.y+zone.height*.5);await page.mouse.down();await page.mouse.move(zone.x+zone.width*.8,zone.y+zone.height*.5);await page.mouse.up();
@@ -2438,7 +2439,8 @@ test('Neon Dodger hides Quit during swipes and exposes it after pausing', async 
 
 
 test('Neon Dodger level-up leaves traffic unobscured and mute remains usable while paused',async({page})=>{
- await page.goto('/dodger.html');await startGame(page);await page.waitForTimeout(3300);
+ await page.goto('/dodger.html');await startGame(page);await page.waitForFunction(()=>running);
+ await page.evaluate(()=>{obstacles=[];nextSpawnAt=performance.now()+60000;});
  const report=await page.evaluate(()=>{running=true;updateLevel(80);lastSecondShown=80;let covered=false;const fill=ctx.fillRect.bind(ctx);ctx.fillRect=(x,y,w,h)=>{if(x===20&&y===28&&w===290)covered=true;fill(x,y,w,h);};draw();return {covered,level:document.getElementById('levelGoal').textContent};});
  expect(report.covered).toBe(false);expect(report.level).toContain('LEVEL 5');
  await page.locator('#earnlyPauseButton').click();const before=await page.locator('#soundButton').getAttribute('aria-pressed');await page.locator('#soundButton').click();await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed',before==='true'?'false':'true');await expect(page.locator('#earnlyPauseButton')).toHaveText(/Resume/);

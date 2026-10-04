@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-dodger-detail-20261004';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-dodger-combo-20261004';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',

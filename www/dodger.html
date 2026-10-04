@@ -124,6 +124,10 @@
     html body.dodger-page.game-active .earnly-session-dock{display:flex;align-items:center;justify-content:center;position:fixed!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;left:50%!important;transform:translateX(-50%);width:min(92vw,440px);margin:0!important;gap:12px}
     html body.dodger-page.game-active .earnly-session-dock #earnlyPauseButton{position:relative!important;inset:auto!important;min-width:0!important;width:auto!important;min-height:48px!important;margin:0!important;flex:1!important}
     html body.dodger-page.game-active .earnly-session-dock #earnlyQuitButton{position:relative!important;inset:auto!important;margin:0!important}
+    #levelCareer{position:relative;min-height:14px;padding-bottom:3px}
+    #levelCareer.combo-live{color:#ffe69b}
+    #levelCareer.combo-live::after{content:'';position:absolute;bottom:0;left:0;height:2px;width:var(--combo-fill,100%);background:linear-gradient(90deg,#ffbb44,#fff0b0);border-radius:2px}
+    body.dodger-page.run-crashed .dodger-board{border-color:#ff6e8a;box-shadow:0 0 18px #ff3b6526}
     .dodger-level.level-new{border-color:#87fff0;box-shadow:0 0 12px #67e8f933}
     html body.dodger-page .dodger-sound{margin:0 0 0 auto!important;padding:5px 7px!important;min-height:30px!important;min-width:44px!important;width:auto!important;font-size:11px!important;line-height:1!important;border-radius:9px;background:#102d40;color:#a7ffff;border:1px solid #3c7787}
     body.dodger-page .game-title-status-row{gap:6px!important;flex-wrap:nowrap}
@@ -211,7 +215,7 @@
     let bestStyle=Math.max(0,Number(localStorage.getItem('arcadeDodgerStyleBest'))||0);
     let bestNear=Math.max(0,Number(localStorage.getItem('arcadeDodgerNearBest'))||0);
     let bestLevel=Math.max(1,Math.min(999,Math.floor(Number(localStorage.getItem('arcadeDodgerTopLevel')))||1));
-    let levelNoticeUntil=0,roadOffset=0,visualParticles=[],lastWhooshAt=-1000,audioEndTimer=0,steeringLean=0,tireTrails=[];
+    let levelNoticeUntil=0,roadOffset=0,visualParticles=[],lastWhooshAt=-1000,audioEndTimer=0,steeringLean=0,tireTrails=[],crashed=false;
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
     const soundButton=document.getElementById('soundButton');
     function soundControl(){const on=Arcade.soundEnabled();soundButton.textContent=on?'♫ On':'♫ Off';soundButton.setAttribute('aria-pressed',String(on));soundButton.setAttribute('aria-label',on?'Mute sound effects':'Enable sound effects');}
@@ -231,8 +235,11 @@
     function updateStyle(seconds){
       dodgedEl.textContent=styleScore.toLocaleString();
       const target=bestNear>=8?Math.max(10,bestNear+1):8;
-      document.getElementById('levelCareer').textContent=seconds<nearNoticeUntil
+      const career=document.getElementById('levelCareer');
+      career.classList.toggle('combo-live',running&&combo>0);
+      career.textContent=seconds<nearNoticeUntil
         ?'CLOSE PASS! ×'+combo+' · +'+(100*combo)+' points'
+        :running&&combo>0?'×'+combo+' COMBO · '+Math.max(1,Math.ceil(5-(seconds-lastNearSecond)))+'s to chain · Best Score '+bestStyle.toLocaleString()
         :'Best: Level '+bestLevel+' · Score '+bestStyle.toLocaleString()+' · Close passes '+nearPasses+'/'+target+(bestNear<8?' · unlock violet':'');
     }
 
@@ -372,6 +379,12 @@
       if(running&&!reducedMotion.matches){ctx.fillStyle='#67e8f92b';ctx.fillRect(player.x+5,player.y+player.h+3,4,12);ctx.fillRect(player.x+player.w-9,player.y+player.h+3,4,12);}
       drawNeonCar(player.x,player.y,player.w,player.h,bestNear>=8?'#d9a1ff':DodgerProgression.carColor(bestLevel),true);
       obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
+      if(crashed){
+        const cx=player.x+player.w/2,cy=player.y+player.h/2;
+        ctx.strokeStyle='#ffba6877';ctx.lineWidth=1.5;
+        for(let i=0;i<12;i++){const a=i*Math.PI/6;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*24,cy+Math.sin(a)*24);ctx.lineTo(cx+Math.cos(a)*(32+i%3*5),cy+Math.sin(a)*(32+i%3*5));ctx.stroke();}
+        ctx.fillStyle='#ff3b6433';ctx.beginPath();ctx.ellipse(cx,cy,player.w*.8,player.h*.65,0,0,Math.PI*2);ctx.fill();
+      }
       for(const p of visualParticles){ctx.globalAlpha=Math.max(0,p.life/.38);ctx.fillStyle='#a5ffff';ctx.fillRect(p.x,p.y,2,2);}ctx.globalAlpha=1;
     }
 
@@ -479,6 +492,7 @@
       lastFrame=now;
       const visualDt=frameScale*16.667/1000;
       if(!reducedMotion.matches){roadOffset+=trafficSpeedFor(seconds)*frameScale;for(const p of visualParticles){p.life-=visualDt;p.x+=p.vx*visualDt;p.y+=p.vy*visualDt;}visualParticles=visualParticles.filter(p=>p.life>0).slice(-40);}else visualParticles=[];
+      document.getElementById('levelCareer').style.setProperty('--combo-fill',(Math.max(0,1-(elapsed/1000-lastNearSecond)/5)*100)+'%');
       steeringLean*=Math.exp(-visualDt*9);
       if(!reducedMotion.matches){for(const trail of tireTrails){trail.life-=visualDt;trail.y+=trafficSpeedFor(seconds)*frameScale*.6;}tireTrails=tireTrails.filter(t=>t.life>0).slice(-24);if(Math.abs(steeringLean)>.2)tireTrails.push({x:player.x+3,y:player.y+player.h,life:.35});}else{steeringLean=0;tireTrails=[];}
       DodgerAudio.drive(dragging ? .32 : 0);
@@ -532,7 +546,7 @@
 
     function finishGame(seconds){
       if(!running) return;
-      running=false;
+      running=false;crashed=true;document.body.classList.add('run-crashed');draw();
       pauseStartedAt=0;
       cancelAnimationFrame(animation);
       animation=null;
@@ -691,7 +705,7 @@
         Arcade.out('dodger',refreshChrome);
         return;
       }
-      clearTimeout(audioEndTimer);DodgerAudio.stop();DodgerAudio.unlock().then(ok=>{if(ok&&starting&&!document.hidden)DodgerAudio.effect('start');});roadOffset=0;visualParticles=[];lastWhooshAt=-1000;steeringLean=0;tireTrails=[];
+      clearTimeout(audioEndTimer);DodgerAudio.stop();DodgerAudio.unlock().then(ok=>{if(ok&&starting&&!document.hidden)DodgerAudio.effect('start');});roadOffset=0;visualParticles=[];lastWhooshAt=-1000;steeringLean=0;tireTrails=[];crashed=false;document.body.classList.remove('run-crashed');
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       cancelAnimationFrame(animation);
