@@ -2410,3 +2410,28 @@ for (const rejects of [false, true]) {
     }
   });
 }
+
+
+test('Neon Dodger districts unlock cars and preserve a saved highest level', async ({page}) => {
+  await page.goto('/dodger.html');
+  const p=await page.evaluate(()=>({first:DodgerProgression.progress(0),second:DodgerProgression.progress(20),fifth:DodgerProgression.progress(80),green:DodgerProgression.carColor(1),cyan:DodgerProgression.carColor(3),gold:DodgerProgression.carColor(5)}));
+  expect(p.first.level).toBe(1);expect(p.second.level).toBe(2);expect(p.fifth.level).toBe(5);expect(p.cyan).not.toBe(p.green);expect(p.gold).not.toBe(p.cyan);
+  await page.evaluate(()=>{updateLevel(40);});
+  await expect(page.locator('#levelGoal')).toContainText('LEVEL 3');
+  expect(await page.evaluate(()=>localStorage.getItem('arcadeDodgerTopLevel'))).toBe('3');
+  await page.reload();await expect(page.locator('#levelCareer')).toContainText('Best: Level 3');
+  await expect(page.locator('#levelGoal')).toContainText('LEVEL 1');
+});
+
+test('Neon Dodger hides Quit during swipes and exposes it after pausing', async ({page}) => {
+  await page.setViewportSize({width:390,height:664});await page.goto('/dodger.html');
+  await startGame(page);await page.waitForTimeout(3300);
+  await expect(page.locator('#earnlyPauseButton')).toBeVisible();await expect(page.locator('#earnlyQuitButton')).toBeHidden();
+  const zone=await page.locator('#swipeZone').boundingBox();const pauseBox=await page.locator('#earnlyPauseButton').boundingBox();expect(zone.y+zone.height+12).toBeLessThanOrEqual(pauseBox.y);
+  await page.mouse.move(zone.x+zone.width*.5,zone.y+zone.height*.5);await page.mouse.down();await page.mouse.move(zone.x+zone.width*.8,zone.y+zone.height*.5);await page.mouse.up();
+  await expect(page.locator('.earnly-quit-dialog')).toHaveCount(0);
+  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#earnlyQuitButton')).toBeVisible();
+  await page.locator('#earnlyQuitButton').click();await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
+  await page.getByRole('button',{name:'Keep Playing',exact:true}).click();
+  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#earnlyQuitButton')).toBeHidden();
+});

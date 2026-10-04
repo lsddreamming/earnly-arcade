@@ -162,10 +162,10 @@ test('Neon Dodger runs until collision with fair triple-shift traffic', () => {
   const source = read('dodger.html');
 
   expect(source).toContain('function difficultyFor(seconds)');
-  expect(source).toContain("if(seconds>=90) return {label:'ENDURANCE',speed:8.6,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:1};");
-  expect(source).toContain("if(seconds>=60) return {label:'TRIPLE SHIFT',speed:8.4,delay:760,pairChance:1,farShiftChance:.72,blockWidth:90,followUpChance:1,followUpGapMs:420,thirdRowChance:.90};");
-  expect(source).toContain("if(seconds>=42) return {label:'SWITCHBACKS',speed:8.2,delay:820,pairChance:1,farShiftChance:.62,blockWidth:88,followUpChance:.85,followUpGapMs:460,thirdRowChance:.55};");
-  expect(source).toContain("if(seconds>=30) return {label:'TRIPLE TRAFFIC',speed:8.0,delay:900,pairChance:1,farShiftChance:.45,blockWidth:84,followUpChance:.65,followUpGapMs:500,thirdRowChance:.35};");
+  const progression=require('../dodger-progression.js');
+  expect(progression.progress(20).level).toBe(2);
+  expect(progression.difficulty(80).speed).toBeGreaterThan(progression.difficulty(0).speed);
+  expect(source).toContain('return DodgerProgression.difficulty(seconds);');
   expect(source).toContain('const paired=Math.random()<stage.pairChance;');
   expect(source).toContain('Math.random()<stage.farShiftChance');
   expect(source).toContain('lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];');
@@ -179,7 +179,8 @@ test('Neon Dodger runs until collision with fair triple-shift traffic', () => {
   expect(source).toContain('const seconds=Math.floor(elapsed/1000);');
   expect(source).not.toContain('if(elapsed>=60000)');
   expect(source).toContain('finishGame(seconds);');
-  expect(source).toContain('🏆 60-SECOND CLUB');
+  expect(source).toContain('arcadeDodgerTopLevel');
+  expect(source).toContain('LEVEL '+"'"+'+runLevel');
 });
 
 test('Neon Dodger keeps live play focused and result timing consistent', () => {
@@ -191,13 +192,12 @@ test('Neon Dodger keeps live play focused and result timing consistent', () => {
   expect(source).not.toContain("Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000)");
 });
 
-test('Neon Dodger keeps Pause and Resume within thumb reach on mobile', () => {
-  const source = read('dodger.html');
-  expect(source).toContain('body.dodger-page.game-active .earnly-pause-button{');
-  expect(source).toContain('position:fixed!important;');
-  expect(source).toContain('bottom:calc(18px + env(safe-area-inset-bottom))!important;');
-  expect(source).toContain('min-height:56px!important;');
-  expect(source).toContain('body.dodger-page.game-active.earnly-game-paused .earnly-pause-button{');
+test('Neon Dodger keeps Quit out of active swipes and stores district progress', () => {
+  const source=read('dodger.html');
+  expect(source).toContain('game-active:not(.earnly-game-paused) #earnlyQuitButton{display:none!important}');
+  expect(source).toContain('id="swipeZone"');
+  expect(source).toContain('id="levelGoal"');
+  expect(source).toContain("localStorage.setItem('arcadeDodgerTopLevel',String(bestLevel))");
 });
 
 test('the mobile pause dock covers dedicated, mini, and Paddle Rally games without breaking bottom swipes', () => {
