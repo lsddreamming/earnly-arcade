@@ -123,6 +123,10 @@
     html body.dodger-page.game-active .earnly-session-dock{display:flex;align-items:center;justify-content:center;position:fixed!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;left:50%!important;transform:translateX(-50%);width:min(92vw,440px);margin:0!important;gap:12px}
     html body.dodger-page.game-active .earnly-session-dock #earnlyPauseButton{position:relative!important;inset:auto!important;min-width:0!important;width:auto!important;min-height:48px!important;margin:0!important;flex:1!important}
     html body.dodger-page.game-active .earnly-session-dock #earnlyQuitButton{position:relative!important;inset:auto!important;margin:0!important}
+    .dodger-level.level-new{border-color:#87fff0;box-shadow:0 0 12px #67e8f933}
+    html body.dodger-page .dodger-sound{margin:0 0 0 auto!important;padding:5px 7px!important;min-height:30px!important;min-width:44px!important;width:auto!important;font-size:11px!important;line-height:1!important;border-radius:9px;background:#102d40;color:#a7ffff;border:1px solid #3c7787}
+    body.dodger-page .game-title-status-row{gap:6px!important;flex-wrap:nowrap}
+    @media(max-width:400px){body.dodger-page .game-title-status-row h1{font-size:20px!important}}
   </style>
 </head>
 <body class="dodger-page">
@@ -135,7 +139,7 @@
     <header class="page-header">
       <div class="game-title-status-row">
         <h1>🚗 Neon Dodger</h1>
-        <span class="game-status title-status" id="gameStatus">Ready</span>
+        <button id="soundButton" type="button" class="dodger-sound" aria-pressed="true" aria-label="Mute sound effects">♫ On</button><span class="game-status title-status" id="gameStatus">Ready</span>
       </div>
       <div class="game-meta">
         <span class="meta-pill">Time: <span id="time">0</span>s</span>
@@ -154,6 +158,7 @@
 
   <script src="arcade.js"></script>
   <script src="dodger-progression.js"></script>
+  <script src="dodger-audio.js"></script>
   <script>
     const canvas=document.getElementById('game');
     const ctx=canvas.getContext('2d');
@@ -202,10 +207,17 @@
     let lastOpenLane=1;
     let runLevel=1;
     let bestLevel=Math.max(1,Math.min(999,Math.floor(Number(localStorage.getItem('arcadeDodgerTopLevel')))||1));
-    let levelNoticeUntil=0;
+    let levelNoticeUntil=0,roadOffset=0,visualParticles=[],lastWhooshAt=-1000,audioEndTimer=0;
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+    const soundButton=document.getElementById('soundButton');
+    function soundControl(){const on=Arcade.soundEnabled();soundButton.textContent=on?'♫ On':'♫ Off';soundButton.setAttribute('aria-pressed',String(on));soundButton.setAttribute('aria-label',on?'Mute sound effects':'Enable sound effects');}
+    soundButton.addEventListener('click',()=>{localStorage.setItem('arcadeSound',Arcade.soundEnabled()?'off':'on');if(Arcade.soundEnabled()&&!pauseStartedAt)DodgerAudio.unlock();else DodgerAudio.suspend();soundControl();});
+    function nearEffect(o,now){if(now-lastWhooshAt<140)return;lastWhooshAt=now;DodgerAudio.effect('near',1);if(!reducedMotion.matches)for(let i=0;i<8;i++)visualParticles.push({x:player.x+(i%2?player.w:0),y:player.y+player.h/2,vx:(i%2?1:-1)*(18+i*5),vy:35+i*9,life:.38});}
+
     function updateLevel(seconds){
       const p=DodgerProgression.progress(seconds);
-      if(p.level>runLevel){runLevel=p.level;bestLevel=Math.max(bestLevel,runLevel);localStorage.setItem('arcadeDodgerTopLevel',String(bestLevel));levelNoticeUntil=seconds+2;Arcade.feedback('success');}
+      if(p.level>runLevel){runLevel=p.level;bestLevel=Math.max(bestLevel,runLevel);localStorage.setItem('arcadeDodgerTopLevel',String(bestLevel));levelNoticeUntil=seconds+2;DodgerAudio.effect('stage');}
+      document.querySelector('.dodger-level').classList.toggle('level-new',running && seconds<levelNoticeUntil);
       document.getElementById('levelGoal').textContent='LEVEL '+p.level+' · '+p.label;
       document.getElementById('levelTarget').textContent=Math.ceil(p.remaining)+'s to Level '+(p.level+1);
       document.getElementById('levelProgress').style.width=(p.fraction*100)+'%';
@@ -269,6 +281,8 @@
       ctx.roundRect(x+w*.23,y+h*.18,w*.54,h*.34,Math.max(2,radius*.45));
       ctx.fill();
 
+      ctx.fillStyle='rgba(230,255,255,.5)';ctx.fillRect(x+w*.13,y+h*.55,w*.74,1);
+      ctx.fillStyle='rgba(230,255,255,.2)';ctx.fillRect(x+w*.08,y+h*.28,w*.08,h*.25);
       // Wheels.
       ctx.fillStyle='#020617';
       const wheelW=Math.max(3,w*.08);
@@ -329,6 +343,12 @@
       });
       ctx.restore();
 
+      const colors=['#67e8f9','#ae98ff','#fb89cf','#ffd77c','#ff9584'];
+      const sectorColor=colors[Math.min(4,runLevel-1)];
+      ctx.strokeStyle=sectorColor+'44';ctx.lineWidth=2;
+      for(const edge of [8,canvas.width-8]){ctx.beginPath();ctx.moveTo(edge,0);ctx.lineTo(edge,canvas.height);ctx.stroke();}
+      ctx.fillStyle=sectorColor+'30';
+      for(let y=-40+(roadOffset%64);y<canvas.height;y+=64)for(const x of [laneWidth,laneWidth*2])ctx.fillRect(x-1,y,2,19);
       // Soft cyan shoulder glow frames the play area without flashing motion.
       const leftGlow=ctx.createLinearGradient(0,0,22,0);
       leftGlow.addColorStop(0,'rgba(34,211,238,.15)');
@@ -350,9 +370,10 @@
       ctx.fillStyle=focus;
       ctx.fillRect(Math.max(0,player.x-66),Math.max(0,player.y-66),player.w+132,player.h+132);
 
+      if(running&&!reducedMotion.matches){ctx.fillStyle='#67e8f92b';ctx.fillRect(player.x+5,player.y+player.h+3,4,12);ctx.fillRect(player.x+player.w-9,player.y+player.h+3,4,12);}
       drawNeonCar(player.x,player.y,player.w,player.h,DodgerProgression.carColor(bestLevel),true);
       obstacles.forEach(o=>drawNeonCar(o.x,o.y,o.w,o.h,o.color,false));
-      if(running && lastSecondShown<levelNoticeUntil){ctx.fillStyle='#071b30e8';ctx.fillRect(20,28,290,52);ctx.fillStyle='#80f9ff';ctx.font='bold 17px system-ui';ctx.textAlign='center';ctx.fillText('LEVEL '+runLevel+' UNLOCKED',165,51);ctx.font='12px system-ui';ctx.fillText(DodgerProgression.progress(lastSecondShown).label,165,69);ctx.textAlign='left';}
+      for(const p of visualParticles){ctx.globalAlpha=Math.max(0,p.life/.38);ctx.fillStyle='#a5ffff';ctx.fillRect(p.x,p.y,2,2);}ctx.globalAlpha=1;
     }
 
     function difficultyFor(seconds){
@@ -408,7 +429,7 @@
       }
       addTrafficRow(lanes,-32,paired?stage.blockWidth:52,color);
       if(paired && Math.random()<stage.followUpChance){
-        // The second row trails the first by 420–560 ms at the same speed.
+        // The second row trails the first by 360–420 ms at the same speed.
         // Its safe lane is adjacent, so the player can clear row one and
         // move one lane before row two arrives; never demand a blind jump.
         const firstOpen=lastOpenLane;
@@ -423,6 +444,12 @@
           const thirdY=followUpY-stage.speed*stage.followUpGapMs/16.667;
           addTrafficRow([0,1,2].filter(lane=>lane!==thirdOpen),thirdY,stage.blockWidth,'#22d3ee');
           lastOpenLane=thirdOpen;
+          if(Math.random()<(stage.fourthRowChance||0)){
+            const fourthOpen=thirdOpen===1?(firstOpen===0?0:2):1;
+            const fourthY=thirdY-stage.speed*stage.followUpGapMs/16.667;
+            addTrafficRow([0,1,2].filter(lane=>lane!==fourthOpen),fourthY,stage.blockWidth,'#fb923c');
+            lastOpenLane=fourthOpen;return stage.followUpGapMs*3;
+          }
           return stage.followUpGapMs*2;
         }
         return stage.followUpGapMs;
@@ -451,6 +478,9 @@
 
       const frameScale=lastFrame?Math.min(2,(now-lastFrame)/16.667):1;
       lastFrame=now;
+      const visualDt=frameScale*16.667/1000;
+      if(!reducedMotion.matches){roadOffset+=trafficSpeedFor(seconds)*frameScale;for(const p of visualParticles){p.life-=visualDt;p.x+=p.vx*visualDt;p.y+=p.vy*visualDt;}visualParticles=visualParticles.filter(p=>p.life>0).slice(-40);}else visualParticles=[];
+      DodgerAudio.drive(dragging ? .32 : 0);
       obstacles.forEach(o=>o.y+=o.speed*frameScale);
 
       const survivors=[];
@@ -471,10 +501,11 @@
           finishGame(seconds);
           return;
         }
+        if(!o.nearPlayed&&o.y>player.y+player.h){o.nearPlayed=true;const gap=Math.max(o.x-(player.x+player.w),player.x-(o.x+o.w));if(gap>=-4&&gap<28)nearEffect(o,now);}
         if(o.y>canvas.height){
           dodged+=1;
           dodgedEl.textContent=dodged;
-          if(dodged===10 || dodged===20) Arcade.feedback(dodged===20?'perfect':'score');
+
         }else{
           survivors.push(o);
         }
@@ -509,7 +540,7 @@
       dodgedEl.textContent=dodged;
       rewardPreviewEl.textContent=earned;
       Arcade.earn(earned,'Neon Dodger', { kind:'game', game:'dodger', metric:seconds, aux:dodged });
-      Arcade.feedback('fail');
+      DodgerAudio.stop();DodgerAudio.effect('crash');clearTimeout(audioEndTimer);audioEndTimer=setTimeout(()=>{if(!running&&!starting)DodgerAudio.suspend();},700);
       const result=Arcade.recordResult('dodger', seconds);
 
       const best=Math.max(seconds,Arcade.number('dodgerBest'));
@@ -640,9 +671,10 @@
       dragAnchorClientX=null;
     }
 
-    window.addEventListener('blur',clearDragState);
+    window.addEventListener('blur',()=>{clearDragState();DodgerAudio.suspend();});
+    window.addEventListener('pagehide',()=>{clearTimeout(audioEndTimer);DodgerAudio.suspend();});
     document.addEventListener('visibilitychange',()=>{
-      if(document.hidden) clearDragState();
+      if(document.hidden){clearDragState();DodgerAudio.suspend();}
     });
 
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
@@ -654,6 +686,7 @@
         Arcade.out('dodger',refreshChrome);
         return;
       }
+      clearTimeout(audioEndTimer);DodgerAudio.stop();DodgerAudio.unlock().then(ok=>{if(ok&&starting&&!document.hidden)DodgerAudio.effect('start');});roadOffset=0;visualParticles=[];lastWhooshAt=-1000;
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
 
       cancelAnimationFrame(animation);
@@ -699,11 +732,12 @@
       isRunning:()=>running,
       pause:()=>{
         if(!running||pauseStartedAt)return;
-        pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;clearDragState();lastFrame=0;
+        DodgerAudio.suspend();pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;clearDragState();lastFrame=0;
       },
+      allowWhilePaused:event=>!!event.target.closest?.('#soundButton'),
       resume:()=>{
         if(!running||!pauseStartedAt)return;
-        const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;cancelAnimationFrame(animation);animation=null;animation=requestAnimationFrame(loop);
+        DodgerAudio.unlock();const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(startTime)startTime+=d;if(lastSpawn)lastSpawn+=d;if(nextSpawnAt)nextSpawnAt+=d;lastFrame=0;cancelAnimationFrame(animation);animation=null;animation=requestAnimationFrame(loop);
       }
     });
     let sessionDock=document.querySelector('.earnly-session-dock');if(!sessionDock){sessionDock=document.createElement('div');sessionDock.className='earnly-session-dock';sessionDock.append(document.getElementById('earnlyPauseButton'),document.getElementById('earnlyQuitButton'));document.body.append(sessionDock);}
@@ -714,6 +748,7 @@
         startGame();
       }
     });
+    soundControl();
     refreshChrome();
     updateLevel(0);
     draw();

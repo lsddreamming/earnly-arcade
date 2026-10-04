@@ -1250,7 +1250,7 @@ test('driving games hide mobile navigation during live play', async ({ page }) =
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 });
 
-test('Neon Dodger endurance makes three readable lane changes', async ({ page }) => {
+test('Neon Dodger later districts make four readable lane changes', async ({ page }) => {
   await page.goto('/dodger.html');
   const pattern = await page.evaluate(() => {
     const originalRandom = Math.random;
@@ -1267,8 +1267,8 @@ test('Neon Dodger endurance makes three readable lane changes', async ({ page })
       Math.random = originalRandom;
     }
   });
-  expect(pattern.extraDelay).toBe(840);
-  expect(pattern.rows).toEqual([[1, 2], [0, 2], [0, 1]]);
+  expect(pattern.extraDelay).toBe(1080);
+  expect(pattern.rows).toEqual([[1, 2], [0, 2], [0, 1], [0, 2]]);
 });
 
 test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ page }) => {
@@ -2434,4 +2434,26 @@ test('Neon Dodger hides Quit during swipes and exposes it after pausing', async 
   await page.locator('#earnlyQuitButton').click();await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
   await page.getByRole('button',{name:'Keep Playing',exact:true}).click();
   await page.locator('#earnlyPauseButton').click();await expect(page.locator('#earnlyQuitButton')).toBeHidden();
+});
+
+
+test('Neon Dodger level-up leaves traffic unobscured and mute remains usable while paused',async({page})=>{
+ await page.goto('/dodger.html');await startGame(page);await page.waitForTimeout(3300);
+ const report=await page.evaluate(()=>{running=true;updateLevel(80);lastSecondShown=80;let covered=false;const fill=ctx.fillRect.bind(ctx);ctx.fillRect=(x,y,w,h)=>{if(x===20&&y===28&&w===290)covered=true;fill(x,y,w,h);};draw();return {covered,level:document.getElementById('levelGoal').textContent};});
+ expect(report.covered).toBe(false);expect(report.level).toContain('LEVEL 5');
+ await page.locator('#earnlyPauseButton').click();const before=await page.locator('#soundButton').getAttribute('aria-pressed');await page.locator('#soundButton').click();await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed',before==='true'?'false':'true');await expect(page.locator('#earnlyPauseButton')).toHaveText(/Resume/);
+});
+
+test('Neon Dodger effects produce bounded audio and mute prevents new sounds',async({page})=>{
+ await page.goto('/dodger.html');
+ const result=await page.evaluate(async()=>{
+  localStorage.setItem('arcadeSound','on');const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;const offline=new Offline(1,48000,16000);let made=0;
+  const session={type:'auto'};Object.defineProperty(navigator,'audioSession',{value:session,configurable:true});
+  window.AudioContext=function(){return {state:'running',sampleRate:16000,currentTime:0,destination:offline.destination,suspend:()=>Promise.resolve(),createGain:()=>offline.createGain(),createBuffer:(...a)=>offline.createBuffer(...a),createBufferSource:()=>{made++;return offline.createBufferSource();},createOscillator:()=>{made++;return offline.createOscillator();},createBiquadFilter:()=>offline.createBiquadFilter()};};
+  await DodgerAudio.unlock();DodgerAudio.effect('start');DodgerAudio.effect('near',3);DodgerAudio.effect('crash');DodgerAudio.effect('stage');DodgerAudio.effect('complete');DodgerAudio.drive(.7);
+  const buffer=await offline.startRendering(),samples=buffer.getChannelData(0);let energy=0,peak=0;for(const n of samples){energy+=n*n;peak=Math.max(peak,Math.abs(n));}
+  const active=session.type;DodgerAudio.suspend();localStorage.setItem('arcadeSound','off');const before=made;await DodgerAudio.unlock();DodgerAudio.effect('near');DodgerAudio.drive(1);
+  return {rms:Math.sqrt(energy/samples.length),peak,active,restored:session.type,mutedSources:made-before};
+ });
+ expect(result.rms).toBeGreaterThan(.01);expect(result.peak).toBeLessThan(1);expect(result.peak).toBeGreaterThan(.1);expect(result.active).toBe('playback');expect(result.restored).toBe('auto');expect(result.mutedSources).toBe(0);
 });

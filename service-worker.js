@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-dodger-levels-20261004';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-dodger-polish-20261004';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',
@@ -16,7 +16,7 @@ const CACHE_NAME = 'earnly-dodger-levels-20261004';const CORE_ASSETS = [
   './blockdrop.html',
   './taprush.html',
   './memory.html',
-  './dodger.html', './dodger-progression.js',
+  './dodger.html', './dodger-progression.js', './dodger-audio.js',
   './brickbreaker.html',
   './junglehopper.html',
   './towerstack.html',

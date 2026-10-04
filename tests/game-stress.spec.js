@@ -125,7 +125,7 @@ const dodgerDifficulty=require('../dodger-progression.js').difficulty;
 
 test('Neon Dodger: 50,000 endurance waves keep a timed escape',()=>{
   const random=rng(4407);
-  let lastOpenLane=1,pairedWaves=0,farShifts=0,followUps=0,triples=0,problem=null;
+  let lastOpenLane=1,pairedWaves=0,farShifts=0,followUps=0,triples=0,quads=0,problem=null;
 
   for(let i=0;i<50000;i++){
     const seconds=i%120;
@@ -161,7 +161,7 @@ test('Neon Dodger: 50,000 endurance waves keep a timed escape',()=>{
         const firstOpen=lastOpenLane;
         const followUpOpen=firstOpen===1?(random()<.5?0:2):1;
         const followUpBlocked=[0,1,2].filter(lane=>lane!==followUpOpen);
-        const validTiming=stage.followUpGapMs>=420&&stage.delay>=760;
+        const validTiming=stage.followUpGapMs>=360&&stage.delay>=620;
         if(!problem&&(!validTiming||Math.abs(followUpOpen-firstOpen)!==1||followUpBlocked.includes(followUpOpen))){
           problem={i,seconds,firstOpen,followUpOpen,followUpBlocked,gapMs:stage.followUpGapMs};
         }
@@ -170,9 +170,10 @@ test('Neon Dodger: 50,000 endurance waves keep a timed escape',()=>{
           triples++;
           const thirdOpen=followUpOpen===1?(firstOpen===0?2:0):1;
           const thirdBlocked=[0,1,2].filter(lane=>lane!==thirdOpen);
-          const validTriple=Math.abs(thirdOpen-followUpOpen)===1&&thirdBlocked.length===2&&!thirdBlocked.includes(thirdOpen)&&stage.followUpGapMs>=420;
+          const validTriple=Math.abs(thirdOpen-followUpOpen)===1&&thirdBlocked.length===2&&!thirdBlocked.includes(thirdOpen)&&stage.followUpGapMs>=360;
           if(!problem&&!validTriple) problem={i,seconds,firstOpen,followUpOpen,thirdOpen,thirdBlocked};
           lastOpenLane=thirdOpen;
+          if(random()<(stage.fourthRowChance||0)){quads++;const fourthOpen=thirdOpen===1?(firstOpen===0?0:2):1;const fourthBlocked=[0,1,2].filter(lane=>lane!==fourthOpen);if(!problem&&(Math.abs(fourthOpen-thirdOpen)!==1||fourthBlocked.includes(fourthOpen)))problem={i,seconds,thirdOpen,fourthOpen};lastOpenLane=fourthOpen;}
         }
       }
     }else{
@@ -193,4 +194,5 @@ test('Neon Dodger: 50,000 endurance waves keep a timed escape',()=>{
   expect(farShifts).toBeGreaterThan(3000);
   expect(followUps).toBeGreaterThan(15000);
   expect(triples).toBeGreaterThan(5000);
+  expect(quads).toBeGreaterThan(4000);
 });
