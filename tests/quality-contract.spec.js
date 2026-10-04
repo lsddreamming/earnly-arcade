@@ -166,7 +166,7 @@ test('Neon Dodger runs until collision with fair triple-shift traffic', () => {
   expect(progression.progress(20).level).toBe(2);
   expect(progression.difficulty(80).speed).toBeGreaterThan(progression.difficulty(0).speed);
   expect(source).toContain('return DodgerProgression.difficulty(seconds);');
-  expect(source).toContain('const paired=Math.random()<stage.pairChance;');
+  expect(source).toContain('const paired=Math.random()<stage.pairChance && seconds-lastSteerSecond<=2;');
   expect(source).toContain('Math.random()<stage.farShiftChance');
   expect(source).toContain('lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];');
   expect(source).toContain('const followUpY=-86-stage.speed*stage.followUpGapMs/16.667;');

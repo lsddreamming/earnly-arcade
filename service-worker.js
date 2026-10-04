@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-dodger-overdrive-20261004';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-dodger-free-steering-20261004';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',

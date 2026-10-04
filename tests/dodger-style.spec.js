@@ -21,7 +21,7 @@ test('Neon Dodger actual traffic has upright cars and a clear lane in 500 sample
  const report=await page.evaluate(()=>{
   startTime=1000;let problem=null,rows=0;
   for(let wave=0;wave<500;wave++){
-   obstacles=[];spawn(1000+(wave%120)*1000);
+   obstacles=[];lastSteerSecond=wave%120;spawn(1000+(wave%120)*1000);
    const groups=new Map();for(const o of obstacles){const cars=groups.get(o.y)||[];cars.push(o);groups.set(o.y,cars);if(o.w>=o.h||o.w>52)problem='car proportions';}
    for(const cars of groups.values()){rows++;const safe=[55,165,275].some(center=>cars.every(o=>!intersects({x:center-player.w/2,y:o.y,w:player.w,h:player.h},o)));if(!safe)problem='no clear lane';}
   }
@@ -77,4 +77,10 @@ test('Neon Dodger an active lane-reading driver can collect cores and survive',a
   return {seconds:frames/60,cores:coresCollected};
  });
  expect(report.seconds).toBeGreaterThan(30);expect(report.cores).toBeGreaterThan(5);
+});
+
+test('Neon Dodger finger steering stays continuous between lane centers',async({page})=>{
+ await page.goto('/dodger.html');
+ const report=await page.evaluate(()=>{running=true;startTime=1000;nextSpawnAt=999999;obstacles=[];cores=[];setPlayerX(193);const before=player.x;loop(1100);cancelAnimationFrame(animation);const after=player.x;setPlayerX(-20);const left=player.x;setPlayerX(500);return {before,after,left,right:player.x};});
+ expect(report).toEqual({before:193,after:193,left:0,right:298});
 });

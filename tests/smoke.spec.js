@@ -1257,6 +1257,7 @@ test('Neon Dodger later districts make four readable lane changes', async ({ pag
     Math.random = () => 0;
     try {
       startTime = performance.now() - 95000;
+      lastSteerSecond = 95;
       lastOpenLane = 1;
       obstacles = [];
       const extraDelay = spawn(performance.now());
