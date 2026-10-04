@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-neondrift-polish-20261004';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-neondrift-turbo-20261004';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',

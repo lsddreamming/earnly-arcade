@@ -24,7 +24,7 @@ test('Neon Drift collision cooldown and near-miss scoring cannot award twice',()
 });
 test('Neon Drift steering has controllable inertia and later sectors add traffic and tighter bends',()=>{
  const s=E.create();E.tick(s,.1,1);expect(s.vx).toBeGreaterThan(0);const moving=s.vx;E.tick(s,.1,0);expect(s.vx).toBeLessThan(moving);expect(s.vx).toBeGreaterThan(0);for(let i=0;i<20;i++)E.tick(s,.05,-1);expect(s.vx).toBeLessThan(0);
- const easy=E.difficulty(0),hard=E.difficulty(80);expect(hard.speed).toBeGreaterThan(easy.speed);expect(hard.halfWidth).toBeLessThan(easy.halfWidth);expect(hard.interval).toBeLessThan(easy.interval);expect(hard.pairs).toBe(true);
+ const easy=E.difficulty(0),hard=E.difficulty(80);expect(easy.speed).toBeGreaterThanOrEqual(280);expect(hard.speed).toBeGreaterThanOrEqual(490);expect(hard.speed).toBeGreaterThan(easy.speed);expect(hard.halfWidth).toBeLessThan(easy.halfWidth);expect(hard.interval).toBeLessThan(easy.interval);expect(hard.pairs).toBe(true);
  const run=E.create(seeded(5));run.time=60;for(let i=0;i<250;i++){run.hurt=2;E.tick(run,.05);const groups=new Map();for(const c of run.traffic){const key=Math.round((c.z-c.speed*(run.time-60))*100);groups.set(key,(groups.get(key)||0)+1);}expect(run.traffic.length).toBeLessThanOrEqual(12);}
 });
 test('Neon Drift web assets and 1.1 mirror stay identical',()=>{for(const file of ['neondrift.html','neondrift.css','neondrift.js','neondrift-engine.js','neondrift-renderer.js','neondrift-audio.js'])expect(fs.readFileSync('www/'+file,'utf8')).toBe(fs.readFileSync(file,'utf8'));});
@@ -64,19 +64,20 @@ test('Neon Drift fits small phones and landscape with actions below steering',as
  }
 });
 
-test('Neon Drift can be completed by a traffic-aware driver across 200 seeded roads',()=>{
- let finishes=0;
+test('Neon Drift rewards earlier traffic planning across 400 seeded roads',()=>{
+ for(const lookAhead of [210,300]){let finishes=0;
  for(let seed=1;seed<=200;seed++){
   const s=E.create(seeded(seed));
   for(let i=0;i<1900&&!s.ended;i++){
-   const ahead=s.traffic.filter(c=>c.z-s.distance> -40&&c.z-s.distance<210);
+   const ahead=s.traffic.filter(c=>c.z-s.distance> -40&&c.z-s.distance<lookAhead);
    const cost=lane=>Math.abs(E.road(s.distance+60)+lane-s.x)*.12+ahead.reduce((sum,c)=>sum+(Math.abs(lane-c.lane*72)<40?1000/(1+Math.max(0,c.z-s.distance)/100):0),0);
    const lane=[-72,0,72].sort((a,b)=>cost(a)-cost(b))[0];
    E.tick(s,.05,Math.max(-1,Math.min(1,(E.road(s.distance+65)+lane-s.x)*.04-s.vx*.006)));
   }
   if(s.hull>0)finishes++;
  }
- expect(finishes).toBeGreaterThan(100);console.log('Traffic-aware driver: '+finishes+'/200 completed');
+ if(lookAhead===300)expect(finishes).toBeGreaterThan(100);else expect(finishes).toBeLessThan(40);console.log('Traffic-aware driver ('+lookAhead+'px anticipation): '+finishes+'/200 completed');}
+
 });
 test('Neon Drift countdown rejects repeated start input and mini fallback remains playable',async({page})=>{
  await page.goto('/neondrift.html');await page.evaluate(()=>{const b=document.getElementById('startButton');b.click();b.click();b.click();});await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await expect(page.locator('#plays')).toHaveText('2');
