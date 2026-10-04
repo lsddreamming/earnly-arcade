@@ -27,6 +27,8 @@
   if(!ready())return;
   if(kind==='start'){tone(110,330,.35,.18);tone(440,880,.22,.13,.15);}
   else if(kind==='near'){burst(.24,.28,2400,300);tone(620+combo*80,930+combo*100,.18,.16,.04);}
+  else if(kind==='core'){tone(740,1200,.12,.13);}
+  else if(kind==='surge'){[440,660,880,1320].forEach((f,i)=>tone(f,f*1.2,.18,.15,i*.07));}
   else if(kind==='crash'){burst(.35,.55,1500,100);tone(140,38,.35,.3,0,'sine');}
   else if(kind==='stage'){[392,523,784].forEach((f,i)=>tone(f,f,.2,.13,i*.09));}
   else if(kind==='complete'){[523,659,784,1047].forEach((f,i)=>tone(f,f,.35,.14,i*.11));}
