@@ -13,6 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Jungle Hopper</title>
+<meta name="description" content="Guide a hopping character through vine gaps with a rhythm of short taps.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=21">
   <style>
@@ -98,6 +99,7 @@
       body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="junglehopper-page">
   <main class="container">
@@ -121,7 +123,16 @@
 
     <canvas class="jungle-board touch-surface" id="game" width="360" height="560" aria-label="Jungle Hopper game board"></canvas>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
-  </main>
+
+    <a class="game-guide-link" href="game-guides.html#jungleHopper">How to play Jungle Hopper · guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
 
   <script src="arcade.js"></script>
   <script>

@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b1b"><title>Neon Drift · Earnly Arcade</title><link rel="icon" href="earnly-icon.svg"><link rel="stylesheet" href="arcade.css"><link rel="stylesheet" href="premium.css?v=37"><link rel="stylesheet" href="neondrift.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b1b"><title>Neon Drift · Earnly Arcade</title>
+  <meta name="description" content="Slide through neon road bends and build combos with close passes."><link rel="icon" href="earnly-icon.svg"><link rel="stylesheet" href="arcade.css"><link rel="stylesheet" href="premium.css?v=37"><link rel="stylesheet" href="neondrift.css">  <link rel="stylesheet" href="public-info.css">
+</head>
 <body class="drift-page"><main class="container">
 <div class="topbar"><a class="brand" href="games.html">← Games</a><span class="balance-chip">🪙 <span id="balance">0</span></span></div>
 <header class="page-header"><div class="game-title-status-row"><h1>Neon Drift</h1><div class="drift-status-tools"><button id="soundButton" class="drift-sound" type="button" aria-pressed="true" aria-label="Mute sound effects">♫ On</button><span id="gameStatus" class="game-status title-status">Ready</span></div></div><div class="game-meta"><span class="meta-pill">Score <b id="score">0</b></span><span class="meta-pill">Hull <b id="hull">3</b></span><span class="meta-pill">Time <b id="time">90</b>s</span><span class="meta-pill">Plays <b id="plays">3</b></span></div></header>
@@ -8,4 +10,13 @@
 <div id="driftControls" class="drift-controls"><button id="leftButton" type="button" aria-label="Hold to drift left">← <span>DRIFT LEFT</span></button><button id="rightButton" type="button" aria-label="Hold to drift right"><span>DRIFT RIGHT</span> →</button></div>
 <p class="drift-tip">Hold to slide. Release to straighten. Close passes build your combo.<br><span>Keyboard: ← → or A / D</span></p>
 <a class="button secondary wide back-games" href="games.html">← Back to Games</a>
+
+    <a class="game-guide-link" href="game-guides.html#neonDrift">How to play Neon Drift · guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
 </main><script src="arcade.js"></script><script src="neondrift-engine.js"></script><script src="neondrift-renderer.js"></script><script src="neondrift-audio.js"></script><script src="neondrift.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="cloud.js"></script></body></html>

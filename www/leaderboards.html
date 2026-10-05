@@ -41,6 +41,7 @@
     .world-record.show{display:block}
     @media(max-width:520px){.leaderboard-toolbar{grid-template-columns:1fr}.leader-row{grid-template-columns:32px 38px minmax(0,1fr) auto 30px;padding:10px 7px;gap:6px}.leader-avatar{width:36px;height:36px;font-size:20px}}
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="leaderboards-dashboard">
   <main class="container">
@@ -73,7 +74,14 @@
 
     <p class="leaderboard-note">A ✓ means the score matched a recent server-synced reward run. Use the flag beside a player to report and hide an inappropriate username. <a href="support.html">Contact support</a> for anything else.</p>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
-  </main>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
 
   <script src="arcade.js"></script>
   <script>

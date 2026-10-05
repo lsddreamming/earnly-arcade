@@ -4,6 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0f172a"><meta name="apple-mobile-web-app-capable" content="yes">
   <title>Neon Maze · Earnly Arcade</title>
+  <meta name="description" content="Collect energy cells through maze sectors while evading sentry drones.">
   <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="arcade.css"><link rel="stylesheet" href="premium.css?v=32">
   <style>
@@ -38,6 +39,7 @@
     .maze-page.game-active main.container{padding-bottom:8px}
   </style>
   <link rel="stylesheet" href="compact-game-entry.css?v=1">
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="maze-page"><main class="container">
   <div class="topbar"><a class="brand" href="games.html">← Games</a><a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a></div>
@@ -49,7 +51,16 @@
   <div class="maze-controls" aria-label="Move through maze"><button type="button" data-dir="up" aria-label="Up">⬆️</button><button type="button" data-dir="left" aria-label="Left">⬅️</button><button type="button" data-dir="down" aria-label="Down">⬇️</button><button type="button" data-dir="right" aria-label="Right">➡️</button></div>
   <p class="maze-tip">Swipe anywhere or use the arrows · collect energy cells · evade sentry drones</p>
   <a class="button wide secondary back-games" href="games.html">← Back to Games</a>
-  </main><script src="arcade.js"></script><script>
+
+    <a class="game-guide-link" href="game-guides.html#neonMaze">How to play Neon Maze · guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main><script src="arcade.js"></script><script>
   (()=>{
     const c=document.getElementById('game'),ctx=c.getContext('2d'),E=Object.fromEntries(['chips','lives','time','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
     const map=['###########','#.........#','#.###.###.#','#...#.#...#','###.#.#.###','#...#.....#','#.#####.#.#','#.....#.#.#','#.###.#.#.#','#.#.....#.#','#.#.#####.#','#.........#','###########'];

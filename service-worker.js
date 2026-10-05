@@ -1,7 +1,10 @@
-const CACHE_NAME = 'earnly-profile-clarity-20261004';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-public-info-20261005';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',
+  './about.html',
+  './game-guides.html',
+  './public-info.css',
   './games.html',
   './rewards.html',
   './profile.html',

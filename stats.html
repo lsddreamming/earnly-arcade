@@ -35,6 +35,7 @@
       .missions-dashboard .missions-weekly-card:has(.missions-complete-toggle:not([hidden])){padding-bottom:11px}
     }
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="missions-dashboard">
   <main class="container missions-container">
@@ -109,7 +110,14 @@
       <summary>🕘 Recent activity <span>Newest first</span></summary>
       <div class="activity-list" id="activityList"></div>
     </details>
-  </main>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
 
   <script src="arcade.js"></script>
   <script>

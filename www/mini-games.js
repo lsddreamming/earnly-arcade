@@ -25,6 +25,11 @@
   const startButton = document.getElementById('startButton');
   const helpEl = document.getElementById('miniHelp');
 
+  const publicGuide = document.getElementById('miniPublicGuide');
+  if (publicGuide) {
+    publicGuide.href = 'game-guides.html#' + key;
+    publicGuide.textContent = 'How to play ' + config.name + ' · guide & tips';
+  }
   document.title = 'Earnly ' + config.name;
   document.getElementById('gameIcon').textContent = config.icon;
   document.getElementById('gameTitle').textContent = config.name;

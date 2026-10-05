@@ -13,6 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Color Match</title>
+  <meta name="description" content="A quick decision game where the written word tries to distract you from its ink color.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
@@ -137,6 +138,7 @@
       body.colormatch-page.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important}
     }
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="colormatch-page">
   <main class="container">
@@ -162,7 +164,16 @@
       <div class="color-choices" id="choices"></div>
     </div>
     <a class="button wide secondary colormatch-exit" id="colorMatchExit" href="games.html">✕ Quit Game</a>
-  </main>
+
+    <a class="game-guide-link" href="game-guides.html#colorMatch">How to play Color Match · guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
   <script src="arcade.js"></script>
   <script>
     const playsEl=document.getElementById('plays');
@@ -175,7 +186,7 @@
       if(!Arcade.consume('colorMatch')){ Arcade.out('colorMatch',refreshChrome); return false; }
       refreshChrome(); return true;
     }
-    
+
     const board=document.getElementById('board'),wordEl=document.getElementById('word'),choices=document.getElementById('choices');
     const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),runRewardPill=document.getElementById('runRewardPill'),feedbackEl=document.getElementById('colorFeedback');
     const colors=[['RED','#ef4444'],['BLUE','#3b82f6'],['GREEN','#22c55e'],['YELLOW','#facc15']];
@@ -248,7 +259,7 @@
     board.addEventListener('pointerdown',e=>{if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
     document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
     startButton.addEventListener('click',startGame);refreshChrome();
-  
+
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
