@@ -136,8 +136,8 @@ for (const width of [320, 390, 440]) {
     await page.setViewportSize({ width, height:844 });
     await openSettings(page);
     for (const scale of ['compact', 'comfortable', 'large', 'xlarge']) {
-      await page.locator(`[data-text-scale="${scale}"]`).click();
-      await expect(page.locator(`[data-text-scale="${scale}"]`)).toHaveAttribute('aria-pressed','true');
+      await page.locator(`#textSizeOptions button[data-text-scale="${scale}"]`).click();
+      await expect(page.locator(`#textSizeOptions button[data-text-scale="${scale}"]`)).toHaveAttribute('aria-pressed','true');
       const layout = await page.evaluate(() => ({
         width:innerWidth,
         scrollWidth:document.documentElement.scrollWidth,
@@ -158,6 +158,7 @@ for (const width of [320, 390, 440]) {
       for (const size of layout.copySizes) expect(size).toBeGreaterThanOrEqual(12);
       await expect(page.locator('#ownerToolsCard')).toBeHidden();
       await expect(page.locator('#queueStatus')).toHaveCount(0);
+      await expect(page.locator('html')).not.toHaveAttribute('aria-pressed', /.+/);
     }
     await page.locator('.settings-menu-row[href="account.html"]').scrollIntoViewIfNeeded();
     await expect(page.locator('.settings-menu-row[href="account.html"]')).toBeInViewport();
