@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Star Defender · Earnly Arcade</title>
+  <meta name="description" content="An alien-wave shooter where your ship fires automatically and your attention goes to dodging.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="arcade.css">
@@ -91,6 +92,7 @@
     .star-page.game-active main.container{padding-bottom:max(8px,env(safe-area-inset-bottom))}
     @media(max-height:720px){.star-page .star-board{width:min(84vw,330px,calc((100dvh - 220px)*.69))}}
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="star-page">
   <main class="container">
@@ -108,7 +110,16 @@
     <canvas id="game" class="star-board touch-surface" width="330" height="480" aria-label="Star Defender alien shooter game board"></canvas>
     <p class="star-tip">Drag anywhere to steer · your ship fires automatically · dodge alien shots</p>
     <a class="button wide secondary back-games" href="games.html">← Back to Games</a>
-  </main>
+
+    <a class="game-guide-link" href="game-guides.html#starDefender">How to play Star Defender · guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
   <script src="arcade.js"></script>
   <script>
   (()=>{

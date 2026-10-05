@@ -13,6 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Arcade Support</title>
+  <meta name="description" content="Get help with Earnly Arcade games, plays, accounts, and saved progress. Find answers and contact support.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=35">
   <style>
@@ -28,6 +29,7 @@
     .support-faq p{color:#9fb0c9;margin:10px 0 0;line-height:1.55}
     .support-note{font-size:.9rem;color:#9fb0c9;line-height:1.55}
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="support-dashboard">
   <main class="container">
@@ -61,12 +63,16 @@
           <p>No. You can play Earnly Arcade as a guest. A free account is optional and protects cloud progress across devices; signing in is also required for your public leaderboard identity.</p>
         </details>
         <details>
+          <summary>Where can I learn a game’s controls?</summary>
+          <p>Open <a href="game-guides.html">Game Guides</a> for the controls, objective, and strategy tips for every game. Each play screen also has a direct link to its guide.</p>
+        </details>
+        <details>
           <summary>What are Arcade Coins?</summary>
           <p>Arcade Coins are in-app reward points earned through gameplay and challenges. Some game features can spend Coins, such as an eligible Continue. Coins are not cash, cryptocurrency, or stored value, and they cannot be redeemed, transferred, or withdrawn in the current version.</p>
         </details>
         <details>
           <summary>How do free plays work?</summary>
-          <p>Each game includes free plays. When you run out, available bonus play options may appear. Free plays refill according to the limits shown inside Earnly.</p>
+          <p>Each game includes three free plays with a daily refill. When you run out, optional rewarded ads can unlock extra plays when available. The game shows its current play balance and any daily bonus-play limits.</p>
         </details>
         <details>
           <summary>How do I save my progress?</summary>
@@ -96,7 +102,14 @@
     <a class="button wide secondary" href="privacy.html">🔐 Privacy Policy</a>
     <a class="button wide secondary" href="terms.html">📄 Terms of Use</a>
     <a class="button wide" href="index.html">← Back to Earnly Arcade</a>
-  </main>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html" aria-current="page">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
   <script src="arcade.js"></script>
 </body>
 </html>

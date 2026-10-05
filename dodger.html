@@ -13,6 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Dodger</title>
+  <meta name="description" content="A neon traffic challenge with districts, collectible cores, and car unlocks.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
@@ -134,6 +135,7 @@
     body.dodger-page .game-title-status-row{gap:6px!important;flex-wrap:nowrap}
     @media(max-width:400px){body.dodger-page .game-title-status-row h1{font-size:20px!important}}
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="dodger-page">
   <main class="container">
@@ -160,7 +162,16 @@
     <canvas class="dodger-board touch-surface" id="game" width="330" height="500" aria-label="Neon Dodger game board"></canvas>
     <div id="swipeZone" class="dodger-swipe">↔ Swipe here or on the road</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
-  </main>
+
+    <a class="game-guide-link" href="game-guides.html#dodger">How to play Neon Dodger · guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
 
   <script src="arcade.js"></script>
   <script src="dodger-progression.js"></script>

@@ -3225,11 +3225,13 @@ const Arcade = (() => {
     banner.id = 'connectionBanner';
     banner.className = 'connection-banner';
     banner.setAttribute('role', 'status');
-    banner.textContent = '📴 Offline mode · cached games are still available';
+    banner.hidden = true;
     document.body.append(banner);
 
     const render = () => {
       const offline = navigator.onLine === false;
+      banner.hidden = !offline;
+      banner.textContent = offline ? '📴 Offline mode · cached games are still available' : '';
       banner.classList.toggle('show', offline);
       document.body.classList.toggle('is-offline', offline);
     };
@@ -3315,7 +3317,7 @@ const Arcade = (() => {
       'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','neonmaze.html','mini.html'
     ]);
 
-    let active = 'home';
+    let active = file === 'index.html' ? 'home' : '';
     if (gameFiles.has(file)) active = 'games';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
@@ -3358,7 +3360,7 @@ const Arcade = (() => {
       'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','neonmaze.html','mini.html'
     ]);
 
-    let active = 'home';
+    let active = file === 'index.html' ? 'home' : '';
     if (gameFiles.has(file)) active = 'games';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
@@ -3734,9 +3736,11 @@ const Arcade = (() => {
   let confirmedQuit = null;
   let quitPrompt = null;
   window.addEventListener('click', event => {
-    const exit = event.target instanceof Element && event.target.closest(
+    const publicExit = event.target instanceof Element && event.target.closest('.public-footer a,.game-guide-link');
+    const activeGame = document.querySelector('#gameStatus.running') || document.body.classList.contains('earnly-game-paused');
+    const exit = (publicExit && activeGame ? publicExit : null) || (event.target instanceof Element && event.target.closest(
       '#snakeQuit,#blockDropExit,#brickQuit,#coinCatchExit,#earnlyQuitButton,#miniGameExit,.back-games,.earnly-game-exit'
-    );
+    ));
     if (!exit || exit === confirmedQuit) return;
     event.preventDefault();
     event.stopImmediatePropagation();

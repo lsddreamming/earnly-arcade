@@ -25,6 +25,7 @@
     .cloud-auth-feedback.error{border-color:rgba(248,113,113,.55);background:rgba(127,29,29,.2);color:#fecaca}
     .cloud-auth-feedback[hidden]{display:none}
   </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body class="account-dashboard">
   <main class="container">
@@ -203,7 +204,14 @@
 
     <a class="button wide ghost" href="settings.html">⚙️ App Settings</a>
     <a class="button wide" href="profile.html">← Back to Profile</a>
-  </main>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
 
   <script src="arcade.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

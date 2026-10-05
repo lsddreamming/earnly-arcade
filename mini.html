@@ -14,6 +14,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Arcade</title>
+  <meta name="description" content="Play Earnly Arcade timing, number, shape, and traffic puzzles. Read each game’s rules and chase a personal best.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
@@ -166,7 +167,7 @@
       body.mini-blockGrid.game-active .piece-button{min-height:66px;border-radius:12px}
       body.mini-blockGrid.game-active .mini-cell{border-radius:6px}
     }
-  
+
       @media(max-width:600px){
         body.mini-blockGrid.game-active .page-header{position:relative!important;transform:none!important;top:auto!important}
         body.mini-blockGrid.game-active .page-header h1,body.mini-blockGrid.game-active .game-meta{visibility:visible!important;opacity:1!important}
@@ -575,6 +576,7 @@
       body.mini-mergeRush.game-active .mini-help{display:none!important}
     }
 </style>
+  <link rel="stylesheet" href="public-info.css">
 </head>
 <body>
   <main class="container">
@@ -596,7 +598,16 @@
     <div class="mini-surface touch-surface" id="surface" role="region" aria-label="Game play area"></div>
     <div class="mini-help" id="miniHelp" aria-live="polite"></div>
     <a class="button wide secondary mini-exit" id="miniGameExit" href="games.html">✕ Quit Game</a>
-  </main>
+
+    <a class="game-guide-link" id="miniPublicGuide" href="game-guides.html">Game guide &amp; tips</a>
+
+    <footer class="public-footer" aria-label="Earnly site information">
+      <nav aria-label="Site information">
+        <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      </nav>
+      <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
+    </footer>
+</main>
   <script src="arcade.js"></script>
   <script src="mergerush-rules.js"></script>
   <script src="mini-games.js"></script>
