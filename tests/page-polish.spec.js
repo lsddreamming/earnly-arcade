@@ -24,7 +24,7 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
   expect(settings).not.toContain('<span>Sync Queue</span>');
   expect(settings).not.toContain('🧪 Testing Tools');
 
-  expect(stats).toContain('id="differentGames">0/23');
+  expect(stats).toContain('id="differentGames">0/22');
 
   expect(leaderboards).toContain('Signed-in players with a leaderboard username can compete globally');
 
@@ -54,7 +54,7 @@ test('web and packaged iOS copies carry the audited player-facing wording', asyn
   const pairs = [
     ['rewards.html', 'Some in-game features can spend Coins'],
     ['settings.html', 'id="ownerToolsCard"'],
-    ['stats.html', 'id="differentGames">0/23'],
+    ['stats.html', 'id="differentGames">0/22'],
     ['leaderboards.html', 'Signed-in players with a leaderboard username'],
     ['support.html', 'Some game features can spend Coins'],
     ['privacy.html', 'account-signup stages'],

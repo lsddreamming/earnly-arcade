@@ -13,7 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Earnly Games</title>
-<meta name="description" content="Explore 23 Earnly Arcade games: reaction, driving, puzzles, and classics. Find a game, learn the controls, and start a run.">
+<meta name="description" content="Explore 22 Earnly Arcade games: reaction, driving, puzzles, and classics. Find a game, learn the controls, and start a run.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=37">
 <link rel="stylesheet" href="public-info.css">
@@ -97,7 +97,6 @@
       { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines · speeds up · deep runs earn bonus XP', href:'blockdrop.html' },
       { key:'tapRush', icon:'🎯', name:'Tap Rush', note:'20-second reaction challenge', href:'taprush.html' },
       { key:'memory', icon:'🧠', name:'Memory Match', note:'Match 8 pairs in fewer moves', href:'memory.html' },
-      { key:'dodger', icon:'🚗', name:'Neon Dodger', note:'Clear districts · unlock neon cars', href:'dodger.html' },
       { key:'brickBreaker', icon:'💥', name:'Brick Breaker', note:'Clear levels · faster ball · bigger rewards', href:'brickbreaker.html' },
       { key:'jungleHopper', icon:'🐸', name:'Jungle Hopper', note:'Tap through jungle vine gaps', href:'junglehopper.html' },
       { key:'towerStack', icon:'🏗️', name:'Tower Stack', note:'Tap to build the tallest tower', href:'towerstack.html' },
@@ -106,7 +105,7 @@
       { key:'paddleRally', icon:'🏓', name:'Paddle Rally', note:'Solo pong · keep the rally alive', href:'paddlerally.html' },
       { key:'laneRunner', icon:'🏎️', name:'Lane Runner', note:'Switch lanes and dodge traffic', href:'lanerunner.html' },
       { key:'safeCracker', icon:'🔐', name:'Safe Cracker', note:'Stop the marker in the shrinking green zone', href:'safecracker.html' },
-      { key:'neonDrift', icon:'🏁', name:'Neon Drift', note:'Drift the bends · dodge traffic · chain close calls', href:'neondrift.html' },
+      { key:'neonDrift', icon:'🏁', name:'Neon Drift', note:'Faster sectors · bonus Coins · Overdrive streaks', href:'neondrift.html' },
       { key:'mergeRush', icon:'🔢', name:'Merge Rush', note:'Swipe and merge matching numbers', href:'mini.html?game=mergeRush' },
       { key:'perfectDrop', icon:'🎯', name:'Perfect Drop', note:'Time each drop into the target', href:'mini.html?game=perfectDrop' },
       { key:'spiralDrop', icon:'🌀', name:'Spiral Drop', note:'Guide the ball through shrinking gaps', href:'mini.html?game=spiralDrop' },
@@ -124,7 +123,7 @@
       blockDrop:['classic','brain'],
       tapRush:['quick'],
       memory:['brain'],
-      dodger:['action'],
+
       brickBreaker:['classic','action'],
       jungleHopper:['action'],
       towerStack:['action'],
@@ -222,7 +221,7 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['neonBreach','tapRush','dodger','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['neonBreach','tapRush','neonDrift','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
@@ -232,7 +231,7 @@
         : visibleGames;
       document.getElementById('gameBrowseCount').textContent = visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's') + (gameSearchText || activeGameFilter !== 'all' ? ' found' : ' to explore');
       document.getElementById('surpriseGame').disabled = visibleGames.length === 0;
-      const recommendedKeys = new Set(['tapRush','dodger','snake']);
+      const recommendedKeys = new Set(['tapRush','neonDrift','snake']);
 
       gamesToRender.forEach(info => {
         const remaining = Arcade.remaining(info.key);

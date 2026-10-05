@@ -19,7 +19,7 @@ const dedicatedGames = [
   'blockdrop.html',
   'taprush.html',
   'memory.html',
-  'dodger.html',
+
   'brickbreaker.html',
   'junglehopper.html',
   'towerstack.html',
@@ -37,7 +37,6 @@ const expectedGameKeys = [
   'blockDrop',
   'tapRush',
   'memory',
-  'dodger',
   'brickBreaker',
   'jungleHopper',
   'towerStack',
@@ -94,7 +93,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('all 23 catalog games stay registered consistently', () => {
+test('all 22 catalog games stay registered consistently', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
@@ -104,10 +103,10 @@ test('all 23 catalog games stay registered consistently', () => {
   const miniConfigs = objectKeysNear(mini, 'const configs');
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
-  expect(new Set(catalog).size).toBe(23);
+  expect(new Set(catalog).size).toBe(22);
   expect([...catalog].sort()).toEqual([...expectedGameKeys].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
-  expect([...bestConfig].sort()).toEqual([...expectedGameKeys].sort());
+  expect([...bestConfig].sort()).toEqual([...expectedGameKeys, 'dodger'].sort());
   expect([...miniConfigs].sort()).toEqual([
     'bounceRun',
     'mergeRush',
@@ -158,47 +157,8 @@ test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
   expect(html).not.toContain('.traffic-car.clear-path');
 });
 
-test('Neon Dodger runs until collision with fair triple-shift traffic', () => {
-  const source = read('dodger.html');
 
-  expect(source).toContain('function difficultyFor(seconds)');
-  const progression=require('../dodger-progression.js');
-  expect(progression.progress(20).level).toBe(2);
-  expect(progression.difficulty(80).speed).toBeGreaterThan(progression.difficulty(0).speed);
-  expect(source).toContain('return DodgerProgression.difficulty(seconds);');
-  expect(source).toContain('const paired=Math.random()<stage.pairChance && seconds-lastSteerSecond<=2;');
-  expect(source).toContain('Math.random()<stage.farShiftChance');
-  expect(source).toContain('lanes=[Math.max(0,Math.min(2,Math.floor((player.x+player.w/2)/laneWidth)))];');
-  expect(source).toContain('const followUpY=-86-stage.speed*stage.followUpGapMs/16.667;');
-  expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==followUpOpen),followUpY,stage.blockWidth');
-  expect(source).toContain('addTrafficRow([0,1,2].filter(lane=>lane!==thirdOpen),thirdY,stage.blockWidth');
-  expect(source).toContain('lanes=[0,1,2].filter(lane=>lane!==next);');
-  expect(source).toContain('function spawnDelayFor(seconds)');
-  expect(source).toContain('nextSpawnAt=now+spawnDelayFor(seconds)+followUpGapMs;');
-  expect(source).toContain('nextSpawnAt=now+560');
-  expect(source).toContain('const seconds=Math.floor(elapsed/1000);');
-  expect(source).not.toContain('if(elapsed>=60000)');
-  expect(source).toContain('finishGame(seconds);');
-  expect(source).toContain('arcadeDodgerTopLevel');
-  expect(source).toContain('LEVEL '+"'"+'+runLevel');
-});
 
-test('Neon Dodger keeps live play focused and result timing consistent', () => {
-  const source = read('dodger.html');
-
-  expect(source).toContain('body.dodger-page.game-active #arcadeBottomNav{display:none!important}');
-  expect(source).toContain('body.dodger-page.game-active .topbar,body.dodger-page.game-active #startButton{display:none!important}');
-  expect(source).toContain("'⏱️ Time played: '+seconds+'s'");
-  expect(source).not.toContain("Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000)");
-});
-
-test('Neon Dodger keeps Quit out of active swipes and stores district progress', () => {
-  const source=read('dodger.html');
-  expect(source).toContain('game-active:not(.earnly-game-paused) #earnlyQuitButton{display:none!important}');
-  expect(source).toContain('id="swipeZone"');
-  expect(source).toContain('id="levelGoal"');
-  expect(source).toContain("localStorage.setItem('arcadeDodgerTopLevel',String(bestLevel))");
-});
 
 test('the mobile pause dock covers dedicated, mini, and Paddle Rally games without breaking bottom swipes', () => {
   const css = read('arcade.css');

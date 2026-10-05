@@ -222,7 +222,7 @@ test('leaderboard and profile pages expose growth engagement tracking', async ({
 const pages = [
   'index.html','games.html','rewards.html','profile.html','account.html','settings.html','stats.html','privacy.html','support.html','terms.html',
   'snake.html','blockdrop.html','brickbreaker.html','coincatch.html',
-  'colormatch.html','dodger.html','junglehopper.html','lanerunner.html',
+  'colormatch.html','junglehopper.html','lanerunner.html',
   'memory.html','paddlerally.html','safecracker.html','taprush.html','towerstack.html'
 ];
 
@@ -295,7 +295,7 @@ test('mobile catalog shows two browsable game choices per row', async ({ page })
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
-  await expect(cards).toHaveCount(23);
+  await expect(cards).toHaveCount(22);
   const first = await cards.nth(0).boundingBox();
   const second = await cards.nth(1).boundingBox();
   expect(first).toBeTruthy();
@@ -500,7 +500,7 @@ test('all arcade games expose a consistent play balance', async ({ page }) => {
     localStorage.removeItem('arcadePlayDay');
     return Object.keys(Arcade.names).map(game => [game, Arcade.remaining(game)]);
   });
-  expect(balances.length).toBe(23);
+  expect(balances.length).toBe(22);
   for (const [game, plays] of balances) {
     expect(plays, game + ' should begin with three daily plays').toBe(3);
   }
@@ -1256,42 +1256,22 @@ test('driving games hide mobile navigation during live play', async ({ page }) =
   const width = page.viewportSize()?.width || 1280;
   test.skip(width >= 700, 'Mobile-only gameplay chrome check');
 
+  const time=new Date('2026-10-05T12:00:00Z');await page.clock.install({time});await page.clock.pauseAt(time);
   await page.goto('/lanerunner.html');
   await startGame(page);
-  await page.waitForTimeout(3300);
+  await page.clock.runFor(3300);
   await expect(page.locator('#gameStatus')).toHaveClass(/running/);
   await expect(page.locator('#laneControlZone')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 
-  await page.goto('/dodger.html');
+  await page.goto('/neondrift.html');
   await startGame(page);
-  await page.waitForTimeout(3300);
+  await page.clock.runFor(3300);
   await expect(page.locator('#gameStatus')).toHaveClass(/running/);
   await expect(page.locator('#game')).toBeVisible();
   await expect(page.locator('#arcadeBottomNav')).toBeHidden();
 });
 
-test('Neon Dodger later districts make four readable lane changes', async ({ page }) => {
-  await page.goto('/dodger.html');
-  const pattern = await page.evaluate(() => {
-    const originalRandom = Math.random;
-    Math.random = () => 0;
-    try {
-      startTime = performance.now() - 95000;
-      lastSteerSecond = 95;
-      lastOpenLane = 1;
-      obstacles = [];
-      const extraDelay = spawn(performance.now());
-      return { extraDelay, rows: [...new Set(obstacles.map(car => car.y))].map(y =>
-        obstacles.filter(car => car.y === y).map(car => Math.floor((car.x + car.w / 2) / 110))
-      ) };
-    } finally {
-      Math.random = originalRandom;
-    }
-  });
-  expect(pattern.extraDelay).toBe(1080);
-  expect(pattern.rows).toEqual([[1, 2], [0, 2], [0, 1], [0, 2]]);
-});
 
 test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ page }) => {
   const errors = [];
@@ -1315,7 +1295,7 @@ test('core games always expose a result popup contract', async ({ page }) => {
     ['snake.html','Snake'],
     ['blockdrop.html','Block Drop'],
     ['brickbreaker.html','Brick Breaker'],
-    ['dodger.html','Neon Dodger'],
+
     ['junglehopper.html','Jungle Hopper'],
     ['towerstack.html','Tower Stack'],
     ['safecracker.html','Safe Cracker'],
@@ -2150,14 +2130,14 @@ test('repairs impossible daily coin counters and uses live catalog total', async
 
   await page.goto('/profile.html');
   const totalGames = await page.evaluate(() => Object.keys(Arcade.names).length);
-  expect(totalGames).toBe(23);
-  await expect(page.locator('#differentGames')).toContainText('/23');
+  expect(totalGames).toBe(22);
+  await expect(page.locator('#differentGames')).toContainText('/22');
 });
 
 
 test('global leaderboards expose all games and editable player identity', async ({ page }) => {
   await page.goto('/leaderboards.html');
-  await expect(page.locator('#gameSelect option')).toHaveCount(23);
+  await expect(page.locator('#gameSelect option')).toHaveCount(22);
   await expect(page.locator('#boardTitle')).toContainText('World Top 25');
   await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
 
@@ -2434,53 +2414,8 @@ for (const rejects of [false, true]) {
 }
 
 
-test('Neon Dodger districts unlock cars and preserve a saved highest level', async ({page}) => {
-  await page.goto('/dodger.html');
-  const p=await page.evaluate(()=>({first:DodgerProgression.progress(0),second:DodgerProgression.progress(20),fifth:DodgerProgression.progress(80),green:DodgerProgression.carColor(1),cyan:DodgerProgression.carColor(3),gold:DodgerProgression.carColor(5)}));
-  expect(p.first.level).toBe(1);expect(p.second.level).toBe(2);expect(p.fifth.level).toBe(5);expect(p.cyan).not.toBe(p.green);expect(p.gold).not.toBe(p.cyan);
-  await page.evaluate(()=>{updateLevel(40);});
-  await expect(page.locator('#levelGoal')).toContainText('LEVEL 3');
-  expect(await page.evaluate(()=>localStorage.getItem('arcadeDodgerTopLevel'))).toBe('3');
-  await page.reload();await expect(page.locator('#levelCareer')).toContainText('Best: Level 3');
-  await expect(page.locator('#levelGoal')).toContainText('LEVEL 1');
-});
-
-test('Neon Dodger hides Quit during swipes and exposes it after pausing', async ({page}) => {
-  await page.setViewportSize({width:390,height:664});await page.goto('/dodger.html');
-  await startGame(page);await page.waitForFunction(()=>running);
-  await page.evaluate(()=>{obstacles=[];nextSpawnAt=performance.now()+60000;});
-  await expect(page.locator('#earnlyPauseButton')).toBeVisible();await expect(page.locator('#earnlyQuitButton')).toBeHidden();
-  const zone=await page.locator('#swipeZone').boundingBox();const pauseBox=await page.locator('#earnlyPauseButton').boundingBox();expect(zone.y+zone.height+12).toBeLessThanOrEqual(pauseBox.y);
-  await page.mouse.move(zone.x+zone.width*.5,zone.y+zone.height*.5);await page.mouse.down();await page.mouse.move(zone.x+zone.width*.8,zone.y+zone.height*.5);await page.mouse.up();
-  await expect(page.locator('.earnly-quit-dialog')).toHaveCount(0);
-  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#earnlyQuitButton')).toBeVisible();
-  await page.locator('#earnlyQuitButton').click();await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
-  await page.getByRole('button',{name:'Keep Playing',exact:true}).click();
-  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#earnlyQuitButton')).toBeHidden();
-});
 
 
-test('Neon Dodger level-up leaves traffic unobscured and mute remains usable while paused',async({page})=>{
- await page.goto('/dodger.html');await startGame(page);await page.waitForFunction(()=>running);
- await page.evaluate(()=>{obstacles=[];nextSpawnAt=performance.now()+60000;});
- const report=await page.evaluate(()=>{running=true;updateLevel(80);lastSecondShown=80;let covered=false;const fill=ctx.fillRect.bind(ctx);ctx.fillRect=(x,y,w,h)=>{if(x===20&&y===28&&w===290)covered=true;fill(x,y,w,h);};draw();return {covered,level:document.getElementById('levelGoal').textContent};});
- expect(report.covered).toBe(false);expect(report.level).toContain('LEVEL 5');
- await page.locator('#earnlyPauseButton').click();const before=await page.locator('#soundButton').getAttribute('aria-pressed');await page.locator('#soundButton').click();await expect(page.locator('#soundButton')).toHaveAttribute('aria-pressed',before==='true'?'false':'true');await expect(page.locator('#earnlyPauseButton')).toHaveText(/Resume/);
-});
-
-test('Neon Dodger effects produce bounded audio and mute prevents new sounds',async({page})=>{
- await page.goto('/dodger.html');
- const result=await page.evaluate(async()=>{
-  localStorage.setItem('arcadeSound','on');const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;const offline=new Offline(1,48000,16000);let made=0;
-  const session={type:'auto'};Object.defineProperty(navigator,'audioSession',{value:session,configurable:true});
-  window.AudioContext=function(){return {state:'running',sampleRate:16000,currentTime:0,destination:offline.destination,suspend:()=>Promise.resolve(),createGain:()=>offline.createGain(),createBuffer:(...a)=>offline.createBuffer(...a),createBufferSource:()=>{made++;return offline.createBufferSource();},createOscillator:()=>{made++;return offline.createOscillator();},createBiquadFilter:()=>offline.createBiquadFilter()};};
-  await DodgerAudio.unlock();DodgerAudio.effect('start');DodgerAudio.effect('near',3);DodgerAudio.effect('crash');DodgerAudio.effect('stage');DodgerAudio.effect('complete');DodgerAudio.drive(.7);
-  const buffer=await offline.startRendering(),samples=buffer.getChannelData(0);let energy=0,peak=0;for(const n of samples){energy+=n*n;peak=Math.max(peak,Math.abs(n));}
-  const active=session.type;DodgerAudio.suspend();localStorage.setItem('arcadeSound','off');const before=made;await DodgerAudio.unlock();DodgerAudio.effect('near');DodgerAudio.drive(1);
-  return {rms:Math.sqrt(energy/samples.length),peak,active,restored:session.type,mutedSources:made-before};
- });
- expect(result.rms).toBeGreaterThan(.01);expect(result.peak).toBeLessThan(1);expect(result.peak).toBeGreaterThan(.1);expect(result.active).toBe('playback');expect(result.restored).toBe('auto');expect(result.mutedSources).toBe(0);
-});
 
 
 test('Profile keeps primary progress scannable and secondary data collapsed', async ({ page }) => {
