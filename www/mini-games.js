@@ -30,7 +30,13 @@
     publicGuide.href = 'game-guides.html#' + key;
     publicGuide.textContent = 'How to play ' + config.name + ' · guide & tips';
   }
-  document.title = 'Earnly ' + config.name;
+  document.title = config.name + ' - Online Arcade Game | Earnly Arcade';
+  const pageDescription = document.querySelector('meta[name="description"]');
+  if (pageDescription) pageDescription.content = 'Play ' + config.name + ' in your browser. ' + config.help.replace(/[🎯🪙]/gu, '').trim();
+  const canonical = document.createElement('link');
+  canonical.rel = 'canonical';
+  canonical.href = 'https://earnlyarcade.com/mini.html?game=' + key;
+  document.head.append(canonical);
   document.getElementById('gameIcon').textContent = config.icon;
   document.getElementById('gameTitle').textContent = config.name;
   surface.setAttribute('aria-label', config.name + ' play area');

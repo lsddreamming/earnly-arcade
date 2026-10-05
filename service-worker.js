@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-drift-overdrive-20261005';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-search-basics-20261005';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',
