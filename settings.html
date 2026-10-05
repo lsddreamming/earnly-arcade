@@ -15,6 +15,20 @@
   <title>Earnly Settings</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=35">
+  <style>
+    /* Local refinements: readable menu copy and visible keyboard focus. */
+    .settings-dashboard .topbar .balance-chip{padding:7px 11px;font-size:12px}
+    .settings-dashboard .setting-row span{font-size:12px!important;line-height:1.4!important}
+    .settings-dashboard .settings-menu-copy strong{font-size:14px}
+    .settings-dashboard .settings-menu-copy small{font-size:12px;line-height:1.4;font-weight:400}
+    .settings-dashboard .settings-menu-row:focus-visible,
+    .settings-dashboard .owner-tools-disclosure summary:focus-visible{
+      outline:2px solid #75e1ff;outline-offset:-3px;background:rgba(63,156,233,.11)!important;
+    }
+    @media(prefers-reduced-motion:reduce){
+      .settings-dashboard .owner-tools-chevron{transition:none}
+    }
+  </style>
 </head>
 <body class="settings-dashboard">
   <main class="container">
@@ -36,7 +50,7 @@
             <strong>🔊 Game Sounds</strong>
             <span>Countdowns, scoring, records, achievements, and game effects.</span>
           </div>
-          <button class="toggle-button" id="soundToggle" type="button">On</button>
+          <button class="toggle-button" id="soundToggle" type="button" aria-label="Game sounds">On</button>
         </div>
 
         <div class="setting-row">
@@ -44,7 +58,7 @@
             <strong>📳 Haptics</strong>
             <span>Small vibration feedback where the device/browser supports it.</span>
           </div>
-          <button class="toggle-button" id="hapticsToggle" type="button">On</button>
+          <button class="toggle-button" id="hapticsToggle" type="button" aria-label="Haptics">On</button>
         </div>
 
         <div class="setting-row">
@@ -52,7 +66,7 @@
             <strong>✨ Motion & Animations</strong>
             <span>Turn off most transitions and animation if you prefer a calmer interface.</span>
           </div>
-          <button class="toggle-button" id="motionToggle" type="button">On</button>
+          <button class="toggle-button" id="motionToggle" type="button" aria-label="Motion and animations">On</button>
         </div>
       </div>
     </section>
@@ -135,6 +149,8 @@
     const motionToggle = document.getElementById('motionToggle');
     const textSizeButtons = Array.from(document.querySelectorAll('[data-text-scale]'));
     const ownerToolsCard = document.getElementById('ownerToolsCard');
+    let ownerToolsRequest = 0;
+    let ownerToolsAllowed = false;
 
     function setToggle(button, enabled) {
       button.textContent = enabled ? 'On' : 'Off';
@@ -162,15 +178,22 @@
     }
 
     async function refreshOwnerToolsVisibility() {
-      let allowed = false;
+      const request = ++ownerToolsRequest;
+      // Fail closed immediately on sign-out/account switches, including slow checks.
+      ownerToolsAllowed = false;
+      ownerToolsCard.open = false;
+      ownerToolsCard.hidden = true;
       try {
-        if (window.EarnlyCloud?.ready) {
-          const access = await EarnlyCloud.refreshTesterAccess();
-          allowed = access?.isTester === true;
-        }
-      } catch {}
-      ownerToolsCard.hidden = !allowed;
-      if (allowed) renderOwnerReadiness();
+        if (!window.EarnlyCloud?.ready) return;
+        const access = await EarnlyCloud.refreshTesterAccess();
+        // An old owner response must never reveal controls for a newer account.
+        if (request !== ownerToolsRequest) return;
+        ownerToolsAllowed = access?.isTester === true;
+        ownerToolsCard.hidden = !ownerToolsAllowed;
+        if (ownerToolsAllowed) renderOwnerReadiness();
+      } catch {
+        // The card remains hidden if entitlement verification is unavailable.
+      }
     }
 
     function setTestState(prefix, ready, text) {
@@ -180,11 +203,15 @@
     }
 
     async function renderOwnerReadiness() {
+      const request = ownerToolsRequest;
+      if (!ownerToolsAllowed || ownerToolsCard.hidden) return;
       const status = Arcade.appStatus();
       let signedIn = false;
       try {
         if (window.EarnlyCloud?.ready) signedIn = !!(await EarnlyCloud.session())?.user;
       } catch {}
+
+      if (request !== ownerToolsRequest || !ownerToolsAllowed || ownerToolsCard.hidden) return;
 
       const lastSave = localStorage.getItem('arcadeLastCloudSave');
       const games = Arcade.number('gamesCompletedEver');
@@ -195,12 +222,16 @@
     }
 
     async function copyOwnerDiagnostics() {
+      const request = ownerToolsRequest;
+      if (!ownerToolsAllowed || ownerToolsCard.hidden) return;
       const status = Arcade.appStatus();
       const xp = Arcade.xpStatus();
       let signedIn = false;
       try {
         if (window.EarnlyCloud?.ready) signedIn = !!(await EarnlyCloud.session())?.user;
       } catch {}
+
+      if (request !== ownerToolsRequest || !ownerToolsAllowed || ownerToolsCard.hidden) return;
 
       const report = [
         'Earnly Arcade Owner Diagnostics',
@@ -249,6 +280,7 @@
     });
 
     document.getElementById('resetTestPlaysButton').addEventListener('click', () => {
+      if (!ownerToolsAllowed || ownerToolsCard.hidden) return;
       Arcade.resetPrototypePlays();
       render();
     });
@@ -262,7 +294,7 @@
 
     window.addEventListener('online', render);
     window.addEventListener('offline', render);
-    window.addEventListener('pageshow', render);
+    window.addEventListener('pageshow', () => { render(); refreshOwnerToolsVisibility(); });
     window.addEventListener('storage', render);
     window.addEventListener('earnly-cloud-ready', () => { render(); refreshOwnerToolsVisibility(); });
     window.addEventListener('earnly-cloud-auth-change', () => { render(); refreshOwnerToolsVisibility(); });

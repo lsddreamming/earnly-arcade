@@ -28,8 +28,8 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
 
   expect(leaderboards).toContain('Signed-in players with a leaderboard username can compete globally');
 
-  expect(support).toContain('signing in is also required for your public leaderboard identity');
   expect(support).toContain('Some game features can spend Coins');
+  expect(support).toContain('signing in is also required for your public leaderboard identity');
 
   expect(privacy).toContain('account-signup stages');
   expect(privacy).toContain('does not include your account email address or password');
@@ -68,3 +68,5 @@ test('web and packaged iOS copies carry the audited player-facing wording', asyn
     expect(ios, path + ' iOS copy').toContain(marker);
   }
 });
+
+require('./settings-polish.cases');
