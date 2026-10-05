@@ -32,3 +32,7 @@
 
 .public-info a.button{color:#fff}
 .public-info a.button.green{background:#0f766e;border-color:#34d399}
+
+/* Keep reading and site navigation outside a live game session. */
+body.game-active .public-footer,
+body.game-active .game-guide-link{display:none!important}

@@ -96,3 +96,45 @@ test('game information navigation asks before leaving an active run', async ({ p
   await dialog.getByRole('button', { name:'Quit Game', exact:true }).click();
   await expect(page).toHaveURL(/game-guides\.html#snake$/);
 });
+
+for (const [width, height] of [[320,568], [390,844], [440,956]]) {
+  test(`Tower Stack keeps the complete board and session controls visible at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
+    await page.goto('/towerstack.html');
+    await expect(page.locator('.public-footer')).toBeVisible();
+    if (await page.locator('#startButton').isVisible()) await page.locator('#startButton').click();
+    else await page.locator('#game').click();
+    await expect(page.locator('#gameStatus')).toHaveClass(/running/);
+    const pause = page.locator('#earnlyPauseButton');
+    const quit = page.locator('#earnlyQuitButton');
+    await expect(pause).toBeVisible();
+    await expect(page.locator('.public-footer')).toBeHidden();
+    await expect(page.locator('.game-guide-link')).toBeHidden();
+    for (const control of [page.locator('#game'), pause, quit]) {
+      const box = await control.boundingBox();
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.y + box.height).toBeLessThanOrEqual(height);
+    }
+    const board = await page.locator('#game').boundingBox();
+    const pauseBox = await pause.boundingBox();
+    const quitBox = await quit.boundingBox();
+    expect(pauseBox.y).toBeGreaterThanOrEqual(board.y + board.height);
+    expect(Math.abs(pauseBox.y - quitBox.y)).toBeLessThan(3);
+    expect(pauseBox.width).toBeGreaterThan(quitBox.width);
+    expect(pauseBox.height).toBeGreaterThanOrEqual(44);
+    await pause.click();
+    await expect(page.locator('#gameStatus')).toHaveText('Paused');
+    await expect(page.locator('.public-footer')).toBeHidden();
+    await quit.click();
+    await expect(page.getByRole('dialog', { name:'Quit this game?' })).toBeVisible();
+    await page.getByRole('button', { name:'Keep Playing', exact:true }).click();
+    await expect(page.locator('#gameStatus')).toHaveText('Paused');
+    await pause.click();
+    await expect(page.locator('#gameStatus')).toHaveClass(/running/);
+    await quit.click();
+    await page.getByRole('button', { name:'Quit Game', exact:true }).click();
+    await expect(page).toHaveURL(/games\.html$/);
+    await expect(page.locator('.public-footer')).toBeVisible();
+  });
+}
