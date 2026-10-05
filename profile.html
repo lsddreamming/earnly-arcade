@@ -65,7 +65,7 @@
     </header>
 
     <details class="profile-edit-card">
-      <summary>Edit player</summary>
+      <summary>Edit profile</summary>
       <form class="profile-name-form" id="nameForm">
         <input id="nameInput" type="text" maxlength="18" autocomplete="off" aria-label="Player name" placeholder="Player name">
         <button type="submit">Save</button>
@@ -104,39 +104,46 @@
       <div><strong id="streak">0</strong><span>Day streak</span></div>
     </section>
 
-    <section class="profile-secondary-stats" aria-label="More player stats">
-      <div><span>Games explored</span><strong id="differentGames">0</strong></div>
-      <div><span>Favorites</span><strong id="favoriteCount">0</strong></div>
-      <div><span>Most played</span><strong id="mostPlayedGame">—</strong></div>
-      <div><span>Tracked runs</span><strong id="trackedRuns">0</strong></div>
-    </section>
+    <details class="profile-more-stats">
+      <summary>
+        <span>More player stats</span>
+        <small>Exploration, favorites & run history</small>
+      </summary>
+      <section class="profile-secondary-stats" aria-label="More player stats">
+        <div><span>Games explored</span><strong id="differentGames">0</strong></div>
+        <div><span>Favorites</span><strong id="favoriteCount">0</strong></div>
+        <div><span>Most played</span><strong id="mostPlayedGame">—</strong></div>
+        <div><span>Tracked runs</span><strong id="trackedRuns">0</strong></div>
+      </section>
+    </details>
 
-    <section class="profile-section">
+    <section class="profile-section profile-favorites-section" id="profileFavoritesSection">
       <div class="profile-section-head">
-        <h2>⭐ Favorites</h2>
+        <h2>⭐ Favorite games</h2>
         <a href="games.html">Edit</a>
       </div>
       <div class="quick-grid profile-favorites" id="favoriteGames"></div>
     </section>
 
-    <details class="profile-section profile-collapsible">
-      <summary>🏆 Personal Bests <span>View all</span></summary>
-      <div class="best-grid" id="bestGrid"></div>
-    </details>
-
-    <section class="profile-achievement-card">
-      <div>
-        <strong>🏅 Achievements</strong>
-        <span id="achievementSummary">0 unlocked</span>
-      </div>
-      <a href="games.html#achievements">View badges →</a>
+    <div class="profile-section-label">Progress</div>
+    <section class="profile-progress-menu" aria-label="Player progress">
+      <details class="profile-progress-row profile-bests-row">
+        <summary>
+          <span class="profile-progress-icon" aria-hidden="true">🏆</span>
+          <span class="profile-progress-copy"><strong>Personal Bests</strong><small>Your best scores across Earnly</small></span>
+          <span class="profile-progress-action">View</span>
+        </summary>
+        <div class="best-grid" id="bestGrid"></div>
+      </details>
+      <a class="profile-progress-row" href="games.html#achievements">
+        <span class="profile-progress-icon" aria-hidden="true">🏅</span>
+        <span class="profile-progress-copy"><strong>Achievements</strong><small id="achievementSummary">0 unlocked</small></span>
+        <span class="profile-progress-action">Badges →</span>
+      </a>
     </section>
 
-    <section class="profile-shortcuts" aria-label="Profile shortcuts">
+    <section class="profile-shortcuts profile-shortcuts-essential" aria-label="Profile shortcuts">
       <a href="leaderboards.html"><span>🏆</span><strong>World Ranks</strong><small>Top players</small></a>
-      <a href="stats.html"><span>📅</span><strong>Missions</strong><small>Goals & activity</small></a>
-      <a href="games.html"><span>🕹️</span><strong>Games</strong><small>Keep playing</small></a>
-      <a href="settings.html"><span>⚙️</span><strong>Settings</strong><small>Game feel</small></a>
       <a href="account.html"><span>☁️</span><strong>Account & Data</strong><small>Cloud, backup & delete</small></a>
     </section>
   </main>
@@ -165,14 +172,14 @@
 
       if (!favorites.length) {
         section?.classList.add('is-empty-favorites');
-        if (headingTitle) headingTitle.textContent = '☆ Add favorite games';
-        if (editLink) editLink.textContent = 'Browse →';
+        if (section) section.hidden = true;
         root.hidden = true;
         return;
       }
 
       section?.classList.remove('is-empty-favorites');
-      if (headingTitle) headingTitle.textContent = '⭐ Favorites';
+      if (section) section.hidden = false;
+      if (headingTitle) headingTitle.textContent = '⭐ Favorite games';
       if (editLink) editLink.textContent = 'Edit';
       root.hidden = false;
 

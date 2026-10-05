@@ -2481,3 +2481,22 @@ test('Neon Dodger effects produce bounded audio and mute prevents new sounds',as
  });
  expect(result.rms).toBeGreaterThan(.01);expect(result.peak).toBeLessThan(1);expect(result.peak).toBeGreaterThan(.1);expect(result.active).toBe('playback');expect(result.restored).toBe('auto');expect(result.mutedSources).toBe(0);
 });
+
+
+test('Profile keeps primary progress scannable and secondary data collapsed', async ({ page }) => {
+  await page.goto('/profile.html');
+  await expect(page.locator('.profile-key-stats > div')).toHaveCount(4);
+  await expect(page.locator('.profile-more-stats')).toBeVisible();
+  await expect(page.locator('.profile-more-stats')).not.toHaveAttribute('open', '');
+  await expect(page.locator('.profile-progress-menu .profile-progress-row')).toHaveCount(2);
+  await expect(page.locator('.profile-shortcuts-essential > a')).toHaveCount(2);
+  await expect(page.locator('.profile-shortcuts-essential a[href="leaderboards.html"]')).toBeVisible();
+  await expect(page.locator('.profile-shortcuts-essential a[href="account.html"]')).toBeVisible();
+  await expect(page.locator('.profile-shortcuts-essential a[href="games.html"]')).toHaveCount(0);
+  await expect(page.locator('.profile-shortcuts-essential a[href="stats.html"]')).toHaveCount(0);
+  await expect(page.locator('.profile-shortcuts-essential a[href="settings.html"]')).toHaveCount(0);
+
+  await page.locator('.profile-more-stats > summary').click();
+  await expect(page.locator('#differentGames')).toBeVisible();
+  await expect(page.locator('#trackedRuns')).toBeVisible();
+});
