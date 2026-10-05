@@ -98,7 +98,10 @@
     body.towerstack-page.game-active .page-header{gap:5px!important;margin-bottom:4px!important}
     body.towerstack-page.game-active .topbar{min-height:40px!important;margin-bottom:4px!important}
     @media(max-width:699px){
-      body.towerstack-page.game-active .tower-board{width:min(90vw,350px)!important;max-height:72vh!important}
+      body.towerstack-page.game-active .tower-board{
+        width:min(90vw,350px,calc((100svh - 220px) * .642857))!important;
+        height:auto!important;max-height:none!important
+      }
     }
   </style>
   <link rel="stylesheet" href="public-info.css">

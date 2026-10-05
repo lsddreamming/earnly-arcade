@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-public-info-20261005';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-game-dock-20261005';const CORE_ASSETS = [
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',
