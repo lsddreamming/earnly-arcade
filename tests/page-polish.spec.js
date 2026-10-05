@@ -15,10 +15,14 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
   expect(rewards).not.toContain('cannot be cashed out, transferred, or spent in this version');
   expect(rewards).toContain('eligible in-game features such as Continue');
 
-  expect(settings).toContain('id="testingToolsCard"');
+  expect(settings).toContain('id="ownerToolsCard"');
   expect(settings).toContain('hidden>');
   expect(settings).toContain('refreshTesterAccess()');
-  expect(settings).toContain('<span>Sync Queue</span>');
+  expect(settings).toContain('Replay App Walkthrough');
+  expect(settings).toContain('Help & Account Data');
+  expect(settings).toContain('Backup & Restore');
+  expect(settings).not.toContain('<span>Sync Queue</span>');
+  expect(settings).not.toContain('🧪 Testing Tools');
 
   expect(stats).toContain('id="differentGames">0/23');
 
@@ -33,16 +37,23 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
   expect(terms).toContain('Some game features may use Arcade Coins');
 });
 
-test('internal testing tools stay hidden for an ordinary settings visit', async ({ page }) => {
+test('owner diagnostics stay out of the ordinary settings flow', async ({ page }) => {
   await page.goto('/settings.html');
-  await expect(page.locator('#testingToolsCard')).toBeHidden();
-  await expect(page.locator('#queueStatus')).toBeVisible();
+  await expect(page.locator('#ownerToolsCard')).toBeHidden();
+  await expect(page.getByText('Sync Queue')).toHaveCount(0);
+  await expect(page.getByText('Testing Tools')).toHaveCount(0);
+  await expect(page.getByText('Reset Test Plays')).toHaveCount(0);
+  await expect(page.getByText('Copy Test Report')).toHaveCount(0);
+  await expect(page.locator('.app-status-card')).toHaveCount(3);
+  await expect(page.locator('.settings-menu-row')).toHaveCount(3);
+  await expect(page.getByText('Replay App Walkthrough')).toBeVisible();
+  await expect(page.getByText('Backup & Restore', { exact:true })).toBeVisible();
 });
 
 test('web and packaged iOS copies carry the audited player-facing wording', async ({ page }) => {
   const pairs = [
     ['rewards.html', 'Some in-game features can spend Coins'],
-    ['settings.html', 'id="testingToolsCard"'],
+    ['settings.html', 'id="ownerToolsCard"'],
     ['stats.html', 'id="differentGames">0/23'],
     ['leaderboards.html', 'Signed-in players with a leaderboard username'],
     ['support.html', 'Some game features can spend Coins'],

@@ -3038,3 +3038,187 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
   .legal-card h2:first-child{margin-top:0!important}
   .legal-card p,.legal-card li{font-size:12px!important;line-height:1.45!important}
 }
+
+
+/* Settings polish — keep player controls compact and move diagnostics out of the main flow. */
+.settings-dashboard .settings-section{
+  padding:16px!important;
+}
+.settings-dashboard .settings-section>h2{
+  margin:0 0 11px!important;
+  font-size:clamp(20px,5.4vw,24px)!important;
+  line-height:1.1!important;
+  letter-spacing:-.025em;
+}
+.settings-dashboard .setting-list{gap:8px}
+.settings-dashboard .setting-row{
+  padding:11px 12px!important;
+  border-radius:14px!important;
+  background:linear-gradient(145deg,#142943,#0d1c30)!important;
+}
+.settings-dashboard .setting-row strong{font-size:13px!important}
+.settings-dashboard .setting-row span{font-size:10.5px!important;line-height:1.32!important}
+.settings-dashboard .display-settings-card>.muted{
+  margin:0 0 9px!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+}
+.settings-dashboard .text-size-options{
+  gap:7px!important;
+  margin-top:8px!important;
+}
+.settings-dashboard .text-size-options button{
+  min-height:48px!important;
+  padding:8px 9px!important;
+  border-radius:12px!important;
+}
+.settings-dashboard .text-size-preview{
+  margin-top:8px!important;
+  padding:9px 11px!important;
+}
+.settings-dashboard .app-status-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+.settings-dashboard .app-status-card{
+  min-width:0;
+  padding:10px!important;
+  border-radius:13px!important;
+}
+.settings-dashboard .app-status-card strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px!important;
+}
+.settings-dashboard .app-status-card span{font-size:9.5px!important}
+.settings-dashboard .settings-install-button{
+  margin-top:10px!important;
+  min-height:44px!important;
+}
+.settings-dashboard .settings-menu{
+  overflow:hidden;
+  border:1px solid rgba(83,177,236,.30);
+  border-radius:15px;
+  background:linear-gradient(145deg,#142943,#0d1c30);
+}
+.settings-dashboard .settings-menu-row{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) 20px;
+  gap:10px;
+  align-items:center;
+  width:100%;
+  min-height:62px;
+  margin:0!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid rgba(92,146,196,.22)!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#f8fafc!important;
+  text-decoration:none!important;
+  text-align:left;
+}
+.settings-dashboard .settings-menu-row:last-child{border-bottom:0!important}
+.settings-dashboard .settings-menu-row:active{background:rgba(63,156,233,.11)!important}
+.settings-dashboard .settings-menu-icon{
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  border:1px solid rgba(91,192,255,.30);
+  border-radius:11px;
+  background:rgba(22,83,129,.34);
+  font-size:18px;
+}
+.settings-dashboard .settings-menu-copy{min-width:0}
+.settings-dashboard .settings-menu-copy strong{
+  display:block;
+  font-size:13.5px;
+  line-height:1.2;
+}
+.settings-dashboard .settings-menu-copy small{
+  display:block;
+  margin-top:3px;
+  color:#9fb3ca;
+  font-size:10.5px;
+  line-height:1.3;
+}
+.settings-dashboard .settings-menu-chevron{
+  color:#8eb7d5;
+  font-size:28px;
+  font-weight:500;
+  line-height:1;
+}
+.settings-dashboard .settings-back-link{
+  margin-top:10px!important;
+  min-height:46px!important;
+}
+.settings-dashboard .owner-tools-disclosure{
+  margin:14px 0 4px;
+  border:1px solid rgba(83,177,236,.18);
+  border-radius:14px;
+  background:rgba(8,24,41,.55);
+  overflow:hidden;
+}
+.settings-dashboard .owner-tools-disclosure[hidden]{display:none!important}
+.settings-dashboard .owner-tools-disclosure summary{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr) 20px;
+  gap:8px;
+  align-items:center;
+  min-height:48px;
+  padding:9px 11px;
+  cursor:pointer;
+  list-style:none;
+  color:#c8d8e8;
+}
+.settings-dashboard .owner-tools-disclosure summary::-webkit-details-marker{display:none}
+.settings-dashboard .owner-tools-disclosure summary strong{
+  display:block;
+  font-size:12px;
+}
+.settings-dashboard .owner-tools-disclosure summary small{
+  display:block;
+  margin-top:2px;
+  color:#8298ad;
+  font-size:9px;
+}
+.settings-dashboard .owner-tools-lock{
+  display:grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  background:rgba(31,86,124,.28);
+}
+.settings-dashboard .owner-tools-chevron{
+  color:#7794aa;
+  font-size:24px;
+  transition:transform 150ms ease;
+}
+.settings-dashboard .owner-tools-disclosure[open] .owner-tools-chevron{transform:rotate(90deg)}
+.settings-dashboard .owner-tools-body{
+  padding:0 11px 12px;
+  border-top:1px solid rgba(83,177,236,.14);
+}
+.settings-dashboard .owner-readiness{margin:10px 0}
+.settings-dashboard .owner-tool-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.settings-dashboard .owner-tool-actions button{
+  min-height:42px!important;
+  margin:0!important;
+  padding:8px 9px!important;
+  font-size:11px!important;
+}
+@media(max-width:360px){
+  .settings-dashboard .app-status-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .settings-dashboard .app-status-card{padding:8px!important}
+  .settings-dashboard .app-status-card strong{font-size:11px!important}
+  .settings-dashboard .app-status-card span{font-size:8.5px!important}
+  .settings-dashboard .owner-tool-actions{grid-template-columns:1fr}
+}

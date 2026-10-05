@@ -351,6 +351,27 @@ test('Settings and Stats reflect the current app/game catalog', async ({ page })
   await expect(page.locator('#differentGames')).toContainText('/' + gameCount);
 });
 
+test('Settings keeps diagnostics private and player actions compact', async ({ page }) => {
+  await page.setViewportSize({ width:390, height:844 });
+  await page.goto('/settings.html');
+
+  await expect(page.locator('#ownerToolsCard')).toBeHidden();
+  await expect(page.locator('.app-status-card')).toHaveCount(3);
+  await expect(page.locator('.settings-menu-row')).toHaveCount(3);
+  await expect(page.getByText('Replay App Walkthrough')).toBeVisible();
+  await expect(page.getByText('Help & Support', { exact:true })).toBeVisible();
+  await expect(page.getByText('Backup & Restore', { exact:true })).toBeVisible();
+
+  const metrics = await page.evaluate(() => ({
+    width:window.innerWidth,
+    scrollWidth:document.documentElement.scrollWidth,
+    firstMenuHeight:document.querySelector('.settings-menu-row')?.getBoundingClientRect().height || 0
+  }));
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.width + 1);
+  expect(metrics.firstMenuHeight).toBeGreaterThanOrEqual(44);
+  expect(metrics.firstMenuHeight).toBeLessThanOrEqual(72);
+});
+
 test('Rewards balance and history update immediately after a local earning event', async ({ page }) => {
   await page.goto('/rewards.html');
   const before = await page.evaluate(() => Arcade.number('points'));

@@ -28,7 +28,7 @@
       <p>Tune how Earnly feels on your phone.</p>
     </header>
 
-    <section class="card" style="text-align:left">
+    <section class="card settings-section settings-game-feel" style="text-align:left">
       <h2>🎮 Game Feel</h2>
       <div class="setting-list">
         <div class="setting-row">
@@ -57,7 +57,7 @@
       </div>
     </section>
 
-    <section class="card display-settings-card" style="text-align:left">
+    <section class="card settings-section display-settings-card" style="text-align:left">
       <h2>👀 Display</h2>
       <p class="muted small">Choose the text size that feels best on your phone. It applies across Earnly, including games and the bottom navigation.</p>
       <div class="text-size-options" id="textSizeOptions" role="group" aria-label="Text size">
@@ -72,41 +72,60 @@
       </div>
     </section>
 
-    <section class="card" style="text-align:left">
+    <section class="card settings-section settings-status-card" style="text-align:left">
       <h2>📱 App Status</h2>
       <div class="app-status-grid">
         <div class="app-status-card"><strong id="networkStatus">Online</strong><span>Network</span></div>
         <div class="app-status-card"><strong id="installStatus">Browser</strong><span>Launch Mode</span></div>
         <div class="app-status-card"><strong id="versionStatus">Loading…</strong><span>App Version</span></div>
-        <div class="app-status-card"><strong id="queueStatus">0</strong><span>Sync Queue</span></div>
       </div>
-      <button class="wide ghost browser-only" id="installButton" type="button" style="margin-top:12px">📱 Install / Add to Home Screen</button>
+      <button class="wide ghost browser-only settings-install-button" id="installButton" type="button">📱 Install / Add to Home Screen</button>
     </section>
 
-    <section class="card" id="testingToolsCard" style="text-align:left" hidden>
-      <h2>🧪 Testing Tools</h2>
-      <p class="muted small">Reset today’s play limits for testing without changing your Coins, XP, scores, achievements, or streak.</p>
-      <div class="test-readiness" id="testReadiness">
-        <div><span id="testAccountIcon">○</span><strong>Account</strong><small id="testAccountText">Checking…</small></div>
-        <div><span id="testBackupIcon">○</span><strong>Cloud backup</strong><small id="testBackupText">Checking…</small></div>
-        <div><span id="testGameIcon">○</span><strong>Game test</strong><small id="testGameText">Checking…</small></div>
-        <div><span id="testQueueIcon">○</span><strong>Backend queue</strong><small id="testQueueText">Checking…</small></div>
-      </div>
-      <button class="wide secondary" id="resetTestPlaysButton" type="button">🎟️ Reset Test Plays</button>
-      <button class="wide secondary" id="copyTestReportButton" type="button">📋 Copy Test Report</button>
-      <p class="muted tiny test-report-note">The report includes app status and progress totals—never your password or payment information.</p>
-    </section>
-
-    <section class="card" style="text-align:left">
-      <h2>🧭 Help & Data</h2>
-      <div class="data-actions">
-        <button class="wide secondary" id="walkthroughButton" type="button">❓ Replay Earnly Walkthrough</button>
-        <a class="button wide secondary" href="support.html">🛟 Help & Support</a>
-        <a class="button wide secondary" href="account.html">💾 Backup & Restore Progress</a>
+    <section class="card settings-section settings-help-card" style="text-align:left">
+      <h2>🧭 Help & Account Data</h2>
+      <div class="settings-menu">
+        <button class="settings-menu-row" id="walkthroughButton" type="button">
+          <span class="settings-menu-icon" aria-hidden="true">❓</span>
+          <span class="settings-menu-copy"><strong>Replay App Walkthrough</strong><small>See the intro and helpful tips again</small></span>
+          <span class="settings-menu-chevron" aria-hidden="true">›</span>
+        </button>
+        <a class="settings-menu-row" href="support.html">
+          <span class="settings-menu-icon" aria-hidden="true">🛟</span>
+          <span class="settings-menu-copy"><strong>Help & Support</strong><small>Get answers or contact Earnly support</small></span>
+          <span class="settings-menu-chevron" aria-hidden="true">›</span>
+        </a>
+        <a class="settings-menu-row" href="account.html">
+          <span class="settings-menu-icon" aria-hidden="true">💾</span>
+          <span class="settings-menu-copy"><strong>Backup & Restore</strong><small>Manage your account and saved progress</small></span>
+          <span class="settings-menu-chevron" aria-hidden="true">›</span>
+        </a>
       </div>
     </section>
 
-    <a class="button wide" href="profile.html">← Back to Profile</a>
+    <a class="button wide settings-back-link" href="profile.html">← Back to Profile</a>
+
+    <details class="owner-tools-disclosure" id="ownerToolsCard" hidden>
+      <summary>
+        <span class="owner-tools-lock" aria-hidden="true">🔒</span>
+        <span><strong>Owner Tools</strong><small>Internal account controls</small></span>
+        <span class="owner-tools-chevron" aria-hidden="true">›</span>
+      </summary>
+      <div class="owner-tools-body">
+        <p class="muted small">Private controls for this owner account. Regular players never see this section.</p>
+        <div class="test-readiness owner-readiness" id="ownerReadiness">
+          <div><span id="testAccountIcon">○</span><strong>Account</strong><small id="testAccountText">Checking…</small></div>
+          <div><span id="testBackupIcon">○</span><strong>Cloud save</strong><small id="testBackupText">Checking…</small></div>
+          <div><span id="testGameIcon">○</span><strong>Runs</strong><small id="testGameText">Checking…</small></div>
+          <div><span id="testQueueIcon">○</span><strong>Sync</strong><small id="testQueueText">Checking…</small></div>
+        </div>
+        <div class="owner-tool-actions">
+          <button class="secondary" id="resetTestPlaysButton" type="button">🎟️ Reset Play Limits</button>
+          <button class="secondary" id="copyTestReportButton" type="button">📋 Copy Diagnostics</button>
+        </div>
+        <p class="muted tiny test-report-note">Diagnostics include app status and progress totals—never passwords or payment information.</p>
+      </div>
+    </details>
   </main>
 
   <script src="arcade.js"></script>
@@ -115,7 +134,7 @@
     const hapticsToggle = document.getElementById('hapticsToggle');
     const motionToggle = document.getElementById('motionToggle');
     const textSizeButtons = Array.from(document.querySelectorAll('[data-text-scale]'));
-    const testingToolsCard = document.getElementById('testingToolsCard');
+    const ownerToolsCard = document.getElementById('ownerToolsCard');
 
     function setToggle(button, enabled) {
       button.textContent = enabled ? 'On' : 'Off';
@@ -139,11 +158,10 @@
       document.getElementById('networkStatus').textContent = status.online ? '🌐 Online' : '📴 Offline';
       document.getElementById('installStatus').textContent = status.install.native ? '📱 iOS App' : (status.install.standalone ? '📱 Installed' : '🌍 Browser');
       document.getElementById('versionStatus').textContent = 'v' + status.version;
-      document.getElementById('queueStatus').textContent = status.sync.pending.toLocaleString();
-      if (!testingToolsCard.hidden) renderTestReadiness();
+      if (!ownerToolsCard.hidden) renderOwnerReadiness();
     }
 
-    async function refreshTestingToolsVisibility() {
+    async function refreshOwnerToolsVisibility() {
       let allowed = false;
       try {
         if (window.EarnlyCloud?.ready) {
@@ -151,8 +169,8 @@
           allowed = access?.isTester === true;
         }
       } catch {}
-      testingToolsCard.hidden = !allowed;
-      if (allowed) renderTestReadiness();
+      ownerToolsCard.hidden = !allowed;
+      if (allowed) renderOwnerReadiness();
     }
 
     function setTestState(prefix, ready, text) {
@@ -161,7 +179,7 @@
       document.getElementById(prefix + 'Text').textContent = text;
     }
 
-    async function renderTestReadiness() {
+    async function renderOwnerReadiness() {
       const status = Arcade.appStatus();
       let signedIn = false;
       try {
@@ -170,13 +188,13 @@
 
       const lastSave = localStorage.getItem('arcadeLastCloudSave');
       const games = Arcade.number('gamesCompletedEver');
-      setTestState('testAccount', signedIn, signedIn ? 'Connected' : 'Sign in to test cloud restore');
-      setTestState('testBackup', !!lastSave, lastSave ? 'A cloud save exists' : 'No cloud save on this browser yet');
-      setTestState('testGame', games > 0, games > 0 ? games + ' completed game' + (games === 1 ? '' : 's') : 'Finish one game');
+      setTestState('testAccount', signedIn, signedIn ? 'Connected' : 'Sign in to check cloud restore');
+      setTestState('testBackup', !!lastSave, lastSave ? 'A cloud save exists' : 'No cloud save on this device yet');
+      setTestState('testGame', games > 0, games > 0 ? games + ' completed game' + (games === 1 ? '' : 's') : 'Finish one run');
       setTestState('testQueue', status.sync.pending === 0, status.sync.pending === 0 ? 'All caught up' : status.sync.pending + ' update' + (status.sync.pending === 1 ? '' : 's') + ' waiting');
     }
 
-    async function copyTestReport() {
+    async function copyOwnerDiagnostics() {
       const status = Arcade.appStatus();
       const xp = Arcade.xpStatus();
       let signedIn = false;
@@ -185,7 +203,7 @@
       } catch {}
 
       const report = [
-        'Earnly Arcade Test Report',
+        'Earnly Arcade Owner Diagnostics',
         'Version: v' + status.version,
         'Mode: ' + (status.install.native ? 'Native app' : (status.install.standalone ? 'Installed app' : 'Browser')),
         'Network: ' + (status.online ? 'Online' : 'Offline'),
@@ -202,9 +220,9 @@
 
       try {
         await navigator.clipboard.writeText(report);
-        Arcade.toast('📋 Test report copied');
+        Arcade.toast('📋 Owner diagnostics copied');
       } catch {
-        Arcade.panel('Test Report', report, [['Close', () => {}, 'secondary']]);
+        Arcade.panel('Owner Diagnostics', report, [['Close', () => {}, 'secondary']]);
       }
     }
 
@@ -234,7 +252,7 @@
       Arcade.resetPrototypePlays();
       render();
     });
-    document.getElementById('copyTestReportButton').addEventListener('click', copyTestReport);
+    document.getElementById('copyTestReportButton').addEventListener('click', copyOwnerDiagnostics);
 
     document.getElementById('walkthroughButton').addEventListener('click', () => Arcade.showOnboarding(true));
     document.getElementById('installButton').addEventListener('click', async () => {
@@ -246,12 +264,12 @@
     window.addEventListener('offline', render);
     window.addEventListener('pageshow', render);
     window.addEventListener('storage', render);
-    window.addEventListener('earnly-cloud-ready', () => { render(); refreshTestingToolsVisibility(); });
-    window.addEventListener('earnly-cloud-auth-change', () => { render(); refreshTestingToolsVisibility(); });
+    window.addEventListener('earnly-cloud-ready', () => { render(); refreshOwnerToolsVisibility(); });
+    window.addEventListener('earnly-cloud-auth-change', () => { render(); refreshOwnerToolsVisibility(); });
     window.addEventListener('earnly-cloud-synced', render);
     window.addEventListener('earnly-data-change', render);
     render();
-    refreshTestingToolsVisibility();
+    refreshOwnerToolsVisibility();
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
