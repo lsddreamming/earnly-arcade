@@ -103,7 +103,8 @@ for (const [width, height] of [[320,568], [390,844], [440,956]]) {
     await page.addInitScript(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
     await page.goto('/towerstack.html');
     await expect(page.locator('.public-footer')).toBeVisible();
-    await page.locator('#startButton').click();
+    if (await page.locator('#startButton').isVisible()) await page.locator('#startButton').click();
+    else await page.locator('#game').click();
     await expect(page.locator('#gameStatus')).toHaveClass(/running/);
     const pause = page.locator('#earnlyPauseButton');
     const quit = page.locator('#earnlyQuitButton');
