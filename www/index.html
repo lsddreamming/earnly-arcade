@@ -32,7 +32,7 @@
 
     <a class="home-primary-play" href="games.html" aria-label="Browse Earnly games and start playing">
       <span class="home-primary-play-icon">🎮</span>
-      <span class="home-primary-play-copy"><strong>Play Games</strong><small>Pick a game · earn XP + Arcade Coins</small></span>
+      <span class="home-primary-play-copy"><strong>Play Games</strong><small id="homePlayHint">First game? Pick one to earn Coins + XP</small></span>
       <b>Play →</b>
     </a>
 
@@ -177,7 +177,7 @@
       <span class="home-account-shortcut-icon">🔐</span>
       <span class="home-account-shortcut-copy">
         <strong id="homeAccountTitle">Create or Sign In</strong>
-        <small id="homeAccountText">Protect your Coins, levels, scores, and missions across devices.</small>
+        <small id="homeAccountText">Guest progress saves in this browser. Sign in for cloud backup.</small>
       </span>
       <b id="homeAccountAction">Account →</b>
     </a>
@@ -311,7 +311,7 @@
         ? 'Earnly backup needs attention'
         : (signedIn ? 'Earnly account connected' : 'Create or Sign In');
       homeAccountText.textContent = !signedIn
-        ? 'Protect your Coins, levels, scores, and missions across devices.'
+        ? 'Guest progress saves in this browser. Sign in for cloud backup.'
         : (needsAttention
             ? 'Open Account to protect your latest progress.'
             : (rewardError
@@ -344,6 +344,9 @@
       }
 
       points.textContent = Arcade.number('points').toLocaleString();
+      document.getElementById('homePlayHint').textContent = Arcade.number('gamesCompletedEver') > 0
+        ? 'Pick a game · earn XP + Arcade Coins'
+        : 'First game? Pick one to earn Coins + XP';
 
       const xp = Arcade.xpStatus();
       profileName.textContent = Arcade.profileName();
