@@ -128,6 +128,36 @@
         box-shadow:0 10px 24px rgba(34,197,94,.35),0 0 0 6px rgba(34,197,94,.08);
       }
     }
+    body.taprush-page.game-active :is(#startButton,.game-guide-strip,.game-preflight,.game-guide-more){display:none!important}
+    .rush-hud{display:flex;justify-content:space-between;gap:8px;width:min(88vw,360px);margin:6px auto;color:#93c5fd;font-size:12px;font-weight:850}
+    .rush-hud strong{color:#5eead4}
+    .rush-meter{width:min(88vw,360px);height:5px;margin:0 auto 8px;border-radius:8px;background:#172b40;overflow:hidden}
+    .rush-meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#a78bfa);transition:width .12s}
+    body.taprush-page .tap-board{background-image:linear-gradient(rgba(56,189,248,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.045) 1px,transparent 1px),radial-gradient(ellipse at center,rgba(14,116,144,.15),transparent 70%)!important;background-size:32px 32px,32px 32px,100% 100%!important;background-color:#08131f!important}
+    body.taprush-page .target{--life:1800ms;animation:targetArrive .14s ease-out;color:#fff;font-size:23px;font-weight:950;padding:0;isolation:isolate}
+    .target::after{content:'';position:absolute;inset:-9px;border:2px solid #67e8f9;border-radius:50%;pointer-events:none;animation:targetClock var(--life) linear forwards}
+    body.taprush-page .target.gold{background:radial-gradient(circle at 35% 25%,#fff3a3,#f59e0b 60%,#b45309)!important;box-shadow:0 0 28px #f59e0b70,0 0 0 5px #f59e0b20!important;color:#502c06}
+    .target.clock-reset::after{animation:none}
+    .target.gold::after{border-color:#fcd34d}
+    .tap-board.fever{border-color:#a78bfa!important;box-shadow:inset 0 0 40px #7c3aed18,0 0 22px #8b5cf633!important}
+    .tap-board.urgent{border-color:#fb7185!important}
+    .rush-pop{position:absolute;pointer-events:none;color:#5eead4;font-size:17px;font-weight:950;text-shadow:0 0 12px currentColor;animation:rushPop .5s ease-out forwards;z-index:4;white-space:nowrap}
+    .rush-ring{position:absolute;width:64px;height:64px;border:3px solid #67e8f9;border-radius:50%;pointer-events:none;animation:rushRing .4s ease-out forwards}
+    .rush-spark{position:absolute;width:5px;height:5px;background:#67e8f9;border-radius:50%;pointer-events:none;animation:rushSpark .4s ease-out forwards}
+    .rush-note{position:absolute;bottom:10px;left:8px;right:8px;text-align:center;pointer-events:none;color:#93c5fd;font-size:11px;font-weight:800;letter-spacing:.06em}
+    body.earnly-game-paused .target::after{animation-play-state:paused}
+    body.taprush-page .earnly-session-dock{display:flex;gap:10px;width:min(88vw,360px);margin:12px auto;position:relative}
+    body.taprush-page .earnly-session-dock :is(#earnlyPauseButton,#earnlyQuitButton){position:static!important;transform:none!important;inset:auto!important;min-height:48px;margin:0!important}
+    body.taprush-page .earnly-session-dock:has(#earnlyPauseButton[hidden]){display:none}
+    body.taprush-page .earnly-session-dock [hidden]{display:none!important}
+    body.taprush-page.game-active .tap-board{height:min(475px,calc(100dvh - 350px));min-height:220px;aspect-ratio:auto}
+    @media(max-width:699px){body.taprush-page.game-active .tap-board{width:min(88vw,360px)!important;height:min(110vw,calc(100dvh - 285px))!important;min-height:240px;aspect-ratio:auto}}
+    @keyframes targetArrive{from{transform:translate(-50%,-50%) scale(.75)}to{transform:translate(-50%,-50%) scale(1)}}
+    @keyframes targetClock{from{transform:scale(1.15);opacity:1}to{transform:scale(.83);opacity:.2}}
+    @keyframes rushPop{from{transform:translate(-50%,-50%);opacity:1}to{transform:translate(-50%,-180%);opacity:0}}
+    @keyframes rushRing{from{transform:translate(-50%,-50%) scale(.8);opacity:1}to{transform:translate(-50%,-50%) scale(1.8);opacity:0}}
+    @keyframes rushSpark{to{transform:translate(var(--dx),var(--dy));opacity:0}}
+    @media(prefers-reduced-motion:reduce){.target,.target::after,.rush-pop,.rush-ring,.rush-spark{animation:none!important}.rush-meter span{transition:none}}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/taprush.html">
@@ -152,8 +182,11 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
+    <div class="rush-hud"><span id="rushStage">Stage 1 · Warm up</span><strong id="rushStreak">0 streak</strong></div>
+    <div class="rush-meter" aria-hidden="true"><span id="rushMeter"></span></div>
     <div class="tap-board touch-surface" id="board" aria-label="Tap Rush game area">
       <button class="target touch-surface" id="target" type="button" aria-label="Tap target" hidden></button>
+      <div class="rush-note" id="rushNote">Hit green · gold earns +1 Coin</div>
     </div>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -185,16 +218,16 @@
       surface:board,
       steps:[
         { icon:'👆', title:'Start', text:'Tap the game area' },
-        { icon:'🎯', title:'Control', text:'Tap green · misses cost 0.75s' },
+        { icon:'🎯', title:'Control', text:'Tap targets before they fade' },
         { icon:'⏱️', title:'Goal', text:'Get max hits in 20 sec' }
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
-      overlayText:'Hit green fast — misses cost 0.75s',
+      overlayText:'Tap green · gold +1 Coin · build a streak',
       replayTitle:'Tap to Play Again',
       tips:[
         'Every successful tap moves the target. A miss costs 0.75 seconds, so random tapping will end the run early.',
-        'The round lasts 20 seconds.'
+        'Targets fade faster each stage. Keep a clean streak to light up Rush mode. Gold targets add 1 Coin, within the 20 Coin cap.'
       ],
       reward:'Earn Coins from hits and milestones. Max 20 Coins per run.'
     });
@@ -213,12 +246,49 @@
     let misses = 0;
     let missFeedbackToken = 0;
 
+    let streak = 0, bestStreak = 0, bonusCoins = 0, expiredTargets = 0;
+    let targetExpiresAt = 0, targetIsGold = false, targetSerial = 0;
+    let stage = 1;
+    const rushStage = document.getElementById('rushStage');
+    const rushStreak = document.getElementById('rushStreak');
+    const rushMeter = document.getElementById('rushMeter');
+    const rushNote = document.getElementById('rushNote');
+
+    function refreshRush() {
+      stage = Math.min(4, 1 + Math.floor(hits / 10));
+      rushStage.textContent = 'Stage ' + stage + ' · ' + ['Warm up','Quickfire','Overdrive','Lightning'][stage-1];
+      rushStreak.textContent = streak >= 10 ? '⚡ Rush · ' + streak : streak + ' streak';
+      rushMeter.style.width = Math.min(100, streak / 10 * 100) + '%';
+      board.classList.toggle('fever', streak >= 10);
+    }
+
+    function hitBurst(label, gold = false) {
+      const x = parseFloat(target.style.left), y = parseFloat(target.style.top);
+      const effects = [];
+      for (let i = 0; i < 8; i++) {
+        const spark = document.createElement('i');
+        spark.className = 'rush-spark';
+        const angle = i * Math.PI / 4;
+        spark.style.setProperty('--dx', Math.cos(angle)*45 + 'px');
+        spark.style.setProperty('--dy', Math.sin(angle)*45 + 'px');
+        effects.push(spark);
+      }
+      const ring = document.createElement('i'); ring.className = 'rush-ring'; effects.push(ring);
+      const pop = document.createElement('span'); pop.className = 'rush-pop'; pop.textContent = label; effects.push(pop);
+      effects.forEach(el => {
+        el.style.left = x+'px'; el.style.top = y+'px';
+        if (gold) { el.style.color = '#fcd34d'; el.style.borderColor = '#fcd34d'; }
+        board.append(el);
+      });
+      setTimeout(() => effects.forEach(el => el.remove()), 520);
+    }
+
     function rewardForHits(value) {
       let coins = Math.floor(value / 5);
       if (value >= 20) coins += 2;
       if (value >= 35) coins += 3;
       if (value >= 50) coins += 5;
-      return Math.min(coins, MAX_COINS);
+      return Math.min(coins + bonusCoins, MAX_COINS);
     }
 
     function refreshChrome() {
@@ -237,7 +307,7 @@
       const rect = board.getBoundingClientRect();
       const targetSize = parseFloat(getComputedStyle(target).width) || 64;
       const radius = targetSize / 2;
-      const edgePad = 8;
+      const edgePad = 16;
       const safeRadius = radius + edgePad;
       const minDistance = Math.min(120, Math.max(78, rect.width * .28));
       const oldX = parseFloat(target.style.left) || rect.width / 2;
@@ -252,13 +322,36 @@
       }
       target.style.left = x + 'px';
       target.style.top = y + 'px';
+      targetSerial += 1;
+      targetIsGold = (hits + 1) % 7 === 0;
+      target.classList.toggle('gold', targetIsGold);
+      target.textContent = targetIsGold ? '★' : '';
+      target.setAttribute('aria-label', targetIsGold ? 'Gold target: bonus Coin' : 'Tap target');
+      const life = Math.max(850, 1800 - (stage - 1) * 300);
+      targetExpiresAt = performance.now() + life;
+      target.style.setProperty('--life', life + 'ms');
+      // Restart the ring for each new target, including consecutive hits.
+      target.style.animation = 'none';
+      target.classList.add('clock-reset');
+      void target.offsetWidth;
+      target.style.animation = '';
+      target.classList.remove('clock-reset');
+      rushNote.textContent = targetIsGold ? '★ GOLD · +1 COIN' : streak >= 10 ? '⚡ RUSH · keep it going!' : 'Hit green · gold earns +1 Coin';
     }
 
     function updateTimer() {
       if (!running) return;
       timeLeft = Math.max(0, Math.ceil((roundEndsAt - performance.now()) / 1000));
       timeEl.textContent = String(timeLeft);
-      if (timeLeft <= 0) finishGame();
+      board.classList.toggle('urgent', timeLeft <= 5);
+      if (timeLeft <= 0) { finishGame(); return; }
+      if (!targetLocked && performance.now() >= targetExpiresAt) {
+        expiredTargets += 1;
+        streak = 0;
+        refreshRush();
+        moveTarget();
+        rushNote.textContent = 'Target faded · streak reset';
+      }
     }
 
     function startTimer() {
@@ -278,6 +371,7 @@
       roundEndsAt = 0;
       pauseStartedAt = 0;
       target.hidden = true;
+      board.classList.remove('urgent','fever');
 
       const earned = rewardForHits(hits);
       Arcade.earn(earned, 'Tap Rush', { kind:'game', game:'tapRush', metric:hits });
@@ -307,6 +401,7 @@
         game:'tapRush',
         extra:[
           '⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',
+          '⚡ Best streak: '+bestStreak+' · Gold Coins: '+bonusCoins+' · Faded: '+expiredTargets,
           misses ? '❌ Misses: '+misses+' · −'+(misses*MISS_PENALTY_MS/1000).toFixed(2)+'s total' : hits ? '🎯 Perfect accuracy · 0 misses' : '🎯 No targets hit yet',
           hits >= 35 ? '🔥 Lightning-fast tapping.' : hits >= 20 ? '🎯 Quick Fingers milestone reached.' : hits ? 'Beat your pace next run.' : 'Tap the green target to score next run.'
         ],
@@ -331,6 +426,11 @@
       timer = null;
       roundEndsAt = 0;
       hits = 0;
+      streak = 0; bestStreak = 0; bonusCoins = 0; expiredTargets = 0;
+      targetSerial += 1;
+      refreshRush();
+      board.classList.remove('urgent');
+      board.querySelectorAll('.rush-pop,.rush-ring,.rush-spark').forEach(el => el.remove());
       targetLocked = true;
       misses = 0;
       missFeedbackToken += 1;
@@ -368,6 +468,7 @@
       event.preventDefault();
 
       if (running && !starting) {
+        streak = 0; refreshRush();
         misses += 1;
         roundEndsAt = Math.max(performance.now(), roundEndsAt - MISS_PENALTY_MS);
         updateTimer();
@@ -409,27 +510,27 @@
         return;
       }
 
+      if (performance.now() >= targetExpiresAt) { updateTimer(); return; }
+
       // Lock immediately so one physical tap cannot register twice on browsers
       // that dispatch overlapping touch/pointer activity during rapid play.
       targetLocked = true;
 
-      const previousReward = rewardForHits(hits);
       hits += 1;
+      streak += 1;
+      bestStreak = Math.max(bestStreak, streak);
+      if (targetIsGold) bonusCoins += 1;
       const newReward = rewardForHits(hits);
-      // Keep rapid play clean: normal hits stay quiet. Give feedback only when
-      // the run actually earns another Coin or reaches a named achievement.
-      if (newReward > previousReward && hits !== 20 && hits !== 35 && hits !== 50) Arcade.feedback('score');
+      Arcade.feedback(targetIsGold ? 'score' : streak === 10 ? 'perfect' : 'tap');
+      hitBurst(targetIsGold ? '+1 Coin' : streak === 10 ? '⚡ RUSH!' : streak % 5 === 0 ? streak + ' streak!' : '+1', targetIsGold);
       hitsEl.textContent = String(hits);
       rewardPreviewEl.textContent = newReward;
-
-      if (hits === 20) Arcade.milestone('🎯 20 hits · Quick Fingers!');
-      if (hits === 35) Arcade.milestone('🔥 35 hits · Blazing fast!');
-      if (hits === 50) Arcade.milestone('🏆 50 hits · Elite reflexes!', 'perfect');
+      refreshRush();
 
       moveTarget();
-      const unlockRoundEndsAt = roundEndsAt;
+      const unlockTargetSerial = targetSerial;
       requestAnimationFrame(()=>{
-        if(running && roundEndsAt===unlockRoundEndsAt && !document.body.classList.contains('earnly-game-paused')) targetLocked=false;
+        if(running && targetSerial===unlockTargetSerial && !document.body.classList.contains('earnly-game-paused')) targetLocked=false;
       });
     });
 
@@ -446,11 +547,17 @@
         const pausedFor=performance.now()-pauseStartedAt;
         totalPausedMs+=pausedFor;pauseStartedAt=0;
         roundEndsAt=performance.now()+timeLeft*1000;
+        targetExpiresAt += pausedFor;
         target.hidden=false;
         targetLocked=false;
         startTimer();
       }
     });
+    // Tap Rush uses a DOM board, so place the shared controls beneath it.
+    const sessionDock = document.createElement('div');
+    sessionDock.className = 'earnly-session-dock';
+    (board.closest('.game-guide-surface-wrap') || board).insertAdjacentElement('afterend', sessionDock);
+    sessionDock.append(document.getElementById('earnlyPauseButton'), document.getElementById('earnlyQuitButton'));
     const cancelTapState=()=>{ targetLocked = running; };
     window.addEventListener('blur', cancelTapState);
     document.addEventListener('visibilitychange', ()=>{ if(document.hidden) cancelTapState(); });
