@@ -20,10 +20,10 @@ test('every public page has working static information links, including the web 
   }
 });
 
-test('all 23 guides have valid play destinations and meaningful controls and strategy', async ({ page }) => {
+test('all 22 guides have valid play destinations and meaningful controls and strategy', async ({ page }) => {
   await page.goto('/game-guides.html');
   const guides = page.locator('.game-reference');
-  await expect(guides).toHaveCount(23);
+  await expect(guides).toHaveCount(22);
   const links = await page.locator('.guide-index a').evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
   for (const href of links) await expect(page.locator(href)).toHaveCount(1);
   for (const guide of await guides.all()) {
@@ -42,7 +42,7 @@ test('public pages remain navigable without JavaScript', async ({ browser }) => 
   await page.locator('.public-footer').getByRole('link', { name:'About', exact:true }).click();
   await expect(page.getByRole('heading', { name:'About Earnly Arcade', exact:true })).toBeVisible();
   await page.locator('.public-footer').getByRole('link', { name:'Game Guides', exact:true }).click();
-  await expect(page.locator('.game-reference')).toHaveCount(23);
+  await expect(page.locator('.game-reference')).toHaveCount(22);
   await context.close();
 });
 

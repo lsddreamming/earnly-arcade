@@ -4,7 +4,7 @@ window.NeonDriftRenderer={create(canvas){
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
   let particles=[],smokeTime=0;
   function reset(){particles=[];smokeTime=0;}
-  function event(e,s){if(motion.matches)return;if(e.type!=='crash'&&e.type!=='near')return;const count=e.type==='crash'?28:12;for(let i=0;i<count;i++){const a=i/count*Math.PI*2;particles.push({x:s.x,y:E.PLAYER_Y,vx:Math.cos(a)*(45+i%5*20),vy:Math.sin(a)*70,life:.45+i%4*.1,max:.75,size:e.type==='crash'?2:1.4,color:e.type==='crash'?'#ffd18a':'#83fff0',smoke:false});}particles=particles.slice(-100);}
+  function event(e,s){if(motion.matches)return;if(!['crash','near','pickup','boost'].includes(e.type))return;const count=e.type==='crash'?28:12;for(let i=0;i<count;i++){const a=i/count*Math.PI*2;particles.push({x:s.x,y:E.PLAYER_Y,vx:Math.cos(a)*(45+i%5*20),vy:Math.sin(a)*70,life:.45+i%4*.1,max:.75,size:e.type==='crash'?2:1.4,color:e.type==='crash'?'#ffd18a':e.type==='pickup'?'#ffd477':'#83fff0',smoke:false});}particles=particles.slice(-100);}
   function line(points,color,width){ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
   function car(x,y,angle,color,player=false){
     ctx.save();ctx.translate(x,y);ctx.rotate(angle);
@@ -27,7 +27,8 @@ window.NeonDriftRenderer={create(canvas){
     if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
     ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,400,520);
     const d=E.difficulty(s.time),dist=idle?700:s.distance;
-    const palette=[['#5affec','#f94caf'],['#ffe39b','#ff7769'],['#ba9cff','#f078e9'],['#80e8ff','#638cff'],['#ff9d7b','#ff4a87']][Math.min(4,s.stage-1)];
+    const palette=[['#5affec','#f94caf'],['#ffe39b','#ff7769'],['#ba9cff','#f078e9'],['#80e8ff','#638cff'],['#ff9d7b','#ff4a87'],['#caff7a','#64deff']][Math.min(5,s.stage-1)];
+    const paintSector=Math.max(s.stage,s.paintSector||1),paint=paintSector>=5?'#ffdc8a':paintSector>=3?'#bf9cff':'#5affec';
     const roadX=y=>E.road(dist+E.PLAYER_Y-y);
     const bg=ctx.createLinearGradient(0,0,400,520);bg.addColorStop(0,'#09172a');bg.addColorStop(1,'#130d28');ctx.fillStyle=bg;ctx.fillRect(0,0,400,520);
     // Deterministic roadside city panels scroll independently of the racing surface.
@@ -43,15 +44,19 @@ window.NeonDriftRenderer={create(canvas){
     for(let i=0;i<6;i++){const y=(i*115+dist)%690-85;for(const side of [-1,1]){const x=roadX(y)+side*(d.halfWidth+14);ctx.fillStyle=palette[side>0?0:1]+'0c';ctx.beginPath();ctx.ellipse(x,y,25,43,0,0,Math.PI*2);ctx.fill();line([[x,y-17],[x,y]],'#8ab0c277',2);ctx.fillStyle='#d3fbff';ctx.fillRect(x-3,y-18,6,3);}}
     // Roadside arrows give the next bend a visible direction before the player enters it.
     const turn=roadX(25)-roadX(230);for(const y of [70,106,142]){const x=turn>0?roadX(y)-d.halfWidth+16:roadX(y)+d.halfWidth-16;const sign=turn>0?1:-1;line([[x-sign*3,y-5],[x+sign*3,y],[x-sign*3,y+5]],'#e9fbff88',2);}
-    if(idle){car(roadX(125)-72,125,.03,'#f975a8');car(roadX(20)+72,20,-.04,'#fdbf6a');car(roadX(400),400,-.15,'#5affec',true);}
+    if(!idle){
+      for(const p of s.pickups){const y=E.PLAYER_Y-(p.z-s.distance);if(y< -25||y>550)continue;const x=E.road(p.z)+p.lane*72;ctx.save();ctx.translate(x,y);ctx.shadowColor='#ffd477';ctx.shadowBlur=reduced?0:15;ctx.fillStyle='#ffd477';ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(10,0);ctx.lineTo(0,13);ctx.lineTo(-10,0);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#fff5c9';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#99600d';ctx.fillRect(-1,-6,2,12);ctx.restore();}
+      if(!reduced){ctx.strokeStyle=s.boost>0?'#8ffff155':'#8dcdff22';for(let i=0;i<10;i++){const y=(i*67+s.distance*1.3)%540;const side=i%2?1:-1;const x=roadX(y)+side*(d.halfWidth+7);line([[x,y],[x,y+(s.boost>0?35:16)]],ctx.strokeStyle,1);}}
+    }
+    if(idle){car(roadX(125)-72,125,.03,'#f975a8');car(roadX(20)+72,20,-.04,'#fdbf6a');car(roadX(400),400,-.15,paint,true);}
     else{
       for(const c of s.traffic){const y=E.PLAYER_Y-(c.z-s.distance);if(y< -60||y>580)continue;const angle=Math.atan2(E.road(c.z+10)-E.road(c.z),10);car(E.road(c.z)+c.lane*72,y,angle,['#ff648a','#fac66c','#9e9bff'][c.color]);}
       if(!reduced&&Math.abs(s.vx)>48&&s.hurt===0){smokeTime+=dt;while(smokeTime>.045){smokeTime-=.045;for(const side of [-1,1])particles.push({x:s.x+side*11,y:E.PLAYER_Y+20,vx:-s.vx*.22+side*7,vy:50,life:.7,max:.7,size:3,color:'#b3d1db',smoke:true});}}else smokeTime=0;
       particles=particles.filter(p=>p.life>0).slice(-100);for(const p of particles){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;ctx.globalAlpha=Math.max(0,p.life/p.max)*(p.smoke?.22:1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.smoke?p.size+(1-p.life/p.max)*9:p.size,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
       if(Math.abs(s.vx)>48&&s.hurt===0){ctx.strokeStyle='#5affec55';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(s.x,E.PLAYER_Y+12,23,27,Math.atan2(s.vx,d.speed)*.75,.15,Math.PI-.15);ctx.stroke();}
       if(s.hurt>0)ctx.globalAlpha=reduced?.7:(Math.floor(s.time*12)%2?.45:1);
-      car(s.x,E.PLAYER_Y,Math.atan2(s.vx,d.speed)*.75,'#5affec',true);ctx.globalAlpha=1;
-      ctx.fillStyle='#050d22bc';ctx.fillRect(13,13,115,27);ctx.fillStyle='#c6d6e9';ctx.font='bold 10px monospace';ctx.fillText('SECTOR 0'+s.stage+' / 05',23,31);
+      car(s.x,E.PLAYER_Y,Math.atan2(s.vx,d.speed)*.75,s.boost>0?'#ffe59b':paint,true);ctx.globalAlpha=1;
+      ctx.fillStyle='#050d22bc';ctx.fillRect(13,13,115,27);ctx.fillStyle='#c6d6e9';ctx.font='bold 10px monospace';ctx.fillText('SECTOR 0'+s.stage+' / 06',23,31);
       const remain=Math.max(0,1-s.time/E.DURATION);ctx.fillStyle='#ffffff18';ctx.fillRect(145,24,238,3);ctx.fillStyle=palette[0];ctx.fillRect(145,24,238*remain,3);
       if(s.comboTime>0){ctx.fillStyle='#081a2bd9';ctx.fillRect(132,475,136,27);ctx.fillStyle='#8ffff1';ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.fillText('CLOSE CALL CHAIN ×'+s.combo,200,492);ctx.textAlign='left';ctx.fillStyle='#5affec';ctx.fillRect(132,503,136*s.comboTime/5,2);}
       if(s.hull===1){ctx.strokeStyle='#ff837b77';ctx.lineWidth=3;ctx.strokeRect(4,4,392,512);}

@@ -1,3 +1,5 @@
+// Retired driving game: keep old bookmarks useful without consuming a play.
+if (/\/dodger\.html$/i.test(location.pathname)) location.replace('neondrift.html');
 // Earnly web game engine. Native builds can attach rewarded ads through Capacitor.
 // Force a unique Star Defender URL so iPhone Safari/WebKit cannot reuse a stale
 // pre-fix document from history or an older service-worker cache.
@@ -35,7 +37,6 @@ const Arcade = (() => {
     blockDrop: 'Block Drop',
     tapRush: 'Tap Rush',
     memory: 'Memory Match',
-    dodger: 'Neon Dodger',
     brickBreaker: 'Brick Breaker',
     jungleHopper: 'Jungle Hopper',
     towerStack: 'Tower Stack',
@@ -106,7 +107,7 @@ const Arcade = (() => {
   const PLAY_AD_DAILY_LIMIT = 2;
   const DAILY_BONUS = 10;
   const DAILY_MISSION_VERSION = '1';
-  const CHALLENGE_VERSION = '5';
+  const CHALLENGE_VERSION = '6';
   const BASE_GAME_XP = 10;
   const ACHIEVEMENT_XP = 25;
   const WEEKLY_ALL_CLEAR_XP = 100;
@@ -137,7 +138,6 @@ const Arcade = (() => {
     { id:'snake10', title:'🐍 Snake Run', description:'Eat 10 apples in one Snake run', goal:10, reward:10, type:'score', game:'snake' },
     { id:'block3', title:'🧱 Line Clearer', description:'Clear 3 lines in one Block Drop game', goal:3, reward:8, type:'score', game:'blockDrop' },
     { id:'tap20', title:'🎯 Quick Fingers', description:'Hit 20 targets in one Tap Rush game', goal:20, reward:8, type:'score', game:'tapRush' },
-    { id:'dodger15', title:'🚗 Stay Alive', description:'Survive 15 seconds in Neon Dodger', goal:15, reward:8, type:'score', game:'dodger' },
     { id:'brick15', title:'💥 Brick Smasher', description:'Break 15 bricks in one Brick Breaker run', goal:15, reward:8, type:'score', game:'brickBreaker' },
     { id:'jungle8', title:'🐸 Vine Hopper', description:'Pass 8 vines in Jungle Hopper', goal:8, reward:10, type:'score', game:'jungleHopper' },
     { id:'tower10', title:'🏗️ High Rise', description:'Stack 10 floors in Tower Stack', goal:10, reward:10, type:'score', game:'towerStack' },
@@ -384,7 +384,7 @@ const Arcade = (() => {
     if (key.startsWith('gameRuns_') || key.startsWith('gameMetricTotal_')) return true;
 
     // Retired games remain transferable without joining the active catalog.
-    return [...Object.keys(names), 'blockGrid'].some(game =>
+    return [...Object.keys(names), 'blockGrid', 'dodger'].some(game =>
       key === game + 'Best' ||
       key === game + 'BestLines' ||
       key === game + 'BestMoves' ||
@@ -1282,7 +1282,6 @@ const Arcade = (() => {
       { id:'block3', icon:'🧱', title:'Line Clearer', description:'Clear 3 lines in Block Drop', unlocked:number('blockDropBestLines') >= 3 },
       { id:'tap20', icon:'🎯', title:'Quick Fingers', description:'Hit 20 targets in Tap Rush', unlocked:number('tapRushBest') >= 20 },
       { id:'memory24', icon:'🧠', title:'Sharp Memory', description:'Clear Memory Match in 24 moves or fewer', unlocked:memoryBest > 0 && memoryBest <= 24 },
-      { id:'dodger15', icon:'🚗', title:'Road Warrior', description:'Survive 15 seconds in Neon Dodger', unlocked:number('dodgerBest') >= 15 },
       { id:'brick20', icon:'💥', title:'Brick Smasher', description:'Break 20 bricks in Brick Breaker', unlocked:number('brickBreakerBest') >= 20 },
       { id:'jungle10', icon:'🐸', title:'Jungle Pro', description:'Pass 10 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 10 },
       { id:'jungle25', icon:'🌿', title:'Deep Jungle', description:'Pass 25 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 25 },
