@@ -28,7 +28,7 @@ test('polished command deck fits small phones and rendered factories remain sele
  const target=await page.evaluate(()=>CrystalGame.renderer.point(9,6,.4));
  expect(await page.evaluate(p=>CrystalGame.renderer.minimap(p.x,p.y),target)).toBe(false);
  await page.locator('#battle').click({position:target});
- await expect(page.locator('#context')).toContainText('War factory selected');await expect(page.locator('#palette')).toContainText('Striker');await expect(page.locator('#selectionName')).toHaveText('War factory');await expect(page.locator('#palette svg')).toHaveCount(2);
+ await expect(page.locator('#context')).toContainText('War factory selected');await expect(page.locator('#palette')).toContainText('Striker');await expect(page.locator('#selectionName')).toHaveText('War factory');await expect(page.locator('#palette svg')).toHaveCount(3);
  await page.locator('#palette').getByRole('button',{name:/Striker/}).click();await expect(page.locator('#context')).toContainText('queued');
  expect(errors).toEqual([]);
 });
