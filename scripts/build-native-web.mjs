@@ -9,6 +9,7 @@ const allowedExtensions = new Set([
 ]);
 const excluded = new Set([
   'native-ads-entry.js',
+  'crystal-command-client-entry.js',
   'playwright.config.js',
   'playwright.contract.config.js',
   'playwright.iphone-qa.config.js',

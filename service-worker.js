@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-search-basics-20261005';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-crystal-command-beta-20261005';const CORE_ASSETS = [
+  './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
   './index.html',

@@ -9,12 +9,14 @@
     "native:web": "node scripts/build-native-web.mjs",
     "native:ios:generate": "npm run native:web && npx cap add ios && npx cap sync ios && node scripts/configure-ios.mjs",
     "native:ios:sync": "npm run native:web && npx cap sync ios && node scripts/configure-ios.mjs",
-    "native:ios:release": "EARNLY_ADMOB_TEST_MODE=0 EARNLY_IOS_MARKETING_VERSION=1.1 EARNLY_IOS_BUILD_NUMBER=2 npm run native:ios:sync"
+    "native:ios:release": "EARNLY_ADMOB_TEST_MODE=0 EARNLY_IOS_MARKETING_VERSION=1.1 EARNLY_IOS_BUILD_NUMBER=2 npm run native:ios:sync",
+    "build:crystal-client": "esbuild crystal-command-client-entry.js --bundle --format=iife --minify --target=safari15 --outfile=crystal-command-vendor.js"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",
     "@capacitor/core": "^8.0.0",
-    "@capacitor/ios": "^8.0.0"
+    "@capacitor/ios": "^8.0.0",
+    "@supabase/supabase-js": "2.57.4"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
