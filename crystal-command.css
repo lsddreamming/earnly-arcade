@@ -59,3 +59,22 @@ body{background:#040914}
 .cc-emblem{animation:crystal-hover 4s ease-in-out infinite}
 @keyframes crystal-hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @media(prefers-reduced-motion:reduce){.cc-emblem{animation:none}}
+
+/* Close inspection and selection telemetry. */
+.cc-unit-symbol svg{width:24px;height:24px;display:block;filter:drop-shadow(0 0 4px #50e8ff55)}
+.cc-palette .cc-unit-symbol{top:12px;left:6px}
+.cc-palette[data-mode=build] .cc-unit-symbol{top:2px;display:flex;justify-content:center}
+.cc-palette[data-mode=build] .cc-unit-symbol svg{width:21px;height:21px}
+.cc-palette button.active{border-color:#8affed;background:linear-gradient(145deg,#245c6a,#123844);box-shadow:0 0 12px #62ffd933}
+.cc-selection{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;font-size:10px;color:#dcf6ff;padding:6px 2px 2px}
+#selectionName{font-weight:700;color:#a6f4ff}#selectionDetail{font-size:9px;color:#a7bfce}
+.cc-selection i{grid-column:1/-1;height:2px;background:#243b4b;overflow:hidden;border-radius:2px}
+.cc-selection i b{display:block;height:100%;background:#67eafa;transition:width .2s}.cc-selection i b.damaged{background:#ffad81}
+.cc-zoom{position:absolute;right:9px;top:8px;display:flex;gap:4px;z-index:2}
+.cc-zoom button{width:36px;height:36px;padding:0;font-size:20px;color:#bcf9ff;background:#0b2334d9;border:1px solid #63c6df55;box-shadow:0 3px 10px #0005}
+.cc-hint{max-width:calc(100% - 105px)}.cc-menu .cc-zoom{display:none}
+.cc-report-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:18px 0;border-top:1px solid #6abec944;border-bottom:1px solid #6abec944;padding:14px 0}
+.cc-report-stats b{display:block;font-size:22px;color:#a8f6ff;font-variant-numeric:tabular-nums}.cc-report-stats span{display:block;font-size:7px;color:#9cbaca;letter-spacing:.6px;margin-top:5px}
+#results[data-outcome=victory] h2{color:#a9fff0;text-shadow:0 0 28px #46efad88}#results[data-outcome=defeat] h2{color:#ffd3b4;text-shadow:0 0 28px #ff764955}
+@media(max-height:620px){.cc-selection{padding-top:3px}.cc-tools button{min-height:33px}.cc-palette button{min-height:50px}.cc-palette{min-height:56px}.cc-session button{min-height:36px}}
+@media(prefers-reduced-motion:reduce){.cc-selection i b{transition:none}}
