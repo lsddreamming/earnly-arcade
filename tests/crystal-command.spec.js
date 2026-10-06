@@ -11,3 +11,21 @@ test('mobile strategy controls, pause and quit confirmation work',async({page})=
  await page.goto('/crystal-command.html');await page.getByRole('button',{name:'▶ Practice battle'}).click();await expect(page.locator('#lobby')).toBeHidden();await expect(page.locator('.public-footer')).toBeHidden();await expect(page.locator('#crystals')).not.toHaveText('250',{timeout:15000});await page.getByRole('button',{name:'Build',exact:true}).click();await page.locator('#palette').getByRole('button',{name:/War factory/}).click();await expect(page.locator('#context')).toContainText('Place War factory');await page.locator('#pause').click();const tick=await page.evaluate(()=>CrystalGame.view.tick);await page.waitForTimeout(300);expect(await page.evaluate(()=>CrystalGame.view.tick)).toBe(tick);await page.locator('#pause').click();await page.locator('#quit').click();await expect(page.locator('#confirm')).toBeVisible();await page.getByRole('button',{name:'Keep playing'}).click();await expect(page.locator('#confirm')).toBeHidden();expect(await page.evaluate(()=>CrystalGame.running)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`test-results/crystal-command-${test.info().project.name}.png`});await page.locator('#quit').click();await page.getByRole('button',{name:'Quit battle',exact:true}).click();await expect(page.locator('#results')).toBeVisible();await expect(page.locator('.public-footer')).toBeVisible();
 });
 test('friend rooms show a useful sign-in requirement to guests',async({page})=>{await page.goto('/crystal-command.html');await page.locator('#createRoom').click();await expect(page.locator('#lobbyError')).toContainText('Sign in');await expect(page.locator('#authLink')).toBeVisible()});
+
+test('polished command deck fits small phones and rendered factories remain selectable',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));
+ await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');
+ await expect(page.locator('.cc-dock')).toBeHidden();await expect(page.locator('#authLink')).toBeHidden();
+ await page.getByRole('button',{name:'▶ Practice battle'}).click();
+ await page.getByRole('button',{name:'Build',exact:true}).click();
+ for(const button of await page.locator('#palette button').all()){const box=await button.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320)}
+ const quit=await page.locator('#quit').boundingBox();expect(quit.y+quit.height).toBeLessThanOrEqual(568);
+ await page.locator('#pause').click();
+ const at=await page.evaluate(()=>{const s=CrystalGame.state;s.players[0].crystals=1000;const result=CrystalCommand.command(s,0,{type:'build',kind:'factory',x:9,y:6});if(!result.ok)throw Error(result.message);for(let i=0;i<210;i++)CrystalCommand.tick(s);return CrystalGame.renderer.point(9,6,.4)});
+ await page.locator('#pause').click();await page.waitForTimeout(200);
+ await page.locator('#battle').click({position:at});
+ await expect(page.locator('#context')).toContainText('War factory selected');await expect(page.locator('#palette')).toContainText('Striker');
+ await page.locator('#palette').getByRole('button',{name:/Striker/}).click();await expect(page.locator('#context')).toContainText('queued');
+ expect(errors).toEqual([]);
+});
