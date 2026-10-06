@@ -32,3 +32,44 @@ test('polished command deck fits small phones and rendered factories remain sele
  await page.locator('#palette').getByRole('button',{name:/Striker/}).click();await expect(page.locator('#context')).toContainText('queued');
  expect(errors).toEqual([]);
 });
+
+test('expanded mineral lines last through an established economy and remain mirrored',()=>{
+ const s=E.create(),home=s.crystals.filter(n=>n.field==='Home field 0');expect(home).toHaveLength(6);expect(home.reduce((sum,n)=>sum+n.left,0)).toBe(14400);
+ for(const n of s.crystals)expect(s.crystals.some(m=>m.x===39-n.x&&m.y===39-n.y&&m.left===n.left&&m.rich===n.rich)).toBe(true);
+ const worker=s.entities.find(e=>e.type==='worker'&&e.side===0);for(let i=0;i<8;i++)s.entities.push({...worker,id:s.next++,x:5+i%3*.2,y:8+Math.floor(i/3)*.2,path:[],queue:[]});
+ const total=s.crystals.reduce((sum,n)=>sum+n.left,0);advance(s,300);expect(home.reduce((sum,n)=>sum+n.left,0)).toBeGreaterThan(6000);expect(new Set(s.entities.filter(e=>e.side===0&&e.type==='worker').map(e=>e.patch)).size).toBe(6);
+ expect(s.crystals.reduce((n,c)=>n+c.left,0)+s.entities.reduce((n,e)=>n+e.carry,0)+s.players.reduce((n,p)=>n+p.mined,0)).toBe(total);
+});
+test('one patch saturates and unseen reserves retain their last observed amount',()=>{
+ const s=E.create(),node=s.crystals.find(n=>n.field==='Home field 0'),worker=s.entities.find(e=>e.type==='worker'&&e.side===0);s.crystals.forEach(n=>n.left=n.id===node.id?2400:0);s.entities=s.entities.filter(e=>e.type!=='worker');
+ for(let i=0;i<12;i++)s.entities.push({...worker,id:s.next++,x:node.x+.1,y:node.y+.1,patch:node.id,path:[],queue:[],order:{type:'mine',x:node.x,y:node.y,target:node.id}});
+ advance(s,12);expect(2400-node.left).toBeGreaterThan(0);expect(2400-node.left).toBeLessThanOrEqual(56);
+ const observed=E.view(s,0).crystals.find(n=>n.id===node.id).left;s.entities.filter(e=>e.side===0).forEach(e=>{e.x=20;e.y=35;e.path=[];e.order={type:'stop'}});node.left=123;advance(s,.1);
+ expect(E.view(s,0).crystals.find(n=>n.id===node.id).left).toBe(observed);
+ s.entities.find(e=>e.side===0&&e.type==='base').x=node.x;s.entities.find(e=>e.side===0&&e.type==='base').y=node.y;advance(s,.1);expect(E.view(s,0).crystals.find(n=>n.id===node.id).left).toBe(123);
+});
+test('rally orders route new Miners to fields and only accept owned production buildings',()=>{
+ const s=E.create(),base=s.entities.find(e=>e.side===0&&e.type==='base'),enemy=s.entities.find(e=>e.side===1&&e.type==='base'),node=s.crystals.find(n=>n.field==='Home field 0');
+ expect(E.command(s,0,{type:'rally',id:enemy.id,x:3,y:3}).ok).toBe(false);expect(E.command(s,0,{type:'rally',id:base.id,x:NaN,y:3}).ok).toBe(false);
+ expect(E.command(s,0,{type:'rally',id:base.id,x:node.x,y:node.y,target:node.id}).ok).toBe(true);const last=s.next;expect(E.command(s,0,{type:'train',id:base.id,kind:'worker'}).ok).toBe(true);advance(s,4.1);
+ expect(s.entities.find(e=>e.id===last).order.target).toBe(node.id);
+ expect(E.view(s,1).entities.filter(e=>e.side===0).every(e=>e.rally===null)).toBe(true);
+});
+test('research takes time, blocks duplicate projects and cancels with its Tech core',()=>{
+ const s=E.create();s.players[0].crystals=3000;expect(E.command(s,0,{type:'build',kind:'lab',x:9,y:10}).ok).toBe(true);advance(s,12.1);const lab=s.entities.find(e=>e.type==='lab');
+ expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'weapons'}).ok).toBe(true);expect(s.players[0].upgrade).toBe(0);const paid=s.players[0].crystals;
+ expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'weapons'}).ok).toBe(false);expect(s.players[0].crystals).toBe(paid);advance(s,17);expect(s.players[0].upgrade).toBe(0);advance(s,1.1);expect(s.players[0].upgrade).toBe(1);
+ expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'armor'}).ok).toBe(true);advance(s,16.1);expect(s.players[0].armor).toBe(1);
+ expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'armor'}).ok).toBe(true);lab.hp=0;advance(s,30);expect(s.players[0].armor).toBe(1);
+ const quiet=E.create();advance(quiet,600);expect(quiet.ended).toBe(false);advance(quiet,601);expect(quiet.reason).toContain('Twenty-minute');
+});
+test('phone economy controls inspect reserves, set rallies and show timed research',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#practice').click();
+ await expect(page.locator('#selectionDetail')).toContainText('crystals nearby');await page.evaluate(()=>CrystalGame.issue({type:'stop',ids:CrystalGame.view.entities.filter(e=>e.side===0&&e.type==='worker').map(e=>e.id)}));await page.locator('#setRally').click();const node=await page.evaluate(()=>{const n=CrystalGame.view.crystals.find(n=>n.field==='Home field 0');return{id:n.id,p:CrystalGame.renderer.point(n.x,n.y,.5)}});await page.locator('#battle').click({position:node.p});
+ expect(await page.evaluate(()=>CrystalGame.state.entities.find(e=>e.type==='base'&&e.side===0).rally.target)).toBe(node.id);await expect(page.locator('#setRally')).toHaveAttribute('aria-pressed','false');
+ await page.locator('#battle').click({position:node.p});await expect(page.locator('#selectionName')).toHaveText('Crystal patch');await expect(page.locator('#selectionDetail')).toContainText('remaining');
+ await page.locator('#pause').click();const tick=await page.evaluate(()=>{const s=CrystalGame.state;s.players[0].crystals=3000;const r=CrystalCommand.command(s,0,{type:'build',kind:'lab',x:9,y:10});if(!r.ok)throw Error(r.message);for(let i=0;i<245;i++)CrystalCommand.tick(s);return s.tick});await page.locator('#pause').click();await page.waitForFunction(t=>CrystalGame.view.tick>t,tick);await page.evaluate(()=>CrystalGame.renderer.center(9,10));
+ await expect.poll(()=>page.evaluate(()=>{const p=CrystalGame.renderer.point(9,10,.4),r=document.getElementById('battle').getBoundingClientRect();return Math.abs(p.x-r.width/2)})).toBe(0);
+ const at=await page.evaluate(()=>CrystalGame.renderer.point(9,10,.4));await page.locator('#battle').click({position:at});await expect(page.locator('#palette')).toContainText('Weapons 1');await expect(page.locator('#palette')).toContainText('Armor 1');await page.locator('[data-research=weapons]').click();await expect(page.locator('#selectionDetail')).toContainText('Research');expect(await page.evaluate(()=>CrystalGame.view.player.upgrade)).toBe(0);await expect(page.locator('[data-research=weapons]')).toBeDisabled();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const quit=await page.locator('#quit').boundingBox();expect(quit.y+quit.height).toBeLessThanOrEqual(568);expect(errors).toEqual([]);
+});
