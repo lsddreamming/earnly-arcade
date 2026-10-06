@@ -3382,7 +3382,7 @@ body.settings-dashboard,body.account-dashboard,body.support-dashboard{
   text-decoration:none;
 }
 .profile-dashboard .profile-progress-row:last-child{border-bottom:0}
-.profile-dashboard details.profile-progress-row{padding:0}
+.profile-dashboard details.profile-progress-row{display:block;padding:0}
 .profile-dashboard .profile-progress-row>summary{
   display:grid;
   grid-template-columns:36px minmax(0,1fr) auto;

@@ -2434,4 +2434,21 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   await page.locator('.profile-more-stats > summary').click();
   await expect(page.locator('#differentGames')).toBeVisible();
   await expect(page.locator('#trackedRuns')).toBeVisible();
+  for(const width of [320,390,440]){
+    await page.setViewportSize({width,height:844});
+    const layout=await page.locator('.profile-bests-row').evaluate(row=>{
+      const bounds=el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,width:r.width}};
+      return{row:bounds(row),summary:bounds(row.querySelector('summary')),icon:bounds(row.querySelector('.profile-progress-icon')),copy:bounds(row.querySelector('.profile-progress-copy')),action:bounds(row.querySelector('.profile-progress-action'))};
+    });
+    expect(layout.summary.width).toBeGreaterThanOrEqual(layout.row.width-2);
+    expect(layout.copy.left).toBeGreaterThanOrEqual(layout.icon.right);
+    expect(layout.copy.width).toBeGreaterThan(100);
+    expect(layout.action.left).toBeGreaterThanOrEqual(layout.copy.right-1);
+    expect(layout.action.right).toBeLessThanOrEqual(layout.row.right);
+    await page.locator('.profile-bests-row > summary').click();
+    await expect(page.locator('.profile-bests-row')).toHaveAttribute('open','');
+    const grid=await page.locator('#bestGrid').boundingBox();expect(grid.width).toBeGreaterThan(layout.row.width-2);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+1);
+    await page.locator('.profile-bests-row > summary').click();
+  }
 });
