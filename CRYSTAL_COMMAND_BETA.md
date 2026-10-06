@@ -25,3 +25,9 @@ Run `npx playwright test tests/crystal-command.spec.js` for deterministic simula
 ### Living battlefield graphics
 
 Miners use moving drill arms and glowing cargo, Strikers walk with aimed weapons, and Siege bots have rolling tracks. Factories open their doors near production completion and briefly after spawning. Construction shows scaffolding before the finished structure. Damaged visible units and buildings smoke. Projectiles, impact sparks, explosions and temporary wreckage use game time, so pause freezes effects. Reduced motion removes travel, flying debris and smoke. Terrain includes cracks, inset metal panels and subtle crystal light; detailed production and research labels appear only on selected buildings. A bounded, fog-filtered visual event buffer preserves brief effects between friend snapshots without changing combat or resource balance. Glow work is capped per frame for crowded phone scenes.
+
+### Box selection and radar orders
+
+Press Box and drag a yellow rectangle to select troops, double-tap then drag on phones, or left-drag with a mouse. Normal phone drags and right/middle mouse drags pan the battlefield. Shift or Select + adds boxed units to the current group. Selection boxes include owned living fighters; if no fighters are enclosed, they select Miners. Buildings and enemies are excluded. Empty boxes clear the selection, and cancellation, pause or leaving a battle discards pending gestures.
+
+Tap the radar to issue Attack-move or Move only to selected units, including unexplored destinations. Drag the radar to move the camera without issuing orders. A radar tap with no troops selected moves the camera; right/middle/Alt taps also look around. Radar taps in Rally mode set the production rally destination. Orders for large groups are sent in validated chunks of up to 80 unit IDs.
