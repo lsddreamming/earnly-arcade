@@ -1,19 +1,32 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CrystalCommand=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
 'use strict';
-const VERSION=3,SIZE=40,STEP=.05,BATTLE_LIMIT=1200;
+const VERSION=4,SIZE=40,STEP=.05,BATTLE_LIMIT=1200;
 const DIFFICULTIES=Object.freeze({easy:{name:'Easy',pace:3.8,workers:8,attackAt:180,force:3,wave:35,armyCap:6,techAt:150},normal:{name:'Normal',pace:2.4,workers:12,attackAt:35,force:5,wave:0,armyCap:80,techAt:70},hard:{name:'Hard',pace:1.6,workers:10,attackAt:25,force:3,wave:0,armyCap:80,techAt:55}});
 const TYPES=Object.freeze({
  worker:{name:'Miner',cost:50,hp:45,speed:2.8,range:0,damage:0,time:4,supply:1,vision:5},
  scout:{name:'Scout',cost:75,hp:65,speed:4,range:2.1,damage:8,time:5,supply:1,vision:8,cool:.7},
- laser:{name:'Striker',cost:100,hp:120,speed:2.2,range:4.2,damage:15,time:7,supply:2,vision:6,cool:.9},
- siege:{name:'Siege bot',cost:200,hp:250,speed:1.4,range:6,damage:30,time:11,supply:4,vision:7,cool:1.8},
+ laser:{name:'Striker',cost:100,hp:120,speed:2.2,range:4.2,damage:15,time:7,supply:2,vision:6,cool:.9,airDamage:12,role:'Ground + air'},
+ siege:{name:'Siege bot',cost:200,hp:250,speed:1.4,range:6,damage:30,time:11,supply:4,vision:7,cool:1.8,requires:['lab'],splash:1.25,role:'Ground artillery'},
+ raider:{name:'Raider',cost:90,hp:85,speed:3.8,range:2.6,damage:10,time:6,supply:1,vision:6,cool:.65,role:'Fast ground assault'},
+ medic:{name:'Field medic',cost:100,hp:80,speed:2.6,range:3,damage:0,heal:8,time:8,supply:2,vision:6,cool:1,role:'Heals ground troops'},
+ guardian:{name:'Skyguard',cost:175,hp:200,speed:1.9,range:5.5,damage:10,airDamage:28,time:10,supply:3,vision:7,cool:1.2,requires:['armory'],role:'Anti-air walker'},
+ interceptor:{name:'Interceptor',cost:180,hp:125,speed:4.5,range:4.5,damage:8,airDamage:24,time:10,supply:2,vision:9,cool:.9,flying:true,role:'Air superiority'},
+ bomber:{name:'Bomber',cost:240,hp:180,speed:2.8,range:4,damage:28,time:13,supply:3,vision:7,cool:1.6,flying:true,splash:1.1,requires:['armory'],role:'Ground splash attack'},
+ cruiser:{name:'Storm cruiser',cost:400,hp:420,speed:1.6,range:5,damage:32,airDamage:32,time:20,supply:6,vision:8,cool:1.3,flying:true,requires:['lab','armory'],role:'Heavy ground + air'},
  base:{name:'Command base',cost:350,hp:1600,time:16,radius:1.5,vision:8},
  factory:{name:'War factory',cost:180,hp:650,time:10,radius:1.1,vision:5},
- turret:{name:'Sentry',cost:130,hp:420,time:9,radius:.8,range:5,damage:18,cool:1,vision:6},
+ turret:{name:'Sentry',cost:130,hp:420,time:9,radius:.8,range:5,damage:18,cool:1,vision:6,airDamage:18,role:'Ground + air defense'},
  relay:{name:'Supply relay',cost:100,hp:300,time:7,radius:.8,vision:5},
+ barracks:{name:'Assault bay',cost:150,hp:550,time:9,radius:1,vision:5,role:'Raiders + medics'},
+ starport:{name:'Star hangar',cost:260,hp:700,time:14,radius:1.2,vision:6,requires:['factory'],role:'Produces aircraft'},
+ armory:{name:'Arsenal',cost:200,hp:550,time:12,radius:1,vision:5,requires:['factory'],role:'Unlocks advanced troops'},
+ flak:{name:'Sky shield',cost:150,hp:400,time:9,radius:.8,range:6,damage:0,airDamage:26,cool:1,vision:7,role:'Air-only defense'},
  lab:{name:'Tech core',cost:220,hp:500,time:12,radius:1,vision:5}
 });
+const PRODUCERS=Object.freeze({base:['worker','scout'],barracks:['raider','medic'],factory:['laser','siege','guardian'],starport:['interceptor','bomber','cruiser']});
 const unit=k=>!!TYPES[k]?.supply;
+function unlockMessage(entities,side,kind){const missing=TYPES[kind]?.requires?.find(type=>!entities.some(e=>e.side===side&&e.hp>0&&e.type===type&&!e.build));return missing?'Complete a '+TYPES[missing].name+' first':''}
+function canTarget(a,b){const d=TYPES[a.type],t=TYPES[b.type];return !!(d&&t&&(t.flying?d.airDamage:d.damage))}
 const clamp=(v,l,h)=>Math.max(l,Math.min(h,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const key=(x,y)=>y*SIZE+x;
@@ -39,7 +52,7 @@ function path(s,a,b){
  for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=key(nx,ny);if(blocked(s,nx,ny)||closed.has(k))continue;const score=g.get(n)+1;if(score<(g.get(k)??Infinity)){prev.set(k,n);g.set(k,score);f.set(k,score+Math.abs(nx-tx)+Math.abs(ny-ty));if(!open.includes(k))open.push(k)}}}
  return [];
 }
-function move(s,e,target,dt){if(!e.path.length||dist(e.path[e.path.length-1],target)>.7)e.path=path(s,e,target);if(!e.path.length)return false;let budget=TYPES[e.type].speed*dt;while(e.path.length&&budget>0){const p=e.path[0],d=dist(e,p);if(d<=budget){e.x=p.x;e.y=p.y;budget-=d;e.path.shift()}else{e.x+=(p.x-e.x)/d*budget;e.y+=(p.y-e.y)/d*budget;budget=0}}return dist(e,target)<.65}
+function move(s,e,target,dt){if(TYPES[e.type].flying){e.path=[];const d=dist(e,target),budget=TYPES[e.type].speed*dt;if(d<=budget){e.x=target.x;e.y=target.y;return true}e.x+=(target.x-e.x)/d*budget;e.y+=(target.y-e.y)/d*budget;return false}if(!e.path.length||dist(e.path[e.path.length-1],target)>.7)e.path=path(s,e,target);if(!e.path.length)return false;let budget=TYPES[e.type].speed*dt;while(e.path.length&&budget>0){const p=e.path[0],d=dist(e,p);if(d<=budget){e.x=p.x;e.y=p.y;budget-=d;e.path.shift()}else{e.x+=(p.x-e.x)/d*budget;e.y+=(p.y-e.y)/d*budget;budget=0}}return dist(e,target)<.65}
 function supply(s,side){const list=s.entities.filter(e=>e.side===side&&e.hp>0);return{used:list.reduce((n,e)=>n+(TYPES[e.type].supply||0)+e.queue.reduce((q,k)=>q+(TYPES[k].supply||0),0),0),cap:list.filter(e=>!e.build).reduce((n,e)=>n+(e.type==='base'?16:e.type==='relay'?12:0),0)}}
 function vision(s){s.visible=[new Uint8Array(SIZE*SIZE),new Uint8Array(SIZE*SIZE)];for(const e of s.entities){if(e.hp<=0)continue;const r=TYPES[e.type].vision||5;for(let y=Math.max(0,Math.floor(e.y-r));y<Math.min(SIZE,e.y+r+1);y++)for(let x=Math.max(0,Math.floor(e.x-r));x<Math.min(SIZE,e.x+r+1);x++)if(Math.hypot(x+.5-e.x,y+.5-e.y)<=r){s.visible[e.side][key(x,y)]=1;s.players[e.side].seen[key(x,y)]=1}}for(const side of [0,1])for(const n of s.crystals)if(canSee(s,side,n))s.players[side].knownCrystals[n.id]={...n}}
 function canSee(s,side,e){return!!s.visible[side]?.[key(clamp(Math.floor(e.x),0,39),clamp(Math.floor(e.y),0,39))]}
@@ -49,6 +62,7 @@ function placement(s,side,kind,rawX,rawY){
  if(!d||unit(kind)||!Number.isFinite(rawX)||!Number.isFinite(rawY))return{ok:false,message:'Invalid building'};
  const x=clamp(rawX,1.5,37.5),y=clamp(rawY,1.5,37.5),at={x,y},fail=message=>({ok:false,message,x,y});
  const own=s.entities.filter(e=>e.side===side&&e.hp>0),visible=s.player?s.visible:s.visible[side],player=s.player||s.players[side];
+ const locked=unlockMessage(s.entities,side,kind);if(locked)return fail(locked);
  if(!visible[key(Math.floor(x),Math.floor(y))])return fail('Scout this location first');
  if(!own.some(e=>e.type==='worker'&&dist(e,at)<8))return fail('Move a Miner nearby to build');
  if(blocked(s,Math.floor(x),Math.floor(y))||s.entities.some(e=>!unit(e.type)&&dist(e,at)<(TYPES[e.type].radius||1)+d.radius+.35)||s.crystals.some(n=>dist(n,at)<d.radius+.8)||s.rocks.some(n=>dist(n,at)<d.radius+.7))return fail('Choose clear ground');
@@ -62,9 +76,9 @@ function command(s,side,c){
  if(['train','build'].includes(c.type)&&!Object.hasOwn(TYPES,c.kind))return{ok:false,message:'Unknown unit or building'};
  if(c.type==='surrender'){s.ended=true;s.winner=1-side;s.reason='Commander surrendered';return{ok:true}}
  if(c.type==='train'){
-  const d=TYPES[c.kind],producer=own.find(e=>e.id===c.id);if(!d||!unit(c.kind)||!producer||producer.build)return{ok:false,message:'Select a completed base or factory'};
-  if(!((producer.type==='base'&&['worker','scout'].includes(c.kind))||(producer.type==='factory'&&['laser','siege'].includes(c.kind))))return{ok:false,message:'That unit needs a different building'};
-  if(c.kind==='siege'&&!own.some(e=>e.type==='lab'&&!e.build))return{ok:false,message:'Build a Tech core for siege bots'};
+  const d=TYPES[c.kind],producer=own.find(e=>e.id===c.id);if(!d||!unit(c.kind)||!producer||producer.build)return{ok:false,message:'Select a completed production building'};
+  if(!PRODUCERS[producer.type]?.includes(c.kind))return{ok:false,message:'That unit needs a different building'};
+  const locked=unlockMessage(own,side,c.kind);if(locked)return{ok:false,message:locked};
   if(producer.queue.length>=5)return{ok:false,message:'Queue full'};const pop=supply(s,side);if(pop.used+d.supply>pop.cap)return{ok:false,message:'Build a Supply relay'};
   if(own.filter(e=>unit(e.type)).length+own.reduce((n,e)=>n+e.queue.length,0)>=80)return{ok:false,message:'Robot limit reached'};
   if(p.crystals<d.cost)return{ok:false,message:'More crystals needed'};p.crystals-=d.cost;producer.queue.push(c.kind);return{ok:true};
@@ -73,8 +87,8 @@ function command(s,side,c){
   const site=placement(s,side,c.kind,c.x,c.y);if(!site.ok)return site;p.crystals-=TYPES[c.kind].cost;makeEntity(s,c.kind,side,site.x,site.y,false);return{ok:true};
  }
  if(c.type==='rally'){
-  const producer=own.find(e=>e.id===c.id&&!e.build&&['base','factory'].includes(e.type));if(!producer)return{ok:false,message:'Select a completed base or factory'};
-  if(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=SIZE||c.y<0||c.y>=SIZE||blocked(s,Math.floor(c.x),Math.floor(c.y)))return{ok:false,message:'Choose clear ground for the rally point'};
+  const producer=own.find(e=>e.id===c.id&&!e.build&&Object.hasOwn(PRODUCERS,e.type));if(!producer)return{ok:false,message:'Select a completed production building'};
+  if(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=SIZE||c.y<0||c.y>=SIZE||(producer.type!=='starport'&&blocked(s,Math.floor(c.x),Math.floor(c.y))))return{ok:false,message:'Choose clear ground for the rally point'};
   const n=s.crystals.find(n=>n.id===c.target&&n.left>0&&canSee(s,side,n));producer.rally={x:c.x,y:c.y,target:producer.type==='base'?n?.id:undefined};return{ok:true};
  }
  if(c.type==='upgrade'){
@@ -90,6 +104,7 @@ function command(s,side,c){
   if(c.type!=='stop'&&(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=40||c.y<0||c.y>=40))return{ok:false,message:'Choose a point on the map'};
   const crystal=c.type==='mine'?s.crystals.find(n=>n.id===c.target&&n.left>0&&canSee(s,side,n)):null;if(c.type==='mine'&&!crystal)return{ok:false,message:'Choose a visible crystal field'};
   const target=c.type==='attack'&&c.target!==undefined?s.entities.find(e=>e.id===c.target&&e.side!==side&&e.hp>0&&canSee(s,side,e)):null;if(c.type==='attack'&&c.target!==undefined&&!target)return{ok:false,message:'Choose a visible enemy'};
+  if(target&&!selected.some(e=>canTarget(e,target)))return{ok:false,message:TYPES[target.type].flying?'Selected troops cannot attack air':'Selected troops cannot attack this target'};
   selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){x=clamp(x+((i%5)-2)*.5,0,39.9);y=clamp(y+(Math.floor(i/5)%5-2)*.5,0,39.9)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
  }
  return{ok:false,message:'Unknown order'};
@@ -111,14 +126,20 @@ function harvest(s,e,dt){
  if(e.mine>=1.8){e.mine=0;e.carry=Math.min(n.left,n.rich?16:8);n.left-=e.carry;e.path=[]}
 }
 function attacked(s,e){const category=e.type==='base'?'base':e.type==='worker'?'miners':'structures';s.players[e.side].alerts[category]={tick:s.tick,time:s.time,x:e.x,y:e.y}}
-function damage(s,att,target){const p=s.players[att.side],d=TYPES[att.type];let amount=d.damage*(1+p.upgrade*.2);if(att.type==='scout'&&target.type==='siege')amount*=1.8;if(att.type==='laser'&&target.type==='scout')amount*=1.6;if(att.type==='siege'&&!unit(target.type))amount*=1.8;const raw=amount;amount*=1/(1+(s.players[target.side].armor||0)*.12);target.hp-=amount;attacked(s,target);if(target.hp<=0)p.kills++;s.events.push({type:'shot',side:att.side,x:att.x,y:att.y,tx:target.x,ty:target.y,kind:att.type});if(att.type==='siege'){for(const e of s.entities)if(e.id!==target.id&&e.side!==att.side&&e.hp>0&&dist(e,target)<1.25){e.hp-=raw*.35/(1+(s.players[e.side].armor||0)*.12);attacked(s,e);if(e.hp<=0)p.kills++}}}
+function damage(s,att,target){const p=s.players[att.side],d=TYPES[att.type];let amount=(TYPES[target.type].flying?d.airDamage:d.damage)*(1+p.upgrade*.2);if(att.type==='scout'&&target.type==='siege')amount*=1.8;if(att.type==='laser'&&target.type==='scout')amount*=1.6;if(att.type==='siege'&&!unit(target.type))amount*=1.8;const raw=amount;amount*=1/(1+(s.players[target.side].armor||0)*.12);target.hp-=amount;attacked(s,target);if(target.hp<=0)p.kills++;s.events.push({type:'shot',side:att.side,x:att.x,y:att.y,tx:target.x,ty:target.y,kind:att.type,air:!!d.flying,targetAir:!!TYPES[target.type].flying});if(d.splash){for(const e of s.entities)if(e.id!==target.id&&e.side!==att.side&&e.hp>0&&!TYPES[e.type].flying&&dist(e,target)<d.splash){e.hp-=raw*.35/(1+(s.players[e.side].armor||0)*.12);attacked(s,e);if(e.hp<=0)p.kills++}}}
 function bot(s){
  if(!s.practice||s.time<s.botAt)return;const level=DIFFICULTIES[s.difficulty];s.botAt=s.time+level.pace;
  const own=s.entities.filter(e=>e.side===1&&e.hp>0),base=own.find(e=>e.type==='base'&&!e.build),factory=own.find(e=>e.type==='factory'&&!e.build),p=s.players[1];if(!base)return;
+ const armySize=()=>own.filter(e=>unit(e.type)&&e.type!=='worker').length+own.reduce((n,e)=>n+e.queue.filter(k=>k!=='worker').length,0);
+ const tryBuild=(kind,sites)=>{for(const [x,y]of sites)if(command(s,1,{type:'build',kind,x,y}).ok)break};
  const miners=own.filter(e=>e.type==='worker').length;
  if(miners<level.workers)command(s,1,{type:'train',id:base.id,kind:'worker'});
  if(!own.some(e=>e.type==='factory'))command(s,1,{type:'build',kind:'factory',x:30,y:32});
- if(factory){if(own.filter(e=>unit(e.type)&&e.type!=='worker').length+factory.queue.length<level.armyCap)command(s,1,{type:'train',id:factory.id,kind:own.some(e=>e.type==='lab'&&!e.build)&&own.filter(e=>e.type==='siege').length<3?'siege':'laser'});if(s.time>level.techAt&&!own.some(e=>e.type==='lab'))command(s,1,{type:'build',kind:'lab',x:32,y:30})}
+ if(factory){if(armySize()<level.armyCap-(s.difficulty==='easy'?2:0))command(s,1,{type:'train',id:factory.id,kind:own.some(e=>e.type==='lab'&&!e.build)&&own.filter(e=>e.type==='siege').length<3?'siege':'laser'});if(s.time>level.techAt&&!own.some(e=>e.type==='lab'))command(s,1,{type:'build',kind:'lab',x:32,y:30})}
+ if(s.time>level.techAt+45){if(!own.some(e=>e.type==='armory'))tryBuild('armory',[[29,29],[26,29],[29,26]]);if(!own.some(e=>e.type==='starport'))tryBuild('starport',[[35,30],[36,27],[30,27]]);if(!own.some(e=>e.type==='flak'))tryBuild('flak',[[31,36],[29,37],[31,27]]);
+  const hangar=own.find(e=>e.type==='starport'&&!e.build),air=own.filter(e=>TYPES[e.type].flying).length;if(hangar&&air+hangar.queue.length<(s.difficulty==='easy'?2:6)&&armySize()<level.armyCap)command(s,1,{type:'train',id:hangar.id,kind:air%3===2?'bomber':'interceptor'});
+  if(s.difficulty!=='easy'&&factory&&own.some(e=>e.type==='armory'&&!e.build)&&own.filter(e=>e.type==='guardian').length<2&&armySize()<level.armyCap)command(s,1,{type:'train',id:factory.id,kind:'guardian'});
+ }
  const pop=supply(s,1);if(pop.cap-pop.used<5){for(const [x,y]of [[29,35],[26,33],[33,27],[28,28],[36,30],[36,35]]){if(command(s,1,{type:'build',kind:'relay',x,y}).ok)break}}
  const army=own.filter(e=>unit(e.type)&&e.type!=='worker');if(s.time>level.attackAt&&s.time>=s.botAttackAt&&army.length>=level.force){s.botAttackAt=s.time+level.wave;const target=s.entities.filter(e=>e.side===0&&e.type==='base')[0]||{x:6,y:6};command(s,1,{type:'attack',ids:(s.difficulty==='easy'?army.slice(0,3):army).map(e=>e.id),x:target.x,y:target.y})}
  if(p.crystals>550&&own.some(e=>e.type==='lab'&&!e.build)){if(p.upgrade<3)command(s,1,{type:'upgrade',kind:'weapons'});else if(p.armor<3)command(s,1,{type:'upgrade',kind:'armor'})}
@@ -130,15 +151,21 @@ function tick(s,dt=STEP){
   if(e.research){e.research.remaining=Math.max(0,e.research.remaining-dt);if(!e.research.remaining){const r=e.research;s.players[e.side][r.kind==='weapons'?'upgrade':'armor']=r.level;e.research=null;s.events.push({type:'researched',side:e.side,x:e.x,y:e.y,kind:r.kind})}}
   if(e.queue.length){e.progress+=dt;const k=e.queue[0];if(e.progress>=TYPES[k].time){e.progress=0;e.queue.shift();const born=makeEntity(s,k,e.side,clamp(e.x+1.7,0,39),clamp(e.y+1.7,0,39));if(e.rally){const n=k==='worker'?s.crystals.find(n=>n.id===e.rally.target&&n.left>0):null;born.order=n?{type:'mine',x:n.x,y:n.y,target:n.id}:{type:'move',x:e.rally.x,y:e.rally.y}}s.events.push({type:'trained',side:e.side,x:e.x,y:e.y})}}
   if(e.type==='worker'){if(!e.order||e.order.type==='mine')harvest(s,e,dt);else if(e.order.type==='move'||e.order.type==='attack'){if(move(s,e,e.order,dt)){e.order=null;e.path=[]}}continue}
-  const d=TYPES[e.type];if(!d.damage)continue;e.cool=Math.max(0,e.cool-dt);
-  const enemies=s.entities.filter(t=>t.hp>0&&t.side!==e.side&&canSee(s,e.side,t));
+  const d=TYPES[e.type];e.cool=Math.max(0,e.cool-dt);
+  if(d.heal){
+   const friends=s.entities.filter(t=>t.id!==e.id&&t.side===e.side&&t.hp>0&&unit(t.type)&&!TYPES[t.type].flying&&t.hp<t.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp||dist(e,a)-dist(e,b));
+   const patient=friends.find(t=>dist(e,t)<=d.range);if(patient&&e.order?.type!=='move'){if(!e.cool){patient.hp=Math.min(patient.maxHp,patient.hp+d.heal);e.cool=d.cool;s.events.push({type:'heal',side:e.side,x:e.x,y:e.y,tx:patient.x,ty:patient.y,kind:e.type})}continue}
+   if(e.order&&['move','attack'].includes(e.order.type)){const follow=e.order.type==='attack'?friends.find(t=>dist(e,t)<d.vision):null;const target=follow||e.order;if(move(s,e,target,dt)&&target===e.order)e.order=null}continue
+  }
+  if(!d.damage&&!d.airDamage)continue;
+  const enemies=s.entities.filter(t=>t.hp>0&&t.side!==e.side&&canTarget(e,t)&&canSee(s,e.side,t));
   const focus=enemies.find(t=>t.id===e.order?.target&&e.order?.type==='attack');if(focus){e.order.x=focus.x;e.order.y=focus.y}
   const inRange=enemies.filter(t=>(!focus||t.id===focus.id)&&dist(e,t)<=d.range+(TYPES[t.type].radius||.3)).sort((a,b)=>(unit(a.type)?0:4)-(unit(b.type)?0:4)||dist(e,a)-dist(e,b));
   if(inRange.length&&e.order?.type!=='move'){if(!e.cool){damage(s,e,inRange[0]);e.cool=d.cool}continue}
   if(unit(e.type)&&e.order&&['move','attack'].includes(e.order.type)){let target=e.order;if(e.order.type==='attack'){const near=enemies.filter(t=>dist(e,t)<d.vision).sort((a,b)=>dist(e,a)-dist(e,b))[0];if(focus||near)target=focus||near}if(move(s,e,target,dt)&&target===e.order)e.order=null}
  }
  // Central crystals surge for three seconds in every twelve-second cycle.
- if(s.time%12>9){for(const e of s.entities)if(unit(e.type)&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2))e.hp-=7*dt}
+ if(s.time%12>9){for(const e of s.entities)if(unit(e.type)&&!TYPES[e.type].flying&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2))e.hp-=7*dt}
  for(const e of s.entities)if(e.hp<=0)s.events.push({type:'destroyed',side:e.side,x:e.x,y:e.y,kind:e.type});
  s.entities=s.entities.filter(e=>e.hp>0);vision(s);
  // Buffer only public visual events so slower friend snapshots retain brief shots and explosions.
@@ -148,5 +175,5 @@ function tick(s,dt=STEP){
  if(s.time>=BATTLE_LIMIT&&!s.ended){s.ended=true;s.winner=null;s.reason='Twenty-minute battle limit · draw'}
 }
 function view(s,side){const p=s.players[side];return{version:VERSION,tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,difficulty:s.practice?s.difficulty:null,player:{alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e)),visualEvents:(s.visualEvents||[]).filter(e=>e.audience.includes(side)&&(e.side===side||canSee(s,side,e))).map(({audience,...e})=>e)}}
-return{VERSION,SIZE,STEP,BATTLE_LIMIT,DIFFICULTIES,TYPES,create,tick,command,placement,view,path,supply,canSee};
+return{VERSION,SIZE,STEP,BATTLE_LIMIT,DIFFICULTIES,TYPES,PRODUCERS,unlockMessage,canTarget,create,tick,command,placement,view,path,supply,canSee};
 });
