@@ -34,3 +34,6 @@ Tap the radar to issue Attack-move or Move only to selected units, including une
 
 ### Faceted battlefield art
 Crystal clusters now use distinct lit and shaded faces. Buildings have beveled platforms, roof seams, vents and small running lights; terrain adds stable grates, cracks and inset panels, and rocks use angular boulder faces. Unit armor and siege hulls have extra edge details. Contact shadows and restrained muzzle flashes improve depth and combat readability. These are canvas art changes only; game balance, fog, selection geometry, networking and rewards are unchanged.
+
+### Drag construction
+Drag any enabled building blueprint from the Build palette onto the field, or select it and drag its ghost on the map. Green outlines show a valid site; red outlines explain blocked ground, missing vision, no nearby Miner, insufficient crystals, or the building limit. Releasing a valid preview starts construction once; invalid/outside/canceled drops spend nothing. Cancel exits placement. Normal click-to-place remains available. The preview and authoritative command share validation; previews use only the player's fog-filtered view and the host checks the complete state again. Scaffolds now show lit corners, cross braces and a construction progress edge.

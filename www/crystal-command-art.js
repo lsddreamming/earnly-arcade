@@ -85,7 +85,7 @@ function create(ctx,point,box,line,poly,tile){
   const d=CrystalCommand.TYPES[o.type],progress=1-o.build/d.time,r=d.radius*.8,h=.3+progress*.9;
   raised(o.x,o.y,r,.12,'#38526b');
   for(const [dx,dy]of [[-r,-r],[r,-r],[r,r],[-r,r]]){line(point(o.x+dx,o.y+dy,.15),point(o.x+dx,o.y+dy,h),'#9cb4c4',2);line(point(o.x+dx,o.y+dy,h),point(o.x-dx,o.y+dy,h),'#658699',1)}
-  if(progress>.35)raised(o.x,o.y,r*.65,progress*.5,'#567990',.15);
+  if(progress>.35)raised(o.x,o.y,r*.65,progress*.5,'#567990',.15);for(const d of [-1,1]){line(point(o.x+d*r,o.y-r,.2),point(o.x-d*r,o.y-r,h),'#88c8dc88');light(point(o.x+d*r,o.y+r,h),c,1.4)}tile(o.x,o.y,r*.9,null,c+'66',.2+progress*.5);line(point(o.x-r,o.y+r,.12),point(o.x-r+2*r*progress,o.y+r,.12),c,2);
   ctx.save();ctx.setLineDash([3,3]);tile(o.x,o.y,r,null,c,h);ctx.restore();
   const q=point(o.x+Math.sin(t*3)*r*.6,o.y+Math.cos(t*3)*r*.6,.2+progress*.5);light(q,'#ffde91',2);line(q,{x:q.x+Math.sin(t*19)*7,y:q.y-5},'#ffeab9',1);
  }

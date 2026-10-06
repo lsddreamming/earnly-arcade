@@ -92,3 +92,5 @@ body{background:#040914}
 .cc-zoom{flex-wrap:wrap;width:76px}.cc-zoom #boxSelect{width:76px;height:30px;font-size:11px;color:#ffe176;border-color:#d2ae5355}.cc-zoom #boxSelect.active{border-color:#ffe176;background:#4b3a19;box-shadow:0 0 12px #ffdc6622}
 
 .cc-alert,.cc-message{max-width:calc(100% - 105px)}
+
+.cc-palette[data-mode=build] button{touch-action:none;-webkit-user-drag:none}.cc-zoom #cancelBuild{width:76px;height:30px;font-size:10px;color:#ffd0d5;border-color:#ee879266;background:#3c2637ef}
