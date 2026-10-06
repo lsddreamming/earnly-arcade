@@ -268,7 +268,13 @@
     let continueEventId='';
     let continuePending=false;
     const continueKey='earnlyBrickPaidContinueV1';
-    let recoveryChecking=false;
+    let recoveryChecking=false,recoveryPromptOpen=false;
+    function recoveryPanel(title,message,actions){
+      recoveryPromptOpen=true;
+      Arcade.panel(title,message,actions,{className:'brick-recovery-dialog',render:dialog=>{
+        dialog.addEventListener('close',()=>requestAnimationFrame(()=>{recoveryPromptOpen=false}),{once:true});
+      }});
+    }
     function savedContinue(){
       try{
         const value=JSON.parse(localStorage.getItem(continueKey));
@@ -294,7 +300,7 @@
     }
     async function recoverContinue(){
       const saved=savedContinue();
-      if(!saved || recoveryChecking || awaitingNextLevel || running || starting) return;
+      if(!saved || recoveryChecking || recoveryPromptOpen || awaitingNextLevel || running || starting) return;
       recoveryChecking=true;
       try{
         if(!window.EarnlyCloud?.continueReceipt) throw new Error('Wallet is still loading.');
@@ -302,13 +308,13 @@
         if(!receipt){
           // An unconfirmed payment can still be settling. Keep its event ID
           // and let the player check again without another debit.
-          Arcade.panel('Continue payment pending','No confirmed 25-Coin charge was found yet.',[
+          recoveryPanel('Continue payment pending','No confirmed 25-Coin charge was found yet.',[
             ['Check again',()=>recoverContinue(),'green'],
             ['New game',()=>localStorage.removeItem(continueKey),'secondary']
           ]);
           return;
         }
-        Arcade.panel('🪙 Restore paid Continue','Your 25-Coin Continue is ready. Restore the board and score without another charge.',[
+        recoveryPanel('🪙 Restore paid Continue','Your 25-Coin Continue is ready. Restore the board and score without another charge.',[
           ['Restore board',()=>{
             level=saved.level;levelBroken=saved.levelBroken;totalBroken=saved.totalBroken;
             levelsCleared=saved.levelsCleared;levelGoal=saved.levelGoal;layoutName=saved.layoutName;
@@ -323,7 +329,7 @@
           ['Later',()=>{},'secondary']
         ]);
       }catch(error){
-        Arcade.panel('Continue recovery','Could not check your purchase yet. '+(error?.message||''),[
+        recoveryPanel('Continue recovery','Could not check your purchase yet. '+(error?.message||''),[
           ['Try again',()=>recoverContinue(),'green'],['Later',()=>{},'secondary']
         ]);
       }finally{recoveryChecking=false}

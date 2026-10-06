@@ -850,6 +850,8 @@ test('Brick Breaker restores a paid Continue after reload without spending a Pla
   `}));
   await page.reload();
   await expect(page.locator('dialog[open]')).toContainText('Restore paid Continue');
+  // Both the wallet-ready event and the startup timer may request recovery.
+  await page.evaluate(()=>recoverContinue());
   await page.getByRole('button',{name:'Restore board'}).click();
   await expect.poll(()=>page.evaluate(()=>({level,levelBroken,totalBroken,levelsCleared,
     firstBrickAlive:bricks[0].alive,waiting:awaitingNextLevel,spent:continueUsed})))
