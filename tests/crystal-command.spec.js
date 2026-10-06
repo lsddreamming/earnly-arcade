@@ -229,3 +229,13 @@ test('new players complete a guided first win on a small phone using real constr
  // Complete the replay deterministically to verify the handoff resets the protected scenario.
  await page.evaluate(()=>{const s=CrystalGame.state;s.entities.find(e=>e.side===1).hp=0;CrystalCommand.tick(s)});await expect(page.locator('#again')).toHaveText('Play an Easy battle');await page.locator('#again').click();expect(await page.evaluate(()=>CrystalGame.state.learning)).toBe(false);expect(await page.evaluate(()=>CrystalGame.state.difficulty)).toBe('easy');await expect(page.locator('#lesson')).toBeHidden();await expect(page.locator('#buildGroups')).toBeHidden();expect(await page.evaluate(()=>CrystalGame.state.entities.filter(e=>e.side===1).length)).toBe(5);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const q=await page.locator('#quit').boundingBox();expect(q.y+q.height).toBeLessThanOrEqual(568);expect(errors).toEqual([]);
 });
+
+test('radar viewport matches battlefield corners after zoom and camera moves',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:440,height:956});await page.goto('/crystal-command.html');await page.locator('#practice').click();
+ const inspect=()=>page.evaluate(()=>{const r=CrystalGame.renderer,canvas=document.querySelector('#battle').getBoundingClientRect();return{corners:r.viewport().map(p=>r.point(p.x,p.y)),width:canvas.width,height:canvas.height,span:r.viewport()[1].x-r.viewport()[0].x}});
+ const check=async()=>{const v=await inspect();for(const [i,p]of v.corners.entries()){expect(p.x).toBeCloseTo([0,v.width,v.width,0][i],3);expect(p.y).toBeCloseTo([0,0,v.height,v.height][i],3)}return v};
+ const before=await check();await page.locator('#zoomIn').click();await expect.poll(async()=>(await inspect()).span).toBeLessThan(before.span);await check();
+ await page.evaluate(()=>CrystalGame.renderer.center(22,17));await page.waitForTimeout(100);await check();
+ await page.setViewportSize({width:320,height:568});await page.waitForTimeout(100);await check();expect(errors).toEqual([]);
+});
