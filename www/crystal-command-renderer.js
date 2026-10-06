@@ -40,11 +40,11 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
   for(const o of v.entities)if(selected.has(o.id)&&o.order&&['move','attack'].includes(o.order.type)){const target=point(o.order.x,o.order.y);ctx.save();ctx.setLineDash([3,5]);line(point(o.x,o.y),target,'#73eaff66');ctx.restore();art.ring(target,8,4,colors.ally)}
   if(build&&pointer){const at=world(pointer.x,pointer.y),d=E.TYPES[build];ctx.save();ctx.globalAlpha=.5;tile(at.x,at.y,d.radius+.1,'#4acddd44','#8ffaff');art.raised(at.x,at.y,d.radius*.82,.22,'#3c5b73');art.building({x:at.x,y:at.y,type:build,queue:[]},colors.ally,artTime);ctx.restore();label('PLACE '+d.name.toUpperCase(),pointer.x,pointer.y+30,colors.ally,8)}
   // Tactical minimap shows only explored land and visible opponents.
-  mini={x:width-102,y:height-105,w:94,h:94};ctx.fillStyle='#060d1ce8';ctx.fillRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);ctx.strokeStyle='#4b7790';ctx.strokeRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);
-  label('RADAR',mini.x+47,mini.y-9,'#a2c6d5',7);
-  for(let y=0;y<40;y++)for(let x=0;x<40;x++)if(v.seen[y*40+x]){ctx.fillStyle=v.visible[y*40+x]?'#254458':'#142538';ctx.fillRect(mini.x+x/40*94,mini.y+y/40*94,2.5,2.5)}
-  for(const n of v.crystals){ctx.fillStyle=n.rich?'#ff87dc':'#93f4ff';ctx.fillRect(mini.x+n.x/40*94,mini.y+n.y/40*94,2,2)}for(const e of v.entities){ctx.fillStyle=e.side===v.side?colors.ally:colors.enemy;ctx.fillRect(mini.x+e.x/40*94-1,mini.y+e.y/40*94-1,e.type==='base'?4:2,e.type==='base'?4:2)}
-  ctx.strokeStyle='#dbeafc';ctx.strokeRect(mini.x+camera.x/40*94-9,mini.y+camera.y/40*94-9,18,18);
+  const mapSize=height<330||width<360?58:94;mini={x:width-mapSize-8,y:height-mapSize-11,w:mapSize,h:mapSize};ctx.fillStyle='#060d1ce8';ctx.fillRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);ctx.strokeStyle='#4b7790';ctx.strokeRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);
+  label('RADAR',mini.x+mini.w/2,mini.y-9,'#a2c6d5',7);
+  for(let y=0;y<40;y++)for(let x=0;x<40;x++)if(v.seen[y*40+x]){ctx.fillStyle=v.visible[y*40+x]?'#254458':'#142538';ctx.fillRect(mini.x+x/40*mini.w,mini.y+y/40*mini.w,Math.ceil(mini.w/40),Math.ceil(mini.h/40))}
+  for(const n of v.crystals){ctx.fillStyle=n.rich?'#ff87dc':'#93f4ff';ctx.fillRect(mini.x+n.x/40*mini.w,mini.y+n.y/40*mini.w,2,2)}for(const e of v.entities){ctx.fillStyle=e.side===v.side?colors.ally:colors.enemy;ctx.fillRect(mini.x+e.x/40*mini.w-1,mini.y+e.y/40*mini.w-1,e.type==='base'?4:2,e.type==='base'?4:2)}
+  ctx.strokeStyle='#dbeafc';ctx.strokeRect(mini.x+camera.x/40*mini.w-mini.w*.096,mini.y+camera.y/40*mini.w-mini.h*.096,mini.w*.192,mini.h*.192);
   if(paused){ctx.fillStyle='#02081577';ctx.fillRect(0,0,width,height);label('BATTLE PAUSED',width/2,height*.4,'#ffffff',22)}
  }
  function pan(dx,dy){const a=dx/(zoom*.85),b=dy/(zoom*.43);camera.x=Math.max(1,Math.min(39,camera.x-(a+b)/2));camera.y=Math.max(1,Math.min(39,camera.y-(b-a)/2))}
