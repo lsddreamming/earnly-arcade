@@ -92,3 +92,19 @@ test('phone squads save survivors, select multiple fighters and issue visible en
 test('battle alerts locate attacks and do not repeat each render frame',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));await page.goto('/crystal-command.html');await page.locator('#practice').click();await page.locator('#pause').click();const t=await page.evaluate(()=>{const s=CrystalGame.state,base=s.entities.find(e=>e.side===0&&e.type==='base');s.players[0].alerts.base={tick:s.tick,time:s.time,x:base.x,y:base.y};CrystalCommand.tick(s);return s.tick});await page.locator('#pause').click();await page.waitForFunction(tick=>CrystalGame.view.tick>tick,t);await expect(page.locator('#battleAlert')).toContainText('Base under attack');await page.evaluate(()=>CrystalGame.renderer.center(20,20));await page.locator('#battleAlert').click();expect(await page.evaluate(()=>Math.abs(CrystalGame.renderer.point(6,6).x-document.getElementById('battle').getBoundingClientRect().width/2))).toBe(0);await page.waitForTimeout(7000);await expect(page.locator('#battleAlert')).toBeHidden();
 });
+
+test('destruction effects respect fog and are emitted once',()=>{
+ const s=E.create(),enemy=s.entities.find(e=>e.side===1&&e.type==='worker');enemy.hp=0;E.tick(s);
+ expect(s.events.filter(e=>e.type==='destroyed')).toHaveLength(1);expect(E.view(s,0).events.some(e=>e.type==='destroyed')).toBe(false);expect(E.view(s,1).events.some(e=>e.type==='destroyed')).toBe(true);
+ E.tick(s);expect(s.events.some(e=>e.type==='destroyed')).toBe(false);expect(E.view(s,1).visualEvents.some(e=>e.type==='destroyed')).toBe(true);expect(E.view(s,0).visualEvents.some(e=>e.type==='destroyed')).toBe(false);advance(s,1);expect(E.view(s,1).visualEvents).toHaveLength(0);
+ const own=s.entities.find(e=>e.side===0&&e.type==='worker');own.hp=0;E.tick(s);expect(E.view(s,0).events.find(e=>e.type==='destroyed')).toMatchObject({kind:'worker',x:own.x,y:own.y});
+});
+test('battlefield art freezes with game time and supports crowded reduced-motion scenes',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/crystal-command.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.style.cssText='width:440px;height:500px';document.body.append(canvas);const r=CrystalRenderer.create(canvas),s=CrystalCommand.create(),v=CrystalCommand.view(s,0);v.tick=100;v.time=10;v.visible.fill(1);v.seen.fill(1);
+  const sample=v.entities.find(e=>e.type==='worker');for(let i=0;i<120;i++)v.entities.push({...sample,id:1000+i,type:['worker','scout','laser','siege'][i%4],x:2+i%12*.6,y:2+Math.floor(i/12)*.6,hp:15,maxHp:100,carry:i%3?8:0,mine:i%3?0:1,order:{type:'move',x:8,y:8}});
+  for(const [type,x,y,build]of [['factory',9,6,0],['lab',9,10,5],['relay',5,9,0],['turret',10,3,0]])v.entities.push({...sample,id:2000+v.entities.length,type,x,y,build,queue:type==='factory'?['laser']:[],progress:4});
+  delete v.visualEvents;v.events=[{type:'shot',side:0,x:6,y:6,tx:8,ty:7,kind:'siege'},{type:'destroyed',side:0,x:5,y:5,kind:'laser'}];const before=JSON.stringify(v);r.render(v);const first=canvas.toDataURL();r.render(v);const frozen=canvas.toDataURL()===first;const timings=[];for(let i=0;i<30;i++){const t=performance.now();r.render(v);timings.push(performance.now()-t)}timings.sort((a,b)=>a-b);const unchanged=before===JSON.stringify(v);canvas.remove();return{frozen,unchanged,p95:timings[28]};
+ });expect(result.frozen).toBe(true);expect(result.unchanged).toBe(true);expect(errors).toEqual([]);console.log('Crowded battlefield render p95 (ms):',result.p95.toFixed(1));
+});

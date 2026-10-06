@@ -20,7 +20,7 @@ const key=(x,y)=>y*SIZE+x;
 function makeEntity(s,type,side,x,y,built=true){const d=TYPES[type];const e={id:s.next++,type,side,x,y,hp:d.hp,maxHp:d.hp,build:built?0:d.time,queue:[],cool:0,path:[],order:null,carry:0,mine:0,progress:0,patch:null,home:null,rally:null,research:null};s.entities.push(e);return e}
 function create({practice=false,difficulty='normal'}={}){
  difficulty=Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'normal';
- const s={version:VERSION,tick:0,time:0,next:1,ended:false,winner:null,reason:'',practice,difficulty,botAttackAt:0,entities:[],crystals:[],rocks:[],events:[],players:[0,1].map(()=>({crystals:250,upgrade:0,armor:0,alerts:{},kills:0,mined:0,knownCrystals:{},seen:Array(SIZE*SIZE).fill(0)})),botAt:3};
+ const s={version:VERSION,tick:0,time:0,next:1,ended:false,winner:null,reason:'',practice,difficulty,botAttackAt:0,entities:[],crystals:[],rocks:[],events:[],visualEvents:[],fxNext:1,players:[0,1].map(()=>({crystals:250,upgrade:0,armor:0,alerts:{},kills:0,mined:0,knownCrystals:{},seen:Array(SIZE*SIZE).fill(0)})),botAt:3};
  const fields=[{name:'Home field',points:[[3,6],[5,3],[3,3],[2,5],[2,7],[4,2]],left:2400},
   {name:'Near expansion',points:[[16,7],[16,9],[15,5],[17,6],[17,8],[17,10]],left:2400},
   {name:'Outer expansion',points:[[12,26],[12,28],[11,24],[13,25],[13,27],[13,29]],left:2400}];
@@ -131,11 +131,14 @@ function tick(s,dt=STEP){
  }
  // Central crystals surge for three seconds in every twelve-second cycle.
  if(s.time%12>9){for(const e of s.entities)if(unit(e.type)&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2))e.hp-=7*dt}
+ for(const e of s.entities)if(e.hp<=0)s.events.push({type:'destroyed',side:e.side,x:e.x,y:e.y,kind:e.type});
  s.entities=s.entities.filter(e=>e.hp>0);vision(s);
+ // Buffer only public visual events so slower friend snapshots retain brief shots and explosions.
+ s.visualEvents=(s.visualEvents||[]).filter(e=>s.time-e.time<.8);for(const e of s.events)s.visualEvents.push({...e,fx:s.fxNext++,time:s.time,audience:[0,1].filter(side=>e.side===side||canSee(s,side,e))});s.visualEvents=s.visualEvents.slice(-128);
  const bases=[0,1].map(side=>s.entities.some(e=>e.side===side&&e.type==='base'));
  if(!bases[0]||!bases[1]){s.ended=true;s.winner=bases[0]?0:bases[1]?1:null;s.reason=bases[0]||bases[1]?'All command bases destroyed':'Both command bases destroyed · draw'}
  if(s.time>=BATTLE_LIMIT&&!s.ended){s.ended=true;s.winner=null;s.reason='Twenty-minute battle limit · draw'}
 }
-function view(s,side){const p=s.players[side];return{version:VERSION,tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,difficulty:s.practice?s.difficulty:null,player:{alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e))}}
+function view(s,side){const p=s.players[side];return{version:VERSION,tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,difficulty:s.practice?s.difficulty:null,player:{alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e)),visualEvents:(s.visualEvents||[]).filter(e=>e.audience.includes(side)&&(e.side===side||canSee(s,side,e))).map(({audience,...e})=>e)}}
 return{VERSION,SIZE,STEP,BATTLE_LIMIT,DIFFICULTIES,TYPES,create,tick,command,view,path,supply,canSee};
 });
