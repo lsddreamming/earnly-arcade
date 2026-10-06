@@ -19,7 +19,7 @@ test('polished command deck fits small phones and rendered factories remain sele
  await expect(page.locator('.cc-dock')).toBeHidden();await expect(page.locator('#authLink')).toBeHidden();
  await page.getByRole('button',{name:'▶ Practice battle'}).click();
  await page.getByRole('button',{name:'Build',exact:true}).click();
- for(const button of await page.locator('#palette button').all()){const box=await button.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320)}
+ await expect(page.locator('#palette [data-kind=factory]')).toBeVisible();for(const box of await page.locator('#palette button').evaluateAll(buttons=>buttons.map(button=>{const r=button.getBoundingClientRect();return{x:r.x,width:r.width}}))){expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320)}
  const quit=await page.locator('#quit').boundingBox();expect(quit.y+quit.height).toBeLessThanOrEqual(568);
  await page.locator('#pause').click();
  const at=await page.evaluate(()=>{const s=CrystalGame.state;s.players[0].crystals=1000;const result=CrystalCommand.command(s,0,{type:'build',kind:'factory',x:9,y:6});if(!result.ok)throw Error(result.message);for(let i=0;i<210;i++)CrystalCommand.tick(s);return s.tick});
