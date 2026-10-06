@@ -1,10 +1,10 @@
 # Crystal Command beta
 
-Earnly's first real-time strategy game has automatic crystal mining, construction, production queues, supply relays, weapon upgrades, scouting under fog of war, attack-move, three combat robot types, turrets, expansions, and a dangerous double-yield central crystal field. The practice opponent grows an economy and attacks. Battles end when all command bases are destroyed or at ten minutes.
+Earnly's first real-time strategy game has automatic crystal mining, construction, production queues, supply relays, timed weapons and armor research, rally points, scouting under fog of war, attack-move, three combat robot types, turrets, expansions, and a dangerous double-yield central crystal field. The practice opponent grows an economy and attacks. Battles end when all command bases are destroyed or at twenty minutes. Each starting crystal line has six 2,400-crystal patches (14,400 total), with two mirrored expansion lines per side. Miners distribute across fields and one Miner extracts from a patch at a time. Resource quantities outside current vision retain their last observed value.
 
 ## Friend battles
 
-Signed-in players create or join an eight-character room code. Invite links prefill the code. Only the two room members can receive private Broadcast messages; each can send only on their own side's channel. The host validates both players' commands and simulates at 20 Hz. Guest snapshots are projected through the guest's vision so hidden enemy units and enemy resources are not sent. Commands have sequence checks and a 12-order/second cap. Snapshots run at roughly 4.5 Hz. Expired and closed rooms cannot be joined; a third member cannot claim an occupied room.
+Signed-in players create or join an eight-character room code. Invite links prefill the code. Only the two room members can receive private Broadcast messages; each can send only on their own side's channel. The host validates both players' commands and simulates at 20 Hz. Engine version 2 requires both players to refresh; mismatched-version heartbeats display a refresh message and do not start the battle. Guest snapshots are projected through the guest's vision so hidden enemy units and enemy resources are not sent. Commands have sequence checks and a 12-order/second cap. Snapshots run at roughly 4.5 Hz. Expired and closed rooms cannot be joined; a third member cannot claim an occupied room.
 
 This is a casual, host-authoritative beta, with no Coins, wallet debits, ranked scores, or leaderboard submission. The host is trusted: a modified host client can cheat. Ranked play needs an independent authoritative simulation server before rewards can be enabled.
 
@@ -14,7 +14,7 @@ Both participants subscribe before starting. Heartbeats pause the battle when ei
 
 ## Controls
 
-Tap your base or factory to select its training palette. Tap Army or Miners to select groups. Tap ground to attack-move, or choose Move only. Drag to pan; tap the minimap to jump. Build selects a blueprint, then tap visible, clear ground within eight tiles of a Miner. Base returns the camera and selection to a command base. Keyboard: A selects army, H returns home, B opens build, Space pauses practice, Escape cancels placement or asks to quit.
+Tap your base or factory to select its training palette. Tap Army or Miners to select groups. Tap ground to attack-move, or choose Move only. Drag to pan; tap the minimap to jump. Build selects a blueprint, then tap visible, clear ground within eight tiles of a Miner. Base returns the camera and selection to a command base. Select Rally at a base or factory and tap a destination; new Miners can rally directly to a crystal field. Select a Tech core to research Weapons or Armor through three levels, with costs and timers; destroying the researching core cancels that project. Tap a crystal patch to inspect its reserve. Keyboard: R sets a rally point, A selects army, H returns home, B opens build, Space pauses practice, Escape cancels placement or asks to quit.
 
 ## Backend and validation
 
