@@ -15,6 +15,9 @@ function create(ctx,point,box,line,poly,tile){
   if(h===7){line(point(x+.1,y+.2),point(x+.6,y+.4),'#06111b',1.5);line(point(x+.6,y+.4),point(x+.85,y+.75),'#06111b',1.5);line(point(x+.12,y+.17),point(x+.62,y+.37),'#819bab22')}
   if(x%8===0&&y%4===0){for(const d of [.15,.85]){line(point(x+d-.055,y+d),point(x+d+.055,y+d),'#b4cdd54d',1);line(point(x+d,y+d-.055),point(x+d,y+d+.055),'#b4cdd54d',1)}}
   if(h===14){tile(x+.5,y+.5,.27,'#101e2c','#415a6d55');tile(x+.5,y+.5,.16,'#20384a','#89d6e02b');line(point(x+.4,y+.45),point(x+.6,y+.45),'#85e8f766')}
+  // Maintenance lanes and inset plates break up the floor without hiding units.
+  if(y%10===4){line(point(x+.08,y+.5),point(x+.7,y+.5),'#799bac22');if(x%3===0)tile(x+.85,y+.5,.035,'#bcce9d55')}
+  if(h===23){for(const side of [-1,1]){const q=point(x+.5+side*.3,y+.5);ctx.fillStyle='#a1bdc333';ctx.fillRect(q.x,q.y,1,1)}}
  }
  function crystal(o,t,zoom){
   const bright=o.rich?'#ffc7f7':'#c9ffff',mid=o.rich?'#dd70dc':'#65d9ee',dark=o.rich?'#7a318f':'#17728f';
@@ -30,6 +33,11 @@ function create(ctx,point,box,line,poly,tile){
  }
  function machinery(o,c){
   const r=CrystalCommand.TYPES[o.type].radius;
+  // Recessed front panels give every structure a readable industrial facade.
+  if(r>=.65){for(let j=0;j<3;j++){const x=o.x-r*.52+j*r*.5,y=o.y+r*.83;
+   poly([point(x-.07,y,.24),point(x+.07,y,.24),point(x+.07,y,.38),point(x-.07,y,.38)],'#071424','#7599b455');
+   line(point(x-.055,y,.32),point(x+.055,y,.32),c+'99');
+  }for(const side of [-1,1]){line(point(o.x+side*r*.88,o.y+r*.3,.1),point(o.x+side*r*.88,o.y+r*.66,.1),'#c8dfdf88',2)}}
   if(o.type==='base'||o.type==='factory'){
    for(const side of [-1,1]){const x=o.x+side*(o.type==='base'?.52:.57),y=o.y+(o.type==='base'?.79:.81);for(let j=0;j<3;j++)line(point(x-.08,y,.32+j*.06),point(x+.08,y,.32+j*.06),'#102534',1.5)}
    for(const side of [-1,1]){tile(o.x+side*r*.77,o.y+r*.72,.045,'#cbe3ec',null,.03);line(point(o.x+side*r*.7,o.y+r+.16),point(o.x+side*r*.3,o.y+r+.16),c+'88',1.5)}
@@ -51,6 +59,7 @@ function create(ctx,point,box,line,poly,tile){
  function robot(o,c,t){
   const walking=o.moving,step=walking?Math.sin(t*11+o.id)*.13:0;
   const aim=o.aim||{x:o.x+.8,y:o.y-.2},length=Math.hypot(aim.x-o.x,aim.y-o.y)||1,dx=(aim.x-o.x)/length,dy=(aim.y-o.y)/length;
+  if(walking&&!CrystalCommand.TYPES[o.type].flying){ctx.save();for(let j=0;j<2;j++){const life=(t*1.8+o.id*.17+j*.5)%1,q=point(o.x-dx*(.3+life*.5),o.y-dy*(.3+life*.5),.03);ctx.globalAlpha=(1-life)*.16;ctx.fillStyle='#b4d5df';ctx.beginPath();ctx.ellipse(q.x,q.y,1+life*4,1+life*2,0,0,Math.PI*2);ctx.fill()}ctx.restore()}
   const barrel=(z,r,w)=>{line(point(o.x,o.y,z),point(o.x+dx*r,o.y+dy*r,z),'#cde4ef',w);line(point(o.x,o.y,z),point(o.x+dx*r,o.y+dy*r,z),c,1);light(point(o.x+dx*r,o.y+dy*r,z),c,1.5)};
   if(CrystalCommand.TYPES[o.type].flying){aircraft(o,c,t);return}
   if(o.type==='worker'){
