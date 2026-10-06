@@ -16,7 +16,7 @@ const TYPES=Object.freeze({
  base:{name:'Command base',cost:350,hp:1600,time:16,radius:1.5,vision:8},
  factory:{name:'War factory',cost:180,hp:650,time:10,radius:1.1,vision:5},
  turret:{name:'Sentry',cost:130,hp:420,time:9,radius:.8,range:5,damage:18,cool:1,vision:6,airDamage:18,role:'Ground + air defense'},
- relay:{name:'Supply relay',cost:100,hp:300,time:7,radius:.8,vision:5},
+ relay:{name:'Supply relay',cost:100,hp:300,time:7,radius:.8,vision:5,role:'+12 troop slots'},
  barracks:{name:'Assault bay',cost:150,hp:550,time:9,radius:1,vision:5,role:'Raiders + medics'},
  starport:{name:'Star hangar',cost:260,hp:700,time:14,radius:1.2,vision:6,requires:['factory'],role:'Produces aircraft'},
  armory:{name:'Arsenal',cost:200,hp:550,time:12,radius:1,vision:5,requires:['factory'],role:'Unlocks advanced troops'},
@@ -80,7 +80,7 @@ function command(s,side,c){
   const d=TYPES[c.kind],producer=own.find(e=>e.id===c.id);if(!d||!unit(c.kind)||!producer||producer.build)return{ok:false,message:'Select a completed production building'};
   if(!PRODUCERS[producer.type]?.includes(c.kind))return{ok:false,message:'That unit needs a different building'};
   const locked=unlockMessage(own,side,c.kind);if(locked)return{ok:false,message:locked};
-  if(producer.queue.length>=5)return{ok:false,message:'Queue full'};const pop=supply(s,side);if(pop.used+d.supply>pop.cap)return{ok:false,message:'Build a Supply relay'};
+  if(producer.queue.length>=5)return{ok:false,message:'Queue full'};const pop=supply(s,side);if(pop.used+d.supply>pop.cap)return{ok:false,message:'Not enough troop space. Build a Supply relay for +12 slots.'};
   if(own.filter(e=>unit(e.type)).length+own.reduce((n,e)=>n+e.queue.length,0)>=80)return{ok:false,message:'Robot limit reached'};
   if(p.crystals<d.cost)return{ok:false,message:'More crystals needed'};p.crystals-=d.cost;producer.queue.push(c.kind);return{ok:true};
  }
