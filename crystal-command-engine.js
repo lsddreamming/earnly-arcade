@@ -43,6 +43,19 @@ function move(s,e,target,dt){if(!e.path.length||dist(e.path[e.path.length-1],tar
 function supply(s,side){const list=s.entities.filter(e=>e.side===side&&e.hp>0);return{used:list.reduce((n,e)=>n+(TYPES[e.type].supply||0)+e.queue.reduce((q,k)=>q+(TYPES[k].supply||0),0),0),cap:list.filter(e=>!e.build).reduce((n,e)=>n+(e.type==='base'?16:e.type==='relay'?12:0),0)}}
 function vision(s){s.visible=[new Uint8Array(SIZE*SIZE),new Uint8Array(SIZE*SIZE)];for(const e of s.entities){if(e.hp<=0)continue;const r=TYPES[e.type].vision||5;for(let y=Math.max(0,Math.floor(e.y-r));y<Math.min(SIZE,e.y+r+1);y++)for(let x=Math.max(0,Math.floor(e.x-r));x<Math.min(SIZE,e.x+r+1);x++)if(Math.hypot(x+.5-e.x,y+.5-e.y)<=r){s.visible[e.side][key(x,y)]=1;s.players[e.side].seen[key(x,y)]=1}}for(const side of [0,1])for(const n of s.crystals)if(canSee(s,side,n))s.players[side].knownCrystals[n.id]={...n}}
 function canSee(s,side,e){return!!s.visible[side]?.[key(clamp(Math.floor(e.x),0,39),clamp(Math.floor(e.y),0,39))]}
+// The client preview uses its fog-filtered view; the host checks full state again.
+function placement(s,side,kind,rawX,rawY){
+ const d=Object.hasOwn(TYPES,kind)?TYPES[kind]:null;
+ if(!d||unit(kind)||!Number.isFinite(rawX)||!Number.isFinite(rawY))return{ok:false,message:'Invalid building'};
+ const x=clamp(rawX,1.5,37.5),y=clamp(rawY,1.5,37.5),at={x,y},fail=message=>({ok:false,message,x,y});
+ const own=s.entities.filter(e=>e.side===side&&e.hp>0),visible=s.player?s.visible:s.visible[side],player=s.player||s.players[side];
+ if(!visible[key(Math.floor(x),Math.floor(y))])return fail('Scout this location first');
+ if(!own.some(e=>e.type==='worker'&&dist(e,at)<8))return fail('Move a Miner nearby to build');
+ if(blocked(s,Math.floor(x),Math.floor(y))||s.entities.some(e=>!unit(e.type)&&dist(e,at)<(TYPES[e.type].radius||1)+d.radius+.35)||s.crystals.some(n=>dist(n,at)<d.radius+.8)||s.rocks.some(n=>dist(n,at)<d.radius+.7))return fail('Choose clear ground');
+ if(own.filter(e=>!unit(e.type)).length>=24)return fail('Building limit reached');
+ if(player.crystals<d.cost)return fail('More crystals needed');
+ return{ok:true,x,y,message:'Release to build'};
+}
 function command(s,side,c){
  if(s.ended||!(side===0||side===1)||!c||typeof c!=='object')return{ok:false,message:'Battle unavailable'};
  const p=s.players[side],own=s.entities.filter(e=>e.side===side&&e.hp>0);
@@ -57,12 +70,7 @@ function command(s,side,c){
   if(p.crystals<d.cost)return{ok:false,message:'More crystals needed'};p.crystals-=d.cost;producer.queue.push(c.kind);return{ok:true};
  }
  if(c.type==='build'){
-  const d=TYPES[c.kind];if(!d||unit(c.kind)||!Number.isFinite(c.x)||!Number.isFinite(c.y))return{ok:false,message:'Invalid building'};
-  const x=clamp(c.x,1.5,37.5),y=clamp(c.y,1.5,37.5),at={x,y};if(!canSee(s,side,at))return{ok:false,message:'Scout this location first'};
-  if(!own.some(e=>e.type==='worker'&&dist(e,at)<8))return{ok:false,message:'Move a Miner nearby to build'};
-  if(blocked(s,Math.floor(x),Math.floor(y))||s.entities.some(e=>!unit(e.type)&&dist(e,at)<(TYPES[e.type].radius||1)+d.radius+.35)||s.crystals.some(n=>dist(n,at)<d.radius+.8)||s.rocks.some(n=>dist(n,at)<d.radius+.7))return{ok:false,message:'Choose clear ground'};
-  if(own.filter(e=>!unit(e.type)).length>=24)return{ok:false,message:'Building limit reached'};
-  if(p.crystals<d.cost)return{ok:false,message:'More crystals needed'};p.crystals-=d.cost;makeEntity(s,c.kind,side,x,y,false);return{ok:true};
+  const site=placement(s,side,c.kind,c.x,c.y);if(!site.ok)return site;p.crystals-=TYPES[c.kind].cost;makeEntity(s,c.kind,side,site.x,site.y,false);return{ok:true};
  }
  if(c.type==='rally'){
   const producer=own.find(e=>e.id===c.id&&!e.build&&['base','factory'].includes(e.type));if(!producer)return{ok:false,message:'Select a completed base or factory'};
@@ -140,5 +148,5 @@ function tick(s,dt=STEP){
  if(s.time>=BATTLE_LIMIT&&!s.ended){s.ended=true;s.winner=null;s.reason='Twenty-minute battle limit · draw'}
 }
 function view(s,side){const p=s.players[side];return{version:VERSION,tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,difficulty:s.practice?s.difficulty:null,player:{alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e)),visualEvents:(s.visualEvents||[]).filter(e=>e.audience.includes(side)&&(e.side===side||canSee(s,side,e))).map(({audience,...e})=>e)}}
-return{VERSION,SIZE,STEP,BATTLE_LIMIT,DIFFICULTIES,TYPES,create,tick,command,view,path,supply,canSee};
+return{VERSION,SIZE,STEP,BATTLE_LIMIT,DIFFICULTIES,TYPES,create,tick,command,placement,view,path,supply,canSee};
 });
