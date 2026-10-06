@@ -10,7 +10,7 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
  function box(x,y,r,h,color){const a=point(x-r,y-r),b=point(x+r,y-r),c=point(x+r,y+r),d=point(x-r,y+r),aa=point(x-r,y-r,h),bb=point(x+r,y-r,h),cc=point(x+r,y+r,h),dd=point(x-r,y+r,h);poly([b,c,cc,bb],'#182536','#344b63');poly([c,d,dd,cc],'#0b1524','#24394f');poly([aa,bb,cc,dd],color,'#60738c')}
  function line(a,b,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
  function label(s,x,y,color,size=10){ctx.font=`600 ${size}px system-ui`;ctx.textAlign='center';ctx.fillStyle='#020611';ctx.fillText(s,x+1,y+1);ctx.fillStyle=color;ctx.fillText(s,x,y)}
- function render(v,{selection=[],build=null,pointer=null,resourceId=null,commandMarker=null,paused=false}={}){
+ function render(v,{selection=[],build=null,pointer=null,resourceId=null,commandMarker=null,selectionBox=null,paused=false}={}){
   const artTime=motion.matches?0:v.time;art.beginFrame();selected=new Set(selection);const ratio=Math.min(2,window.devicePixelRatio||1),r=canvas.getBoundingClientRect();width=r.width;height=r.height;zoom=(width>700?46:34)*zoomLevel;const bw=Math.round(width*ratio),bh=Math.round(height*ratio);if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh}ctx.setTransform(ratio,0,0,ratio,0,0);ctx.fillStyle='#050a15';ctx.fillRect(0,0,width,height);
   const grad=ctx.createRadialGradient(width/2,height*.4,10,width/2,height*.4,width);grad.addColorStop(0,'#19374a');grad.addColorStop(1,'#030812');ctx.fillStyle=grad;ctx.fillRect(0,0,width,height);
   if(v.tick!==lastTick){if(v.tick<lastTick){effects=[];poses.clear();aims.clear();spawns.clear();seenEffects.clear()}lastTick=v.tick;
@@ -57,6 +57,7 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
   if(commandMarker&&performance.now()<commandMarker.until){const q=point(commandMarker.x,commandMarker.y),c=commandMarker.type==='attack'?colors.enemy:colors.ally;art.ring(q,14,6,c,2);line({x:q.x-7,y:q.y},{x:q.x+7,y:q.y},c,1);line({x:q.x,y:q.y-4},{x:q.x,y:q.y+4},c,1);label(commandMarker.target?'FOCUS FIRE':commandMarker.type==='attack'?'MOVE & FIGHT':'MOVE',q.x,q.y+20,c,8)}
   for(const o of v.entities)if(selected.has(o.id)&&o.rally){const q=point(o.rally.x,o.rally.y);ctx.save();ctx.setLineDash([4,5]);line(point(o.x,o.y),q,'#d9a3ff77');ctx.restore();art.ring(q,9,4,'#d9a3ff');line(q,{x:q.x,y:q.y-20},'#d9a3ff',1.5);poly([{x:q.x,y:q.y-20},{x:q.x+11,y:q.y-16},{x:q.x,y:q.y-12}],'#d9a3ff');label('RALLY',q.x,q.y+15,'#e5c5ff',8)}
   if(build&&pointer){const at=world(pointer.x,pointer.y),d=E.TYPES[build];ctx.save();ctx.globalAlpha=.5;tile(at.x,at.y,d.radius+.1,'#4acddd44','#8ffaff');art.raised(at.x,at.y,d.radius*.82,.22,'#3c5b73');art.building({x:at.x,y:at.y,type:build,queue:[]},colors.ally,artTime);ctx.restore();label('PLACE '+d.name.toUpperCase(),pointer.x,pointer.y+30,colors.ally,8)}
+  if(selectionBox){const {start,end}=selectionBox,x=Math.min(start.x,end.x),y=Math.min(start.y,end.y),w=Math.abs(start.x-end.x),h=Math.abs(start.y-end.y);ctx.save();ctx.fillStyle='#ffdf6b20';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#ffe176';ctx.lineWidth=1.5;ctx.strokeRect(x+.5,y+.5,w,h);const count=unitsInBox(v,selectionBox).length;label(count+' units',Math.max(32,Math.min(width-32,x+w/2)),Math.max(15,y-7),'#ffe176',10);ctx.restore()}
   // Tactical minimap shows only explored land and visible opponents.
   const mapSize=height<330||width<360?58:94;mini={x:width-mapSize-8,y:height-mapSize-11,w:mapSize,h:mapSize};ctx.fillStyle='#060d1ce8';ctx.fillRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);ctx.strokeStyle='#4b7790';ctx.strokeRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);
   label('RADAR',mini.x+mini.w/2,mini.y-9,'#a2c6d5',7);
@@ -69,8 +70,12 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
  function center(x,y){camera={x,y}}
  function hit(v,x,y){const near=v.entities.filter(e=>{const p=point(e.x,e.y,.4);return Math.hypot(p.x-x,p.y-y)<(E.TYPES[e.type].supply?19:35)}).sort((a,b)=>{const pa=point(a.x,a.y,.4),pb=point(b.x,b.y,.4);return Math.hypot(pa.x-x,pa.y-y)-Math.hypot(pb.x-x,pb.y-y)});return near[0]}
  function resourceHit(v,x,y){return v.crystals.filter(n=>{const p=point(n.x,n.y,.5);return Math.hypot(p.x-x,p.y-y)<zoom*.6}).sort((a,b)=>{const pa=point(a.x,a.y,.5),pb=point(b.x,b.y,.5);return Math.hypot(pa.x-x,pa.y-y)-Math.hypot(pb.x-x,pb.y-y)})[0]}
- function minimap(x,y){if(x>=mini.x&&x<=mini.x+mini.w&&y>=mini.y&&y<=mini.y+mini.h){center((x-mini.x)/mini.w*40,(y-mini.y)/mini.h*40);return true}return false}
+ function syncMinimap(){const r=canvas.getBoundingClientRect(),size=r.height<330||r.width<360?58:94;mini={x:r.width-size-8,y:r.height-size-11,w:size,h:size};return mini}
+ function minimapPoint(x,y){syncMinimap();if(x<mini.x||x>mini.x+mini.w||y<mini.y||y>mini.y+mini.h)return null;return{x:Math.max(0,Math.min(39.9,(x-mini.x)/mini.w*40)),y:Math.max(0,Math.min(39.9,(y-mini.y)/mini.h*40))}}
+ function minimap(x,y){const at=minimapPoint(x,y);if(!at)return false;center(at.x,at.y);return true}
+ function unitsInBox(v,{start,end}){const map=syncMinimap(),left=Math.min(start.x,end.x),right=Math.max(start.x,end.x),top=Math.min(start.y,end.y),bottom=Math.max(start.y,end.y);const units=v.entities.filter(e=>{if(e.side!==v.side||e.hp<=0||!E.TYPES[e.type].supply)return false;const p=point(e.x,e.y,.4);return p.x>=0&&p.x<=width&&p.y>=0&&p.y<=height&&!(p.x>=map.x&&p.x<=map.x+map.w&&p.y>=map.y&&p.y<=map.y+map.h)&&p.x>=left&&p.x<=right&&p.y>=top&&p.y<=bottom});const fighters=units.filter(e=>e.type!=='worker');return fighters.length?fighters:units}
+
  function zoomBy(delta){zoomLevel=Math.max(.7,Math.min(1.7,zoomLevel+delta));return zoomLevel}
- return{render,world,pan,center,hit,resourceHit,minimap,point,zoomBy};
+ return{render,world,pan,center,hit,resourceHit,minimap,minimapPoint,unitsInBox,get minimapBounds(){return{...syncMinimap()}},point,zoomBy};
 }
 window.CrystalRenderer={create};})();
