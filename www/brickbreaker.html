@@ -17,23 +17,6 @@
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
-    .continue-result-dialog{width:min(400px,calc(100% - 28px));box-sizing:border-box;padding:22px;border:1px solid #385a7b;border-radius:24px;background:radial-gradient(ellipse at top left,#1b3653,#0c1728 75%);text-align:left;max-height:calc(100dvh - 32px);overflow-y:auto;box-shadow:0 24px 80px #0009}
-    .continue-result-dialog h2{font-size:25px;letter-spacing:-.6px;margin:0 0 18px}
-    .continue-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-    .continue-summary div{background:#091728a8;border:1px solid #29465f;border-radius:14px;padding:14px 5px;text-align:center}
-    .continue-summary strong{display:block;font-size:25px;color:#f8fafc;line-height:1.2}
-    .continue-summary span{display:block;font-size:11px;color:#a9bed3;margin-top:6px}
-    .continue-result-dialog .modal-message{font-size:14px;line-height:1.5;color:#cbd5e1;margin:16px 0}
-    .continue-wallet{display:grid;gap:6px;background:#0a2031;border:1px solid #26788e;border-radius:14px;padding:14px}
-    .continue-wallet strong{font-size:15px;color:#e0faff}
-    .continue-wallet span{font-size:13px;color:#9ed5e3;font-variant-numeric:tabular-nums}
-    .continue-note{font-size:11px;line-height:1.5;color:#9aaec4;margin:10px 0 20px}
-    .continue-error{font-size:13px;color:#fecaca;background:#7f1d1d40;border-radius:10px;padding:10px;line-height:1.4}
-    .continue-result-dialog .modal-actions{gap:12px}
-    .continue-result-dialog .modal-actions button{min-height:52px;font-size:16px;border-radius:14px;margin:0;width:100%}
-    .continue-result-dialog .modal-actions .green{background:linear-gradient(135deg,#12ca70,#039b50);box-shadow:0 6px 22px #00bd6324}
-    .continue-result-dialog button:focus-visible{outline:2px solid #67e8f9;outline-offset:3px}
-
     .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
     /* While a run is active, turn the whole safe gameplay area into a fixed touch surface.
        This stops iPhone from scrolling/bouncing the page when the player drags the paddle. */
@@ -51,7 +34,9 @@
     .power-timer.urgent{animation:powerTimerPulse .55s ease-in-out infinite alternate;border-color:#ef4444;color:#fecaca}
     .brick-quit-button{display:none;min-height:44px;align-items:center;justify-content:center;max-width:180px;margin:8px auto;border:1px solid #64748b;border-radius:14px;background:#253247;color:#f8fafc;font-weight:850;text-decoration:none}
     body.brick-breaker-page.game-active .brick-quit-button{display:flex;position:fixed;left:16px;bottom:16px;z-index:1400}
-    /* During a run the shared ranking card becomes a single neon ticker. */
+    /* During a run, give the board the room used by the ranking panel.
+       Players can open world scores before playing or from the result screen. */
+    body.brick-breaker-page.game-active #earnlyCompactLeaderboard,
     body.brick-breaker-page.game-active .compact-leaderboard-record-chip{display:none!important}
     @keyframes powerTimerPulse{from{transform:scale(1);box-shadow:0 0 0 rgba(239,68,68,0)}to{transform:scale(1.045);box-shadow:0 0 12px rgba(239,68,68,.42)}}
     /* Keep Brick Breaker notices above the playfield so they never hide bricks, balls, or drops. */
@@ -115,22 +100,20 @@
       /* Instructions are for pre-game only. During play keep the HUD + board clean.
          Reserve the hidden blocks' vertical space so starting a run cannot make
          Safari jump the board upward underneath the player's finger. */
-      body.brick-breaker-page.game-active #startButton{display:none!important;pointer-events:none!important}
+      body.brick-breaker-page.game-active #startButton{visibility:hidden!important;pointer-events:none!important}
       body.brick-breaker-page.game-active.awaiting-next-level #startButton{display:block!important;visibility:visible!important;pointer-events:auto!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
-      body.brick-breaker-page.game-active .game-guide-more{visibility:hidden!important;pointer-events:none!important}
+      body.brick-breaker-page.game-active .game-guide-more,
+      body.brick-breaker-page.game-active .power-legend{visibility:hidden!important;pointer-events:none!important}
       body.brick-breaker-page.game-active .game-guide-strip,
       body.brick-breaker-page.game-active .game-preflight,
       body.brick-breaker-page.game-active .game-guide-more{max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;overflow:hidden!important}
-      body.brick-breaker-page.game-active .power-legend{visibility:visible!important;pointer-events:none!important;gap:5px!important;margin:5px auto 2px!important;font-size:10px!important;line-height:1.2!important}
-      body.brick-breaker-page.game-active .power-legend span{padding:3px 6px!important}
-      body.brick-breaker-page .brick-live-tip{display:none}
-      body.brick-breaker-page.game-active .brick-live-tip{display:block;margin:2px auto 8px;color:#a8c6d9;text-align:center;font-size:11px;line-height:1.25}
+      body.brick-breaker-page.game-active .power-legend{margin-top:5px!important;margin-bottom:8px!important}
       body.brick-breaker-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.brick-breaker-page.game-active .meta-pill{font-size:9px!important;min-height:31px!important;padding:3px 2px!important}
       body.brick-breaker-page.game-active .brick-board{
-        width:min(86vw,calc((100dvh - 285px) * .72),340px)!important;
+        width:min(86vw,calc((100dvh - 210px) * .72),340px)!important;
         height:auto!important;
         margin-top:3px!important;
         border-color:rgba(96,165,250,.50)!important;
@@ -190,7 +173,6 @@
     <div class="power-legend" aria-label="Brick Breaker power-ups">
       <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Break for a power-up</span><span>◆ Armored</span>
     </div>
-    <p class="brick-live-tip">Drag below Pause to steer · Keep the ball in play · ◆ bricks take two hits</p>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
 
     <a class="game-guide-link" href="game-guides.html#brickBreaker">How to play Brick Breaker · guide &amp; tips</a>
@@ -267,73 +249,6 @@
     let continueUsed=false;
     let continueEventId='';
     let continuePending=false;
-    const continueKey='earnlyBrickPaidContinueV1';
-    let recoveryChecking=false,recoveryPromptOpen=false;
-    function recoveryPanel(title,message,actions){
-      recoveryPromptOpen=true;
-      Arcade.panel(title,message,actions,{className:'brick-recovery-dialog',render:dialog=>{
-        dialog.addEventListener('close',()=>requestAnimationFrame(()=>{recoveryPromptOpen=false}),{once:true});
-      }});
-    }
-    function savedContinue(){
-      try{
-        const value=JSON.parse(localStorage.getItem(continueKey));
-        return value?.version===1 && /^brick_[a-zA-Z0-9_-]+$/.test(value.eventId)
-          && Array.isArray(value.bricks) && value.bricks.length<=63 ? value : null;
-      }catch{return null}
-    }
-    function saveContinue(eventId){
-      const elapsedMs=earnlyRunStartedAt ? Math.max(0,performance.now()-earnlyRunStartedAt-totalPausedMs) : 0;
-      localStorage.setItem(continueKey,JSON.stringify({version:1,eventId,level,levelBroken,totalBroken,
-        levelsCleared,levelGoal,layoutName,paddleX:paddle.x,bricks,elapsedMs}));
-    }
-    function readyContinue(){
-      continueUsed=true;
-      balls=[makeBall(paddle.x+paddle.w/2,paddle.y-14)];
-      awaitingNextLevel=true;
-      levelWaitStartedAt=performance.now();
-      document.body.classList.add('awaiting-next-level');
-      draw();
-      setStatus('Paused · Continue ready · Level '+level,'running');
-      startButton.disabled=false;
-      startButton.textContent='▶ Play · Level '+level;
-    }
-    async function recoverContinue(){
-      const saved=savedContinue();
-      if(!saved || recoveryChecking || recoveryPromptOpen || awaitingNextLevel || running || starting) return;
-      recoveryChecking=true;
-      try{
-        if(!window.EarnlyCloud?.continueReceipt) throw new Error('Wallet is still loading.');
-        const receipt=await window.EarnlyCloud.continueReceipt(saved.eventId,'brickBreaker');
-        if(!receipt){
-          // An unconfirmed payment can still be settling. Keep its event ID
-          // and let the player check again without another debit.
-          recoveryPanel('Continue payment pending','No confirmed 25-Coin charge was found yet.',[
-            ['Check again',()=>recoverContinue(),'green'],
-            ['New game',()=>localStorage.removeItem(continueKey),'secondary']
-          ]);
-          return;
-        }
-        recoveryPanel('🪙 Restore paid Continue','Your 25-Coin Continue is ready. Restore the board and score without another charge.',[
-          ['Restore board',()=>{
-            level=saved.level;levelBroken=saved.levelBroken;totalBroken=saved.totalBroken;
-            levelsCleared=saved.levelsCleared;levelGoal=saved.levelGoal;layoutName=saved.layoutName;
-            bricks=saved.bricks;paddle.w=levelPaddleWidth();
-            paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,saved.paddleX));
-            earnlyRunStartedAt=performance.now()-Math.max(0,saved.elapsedMs||0);
-            totalPausedMs=0;pauseStartedAt=0;
-            levelEl.textContent=level; bricksEl.textContent=levelBroken;
-            rewardPreviewEl.textContent=currentReward();
-            refreshChrome();readyContinue();
-          },'green'],
-          ['Later',()=>{},'secondary']
-        ]);
-      }catch(error){
-        recoveryPanel('Continue recovery','Could not check your purchase yet. '+(error?.message||''),[
-          ['Try again',()=>recoverContinue(),'green'],['Later',()=>{},'secondary']
-        ]);
-      }finally{recoveryChecking=false}
-    }
 
     function levelSpeed(){
       // Give Level 1 a calmer launch, then ramp hard enough that deep runs
@@ -779,7 +694,6 @@
 
     function playNextLevel(){
       if(!awaitingNextLevel) return;
-      if(continueUsed) localStorage.removeItem(continueKey);
       totalPausedMs+=performance.now()-levelWaitStartedAt;
       levelWaitStartedAt=0;
       awaitingNextLevel=false;
@@ -832,13 +746,15 @@
     function showContinueResult(message=''){
       const preview=currentReward();
       const balance=Arcade.number('points');
-      const detail='Keep your board and score. Resume with a fresh ball.';
+      const detail='Level '+level+' · '+totalBroken+' bricks broken · '+preview+' Coins pending. '
+        +'Continue for 25 Coins to keep this board and score. Your available Coins will decrease by 25. '
+        +'Balance shown: '+balance+' Coins. One Continue per run.'+(message?' '+message:'');
       const resultDialog=document.querySelector('dialog[aria-modal="true"]');
       // An accidental Escape must not dismiss an unsettled run.
       const preventCancel=event=>event.preventDefault();
       resultDialog?.addEventListener('cancel',preventCancel);
       const stopCancel=()=>resultDialog?.removeEventListener('cancel',preventCancel);
-      Arcade.panel('One more shot?',detail,[
+      Arcade.panel('💥 Brick Run Over',detail,[
         ['🪙 Continue · 25 Coins',async()=>{
           stopCancel();
           if(!continueEventId) continueEventId='brick_'+(crypto.randomUUID?.() || String(Date.now())+'_'+Math.random().toString(36).slice(2)).replace(/[^a-zA-Z0-9_-]/g,'');
@@ -854,8 +770,8 @@
           waitingDialog?.addEventListener('cancel',preventWaitingCancel);
           try{
             if(!window.EarnlyCloud?.spendContinue) throw new Error('Coin wallet is still loading. Try again.');
-            saveContinue(continueEventId);
             await window.EarnlyCloud.spendContinue(continueEventId,'brickBreaker');
+            continueUsed=true;
             continueEventId='';
             waitingDialog?.removeEventListener('cancel',preventWaitingCancel);
             if(waitingDialog?.open) waitingDialog.close();
@@ -863,7 +779,14 @@
             refreshChrome();
             // The wall, score, level, and paddle remain. Only the lost ball and
             // transient effects reset; the next launch waits for Play.
-            readyContinue();
+            balls=[makeBall(paddle.x+paddle.w/2,paddle.y-14)];
+            awaitingNextLevel=true;
+            levelWaitStartedAt=performance.now();
+            document.body.classList.add('awaiting-next-level');
+            draw();
+            setStatus('Paused · Continue ready · Level '+level,'running');
+            startButton.disabled=false;
+            startButton.textContent='▶ Play · Level '+level;
           }catch(error){
             waitingDialog?.removeEventListener('cancel',preventWaitingCancel);
             if(waitingDialog?.open) waitingDialog.close();
@@ -876,43 +799,10 @@
           stopCancel();
           settleRun();
         },'secondary']
-      ], {
-        className:'continue-result-dialog',
-        render:(dialog, description)=>{
-          const summary=document.createElement('div');
-          summary.className='continue-summary';
-          for(const [label,value] of [['Level',level],['Bricks broken',totalBroken],['Coins this run',preview]]){
-            const stat=document.createElement('div');
-            const number=document.createElement('strong');
-            const caption=document.createElement('span');
-            number.textContent=Number(value).toLocaleString();
-            caption.textContent=label;
-            stat.append(number,caption);summary.append(stat);
-          }
-          description.before(summary);
-          const wallet=document.createElement('div');
-          wallet.className='continue-wallet';
-          const cost=document.createElement('strong');
-          cost.textContent='🪙 25 Coins to continue';
-          const balanceLine=document.createElement('span');
-          balanceLine.textContent=balance>=25 ? 'Balance: '+balance.toLocaleString()+' → '+(balance-25).toLocaleString()+' Coins' : 'Balance: '+balance.toLocaleString()+' Coins · '+(25-balance)+' more needed';
-          wallet.append(cost,balanceLine);
-          const note=document.createElement('p');
-          note.className='continue-note';
-          note.textContent='One Continue per run · 25 Coins deducted after confirmation';
-          dialog.querySelector('.modal-actions').before(wallet,note);
-          if(message){
-            const error=document.createElement('p');
-            error.className='continue-error';error.setAttribute('role','alert');
-            error.textContent=message;
-            note.after(error);
-          }
-        }
-      });
+      ]);
     }
 
     function settleRun(){
-      localStorage.removeItem(continueKey);
 
       const earned=currentReward();
       Arcade.earn(earned,'Brick Breaker', {
@@ -1047,7 +937,6 @@
       if(continuePending) return;
       if(awaitingNextLevel){playNextLevel();return}
       if(running || starting) return;
-      if(savedContinue()){recoverContinue();return}
       starting=true;
       if(!Arcade.consume('brickBreaker')){
         starting=false;
@@ -1155,10 +1044,6 @@
     resetBricks();
     refreshChrome();
     draw();
-    if(savedContinue()){
-      window.addEventListener('earnly-cloud-ready',recoverContinue,{once:true});
-      setTimeout(recoverContinue,1000);
-    }
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
