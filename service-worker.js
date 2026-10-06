@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-crystal-command-living-battlefield-v3-20261006';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-profile-progress-layout-20261006';const CORE_ASSETS = [
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
