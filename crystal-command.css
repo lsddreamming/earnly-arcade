@@ -81,3 +81,10 @@ body{background:#040914}
 
 .cc-tools #setRally{color:#e1b7ff}.cc-tools #setRally.active{border-color:#d7a4ff;background:#3a2851}.cc-palette[data-mode=train] button[data-research]{min-width:135px}.cc-selection #selectionDetail{max-width:230px;text-align:right}
 @media(max-width:360px){.cc-tools{gap:3px}.cc-tools button{padding:7px 2px;font-size:9px}.cc-selection #selectionDetail{font-size:8px;max-width:185px}}
+
+/* Practice choice, compact warnings and squads. */
+.cc-card .cc-difficulty{display:flex;gap:5px;margin:3px 0 8px}.cc-card .cc-difficulty button{flex:1;padding:8px 3px;margin:0;font-size:11px;min-height:43px;background:#102437;border-color:#456980}.cc-difficulty small{display:block;font-size:8px;font-weight:400;color:#a1bccb;margin-top:3px}.cc-difficulty [aria-checked=true]{border-color:#76ecff!important;background:#1b485a!important;box-shadow:0 0 12px #54e9ff22}
+.cc-alert{position:absolute;left:9px;top:78px;max-width:calc(100% - 18px);padding:7px 10px;min-height:34px;font-size:11px;background:#33232bea;border-color:#ffb28b;color:#ffe2c8;text-align:left;box-shadow:0 4px 15px #0006}.cc-alert[data-priority="3"],.cc-alert[data-priority="4"]{background:#132d3ceb;border-color:#74dcea;color:#bdf6ff}.cc-menu .cc-alert{display:none}
+.cc-palette[data-mode=army]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;overflow:visible}.cc-palette[data-mode=army] button{min-width:0;min-height:34px;text-align:center;padding:7px 3px;font-size:10px}.cc-palette[data-mode=army] button[aria-pressed=true]{border-color:#79ffdb;background:#16443d}
+.cc-tools #selectArmy.active{border-color:#77edff;background:#1b495c}
+@media(max-height:620px){.cc-card .cc-difficulty button{min-height:38px;padding:6px 2px}.cc-palette[data-mode=army] button{min-height:30px;padding:5px 2px}.cc-alert{top:71px;font-size:10px;padding:6px 8px}}
