@@ -33,3 +33,11 @@ test('single-file offline RTS mines, selects a box, right-clicks orders, trains 
  await page.locator('#home').click();await expect(page.locator('[data-kind=worker]')).toContainText('Worker');await page.evaluate(()=>{CrystalGame.state.players[0].crystals=1000});await expect(page.locator('[data-kind=worker]')).toBeEnabled();await page.locator('[data-kind=worker]').click();expect(await page.evaluate(()=>CrystalGame.state.entities.find(e=>e.side===0&&e.type==='base').queue.includes('worker'))).toBe(true);
  await page.evaluate(()=>{const s=CrystalGame.state;s.entities.find(e=>e.side===1&&e.type==='base').hp=0});await expect(page.locator('#resultTitle')).toHaveText('VICTORY');await page.locator('#again').click();await expect(page.locator('#practice')).toBeVisible();expect(errors).toEqual([]);expect(network).toEqual([]);
 });
+
+test('live HUD preserves mobile button labels and tutorial highlights between taps',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#learn').click();await expect(page.locator('#lessonHelp')).toBeEnabled({timeout:15000});
+ await page.evaluate(()=>{window.controlNodes=['pause','lessonHelp'].map(id=>document.getElementById(id).firstChild);window.highlightChanges=0;window.highlightObserver=new MutationObserver(records=>{window.highlightChanges+=records.length});window.highlightObserver.observe(document.getElementById('crystals'),{attributes:true,attributeFilter:['class']})});
+ await page.waitForTimeout(1000);
+ expect(await page.evaluate(()=>['pause','lessonHelp'].every((id,i)=>document.getElementById(id).firstChild===window.controlNodes[i]))).toBe(true);expect(await page.evaluate(()=>window.highlightChanges)).toBe(0);
+ await page.locator('#lessonHelp').click();await expect(page.locator('#lessonStep')).toContainText('STEP 2');await page.locator('#pause').click();await expect(page.locator('#pause')).toHaveText('Resume');await page.locator('#pause').click();await expect(page.locator('#pause')).toHaveText('Pause');
+});

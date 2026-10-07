@@ -105,4 +105,3 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
  return{render,world,viewport,pan,center,hit,resourceHit,minimap,minimapPoint,unitsInBox,get minimapBounds(){return{...syncMinimap()}},point:(x,y,z=0)=>{const r=canvas.getBoundingClientRect();width=r.width;height=r.height;return point(x,y,z)},zoomBy};
 }
 window.CrystalRenderer={create};})();
-
