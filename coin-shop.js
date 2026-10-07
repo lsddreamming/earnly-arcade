@@ -56,7 +56,8 @@
     message('Checking your purchase…');
     for(let attempt=0;attempt<8;attempt++){
       try {
-        const data=await api('/orders/'+order);
+        const data=await api('/orders/'+order,{account:session.user.id});
+        if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Sign back in to check this purchase.');
         if(data.status==='fulfilled'){
           if(data.wallet)arcade?.applyServerWallet?.(data.wallet);
           $('refresh-button').click();message('Purchase confirmed. Your current balance is updated.');
