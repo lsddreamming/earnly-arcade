@@ -118,6 +118,7 @@
     renderShop();
   }
   function renderShop() {
+    renderPreviewActions();
     $("shop-grid").replaceChildren();
     for (const item of state.items.filter((i) => i.slot === state.slot && (!state.freeOnly || i.coinPrice === 0) && (!state.ownedOnly || state.user?.inventory.includes(i.id)) && i.name.toLowerCase().includes(state.search))) {
       const owned = state.user?.inventory.includes(item.id),
@@ -147,25 +148,7 @@
         "aria-label",
         (equipped ? "Equipped" : owned ? "Equip" : "Buy") + " " + item.name,
       );
-      button.addEventListener("click", () => {
-        if (!state.user) {
-          $("auth-modal").showModal();
-          return;
-        }
-        if (owned) {
-          equip(item);
-          return;
-        }
-        state.pending = { item, key: crypto.randomUUID() };
-        $("purchase-title").textContent = "Unlock " + item.name + "?";
-        $("purchase-preview").replaceChildren(character({ ...state.user.equipped, [item.slot]: item }));
-        $("purchase-price").textContent =
-          fmt(item.coinPrice) +
-          " Arcade Coins · Balance: " +
-          fmt(state.user.coins);
-        $("purchase-error").textContent = "";
-        $("purchase-modal").showModal();
-      });
+      button.addEventListener("click", () => chooseItem(item));
       const preview = el("button", "preview-item", "Try on");
       preview.type = "button";
       preview.setAttribute("aria-label", "Preview " + item.name);
@@ -174,12 +157,48 @@
         art,
         el("h3", "", item.name),
         el("p", "", prettySlot[item.slot] + " · " + item.rarity),
+        el("p", "item-ownership", equipped ? "✓ Equipped" : owned ? "✓ Owned · equip anytime" : item.coinPrice === 0 ? "Free essential" : "◈ " + fmt(item.coinPrice) + " coins"),
         preview,
         button,
       );
       $("shop-grid").append(card);
     }
     if (!$("shop-grid").children.length) $("shop-grid").append(el("p","collection-note","No matches. Try another search or filter."));
+  }
+  function chooseItem(item) {
+    if (state.busy) return;
+    if (!state.user) { $("auth-modal").showModal(); return; }
+    if (state.user.inventory.includes(item.id)) { equip(item); return; }
+    state.pending = { item, key: crypto.randomUUID() };
+    $("purchase-title").textContent = "Unlock " + item.name + "?";
+    // Show exactly the single item that will be saved, with the current saved look.
+    $("purchase-preview").replaceChildren(character({ ...state.user.equipped, [item.slot]: item }));
+    const remaining = BigInt(state.user.coins) - BigInt(item.coinPrice);
+    $("purchase-price").textContent = fmt(item.coinPrice) + " Arcade Coins · Balance: " + fmt(state.user.coins);
+    $("purchase-remaining").textContent = remaining >= 0n
+      ? "After purchase: " + fmt(remaining) + " coins · This item will be equipped."
+      : "You need " + fmt(-remaining) + " more coins. Earn coins by playing or visit Get coins.";
+    $("purchase-error").textContent = "";
+    $("confirm-purchase").disabled = remaining < 0n;
+    $("purchase-modal").showModal();
+  }
+  function renderPreviewActions() {
+    const root = $("preview-actions");
+    root.replaceChildren();
+    const changed = Object.values(state.preview).filter(item => state.user?.equipped[item.slot]?.id !== item.id);
+    root.hidden = !changed.length;
+    for (const item of changed) {
+      const owned = state.user?.inventory.includes(item.id);
+      const row = el("div", "preview-action");
+      const copy = el("div");
+      copy.append(el("strong", "", item.name), el("small", "", owned ? "Owned · ready to wear" : item.coinPrice === 0 ? "Free essential" : fmt(item.coinPrice) + " coins"));
+      const button = el("button", owned ? "subtle" : "buy", owned ? "Equip" : item.coinPrice === 0 ? "Use free" : "Unlock");
+      button.type = "button";
+      button.disabled = state.busy;
+      button.setAttribute("aria-label", (owned ? "Equip preview " : "Unlock preview ") + item.name);
+      button.addEventListener("click", () => chooseItem(item));
+      row.append(copy, button);root.append(row);
+    }
   }
   const looks = [
     {name:"Trail Society",description:"Warm knits, utility pockets, everyday high-tops.",ids:["cyber-starter","storm-coat","high-tops","adventure-pack","ribbed-beanie","round-glasses","explorer-beard"]},
@@ -245,9 +264,9 @@
       status(error.message, true);
     }
   }
-  function applyUser(user) {
+  function applyUser(user, savedSlot) {
     state.user = user;
-    state.preview = {};
+    state.preview = Object.fromEntries(Object.entries(state.preview).filter(([slot, item]) => slot !== savedSlot && user.equipped[slot]?.id !== item.id));
     renderUser();
     // Optional bridge for the existing Earnly frontend's Coin display.
     (typeof Arcade!=="undefined"?Arcade:null)?.applyServerWallet?.({
@@ -270,7 +289,7 @@
         body: { itemId: item.id },
       });
       if (epoch !== state.authEpoch) return;
-      applyUser(result.user);
+      applyUser(result.user, item.slot);
       status(item.name + " equipped.");
       await leaderboard();
     } catch (error) {
@@ -296,10 +315,10 @@
         key: pending.key,
       });
       if (epoch !== state.authEpoch) return;
-      applyUser(data.user);
+      applyUser(data.user, pending.item.slot);
       $("purchase-modal").close();
       state.pending = null;
-      status(pending.item.name + " unlocked and equipped.");
+      status(pending.item.name + " unlocked and equipped. Saved to your collection.");
       await leaderboard();
     } catch (error) {
       $("purchase-error").textContent = error.message;

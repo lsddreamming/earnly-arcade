@@ -10,8 +10,8 @@ function profile(user){return {username:user.username,rank:'2',highScore:'120',g
 async function setup(page,{signedIn=true,insufficient=false,networkRetry=false}={}){
   let user=player(),buys=0,keys=[];
   await page.route('**/cloud.js',route=>route.fulfill({contentType:'text/javascript',body:`(() => {
-    const session=${signedIn?"{access_token:'test',user:{id:'qa-account'}}":"null"};
-    const auth={getSession:async()=>({data:{session}}),onAuthStateChange:()=>({}),signOut:async()=>({}),signInWithPassword:async()=>({})};
+    let session=${signedIn?"{access_token:'test',user:{id:'qa-account'}}":"null"};
+    let listener; const auth={getSession:async()=>({data:{session}}),onAuthStateChange:fn=>{listener=fn;return {};},signOut:async()=>{session=null;listener?.("SIGNED_OUT");return {};},signInWithPassword:async()=>{session={access_token:"test",user:{id:"qa-account"}};listener?.("SIGNED_IN");return {};}};
     window.EarnlyCloud={client:{auth},session:async()=>session,syncServerRewards:async()=>({}),profile:async()=>null,leaderboard:async()=>({entries:[{rank:1,username:'PlayerOne',score:120,avatar:'🤖',avatarUrl:'cosmetic-neon-phantom.svg',avatarRarity:'rare'}]}),walletInfo:async()=>null};
     window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   })();`}));
@@ -119,4 +119,40 @@ test('Coin packs show approved prices and fail closed before merchant setup',asy
   await setup(page);await page.route('**/coin-shop/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({available:false,packs:[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}]})}));
   await page.goto('/avatars.html');await expect(page.locator('#coin-packs article')).toHaveCount(3);await expect(page.locator('#coin-status')).toContainText('coming soon');
   for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();await expect(page.locator('#coin-packs')).toContainText('$9.99');
+});
+
+test('Preview actions unlock one piece, keep other previews, and survive a fresh sign-in',async({page})=>{
+  const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
+  await page.getByRole('button',{name:'Preview Neon Phantom',exact:true}).click();
+  await page.getByRole('button',{name:'Outfits',exact:true}).click();
+  await page.getByRole('button',{name:'Preview Neon Jacket',exact:true}).click();
+  await page.getByRole('button',{name:'Unlock preview Neon Phantom',exact:true}).click();
+  await expect(page.locator('#purchase-remaining')).toContainText('1,000 coins');
+  await expect(page.locator('#purchase-preview img[alt="Pilot Suit"]')).toHaveCount(1);
+  await page.getByRole('button',{name:'Buy & equip',exact:true}).click();
+  await expect(page.locator('#coin-balance')).toHaveText('1,000');
+  await expect(page.getByRole('button',{name:'Unlock preview Neon Jacket',exact:true})).toBeVisible();
+  await expect(page.locator('#nav-avatar img[alt="Pilot Suit"]')).toHaveCount(1);
+  await page.getByRole('button',{name:'Unlock preview Neon Jacket',exact:true}).click();
+  await page.getByRole('button',{name:'Buy & equip',exact:true}).click();
+  await expect(page.locator('#coin-balance')).toHaveText('700');
+  await expect(page.locator('#preview-actions')).toBeHidden();
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await expect(page.locator('#nav-name')).toHaveText('Guest');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await page.getByLabel('Email',{exact:true}).fill('player@example.test');
+  await page.getByLabel('Password',{exact:true}).fill('test-password');
+  await page.locator('#auth-form').getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.locator('#coin-balance')).toHaveText('700');
+  await expect(page.locator('#character-stage img[alt="Neon Jacket"]')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Equipped Neon Jacket',exact:true})).toBeDisabled();
+  await page.reload();await expect(page.locator('#coin-balance')).toHaveText('700');
+  await expect(page.locator('#character-name')).toHaveText('Neon Phantom');expect(f.keys).toHaveLength(2);
+});
+test('Unaffordable previews explain the shortfall before a purchase request',async({page})=>{
+  const f=await setup(page);f.user().coins='100';await page.goto('/avatars.html');
+  await expect(page.locator('#coin-balance')).toHaveText('100');
+  await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();
+  await expect(page.locator('#purchase-remaining')).toContainText('150 more coins');
+  await expect(page.getByRole('button',{name:'Buy & equip',exact:true})).toBeDisabled();expect(f.keys).toHaveLength(0);
 });
