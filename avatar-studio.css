@@ -774,3 +774,5 @@ input {
 .purchase-remaining {font-size:13px;color:#a1e3ce;line-height:1.6;}
 #purchase-modal {max-height:calc(100dvh - 32px);overflow-y:auto;}
 #purchase-modal .purchase-preview {max-height:32dvh;}
+
+#purchase-title {padding-right:36px;}
