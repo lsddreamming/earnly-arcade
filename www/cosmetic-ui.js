@@ -2,6 +2,8 @@
 (() => {
   const endpoint='https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api';
   let user=null, generation=0;
+  const layers=['backpack','avatar','outfit','shoes','face','beard','weapon'];
+  function character(equipped){const root=element('span','cosmetic-portrait-rig');for(const slot of layers)if(equipped[slot])root.append(portrait(equipped[slot]));return root;}
   const element=(tag,className,text)=>{const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n;};
   function portrait(item){const img=element('img');img.src=new URL(item.imageUrl,location.href).href;img.alt=item.name;return img;}
   const dialog=element('dialog','cosmetic-player-dialog');
@@ -11,7 +13,7 @@
     if(!user)return;
     for(const id of ['profileAvatar','myAvatar']){
       const root=document.getElementById(id);if(!root)continue;
-      root.replaceChildren(portrait(user.equipped.avatar));root.classList.add('cosmetic-profile-avatar');
+      root.replaceChildren(character(user.equipped));root.classList.add('cosmetic-profile-avatar');
     }
   }
   async function sync(){
@@ -35,13 +37,13 @@
       dialog.replaceChildren();
       const close=element('button','cosmetic-close','×');close.type='button';close.setAttribute('aria-label','Close player profile');close.onclick=()=>dialog.close();
       const stage=element('div','cosmetic-card-character '+p.equippedAvatar.rarity);
-      for(const slot of ['avatar','outfit','weapon'])if(p.equipped[slot])stage.append(portrait(p.equipped[slot]));
+      for(const slot of layers)if(p.equipped[slot])stage.append(portrait(p.equipped[slot]));
       const name=element('h2','','@'+p.username);name.id='cosmetic-player-name';dialog.setAttribute('aria-labelledby',name.id);
       const stats=element('dl','cosmetic-card-stats');
       const values=[['World rank',p.rank?'#'+p.rank:'Unranked'],['High score',BigInt(p.highScore).toLocaleString()],['Games recorded',BigInt(p.gamesPlayed).toLocaleString()],['Skins owned',String(p.totalSkinsUnlocked)]];
       for(const [label,value] of values){const row=element('div');row.append(element('dt','',label),element('dd','',value));stats.append(row);}
       dialog.append(close,stage,name,element('p','cosmetic-card-rarity',p.equippedAvatar.rarity.toUpperCase()+' · '+p.game),stats);
-      const outfit=element('p','cosmetic-card-loadout',[p.equipped.outfit?.name,p.equipped.weapon?.name].filter(Boolean).join(' · '));dialog.append(outfit);
+      const outfit=element('p','cosmetic-card-loadout',layers.filter(slot=>slot!=='avatar').map(slot=>p.equipped[slot]?.name).filter(Boolean).join(' · '));dialog.append(outfit);
       if(!dialog.open)dialog.showModal();
     }catch(error){window.Arcade?.toast?.(error.message||'Could not open profile.');}
   }

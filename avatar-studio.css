@@ -684,3 +684,40 @@ input {
   inset: 0;
   pointer-events: none;
 }
+
+/* A single aligned rig is used for saved looks, previews and player cards. */
+.mini-character { display:inline-block; position:relative; width:42px; height:42px; border:1px solid var(--cyan); border-radius:50%; overflow:hidden; background:#25344c; }
+.mini-character .character,.player-link .character { width:42px; height:48px; flex:none; margin:0; }
+.mini-character img { background:transparent; border:0; border-radius:0; object-position:center; }
+.stage .character { min-height:0; min-width:0; }
+.stage:after { bottom:3px; height:18px; }
+.player-link .character { border:1px solid var(--rarity); border-radius:12px; background:#172b40; overflow:hidden; }
+.player-link .character img { border:0; border-radius:0; width:100%; height:100%; }
+.shop-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+.shop-tabs button { min-width:0; padding:11px 5px; }
+.item-art { overflow:hidden; }
+.item-art .character { max-width:none; }
+.preview-item { background:transparent; border:1px solid #476580; color:#b7dbe7; margin:0 0 8px; width:100%; }
+.free-filter { display:flex; align-items:center; gap:9px; margin:16px 0 8px; cursor:pointer; color:#d4e8ee; }
+.free-filter input { width:18px; height:18px; margin:0; accent-color:#68e6dc; }
+.collection-note { font-size:11px; line-height:1.5; color:var(--muted); margin:8px 0 16px; }
+.preview-note { font-size:11px; color:#8fe6d2; text-align:center; margin:12px 0 5px; }
+#reset-preview { display:block; margin:7px auto; font-size:11px; }
+#reset-preview[hidden] { display:none; }
+.item-card .badge { background:#101b2bdb; }
+@media(max-width:680px) {
+  .page-title { margin-bottom:16px; }
+  .page-title h1 { font-size:32px; }
+  .page-title > p { font-size:11px; }
+  .showcase { display:block; }
+  .showcase .stage { height:310px; margin:8px 0 0; }
+  .showcase .character-caption { text-align:center; margin:12px 0; }
+  .showcase .loadout-summary { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; margin:12px 0; }
+  .showcase .loadout-summary div { display:block; padding:8px 0; font-size:11px; }
+  .showcase .loadout-summary dt { font-size:9px; margin-bottom:3px; }
+  .showcase .loadout-summary dd { text-align:left; }
+  .shop-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .item-art { height:190px; }
+  .item-card h3 { font-size:13px; }
+  .item-card button { min-height:40px; }
+}

@@ -126,8 +126,13 @@ Deno.serve(async (req: Request) => {
       const equippedByUser = new Map<string,any>();
       if (ids.length) {
         const {data:loadouts,error:cosmeticError} = await admin.from("cosmetic_loadouts")
-          .select("user_id,cosmetic_items(asset_path,rarity)").eq("slot","avatar").in("user_id",ids);
-        if (!cosmeticError) for (const item of loadouts || []) equippedByUser.set(item.user_id,item.cosmetic_items);
+          .select("user_id,slot,cosmetic_items(id,name,slot,asset_path,rarity)").in("user_id",ids);
+        if (!cosmeticError) for (const item of loadouts || []) {
+          const i:any=item.cosmetic_items;if(!i)continue;
+          const equipped=equippedByUser.get(item.user_id)||{};
+          equipped[item.slot]={id:i.id,name:i.name,slot:i.slot,imageUrl:i.asset_path,rarity:i.rarity};
+          equippedByUser.set(item.user_id,equipped);
+        }
       }
       const entries = visibleRows
         .map((row:any) => {
@@ -137,8 +142,14 @@ Deno.serve(async (req: Request) => {
             username:profile.username,
             avatarKey:profile.avatar_key || "gamepad",
             avatar:avatarEmoji(profile.avatar_key || "gamepad"),
-            avatarUrl:equippedByUser.get(row.user_id)?.asset_path || "cosmetic-cyber-starter.svg",
-            avatarRarity:equippedByUser.get(row.user_id)?.rarity || "common",
+            avatarUrl:equippedByUser.get(row.user_id)?.avatar?.imageUrl || "cosmetic-cyber-starter.svg",
+            avatarRarity:equippedByUser.get(row.user_id)?.avatar?.rarity || "common",
+            equipped:{
+              avatar:{id:"cyber-starter",name:"Cyber Starter",slot:"avatar",imageUrl:"cosmetic-cyber-starter.svg",rarity:"common"},
+              outfit:{id:"starter-suit",name:"Pilot Suit",slot:"outfit",imageUrl:"cosmetic-starter-suit.svg",rarity:"common"},
+              shoes:{id:"trail-boots",name:"Trail Boots",slot:"shoes",imageUrl:"cosmetic-trail-boots.svg",rarity:"common"},
+              ...equippedByUser.get(row.user_id)
+            },
             score:Number(row.score || 0),
             verified:!!row.verified,
             achievedAt:row.achieved_at,

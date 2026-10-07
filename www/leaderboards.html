@@ -221,6 +221,15 @@
             image.src = entry.avatarUrl; image.alt = '';
             avatar.replaceChildren(image);
             if (['common','rare','legendary'].includes(entry.avatarRarity)) avatar.classList.add(entry.avatarRarity);
+            if (entry.equipped) {
+              const rig=document.createElement('span');rig.className='cosmetic-portrait-rig';
+              for(const slot of ['backpack','avatar','outfit','shoes','face','beard','weapon']) {
+                const item=entry.equipped[slot];if(!item||!/^cosmetic-[a-z0-9-]+[.]svg$/.test(item.imageUrl))continue;
+                const layer=document.createElement('img');layer.src=item.imageUrl;layer.alt='';rig.append(layer);
+              }
+              if(rig.childElementCount)avatar.replaceChildren(rig);
+            }
+
           }
 
           const player = document.createElement('div');

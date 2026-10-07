@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><defs>
+    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="#eac086"/><stop offset=".55" stop-color="#93603e"/><stop offset="1" stop-color="#392b37"/></radialGradient>
+    <linearGradient id="cloth" x2=".8" y2="1"><stop stop-color="#3d5b75"/><stop offset=".5" stop-color="#253648"/><stop offset="1" stop-color="#101b2d"/></linearGradient>
+    <linearGradient id="metal" x2=".75" y2="1"><stop stop-color="#dce6e9"/><stop offset=".3" stop-color="#7e98ac"/><stop offset=".48" stop-color="#e1e9eb"/><stop offset=".55" stop-color="#496477"/><stop offset="1" stop-color="#192c40"/></linearGradient>
+    <linearGradient id="trim" x2="1" y2="1"><stop stop-color="#edfcff"/><stop offset=".4" stop-color="#58e4f5"/><stop offset="1" stop-color="#287c9f"/></linearGradient>
+    <linearGradient id="leather" x2=".8" y2="1"><stop stop-color="#c59269"/><stop offset=".5" stop-color="#855339"/><stop offset="1" stop-color="#392722"/></linearGradient>
+    <linearGradient id="hair" x2=".3" y2="1"><stop stop-color="#8f5a36"/><stop offset=".6" stop-color="#492b25"/><stop offset="1" stop-color="#241b22"/></linearGradient>
+    <radialGradient id="lens" cx=".3" cy=".15"><stop stop-color="#84d9ef"/><stop offset=".6" stop-color="#153e64"/><stop offset="1" stop-color="#09182b"/></radialGradient>
+    </defs><path d="M101 85L145 88L147 111Q126 133 106 115ZM155 88L200 85L195 115Q177 133 153 112Z" fill="url(#lens)" stroke="#8198a8" stroke-width="3"/><path d="M144 96H156M102 94L88 88M199 94L213 88" stroke="#92aab7" stroke-width="5"/><path d="M111 92L131 96M166 97L188 92" stroke="#89e5ee" stroke-width="3" opacity=".8"/></svg>

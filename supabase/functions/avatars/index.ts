@@ -33,7 +33,7 @@ export async function handler(req:Request):Promise<Response> {
     if(req.method==="GET"&&path==="/api/shop") {
       const {data,error}=await admin.from("cosmetic_items").select("*").eq("active",true).order("slot").order("coin_price");
       if(error)throw error;
-      return json({items:(data||[]).map(i=>({id:i.id,name:i.name,slot:i.slot,coinPrice:i.coin_price,rarity:i.rarity,imageUrl:i.asset_path}))});
+      return json({items:(data||[]).map(i=>({id:i.id,name:i.name,slot:i.slot,coinPrice:i.coin_price,rarity:i.rarity,imageUrl:i.asset_path,isStarter:i.is_starter}))});
     }
     const usernameMatch=path.match(/^\/api\/user\/([A-Za-z0-9_]{3,18})$/);
     if(req.method==="GET"&&(path==="/api/leaderboard"||usernameMatch)) {

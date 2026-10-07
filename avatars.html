@@ -27,7 +27,7 @@
           ><small>COINS</small>
         </div>
         <button id="my-profile" class="profile-button" disabled>
-          <img id="nav-avatar" src="cosmetic-cyber-starter.svg" alt="" /><span
+          <span id="nav-avatar" class="mini-character" aria-hidden="true"></span><span
             id="nav-name"
             >Guest</span
           >
@@ -55,12 +55,14 @@
             <h3 id="character-name">Cyber Starter</h3>
             <p id="character-owner">Sign in to save your look</p>
           </div>
+          <p id="preview-note" class="preview-note">Your saved look</p>
+          <button id="reset-preview" class="subtle" hidden>Reset preview</button>
           <dl class="loadout-summary" id="loadout-summary"></dl>
           <button id="view-profile" class="primary" disabled>
             View my profile
           </button>
           <p class="fine-print">
-            Clothing and weapons change your look. Cosmetics give no gameplay
+            All accessories are cosmetic. They give no gameplay
             advantage.
           </p>
         </section>
@@ -75,8 +77,14 @@
           <div class="shop-tabs" role="group" aria-label="Shop category">
             <button data-slot="avatar" aria-pressed="true">Avatars</button
             ><button data-slot="outfit" aria-pressed="false">Outfits</button
-            ><button data-slot="weapon" aria-pressed="false">Weapons</button>
+            ><button data-slot="shoes" aria-pressed="false">Shoes</button>
+            <button data-slot="backpack" aria-pressed="false">Backpacks</button>
+            <button data-slot="face" aria-pressed="false">Facewear</button>
+            <button data-slot="beard" aria-pressed="false">Beards</button>
+            <button data-slot="weapon" aria-pressed="false">Weapons</button>
           </div>
+          <label class="free-filter"><input type="checkbox" id="free-only"> Free options only</label>
+          <p class="collection-note">Original Arcade Sprouts · Mix every accessory. Free essentials are yours from the start.</p>
           <div id="shop-grid" class="shop-grid" aria-live="polite">
             <p>Loading collection…</p>
           </div>
