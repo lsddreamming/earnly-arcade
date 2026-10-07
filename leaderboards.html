@@ -42,6 +42,7 @@
     @media(max-width:520px){.leaderboard-toolbar{grid-template-columns:1fr}.leader-row{grid-template-columns:32px 38px minmax(0,1fr) auto 30px;padding:10px 7px;gap:6px}.leader-avatar{width:36px;height:36px;font-size:20px}}
   </style>
   <link rel="stylesheet" href="public-info.css">
+  <link rel="stylesheet" href="cosmetic-ui.css">
 </head>
 <body class="leaderboards-dashboard">
   <main class="container">
@@ -209,13 +210,25 @@
           rank.className = 'leader-rank';
           rank.textContent = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : '#' + entry.rank;
 
-          const avatar = document.createElement('div');
+          const avatar = document.createElement('button');
+          avatar.type = 'button';
+          avatar.dataset.username = entry.username;
+          avatar.setAttribute('aria-label', 'View @' + entry.username + ' profile');
           avatar.className = 'leader-avatar';
           avatar.textContent = entry.avatar || '🎮';
+          if (entry.avatarUrl && /^cosmetic-[a-z0-9-]+[.]svg$/.test(entry.avatarUrl)) {
+            const image = document.createElement('img');
+            image.src = entry.avatarUrl; image.alt = '';
+            avatar.replaceChildren(image);
+            if (['common','rare','legendary'].includes(entry.avatarRarity)) avatar.classList.add(entry.avatarRarity);
+          }
 
           const player = document.createElement('div');
           player.className = 'leader-player';
-          const name = document.createElement('strong');
+          const name = document.createElement('button');
+          name.type = 'button';
+          name.className = 'leader-profile-link';
+          name.dataset.username = entry.username;
           name.textContent = '@' + entry.username;
           const meta = document.createElement('small');
           meta.textContent = entry.rank === 1 ? 'WORLD RECORD' : (row.classList.contains('you') ? 'YOU' : 'GLOBAL PLAYER');
@@ -277,5 +290,6 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
+  <script src="cosmetic-ui.js"></script>
 </body>
 </html>
