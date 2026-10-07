@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CrystalCommand=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
 'use strict';
-const VERSION=4,SIZE=40,STEP=.05,BATTLE_LIMIT=1200;
+const VERSION=5,SIZE=64,STEP=.05,BATTLE_LIMIT=1200;
 const DIFFICULTIES=Object.freeze({easy:{name:'Easy',pace:3.8,workers:8,attackAt:180,force:3,wave:35,armyCap:6,techAt:150},normal:{name:'Normal',pace:2.4,workers:12,attackAt:35,force:5,wave:0,armyCap:80,techAt:70},hard:{name:'Hard',pace:1.6,workers:10,attackAt:25,force:3,wave:0,armyCap:80,techAt:55}});
 const TYPES=Object.freeze({
  worker:{name:'Miner',cost:50,hp:45,speed:2.8,range:0,damage:0,time:4,supply:1,vision:5},
@@ -36,32 +36,44 @@ function create({practice=false,difficulty='normal',learning=false}={}){
  const s={version:VERSION,tick:0,time:0,next:1,ended:false,winner:null,reason:'',practice,learning:practice&&learning===true,difficulty,botAttackAt:0,entities:[],crystals:[],rocks:[],events:[],visualEvents:[],fxNext:1,players:[0,1].map(()=>({crystals:250,upgrade:0,armor:0,alerts:{},kills:0,mined:0,knownCrystals:{},seen:Array(SIZE*SIZE).fill(0)})),botAt:3};
  const fields=[{name:'Home field',points:[[3,6],[5,3],[3,3],[2,5],[2,7],[4,2]],left:2400},
   {name:'Near expansion',points:[[16,7],[16,9],[15,5],[17,6],[17,8],[17,10]],left:2400},
-  {name:'Outer expansion',points:[[12,26],[12,28],[11,24],[13,25],[13,27],[13,29]],left:2400}];
- for(const f of fields)for(const side of [0,1])for(const [x,y]of f.points){s.crystals.push({id:s.next++,x:side?39-x:x,y:side?39-y:y,left:f.left,initial:f.left,rich:false,field:f.name+' '+side})}
- for(const [x,y]of [[19,20],[20,19]])s.crystals.push({id:s.next++,x,y,left:3600,initial:3600,rich:true,field:'Central rich field'});
- for(const [x,y]of [[12,12],[13,12],[12,13],[15,18],[15,19],[18,14],[19,14],[9,23],[10,23]]){s.rocks.push({x,y});s.rocks.push({x:39-x,y:39-y})}
- for(const side of[0,1]){const p=side?33:6;makeEntity(s,'base',side,p,p);for(let j=0;j<4;j++)makeEntity(s,'worker',side,p+(j%2)*.7-1,p+Math.floor(j/2)*.7+2)}
+  {name:'Outer expansion',points:[[12,26],[12,28],[11,24],[13,25],[13,27],[13,29]],left:2400},
+  {name:'Ridge expansion',points:[[27,12],[29,12],[25,11],[26,13],[28,13],[30,13]],left:2800},
+  {name:'Frontier field',points:[[9,43],[10,45],[8,45],[9,47],[11,44],[11,46]],left:2800}];
+ for(const f of fields)for(const side of [0,1])for(const [x,y]of f.points){s.crystals.push({id:s.next++,x:side?SIZE-1-x:x,y:side?SIZE-1-y:y,left:f.left,initial:f.left,rich:false,field:f.name+' '+side})}
+ for(const [x,y]of [[31,32],[32,31],[30,31],[33,32]])s.crystals.push({id:s.next++,x,y,left:3600,initial:3600,rich:true,field:'Central rich field'});
+ for(const [x,y]of [[12,12],[13,12],[12,13],[15,18],[15,19],[18,14],[19,14],[9,23],[10,23]]){s.rocks.push({x,y});s.rocks.push({x:SIZE-1-x,y:SIZE-1-y})}
+ // Mirrored broken ridges leave multiple wide routes between the bases.
+ for(const [cx,cy]of [[23,21],[24,35],[19,43],[37,12]])for(const [dx,dy]of [[0,0],[1,0],[2,0],[2,1],[3,1]]){const x=cx+dx,y=cy+dy;s.rocks.push({x,y},{x:SIZE-1-x,y:SIZE-1-y})}
+ for(const side of[0,1]){const p=side?SIZE-7:6;makeEntity(s,'base',side,p,p);for(let j=0;j<4;j++)makeEntity(s,'worker',side,p+(j%2)*.7-1,p+Math.floor(j/2)*.7+2)}
  if(s.learning){s.entities=s.entities.filter(e=>e.side===0||e.type==='base');const target=s.entities.find(e=>e.side===1);target.x=20;target.y=6;target.hp=target.maxHp=350;}
  vision(s);return s;
 }
 function blocked(s,x,y){return x<0||y<0||x>=SIZE||y>=SIZE||s.rocks.some(r=>r.x===x&&r.y===y)}
 function path(s,a,b){
- const sx=clamp(Math.floor(a.x),0,39),sy=clamp(Math.floor(a.y),0,39),tx=clamp(Math.floor(b.x),0,39),ty=clamp(Math.floor(b.y),0,39);
+ const sx=clamp(Math.floor(a.x),0,SIZE-1),sy=clamp(Math.floor(a.y),0,SIZE-1),tx=clamp(Math.floor(b.x),0,SIZE-1),ty=clamp(Math.floor(b.y),0,SIZE-1);
  if(blocked(s,tx,ty))return [];
- const start=key(sx,sy),end=key(tx,ty);const open=[start],prev=new Map(),g=new Map([[start,0]]),f=new Map([[start,Math.abs(tx-sx)+Math.abs(ty-sy)]]),closed=new Set();
- while(open.length){open.sort((a,b)=>f.get(a)-f.get(b));const n=open.shift();if(n===end){const out=[{x:b.x,y:b.y}];let at=n;while(at!==start){out.unshift({x:at%SIZE+.5,y:Math.floor(at/SIZE)+.5});at=prev.get(at)}return out}closed.add(n);const x=n%SIZE,y=Math.floor(n/SIZE);
- for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=key(nx,ny);if(blocked(s,nx,ny)||closed.has(k))continue;const score=g.get(n)+1;if(score<(g.get(k)??Infinity)){prev.set(k,n);g.set(k,score);f.set(k,score+Math.abs(nx-tx)+Math.abs(ny-ty));if(!open.includes(k))open.push(k)}}}
+ const start=key(sx,sy),end=key(tx,ty),prev=new Map(),g=new Map([[start,0]]),closed=new Set(),open=[];
+ const rocks=new Set(s.rocks.map(r=>key(r.x,r.y)));let serial=0;
+ const less=(a,b)=>a.f<b.f||a.f===b.f&&(a.h<b.h||a.h===b.h&&a.serial<b.serial);
+ const push=(n,cost,h)=>{const item={n,cost,h,f:cost+h,serial:serial++};let i=open.length;open.push(item);while(i){const p=(i-1)>>1;if(!less(item,open[p]))break;open[i]=open[p];i=p}open[i]=item};
+ const pop=()=>{const result=open[0],last=open.pop();if(open.length){let i=0;while(i*2+1<open.length){let j=i*2+1;if(j+1<open.length&&less(open[j+1],open[j]))j++;if(!less(open[j],last))break;open[i]=open[j];i=j}open[i]=last}return result};
+ push(start,0,Math.abs(tx-sx)+Math.abs(ty-sy));
+ while(open.length){const item=pop(),n=item.n;if(closed.has(n)||item.cost!==g.get(n))continue;
+  if(n===end){const out=[{x:b.x,y:b.y}];let at=n;while(at!==start){out.unshift({x:at%SIZE+.5,y:Math.floor(at/SIZE)+.5});at=prev.get(at)}return out}
+  closed.add(n);const x=n%SIZE,y=Math.floor(n/SIZE);
+  for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=key(nx,ny);if(nx<0||ny<0||nx>=SIZE||ny>=SIZE||rocks.has(k)||closed.has(k))continue;const score=item.cost+1;if(score<(g.get(k)??Infinity)){prev.set(k,n);g.set(k,score);push(k,score,Math.abs(nx-tx)+Math.abs(ny-ty))}}
+ }
  return [];
 }
 function move(s,e,target,dt){if(TYPES[e.type].flying){e.path=[];const d=dist(e,target),budget=TYPES[e.type].speed*dt;if(d<=budget){e.x=target.x;e.y=target.y;return true}e.x+=(target.x-e.x)/d*budget;e.y+=(target.y-e.y)/d*budget;return false}if(!e.path.length||dist(e.path[e.path.length-1],target)>.7)e.path=path(s,e,target);if(!e.path.length)return false;let budget=TYPES[e.type].speed*dt;while(e.path.length&&budget>0){const p=e.path[0],d=dist(e,p);if(d<=budget){e.x=p.x;e.y=p.y;budget-=d;e.path.shift()}else{e.x+=(p.x-e.x)/d*budget;e.y+=(p.y-e.y)/d*budget;budget=0}}return dist(e,target)<.65}
 function supply(s,side){const list=s.entities.filter(e=>e.side===side&&e.hp>0);return{used:list.reduce((n,e)=>n+(TYPES[e.type].supply||0)+e.queue.reduce((q,k)=>q+(TYPES[k].supply||0),0),0),cap:list.filter(e=>!e.build).reduce((n,e)=>n+(e.type==='base'?16:e.type==='relay'?12:0),0)}}
 function vision(s){s.visible=[new Uint8Array(SIZE*SIZE),new Uint8Array(SIZE*SIZE)];for(const e of s.entities){if(e.hp<=0)continue;const r=TYPES[e.type].vision||5;for(let y=Math.max(0,Math.floor(e.y-r));y<Math.min(SIZE,e.y+r+1);y++)for(let x=Math.max(0,Math.floor(e.x-r));x<Math.min(SIZE,e.x+r+1);x++)if(Math.hypot(x+.5-e.x,y+.5-e.y)<=r){s.visible[e.side][key(x,y)]=1;s.players[e.side].seen[key(x,y)]=1}}for(const side of [0,1])for(const n of s.crystals)if(canSee(s,side,n))s.players[side].knownCrystals[n.id]={...n}}
-function canSee(s,side,e){return!!s.visible[side]?.[key(clamp(Math.floor(e.x),0,39),clamp(Math.floor(e.y),0,39))]}
+function canSee(s,side,e){return!!s.visible[side]?.[key(clamp(Math.floor(e.x),0,SIZE-1),clamp(Math.floor(e.y),0,SIZE-1))]}
 // The client preview uses its fog-filtered view; the host checks full state again.
 function placement(s,side,kind,rawX,rawY){
  const d=Object.hasOwn(TYPES,kind)?TYPES[kind]:null;
  if(!d||unit(kind)||!Number.isFinite(rawX)||!Number.isFinite(rawY))return{ok:false,message:'Invalid building'};
- const x=clamp(rawX,1.5,37.5),y=clamp(rawY,1.5,37.5),at={x,y},fail=message=>({ok:false,message,x,y});
+ const x=clamp(rawX,1.5,SIZE-2.5),y=clamp(rawY,1.5,SIZE-2.5),at={x,y},fail=message=>({ok:false,message,x,y});
  const own=s.entities.filter(e=>e.side===side&&e.hp>0),visible=s.player?s.visible:s.visible[side],player=s.player||s.players[side];
  const locked=unlockMessage(s.entities,side,kind);if(locked)return fail(locked);
  if(!visible[key(Math.floor(x),Math.floor(y))])return fail('Scout this location first');
@@ -102,11 +114,11 @@ function command(s,side,c){
  }
  if(['move','attack','mine','stop'].includes(c.type)){
   if(!Array.isArray(c.ids)||c.ids.length>80)return{ok:false,message:'Select a squad'};const ids=new Set(c.ids),selected=own.filter(e=>ids.has(e.id)&&unit(e.type));if(!selected.length)return{ok:false,message:'Select a squad'};
-  if(c.type!=='stop'&&(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=40||c.y<0||c.y>=40))return{ok:false,message:'Choose a point on the map'};
+  if(c.type!=='stop'&&(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=SIZE||c.y<0||c.y>=SIZE))return{ok:false,message:'Choose a point on the map'};
   const crystal=c.type==='mine'?s.crystals.find(n=>n.id===c.target&&n.left>0&&canSee(s,side,n)):null;if(c.type==='mine'&&!crystal)return{ok:false,message:'Choose a visible crystal field'};
   const target=c.type==='attack'&&c.target!==undefined?s.entities.find(e=>e.id===c.target&&e.side!==side&&e.hp>0&&canSee(s,side,e)):null;if(c.type==='attack'&&c.target!==undefined&&!target)return{ok:false,message:'Choose a visible enemy'};
   if(target&&!selected.some(e=>canTarget(e,target)))return{ok:false,message:TYPES[target.type].flying?'Selected troops cannot attack air':'Selected troops cannot attack this target'};
-  selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){x=clamp(x+((i%5)-2)*.5,0,39.9);y=clamp(y+(Math.floor(i/5)%5-2)*.5,0,39.9)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
+  selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){x=clamp(x+((i%5)-2)*.5,0,SIZE-.1);y=clamp(y+(Math.floor(i/5)%5-2)*.5,0,SIZE-.1)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
  }
  return{ok:false,message:'Unknown order'};
 }
@@ -132,25 +144,26 @@ function bot(s){
  if(!s.practice||s.learning||s.time<s.botAt)return;const level=DIFFICULTIES[s.difficulty];s.botAt=s.time+level.pace;
  const own=s.entities.filter(e=>e.side===1&&e.hp>0),base=own.find(e=>e.type==='base'&&!e.build),factory=own.find(e=>e.type==='factory'&&!e.build),p=s.players[1];if(!base)return;
  const armySize=()=>own.filter(e=>unit(e.type)&&e.type!=='worker').length+own.reduce((n,e)=>n+e.queue.filter(k=>k!=='worker').length,0);
- const tryBuild=(kind,sites)=>{for(const [x,y]of sites)if(command(s,1,{type:'build',kind,x,y}).ok)break};
+ const offset=SIZE-40;
+ const tryBuild=(kind,sites)=>{for(const [x,y]of sites)if(command(s,1,{type:'build',kind,x:x+offset,y:y+offset}).ok)break};
  const miners=own.filter(e=>e.type==='worker').length;
  if(miners<level.workers)command(s,1,{type:'train',id:base.id,kind:'worker'});
- if(!own.some(e=>e.type==='factory'))command(s,1,{type:'build',kind:'factory',x:30,y:32});
- if(factory){if(armySize()<level.armyCap-(s.difficulty==='easy'?2:0))command(s,1,{type:'train',id:factory.id,kind:own.some(e=>e.type==='lab'&&!e.build)&&own.filter(e=>e.type==='siege').length<3?'siege':'laser'});if(s.time>level.techAt&&!own.some(e=>e.type==='lab'))command(s,1,{type:'build',kind:'lab',x:32,y:30})}
+ if(!own.some(e=>e.type==='factory'))command(s,1,{type:'build',kind:'factory',x:30+offset,y:32+offset});
+ if(factory){if(armySize()<level.armyCap-(s.difficulty==='easy'?2:0))command(s,1,{type:'train',id:factory.id,kind:own.some(e=>e.type==='lab'&&!e.build)&&own.filter(e=>e.type==='siege').length<3?'siege':'laser'});if(s.time>level.techAt&&!own.some(e=>e.type==='lab'))command(s,1,{type:'build',kind:'lab',x:32+offset,y:30+offset})}
  if(s.time>level.techAt+45){if(!own.some(e=>e.type==='armory'))tryBuild('armory',[[29,29],[26,29],[29,26]]);if(!own.some(e=>e.type==='starport'))tryBuild('starport',[[35,30],[36,27],[30,27]]);if(!own.some(e=>e.type==='flak'))tryBuild('flak',[[31,36],[29,37],[31,27]]);
   const hangar=own.find(e=>e.type==='starport'&&!e.build),air=own.filter(e=>TYPES[e.type].flying).length;if(hangar&&air+hangar.queue.length<(s.difficulty==='easy'?2:6)&&armySize()<level.armyCap)command(s,1,{type:'train',id:hangar.id,kind:air%3===2?'bomber':'interceptor'});
   if(s.difficulty!=='easy'&&factory&&own.some(e=>e.type==='armory'&&!e.build)&&own.filter(e=>e.type==='guardian').length<2&&armySize()<level.armyCap)command(s,1,{type:'train',id:factory.id,kind:'guardian'});
  }
- const pop=supply(s,1);if(pop.cap-pop.used<5){for(const [x,y]of [[29,35],[26,33],[33,27],[28,28],[36,30],[36,35]]){if(command(s,1,{type:'build',kind:'relay',x,y}).ok)break}}
+ const pop=supply(s,1);if(pop.cap-pop.used<5){for(const [x,y]of [[29,35],[26,33],[33,27],[28,28],[36,30],[36,35]]){if(command(s,1,{type:'build',kind:'relay',x:x+offset,y:y+offset}).ok)break}}
  const army=own.filter(e=>unit(e.type)&&e.type!=='worker');if(s.time>level.attackAt&&s.time>=s.botAttackAt&&army.length>=level.force){s.botAttackAt=s.time+level.wave;const target=s.entities.filter(e=>e.side===0&&e.type==='base')[0]||{x:6,y:6};command(s,1,{type:'attack',ids:(s.difficulty==='easy'?army.slice(0,3):army).map(e=>e.id),x:target.x,y:target.y})}
  if(p.crystals>550&&own.some(e=>e.type==='lab'&&!e.build)){if(p.upgrade<3)command(s,1,{type:'upgrade',kind:'weapons'});else if(p.armor<3)command(s,1,{type:'upgrade',kind:'armor'})}
- if(s.time>110&&p.crystals>600&&!own.some(e=>e.type==='base'&&e.x<30)){const worker=own.find(e=>e.type==='worker');if(worker){const at={x:26,y:30};if(dist(worker,at)>2)command(s,1,{type:'move',ids:[worker.id],...at});else command(s,1,{type:'build',kind:'base',...at})}}
+ if(s.time>110&&p.crystals>600&&!own.some(e=>e.type==='base'&&e.x<30+offset)){const worker=own.find(e=>e.type==='worker');if(worker){const at={x:26+offset,y:30+offset};if(dist(worker,at)>2)command(s,1,{type:'move',ids:[worker.id],...at});else command(s,1,{type:'build',kind:'base',...at})}}
 }
 function tick(s,dt=STEP){
  if(s.ended)return;dt=clamp(dt,0,.1);s.time+=dt;s.tick++;s.events=[];s.harvesting=new Set();vision(s);bot(s);
  for(const e of s.entities){if(e.hp<=0)continue;if(e.build>0){e.build=Math.max(0,e.build-dt);continue}
   if(e.research){e.research.remaining=Math.max(0,e.research.remaining-dt);if(!e.research.remaining){const r=e.research;s.players[e.side][r.kind==='weapons'?'upgrade':'armor']=r.level;e.research=null;s.events.push({type:'researched',side:e.side,x:e.x,y:e.y,kind:r.kind})}}
-  if(e.queue.length){e.progress+=dt;const k=e.queue[0];if(e.progress>=TYPES[k].time){e.progress=0;e.queue.shift();const born=makeEntity(s,k,e.side,clamp(e.x+1.7,0,39),clamp(e.y+1.7,0,39));if(e.rally){const n=k==='worker'?s.crystals.find(n=>n.id===e.rally.target&&n.left>0):null;born.order=n?{type:'mine',x:n.x,y:n.y,target:n.id}:{type:'move',x:e.rally.x,y:e.rally.y}}s.events.push({type:'trained',side:e.side,x:e.x,y:e.y})}}
+  if(e.queue.length){e.progress+=dt;const k=e.queue[0];if(e.progress>=TYPES[k].time){e.progress=0;e.queue.shift();const born=makeEntity(s,k,e.side,clamp(e.x+1.7,0,SIZE-1),clamp(e.y+1.7,0,SIZE-1));if(e.rally){const n=k==='worker'?s.crystals.find(n=>n.id===e.rally.target&&n.left>0):null;born.order=n?{type:'mine',x:n.x,y:n.y,target:n.id}:{type:'move',x:e.rally.x,y:e.rally.y}}s.events.push({type:'trained',side:e.side,x:e.x,y:e.y})}}
   if(e.type==='worker'){if(!e.order||e.order.type==='mine')harvest(s,e,dt);else if(e.order.type==='move'||e.order.type==='attack'){if(move(s,e,e.order,dt)){e.order=null;e.path=[]}}continue}
   const d=TYPES[e.type];e.cool=Math.max(0,e.cool-dt);
   if(d.heal){
