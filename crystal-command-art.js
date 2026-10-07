@@ -1,12 +1,12 @@
 (() => { 'use strict';
 // Procedural art stays crisp at every phone resolution without downloading textures.
 function create(ctx,point,box,line,poly,tile){
- let glowBudget=0;const beginFrame=()=>{glowBudget=32};
+ let glowBudget=0,simple=false;const beginFrame=(crowded=false)=>{simple=crowded;glowBudget=simple?12:32};
  const tones=new Map();
  function tint(color,amount){const key=color+':'+amount;if(tones.has(key))return tones.get(key);const n=parseInt(color.slice(1,7),16),v=[n>>16,(n>>8)&255,n&255].map(k=>Math.round(amount>0?k+(255-k)*amount:k*(1+amount)));const result='#'+v.map(k=>Math.max(0,Math.min(255,k)).toString(16).padStart(2,'0')).join('');tones.set(key,result);return result}
- function metal(points,color,top=false){const xs=points.map(p=>p.x),ys=points.map(p=>p.y),g=ctx.createLinearGradient(Math.min(...xs),Math.min(...ys),Math.max(...xs)+1,Math.max(...ys)+1);g.addColorStop(0,tint(color,top?.38:.15));g.addColorStop(.42,color);g.addColorStop(1,tint(color,top?-.18:-.32));poly(points,g,top?'#d2e8f077':'#64859b44')}
+ function metal(points,color,top=false){if(simple){poly(points,color,top?'#d2e8f055':'#64859b33');return}const xs=points.map(p=>p.x),ys=points.map(p=>p.y),g=ctx.createLinearGradient(Math.min(...xs),Math.min(...ys),Math.max(...xs)+1,Math.max(...ys)+1);g.addColorStop(0,tint(color,top?.38:.15));g.addColorStop(.42,color);g.addColorStop(1,tint(color,top?-.18:-.32));poly(points,g,top?'#d2e8f077':'#64859b44')}
  function aura(p,c,rx,ry,power=.22){if(rx<=0||ry<=0)return;ctx.save();ctx.translate(p.x,p.y);ctx.scale(rx,ry);const g=ctx.createRadialGradient(-.15,-.1,0,0,0,1);g.addColorStop(0,c+'88');g.addColorStop(.35,c+'44');g.addColorStop(1,c+'00');ctx.globalAlpha*=power;ctx.fillStyle=g;ctx.fillRect(-1,-1,2,2);ctx.restore()}
- function sphere(p,rx,ry,color){ctx.save();const g=ctx.createRadialGradient(p.x-rx*.35,p.y-ry*.4,1,p.x,p.y,Math.max(rx,ry));g.addColorStop(0,tint(color,.65));g.addColorStop(.36,tint(color,.18));g.addColorStop(1,tint(color,-.65));ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(p.x,p.y,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d8f4ff55';ctx.lineWidth=.7;ctx.stroke();ctx.restore()}
+ function sphere(p,rx,ry,color){if(simple){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(p.x,p.y,rx,ry,0,0,Math.PI*2);ctx.fill();return}ctx.save();const g=ctx.createRadialGradient(p.x-rx*.35,p.y-ry*.4,1,p.x,p.y,Math.max(rx,ry));g.addColorStop(0,tint(color,.65));g.addColorStop(.36,tint(color,.18));g.addColorStop(1,tint(color,-.65));ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(p.x,p.y,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d8f4ff55';ctx.lineWidth=.7;ctx.stroke();ctx.restore()}
 
  const ring=(p,x,y,c,w=1)=>{ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.ellipse(p.x,p.y,x,y,0,0,Math.PI*2);ctx.stroke()};
  const light=(p,c,r=2)=>{if(r<=0)return;ctx.save();if(glowBudget-->0)aura(p,c,r*4,r*4,.65);ctx.fillStyle=c;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.restore()};
