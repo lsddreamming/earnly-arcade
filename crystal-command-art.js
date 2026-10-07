@@ -106,6 +106,9 @@ function create(ctx,point,box,line,poly,tile){
    const medic=o.type==='medic',guard=o.type==='guardian',raider=o.type==='raider',accent=medic?'#80ffc2':raider?'#ffcf75':c;
    const shell=medic?'#d6e5df':guard?'#a2acb8':raider?'#45647d':'#92b7c8',dark=raider?'#142538':'#2b455b',width=guard?.27:raider?.18:.23;
    const P=(f,w,z)=>point(o.x+dx*f-dy*w,o.y+dy*f+dx*w,z);
+   // Rear equipment is drawn first so it cannot obscure the faceplate.
+   if(medic){for(const side of [-1,1])line(P(-.23,side*.12,.36),P(-.23,side*.12,.64),'#94c6b7',4);}
+   else if(!guard&&!raider)poly([P(-.18,-.13,.3),P(-.18,.13,.3),P(-.18,.13,.56),P(-.18,-.13,.56)],'#284f68','#82adbd');
    // Jointed legs, armored shins and broad feet give the robot a readable stance.
    for(const side of [-1,1]){const gait=step*side,w=side*(guard?.22:.16),hip=P(-.03,w,.35),knee=P(.02+gait,w,.2),ankle=P(-gait*.5,w,.065);
     line(hip,knee,'#101e2c',5);line(hip,knee,shell,2.8);line(knee,ankle,dark,4);line(knee,ankle,'#9cbecb',1);
@@ -126,7 +129,7 @@ function create(ctx,point,box,line,poly,tile){
    if(medic){
     // White rescue chassis, a green medical insignia and twin treatment tanks.
     line(P(.214,-.1,.455),P(.214,.1,.455),'#35a66f',2.3);line(P(.214,0,.385),P(.214,0,.535),'#35a66f',2.3);
-    for(const side of [-1,1])line(P(-.23,side*.12,.36),P(-.23,side*.12,.64),'#94c6b7',4);
+
     line(P(.2,.3,.39),P(.43,.3,.44),'#c7efe2',2.8);light(P(.43,.3,.44),accent,1.4);
    }else if(guard){
     // Four clearly separated missile tips make the anti-air walker distinctive.
@@ -137,7 +140,7 @@ function create(ctx,point,box,line,poly,tile){
     line(P(.1,w,z+.035),P(muzzle,w,z+.035),'#122536',4);line(P(.18,w,z+.055),P(muzzle,w,z+.055),'#b2d2df',1.7);light(P(muzzle,w,z+.055),accent,1.2);
     line(P(.32,w,z+.02),P(.29,w,z-.11),dark,3);line(P(.22,w,z+.11),P(.35,w,z+.11),accent,1.2);
     if(raider){for(const side of [-1,1])poly([P(-.23,side*.19,.52),P(-.39,side*.25,.75),P(-.19,side*.25,.67)],'#345873','#ffd184');}
-    else {poly([P(-.18,-.13,.3),P(-.18,.13,.3),P(-.18,.13,.56),P(-.18,-.13,.56)],'#284f68','#82adbd');}
+
    }
   }else{
    for(const dx of [-.38,.38]){raised(o.x+dx,o.y,.23,.19,'#405a70');for(let j=0;j<4;j++)line(point(o.x+dx-.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),point(o.x+dx+.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),'#8b9eaf',1.5)}
