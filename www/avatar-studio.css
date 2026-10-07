@@ -692,11 +692,11 @@ input {
 .stage .character { min-height:0; min-width:0; }
 .stage:after { bottom:3px; height:18px; }
 .player-link .character { border:1px solid var(--rarity); border-radius:12px; background:#172b40; overflow:hidden; }
-.player-link .character img { border:0; border-radius:0; width:100%; height:100%; }
+.player-link .character img { border:0; border-radius:0; width:100%; height:100%; background:transparent; object-fit:contain; object-position:center; }
 .shop-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
 .shop-tabs button { min-width:0; padding:11px 5px; }
 .item-art { overflow:hidden; }
-.item-art .character { max-width:none; }
+.item-art .character { max-width:none; min-height:0; min-width:0; }
 .preview-item { background:transparent; border:1px solid #476580; color:#b7dbe7; margin:0 0 8px; width:100%; }
 .free-filter { display:flex; align-items:center; gap:9px; margin:16px 0 8px; cursor:pointer; color:#d4e8ee; }
 .free-filter input { width:18px; height:18px; margin:0; accent-color:#68e6dc; }

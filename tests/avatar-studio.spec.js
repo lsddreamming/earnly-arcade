@@ -91,3 +91,16 @@ test('Guests can try on accessories without signing in or buying',async({page})=
   await setup(page,{signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');
   await page.getByRole('button',{name:'Beards',exact:true}).click();await page.getByRole('button',{name:'Preview Short Beard',exact:true}).click();await expect(page.locator('#character-stage img[alt="Short Beard"]')).toBeVisible();await expect(page.locator('#auth-modal')).not.toBeVisible();
 });
+
+// Blank accessory layers must remain transparent, and the full rig must fit cards.
+test('Layered leaderboard portraits stay visible and shop cards contain the whole character',async({page})=>{
+  await setup(page);await page.goto('/avatars.html');
+  await expect(page.locator('#leaderboard-body .character img')).toHaveCount(7);
+  const portrait=await page.locator('#leaderboard-body .character img').evaluateAll(imgs=>imgs.map(img=>({background:getComputedStyle(img).backgroundColor,fit:getComputedStyle(img).objectFit})));
+  for(const layer of portrait){expect(layer.background).toBe('rgba(0, 0, 0, 0)');expect(layer.fit).toBe('contain');}
+  for(const tab of ['Avatars','Outfits','Shoes','Beards']){
+    await page.getByRole('button',{name:tab,exact:true}).click();
+    const bounds=await page.locator('.item-art .character').evaluateAll(chars=>chars.map(c=>{const a=c.parentElement.getBoundingClientRect(),r=c.getBoundingClientRect();return {inside:r.top>=a.top-.5&&r.bottom<=a.bottom+.5&&r.left>=a.left-.5&&r.right<=a.right+.5};}));
+    expect(bounds.length).toBeGreaterThan(0);for(const box of bounds)expect(box.inside).toBeTruthy();
+  }
+});
