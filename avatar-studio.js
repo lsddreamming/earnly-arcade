@@ -12,10 +12,14 @@
     profileSequence: 0,
     refreshSequence: 0,
     authEpoch: 0,
+    preview: {},
+    freeOnly: false,
   };
   const apiBase = window.EARNLY_AVATAR_API || "";
   const fmt = (value) => BigInt(value ?? 0).toLocaleString();
-  const prettySlot = { avatar: "Avatar", outfit: "Outfit", weapon: "Weapon" };
+  const slots = ["avatar", "outfit", "shoes", "backpack", "face", "beard", "weapon"];
+  const layers = ["backpack", "avatar", "outfit", "shoes", "face", "beard", "weapon"];
+  const prettySlot = { avatar: "Avatar", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", weapon: "Weapon" };
   function el(tag, classes, text) {
     const node = document.createElement(tag);
     if (classes) node.className = classes;
@@ -34,21 +38,21 @@
   }
   function starterLoadout() {
     return Object.fromEntries(
-      ["avatar", "outfit", "weapon"].map((slot) => [
+      slots.map((slot) => [
         slot,
-        state.items.find((i) => i.slot === slot && i.coinPrice === 0),
+        state.items.find((i) => i.slot === slot && i.isStarter) || state.items.find((i) => i.slot === slot && i.coinPrice === 0),
       ]),
     );
   }
   function character(equipped) {
     const root = el("div", "character");
-    for (const slot of ["avatar", "outfit", "weapon"])
+    for (const slot of layers)
       if (equipped[slot]) root.append(image(equipped[slot]));
     return root;
   }
   function summary(root, equipped) {
     root.replaceChildren();
-    for (const slot of ["avatar", "outfit", "weapon"]) {
+    for (const slot of slots) {
       const row = el("div");
       row.append(
         el("dt", "", prettySlot[slot]),
@@ -88,11 +92,12 @@
   }
   function renderUser() {
     const user = state.user,
-      equipped = user?.equipped || starterLoadout();
+      saved = user?.equipped || starterLoadout(),
+      equipped = { ...saved, ...state.preview };
     $("coin-balance").textContent = user ? fmt(user.coins) : "—";
     $("nav-name").textContent = user ? "@" + user.username : "Guest";
     if (equipped.avatar) {
-      $("nav-avatar").src = image(equipped.avatar).src;
+      $("nav-avatar").replaceChildren(character(saved));
       $("character-name").textContent = equipped.avatar.name;
       $("character-rarity").textContent = equipped.avatar.rarity;
       $("character-rarity").className = "badge " + equipped.avatar.rarity;
@@ -102,6 +107,8 @@
       ? "@" + user.username
       : "Sign in to save your look";
     summary($("loadout-summary"), equipped);
+    $("preview-note").textContent = Object.keys(state.preview).length ? "Preview only · your saved look is unchanged" : "Your saved look";
+    $("reset-preview").hidden = !Object.keys(state.preview).length;
     $("my-profile").disabled = !user;
     $("view-profile").disabled = !user;
     $("auth-button").textContent = user ? "Sign out" : "Sign in";
@@ -110,14 +117,14 @@
   }
   function renderShop() {
     $("shop-grid").replaceChildren();
-    for (const item of state.items.filter((i) => i.slot === state.slot)) {
+    for (const item of state.items.filter((i) => i.slot === state.slot && (!state.freeOnly || i.coinPrice === 0))) {
       const owned = state.user?.inventory.includes(item.id),
         equipped = state.user?.equipped[item.slot]?.id === item.id;
       const card = el("article", "item-card " + item.rarity),
         art = el("div", "item-art");
       art.append(
-        image(item),
-        el("span", "badge " + item.rarity, item.rarity.toUpperCase()),
+        character({ ...starterLoadout(), [item.slot]: item }),
+        el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
       );
       const button = el(
         "button",
@@ -127,7 +134,7 @@
           : owned
             ? "Equip"
             : item.coinPrice === 0
-              ? "Free starter"
+              ? "Free · use"
               : "◈ " + fmt(item.coinPrice) + " · Buy",
       );
       button.type = "button";
@@ -148,7 +155,7 @@
         }
         state.pending = { item, key: crypto.randomUUID() };
         $("purchase-title").textContent = "Unlock " + item.name + "?";
-        $("purchase-preview").replaceChildren(image(item));
+        $("purchase-preview").replaceChildren(character({ ...state.user.equipped, [item.slot]: item }));
         $("purchase-price").textContent =
           fmt(item.coinPrice) +
           " Arcade Coins · Balance: " +
@@ -156,10 +163,15 @@
         $("purchase-error").textContent = "";
         $("purchase-modal").showModal();
       });
+      const preview = el("button", "preview-item", "Try on");
+      preview.type = "button";
+      preview.setAttribute("aria-label", "Preview " + item.name);
+      preview.addEventListener("click", () => { state.preview[item.slot] = item; renderUser(); $("character-stage").scrollIntoView({ block: "nearest", behavior: "smooth" }); });
       card.append(
         art,
         el("h3", "", item.name),
         el("p", "", prettySlot[item.slot] + " · " + item.rarity),
+        preview,
         button,
       );
       $("shop-grid").append(card);
@@ -177,7 +189,7 @@
       button.type = "button";
       button.setAttribute("aria-label", "@" + player.username);
       button.append(
-        image(player.equippedAvatar),
+        character(player.equipped),
         el("span", "", "@" + player.username),
       );
       button.addEventListener("click", () => openProfile(player.username));
@@ -213,6 +225,7 @@
   }
   function applyUser(user) {
     state.user = user;
+    state.preview = {};
     renderUser();
     // Optional bridge for the existing Earnly frontend's Coin display.
     window.Arcade?.applyServerWallet?.({
@@ -303,6 +316,8 @@
       status(error.message, true);
     }
   }
+  $("free-only").addEventListener("change", (event) => { state.freeOnly = event.target.checked; renderShop(); });
+  $("reset-preview").addEventListener("click", () => { state.preview = {}; renderUser(); });
   for (const button of document.querySelectorAll("[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
@@ -418,6 +433,7 @@
           ++state.authEpoch;
           ++state.refreshSequence;
           state.user = null;
+          state.preview = {};
           state.pending = null;
           renderUser();
           $("purchase-modal").close();

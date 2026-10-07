@@ -2,7 +2,9 @@ const {test,expect}=require('@playwright/test');
 const API='https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api';
 const item=(id,name,slot,price,rarity)=>({id,name,slot,coinPrice:price,rarity,imageUrl:'cosmetic-'+id+'.svg'});
 const items=[item('cyber-starter','Cyber Starter','avatar',0,'common'),item('neon-phantom','Neon Phantom','avatar',250,'rare'),item('astra-prime','Astra Prime','avatar',1000,'legendary'),item('starter-suit','Pilot Suit','outfit',0,'common'),item('neon-jacket','Neon Jacket','outfit',300,'rare'),item('starter-blaster','Training Blaster','weapon',0,'common'),item('pulse-blade','Pulse Blade','weapon',400,'rare')];
-function player(){return {username:'PlayerOne',coins:'1250',lifetimeEarned:'1250',inventory:['cyber-starter','starter-suit','starter-blaster'],equipped:{avatar:items[0],outfit:items[3],weapon:items[5]},equippedAvatarId:'cyber-starter',totalSkinsUnlocked:1};}
+items.push(item('trail-boots','Trail Boots','shoes',0,'common'),item('canvas-shoes','Canvas Sneakers','shoes',0,'common'),item('neon-kicks','Neon Kicks','shoes',300,'rare'),item('no-backpack','No Backpack','backpack',0,'common'),item('canvas-pack','Canvas Backpack','backpack',0,'common'),item('no-beard','Clean Shaven','beard',0,'common'),item('short-beard','Short Beard','beard',0,'common'),item('explorer-beard','Explorer Beard','beard',0,'common'),item('no-facewear','No Facewear','face',0,'common'),item('round-glasses','Round Glasses','face',0,'common'),item('sport-shades','Sport Shades','face',0,'common'));
+for (const id of ['cyber-starter','starter-suit','starter-blaster','trail-boots','no-backpack','no-beard','no-facewear'])items.find(i=>i.id===id).isStarter=true;
+function player(){return {username:'PlayerOne',coins:'1250',lifetimeEarned:'1250',inventory:items.filter(i=>i.coinPrice===0).map(i=>i.id),equipped:Object.fromEntries(items.filter(i=>i.isStarter).map(i=>[i.slot,i])),equippedAvatarId:'cyber-starter',totalSkinsUnlocked:1};}
 function profile(user){return {username:user.username,rank:'2',highScore:'120',gamesPlayed:8,totalSkinsUnlocked:user.totalSkinsUnlocked,game:'snake',equipped:user.equipped,equippedAvatar:user.equipped.avatar};}
 async function setup(page,{signedIn=true,insufficient=false,networkRetry=false}={}){
   let user=player(),buys=0,keys=[];
@@ -58,8 +60,34 @@ test('Guests browse but sign in before attempting purchases',async({page})=>{
   await setup(page,{signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();await expect(page.locator('#auth-modal')).toBeVisible();await expect(page.locator('#coin-balance')).toHaveText('—');
 });
 test('Existing Profile links to the studio and displays the saved character',async({page})=>{
-  await setup(page);await page.goto('/profile.html');await expect(page.getByRole('link',{name:/Character Studio/})).toHaveAttribute('href','avatars.html');await expect(page.locator('#profileAvatar img')).toHaveAttribute('src',/cosmetic-cyber-starter.svg$/);
+  await setup(page);await page.goto('/profile.html');await expect(page.getByRole('link',{name:/Character Studio/})).toHaveAttribute('href','avatars.html');await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cosmetic-cyber-starter.svg$/);
 });
 test('Existing World Ranks opens a cosmetic player card from avatar and username',async({page})=>{
   await setup(page);await page.goto('/leaderboards.html');await page.locator('.leader-avatar[data-username="PlayerOne"]').click();await expect(page.locator('.cosmetic-player-dialog')).toBeVisible();await expect(page.locator('#cosmetic-player-name')).toHaveText('@PlayerOne');await page.keyboard.press('Escape');await page.locator('.leader-profile-link[data-username="PlayerOne"]').click();await expect(page.locator('.cosmetic-player-dialog')).toBeVisible();
+});
+
+test('Free beards, shoes, backpacks and glasses save independently without spending Coins',async({page})=>{
+  test.setTimeout(60000);
+  const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
+  for (const [tab,name,slot] of [['Beards','Explorer Beard','beard'],['Shoes','Canvas Sneakers','shoes'],['Backpacks','Canvas Backpack','backpack'],['Facewear','Round Glasses','face']]){
+    await page.getByRole('button',{name:tab,exact:true}).click();await page.getByRole('button',{name:'Equip '+name,exact:true}).click();await expect(page.getByRole('button',{name:'Equipped '+name,exact:true})).toBeDisabled();
+    await expect(page.locator('#character-stage img[alt="'+name+'"]')).toBeVisible();expect(f.user().equipped[slot].name).toBe(name);
+  }
+  await expect(page.locator('#coin-balance')).toHaveText('1,250');expect(f.keys).toHaveLength(0);
+  await expect(page.locator('#nav-avatar img')).toHaveCount(7);
+  expect(await page.locator('#nav-avatar img').last().evaluate(img=>getComputedStyle(img).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+  await page.reload();await expect(page.locator('#character-stage img[alt="Explorer Beard"]')).toBeVisible();
+  await page.getByRole('button',{name:'View my profile'}).click();await expect(page.locator('#modal-character img')).toHaveCount(7);await expect(page.locator('#modal-loadout')).toContainText('Canvas Backpack');
+});
+test('Trying on paid shoes does not change saved equipment or wallet; free filter hides paid choices',async({page})=>{
+  const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
+  await page.getByRole('button',{name:'Shoes',exact:true}).click();await page.getByRole('button',{name:'Preview Neon Kicks',exact:true}).click();
+  await expect(page.locator('#character-stage img[alt="Neon Kicks"]')).toBeVisible();await expect(page.locator('#preview-note')).toContainText('Preview only');expect(f.user().equipped.shoes.id).toBe('trail-boots');expect(f.keys).toHaveLength(0);
+  await page.getByRole('button',{name:'Reset preview'}).click();await expect(page.locator('#character-stage img[alt="Trail Boots"]')).toBeVisible();
+  await page.getByLabel('Free options only').check();await expect(page.getByRole('button',{name:'Buy Neon Kicks',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Equip Canvas Sneakers',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});
+test('Guests can try on accessories without signing in or buying',async({page})=>{
+  await setup(page,{signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');
+  await page.getByRole('button',{name:'Beards',exact:true}).click();await page.getByRole('button',{name:'Preview Short Beard',exact:true}).click();await expect(page.locator('#character-stage img[alt="Short Beard"]')).toBeVisible();await expect(page.locator('#auth-modal')).not.toBeVisible();
 });

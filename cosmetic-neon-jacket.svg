@@ -1,5 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img"><title>Neon Jacket</title><defs><linearGradient id="metal" x2="1" y2="1"><stop stop-color="#60738c"/><stop offset=".45" stop-color="#26394f"/><stop offset="1" stop-color="#101b2b"/></linearGradient><linearGradient id="accent" x2="1" y2="1"><stop stop-color="#b088ff"/><stop offset="1" stop-color="#344263"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="3"/></filter></defs><path d="M124 139L150 151L176 139L205 161L191 192L182 180L184 252L151 264L116 252L118 180L109 192L95 161Z" fill="url(#metal)" stroke="#b088ff" stroke-width="2"/>
-    <path d="M124 140L139 158L126 176L145 186M176 140L161 158L174 176L155 186" fill="url(#accent)" stroke="#b088ff" stroke-width="1.5"/>
-    <path d="M150 156V254" stroke="#b088ff" stroke-width="3"/><path d="M122 237L145 230M155 230L178 237" stroke="#b088ff" stroke-width="4"/>
-    <path d="M109 158L125 169M175 169L191 158" stroke="#eff4ff" opacity=".6" stroke-width="3"/>
-    <path d="M122 187V216M178 187V216" stroke="#d8b5ff" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><defs>
+    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="#eac086"/><stop offset=".55" stop-color="#93603e"/><stop offset="1" stop-color="#392b37"/></radialGradient>
+    <linearGradient id="cloth" x2=".8" y2="1"><stop stop-color="#3d5b75"/><stop offset=".5" stop-color="#253648"/><stop offset="1" stop-color="#101b2d"/></linearGradient>
+    <linearGradient id="metal" x2=".75" y2="1"><stop stop-color="#dce6e9"/><stop offset=".3" stop-color="#7e98ac"/><stop offset=".48" stop-color="#e1e9eb"/><stop offset=".55" stop-color="#496477"/><stop offset="1" stop-color="#192c40"/></linearGradient>
+    <linearGradient id="trim" x2="1" y2="1"><stop stop-color="#edfcff"/><stop offset=".4" stop-color="#b899ff"/><stop offset="1" stop-color="#287c9f"/></linearGradient>
+    <linearGradient id="leather" x2=".8" y2="1"><stop stop-color="#c59269"/><stop offset=".5" stop-color="#855339"/><stop offset="1" stop-color="#392722"/></linearGradient>
+    <linearGradient id="hair" x2=".3" y2="1"><stop stop-color="#8f5a36"/><stop offset=".6" stop-color="#492b25"/><stop offset="1" stop-color="#241b22"/></linearGradient>
+    <radialGradient id="lens" cx=".3" cy=".15"><stop stop-color="#84d9ef"/><stop offset=".6" stop-color="#153e64"/><stop offset="1" stop-color="#09182b"/></radialGradient>
+    </defs><g stroke="#13273b" stroke-width="2" stroke-linejoin="round">
+    <path d="M100 184L77 199L64 249L89 257L106 215M198 184L220 199L232 248L208 257L193 215" fill="url(#cloth)"/>
+    <path d="M103 177Q151 191 198 177L206 230L205 290Q151 310 96 289L95 229Z" fill="url(#cloth)"/>
+    <path d="M110 284L102 343L137 346L150 299L166 346L199 343L189 284Z" fill="url(#cloth)"/>
+    </g>
+    <path d="M109 185L138 199L150 189L163 199L191 186" fill="none" stroke="#b899ff" stroke-width="3"/>
+    <path d="M150 203V288" stroke="#91abb6" stroke-width="2"/><path d="M153 210V275" stroke="#101c2b" stroke-width="2"/>
+    <path d="M108 254L133 256L130 279L110 275ZM167 256L191 254L190 275L169 279Z" fill="#182c40" stroke="#587286" stroke-width="1.5"/>
+    <path d="M104 237Q110 203 123 199M198 238Q190 205 178 199M119 307L112 335M183 305L190 335" fill="none" stroke="#7591a3" opacity=".5"/>
+    <path d="M98 283Q152 298 203 283M70 242L92 250M209 250L228 241" fill="none" stroke="#b899ff" stroke-width="3"/>
+    <rect x="148" y="214" width="5" height="9" rx="2" fill="#d6e6ea"/>
+    <path d="M112 216L128 218L126 237L116 238Z" fill="#b899ff" opacity=".75"/><path d="M116 221l7 1m-6 4 5 1" stroke="white" opacity=".7"/>
+    <path d="M112 293L105 337M192 291L197 337" fill="none" stroke="#a5baca" stroke-dasharray="2 3" opacity=".4"/><path d="M102 180Q97 163 114 165Q146 185 186 163Q207 162 199 181L169 205L151 194L134 206Z" fill="#b899ff" stroke="#384858" stroke-width="2"/><path d="M132 195v29m37-29v29" stroke="#ffe4b7" stroke-width="2"/><path d="M122 252Q151 242 178 252L180 277Q150 287 120 276Z" fill="#435c6c" stroke="#99a9b1" stroke-width="1.5"/></svg>

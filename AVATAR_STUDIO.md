@@ -22,3 +22,19 @@ The native web mirror includes these new assets for the future 1.1 source. No Ap
 ## Validation
 
 `tests/avatar-studio.spec.js` checks buy/equip, independent slots, insufficient funds, network retry request IDs, guest sign-in, saved profile artwork, and World Ranks profile cards on desktop Chromium and mobile WebKit. Existing leaderboard stability, page/navigation and release contract tests are also run. Live SQL purchase/ownership/receipt/permission assertions were exercised inside a transaction and rolled back; the live API rejects missing and forged sessions and returns the real catalog and public profiles.
+
+
+### Detailed Arcade Sprouts and accessories
+
+The character art is original, layered SVG built by `tools/generate-cosmetic-art.py`.
+All layers use a stable 300 × 400 rig. Render from back to front: backpack,
+avatar, outfit, shoes, facewear, beard, weapon. Keep these anchors when adding art.
+
+The accessory migration expands equipment to seven independent slots. All active
+zero-price items are automatically granted by `cosmetic_lock_player`, under the
+existing wallet lock; missing starter slots are filled without overwriting any
+saved equipment. There are 25 items, including 14 free options. Existing purchased
+IDs, receipts, and balances are preserved. The shop API exposes `isStarter` for a
+deterministic guest preview. Try-on changes are client-only and reset explicitly;
+only Equip or a confirmed purchase changes the saved loadout. The free filter
+hides paid items. Profile cards and World Ranks use the same layering order.
