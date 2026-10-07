@@ -27,6 +27,10 @@ function create(ctx,point,box,line,poly,tile){
  }
  function terrain(x,y){
   const h=(x*29+y*17)%47;
+  // Directional slate strata and scattered mineral flecks sit beneath readable troops.
+  if(h%3===0){poly([point(x+.08,y+.12),point(x+.7,y+.22),point(x+.91,y+.62),point(x+.35,y+.82)],'#879a9120');line(point(x+.12,y+.14),point(x+.69,y+.23),'#c0cfbc28',.7)}
+  if(h===16||h===25){const q=point(x+.28,y+.64);ring(q,5.5,2.2,'#08151d88',1.2);line(point(x+.12,y+.68),point(x+.45,y+.58),'#91a99c44',.8)}
+  if(x%12===5&&y%12===5){tile(x+.5,y+.5,.26,'#172a32','#92bbc255');tile(x+.5,y+.5,.16,'#3a5359','#c4d6ce55');line(point(x+.24,y+.45),point(x+.76,y+.45),'#89f2e580',1)}
   if(x%8===1&&y%6===1){tile(x+.5,y+.5,.42,'#253d4688','#8da9b744');for(const side of [-1,1])line(point(x+.5+side*.31,y+.15),point(x+.5+side*.31,y+.85),'#c9d5c222');for(let j=0;j<3;j++)line(point(x+.28+j*.16,y+.27),point(x+.42+j*.16,y+.4),'#d6b27466',2)}
   if(h===8){const q=point(x+.5,y+.5);ring(q,8,3.5,'#a5c2cf33');ring(q,5,2,'#091f2a99');line({x:q.x-3,y:q.y},{x:q.x+3,y:q.y},'#7898a555')}
 
@@ -53,7 +57,7 @@ function create(ctx,point,box,line,poly,tile){
    poly([tip,left,{x:q.x-r*.8,y:q.y},foot],dark,mid);metal([tip,foot,{x:q.x+r*.8,y:q.y},right],mid,true);
    poly([tip,left,{x:q.x+r*.2,y:q.y-h*.42},right],o.rich?'#f6a8ec':'#a2f4fa',bright);
    poly([{x:q.x+r*.18,y:q.y-h*.68},{x:q.x+r*.55,y:q.y-h*.42},{x:q.x+r*.32,y:q.y-h*.14}],bright+'66');
-   line(tip,foot,bright,1);line({x:q.x+r*.3,y:q.y-h*.35},{x:q.x+r*.45,y:q.y-h*.16},bright+'88');
+   line(tip,foot,bright,1);line({x:tip.x-2.4,y:tip.y+1},{x:tip.x+2.4,y:tip.y+1},bright+'bb',.8);line({x:tip.x,y:tip.y-1.4},{x:tip.x,y:tip.y+3.4},bright+'aa',.8);line({x:q.x+r*.3,y:q.y-h*.35},{x:q.x+r*.45,y:q.y-h*.16},bright+'88');
    tile(o.x+(j-1)*.27,o.y+(j%2)*.25,.13,'#0a202dcc',null,.015);
   }
   for(let j=0;j<3;j++){const q=point(o.x+Math.sin(t*.5+j)*.45,o.y+Math.cos(t*.5+j)*.35,.15+(t*.2+j*.3)%1);ctx.fillStyle=bright+'aa';ctx.fillRect(q.x,q.y,1.5,1.5)}
@@ -129,6 +133,10 @@ function create(ctx,point,box,line,poly,tile){
    poly([P(-.13,-width,.57),P(.14,-width,.58),P(.19,-width*.72,.32),P(-.12,-width*.72,.33)],dark,'#89a9bd88');
    poly([P(-.13,-width,.57),P(-.13,width,.57),P(.14,width,.58),P(.14,-width,.58)],tint(shell,.16),'#d5e8ec');
    line(P(.2,-width*.64,.36),P(.2,width*.64,.36),'#102331',1.6);line(P(.205,-width*.6,.48),P(.205,width*.6,.48),accent,1.5);
+   // Layered breastplate, abdominal ribs and shoulder edge highlights.
+   metal([P(.205,-width*.6,.55),P(.205,width*.6,.55),P(.22,width*.4,.43),P(.22,-width*.4,.43)],tint(shell,.1),true);
+   for(const z of [.34,.38,.42])line(P(.225,-width*.42,z),P(.225,width*.42,z),'#102331aa',.9);
+   light(P(.23,0,.51),accent,1.5);
    // Angular helmet, dark faceplate, bright separate eyes and neck collar.
    poly([P(.12,-.14,.77),P(.12,.14,.77),P(.18,.11,.63),P(.18,-.11,.63)],tint(shell,.13),'#d4e5ee');
    poly([P(-.12,-.14,.75),P(.12,-.14,.77),P(.18,-.11,.63),P(-.09,-.11,.64)],dark,'#6f95a8');
@@ -144,7 +152,7 @@ function create(ctx,point,box,line,poly,tile){
     const hand=guard?P(.17+swing,w,.25):medic?P(side===1?.38:.16+swing,side===1?.29:w,side===1?.405:.27):P(side===-1?.28:.47,-.12,.405);
     line(shoulder,elbow,'#111f2c',Math.max(1.2,scale*.10));
     armPlate(shoulder,elbow,scale*.095,shell);
-    sphere(elbow,scale*.052,scale*.048,'#142b3d');
+    sphere(elbow,scale*.052,scale*.048,'#142b3d');line({x:elbow.x-1,y:elbow.y-1},{x:elbow.x+1,y:elbow.y-1},'#d0e0e688',.7);
     armPlate(elbow,hand,scale*(guard?.115:.09),guard?'#7894ab':shell);
     line(elbow,hand,'#233e5144',Math.max(.6,scale*.022));
     sphere(shoulder,scale*.065,scale*.055,dark);
@@ -238,4 +246,3 @@ const icons={raider:'M8 8h16v9H8z M12 3h8v5 M6 17h20 M11 17v11 M21 17v11 M24 11h
 function icon(type){return '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(icons[type]||icons.base)+'"/></svg>'}
 window.CrystalArt={create,icon};
 })();
-
