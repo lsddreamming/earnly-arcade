@@ -1,0 +1,26 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {transform} from 'esbuild';
+const source=await readFile(new URL('../supabase/functions/_shared/coin-commerce.ts',import.meta.url),'utf8');
+const {code}=await transform(source,{loader:'ts',format:'esm'});const {commerceHandler}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+const uid='00000000-0000-4000-8000-000000000001',id='22222222-2222-4222-8222-222222222222',requestId='33333333-3333-4333-8333-333333333333';
+function fixture({enabled=true,live=true,paid=true,signature=true,amount=199,orderOwner=uid}={}){
+ const calls=[];const order={id,user_id:orderOwner,pack_id:'starter',coins:500,amount_cents:199,currency:'usd',session_id:'cs_live_test',status:'pending'};
+ const session={id:order.session_id,metadata:{orderId:id},client_reference_id:id,mode:'payment',payment_status:paid?'paid':'unpaid',livemode:live,amount_total:amount,currency:'usd',status:'open',url:'https://checkout.stripe.com/c/pay/test',payment_intent:{id:'pi_test',metadata:{orderId:id},amount_received:199,currency:'usd',latest_charge:{amount_refunded:0,disputed:false}}};
+ const db={rpc:async(name,args)=>{calls.push({name,args});return {data:name==='coin_order_create'?order:{status:'fulfilled',wallet:{balance:'500'}}};},from:table=>{
+  const filters={};const query={select(){return this;},eq(k,v){filters[k]=v;return this;},is(){return this;},order(){return this;},update(){return this;},maybeSingle(){return Promise.resolve({data:filters.user_id&&filters.user_id!==order.user_id?null:order});},then(resolve){resolve({data:table==='coin_packs'?[{id:'starter',coins:500,price_cents:199,currency:'usd'}]:[]});}};return query;
+ }};
+ const stripe={checkout:{sessions:{retrieve:async()=>session,create:async()=>session}},paymentIntents:{retrieve:async()=>session.payment_intent}};
+ const handler=commerceHandler({db,stripe,checkoutEnabled:enabled,verifyUser:async token=>token==='valid'?{id:uid}:null,verifyEvent:async raw=>{if(!signature)throw new Error('bad signature');return JSON.parse(raw);}});
+ const req=(path,{method='GET',body,auth='valid',key=requestId,origin='https://earnlyarcade.com'}={})=>new Request('https://example.com/functions/v1/'+path,{method,headers:{Origin:origin,Authorization:'Bearer '+auth,'Idempotency-Key':key,'Content-Type':'application/json','stripe-signature':'t=1,v1=test'},body:body?JSON.stringify(body):undefined});
+ return {handler,req,calls,order,session};
+}
+test('checkout disabled returns configuration but refuses payment session creation',async()=>{const f=fixture({enabled:false});assert.equal((await (await f.handler(f.req('coin-shop/config'))).json()).available,false);const r=await f.handler(f.req('coin-shop/checkout',{method:'POST',body:{packId:'starter'}}));assert.equal(r.status,503);assert.equal(f.calls.length,0);});
+test('unverified users, bad origins and missing request IDs cannot mutate',async()=>{for(const overrides of [{auth:'forged'},{origin:'https://attacker.example'},{key:'invalid'}]){const f=fixture();assert.ok((await f.handler(f.req('coin-shop/checkout',{method:'POST',body:{packId:'starter'},...overrides}))).status>=400);assert.equal(f.calls.length,0);}});
+test('client prices and user IDs are ignored; order uses authenticated user and fixed pack',async()=>{const f=fixture();const r=await f.handler(f.req('coin-shop/checkout',{method:'POST',body:{packId:'starter',coins:1000000,amount:1,userId:'attacker'}}));assert.equal(r.status,200);assert.deepEqual(f.calls[0],{name:'coin_order_create',args:{p_user_id:uid,p_pack_id:'starter',p_request_id:requestId}});});
+test('bad webhook signatures cannot reach the ledger',async()=>{const f=fixture({signature:false});assert.equal((await f.handler(f.req('coin-webhook',{method:'POST',body:{livemode:true,type:'checkout.session.completed',data:{object:{metadata:{orderId:id}}}}}))).status,400);assert.equal(f.calls.length,0);});
+test('signed test-mode events never credit production coins',async()=>{const f=fixture();const r=await f.handler(f.req('coin-webhook',{method:'POST',body:{livemode:false,type:'checkout.session.completed',data:{object:{metadata:{orderId:id}}}}}));assert.equal(r.status,200);assert.equal(f.calls.length,0);});
+test('paid order check retrieves provider state and fulfills through the atomic ledger',async()=>{const f=fixture();const r=await f.handler(f.req('coin-shop/orders/'+id));assert.equal(r.status,200);assert.equal(f.calls[0].name,'coin_order_fulfill');assert.equal(f.calls[0].args.p_live,true);assert.equal(f.calls[0].args.p_amount,199);});
+test('another account cannot read or fulfill an order',async()=>{const f=fixture({orderOwner:'other'});assert.equal((await f.handler(f.req('coin-shop/orders/'+id))).status,404);assert.equal(f.calls.length,0);});
+test('unpaid, wrong metadata and disputed payments are never fulfilled',async()=>{
+ const unpaid=fixture({paid:false});assert.equal((await unpaid.handler(unpaid.req('coin-shop/orders/'+id))).status,200);assert.equal(unpaid.calls.length,0);
+ for(const bad of ['metadata','disputed']){const f=fixture();if(bad==='metadata')f.session.metadata.orderId='other';else f.session.payment_intent.latest_charge.disputed=true;assert.ok((await f.handler(f.req('coin-shop/orders/'+id))).status>=400);assert.equal(f.calls.length,0);}
+});

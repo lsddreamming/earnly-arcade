@@ -118,21 +118,35 @@ svg('astral-armor',jacket('#ffd271',armored=True),accent='#ffd271')
 svg('cozy-hoodie',jacket('#c49778',True),accent='#c49778')
 
 def shoes(kind='boots',accent='#7ae4eb'):
+    # Wide cuffs overlap the trouser hems and cover the complete ankle silhouette.
+    # The soles share the same ground line; no stretched or floating footwear.
     fill='url(#leather)' if kind=='boots' else 'url(#cloth)'
-    return f'''<g stroke="#1a2535" stroke-width="2"><path d="M108 336L135 339L137 359Q147 370 132 375H93Q88 368 94 358L104 355Z" fill="{fill}"/>
-    <path d="M166 339L193 336L197 355L209 359Q215 369 209 375H170Q156 371 164 359Z" fill="{fill}"/></g>
-    <path d="M91 368H140M163 368H212" stroke="#e1d9c6" stroke-width="6" stroke-linecap="round"/>
-    <path d="M108 346L129 349M106 352L128 355M173 349L191 346M172 355L192 352" stroke="{accent}" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M98 359Q116 361 134 359M171 359Q189 361 205 359" fill="none" stroke="#fff" opacity=".25"/>
-    <path d="M104 338L107 346L129 349L132 341M170 341L174 349L190 346L194 338" fill="none" stroke="#efcfad" opacity=".5" stroke-width="1.2"/>
-    <path d="M96 361Q111 365 132 362M171 362Q192 365 208 361" fill="none" stroke="#182538" stroke-width="2"/>
-    <path d="M96 369v3m7-3v3m7-3v3m7-3v3m7-3v3m7-3v3m43-3v3m7-3v3m7-3v3m7-3v3m7-3v3m7-3v3" stroke="#73808c" stroke-width="1"/>
-    <path d="M101 359L105 339M195 339L200 359" stroke="#f5dec4" opacity=".4" stroke-dasharray="1 2"/>
-    <path d="M94 375H135M170 375H210" stroke="#263140" stroke-width="3"/>
-    <path d="M101 365l4-3m26 0 4 3m37 0 4-3m24 0 4 3" stroke="{accent}" stroke-width="2"/>'''
+    art=f'''<g stroke="#172336" stroke-width="2" stroke-linejoin="round">
+    <path d="M99 331Q119 337 140 332L139 354Q148 362 142 375L92 377Q84 369 92 358L99 351Z" fill="{fill}"/>
+    <path d="M162 332Q181 337 202 331L203 351L213 358Q222 369 213 377L164 375Q157 363 164 354Z" fill="{fill}"/>
+    <path d="M99 331Q119 338 140 332L138 342Q120 349 98 341ZM162 332Q182 338 202 331L204 341Q183 349 164 342Z" fill="#122337" stroke="#708798"/>
+    <path d="M93 359Q115 353 139 361L140 368L89 370ZM164 361Q190 353 213 359L217 370L163 368Z" fill="{fill}"/>
+    <path d="M90 368Q113 372 141 369L141 376Q114 380 91 376ZM163 369Q189 372 216 368L214 376Q189 380 164 376Z" fill="#dbe3dc" stroke="#51606c"/>
+    </g>
+    <path d="M104 345l25 2m-27 4 26 2m-27 4 27 2m43-12 25-2m-24 8 26-2m-25 8 27-2" stroke="{accent}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M111 341l13 19m-13-19 12 1-14 15m66-16 14 19m-14-19 13 1-12 15" stroke="#e4ecef" opacity=".6" fill="none" stroke-width="1"/>
+    <path d="M94 362Q112 358 134 363M170 363Q191 358 210 362" stroke="#f9f7ed" opacity=".4" fill="none"/>
+    <path d="M97 372v4M105 373v4M113 374v4M121 374v4M129 373v4M169 373v4M177 374v4M185 374v4M193 373v4M201 372v4M209 371v4" stroke="#617387" stroke-width="1.5"/>
+    <path d="M99 338Q117 343 138 338M165 338Q184 343 201 337" fill="none" stroke="{accent}" stroke-width="1.5" stroke-dasharray="2 2"/>
+    <path d="M94 377Q116 381 141 377M164 377Q190 381 213 377" fill="none" stroke="#101c30" stroke-width="3"/>'''
+    if kind=='high':
+        art+=f'<path d="M99 330L102 317L139 322L141 335M163 335L165 322L198 317L202 330" fill="url(#cloth)" stroke="#718899" stroke-width="2"/><path d="M108 324l23 3m40 0 19-3" stroke="{accent}" stroke-width="2"/>'
+    if kind=='neon':
+        art+=f'<path d="M95 365L136 365M169 365H210" stroke="{accent}" stroke-width="3"/><path d="M94 356l5-9 3 12m106-3-5-9-3 12" fill="{accent}"/>'
+    if kind=='armor':
+        art+='<path d="M97 343L120 339L139 343L137 352L116 357L96 351ZM163 343L184 339L204 343L206 351L186 357L165 352Z" fill="url(#metal)" stroke="#38516b" stroke-width="2"/><path d="M99 359L122 356L140 361L138 369L91 368ZM164 361L185 356L212 359L216 368L165 369Z" fill="url(#metal)" stroke="#38516b" stroke-width="2"/>'
+    return art
 svg('trail-boots',shoes())
 svg('canvas-shoes',shoes('sneakers','#f5d7ad'))
-svg('neon-kicks',shoes('sneakers','#c599ff'),accent='#c599ff')
+svg('neon-kicks',shoes('neon','#c599ff'),accent='#c599ff')
+svg('high-tops',shoes('high','#f1b0a0'),accent='#f1b0a0')
+svg('comet-sneakers',shoes('neon','#80f5d4').replace('url(#cloth)','url(#fabric)'),accent='#80f5d4')
+svg('radiant-boots',shoes('armor','#ffcf74'),accent='#ffcf74')
 
 svg('no-backpack','')
 svg('no-beard','')
@@ -175,4 +189,20 @@ def blaster(gold=False):
 svg('starter-blaster',blaster())
 svg('solar-cannon',blaster(True).replace('width="66"','width="71"'),accent='#ffd078')
 svg('pulse-blade','''<g transform="rotate(19 235 272)"><path d="M228 268L229 174L235 157L241 174L242 268Z" fill="url(#trim)" stroke="#e5d0ff" stroke-width="2"/><path d="M235 164V263" stroke="white" stroke-width="2" opacity=".8"/><rect x="216" y="267" width="37" height="8" rx="4" fill="url(#metal)"/><rect x="230" y="274" width="12" height="34" rx="4" fill="#283750" stroke="#9c7ed0" stroke-width="2"/><path d="M231 282l10 3m-10 3 10 3m-10 3 10 3" stroke="#b7a0de" stroke-width="2"/><circle cx="236" cy="310" r="6" fill="url(#metal)"/></g>''',accent='#bb8eff')
+# Atelier collection: tailored textiles, original headwear and premium props.
+svg('storm-coat',jacket('#8de9d9',True).replace('url(#cloth)','url(#fabric)')+
+    '<path d="M96 281Q149 298 205 282L214 322L169 332L150 312L132 332L86 322Z" fill="url(#fabric)" stroke="#22384a" stroke-width="2"/><path d="M101 303l29 7m41 0 29-7" stroke="#adf5dd" stroke-width="2"/><path d="M150 298v15" stroke="#d9e5e9" stroke-width="2"/>',accent='#488a83')
+svg('solar-jacket',jacket('#ffc777',True).replace('url(#cloth)','url(#fabric)'),accent='#c97944')
+svg('aurora-armor',jacket('#9eecff',armored=True).replace('#d9a957','#b79bff').replace('#ffe4a0','#b4f6ed').replace('#ffe8ad','#c3a1ff')+
+    '<path d="M107 225L118 209L129 225L118 241ZM174 225L185 209L196 225L185 241Z" fill="url(#trim)" stroke="#bdadff"/><path d="M120 278L150 289L180 278" fill="none" stroke="#a9f9e6" stroke-width="4"/>',accent='#af96ff')
+svg('no-headwear','')
+svg('ribbed-beanie','''<path d="M85 73Q77 33 108 23Q148 9 184 23Q219 35 217 73Z" fill="url(#hood)" stroke="#382e40" stroke-width="2"/><path d="M86 57Q150 40 216 57L218 77Q150 63 84 77Z" fill="url(#fabric)" stroke="#392c3e" stroke-width="2"/><path d="M102 30Q92 45 98 55M118 22Q112 40 113 51M136 18L134 48M154 18L156 48M175 22Q183 39 182 52M194 31Q205 44 204 54" stroke="#f5ceaa" opacity=".36" fill="none" stroke-width="2"/><path d="M91 64v8m7-10v9m7-10v8m7-10v8m7-10v8m7-9v8m7-9v8m7-8v7m7-7v7m7-7v7m7-7v7m7-7v7m7-6v7m7-5v8m7-6v8m7-5v8m7-6v8" stroke="#f5ceaa" opacity=".35" stroke-width="1.5"/><rect x="178" y="58" width="19" height="13" rx="2" fill="#243a44"/><path d="M184 63l4 4 4-4" stroke="#b8f2d9" stroke-width="2" fill="none"/>''',accent='#b8876d')
+svg('arcade-cap','''<path d="M88 65Q90 25 139 24Q193 19 214 66L185 72L102 72Z" fill="url(#cloth)" stroke="#1c3048" stroke-width="2"/><path d="M104 53Q151 38 198 54L227 73Q171 88 106 73L77 82L83 65Z" fill="url(#fabric)" stroke="#263c56" stroke-width="2"/><path d="M147 25V51M112 30Q101 40 99 56M182 31Q197 43 202 59" stroke="#87a9b5" opacity=".5" fill="none"/><path d="M133 39L141 32L151 39L142 47Z" fill="#90ebd7"/><path d="M94 69Q151 59 210 72" stroke="#a7d7dd" opacity=".4" fill="none" stroke-dasharray="2 2"/>''',accent='#5ca58f')
+svg('comms-headset','''<path d="M84 101Q72 32 150 30Q231 32 220 103" fill="none" stroke="#203347" stroke-width="13"/><path d="M84 88Q80 37 150 36Q222 37 220 89" fill="none" stroke="url(#metal)" stroke-width="5"/><rect x="75" y="85" width="23" height="43" rx="10" fill="url(#metal)" stroke="#223a51" stroke-width="2"/><rect x="207" y="85" width="23" height="43" rx="10" fill="url(#metal)" stroke="#223a51" stroke-width="2"/><path d="M84 97v17m136-17v17" stroke="#a896ff" stroke-width="5"/><path d="M219 119Q222 145 188 144" fill="none" stroke="#7b9cab" stroke-width="4"/><rect x="175" y="137" width="20" height="11" rx="5" fill="#314b66"/><circle cx="179" cy="142" r="2" fill="#94f4dc"/>''',accent='#b39aff')
+svg('sun-crown','''<path d="M93 54L82 20L113 41L133 12L151 39L172 12L188 41L219 20L207 56Z" fill="url(#metal)" stroke="#d8a65c" stroke-width="2"/><path d="M93 51Q150 37 208 51L208 68Q150 55 92 68Z" fill="#ac733c" stroke="#ffcf76" stroke-width="3"/><path d="M102 55Q151 44 198 55" stroke="#fff2b2" fill="none" stroke-width="2"/><path d="M141 48L150 42L159 48L150 61Z" fill="url(#trim)" stroke="#ffe9a3"/><circle cx="105" cy="60" r="3" fill="#a2f7dc"/><circle cx="196" cy="60" r="3" fill="#a2f7dc"/>''',accent='#ffe19b')
+svg('amber-goggles','''<path d="M88 94L212 94" stroke="#654832" stroke-width="9"/><g stroke="#ba8d52" stroke-width="3"><rect x="99" y="82" width="46" height="43" rx="14" fill="url(#metal)"/><rect x="155" y="82" width="46" height="43" rx="14" fill="url(#metal)"/><rect x="106" y="89" width="32" height="28" rx="9" fill="url(#lens)"/><rect x="162" y="89" width="32" height="28" rx="9" fill="url(#lens)"/></g><path d="M146 101h8M111 94l17-2m39 2 17-2" stroke="#ffe2a3" stroke-width="3"/>''',accent='#ffd296')
+svg('braided-beard',beard(True)+'''<path d="M140 174Q133 185 143 192Q137 202 150 212Q163 202 157 192Q166 184 158 174Z" fill="url(#hair)" stroke="#d09b63" stroke-width="1.2"/><path d="M141 179l17 11m-18-3 17 13m-15-2 12 9" stroke="#c09163" stroke-width="2"/><rect x="145" y="204" width="12" height="7" rx="2" fill="url(#metal)"/>''')
+svg('adventure-pack','''<g stroke="#344733" stroke-width="2"><path d="M88 168Q59 156 51 183L43 251L84 278L98 258L107 183ZM208 168Q236 156 245 183L257 251L216 278L202 258L193 183Z" fill="url(#fabric)"/><path d="M51 209L84 220L82 259L46 247ZM218 220L250 209L255 247L220 259Z" fill="#304b46"/><path d="M57 216L52 239L76 249L79 223M224 223L225 249L249 239L244 216" fill="none" stroke="#b5ca94" stroke-dasharray="2 2"/><rect x="45" y="172" width="39" height="22" rx="9" fill="#bba77c" transform="rotate(12 65 180)"/><rect x="216" y="172" width="39" height="22" rx="9" fill="#bba77c" transform="rotate(-12 235 180)"/><path d="M61 170l-4 22m15-18-4 22m165-24 4 22m9-26 4 22" stroke="#55463a" stroke-width="4"/></g>''',accent='#789d78')
+svg('aurora-pack','''<g stroke="#6781bc" stroke-width="2"><path d="M73 171L46 160L38 243L61 280L84 263L98 192ZM228 171L255 160L264 243L239 280L216 263L202 192Z" fill="url(#metal)"/><path d="M51 181L43 234L62 260L74 242L78 190ZM249 181L257 234L239 260L227 242L223 190Z" fill="#182441"/><path d="M60 192L51 229L64 247L70 233ZM239 192L249 229L236 247L230 233Z" fill="url(#trim)"/><path d="M53 274L62 307L72 274M230 274L239 307L249 274" fill="#abedfb"/><path d="M47 207l25 4m-28 16 25 4m160-20 25-4m-22 24 25-4" stroke="#baa7ff"/></g>''',accent='#b29aff')
+svg('orb-scepter','''<g transform="rotate(14 232 274)"><rect x="229" y="192" width="9" height="126" rx="4" fill="url(#metal)" stroke="#425d7f" stroke-width="2"/><path d="M232 214l-7 6 14 9-14 9 14 9-14 9 14 9-14 9" fill="none" stroke="#ba9bff" stroke-width="3"/><circle cx="234" cy="163" r="30" fill="#273551" stroke="#a997ef" stroke-width="3"/><circle cx="234" cy="163" r="23" fill="url(#lens)"/><path d="M234 144L247 162L234 180L221 162Z" fill="url(#trim)"/><path d="M208 169L210 190L233 205L257 190L260 169" fill="none" stroke="url(#metal)" stroke-width="8"/><circle cx="227" cy="153" r="3" fill="#fff" opacity=".8"/><path d="M229 305h9m-9 5h9" stroke="#a896ff" stroke-width="3"/></g>''',accent='#b6a0ff')
 print('Generated original mascot and interchangeable accessories.')

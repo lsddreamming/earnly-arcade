@@ -6,14 +6,16 @@
     <linearGradient id="leather" x2=".8" y2="1"><stop stop-color="#c59269"/><stop offset=".5" stop-color="#855339"/><stop offset="1" stop-color="#392722"/></linearGradient>
     <linearGradient id="hair" x2=".3" y2="1"><stop stop-color="#8f5a36"/><stop offset=".6" stop-color="#492b25"/><stop offset="1" stop-color="#241b22"/></linearGradient>
     <radialGradient id="lens" cx=".3" cy=".15"><stop stop-color="#84d9ef"/><stop offset=".6" stop-color="#153e64"/><stop offset="1" stop-color="#09182b"/></radialGradient>
-    </defs><g stroke="#1a2535" stroke-width="2"><path d="M108 336L135 339L137 359Q147 370 132 375H93Q88 368 94 358L104 355Z" fill="url(#leather)"/>
-    <path d="M166 339L193 336L197 355L209 359Q215 369 209 375H170Q156 371 164 359Z" fill="url(#leather)"/></g>
-    <path d="M91 368H140M163 368H212" stroke="#e1d9c6" stroke-width="6" stroke-linecap="round"/>
-    <path d="M108 346L129 349M106 352L128 355M173 349L191 346M172 355L192 352" stroke="#7ae4eb" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M98 359Q116 361 134 359M171 359Q189 361 205 359" fill="none" stroke="#fff" opacity=".25"/>
-    <path d="M104 338L107 346L129 349L132 341M170 341L174 349L190 346L194 338" fill="none" stroke="#efcfad" opacity=".5" stroke-width="1.2"/>
-    <path d="M96 361Q111 365 132 362M171 362Q192 365 208 361" fill="none" stroke="#182538" stroke-width="2"/>
-    <path d="M96 369v3m7-3v3m7-3v3m7-3v3m7-3v3m7-3v3m43-3v3m7-3v3m7-3v3m7-3v3m7-3v3m7-3v3" stroke="#73808c" stroke-width="1"/>
-    <path d="M101 359L105 339M195 339L200 359" stroke="#f5dec4" opacity=".4" stroke-dasharray="1 2"/>
-    <path d="M94 375H135M170 375H210" stroke="#263140" stroke-width="3"/>
-    <path d="M101 365l4-3m26 0 4 3m37 0 4-3m24 0 4 3" stroke="#7ae4eb" stroke-width="2"/></svg>
+    </defs><g stroke="#172336" stroke-width="2" stroke-linejoin="round">
+    <path d="M99 331Q119 337 140 332L139 354Q148 362 142 375L92 377Q84 369 92 358L99 351Z" fill="url(#leather)"/>
+    <path d="M162 332Q181 337 202 331L203 351L213 358Q222 369 213 377L164 375Q157 363 164 354Z" fill="url(#leather)"/>
+    <path d="M99 331Q119 338 140 332L138 342Q120 349 98 341ZM162 332Q182 338 202 331L204 341Q183 349 164 342Z" fill="#122337" stroke="#708798"/>
+    <path d="M93 359Q115 353 139 361L140 368L89 370ZM164 361Q190 353 213 359L217 370L163 368Z" fill="url(#leather)"/>
+    <path d="M90 368Q113 372 141 369L141 376Q114 380 91 376ZM163 369Q189 372 216 368L214 376Q189 380 164 376Z" fill="#dbe3dc" stroke="#51606c"/>
+    </g>
+    <path d="M104 345l25 2m-27 4 26 2m-27 4 27 2m43-12 25-2m-24 8 26-2m-25 8 27-2" stroke="#7ae4eb" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M111 341l13 19m-13-19 12 1-14 15m66-16 14 19m-14-19 13 1-12 15" stroke="#e4ecef" opacity=".6" fill="none" stroke-width="1"/>
+    <path d="M94 362Q112 358 134 363M170 363Q191 358 210 362" stroke="#f9f7ed" opacity=".4" fill="none"/>
+    <path d="M97 372v4M105 373v4M113 374v4M121 374v4M129 373v4M169 373v4M177 374v4M185 374v4M193 373v4M201 372v4M209 371v4" stroke="#617387" stroke-width="1.5"/>
+    <path d="M99 338Q117 343 138 338M165 338Q184 343 201 337" fill="none" stroke="#7ae4eb" stroke-width="1.5" stroke-dasharray="2 2"/>
+    <path d="M94 377Q116 381 141 377M164 377Q190 381 213 377" fill="none" stroke="#101c30" stroke-width="3"/></svg>
