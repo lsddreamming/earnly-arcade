@@ -1,0 +1,22 @@
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';
+execFileSync(process.execPath,['scripts/build-coin-staging.mjs']);
+const bundle=JSON.parse(readFileSync('/tmp/earnly-coin-staging.json','utf8'));
+assert.equal(bundle.project,'wphqfogbnpdsfkquvdsu');
+const runtime=bundle.files.find(f=>f.name==='_shared/coin-runtime.ts').content;
+assert.match(runtime,/STAGING_PROJECT_REQUIRED/);assert.match(runtime,/ignoreDuplicates:true/);
+const db=new PGlite();
+await db.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;');
+await db.exec(bundle.sql);
+const uid='00000000-0000-4000-8000-000000000001';
+await db.query('INSERT INTO auth.users VALUES ($1)',[uid]);await db.query('INSERT INTO coin_wallets(user_id) VALUES ($1)',[uid]);
+const order=(await db.query('SELECT coin_order_create($1,$2,$3) AS data',[uid,'starter','11111111-1111-4111-8111-111111111111'])).rows[0].data;
+await db.query('UPDATE coin_orders SET session_id=$1 WHERE id=$2',['cs_test_sandbox',order.id]);
+const fulfill=live=>db.query('SELECT coin_order_fulfill($1,$2,199,\'usd\',$3,true,\'pi_sandbox\',0) AS data',[order.id,'cs_test_sandbox',live]);
+await assert.rejects(fulfill(true),/SANDBOX_PAYMENT_REQUIRED/);
+assert.equal((await fulfill(false)).rows[0].data.wallet.balance,'500');
+assert.equal((await fulfill(false)).rows[0].data.wallet.balance,'500');
+for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(db.query('SELECT * FROM coin_wallets'),/permission denied/);await db.exec('RESET ROLE');}
+await db.close();console.log('PASS: sandbox rejects live payments, credits once, and keeps wallets private.');

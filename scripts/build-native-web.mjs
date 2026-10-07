@@ -8,6 +8,8 @@ const allowedExtensions = new Set([
   '.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.webmanifest'
 ]);
 const excluded = new Set([
+  'coin-sandbox.html',
+  'coin-sandbox.js',
   'native-ads-entry.js',
   'crystal-command-client-entry.js',
   'playwright.config.js',
