@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const E=CrystalCommand;
 function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=430,zoom=32,camera={x:6,y:6},selected=new Set(),mini={x:0,y:0,w:96,h:96};
- const colors={ally:'#67edff',enemy:'#ff9160',gold:'#ffdc82'};let lastTick=-1,effects=[],zoomLevel=1,poses=new Map(),aims=new Map(),spawns=new Map(),seenEffects=new Set();const motion=matchMedia('(prefers-reduced-motion: reduce)');
+ const colors={ally:'#67edff',enemy:'#ff9160',gold:'#ffdc82'};let lastTick=-1,effects=[],zoomLevel=1,poses=new Map(),aims=new Map(),spawns=new Map(),seenEffects=new Set(),wrecks=[],hits=new Map();const motion=matchMedia('(prefers-reduced-motion: reduce)');
  const art=CrystalArt.create(ctx,point,box,line,poly,tile);
  function point(x,y,z=0){return{x:width/2+(x-y-camera.x+camera.y)*zoom*.85,y:height*.46+(x+y-camera.x-camera.y)*zoom*.43-z*zoom}}
  function world(x,y){const a=(x-width/2)/(zoom*.85),b=(y-height*.46)/(zoom*.43);return{x:camera.x+(a+b)/2,y:camera.y+(b-a)/2}}
@@ -13,14 +13,16 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
  function render(v,{selection=[],build=null,pointer=null,resourceId=null,commandMarker=null,selectionBox=null,paused=false}={}){
   const artTime=motion.matches?0:v.time;art.beginFrame();selected=new Set(selection);const ratio=Math.min(2,window.devicePixelRatio||1),r=canvas.getBoundingClientRect();width=r.width;height=r.height;zoom=(width>700?46:34)*zoomLevel;const bw=Math.round(width*ratio),bh=Math.round(height*ratio);if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh}ctx.setTransform(ratio,0,0,ratio,0,0);ctx.fillStyle='#050a15';ctx.fillRect(0,0,width,height);
   const grad=ctx.createRadialGradient(width/2,height*.4,10,width/2,height*.4,width);grad.addColorStop(0,'#19374a');grad.addColorStop(1,'#030812');ctx.fillStyle=grad;ctx.fillRect(0,0,width,height);
-  if(v.tick!==lastTick){if(v.tick<lastTick){effects=[];poses.clear();aims.clear();spawns.clear();seenEffects.clear()}lastTick=v.tick;
-   for(const e of v.visualEvents||v.events||[]){const key=e.fx??`${v.tick}:${e.type}:${e.x}:${e.y}:${e.tx}:${e.ty}`;if(seenEffects.has(key))continue;seenEffects.add(key);effects.push({...e,born:e.time??v.time});if(e.type==='shot'){const shooter=v.entities.find(o=>o.side===e.side&&o.type===e.kind&&Math.hypot(o.x-e.x,o.y-e.y)<.1);if(shooter)aims.set(shooter.id,{x:e.tx,y:e.ty,until:v.time+1.2})}if(e.type==='trained'){const b=v.entities.find(o=>!E.TYPES[o.type].supply&&o.side===e.side&&o.x===e.x&&o.y===e.y);if(b)spawns.set(b.id,v.time+.8)}}effects=effects.slice(-80);if(seenEffects.size>512)seenEffects=new Set([...seenEffects].slice(-256));
-   const ids=new Set(v.entities.map(o=>o.id));for(const map of [poses,aims,spawns])for(const id of map.keys())if(!ids.has(id))map.delete(id);
+  if(v.tick!==lastTick){if(v.tick<lastTick){effects=[];poses.clear();aims.clear();spawns.clear();seenEffects.clear();wrecks=[];hits.clear()}lastTick=v.tick;
+   for(const e of v.visualEvents||v.events||[]){const key=e.fx??`${v.tick}:${e.type}:${e.x}:${e.y}:${e.tx}:${e.ty}`;if(seenEffects.has(key))continue;seenEffects.add(key);effects.push({...e,born:e.time??v.time});if(e.type==='destroyed')wrecks.push({x:e.x,y:e.y,kind:e.kind,born:e.time??v.time,seed:e.fx||v.tick});if(e.type==='shot'){const target=v.entities.find(o=>Math.hypot(o.x-e.tx,o.y-e.ty)<.35);if(target)hits.set(target.id,{born:e.time??v.time,air:!!e.targetAir})}if(e.type==='shot'){const shooter=v.entities.find(o=>o.side===e.side&&o.type===e.kind&&Math.hypot(o.x-e.x,o.y-e.y)<.1);if(shooter)aims.set(shooter.id,{x:e.tx,y:e.ty,until:v.time+1.2})}if(e.type==='trained'){const b=v.entities.find(o=>!E.TYPES[o.type].supply&&o.side===e.side&&o.x===e.x&&o.y===e.y);if(b)spawns.set(b.id,v.time+.8)}}effects=effects.slice(-80);wrecks=wrecks.filter(o=>v.time-o.born<40).slice(-32);if(seenEffects.size>512)seenEffects=new Set([...seenEffects].slice(-256));
+   const ids=new Set(v.entities.map(o=>o.id));for(const map of [poses,aims,spawns,hits])for(const id of map.keys())if(!ids.has(id))map.delete(id);
    for(const o of v.entities){const prev=poses.get(o.id);poses.set(o.id,{x:o.x,y:o.y,moving:!!prev&&Math.hypot(o.x-prev.x,o.y-prev.y)>.001})}
   }
   for(let j=0;j<32;j++){ctx.fillStyle=j%4?'#9abbd522':'#5df4ff44';ctx.fillRect((j*137.3)%width,(j*83.7)%height,j%7===0?2:1,1)}
   for(let y=0;y<40;y++)for(let x=0;x<40;x++){const p=point(x+.5,y+.5),i=y*40+x;if(p.x< -zoom||p.x>width+zoom||p.y< -zoom||p.y>height+zoom)continue;const seen=v.seen[i],vis=v.visible[i];tile(x+.5,y+.5,.5,!seen?'#080e1a':vis?'#1b2d35':'#101b29',!seen?'#0b1320':'#607c8714');if(vis)art.terrain(x,y)}
   for(const o of v.entities)if(o.type==='base'){for(const dy of [-1.7,1.7]){tile(o.x,o.y+dy,.12,'#234357','#477686',.01);line(point(o.x-1.8,o.y+dy),point(o.x+1.8,o.y+dy),'#5adffb22',2)}}
+  // Scorched remains fade slowly, only on tiles the player can currently see.
+  for(const o of wrecks){const i=Math.floor(o.y)*40+Math.floor(o.x),q=point(o.x,o.y);if(!v.visible[i]||q.x< -80||q.x>width+80||q.y< -80||q.y>height+80)continue;const r=E.TYPES[o.kind]?.radius||.35;ctx.save();ctx.globalAlpha=Math.min(.65,(40-v.time+o.born)/15);ctx.fillStyle='#030c16';ctx.beginPath();ctx.ellipse(q.x,q.y+2,zoom*r*1.1,zoom*r*.44,0,0,Math.PI*2);ctx.fill();for(let j=0;j<3;j++){const a=j*2.1+o.seed%5;art.raised(o.x+Math.cos(a)*r*.4,o.y+Math.sin(a)*r*.4,.055+r*.08,.1,'#4d5c68');}ctx.restore()}
   const elevation=o=>E.TYPES[o.type]?.flying?1.4:.4;
   const objects=[...v.rocks.map(o=>({...o,rock:true})),...v.crystals.map(o=>({...o,crystal:true})),...v.entities].sort((a,b)=>Number(!!E.TYPES[a.type]?.flying)-Number(!!E.TYPES[b.type]?.flying)||a.x+a.y-b.x-b.y);
   for(const o of objects){const i=Math.floor(o.y)*40+Math.floor(o.x);if(!v.seen[i])continue;const p=point(o.x,o.y);if(p.x< -100||p.x>width+100||p.y< -100||p.y>height+160)continue;
@@ -37,6 +39,7 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
      if(o.queue.length&&selected.has(o.id)){const q=point(o.x,o.y,2.05);label('TRAINING '+E.TYPES[o.queue[0]].name.toUpperCase(),q.x,q.y-13,colors.gold,8);ctx.fillStyle='#06111c';ctx.fillRect(q.x-22,q.y-7,44,3);ctx.fillStyle=colors.gold;ctx.fillRect(q.x-22,q.y-7,44*Math.min(1,o.progress/E.TYPES[o.queue[0]].time),3)}
      if(o.queue.length&&!selected.has(o.id)){const q=point(o.x,o.y,1.65);art.light(q,colors.gold,2)}
     }
+    const hit=hits.get(o.id),hitAge=hit?v.time-hit.born:99;if(hitAge>=0&&hitAge<.26&&v.visible[i]){const q=point(o.x,o.y,d.flying?1.4:d.supply?.55:.9);ctx.save();ctx.globalAlpha=(1-hitAge/.26)*.5;art.ring(q,zoom*(d.radius||.42)*(1+hitAge),zoom*(d.radius||.42)*.65,'#ffedc2',2);if(!motion.matches)art.aura(q,'#ffd08e',zoom*.6,zoom*.4,.5);ctx.restore()}
     if(o.hp/o.maxHp<.6&&v.visible[i]&&!motion.matches)art.smoke(o,artTime);
     if(o.hp<o.maxHp||selected.has(o.id)||o.build){const q=point(o.x,o.y,d.flying?1.8:d.supply?1:1.9);ctx.fillStyle='#020813';ctx.fillRect(q.x-17,q.y-7,34,4);const fraction=Math.max(0,Math.min(1,o.build?1-o.build/d.time:o.hp/o.maxHp));ctx.fillStyle=o.build?'#ffd780':fraction<.3?'#ff9476':fraction<.6?'#ffcf80':c;ctx.fillRect(q.x-17,q.y-7,34*fraction,4);ctx.fillStyle='#02081399';for(let j=1;j<5;j++)ctx.fillRect(q.x-17+j*34/5,q.y-7,1,4);if(o.build)label(Math.ceil(o.build)+'s',q.x,q.y-11,'#ffd780',9)}
    }ctx.restore();
@@ -68,6 +71,7 @@ function create(canvas){const ctx=canvas.getContext('2d');let width=400,height=4
    label(site.ok?'✓ RELEASE TO BUILD':'× '+site.message.toUpperCase(),q.x,point(at.x,at.y,2.1).y-8,c,9);label(d.name+' · ◈ '+d.cost,q.x,q.y+28,c,9);ctx.restore()
   }
   if(selectionBox){const {start,end}=selectionBox,x=Math.min(start.x,end.x),y=Math.min(start.y,end.y),w=Math.abs(start.x-end.x),h=Math.abs(start.y-end.y);ctx.save();ctx.fillStyle='#ffdf6b20';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#ffe176';ctx.lineWidth=1.5;ctx.strokeRect(x+.5,y+.5,w,h);const count=unitsInBox(v,selectionBox).length;label(count+' units',Math.max(32,Math.min(width-32,x+w/2)),Math.max(15,y-7),'#ffe176',10);ctx.restore()}
+  const optics=ctx.createRadialGradient(width*.5,height*.45,Math.min(width,height)*.28,width*.5,height*.45,Math.max(width,height)*.72);optics.addColorStop(0,'#02081100');optics.addColorStop(1,'#02081177');ctx.fillStyle=optics;ctx.fillRect(0,0,width,height);
   // Tactical minimap shows only explored land and visible opponents.
   const mapSize=height<330||width<360?58:94;mini={x:width-mapSize-8,y:height-mapSize-11,w:mapSize,h:mapSize};ctx.fillStyle='#060d1ce8';ctx.fillRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);ctx.strokeStyle='#4b7790';ctx.strokeRect(mini.x-4,mini.y-4,mini.w+8,mini.h+8);
   label('RADAR',mini.x+mini.w/2,mini.y-9,'#a2c6d5',7);

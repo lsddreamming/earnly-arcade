@@ -22,6 +22,9 @@ function create(ctx,point,box,line,poly,tile){
  }
  function terrain(x,y){
   const h=(x*29+y*17)%47;
+  if(x%8===3){tile(x+.5,y+.5,.45,'#0c1d2988',null,.003);line(point(x+.12,y+.1),point(x+.12,y+.9),'#779caa33');for(let j=0;j<3;j++)line(point(x+.2+j*.21,y+.12),point(x+.2+j*.21,y+.88),'#35506255')}
+  if(h===19||h===37){const a=point(x+.22,y+.38),b=point(x+.7,y+.53);line(a,b,'#a8c0c026');line({x:a.x,y:a.y+2},{x:b.x,y:b.y+2},'#06141a66')}
+
   // Broad floor plates and worn seams replace the prominent checkerboard.
   if(x%4===0&&y%4===0){tile(x+1.8,y+1.8,1.72,null,'#91b5c214');line(point(x+.18,y+.2),point(x+3.4,y+.2),'#bcdce519')}
   if(h===31){const q=point(x+.5,y+.5);aura(q,'#8ab0c0',12,5,.07)}
@@ -37,7 +40,7 @@ function create(ctx,point,box,line,poly,tile){
  function crystal(o,t,zoom){
   const bright=o.rich?'#ffc7f7':'#c9ffff',mid=o.rich?'#dd70dc':'#65d9ee',dark=o.rich?'#7a318f':'#17728f';
   for(let j=0;j<3;j++){
-   const q=point(o.x+(j-1)*.27,o.y+(j%2)*.25),h=zoom*(j===1?1.13:.78),r=zoom*.19;
+   const q=point(o.x+(j-1)*.27,o.y+(j%2)*.25),h=zoom*(j===1?1.13:.78)*(.48+.52*Math.sqrt(Math.max(0,Math.min(1,o.left/(o.initial||2400))))),r=zoom*.19;
    const tip={x:q.x-r*.12,y:q.y-h},left={x:q.x-r,y:q.y-h*.56},right={x:q.x+r,y:q.y-h*.6},foot={x:q.x,y:q.y};
    poly([tip,left,{x:q.x-r*.8,y:q.y},foot],dark,mid);metal([tip,foot,{x:q.x+r*.8,y:q.y},right],mid,true);
    poly([tip,left,{x:q.x+r*.2,y:q.y-h*.42},right],o.rich?'#f6a8ec':'#a2f4fa',bright);
@@ -96,6 +99,10 @@ function create(ctx,point,box,line,poly,tile){
   }else{
    for(const dx of [-.38,.38]){raised(o.x+dx,o.y,.23,.19,'#405a70');for(let j=0;j<4;j++)line(point(o.x+dx-.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),point(o.x+dx+.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),'#8b9eaf',1.5)}
    raised(o.x,o.y,.35,.24,'#7a96a9',.16);raised(o.x,o.y,.23,.18,'#adbec9',.4);for(const d of [-.25,.25]){tile(o.x+d,o.y,.075,c+'77',null,.405);line(point(o.x+d,o.y-.2,.41),point(o.x+d,o.y+.2,.41),'#e2f2f9',1)}barrel(.65,.95,6);raised(o.x-dx*.12,o.y-dy*.12,.16,.1,'#536f87',.6);light(point(o.x-.18,o.y+.24,.43),c,2.5);for(const dy of [-.2,.2])light(point(o.x+.48,o.y+dy,.22),'#ffe4ac',1.3);
+  }
+  if(['laser','raider','medic','guardian'].includes(o.type)){
+   raised(o.x,o.y-.23,.14,.23,'#35586f',.31);for(const side of [-1,1]){line(point(o.x+side*.29-.055,o.y+.17,.47),point(o.x+side*.29+.055,o.y+.17,.47),o.type==='raider'?'#ffda94':c,2);line(point(o.x+side*.12,o.y+.24,.29),point(o.x+side*.12,o.y+.24,.43),'#203a4d',1.5)}
+   if(o.type==='guardian'){const p=point(o.x,o.y,.86);ring(p,4,2,'#fce3a077',1)}
   }
   unitFinish(o,c);
  }
