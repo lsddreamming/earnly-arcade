@@ -3,7 +3,7 @@ const API='https://zdwziebtbpuolusztede.supabase.co/functions/v1/coin-shop';
 async function setup(page,{native=false,retry=false}={}){
  let consumes=0,keys=[],credits=3;
  await page.addInitScript(({native})=>{if(native)window.Capacitor={isNativePlatform:()=>true};},{native});
- await page.route('**/cloud.js',route=>route.fulfill({contentType:'text/javascript',body:`window.EarnlyCloud={session:async()=>({access_token:'test',user:{id:'qa-paid-player'}}),client:{auth:{onAuthStateChange:()=>({})}},syncServerRewards:async()=>({})};window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));`}));
+ await page.route('**/cloud.js',route=>route.fulfill({contentType:'text/javascript',body:`window.qaUserId='qa-paid-player';window.EarnlyCloud={session:async()=>({access_token:'test',user:{id:window.qaUserId}}),client:{auth:{onAuthStateChange:()=>({})}},syncServerRewards:async()=>({})};window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));`}));
  await page.route(API+'/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname.split('/coin-shop')[1];
   const respond=(data,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(data)});
@@ -34,4 +34,12 @@ test('Uncertain paid-play requests retry with the same receipt ID',async({page})
 });
 test('Native runtimes do not load website paid-play purchases',async({page})=>{
  await setup(page,{native:true});await page.goto('/snake.html');expect(await page.evaluate(()=>typeof window.EarnlyPaidPlays)).toBe('undefined');
+});
+
+test('Switching accounts while checkout opens does not redirect the new player',async({page})=>{
+ await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
+ let release;const held=new Promise(resolve=>{release=resolve;});let requested=false;
+ await page.route(API+'/checkout',async route=>{requested=true;await held;await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({orderId:'22222222-2222-4222-8222-222222222222',url:'https://checkout.stripe.com/c/pay/test'})});});
+ await page.goto('/avatars.html');const button=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(button).toBeEnabled();await button.click();await expect.poll(()=>requested).toBe(true);
+ await page.evaluate(()=>{window.qaUserId='another-account';});release();await expect(page.locator('#coin-status')).toContainText('account changed');await expect(page).toHaveURL(/avatars\.html/);
 });

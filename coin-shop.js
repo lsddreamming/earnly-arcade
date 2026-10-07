@@ -11,6 +11,7 @@
   const message=(text,error=false)=>{$('coin-status').textContent=text;$('coin-status').className=error?'error':'';};
   async function api(path,options={}) {
     const session=await window.EarnlyCloud?.session?.();
+    if(options.account && session?.user?.id!==options.account)throw new Error('Your account changed. Try again after signing in.');
     const headers={'Content-Type':'application/json'};
     if(session)headers.Authorization='Bearer '+session.access_token;
     if(options.key)headers['Idempotency-Key']=options.key;
@@ -33,7 +34,8 @@
         busy=true;render(packs);message('Opening secure card checkout…');
         const key=pending.get(pack.id)||crypto.randomUUID();pending.set(pack.id,key);
         try {
-          const data=await api('/checkout',{body:{packId:pack.id},key});
+          const data=await api('/checkout',{body:{packId:pack.id},key,account:session.user.id});
+          if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Return to your account to check this order.');
           if(data.fulfilled){pending.delete(pack.id);location.assign('avatars.html?coin_order='+encodeURIComponent(data.orderId)+'#coin-shop');return;}
           const url=new URL(data.url);if(url.protocol!=='https:'||url.hostname!=='checkout.stripe.com')throw new Error('Checkout could not open.');
           location.assign(url.href);
@@ -68,11 +70,13 @@
   let playKey=null;
   for(const [game,name] of Object.entries(arcade?.names||{})){const option=document.createElement('option');option.value=game;option.textContent=name;$('play-game').append(option);}
   $('buy-plays').addEventListener('click',async()=>{
+    const session=await window.EarnlyCloud?.session?.();if(!session){$('auth-modal').showModal();return;}
     const button=$('buy-plays');button.disabled=true;const game=$('play-game').value;
     if(!playKey||playKey.game!==game)playKey={game,key:crypto.randomUUID()};
     try {
       await window.EarnlyCloud?.syncServerRewards?.();
-      const data=await api('/plays/buy',{body:{game},key:playKey.key});playKey=null;
+      const data=await api('/plays/buy',{body:{game},key:playKey.key,account:session.user.id});playKey=null;
+      if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Return to your account to check your extra plays.');
       arcade?.applyServerWallet?.(data.wallet);$('refresh-button').click();
       await window.EarnlyPaidPlays?.refresh();
       $('play-status').textContent=`${data.remaining} extra plays ready for ${arcade.names[game]}.`; $('play-status').className='';
