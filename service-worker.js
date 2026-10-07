@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-crystal-modern-materials-20261007';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-avatar-studio-20261007';const CORE_ASSETS = [
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
@@ -8,7 +8,8 @@ const CACHE_NAME = 'earnly-crystal-modern-materials-20261007';const CORE_ASSETS 
   './public-info.css',
   './games.html',
   './rewards.html',
-  './profile.html',
+  './profile.html', './avatars.html', './avatar-studio.css', './avatar-studio.js', './avatar-config.js', './cosmetic-ui.css', './cosmetic-ui.js',
+'./cosmetic-cyber-starter.svg','./cosmetic-astral-armor.svg','./cosmetic-starter-suit.svg','./cosmetic-neon-jacket.svg','./cosmetic-solar-cannon.svg','./cosmetic-vortex-mech.svg','./cosmetic-astra-prime.svg','./cosmetic-starter-blaster.svg','./cosmetic-neon-phantom.svg','./cosmetic-pulse-blade.svg',
   './leaderboards.html',
   './account.html',
   './settings.html',

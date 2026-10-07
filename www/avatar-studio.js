@@ -1,0 +1,436 @@
+/* API-backed UI. Browser storage never decides balances or ownership. */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    items: [],
+    user: null,
+    slot: "avatar",
+    auth: null,
+    config: null,
+    busy: false,
+    pending: null,
+    profileSequence: 0,
+    refreshSequence: 0,
+    authEpoch: 0,
+  };
+  const apiBase = window.EARNLY_AVATAR_API || "";
+  const fmt = (value) => BigInt(value ?? 0).toLocaleString();
+  const prettySlot = { avatar: "Avatar", outfit: "Outfit", weapon: "Weapon" };
+  function el(tag, classes, text) {
+    const node = document.createElement(tag);
+    if (classes) node.className = classes;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  function image(item) {
+    const img = el("img");
+    img.src = new URL(item.imageUrl, location.href).href;
+    img.alt = item.name;
+    return img;
+  }
+  function status(message, error = false) {
+    $("status").textContent = message;
+    $("status").className = error ? "error" : "";
+  }
+  function starterLoadout() {
+    return Object.fromEntries(
+      ["avatar", "outfit", "weapon"].map((slot) => [
+        slot,
+        state.items.find((i) => i.slot === slot && i.coinPrice === 0),
+      ]),
+    );
+  }
+  function character(equipped) {
+    const root = el("div", "character");
+    for (const slot of ["avatar", "outfit", "weapon"])
+      if (equipped[slot]) root.append(image(equipped[slot]));
+    return root;
+  }
+  function summary(root, equipped) {
+    root.replaceChildren();
+    for (const slot of ["avatar", "outfit", "weapon"]) {
+      const row = el("div");
+      row.append(
+        el("dt", "", prettySlot[slot]),
+        el("dd", "", equipped[slot]?.name || "—"),
+      );
+      root.append(row);
+    }
+  }
+  async function api(path, { method = "GET", body, key } = {}) {
+    const headers = {};
+    if (state.auth) {
+      const { data, error } = await state.auth.auth.getSession();
+      if (error) throw error;
+      if (data.session)
+        headers.Authorization = "Bearer " + data.session.access_token;
+    }
+    if (body) headers["Content-Type"] = "application/json";
+    if (key) headers["Idempotency-Key"] = key;
+    const response = await fetch(apiBase + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({
+      error: { message: "The server returned an unexpected response." },
+    }));
+    if (!response.ok) {
+      const error = new Error(
+        data.error?.message || "Could not complete this request.",
+      );
+      error.code = data.error?.code;
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+  function renderUser() {
+    const user = state.user,
+      equipped = user?.equipped || starterLoadout();
+    $("coin-balance").textContent = user ? fmt(user.coins) : "—";
+    $("nav-name").textContent = user ? "@" + user.username : "Guest";
+    if (equipped.avatar) {
+      $("nav-avatar").src = image(equipped.avatar).src;
+      $("character-name").textContent = equipped.avatar.name;
+      $("character-rarity").textContent = equipped.avatar.rarity;
+      $("character-rarity").className = "badge " + equipped.avatar.rarity;
+    }
+    $("character-stage").replaceChildren(character(equipped));
+    $("character-owner").textContent = user
+      ? "@" + user.username
+      : "Sign in to save your look";
+    summary($("loadout-summary"), equipped);
+    $("my-profile").disabled = !user;
+    $("view-profile").disabled = !user;
+    $("auth-button").textContent = user ? "Sign out" : "Sign in";
+    $("owned-count").textContent = user ? user.inventory.length + " owned" : "";
+    renderShop();
+  }
+  function renderShop() {
+    $("shop-grid").replaceChildren();
+    for (const item of state.items.filter((i) => i.slot === state.slot)) {
+      const owned = state.user?.inventory.includes(item.id),
+        equipped = state.user?.equipped[item.slot]?.id === item.id;
+      const card = el("article", "item-card " + item.rarity),
+        art = el("div", "item-art");
+      art.append(
+        image(item),
+        el("span", "badge " + item.rarity, item.rarity.toUpperCase()),
+      );
+      const button = el(
+        "button",
+        equipped ? "equipped" : owned ? "" : "buy",
+        equipped
+          ? "Equipped"
+          : owned
+            ? "Equip"
+            : item.coinPrice === 0
+              ? "Free starter"
+              : "◈ " + fmt(item.coinPrice) + " · Buy",
+      );
+      button.type = "button";
+      button.disabled = !!equipped || state.busy;
+      button.dataset.itemId = item.id;
+      button.setAttribute(
+        "aria-label",
+        (equipped ? "Equipped" : owned ? "Equip" : "Buy") + " " + item.name,
+      );
+      button.addEventListener("click", () => {
+        if (!state.user) {
+          $("auth-modal").showModal();
+          return;
+        }
+        if (owned) {
+          equip(item);
+          return;
+        }
+        state.pending = { item, key: crypto.randomUUID() };
+        $("purchase-title").textContent = "Unlock " + item.name + "?";
+        $("purchase-preview").replaceChildren(image(item));
+        $("purchase-price").textContent =
+          fmt(item.coinPrice) +
+          " Arcade Coins · Balance: " +
+          fmt(state.user.coins);
+        $("purchase-error").textContent = "";
+        $("purchase-modal").showModal();
+      });
+      card.append(
+        art,
+        el("h3", "", item.name),
+        el("p", "", prettySlot[item.slot] + " · " + item.rarity),
+        button,
+      );
+      $("shop-grid").append(card);
+    }
+  }
+  async function leaderboard() {
+    const data = await api("/api/leaderboard");
+    $("leaderboard-context").textContent = "All-time · " + data.game;
+    $("leaderboard-body").replaceChildren();
+    for (const player of data.players) {
+      const row = el("tr"),
+        rank = el("td", "rank-cell", "#" + player.rank),
+        name = el("td"),
+        button = el("button", "player-link " + player.equippedAvatar.rarity);
+      button.type = "button";
+      button.setAttribute("aria-label", "@" + player.username);
+      button.append(
+        image(player.equippedAvatar),
+        el("span", "", "@" + player.username),
+      );
+      button.addEventListener("click", () => openProfile(player.username));
+      name.append(button);
+      row.append(rank, name, el("td", "score", fmt(player.highScore)));
+      $("leaderboard-body").append(row);
+    }
+    $("leaderboard-empty").hidden = data.players.length > 0;
+  }
+  async function refresh() {
+    const sequence = ++state.refreshSequence;
+    try {
+      const { data } = await state.auth.auth.getSession();
+      let user = null;
+      if (data.session) {
+        await window.EarnlyCloud?.syncServerRewards?.();
+        user = (await api("/api/me")).user;
+      }
+      if (sequence !== state.refreshSequence) return;
+      state.user = user;
+      renderUser();
+      try {
+        await leaderboard();
+      } catch (error) {
+        status(error.message, true);
+      }
+    } catch (error) {
+      if (sequence !== state.refreshSequence) return;
+      state.user = null;
+      renderUser();
+      status(error.message, true);
+    }
+  }
+  function applyUser(user) {
+    state.user = user;
+    renderUser();
+    // Optional bridge for the existing Earnly frontend's Coin display.
+    window.Arcade?.applyServerWallet?.({
+      balance: user.coins,
+      lifetime_earned: user.lifetimeEarned,
+    });
+    window.dispatchEvent(
+      new CustomEvent("earnly-cosmetics-change", { detail: { user } }),
+    );
+  }
+  async function equip(item) {
+    if (state.busy) return;
+    state.busy = true;
+    const epoch = state.authEpoch;
+    ++state.refreshSequence;
+    renderShop();
+    try {
+      const result = await api("/api/user/equip", {
+        method: "POST",
+        body: { itemId: item.id },
+      });
+      if (epoch !== state.authEpoch) return;
+      applyUser(result.user);
+      status(item.name + " equipped.");
+      await leaderboard();
+    } catch (error) {
+      status(error.message, true);
+    } finally {
+      state.busy = false;
+      renderShop();
+    }
+  }
+  $("confirm-purchase").addEventListener("click", async () => {
+    if (state.busy || !state.pending) return;
+    state.busy = true;
+    const pending = state.pending,
+      epoch = state.authEpoch;
+    ++state.refreshSequence;
+    $("confirm-purchase").disabled = true;
+    renderShop();
+    try {
+      await window.EarnlyCloud?.syncServerRewards?.();
+      const data = await api("/api/shop/buy", {
+        method: "POST",
+        body: { itemId: pending.item.id },
+        key: pending.key,
+      });
+      if (epoch !== state.authEpoch) return;
+      applyUser(data.user);
+      $("purchase-modal").close();
+      state.pending = null;
+      status(pending.item.name + " unlocked and equipped.");
+      await leaderboard();
+    } catch (error) {
+      $("purchase-error").textContent = error.message;
+      // Keep the same key after an uncertain network outcome so retry cannot double-debit.
+      if (error.code === "INSUFFICIENT_COINS")
+        try {
+          applyUser((await api("/api/me")).user);
+        } catch {}
+    } finally {
+      state.busy = false;
+      $("confirm-purchase").disabled = false;
+      renderShop();
+    }
+  });
+  async function openProfile(username) {
+    const sequence = ++state.profileSequence;
+    try {
+      const { profile: p } = await api(
+        "/api/user/" + encodeURIComponent(username),
+      );
+      if (sequence !== state.profileSequence) return;
+      $("modal-username").textContent = "@" + p.username;
+      $("modal-character").className =
+        "modal-character " + p.equippedAvatar.rarity;
+      $("modal-character").replaceChildren(character(p.equipped));
+      $("modal-rarity").className = "badge " + p.equippedAvatar.rarity;
+      $("modal-rarity").textContent = p.equippedAvatar.rarity.toUpperCase();
+      $("modal-game").textContent = "All-time · " + p.game;
+      $("modal-rank").textContent = p.rank ? "#" + p.rank : "Unranked";
+      $("modal-score").textContent = fmt(p.highScore);
+      $("modal-games").textContent = fmt(p.gamesPlayed);
+      $("modal-skins").textContent = fmt(p.totalSkinsUnlocked);
+      summary($("modal-loadout"), p.equipped);
+      if (!$("profile-modal").open) $("profile-modal").showModal();
+    } catch (error) {
+      status(error.message, true);
+    }
+  }
+  for (const button of document.querySelectorAll("[data-slot]"))
+    button.addEventListener("click", () => {
+      state.slot = button.dataset.slot;
+      for (const tab of document.querySelectorAll("[data-slot]"))
+        tab.setAttribute("aria-pressed", String(tab === button));
+      renderShop();
+    });
+  for (const button of document.querySelectorAll("[data-close]"))
+    button.addEventListener("click", () => {
+      if (button.dataset.close === "purchase-modal" && state.busy) return;
+      $(button.dataset.close).close();
+    });
+  for (const dialog of document.querySelectorAll("dialog")) {
+    dialog.addEventListener("click", (event) => {
+      const r = dialog.getBoundingClientRect();
+      if (
+        event.target === dialog &&
+        (event.clientX < r.left ||
+          event.clientX > r.right ||
+          event.clientY < r.top ||
+          event.clientY > r.bottom) &&
+        !(dialog.id === "purchase-modal" && state.busy)
+      )
+        dialog.close();
+    });
+    dialog.addEventListener("cancel", (event) => {
+      if (dialog.id === "purchase-modal" && state.busy) event.preventDefault();
+    });
+  }
+  $("my-profile").addEventListener(
+    "click",
+    () => state.user && openProfile(state.user.username),
+  );
+  $("view-profile").addEventListener(
+    "click",
+    () => state.user && openProfile(state.user.username),
+  );
+  $("refresh-button").addEventListener("click", refresh);
+  $("auth-button").addEventListener("click", async () => {
+    if (!state.user) {
+      $("auth-modal").showModal();
+      return;
+    }
+    const { error } = await state.auth.auth.signOut();
+    if (error) status(error.message, true);
+    else {
+      state.user = null;
+      $("profile-modal").close();
+      $("purchase-modal").close();
+      state.pending = null;
+      renderUser();
+      status("Signed out.");
+    }
+  });
+  $("auth-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = event.submitter;
+    button.disabled = true;
+    $("auth-status").textContent = "Signing in…";
+    try {
+      const { error } = await state.auth.auth.signInWithPassword({
+        email: $("email").value,
+        password: $("password").value,
+      });
+      if (error) throw error;
+      $("password").value = "";
+      $("auth-modal").close();
+      await refresh();
+    } catch (error) {
+      $("auth-status").textContent = error.message;
+      $("auth-status").className = "error";
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $("magic-link").addEventListener("click", async () => {
+    if (!$("email").reportValidity()) return;
+    const button = $("magic-link");
+    button.disabled = true;
+    try {
+      const { error } = await state.auth.auth.signInWithOtp({
+        email: $("email").value,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: location.origin + location.pathname,
+        },
+      });
+      if (error) throw error;
+      $("auth-status").className = "";
+      $("auth-status").textContent = "Check your email for the sign-in link.";
+    } catch (error) {
+      $("auth-status").className = "error";
+      $("auth-status").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && state.auth && !state.busy) refresh();
+  });
+  async function init() {
+    try {
+      state.config = await api("/api/config");
+      state.auth = window.createEarnlyAuth(
+        state.config.supabaseUrl,
+        state.config.publishableKey,
+      );
+      state.items = (await api("/api/shop")).items;
+      renderUser();
+      await refresh();
+      state.auth.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT" || event === "SIGNED_IN") {
+          ++state.authEpoch;
+          ++state.refreshSequence;
+          state.user = null;
+          state.pending = null;
+          renderUser();
+          $("purchase-modal").close();
+          $("profile-modal").close();
+        }
+        // Refresh outside the SDK callback to avoid holding its internal auth lock.
+        if (event !== "TOKEN_REFRESHED") setTimeout(refresh, 0);
+      });
+    } catch (error) {
+      status(error.message, true);
+      $("shop-grid").textContent =
+        "Collection could not load. Refresh to try again.";
+    }
+  }
+  init();
+})();

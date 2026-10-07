@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img"><title>Astra Prime</title><defs><linearGradient id="metal" x2="1" y2="1"><stop stop-color="#60738c"/><stop offset=".45" stop-color="#26394f"/><stop offset="1" stop-color="#101b2b"/></linearGradient><linearGradient id="accent" x2="1" y2="1"><stop stop-color="#ffd279"/><stop offset="1" stop-color="#344263"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="3"/></filter></defs><ellipse cx="150" cy="363" rx="57" ry="10" fill="#060a13" opacity=".6"/>
+    <path d="M113 248L106 335L136 343L146 253M154 253L164 343L194 335L187 248" fill="url(#metal)" stroke="#728499" stroke-width="2"/>
+    <path d="M103 330L99 351Q119 363 141 352L138 336M162 336L159 352Q181 363 201 351L197 330" fill="#18293e" stroke="#ffd279" stroke-width="2"/>
+    <path d="M102 149L87 184L85 243L104 250L122 182M198 149L213 184L215 243L196 250L178 182" fill="url(#metal)" stroke="#6a7b91" stroke-width="2"/>
+    <circle cx="99" cy="198" r="12" fill="#142337" stroke="#ffd279" stroke-width="3"/><circle cx="201" cy="198" r="12" fill="#142337" stroke="#ffd279" stroke-width="3"/>
+    <path d="M118 137L97 164L114 254L150 268L186 254L203 164L182 137Z" fill="url(#metal)" stroke="#9aacbf" stroke-width="2"/>
+    <path d="M113 157L150 178L187 157M121 230L150 245L179 230" fill="none" stroke="#ffd279" stroke-width="4"/>
+    <path d="M136 121L136 141L164 141L164 121" fill="#18304a"/><path d="M99 85L80 43L117 66M201 85L220 43L183 66" fill="url(#metal)" stroke="#ffd279" stroke-width="3"/><path d="M119 59L127 36L150 54L173 36L181 59" fill="url(#accent)"/>
+    <path d="M112 66L188 66L203 89L194 123L169 139L131 139L106 123L97 89Z" fill="url(#metal)" stroke="#9daec3" stroke-width="2"/>
+    <path d="M112 84L188 84L194 108L180 118L120 118L106 108Z" fill="#071322"/><path d="M116 99L140 103M160 103L184 99" stroke="#ffd279" stroke-width="7"/>
+    <path d="M133 126H167" stroke="#ffd279" stroke-width="2"/><circle cx="150" cy="196" r="13" fill="#ffd279" opacity=".25" filter="url(#glow)"/><path d="M150 184L161 197L150 209L139 197Z" fill="#ffd279"/>
+    <path d="M116 279L133 281M168 281L184 279" stroke="#ffd279" stroke-width="3"/></svg>

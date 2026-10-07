@@ -122,6 +122,13 @@ Deno.serve(async (req: Request) => {
         profiles = data || [];
       }
       const byUser = new Map(profiles.map((p:any) => [p.user_id, p]));
+      // Cosmetic metadata never changes score verification or submission.
+      const equippedByUser = new Map<string,any>();
+      if (ids.length) {
+        const {data:loadouts,error:cosmeticError} = await admin.from("cosmetic_loadouts")
+          .select("user_id,cosmetic_items(asset_path,rarity)").eq("slot","avatar").in("user_id",ids);
+        if (!cosmeticError) for (const item of loadouts || []) equippedByUser.set(item.user_id,item.cosmetic_items);
+      }
       const entries = visibleRows
         .map((row:any) => {
           const profile = byUser.get(row.user_id);
@@ -130,6 +137,8 @@ Deno.serve(async (req: Request) => {
             username:profile.username,
             avatarKey:profile.avatar_key || "gamepad",
             avatar:avatarEmoji(profile.avatar_key || "gamepad"),
+            avatarUrl:equippedByUser.get(row.user_id)?.asset_path || "cosmetic-cyber-starter.svg",
+            avatarRarity:equippedByUser.get(row.user_id)?.rarity || "common",
             score:Number(row.score || 0),
             verified:!!row.verified,
             achievedAt:row.achieved_at,
@@ -248,4 +257,3 @@ Deno.serve(async (req: Request) => {
     return json({ error:String((error as any)?.message || error || "Leaderboard request failed") }, 400);
   }
 });
-

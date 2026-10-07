@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img"><title>Neon Jacket</title><defs><linearGradient id="metal" x2="1" y2="1"><stop stop-color="#60738c"/><stop offset=".45" stop-color="#26394f"/><stop offset="1" stop-color="#101b2b"/></linearGradient><linearGradient id="accent" x2="1" y2="1"><stop stop-color="#b088ff"/><stop offset="1" stop-color="#344263"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="3"/></filter></defs><path d="M124 139L150 151L176 139L205 161L191 192L182 180L184 252L151 264L116 252L118 180L109 192L95 161Z" fill="url(#metal)" stroke="#b088ff" stroke-width="2"/>
+    <path d="M124 140L139 158L126 176L145 186M176 140L161 158L174 176L155 186" fill="url(#accent)" stroke="#b088ff" stroke-width="1.5"/>
+    <path d="M150 156V254" stroke="#b088ff" stroke-width="3"/><path d="M122 237L145 230M155 230L178 237" stroke="#b088ff" stroke-width="4"/>
+    <path d="M109 158L125 169M175 169L191 158" stroke="#eff4ff" opacity=".6" stroke-width="3"/>
+    <path d="M122 187V216M178 187V216" stroke="#d8b5ff" stroke-width="3"/></svg>
