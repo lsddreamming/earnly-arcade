@@ -88,6 +88,13 @@ function create(ctx,point,box,line,poly,tile){
   if(o.type==='siege'){const a=o.aim||{x:o.x+.8,y:o.y-.2},l=Math.hypot(a.x-o.x,a.y-o.y)||1,dx=(a.x-o.x)/l,dy=(a.y-o.y)/l,P=(f,w,z)=>point(o.x+dx*f-dy*w,o.y+dy*f+dx*w,z);poly([P(-.18,-.19,.64),P(.2,-.19,.64),P(.28,.16,.6),P(-.18,.19,.6)],'#8facbe','#e1edf2');poly([P(.85,-.1,.69),P(1.03,-.1,.69),P(1.03,.1,.69),P(.85,.1,.69)],'#39576e','#bad8e5');line(P(1.035,-.075,.64),P(1.035,.075,.64),'#0b1c2a',3);for(const side of [-1,1])light(point(o.x+side*.45,o.y+.24,.26),c,1.5)}
   if(o.type==='worker'){sphere(point(o.x-.08,o.y-.08,.55),scale*.13,scale*.1,'#92b4c5');poly([point(o.x-.16,o.y+.12,.56),point(o.x+.08,o.y+.12,.56),point(o.x+.08,o.y+.12,.46),point(o.x-.16,o.y+.12,.46)],'#0c2738',c);for(const side of [-1,1])line(point(o.x+.43,o.y+.12,.27),point(o.x+.53,o.y+.12+side*.08,.19),'#e1ce9d',1.5);}
  }
+ // Tapered plates follow each bone; joint sockets stay attached at every aim angle.
+ function armPlate(a,b,r,color){
+  const length=Math.hypot(b.x-a.x,b.y-a.y)||1,nx=-(b.y-a.y)/length,ny=(b.x-a.x)/length;
+  const Q=(p,w)=>({x:p.x+nx*w,y:p.y+ny*w});
+  metal([Q(a,r*.72),Q(b,r*.55),Q(b,-r*.55),Q(a,-r*.72)],color,true);
+  line(Q(a,-r*.45),Q(b,-r*.35),'#d4edf088',.75);
+ }
  const unitHull=(x,y,r,h,color,z)=>simple?raised(x,y,r,h,color,z):hull(x,y,r,h,color,z);
  function robot(o,c,t){
   const walking=o.moving,step=walking?Math.sin(t*11+o.id)*.13:0;
@@ -98,7 +105,10 @@ function create(ctx,point,box,line,poly,tile){
   if(o.type==='worker'){
    for(const s of [-1,1]){line(point(o.x+s*.18,o.y,.25),point(o.x+s*.32,o.y+.15,.12),'#b8cdd8',2.5);line(point(o.x+s*.32,o.y+.15,.12),point(o.x+s*.32,o.y+.28+step*s),'#6b8d9f',2);raised(o.x+s*.32,o.y+.28+step*s,.09,.08,'#4e697f')}
    unitHull(o.x,o.y,.25,.24,'#7b9bad',.2);raised(o.x-.08,o.y-.08,.13,.14,'#a3bdc8',.44);line(point(o.x-.12,o.y+.12,.53),point(o.x+.12,o.y+.12,.53),c,2);light(point(o.x,o.y,.5),c,2);line(point(o.x-.12,o.y-.12,.59),point(o.x-.12,o.y-.12,.82),'#aecbd9',1);light(point(o.x-.12,o.y-.12,.82),c,1);
-   line(point(o.x+.23,o.y,.4),point(o.x+.48,o.y+.12,.24+(o.mine?Math.sin(t*24)*.06:0)),'#d1e2eb',2);light(point(o.x+.48,o.y+.12,.24+(o.mine?Math.sin(t*24)*.06:0)),'#ffdb86',1.5);
+   const toolScale=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x)/.85,toolLift=o.mine?Math.sin(t*24)*.035:0;
+   const socket=point(o.x+.22,o.y,.4),hinge=point(o.x+.37,o.y+.03,.29),grip=point(o.x+.48,o.y+.12,.25+toolLift);
+   armPlate(socket,hinge,toolScale*.075,'#7d9ead');sphere(hinge,toolScale*.04,toolScale*.035,'#1e394d');armPlate(hinge,grip,toolScale*.065,'#aec6cd');sphere(grip,toolScale*.04,toolScale*.035,'#25465a');
+   const tip=point(o.x+.58,o.y+.17,.22+toolLift);line(grip,tip,'#667f8f',Math.max(1,toolScale*.06));light(tip,'#ffdb86',1.2);
    if(o.carry){for(const j of [-1,1]){const p=point(o.x-.15+j*.08,o.y-.18,.76);light(p,c,3);poly([{x:p.x,y:p.y-6},{x:p.x+3,y:p.y},{x:p.x,y:p.y+3},{x:p.x-3,y:p.y}],c,'#d8ffff')}}
   }else if(o.type==='scout'){
    const z=.34+Math.sin(t*5+o.id)*.025;poly([point(o.x,o.y-.48,z),point(o.x+.34,o.y+.27,z),point(o.x,o.y+.12,z),point(o.x-.34,o.y+.27,z)],'#587b92','#a2d5e4');raised(o.x,o.y,.13,.12,'#b3cbd6',z);for(const dx of [-.3,.3])line(point(o.x+dx,o.y+.1,z),point(o.x+dx,o.y+.45,z-.08),c+'66',2);light(point(o.x,o.y-.13,z+.12),c,2);for(const dx of [-.23,.23])light(point(o.x+dx,o.y+.25,z),c,2.5);
@@ -125,7 +135,24 @@ function create(ctx,point,box,line,poly,tile){
    poly([P(-.12,-.14,.75),P(-.12,.14,.75),P(.12,.14,.77),P(.12,-.14,.77)],shell,'#b7d8e5');
    poly([P(.183,-.105,.728),P(.183,.105,.728),P(.19,.085,.67),P(.19,-.085,.67)],'#071725',accent+'88');
    for(const side of [-1,1])line(P(.195,side*.035,.705),P(.195,side*.083,.705),accent,1.6);
-   for(const side of [-1,1]){const w=side*(width+.08);poly([P(-.14,w-side*.11,.59),P(.14,w-side*.11,.59),P(.18,w+side*.1,.52),P(-.11,w+side*.1,.49)],shell,'#bad8e4');line(P(.14,w,.52),P(.19,w,.36),dark,3.5);line(P(.14,w,.52),P(.19,w,.36),shell,1.4)}
+   // Bent elbows and separate gauntlets: rifle troops use a two-handed grip.
+   const scale=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x)/.85;
+   const hands=[];
+   for(const side of [-1,1]){
+    const w=side*(width+.065),swing=walking?(medic||guard?step*side*.35:step*.06):0;
+    const shoulder=P(-.025,w,.535),elbow=P(.06+swing,side*(width+.12),.345);
+    const hand=guard?P(.17+swing,w,.25):medic?P(side===1?.38:.16+swing,side===1?.29:w,side===1?.405:.27):P(side===-1?.28:.47,-.12,.405);
+    line(shoulder,elbow,'#111f2c',Math.max(1.2,scale*.10));
+    armPlate(shoulder,elbow,scale*.095,shell);
+    sphere(elbow,scale*.052,scale*.048,'#142b3d');
+    armPlate(elbow,hand,scale*(guard?.115:.09),guard?'#7894ab':shell);
+    line(elbow,hand,'#233e5144',Math.max(.6,scale*.022));
+    sphere(shoulder,scale*.065,scale*.055,dark);
+    const cap=P(-.035,w,.55);
+    armPlate(P(-.12,w,.56),P(.085,w,.535),scale*(guard?.14:.10),shell);
+    line({x:cap.x-scale*.025,y:cap.y},{x:cap.x+scale*.035,y:cap.y},accent,Math.max(.7,scale*.026));
+    hands.push(hand);
+   }
    if(medic){
     // White rescue chassis, a green medical insignia and twin treatment tanks.
     line(P(.214,-.1,.455),P(.214,.1,.455),'#35a66f',2.3);line(P(.214,0,.385),P(.214,0,.535),'#35a66f',2.3);
@@ -135,13 +162,14 @@ function create(ctx,point,box,line,poly,tile){
     // Four clearly separated missile tips make the anti-air walker distinctive.
     for(const side of [-1,1]){const w=side*.39;poly([P(-.22,w-.105,.79),P(.12,w-.105,.79),P(.12,w+.105,.79),P(-.22,w+.105,.79)],'#566e85','#c7d7dd');poly([P(.125,w-.105,.79),P(.125,w+.105,.79),P(.125,w+.105,.62),P(.125,w-.105,.62)],'#243a4c','#adc4d0');for(const j of [-1,1]){line(P(.14,w+j*.052,.71),P(.27,w+j*.052,.75),'#e6d3a5',2.5);light(P(.27,w+j*.052,.75),'#ffe29a',1)}}
    }else{
-    const muzzle=raider?.63:.82,w=-.28,z=.44;
+    const muzzle=raider?.63:.78,w=-.12,z=.44;
     poly([P(.08,w-.065,z+.08),P(muzzle-.08,w-.065,z+.08),P(muzzle-.08,w+.065,z+.08),P(.08,w+.065,z+.08)],'#5e7e96','#d0e3ea');
     line(P(.1,w,z+.035),P(muzzle,w,z+.035),'#122536',4);line(P(.18,w,z+.055),P(muzzle,w,z+.055),'#b2d2df',1.7);light(P(muzzle,w,z+.055),accent,1.2);
-    line(P(.32,w,z+.02),P(.29,w,z-.11),dark,3);line(P(.22,w,z+.11),P(.35,w,z+.11),accent,1.2);
+    line(P(.28,w,z+.02),P(.28,w,z-.06),dark,Math.max(1,scale*.055));line(P(.22,w,z+.11),P(.35,w,z+.11),accent,1.2);
     if(raider){for(const side of [-1,1])poly([P(-.23,side*.19,.52),P(-.39,side*.25,.75),P(-.19,side*.25,.67)],'#345873','#ffd184');}
 
    }
+   for(const hand of hands){sphere(hand,scale*.054,scale*.045,dark);line({x:hand.x-scale*.025,y:hand.y-1},{x:hand.x+scale*.025,y:hand.y-1},'#adc6d3',Math.max(.5,scale*.022))}
   }else{
    for(const dx of [-.38,.38]){raised(o.x+dx,o.y,.23,.19,'#405a70');for(let j=0;j<4;j++)line(point(o.x+dx-.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),point(o.x+dx+.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),'#8b9eaf',1.5)}
    unitHull(o.x,o.y,.37,.24,'#7a96a9',.16);if(simple)raised(o.x,o.y,.23,.18,'#adbec9',.4);else drum(o.x,o.y,.27,.18,'#adbec9',.4);for(const d of [-.25,.25]){tile(o.x+d,o.y,.075,c+'77',null,.405);line(point(o.x+d,o.y-.2,.41),point(o.x+d,o.y+.2,.41),'#e2f2f9',1)}barrel(.65,.95,6);raised(o.x-dx*.12,o.y-dy*.12,.16,.1,'#536f87',.6);light(point(o.x-.18,o.y+.24,.43),c,2.5);for(const dy of [-.2,.2])light(point(o.x+.48,o.y+dy,.22),'#ffe4ac',1.3);
@@ -210,3 +238,4 @@ const icons={raider:'M8 8h16v9H8z M12 3h8v5 M6 17h20 M11 17v11 M21 17v11 M24 11h
 function icon(type){return '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(icons[type]||icons.base)+'"/></svg>'}
 window.CrystalArt={create,icon};
 })();
+
