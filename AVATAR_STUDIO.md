@@ -38,3 +38,9 @@ IDs, receipts, and balances are preserved. The shop API exposes `isStarter` for 
 deterministic guest preview. Try-on changes are client-only and reset explicitly;
 only Equip or a confirmed purchase changes the saved loadout. The free filter
 hides paid items. Profile cards and World Ranks use the same layering order.
+
+## Atelier update
+
+The shared 300 × 400 vector rig now has eight slots, including headwear. The catalog contains 41 pieces, with 18 free essentials/choices. Shoe cuffs overlap trouser hems, soles align to the same ground line, and high-tops, illuminated sneakers and plated boots have distinct geometry. Three complete looks preview combinations without purchasing them. Face and footwear inspection, category search, free-only and owned-only filters help players choose pieces.
+
+Regenerate original assets with `python3 tools/generate-cosmetic-art.py`. Keep asset IDs and attachment coordinates stable so existing purchases stay compatible. Root files are mirrored into `www` for the future native bundle; website card checkout is hidden in native runtimes. See `COIN_CHECKOUT_SETUP.md` for the owner activation steps.

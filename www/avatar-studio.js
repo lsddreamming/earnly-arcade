@@ -14,12 +14,14 @@
     authEpoch: 0,
     preview: {},
     freeOnly: false,
+    ownedOnly: false,
+    search: "",
   };
   const apiBase = window.EARNLY_AVATAR_API || "";
   const fmt = (value) => BigInt(value ?? 0).toLocaleString();
-  const slots = ["avatar", "outfit", "shoes", "backpack", "face", "beard", "weapon"];
-  const layers = ["backpack", "avatar", "outfit", "shoes", "face", "beard", "weapon"];
-  const prettySlot = { avatar: "Avatar", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", weapon: "Weapon" };
+  const slots = ["avatar", "outfit", "shoes", "backpack", "face", "beard", "head", "weapon"];
+  const layers = ["backpack", "avatar", "outfit", "shoes", "face", "beard", "head", "weapon"];
+  const prettySlot = { avatar: "Avatar", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon" };
   function el(tag, classes, text) {
     const node = document.createElement(tag);
     if (classes) node.className = classes;
@@ -117,11 +119,12 @@
   }
   function renderShop() {
     $("shop-grid").replaceChildren();
-    for (const item of state.items.filter((i) => i.slot === state.slot && (!state.freeOnly || i.coinPrice === 0))) {
+    for (const item of state.items.filter((i) => i.slot === state.slot && (!state.freeOnly || i.coinPrice === 0) && (!state.ownedOnly || state.user?.inventory.includes(i.id)) && i.name.toLowerCase().includes(state.search))) {
       const owned = state.user?.inventory.includes(item.id),
         equipped = state.user?.equipped[item.slot]?.id === item.id;
       const card = el("article", "item-card " + item.rarity),
         art = el("div", "item-art");
+      art.dataset.slot = item.slot;
       art.append(
         character({ ...starterLoadout(), [item.slot]: item }),
         el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
@@ -176,6 +179,25 @@
       );
       $("shop-grid").append(card);
     }
+    if (!$("shop-grid").children.length) $("shop-grid").append(el("p","collection-note","No matches. Try another search or filter."));
+  }
+  const looks = [
+    {name:"Trail Society",description:"Warm knits, utility pockets, everyday high-tops.",ids:["cyber-starter","storm-coat","high-tops","adventure-pack","ribbed-beanie","round-glasses","explorer-beard"]},
+    {name:"Aurora Vanguard",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
+    {name:"Solar Royalty",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},
+  ];
+  function renderLooks() {
+    $("featured-looks").replaceChildren();
+    for (const look of looks) {
+      const found=look.ids.map(id=>state.items.find(i=>i.id===id)).filter(Boolean);
+      if(found.length!==look.ids.length) continue;
+      const equipped={...starterLoadout(),...Object.fromEntries(found.map(i=>[i.slot,i]))};
+      const card=el("article","look-card"), art=el("div","look-art"); art.append(character(equipped));
+      const copy=el("div");copy.append(el("h3","",look.name),el("p","",look.description));
+      const button=el("button","subtle","Preview look");button.setAttribute("aria-label","Preview "+look.name);
+      button.addEventListener("click",()=>{state.preview=Object.fromEntries(found.map(i=>[i.slot,i]));renderUser();$("character-stage").scrollIntoView({block:"center",behavior:"smooth"});});
+      copy.append(button);card.append(art,copy);$("featured-looks").append(card);
+    }
   }
   async function leaderboard() {
     const data = await api("/api/leaderboard");
@@ -228,7 +250,7 @@
     state.preview = {};
     renderUser();
     // Optional bridge for the existing Earnly frontend's Coin display.
-    window.Arcade?.applyServerWallet?.({
+    (typeof Arcade!=="undefined"?Arcade:null)?.applyServerWallet?.({
       balance: user.coins,
       lifetime_earned: user.lifetimeEarned,
     });
@@ -316,6 +338,12 @@
       status(error.message, true);
     }
   }
+  $("owned-only").addEventListener("change", e=>{state.ownedOnly=e.target.checked;renderShop();});
+  $("shop-search").addEventListener("input", e=>{state.search=e.target.value.trim().toLowerCase();renderShop();});
+  for(const button of document.querySelectorAll("[data-focus]")) button.addEventListener("click",()=>{
+    $("character-stage").dataset.focus=button.dataset.focus;
+    for(const option of document.querySelectorAll("[data-focus]")) option.setAttribute("aria-pressed",String(option===button));
+  });
   $("free-only").addEventListener("change", (event) => { state.freeOnly = event.target.checked; renderShop(); });
   $("reset-preview").addEventListener("click", () => { state.preview = {}; renderUser(); });
   for (const button of document.querySelectorAll("[data-slot]"))
@@ -426,6 +454,7 @@
         state.config.publishableKey,
       );
       state.items = (await api("/api/shop")).items;
+      renderLooks();
       renderUser();
       await refresh();
       state.auth.auth.onAuthStateChange((event) => {

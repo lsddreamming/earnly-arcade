@@ -106,7 +106,7 @@
       <div><strong id="streak">0</strong><span>Day streak</span></div>
     </section>
 
-    <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Avatars, outfits &amp; cosmetic weapons</small></span><span aria-hidden="true">→</span></a>
+    <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Outfits, accessories &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
 
     <details class="profile-more-stats">
       <summary>
@@ -232,7 +232,7 @@
 
       document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
       document.getElementById('nameDisplay').textContent = stats.name;
-      document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
+      if (!window.EarnlyCosmetics?.paint()) document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
       document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
       const usernameInput = document.getElementById('usernameInput');
       if (document.activeElement !== usernameInput) usernameInput.value = Arcade.leaderboardUsername();
@@ -274,7 +274,7 @@
         button.addEventListener('click', () => {
           Arcade.setProfileIcon(key);
           renderAvatarPicker();
-          document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
+          if (!window.EarnlyCosmetics?.paint()) document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
         });
         root.append(button);
       });

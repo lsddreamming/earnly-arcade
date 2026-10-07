@@ -721,3 +721,42 @@ input {
   .item-card h3 { font-size:13px; }
   .item-card button { min-height:40px; }
 }
+
+/* Atelier: inspect the actual layered rig, including ankle overlap and soles. */
+.get-coins {border:1px solid #997b48;border-radius:10px;padding:10px 12px;color:#ffdda0;font-size:12px;font-weight:750;white-space:nowrap;}
+.stage {overflow:hidden;border:1px solid #2d4561;border-radius:22px;background:radial-gradient(ellipse at 50% 35%,#34506b88,transparent 70%),linear-gradient(0deg,#101e30,#111b2a);}
+.stage:after {display:none;}
+.focus-controls {display:flex;gap:6px;justify-content:center;margin:12px 0;}
+.focus-controls button {font-size:11px;padding:8px 12px;min-height:40px;}
+.focus-controls button[aria-pressed=true] {color:#8cebd8;border-color:#57897f;background:#1c3b3d;}
+.stage[data-focus=face] .character {animation:none;transform-origin:50% 25%;transform:scale(1.85) translateY(15%);}
+.stage[data-focus=shoes] .character {animation:none;transform-origin:50% 95%;transform:scale(2.7) translateY(-9%);}
+.item-art {height:225px;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#38506b77,transparent 72%);}
+.item-art[data-slot=shoes] .character img {transform-origin:50% 94%;transform:scale(2.7) translateY(-4%);}
+.item-art[data-slot=face] .character img,.item-art[data-slot=beard] .character img,.item-art[data-slot=head] .character img {transform-origin:50% 25%;transform:scale(1.65) translateY(16%);}
+.item-card {transition:border-color .18s,box-shadow .18s;}
+.item-card.rare {border-color:#493965;}
+.item-card.legendary {border-color:#665334;background:radial-gradient(ellipse at top,#3a2b1944,transparent 60%),#0a1221;}
+.item-card:hover {border-color:var(--rarity);box-shadow:0 5px 24px #0005;}
+.shop-filters {display:flex;gap:18px;flex-wrap:wrap;}
+.shop-filters label {font-size:11px;}
+.collection-looks,.coin-shop {margin-top:24px;}
+.featured-looks {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.look-card {background:linear-gradient(145deg,#233349,#111827);border:1px solid #3c506b;border-radius:18px;overflow:hidden;padding:18px;}
+.look-art {height:240px;overflow:hidden;}
+.look-card h3 {font-size:17px;margin-top:14px;}
+.look-card p {font-size:12px;color:var(--muted);line-height:1.6;min-height:40px;}
+.look-card button {width:100%;font-size:12px;}
+.coin-packs {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:22px 0;}
+.coin-pack {border:1px solid #695437;border-radius:18px;padding:22px;background:radial-gradient(ellipse at 50% 0,#63492477,transparent 80%),#131b2a;}
+.coin-pack .coin-amount {font-size:28px;color:#ffdda0;font-weight:900;letter-spacing:-1px;}
+.coin-pack p {font-size:12px;color:var(--muted);}
+.coin-pack button {width:100%;background:#453822;border-color:#8b7044;color:#ffe2af;}
+#coin-status,#play-status {font-size:13px;line-height:1.6;color:#b7d9e5;}
+#coin-status.error,#play-status.error {color:#ffadad;}
+.earn-coins-link {font-size:13px;color:#8ee8d9;}
+#extra-plays {margin-top:25px;padding-top:20px;border-top:1px solid var(--line);}
+#extra-plays select {padding:12px;background:#122438;color:var(--text);border:1px solid var(--line);border-radius:10px;margin:0 10px 10px 0;max-width:100%;}
+@media(max-width:850px){.featured-looks{grid-template-columns:1fr}.look-card{display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:center}.look-art{height:190px}.look-card p{min-height:0}}
+@media(max-width:680px){.item-art{height:225px}.coin-packs{grid-template-columns:1fr}.coin-pack{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:18px}.coin-pack .coin-amount{font-size:24px}.coin-pack button{grid-row:1/3;grid-column:2;width:auto;min-width:120px}.coin-pack p{margin:2px 0}.shop-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}.shop-tabs button{font-size:10px;padding:10px 3px}.look-card{grid-template-columns:105px 1fr;padding:14px;gap:12px}.look-art{height:160px}.get-coins{font-size:10px;padding:10px 8px}.account-bar{gap:6px}.profile-button{gap:5px}.profile-button #nav-name{max-width:85px;overflow:hidden;text-overflow:ellipsis}.coin-chip{padding:7px 8px}}
+@media(prefers-reduced-motion:reduce){.item-card{transition:none}}

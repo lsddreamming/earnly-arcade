@@ -2,7 +2,7 @@
 (() => {
   const endpoint='https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api';
   let user=null, generation=0;
-  const layers=['backpack','avatar','outfit','shoes','face','beard','weapon'];
+  const layers=['backpack','avatar','outfit','shoes','face','beard','head','weapon'];
   function character(equipped){const root=element('span','cosmetic-portrait-rig');for(const slot of layers)if(equipped[slot])root.append(portrait(equipped[slot]));return root;}
   const element=(tag,className,text)=>{const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n;};
   function portrait(item){const img=element('img');img.src=new URL(item.imageUrl,location.href).href;img.alt=item.name;return img;}
@@ -10,17 +10,21 @@
   dialog.setAttribute('aria-label','Player profile');
   document.body.append(dialog);
   function paint(){
-    if(!user)return;
+    if(!user){
+      for(const id of ['profileAvatar','myAvatar']){const root=document.getElementById(id);if(root?.classList.contains('cosmetic-profile-avatar')){root.classList.remove('cosmetic-profile-avatar');root.textContent=typeof Arcade!=='undefined'?Arcade.profileIcon():'🎮';}}
+      return false;
+    }
     for(const id of ['profileAvatar','myAvatar']){
       const root=document.getElementById(id);if(!root)continue;
       root.replaceChildren(character(user.equipped));root.classList.add('cosmetic-profile-avatar');
     }
+    return true;
   }
   async function sync(){
     const stamp=++generation;
     try{
       const session=await window.EarnlyCloud?.session();
-      if(!session){user=null;return;}
+      if(!session){user=null;paint();return;}
       const response=await fetch(endpoint+'/me',{headers:{Authorization:'Bearer '+session.access_token}});
       if(!response.ok)return;
       const data=await response.json();if(stamp!==generation)return;
@@ -45,12 +49,12 @@
       dialog.append(close,stage,name,element('p','cosmetic-card-rarity',p.equippedAvatar.rarity.toUpperCase()+' · '+p.game),stats);
       const outfit=element('p','cosmetic-card-loadout',layers.filter(slot=>slot!=='avatar').map(slot=>p.equipped[slot]?.name).filter(Boolean).join(' · '));dialog.append(outfit);
       if(!dialog.open)dialog.showModal();
-    }catch(error){window.Arcade?.toast?.(error.message||'Could not open profile.');}
+    }catch(error){(typeof Arcade!=="undefined"?Arcade:null)?.toast?.(error.message||'Could not open profile.');}
   }
   dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
   document.addEventListener('click',event=>{const button=event.target.closest('.leader-profile-link,.leader-avatar[data-username]');if(button)openProfile(button.dataset.username,document.getElementById('gameSelect')?.value||'snake');});
   for(const event of ['earnly-cloud-ready','earnly-cloud-auth-change','earnly-cloud-synced'])window.addEventListener(event,sync);
   for(const event of ['earnly-data-change','earnly-server-rewards-synced'])window.addEventListener(event,()=>setTimeout(paint,0));
-  window.EarnlyCosmetics={sync,openProfile};
+  window.EarnlyCosmetics={sync,paint,openProfile};
   if(window.EarnlyCloud)sync();
 })();

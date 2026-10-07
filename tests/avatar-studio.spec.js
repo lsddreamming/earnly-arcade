@@ -3,7 +3,8 @@ const API='https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api';
 const item=(id,name,slot,price,rarity)=>({id,name,slot,coinPrice:price,rarity,imageUrl:'cosmetic-'+id+'.svg'});
 const items=[item('cyber-starter','Cyber Starter','avatar',0,'common'),item('neon-phantom','Neon Phantom','avatar',250,'rare'),item('astra-prime','Astra Prime','avatar',1000,'legendary'),item('starter-suit','Pilot Suit','outfit',0,'common'),item('neon-jacket','Neon Jacket','outfit',300,'rare'),item('starter-blaster','Training Blaster','weapon',0,'common'),item('pulse-blade','Pulse Blade','weapon',400,'rare')];
 items.push(item('trail-boots','Trail Boots','shoes',0,'common'),item('canvas-shoes','Canvas Sneakers','shoes',0,'common'),item('neon-kicks','Neon Kicks','shoes',300,'rare'),item('no-backpack','No Backpack','backpack',0,'common'),item('canvas-pack','Canvas Backpack','backpack',0,'common'),item('no-beard','Clean Shaven','beard',0,'common'),item('short-beard','Short Beard','beard',0,'common'),item('explorer-beard','Explorer Beard','beard',0,'common'),item('no-facewear','No Facewear','face',0,'common'),item('round-glasses','Round Glasses','face',0,'common'),item('sport-shades','Sport Shades','face',0,'common'));
-for (const id of ['cyber-starter','starter-suit','starter-blaster','trail-boots','no-backpack','no-beard','no-facewear'])items.find(i=>i.id===id).isStarter=true;
+items.push(item('no-headwear','No Headwear','head',0,'common'),item('ribbed-beanie','Ribbed Beanie','head',0,'common'),item('arcade-cap','Arcade Cap','head',0,'common'),item('comms-headset','Comms Headset','head',350,'rare'),item('high-tops','Rose High-Tops','shoes',0,'common'));
+for (const id of ['cyber-starter','starter-suit','starter-blaster','trail-boots','no-backpack','no-beard','no-facewear','no-headwear'])items.find(i=>i.id===id).isStarter=true;
 function player(){return {username:'PlayerOne',coins:'1250',lifetimeEarned:'1250',inventory:items.filter(i=>i.coinPrice===0).map(i=>i.id),equipped:Object.fromEntries(items.filter(i=>i.isStarter).map(i=>[i.slot,i])),equippedAvatarId:'cyber-starter',totalSkinsUnlocked:1};}
 function profile(user){return {username:user.username,rank:'2',highScore:'120',gamesPlayed:8,totalSkinsUnlocked:user.totalSkinsUnlocked,game:'snake',equipped:user.equipped,equippedAvatar:user.equipped.avatar};}
 async function setup(page,{signedIn=true,insufficient=false,networkRetry=false}={}){
@@ -74,10 +75,10 @@ test('Free beards, shoes, backpacks and glasses save independently without spend
     await expect(page.locator('#character-stage img[alt="'+name+'"]')).toBeVisible();expect(f.user().equipped[slot].name).toBe(name);
   }
   await expect(page.locator('#coin-balance')).toHaveText('1,250');expect(f.keys).toHaveLength(0);
-  await expect(page.locator('#nav-avatar img')).toHaveCount(7);
+  await expect(page.locator('#nav-avatar img')).toHaveCount(8);
   expect(await page.locator('#nav-avatar img').last().evaluate(img=>getComputedStyle(img).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
   await page.reload();await expect(page.locator('#character-stage img[alt="Explorer Beard"]')).toBeVisible();
-  await page.getByRole('button',{name:'View my profile'}).click();await expect(page.locator('#modal-character img')).toHaveCount(7);await expect(page.locator('#modal-loadout')).toContainText('Canvas Backpack');
+  await page.getByRole('button',{name:'View my profile'}).click();await expect(page.locator('#modal-character img')).toHaveCount(8);await expect(page.locator('#modal-loadout')).toContainText('Canvas Backpack');
 });
 test('Trying on paid shoes does not change saved equipment or wallet; free filter hides paid choices',async({page})=>{
   const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
@@ -95,7 +96,7 @@ test('Guests can try on accessories without signing in or buying',async({page})=
 // Blank accessory layers must remain transparent, and the full rig must fit cards.
 test('Layered leaderboard portraits stay visible and shop cards contain the whole character',async({page})=>{
   await setup(page);await page.goto('/avatars.html');
-  await expect(page.locator('#leaderboard-body .character img')).toHaveCount(7);
+  await expect(page.locator('#leaderboard-body .character img')).toHaveCount(8);
   const portrait=await page.locator('#leaderboard-body .character img').evaluateAll(imgs=>imgs.map(img=>({background:getComputedStyle(img).backgroundColor,fit:getComputedStyle(img).objectFit})));
   for(const layer of portrait){expect(layer.background).toBe('rgba(0, 0, 0, 0)');expect(layer.fit).toBe('contain');}
   for(const tab of ['Avatars','Outfits','Shoes','Beards']){
@@ -103,4 +104,19 @@ test('Layered leaderboard portraits stay visible and shop cards contain the whol
     const bounds=await page.locator('.item-art .character').evaluateAll(chars=>chars.map(c=>{const a=c.parentElement.getBoundingClientRect(),r=c.getBoundingClientRect();return {inside:r.top>=a.top-.5&&r.bottom<=a.bottom+.5&&r.left>=a.left-.5&&r.right<=a.right+.5};}));
     expect(bounds.length).toBeGreaterThan(0);for(const box of bounds)expect(box.inside).toBeTruthy();
   }
+});
+
+test('Headwear, search, ownership filters and fit inspection work without spending',async({page})=>{
+  const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('@PlayerOne');
+  await page.getByRole('button',{name:'Headwear',exact:true}).click();await page.getByRole('button',{name:'Preview Comms Headset',exact:true}).click();
+  await expect(page.locator('#character-stage img[alt="Comms Headset"]')).toBeVisible();await expect(page.locator('#nav-avatar img[alt="No Headwear"]')).toHaveCount(1);
+  await page.getByLabel('Find your next piece').fill('beanie');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Ribbed Beanie');
+  await page.getByLabel('Find your next piece').fill('');await page.getByLabel('My collection').check();await expect(page.locator('.item-card')).toHaveCount(3);
+  await page.getByRole('button',{name:'Footwear',exact:true}).click();await expect(page.locator('#character-stage')).toHaveAttribute('data-focus','shoes');
+  await page.getByRole('button',{name:'Full look',exact:true}).click();await expect(page.locator('#character-stage')).toHaveAttribute('data-focus','full');expect(f.keys).toHaveLength(0);
+});
+test('Coin packs show approved prices and fail closed before merchant setup',async({page})=>{
+  await setup(page);await page.route('**/coin-shop/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({available:false,packs:[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}]})}));
+  await page.goto('/avatars.html');await expect(page.locator('#coin-packs article')).toHaveCount(3);await expect(page.locator('#coin-status')).toContainText('coming soon');
+  for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();await expect(page.locator('#coin-packs')).toContainText('$9.99');
 });

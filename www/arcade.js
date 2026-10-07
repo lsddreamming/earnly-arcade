@@ -1176,7 +1176,7 @@ const Arcade = (() => {
   function remaining(g) {
     refreshDaily();
     if (hasUnlimitedPlays()) return FREE_PLAYS;
-    return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
+    return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed')) + (window.EarnlyPaidPlays?.remaining(g) || 0);
   }
 
   function resetPrototypePlays() {
@@ -1226,7 +1226,10 @@ const Arcade = (() => {
     try {
       const unlimited = hasUnlimitedPlays();
       if (!unlimited) {
-        setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+        const dailyLeft=Math.max(0,FREE_PLAYS+number(g+'BonusPlays')-number(g+'GamesPlayed'));
+        if (!dailyLeft) {
+          if (!window.EarnlyPaidPlays?.tryConsume(g)) return false;
+        } else setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
       }
       markRecent(g);
       queueEvent('play_started', {
@@ -1600,9 +1603,9 @@ const Arcade = (() => {
     modal.close();
   }
 
-  function panel(title, message, actions) {
+  function panel(title, message, actions, options = {}) {
     if (modal.open) {
-      closeModalThen(() => panel(title, message, actions));
+      closeModalThen(() => panel(title, message, actions, options));
       return;
     }
 
@@ -1627,7 +1630,9 @@ const Arcade = (() => {
       actionBox.append(b);
     });
 
+    modal.className = options.className || '';
     modal.append(h, p, actionBox);
+    if (typeof options.render === 'function') options.render(modal, p);
     modal.showModal();
   }
 
@@ -3541,12 +3546,29 @@ const Arcade = (() => {
     const list = document.createElement('div');
     list.className = 'compact-leaderboard-list';
     list.innerHTML = '<div class="compact-leaderboard-loading">Loading world scores…</div>';
+    const ticker = document.createElement('div');
+    ticker.className = 'compact-leaderboard-ticker';
+    ticker.setAttribute('aria-label', 'Top players');
+    const tickerTrack = document.createElement('span');
+    tickerTrack.className = 'compact-leaderboard-ticker-track';
+    ticker.append(tickerTrack);
+    const updateTicker = (message) => {
+      ticker.setAttribute('aria-label', message);
+      tickerTrack.replaceChildren();
+      for (let i = 0; i < 2; i++) {
+        const segment = document.createElement('span');
+        segment.textContent = '✦  ' + message + '  ✦';
+        segment.setAttribute('aria-hidden', 'true');
+        tickerTrack.append(segment);
+      }
+    };
+    updateTicker('WORLD TOP PLAYERS · Loading scores…');
 
     const target = document.createElement('div');
     target.className = 'compact-leaderboard-target';
     target.textContent = 'Set a personal best and chase the podium.';
 
-    card.append(top, list, target);
+    card.append(top, list, target, ticker);
     // Keep all three leaders visible before and during play. The active layout
     // shrinks the rows without covering the board or controls.
     if (header) header.insertAdjacentElement('afterend', card);
@@ -3581,6 +3603,9 @@ const Arcade = (() => {
         const localBest = best(game).value;
         const data = await window.EarnlyCloud.leaderboard(game, 3);
         const entries = (data?.entries || []).slice(0, 3);
+        updateTicker(entries.length ? entries.map((entry, index) =>
+          '#' + (index + 1) + ' @' + (entry.username || 'player') + ' ' + compactLeaderboardScore(entry, data)
+        ).join('     ✦     ') : 'Be the first player on the world board');
         list.replaceChildren();
         if (entries[0]) {
           recordChip.textContent = '🏆 #1 ' + compactLeaderboardScore(entries[0], data);
@@ -3630,6 +3655,7 @@ const Arcade = (() => {
         target.textContent = gap ? mine + ' · ' + gap : mine + ' · Beat a score above to climb the board';
         return true;
       } catch {
+        updateTicker('World scores unavailable right now');
         list.innerHTML = '<div class="compact-leaderboard-empty">World scores unavailable right now.</div>';
         target.textContent = 'Your best: ' + Math.max(0, Number(best(game).value) || 0).toLocaleString();
         return true;
@@ -3810,6 +3836,23 @@ const Arcade = (() => {
     // Some game headers use transforms, which would anchor a fixed button to
     // the header instead of the viewport. Put the mobile dock on the body.
     if (window.matchMedia('(max-width:600px)').matches) document.body.append(button);
+
+    // Keep the session actions immediately below the board on compact screens.
+    // Snake and Block Drop have their own tailored control docks.
+    if (window.matchMedia('(max-width:600px)').matches &&
+        !document.body.classList.contains('snake-page') &&
+        !document.body.classList.contains('blockdrop-page')) {
+      const board = document.querySelector('canvas#game, .blockdrop-playfield, canvas.touch-surface');
+      if (board) {
+        const dock = document.createElement('div');
+        dock.className = 'earnly-session-dock';
+        const tailoredQuit = ['brickQuit','coinCatchExit'].map(id => document.getElementById(id)).find(Boolean);
+        const surface = board.closest('.game-guide-surface-wrap') || board;
+        surface.insertAdjacentElement('afterend', dock);
+        dock.append(button);
+        if (tailoredQuit || quit) dock.append(tailoredQuit || quit);
+      }
+    }
 
     const sync = () => {
       const active = !!isRunning();
@@ -4051,6 +4094,7 @@ const Arcade = (() => {
   }
 
   function start(){
+    if (location.protocol !== 'capacitor:' && !window.Capacitor?.isNativePlatform?.()) loadScript(new URL('paid-plays.js',location.href).href);
     if (window.EarnlyCloud) return;
 
     const cloudUrl = new URL('cloud.js', location.href).href;

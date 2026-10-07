@@ -1176,7 +1176,7 @@ const Arcade = (() => {
   function remaining(g) {
     refreshDaily();
     if (hasUnlimitedPlays()) return FREE_PLAYS;
-    return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed'));
+    return Math.max(0, FREE_PLAYS + number(g + 'BonusPlays') - number(g + 'GamesPlayed')) + (window.EarnlyPaidPlays?.remaining(g) || 0);
   }
 
   function resetPrototypePlays() {
@@ -1226,7 +1226,10 @@ const Arcade = (() => {
     try {
       const unlimited = hasUnlimitedPlays();
       if (!unlimited) {
-        setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
+        const dailyLeft=Math.max(0,FREE_PLAYS+number(g+'BonusPlays')-number(g+'GamesPlayed'));
+        if (!dailyLeft) {
+          if (!window.EarnlyPaidPlays?.tryConsume(g)) return false;
+        } else setNumber(g + 'GamesPlayed', number(g + 'GamesPlayed') + 1);
       }
       markRecent(g);
       queueEvent('play_started', {
@@ -4091,6 +4094,7 @@ const Arcade = (() => {
   }
 
   function start(){
+    if (location.protocol !== 'capacitor:' && !window.Capacitor?.isNativePlatform?.()) loadScript(new URL('paid-plays.js',location.href).href);
     if (window.EarnlyCloud) return;
 
     const cloudUrl = new URL('cloud.js', location.href).href;
