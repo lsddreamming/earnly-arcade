@@ -11,7 +11,9 @@
   const orderId=new URLSearchParams(location.search).get('test_order');
   const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   async function api(path,options={}) {
+    const owner=session?.user.id;
     const {data,error}=await client.auth.getSession();if(error)throw error;
+    if(path!=='/config'&&(!owner||data.session?.user.id!==owner))throw new Error('Your testing account changed. Please sign in again.');
     const response=await fetch(base+'/functions/v1/coin-shop'+path,{...options,signal:AbortSignal.timeout(25000),headers:{apikey:key,...(data.session?{Authorization:'Bearer '+data.session.access_token}:{}),'Content-Type':'application/json',...options.headers}});
     const body=await response.json();if(!response.ok)throw new Error(body.error?.message||'The test shop could not complete this request.');return body;
   }
