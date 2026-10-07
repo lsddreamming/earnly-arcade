@@ -60,7 +60,10 @@
         if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Sign back in to check this purchase.');
         if(data.status==='fulfilled'){
           if(data.wallet)arcade?.applyServerWallet?.(data.wallet);
-          $('refresh-button').click();message('Purchase confirmed. Your current balance is updated.');
+          $('refresh-button').click();
+          message(Number.isSafeInteger(data.coins)&&data.coins>0
+            ? `Purchase confirmed · ${data.coins.toLocaleString()} coins added. Enjoy your next unlock!`
+            : 'Purchase confirmed. Your current balance is updated.');
           history.replaceState(null,'',location.pathname+'#coin-shop');return;
         }
       }catch(error){message(error.message,true);return;}
