@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-crystal-relay-clarity-20261006';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-crystal-modern-materials-20261007';const CORE_ASSETS = [
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
