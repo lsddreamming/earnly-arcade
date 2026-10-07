@@ -108,6 +108,10 @@
 
     <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Outfits, accessories &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
 
+    <div id="profile-coin-shop" hidden>
+      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Get coins</strong><small>Coin packs for outfits, accessories &amp; extra plays</small></span><span aria-hidden="true">→</span></a>
+    </div>
+
     <details class="profile-more-stats">
       <summary>
         <span>More player stats</span>
@@ -161,6 +165,7 @@
 
   <script src="arcade.js"></script>
   <script>
+    document.getElementById('profile-coin-shop').hidden = !!(window.Capacitor?.isNativePlatform?.() || location.protocol === 'capacitor:');
     const gameInfo = [
       ['snake','🐍','Snake','snake.html'],
       ['blockDrop','🧱','Block Drop','blockdrop.html'],
