@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-mascot-accessories-20261007';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-tailored-mascots-20261007';const CORE_ASSETS = [
   './cosmetic-canvas-pack.svg','./cosmetic-no-backpack.svg','./cosmetic-frost-beard.svg','./cosmetic-no-facewear.svg','./cosmetic-reactor-pack.svg','./cosmetic-neon-kicks.svg','./cosmetic-trail-boots.svg','./cosmetic-cozy-hoodie.svg','./cosmetic-round-glasses.svg','./cosmetic-canvas-shoes.svg','./cosmetic-no-beard.svg','./cosmetic-star-goggles.svg','./cosmetic-explorer-beard.svg','./cosmetic-sport-shades.svg','./cosmetic-short-beard.svg',
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',

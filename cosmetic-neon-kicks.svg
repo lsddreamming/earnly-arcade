@@ -11,5 +11,9 @@
     <path d="M91 368H140M163 368H212" stroke="#e1d9c6" stroke-width="6" stroke-linecap="round"/>
     <path d="M108 346L129 349M106 352L128 355M173 349L191 346M172 355L192 352" stroke="#c599ff" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M98 359Q116 361 134 359M171 359Q189 361 205 359" fill="none" stroke="#fff" opacity=".25"/>
+    <path d="M104 338L107 346L129 349L132 341M170 341L174 349L190 346L194 338" fill="none" stroke="#efcfad" opacity=".5" stroke-width="1.2"/>
+    <path d="M96 361Q111 365 132 362M171 362Q192 365 208 361" fill="none" stroke="#182538" stroke-width="2"/>
+    <path d="M96 369v3m7-3v3m7-3v3m7-3v3m7-3v3m7-3v3m43-3v3m7-3v3m7-3v3m7-3v3m7-3v3m7-3v3" stroke="#73808c" stroke-width="1"/>
+    <path d="M101 359L105 339M195 339L200 359" stroke="#f5dec4" opacity=".4" stroke-dasharray="1 2"/>
     <path d="M94 375H135M170 375H210" stroke="#263140" stroke-width="3"/>
     <path d="M101 365l4-3m26 0 4 3m37 0 4-3m24 0 4 3" stroke="#c599ff" stroke-width="2"/></svg>
