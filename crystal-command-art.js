@@ -85,8 +85,8 @@ function create(ctx,point,box,line,poly,tile){
  }
  function unitFinish(o,c){if(CrystalCommand.TYPES[o.type].flying)return;const scale=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x)/.85;
   if(['laser','raider','medic','guardian'].includes(o.type)){const head=point(o.x,o.y,.72);sphere(head,scale*.15,scale*.12,'#8eacbd');line({x:head.x-scale*.11,y:head.y+1},{x:head.x+scale*.11,y:head.y+1},c,2);for(const side of [-1,1])sphere(point(o.x+side*.29,o.y,.45),scale*.09,scale*.085,'#6c8b9f')}
-  if(o.type==='siege'){sphere(point(o.x,o.y,.63),scale*.2,scale*.13,'#7897ab');for(const side of [-1,1])light(point(o.x+side*.45,o.y+.24,.26),c,1.5)}
-  if(o.type==='worker')sphere(point(o.x-.08,o.y-.08,.55),scale*.13,scale*.1,'#92b4c5');
+  if(o.type==='siege'){const a=o.aim||{x:o.x+.8,y:o.y-.2},l=Math.hypot(a.x-o.x,a.y-o.y)||1,dx=(a.x-o.x)/l,dy=(a.y-o.y)/l,P=(f,w,z)=>point(o.x+dx*f-dy*w,o.y+dy*f+dx*w,z);poly([P(-.18,-.19,.64),P(.2,-.19,.64),P(.28,.16,.6),P(-.18,.19,.6)],'#8facbe','#e1edf2');poly([P(.85,-.1,.69),P(1.03,-.1,.69),P(1.03,.1,.69),P(.85,.1,.69)],'#39576e','#bad8e5');line(P(1.035,-.075,.64),P(1.035,.075,.64),'#0b1c2a',3);for(const side of [-1,1])light(point(o.x+side*.45,o.y+.24,.26),c,1.5)}
+  if(o.type==='worker'){sphere(point(o.x-.08,o.y-.08,.55),scale*.13,scale*.1,'#92b4c5');poly([point(o.x-.16,o.y+.12,.56),point(o.x+.08,o.y+.12,.56),point(o.x+.08,o.y+.12,.46),point(o.x-.16,o.y+.12,.46)],'#0c2738',c);for(const side of [-1,1])line(point(o.x+.43,o.y+.12,.27),point(o.x+.53,o.y+.12+side*.08,.19),'#e1ce9d',1.5);}
  }
  const unitHull=(x,y,r,h,color,z)=>simple?raised(x,y,r,h,color,z):hull(x,y,r,h,color,z);
  function robot(o,c,t){
@@ -103,23 +103,47 @@ function create(ctx,point,box,line,poly,tile){
   }else if(o.type==='scout'){
    const z=.34+Math.sin(t*5+o.id)*.025;poly([point(o.x,o.y-.48,z),point(o.x+.34,o.y+.27,z),point(o.x,o.y+.12,z),point(o.x-.34,o.y+.27,z)],'#587b92','#a2d5e4');raised(o.x,o.y,.13,.12,'#b3cbd6',z);for(const dx of [-.3,.3])line(point(o.x+dx,o.y+.1,z),point(o.x+dx,o.y+.45,z-.08),c+'66',2);light(point(o.x,o.y-.13,z+.12),c,2);for(const dx of [-.23,.23])light(point(o.x+dx,o.y+.25,z),c,2.5);
   }else if(['laser','raider','medic','guardian'].includes(o.type)){
-   const medic=o.type==='medic',guard=o.type==='guardian';if(medic)c='#91ffbe';
-   for(const dx of [-.17,.17]){raised(o.x+dx,o.y+step*Math.sign(dx),.1,.12,'#4b6b81');line(point(o.x+dx,o.y,.12),point(o.x+dx,o.y-.05,.38),'#9bb2c4',3)}
-   unitHull(o.x,o.y,.23,.25,'#7499ab',.27);for(const dx of [-.3,.3])unitHull(o.x+dx,o.y,.13,.16,'#507b92',.4);raised(o.x,o.y,.14,.15,'#afc8d3',.56);tile(o.x,o.y,.1,'#314e62',c,.715);line(point(o.x-.14,o.y+.23,.37),point(o.x+.14,o.y+.23,.37),'#d0e4ec',1);line(point(o.x-.12,o.y+.14,.67),point(o.x+.12,o.y+.14,.67),c,2);light(point(o.x,o.y,.48),c,2);for(const dx of [-.3,.3])line(point(o.x+dx-.06,o.y+.12,.51),point(o.x+dx+.06,o.y+.12,.51),c,2);if(!medic)barrel(.58,o.type==='raider'?.5:.72,3);else{const q=point(o.x,o.y,.8);line({x:q.x-4,y:q.y},{x:q.x+4,y:q.y},'#e9fff1',2);line({x:q.x,y:q.y-4},{x:q.x,y:q.y+4},'#e9fff1',2)}if(o.type==='raider'){for(const side of [-1,1]){line(point(o.x+side*.2,o.y-.2,.5),point(o.x+side*.3,o.y-.4,.73),'#ffdf96',2);light(point(o.x+side*.3,o.y-.4,.73),'#ffdf96',1.2)}}if(guard){for(const side of [-1,1]){raised(o.x+side*.36,o.y-.12,.14,.28,'#9bafc0',.55);for(const j of [-.06,.06])light(point(o.x+side*.36+j,o.y+.03,.74),'#ffdb91',1.5)}}for(const j of [-1,1])line(point(o.x+j*.17,o.y+step*j,.12),point(o.x+j*.22,o.y-step*j,.32),'#b4d3e0',2);
+   const medic=o.type==='medic',guard=o.type==='guardian',raider=o.type==='raider',accent=medic?'#80ffc2':raider?'#ffcf75':c;
+   const shell=medic?'#d6e5df':guard?'#a2acb8':raider?'#45647d':'#92b7c8',dark=raider?'#142538':'#2b455b',width=guard?.27:raider?.18:.23;
+   const P=(f,w,z)=>point(o.x+dx*f-dy*w,o.y+dy*f+dx*w,z);
+   // Jointed legs, armored shins and broad feet give the robot a readable stance.
+   for(const side of [-1,1]){const gait=step*side,w=side*(guard?.22:.16),hip=P(-.03,w,.35),knee=P(.02+gait,w,.2),ankle=P(-gait*.5,w,.065);
+    line(hip,knee,'#101e2c',5);line(hip,knee,shell,2.8);line(knee,ankle,dark,4);line(knee,ankle,'#9cbecb',1);
+    poly([P(.15-gait*.5,w-.08,.065),P(.15-gait*.5,w+.08,.065),P(-.16-gait*.5,w+.08,.065),P(-.16-gait*.5,w-.08,.065)],dark,'#a0bfcc');
+   }
+   // Tapered armor replaces the square shared torso.
+   const chest=[P(.14,-width,.58),P(.14,width,.58),P(.19,width*.72,.32),P(.19,-width*.72,.32)];metal(chest,shell,true);
+   poly([P(-.13,-width,.57),P(.14,-width,.58),P(.19,-width*.72,.32),P(-.12,-width*.72,.33)],dark,'#89a9bd88');
+   poly([P(-.13,-width,.57),P(-.13,width,.57),P(.14,width,.58),P(.14,-width,.58)],tint(shell,.16),'#d5e8ec');
+   line(P(.2,-width*.64,.36),P(.2,width*.64,.36),'#102331',1.6);line(P(.205,-width*.6,.48),P(.205,width*.6,.48),accent,1.5);
+   // Angular helmet, dark faceplate, bright separate eyes and neck collar.
+   poly([P(.12,-.14,.77),P(.12,.14,.77),P(.18,.11,.63),P(.18,-.11,.63)],tint(shell,.13),'#d4e5ee');
+   poly([P(-.12,-.14,.75),P(.12,-.14,.77),P(.18,-.11,.63),P(-.09,-.11,.64)],dark,'#6f95a8');
+   poly([P(-.12,-.14,.75),P(-.12,.14,.75),P(.12,.14,.77),P(.12,-.14,.77)],shell,'#b7d8e5');
+   poly([P(.183,-.105,.728),P(.183,.105,.728),P(.19,.085,.67),P(.19,-.085,.67)],'#071725',accent+'88');
+   for(const side of [-1,1])line(P(.195,side*.035,.705),P(.195,side*.083,.705),accent,1.6);
+   for(const side of [-1,1]){const w=side*(width+.08);poly([P(-.14,w-side*.11,.59),P(.14,w-side*.11,.59),P(.18,w+side*.1,.52),P(-.11,w+side*.1,.49)],shell,'#bad8e4');line(P(.14,w,.52),P(.19,w,.36),dark,3.5);line(P(.14,w,.52),P(.19,w,.36),shell,1.4)}
+   if(medic){
+    // White rescue chassis, a green medical insignia and twin treatment tanks.
+    line(P(.214,-.1,.455),P(.214,.1,.455),'#35a66f',2.3);line(P(.214,0,.385),P(.214,0,.535),'#35a66f',2.3);
+    for(const side of [-1,1])line(P(-.23,side*.12,.36),P(-.23,side*.12,.64),'#94c6b7',4);
+    line(P(.2,.3,.39),P(.43,.3,.44),'#c7efe2',2.8);light(P(.43,.3,.44),accent,1.4);
+   }else if(guard){
+    // Four clearly separated missile tips make the anti-air walker distinctive.
+    for(const side of [-1,1]){const w=side*.39;poly([P(-.22,w-.105,.79),P(.12,w-.105,.79),P(.12,w+.105,.79),P(-.22,w+.105,.79)],'#566e85','#c7d7dd');poly([P(.125,w-.105,.79),P(.125,w+.105,.79),P(.125,w+.105,.62),P(.125,w-.105,.62)],'#243a4c','#adc4d0');for(const j of [-1,1]){line(P(.14,w+j*.052,.71),P(.27,w+j*.052,.75),'#e6d3a5',2.5);light(P(.27,w+j*.052,.75),'#ffe29a',1)}}
+   }else{
+    const muzzle=raider?.63:.82,w=-.28,z=.44;
+    poly([P(.08,w-.065,z+.08),P(muzzle-.08,w-.065,z+.08),P(muzzle-.08,w+.065,z+.08),P(.08,w+.065,z+.08)],'#5e7e96','#d0e3ea');
+    line(P(.1,w,z+.035),P(muzzle,w,z+.035),'#122536',4);line(P(.18,w,z+.055),P(muzzle,w,z+.055),'#b2d2df',1.7);light(P(muzzle,w,z+.055),accent,1.2);
+    line(P(.32,w,z+.02),P(.29,w,z-.11),dark,3);line(P(.22,w,z+.11),P(.35,w,z+.11),accent,1.2);
+    if(raider){for(const side of [-1,1])poly([P(-.23,side*.19,.52),P(-.39,side*.25,.75),P(-.19,side*.25,.67)],'#345873','#ffd184');}
+    else {poly([P(-.18,-.13,.3),P(-.18,.13,.3),P(-.18,.13,.56),P(-.18,-.13,.56)],'#284f68','#82adbd');}
+   }
   }else{
    for(const dx of [-.38,.38]){raised(o.x+dx,o.y,.23,.19,'#405a70');for(let j=0;j<4;j++)line(point(o.x+dx-.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),point(o.x+dx+.16,o.y-.2+((j*.13+(walking?t*.18:0))%.52),.13),'#8b9eaf',1.5)}
    unitHull(o.x,o.y,.37,.24,'#7a96a9',.16);if(simple)raised(o.x,o.y,.23,.18,'#adbec9',.4);else drum(o.x,o.y,.27,.18,'#adbec9',.4);for(const d of [-.25,.25]){tile(o.x+d,o.y,.075,c+'77',null,.405);line(point(o.x+d,o.y-.2,.41),point(o.x+d,o.y+.2,.41),'#e2f2f9',1)}barrel(.65,.95,6);raised(o.x-dx*.12,o.y-dy*.12,.16,.1,'#536f87',.6);light(point(o.x-.18,o.y+.24,.43),c,2.5);for(const dy of [-.2,.2])light(point(o.x+.48,o.y+dy,.22),'#ffe4ac',1.3);
   }
-  if(['laser','raider','medic','guardian'].includes(o.type)){
-   raised(o.x,o.y-.23,.14,.23,'#35586f',.31);for(const side of [-1,1]){line(point(o.x+side*.29-.055,o.y+.17,.47),point(o.x+side*.29+.055,o.y+.17,.47),o.type==='raider'?'#ffda94':c,2);line(point(o.x+side*.12,o.y+.24,.29),point(o.x+side*.12,o.y+.24,.43),'#203a4d',1.5)}
-   if(o.type==='guardian'){const p=point(o.x,o.y,.86);ring(p,4,2,'#fce3a077',1)}
-  }
-  if(!simple&&['laser','raider','guardian'].includes(o.type)){
-   poly([point(o.x-.15,o.y+.245,.48),point(o.x,o.y+.245,.34),point(o.x+.15,o.y+.245,.48)],'#16364b',c);
-   const P=(f,w,z)=>point(o.x+dx*f-dy*w,o.y+dy*f+dx*w,z);
-   poly([P(.28,-.09,.54),P(.6,-.07,.58),P(.6,.07,.58),P(.28,.09,.54)],'#688ea8','#c0e1ed');line(P(.3,0,.595),P(.58,0,.625),c,1.2);
-  }
-  unitFinish(o,c);
+  if(!['laser','raider','medic','guardian'].includes(o.type))unitFinish(o,c);
  }
  function building(o,c,t){
   if(o.type==='base'){
