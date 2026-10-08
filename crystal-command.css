@@ -149,3 +149,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 .cc-map-choice select{width:100%;min-height:42px;border:1px solid #75baca48;border-radius:10px;background:#0b2030;color:#e6f6fa;font:600 14px system-ui;padding:8px 10px}
 .cc-map-choice select:focus-visible{outline:2px solid #67eafa;outline-offset:2px}
 .cc-map-choice #mapDescription{font-size:10px;line-height:1.4;margin:6px 0 0;color:#adbfcb}
+
+/* Long brood rosters keep readable cards and scroll within the dock. */
+.cc-faction-choice p{font-size:11px;line-height:1.45;margin:7px 0 10px;color:#b8ccd9}
+.cc-faction-choice #factionTradeoff{color:#c9e4d4;font-size:10px}
+@media(max-width:799px){.cc-palette[data-mode=train][data-many=true]{display:flex;overflow-x:auto;justify-content:flex-start;gap:6px}.cc-palette[data-mode=train][data-many=true] button{flex:0 0 142px;min-width:142px;max-width:142px;min-height:66px;padding:7px 8px 7px 34px}.cc-palette[data-many=true] .cc-role{white-space:normal;line-height:1.15;font-size:9px}.cc-tools #selectMiners{overflow:hidden;font-size:9px}.cc-context{overflow-wrap:anywhere}}
