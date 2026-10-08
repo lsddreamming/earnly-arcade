@@ -93,7 +93,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('all 22 catalog games stay registered consistently', () => {
+test('23 catalog games include the free strategy beta and 22 reward games', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
@@ -103,8 +103,8 @@ test('all 22 catalog games stay registered consistently', () => {
   const miniConfigs = objectKeysNear(mini, 'const configs');
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
-  expect(new Set(catalog).size).toBe(22);
-  expect([...catalog].sort()).toEqual([...expectedGameKeys].sort());
+  expect(new Set(catalog).size).toBe(23);
+  expect([...catalog].sort()).toEqual([...expectedGameKeys, 'crystalCommand'].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys, 'dodger'].sort());
   expect([...miniConfigs].sort()).toEqual([

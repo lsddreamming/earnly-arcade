@@ -272,7 +272,7 @@ test('games catalog keeps Play bright, disabled actions readable, and avoids dup
   await page.goto('/games.html');
 
   const livePlay = page.locator('#games .game-play-button').first();
-  await expect(livePlay).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(livePlay).toHaveCSS('color', 'rgb(9, 25, 40)');
 
   await page.locator('#games .game-card-footer').first().evaluate(footer => {
     const button = document.createElement('button');
@@ -295,7 +295,7 @@ test('mobile catalog shows two browsable game choices per row', async ({ page })
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
-  await expect(cards).toHaveCount(22);
+  await expect(cards).toHaveCount(23);
   const first = await cards.nth(0).boundingBox();
   const second = await cards.nth(1).boundingBox();
   expect(first).toBeTruthy();
@@ -2453,4 +2453,26 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+1);
     await page.locator('.profile-bests-row > summary').click();
   }
+});
+
+test('Crystal Command belongs to the 23-game catalog as a free searchable strategy beta', async ({page}) => {
+  await page.goto('/games.html');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(23);
+  await expect(page.locator('#gameBrowseCount')).toHaveText('23 games to explore');
+  await page.locator('[data-filter=strategy]').click();
+  const card=page.locator('#games [data-game=crystalCommand]');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(1);
+  await expect(card.locator('.game-play-button')).toHaveText('Play · Free beta');
+  await expect(card.locator('.game-play-button')).toHaveAttribute('href','crystal-command.html');
+  const before=await page.evaluate(()=>({coins:Arcade.number('points'),plays:Arcade.remaining('snake')}));
+  await card.locator('.favorite-button').click();
+  await page.reload();await page.locator('[data-filter=favorites]').click();
+  await expect(card).toBeVisible();
+  await page.locator('#surpriseGame').click();
+  await expect(page).toHaveURL(/crystal-command\.html$/);
+  await page.goto('/games.html');
+  expect(await page.evaluate(()=>({coins:Arcade.number('points'),plays:Arcade.remaining('snake')}))).toEqual(before);
+  await page.locator('#gameSearch').fill('crystal');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(1);
+  await expect(card).toBeVisible();
 });

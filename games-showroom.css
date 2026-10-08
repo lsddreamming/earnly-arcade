@@ -1,0 +1,66 @@
+/* Games-page-only styling. Keep the arcade controls and reward rules untouched. */
+body.games-dashboard{background:radial-gradient(ellipse at 10% 0,#123d5866,transparent 42rem),radial-gradient(ellipse at 100% 40%,#38265b44,transparent 35rem),#080f1e}
+body.games-dashboard .games-hero{position:relative;padding:16px 2px 14px!important;border:0!important;background:none!important;box-shadow:none!important}
+body.games-dashboard .games-eyebrow{color:#87cdda!important;font-size:9px!important;letter-spacing:2px}
+body.games-dashboard .games-hero h1{font-size:clamp(27px,4vw,44px)!important;line-height:1.1!important;letter-spacing:-1.2px;margin:6px 0!important}
+body.games-dashboard .games-hero h1 span{color:#80e8f5}
+body.games-dashboard .games-hero p{font-size:12px!important;color:#acbdd5;margin:7px 0 0!important}
+body.games-dashboard .games-simple-note{border:0!important;background:transparent!important;padding:0 2px!important;gap:5px 12px!important;font-size:10px!important}
+body.games-dashboard .games-simple-note>span{color:#a3dbc9}
+body.games-dashboard .game-browser-tools{border:0!important;background:none!important;box-shadow:none!important;padding:0!important}
+body.games-dashboard .game-search-wrap{border-radius:14px!important;background:#101f34!important;border:1px solid #89c8e526!important;min-height:44px!important;padding:8px 12px!important}
+body.games-dashboard #gameSearch{font-size:16px!important}
+body.games-dashboard .game-filter-row{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:7px!important;padding:4px 0 7px;scrollbar-width:thin;scrollbar-color:#376179 transparent}
+body.games-dashboard .game-filter{flex:none;min-height:44px!important;padding:8px 12px!important;border-radius:12px!important;background:#152236!important;border-color:transparent!important;font-size:11px!important}
+body.games-dashboard .game-filter.active{background:#1e4a5b!important;color:#a7f2f4!important;box-shadow:inset 0 0 0 1px #68dce54d}
+body.games-dashboard .game-browse-heading{margin:10px 2px!important;align-items:center}
+body.games-dashboard .game-browse-count{font-size:12px;color:#a9bfd5}
+body.games-dashboard .game-surprise-button{border-radius:12px;min-height:44px;background:#1e2340;border:1px solid #afa0ff30;color:#d5ccff}
+body.games-dashboard #games.compact-catalog-grid{gap:12px!important}
+body.games-dashboard #games .catalog-tile{--tile-accent:#69def0;position:relative;isolation:isolate;overflow:hidden;border:1px solid #75c5eb25!important;border-radius:20px!important;background:radial-gradient(ellipse at 100% 0,color-mix(in srgb,var(--tile-accent) 16%,transparent),transparent 72%),linear-gradient(145deg,#132238,#0b1527)!important;box-shadow:0 9px 24px #0003,inset 0 1px 0 #ffffff09!important;padding:14px!important}
+body.games-dashboard #games .catalog-tile:nth-child(3n+2){--tile-accent:#b9a1ff}
+body.games-dashboard #games .catalog-tile:nth-child(3n){--tile-accent:#ffcf85}
+body.games-dashboard #games .catalog-tile[data-game=crystalCommand]{--tile-accent:#72efcc}
+body.games-dashboard #games .catalog-tile:before{content:"";position:absolute;right:-15px;bottom:36px;width:65px;height:65px;border:1px solid var(--tile-accent);transform:rotate(35deg);border-radius:15px;opacity:.1;z-index:-1;pointer-events:none}
+body.games-dashboard #games .game-icon-bubble{background:color-mix(in srgb,var(--tile-accent) 12%,#0d192a)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tile-accent) 25%,transparent),0 0 18px color-mix(in srgb,var(--tile-accent) 8%,transparent)!important;color:var(--tile-accent)!important;border-radius:11px!important}
+body.games-dashboard #games .game-name-wrap h2{color:#f0f6ff!important;font-weight:800;letter-spacing:-.3px}
+body.games-dashboard #games .reward-rule{color:#adbed3!important}
+body.games-dashboard #games .favorite-button{color:#c7d8e9!important;border:0!important;background:#07111e55!important;border-radius:10px!important}
+body.games-dashboard #games .game-card-footer .game-play-button:not(:disabled){background:linear-gradient(100deg,color-mix(in srgb,var(--tile-accent) 85%,white),var(--tile-accent))!important;color:#091928!important;border:0!important;border-radius:11px!important;box-shadow:none!important;font-weight:800}
+body.games-dashboard #games .game-card-footer .game-play-button:focus-visible{outline:3px solid white;outline-offset:3px}
+body.games-dashboard #quickSections .quick-game{background:#11243a!important;border:1px solid #6096b333!important;border-radius:10px!important}
+@media(max-width:699px){
+ body.games-dashboard .container{padding-top:10px!important}
+ body.games-dashboard .games-hero{padding-top:10px!important;padding-bottom:8px!important}
+ body.games-dashboard .games-hero h1{font-size:28px!important}
+ body.games-dashboard .games-eyebrow{font-size:8px!important;letter-spacing:1.7px}
+ body.games-dashboard .game-browser-tools{margin:8px 0!important}
+ body.games-dashboard #games.compact-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile{min-height:146px!important;padding:10px!important;gap:5px!important}
+ body.games-dashboard #games .catalog-tile .game-title-row{min-height:36px!important}
+ body.games-dashboard #games .catalog-tile .game-title-row h2{font-size:13px!important;line-height:1.12!important}
+ body.games-dashboard #games .catalog-tile .game-icon-bubble{width:32px!important;height:32px!important;font-size:19px!important;flex-shrink:0}
+ body.games-dashboard #games .catalog-tile .reward-rule{font-size:10px!important;line-height:1.3!important;min-height:26px!important}
+ body.games-dashboard #games .catalog-tile .game-card-footer .game-play-button{height:44px!important;min-height:44px!important;font-size:11px!important}
+ body.games-dashboard #games .catalog-tile:has(.status-line){min-height:178px!important}
+ body.games-dashboard #games .favorite-button{width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important}
+ body.games-dashboard .games-shortcuts{margin-top:16px}
+}
+@media(prefers-reduced-motion:no-preference) and (hover:hover){body.games-dashboard #games .catalog-tile:hover{border-color:var(--tile-accent)!important;transform:translateY(-2px);transition:transform .15s,border-color .15s}}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-card-footer .game-play-button:not(:disabled){color:#091928!important;text-shadow:none!important}
+@media(max-width:699px){
+ body.games-dashboard .games-hero{padding-top:4px!important;padding-bottom:4px!important}
+ body.games-dashboard .games-hero h1{font-size:25px!important}
+ body.games-dashboard .games-simple-note{margin-top:3px!important;margin-bottom:3px!important}
+ body.games-dashboard #games .catalog-tile .game-title-row{display:grid!important;grid-template-columns:minmax(0,1fr) 28px!important;gap:4px!important}
+ body.games-dashboard #games .catalog-tile .game-name-wrap{display:flex!important;gap:5px!important;min-width:0!important;padding-right:0!important}
+ body.games-dashboard #games .catalog-tile .game-title-row h2{font-size:12px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important;min-width:0;overflow-wrap:normal}
+ body.games-dashboard #games .catalog-tile .game-icon-bubble{width:26px!important;height:30px!important;font-size:17px!important}
+ body.games-dashboard #games .catalog-tile .game-title-actions{position:static!important;width:28px!important;min-width:0!important}
+}
+@media(max-width:699px){
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-title-row>.game-name-wrap{grid-column:1!important;grid-row:1!important;justify-content:flex-start!important;width:auto!important;max-width:100%!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-title-row>.game-title-actions{grid-column:2!important;grid-row:1!important;justify-self:end!important;align-self:start!important;margin:0!important;padding:0!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-name-wrap h2{text-align:left!important}
+ body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.no-best a.game-play-button:not(:disabled),body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.has-best a.game-play-button:not(:disabled){color:#091928!important;text-shadow:none!important}
+}

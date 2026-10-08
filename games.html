@@ -13,7 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Play Arcade Games Online | Earnly Arcade</title>
-  <meta name="description" content="Explore 22 Earnly Arcade games: reaction, driving, puzzles, and classics. Find a game, learn the controls, and start a run.">
+  <meta name="description" content="Explore 23 Earnly Arcade games: action, strategy, driving, puzzles, and classics. Find a game, learn the controls, and start a run.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=37">
   <style>
@@ -62,6 +62,7 @@
     }
   </style>
   <link rel="stylesheet" href="public-info.css">
+  <link rel="stylesheet" href="games-showroom.css?v=1">
   <link rel="canonical" href="https://earnlyarcade.com/games.html">
 </head>
 <body class="games-dashboard">
@@ -75,13 +76,13 @@
     </div>
 
     <header class="games-hero">
-      <span class="games-eyebrow">ARCADE</span>
-      <h1>Pick a game</h1>
-      <p>Reaction, driving, puzzles, and more. Find your next run.</p>
+      <span class="games-eyebrow">YOUR NEXT HIGH SCORE STARTS HERE</span>
+      <h1>Find your next <span>favorite.</span></h1>
+      <p>Quick runs. Robot battles. One more try.</p>
     </header>
 
     <div class="games-simple-note">
-      <span>🎟️ 3 free plays per game</span>
+      <span>🎟️ 3 daily arcade plays · Strategy beta is free</span>
       <details>
         <summary>ⓘ How it works</summary>
         <p>Pick a game and play for a score to earn XP and Arcade Coins. No account needed: guest progress saves in this browser on this device. Sign in for cloud backup. Optional rewarded ads unlock extra plays.</p>
@@ -103,16 +104,18 @@
         <button type="button" class="game-filter" data-filter="action" aria-pressed="false">⚡ Action</button>
         <button type="button" class="game-filter" data-filter="quick" aria-pressed="false">⏱️ Quick</button>
         <button type="button" class="game-filter" data-filter="classic" aria-pressed="false">🕹️ Classic</button>
+        <button type="button" class="game-filter" data-filter="strategy" aria-pressed="false">◈ Strategy</button>
         <button type="button" class="game-filter" data-filter="brain" aria-pressed="false">🧠 Brain</button>
       </div>
     </section>
 
     <div class="game-browse-heading">
-      <p class="game-browse-count" id="gameBrowseCount" aria-live="polite">22 games to explore</p>
+      <p class="game-browse-count" id="gameBrowseCount" aria-live="polite">23 games to explore</p>
       <button class="game-surprise-button" id="surpriseGame" type="button">🎲 Pick for me</button>
     </div>
     <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,#surpriseGame{display:none!important}</style></noscript>
     <div id="games" class="game-list compact-catalog-grid">
+      <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Build robot armies · free strategy beta</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play · Free beta</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonBreach"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Neon Breach</h2></div></div><p class="reward-rule">First-person blaster · survive robot waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonbreach.html" aria-label="Play Neon Breach">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="snake"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🐍</span><h2>Snake</h2></div></div><p class="reward-rule">Grow the snake · max 30 coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="snake.html" aria-label="Play Snake">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="blockDrop"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🧱</span><h2>Block Drop</h2></div></div><p class="reward-rule">Clear lines · speeds up · deep runs earn bonus XP</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="blockdrop.html" aria-label="Play Block Drop">Play</a></div></section>
@@ -136,10 +139,6 @@
       <section class="card game-card compact-game catalog-tile" data-game="starDefender"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">👾</span><h2>Star Defender</h2></div></div><p class="reward-rule">Retro alien waves · dodge and fire</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="stardefender.html?sd=20260925d" aria-label="Play Star Defender">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonMaze"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">⚡</span><h2>Neon Maze</h2></div></div><p class="reward-rule">Collect energy cells · evade sentry drones</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonmaze.html" aria-label="Play Neon Maze">Play</a></div></section>
     </div>
-
-    <a href="crystal-command.html" style="display:flex;align-items:center;gap:12px;margin:8px 0 12px;padding:12px 15px;border:1px solid #438a9f;border-radius:14px;background:linear-gradient(110deg,#112b3e,#182340);color:#e6f9ff;text-decoration:none" aria-label="Play Crystal Command strategy beta">
-      <span style="font-size:28px;color:#71efff" aria-hidden="true">◈</span><span style="flex:1"><strong style="display:block;font-size:14px">Crystal Command <small style="color:#ffd784">BETA</small></strong><span style="font-size:11px;color:#bbd2e6">Build robot armies · practice or battle a friend · free beta</span></span><b>Play →</b>
-    </a>
 
     <div class="games-shortcuts" aria-label="Arcade shortcuts">
       <a class="games-start-here games-mission-strip" id="gamesMissionStrip" href="index.html#dailyMissionsSection" aria-label="View today's daily missions">
@@ -167,6 +166,7 @@
   <script src="arcade.js"></script>
   <script>
     const gameInfo = [
+      { key:'crystalCommand', icon:'◈', name:'Crystal Command', note:'Build robot armies · solo or friend battle · free beta', href:'crystal-command.html', freeBeta:true },
       { key:'neonBreach', icon:'🤖', name:'Neon Breach', note:'First-person blaster · survive robot waves', href:'neonbreach.html' },
       { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
       { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines · speeds up · deep runs earn bonus XP', href:'blockdrop.html' },
@@ -191,8 +191,10 @@
       { key:'neonMaze', icon:'⚡', name:'Neon Maze', note:'Collect energy cells · evade sentry drones', href:'neonmaze.html' }
     ];
 
+    function catalogFavorite(info) { return info.freeBeta ? localStorage.getItem('crystalCatalogFavorite') === '1' : Arcade.isFavorite(info.key); }
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
     const gameTags = {
+      crystalCommand:['new','strategy'],
       neonBreach:['new','action'],
       snake:['classic'],
       blockDrop:['classic','brain'],
@@ -266,7 +268,7 @@
       root.replaceChildren();
 
       const recent = Arcade.recentGames().filter(key => byKey[key]).slice(0, 3);
-      const favorites = Arcade.favorites().filter(key => byKey[key]).slice(0, 3);
+      const favorites = gameInfo.filter(catalogFavorite).map(info=>info.key).slice(0,3);
       const keys = recent.length ? recent : (favorites.length ? favorites : ['tapRush','neonDrift','snake']);
       const title = recent.length ? '🔥 Play again' : (favorites.length ? '⭐ Favorites' : '✨ Recommended');
       const section = renderQuickSection(title, keys);
@@ -297,12 +299,12 @@
 
       const visibleGames = gameInfo.filter(info => {
         const matchesFilter = activeGameFilter === 'all' ||
-          (activeGameFilter === 'favorites' ? Arcade.isFavorite(info.key) : (gameTags[info.key] || []).includes(activeGameFilter));
+          (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter));
         const haystack = (info.name + ' ' + info.note).toLowerCase();
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['neonBreach','tapRush','neonDrift','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['neonBreach','crystalCommand','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
@@ -315,11 +317,11 @@
       const recommendedKeys = new Set(['tapRush','neonDrift','snake']);
 
       gamesToRender.forEach(info => {
-        const remaining = Arcade.remaining(info.key);
-        const adStatus = Arcade.playAdStatus(info.key);
+        const remaining = info.freeBeta ? Infinity : Arcade.remaining(info.key);
+        const adStatus = info.freeBeta ? {remaining:0,limit:0} : Arcade.playAdStatus(info.key);
         const testerState = window.EarnlyCloud?.testerAccess?.() || {};
         const privateSnakeTester = info.key === 'snake' && testerState.loaded === true && testerState.snakeUnlimited === true;
-        const best = Arcade.best(info.key);
+        const best = info.freeBeta ? {value:0,display:''} : Arcade.best(info.key);
         const card = document.createElement('section');
         card.className = 'card game-card compact-game catalog-tile';
         card.dataset.game = info.key;
@@ -350,16 +352,17 @@
         const favorite = document.createElement('button');
         favorite.className = 'favorite-button';
         favorite.type = 'button';
-        favorite.setAttribute('aria-label', (Arcade.isFavorite(info.key) ? 'Remove ' : 'Add ') + info.name + ' favorite');
-        favorite.textContent = Arcade.isFavorite(info.key) ? '★' : '☆';
+        favorite.setAttribute('aria-label', (catalogFavorite(info) ? 'Remove ' : 'Add ') + info.name + ' favorite');
+        favorite.textContent = catalogFavorite(info) ? '★' : '☆';
         favorite.addEventListener('click', () => {
-          Arcade.toggleFavorite(info.key);
+          if (info.freeBeta) localStorage.setItem('crystalCatalogFavorite', catalogFavorite(info) ? '0' : '1');
+          else Arcade.toggleFavorite(info.key);
           render();
         });
 
         const playCount = document.createElement('span');
         playCount.className = 'play-pill';
-        playCount.textContent = remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
+        playCount.textContent = info.freeBeta ? 'FREE BETA' : remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
 
         actions.append(favorite, playCount);
         heading.append(titleWrap, actions);
@@ -379,7 +382,7 @@
         play.className = 'wide game-play-button';
         if (remaining) play.href = info.href;
         else play.disabled = adStatus.remaining <= 0 && !privateSnakeTester;
-        play.textContent = remaining
+        play.textContent = info.freeBeta ? 'Play · Free beta' : remaining
           ? 'Play · ' + remaining + ' left'
           : (privateSnakeTester
               ? '🧪 Private Test Run'
@@ -457,10 +460,10 @@
 
     document.getElementById('surpriseGame').addEventListener('click', () => {
       const choices = gameInfo.filter(info =>
-        (activeGameFilter === 'all' || (gameTags[info.key] || []).includes(activeGameFilter)) &&
+        (activeGameFilter === 'all' || (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter))) &&
         (!gameSearchText || (info.name + ' ' + info.note).toLowerCase().includes(gameSearchText))
       );
-      const playable = choices.filter(info => Arcade.remaining(info.key) > 0);
+      const playable = choices.filter(info => info.freeBeta || Arcade.remaining(info.key) > 0);
       const pool = playable.length ? playable : choices;
       if (pool.length) location.href = pool[Math.floor(Math.random() * pool.length)].href;
     });
