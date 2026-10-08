@@ -187,6 +187,8 @@ jobs:
             <string>app-store-connect</string>
             <key>destination</key>
             <string>export</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
             <key>signingStyle</key>
             <string>manual</string>
             <key>teamID</key>
