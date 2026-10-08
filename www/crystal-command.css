@@ -205,3 +205,24 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 #lobby button:focus-visible,#lobby summary:focus-visible{outline:2px solid #ffe09d;outline-offset:3px}
 #lobby details{border-top-color:#79aed126;color:#a9c9dd}
 @media(max-width:360px){#lobby .cc-card{padding:14px}#lobby .cc-lobby-heading h2{font-size:22px}#lobby .cc-lobby-heading{gap:11px}}
+
+/* Faction-aware lighting and tactile controls. */
+#lobby{--faction-light:#8fefff;--faction-glow:#43dafa;--faction-wash:#25607866}
+#lobby[data-faction=verdant]{--faction-light:#b9ffa1;--faction-glow:#7de97a;--faction-wash:#36673c77}
+#lobby[data-faction=prism]{--faction-light:#e0bdff;--faction-glow:#b68aff;--faction-wash:#65458c66}
+#lobby .cc-card{background:radial-gradient(ellipse at 95% 0,var(--faction-wash),transparent 52%),linear-gradient(145deg,#142d43f7,#091527fc 75%);border-color:color-mix(in srgb,var(--faction-light) 42%,transparent)}
+#lobby .cc-lobby-heading h2 em{color:var(--faction-light)}
+#lobby .cc-lobby-heading>.cc-menu-crystal{background:linear-gradient(105deg,color-mix(in srgb,var(--faction-glow) 45%,#15354b) 0 28%,#eaffff 29% 48%,var(--faction-light) 49% 66%,var(--faction-glow) 67%)}
+#lobby .cc-free-tag{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:5px;color:#fbe4a5;background:#e7bd4920;font-size:7px;letter-spacing:.5px;font-weight:800;vertical-align:middle}
+#lobby .cc-faction-choice{border:0;padding:0;margin:12px 0}
+#lobby .cc-map-choice label{font-size:8px;letter-spacing:1.3px}
+#lobby #faction{border-color:color-mix(in srgb,var(--faction-light) 55%,transparent);color:var(--faction-light);background:linear-gradient(125deg,var(--faction-wash),#102638)}
+#lobby #opponentFaction{border-color:#db9ab144;color:#f0dbe5}
+#lobby #practice{background:linear-gradient(110deg,var(--faction-light),var(--faction-glow));border-color:var(--faction-light);box-shadow:0 5px 20px color-mix(in srgb,var(--faction-glow) 18%,transparent);min-height:48px}
+#lobby button{transition:transform .14s ease,background .18s ease,box-shadow .18s ease}
+#lobby button:not(:disabled):active{transform:scale(.98)}
+#lobby details>summary{min-height:30px;display:list-item;cursor:pointer;padding:6px 0;color:#bad0df}
+#lobby details[open]>summary{color:var(--faction-light)}
+#lobby .cc-lobby-heading{position:relative;padding-bottom:12px;margin-bottom:10px;border-bottom:1px solid #b6eaff19}
+@media(max-width:699px){#lobby{padding:10px}#lobby .cc-card{width:100%;max-width:400px;padding:16px}}
+@media(prefers-reduced-motion:reduce){#lobby button{transition:none}#lobby button:not(:disabled):active{transform:none}}

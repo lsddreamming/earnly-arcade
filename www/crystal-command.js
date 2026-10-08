@@ -97,7 +97,7 @@ function renderLoop(now){const dt=Math.min(.1,(now-frameAt)/1000||0);frameAt=now
  if(running&&now%250<40)hud();if(!paused)renderer.render(v,{selection,build:placing,pointer,resourceId,commandMarker,selectionBox:drag?.mode==='box'&&drag.moved?{start:drag.start,end:drag.last}:null});else renderer.render(v,{selection,paused:true,resourceId});if(lastNotice&&now-lastNotice>3500)$('message').hidden=true;requestAnimationFrame(renderLoop);
 }
 const savedFaction=localStorage.getItem('crystalFaction');if(Object.hasOwn(E.FACTIONS,savedFaction))$('faction').value=savedFaction;
-function describeFaction(){const f=E.FACTIONS[$('faction').value];$('factionDescription').textContent=f.summary;$('factionTradeoff').textContent=f.strength+' / '+f.weakness;}
+function describeFaction(){const f=E.FACTIONS[$('faction').value];$('lobby').dataset.faction=$('faction').value;$('factionDescription').textContent=f.summary;$('factionTradeoff').textContent=f.strength+' / '+f.weakness;}
 $('faction').onchange=()=>{localStorage.setItem('crystalFaction',$('faction').value);describeFaction()};describeFaction();
 const savedMap=localStorage.getItem('crystalMap');if(savedMap==='random'||Object.hasOwn(E.MAPS,savedMap))$('battleMap').value=savedMap;
 function describeMap(){$('mapDescription').textContent=E.MAPS[$('battleMap').value]?.description||'A different battlefield can change your opening. The host’s choice applies to both players.';}
