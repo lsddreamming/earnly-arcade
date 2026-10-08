@@ -14,6 +14,7 @@ on:
       - 'native-ads-entry.js'
       - 'scripts/**'
       - '.github/workflows/ios-native-build.yml'
+      - '.github/workflows/ios-v1-1-testflight.yml'
 
 concurrency:
   group: earnly-ios-native-${{ github.ref }}
