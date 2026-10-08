@@ -142,3 +142,27 @@ test('Phone coin rail reveals its last pack without decorative layers blocking b
  await expect(last).toBeDisabled();expect(f.writes).toHaveLength(0);
  await expect(page.locator('.header')).toHaveCSS('position','relative');
 });
+test('Continue browsing returns to a searched item without changing the preview or wallet',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ const f=await setup(page);
+ await page.locator('#shop-search').fill('Neon');
+ await page.locator('#shop-sort').selectOption('price');
+ const preview=page.getByRole('button',{name:'Preview Neon Jacket',exact:true});
+ await preview.click();
+ await expect(page.locator('#character-stage img[alt="Neon Jacket"]')).toHaveCount(1);
+ await page.getByRole('button',{name:'Continue browsing',exact:true}).click();
+ await expect(preview).toBeFocused();
+ await expect(preview).toBeInViewport();
+ await expect(page.locator('#shop-search')).toHaveValue('Neon');
+ await expect(page.locator('#shop-sort')).toHaveValue('price');
+ await expect(page.locator('#character-stage img[alt="Neon Jacket"]')).toHaveCount(1);
+ await expect(page.locator('#coin-balance')).toHaveText('1,250');
+ expect(f.writes).toHaveLength(0);
+});
+test('Lookbook continue browsing opens the collection with a keyboard destination',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await setup(page);
+ await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
+ await page.getByRole('button',{name:'Continue browsing',exact:true}).click();
+ await expect(page.locator('#shop-search')).toBeFocused();
+ await expect(page.locator('#shop-title')).toBeInViewport();
+});
