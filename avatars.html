@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#080d19" />
     <title>Character Studio · Earnly Arcade</title>
     <link rel="stylesheet" href="avatar-studio.css" />
+    <link rel="stylesheet" href="shopfront.css" />
     <link rel="stylesheet" href="public-info.css">
     <script src="avatar-config.js" defer></script>
     <script src="arcade.js" defer></script>
@@ -47,6 +48,11 @@
       </div>
       <nav class="studio-shortcuts" aria-label="Studio sections"><a href="#coin-shop" id="coin-shop-shortcut">◈ Buy coins</a><a href="#collection">Shop outfits &amp; accessories →</a><a href="#showcase-title">My character</a></nav>
       <p id="status" role="status" aria-live="polite"></p>
+      <section class="collection-looks panel" id="signature-looks" hidden aria-labelledby="looks-title">
+        <p class="eyebrow">THE LOOKBOOK</p><h2 id="looks-title">Find a look you love.</h2>
+        <p class="collection-note">Try it on for free. Keep the pieces you love. Owned items are excluded from the price.</p>
+        <div id="featured-looks" class="featured-looks"></div>
+      </section>
       <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
         <p class="eyebrow">ARCADE COIN SHOP</p><h2 id="coins-title">Buy coins. Make it yours.</h2>
         <p class="collection-note">Arcade Coins are for outfits, accessories and extra plays. You can keep earning them by playing.</p>
@@ -69,6 +75,8 @@
             <p id="character-owner">Sign in to save your look</p>
           </div>
           <p id="preview-note" class="preview-note">Your saved look</p>
+          <button id="compare-look" type="button" class="compare-look" aria-pressed="false" hidden>Compare saved look</button>
+          <div id="tryon-summary" class="tryon-summary" hidden><strong id="tryon-total"></strong><p id="tryon-detail"></p></div>
           <div id="preview-actions" class="preview-actions" hidden aria-label="Items you are trying on"></div>
           <button id="reset-preview" class="subtle" hidden>Reset preview</button>
           <details class="loadout-details"><summary>View equipped items</summary><dl class="loadout-summary" id="loadout-summary"></dl></details>
@@ -98,19 +106,16 @@
             <button data-slot="head" aria-pressed="false">Headwear</button>
             <button data-slot="weapon" aria-pressed="false">Weapons</button>
           </div>
-          <label for="shop-search" class="search-label">Find your next piece</label><input type="search" id="shop-search" placeholder="Search this category" maxlength="64">
+          <label for="shop-search" class="search-label">Find your next piece</label><input type="search" id="shop-search" placeholder="Search all outfits & accessories" maxlength="64">
           <div class="shop-filters"><label class="free-filter"><input type="checkbox" id="free-only"> Free options only</label><label class="free-filter"><input type="checkbox" id="owned-only"> My collection</label></div>
+          <div class="shop-toolbar"><label for="shop-sort">Sort items<select id="shop-sort"><option value="featured">Collection order</option><option value="price">Price: low to high</option><option value="name">Name: A to Z</option></select></label><div><label class="free-filter"><input type="checkbox" id="affordable-only" disabled> Within my balance</label><small id="affordable-help">Sign in to filter by your balance</small></div></div>
+          <p id="shop-result-count" class="collection-note" role="status"></p>
           <p class="collection-note">Original Arcade Sprouts · Mix every accessory. Free essentials are yours from the start.</p>
           <div id="shop-grid" class="shop-grid" aria-live="polite">
             <p>Loading collection…</p>
           </div>
         </section>
       </div>
-      <section class="collection-looks panel" aria-labelledby="looks-title">
-        <p class="eyebrow">STYLE INSPIRATION</p><h2 id="looks-title">A look worth making yours</h2>
-        <p class="collection-note">Try a complete look, then choose your favorite pieces. Each item is unlocked separately.</p>
-        <div id="featured-looks" class="featured-looks"></div>
-      </section>
       <section class="leaderboard panel" aria-labelledby="leaderboard-title">
         <div class="panel-top">
           <div>
@@ -189,6 +194,7 @@
       <p id="purchase-price"></p>
       <p id="purchase-remaining" class="purchase-remaining"></p>
       <p id="purchase-error" role="alert"></p>
+      <div id="purchase-funding" class="purchase-funding" hidden></div>
       <div class="dialog-actions">
         <button class="subtle" data-close="purchase-modal">Cancel</button
         ><button id="confirm-purchase" class="primary">Buy & equip</button>

@@ -16,6 +16,8 @@
     freeOnly: false,
     ownedOnly: false,
     search: "",
+    affordableOnly: false,
+    sort: "featured",
   };
   const apiBase = window.EARNLY_AVATAR_API || "";
   const fmt = (value) => BigInt(value ?? 0).toLocaleString();
@@ -112,22 +114,35 @@
     $("preview-note").textContent = Object.keys(state.preview).length ? "Preview only · your saved look is unchanged" : "Your saved look";
     $("reset-preview").hidden = !Object.keys(state.preview).length;
     $("my-profile").disabled = !user;
+    $("my-profile").setAttribute("aria-label", user ? "Open @" + user.username + " profile" : "Player profile");
     $("view-profile").disabled = !user;
     $("auth-button").textContent = user ? "Sign out" : "Sign in";
     $("owned-count").textContent = user ? user.inventory.length + " owned" : "";
+    renderLooks();
     renderShop();
   }
   function renderShop() {
     renderPreviewActions();
     $("shop-grid").replaceChildren();
-    for (const item of state.items.filter((i) => i.slot === state.slot && (!state.freeOnly || i.coinPrice === 0) && (!state.ownedOnly || state.user?.inventory.includes(i.id)) && i.name.toLowerCase().includes(state.search))) {
+    const filtered = state.items.filter(i =>
+      (state.search || i.slot === state.slot) &&
+      (!state.freeOnly || i.coinPrice === 0) &&
+      (!state.ownedOnly || state.user?.inventory.includes(i.id)) &&
+      (!state.affordableOnly || !state.user || state.user.inventory.includes(i.id) || BigInt(i.coinPrice) <= BigInt(state.user.coins)) &&
+      (i.name + " " + prettySlot[i.slot]).toLowerCase().includes(state.search));
+    if (state.sort === "price") filtered.sort((a,b) => a.coinPrice - b.coinPrice || a.name.localeCompare(b.name));
+    if (state.sort === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
+    $("shop-result-count").textContent = filtered.length + " " + (filtered.length === 1 ? "item" : "items") + (state.search ? " across all categories" : " in this category");
+    $("affordable-only").disabled = !state.user;
+    $("affordable-help").textContent = state.user ? "Your balance: " + fmt(state.user.coins) + " coins" : "Sign in to filter by your balance";
+    for (const item of filtered) {
       const owned = state.user?.inventory.includes(item.id),
         equipped = state.user?.equipped[item.slot]?.id === item.id;
       const card = el("article", "item-card " + item.rarity),
         art = el("div", "item-art");
       art.dataset.slot = item.slot;
       art.append(
-        character({ ...starterLoadout(), [item.slot]: item }),
+        character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item }),
         el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
       );
       const button = el(
@@ -152,7 +167,7 @@
       const preview = el("button", "preview-item", "Try on");
       preview.type = "button";
       preview.setAttribute("aria-label", "Preview " + item.name);
-      preview.addEventListener("click", () => { state.preview[item.slot] = item; renderUser(); $("character-stage").scrollIntoView({ block: "nearest", behavior: "smooth" }); });
+      preview.addEventListener("click", () => { state.preview[item.slot] = item; renderUser(); showPreview(); });
       card.append(
         art,
         el("h3", "", item.name),
@@ -163,7 +178,19 @@
       );
       $("shop-grid").append(card);
     }
-    if (!$("shop-grid").children.length) $("shop-grid").append(el("p","collection-note","No matches. Try another search or filter."));
+    if (!filtered.length) {
+      const empty = el("div", "shop-empty");
+      empty.append(el("h3", "", "Your next look is still here."), el("p", "collection-note", "Try another name or clear your filters to explore the collection."));
+      const reset = el("button", "subtle", "Clear search & filters");
+      reset.type = "button";
+      reset.addEventListener("click", () => {
+        state.search = ""; state.freeOnly = false; state.ownedOnly = false; state.affordableOnly = false;
+        $("shop-search").value = "";
+        for (const id of ["free-only", "owned-only", "affordable-only"]) $(id).checked = false;
+        renderShop(); $("shop-search").focus({preventScroll:true});
+      });
+      empty.append(reset); $("shop-grid").append(empty);
+    }
   }
   function chooseItem(item) {
     if (state.busy) return;
@@ -177,9 +204,10 @@
     $("purchase-price").textContent = fmt(item.coinPrice) + " Arcade Coins · Balance: " + fmt(state.user.coins);
     $("purchase-remaining").textContent = remaining >= 0n
       ? "After purchase: " + fmt(remaining) + " coins · This item will be equipped."
-      : "You need " + fmt(-remaining) + " more coins. Earn coins by playing or visit Get coins.";
+      : "You need " + fmt(-remaining) + " more coins. Nothing has been charged.";
     $("purchase-error").textContent = "";
     $("confirm-purchase").disabled = remaining < 0n;
+    renderFundingOptions(remaining < 0n);
     $("purchase-modal").showModal();
   }
   function renderPreviewActions() {
@@ -187,6 +215,17 @@
     root.replaceChildren();
     const changed = Object.values(state.preview).filter(item => state.user?.equipped[item.slot]?.id !== item.id);
     root.hidden = !changed.length;
+    const total = changed.reduce((sum,item) => sum + (state.user?.inventory.includes(item.id) ? 0n : BigInt(item.coinPrice)), 0n);
+    $("tryon-summary").hidden = !changed.length;
+    $("compare-look").hidden = !changed.length;
+    if ($("compare-look").getAttribute("aria-pressed") === "true") {
+      $("character-stage").replaceChildren(character({...(state.user?.equipped || starterLoadout()), ...state.preview}));
+      $("preview-note").textContent = changed.length ? "Preview only · your saved look is unchanged" : "Your saved look";
+    }
+    $("compare-look").setAttribute("aria-pressed", "false");
+    $("compare-look").textContent = "Compare saved look";
+    $("tryon-total").textContent = total === 0n ? "No coins needed" : fmt(total) + " coins to unlock";
+    $("tryon-detail").textContent = changed.length + " " + (changed.length === 1 ? "piece" : "pieces") + " in your try-on · Unlock items individually below.";
     for (const item of changed) {
       const owned = state.user?.inventory.includes(item.id);
       const row = el("div", "preview-action");
@@ -205,18 +244,46 @@
     {name:"Aurora Vanguard",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
     {name:"Solar Royalty",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},
   ];
+  function showPreview() {
+    $("character-stage").dataset.focus = "full";
+    for (const option of document.querySelectorAll(".focus-controls [data-focus]"))
+      option.setAttribute("aria-pressed", String(option.dataset.focus === "full"));
+    $("character-stage").scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    $("compare-look").focus({preventScroll:true});
+  }
+  function renderFundingOptions(needed) {
+    const root = $("purchase-funding"); root.replaceChildren(); root.hidden = !needed;
+    if (!needed) return;
+    const native = window.Capacitor?.isNativePlatform?.() || location.protocol === "capacitor:";
+    if (!native) {
+      const coins = el("a", "funding-link", "See coin options"); coins.href = "#coin-shop";
+      coins.addEventListener("click", () => { $("purchase-modal").close(); state.pending = null; });
+      root.append(coins);
+    }
+    const earn = el("a", "earn-coins-link", "Play & earn free coins →"); earn.href = "games.html";
+    root.append(earn);
+  }
   function renderLooks() {
     $("featured-looks").replaceChildren();
-    for (const look of looks) {
-      const found=look.ids.map(id=>state.items.find(i=>i.id===id)).filter(Boolean);
-      if(found.length!==look.ids.length) continue;
-      const equipped={...starterLoadout(),...Object.fromEntries(found.map(i=>[i.slot,i]))};
-      const card=el("article","look-card"), art=el("div","look-art"); art.append(character(equipped));
-      const copy=el("div");copy.append(el("h3","",look.name),el("p","",look.description));
-      const button=el("button","subtle","Preview look");button.setAttribute("aria-label","Preview "+look.name);
-      button.addEventListener("click",()=>{state.preview=Object.fromEntries(found.map(i=>[i.slot,i]));renderUser();$("character-stage").scrollIntoView({block:"center",behavior:"smooth"});});
-      copy.append(button);card.append(art,copy);$("featured-looks").append(card);
+    for (const [index, look] of looks.entries()) {
+      const found = look.ids.map(id => state.items.find(i => i.id === id)).filter(Boolean);
+      if (found.length !== look.ids.length) continue;
+      const equipped = {...starterLoadout(), ...Object.fromEntries(found.map(i => [i.slot,i]))};
+      const pieces = Object.values(equipped).filter(Boolean);
+      const owned = pieces.filter(i => state.user?.inventory.includes(i.id));
+      const total = pieces.reduce((sum,i) => sum + (state.user?.inventory.includes(i.id) ? 0n : BigInt(i.coinPrice)), 0n);
+      const card = el("article", "look-card"); card.dataset.look = String(index);
+      const art = el("div", "look-art"); art.append(character(equipped));
+      const copy = el("div", "look-copy");
+      copy.append(el("span", "look-edition", ["STREET EXPLORER", "PRISMATIC TECH", "GOLDEN HOUR"][index]), el("h3", "", look.name), el("p", "look-description", look.description));
+      const price = el("p", "look-price", total === 0n ? "No coins needed" : "◈ " + fmt(total) + " coins to complete");
+      const detail = el("p", "look-detail", state.user ? owned.length + " of " + pieces.length + " pieces owned · Items unlock separately" : pieces.length + " pieces · Items unlock separately");
+      const button = el("button", "subtle", "Try this look →"); button.type = "button";
+      button.setAttribute("aria-label", "Preview " + look.name);
+      button.addEventListener("click", () => { state.preview = {...equipped}; renderUser(); showPreview(); });
+      copy.append(price, detail, button); card.append(art, copy); $("featured-looks").append(card);
     }
+    $("signature-looks").hidden = !$("featured-looks").children.length;
   }
   async function leaderboard() {
     const data = await api("/api/leaderboard");
@@ -329,7 +396,9 @@
         } catch {}
     } finally {
       state.busy = false;
-      $("confirm-purchase").disabled = false;
+      const insufficient = state.pending && state.user && BigInt(state.user.coins) < BigInt(state.pending.item.coinPrice);
+      $("confirm-purchase").disabled = !!insufficient;
+      renderFundingOptions(!!insufficient);
       renderShop();
     }
   });
@@ -357,6 +426,16 @@
       status(error.message, true);
     }
   }
+  $("affordable-only").addEventListener("change", e => { state.affordableOnly = e.target.checked; renderShop(); });
+  $("shop-sort").addEventListener("change", e => { state.sort = e.target.value; renderShop(); });
+  $("compare-look").addEventListener("click", () => {
+    const button = $("compare-look"), compare = button.getAttribute("aria-pressed") !== "true";
+    const saved = state.user?.equipped || starterLoadout();
+    button.setAttribute("aria-pressed", String(compare));
+    button.textContent = compare ? "Back to your try-on" : "Compare saved look";
+    $("character-stage").replaceChildren(character(compare ? saved : {...saved,...state.preview}));
+    $("preview-note").textContent = compare ? "Showing your saved look · Preview only, nothing has changed" : "Preview only · your saved look is unchanged";
+  });
   $("owned-only").addEventListener("change", e=>{state.ownedOnly=e.target.checked;renderShop();});
   $("shop-search").addEventListener("input", e=>{state.search=e.target.value.trim().toLowerCase();renderShop();});
   for(const button of document.querySelectorAll("[data-focus]")) button.addEventListener("click",()=>{
