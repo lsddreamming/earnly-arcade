@@ -98,6 +98,14 @@
       }
       body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
+    /* Jewel-bright cabinet lighting, with a calm reduced-motion mode. */
+    body.junglehopper-page{background:radial-gradient(ellipse at 15% 30%,#16645466,transparent 55%),radial-gradient(ellipse at 95% 55%,#59359855,transparent 60%),#09162a}
+    body.junglehopper-page .page-header{border-color:#65ffd799!important;background:linear-gradient(120deg,#14564e,#173454)!important;box-shadow:0 0 22px #31eac52b!important}
+    body.junglehopper-page .jungle-run-strip{color:#9effd9;text-shadow:0 0 12px #32eeb8}
+    body.junglehopper-page #goldPreview{color:#ffe387;text-shadow:0 0 12px #ffbc46}
+    body.junglehopper-page .jungle-board,body.junglehopper-page.game-active .jungle-board{border:2px solid #aaffb5!important;box-shadow:0 0 0 4px #154c55,0 0 0 6px #f5d478aa,0 0 26px #4bffc45c,0 12px 38px #0005!important}
+    @media(prefers-reduced-motion:no-preference){body.junglehopper-page .jungle-board{animation:jungle-cabinet 4s ease-in-out infinite}}
+    @keyframes jungle-cabinet{50%{border-color:#ffe494;box-shadow:0 0 0 4px #214658,0 0 0 6px #f5d478cc,0 0 32px #6dffd878,0 12px 38px #0005}}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/junglehopper.html">
@@ -241,9 +249,9 @@
 
     function drawJungle() {
       const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      sky.addColorStop(0, '#0b3b32');
-      sky.addColorStop(.58, '#146b3a');
-      sky.addColorStop(1, '#06331d');
+      sky.addColorStop(0, '#164267');
+      sky.addColorStop(.58, '#228d85');
+      sky.addColorStop(1, '#16554d');
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -260,7 +268,7 @@
     }
 
     function drawVinePart(x, y, h, fromTop) {
-      ctx.fillStyle = '#145f32';
+      ctx.fillStyle = '#438e46';
       ctx.fillRect(x + 17, y, obstacleWidth - 34, h);
 
       ctx.strokeStyle = '#39e67a';

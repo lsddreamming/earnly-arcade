@@ -101,6 +101,14 @@
       }
       body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
     }
+    /* Jewel-bright cabinet lighting, with a calm reduced-motion mode. */
+    body.junglehopper-page{background:radial-gradient(ellipse at 15% 30%,#16645466,transparent 55%),radial-gradient(ellipse at 95% 55%,#59359855,transparent 60%),#09162a}
+    body.junglehopper-page .page-header{border-color:#65ffd799!important;background:linear-gradient(120deg,#14564e,#173454)!important;box-shadow:0 0 22px #31eac52b!important}
+    body.junglehopper-page .jungle-run-strip{color:#9effd9;text-shadow:0 0 12px #32eeb8}
+    body.junglehopper-page #goldPreview{color:#ffe387;text-shadow:0 0 12px #ffbc46}
+    body.junglehopper-page .jungle-board,body.junglehopper-page.game-active .jungle-board{border:2px solid #aaffb5!important;box-shadow:0 0 0 4px #154c55,0 0 0 6px #f5d478aa,0 0 26px #4bffc45c,0 12px 38px #0005!important}
+    @media(prefers-reduced-motion:no-preference){body.junglehopper-page .jungle-board{animation:jungle-cabinet 4s ease-in-out infinite}}
+    @keyframes jungle-cabinet{50%{border-color:#ffe494;box-shadow:0 0 0 4px #214658,0 0 0 6px #f5d478cc,0 0 32px #6dffd878,0 12px 38px #0005}}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/junglehopper.html">
@@ -268,27 +276,27 @@
     }
     function drawJungle() {
       const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      sky.addColorStop(0, '#061e30');sky.addColorStop(.48, '#155953');sky.addColorStop(1, '#062d28');
+      sky.addColorStop(0, '#164267');sky.addColorStop(.48, '#228d85');sky.addColorStop(1, '#16554d');
       ctx.fillStyle=sky;ctx.fillRect(0,0,360,560);
       const sun=ctx.createRadialGradient(265,112,4,265,112,160);
-      sun.addColorStop(0,'#c7ffbd55');sun.addColorStop(1,'#72edbc00');
+      sun.addColorStop(0,'#fff2b599');sun.addColorStop(1,'#72edbc00');
       ctx.fillStyle=sun;ctx.fillRect(80,0,280,320);
-      ellipse(265,112,28,28,'#ccfbd033');
+      ellipse(265,112,28,28,'#fff1b766');
       // Two distant canopy layers, temple stones, and drifting fireflies.
       for(let layer=0;layer<2;layer++) {
         for(let i=0;i<7;i++) {
           const x=((i*83-frame*(layer+1)*.12)%580+580)%580-90;
           const y=165+(i%3)*51+layer*110;
-          ctx.fillStyle=layer?'#0a3435':'#154445';ctx.fillRect(x,y,13,560-y);
-          ellipse(x+4,y,55,45,layer?'#0b3c39':'#20574e');
-          ellipse(x-18,y+24,38,24,layer?'#0b3c39':'#20574e');
+          ctx.fillStyle=layer?'#125653':'#26746b';ctx.fillRect(x,y,13,560-y);
+          ellipse(x+4,y,55,45,layer?'#176659':'#348c76');
+          ellipse(x-18,y+24,38,24,layer?'#176659':'#348c76');
         }
       }
-      ctx.fillStyle='#26584d';
+      ctx.fillStyle='#377d70';
       for(let i=0;i<3;i++) {
         const x=((i*164-frame*.19)%520+520)%520-80;
         ctx.fillRect(x,424,52,108);ctx.fillRect(x-7,419,66,9);
-        ctx.fillStyle='#367365';ctx.fillRect(x+7,432,5,70);ctx.fillStyle='#26584d';
+        ctx.fillStyle='#62b6a1';ctx.fillRect(x+7,432,5,70);ctx.fillStyle='#377d70';
       }
       if(!reducedMotion) for(let i=0;i<16;i++) {
         const x=((i*47-frame*.3)%380+380)%380;
@@ -300,17 +308,17 @@
       ctx.fillStyle=ground;ctx.fillRect(0,532,360,28);
       for(let i=0;i<24;i++) ellipse(((i*21-frame*1.3)%400+400)%400-20,535,10,3,'#8ac76e');
       // Hanging foreground leaves stay above the flight corridor.
-      for(let i=0;i<10;i++) ellipse(i*41,8+(i%3)*6,30,13,'#113e30',i%2?.6:-.6);
+      for(let i=0;i<10;i++) ellipse(i*41,8+(i%3)*6,30,13,'#216d4f',i%2?.6:-.6);
     }
 
     function drawVinePart(x, y, h, fromTop) {
       if(h<=0)return;
       ctx.save();
       const wood=ctx.createLinearGradient(x,0,x+obstacleWidth,0);
-      wood.addColorStop(0,'#12392b');wood.addColorStop(.2,'#386a3c');
-      wood.addColorStop(.5,'#234c2c');wood.addColorStop(.85,'#4b7942');wood.addColorStop(1,'#122e25');
+      wood.addColorStop(0,'#18583c');wood.addColorStop(.2,'#65ac42');
+      wood.addColorStop(.5,'#347f3a');wood.addColorStop(.85,'#99cf53');wood.addColorStop(1,'#225837');
       ctx.fillStyle=wood;ctx.fillRect(x,y,obstacleWidth,h);
-      ctx.strokeStyle='#a0db7855';ctx.lineWidth=2;
+      ctx.strokeStyle='#d3ff9399';ctx.lineWidth=2;
       for(let strand=0;strand<3;strand++) {
         ctx.beginPath();ctx.moveTo(x+8+strand*19,y);
         for(let py=0;py<h;py+=8)ctx.lineTo(x+8+strand*19+Math.sin(py*.045+strand)*4,y+py);
@@ -318,12 +326,12 @@
       }
       // The whole collidable width has a visible edge and moss cap.
       const edgeY=fromTop?y+h-6:y;
-      ctx.fillStyle='#87bd62';ctx.fillRect(x,edgeY,obstacleWidth,6);
-      ctx.fillStyle='#dcf1a3';ctx.fillRect(x,fromTop?y+h-2:y,obstacleWidth,2);
+      ctx.fillStyle='#b7e963';ctx.fillRect(x,edgeY,obstacleWidth,6);
+      ctx.fillStyle='#f6ffc5';ctx.fillRect(x,fromTop?y+h-2:y,obstacleWidth,2);
       for(let i=0;i<5;i++)ellipse(x+6+i*11,edgeY+3,8,4,i%2?'#598f46':'#a6cb6c',i%2?.35:-.35);
       for(let py=24;py<h-16;py+=38) {
-        ellipse(x+7,y+py,11,5,'#4d985a',-.7);
-        ellipse(x+obstacleWidth-7,y+py+15,11,5,'#397950',.7);
+        ellipse(x+7,y+py,11,5,'#85d96c',-.7);
+        ellipse(x+obstacleWidth-7,y+py+15,11,5,'#4abc7b',.7);
       }
       ctx.restore();
     }
@@ -333,7 +341,9 @@
       const x=o.x+obstacleWidth/2,y=o.gold.y;
       const pulse=reducedMotion?1:1+Math.sin(frame*.075)*.12;
       ctx.save();
-      ctx.shadowColor='#ffc64e';ctx.shadowBlur=17;
+      ctx.shadowColor='#ffce46';ctx.shadowBlur=23;
+      ctx.strokeStyle='#fff1a8';ctx.lineWidth=1;
+      for(let i=0;i<4;i++){const angle=i*Math.PI/2+(reducedMotion?0:frame*.025);const sx=x+Math.cos(angle)*18,sy=y+Math.sin(angle)*18;ctx.beginPath();ctx.moveTo(sx-2,sy);ctx.lineTo(sx+2,sy);ctx.moveTo(sx,sy-2);ctx.lineTo(sx,sy+2);ctx.stroke();}
       ellipse(x,y,13*pulse,13*pulse,'#ffdb6c22');
       ellipse(x,y,10,11,'#f6af30');ctx.shadowBlur=0;
       ellipse(x-1,y-1,7.5,8.5,'#ffe69a');
@@ -356,7 +366,7 @@
       document.getElementById('goldPreview').textContent='Gold +'+bonusCoins;
       Arcade.feedback('score');
       popups.push({x,y,text:'+'+gained+' GOLD',life:45});
-      if(!reducedMotion)for(let i=0;i<9;i++)particles.push({x,y,vx:Math.cos(i*.7)*2.3,vy:Math.sin(i*.7)*2.3,life:24});
+      if(!reducedMotion)for(let i=0;i<16;i++)particles.push({x,y,vx:Math.cos(i*Math.PI/8)*3,vy:Math.sin(i*Math.PI/8)*3,life:24});
     }
     function drawObstacle(o) {
       const topH = Math.max(0, o.gapY - o.gapSize / 2);
@@ -420,7 +430,7 @@
       if(rewardFor(score)<MAX_COINS)obstacles.forEach(drawGold);
       drawFrog();
       for(const p of particles){ctx.globalAlpha=p.life/24;ellipse(p.x,p.y,2,2,'#ffe89a');}
-      for(const p of popups){ctx.globalAlpha=p.life/45;ctx.fillStyle='#ffe6a0';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y);}
+      for(const p of popups){ctx.globalAlpha=p.life/45;ctx.fillStyle='#fff2b0';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.strokeStyle='#493014';ctx.lineWidth=3;ctx.strokeText(p.text,p.x,p.y);ctx.fillText(p.text,p.x,p.y);}
       ctx.globalAlpha=1;
 
       if (!running) {
