@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id);
   const arcade=typeof Arcade!=='undefined'?Arcade:null;
   const native=window.Capacitor?.isNativePlatform?.()||location.protocol==='capacitor:';
-  if(native){$('coin-shop').hidden=true;$('get-coins-link').hidden=true;return;}
+  if(native){$('coin-shop').hidden=true;$('get-coins-link').hidden=true;$('coin-shop-shortcut').hidden=true;return;}
   const fallback=[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}];
   let available=false,busy=false,configSequence=0;
   const pending=new Map();
@@ -22,10 +22,20 @@
   }
   function render(packs) {
     $('coin-packs').replaceChildren();
+    const priced=packs.filter(p=>p.coins>0&&p.priceCents>0);
+    const bestRate=Math.min(...priced.map(p=>p.priceCents/p.coins));
     for(const pack of packs) {
       const card=document.createElement('article');card.className='coin-pack';
+      const heading=document.createElement('div');heading.className='pack-heading';
+      const title=document.createElement('h3');title.textContent=({starter:'Starter stash',plus:'Style upgrade',vault:'Arcade vault'})[pack.id]||'Coin pack';
+      heading.append(title);
+      if(priced.length>1&&pack.priceCents/pack.coins===bestRate&&priced.some(p=>p.priceCents/p.coins>bestRate)){
+        card.classList.add('best-value');
+        const badge=document.createElement('span');badge.className='pack-value';badge.textContent='Best value';heading.append(badge);
+      }
       const amount=document.createElement('div');amount.className='coin-amount';amount.textContent='◈ '+pack.coins.toLocaleString();
       const note=document.createElement('p');note.textContent='Arcade Coins';
+      const rate=document.createElement('p');rate.className='pack-rate';rate.textContent=pack.coins>0?'$'+(pack.priceCents/pack.coins).toFixed(2)+' per 100 coins':'';
       const button=document.createElement('button');button.type='button';button.textContent=available?'$'+(pack.priceCents/100).toFixed(2)+' · Buy':'$'+(pack.priceCents/100).toFixed(2)+' · Soon';
       button.disabled=!available||busy;button.setAttribute('aria-label',`Buy ${pack.coins} Arcade Coins for $${(pack.priceCents/100).toFixed(2)}`);
       button.addEventListener('click',async()=>{
@@ -41,7 +51,7 @@
           location.assign(url.href);
         } catch(error){if(error.code==='CHECKOUT_EXPIRED')pending.delete(pack.id);message(error.message,true);busy=false;render(packs);}
       });
-      card.append(amount,note,button);$('coin-packs').append(card);
+      card.append(heading,amount,note,rate,button);$('coin-packs').append(card);
     }
   }
   async function refreshAccount() {
@@ -60,7 +70,10 @@
         if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Sign back in to check this purchase.');
         if(data.status==='fulfilled'){
           if(data.wallet)arcade?.applyServerWallet?.(data.wallet);
-          $('refresh-button').click();message('Purchase confirmed. Your current balance is updated.');
+          $('refresh-button').click();
+          message(Number.isSafeInteger(data.coins)&&data.coins>0
+            ? `Purchase confirmed · ${data.coins.toLocaleString()} coins added. Enjoy your next unlock!`
+            : 'Purchase confirmed. Your current balance is updated.');
           history.replaceState(null,'',location.pathname+'#coin-shop');return;
         }
       }catch(error){message(error.message,true);return;}

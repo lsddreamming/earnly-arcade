@@ -75,3 +75,34 @@ input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;flex:none}
 .back-to-collection:focus-visible{outline:2px solid #8cebd8;outline-offset:4px}
 .back-to-collection span{font-size:22px;line-height:1}
 .item-card{scroll-margin-top:24px}
+
+/* Finish the wallet and collection with readable comparisons and ownership. */
+.coin-pack{display:flex;flex-direction:column;gap:0;min-width:0;padding:22px}
+.pack-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-height:40px;margin-bottom:18px}
+.pack-heading h3{margin:0;color:#e6eefb;font-size:14px;font-weight:750;letter-spacing:.1px}
+.pack-value{display:inline-flex;padding:5px 8px;border-radius:999px;background:#b6f4d9;color:#102b23;font-size:10px;font-weight:850;white-space:nowrap}
+.coin-pack.best-value{box-shadow:inset 0 0 0 1px #9ee4c955,0 16px 36px #0004;background:radial-gradient(ellipse at 100% 0,#38857155,transparent 65%),linear-gradient(145deg,#1d3537,#121d2d 70%)}
+.coin-pack .coin-amount{font-size:36px;line-height:1.1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.coin-pack>p{margin:7px 0;color:#c3cee0}
+.coin-pack .pack-rate{margin:6px 0 20px;color:#b4c6dc;font-size:12px;font-variant-numeric:tabular-nums}
+.coin-pack button{margin-top:auto;min-height:48px;font-size:14px}
+.coin-pack button:disabled{opacity:1;color:#c4cbd6;background:#243043;box-shadow:inset 0 0 0 1px #65768c55;cursor:not-allowed}
+.browse-unlocks{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;width:fit-content;max-width:100%;margin:18px 0 0;padding:11px 17px;border-radius:999px;background:#13323e;color:#a3f2ee;font-size:13px;font-weight:750}
+.browse-unlocks span{font-size:21px}
+.browse-unlocks:focus-visible{outline:2px solid #8cebd8;outline-offset:4px}
+.shop-reassurance{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11px;color:#afc9d7}
+.shop-reassurance span:first-child{color:#99e7d7}
+.item-card.is-equipped{box-shadow:inset 0 0 0 1px #79dbc66b,0 12px 28px #0003}
+.item-card.is-owned .item-ownership{color:#a0ebd7}
+.item-card .item-ownership{min-height:24px;margin-top:4px;margin-bottom:12px;font-weight:750;font-variant-numeric:tabular-nums}
+.item-card button.equipped{opacity:1;background:#153632;color:#a6ebd5;border-color:#3c7469}
+@media(max-width:680px){
+ .coin-pack{min-height:238px}
+ .pack-heading{margin-bottom:15px}
+ .coin-pack .coin-amount{font-size:34px!important}
+ .coin-pack .pack-rate{margin:8px 0 17px}
+ .browse-unlocks{width:100%;font-size:12px}
+ .shop-grid{gap:10px}
+ .item-card h3{line-height:1.35;min-height:38px}
+ .item-card .item-ownership{font-size:11px;line-height:1.5}
+}
