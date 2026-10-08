@@ -118,6 +118,7 @@ test('Headwear, search, ownership filters and fit inspection work without spendi
 test('Coin packs show approved prices and fail closed before merchant setup',async({page})=>{
   await setup(page);await page.route('**/coin-shop/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({available:false,packs:[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}]})}));
   await page.goto('/avatars.html');await expect(page.locator('#coin-packs article')).toHaveCount(3);await expect(page.locator('#coin-status')).toContainText('coming soon');
+  await expect(page.locator('.coin-pack.best-value')).toContainText('Best value');await expect(page.locator('.coin-pack.best-value')).toContainText('59% more coins per $');
   for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();await expect(page.locator('#coin-packs')).toContainText('$9.99');
 });
 
@@ -149,10 +150,23 @@ test('Preview actions unlock one piece, keep other previews, and survive a fresh
   await page.reload();await expect(page.locator('#coin-balance')).toHaveText('700');
   await expect(page.locator('#character-name')).toHaveText('Neon Phantom');expect(f.keys).toHaveLength(2);
 });
-test('Unaffordable previews explain the shortfall before a purchase request',async({page})=>{
+test('Shop highlights affordable paid pieces from the current balance',async({page})=>{
+  await setup(page);await page.goto('/avatars.html');
+  await expect(page.locator('#shop-value-summary')).toContainText('6 paid pieces');
+  await expect(page.locator('#shop-picks-grid .shop-pick-card')).toHaveCount(3);
+  await expect(page.locator('#shop-picks-grid')).toContainText('READY NOW');
+  await expect(page.locator('.item-card.affordable')).toHaveCount(2);
+  await expect(page.locator('.item-card.affordable').first()).toContainText('Ready to unlock');
+});
+
+test('Unaffordable previews route to coins without sending a cosmetic purchase request',async({page})=>{
   const f=await setup(page);f.user().coins='100';await page.goto('/avatars.html');
   await expect(page.locator('#coin-balance')).toHaveText('100');
+  await expect(page.locator('#shop-value-summary')).toContainText('150 coins away');
   await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();
   await expect(page.locator('#purchase-remaining')).toContainText('150 more coins');
-  await expect(page.getByRole('button',{name:'Buy & equip',exact:true})).toBeDisabled();expect(f.keys).toHaveLength(0);
+  const getCoins=page.getByRole('button',{name:'Get coins to unlock Neon Phantom',exact:true});
+  await expect(getCoins).toBeEnabled();await getCoins.click();
+  await expect(page.locator('#purchase-modal')).not.toBeVisible();await expect(page).toHaveURL(/#coin-shop$/);
+  expect(f.keys).toHaveLength(0);
 });

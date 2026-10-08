@@ -27,7 +27,7 @@
           <span aria-hidden="true">◈</span><strong id="coin-balance">—</strong
           ><small>COINS</small>
         </div>
-        <a href="#coin-shop" class="get-coins" id="get-coins-link">Get coins</a>
+        <a href="#coin-shop" class="get-coins" id="get-coins-link">Buy coins</a>
         <button id="my-profile" class="profile-button" disabled>
           <span id="nav-avatar" class="mini-character" aria-hidden="true"></span><span
             id="nav-name"
@@ -45,7 +45,16 @@
         </div>
         <p>Build your arcade identity.<br />Unlock a look. Make it yours.</p>
       </div>
+      <nav class="studio-shortcuts" aria-label="Studio sections"><a href="#coin-shop" id="coin-shop-shortcut">◈ Buy coins</a><a href="#collection">Shop outfits &amp; accessories →</a><a href="#showcase-title">My character</a></nav>
       <p id="status" role="status" aria-live="polite"></p>
+      <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
+        <p class="eyebrow">ARCADE COIN SHOP</p><h2 id="coins-title">Buy coins. Make it yours.</h2>
+        <p class="collection-note">Arcade Coins are for outfits, accessories and extra plays. You can keep earning them by playing.</p>
+        <div class="coin-shop-benefits" aria-label="What Arcade Coins unlock"><span>🎨 Outfits &amp; accessories</span><span>⚡ Extra plays</span><span>✓ Cosmetic only</span></div>
+        <div id="coin-packs" class="coin-packs"></div><p id="coin-status" role="status" aria-live="polite">Card purchases are coming soon.</p>
+        <a href="games.html" class="earn-coins-link">Play games &amp; earn coins →</a>
+        <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
+      </section>
       <div class="studio-layout">
         <section class="showcase panel" aria-labelledby="showcase-title">
           <div class="panel-top">
@@ -61,8 +70,9 @@
             <p id="character-owner">Sign in to save your look</p>
           </div>
           <p id="preview-note" class="preview-note">Your saved look</p>
+          <div id="preview-actions" class="preview-actions" hidden aria-label="Items you are trying on"></div>
           <button id="reset-preview" class="subtle" hidden>Reset preview</button>
-          <dl class="loadout-summary" id="loadout-summary"></dl>
+          <details class="loadout-details"><summary>View equipped items</summary><dl class="loadout-summary" id="loadout-summary"></dl></details>
           <button id="view-profile" class="primary" disabled>
             View my profile
           </button>
@@ -71,7 +81,7 @@
             advantage.
           </p>
         </section>
-        <section class="shop panel" aria-labelledby="shop-title">
+        <section id="collection" class="shop panel" aria-labelledby="shop-title">
           <div class="panel-top">
             <div>
               <p class="eyebrow">THE COLLECTION</p>
@@ -91,6 +101,10 @@
           </div>
           <label for="shop-search" class="search-label">Find your next piece</label><input type="search" id="shop-search" placeholder="Search this category" maxlength="64">
           <div class="shop-filters"><label class="free-filter"><input type="checkbox" id="free-only"> Free options only</label><label class="free-filter"><input type="checkbox" id="owned-only"> My collection</label></div>
+          <section class="shop-picks" aria-labelledby="shop-picks-title">
+            <div class="shop-picks-heading"><div><p class="eyebrow">FOR YOU</p><h3 id="shop-picks-title">Worth a closer look</h3></div><p id="shop-value-summary" class="collection-note" aria-live="polite">Finding pieces that fit your balance…</p></div>
+            <div id="shop-picks-grid" class="shop-picks-grid"></div>
+          </section>
           <p class="collection-note">Original Arcade Sprouts · Mix every accessory. Free essentials are yours from the start.</p>
           <div id="shop-grid" class="shop-grid" aria-live="polite">
             <p>Loading collection…</p>
@@ -101,13 +115,6 @@
         <p class="eyebrow">STYLE INSPIRATION</p><h2 id="looks-title">A look worth making yours</h2>
         <p class="collection-note">Try a complete look, then choose your favorite pieces. Each item is unlocked separately.</p>
         <div id="featured-looks" class="featured-looks"></div>
-      </section>
-      <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
-        <p class="eyebrow">MORE WAYS TO PLAY</p><h2 id="coins-title">Make room for your next unlock</h2>
-        <p class="collection-note">Arcade Coins are for outfits, accessories and extra plays. You can keep earning them by playing.</p>
-        <div id="coin-packs" class="coin-packs"></div><p id="coin-status" role="status" aria-live="polite">Card purchases are coming soon.</p>
-        <a href="games.html" class="earn-coins-link">Play games &amp; earn coins →</a>
-        <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
       </section>
       <section class="leaderboard panel" aria-labelledby="leaderboard-title">
         <div class="panel-top">
@@ -185,6 +192,7 @@
       <h2 id="purchase-title">Unlock item?</h2>
       <div id="purchase-preview" class="purchase-preview"></div>
       <p id="purchase-price"></p>
+      <p id="purchase-remaining" class="purchase-remaining"></p>
       <p id="purchase-error" role="alert"></p>
       <div class="dialog-actions">
         <button class="subtle" data-close="purchase-modal">Cancel</button
