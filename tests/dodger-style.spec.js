@@ -8,7 +8,7 @@ test('retired Neon Dodger bookmarks open Neon Drift without spending plays or lo
  }
 });
 test('active catalog, guides, missions and leaderboard choices retire Neon Dodger',async({page})=>{
- await page.goto('/games.html');await expect(page.locator('#games .game-card')).toHaveCount(22);await expect(page.locator('#games a[href="dodger.html"]')).toHaveCount(0);
+ await page.goto('/games.html');await expect(page.locator('#games .game-card')).toHaveCount(23);await expect(page.locator('#games a[href="dodger.html"]')).toHaveCount(0);
  await page.locator('#gameSearch').fill('Neon Drift');await expect(page.locator('#games a[href="neondrift.html"]')).toHaveCount(1);
  for(const path of ['profile.html','stats.html','leaderboards.html','game-guides.html']){await page.goto('/'+path);await expect(page.getByRole('link',{name:'Neon Dodger',exact:true})).toHaveCount(0);}
  const state=await page.evaluate(()=>({names:Arcade.names,backup:Arcade.snapshotData().data}));expect(state.names.dodger).toBeUndefined();
