@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id);
   const arcade=typeof Arcade!=='undefined'?Arcade:null;
   const native=window.Capacitor?.isNativePlatform?.()||location.protocol==='capacitor:';
-  if(native){$('coin-shop').hidden=true;$('get-coins-link').hidden=true;return;}
+  if(native){$('coin-shop').hidden=true;$('get-coins-link').hidden=true;$('coin-shop-shortcut').hidden=true;return;}
   const fallback=[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}];
   let available=false,busy=false,configSequence=0;
   const pending=new Map();
