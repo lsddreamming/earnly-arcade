@@ -22,7 +22,7 @@ jobs:
       - run: npm install
       - run: npx playwright install --with-deps chromium
       - name: Validate payment ledger and API boundaries
-        run: npm run test:commerce && node scripts/test-coin-staging.mjs && node --test scripts/test-ios-release-gates.mjs
+        run: node scripts/test-jungle-rewards.mjs && npm run test:commerce && node scripts/test-coin-staging.mjs && node --test scripts/test-ios-release-gates.mjs
       - name: Run simulations and source contracts once
         run: npx playwright test tests/game-stress.spec.js tests/spiral-drop.spec.js tests/quality-contract.spec.js --project=desktop-chromium
       - name: Upload simulation failure report
@@ -75,7 +75,7 @@ jobs:
         if: matrix.project == 'mobile-webkit'
         run: npx playwright install webkit
       - name: Run smoke suite
-        run: npx playwright test tests/shopfront.spec.js tests/coin-sandbox.spec.js tests/avatar-studio.spec.js tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js tests/neonbreach.spec.js tests/neondrift.spec.js tests/dodger-style.spec.js tests/merge-rush.spec.js tests/taprush-polish.spec.js tests/crystal-command.spec.js tests/crystal-relay.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+        run: npx playwright test tests/shopfront.spec.js tests/coin-sandbox.spec.js tests/avatar-studio.spec.js tests/smoke.spec.js tests/daily-results.spec.js tests/page-polish.spec.js tests/mobile-density.spec.js tests/neonbreach.spec.js tests/neondrift.spec.js tests/dodger-style.spec.js tests/merge-rush.spec.js tests/taprush-polish.spec.js tests/junglehopper-polish.spec.js tests/crystal-command.spec.js tests/crystal-relay.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload smoke failure report
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
