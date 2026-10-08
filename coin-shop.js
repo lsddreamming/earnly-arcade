@@ -22,10 +22,18 @@
   }
   function render(packs) {
     $('coin-packs').replaceChildren();
+    const smallest=[...packs].sort((a,b)=>a.priceCents-b.priceCents)[0];
+    const baseRate=smallest?smallest.coins/smallest.priceCents:0;
+    const bestRate=packs.length>1?Math.max(...packs.map(pack=>pack.coins/pack.priceCents)):0;
     for(const pack of packs) {
-      const card=document.createElement('article');card.className='coin-pack';
+      const rate=pack.coins/pack.priceCents,isBest=packs.length>1&&Math.abs(rate-bestRate)<1e-9;
+      const card=document.createElement('article');card.className='coin-pack'+(isBest?' best-value':'');
+      if(isBest){const badge=document.createElement('span');badge.className='coin-pack-badge';badge.textContent='Best value';card.append(badge);}
       const amount=document.createElement('div');amount.className='coin-amount';amount.textContent='◈ '+pack.coins.toLocaleString();
       const note=document.createElement('p');note.textContent='Arcade Coins';
+      const value=document.createElement('p');value.className='coin-pack-value';
+      const lift=baseRate?Math.round((rate/baseRate-1)*100):0;
+      value.textContent=lift>0?lift+'% more coins per $ than the smallest pack':Math.round(rate*100).toLocaleString()+' coins per $1';
       const button=document.createElement('button');button.type='button';button.textContent=available?'$'+(pack.priceCents/100).toFixed(2)+' · Buy':'$'+(pack.priceCents/100).toFixed(2)+' · Soon';
       button.disabled=!available||busy;button.setAttribute('aria-label',`Buy ${pack.coins} Arcade Coins for $${(pack.priceCents/100).toFixed(2)}`);
       button.addEventListener('click',async()=>{
@@ -41,7 +49,7 @@
           location.assign(url.href);
         } catch(error){if(error.code==='CHECKOUT_EXPIRED')pending.delete(pack.id);message(error.message,true);busy=false;render(packs);}
       });
-      card.append(amount,note,button);$('coin-packs').append(card);
+      card.append(amount,note,value,button);$('coin-packs').append(card);
     }
   }
   async function refreshAccount() {
