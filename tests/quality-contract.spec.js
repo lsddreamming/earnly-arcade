@@ -350,3 +350,20 @@ test('Snake keeps most apples inside, occasionally uses the wall row, and draws 
     expect(source).toContain('snakeY >= canvas.height');
   }
 });
+
+
+test('Character Studio visual polish keeps mobile shop rails compact and purchase-safe', () => {
+  const css = read('shopfront.css');
+  const html = read('avatars.html');
+
+  expect(html).toContain('shopfront.css?v=2');
+  expect(css).toContain('Arcade Studio v2: de-box the page');
+  expect(css).toContain('.coin-packs{display:flex;overflow-x:auto');
+  expect(css).toContain('.shop-tabs{');
+  expect(css).toContain('overflow-x:auto');
+  expect(css).toContain('.showcase.panel{position:relative;border:0;background:transparent');
+  expect(css).toContain('.shop.panel{border:0;background:transparent');
+  expect(css).toContain('.leaderboard.panel{margin-top:34px;padding:26px 0 8px;border:0');
+  expect(css).toContain('padding-bottom:calc(130px + env(safe-area-inset-bottom))');
+  expect(css).not.toContain('position:fixed;bottom:0;left:0;right:0;z-index:9999');
+});
