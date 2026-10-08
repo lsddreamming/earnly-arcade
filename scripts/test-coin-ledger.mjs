@@ -3,10 +3,18 @@ import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict
 const root=new URL('../',import.meta.url);
 const db=new PGlite();await db.exec(await readFile(new URL('tests/commerce-fixture.sql',root),'utf8'));
 await db.exec('CREATE ROLE service_role BYPASSRLS; CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,source_type text,game text);');
-for(const name of ['20261007152428_avatar_studio.sql','20261007162312_mascot_accessory_slots.sql','20261007183740_avatar_atelier.sql','20261007183756_website_coin_checkout.sql'])await db.exec(await readFile(new URL('supabase/migrations/'+name,root),'utf8'));
+for(const name of ['20261007152428_avatar_studio.sql','20261007162312_mascot_accessory_slots.sql','20261007183740_avatar_atelier.sql','20261007183756_website_coin_checkout.sql','20261008154100_potato_personality.sql'])await db.exec(await readFile(new URL('supabase/migrations/'+name,root),'utf8'));
 const uid='00000000-0000-4000-8000-000000000001';let i=0;const key=()=>`11111111-1111-4111-8111-${String(++i).padStart(12,'0')}`;
 const data=async(sql,args)=> (await db.query(sql,args)).rows[0].data;
-let user=(await data('select cosmetic_me($1) as data',[uid])).user;assert.equal(Object.keys(user.equipped).length,8);assert.equal(user.inventory.length,18);
+let user=(await data('select cosmetic_me($1) as data',[uid])).user;assert.equal(Object.keys(user.equipped).length,14);assert.equal(user.inventory.length,56);
+const originalCoins=user.coins;
+for(const id of ['eyes-lashes','brows-curious','nose-tiny','mouth-rose','hair-ponytail','marks-freckles']){
+ user=(await data('select cosmetic_equip($1,$2) as data',[uid,id])).user;
+ assert.equal(user.coins,originalCoins);
+}
+user=(await data('select cosmetic_me($1) as data',[uid])).user;
+for(const [slot,id] of Object.entries({eyes:'eyes-lashes',brows:'brows-curious',nose:'nose-tiny',mouth:'mouth-rose',hair:'hair-ponytail',marks:'marks-freckles'}))assert.equal(user.equipped[slot].id,id);
+await assert.rejects(db.query('select cosmetic_equip($1,$2)',[uid,'eyes-galaxy']),/ITEM_NOT_OWNED/);
 const request=key();let order=await data('select coin_order_create($1,$2,$3) as data',[uid,'starter',request]);assert.equal(order.coins,500);assert.equal(order.amount_cents,199);
 assert.equal((await data('select coin_order_create($1,$2,$3) as data',[uid,'starter',request])).id,order.id);
 await assert.rejects(db.query('select coin_order_create($1,$2,$3)',[uid,'vault',request]),/REQUEST_REUSED/);
@@ -20,4 +28,9 @@ let plays=await data('select coin_play_action($1,$2,$3,$4) as data',[uid,'snake'
 await assert.rejects(db.query('select coin_play_action($1,$2,$3,$4)',[uid,'memory',request,'buy']),/REQUEST_REUSED/);
 for(let j=0;j<3;j++)await data('select coin_play_action($1,$2,$3,$4) as data',[uid,'snake',key(),'consume']);await assert.rejects(db.query('select coin_play_action($1,$2,$3,$4)',[uid,'snake',key(),'consume']),/NO_PLAYS/);
 for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(db.query('select coin_order_create($1,$2,$3)',[uid,'starter',key()]),/permission denied/);await assert.rejects(db.query('select * from coin_orders'),/permission denied/);await db.exec('RESET ROLE');}
-console.log('PASS: 8 slots, 18 free items, order prices/retries, live-only minting, refunds/debt, plays, RLS.');await db.close();
+const galaxyRequest=key();
+const beforeGalaxy=(await data('select cosmetic_me($1) as data',[uid])).user;
+const galaxy=(await data('select cosmetic_buy($1,$2,$3) as data',[uid,'eyes-galaxy',galaxyRequest])).user;
+assert.equal(BigInt(galaxy.coins),BigInt(beforeGalaxy.coins)-500n);assert.equal(galaxy.equipped.hair.id,'hair-ponytail');assert.equal(galaxy.equipped.eyes.id,'eyes-galaxy');
+assert.equal((await data('select cosmetic_buy($1,$2,$3) as data',[uid,'eyes-galaxy',galaxyRequest])).user.coins,galaxy.coins);
+console.log('PASS: 14 slots, 56 free items, independent facial saves, paid-eye ownership/retries, order prices/retries, live-only minting, refunds/debt, plays, RLS.');await db.close();
