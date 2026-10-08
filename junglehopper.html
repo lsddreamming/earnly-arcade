@@ -13,10 +13,13 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Jungle Hopper - Tap to Fly Game | Earnly Arcade</title>
-  <meta name="description" content="Guide a hopping character through vine gaps with a rhythm of short taps.">
+  <meta name="description" content="Hop through a glowing jungle and chase risky gold coins near the vines. Take the safe gap or push your luck.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
+    body.junglehopper-page{background:radial-gradient(ellipse at 50% 15%,#124b403d,transparent 65%),#080f1b}
+    .jungle-run-strip{display:flex;justify-content:space-between;gap:8px;width:min(88vw,360px);margin:2px auto;color:#98d9bd;font-size:11px;font-weight:700;letter-spacing:.3px}
+    #goldPreview{color:#ffda77}
     .jungle-board{
       width:min(88vw,360px);
       height:auto;
@@ -87,8 +90,8 @@
       body.junglehopper-page.game-active #startButton{display:none!important}
       body.junglehopper-page.game-active .page-header{margin-bottom:3px!important}
       body.junglehopper-page.game-active .jungle-board{
-        width:min(82vw,320px)!important;
-        max-height:68vh!important;
+        width:min(82vw,320px,calc((100svh - 250px) * .642857))!important;
+        max-height:none!important;
         margin-top:3px!important;
         border-color:rgba(74,222,128,.50)!important;
         box-shadow:
@@ -122,6 +125,7 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Jungle to Start</button>
 
+    <div class="jungle-run-strip"><span id="jungleZone">EMERALD CANOPY</span><span id="goldPreview">Gold +0</span></div>
     <canvas class="jungle-board touch-surface" id="game" width="360" height="560" aria-label="Jungle Hopper game board"></canvas>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
 
@@ -157,13 +161,14 @@
       ],
       overlayIcon:'👆',
       overlayTitle:'Tap to Start',
-      overlayText:'Keep tapping to hop upward and time each vine gap',
+      overlayText:'Tap to hop · gold near the vines is optional',
       replayTitle:'Tap to Play Again',
       tips:[
         'Each tap gives the frog an upward hop. Gravity pulls it back down.',
+        'Gold coins near gap edges add bonus Coins. Chasing them leaves less room to recover.',
         'Touching a vine, the top, or the ground ends the run.'
       ],
-      reward:'Longer runs and milestones can earn up to 25 Coins.'
+      reward:'Vines + collected gold earn up to 25 Arcade Coins per run.'
     });
 
     const frog = { x: 82, y: 270, r: 15, vy: 0 };
@@ -190,13 +195,18 @@
     let animation = null;
     let frame = 0;
     let lastHopAt = 0;
+    let bonusCoins = 0, coinsCollected = 0, spawned = 0;
+    let particles = [], popups = [];
+    let lastFrameAt = null, accumulator = 0;
+    const STEP_MS = 1000 / 60;
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function rewardFor(value) {
       let coins = Math.floor(value / 2);
       if (value >= 10) coins += 2;
       if (value >= 20) coins += 3;
       if (value >= 30) coins += 5;
-      return Math.min(coins, MAX_COINS);
+      return Math.min(coins + bonusCoins, MAX_COINS);
     }
 
     function refreshChrome() {
@@ -214,8 +224,17 @@
     function spawnObstacle(x = canvas.width + 25) {
       const margin = 76;
       const { gapSize } = difficultyFor(score);
-      const gapY = margin + gapSize / 2 + Math.random() * (canvas.height - margin * 2 - gapSize);
-      obstacles.push({ x, gapY, gapSize, scored: false });
+      let gapY = margin + gapSize / 2 + Math.random() * (canvas.height - margin * 2 - gapSize);
+      const previous = obstacles[obstacles.length - 1];
+      // Limit abrupt vertical jumps at higher speed; risk comes from optional gold.
+      if (previous) gapY = Math.max(previous.gapY - 100, Math.min(previous.gapY + 100, gapY));
+      const index = ++spawned;
+      const side = index % 4 === 2 ? -1 : 1;
+      const gold = index % 2 === 0 ? {
+        y:gapY + side * (gapSize / 2 - frog.r - 14),
+        value:index % 6 === 0 ? 2 : 1, taken:false
+      } : null;
+      obstacles.push({ x, gapY, gapSize, scored:false, gold });
     }
 
     function resetGame() {
@@ -231,6 +250,11 @@
       score = 0;
       frame = 0;
       lastHopAt = 0;
+      bonusCoins = 0; coinsCollected = 0; spawned = 0;
+      particles = []; popups = [];
+      lastFrameAt = null; accumulator = 0;
+      document.getElementById('goldPreview').textContent = 'Gold +0';
+      document.getElementById('jungleZone').textContent = 'EMERALD CANOPY';
       scoreEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
       speedPreviewEl.textContent = '1.0';
@@ -239,54 +263,101 @@
       spawnObstacle(canvas.width + 85 + 420);
     }
 
+    function ellipse(x,y,rx,ry,color,rotation=0) {
+      ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,rotation,0,Math.PI*2);ctx.fill();
+    }
     function drawJungle() {
       const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      sky.addColorStop(0, '#0b3b32');
-      sky.addColorStop(.58, '#146b3a');
-      sky.addColorStop(1, '#06331d');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = 'rgba(34,197,94,.14)';
-      for (let i = 0; i < 8; i++) {
-        const x = (i * 57 + frame * .25) % (canvas.width + 80) - 40;
-        ctx.beginPath();
-        ctx.arc(x, 72 + (i % 3) * 110, 42, 0, Math.PI * 2);
-        ctx.fill();
+      sky.addColorStop(0, '#061e30');sky.addColorStop(.48, '#155953');sky.addColorStop(1, '#062d28');
+      ctx.fillStyle=sky;ctx.fillRect(0,0,360,560);
+      const sun=ctx.createRadialGradient(265,112,4,265,112,160);
+      sun.addColorStop(0,'#c7ffbd55');sun.addColorStop(1,'#72edbc00');
+      ctx.fillStyle=sun;ctx.fillRect(80,0,280,320);
+      ellipse(265,112,28,28,'#ccfbd033');
+      // Two distant canopy layers, temple stones, and drifting fireflies.
+      for(let layer=0;layer<2;layer++) {
+        for(let i=0;i<7;i++) {
+          const x=((i*83-frame*(layer+1)*.12)%580+580)%580-90;
+          const y=165+(i%3)*51+layer*110;
+          ctx.fillStyle=layer?'#0a3435':'#154445';ctx.fillRect(x,y,13,560-y);
+          ellipse(x+4,y,55,45,layer?'#0b3c39':'#20574e');
+          ellipse(x-18,y+24,38,24,layer?'#0b3c39':'#20574e');
+        }
       }
-
-      ctx.fillStyle = '#064e3b';
-      ctx.fillRect(0, canvas.height - 28, canvas.width, 28);
+      ctx.fillStyle='#26584d';
+      for(let i=0;i<3;i++) {
+        const x=((i*164-frame*.19)%520+520)%520-80;
+        ctx.fillRect(x,424,52,108);ctx.fillRect(x-7,419,66,9);
+        ctx.fillStyle='#367365';ctx.fillRect(x+7,432,5,70);ctx.fillStyle='#26584d';
+      }
+      if(!reducedMotion) for(let i=0;i<16;i++) {
+        const x=((i*47-frame*.3)%380+380)%380;
+        const y=70+(i*71)%435+Math.sin(frame*.017+i)*8;
+        ellipse(x,y,1.5,1.5,'#dcffad'+(Math.sin(frame*.04+i)>0?'ab':'44'));
+      }
+      const ground=ctx.createLinearGradient(0,531,0,560);
+      ground.addColorStop(0,'#79b85b');ground.addColorStop(.13,'#284f32');ground.addColorStop(1,'#14251f');
+      ctx.fillStyle=ground;ctx.fillRect(0,532,360,28);
+      for(let i=0;i<24;i++) ellipse(((i*21-frame*1.3)%400+400)%400-20,535,10,3,'#8ac76e');
+      // Hanging foreground leaves stay above the flight corridor.
+      for(let i=0;i<10;i++) ellipse(i*41,8+(i%3)*6,30,13,'#113e30',i%2?.6:-.6);
     }
 
     function drawVinePart(x, y, h, fromTop) {
-      ctx.fillStyle = '#145f32';
-      ctx.fillRect(x + 17, y, obstacleWidth - 34, h);
-
-      ctx.strokeStyle = '#39e67a';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.moveTo(x + obstacleWidth / 2, y);
-      ctx.lineTo(x + obstacleWidth / 2, y + h);
-      ctx.stroke();
-
-      ctx.fillStyle = '#74f0a1';
-      const leafY = fromTop ? y + h - 14 : y + 14;
-      for (let i = 0; i < 4; i++) {
-        ctx.beginPath();
-        ctx.ellipse(
-          x + 10 + i * 13,
-          leafY + (i % 2 ? 7 : -5),
-          10,
-          5,
-          (i % 2 ? -.5 : .5),
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
+      if(h<=0)return;
+      ctx.save();
+      const wood=ctx.createLinearGradient(x,0,x+obstacleWidth,0);
+      wood.addColorStop(0,'#12392b');wood.addColorStop(.2,'#386a3c');
+      wood.addColorStop(.5,'#234c2c');wood.addColorStop(.85,'#4b7942');wood.addColorStop(1,'#122e25');
+      ctx.fillStyle=wood;ctx.fillRect(x,y,obstacleWidth,h);
+      ctx.strokeStyle='#a0db7855';ctx.lineWidth=2;
+      for(let strand=0;strand<3;strand++) {
+        ctx.beginPath();ctx.moveTo(x+8+strand*19,y);
+        for(let py=0;py<h;py+=8)ctx.lineTo(x+8+strand*19+Math.sin(py*.045+strand)*4,y+py);
+        ctx.stroke();
       }
+      // The whole collidable width has a visible edge and moss cap.
+      const edgeY=fromTop?y+h-6:y;
+      ctx.fillStyle='#87bd62';ctx.fillRect(x,edgeY,obstacleWidth,6);
+      ctx.fillStyle='#dcf1a3';ctx.fillRect(x,fromTop?y+h-2:y,obstacleWidth,2);
+      for(let i=0;i<5;i++)ellipse(x+6+i*11,edgeY+3,8,4,i%2?'#598f46':'#a6cb6c',i%2?.35:-.35);
+      for(let py=24;py<h-16;py+=38) {
+        ellipse(x+7,y+py,11,5,'#4d985a',-.7);
+        ellipse(x+obstacleWidth-7,y+py+15,11,5,'#397950',.7);
+      }
+      ctx.restore();
     }
 
+    function drawGold(o) {
+      if(!o.gold||o.gold.taken)return;
+      const x=o.x+obstacleWidth/2,y=o.gold.y;
+      const pulse=reducedMotion?1:1+Math.sin(frame*.075)*.12;
+      ctx.save();
+      ctx.shadowColor='#ffc64e';ctx.shadowBlur=17;
+      ellipse(x,y,13*pulse,13*pulse,'#ffdb6c22');
+      ellipse(x,y,10,11,'#f6af30');ctx.shadowBlur=0;
+      ellipse(x-1,y-1,7.5,8.5,'#ffe69a');
+      ctx.strokeStyle='#ba742b';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,6.5,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='#8b4b21';ctx.font='bold 11px Arial';ctx.textAlign='center';
+      ctx.fillText(o.gold.value===2?'2':'1',x,y+4);
+      ctx.fillStyle='#fff4bf';ctx.fillRect(x-5,y-6,3,2);
+      ctx.restore();
+    }
+
+    function collectGold(o) {
+      if(!o.gold||o.gold.taken||rewardFor(score)>=MAX_COINS)return;
+      const x=o.x+obstacleWidth/2,y=o.gold.y;
+      // A deliberate line is required; the safe middle misses the gold.
+      if(Math.hypot(frog.x-x,frog.y-y)>frog.r+5)return;
+      o.gold.taken=true;coinsCollected++;
+      const gained=Math.min(o.gold.value,MAX_COINS-rewardFor(score));
+      bonusCoins+=gained;
+      rewardPreviewEl.textContent=rewardFor(score);
+      document.getElementById('goldPreview').textContent='Gold +'+bonusCoins;
+      Arcade.feedback('score');
+      popups.push({x,y,text:'+'+gained+' GOLD',life:45});
+      if(!reducedMotion)for(let i=0;i<9;i++)particles.push({x,y,vx:Math.cos(i*.7)*2.3,vy:Math.sin(i*.7)*2.3,life:24});
+    }
     function drawObstacle(o) {
       const topH = Math.max(0, o.gapY - o.gapSize / 2);
       const bottomY = o.gapY + o.gapSize / 2;
@@ -300,13 +371,17 @@
       ctx.rotate(Math.max(-.35, Math.min(.55, frog.vy * .045)));
 
       ctx.shadowColor = '#39ff88';
-      ctx.shadowBlur = 14;
-      ctx.fillStyle = '#35e77c';
+      ctx.shadowBlur = 9;
+      const skin=ctx.createLinearGradient(0,-17,0,18);
+      skin.addColorStop(0,'#c0ef72');skin.addColorStop(.45,'#62c56e');skin.addColorStop(1,'#228764');
+      ctx.fillStyle = skin;
       ctx.beginPath();
       ctx.ellipse(0, 1, 18, 15, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#4ade80';
+      ellipse(3,7,11,7,'#d4efa0');
+      ellipse(-13,1,3,2,'#218b64');
+      ctx.fillStyle = '#a5df70';
       ctx.beginPath();
       ctx.arc(-9, -11, 8, 0, Math.PI * 2);
       ctx.arc(9, -11, 8, 0, Math.PI * 2);
@@ -334,13 +409,19 @@
       ctx.stroke();
 
       ctx.shadowBlur = 0;
+      ctx.strokeStyle='#235442';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(3,2,6,.1,2.4);ctx.stroke();
+      ellipse(13,1,3,2,'#f7b678');
       ctx.restore();
     }
 
     function draw() {
       drawJungle();
       obstacles.forEach(drawObstacle);
+      if(rewardFor(score)<MAX_COINS)obstacles.forEach(drawGold);
       drawFrog();
+      for(const p of particles){ctx.globalAlpha=p.life/24;ellipse(p.x,p.y,2,2,'#ffe89a');}
+      for(const p of popups){ctx.globalAlpha=p.life/45;ctx.fillStyle='#ffe6a0';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y);}
+      ctx.globalAlpha=1;
 
       if (!running) {
         ctx.fillStyle = 'rgba(15,23,42,.55)';
@@ -348,7 +429,8 @@
         ctx.fillStyle = '#fff';
         ctx.font = '700 21px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Tap to hop through the vines', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('One more hop.', canvas.width / 2, canvas.height / 2);
+        ctx.font='13px Arial';ctx.fillStyle='#ffdfa0';ctx.fillText('Chase the gold. Watch the vines.',180,canvas.height/2+26);
       }
     }
 
@@ -370,10 +452,12 @@
       frog.vy = hopPower;
     }
 
-    function loop() {
-      if (!running) return;
-
+    function stepGame() {
+      if (!running || pauseStartedAt) return;
       frame += 1;
+      for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=.07;p.life--;}
+      for(const p of popups){p.y-=.65;p.life--;}
+      particles=particles.filter(p=>p.life>0);popups=popups.filter(p=>p.life>0);
       frog.vy += gravity;
       frog.y += frog.vy;
 
@@ -388,6 +472,7 @@
           rewardPreviewEl.textContent = rewardFor(score);
           const difficulty=difficultyFor(score);
           speedPreviewEl.textContent=(difficulty.speed/BASE_SPEED).toFixed(1);
+          document.getElementById('jungleZone').textContent=score>=30?'LOST TEMPLE':score>=20?'WILD RAPIDS':score>=10?'DEEP JUNGLE':'EMERALD CANOPY';
           if(score===10 || score===20 || score===30){
             Arcade.feedback('score',{message:'🐸 Faster vines · '+speedPreviewEl.textContent+'x speed'});
           }
@@ -407,6 +492,7 @@
           finishGame();
           return;
         }
+        collectGold(o);
       }
 
       obstacles = obstacles.filter(o => o.x + obstacleWidth > -20);
@@ -419,8 +505,17 @@
         return;
       }
 
+    }
+
+    function loop(timestamp) {
+      if(!running || pauseStartedAt)return;
+      if(lastFrameAt===null)lastFrameAt=timestamp;
+      accumulator+=Math.min(50,Math.max(0,timestamp-lastFrameAt));
+      lastFrameAt=timestamp;
+      while(accumulator+1e-6>=STEP_MS && running){accumulator-=STEP_MS;stepGame();}
+      if(!running)return;
       draw();
-      animation = requestAnimationFrame(loop);
+      animation=requestAnimationFrame(loop);
     }
 
     function finishGame() {
@@ -431,7 +526,7 @@
       animation = null;
 
       const earned = rewardFor(score);
-      Arcade.earn(earned, 'Jungle Hopper', { kind:'game', game:'jungleHopper', metric:score });
+      Arcade.earn(earned, 'Jungle Hopper', { kind:'game', game:'jungleHopper', metric:score, aux:bonusCoins });
       Arcade.feedback('fail');
       const result = Arcade.recordResult('jungleHopper', score);
 
@@ -455,7 +550,7 @@
         result,
         playsLeft:Arcade.remaining('jungleHopper'),
         game:'jungleHopper',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
+        extra:['🪙 Gold collected: '+coinsCollected+' · Bonus: +'+bonusCoins+' Coins (25 total max)', '⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🌿 Deep-jungle run!':score>=10?'🐸 Jungle Pro territory.':'Time the hops and find the rhythm.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('jungleHopper',refreshChrome)
       });
@@ -555,6 +650,7 @@
         if(!running||!pauseStartedAt)return;
         totalPausedMs+=performance.now()-pauseStartedAt;
         pauseStartedAt=0;
+        lastFrameAt=null; accumulator=0;
         cancelAnimationFrame(animation);
         animation=null;
         animation=requestAnimationFrame(loop);
