@@ -166,3 +166,20 @@ test('Lookbook continue browsing opens the collection with a keyboard destinatio
  await expect(page.locator('#shop-search')).toBeFocused();
  await expect(page.locator('#shop-title')).toBeInViewport();
 });
+
+test('Coin comparisons follow current prices and the collection stays one tap away',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ const f=await setup(page);
+ await expect(page.locator('.pack-rate')).toHaveText(['$0.40 per 100 coins','$0.33 per 100 coins','$0.25 per 100 coins']);
+ await expect(page.locator('.coin-pack.best-value h3')).toHaveText('Arcade vault');
+ await page.locator('#coin-shop').scrollIntoViewIfNeeded();
+ await page.screenshot({path:test.info().outputPath('shop-wallet.png')});
+ await page.getByRole('link',{name:'Explore what you can unlock'}).click();
+ await expect(page.locator('#shop-title')).toBeInViewport();
+ await page.screenshot({path:test.info().outputPath('shop-collection.png')});
+ expect(f.writes).toHaveLength(0);
+ await page.route('**/coin-shop/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({available:false,packs:[{id:'starter',coins:500,priceCents:99},{id:'vault',coins:4000,priceCents:999}]})}));
+ await page.reload();
+ await expect(page.locator('.coin-pack.best-value h3')).toHaveText('Starter stash');
+ await expect(page.locator('.pack-rate').first()).toHaveText('$0.20 per 100 coins');
+});

@@ -140,6 +140,8 @@
         equipped = state.user?.equipped[item.slot]?.id === item.id;
       const card = el("article", "item-card " + item.rarity),
         art = el("div", "item-art");
+      card.classList.toggle("is-equipped", !!equipped);
+      card.classList.toggle("is-owned", !!owned);
       art.dataset.slot = item.slot;
       art.append(
         character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item }),

@@ -116,8 +116,21 @@ async function boxFixture(page){
 }
 async function pointer(page,type,x,y,extra={}){await page.locator('#battle').dispatchEvent(type,{pointerId:91,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:x,clientY:y,isPrimary:true,...extra});}
 async function touchBox(page,start,end,{double=false,cancel=false}={}){
- await page.evaluate(()=>{const c=document.getElementById('battle'),capture=c.setPointerCapture;c.setPointerCapture=function(id){try{capture.call(this,id)}catch{}}});const b=await page.locator('#battle').boundingBox(),a={x:b.x+start.x,y:b.y+start.y},z={x:b.x+end.x,y:b.y+end.y};if(double){await pointer(page,'pointerdown',a.x,a.y);await pointer(page,'pointerup',a.x,a.y)}await pointer(page,'pointerdown',a.x,a.y);await pointer(page,'pointermove',z.x,z.y);if(cancel)await pointer(page,'pointercancel',z.x,z.y);else await pointer(page,'pointerup',z.x,z.y);
+ // Deliver a synthetic gesture in one browser task. Separate protocol round trips
+ // can exceed the real 280ms double-tap window on a busy WebKit runner.
+ await page.locator('#battle').evaluate((canvas,{start,end,double,cancel})=>{
+  const capture=canvas.setPointerCapture;
+  canvas.setPointerCapture=function(id){try{capture.call(this,id)}catch{}};
+  try{
+   const b=canvas.getBoundingClientRect();
+   const send=(type,p)=>canvas.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:91,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:b.x+p.x,clientY:b.y+p.y,isPrimary:true}));
+   if(double){send('pointerdown',start);send('pointerup',start)}
+   send('pointerdown',start);send('pointermove',end);
+   send(cancel?'pointercancel':'pointerup',end);
+  }finally{canvas.setPointerCapture=capture}
+ },{start,end,double,cancel});
 }
+
 test('yellow boxes select owned fighters, support additive groups, miners and cancellation',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));const f=await boxFixture(page);
  // Use screen bounds around the projected unit centers, rather than world-axis corners.
