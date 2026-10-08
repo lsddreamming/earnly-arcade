@@ -166,8 +166,9 @@
       button.addEventListener("click", () => chooseItem(item));
       const preview = el("button", "preview-item", "Try on");
       preview.type = "button";
+      preview.dataset.previewItemId = item.id;
       preview.setAttribute("aria-label", "Preview " + item.name);
-      preview.addEventListener("click", () => { state.preview[item.slot] = item; renderUser(); showPreview(); });
+      preview.addEventListener("click", () => { state.preview[item.slot] = item; renderUser(); showPreview(item.id); });
       card.append(
         art,
         el("h3", "", item.name),
@@ -244,7 +245,10 @@
     {name:"Aurora Vanguard",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
     {name:"Solar Royalty",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},
   ];
-  function showPreview() {
+  let previewSourceId = null;
+  function showPreview(itemId = null) {
+    previewSourceId = itemId;
+    $("back-to-collection").hidden = false;
     $("character-stage").dataset.focus = "full";
     for (const option of document.querySelectorAll(".focus-controls [data-focus]"))
       option.setAttribute("aria-pressed", String(option.dataset.focus === "full"));
@@ -443,6 +447,13 @@
     for(const option of document.querySelectorAll("[data-focus]")) option.setAttribute("aria-pressed",String(option===button));
   });
   $("free-only").addEventListener("change", (event) => { state.freeOnly = event.target.checked; renderShop(); });
+  $("back-to-collection").addEventListener("click", () => {
+    const target = Array.from(document.querySelectorAll("[data-preview-item-id]"))
+      .find(button => button.dataset.previewItemId === previewSourceId);
+    const destination = target?.closest(".item-card") || $("collection");
+    destination.scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    (target || $("shop-search")).focus({preventScroll: true});
+  });
   $("reset-preview").addEventListener("click", () => { state.preview = {}; renderUser(); });
   for (const button of document.querySelectorAll("[data-slot]"))
     button.addEventListener("click", () => {
