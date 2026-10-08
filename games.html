@@ -116,7 +116,7 @@
     </div>
     <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,#surpriseGame{display:none!important}</style></noscript>
     <div id="games" class="game-list compact-catalog-grid">
-      <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Build robot armies · free strategy beta</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play · Free beta</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><span class="game-new-bubble">NEW GAME</span><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Build robot armies · free strategy beta</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play · Free beta</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonBreach"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Neon Breach</h2></div></div><p class="reward-rule">First-person blaster · survive robot waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonbreach.html" aria-label="Play Neon Breach">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="snake"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🐍</span><h2>Snake</h2></div></div><p class="reward-rule">Grow the snake · max 30 coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="snake.html" aria-label="Play Snake">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="blockDrop"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🧱</span><h2>Block Drop</h2></div></div><p class="reward-rule">Clear lines · speeds up · deep runs earn bonus XP</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="blockdrop.html" aria-label="Play Block Drop">Play</a></div></section>
@@ -326,6 +326,12 @@
         const card = document.createElement('section');
         card.className = 'card game-card compact-game catalog-tile';
         card.dataset.game = info.key;
+        if (info.key === 'crystalCommand') {
+          const newBubble = document.createElement('span');
+          newBubble.className = 'game-new-bubble';
+          newBubble.textContent = 'NEW GAME';
+          card.append(newBubble);
+        }
         if (recommendedKeys.has(info.key)) card.classList.add('recommended-game');
 
         const heading = document.createElement('div');

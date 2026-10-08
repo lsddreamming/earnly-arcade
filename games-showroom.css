@@ -64,3 +64,10 @@ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-card-footer
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-name-wrap h2{text-align:left!important}
  body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.no-best a.game-play-button:not(:disabled),body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.has-best a.game-play-button:not(:disabled){color:#091928!important;text-shadow:none!important}
 }
+
+/* Raised announcement bubble keeps Crystal Command easy to spot. */
+body.games-dashboard #games.compact-catalog-grid{padding-top:14px;row-gap:26px!important}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystalCommand]{overflow:visible!important;border-color:#72efcc88!important}
+body.games-dashboard #games .catalog-tile[data-game=crystalCommand]:before{right:12px}
+body.games-dashboard #games .game-new-bubble{position:absolute;top:-14px;left:14px;z-index:3;display:block;padding:5px 12px;border:1px solid #defff3;border-radius:999px;background:linear-gradient(110deg,#b7ff7a,#72efcc);color:#08271f;font-size:10px;font-weight:900;line-height:16px;letter-spacing:1px;white-space:nowrap;box-shadow:0 0 18px #72efcc55,0 3px 8px #0005;pointer-events:none}
+body.games-dashboard #games .game-new-bubble:after{content:"";position:absolute;left:16px;bottom:-5px;width:8px;height:8px;background:#a4fb91;transform:rotate(45deg);border-radius:0 0 2px 0}
