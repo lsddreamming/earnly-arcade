@@ -1,0 +1,70 @@
+/* Final responsive layout for the open Character Studio storefront. */
+/* Decorative lighting stays inside its section; no page-width clipping needed. */
+body{overflow-x:visible}
+#signature-looks:before{left:18%;right:0}
+.showcase.panel:before{left:0;right:0}
+.coin-pack:after,.item-card:before{pointer-events:none}
+.header{position:relative;top:auto}
+/* Retain the glass treatment without pinning a two-row header over products. */
+#coin-shop[hidden],#extra-plays[hidden],#get-coins-link[hidden],#coin-shop-shortcut[hidden]{display:none!important}
+.studio-layout>*{min-width:0}
+#extra-plays{grid-template-columns:minmax(0,1fr) auto}
+#extra-plays h3{grid-column:1/-1}
+#extra-plays label{grid-column:1/-1}
+#extra-plays select{grid-column:1;min-width:0;width:100%;margin:0}
+#extra-plays button{grid-column:2;align-self:stretch}
+#play-status{grid-column:1/-1;margin:0}
+.coin-packs{scrollbar-width:thin;scrollbar-color:#8298b8 #112037}
+.coin-packs::-webkit-scrollbar{display:block;height:4px}
+.coin-packs::-webkit-scrollbar-thumb{background:#8298b8;border-radius:8px}
+.shop-tabs{scrollbar-width:thin;scrollbar-color:#52788e transparent}
+.shop-tabs::-webkit-scrollbar{display:block;height:3px}
+.shop-tabs::-webkit-scrollbar-thumb{background:#52788e;border-radius:8px}
+.shop-tabs button,.look-card button,.item-card button,.focus-controls button{min-height:44px!important}
+.shop-filters .free-filter,.shop-toolbar .free-filter{min-height:44px}
+input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;flex:none}
+#shop-search,#email,#password{font-size:16px}
+.item-card{display:flex;flex-direction:column}
+.item-card .item-art{flex:none}
+.item-card .preview-item{margin-top:auto}
+.item-card button.buy:disabled{box-shadow:none}
+#featured-looks .look-copy{overflow-wrap:break-word}
+/* Do not attach hover movement to a finger resting on a product card. */
+@media(hover:none),(pointer:coarse){
+ #featured-looks .look-card:hover,.item-card:hover,.coin-pack:hover,#featured-looks button:hover:not(:disabled){transform:none}
+}
+@media(max-width:680px){
+ .header{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:12px}
+ .page-title{display:block;min-height:0;padding:12px 0 16px;margin:4px 0 12px}
+ .page-title h1{font-size:36px!important;letter-spacing:-1.5px;line-height:1.05}
+ .page-title>p{display:none}
+ .page-title .eyebrow{margin-bottom:8px}
+ .studio-shortcuts{margin:10px 0 22px;gap:7px}
+ .studio-shortcuts a{font-size:11px;min-height:44px}
+ #signature-looks h2{font-size:26px;letter-spacing:-.8px}
+ #signature-looks:before{left:10%;right:0}
+ .showcase.panel:before{left:0;right:0}
+ #featured-looks .look-card{grid-template-columns:110px minmax(0,1fr);gap:10px;padding:14px}
+ #featured-looks .look-art{height:220px}
+ #featured-looks .look-edition{font-size:9px}
+ #featured-looks .look-detail{font-size:11px;line-height:1.5}
+ #featured-looks .look-description{font-size:12px}
+ .coin-shop h2{font-size:27px;line-height:1.1}
+ .coin-pack{flex-basis:78vw;max-width:290px;min-height:162px}
+ #extra-plays{grid-template-columns:minmax(0,1fr) auto;gap:8px 10px}
+ #extra-plays h3{font-size:17px}
+ #extra-plays button{width:auto;font-size:12px;padding:10px 12px}
+ #extra-plays select{font-size:16px;padding:10px}
+ .shop-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+ .shop-toolbar>*{min-width:0}
+ .shop-toolbar select{max-width:100%}
+ .shop .collection-note{margin-bottom:12px}
+}
+@media(max-width:360px){
+ .page-title h1{font-size:32px!important}
+ #featured-looks .look-card{grid-template-columns:88px minmax(0,1fr);gap:9px;padding:12px}
+ #featured-looks .look-art{height:210px}
+ #featured-looks h3{font-size:17px}
+ #featured-looks .look-detail{font-size:10px}
+ .shop-toolbar{grid-template-columns:minmax(0,1fr)!important}
+}

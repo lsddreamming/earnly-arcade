@@ -103,11 +103,42 @@ test('Signing out clears preview totals and comparison state',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();await page.locator('#compare-look').click();await page.locator('#auth-button').click();
  await expect(page.locator('#nav-name')).toHaveText('Guest');await expect(page.locator('#tryon-summary')).toBeHidden();await expect(page.locator('#compare-look')).toBeHidden();
 });
-test('Phone lookbook stays contained at 320, 390 and 440 pixels with motion reduced',async({page})=>{
+test('Lookbook stays contained at seven phone, tablet and desktop widths with motion reduced',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});await setup(page);
- for(const width of [320,390,440]){
-  await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+ for(const width of [320,390,440,680,768,1024,1280]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page overflow at ${width}px`).toBeTruthy();
   const targets=await page.locator('.shop-tabs button,.look-card button').evaluateAll(bs=>bs.map(b=>b.getBoundingClientRect().height));for(const height of targets)expect(height).toBeGreaterThanOrEqual(44);
  }
  await expect(page.locator('#coin-packs button')).toHaveCount(3);for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
+});
+test('Shop styling preserves hidden extra-play controls for guests and after sign-out',async({page})=>{
+ const f=await setup(page);
+ await expect(page.locator('#extra-plays')).toBeVisible();
+ await page.locator('#auth-button').click();
+ await expect(page.locator('#nav-name')).toHaveText('Guest');
+ await expect(page.locator('#extra-plays')).toBeHidden();
+ await expect(page.locator('#buy-plays')).toBeHidden();
+ expect(f.writes).toHaveLength(0);
+});
+test('Narrow category rail reaches the last category and returns without spending coins',async({page})=>{
+ await page.setViewportSize({width:320,height:844});
+ const f=await setup(page);
+ await page.getByRole('button',{name:'Weapons',exact:true}).click();
+ await expect(page.locator('.item-card h3')).toHaveText(['Training Blaster','Orb Scepter','Solar Cannon']);
+ await page.getByRole('button',{name:'Avatars',exact:true}).click();
+ await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter','Neon Phantom','Astra Prime']);
+ await expect(page.locator('#coin-balance')).toHaveText('1,250');
+ expect(f.writes).toHaveLength(0);
+});
+test('Phone coin rail reveals its last pack without decorative layers blocking buttons',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.emulateMedia({reducedMotion:'reduce'});const f=await setup(page);
+ await expect(page.locator('#coin-packs button')).toHaveCount(3);
+ expect(await page.locator('#coin-packs').evaluate(e=>e.scrollWidth>e.clientWidth)).toBeTruthy();
+ const last=page.locator('#coin-packs button').last();
+ await last.evaluate(e=>e.scrollIntoView({block:'center',inline:'center',behavior:'instant'}));
+ await expect.poll(()=>last.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})).toBeTruthy();
+ await expect(last).toBeDisabled();expect(f.writes).toHaveLength(0);
+ await expect(page.locator('.header')).toHaveCSS('position','relative');
 });
