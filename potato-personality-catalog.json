@@ -1,0 +1,398 @@
+[
+  {
+    "id": "russet-potato",
+    "name": "Russet Potato",
+    "slot": "avatar",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-russet-potato.svg",
+    "isStarter": false
+  },
+  {
+    "id": "cream-potato",
+    "name": "Cream Potato",
+    "slot": "avatar",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-cream-potato.svg",
+    "isStarter": false
+  },
+  {
+    "id": "rose-potato",
+    "name": "Rose Potato",
+    "slot": "avatar",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-rose-potato.svg",
+    "isStarter": false
+  },
+  {
+    "id": "eyes-classic",
+    "name": "Bright Eyes",
+    "slot": "eyes",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-eyes-classic.svg",
+    "isStarter": true
+  },
+  {
+    "id": "eyes-hazel",
+    "name": "Hazel Eyes",
+    "slot": "eyes",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-eyes-hazel.svg",
+    "isStarter": false
+  },
+  {
+    "id": "eyes-green",
+    "name": "Clover Eyes",
+    "slot": "eyes",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-eyes-green.svg",
+    "isStarter": false
+  },
+  {
+    "id": "eyes-lashes",
+    "name": "Soft Lashes",
+    "slot": "eyes",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-eyes-lashes.svg",
+    "isStarter": false
+  },
+  {
+    "id": "eyes-happy",
+    "name": "Happy Eyes",
+    "slot": "eyes",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-eyes-happy.svg",
+    "isStarter": false
+  },
+  {
+    "id": "eyes-amber",
+    "name": "Amber Lashes",
+    "slot": "eyes",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-eyes-amber.svg",
+    "isStarter": false
+  },
+  {
+    "id": "eyes-galaxy",
+    "name": "Galaxy Eyes",
+    "slot": "eyes",
+    "coinPrice": 500,
+    "rarity": "rare",
+    "imageUrl": "cosmetic-eyes-galaxy.svg",
+    "isStarter": false
+  },
+  {
+    "id": "brows-classic",
+    "name": "Friendly Brows",
+    "slot": "brows",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-brows-classic.svg",
+    "isStarter": true
+  },
+  {
+    "id": "brows-soft",
+    "name": "Soft Arches",
+    "slot": "brows",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-brows-soft.svg",
+    "isStarter": false
+  },
+  {
+    "id": "brows-bold",
+    "name": "Bold Brows",
+    "slot": "brows",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-brows-bold.svg",
+    "isStarter": false
+  },
+  {
+    "id": "brows-curious",
+    "name": "Curious Brows",
+    "slot": "brows",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-brows-curious.svg",
+    "isStarter": false
+  },
+  {
+    "id": "brows-daring",
+    "name": "Daring Brows",
+    "slot": "brows",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-brows-daring.svg",
+    "isStarter": false
+  },
+  {
+    "id": "brows-none",
+    "name": "No Brows",
+    "slot": "brows",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-brows-none.svg",
+    "isStarter": false
+  },
+  {
+    "id": "mouth-smile",
+    "name": "Classic Smile",
+    "slot": "mouth",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-mouth-smile.svg",
+    "isStarter": true
+  },
+  {
+    "id": "mouth-grin",
+    "name": "Big Grin",
+    "slot": "mouth",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-mouth-grin.svg",
+    "isStarter": false
+  },
+  {
+    "id": "mouth-soft",
+    "name": "Soft Smile",
+    "slot": "mouth",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-mouth-soft.svg",
+    "isStarter": false
+  },
+  {
+    "id": "mouth-rose",
+    "name": "Rose Smile",
+    "slot": "mouth",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-mouth-rose.svg",
+    "isStarter": false
+  },
+  {
+    "id": "mouth-wow",
+    "name": "Little Wow",
+    "slot": "mouth",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-mouth-wow.svg",
+    "isStarter": false
+  },
+  {
+    "id": "mouth-smirk",
+    "name": "Cheeky Smirk",
+    "slot": "mouth",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-mouth-smirk.svg",
+    "isStarter": false
+  },
+  {
+    "id": "mouth-vampire",
+    "name": "Tiny Fangs",
+    "slot": "mouth",
+    "coinPrice": 250,
+    "rarity": "rare",
+    "imageUrl": "cosmetic-mouth-vampire.svg",
+    "isStarter": false
+  },
+  {
+    "id": "nose-classic",
+    "name": "Button Nose",
+    "slot": "nose",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-nose-classic.svg",
+    "isStarter": true
+  },
+  {
+    "id": "nose-round",
+    "name": "Round Nose",
+    "slot": "nose",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-nose-round.svg",
+    "isStarter": false
+  },
+  {
+    "id": "nose-tiny",
+    "name": "Tiny Nose",
+    "slot": "nose",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-nose-tiny.svg",
+    "isStarter": false
+  },
+  {
+    "id": "nose-freckle",
+    "name": "Freckled Nose",
+    "slot": "nose",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-nose-freckle.svg",
+    "isStarter": false
+  },
+  {
+    "id": "hair-sprout",
+    "name": "Just a Sprout",
+    "slot": "hair",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-hair-sprout.svg",
+    "isStarter": true
+  },
+  {
+    "id": "hair-bob",
+    "name": "Chestnut Bob",
+    "slot": "hair",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-hair-bob.svg",
+    "isStarter": false
+  },
+  {
+    "id": "hair-sweep",
+    "name": "Side Sweep",
+    "slot": "hair",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-hair-sweep.svg",
+    "isStarter": false
+  },
+  {
+    "id": "hair-ponytail",
+    "name": "Golden Ponytail",
+    "slot": "hair",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-hair-ponytail.svg",
+    "isStarter": false
+  },
+  {
+    "id": "hair-curls",
+    "name": "Cocoa Curls",
+    "slot": "hair",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-hair-curls.svg",
+    "isStarter": false
+  },
+  {
+    "id": "hair-waves",
+    "name": "Rose Waves",
+    "slot": "hair",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-hair-waves.svg",
+    "isStarter": false
+  },
+  {
+    "id": "hair-aurora",
+    "name": "Aurora Waves",
+    "slot": "hair",
+    "coinPrice": 650,
+    "rarity": "legendary",
+    "imageUrl": "cosmetic-hair-aurora.svg",
+    "isStarter": false
+  },
+  {
+    "id": "marks-natural",
+    "name": "Natural Dimples",
+    "slot": "marks",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-marks-natural.svg",
+    "isStarter": true
+  },
+  {
+    "id": "marks-freckles",
+    "name": "Extra Freckles",
+    "slot": "marks",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-marks-freckles.svg",
+    "isStarter": false
+  },
+  {
+    "id": "marks-blush",
+    "name": "Rosy Cheeks",
+    "slot": "marks",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-marks-blush.svg",
+    "isStarter": false
+  },
+  {
+    "id": "marks-heart",
+    "name": "Heart Sticker",
+    "slot": "marks",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-marks-heart.svg",
+    "isStarter": false
+  },
+  {
+    "id": "marks-starlight",
+    "name": "Starlight Freckles",
+    "slot": "marks",
+    "coinPrice": 350,
+    "rarity": "rare",
+    "imageUrl": "cosmetic-marks-starlight.svg",
+    "isStarter": false
+  },
+  {
+    "id": "garden-overalls",
+    "name": "Garden Overalls",
+    "slot": "outfit",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-garden-overalls.svg",
+    "isStarter": false
+  },
+  {
+    "id": "petal-dress",
+    "name": "Petal Dress",
+    "slot": "outfit",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-petal-dress.svg",
+    "isStarter": false
+  },
+  {
+    "id": "moonwalker-suit",
+    "name": "Moonwalker Suit",
+    "slot": "outfit",
+    "coinPrice": 800,
+    "rarity": "legendary",
+    "imageUrl": "cosmetic-moonwalker-suit.svg",
+    "isStarter": false
+  },
+  {
+    "id": "royal-petal",
+    "name": "Royal Petal",
+    "slot": "outfit",
+    "coinPrice": 900,
+    "rarity": "legendary",
+    "imageUrl": "cosmetic-royal-petal.svg",
+    "isStarter": false
+  },
+  {
+    "id": "no-handheld",
+    "name": "Empty Hands",
+    "slot": "weapon",
+    "coinPrice": 0,
+    "rarity": "common",
+    "imageUrl": "cosmetic-no-handheld.svg",
+    "isStarter": false
+  }
+]

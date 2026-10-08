@@ -21,9 +21,8 @@
   };
   const apiBase = window.EARNLY_AVATAR_API || "";
   const fmt = (value) => BigInt(value ?? 0).toLocaleString();
-  const slots = ["avatar", "outfit", "shoes", "backpack", "face", "beard", "head", "weapon"];
-  const layers = ["backpack", "avatar", "outfit", "shoes", "face", "beard", "head", "weapon"];
-  const prettySlot = { avatar: "Avatar", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon" };
+  const slots = ["avatar", "eyes", "brows", "nose", "mouth", "hair", "marks", "outfit", "shoes", "backpack", "face", "beard", "head", "weapon"];
+  const prettySlot = { avatar: "Potato", eyes: "Eyes", brows: "Eyebrows", nose: "Nose", mouth: "Mouth", hair: "Hair", marks: "Face details", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon" };
   function el(tag, classes, text) {
     const node = document.createElement(tag);
     if (classes) node.className = classes;
@@ -45,13 +44,12 @@
       slots.map((slot) => [
         slot,
         state.items.find((i) => i.slot === slot && i.isStarter) || state.items.find((i) => i.slot === slot && i.coinPrice === 0),
-      ]),
+      ]).filter(([, item]) => item),
     );
   }
   function character(equipped) {
     const root = el("div", "character");
-    for (const slot of layers)
-      if (equipped[slot]) root.append(image(equipped[slot]));
+    for (const item of window.EarnlyPotatoRig.compose(equipped)) root.append(image(item));
     return root;
   }
   function summary(root, equipped) {
@@ -246,6 +244,8 @@
     {name:"Trail Society",description:"Warm knits, utility pockets, everyday high-tops.",ids:["cyber-starter","storm-coat","high-tops","adventure-pack","ribbed-beanie","round-glasses","explorer-beard"]},
     {name:"Aurora Vanguard",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
     {name:"Solar Royalty",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},
+    {name:"Garden Day",edition:"FREE PERSONALITY",description:"Clover eyes, cocoa curls and a fresh pair of overalls.",ids:["russet-potato","eyes-green","brows-bold","nose-tiny","mouth-grin","hair-curls","marks-freckles","garden-overalls","no-handheld"]},
+    {name:"Petal Party",edition:"FREE PERSONALITY",description:"Soft lashes, rosy cheeks and a golden ponytail. Make it yours.",ids:["cream-potato","eyes-lashes","brows-soft","nose-round","mouth-rose","hair-ponytail","marks-blush","petal-dress","no-handheld"]},
   ];
   let previewSourceId = null;
   function showPreview(itemId = null) {
@@ -281,7 +281,7 @@
       const card = el("article", "look-card"); card.dataset.look = String(index);
       const art = el("div", "look-art"); art.append(character(equipped));
       const copy = el("div", "look-copy");
-      copy.append(el("span", "look-edition", ["STREET EXPLORER", "PRISMATIC TECH", "GOLDEN HOUR"][index]), el("h3", "", look.name), el("p", "look-description", look.description));
+      copy.append(el("span", "look-edition", look.edition || ["STREET EXPLORER", "PRISMATIC TECH", "GOLDEN HOUR"][index]), el("h3", "", look.name), el("p", "look-description", look.description));
       const price = el("p", "look-price", total === 0n ? "No coins needed" : "◈ " + fmt(total) + " coins to complete");
       const detail = el("p", "look-detail", state.user ? owned.length + " of " + pieces.length + " pieces owned · Items unlock separately" : pieces.length + " pieces · Items unlock separately");
       const button = el("button", "subtle", "Try this look →"); button.type = "button";

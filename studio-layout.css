@@ -230,3 +230,8 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 }
 /* Keep the extra-play action above decorative section layers. */
 #extra-plays button{position:relative;z-index:1;border-radius:12px}
+
+/* Independent facial features stay readable at phone size. */
+.personality-note{max-width:62ch;color:#b9ceda;line-height:1.6;margin:0 0 16px;font-size:14px}
+.item-art:is([data-slot="eyes"],[data-slot="brows"],[data-slot="nose"],[data-slot="mouth"],[data-slot="hair"],[data-slot="marks"]){overflow:hidden}
+.item-art:is([data-slot="eyes"],[data-slot="brows"],[data-slot="nose"],[data-slot="mouth"],[data-slot="hair"],[data-slot="marks"]) .character{transform:scale(1.85);transform-origin:50% 18%}

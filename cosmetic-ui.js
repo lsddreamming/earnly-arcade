@@ -2,8 +2,8 @@
 (() => {
   const endpoint='https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api';
   let user=null, generation=0;
-  const layers=['backpack','avatar','outfit','shoes','face','beard','head','weapon'];
-  function character(equipped){const root=element('span','cosmetic-portrait-rig');for(const slot of layers)if(equipped[slot])root.append(portrait(equipped[slot]));return root;}
+  const layers=window.EarnlyPotatoRig.layers;
+  function character(equipped){const root=element('span','cosmetic-portrait-rig');for(const item of window.EarnlyPotatoRig.compose(equipped))root.append(portrait(item));return root;}
   const element=(tag,className,text)=>{const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n;};
   function portrait(item){const img=element('img');img.src=new URL(item.imageUrl,location.href).href;img.alt=item.name;return img;}
   const dialog=element('dialog','cosmetic-player-dialog');
@@ -41,7 +41,7 @@
       dialog.replaceChildren();
       const close=element('button','cosmetic-close','×');close.type='button';close.setAttribute('aria-label','Close player profile');close.onclick=()=>dialog.close();
       const stage=element('div','cosmetic-card-character '+p.equippedAvatar.rarity);
-      for(const slot of layers)if(p.equipped[slot])stage.append(portrait(p.equipped[slot]));
+      for(const item of window.EarnlyPotatoRig.compose(p.equipped))stage.append(portrait(item));
       const name=element('h2','','@'+p.username);name.id='cosmetic-player-name';dialog.setAttribute('aria-labelledby',name.id);
       const stats=element('dl','cosmetic-card-stats');
       const values=[['World rank',p.rank?'#'+p.rank:'Unranked'],['High score',BigInt(p.highScore).toLocaleString()],['Games recorded',BigInt(p.gamesPlayed).toLocaleString()],['Skins owned',String(p.totalSkinsUnlocked)]];

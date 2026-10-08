@@ -43,6 +43,7 @@
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
+  <script src="potato-rig.js"></script>
 </head>
 <body class="leaderboards-dashboard">
   <main class="container">
@@ -223,8 +224,8 @@
             if (['common','rare','legendary'].includes(entry.avatarRarity)) avatar.classList.add(entry.avatarRarity);
             if (entry.equipped) {
               const rig=document.createElement('span');rig.className='cosmetic-portrait-rig';
-              for(const slot of ['backpack','avatar','outfit','shoes','face','beard','head','weapon']) {
-                const item=entry.equipped[slot];if(!item||!/^cosmetic-[a-z0-9-]+[.]svg$/.test(item.imageUrl))continue;
+              for(const item of window.EarnlyPotatoRig.compose(entry.equipped)) {
+                if(!item||!/^cosmetic-[a-z0-9-]+[.]svg$/.test(item.imageUrl))continue;
                 const layer=document.createElement('img');layer.src=item.imageUrl;layer.alt='';rig.append(layer);
               }
               if(rig.childElementCount)avatar.replaceChildren(rig);
