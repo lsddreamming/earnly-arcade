@@ -26,6 +26,7 @@
     .cloud-auth-feedback[hidden]{display:none}
   </style>
   <link rel="stylesheet" href="public-info.css">
+  <link rel="stylesheet" href="app-surfaces.css?v=1">
 </head>
 <body class="account-dashboard">
   <main class="container">
@@ -35,54 +36,57 @@
     </div>
 
     <header class="page-header">
-      <h1>☁️ Account & Data</h1>
-      <p>Sign in, sync progress, back up your data, or permanently delete your Earnly account here.</p>
+      <span class="account-wordmark">EARNLY<span>ARCADE</span></span>
+      <h1>Your account.</h1>
+      <p>Your games, your character, your progress. Together.</p>
     </header>
 
     <section class="card cloud-account-card" style="text-align:left">
       <div class="row cloud-account-head">
         <div>
-          <span class="section-kicker">CLOUD ACCOUNT</span>
-          <h2>☁️ Earnly Cloud</h2>
+          <span class="section-kicker">EARNLY ACCOUNT</span>
+          <h2 id="accountHeading">Welcome back</h2>
         </div>
         <span class="cloud-badge" id="cloudBadge">Guest</span>
       </div>
 
       <div id="cloudSignedOut">
-        <p class="muted">Create a free account to protect your progress across devices, or sign in if you already have one.</p>
+        <p class="muted auth-intro" id="authIntro">Sign in to pick up where you left off.</p>
+        <div class="auth-mode-switch" role="group" aria-label="Account access"><button id="signInMode" type="button" aria-pressed="true">Sign in</button><button id="createMode" type="button" aria-pressed="false">Create account</button></div>
+        <form id="cloudAuthForm" novalidate>
         <div class="cloud-auth-fields">
           <label>
             <span>Email</span>
-            <input id="cloudEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+            <input id="cloudEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required placeholder="you@example.com">
           </label>
           <label>
             <span>Password</span>
-            <input id="cloudPassword" type="password" minlength="6" autocomplete="current-password" placeholder="6+ characters">
+            <span class="password-entry"><input id="cloudPassword" type="password" minlength="6" autocomplete="current-password" required placeholder="Your password" aria-describedby="cloudAuthFeedback"><button id="showPassword" type="button" aria-label="Show password" aria-pressed="false">Show</button></span>
           </label>
         </div>
         <div class="cloud-auth-actions">
-          <button class="green" id="cloudCreateButton" type="button">Create Free Account</button>
-          <button class="secondary" id="cloudSignInButton" type="button">Sign In</button>
+          <button class="green" id="cloudCreateButton" type="button" hidden>Create Free Account</button>
+          <button class="green" id="cloudSignInButton" type="button">Sign In</button>
         </div>
-        <div class="cloud-auth-feedback" id="cloudAuthFeedback" role="status" aria-live="assertive" hidden></div>
+        <div class="cloud-auth-feedback" id="cloudAuthFeedback" role="status" aria-live="polite" hidden></div>
+        <button class="auth-enter-submit" type="submit" tabindex="-1" aria-hidden="true">Continue</button>
+        </form>
         <button class="text-button cloud-forgot" id="cloudForgotButton" type="button">Forgot password?</button>
 
-        <div class="cloud-signup-hint">
-          <strong>New player?</strong>
-          <span>Enter your email + password, tap Create Free Account once, then confirm the email Earnly sends you.</span>
-        </div>
+        <p class="auth-terms" id="authTerms" hidden>By creating an account, you agree to our <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+        <a class="auth-guest" href="games.html">Just browsing? Play as a guest →</a>
 
         <div class="cloud-signup-notice" id="cloudSignupNotice" hidden aria-live="assertive" role="status">
           <div class="cloud-signup-notice-icon" id="cloudSignupIcon">📨</div>
           <div class="cloud-signup-notice-copy">
             <strong id="cloudSignupTitle">Check your email</strong>
             <span id="cloudSignupText"></span>
-            <small id="cloudSignupWarning">Do not press Create Account again after the email is sent.</small>
+            <small id="cloudSignupWarning">Check your inbox and spam folder for the latest email.</small>
           </div>
           <button class="mini-button secondary cloud-signup-different" id="cloudSignupDifferentEmail" type="button">Use a different email</button>
         </div>
 
-        <p class="muted small">Returning player? Sign in on a fresh phone or Home Screen install and Earnly will automatically restore your latest cloud save.</p>
+
 
         <div class="cloud-reset-panel" id="cloudResetPanel" hidden>
           <div class="cloud-reset-head">
@@ -95,7 +99,7 @@
           <p class="muted small">We’ll send a reset link to this email:</p>
           <label class="cloud-reset-email-label">
             <span>Email</span>
-            <input id="cloudResetEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+            <input id="cloudResetEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required placeholder="you@example.com">
           </label>
           <button class="green wide" id="cloudResetSendButton" type="button">Send Reset Email</button>
           <div class="cloud-reset-status" id="cloudResetStatus" hidden></div>
@@ -117,20 +121,20 @@
             <span id="cloudSaveStatus">Checking cloud save…</span>
             <span class="cloud-live-status" id="cloudLiveStatus" role="status" aria-live="polite">⏳ Checking sync…</span>
           </div>
-          <div class="status-dot ready"></div>
+          <div class="status-dot" id="syncStatusDot" aria-hidden="true"></div>
         </div>
 
         <div class="cloud-auto-row">
           <div>
             <strong>Automatic sync</strong>
-            <span>Saves after games, rewards, profile changes, and when you return to Earnly.</span>
+            <span>Keep your progress backed up as you play.</span>
           </div>
           <button class="cloud-auto-toggle" id="cloudAutoSyncToggle" type="button" aria-pressed="true">On</button>
         </div>
 
         <div class="cloud-save-actions">
-          <button class="green" id="cloudSaveButton" type="button">☁️ Sync Now</button>
-          <button class="secondary" id="cloudRestoreButton" type="button">↩️ Restore Cloud Save</button>
+          <button class="green" id="cloudSaveButton" type="button">Sync Now</button>
+          <button class="secondary" id="cloudRestoreButton" type="button">Restore Cloud Save</button>
         </div>
         <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
 
@@ -142,19 +146,19 @@
       </div>
 
       <div class="data-note cloud-message" id="cloudMessage" aria-live="polite">
-        Cloud saves are private to your signed-in account. Arcade Coins are in-app points and cannot be redeemed or withdrawn in this version.
+        One Earnly account for your progress, character and leaderboards.
       </div>
 
-      <div class="cloud-device-meta">
+      <details class="account-sync-details"><summary>Sync details</summary><div class="cloud-device-meta">
         <span>Device <strong class="device-id" id="deviceId">—</strong></span>
-        <span id="pendingEvents">0 pending events</span>
-      </div>
+        <span id="pendingEvents">Checking updates…</span>
+      </div></details>
     </section>
 
     <details class="card home-disclosure account-advanced" id="transfer">
       <summary>
         <div>
-          <strong>🧰 Manual backup & transfer</strong>
+          <strong>Backup & transfer</strong>
           <span>Only needed if automatic cloud sync is unavailable</span>
         </div>
         <span>⌄</span>
@@ -196,14 +200,14 @@
     </details>
 
     <section class="card cloud-safety-card" style="text-align:left">
-      <h2>🔐 Cloud & reward protection</h2>
+      <h2>Your progress, looked after.</h2>
       <p class="muted small" style="margin-bottom:0">
-        Signed-in progress is backed up with Earnly Cloud. Arcade Coin rewards are also reconciled against a secure server ledger. Redemption, withdrawals, and payment processing are not enabled in this version.
+        Sign in to back up your progress across devices. Arcade Coins are in-app points, with no cash-out or withdrawals. Need a hand? <a href="support.html">Contact Earnly support</a>.
       </p>
     </section>
 
-    <a class="button wide ghost" href="settings.html">⚙️ App Settings</a>
-    <a class="button wide" href="profile.html">← Back to Profile</a>
+    <a class="button wide ghost" href="settings.html">App Settings</a>
+    <a class="button wide" href="profile.html">Back to Profile →</a>
 
     <footer class="public-footer" aria-label="Earnly site information">
       <nav aria-label="Site information">
@@ -245,7 +249,7 @@
       cloudAuthFeedback.hidden = !message;
       cloudAuthFeedback.textContent = message || '';
       cloudAuthFeedback.classList.toggle('error',isError);
-      cloudMessage.textContent = message || cloudMessage.textContent;
+      if(!cloudSignedIn.hidden)cloudMessage.textContent = message || cloudMessage.textContent;
     }
     const cloudDeleteButton = document.getElementById('cloudDeleteButton');
     const cloudSignupNotice = document.getElementById('cloudSignupNotice');
@@ -258,6 +262,36 @@
     const signupPendingKey = 'earnlySignupPending';
     const signupPageViewedKey = 'earnlySignupPageViewed';
     let createCooldownTimer = null;
+    let authMode = 'signin';
+    let authBusy = false;
+    function setAuthMode(mode){
+      if(authBusy)return;
+      authMode = mode === 'create' ? 'create' : 'signin';
+      const creating = authMode === 'create';
+      cloudCreateButton.hidden = !creating;
+      cloudSignInButton.hidden = creating;
+      document.getElementById('signInMode').setAttribute('aria-pressed',String(!creating));
+      document.getElementById('createMode').setAttribute('aria-pressed',String(creating));
+      document.getElementById('accountHeading').textContent = creating ? 'Make yourself at home' : 'Welcome back';
+      document.getElementById('authIntro').textContent = creating ? 'Create a free account to save your progress.' : 'Sign in to pick up where you left off.';
+      document.getElementById('authTerms').hidden = !creating;
+      cloudPassword.autocomplete = creating ? 'new-password' : 'current-password';
+      cloudPassword.placeholder = creating ? 'At least 6 characters' : 'Your password';
+      showAuthFeedback('');
+    }
+    document.getElementById('signInMode').addEventListener('click',()=>setAuthMode('signin'));
+    document.getElementById('createMode').addEventListener('click',()=>setAuthMode('create'));
+    document.getElementById('cloudAuthForm').addEventListener('submit',event=>{
+      event.preventDefault();
+      if(!authBusy)(authMode==='create'?cloudCreateButton:cloudSignInButton).click();
+    });
+    document.getElementById('showPassword').addEventListener('click',event=>{
+      const showing = cloudPassword.type==='password';
+      cloudPassword.type = showing ? 'text' : 'password';
+      event.currentTarget.textContent = showing ? 'Hide' : 'Show';
+      event.currentTarget.setAttribute('aria-label',showing ? 'Hide password' : 'Show password');
+      event.currentTarget.setAttribute('aria-pressed',String(showing));
+    });
     let recoveryMode = new URLSearchParams(location.search).has('recovery');
 
     function friendlyTime(value){
@@ -271,6 +305,7 @@
       if (!cloudLiveStatus) return;
       cloudLiveStatus.className = 'cloud-live-status ' + (mode || '');
       cloudLiveStatus.textContent = text;
+      document.getElementById('syncStatusDot').className = 'status-dot ' + (mode==='ready'?'ready':'');
     }
 
     function refreshCloudLiveStatus(){
@@ -310,6 +345,7 @@
         const signedIn = !!current?.user;
 
         if (recoveryMode) {
+          document.getElementById('accountHeading').textContent = 'Reset your password';
           cloudSignedOut.hidden = true;
           cloudSignedIn.hidden = true;
           cloudRecovery.hidden = false;
@@ -322,6 +358,8 @@
         cloudSignedOut.hidden = signedIn;
         cloudSignedIn.hidden = !signedIn;
         cloudBadge.textContent = signedIn ? 'Connected' : 'Guest';
+        document.body.classList.toggle('account-is-signed-in',signedIn);
+        document.getElementById('accountHeading').textContent = signedIn ? 'Account & progress' : (authMode==='create'?'Make yourself at home':'Welcome back');
         cloudBadge.classList.toggle('connected', signedIn);
 
         if (!signedIn) {
@@ -359,21 +397,27 @@
         }
         refreshCloudLiveStatus();
 
+        render();
         if (conflict) {
-          cloudMessage.textContent = '⚠️ A newer cloud save exists from another device. Auto-sync is paused to protect it. Restore that save, or use Sync Now only if you intentionally want this device to replace it.';
+          cloudMessage.textContent = 'A newer save is available from another device. Automatic sync is paused to protect it. Choose Restore Cloud Save to use it, or Sync Now to replace it with this device’s progress.';
         } else if (!navigator.onLine && offlinePending) {
           cloudMessage.textContent = '📴 You are offline. Your progress is safe on this device and will sync automatically when you reconnect.';
         } else if (!navigator.onLine) {
           cloudMessage.textContent = '📴 You are offline. Earnly will check your cloud save when you reconnect.';
+        } else if (localStorage.getItem('arcadeCloudSyncError')) {
+          cloudMessage.textContent = 'Your latest progress could not sync. It is saved on this device. Try Sync Now when your connection is available.';
         } else if (rewardError) {
-          cloudMessage.textContent = '✅ Your progress is backed up. Some reward updates are still syncing automatically.';
+          cloudMessage.textContent = 'Some reward updates still need to sync. Your progress is saved on this device.';
         } else if (autoOn) {
           cloudMessage.textContent = '✅ Automatic backup is on. You do not need to press Sync Now.';
         } else {
           cloudMessage.textContent = 'Automatic backup is off. Turn it on to save progress automatically.';
         }
       } catch (error) {
-        cloudMessage.textContent = error.message || 'Could not check Earnly Cloud right now.';
+        setCloudLiveStatus('warning', 'Sync could not be checked');
+        const message=error.message || 'Could not check Earnly Cloud right now.';
+        cloudMessage.textContent = message;
+        if(!cloudSignedOut.hidden)showAuthFeedback(message,true);
       }
     }
 
@@ -382,9 +426,10 @@
       const sync = Arcade.syncStatus();
       device.textContent = sync.deviceId.slice(0, 8) + '…' + sync.deviceId.slice(-6);
       const autoOn = window.EarnlyCloud?.autoSyncEnabled?.() !== false;
-      pending.textContent = sync.pending
-        ? (sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + (autoOn ? ' syncing' : ' waiting'))
-        : 'All synced';
+      const needsAttention=window.EarnlyCloud?.cloudConflict?.()||localStorage.getItem('arcadeCloudSyncError')||localStorage.getItem('arcadeServerRewardError');
+      pending.textContent = needsAttention ? 'Sync paused · review the message above' : !navigator.onLine ? 'Offline · saved on this device' : sync.pending
+        ? (sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + (autoOn ? ' waiting to sync' : ' waiting'))
+        : 'No pending updates';
     }
 
     document.getElementById('copyTransferButton').addEventListener('click', async () => {
@@ -434,8 +479,8 @@
     function authValues(){
       const email = cloudEmail.value.trim();
       const password = cloudPassword.value;
-      if (!email) throw new Error('Enter your email address.');
-      if (password.length < 6) throw new Error('Use a password with at least 6 characters.');
+      if (!email || !cloudEmail.validity.valid) {cloudEmail.focus();throw new Error('Enter a valid email address.');}
+      if (password.length < 6) {cloudPassword.focus();throw new Error('Use a password with at least 6 characters.');}
       return { email, password };
     }
 
@@ -508,10 +553,11 @@
       cloudCreateButton.textContent = 'Confirmation Email Sent ✓';
       showSignupNotice(
         'success',
-        'Check your email now',
+        'Check your inbox',
         'We sent a confirmation link to ' + email + '. Open that email, tap “Confirm your email address,” then return to Earnly and tap Sign In.',
-        'The request was already sent. Do not press Create Account again.'
+        'Check your spam folder if you don’t see it.'
       );
+      setAuthMode('signin');
       cloudMessage.textContent = '📨 Waiting for ' + email + ' to be confirmed. After confirming, return here and tap Sign In.';
       return true;
     }
@@ -541,6 +587,7 @@
 
     cloudSignupDifferentEmail.addEventListener('click', () => {
       resetSignupNotice();
+      setAuthMode('create');
       cloudEmail.value = '';
       cloudPassword.value = '';
       cloudEmail.focus();
@@ -565,10 +612,10 @@
       const button = document.getElementById('cloudResetSendButton');
       try {
         const email = cloudResetEmail.value.trim();
-        if (!email) {
+        if (!email || !cloudResetEmail.validity.valid) {
           cloudResetStatus.hidden = false;
           cloudResetStatus.className = 'cloud-reset-status error';
-          cloudResetStatus.textContent = 'Enter the email address for your Earnly account.';
+          cloudResetStatus.textContent = 'Enter a valid email address for your Earnly account.';
           cloudResetEmail.focus();
           return;
         }
@@ -617,10 +664,11 @@
     });
 
     cloudCreateButton.addEventListener('click', async () => {
-      if (cloudCreateButton.disabled) return;
+      if (cloudCreateButton.disabled || authBusy) return;
 
       try {
         const { email, password } = authValues();
+        authBusy=true;
         trackSignup('signup_submitted', { stage:'create_account' });
 
         cloudSignupNotice.hidden = true;
@@ -630,6 +678,7 @@
         cloudMessage.textContent = 'Creating your Earnly account and sending one confirmation email…';
 
         const data = await EarnlyCloud.signUp(email, password);
+        authBusy=false;
         cloudPassword.value = '';
         cloudSignInButton.disabled = false;
 
@@ -650,16 +699,18 @@
 
         showSignupNotice(
           'success',
-          'Check your email now',
+          'Check your inbox',
           'We sent a confirmation link to ' + email + '. Open that email, tap “Confirm your email address,” then return to Earnly and tap Sign In.',
-          'Your account request was already sent. Do not tap Create Account again or you may hit the email request limit.'
+          'Check your spam folder if you don’t see it. Your account request is saved.'
         );
 
+        setAuthMode('signin');
         cloudMessage.textContent = '📨 Confirmation email sent to ' + email + '. Confirm it first, then come back and sign in.';
         Arcade.feedback('success');
         Arcade.toast('📨 Confirmation email sent');
         await renderCloud();
       } catch (error) {
+        authBusy=false;
         cloudSignInButton.disabled = false;
         const raw = String(error?.message || '');
 
@@ -695,17 +746,19 @@
         trackSignup('signup_error', { stage:'create_account', reason:'other' });
         cloudCreateButton.disabled = false;
         cloudCreateButton.textContent = 'Create Free Account';
-        cloudMessage.textContent = raw || 'Could not create the account.';
+        showAuthFeedback(raw || 'Could not create the account. Please try again.',true);
       }
     });
 
     document.getElementById('cloudSignInButton').addEventListener('click', async () => {
+      if(authBusy)return;
       const button = document.getElementById('cloudSignInButton');
       const originalText = button.textContent;
       try {
         showAuthFeedback('');
         const { email, password } = authValues();
         button.disabled = true;
+        authBusy=true;
         button.textContent = 'Connecting…';
         showAuthFeedback('Signing in and checking your cloud save…');
 
@@ -739,6 +792,7 @@
       } catch (error) {
         showAuthFeedback(error.message || 'Could not sign in.',true);
       } finally {
+        authBusy=false;
         button.disabled = false;
         button.textContent = originalText;
       }
@@ -847,7 +901,7 @@
         }
 
         Arcade.panel(
-          '↩️ Restore Cloud Save?',
+          'Restore Cloud Save?',
           friendlyTime(info.updated_at) + '\n\nThis replaces the Earnly progress currently stored on this device. Your sign-in stays connected.',
           [
             ['Restore', async () => {
@@ -896,7 +950,9 @@
 
     render();
     renderCloud();
+    if(location.hash==='#create-account')setAuthMode('create');
     restoreSignupRequest();
+    if(location.hash==='#reset-password')document.getElementById('cloudForgotButton').click();
     window.addEventListener('pageshow', () => { render(); renderCloud(); });
     window.addEventListener('storage', render);
     window.addEventListener('earnly-cloud-auth-change', renderCloud);
