@@ -1,0 +1,51 @@
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';
+const db=new PGlite();
+await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid PRIMARY KEY,is_anonymous boolean DEFAULT false,email_confirmed_at timestamptz);
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+GRANT USAGE ON SCHEMA auth TO authenticated,anon,service_role;
+CREATE TABLE public.profiles(user_id uuid PRIMARY KEY,username text);
+CREATE TABLE public.leaderboard_bans(user_id uuid PRIMARY KEY);
+CREATE TABLE public.cosmetic_loadouts(user_id uuid,slot text,item_id text);
+CREATE TABLE public.cosmetic_items(id text PRIMARY KEY,name text,asset_path text);
+INSERT INTO auth.users VALUES('00000000-0000-0000-0000-000000000001',false,now()),('00000000-0000-0000-0000-000000000002',false,now()),('00000000-0000-0000-0000-000000000003',true,now()),('00000000-0000-0000-0000-000000000004',false,null);
+INSERT INTO public.profiles VALUES('00000000-0000-0000-0000-000000000001','PlayerOne'),('00000000-0000-0000-0000-000000000002','PlayerTwo');`);
+await db.exec(readFileSync(new URL('../supabase/migrations/20261008213912_arcade_global_chat.sql',import.meta.url),'utf8'));
+let checks=0;const uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+async function as(n,role='authenticated'){await db.exec('RESET ROLE');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[n?uid(n):'']);await db.exec('SET ROLE '+role);}
+async function rpc(a,d={}){return (await db.query('SELECT public.arcade_chat($1,$2::jsonb) r',[a,JSON.stringify(d)])).rows[0].r;}
+async function fails(fn,re){await assert.rejects(fn,re);checks++;}
+async function admin(sql){await db.exec('RESET ROLE');await db.exec(sql);}
+await as(null,'anon');await fails(()=>rpc('feed'),/permission denied/);
+await as(3);await fails(()=>rpc('feed'),/confirmed/);
+await as(4);await fails(()=>rpc('feed'),/confirmed/);
+await as(1);await fails(()=>db.query('SELECT * FROM earnly_chat.messages'),/permission denied/);
+await fails(()=>db.query("SELECT public.arcade_chat_moderate('queue')"),/permission denied/);
+await fails(()=>db.query("SELECT earnly_chat.moderate('queue')"),/permission denied/);
+assert.equal((await rpc('feed')).accepted,false);checks++;
+await fails(()=>rpc('send',{body:'Hello',request_id:uid(10)}),/agree/);
+await rpc('accept');const sent=await rpc('send',{body:'Hello arcade!',request_id:uid(10),user_id:uid(2)});assert.ok(sent.id);checks++;
+assert.equal((await rpc('send',{body:'Hello arcade!',request_id:uid(10)})).id,sent.id);checks++;
+assert.equal((await rpc('feed')).messages[0].user_id,uid(1));checks++;
+await fails(()=>rpc('send',{body:'Too fast',request_id:uid(11)}),/5 seconds/);
+await admin("UPDATE earnly_chat.members SET last_sent=now()-interval '1 minute'");await as(1);
+await fails(()=>rpc('send',{body:'Hello arcade!',request_id:uid(12)}),/just sent/);
+for(const body of ['', 'x'.repeat(281),'Visit https://example.com','mail@example.org','www.example.net','fuck you','hid\u200bden'])await fails(()=>rpc('send',{body,request_id:uid(13)}),/readable|allowed|friendly/);
+await as(2);await rpc('accept');assert.equal((await rpc('feed')).messages.length,1);checks++;
+await rpc('block',{user_id:uid(1)});assert.equal((await rpc('feed')).messages.length,0);checks++;
+await as(1);await rpc('send',{body:'My second message',request_id:uid(14)});await as(2);assert.equal((await rpc('feed')).messages.length,0);checks++;
+await rpc('send',{body:'Player two here',request_id:uid(15)});await as(1);assert.equal((await rpc('feed')).messages.filter(x=>x.user_id===uid(2)).length,0);checks++;
+await as(2);await rpc('unblock',{user_id:uid(1)});await rpc('report',{message_id:sent.id,reason:'spam'});assert.ok(!(await rpc('feed')).messages.some(x=>x.id===sent.id));checks++;
+await as(1);assert.ok((await rpc('feed')).messages.some(x=>x.id===sent.id));checks++;
+await rpc('mute',{muted:true});assert.equal((await rpc('feed')).muted,true);checks++;
+await as(2);await rpc('delete',{message_id:sent.id});await as(1);assert.ok((await rpc('feed')).messages.some(x=>x.id===sent.id));checks++;
+await rpc('delete',{message_id:sent.id});assert.ok(!(await rpc('feed')).messages.some(x=>x.id===sent.id));checks++;
+await as(null,'service_role');const queue=(await db.query("SELECT public.arcade_chat_moderate('queue') r")).rows[0].r;assert.equal(queue.length,1);checks++;
+await db.query("SELECT public.arcade_chat_moderate('suspend',$1)",[uid(1)]);await as(1);await fails(()=>rpc('feed'),/suspended/);await fails(()=>rpc('send',{body:'No',request_id:uid(20)}),/suspended/);
+await as(2);assert.ok(!(await rpc('feed')).messages.some(x=>x.user_id===uid(1)));checks++;
+await admin(`DELETE FROM auth.users WHERE id='${uid(1)}'`);await as(1);await fails(()=>rpc('feed'),/confirmed/);
+await admin(`INSERT INTO earnly_chat.messages(user_id,request_id,body) SELECT '${uid(2)}',gen_random_uuid(),'Quota test '||i FROM generate_series(1,30)i; UPDATE earnly_chat.members SET last_sent=now()-interval '1 minute'`);await as(2);await fails(()=>rpc('send',{body:'Over quota',request_id:uid(21)}),/short break/);
+await admin(`DELETE FROM auth.users WHERE id='${uid(2)}'`);assert.equal((await db.query('SELECT count(*)::int n FROM earnly_chat.messages')).rows[0].n,0);checks++;
+await db.close();console.log(`PASS: ${checks} chat authorization, identity, moderation, block, retry, filtering, quota and deletion checks`);
