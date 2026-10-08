@@ -18,7 +18,8 @@
     <script src="cloud.js" defer></script>
     <script src="avatar-studio.js" defer></script>
     <script src="coin-shop.js" defer></script>
-  </head>
+    <script src="potato-rig.js"></script>
+</head>
   <body>
     <header class="header">
       <a class="brand" href="games.html"
@@ -95,21 +96,28 @@
           <div class="panel-top">
             <div>
               <p class="eyebrow">THE COLLECTION</p>
-              <h2 id="shop-title">Find your signature</h2>
+              <h2 id="shop-title">Make your potato yours</h2>
             </div>
             <span id="owned-count" class="muted"></span>
           </div>
+          <p class="personality-note">Your potato. Your personality. Mix free eyes, brows, smiles and hair with your favorite outfit. Every style is for everyone.</p>
           <div class="shop-tabs" role="group" aria-label="Shop category">
-            <button data-slot="avatar" aria-pressed="true">Avatars</button
-            ><button data-slot="outfit" aria-pressed="false">Outfits</button
-            ><button data-slot="shoes" aria-pressed="false">Shoes</button>
+            <button data-slot="avatar" aria-pressed="true">Avatars</button>
+            <button data-slot="eyes" aria-pressed="false">Eyes</button>
+            <button data-slot="brows" aria-pressed="false">Eyebrows</button>
+            <button data-slot="mouth" aria-pressed="false">Mouths</button>
+            <button data-slot="nose" aria-pressed="false">Noses</button>
+            <button data-slot="hair" aria-pressed="false">Hair</button>
+            <button data-slot="marks" aria-pressed="false">Face details</button>
+            <button data-slot="outfit" aria-pressed="false">Outfits</button>
+            <button data-slot="shoes" aria-pressed="false">Shoes</button>
             <button data-slot="backpack" aria-pressed="false">Backpacks</button>
             <button data-slot="face" aria-pressed="false">Facewear</button>
             <button data-slot="beard" aria-pressed="false">Beards</button>
             <button data-slot="head" aria-pressed="false">Headwear</button>
             <button data-slot="weapon" aria-pressed="false">Weapons</button>
           </div>
-          <label for="shop-search" class="search-label">Find your next piece</label><input type="search" id="shop-search" placeholder="Search all outfits & accessories" maxlength="64">
+          <label for="shop-search" class="search-label">Find your next piece</label><input type="search" id="shop-search" placeholder="Search eyes, hair, outfits & more" maxlength="64">
           <div class="shop-filters"><label class="free-filter"><input type="checkbox" id="free-only"> Free options only</label><label class="free-filter"><input type="checkbox" id="owned-only"> My collection</label></div>
           <div class="shop-toolbar"><label for="shop-sort">Sort items<select id="shop-sort"><option value="featured">Collection order</option><option value="price">Price: low to high</option><option value="name">Name: A to Z</option></select></label><div><label class="free-filter"><input type="checkbox" id="affordable-only" disabled> Within my balance</label><small id="affordable-help">Sign in to filter by your balance</small></div></div>
           <p id="shop-result-count" class="collection-note" role="status"></p>

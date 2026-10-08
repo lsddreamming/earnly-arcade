@@ -7,8 +7,10 @@ items.push(item('no-headwear','No Headwear','head',0,'common'),item('ribbed-bean
 for (const id of ['cyber-starter','starter-suit','starter-blaster','trail-boots','no-backpack','no-beard','no-facewear','no-headwear'])items.find(i=>i.id===id).isStarter=true;
 function player(){return {username:'PlayerOne',coins:'1250',lifetimeEarned:'1250',inventory:items.filter(i=>i.coinPrice===0).map(i=>i.id),equipped:Object.fromEntries(items.filter(i=>i.isStarter).map(i=>[i.slot,i])),equippedAvatarId:'cyber-starter',totalSkinsUnlocked:1};}
 function profile(user){return {username:user.username,rank:'2',highScore:'120',gamesPlayed:8,totalSkinsUnlocked:user.totalSkinsUnlocked,game:'snake',equipped:user.equipped,equippedAvatar:user.equipped.avatar};}
-async function setup(page,{signedIn=true,insufficient=false,networkRetry=false}={}){
+async function setup(page,{signedIn=true,insufficient=false,networkRetry=false,personality=false}={}){
   let user=player(),buys=0,keys=[];
+  const catalog=personality?items.concat(require("../potato-personality-catalog.json")):items;
+  if(personality){user.inventory.push(...catalog.filter(i=>i.coinPrice===0&&!user.inventory.includes(i.id)).map(i=>i.id));Object.assign(user.equipped,Object.fromEntries(catalog.filter(i=>i.isStarter).map(i=>[i.slot,i])));}
   await page.route('**/cloud.js',route=>route.fulfill({contentType:'text/javascript',body:`(() => {
     let session=${signedIn?"{access_token:'test',user:{id:'qa-account'}}":"null"};
     let listener; const auth={getSession:async()=>({data:{session}}),onAuthStateChange:fn=>{listener=fn;return {};},signOut:async()=>{session=null;listener?.("SIGNED_OUT");return {};},signInWithPassword:async()=>{session={access_token:"test",user:{id:"qa-account"}};listener?.("SIGNED_IN");return {};}};
@@ -20,20 +22,20 @@ async function setup(page,{signedIn=true,insufficient=false,networkRetry=false}=
     const respond=(data,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(data)});
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type,idempotency-key','Access-Control-Allow-Methods':'GET,POST'}});
     if(path==='/config')return respond({supabaseUrl:'https://zdwziebtbpuolusztede.supabase.co',publishableKey:'test',game:'snake'});
-    if(path==='/shop')return respond({items});
+    if(path==='/shop')return respond({items:catalog});
     if(path==='/me')return signedIn?respond({user}):respond({error:{message:'Sign in required'}},401);
     if(path==='/leaderboard')return respond({game:'snake',players:[profile(user)]});
     if(path.startsWith('/user/PlayerOne'))return respond({profile:profile(user)});
     if(path==='/shop/buy'){
       ++buys;keys.push(req.headers()['idempotency-key']);
       if(networkRetry&&buys===1)return route.abort();
-      const data=req.postDataJSON(),i=items.find(x=>x.id===data.itemId);
+      const data=req.postDataJSON(),i=catalog.find(x=>x.id===data.itemId);
       if(insufficient||BigInt(user.coins)<BigInt(i.coinPrice))return respond({error:{code:'INSUFFICIENT_COINS',message:'Not enough Arcade Coins for this item.'}},409);
       if(!user.inventory.includes(i.id)){user.inventory.push(i.id);user.coins=String(BigInt(user.coins)-BigInt(i.coinPrice));}
-      user.equipped[i.slot]=i;user.equippedAvatarId=user.equipped.avatar.id;user.totalSkinsUnlocked=user.inventory.filter(id=>items.find(i=>i.id===id).slot==='avatar').length;
+      user.equipped[i.slot]=i;user.equippedAvatarId=user.equipped.avatar.id;user.totalSkinsUnlocked=user.inventory.filter(id=>catalog.find(i=>i.id===id).slot==='avatar').length;
       return respond({charged:true,amount:i.coinPrice,user});
     }
-    if(path==='/user/equip'){const i=items.find(x=>x.id===req.postDataJSON().itemId);user.equipped[i.slot]=i;user.equippedAvatarId=user.equipped.avatar.id;return respond({user});}
+    if(path==='/user/equip'){const i=catalog.find(x=>x.id===req.postDataJSON().itemId);user.equipped[i.slot]=i;user.equippedAvatarId=user.equipped.avatar.id;return respond({user});}
     return respond({error:{message:'Unknown route'}},404);
   });
   return {keys,user:()=>user};
@@ -155,4 +157,29 @@ test('Unaffordable previews explain the shortfall before a purchase request',asy
   await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();
   await expect(page.locator('#purchase-remaining')).toContainText('150 more coins');
   await expect(page.getByRole('button',{name:'Buy & equip',exact:true})).toBeDisabled();expect(f.keys).toHaveLength(0);
+});
+
+
+test('Potato facial parts save independently, retain free choices and share the same portrait',async({page})=>{
+ test.setTimeout(60000);
+ const f=await setup(page,{personality:true});await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
+ for(const [tab,name,slot] of [['Eyes','Soft Lashes','eyes'],['Eyebrows','Curious Brows','brows'],['Noses','Tiny Nose','nose'],['Mouths','Rose Smile','mouth'],['Hair','Golden Ponytail','hair'],['Face details','Extra Freckles','marks']]){
+  await page.getByRole('button',{name:tab,exact:true}).click();await page.getByRole('button',{name:'Equip '+name,exact:true}).click();await expect(page.getByRole('button',{name:'Equipped '+name,exact:true})).toBeDisabled();expect(f.user().equipped[slot].name).toBe(name);
+ }
+ await expect(page.locator('#coin-balance')).toHaveText('1,250');expect(f.keys).toHaveLength(0);
+ await expect(page.locator('#character-stage img[alt="Cyber Starter"]')).toHaveAttribute('src',/cyber-starter-body.svg$/);
+ await page.reload();await expect(page.locator('#character-stage img[alt="Golden Ponytail"]')).toBeVisible();
+ await page.getByRole('button',{name:'Eyes',exact:true}).click();await page.getByRole('button',{name:'Preview Galaxy Eyes',exact:true}).click();expect(f.user().equipped.eyes.id).toBe('eyes-lashes');expect(f.keys).toHaveLength(0);
+ await page.getByRole('button',{name:'Buy Galaxy Eyes',exact:true}).click();await page.getByRole('button',{name:'Buy & equip',exact:true}).click();await expect(page.locator('#coin-balance')).toHaveText('750');expect(f.user().equipped.hair.id).toBe('hair-ponytail');expect(f.user().equipped.brows.id).toBe('brows-curious');
+ await page.goto('/profile.html');await expect(page.locator('#profileAvatar img[alt="Galaxy Eyes"]')).toBeAttached();await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cyber-starter-body.svg$/);
+});
+
+test('Personality assets keep legacy looks intact and new features render without duplicate eyes',async({page})=>{
+ await setup(page,{personality:true,signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');
+ const result=await page.evaluate(()=>{
+  const avatar={id:'cyber-starter',imageUrl:'cosmetic-cyber-starter.svg'};
+  return {old:EarnlyPotatoRig.compose({avatar}),fresh:EarnlyPotatoRig.compose({avatar,eyes:{id:'eyes-happy',slot:'eyes',imageUrl:'cosmetic-eyes-happy.svg'}})};
+ });
+ expect(result.old).toHaveLength(1);expect(result.old[0].imageUrl).toBe('cosmetic-cyber-starter.svg');expect(result.fresh[0].imageUrl).toBe('cosmetic-cyber-starter-body.svg');expect(result.fresh.filter(i=>i.slot==='eyes')).toHaveLength(1);
+ for(const tab of ['Eyes','Eyebrows','Noses','Mouths','Hair','Face details']){await page.getByRole('button',{name:tab,exact:true}).click();await page.getByLabel('Free options only').check();expect(await page.locator('#shop-grid .item-card').count()).toBeGreaterThan(2);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
 });
