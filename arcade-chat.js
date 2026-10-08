@@ -70,7 +70,8 @@
  }
  async function syncAuth(){const stamp=++epoch;clearTimeout(timer);uid=null;data=null;signature='';pending=null;loading=false;busy=false;input.value='';input.readOnly=false;counter.textContent='0 / 280';send.disabled=false;list.replaceChildren();status.textContent='';badge.hidden=true;paintGate();
   try{const session=await window.EarnlyCloud?.session();if(stamp!==epoch)return;uid=session?.user?.id||null;lastSeen=read(key())||new Date().toISOString();if(uid)save(key(),lastSeen);paintGate();if(uid)await refresh();}catch(e){if(stamp===epoch)status.textContent=e.message;}}
- function open(){forceScroll=true;dialog.showModal();paintGate();if(data){paintMessages();markRead();}refresh();}
+ function fitViewport(){const v=window.visualViewport;const height=v?.height||innerHeight;dialog.style.height=Math.min(720,height-28)+'px';dialog.style.maxHeight=(height-28)+'px';dialog.style.top=((v?.offsetTop||0)+Math.max(14,(height-Math.min(720,height-28))/2))+'px';dialog.classList.toggle('chat-short',height<500);}
+ function open(){forceScroll=true;fitViewport();dialog.showModal();paintGate();if(data){paintMessages();markRead();}refresh();}
  form.addEventListener('submit',async event=>{event.preventDefault();if(busy||!uid||!input.value.trim())return;let stamp=epoch;const body=input.value.trim();if(!pending||pending.body!==body)pending={body,request_id:crypto.randomUUID()};busy=true;send.disabled=true;input.readOnly=true;status.textContent='Sending…';
   try{await rpc('send',pending);if(stamp!==epoch)return;input.value='';pending=null;counter.textContent='0 / 280';forceScroll=true;stamp=++epoch;loading=false;await refresh();if(stamp===epoch)status.textContent='Message sent.';}
   catch(e){if(stamp===epoch)status.textContent=e.message;}
@@ -82,5 +83,6 @@
  dialog.addEventListener('close',()=>{schedule();launcher.focus();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);
  window.addEventListener('earnly-cloud-auth-change',syncAuth);window.addEventListener('earnly-cloud-ready',()=>{if(!uid)syncAuth();});
+ window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);window.addEventListener('resize',fitViewport);
  window.EarnlyChat={open,refresh};syncAuth();
 })();

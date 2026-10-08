@@ -46,3 +46,8 @@ test('sign out clears messages and draft; unread badge stops when muted',async({
  await setup(page);await page.getByRole('button',{name:'Close chat',exact:true}).click();await page.evaluate(()=>{window.chatData.messages.push({id:'new',user_id:'u2',username:'Rival',body:'New message',created_at:new Date(Date.now()+1000).toISOString(),equipped:{}});return EarnlyChat.refresh();});await expect(page.locator('.arcade-chat-badge')).toBeVisible();
  await page.locator('#arcadeChatButton').click();await expect(page.locator('.arcade-chat-badge')).toBeHidden();await page.locator('#chatMessage').fill('private unfinished draft');await page.evaluate(()=>{window.chatUser=null;window.dispatchEvent(new Event('earnly-cloud-auth-change'));});await expect(page.locator('.chat-body')).toHaveCount(0);await expect(page.locator('#chatMessage')).toHaveValue('');await expect(page.getByRole('link',{name:'Sign in / Create account'})).toBeVisible();
 });
+test('composer stays reachable when the phone keyboard reduces available height',async({page})=>{
+ await setup(page);await page.setViewportSize({width:390,height:360});await page.locator('#chatMessage').focus();
+ const dialog=await page.locator('#arcadeChat').boundingBox(),send=await page.locator('.chat-send').boundingBox();
+ expect(send.y+send.height).toBeLessThanOrEqual(dialog.y+dialog.height);expect(send.y+send.height).toBeLessThanOrEqual(360);
+});
