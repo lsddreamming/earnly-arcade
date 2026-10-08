@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-surfaces-20261008';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-command-strategy-20261008';const CORE_ASSETS = [
   './app-surfaces.css',
   './coin-shop.js','./paid-plays.js','./cosmetic-adventure-pack.svg','./cosmetic-amber-goggles.svg','./cosmetic-arcade-cap.svg','./cosmetic-aurora-armor.svg','./cosmetic-aurora-pack.svg','./cosmetic-braided-beard.svg','./cosmetic-comet-sneakers.svg','./cosmetic-comms-headset.svg','./cosmetic-high-tops.svg','./cosmetic-no-headwear.svg','./cosmetic-orb-scepter.svg','./cosmetic-radiant-boots.svg','./cosmetic-ribbed-beanie.svg','./cosmetic-solar-jacket.svg','./cosmetic-storm-coat.svg','./cosmetic-sun-crown.svg',
   './cosmetic-canvas-pack.svg','./cosmetic-no-backpack.svg','./cosmetic-frost-beard.svg','./cosmetic-no-facewear.svg','./cosmetic-reactor-pack.svg','./cosmetic-neon-kicks.svg','./cosmetic-trail-boots.svg','./cosmetic-cozy-hoodie.svg','./cosmetic-round-glasses.svg','./cosmetic-canvas-shoes.svg','./cosmetic-no-beard.svg','./cosmetic-star-goggles.svg','./cosmetic-explorer-beard.svg','./cosmetic-sport-shades.svg','./cosmetic-short-beard.svg',

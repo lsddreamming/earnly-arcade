@@ -1,6 +1,11 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CrystalCommand=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
 'use strict';
-const VERSION=5,SIZE=64,STEP=.05,BATTLE_LIMIT=1200;
+const VERSION=6,SIZE=64,STEP=.05,BATTLE_LIMIT=1200;
+const MAPS=Object.freeze({
+ frontier:{name:'Crystal Frontier',description:'Wide flanking routes and a dangerous rich center.'},
+ crossing:{name:'Shattered Crossing',description:'Three passages divide the battlefield. Watch your flanks.'},
+ crescent:{name:'Crescent Basin',description:'Sheltered expansions with long routes around broken ridges.'}
+});
 const DIFFICULTIES=Object.freeze({easy:{name:'Easy',pace:3.8,workers:8,attackAt:180,force:3,wave:35,armyCap:6,techAt:150},normal:{name:'Normal',pace:2.4,workers:12,attackAt:35,force:5,wave:0,armyCap:80,techAt:70},hard:{name:'Hard',pace:1.6,workers:10,attackAt:25,force:3,wave:0,armyCap:80,techAt:55}});
 const TYPES=Object.freeze({
  worker:{name:'Miner',cost:50,hp:45,speed:2.8,range:0,damage:0,time:4,supply:1,vision:5},
@@ -31,19 +36,28 @@ const clamp=(v,l,h)=>Math.max(l,Math.min(h,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const key=(x,y)=>y*SIZE+x;
 function makeEntity(s,type,side,x,y,built=true){const d=TYPES[type];const e={id:s.next++,type,side,x,y,hp:d.hp,maxHp:d.hp,build:built?0:d.time,queue:[],cool:0,path:[],order:null,carry:0,mine:0,progress:0,patch:null,home:null,rally:null,research:null};s.entities.push(e);return e}
-function create({practice=false,difficulty='normal',learning=false}={}){
+function create({practice=false,difficulty='normal',learning=false,map='frontier'}={}){
+ map=!learning&&Object.hasOwn(MAPS,map)?map:'frontier';
  difficulty=Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'normal';
- const s={version:VERSION,tick:0,time:0,next:1,ended:false,winner:null,reason:'',practice,learning:practice&&learning===true,difficulty,botAttackAt:0,entities:[],crystals:[],rocks:[],events:[],visualEvents:[],fxNext:1,players:[0,1].map(()=>({crystals:250,upgrade:0,armor:0,alerts:{},kills:0,mined:0,knownCrystals:{},seen:Array(SIZE*SIZE).fill(0)})),botAt:3};
+ const s={version:VERSION,map,botMemory:{structures:{},scoutIndex:0,retreatUntil:0,tacticsAt:0,expansion:null},tick:0,time:0,next:1,ended:false,winner:null,reason:'',practice,learning:practice&&learning===true,difficulty,botAttackAt:0,entities:[],crystals:[],rocks:[],events:[],visualEvents:[],fxNext:1,players:[0,1].map(()=>({crystals:250,upgrade:0,armor:0,alerts:{},kills:0,mined:0,knownCrystals:{},seen:Array(SIZE*SIZE).fill(0)})),botAt:3};
  const fields=[{name:'Home field',points:[[3,6],[5,3],[3,3],[2,5],[2,7],[4,2]],left:2400},
   {name:'Near expansion',points:[[16,7],[16,9],[15,5],[17,6],[17,8],[17,10]],left:2400},
   {name:'Outer expansion',points:[[12,26],[12,28],[11,24],[13,25],[13,27],[13,29]],left:2400},
   {name:'Ridge expansion',points:[[27,12],[29,12],[25,11],[26,13],[28,13],[30,13]],left:2800},
   {name:'Frontier field',points:[[9,43],[10,45],[8,45],[9,47],[11,44],[11,46]],left:2800}];
+ if(map==='crossing'){for(const f of fields)if(f.name==='Near expansion')f.points=f.points.map(([x,y])=>[x+3,y+2]);}
+ if(map==='crescent'){for(const f of fields)if(f.name==='Outer expansion')f.points=f.points.map(([x,y])=>[x-4,y+3]);}
  for(const f of fields)for(const side of [0,1])for(const [x,y]of f.points){s.crystals.push({id:s.next++,x:side?SIZE-1-x:x,y:side?SIZE-1-y:y,left:f.left,initial:f.left,rich:false,field:f.name+' '+side})}
  for(const [x,y]of [[31,32],[32,31],[30,31],[33,32]])s.crystals.push({id:s.next++,x,y,left:3600,initial:3600,rich:true,field:'Central rich field'});
  for(const [x,y]of [[12,12],[13,12],[12,13],[15,18],[15,19],[18,14],[19,14],[9,23],[10,23]]){s.rocks.push({x,y});s.rocks.push({x:SIZE-1-x,y:SIZE-1-y})}
  // Mirrored broken ridges leave multiple wide routes between the bases.
  for(const [cx,cy]of [[23,21],[24,35],[19,43],[37,12]])for(const [dx,dy]of [[0,0],[1,0],[2,0],[2,1],[3,1]]){const x=cx+dx,y=cy+dy;s.rocks.push({x,y},{x:SIZE-1-x,y:SIZE-1-y})}
+ if(map!=='frontier'){
+  const rocks=[];const add=(x,y)=>{for(const [a,b]of [[x,y],[SIZE-1-x,SIZE-1-y]])if(!s.crystals.some(n=>Math.hypot(n.x-a,n.y-b)<3))rocks.push({x:a,y:b})};
+  if(map==='crossing')for(let y=0;y<32;y++)if(!(y>=14&&y<=20)&&y<29){add(31,y);add(32,y);}
+  if(map==='crescent')for(let x=5;x<=28;x++)if(x<16||x>22){add(x,20);add(x,21);}
+  s.rocks=[...new Map(rocks.map(r=>[key(r.x,r.y),r])).values()];
+ }
  for(const side of[0,1]){const p=side?SIZE-7:6;makeEntity(s,'base',side,p,p);for(let j=0;j<4;j++)makeEntity(s,'worker',side,p+(j%2)*.7-1,p+Math.floor(j/2)*.7+2)}
  if(s.learning){s.entities=s.entities.filter(e=>e.side===0||e.type==='base');const target=s.entities.find(e=>e.side===1);target.x=20;target.y=6;target.hp=target.maxHp=350;}
  vision(s);return s;
@@ -140,24 +154,78 @@ function harvest(s,e,dt){
 }
 function attacked(s,e){const category=e.type==='base'?'base':e.type==='worker'?'miners':'structures';s.players[e.side].alerts[category]={tick:s.tick,time:s.time,x:e.x,y:e.y}}
 function damage(s,att,target){const p=s.players[att.side],d=TYPES[att.type];let amount=(TYPES[target.type].flying?d.airDamage:d.damage)*(1+p.upgrade*.2);if(att.type==='scout'&&target.type==='siege')amount*=1.8;if(att.type==='laser'&&target.type==='scout')amount*=1.6;if(att.type==='siege'&&!unit(target.type))amount*=1.8;const raw=amount;amount*=1/(1+(s.players[target.side].armor||0)*.12);target.hp-=amount;attacked(s,target);if(target.hp<=0)p.kills++;s.events.push({type:'shot',side:att.side,x:att.x,y:att.y,tx:target.x,ty:target.y,kind:att.type,air:!!d.flying,targetAir:!!TYPES[target.type].flying});if(d.splash){for(const e of s.entities)if(e.id!==target.id&&e.side!==att.side&&e.hp>0&&!TYPES[e.type].flying&&dist(e,target)<d.splash){e.hp-=raw*.35/(1+(s.players[e.side].armor||0)*.12);attacked(s,e);if(e.hp<=0)p.kills++}}}
+// Commanders use their own vision and remembered structures, never hidden enemy positions.
 function bot(s){
- if(!s.practice||s.learning||s.time<s.botAt)return;const level=DIFFICULTIES[s.difficulty];s.botAt=s.time+level.pace;
- const own=s.entities.filter(e=>e.side===1&&e.hp>0),base=own.find(e=>e.type==='base'&&!e.build),factory=own.find(e=>e.type==='factory'&&!e.build),p=s.players[1];if(!base)return;
- const armySize=()=>own.filter(e=>unit(e.type)&&e.type!=='worker').length+own.reduce((n,e)=>n+e.queue.filter(k=>k!=='worker').length,0);
- const offset=SIZE-40;
- const tryBuild=(kind,sites)=>{for(const [x,y]of sites)if(command(s,1,{type:'build',kind,x:x+offset,y:y+offset}).ok)break};
- const miners=own.filter(e=>e.type==='worker').length;
- if(miners<level.workers)command(s,1,{type:'train',id:base.id,kind:'worker'});
- if(!own.some(e=>e.type==='factory'))command(s,1,{type:'build',kind:'factory',x:30+offset,y:32+offset});
- if(factory){if(armySize()<level.armyCap-(s.difficulty==='easy'?2:0))command(s,1,{type:'train',id:factory.id,kind:own.some(e=>e.type==='lab'&&!e.build)&&own.filter(e=>e.type==='siege').length<3?'siege':'laser'});if(s.time>level.techAt&&!own.some(e=>e.type==='lab'))command(s,1,{type:'build',kind:'lab',x:32+offset,y:30+offset})}
- if(s.time>level.techAt+45){if(!own.some(e=>e.type==='armory'))tryBuild('armory',[[29,29],[26,29],[29,26]]);if(!own.some(e=>e.type==='starport'))tryBuild('starport',[[35,30],[36,27],[30,27]]);if(!own.some(e=>e.type==='flak'))tryBuild('flak',[[31,36],[29,37],[31,27]]);
-  const hangar=own.find(e=>e.type==='starport'&&!e.build),air=own.filter(e=>TYPES[e.type].flying).length;if(hangar&&air+hangar.queue.length<(s.difficulty==='easy'?2:6)&&armySize()<level.armyCap)command(s,1,{type:'train',id:hangar.id,kind:air%3===2?'bomber':'interceptor'});
-  if(s.difficulty!=='easy'&&factory&&own.some(e=>e.type==='armory'&&!e.build)&&own.filter(e=>e.type==='guardian').length<2&&armySize()<level.armyCap)command(s,1,{type:'train',id:factory.id,kind:'guardian'});
+ if(!s.practice||s.learning||s.time<s.botAt)return;
+ const level=DIFFICULTIES[s.difficulty];s.botAt=s.time+level.pace;
+ const own=s.entities.filter(e=>e.side===1&&e.hp>0),bases=own.filter(e=>e.type==='base'&&!e.build),base=bases[0],p=s.players[1],m=s.botMemory;if(!base)return;
+ const visible=s.entities.filter(e=>e.side===0&&e.hp>0&&canSee(s,1,e));
+ for(const e of visible)if(!unit(e.type))m.structures[e.id]={id:e.id,type:e.type,x:e.x,y:e.y};
+ for(const [id,e]of Object.entries(m.structures))if(canSee(s,1,e)&&!visible.some(t=>String(t.id)===id))delete m.structures[id];
+ const army=own.filter(e=>unit(e.type)&&e.type!=='worker'&&e.type!=='scout'),miners=own.filter(e=>e.type==='worker');
+ const count=k=>own.filter(e=>e.type===k).length+own.reduce((n,e)=>n+e.queue.filter(t=>t===k).length,0);
+ const armySize=()=>army.length+own.reduce((n,e)=>n+e.queue.filter(k=>k!=='worker'&&k!=='scout').length,0);
+ const train=(producer,kind)=>producer&&producer.queue.length<2&&command(s,1,{type:'train',id:producer.id,kind}).ok;
+ const buildNear=(kind,at)=>{for(const [dx,dy]of [[-3,0],[0,-3],[3,0],[0,3],[-4,-4],[4,-4],[-4,4],[4,4],[-6,0],[0,-6],[6,0],[0,6],[-6,-3],[-3,-6],[-6,3],[3,-6],[6,-3],[-3,6],[6,3],[3,6],[-6,-6],[6,-6],[-6,6],[6,6]])if(command(s,1,{type:'build',kind,x:at.x+dx,y:at.y+dy}).ok)return true;return false};
+ const factory=own.find(e=>e.type==='factory'&&!e.build);
+ // Establish expansions beside discovered reserves. A real miner must travel and build.
+ if(m.expansion){const project=m.expansion,worker=miners.find(e=>e.id===project.worker);
+  if(!worker||bases.some(b=>dist(b,project)<6)||s.time-project.started>45){if(worker)worker.order=null;m.expansion=null;}
+  else {const result=dist(worker,project)<7?command(s,1,{type:'build',kind:'base',x:project.x,y:project.y}):null;
+   if(result?.ok){worker.order=null;m.expansion=null;}
+   else if(result?.message==='Choose clear ground'){worker.order=null;m.expansion=null;}
+   else if(worker.order?.type!=='move')command(s,1,{type:'move',ids:[worker.id],x:project.x,y:project.y});
+  }
  }
- const pop=supply(s,1);if(pop.cap-pop.used<5){for(const [x,y]of [[29,35],[26,33],[33,27],[28,28],[36,30],[36,35]]){if(command(s,1,{type:'build',kind:'relay',x:x+offset,y:y+offset}).ok)break}}
- const army=own.filter(e=>unit(e.type)&&e.type!=='worker');if(s.time>level.attackAt&&s.time>=s.botAttackAt&&army.length>=level.force){s.botAttackAt=s.time+level.wave;const target=s.entities.filter(e=>e.side===0&&e.type==='base')[0]||{x:6,y:6};command(s,1,{type:'attack',ids:(s.difficulty==='easy'?army.slice(0,3):army).map(e=>e.id),x:target.x,y:target.y})}
- if(p.crystals>550&&own.some(e=>e.type==='lab'&&!e.build)){if(p.upgrade<3)command(s,1,{type:'upgrade',kind:'weapons'});else if(p.armor<3)command(s,1,{type:'upgrade',kind:'armor'})}
- if(s.time>110&&p.crystals>600&&!own.some(e=>e.type==='base'&&e.x<30+offset)){const worker=own.find(e=>e.type==='worker');if(worker){const at={x:26+offset,y:30+offset};if(dist(worker,at)>2)command(s,1,{type:'move',ids:[worker.id],...at});else command(s,1,{type:'build',kind:'base',...at})}}
+ if(!m.expansion&&s.difficulty!=='easy'&&s.time>110&&miners.length>=level.workers&&bases.length<3&&!own.some(e=>e.type==='base'&&e.build)&&army.length>=3){
+  const nodes=Object.values(p.knownCrystals).filter(n=>n.left>600&&!n.rich&&bases.every(b=>dist(b,n)>12)).sort((a,b)=>dist(a,base)-dist(b,base));
+  outer:for(const n of nodes)for(const [dx,dy]of [[-4,0],[4,0],[0,-4],[0,4]]){const at={x:n.x+dx,y:n.y+dy};
+   if(at.x<3||at.y<3||at.x>60||at.y>60||s.rocks.some(r=>dist(r,at)<3)||s.crystals.some(r=>dist(r,at)<2.4)||own.some(e=>!unit(e.type)&&dist(e,at)<4))continue;
+   const worker=miners.slice().sort((a,b)=>dist(a,at)-dist(b,at))[0];if(worker&&path(s,worker,at).length){m.expansion={...at,worker:worker.id,started:s.time};command(s,1,{type:'move',ids:[worker.id],...at});break outer;}
+  }
+ }
+ // Keep the expansion budget reserved while its miner is on the way.
+ let reserve=m.expansion?350:0;
+ m.settledBases=m.settledBases||[base.id];
+ for(const expansion of bases.filter(b=>!m.settledBases.includes(b.id))){const field=s.crystals.filter(n=>n.left>0&&canSee(s,1,n)).sort((a,b)=>dist(a,expansion)-dist(b,expansion))[0];
+  if(field){const transfer=miners.slice().sort((a,b)=>dist(a,expansion)-dist(b,expansion)).slice(0,4);command(s,1,{type:'mine',ids:transfer.map(e=>e.id),x:field.x,y:field.y,target:field.id});m.settledBases.push(expansion.id);}
+ }
+ if(factory&&s.time>level.techAt+45&&p.crystals-reserve>=260){if(!own.some(e=>e.type==='armory'))buildNear('armory',base);else if(!own.some(e=>e.type==='starport'))buildNear('starport',base);}
+ if(factory&&s.time>level.techAt+45&&!own.some(e=>e.type==='starport'))reserve+=260;
+ const workerBase=bases.slice().sort((a,b)=>miners.filter(w=>dist(w,a)<10).length-miners.filter(w=>dist(w,b)<10).length)[0];
+ if(p.crystals-reserve>=50&&count('worker')<Math.min(24,level.workers+(bases.length-1)*6))train(workerBase,'worker');
+ if(!own.some(e=>e.type==='factory'))buildNear('factory',base);
+ const pop=supply(s,1);if(pop.cap-pop.used<6&&p.crystals-reserve>=100)buildNear('relay',miners[0]||base);
+ if(s.difficulty!=='easy'&&count('scout')===0&&p.crystals-reserve>=75)train(base,'scout');
+ if(p.crystals-reserve>=100&&factory&&armySize()<level.armyCap-(s.difficulty==='easy'?2:0)){
+  const enemyAir=visible.some(e=>TYPES[e.type].flying),hasArsenal=own.some(e=>e.type==='armory'&&!e.build),hasLab=own.some(e=>e.type==='lab'&&!e.build);
+  train(factory,enemyAir&&hasArsenal&&count('guardian')<3?'guardian':hasLab&&count('siege')<3?'siege':'laser');
+ }
+ if(s.time>level.techAt&&p.crystals-reserve>=220&&!own.some(e=>e.type==='lab'))buildNear('lab',base);
+ if(s.time>level.techAt+30&&p.crystals-reserve>=150&&!own.some(e=>e.type==='barracks'))buildNear('barracks',base);
+ const bay=own.find(e=>e.type==='barracks'&&!e.build);if(bay&&armySize()<level.armyCap-(s.difficulty==='easy'?2:0)&&p.crystals-reserve>=100)train(bay,count('medic')<Math.max(1,Math.floor(army.length/8))?'medic':'raider');
+ if(s.time>level.techAt+45&&p.crystals-reserve>=240){
+  const hangar=own.find(e=>e.type==='starport'&&!e.build);
+  if(hangar&&armySize()<level.armyCap&&own.filter(e=>TYPES[e.type].flying).length<(s.difficulty==='easy'?2:6))train(hangar,own.some(e=>e.type==='armory'&&!e.build)&&count('interceptor')>=2?'bomber':'interceptor');
+ }
+ if(p.crystals-reserve>550&&own.some(e=>e.type==='lab'&&!e.build))command(s,1,{type:'upgrade',kind:p.upgrade<3?'weapons':'armor'});
+ // Explore expansion fields first, then approach the opponent via a flank.
+ const scout=own.find(e=>e.type==='scout'),route=[{x:47,y:55},{x:50,y:37},{x:12,y:28},{x:6,y:6},{x:16,y:8}];
+ if(scout){const danger=visible.some(e=>canTarget(e,scout)&&dist(e,scout)<6);if(danger||scout.hp<scout.maxHp*.4)command(s,1,{type:'move',ids:[scout.id],x:base.x,y:base.y});else if(!scout.order||dist(scout,route[m.scoutIndex%route.length])<3){const at=route[m.scoutIndex++%route.length];command(s,1,{type:'move',ids:[scout.id],...at});}}
+ if(s.time<m.tacticsAt)return;m.tacticsAt=s.time+4;
+ const threat=visible.filter(e=>unit(e.type)&&e.type!=='worker'&&bases.some(b=>dist(b,e)<12)).sort((a,b)=>dist(a,base)-dist(b,base))[0];
+ const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded)command(s,1,{type:'move',ids:[e.id],x:base.x,y:base.y});
+ const ready=army.filter(e=>!wounded.includes(e));if(!ready.length)return;
+ if(threat){command(s,1,{type:'attack',ids:ready.map(e=>e.id),x:threat.x,y:threat.y});return;}
+ if(s.time<level.attackAt||s.time<m.retreatUntil)return;
+ const center={x:ready.reduce((n,e)=>n+e.x,0)/ready.length,y:ready.reduce((n,e)=>n+e.y,0)/ready.length};
+ const opposition=visible.filter(e=>unit(e.type)&&canTarget(e,ready[0])&&dist(e,center)<10);
+ if(s.difficulty!=='easy'&&dist(center,base)>14&&opposition.reduce((n,e)=>n+e.hp,0)>ready.reduce((n,e)=>n+e.hp,0)*1.4){m.retreatUntil=s.time+12;command(s,1,{type:'move',ids:ready.map(e=>e.id),x:base.x,y:base.y});return;}
+ if(ready.length<level.force||s.time<s.botAttackAt)return;s.botAttackAt=s.time+Math.max(6,level.wave);
+ const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').slice(0,3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
+ if(miner&&raiders.length)command(s,1,{type:'attack',ids:raiders.map(e=>e.id),x:miner.x,y:miner.y,target:miner.id});
+ const main=ready.filter(e=>!miner||!raiders.includes(e)),targets=Object.values(m.structures).sort((a,b)=>(a.type==='base'?0:1)-(b.type==='base'?0:1)||dist(a,center)-dist(b,center));
+ const target=targets[0]||{x:6,y:6};if(main.length)command(s,1,{type:'attack',ids:(s.difficulty==='easy'?main.slice(0,3):main).map(e=>e.id),x:target.x,y:target.y});
 }
 function tick(s,dt=STEP){
  if(s.ended)return;dt=clamp(dt,0,.1);s.time+=dt;s.tick++;s.events=[];s.harvesting=new Set();vision(s);bot(s);
@@ -188,6 +256,6 @@ function tick(s,dt=STEP){
  if(!bases[0]||!bases[1]){s.ended=true;s.winner=bases[0]?0:bases[1]?1:null;s.reason=bases[0]||bases[1]?'All command bases destroyed':'Both command bases destroyed · draw'}
  if(!s.learning&&s.time>=BATTLE_LIMIT&&!s.ended){s.ended=true;s.winner=null;s.reason='Twenty-minute battle limit · draw'}
 }
-function view(s,side){const p=s.players[side];return{version:VERSION,tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,learning:!!s.learning,difficulty:s.practice?s.difficulty:null,player:{alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e)),visualEvents:(s.visualEvents||[]).filter(e=>e.audience.includes(side)&&(e.side===side||canSee(s,side,e))).map(({audience,...e})=>e)}}
-return{VERSION,SIZE,STEP,BATTLE_LIMIT,DIFFICULTIES,TYPES,PRODUCERS,unlockMessage,canTarget,create,tick,command,placement,view,path,supply,canSee};
+function view(s,side){const p=s.players[side];return{version:VERSION,map:s.map,tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,learning:!!s.learning,difficulty:s.practice?s.difficulty:null,player:{alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e)),visualEvents:(s.visualEvents||[]).filter(e=>e.audience.includes(side)&&(e.side===side||canSee(s,side,e))).map(({audience,...e})=>e)}}
+return{VERSION,SIZE,STEP,BATTLE_LIMIT,MAPS,DIFFICULTIES,TYPES,PRODUCERS,unlockMessage,canTarget,create,tick,command,placement,view,path,supply,canSee};
 });
