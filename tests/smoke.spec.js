@@ -81,14 +81,16 @@ test('account signup is unmistakable and exposes measurable funnel events', asyn
   await expect(create).toHaveText('Create Free Account');
   await expect(create).toHaveClass(/green/);
   await expect(signIn).toHaveText('Sign In');
-  await expect(signIn).toHaveClass(/secondary/);
-
-  const order = await page.evaluate(() => {
-    const createButton = document.getElementById('cloudCreateButton');
-    const signInButton = document.getElementById('cloudSignInButton');
-    return createButton.compareDocumentPosition(signInButton) & Node.DOCUMENT_POSITION_FOLLOWING;
-  });
-  expect(order).toBeTruthy();
+  await expect(signIn).toHaveClass(/green/);
+  await expect(create).toBeHidden();
+  await page.locator('#createMode').click();
+  await expect(create).toBeVisible();
+  await expect(signIn).toBeHidden();
+  await expect(page.locator('#cloudPassword')).toHaveAttribute('autocomplete','new-password');
+  await expect(page.locator('#authTerms')).toBeVisible();
+  await page.locator('#signInMode').click();
+  await expect(signIn).toBeVisible();
+  await expect(page.locator('#cloudPassword')).toHaveAttribute('autocomplete','current-password');
 
   const account = await (await page.request.get('/account.html')).text();
   const cloud = await (await page.request.get('/cloud.js')).text();
