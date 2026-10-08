@@ -142,3 +142,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 }
 
 .cc-map-note{color:#a9d2df;font-size:11px;line-height:1.35;margin:6px 0 10px!important;text-align:center;letter-spacing:.35px}
+
+/* Battle selection stays compact and uses an open section. */
+.cc-map-choice{text-align:left;margin:10px 0;border-top:1px solid #81cada28;padding-top:9px}
+.cc-map-choice label{display:block;color:#9fdce5;font-size:9px;letter-spacing:1.3px;margin-bottom:5px}
+.cc-map-choice select{width:100%;min-height:42px;border:1px solid #75baca48;border-radius:10px;background:#0b2030;color:#e6f6fa;font:600 14px system-ui;padding:8px 10px}
+.cc-map-choice select:focus-visible{outline:2px solid #67eafa;outline-offset:2px}
+.cc-map-choice #mapDescription{font-size:10px;line-height:1.4;margin:6px 0 0;color:#adbfcb}

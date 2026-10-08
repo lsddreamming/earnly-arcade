@@ -270,3 +270,35 @@ test('Frontier radar reaches both far edges on a phone',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:440,height:956});await page.goto('/crystal-command.html');await page.locator('#practice').click();await page.locator('#pause').click();
  const point=await page.evaluate(()=>{const r=CrystalGame.renderer,m=r.minimapBounds,p=r.minimapPoint(m.x+m.w*.95,m.y+m.h*.95);r.center(p.x,p.y);return p});expect(point.x).toBeGreaterThan(60);expect(point.y).toBeGreaterThan(60);await page.locator('#home').click();expect(await page.evaluate(()=>CrystalGame.selection.length)).toBe(1);expect(errors).toEqual([]);
 });
+
+for(const map of Object.keys(E.MAPS)){
+ test(`strategic map ${map} preserves fair resources and connected expansion routes`,()=>{
+  const s=E.create({map});expect(s.map).toBe(map);expect(E.view(s,1).map).toBe(map);
+  for(const n of s.crystals){expect(s.crystals.some(m=>m.x===63-n.x&&m.y===63-n.y&&m.left===n.left)).toBe(true);expect(s.rocks.some(r=>r.x===n.x&&r.y===n.y)).toBe(false);}
+  for(const r of s.rocks)expect(s.rocks.some(m=>m.x===63-r.x&&m.y===63-r.y)).toBe(true);
+  for(const side of [0,1]){const b=s.entities.find(e=>e.side===side&&e.type==='base');for(const n of s.crystals)expect(E.path(s,b,n).length).toBeGreaterThan(0);}
+  expect(E.create({map,practice:true,learning:true}).map).toBe('frontier');
+ });
+ test(`commander ${map} scouts and establishes working expansions with earned resources`,()=>{
+  test.setTimeout(90000);const s=E.create({practice:true,difficulty:'normal',map});s.entities.find(e=>e.side===0&&e.type==='base').hp=1e8;advance(s,330);
+  const bases=s.entities.filter(e=>e.side===1&&e.type==='base'&&!e.build);expect(bases.length).toBeGreaterThan(1);
+  expect(s.players[1].crystals).toBeGreaterThanOrEqual(0);expect(s.players[1].mined).toBeGreaterThan(5000);
+  expect(Object.keys(s.players[1].knownCrystals).length).toBeGreaterThan(6);
+  expect(s.entities.some(e=>e.side===1&&e.type==='worker'&&e.home!==bases[0].id)).toBe(true);
+  expect(s.entities.some(e=>e.side===1&&e.type==='starport')).toBe(true);
+ });
+}
+function tacticalArmy(s,type,count,x,y,side=1){const template=s.entities.find(e=>e.type==='worker'),out=[];for(let i=0;i<count;i++){const e={...template,id:s.next++,side,type,x:x+i*.2,y,hp:E.TYPES[type].hp,maxHp:E.TYPES[type].hp,queue:[],path:[],order:null};s.entities.push(e);out.push(e);}return out;}
+test('commander remembers sightings without tracking hidden movement',()=>{
+ const s=E.create({practice:true,difficulty:'normal'});s.time=100;s.players[1].crystals=0;const army=tacticalArmy(s,'laser',5,20,20);const enemy=s.entities.find(e=>e.side===0&&e.type==='base');enemy.x=23;enemy.y=20;E.tick(s);expect(s.botMemory.structures[enemy.id]).toMatchObject({x:23,y:20});
+ enemy.x=4;enemy.y=45;s.botAt=0;s.botMemory.tacticsAt=0;s.botAttackAt=0;E.tick(s);expect(s.botMemory.structures[enemy.id]).toBeUndefined();expect(army[0].order.x).not.toBe(4);expect(E.view(s,0).botMemory).toBeUndefined();
+});
+test('commanders defend expansions, raid visible miners and retreat from superior forces',()=>{
+ const s=E.create({practice:true,difficulty:'hard'});s.time=200;s.players[1].crystals=0;
+ const army=tacticalArmy(s,'laser',6,46,46),expansion=tacticalArmy(s,'base',1,44,44)[0],intruder=tacticalArmy(s,'laser',1,45,44,0)[0];E.tick(s);expect(army[0].order.type).toBe('attack');expect(army[0].order.x).toBeCloseTo(intruder.x-1,0);
+ s.entities=s.entities.filter(e=>e.id!==intruder.id&&e.id!==expansion.id);army.forEach(e=>{e.x=25;e.y=25;});tacticalArmy(s,'cruiser',8,26,25,0);s.botAt=0;s.botMemory.tacticsAt=0;E.tick(s);expect(s.botMemory.retreatUntil).toBeGreaterThan(s.time);expect(army[0].order.type).toBe('move');expect(army[0].order.x).toBeGreaterThan(50);
+ const raid=E.create({practice:true,difficulty:'hard'});raid.time=200;raid.players[1].crystals=0;const raiders=tacticalArmy(raid,'raider',3,20,20);tacticalArmy(raid,'laser',3,21,20);const miner=tacticalArmy(raid,'worker',1,22,20,0)[0];E.tick(raid);expect(raiders[0].order.target).toBe(miner.id);
+});
+test('battlefield selection persists on phones and learning keeps its safe map',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#battleMap').selectOption('crossing');await expect(page.locator('#mapDescription')).toContainText('Three passages');await page.reload();await expect(page.locator('#battleMap')).toHaveValue('crossing');await page.locator('#practice').click();expect(await page.evaluate(()=>CrystalGame.view.map)).toBe('crossing');await expect(page.locator('#hint')).toContainText('Shattered Crossing');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.locator('#quit').click();await page.getByRole('button',{name:'Quit battle',exact:true}).click();await page.locator('#again').click();await page.locator('#learn').click();expect(await page.evaluate(()=>CrystalGame.view.map)).toBe('frontier');
+});
