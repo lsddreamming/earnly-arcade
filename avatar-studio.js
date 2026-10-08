@@ -174,7 +174,7 @@
       card.append(
         art,
         el("h3", "", item.name),
-        el("p", "", prettySlot[item.slot] + " · " + item.rarity),
+        el("p", "item-category", prettySlot[item.slot]),
         el("p", "item-ownership", equipped ? "✓ Equipped" : owned ? "✓ Owned · equip anytime" : item.coinPrice === 0 ? "Free essential" : "◈ " + fmt(item.coinPrice) + " coins"),
         preview,
         button,
@@ -287,7 +287,10 @@
       const button = el("button", "subtle", "Try this look →"); button.type = "button";
       button.setAttribute("aria-label", "Preview " + look.name);
       button.addEventListener("click", () => { state.preview = {...equipped}; renderUser(); showPreview(); });
-      copy.append(price, detail, button); card.append(art, copy); $("featured-looks").append(card);
+      const progress = el("div", "look-progress");
+      progress.setAttribute("aria-hidden", "true");
+      for (const piece of pieces) progress.append(el("span", state.user?.inventory.includes(piece.id) ? "owned" : ""));
+      copy.append(price, detail, progress, button); card.append(art, copy); $("featured-looks").append(card);
     }
     $("signature-looks").hidden = !$("featured-looks").children.length;
   }
