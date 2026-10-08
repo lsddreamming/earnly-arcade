@@ -183,3 +183,25 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 #lobby #factionDescription,#lobby #factionTradeoff{text-align:left;font-size:12px;line-height:1.45}
 
 #lobby #practice{background:linear-gradient(110deg,#22778d,#179fae);border-color:#8cefff;box-shadow:0 5px 20px #30cddd24}#lobby #learn{background:#172d40;border-color:#577a92;box-shadow:none}
+
+/* Polished command console, scoped to the start menu. */
+#lobby .cc-card{border-color:#6fdbea66;background:radial-gradient(ellipse at 100% 0,#25607866,transparent 46%),linear-gradient(145deg,#142d43f7,#091527fc 75%);box-shadow:0 24px 70px #0009,0 0 40px #3edbe919,inset 0 1px 0 #b5faff33;border-radius:24px}
+#lobby .cc-lobby-heading{gap:15px;margin-bottom:15px}
+#lobby .cc-menu-kicker{display:block;font-size:8px;letter-spacing:1.8px;font-weight:800;color:#b6dbeb;margin-bottom:5px}
+#lobby .cc-lobby-heading h2{font-size:25px;font-weight:850;line-height:1.02;letter-spacing:-.8px;text-shadow:none}
+#lobby .cc-lobby-heading h2 em{display:block;color:#8fefff;font-style:normal}
+#lobby .cc-lobby-heading p{margin:5px 0 0;font-size:11px;color:#a8c8d9}
+#lobby .cc-lobby-heading>.cc-menu-crystal{display:block;flex:0 0 38px;height:58px;background:linear-gradient(105deg,#287d9c 0 28%,#99fbff 29% 48%,#43d6e8 49% 66%,#15728c 67%);clip-path:polygon(50% 0,100% 34%,74% 90%,50% 100%,23% 88%,0 33%);filter:drop-shadow(0 0 12px #51dcff88)}
+#lobby .cc-difficulty{padding:4px;border-radius:13px;background:#050e1d77;border:1px solid #6797b32b}
+#lobby .cc-difficulty button{margin:0;border-color:transparent;background:transparent;color:#a9c3d6;border-radius:9px}
+#lobby .cc-difficulty button[aria-checked=true]{color:#eaffff;border-color:#7deafa;background:linear-gradient(135deg,#267085,#174152);box-shadow:0 2px 12px #25cce82b,inset 0 1px 0 #b7ffff33}
+#lobby .cc-map-choice{border-top-color:#84c4e01c}
+#lobby .cc-map-choice label{color:#92d3e2;font-weight:700;letter-spacing:1.2px}
+#lobby .cc-map-choice select{border-color:#699eaf55;background:linear-gradient(130deg,#183449,#102638);box-shadow:inset 0 1px 0 #c5faff09;border-radius:11px}
+#lobby #practice{position:relative;background:linear-gradient(110deg,#93f5e6,#65dcf1);color:#082b3a;border:1px solid #c6fff6;box-shadow:0 6px 22px #55e8db26,inset 0 1px 0 #fff8;font-weight:850;letter-spacing:.2px;border-radius:13px}
+#lobby #practice:hover{background:linear-gradient(110deg,#b4fff1,#86edff)}
+#lobby #learn{border-style:dashed;border-color:#6cabc066;color:#bde9f5;background:#15304655;border-radius:11px}
+#lobby .room-actions button{border-color:#638bad66;background:linear-gradient(135deg,#213c56,#17263d);color:#dfedff;border-radius:12px;box-shadow:inset 0 1px 0 #a8d6ff12}
+#lobby button:focus-visible,#lobby summary:focus-visible{outline:2px solid #ffe09d;outline-offset:3px}
+#lobby details{border-top-color:#79aed126;color:#a9c9dd}
+@media(max-width:360px){#lobby .cc-card{padding:14px}#lobby .cc-lobby-heading h2{font-size:22px}#lobby .cc-lobby-heading{gap:11px}}
