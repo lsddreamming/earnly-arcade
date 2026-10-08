@@ -154,3 +154,32 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 .cc-faction-choice p{font-size:11px;line-height:1.45;margin:7px 0 10px;color:#b8ccd9}
 .cc-faction-choice #factionTradeoff{color:#c9e4d4;font-size:10px}
 @media(max-width:799px){.cc-palette[data-mode=train][data-many=true]{display:flex;overflow-x:auto;justify-content:flex-start;gap:6px}.cc-palette[data-mode=train][data-many=true] button{flex:0 0 142px;min-width:142px;max-width:142px;min-height:66px;padding:7px 8px 7px 34px}.cc-palette[data-many=true] .cc-role{white-space:normal;line-height:1.15;font-size:9px}.cc-tools #selectMiners{overflow:hidden;font-size:9px}.cc-context{overflow-wrap:anywhere}}
+
+/* Compact battle setup: primary actions fit on a phone without the tall splash. */
+#lobby .cc-card{padding:16px 18px;max-width:440px;width:calc(100% - 24px)}
+#lobby .cc-lobby-heading{display:flex;align-items:center;gap:12px;text-align:left;margin:0 0 12px}
+#lobby .cc-lobby-heading>span{font-size:38px;color:#7ceeff;text-shadow:0 0 20px #55ddff88}
+#lobby .cc-lobby-heading h2{font-size:23px;letter-spacing:-.6px;margin:0}
+#lobby .cc-lobby-heading p{font-size:12px;margin:3px 0 0;color:#a9c9d9}
+#lobby #learn{min-height:40px;margin:0;font-size:13px;padding:8px}
+#lobby #learnNote{font-size:10px;margin:5px 0 10px}
+#lobby .cc-difficulty{margin:6px 0;gap:6px}
+#lobby .cc-difficulty button{min-height:42px;padding:6px;font-size:12px}
+#lobby .cc-difficulty small{display:none}
+#lobby .cc-map-choice{margin:8px 0;padding-top:8px}
+#lobby .cc-map-choice select{min-height:42px;font-size:13px;padding:7px 9px}
+#lobby .cc-map-choice label{margin:0 0 4px;font-size:9px}
+#lobby #mapDescription{font-size:10px;margin:4px 0 0}
+#lobby .cc-faction-choice{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+#lobby .cc-faction-choice label[for=faction]{grid-column:1;grid-row:1}
+#lobby #faction{grid-column:1;grid-row:2}
+#lobby .cc-faction-choice label[for=opponentFaction]{grid-column:2;grid-row:1}
+#lobby #opponentFaction{grid-column:2;grid-row:2}
+#lobby #practice{margin:10px 0 8px;min-height:46px;font-size:15px}
+#lobby .room-actions{margin:0;gap:7px}
+#lobby .room-actions button{min-height:44px;padding:7px;font-size:11px}
+#lobby details{margin-top:10px;padding-top:10px;font-size:11px}
+#lobby .cc-footer-link{margin-top:10px;font-size:10px}
+#lobby #factionDescription,#lobby #factionTradeoff{text-align:left;font-size:12px;line-height:1.45}
+
+#lobby #practice{background:linear-gradient(110deg,#22778d,#179fae);border-color:#8cefff;box-shadow:0 5px 20px #30cddd24}#lobby #learn{background:#172d40;border-color:#577a92;box-shadow:none}
