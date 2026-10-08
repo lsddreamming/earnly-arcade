@@ -6,7 +6,8 @@ Prepared for the next iOS update. This file is release documentation only; it do
 - App: Earnly Arcade
 - Bundle ID: com.earnly.arcade
 - Marketing version: 1.1
-- Build number: 2
+- Signed TestFlight build number: 100 + the dedicated workflow run number (first run: 101)
+- Local simulator default build number: 2
 - In-app engine version: 1.1.0
 
 ## Reviewer paths
@@ -54,3 +55,11 @@ Do not upload to App Store Connect until:
 
 ## Submission reminder
 Uploading/submitting a new App Store build requires explicit owner approval. Keep the already released/submitted 1.0 record untouched.
+
+## Signed TestFlight candidate
+
+Use `.github/workflows/ios-v1-1-testflight.yml` for the current 1.1 candidate. It runs on main when that workflow is changed, or by manual dispatch. It signs 1.1 with live AdMob configuration and uploads the same run's IPA only after the exact commit passes automated QA, the native simulator build, and Pages publication. A newer main commit blocks upload. The legacy 1.0 archive and upload workflows are not used.
+
+The workflow upload makes a build available for Apple processing; it does not submit it to App Review or publish it. Once processed, assign it to the existing internal TestFlight group if automatic distribution is not enabled.
+
+Before App Review, install this exact candidate on an iPhone and check guest play, account sign-in, account deletion access, rewarded-ad return, Crystal Command controls, game pause/quit, and Character Studio browsing/equipping. Confirm website coin checkout remains hidden in the native app. Update review notes and screenshots to describe the packaged build.
