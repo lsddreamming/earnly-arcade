@@ -106,3 +106,127 @@ input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;flex:none}
  .item-card h3{line-height:1.35;min-height:38px}
  .item-card .item-ownership{font-size:11px;line-height:1.5}
 }
+
+/* Showroom pass: tighter rhythm, larger artwork, and one bottom-nav allowance. */
+body{background:radial-gradient(ellipse at 0 0,#12445566,transparent 42rem),radial-gradient(ellipse at 100% 24%,#40267444,transparent 40rem),#070e1b}
+main{padding-bottom:20px}
+body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+.public-footer{margin-bottom:0;padding-bottom:0!important}
+.header{gap:14px;background:#081321e8}
+.brand small{letter-spacing:3px;color:#96aec7}
+.page-title{padding:18px 0;min-height:0}
+.page-title .eyebrow{color:#99d6de;letter-spacing:2px}
+.page-title h1{font-size:clamp(38px,4.8vw,58px);letter-spacing:-2px}
+.page-title h1 span{background:linear-gradient(95deg,#5ce9ee,#8dbeff 68%,#b09aff);background-clip:text;-webkit-background-clip:text}
+.studio-shortcuts a{border-radius:14px}
+#signature-looks{margin-bottom:20px}
+#featured-looks .look-card{border-radius:24px;position:relative}
+#featured-looks .look-art{background:radial-gradient(ellipse at 50% 58%,color-mix(in srgb,var(--look-accent) 24%,transparent),transparent 67%)}
+#featured-looks .look-art:before{content:"";position:absolute;inset:22% 5% 16%;border:1px solid color-mix(in srgb,var(--look-accent) 20%,transparent);border-radius:50%;transform:rotate(-18deg);pointer-events:none}
+#featured-looks .look-art .character{filter:drop-shadow(0 12px 12px #0006)}
+#featured-looks .look-detail{margin-bottom:8px}
+.look-progress{display:flex;gap:4px;margin:0 0 14px}
+.look-progress span{flex:1;height:3px;border-radius:3px;background:#ffffff1f}
+.look-progress .owned{background:var(--look-accent);box-shadow:0 0 7px color-mix(in srgb,var(--look-accent) 25%,transparent)}
+#featured-looks button{border-radius:12px;background:color-mix(in srgb,var(--look-accent) 13%,transparent)}
+.coin-shop.panel{padding-top:22px;padding-bottom:22px;margin-bottom:22px}
+.coin-pack{border-radius:20px!important;isolation:isolate}
+.coin-pack:after{content:"◈";width:auto;height:auto;right:10px;top:22px;bottom:auto;background:none;font-size:115px;line-height:1;color:#ffe0a0;opacity:.075;transform:rotate(-12deg);z-index:-1}
+.pack-heading{margin-bottom:10px;min-height:28px}
+.coin-pack .pack-rate{margin-bottom:14px}
+.coin-pack button{border-radius:12px;box-shadow:0 6px 18px #ffc76116}
+.browse-unlocks{border-radius:14px}
+.showcase.panel{padding:18px;background:linear-gradient(145deg,#142b3b80,#10192b55);border-radius:26px;box-shadow:inset 0 1px 0 #b5dfff16}
+.showcase.panel:before{display:none}
+.showcase .stage{box-shadow:none;background:radial-gradient(ellipse at 50% 65%,#3edcea1c,transparent 68%);border-radius:24px!important}
+.showcase .panel-top{padding:0;margin-bottom:4px}
+.showcase .fine-print{font-size:10px;line-height:1.5;margin-bottom:0}
+.showcase>.primary{min-height:44px;border-radius:12px;font-size:12px}
+.showcase .loadout-details{margin:8px 0}
+.showcase .loadout-details>summary{background:transparent;padding-left:0}
+.item-card{border-radius:20px;padding:9px;box-shadow:inset 0 1px 0 #e2f2ff14,0 8px 22px #0003}
+.item-card:before{inset:0 15px auto;width:auto;height:2px;background:linear-gradient(90deg,transparent,var(--rarity),transparent);opacity:.65}
+.item-card .item-art{height:190px!important;border-radius:15px!important;background:radial-gradient(ellipse at 50% 60%,#477a9544,transparent 70%)!important}
+.item-card h3{min-height:0;margin:10px 3px 4px;font-size:14px;line-height:1.35;letter-spacing:-.2px}
+.item-card .item-category{font-size:10px;margin:0 3px 6px;color:#9bafc6}
+.item-card .item-ownership{margin:0 3px 6px;min-height:20px;font-size:12px}
+.item-card button.preview-item{margin-bottom:4px;border-radius:10px;background:#8fcfff08}
+.item-card button.buy,.item-card button.equipped,.item-card.legendary button.buy{border-radius:11px}
+.shop-toolbar{margin-bottom:8px}
+.shop-toolbar>label,.shop-toolbar>div{background:transparent;box-shadow:none;padding:4px 0}
+.shop-reassurance{margin-bottom:14px}
+.leaderboard.panel{margin-top:24px;padding-top:20px}
+.leaderboard tbody tr:first-child{background:linear-gradient(90deg,#ffd2790d,transparent)}
+.leaderboard td{padding-top:12px;padding-bottom:12px}
+.bottom-nav{background:#081423f5;box-shadow:0 -8px 28px #0003;border-top-color:#80c3e522}
+.bottom-nav-item{font-size:11px;min-height:48px}
+.bottom-nav-icon{font-size:19px}
+@media(max-width:680px){
+ main{padding-top:14px;padding-bottom:16px}
+ .header{padding:12px 16px;gap:10px}
+ .brand{font-size:16px;display:flex;align-items:baseline;flex-wrap:wrap;gap:0}
+ .brand small{margin:0 0 0 12px;font-size:8px;letter-spacing:2px}
+ .account-bar{gap:6px}
+ .account-bar #nav-name{max-width:74px;font-size:11px}
+ .account-bar .profile-button{padding-right:8px}
+ .account-bar #auth-button{padding:9px 8px;font-size:11px;min-height:44px}
+ .coin-chip{padding:7px 9px}
+ .get-coins{border-radius:12px;min-height:44px;display:inline-flex;align-items:center;padding:9px 12px}
+ .page-title{margin:0;padding:12px 0 16px}
+ .page-title h1{font-size:36px!important;line-height:1.04}
+ .studio-shortcuts{gap:6px;margin:8px 0 16px}
+ .studio-shortcuts a{padding:8px 10px;font-size:10px;min-height:44px}
+ #signature-looks h2{font-size:25px;letter-spacing:-.8px}
+ #signature-looks>.collection-note{margin-bottom:12px}
+ #featured-looks .look-card{grid-template-columns:115px minmax(0,1fr);gap:12px;padding:15px;flex-basis:90%}
+ #featured-looks .look-art{height:205px}
+ #featured-looks .look-description{font-size:11px;margin-bottom:10px}
+ #featured-looks .look-edition{font-size:8px;letter-spacing:1px}
+ #featured-looks h3{font-size:18px}
+ #featured-looks .look-detail{font-size:10px}
+ #featured-looks .look-price{font-size:13px}
+ .coin-shop h2{font-size:25px;letter-spacing:-.8px}
+ .coin-shop .coin-pack{flex-basis:70vw;max-width:280px;min-height:206px;padding:16px!important}
+ .coin-pack .coin-amount{font-size:32px!important}
+ .coin-pack>p{margin:5px 0}
+ .coin-pack .pack-rate{margin:5px 0 12px}
+ .coin-pack button{min-height:44px}
+ #extra-plays{margin-top:16px;padding-top:14px}
+ .studio-layout{gap:14px}
+ .showcase.panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px;padding:16px}
+ .showcase>*{grid-column:1/-1;min-width:0}
+ .showcase .stage{grid-column:1;grid-row:2/5;height:230px!important;margin:4px 0 0}
+ .showcase .character-caption{grid-column:2;grid-row:2;align-self:end;text-align:left;margin:8px 0 0}
+ .showcase .character-caption h3{font-size:18px;line-height:1.2;margin-bottom:4px}
+ .showcase .character-caption p{font-size:11px;overflow-wrap:anywhere}
+ .showcase .preview-note{grid-column:2;grid-row:3;text-align:left;margin:5px 0;font-size:10px;align-self:start}
+ .showcase .focus-controls{grid-column:2;grid-row:4;display:flex;flex-direction:column;gap:4px;margin:4px 0 8px;align-self:start}
+ .showcase .focus-controls button{border-radius:10px;font-size:11px;padding:7px}
+ .showcase .stage:before{bottom:18px;height:22px;left:4%;right:4%}
+ .showcase .loadout-details{margin:4px 0}
+ .showcase .loadout-details>summary{font-size:11px}
+ .shop.panel{padding-top:10px}
+ .shop-grid{gap:10px}
+ .item-card .item-art{height:170px!important}
+ .item-card h3{font-size:13px;min-height:35px}
+ .item-card .badge{font-size:8px;letter-spacing:1px;top:5px;left:5px;padding:5px 7px}
+ .item-card button{font-size:11px;padding:8px}
+ .shop-tabs{margin-top:10px;margin-bottom:8px}
+ #shop-search{padding:12px 15px}
+ .shop-filters{margin-top:8px;margin-bottom:5px}
+ #shop-result-count{margin-top:8px}
+ .public-footer{font-size:10px;line-height:1.5;margin-top:18px!important;padding-top:10px}
+ .public-footer a{font-size:11px;padding:7px 8px}
+}
+@media(max-width:360px){
+ .brand small{font-size:7px;letter-spacing:1.5px}
+ .account-bar #nav-name{display:none}
+ .studio-shortcuts a{font-size:9px;padding:8px}
+ #featured-looks .look-card{grid-template-columns:92px minmax(0,1fr);gap:9px;padding:12px;flex-basis:94%}
+ #featured-looks .look-art{height:205px}
+ .showcase.panel{padding:12px;column-gap:10px}
+ .showcase .character-caption h3{font-size:16px}
+ .item-card .item-art{height:150px!important}
+}
+/* Keep the extra-play action above decorative section layers. */
+#extra-plays button{position:relative;z-index:1;border-radius:12px}
