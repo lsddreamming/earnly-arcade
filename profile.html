@@ -165,7 +165,7 @@
       <div class="profile-milestone">
         <span>🎮 Arcade Marathon · 25 completed games</span>
         <strong id="arcadeMarathonProgress">0 / 25</strong>
-        <small>Earn 250 Arcade Coins through gameplay — completely separate from App Store reviews.</small>
+        <small>250-Coin milestone reward planned; claim activation requires verified gameplay rewards. Reviews are always optional.</small>
         <a href="games.html">Play games →</a>
       </div>
     </section>
@@ -367,7 +367,6 @@
 
     document.getElementById('rateEarnlyButton').addEventListener('click', async () => {
       // Apple reviews are never tied to a coin grant or any reward claim.
-      const storeUrl = 'https://apps.apple.com/app/id0000000000';
       const button = document.getElementById('rateEarnlyButton');
       if (window.Capacitor?.isNativePlatform?.()) {
         try {
