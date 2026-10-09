@@ -1,4 +1,4 @@
-name: Earnly 1.1 TestFlight
+name: Earnly 1.2 App Store upload
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: earnly-1.1-testflight
+  group: earnly-1.2-upload
   cancel-in-progress: false
 
 jobs:
@@ -55,7 +55,7 @@ jobs:
     env:
       BUILD_ADMOB_MODE: live
       EARNLY_ADMOB_TEST_MODE: '0'
-      EARNLY_IOS_MARKETING_VERSION: '1.1'
+      EARNLY_IOS_MARKETING_VERSION: '1.2'
       TEAM_ID: 27R798NCMZ
       BUNDLE_ID: com.earnly.arcade
       PROFILE_NAME: Earnly Arcade App Store
@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set unique 1.1 build number
+      - name: Set unique 1.2 build number
         run: echo "EARNLY_IOS_BUILD_NUMBER=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
@@ -105,7 +105,7 @@ jobs:
           fi
           grep -q "<string>$EXPECTED_APP_ID</string>" ios/App/App/Info.plist
           if grep -q "NSUserTrackingUsageDescription" ios/App/App/Info.plist; then
-            echo "Unexpected ATT usage text in non-personalized v1.1 build"
+            echo "Unexpected ATT usage text in non-personalized v1.2 build"
             exit 1
           fi
           grep -Eq "TEST_MODE[[:space:]]*=[[:space:]]*$EXPECTED_TEST_MODE" www/native-ads.js
@@ -174,14 +174,14 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             PROVISIONING_PROFILE="$PROFILE_UUID" \
-            MARKETING_VERSION=1.1 \
+            MARKETING_VERSION=1.2 \
             CURRENT_PROJECT_VERSION="$EARNLY_IOS_BUILD_NUMBER" \
             archive
 
-      - name: Verify 1.1 archive version and icon
+      - name: Verify 1.2 archive version and icon
         run: |
           APP_PLIST="build/EarnlyArcade.xcarchive/Products/Applications/App.app/Info.plist"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PLIST")" = "1.1"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PLIST")" = "1.2"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PLIST")" = "$EARNLY_IOS_BUILD_NUMBER"
           test -s build/EarnlyArcade.xcarchive/Products/Applications/App.app/Assets.car
 
@@ -222,7 +222,7 @@ jobs:
       - name: Upload signed IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: earnly-arcade-ios-1.1-${{ github.run_number }}
+          name: earnly-arcade-ios-1.2-${{ github.run_number }}
           path: build/export/*.ipa
           retention-days: 7
 
@@ -230,7 +230,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: earnly-ios-1.1-signing-diagnostics
+          name: earnly-ios-1.2-signing-diagnostics
           path: |
             build/
             ios/App/App.xcodeproj/project.pbxproj
@@ -241,16 +241,16 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 30
     steps:
-      - name: Download this run's signed 1.1 package
+      - name: Download this run's signed 1.2 package
         uses: actions/download-artifact@v4
         with:
-          name: earnly-arcade-ios-1.1-${{ github.run_number }}
+          name: earnly-arcade-ios-1.2-${{ github.run_number }}
           path: ipa
       - name: Verify version before upload
         run: |
           test -f ipa/App.ipa
           unzip -p ipa/App.ipa Payload/App.app/Info.plist > "$RUNNER_TEMP/upload-info.plist"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/upload-info.plist")" = '1.1'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/upload-info.plist")" = '1.2'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/upload-info.plist")" = "$((100 + GITHUB_RUN_NUMBER))"
           shasum -a 256 ipa/App.ipa
       - name: Confirm candidate is still current
