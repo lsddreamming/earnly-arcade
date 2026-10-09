@@ -46,6 +46,7 @@
   <script src="potato-rig.js"></script>
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
+  <link rel="stylesheet" href="rank-discovery.css">
 </head>
 <body class="leaderboards-dashboard">
   <main class="container">
@@ -64,6 +65,13 @@
     <section class="leaderboard-toolbar">
       <select id="gameSelect" aria-label="Choose leaderboard game"></select>
       <a class="button secondary" href="profile.html">Edit username & icon</a>
+    </section>
+
+    <section class="rank-challenge" aria-label="Your next challenge">
+      <strong id="rankStanding">Find your next score to beat</strong>
+      <p id="rankTarget">Choose a game to see its world rankings.</p>
+      <a id="rankPlay" class="button wide" href="snake.html">Play Snake →</a>
+      <small>Your next high score starts with another run. Daily arcade plays refill each day.</small>
     </section>
 
     <section class="leaderboard-card" aria-live="polite">
@@ -169,6 +177,12 @@
       document.getElementById('boardTitle').textContent = info[1] + ' ' + info[2] + ' · World Top 25';
       document.getElementById('boardRule').textContent = game === 'memory' ? 'Fewest moves wins' : 'Highest score wins';
 
+      const directGames = {snake:'snake.html',blockDrop:'blockdrop.html',tapRush:'taprush.html',memory:'memory.html',brickBreaker:'brickbreaker.html',jungleHopper:'junglehopper.html',towerStack:'towerstack.html',coinCatch:'coincatch.html',colorMatch:'colormatch.html',paddleRally:'paddlerally.html',laneRunner:'lanerunner.html',safeCracker:'safecracker.html',neonDrift:'neondrift.html',starDefender:'stardefender.html',neonBreach:'neonbreach.html',neonMaze:'neonmaze.html'};
+      const play = document.getElementById('rankPlay');
+      play.href = directGames[game] || 'mini.html?game=' + encodeURIComponent(game);
+      play.textContent = 'Play ' + info[2] + ' →';
+      document.getElementById('rankStanding').textContent = 'Checking this board…';
+      document.getElementById('rankTarget').textContent = 'Your target will appear when rankings load.';
       if (showLoading) {
         list.innerHTML = '<div class="leaderboard-empty">Loading world rankings…</div>';
         record.classList.remove('show');
@@ -194,6 +208,10 @@
         const hidden = blockedUsers();
         const entries = (data.entries || []).filter(entry => !hidden.has(String(entry.username || '').toLowerCase()));
         list.replaceChildren();
+        const mine = entries.find(e => myUsername() && String(e.username || '').toLowerCase() === myUsername());
+        const target = mine ? entries.filter(e => Number(e.rank) < Number(mine.rank) && (game === 'memory' ? Number(e.score) < Number(mine.score) : Number(e.score) > Number(mine.score))).at(-1) : entries.at(-1);
+        document.getElementById('rankStanding').textContent = mine ? 'Your world rank: #' + mine.rank : myUsername() ? 'Your score is not in this displayed Top 25' : 'Set your leaderboard username in Profile to compete';
+        document.getElementById('rankTarget').textContent = !entries.length ? 'Set the first score on this board.' : mine && Number(mine.rank) === 1 ? 'You hold the top spot. Can you improve your record?' : target ? 'Score to beat: ' + scoreText(target, data) + ' · @' + target.username + (game === 'memory' ? ' · Fewer moves wins.' : '') : 'Improve your best to climb the board.';
 
         if (!entries.length) {
           const empty = document.createElement('div');
@@ -274,6 +292,8 @@
         record.classList.add('show');
       } catch (error) {
         if (loadId !== boardLoadId || game !== select.value) return;
+        document.getElementById('rankStanding').textContent = 'Rankings are unavailable right now';
+        document.getElementById('rankTarget').textContent = 'You can still play. Try this board again later.';
         if (!list.querySelector('.leader-row')) {
           list.innerHTML = '<div class="leaderboard-empty">' + (error?.message || 'Could not load world rankings.') + '</div>';
           record.classList.remove('show');
