@@ -17,6 +17,14 @@
   <link rel="stylesheet" href="premium.css?v=36">
   <style>
     .profile-avatar{display:grid;place-items:center}
+    .profile-review-card,.profile-play-milestone{display:flex;align-items:center;gap:12px;margin:14px 0;padding:14px 16px;border-radius:17px;background:linear-gradient(120deg,#17243b,#102b3c);border:1px solid rgba(76,198,243,.42)}
+    .profile-review-stars{color:#facc15;letter-spacing:1px;font-size:15px;flex-shrink:0}
+    .profile-review-card>div,.profile-play-milestone>div{min-width:0;flex:1;display:grid;gap:4px}
+    .profile-review-card strong,.profile-play-milestone strong{color:#fff;font-size:14px}
+    .profile-review-card small,.profile-play-milestone small{color:#bdcee0;font-size:12px;line-height:1.4}
+    .profile-review-button,.profile-play-milestone>a{color:#061b2e;background:#7dd3fc;border-radius:11px;padding:10px 12px;font-weight:800;font-size:12px;text-decoration:none;white-space:nowrap}
+    @media(max-width:520px){.profile-review-card{flex-wrap:wrap}.profile-review-stars{width:100%}.profile-review-button{margin-left:auto}}
+
     .global-profile-card{margin-top:14px;padding:14px;border:1px solid #334155;border-radius:16px;background:linear-gradient(145deg,#132238,#0d192a)}
     .global-profile-head{display:grid;gap:3px;margin-bottom:11px}
     .global-profile-head strong{font-size:14px;color:#f8fafc}
@@ -116,6 +124,18 @@
     <div id="profile-coin-shop" hidden>
       <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Buy Arcade Coins</strong><small>Outfits, accessories &amp; extra plays · from $1.99</small></span><span aria-hidden="true">→</span></a>
     </div>
+
+    <section class="profile-review-card" aria-label="Share feedback about Earnly Arcade">
+      <span class="profile-review-stars" aria-hidden="true">★★★★★</span>
+      <div><strong>Enjoying Earnly Arcade?</strong><small>Your honest App Store rating helps other players discover us. All ratings are welcome.</small></div>
+      <a class="profile-review-button" href="https://apps.apple.com/us/search?term=Earnly%20Arcade" target="_blank" rel="noopener noreferrer">Rate Earnly ↗</a>
+    </section>
+
+    <section class="profile-play-milestone" aria-label="Arcade play milestone">
+      <span aria-hidden="true">🎯</span>
+      <div><strong>Arcade Veteran</strong><small id="veteranProgress">Play 100 games to unlock a milestone badge</small></div>
+      <a href="games.html">Play →</a>
+    </section>
 
     <details class="profile-more-stats">
       <summary>
@@ -241,6 +261,7 @@
       const xp = Arcade.xpStatus();
 
       document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
+      document.getElementById('veteranProgress').textContent = stats.gamesCompleted >= 100 ? 'Milestone reached! Your badge is unlocked.' : stats.gamesCompleted + ' / 100 games finished · milestone badge at 100';
       document.getElementById('nameDisplay').textContent = stats.name;
       if (!window.EarnlyCosmetics?.paint()) document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
       document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
