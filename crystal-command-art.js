@@ -164,6 +164,9 @@ function create(ctx,point,box,line,poly,tile){
    const shell=large?'#78518d':o.type==='medic'?'#90aa65':'#477d6b';
    for(let j=0;j<(d.flying?4:6);j++){const a=angle+Math.PI/2+(j%2)*Math.PI+(Math.floor(j/2)-1)*.65,sway=o.moving?Math.sin(t*12+j)*.12:0,tip=point(o.x+Math.cos(a)*(r*2+sway),o.y+Math.sin(a)*(r*2+sway),d.flying?z+.15:.03),joint=point(o.x+Math.cos(a)*r*1.2,o.y+Math.sin(a)*r*1.2,z+.15);if(d.flying)poly([body,joint,tip,point(o.x+Math.cos(a+.6)*r,o.y+Math.sin(a+.6)*r,z-.1)],'#82bea766',c+'88');else{line(body,joint,'#9eac89',3);line(joint,tip,'#4b7766',2)}}
    sphere(body,scale*r*1.1,scale*r*.73,shell);for(let j=-1;j<=1;j++)ring({x:body.x+j*scale*r*.36,y:body.y},scale*r*.25,scale*r*.64,'#d0d89155');const head=point(o.x+Math.cos(angle)*r*.85,o.y+Math.sin(angle)*r*.85,z+.15);sphere(head,scale*r*.48,scale*r*.4,'#a4b891');light(head,c,2);
+   if(o.type==='laser'){for(const side of [-1,1]){const muzzle=point(o.x+Math.cos(angle+side*.32)*r*1.8,o.y+Math.sin(angle+side*.32)*r*1.8,z+.26);line(head,muzzle,'#b4f7c1',2.5);light(muzzle,'#7cf4bb',2)}}
+   if(o.type==='siege'){for(const side of [-1,1]){const tip=point(o.x+Math.cos(angle+side*.4)*r*1.7,o.y+Math.sin(angle+side*.4)*r*1.7,z+.55);sphere(tip,scale*r*.22,scale*r*.18,'#ff9862');light(tip,'#ffd08c',3)}}
+   if(o.type==='medic'){for(const side of [-1,1])ring(point(o.x+side*r*.6,o.y,z+.4),scale*r*.33,scale*r*.16,'#aaffb9',1.5)}
    if(o.type==='raider'){for(const j of [-1,1])poly([head,point(o.x+Math.cos(angle+j*.3)*r*2.4,o.y+Math.sin(angle+j*.3)*r*2.4,z),point(o.x+Math.cos(angle+j*.6)*r,o.y+Math.sin(angle+j*.6)*r,z+.12)],'#d4c798',c+'77')}
    if(o.type==='guardian'){for(let j=-1;j<=1;j++)shard(o.x+j*r*.6,o.y-r*.2,r*.15,.7,'#adbe96',z+.1)}
    if(o.type==='scout'){ring(body,scale*r*1.6,scale*r*.75,c+'99');light(point(o.x,o.y,z+.3),c,3)}
