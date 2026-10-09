@@ -40,3 +40,19 @@ Mechanics were checked against Blizzard's official material, with original names
 - https://tw.shop.battle.net/en-us/product/starcraft-remastered — custom games and competitive ladder.
 
 Balance is an ongoing process; neither this research nor a small simulation sample establishes "perfect" balance. The referenced video was blocked by a YouTube verification page and was not reviewed.
+
+## October 9 direction: standard melee first
+
+The target is an original, fast RTS with economy, scouting, expansion and all-structure elimination. No capture-point or campaign objectives in standard melee. Keep the guided lesson separate.
+
+Current melee-rules change: all surviving structures (including foundations) keep a player in the match, simultaneous elimination draws, no forced twenty-minute draw, and surviving AI colonies can attempt to rebuild their command base with earned resources and a worker. Protocol 8 separates clients using different victory rules.
+
+### Next implementation sequence (not shipped)
+
+1. Secondary resource: original “Flux” deposits with extraction structures, contested expansion placement and explicit costs for advanced technology. Measure starting-field exhaustion under realistic worker counts; target relocation before twenty minutes without starving four-worker openings. Preserve resource conservation and mirrored opening access.
+2. Economic faction identities: Humans retain builders during construction and gain paid mechanical repair; Veyra consume a worker to grow structures and replace it through central incubation; Auralith workers place a paid seed and return to mining while it assembles in power coverage. Balance actual acquisition time and replacement costs, not only stat multipliers. Provide concise in-game explanations.
+3. Tactical counters: siege deployment with movement tradeoff, then detection/stealth and terrain vision. Require visible feedback, counterplay, deterministic collision and accessible phone controls. Do not implement random high-ground misses before readable terrain and visibility rules.
+4. Team engine and lobbies: migrate binary sides to player/team IDs, shared allied vision with isolated wallets, team elimination, 2v2 and cooperative AI tests; then public ready-room slots and larger FFA/team configurations. Current networking is host-simulated private 1v1, not authoritative server matchmaking. Target immediate local command feedback and consistent ticks; do not promise zero network latency.
+5. Validated map editor and custom modes after versioned map synchronization and team stability. No arbitrary executable scripts in imported maps.
+
+Release each stage with desktop and all mobile WebKit gates. Preserve free/unranked beta status until trusted multiplayer results exist.
