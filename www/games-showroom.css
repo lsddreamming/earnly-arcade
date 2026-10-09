@@ -71,3 +71,13 @@ body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystal
 body.games-dashboard #games .catalog-tile[data-game=crystalCommand]:before{right:12px}
 body.games-dashboard #games .game-new-bubble{position:absolute;top:-14px;left:14px;z-index:3;display:block;padding:5px 12px;border:1px solid #defff3;border-radius:999px;background:linear-gradient(110deg,#b7ff7a,#72efcc);color:#08271f;font-size:10px;font-weight:900;line-height:16px;letter-spacing:1px;white-space:nowrap;box-shadow:0 0 18px #72efcc55,0 3px 8px #0005;pointer-events:none}
 body.games-dashboard #games .game-new-bubble:after{content:"";position:absolute;left:16px;bottom:-5px;width:8px;height:8px;background:#a4fb91;transform:rotate(45deg);border-radius:0 0 2px 0}
+
+/* Bright buttons need dark lettering, including nested labels and WebKit text fill. */
+body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled),
+body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled) *{color:#091928!important;-webkit-text-fill-color:#091928!important;text-shadow:none!important;font-weight:850!important}
+/* The strategy game has its own full-width feature, while retaining catalog filtering. */
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystalCommand]{grid-column:1/-1!important;min-height:170px!important;padding:20px 16px 14px!important;background:radial-gradient(ellipse at 90% 10%,#53e9cb30,transparent 65%),linear-gradient(115deg,#143e49,#192441 70%,#252347)!important;border:1px solid #80f4d9!important;box-shadow:0 0 24px #67eace1c,inset 0 1px 0 #d1fff433!important}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystalCommand] .game-title-row h2{font-size:22px!important;letter-spacing:-.6px}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystalCommand] .game-icon-bubble{width:44px!important;height:44px!important;font-size:29px!important}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystalCommand] .reward-rule{font-size:12px!important;line-height:1.45!important;min-height:0!important;color:#d0e8ec!important}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile[data-game=crystalCommand] .game-card-footer .game-play-button{font-size:14px!important;min-height:46px!important}

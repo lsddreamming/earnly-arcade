@@ -8,7 +8,7 @@ test('scouting reveals units and attack-move can destroy a rival base',()=>{cons
 test('mining and combat produce deterministic state and idle practice loses',()=>{const a=E.create({practice:true}),b=E.create({practice:true});advance(a,190);advance(b,190);expect(E.view(a,0)).toEqual(E.view(b,0));expect(a.ended).toBe(true);expect(a.winner).toBe(1);expect(a.time).toBeLessThan(190)});
 test('tactical paths avoid rocks and exhausted crystals cannot mint income',()=>{const s=E.create();const p=E.path(s,{x:10,y:12},{x:14,y:12});expect(p.length).toBeGreaterThan(4);expect(p.some(t=>s.rocks.some(r=>r.x===Math.floor(t.x)&&r.y===Math.floor(t.y)))).toBe(false);s.crystals.forEach(n=>n.left=0);advance(s,10);expect(s.players[0].crystals).toBe(250)});
 test('mobile strategy controls, pause and quit confirmation work',async({page})=>{
- await page.goto('/crystal-command.html');await page.getByRole('button',{name:'▶ Practice battle'}).click();await expect(page.locator('#lobby')).toBeHidden();await expect(page.locator('.public-footer')).toBeHidden();await expect(page.locator('#crystals')).not.toHaveText('250',{timeout:15000});await page.getByRole('button',{name:'Build',exact:true}).click();await page.locator('#palette').getByRole('button',{name:/War factory/}).click();await expect(page.locator('#context')).toContainText('Place War factory');await expect(page.locator('[data-kind=factory]')).toHaveAttribute('aria-pressed','true');await page.locator('#pause').click();const tick=await page.evaluate(()=>CrystalGame.view.tick);await page.waitForTimeout(300);expect(await page.evaluate(()=>CrystalGame.view.tick)).toBe(tick);await page.locator('#pause').click();await page.locator('#quit').click();await expect(page.locator('#confirm')).toBeVisible();await page.getByRole('button',{name:'Keep playing'}).click();await expect(page.locator('#confirm')).toBeHidden();expect(await page.evaluate(()=>CrystalGame.running)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`test-results/crystal-command-${test.info().project.name}.png`});await page.locator('#quit').click();await page.getByRole('button',{name:'Quit battle',exact:true}).click();await expect(page.locator('#results')).toBeVisible();await expect(page.locator('#resultStats > div')).toHaveCount(3);await expect(page.locator('.public-footer')).toBeVisible();
+ await page.goto('/crystal-command.html');await page.getByRole('button',{name:'▶ Practice melee'}).click();await expect(page.locator('#lobby')).toBeHidden();await expect(page.locator('.public-footer')).toBeHidden();await expect(page.locator('#crystals')).not.toHaveText('250',{timeout:15000});await page.getByRole('button',{name:'Build',exact:true}).click();await page.locator('#palette').getByRole('button',{name:/War factory/}).click();await expect(page.locator('#context')).toContainText('Place War factory');await expect(page.locator('[data-kind=factory]')).toHaveAttribute('aria-pressed','true');await page.locator('#pause').click();const tick=await page.evaluate(()=>CrystalGame.view.tick);await page.waitForTimeout(300);expect(await page.evaluate(()=>CrystalGame.view.tick)).toBe(tick);await page.locator('#pause').click();await page.locator('#quit').click();await expect(page.locator('#confirm')).toBeVisible();await page.getByRole('button',{name:'Keep playing'}).click();await expect(page.locator('#confirm')).toBeHidden();expect(await page.evaluate(()=>CrystalGame.running)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`test-results/crystal-command-${test.info().project.name}.png`});await page.locator('#quit').click();await page.getByRole('button',{name:'Quit battle',exact:true}).click();await expect(page.locator('#results')).toBeVisible();await expect(page.locator('#resultStats > div')).toHaveCount(3);await expect(page.locator('.public-footer')).toBeVisible();
 });
 test('friend rooms show a useful sign-in requirement to guests',async({page})=>{await page.goto('/crystal-command.html');await page.locator('#createRoom').click();await expect(page.locator('#lobbyError')).toContainText('Sign in');await expect(page.locator('#authLink')).toBeVisible()});
 
@@ -17,7 +17,7 @@ test('polished command deck fits small phones and rendered factories remain sele
  await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));
  await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');
  await expect(page.locator('.cc-dock')).toBeHidden();await expect(page.locator('#authLink')).toBeHidden();
- await page.getByRole('button',{name:'▶ Practice battle'}).click();
+ await page.getByRole('button',{name:'▶ Practice melee'}).click();
  await page.getByRole('button',{name:'Build',exact:true}).click();
  await expect(page.locator('#palette [data-kind=factory]')).toBeVisible();for(const box of await page.locator('#palette button').evaluateAll(buttons=>buttons.map(button=>{const r=button.getBoundingClientRect();return{x:r.x,width:r.width}}))){expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320)}
  const quit=await page.locator('#quit').boundingBox();expect(quit.y+quit.height).toBeLessThanOrEqual(568);
@@ -61,7 +61,7 @@ test('research takes time, blocks duplicate projects and cancels with its Tech c
  expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'weapons'}).ok).toBe(false);expect(s.players[0].crystals).toBe(paid);advance(s,17);expect(s.players[0].upgrade).toBe(0);advance(s,1.1);expect(s.players[0].upgrade).toBe(1);
  expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'armor'}).ok).toBe(true);advance(s,16.1);expect(s.players[0].armor).toBe(1);
  expect(E.command(s,0,{type:'upgrade',id:lab.id,kind:'armor'}).ok).toBe(true);lab.hp=0;advance(s,30);expect(s.players[0].armor).toBe(1);
- const quiet=E.create();advance(quiet,600);expect(quiet.ended).toBe(false);advance(quiet,601);expect(quiet.reason).toContain('Twenty-minute');
+ const quiet=E.create();advance(quiet,600);expect(quiet.ended).toBe(false);advance(quiet,601);expect(quiet.ended).toBe(false);
 });
 test('phone economy controls inspect reserves, set rallies and show timed research',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#practice').click();
@@ -301,4 +301,17 @@ test('commanders defend expansions, raid visible miners and retreat from superio
 });
 test('battlefield selection persists on phones and learning keeps its safe map',async({page})=>{
  await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#battleMap').selectOption('crossing');await expect(page.locator('#mapDescription')).toContainText('Three passages');await page.reload();await expect(page.locator('#battleMap')).toHaveValue('crossing');await page.locator('#practice').click();expect(await page.evaluate(()=>CrystalGame.view.map)).toBe('crossing');await expect(page.locator('#hint')).toContainText('Shattered Crossing');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.locator('#quit').click();await page.getByRole('button',{name:'Quit battle',exact:true}).click();await page.locator('#again').click();await page.locator('#learn').click();expect(await page.evaluate(()=>CrystalGame.view.map)).toBe('frontier');
+});
+
+// Standard melee eliminates structures, including unfinished foundations, not armies.
+test('melee survives base loss but ends when the last structure is destroyed',()=>{
+ const s=E.create(),factory=add(s,'factory',0,10,10);factory.build=5;
+ s.entities.find(e=>e.side===0&&e.type==='base').hp=0;E.tick(s);
+ expect(s.ended).toBe(false);factory.hp=0;E.tick(s);
+ expect(s.entities.some(e=>e.side===0&&e.type==='worker')).toBe(true);
+ expect(s.ended).toBe(true);expect(s.winner).toBe(1);expect(s.reason).toContain('structures');
+});
+test('simultaneous structure elimination draws and the guided lesson stays base-focused',()=>{
+ const s=E.create();for(const e of s.entities)if(!E.TYPES[e.type].supply)e.hp=0;E.tick(s);expect(s.ended).toBe(true);expect(s.winner).toBe(null);
+ const lesson=E.create({practice:true,learning:true});add(lesson,'relay',1,40,40);lesson.entities.find(e=>e.side===1&&e.type==='base').hp=0;E.tick(lesson);expect(lesson.winner).toBe(0);
 });

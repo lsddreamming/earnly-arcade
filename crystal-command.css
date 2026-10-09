@@ -226,3 +226,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 #lobby .cc-lobby-heading{position:relative;padding-bottom:12px;margin-bottom:10px;border-bottom:1px solid #b6eaff19}
 @media(max-width:699px){#lobby{padding:10px}#lobby .cc-card{width:100%;max-width:400px;padding:16px}}
 @media(prefers-reduced-motion:reduce){#lobby button{transition:none}#lobby button:not(:disabled):active{transform:none}}
+/* Let the complete battle report remain readable on compact phones. */
+#results .cc-card{height:auto;max-height:100%;overflow-y:auto}
+#results .cc-context{display:block;max-height:none;height:auto;overflow:visible;white-space:normal;margin:10px 0;line-height:1.5;min-height:0}
+#results .cc-card>*{flex-shrink:0}
