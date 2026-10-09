@@ -125,7 +125,9 @@ test('launch gate exposes account deletion clearly on web and iOS', async ({ pag
   await expect(page.locator('#delete-account')).toBeVisible();
   // Deletion stays discoverable but no longer dominates the signed-in page.
   // The direct deletion route must allow the player to reveal the action.
-  await page.locator('#delete-account > summary').click();
+  if (!(await page.locator('#delete-account').evaluate(el => el.open))) {
+    await page.locator('#delete-account > summary').click();
+  }
   await expect(page.locator('#cloudDeleteButton')).toBeVisible();
 });
 
