@@ -2161,7 +2161,7 @@ test('global leaderboards expose all games and editable player identity', async 
   await page.locator('details.profile-edit-card > summary').click();
   await expect(page.locator('#usernameInput')).toBeVisible();
   await expect(page.locator('#avatarPicker .avatar-choice')).toHaveCount(16);
-  await expect(page.locator('a[href="leaderboards.html"]')).toContainText('World Ranks');
+  await expect(page.locator('a[href="leaderboards.html"]')).toContainText('Leaderboards');
 });
 
 test('leaderboard sync is server-routed and new bests submit automatically', async ({ page }) => {
@@ -2489,4 +2489,26 @@ test('Crystal Command belongs to the 23-game catalog as a free searchable strate
   await page.locator('#gameSearch').fill('crystal');
   await expect(page.locator('#games .catalog-tile')).toHaveCount(1);
   await expect(card).toBeVisible();
+});
+
+
+test('leaderboard challenge uses real rank targets and opens the selected game', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('arcadeUsername', 'tester'));
+  await page.route('**/cloud.js', route => route.fulfill({ contentType:'application/javascript', body:`
+    window.EarnlyCloud = {
+      submitLeaderboardScore: async () => ({}),
+      leaderboard: async game => ({ entries: game === 'memory'
+        ? [{rank:1,username:'champ',score:12},{rank:2,username:'tester',score:18}]
+        : [{rank:1,username:'champ',score:100},{rank:2,username:'tester',score:80}] })
+    };
+    window.dispatchEvent(new Event('earnly-cloud-ready'));
+  ` }));
+  await page.goto('/leaderboards.html?game=snake');
+  await expect(page.locator('#rankStanding')).toContainText('#2');
+  await expect(page.locator('#rankTarget')).toContainText('100');
+  await expect(page.locator('#rankPlay')).toHaveAttribute('href','snake.html');
+  await page.locator('#gameSelect').selectOption('memory');
+  await expect(page.locator('#rankTarget')).toContainText('12');
+  await expect(page.locator('#rankTarget')).toContainText('Fewer moves wins');
+  await expect(page.locator('#rankPlay')).toHaveAttribute('href','memory.html');
 });

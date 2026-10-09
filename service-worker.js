@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-melee-rules-20261009';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-melee-ranks-20261009b';const CORE_ASSETS = [
+ './rank-discovery.css',
  './arcade-chat.js','./arcade-chat.css','./potato-rig.js',
   './app-surfaces.css',
   './coin-shop.js','./paid-plays.js','./cosmetic-adventure-pack.svg','./cosmetic-amber-goggles.svg','./cosmetic-arcade-cap.svg','./cosmetic-aurora-armor.svg','./cosmetic-aurora-pack.svg','./cosmetic-braided-beard.svg','./cosmetic-comet-sneakers.svg','./cosmetic-comms-headset.svg','./cosmetic-high-tops.svg','./cosmetic-no-headwear.svg','./cosmetic-orb-scepter.svg','./cosmetic-radiant-boots.svg','./cosmetic-ribbed-beanie.svg','./cosmetic-solar-jacket.svg','./cosmetic-storm-coat.svg','./cosmetic-sun-crown.svg',
