@@ -430,7 +430,7 @@
 
         render();
         if (conflict) {
-          cloudMessage.textContent = 'Your account has a newer backup from another device. We paused automatic saving so neither copy is overwritten. Choose Use Cloud Save to load that backup, or Save This Device to review replacing it.';
+          cloudMessage.textContent = 'Your account has a newer save (backup) from another device. We paused automatic saving so neither copy is overwritten. Choose Use Cloud Save to load that backup, or Save This Device to review replacing it.';
         } else if (!navigator.onLine && offlinePending) {
           cloudMessage.textContent = '📴 You are offline. Your progress is safe on this device and will sync automatically when you reconnect.';
         } else if (!navigator.onLine) {
