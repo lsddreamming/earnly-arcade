@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-melee-ranks-20261009b';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-jungle-ranks-20261009';const CORE_ASSETS = [
  './rank-discovery.css',
  './arcade-chat.js','./arcade-chat.css','./potato-rig.js',
   './app-surfaces.css',
