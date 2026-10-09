@@ -38,6 +38,10 @@
     .profile-dashboard .profile-shortcuts small,
     .profile-dashboard .profile-level-line,
     .profile-dashboard .profile-xp-line{color:#aebfd2!important}
+    .profile-review-panel{margin:14px 0;padding:15px;border:1px solid rgba(77,189,245,.45);border-radius:17px;background:linear-gradient(145deg,#132b46,#101b32);display:grid;gap:11px}
+    .profile-review-copy{display:grid;gap:5px}.profile-review-copy strong{font-size:1rem;color:#fff}.profile-review-copy small,.profile-milestone small{font-size:.81rem;line-height:1.45;color:#b8c9df}
+    .profile-rate-button{min-height:44px;border-radius:12px;border:1px solid #62d7ff;background:linear-gradient(120deg,#145f9c,#176eb5);color:white;font-weight:800}
+    .profile-milestone{display:grid;gap:5px;padding-top:11px;border-top:1px solid rgba(148,163,184,.22)}.profile-milestone span{font-weight:750}.profile-milestone strong{color:#7dd3fc}.profile-milestone a{color:#7dd3fc;font-weight:700;font-size:.86rem}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
@@ -155,6 +159,16 @@
       </a>
     </section>
 
+    <section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
+      <div class="profile-review-copy"><strong>⭐ Enjoying Earnly Arcade?</strong><small>Your honest rating helps other players discover us. Reviews are optional and never required for rewards.</small></div>
+      <button type="button" id="rateEarnlyButton" class="profile-rate-button">⭐ Rate Earnly Arcade →</button>
+      <div class="profile-milestone">
+        <span>🎮 Arcade Marathon · 25 completed games</span>
+        <strong id="arcadeMarathonProgress">0 / 25</strong>
+        <small>Earn 250 Arcade Coins through gameplay — completely separate from App Store reviews.</small>
+        <a href="games.html">Play games →</a>
+      </div>
+    </section>
     <section class="profile-shortcuts profile-shortcuts-essential" aria-label="Profile shortcuts">
       <a href="leaderboards.html"><span>🏆</span><strong>Leaderboards</strong><small>World Top 25</small></a>
       <a href="account.html"><span>☁️</span><strong>Account & Data</strong><small>Cloud, backup & delete</small></a>
@@ -238,6 +252,7 @@
 
     function render() {
       const stats = Arcade.stats();
+      document.getElementById('arcadeMarathonProgress').textContent = Math.min(25, stats.gamesCompleted) + ' / 25';
       const xp = Arcade.xpStatus();
 
       document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
@@ -350,6 +365,19 @@
       render();
     });
 
+    document.getElementById('rateEarnlyButton').addEventListener('click', async () => {
+      // Apple reviews are never tied to a coin grant or any reward claim.
+      const storeUrl = 'https://apps.apple.com/app/id0000000000';
+      const button = document.getElementById('rateEarnlyButton');
+      if (window.Capacitor?.isNativePlatform?.()) {
+        try {
+          const bridge = window.Capacitor?.Plugins?.AppReview;
+          if (bridge?.requestReview) { await bridge.requestReview(); return; }
+        } catch {}
+      }
+      button.textContent = '⭐ Find Earnly Arcade in the App Store';
+      window.location.href = 'https://apps.apple.com/us/search?term=Earnly%20Arcade';
+    });
     render();
     renderAvatarPicker();
     window.addEventListener('earnly-cloud-ready', syncPublicProfileFromCloud);
