@@ -210,6 +210,28 @@ function create(ctx,point,box,line,poly,tile){
      line(point(o.x+j*r*.2,o.y,.65),blade,'#e3a58d',4);
      light(blade,'#ff987d',2)}
    }
+   // Strong, role-specific profiles remain legible at mobile zoom.
+   if(o.type==='factory'){
+    for(const side of [-1,1]){const root=point(o.x+side*r*.5,o.y,.48),tip=point(o.x+side*r*.95,o.y-r*.35,1.85);line(root,tip,'#d0b76d',scale*.16);sphere(tip,scale*r*.15,scale*r*.12,'#ffb66d')}
+    ring(point(o.x,o.y,.85),scale*r*.52,scale*r*.22,'#f3cb79',2);
+   }
+   if(o.type==='barracks'){
+    for(let j=0;j<5;j++){const a=j*Math.PI*2/5,tip=point(o.x+Math.cos(a)*r*.83,o.y+Math.sin(a)*r*.83,1.35+(j%2)*.4);line(point(o.x,o.y,.35),tip,'#aa7a70',3);sphere(tip,scale*r*.17,scale*r*.2,'#df8d82')}
+    ring(point(o.x,o.y,.6),scale*r*.7,scale*r*.25,'#ff9e8c',2);
+   }
+   if(o.type==='lab'){
+    for(let j=0;j<3;j++){const a=j*Math.PI*2/3+t*.13,tip=point(o.x+Math.cos(a)*r*.72,o.y+Math.sin(a)*r*.72,1.55);line(point(o.x,o.y,.55),tip,'#a3a1d7',2);sphere(tip,scale*r*.19,scale*r*.18,'#b7a5ff');light(tip,'#d6c6ff',2)}
+    ring(point(o.x,o.y,1.1),scale*r*.7,scale*r*.23,'#c5a8ff',2);
+   }
+   if(o.type==='starport'){
+    for(const side of [-1,1]){const tip=point(o.x+side*r*1.3,o.y,1.25);poly([point(o.x,o.y,.45),tip,point(o.x+side*r*.55,o.y-r*.4,.35)],'#68c7b577','#9cf8ed');light(tip,'#90f4e9',3)}
+   }
+   if(o.type==='armory'){
+    for(let j=-1;j<=1;j++){const tip=point(o.x+j*r*.45,o.y-r*.1,1.55);line(point(o.x+j*r*.45,o.y,.4),tip,'#c8c18d',scale*.14);sphere(tip,scale*r*.14,scale*r*.13,'#f1df9b')}
+   }
+   if(o.type==='flak'){
+    for(let j=0;j<4;j++){const a=j*Math.PI/2,tip=point(o.x+Math.cos(a)*r*.7,o.y+Math.sin(a)*r*.7,1.65);line(point(o.x,o.y,.55),tip,'#a5d7ce',3);light(tip,'#a9faff',2)}
+   }
    if(o.type==='barracks'){for(let j=-1;j<=1;j++)sphere(point(o.x+j*r*.55,o.y+r*.5,.18),scale*r*.2,scale*r*.12,'#102b2a')}
    if(o.type==='factory'){for(let j=-1;j<=1;j++)shard(o.x+j*r*.55,o.y,r*.1,.9,'#bcd19b',.4)}
    if(o.type==='armory'){for(let j=-2;j<=2;j++)ring(point(o.x,o.y+j*.15,.7),scale*r*.6,scale*r*.35,'#bdbe91',2)}
