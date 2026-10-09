@@ -188,6 +188,28 @@ function create(ctx,point,box,line,poly,tile){
    for(let j=0;j<7;j++){const a=j*Math.PI*2/7,tip=point(o.x+Math.cos(a)*r*1.3,o.y+Math.sin(a)*r*1.3,.03);line(point(o.x,o.y,.15),tip,'#537968',4);sphere(tip,scale*.12,scale*.065,'#709879')}
    const q=point(o.x,o.y,.4);sphere(q,scale*r,scale*r*.57,'#3b6b60');
    const count=central?5:support?1:3;for(let j=0;j<count;j++){const a=j*Math.PI*2/count,xx=o.x+(count>1?Math.cos(a)*r*.48:0),yy=o.y+(count>1?Math.sin(a)*r*.48:0),h=defense?1.15:support?1.1:.65;const sac=point(xx,yy,h);line(point(xx,yy,.2),sac,'#5e8266',scale*.2);sphere(sac,scale*r*(count===1?.52:.32)*(1+phase*.025),scale*r*.4,defense?'#a76b64':support?'#8274a0':'#85a073');light(point(xx,yy,h+.15),c,2)}
+   // Distinct silhouettes: the home base is a crowned hive, while relay
+   // nodes use an unmistakable low circular dish instead of another tall pod.
+   if(central){
+    const crown=point(o.x,o.y,1.65);
+    for(let j=0;j<5;j++){const a=j*Math.PI*2/5;const edge=point(o.x+Math.cos(a)*r*.65,o.y+Math.sin(a)*r*.65,1.3);
+     line(crown,edge,'#baf7a4',2.5);sphere(edge,scale*r*.14,scale*r*.1,'#8fe6a4')}
+    sphere(crown,scale*r*.27,scale*r*.2,'#d5f6a0');
+    light(point(o.x,o.y,1.85),'#baff9d',3);
+   }
+   if(o.type==='relay'){
+    const dish=point(o.x,o.y,.62);
+    ring(dish,scale*r*.82,scale*r*.33,'#6cf3ce',3);
+    ring(dish,scale*r*.56,scale*r*.2,'#baffd9',1.5);
+    for(let j=0;j<4;j++){const a=j*Math.PI/2;
+     line(point(o.x,o.y,.35),point(o.x+Math.cos(a)*r*.85,o.y+Math.sin(a)*r*.85,.65),'#61ac8d',2)}
+    light(point(o.x,o.y,.8),'#d1ffb2',3);
+   }
+   if(defense){
+    for(const j of [-1,1]){const blade=point(o.x+j*r*.55,o.y-r*.28,1.48);
+     line(point(o.x+j*r*.2,o.y,.65),blade,'#e3a58d',4);
+     light(blade,'#ff987d',2)}
+   }
    if(o.type==='barracks'){for(let j=-1;j<=1;j++)sphere(point(o.x+j*r*.55,o.y+r*.5,.18),scale*r*.2,scale*r*.12,'#102b2a')}
    if(o.type==='factory'){for(let j=-1;j<=1;j++)shard(o.x+j*r*.55,o.y,r*.1,.9,'#bcd19b',.4)}
    if(o.type==='armory'){for(let j=-2;j<=2;j++)ring(point(o.x,o.y+j*.15,.7),scale*r*.6,scale*r*.35,'#bdbe91',2)}
