@@ -26,6 +26,6 @@ test('reset deep link opens form without sending and validates email',async({pag
 });
 test('conflicted saves have consistent status and fit narrow screens',async({page})=>{
  await mock(page,{conflict:true});await page.goto('/account.html');await expect(page.locator('#cloudMessage')).toContainText('newer save');await expect(page.locator('#syncStatusDot')).not.toHaveClass(/ready/);
- await page.locator('.account-sync-details summary').click();await expect(page.locator('#pendingEvents')).toContainText('Sync paused');await expect(page.locator('#cloudDeleteButton')).toBeVisible();
+ await page.locator('.account-sync-details summary').click();await expect(page.locator('#pendingEvents')).toContainText('Sync paused');await expect(page.locator('#delete-account > summary')).toBeVisible();await page.locator('#delete-account > summary').click();await expect(page.locator('#cloudDeleteButton')).toBeVisible();
  for(const width of [320,390,440,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
 });
