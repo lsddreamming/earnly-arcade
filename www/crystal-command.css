@@ -155,6 +155,77 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 .cc-faction-choice #factionTradeoff{color:#c9e4d4;font-size:10px}
 @media(max-width:799px){.cc-palette[data-mode=train][data-many=true]{display:flex;overflow-x:auto;justify-content:flex-start;gap:6px}.cc-palette[data-mode=train][data-many=true] button{flex:0 0 142px;min-width:142px;max-width:142px;min-height:66px;padding:7px 8px 7px 34px}.cc-palette[data-many=true] .cc-role{white-space:normal;line-height:1.15;font-size:9px}.cc-tools #selectMiners{overflow:hidden;font-size:9px}.cc-context{overflow-wrap:anywhere}}
 
+/* Compact battle setup: primary actions fit on a phone without the tall splash. */
+#lobby .cc-card{padding:16px 18px;max-width:440px;width:calc(100% - 24px)}
+#lobby .cc-lobby-heading{display:flex;align-items:center;gap:12px;text-align:left;margin:0 0 12px}
+#lobby .cc-lobby-heading>span{font-size:38px;color:#7ceeff;text-shadow:0 0 20px #55ddff88}
+#lobby .cc-lobby-heading h2{font-size:23px;letter-spacing:-.6px;margin:0}
+#lobby .cc-lobby-heading p{font-size:12px;margin:3px 0 0;color:#a9c9d9}
+#lobby #learn{min-height:40px;margin:0;font-size:13px;padding:8px}
+#lobby #learnNote{font-size:10px;margin:5px 0 10px}
+#lobby .cc-difficulty{margin:6px 0;gap:6px}
+#lobby .cc-difficulty button{min-height:42px;padding:6px;font-size:12px}
+#lobby .cc-difficulty small{display:none}
+#lobby .cc-map-choice{margin:8px 0;padding-top:8px}
+#lobby .cc-map-choice select{min-height:42px;font-size:13px;padding:7px 9px}
+#lobby .cc-map-choice label{margin:0 0 4px;font-size:9px}
+#lobby #mapDescription{font-size:10px;margin:4px 0 0}
+#lobby .cc-faction-choice{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+#lobby .cc-faction-choice label[for=faction]{grid-column:1;grid-row:1}
+#lobby #faction{grid-column:1;grid-row:2}
+#lobby .cc-faction-choice label[for=opponentFaction]{grid-column:2;grid-row:1}
+#lobby #opponentFaction{grid-column:2;grid-row:2}
+#lobby #practice{margin:10px 0 8px;min-height:46px;font-size:15px}
+#lobby .room-actions{margin:0;gap:7px}
+#lobby .room-actions button{min-height:44px;padding:7px;font-size:11px}
+#lobby details{margin-top:10px;padding-top:10px;font-size:11px}
+#lobby .cc-footer-link{margin-top:10px;font-size:10px}
+#lobby #factionDescription,#lobby #factionTradeoff{text-align:left;font-size:12px;line-height:1.45}
+
+#lobby #practice{background:linear-gradient(110deg,#22778d,#179fae);border-color:#8cefff;box-shadow:0 5px 20px #30cddd24}#lobby #learn{background:#172d40;border-color:#577a92;box-shadow:none}
+
+/* Polished command console, scoped to the start menu. */
+#lobby .cc-card{border-color:#6fdbea66;background:radial-gradient(ellipse at 100% 0,#25607866,transparent 46%),linear-gradient(145deg,#142d43f7,#091527fc 75%);box-shadow:0 24px 70px #0009,0 0 40px #3edbe919,inset 0 1px 0 #b5faff33;border-radius:24px}
+#lobby .cc-lobby-heading{gap:15px;margin-bottom:15px}
+#lobby .cc-menu-kicker{display:block;font-size:8px;letter-spacing:1.8px;font-weight:800;color:#b6dbeb;margin-bottom:5px}
+#lobby .cc-lobby-heading h2{font-size:25px;font-weight:850;line-height:1.02;letter-spacing:-.8px;text-shadow:none}
+#lobby .cc-lobby-heading h2 em{display:block;color:#8fefff;font-style:normal}
+#lobby .cc-lobby-heading p{margin:5px 0 0;font-size:11px;color:#a8c8d9}
+#lobby .cc-lobby-heading>.cc-menu-crystal{display:block;flex:0 0 38px;height:58px;background:linear-gradient(105deg,#287d9c 0 28%,#99fbff 29% 48%,#43d6e8 49% 66%,#15728c 67%);clip-path:polygon(50% 0,100% 34%,74% 90%,50% 100%,23% 88%,0 33%);filter:drop-shadow(0 0 12px #51dcff88)}
+#lobby .cc-difficulty{padding:4px;border-radius:13px;background:#050e1d77;border:1px solid #6797b32b}
+#lobby .cc-difficulty button{margin:0;border-color:transparent;background:transparent;color:#a9c3d6;border-radius:9px}
+#lobby .cc-difficulty button[aria-checked=true]{color:#eaffff;border-color:#7deafa;background:linear-gradient(135deg,#267085,#174152);box-shadow:0 2px 12px #25cce82b,inset 0 1px 0 #b7ffff33}
+#lobby .cc-map-choice{border-top-color:#84c4e01c}
+#lobby .cc-map-choice label{color:#92d3e2;font-weight:700;letter-spacing:1.2px}
+#lobby .cc-map-choice select{border-color:#699eaf55;background:linear-gradient(130deg,#183449,#102638);box-shadow:inset 0 1px 0 #c5faff09;border-radius:11px}
+#lobby #practice{position:relative;background:linear-gradient(110deg,#93f5e6,#65dcf1);color:#082b3a;border:1px solid #c6fff6;box-shadow:0 6px 22px #55e8db26,inset 0 1px 0 #fff8;font-weight:850;letter-spacing:.2px;border-radius:13px}
+#lobby #practice:hover{background:linear-gradient(110deg,#b4fff1,#86edff)}
+#lobby #learn{border-style:dashed;border-color:#6cabc066;color:#bde9f5;background:#15304655;border-radius:11px}
+#lobby .room-actions button{border-color:#638bad66;background:linear-gradient(135deg,#213c56,#17263d);color:#dfedff;border-radius:12px;box-shadow:inset 0 1px 0 #a8d6ff12}
+#lobby button:focus-visible,#lobby summary:focus-visible{outline:2px solid #ffe09d;outline-offset:3px}
+#lobby details{border-top-color:#79aed126;color:#a9c9dd}
+@media(max-width:360px){#lobby .cc-card{padding:14px}#lobby .cc-lobby-heading h2{font-size:22px}#lobby .cc-lobby-heading{gap:11px}}
+
+/* Faction-aware lighting and tactile controls. */
+#lobby{--faction-light:#8fefff;--faction-glow:#43dafa;--faction-wash:#25607866}
+#lobby[data-faction=verdant]{--faction-light:#b9ffa1;--faction-glow:#7de97a;--faction-wash:#36673c77}
+#lobby[data-faction=prism]{--faction-light:#e0bdff;--faction-glow:#b68aff;--faction-wash:#65458c66}
+#lobby .cc-card{background:radial-gradient(ellipse at 95% 0,var(--faction-wash),transparent 52%),linear-gradient(145deg,#142d43f7,#091527fc 75%);border-color:color-mix(in srgb,var(--faction-light) 42%,transparent)}
+#lobby .cc-lobby-heading h2 em{color:var(--faction-light)}
+#lobby .cc-lobby-heading>.cc-menu-crystal{background:linear-gradient(105deg,color-mix(in srgb,var(--faction-glow) 45%,#15354b) 0 28%,#eaffff 29% 48%,var(--faction-light) 49% 66%,var(--faction-glow) 67%)}
+#lobby .cc-free-tag{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:5px;color:#fbe4a5;background:#e7bd4920;font-size:7px;letter-spacing:.5px;font-weight:800;vertical-align:middle}
+#lobby .cc-faction-choice{border:0;padding:0;margin:12px 0}
+#lobby .cc-map-choice label{font-size:8px;letter-spacing:1.3px}
+#lobby #faction{border-color:color-mix(in srgb,var(--faction-light) 55%,transparent);color:var(--faction-light);background:linear-gradient(125deg,var(--faction-wash),#102638)}
+#lobby #opponentFaction{border-color:#db9ab144;color:#f0dbe5}
+#lobby #practice{background:linear-gradient(110deg,var(--faction-light),var(--faction-glow));border-color:var(--faction-light);box-shadow:0 5px 20px color-mix(in srgb,var(--faction-glow) 18%,transparent);min-height:48px}
+#lobby button{transition:transform .14s ease,background .18s ease,box-shadow .18s ease}
+#lobby button:not(:disabled):active{transform:scale(.98)}
+#lobby details>summary{min-height:30px;display:list-item;cursor:pointer;padding:6px 0;color:#bad0df}
+#lobby details[open]>summary{color:var(--faction-light)}
+#lobby .cc-lobby-heading{position:relative;padding-bottom:12px;margin-bottom:10px;border-bottom:1px solid #b6eaff19}
+@media(max-width:699px){#lobby{padding:10px}#lobby .cc-card{width:100%;max-width:400px;padding:16px}}
+@media(prefers-reduced-motion:reduce){#lobby button{transition:none}#lobby button:not(:disabled):active{transform:none}}
 /* Let the complete battle report remain readable on compact phones. */
 #results .cc-card{height:auto;max-height:100%;overflow-y:auto}
 #results .cc-context{display:block;max-height:none;height:auto;overflow:visible;white-space:normal;margin:10px 0;line-height:1.5;min-height:0}
