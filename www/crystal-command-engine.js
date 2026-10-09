@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CrystalCommand=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
 'use strict';
-const VERSION=7,SIZE=64,STEP=.05,BATTLE_LIMIT=1200;
+const VERSION=8,SIZE=64,STEP=.05,BATTLE_LIMIT=Infinity;
 const MAPS=Object.freeze({
  frontier:{name:'Crystal Frontier',description:'Wide flanking routes and a dangerous rich center.'},
  crossing:{name:'Shattered Crossing',description:'Three passages divide the battlefield. Watch your flanks.'},
@@ -205,7 +205,7 @@ function damage(s,att,target){const p=s.players[att.side],d=stats(att);let amoun
 function bot(s){
  if(!s.practice||s.learning||s.time<s.botAt)return;
  const level=DIFFICULTIES[s.difficulty];s.botAt=s.time+level.pace;
- const own=s.entities.filter(e=>e.side===1&&e.hp>0),bases=own.filter(e=>e.type==='base'&&!e.build),base=bases[0],p=s.players[1],m=s.botMemory;if(!base)return;
+ const own=s.entities.filter(e=>e.side===1&&e.hp>0),bases=own.filter(e=>e.type==='base'&&!e.build),base=bases[0]||own.find(e=>!unit(e.type)),p=s.players[1],m=s.botMemory;if(!base)return;
  const visible=s.entities.filter(e=>e.side===0&&e.hp>0&&canSee(s,1,e));
  for(const e of visible)if(!unit(e.type))m.structures[e.id]={id:e.id,type:e.type,x:e.x,y:e.y};
  for(const [id,e]of Object.entries(m.structures))if(canSee(s,1,e)&&!visible.some(t=>String(t.id)===id))delete m.structures[id];
@@ -214,6 +214,7 @@ function bot(s){
  const armySize=()=>army.length+own.reduce((n,e)=>n+e.queue.filter(k=>k!=='worker'&&k!=='scout').length,0);
  const train=(producer,kind)=>{if(p.faction==='verdant')producer=bases.find(e=>e.queue.length<2);return producer&&producer.queue.length<2&&command(s,1,{type:'train',id:producer.id,kind}).ok};
  const buildNear=(kind,at)=>{for(const [dx,dy]of [[-3,0],[0,-3],[3,0],[0,3],[-4,-4],[4,-4],[-4,4],[4,4],[-6,0],[0,-6],[6,0],[0,6],[-6,-3],[-3,-6],[-6,3],[3,-6],[6,-3],[-3,6],[6,3],[3,6],[-6,-6],[6,-6],[-6,6],[6,6]])if(command(s,1,{type:'build',kind,x:at.x+dx,y:at.y+dy}).ok)return true;return false};
+ if(!bases.length&&!own.some(e=>e.type==='base')&&p.crystals>=TYPES.base.cost&&miners.length)buildNear('base',base);
  const factory=own.find(e=>e.type==='factory'&&!e.build);
  // Establish expansions beside discovered reserves. A real miner must travel and build.
  if(m.expansion){const project=m.expansion,worker=miners.find(e=>e.id===project.worker);
@@ -314,9 +315,8 @@ function tick(s,dt=STEP){
  s.entities=s.entities.filter(e=>e.hp>0);vision(s);
  // Buffer only public visual events so slower friend snapshots retain brief shots and explosions.
  s.visualEvents=(s.visualEvents||[]).filter(e=>s.time-e.time<.8);for(const e of s.events)s.visualEvents.push({...e,fx:s.fxNext++,time:s.time,audience:[0,1].filter(side=>e.side===side||canSee(s,side,e))});s.visualEvents=s.visualEvents.slice(-128);
- const bases=[0,1].map(side=>s.entities.some(e=>e.side===side&&e.type==='base'));
- if(!bases[0]||!bases[1]){s.ended=true;s.winner=bases[0]?0:bases[1]?1:null;s.reason=bases[0]||bases[1]?'All command bases destroyed':'Both command bases destroyed · draw'}
- if(!s.learning&&s.time>=BATTLE_LIMIT&&!s.ended){s.ended=true;s.winner=null;s.reason='Twenty-minute battle limit · draw'}
+ const bases=[0,1].map(side=>s.entities.some(e=>e.side===side&&e.hp>0&&(s.learning?e.type==='base':!unit(e.type))));
+ if(!bases[0]||!bases[1]){s.ended=true;s.winner=bases[0]?0:bases[1]?1:null;s.reason=s.learning?'Training base destroyed':bases[0]||bases[1]?'All enemy structures destroyed':'Both armies lost every structure · draw'}
 }
 function view(s,side){const p=s.players[side];return{version:VERSION,map:s.map,factions:s.players.map(p=>p.faction),tick:s.tick,time:s.time,ended:s.ended,winner:s.winner,reason:s.reason,side,practice:s.practice,learning:!!s.learning,difficulty:s.practice?s.difficulty:null,player:{faction:p.faction,alerts:Object.fromEntries(Object.entries(p.alerts).map(([k,a])=>[k,{...a}])),crystals:p.crystals,upgrade:p.upgrade,armor:p.armor,kills:p.kills,mined:p.mined,...supply(s,side)},entities:s.entities.filter(e=>e.side===side||canSee(s,side,e)).map(e=>({...e,path:[],queue:e.side===side?[...e.queue]:[],incubation:e.side===side?[...(e.incubation||[])]:[],order:e.side===side?e.order:null,rally:e.side===side?e.rally:null,research:e.side===side?e.research:null})),crystals:Object.values(p.knownCrystals).map(n=>({...n})),rocks:s.rocks,seen:[...p.seen],visible:Array.from(s.visible[side]),events:s.events.filter(e=>e.side===side||canSee(s,side,e)),visualEvents:(s.visualEvents||[]).filter(e=>e.audience.includes(side)&&(e.side===side||canSee(s,side,e))).map(({audience,...e})=>e)}}
 return{VERSION,SIZE,STEP,BATTLE_LIMIT,MAPS,DIFFICULTIES,TYPES,PRODUCERS,FACTIONS,typeFor,stats,producers,inField,powered,damageKind,unlockMessage,canTarget,create,tick,command,placement,view,path,supply,canSee};

@@ -82,18 +82,8 @@ body.account-dashboard .container>a.button{display:inline-flex;width:auto!import
 /* Profile reads as one page, with an open identity area and tidy navigation rows. */
 body.profile-dashboard .profile-hero{border:0!important;background:radial-gradient(ellipse at 10% 50%,#65d8e318,transparent 65%)!important;box-shadow:none!important;padding:20px 4px 16px!important;border-radius:0!important}
 body.profile-dashboard .profile-avatar{border-radius:50%!important;border:1px solid #83d5e03d!important;background:#1a33434d!important;box-shadow:none!important}
-body.profile-dashboard .profile-settings-link{border:0!important;background:transparent!important;box-shadow:none!important}
 body.profile-dashboard .profile-key-stats{border:0!important;border-top:1px solid var(--surface-line)!important;border-bottom:1px solid var(--surface-line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:12px 0!important}
 body.profile-dashboard .profile-key-stats>div{border:0!important;background:transparent!important;padding:6px 3px!important}
-body.profile-dashboard :is(.profile-progress-menu,.profile-more-stats,.profile-shortcuts a,.global-profile-card){border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
-body.profile-dashboard .profile-more-stats{border-bottom:1px solid var(--surface-line)!important}
-body.profile-dashboard .profile-progress-row{background:transparent!important;border-color:var(--surface-line)!important}
-body.profile-dashboard .profile-progress-icon{border:0!important;background:transparent!important;box-shadow:none!important}
-body.profile-dashboard .profile-shortcuts a{border-top:1px solid var(--surface-line)!important;padding-left:4px!important}
-body.profile-dashboard .profile-shortcuts a>span{border:0!important;background:transparent!important;box-shadow:none!important}
-body.profile-dashboard .avatar-studio-link{border:0!important;border-radius:0!important;border-bottom:1px solid var(--surface-line)!important;background:linear-gradient(95deg,#93acf90b,transparent)!important;box-shadow:none!important;padding:18px 8px!important;gap:14px}
-body.profile-dashboard #profile-coin-shop .avatar-studio-link{background:linear-gradient(95deg,#ffd38b10,transparent)!important;border-left:2px solid #eac58080!important;padding-left:14px!important}
-body.profile-dashboard .profile-edit-card>summary{background:transparent!important;box-shadow:none!important;border:0!important;text-decoration:underline;text-underline-offset:5px;min-height:44px}
 /* Shop: artwork carries the collection, instead of frames inside frames. */
 body.studio-dashboard .item-card{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:6px;align-content:start;padding:0 0 15px!important;border:0!important;border-bottom:1px solid #83b4d026!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
 body.studio-dashboard .item-card:before{display:none!important}
@@ -141,3 +131,8 @@ body.leaderboards-dashboard .leader-avatar{border-radius:50%!important}
  body.studio-dashboard #featured-looks .look-art{height:190px}
 }
 @media(prefers-reduced-motion:reduce){.auth-mode-switch *{transition:none!important}}
+
+/* Informational sections stay open; navigation retains its original card surfaces. */
+body.profile-dashboard :is(.profile-settings-link,.profile-edit-card>summary){min-height:44px;min-width:44px}
+body.profile-dashboard :is(.avatar-studio-link,.profile-shortcuts a,.profile-settings-link,.profile-progress-row,.profile-more-stats>summary,.profile-edit-card>summary):focus-visible{outline:2px solid #8be7ee;outline-offset:3px}
+body.profile-dashboard :is(.avatar-studio-link,.profile-shortcuts a,.profile-settings-link,.profile-progress-row,.profile-more-stats>summary,.profile-edit-card>summary):active{filter:brightness(1.2)}

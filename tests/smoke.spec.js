@@ -293,25 +293,37 @@ test('games catalog keeps Play bright, disabled actions readable, and avoids dup
   else await expect(backHome).toBeVisible();
 });
 
-test('mobile catalog shows two browsable game choices per row', async ({ page }) => {
+test('mobile catalog features Crystal Command above two-column arcade choices', async ({ page }) => {
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
   await expect(cards).toHaveCount(23);
-  const first = await cards.nth(0).boundingBox();
-  const second = await cards.nth(1).boundingBox();
+  const featured = cards.first();
+  await expect(featured).toHaveAttribute('data-game', 'crystalCommand');
+  const feature = await featured.boundingBox();
+  const arcade = cards.filter({ hasNot: page.locator('a[href="crystal-command.html"]') });
+  const first = await arcade.nth(0).boundingBox();
+  const second = await arcade.nth(1).boundingBox();
+  expect(feature).toBeTruthy();
   expect(first).toBeTruthy();
   expect(second).toBeTruthy();
   expect(Math.abs(first.y - second.y)).toBeLessThan(2);
   expect(second.x).toBeGreaterThan(first.x + first.width - 2);
   expect(first.height).toBeLessThanOrEqual(150);
-  const favorite = await cards.first().locator('.favorite-button').boundingBox();
-  const play = await cards.first().locator('.game-play-button').boundingBox();
+  expect(Math.abs(feature.x - first.x)).toBeLessThan(2);
+  expect(Math.abs(feature.x + feature.width - second.x - second.width)).toBeLessThan(2);
+  expect(first.y).toBeGreaterThanOrEqual(feature.y + feature.height);
+  expect(feature.height).toBeGreaterThanOrEqual(170);
+  await expect(featured.locator('.game-play-button')).toContainText('Play · Free beta');
+  const featurePlay = await featured.locator('.game-play-button').boundingBox();
+  expect(featurePlay.height).toBeGreaterThanOrEqual(44);
+  const favorite = await arcade.first().locator('.favorite-button').boundingBox();
+  const play = await arcade.first().locator('.game-play-button').boundingBox();
   expect(favorite).toBeTruthy();
   expect(favorite.y - first.y).toBeLessThan(22);
   expect(play.height).toBeGreaterThanOrEqual(44);
-  await expect(cards.first().locator('.reward-rule')).toBeVisible();
-  await expect(cards.first().locator('.game-play-button')).toContainText(/Play · 3 left/);
+  await expect(arcade.first().locator('.reward-rule')).toBeVisible();
+  await expect(arcade.first().locator('.game-play-button')).toContainText(/Play · 3 left/);
 });
 
 test('Pick for me opens a playable game without searching', async ({ page }) => {
@@ -2149,7 +2161,7 @@ test('global leaderboards expose all games and editable player identity', async 
   await page.locator('details.profile-edit-card > summary').click();
   await expect(page.locator('#usernameInput')).toBeVisible();
   await expect(page.locator('#avatarPicker .avatar-choice')).toHaveCount(16);
-  await expect(page.locator('a[href="leaderboards.html"]')).toContainText('World Ranks');
+  await expect(page.locator('a[href="leaderboards.html"]')).toContainText('Leaderboards');
 });
 
 test('leaderboard sync is server-routed and new bests submit automatically', async ({ page }) => {
@@ -2477,4 +2489,26 @@ test('Crystal Command belongs to the 23-game catalog as a free searchable strate
   await page.locator('#gameSearch').fill('crystal');
   await expect(page.locator('#games .catalog-tile')).toHaveCount(1);
   await expect(card).toBeVisible();
+});
+
+
+test('leaderboard challenge uses real rank targets and opens the selected game', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('arcadeUsername', 'tester'));
+  await page.route('**/cloud.js', route => route.fulfill({ contentType:'application/javascript', body:`
+    window.EarnlyCloud = {
+      submitLeaderboardScore: async () => ({}),
+      leaderboard: async game => ({ entries: game === 'memory'
+        ? [{rank:1,username:'champ',score:12},{rank:2,username:'tester',score:18}]
+        : [{rank:1,username:'champ',score:100},{rank:2,username:'tester',score:80}] })
+    };
+    window.dispatchEvent(new Event('earnly-cloud-ready'));
+  ` }));
+  await page.goto('/leaderboards.html?game=snake');
+  await expect(page.locator('#rankStanding')).toContainText('#2');
+  await expect(page.locator('#rankTarget')).toContainText('100');
+  await expect(page.locator('#rankPlay')).toHaveAttribute('href','snake.html');
+  await page.locator('#gameSelect').selectOption('memory');
+  await expect(page.locator('#rankTarget')).toContainText('12');
+  await expect(page.locator('#rankTarget')).toContainText('Fewer moves wins');
+  await expect(page.locator('#rankPlay')).toHaveAttribute('href','memory.html');
 });
