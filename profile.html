@@ -381,15 +381,21 @@
 
     document.getElementById('rateEarnlyButton').addEventListener('click', async () => {
       // Apple reviews are never tied to a coin grant or any reward claim.
-      const button = document.getElementById('rateEarnlyButton');
+      // Open the owner's verified listing; never award coins for reviews.
+      const url = 'https://apps.apple.com/us/app/earnly-arcade/id6814277509?action=write-review';
       if (window.Capacitor?.isNativePlatform?.()) {
+        // Capacitor's Browser plugin is optional; the system URL fallback works
+        // without a custom rating plugin or any extra native dependency.
         try {
-          const bridge = window.Capacitor?.Plugins?.AppReview;
-          if (bridge?.requestReview) { await bridge.requestReview(); return; }
+          if (window.Capacitor?.Plugins?.Browser?.open) {
+            await window.Capacitor.Plugins.Browser.open({ url });
+            return;
+          }
         } catch {}
+        window.location.href = url;
+        return;
       }
-      // Official App Store listing supplied by the app owner.
-      window.open('https://apps.apple.com/us/app/earnly-arcade/id6814277509?action=write-review', '_blank', 'noopener,noreferrer');
+      window.open(url, '_blank', 'noopener,noreferrer');
     });
     render();
     renderAvatarPicker();
