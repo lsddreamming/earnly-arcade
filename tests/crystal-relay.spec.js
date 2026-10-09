@@ -31,7 +31,7 @@ test('single-file offline RTS mines, selects a box, right-clicks orders, trains 
  const destination=await page.evaluate(()=>CrystalGame.renderer.point(10,8));await page.locator('#battle').click({position:destination,button:'right'});
  expect(await page.evaluate(()=>CrystalGame.selection.every(id=>CrystalGame.state.entities.find(e=>e.id===id).order.type==='attack'))).toBe(true);
  await page.locator('#home').click();await expect(page.locator('[data-kind=worker]')).toContainText('Worker');await page.evaluate(()=>{CrystalGame.state.players[0].crystals=1000});await expect(page.locator('[data-kind=worker]')).toBeEnabled();await page.locator('[data-kind=worker]').click();expect(await page.evaluate(()=>CrystalGame.state.entities.find(e=>e.side===0&&e.type==='base').queue.includes('worker'))).toBe(true);
- await page.evaluate(()=>{const s=CrystalGame.state;s.entities.find(e=>e.side===1&&e.type==='base').hp=0});await expect(page.locator('#resultTitle')).toHaveText('VICTORY');await page.locator('#again').click();await expect(page.locator('#practice')).toBeVisible();expect(errors).toEqual([]);expect(network).toEqual([]);
+ await page.evaluate(()=>{const s=CrystalGame.state;for(const e of s.entities)if(e.side===1&&!CrystalCommand.TYPES[e.type].supply)e.hp=0});await expect(page.locator('#results')).toBeVisible();await expect(page.locator('#resultText')).toContainText('All enemy structures destroyed');await expect(page.locator('#resultTitle')).toHaveText('VICTORY');await page.locator('#again').click();await expect(page.locator('#practice')).toBeVisible();expect(errors).toEqual([]);expect(network).toEqual([]);
 });
 
 test('live HUD preserves mobile button labels and tutorial highlights between taps',async({page})=>{
