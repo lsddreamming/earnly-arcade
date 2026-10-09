@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="rank-discovery.css">
+  <link rel="stylesheet" href="home-compact.css?v=1">
 </head>
 <body class="home-dashboard">
   <main class="container home-container">
@@ -137,14 +138,15 @@
       </div>
     </section>
 
-    <section class="home-section" id="dailyMissionsSection">
-      <div class="home-section-heading">
+    <details class="home-section home-daily-disclosure" id="dailyMissionsSection">
+      <summary class="home-section-heading">
         <span>Daily Challenges</span>
         <span class="home-count-pill" id="dailyMissionCount">0/3</span>
-      </div>
+        <span class="home-expand-cue">View all <span aria-hidden="true">⌄</span></span>
+      </summary>
       <p class="daily-challenge-intro">Three goals every day · XP rewards added after your run</p>
       <div class="home-panel" id="dailyMissionList"></div>
-    </section>
+    </details>
 
     <details class="home-section home-disclosure" id="streakRewardCard">
       <summary>
@@ -433,6 +435,7 @@
 
       const dailyMissions = Arcade.dailyMissionStatus();
       dailyMissionCount.textContent = dailyMissions.claimed + '/' + dailyMissions.total;
+      document.getElementById("dailyMissionsSection").classList.toggle("has-ready-rewards", dailyMissions.missions.some(m => m.complete && !m.claimed));
       dailyMissionList.replaceChildren();
       dailyMissions.missions.forEach((mission, index) => {
         const row = document.createElement('div');

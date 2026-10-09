@@ -1,0 +1,43 @@
+/* Compact mobile-first Earnly home; preserve existing reward and mission handlers. */
+.home-dashboard .home-container{max-width:820px}
+.home-dashboard .home-hero{margin-bottom:14px}
+.home-dashboard .home-primary-play{min-height:88px;padding:15px 18px}
+.home-dashboard .rank-discovery{min-height:68px;padding:12px 17px}
+.home-dashboard .rank-discovery small{font-size:.84rem}
+.home-dashboard .continue-card{margin-top:12px}
+.home-dashboard .coin-shop-entry{min-height:72px;padding:13px 17px}
+.home-dashboard .coin-shop-entry small{font-size:.82rem}
+.home-dashboard .home-overview{margin-top:14px}
+.home-dashboard .home-metric{padding:14px 16px}
+.home-dashboard .home-progress-row{padding:12px 16px}
+.home-dashboard .home-section{margin-top:16px}
+.home-dashboard .home-section-heading{margin-bottom:8px}
+.home-dashboard .home-action-row{gap:11px;padding:12px 10px}
+.home-dashboard .home-action-icon{width:44px;height:44px;flex:0 0 44px}
+.home-dashboard .home-action-copy span{font-size:.83rem}
+.home-dashboard .home-public-intro{padding:17px 19px}
+.home-dashboard .home-public-intro p{font-size:.9rem;line-height:1.5}
+.home-daily-disclosure{display:block}
+.home-daily-disclosure > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+.home-daily-disclosure > summary::-webkit-details-marker{display:none}
+.home-daily-disclosure .home-expand-cue{margin-left:auto;font-size:.78rem;color:#7dd3fc;font-weight:700;text-transform:none;letter-spacing:0}
+.home-daily-disclosure[open] .home-expand-cue span{display:inline-block;transform:rotate(180deg)}
+.home-daily-disclosure.has-ready-rewards > summary{color:#86efac}
+.home-daily-disclosure .daily-challenge-intro{margin:3px 0 10px}
+.home-daily-disclosure:not([open]){border:1px solid rgba(91,164,217,.28);border-radius:15px;padding:12px 14px;background:rgba(15,34,59,.72)}
+.home-daily-disclosure:not([open]) > summary{margin:0}
+.home-dashboard .home-progress-grid{gap:10px}
+.home-dashboard .home-progress-tile{padding:12px}
+@media(max-width:600px){
+ .home-dashboard .home-container{padding-left:14px;padding-right:14px}
+ .home-dashboard .home-hero h1{font-size:clamp(1.4rem,5.5vw,1.85rem)}
+ .home-dashboard .home-primary-play{min-height:82px}
+ .home-dashboard .home-primary-play-icon{font-size:1.55rem}
+ .home-dashboard .home-primary-play-copy strong{font-size:1.13rem}
+ .home-dashboard .rank-discovery strong{font-size:1.1rem}
+ .home-dashboard .home-overview .home-metric strong{font-size:1.75rem}
+ .home-dashboard .home-metric-link{font-size:.76rem}
+ .home-dashboard .home-account-shortcut{padding:12px}
+ .home-dashboard .home-public-intro{margin-top:18px}
+}
+@media(prefers-reduced-motion:reduce){.home-daily-disclosure .home-expand-cue span{transition:none}}
