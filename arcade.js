@@ -1275,6 +1275,7 @@ const Arcade = (() => {
     return [
       { id:'first', icon:'🎮', title:'First Run', description:'Finish your first Earnly game', unlocked:number('gamesCompletedEver') >= 1 },
       { id:'explorer', icon:'🗺️', title:'Arcade Explorer', description:'Finish 4 different games', unlocked:lifetimeGames >= 4 },
+      { id:'marathon25', icon:'🎮', title:'Arcade Marathon', description:'Complete 25 games', unlocked:number('gamesCompletedEver') >= 25 },
       { id:'collector', icon:'🪙', title:'Coin Collector', description:'Earn 100 lifetime Arcade Coins', unlocked:number('lifetimePoints') >= 100 },
       { id:'streak3', icon:'🔥', title:'Heating Up', description:'Reach a 3-day streak', unlocked:number('dailyStreak') >= 3 },
       { id:'streak7', icon:'📅', title:'Week Warrior', description:'Reach a 7-day streak', unlocked:number('dailyStreak') >= 7 },
