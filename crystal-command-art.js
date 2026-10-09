@@ -102,7 +102,63 @@ function create(ctx,point,box,line,poly,tile){
  const unitHull=(x,y,r,h,color,z)=>simple?raised(x,y,r,h,color,z):hull(x,y,r,h,color,z);
  // Alien silhouettes use the same projection and team accents as the human army.
  function shard(x,y,r,h,c,z=0){const a=point(x-r,y,z+h*.25),b=point(x,y-r,z+h*.25),d=point(x+r,y,z+h*.25),e=point(x,y+r,z+h*.25),tip=point(x,y,z+h),bottom=point(x,y,z);poly([a,b,tip],tint(c,.35),'#eefaff88');poly([b,d,tip],c,'#eefaff66');poly([d,e,tip],tint(c,-.2),'#eefaff66');poly([e,a,tip],tint(c,-.45),'#eefaff66');poly([a,e,bottom],tint(c,-.55));poly([e,d,bottom],tint(c,-.3));}
+ // Auralith architecture: pearl frames around luminous suspended crystal cores.
+ function prismBuilding(o,c,t){
+  const r=CrystalCommand.stats(o).radius,S=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x),P=(x,y,z)=>point(o.x+x*r,o.y+y*r,z),core=(h,size=.24)=>{shard(o.x,o.y,r*size,.65,c,h);light(P(0,0,h+.42),c,2)},pier=(x,y,h)=>{hull(o.x+x*r,o.y+y*r,r*.16,h,'#b8b2d4',.12);shard(o.x+x*r,o.y+y*r,r*.12,.3,'#e4d5ff',h+.12)},arc=(h,w,col=c)=>ring(P(0,0,h),S*r*w,S*r*w*.43,col,1.7);
+  hull(o.x,o.y,r*.86,.16,'#55557b',.04);tile(o.x,o.y,r*.66,null,c+'99',.21);
+  if(o.type==='base'){
+   for(const [x,y] of [[-.68,-.68],[.68,-.68],[-.68,.68],[.68,.68]]){pier(x,y,1.05);line(P(x,y,1.12),P(x*.42,y*.42,1.7),'#e1d6ff',2)}
+   drum(o.x,o.y,r*.39,.28,'#797caa',.24);core(.8,.32);arc(1.6,.53,'#e4c997');arc(.57,.55);shard(o.x,o.y,r*.12,.5,'#fff0cb',1.65);
+  }else if(o.type==='factory'){
+   // Wide open gantry and an illuminated assembly floor, not a spire.
+   for(const x of [-.72,.72]){pier(x,0,.9);line(P(x,0,1.05),P(x*.4,0,1.38),'#e3d5ff',3)}
+   line(P(-.3,0,1.38),P(.3,0,1.38),c,3);core(.35,.23);
+   for(let j=0;j<3;j++)line(P(-.45,.2+j*.2,.24),P(.45,.2+j*.2,.24),c+'aa',1.4);
+  }else if(o.type==='barracks'){
+   for(const x of [-.64,.64]){pier(x,0,1.2);line(P(x,0,1.27),P(0,0,1.65),'#d9ccf5',3)}
+   poly([P(-.46,0,.25),P(-.46,0,1.13),P(0,0,1.4),P(.46,0,1.13),P(.46,0,.25)],c+'22',c+'aa');
+   arc(.28,.48);light(P(0,0,.8),c,3);
+  }else if(o.type==='relay'){
+   drum(o.x,o.y,r*.35,.55,'#9e9ac6',.2);core(.75,.2);arc(.94,.85);arc(1.18,.62,'#e9d5ff');
+   for(const x of [-.65,.65])line(P(x,0,.2),P(x,0,.85),'#e2d4ff',2);
+  }else if(o.type==='lab'){
+   core(.55,.24);for(let j=0;j<3;j++){ctx.save();const q=P(0,0,1);ctx.translate(q.x,q.y);ctx.rotate(j*Math.PI/3+t*.18);ring({x:0,y:0},S*r*.85,S*r*.26,j===1?'#ebc98d':c,1.5);ctx.restore()}
+   for(const x of [-.6,.6])pier(x,0,.4);
+  }else if(o.type==='armory'){
+   for(const x of [-.6,0,.6]){hull(o.x+x*r,o.y,r*.21,.4,'#a197b6',.2);shard(o.x+x*r,o.y,r*.2,x===0?1.2:.75,'#edd09e',.6)}
+   line(P(-.7,.55,.35),P(.7,.55,.35),c,2);
+  }else if(o.type==='starport'){
+   for(const x of [-.72,.72])pier(x,0,1.2);arc(1.45,.88);arc(1.45,.68,'#f5e5ff');arc(.25,.55);
+   for(let j=0;j<4;j++){const a=t*.5+j*Math.PI/2;light(P(Math.cos(a)*.84,Math.sin(a)*.84,1.45),c,2)}
+  }else{
+   drum(o.x,o.y,r*.48,.64,'#aaa2c9',.2);const a=o.aim?Math.atan2(o.aim.y-o.y,o.aim.x-o.x):t*.3;
+   core(.85,.24);for(const side of [-1,1]){const x=o.x-Math.sin(a)*side*r*.3,y=o.y+Math.cos(a)*side*r*.3;line(point(x,y,1),point(x+Math.cos(a)*r*.95,y+Math.sin(a)*r*.95,o.type==='flak'?1.65:1.05),'#e3d5ff',3);light(point(x+Math.cos(a)*r*.95,y+Math.sin(a)*r*.95,o.type==='flak'?1.65:1.05),c,1.6)}
+  }
+  if(o.queue?.length)light(P(0,.6,.35),'#ffd78a',2);
+ }
+ function prismUnit(o,c,t){
+  const d=CrystalCommand.stats(o),a=o.aim?Math.atan2(o.aim.y-o.y,o.aim.x-o.x):0,dx=Math.cos(a),dy=Math.sin(a),S=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x),z=d.flying?1.4:.28,P=(f,w,h)=>point(o.x+dx*f-dy*w,o.y+dy*f+dx*w,h),sh=(f,w,r,h,b=z)=>shard(o.x+dx*f-dy*w,o.y+dy*f+dx*w,r,h,'#b8addf',b);
+  if(d.flying){
+   const heavy=o.type==='cruiser',bomb=o.type==='bomber',w=heavy?1:bomb?.85:.68;
+   metal([P(.85,0,z),P(-.25,w,z),P(-.65,w*.75,z),P(-.25,0,z+.15),P(-.65,-w*.75,z),P(-.25,-w,z)],'#a79ecb',true);
+   sh(0,0,.2,heavy?.75:.4);for(const side of [-1,1]){line(P(.35,side*w*.4,z),P(-.5,side*w*.8,z),c,2);light(P(-.5,side*w*.8,z),c,2);if(bomb)sh(-.15,side*.5,.17,.38,z-.25);if(heavy){sh(-.35,side*.65,.19,.65);line(P(.1,side*.55,z),P(.85,side*.55,z),'#f1d5a1',2)}}
+  }else if(o.type==='worker'||o.type==='scout'||o.type==='medic'){
+   const w=o.type==='scout'?.5:.3;metal([P(.45,0,.48),P(-.2,w,.38),P(-.35,0,.32),P(-.2,-w,.38)],'#b6b7d4',true);sh(0,0,.16,.35,.42);
+   if(o.type==='worker'){for(const side of [-1,1]){line(P(.08,side*.2,.4),P(.4,side*.3,.2),'#e9d9fb',2);line(P(.4,side*.3,.2),P(.55,side*.13,.16),c,1.5)}if(o.carry)sh(-.18,0,.15,.32,.7)}
+   if(o.type==='medic'){ring(P(0,0,.95),S*.45,S*.19,'#baffd6',2);light(P(0,0,.8),'#baffd6',3)}
+   if(o.type==='scout')for(const side of [-1,1])line(P(-.2,side*.4,.38),P(-.65,side*.4,.3),c,2);
+  }else{
+   const siege=o.type==='siege',guard=o.type==='guardian',r=siege?.42:.25;
+   for(const side of [-1,1])for(const f of (siege?[-.3,.3]:[0])){const step=o.moving?Math.sin(t*10+side+(o.id||0))*.1:0;armPlate(P(f,side*r,.5),P(f-.12,side*(r+.15),.27),S*.075,'#aca9cc');armPlate(P(f-.12,side*(r+.15),.27),P(f+step,side*(r+.25),.04),S*.065,'#ded5ef')}
+   sh(0,0,r,siege?.5:.7,.35);light(P(.15,0,.85),c,2);
+   if(siege){line(P(-.4,0,.8),P(.9,0,.95),'#f4d59f',4);light(P(.9,0,.95),'#ffe6a7',2)}
+   else if(guard){for(const side of [-1,1])for(const f of [-.15,.15])sh(f,side*.34,.09,.6,.72)}
+   else if(o.type==='raider'){for(const side of [-1,1])metal([P(.05,side*.3,.55),P(.7,side*.4,.5),P(.3,side*.23,.35)],'#e5dcff',true)}
+   else{line(P(.1,-.3,.65),P(.8,-.3,.7),'#e7ddff',3);light(P(.8,-.3,.7),c,2)}
+  }
+ }
  function alienUnit(o,c,t){
+  if(o.faction==='prism'){prismUnit(o,c,t);return}
   const d=CrystalCommand.stats(o),large=['siege','guardian','cruiser'].includes(o.type),r=large?.5:o.type==='worker'?.25:.34,z=d.flying?1.45:.3,bob=Math.sin(t*3+(o.id||0))*.04,body=point(o.x,o.y,z+bob),scale=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x),aim=o.aim||{x:o.x+1,y:o.y},angle=Math.atan2(aim.y-o.y,aim.x-o.x);
   if(o.faction==='verdant'){
    const shell=large?'#78518d':o.type==='medic'?'#90aa65':'#477d6b';
@@ -126,6 +182,7 @@ function create(ctx,point,box,line,poly,tile){
   }
  }
  function alienBuilding(o,c,t){
+  if(o.faction==='prism'){prismBuilding(o,c,t);return}
   const d=CrystalCommand.stats(o),r=d.radius,scale=Math.abs(point(o.x+1,o.y).x-point(o.x,o.y).x),phase=Math.sin(t*2+(o.id||0)),central=o.type==='base',defense=['turret','flak'].includes(o.type),support=['relay','lab','armory'].includes(o.type);
   if(o.faction==='verdant'){
    for(let j=0;j<7;j++){const a=j*Math.PI*2/7,tip=point(o.x+Math.cos(a)*r*1.3,o.y+Math.sin(a)*r*1.3,.03);line(point(o.x,o.y,.15),tip,'#537968',4);sphere(tip,scale*.12,scale*.065,'#709879')}
