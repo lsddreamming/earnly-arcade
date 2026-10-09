@@ -167,7 +167,7 @@
   <script src="arcade.js"></script>
   <script>
     const gameInfo = [
-      { key:'crystalCommand', icon:'◈', name:'Crystal Command', note:'Build robot armies · solo or friend battle · free beta', href:'crystal-command.html', freeBeta:true },
+      { key:'crystalCommand', icon:'◈', name:'Crystal Command', note:'Build a base. Command an army. Solo or friend battles · Free strategy beta', href:'crystal-command.html', freeBeta:true },
       { key:'neonBreach', icon:'🤖', name:'Neon Breach', note:'First-person blaster · survive robot waves', href:'neonbreach.html' },
       { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
       { key:'blockDrop', icon:'🧱', name:'Block Drop', note:'Clear lines · speeds up · deep runs earn bonus XP', href:'blockdrop.html' },
@@ -305,7 +305,7 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['neonBreach','crystalCommand','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['crystalCommand','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
