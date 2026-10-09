@@ -2206,7 +2206,10 @@ test('result leaderboard loads after a run when cloud leaderboard is available',
 });
 
 test('result does not claim a new personal best below the confirmed global best', async ({ page }) => {
-  await page.goto('/index.html');
+  // Keep background cloud initialization from replacing the mocked leaderboard
+  // while WebKit is loading the home page. Test the result dialog on a stable
+  // lightweight game page instead of the dynamic dashboard.
+  await page.goto('/snake.html');
   await page.evaluate(() => {
     localStorage.setItem('arcadeUsername','DREAMER');
     window.EarnlyCloud = {
