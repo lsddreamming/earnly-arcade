@@ -388,8 +388,8 @@
           if (bridge?.requestReview) { await bridge.requestReview(); return; }
         } catch {}
       }
-      // A search page is a fallback until the verified App Store app ID is configured.
-      window.open('https://apps.apple.com/us/search?term=Earnly%20Arcade', '_blank', 'noopener,noreferrer');
+      // Official App Store listing supplied by the app owner.
+      window.open('https://apps.apple.com/us/app/earnly-arcade/id6814277509?action=write-review', '_blank', 'noopener,noreferrer');
     });
     render();
     renderAvatarPicker();
