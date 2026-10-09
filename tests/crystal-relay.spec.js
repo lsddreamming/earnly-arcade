@@ -14,7 +14,7 @@ test('relay reserves become available only on completion and explain blocked pro
  s.entities.find(e=>e.type==='relay').hp=0;E.tick(s);expect(E.supply(s,0).cap).toBe(16);
 });
 test('troop-space help explains relays and opens the blueprint without spending crystals',async({page})=>{
- await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#practice').click();await page.locator('#supplyHelp').click();
+ await page.addInitScript(()=>localStorage.setItem('crystalSound','off'));await page.setViewportSize({width:320,height:568});await page.goto('/crystal-command.html');await page.locator('#practice').click();await page.evaluate(()=>{window.supplyLabel=document.getElementById('supply').firstChild});await page.waitForTimeout(500);expect(await page.evaluate(()=>document.getElementById('supply').firstChild===window.supplyLabel)).toBe(true);await page.locator('#supplyHelp').click();
  await expect(page.locator('[data-kind=relay]')).toContainText('+12 troop slots');await expect(page.locator('#message')).toContainText('Queued troops use slots too');
  expect(await page.evaluate(()=>CrystalGame.view.entities.some(e=>e.type==='relay'&&e.side===0))).toBe(false);
  await page.locator('[data-kind=relay]').click();await expect(page.locator('#context')).toContainText('16 → 28');
