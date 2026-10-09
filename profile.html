@@ -165,7 +165,7 @@
       <div class="profile-milestone">
         <span>🎮 Arcade Marathon · 25 completed games</span>
         <strong id="arcadeMarathonProgress">0 / 25</strong>
-        <small>250-Coin milestone reward planned; claim activation requires verified gameplay rewards. Reviews are always optional.</small>
+        <small>Unlock the Arcade Marathon achievement at 25 games. A separate 250-Coin reward is planned, pending secure payout support.</small>
         <a href="games.html">Play games →</a>
       </div>
     </section>
@@ -374,8 +374,8 @@
           if (bridge?.requestReview) { await bridge.requestReview(); return; }
         } catch {}
       }
-      button.textContent = '⭐ Find Earnly Arcade in the App Store';
-      window.location.href = 'https://apps.apple.com/us/search?term=Earnly%20Arcade';
+      // A search page is a fallback until the verified App Store app ID is configured.
+      window.open('https://apps.apple.com/us/search?term=Earnly%20Arcade', '_blank', 'noopener,noreferrer');
     });
     render();
     renderAvatarPicker();
