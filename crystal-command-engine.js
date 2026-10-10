@@ -267,7 +267,7 @@ function bot(s){
  const defendedBase=threat?bases.slice().sort((a,b)=>dist(a,threat)-dist(b,threat))[0]:base;
  const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded){const shelter=bases.slice().sort((a,b)=>dist(a,e)-dist(b,e))[0]||base;command(s,1,{type:'move',ids:[e.id],x:shelter.x,y:shelter.y});}
  const ready=army.filter(e=>!wounded.includes(e));if(!ready.length)return;
- if(threat){const defenders=ready.filter(e=>dist(e,defendedBase)<22);const squad=defenders.length?defenders:ready;command(s,1,{type:'attack',ids:squad.map(e=>e.id),x:threat.x,y:threat.y,target:threat.id});return;}
+ if(threat){const defenders=ready.filter(e=>dist(e,defendedBase)<22);const squad=defenders.length?defenders:ready;command(s,1,{type:'attack',ids:squad.map(e=>e.id),x:threat.x-1,y:threat.y,target:threat.id});return;}
  if(s.time<level.attackAt||s.time<m.retreatUntil)return;
  const center={x:ready.reduce((n,e)=>n+e.x,0)/ready.length,y:ready.reduce((n,e)=>n+e.y,0)/ready.length};
  const opposition=visible.filter(e=>unit(e.type)&&ready.some(a=>canTarget(e,a))&&dist(e,center)<10);
