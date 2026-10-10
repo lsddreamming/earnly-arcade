@@ -86,6 +86,29 @@
       .profile-dashboard .profile-milestone a{font-size:12px!important}
       .profile-dashboard .profile-shortcuts{margin-top:7px!important}
     }
+    /* 1.3 phone dashboard: actions visible without a long scroll. */
+    .profile-extras{margin:8px 0;border:1px solid #29455e;border-radius:12px;overflow:hidden}
+    .profile-extras>summary{padding:11px 13px;font-size:13px;font-weight:750;color:#cde8ff;cursor:pointer;list-style:none}
+    .profile-extras>summary::-webkit-details-marker{display:none}
+    .profile-extras>summary span{float:right}
+    .profile-extras .profile-review-panel{margin:0!important;border:0!important;border-top:1px solid #29455e!important;border-radius:0!important}
+    @media(max-width:600px){
+      .profile-dashboard .profile-hero{padding:8px 11px!important}
+      .profile-dashboard .profile-xp-line{margin-top:3px!important}
+      .profile-dashboard .profile-key-stats{margin:3px 0 5px!important}
+      .profile-dashboard .avatar-studio-link{min-height:43px!important;padding:6px 10px!important;margin:4px 0!important}
+      .profile-dashboard .avatar-studio-link strong{font-size:13px!important}
+      .profile-dashboard .avatar-studio-link small{display:none!important}
+      .profile-dashboard .profile-more-stats{margin:4px 0!important}
+      .profile-dashboard .profile-more-stats>summary small{display:none}
+      .profile-dashboard .profile-section-label{margin:5px 0!important}
+      .profile-dashboard .profile-progress-menu{margin:3px 0!important}
+      .profile-dashboard .profile-progress-row{min-height:44px!important;padding:6px 9px!important}
+      .profile-dashboard .profile-progress-copy small{display:none}
+      .profile-dashboard .profile-shortcuts{margin-top:5px!important}
+      .profile-dashboard .profile-shortcuts a{padding:9px!important}
+      .profile-dashboard .public-footer{margin-top:12px!important}
+    }
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
@@ -162,7 +185,7 @@
     <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Outfits, accessories &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
 
     <div id="profile-coin-shop" hidden>
-      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Buy Arcade Coins</strong><small>Outfits, accessories &amp; extra plays · from $1.99</small></span><span aria-hidden="true">→</span></a>
+      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Coin Shop</strong><small>Optional purchases · from $1.99</small></span><span aria-hidden="true">→</span></a>
     </div>
 
     <details class="profile-more-stats">
@@ -203,7 +226,7 @@
       </a>
     </section>
 
-    <section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
+    <details class="profile-extras"><summary>⭐ Milestones &amp; rate Earnly <span aria-hidden="true">⌄</span></summary><section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
       <div class="profile-review-copy"><strong>⭐ Enjoying Earnly Arcade?</strong><small>Your honest rating helps other players discover us. Reviews are optional and never required for rewards.</small></div>
       <button type="button" id="rateEarnlyButton" class="profile-rate-button">⭐ Rate Earnly Arcade →</button>
       <div class="profile-milestone">
@@ -213,6 +236,7 @@
         <a href="games.html">Play games →</a>
       </div>
     </section>
+    </details>
     <section class="profile-shortcuts profile-shortcuts-essential" aria-label="Profile shortcuts">
       <a href="leaderboards.html"><span>🏆</span><strong>Leaderboards</strong><small>World Top 25</small></a>
       <a href="account.html"><span>☁️</span><strong>Account & Data</strong><small>Cloud, backup & delete</small></a>
