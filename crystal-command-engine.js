@@ -273,10 +273,16 @@ function bot(s){
  const opposition=visible.filter(e=>unit(e.type)&&ready.some(a=>canTarget(e,a))&&dist(e,center)<10);
  if(s.difficulty!=='easy'&&dist(center,base)>14&&opposition.reduce((n,e)=>n+e.hp,0)>ready.reduce((n,e)=>n+e.hp,0)*1.4){m.retreatUntil=s.time+12;command(s,1,{type:'move',ids:ready.map(e=>e.id),x:base.x,y:base.y});return;}
  if(ready.length<level.force||s.time<s.botAttackAt)return;s.botAttackAt=s.time+Math.max(6,level.wave);
- const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').slice(0,3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
+ const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').sort((a,b)=>dist(a,center)-dist(b,center)).slice(0,s.difficulty==='hard'?5:3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
  if(miner&&raiders.length)command(s,1,{type:'attack',ids:raiders.map(e=>e.id),x:miner.x,y:miner.y,target:miner.id});
  const main=ready.filter(e=>!miner||!raiders.includes(e)),targets=Object.values(m.structures).sort((a,b)=>(a.type==='base'?0:1)-(b.type==='base'?0:1)||dist(a,center)-dist(b,center));
- const target=targets[0]||{x:6,y:6};if(main.length)command(s,1,{type:'attack',ids:(s.difficulty==='easy'?main.slice(0,3):main).map(e=>e.id),x:target.x,y:target.y});
+ const target=targets[0]||{x:6,y:6};if(main.length){
+  const attackers=s.difficulty==='easy'?main.slice(0,3):main;
+  const frontline=attackers.filter(e=>e.type!=='medic');
+  const support=attackers.filter(e=>e.type==='medic');
+  if(frontline.length)command(s,1,{type:'attack',ids:frontline.map(e=>e.id),x:target.x,y:target.y});
+  if(support.length){const escort=frontline.find(e=>!TYPES[e.type].flying)||frontline[0];if(escort)command(s,1,{type:'move',ids:support.map(e=>e.id),x:escort.x,y:escort.y});}
+ }
 }
 function tick(s,dt=STEP){
  if(s.ended)return;dt=clamp(dt,0,.1);s.time+=dt;s.tick++;s.events=[];s.harvesting=new Set();vision(s);bot(s);
