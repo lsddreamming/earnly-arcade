@@ -174,12 +174,12 @@ function command(s,side,c){
   p.crystals-=cost;const time=(kind==='weapons'?18:16)+level*8;lab.research={kind,level:level+1,total:time,remaining:time};return{ok:true};
  }
  if(['move','attack','mine','stop'].includes(c.type)){
-  if(!Array.isArray(c.ids)||c.ids.length>80)return{ok:false,message:'Select a squad'};const ids=new Set(c.ids),selected=own.filter(e=>ids.has(e.id)&&unit(e.type));if(!selected.length)return{ok:false,message:'Select a squad'};
+  if(!Array.isArray(c.ids)||c.ids.length>120)return{ok:false,message:'Select a squad'};const ids=new Set(c.ids),selected=own.filter(e=>ids.has(e.id)&&unit(e.type));if(!selected.length)return{ok:false,message:'Select a squad'};
   if(c.type!=='stop'&&(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=SIZE||c.y<0||c.y>=SIZE))return{ok:false,message:'Choose a point on the map'};
   const crystal=c.type==='mine'?s.crystals.find(n=>n.id===c.target&&n.left>0&&canSee(s,side,n)):null;if(c.type==='mine'&&!crystal)return{ok:false,message:'Choose a visible crystal field'};
   const target=c.type==='attack'&&c.target!==undefined?s.entities.find(e=>e.id===c.target&&e.side!==side&&e.hp>0&&canSee(s,side,e)):null;if(c.type==='attack'&&c.target!==undefined&&!target)return{ok:false,message:'Choose a visible enemy'};
   if(target&&!selected.some(e=>canTarget(e,target)))return{ok:false,message:TYPES[target.type].flying?'Selected troops cannot attack air':'Selected troops cannot attack this target'};
-  selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){x=clamp(x+((i%5)-2)*.5,0,SIZE-.1);y=clamp(y+(Math.floor(i/5)%5-2)*.5,0,SIZE-.1)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
+  selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){const columns=Math.min(12,Math.ceil(Math.sqrt(selected.length))),spacing=.62;const row=Math.floor(i/columns),column=i%columns;x=clamp(x+(column-(columns-1)/2)*spacing,0,SIZE-.1);y=clamp(y+(row-(Math.ceil(selected.length/columns)-1)/2)*spacing,0,SIZE-.1)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
  }
  return{ok:false,message:'Unknown order'};
 }
