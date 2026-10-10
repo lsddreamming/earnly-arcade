@@ -262,13 +262,15 @@ function bot(s){
  const scout=own.find(e=>e.type==='scout'),route=[{x:47,y:55},{x:50,y:37},{x:12,y:28},{x:6,y:6},{x:16,y:8}];
  if(scout){const danger=visible.some(e=>canTarget(e,scout)&&dist(e,scout)<6);if(danger||scout.hp<scout.maxHp*.4)command(s,1,{type:'move',ids:[scout.id],x:base.x,y:base.y});else if(!scout.order||dist(scout,route[m.scoutIndex%route.length])<3){const at=route[m.scoutIndex++%route.length];command(s,1,{type:'move',ids:[scout.id],...at});}}
  if(s.time<m.tacticsAt)return;m.tacticsAt=s.time+4;
- const threat=visible.filter(e=>unit(e.type)&&e.type!=='worker'&&bases.some(b=>dist(b,e)<12)).sort((a,b)=>dist(a,base)-dist(b,base))[0];
- const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded)command(s,1,{type:'move',ids:[e.id],x:base.x,y:base.y});
+ const threat=visible.filter(e=>unit(e.type)&&e.type!=='worker'&&bases.some(b=>dist(b,e)<12)).sort((a,b)=>Math.min(...bases.map(t=>dist(t,a)))-Math.min(...bases.map(t=>dist(t,b))))[0];
+ // Protect threatened expansions rather than abandoning them for the original base.
+ const defendedBase=threat?bases.slice().sort((a,b)=>dist(a,threat)-dist(b,threat))[0]:base;
+ const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded){const shelter=bases.slice().sort((a,b)=>dist(a,e)-dist(b,e))[0]||base;command(s,1,{type:'move',ids:[e.id],x:shelter.x,y:shelter.y});}
  const ready=army.filter(e=>!wounded.includes(e));if(!ready.length)return;
- if(threat){command(s,1,{type:'attack',ids:ready.map(e=>e.id),x:threat.x,y:threat.y});return;}
+ if(threat){const defenders=ready.filter(e=>dist(e,defendedBase)<22);const squad=defenders.length?defenders:ready;command(s,1,{type:'attack',ids:squad.map(e=>e.id),x:threat.x,y:threat.y,target:threat.id});return;}
  if(s.time<level.attackAt||s.time<m.retreatUntil)return;
  const center={x:ready.reduce((n,e)=>n+e.x,0)/ready.length,y:ready.reduce((n,e)=>n+e.y,0)/ready.length};
- const opposition=visible.filter(e=>unit(e.type)&&canTarget(e,ready[0])&&dist(e,center)<10);
+ const opposition=visible.filter(e=>unit(e.type)&&ready.some(a=>canTarget(e,a))&&dist(e,center)<10);
  if(s.difficulty!=='easy'&&dist(center,base)>14&&opposition.reduce((n,e)=>n+e.hp,0)>ready.reduce((n,e)=>n+e.hp,0)*1.4){m.retreatUntil=s.time+12;command(s,1,{type:'move',ids:ready.map(e=>e.id),x:base.x,y:base.y});return;}
  if(ready.length<level.force||s.time<s.botAttackAt)return;s.botAttackAt=s.time+Math.max(6,level.wave);
  const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').slice(0,3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
