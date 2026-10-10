@@ -86,6 +86,41 @@
       .profile-dashboard .profile-milestone a{font-size:12px!important}
       .profile-dashboard .profile-shortcuts{margin-top:7px!important}
     }
+
+    /* 1.3 one-screen player hub: structure first, not merely smaller margins. */
+    .profile-dashboard .profile-customize-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}
+    .profile-dashboard .profile-customize-row>#profile-coin-shop:not([hidden]){display:block;min-width:0}
+    .profile-dashboard .profile-customize-row .avatar-studio-link{height:100%;margin:0!important;min-width:0;min-height:54px!important;padding:9px!important;display:flex;align-items:center;gap:6px}
+    .profile-dashboard .profile-customize-row .avatar-studio-link>span:first-child{font-size:19px}
+    .profile-dashboard .profile-customize-row .avatar-studio-link strong{font-size:12px;line-height:1.2}
+    .profile-dashboard .profile-customize-row .avatar-studio-link small{font-size:10px;line-height:1.2}
+    .profile-dashboard .profile-customize-row .avatar-studio-link>span:last-child{margin-left:auto}
+    .profile-dashboard .profile-progress-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border:0;background:transparent}
+    .profile-dashboard .profile-progress-row{min-width:0;border:1px solid #36516d!important;border-radius:12px!important;overflow:visible}
+    .profile-dashboard .profile-progress-row>summary{min-width:0}
+    .profile-dashboard .profile-progress-copy small,.profile-dashboard .profile-progress-action{font-size:10px!important}
+    .profile-dashboard .profile-extras{margin:8px 0;border:1px solid #304960;border-radius:12px;background:#0d1d30}
+    .profile-dashboard .profile-extras>summary{cursor:pointer;min-height:40px;display:flex;justify-content:space-between;align-items:center;padding:9px 12px;color:#d9ebff;font-size:12px;font-weight:750;list-style:none}
+    .profile-dashboard .profile-extras>summary::-webkit-details-marker{display:none}
+    .profile-dashboard .profile-extras .profile-review-panel{margin:0!important;border:0!important}
+    @media(max-width:600px){
+      .profile-dashboard .profile-hero{padding:8px 10px!important}
+      .profile-dashboard .profile-hero .profile-avatar{width:40px!important;height:40px!important}
+      .profile-dashboard .profile-hero-copy h1{font-size:20px!important}
+      .profile-dashboard .profile-hero .profile-eyebrow{font-size:9px!important}
+      .profile-dashboard .profile-edit-card{margin:-38px 44px 2px auto!important}
+      .profile-dashboard .profile-key-stats{margin:2px 0 5px!important}
+      .profile-dashboard .profile-more-stats{margin:5px 0!important}
+      .profile-dashboard .profile-more-stats>summary{min-height:38px!important;padding:7px 10px!important}
+      .profile-dashboard .profile-progress-menu{margin:6px 0!important}
+      .profile-dashboard .profile-progress-row{min-height:60px!important;padding:5px!important}
+      .profile-dashboard .profile-progress-row>summary{padding:5px!important;gap:5px!important;width:calc(100% + 10px)!important;margin-left:-5px!important}
+      .profile-dashboard .profile-progress-icon{width:28px!important;height:28px!important;font-size:15px!important}
+      .profile-dashboard .profile-progress-copy strong{font-size:12px!important}
+      .profile-dashboard .profile-progress-action{display:none!important}
+      .profile-dashboard .profile-bests-row>#bestGrid{width:calc(100% + 12px)!important;margin-left:-6px!important;margin-right:-6px!important}
+      .profile-dashboard .profile-shortcuts{margin-top:5px!important}
+    }
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
@@ -159,12 +194,13 @@
       <div><strong id="streak">0</strong><span>Day streak</span></div>
     </section>
 
-    <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Outfits, accessories &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
+    <div class="profile-customize-row"><a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Customize</small></span><span aria-hidden="true">→</span></a>
 
     <div id="profile-coin-shop" hidden>
-      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Buy Arcade Coins</strong><small>Outfits, accessories &amp; extra plays · from $1.99</small></span><span aria-hidden="true">→</span></a>
+      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Coin Shop</strong><small>View offers</small></span><span aria-hidden="true">→</span></a>
     </div>
 
+    </div>
     <details class="profile-more-stats">
       <summary>
         <span>More player stats</span>
@@ -186,7 +222,7 @@
       <div class="quick-grid profile-favorites" id="favoriteGames"></div>
     </section>
 
-    <div class="profile-section-label">Progress</div>
+    
     <section class="profile-progress-menu" aria-label="Player progress">
       <details class="profile-progress-row profile-bests-row">
         <summary>
@@ -203,7 +239,7 @@
       </a>
     </section>
 
-    <section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
+    <details class="profile-extras"><summary>More rewards &amp; rating <span aria-hidden="true">⌄</span></summary><section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
       <div class="profile-review-copy"><strong>⭐ Enjoying Earnly Arcade?</strong><small>Your honest rating helps other players discover us. Reviews are optional and never required for rewards.</small></div>
       <button type="button" id="rateEarnlyButton" class="profile-rate-button">⭐ Rate Earnly Arcade →</button>
       <div class="profile-milestone">
@@ -213,6 +249,7 @@
         <a href="games.html">Play games →</a>
       </div>
     </section>
+    </details>
     <section class="profile-shortcuts profile-shortcuts-essential" aria-label="Profile shortcuts">
       <a href="leaderboards.html"><span>🏆</span><strong>Leaderboards</strong><small>World Top 25</small></a>
       <a href="account.html"><span>☁️</span><strong>Account & Data</strong><small>Cloud, backup & delete</small></a>
