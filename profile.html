@@ -59,6 +59,8 @@
 
     /* Progress summary must span the full row at every viewport width. */
     .profile-dashboard .profile-bests-row>summary{width:calc(100% + 20px)!important;box-sizing:border-box!important;max-width:none!important;margin-left:-10px!important;margin-right:-10px!important}
+    /* Expanded personal bests content must match its enclosing progress row. */
+    .profile-dashboard .profile-bests-row>#bestGrid{width:calc(100% + 20px)!important;max-width:none!important;box-sizing:border-box!important;margin-left:-10px!important;margin-right:-10px!important}
     /* 1.3 mobile profile density: preserve all actions and expandable details. */
     @media(max-width:600px){
       .profile-container{padding-top:8px!important}
