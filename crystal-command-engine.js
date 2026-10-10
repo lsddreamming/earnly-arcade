@@ -1,6 +1,8 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CrystalCommand=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
 'use strict';
 const VERSION=8,SIZE=64,STEP=.05,BATTLE_LIMIT=Infinity;
+// Cache immutable type properties across the hot combat loop; refresh the cache each tick.
+
 const MAPS=Object.freeze({
  frontier:{name:'Crystal Frontier',description:'Wide flanking routes and a dangerous rich center.'},
  crossing:{name:'Shattered Crossing',description:'Three passages divide the battlefield. Watch your flanks.'},
@@ -278,6 +280,7 @@ function bot(s){
 }
 function tick(s,dt=STEP){
  if(s.ended)return;dt=clamp(dt,0,.1);s.time+=dt;s.tick++;s.events=[];s.harvesting=new Set();vision(s);bot(s);
+ const alive=s.entities.filter(e=>e.hp>0),combatants=alive.filter(e=>unit(e.type)),fighters=[alive.filter(e=>e.side===0),alive.filter(e=>e.side===1)];
  for(const e of s.entities){if(e.hp<=0)continue;if(e.build>0){e.build=Math.max(0,e.build-dt);continue}
   if(s.time-(e.lastDamage??-100)>8){if(e.maxShield)e.shield=Math.min(e.maxShield,e.shield+e.maxShield*.1*dt);if(e.faction==='verdant'&&unit(e.type)&&e.type!=='worker')e.hp=Math.min(e.maxHp,e.hp+.5*dt)}
   if(e.faction==='verdant'&&e.type==='base'){e.broodAt+=dt;if(e.broodAt>=4){e.brood=Math.min(3,e.brood+1);e.broodAt=0}}
@@ -298,19 +301,19 @@ function tick(s,dt=STEP){
   if(e.type==='worker'){if(!e.order||e.order.type==='mine')harvest(s,e,dt);else if(e.order.type==='move'||e.order.type==='attack'){if(move(s,e,e.order,dt)){e.order=null;e.path=[]}}continue}
   const d=stats(e);e.cool=Math.max(0,e.cool-dt);
   if(d.heal){
-   const friends=s.entities.filter(t=>t.id!==e.id&&t.side===e.side&&t.hp>0&&unit(t.type)&&!TYPES[t.type].flying&&t.hp<t.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp||dist(e,a)-dist(e,b));
+   const friends=combatants.filter(t=>t.id!==e.id&&t.side===e.side&&!TYPES[t.type].flying&&t.hp<t.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp||dist(e,a)-dist(e,b));
    const patient=friends.find(t=>dist(e,t)<=d.range);if(patient&&e.order?.type!=='move'){if(!e.cool){patient.hp=Math.min(patient.maxHp,patient.hp+d.heal);e.cool=d.cool;s.events.push({type:'heal',side:e.side,x:e.x,y:e.y,tx:patient.x,ty:patient.y,kind:e.type})}continue}
    if(e.order&&['move','attack'].includes(e.order.type)){const follow=e.order.type==='attack'?friends.find(t=>dist(e,t)<d.vision):null;const target=follow||e.order;if(move(s,e,target,dt)&&target===e.order)e.order=null}continue
   }
   if(!d.damage&&!d.airDamage)continue;
-  const enemies=s.entities.filter(t=>t.hp>0&&t.side!==e.side&&canTarget(e,t)&&canSee(s,e.side,t));
+  const enemies=fighters[1-e.side].filter(t=>t.hp>0&&canTarget(e,t)&&canSee(s,e.side,t));
   const focus=enemies.find(t=>t.id===e.order?.target&&e.order?.type==='attack');if(focus){e.order.x=focus.x;e.order.y=focus.y}
   const inRange=enemies.filter(t=>(!focus||t.id===focus.id)&&dist(e,t)<=d.range+(TYPES[t.type].radius||.3)).sort((a,b)=>(unit(a.type)?0:4)-(unit(b.type)?0:4)||dist(e,a)-dist(e,b));
   if(inRange.length&&e.order?.type!=='move'){if(!e.cool){damage(s,e,inRange[0]);e.cool=d.cool}continue}
   if(unit(e.type)&&e.order&&['move','attack'].includes(e.order.type)){let target=e.order;if(e.order.type==='attack'){const near=enemies.filter(t=>dist(e,t)<d.vision).sort((a,b)=>dist(e,a)-dist(e,b))[0];if(focus||near)target=focus||near}if(move(s,e,target,dt)&&target===e.order)e.order=null}
  }
  // Central crystals surge for three seconds in every twelve-second cycle.
- if(s.time%12>9){for(const e of s.entities)if(unit(e.type)&&!TYPES[e.type].flying&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2)){if(!e.faction||e.faction==='human'){e.hp-=7*dt;e.lastDamage=s.time}else takeDamage(s,e,7*dt,'fire')}}
+ if(s.time%12>9){for(const e of combatants)if(e.hp>0&&!TYPES[e.type].flying&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2)){if(!e.faction||e.faction==='human'){e.hp-=7*dt;e.lastDamage=s.time}else takeDamage(s,e,7*dt,'fire')}}
  for(const e of s.entities)if(e.hp<=0)s.events.push({type:'destroyed',side:e.side,x:e.x,y:e.y,kind:e.type});
  s.entities=s.entities.filter(e=>e.hp>0);vision(s);
  // Buffer only public visual events so slower friend snapshots retain brief shots and explosions.
