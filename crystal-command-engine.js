@@ -263,9 +263,11 @@ function bot(s){
  if(scout){const danger=visible.some(e=>canTarget(e,scout)&&dist(e,scout)<6);if(danger||scout.hp<scout.maxHp*.4)command(s,1,{type:'move',ids:[scout.id],x:base.x,y:base.y});else if(!scout.order||dist(scout,route[m.scoutIndex%route.length])<3){const at=route[m.scoutIndex++%route.length];command(s,1,{type:'move',ids:[scout.id],...at});}}
  if(s.time<m.tacticsAt)return;m.tacticsAt=s.time+4;
  const threat=visible.filter(e=>unit(e.type)&&e.type!=='worker'&&bases.some(b=>dist(b,e)<12)).sort((a,b)=>dist(a,base)-dist(b,base))[0];
+ // Protect threatened expansions rather than abandoning them for the original base.
+ const defendedBase=threat?bases.slice().sort((a,b)=>dist(a,threat)-dist(b,threat))[0]:base;
  const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded)command(s,1,{type:'move',ids:[e.id],x:base.x,y:base.y});
  const ready=army.filter(e=>!wounded.includes(e));if(!ready.length)return;
- if(threat){command(s,1,{type:'attack',ids:ready.map(e=>e.id),x:threat.x,y:threat.y});return;}
+ if(threat){const defenders=ready.filter(e=>dist(e,defendedBase)<22);const squad=defenders.length?defenders:ready;command(s,1,{type:'attack',ids:squad.map(e=>e.id),x:threat.x,y:threat.y,target:threat.id});return;}
  if(s.time<level.attackAt||s.time<m.retreatUntil)return;
  const center={x:ready.reduce((n,e)=>n+e.x,0)/ready.length,y:ready.reduce((n,e)=>n+e.y,0)/ready.length};
  const opposition=visible.filter(e=>unit(e.type)&&canTarget(e,ready[0])&&dist(e,center)<10);
