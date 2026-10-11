@@ -89,11 +89,11 @@
 
     /* Keep the edit control inside the hub instead of reserving a separate row. */
     .profile-dashboard .profile-hero{position:relative!important}
-    .profile-dashboard .profile-hero .profile-edit-card:not([open]){position:absolute!important;top:15px!important;right:65px!important;margin:0!important;width:auto!important;max-width:110px!important;z-index:4}
+    .profile-dashboard .profile-hero .profile-edit-card:not([open]){position:absolute!important;top:15px!important;right:12px!important;margin:0!important;width:auto!important;max-width:145px!important;z-index:4}
     .profile-dashboard .profile-hero .profile-edit-card:not([open])>summary{min-height:34px!important;padding:7px 9px!important;white-space:nowrap}
     .profile-dashboard .profile-hero .profile-edit-card[open]{position:relative!important;margin:10px 0!important;width:100%!important;max-width:100%!important;z-index:5}
-    .profile-dashboard .profile-hero .profile-hero-copy{padding-right:112px!important}
-    @media(max-width:600px){.profile-dashboard .profile-hero .profile-edit-card:not([open]){top:10px!important;right:58px!important}.profile-dashboard .profile-hero .profile-hero-copy{padding-right:96px!important}}
+    .profile-dashboard .profile-hero .profile-hero-copy{padding-right:145px!important}
+    @media(max-width:600px){.profile-dashboard .profile-hero .profile-edit-card:not([open]){top:10px!important;right:12px!important}.profile-dashboard .profile-hero .profile-hero-copy{padding-right:135px!important}}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
@@ -118,10 +118,10 @@
           <h1 id="nameDisplay">Player</h1>
           <div class="profile-level-line">Level <strong id="level">1</strong> · <span id="totalXP">0 total XP</span></div>
         </div>
-        <a class="profile-settings-link" href="settings.html" aria-label="Settings">⚙️</a>
+        
       </div>
     <details class="profile-edit-card">
-      <summary>Edit profile</summary>
+      <summary>✏️ Edit Profile</summary>
       <form class="profile-name-form" id="nameForm">
         <input id="nameInput" type="text" maxlength="18" autocomplete="off" aria-label="Player name" placeholder="Player name">
         <button type="submit">Save</button>
@@ -129,6 +129,7 @@
       <div class="profile-edit-footer">
         <span>Nickname is your in-app display name.</span>
         <button class="mini-button secondary" id="soundButton" type="button">🔊 Game Sounds On</button>
+        <a class="mini-button secondary" href="settings.html" aria-label="Open app settings">⚙️ App Settings →</a>
       </div>
 
       <div class="global-profile-card">
