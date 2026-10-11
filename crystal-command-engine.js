@@ -274,6 +274,11 @@ function bot(s){
  if(s.difficulty!=='easy'&&dist(center,base)>14&&opposition.reduce((n,e)=>n+e.hp,0)>ready.reduce((n,e)=>n+e.hp,0)*1.4){m.retreatUntil=s.time+12;command(s,1,{type:'move',ids:ready.map(e=>e.id),x:base.x,y:base.y});return;}
  const lateBattle=s.difficulty!=='easy'&&s.time>180;
  const assaultMinimum=lateBattle?Math.min(level.armyCap,level.force+3):level.force;
+ const committed=ready.filter(e=>e.order?.type==='attack'&&dist(e,base)>12);
+ if(lateBattle&&committed.length>=level.force&&ready.length>=assaultMinimum&&s.time<s.botAttackAt){
+  const reserveTroops=ready.filter(e=>!committed.includes(e)&&dist(e,base)<12&&e.type!=='medic');
+  if(reserveTroops.length>=3){const lead=committed[0];command(s,1,{type:'attack',ids:reserveTroops.map(e=>e.id),x:lead.order?.x??lead.x,y:lead.order?.y??lead.y});return;}
+ }
  if(ready.length<assaultMinimum||s.time<s.botAttackAt)return;
  s.botAttackAt=s.time+Math.max(6,level.wave);
  const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').sort((a,b)=>dist(a,center)-dist(b,center)).slice(0,s.difficulty==='hard'?5:3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
