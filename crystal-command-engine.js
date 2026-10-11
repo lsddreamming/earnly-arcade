@@ -280,7 +280,10 @@ function bot(s){
   const attackers=s.difficulty==='easy'?main.slice(0,3):main;
   const frontline=attackers.filter(e=>e.type!=='medic');
   const support=attackers.filter(e=>e.type==='medic');
-  if(frontline.length)command(s,1,{type:'attack',ids:frontline.map(e=>e.id),x:target.x,y:target.y});
+  const nearbyThreats=visible.filter(e=>e.hp>0&&e.side===0&&unit(e.type)&&e.type!=='worker'&&dist(e,center)<12);
+  const highThreat=nearbyThreats.sort((a,b)=>(TYPES[b.type].damage||0)+(TYPES[b.type].airDamage||0)-(TYPES[a.type].damage||0)-(TYPES[a.type].airDamage||0))[0];
+  const strikeTarget=highThreat&&dist(highThreat,target)<6&&dist(highThreat,center)<6&&frontline.some(e=>canTarget(e,highThreat))?highThreat:target;
+  if(frontline.length)command(s,1,{type:'attack',ids:frontline.map(e=>e.id),x:strikeTarget.x,y:strikeTarget.y});
   if(support.length){const escort=frontline.find(e=>!TYPES[e.type].flying)||frontline[0];if(escort)command(s,1,{type:'move',ids:support.map(e=>e.id),x:escort.x,y:escort.y});}
  }
 }
