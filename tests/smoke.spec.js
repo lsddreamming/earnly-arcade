@@ -2466,12 +2466,13 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
     });
     expect(layout.summary.width).toBeGreaterThanOrEqual(layout.row.width-2);
     expect(layout.copy.left).toBeGreaterThanOrEqual(layout.icon.right);
-    expect(layout.copy.width).toBeGreaterThan(100);
-    expect(layout.action.left).toBeGreaterThanOrEqual(layout.copy.right-1);
-    expect(layout.action.right).toBeLessThanOrEqual(layout.row.right);
+    // Compact 1.3 progress tiles intentionally use two columns; action labels hide on phones.
+    expect(layout.copy.width).toBeGreaterThan(65);
+    expect(layout.copy.right).toBeLessThanOrEqual(layout.row.right+1);
     await page.locator('.profile-bests-row > summary').click();
     await expect(page.locator('.profile-bests-row')).toHaveAttribute('open','');
-    const grid=await page.locator('#bestGrid').boundingBox();expect(grid.width).toBeGreaterThan(layout.row.width-2);
+    const grid=await page.locator('#bestGrid').boundingBox();
+    expect(grid.width).toBeGreaterThanOrEqual(layout.row.width-2);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+1);
     await page.locator('.profile-bests-row > summary').click();
   }
