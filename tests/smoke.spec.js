@@ -2448,7 +2448,7 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   await expect(page.locator('.profile-more-stats')).toBeVisible();
   await expect(page.locator('.profile-more-stats')).not.toHaveAttribute('open', '');
   await expect(page.locator('.profile-progress-menu .profile-progress-row')).toHaveCount(2);
-  await expect(page.locator('.profile-shortcuts-essential > a')).toHaveCount(2);
+  await expect(page.locator('.profile-shortcuts-essential > a')).toHaveCount(3);
   await expect(page.locator('.profile-shortcuts-essential a[href="leaderboards.html"]')).toBeVisible();
   await expect(page.locator('.profile-shortcuts-essential a[href="account.html"]')).toBeVisible();
   await expect(page.locator('.profile-shortcuts-essential a[href="games.html"]')).toHaveCount(0);
