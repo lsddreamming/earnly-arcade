@@ -126,10 +126,39 @@ function local(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.le
 function buildSite(p){const r=canvas.getBoundingClientRect();if(!p||p.x<0||p.x>r.width||p.y<0||p.y>r.height||renderer.minimapPoint(p.x,p.y))return null;const at=renderer.world(p.x,p.y);return E.placement(v,side,placing,at.x,at.y)}
 function dropBuilding(p){if(!placing||!running||paused)return;const site=buildSite(p);if(!site){pointer=null;notice('Drop on the battlefield');return}if(!site.ok){notice(site.message);hud();return}const kind=placing,result=issue({type:'build',kind,x:site.x,y:site.y});if(result?.ok){placing=null;pointer=null;notice(D(kind).name+' assembling');}hud()}
 function bindBlueprint(b,kind){
- b.addEventListener('pointerdown',e=>{if(!running||paused||drag||e.button!==0||!$('confirm').hidden)return;cancelPendingTap();drag={id:e.pointerId,start:local(e),last:local(e),moved:false,mode:'blueprint',kind};});
- b.addEventListener('pointermove',e=>{if(drag?.mode!=='blueprint'||drag.id!==e.pointerId)return;const p=local(e);if(Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>7){drag.moved=true;$('message').hidden=true;lastNotice=0;placing=kind;boxMode=false;rallyMode=false;multiSelect=false;e.preventDefault();pointer=buildSiteForPointer(p)?p:null;hud()}drag.last=p});
- b.addEventListener('pointerup',e=>{if(drag?.mode!=='blueprint'||drag.id!==e.pointerId)return;const moved=drag.moved;drag=null;if(moved){e.preventDefault();b.suppressClickUntil=performance.now()+500;dropBuilding(local(e))}});
- b.addEventListener('pointercancel',cancelGesture);b.addEventListener('lostpointercapture',()=>{if(drag?.mode==='blueprint')cancelGesture()});
+ b.addEventListener('pointerdown',e=>{
+  if(!running||paused||drag||e.button!==0||!$('confirm').hidden)return;
+  cancelPendingTap();
+  const start=local(e);
+  drag={id:e.pointerId,start,last:start,moved:false,mode:'blueprint',kind};
+  const move=ev=>{
+   if(drag?.mode!=='blueprint'||drag.id!==ev.pointerId)return;
+   const p=local(ev);
+   if(Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>7){
+    drag.moved=true;$('message').hidden=true;lastNotice=0;
+    placing=kind;boxMode=false;rallyMode=false;multiSelect=false;
+    ev.preventDefault();pointer=buildSiteForPointer(p)?p:null;hud();
+   }
+   drag.last=p;
+  };
+  const cleanup=()=>{
+   document.removeEventListener('pointermove',move);
+   document.removeEventListener('pointerup',up);
+   document.removeEventListener('pointercancel',cancel);
+  };
+  const up=ev=>{
+   if(drag?.mode!=='blueprint'||drag.id!==ev.pointerId)return;
+   const moved=drag.moved;drag=null;cleanup();
+   if(moved){ev.preventDefault();b.suppressClickUntil=performance.now()+500;dropBuilding(local(ev))}
+  };
+  const cancel=ev=>{
+   if(drag?.mode!=='blueprint'||drag.id!==ev.pointerId)return;
+   cleanup();cancelGesture();
+  };
+  document.addEventListener('pointermove',move,{passive:false});
+  document.addEventListener('pointerup',up);
+  document.addEventListener('pointercancel',cancel);
+ });
 }
 function buildSiteForPointer(p){const r=canvas.getBoundingClientRect();return p.x>=0&&p.x<=r.width&&p.y>=0&&p.y<=r.height&&!renderer.minimapPoint(p.x,p.y)}
 for(const b of $('buildGroups').querySelectorAll('button'))b.onclick=()=>{cancelGesture();placing=null;buildGroup=b.dataset.group;showPalette();hud()};
