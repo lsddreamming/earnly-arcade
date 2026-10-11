@@ -3,7 +3,6 @@
 const VERSION=8,SIZE=64,STEP=.05,BATTLE_LIMIT=Infinity;
 // Cache immutable type properties across the hot combat loop; refresh the cache each tick.
 
- const alive=s.entities.filter(e=>e.hp>0),combatants=alive.filter(e=>unit(e.type)),fighters=[alive.filter(e=>e.side===0),alive.filter(e=>e.side===1)];
 const MAPS=Object.freeze({
  frontier:{name:'Crystal Frontier',description:'Wide flanking routes and a dangerous rich center.'},
  crossing:{name:'Shattered Crossing',description:'Three passages divide the battlefield. Watch your flanks.'},
@@ -300,6 +299,7 @@ function bot(s){
 }
 function tick(s,dt=STEP){
  if(s.ended)return;dt=clamp(dt,0,.1);s.time+=dt;s.tick++;s.events=[];s.harvesting=new Set();vision(s);bot(s);
+ const alive=s.entities.filter(e=>e.hp>0),combatants=alive.filter(e=>unit(e.type)),fighters=[alive.filter(e=>e.side===0),alive.filter(e=>e.side===1)];
  for(const e of s.entities){if(e.hp<=0)continue;if(e.build>0){e.build=Math.max(0,e.build-dt);continue}
   if(s.time-(e.lastDamage??-100)>8){if(e.maxShield)e.shield=Math.min(e.maxShield,e.shield+e.maxShield*.1*dt);if(e.faction==='verdant'&&unit(e.type)&&e.type!=='worker')e.hp=Math.min(e.maxHp,e.hp+.5*dt)}
   if(e.faction==='verdant'&&e.type==='base'){e.broodAt+=dt;if(e.broodAt>=4){e.brood=Math.min(3,e.brood+1);e.broodAt=0}}
