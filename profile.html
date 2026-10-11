@@ -86,6 +86,14 @@
       .profile-dashboard .profile-milestone a{font-size:12px!important}
       .profile-dashboard .profile-shortcuts{margin-top:7px!important}
     }
+
+    /* Keep the edit control inside the hub instead of reserving a separate row. */
+    .profile-dashboard .profile-hero{position:relative!important}
+    .profile-dashboard .profile-hero .profile-edit-card:not([open]){position:absolute!important;top:15px!important;right:65px!important;margin:0!important;width:auto!important;max-width:110px!important;z-index:4}
+    .profile-dashboard .profile-hero .profile-edit-card:not([open])>summary{min-height:34px!important;padding:7px 9px!important;white-space:nowrap}
+    .profile-dashboard .profile-hero .profile-edit-card[open]{position:relative!important;margin:10px 0!important;width:100%!important;max-width:100%!important;z-index:5}
+    .profile-dashboard .profile-hero .profile-hero-copy{padding-right:112px!important}
+    @media(max-width:600px){.profile-dashboard .profile-hero .profile-edit-card:not([open]){top:10px!important;right:58px!important}.profile-dashboard .profile-hero .profile-hero-copy{padding-right:96px!important}}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
@@ -112,13 +120,6 @@
         </div>
         <a class="profile-settings-link" href="settings.html" aria-label="Settings">⚙️</a>
       </div>
-      <div class="profile-xp-line">
-        <span id="xpText">0 / 100 XP</span>
-        <span>Next level</span>
-      </div>
-      <div class="xp-bar"><span id="xpBar"></span></div>
-    </header>
-
     <details class="profile-edit-card">
       <summary>Edit profile</summary>
       <form class="profile-name-form" id="nameForm">
@@ -151,6 +152,14 @@
         </div>
       </div>
     </details>
+      <div class="profile-xp-line">
+        <span id="xpText">0 / 100 XP</span>
+        <span>Next level</span>
+      </div>
+      <div class="xp-bar"><span id="xpBar"></span></div>
+    </header>
+
+
 
     <section class="profile-key-stats" aria-label="Player highlights">
       <div><strong id="gamesCompleted">0</strong><span>Games</span></div>
