@@ -110,6 +110,7 @@ test('Lookbook stays contained at seven phone, tablet and desktop widths with mo
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page overflow at ${width}px`).toBeTruthy();
   const targets=await page.locator('.shop-tabs button,.look-card button').evaluateAll(bs=>bs.map(b=>b.getBoundingClientRect().height));for(const height of targets)expect(height).toBeGreaterThanOrEqual(44);
  }
+ await page.locator('#coin-pack-options summary').click();
  await expect(page.locator('#coin-packs button')).toHaveCount(3);for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
 });
 test('Shop styling preserves hidden extra-play controls for guests and after sign-out',async({page})=>{
@@ -134,6 +135,7 @@ test('Narrow category rail reaches the last category and returns without spendin
 test('Phone coin rail reveals its last pack without decorative layers blocking buttons',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});const f=await setup(page);
+ await page.locator('#coin-pack-options summary').click();
  await expect(page.locator('#coin-packs button')).toHaveCount(3);
  expect(await page.locator('#coin-packs').evaluate(e=>e.scrollWidth>e.clientWidth)).toBeTruthy();
  const last=page.locator('#coin-packs button').last();
