@@ -35,7 +35,13 @@ Existing staging project: `wphqfogbnpdsfkquvdsu`. Production project: `zdwziebtb
 
 `node scripts/build-apple-staging.mjs` generates the Apple sandbox function/migration bundle for the existing staging ledger. It pins the project and accepts Sandbox only. Production accepts Production only. Never loosen the production environment check to make a sandbox purchase pass.
 
-Before release, finish a sandbox-targeted iOS configuration with staging Auth, wallet, extra-play and avatar endpoints, or an equivalently isolated reviewer test mode. The current candidate uses production endpoints and is NOT ready for TestFlight purchasing or App Review sandbox purchases. The staging bundle alone is not an end-to-end sandbox app. This is a release blocker, not an optional follow-up.
+`EARNLY_BACKEND_ENVIRONMENT=sandbox npm run native:web` now generates a test-only native bundle: Auth, wallet, purchases, extra plays, cosmetics and game-network URLs use the staging project. The copied HTML displays a SANDBOX banner; production website sources are untouched. The output `native-build-environment.json` identifies the backend and receipt environment. Unknown environment values fail the build. Default builds remain production.
+
+The candidate workflow builds both production and sandbox artifacts on PR changes; manual dispatch selects a target (default sandbox). Sandbox uses test ads and a separate 2000+ build-number range. Neither artifact is uploaded to Apple automatically.
+
+On 2026-10-12, the Apple Sandbox ledger/verifier and cosmetics schemas/API were deployed to staging, along with the native-origin extra-play update. Test account cosmetics initialize a zero-balance wallet and an isolated generated profile. These are test fixtures/services; production profiles and balances are never copied. The Apple config endpoint reports available:false until credentials and the explicit enable flag are provisioned.
+
+Release still requires real StoreKit device purchases and a verified reviewer flow. The production build intentionally rejects Sandbox transactions, so the reviewer environment strategy must be completed before App Review. Other production cloud services (global chat, ranked score submissions, friend rooms, account-management RPCs) are not provisioned by this commerce-only sandbox setup; their absence must not be worked around by pointing any part of the sandbox bundle at production.
 
 ## Required purchase evidence before release
 
@@ -74,3 +80,10 @@ References: https://apple.github.io/app-store-server-library-node/classes/Signed
 - Apple App ID is 6814277509. Version 1.3 remains Prepare for Submission.
 
 The generic all-desktop test discovery includes a separate touchscreen-only iPhone quit-stress suite. That invocation was stopped after missing-touch errors; the repository's actual desktop CI selection above completed successfully. The dedicated iPhone stress suite is outside the normal CI selection; real-device purchase testing remains required.
+
+## Sandbox continuation validation
+
+- Native environment tests: 3 passed; production bundle preservation and shared backend isolation covered.
+- Sandbox ledger integration passed: Apple test coins purchase an avatar and three plays; purchased balance decreases correctly and lifetime earned remains zero. Anonymous/authenticated direct ledger access is denied.
+- Commerce and release-gate tests passed again after these changes.
+- Live staging Apple config is disabled pending credentials. Cosmetics catalog and native-origin endpoints are checked separately from real purchase verification.

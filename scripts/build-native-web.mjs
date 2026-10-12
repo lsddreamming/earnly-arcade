@@ -1,6 +1,9 @@
 import { cp, mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'esbuild';
+import {configureNativeEnvironment, nativeEnvironment} from './native-environment.mjs';
+
+const environment = nativeEnvironment(process.env.EARNLY_BACKEND_ENVIRONMENT);
 
 const root = process.cwd();
 const outDir = path.join(root, 'www');
@@ -47,3 +50,5 @@ await build({
 console.log('Prepared Earnly native web bundle in www/');
 
 await build({entryPoints:['native-purchases-entry.js'],outfile:'www/native-purchases.js',bundle:true,format:'iife',platform:'browser',target:['safari15']});
+await configureNativeEnvironment(outDir, environment.name);
+console.log('Native backend: '+environment.name+' ('+environment.project+')');
