@@ -17,7 +17,7 @@ function selectedBuilding(){return own().find(e=>selection.includes(e.id)&&!D(e.
 function formatTime(t){return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')}
 function commandContext(){const chosen=own().filter(e=>selection.includes(e.id));if(boxMode)return'Drag a yellow box over your troops.';if(rallyMode)return'Tap ground or crystals to set the rally point.';if(placing)return placing==='relay'?`${D('relay').name} adds 12 troop slots when finished · ${v.player.cap} → ${v.player.cap+12}. Drag onto green ground.`:`Place ${D(placing).name}: drag onto green ground near your Miners.`;if(chosen.length===1&&chosen[0].type==='base'&&v.player.faction==='verdant')return'Rootheart · swipe troop choices · 3 creatures can grow together';if(!chosen.length)return'Box to select troops · drag map to pan.';if(chosen.length===1&&!D(chosen[0].type).supply){const b=chosen[0];if(b.type==='relay')return b.build?'Relay assembling · adds 12 troop slots when complete.':'Relay gives 12 troop slots · train troops at your base or factory.';return D(b.type).name+' selected · '+(b.build?'assembling':b.type==='lab'?'choose research':Object.hasOwn(E.producers(v.player.faction),b.type)?'train units or set Rally':(D(b.type).role||'supports your base'))+(b.queue.length?' · '+b.queue.length+' queued':'')}return multiSelect?'Select + · tap friendly fighters to add / remove.':chosen.length+' selected · '+(chosen.every(e=>e.type==='worker')?'tap crystals to mine':order==='attack'?'tap ground or radar to move & fight':'tap ground or radar to move')}
 function cancelPendingTap(){if(pendingTap)clearTimeout(pendingTap);pendingTap=null}
-function cancelGesture(){drag=null;pointer=null;lastTap=null;cancelPendingTap()}
+function cancelGesture(){drag?.cleanup?.();drag=null;pointer=null;lastTap=null;cancelPendingTap()}
 function resetControls(){cancelGesture();buildGroup='core';boxMode=false;multiSelect=false;squads=[[],[],[]];commandMarker=null;alertActive=null;alertTimes={};$('battleAlert').hidden=true}
 function saveSquad(index){if(index<0||index>=squads.length)return;const chosen=new Set(selection),ids=own().filter(e=>chosen.has(e.id)&&D(e.type).supply&&e.type!=='worker').map(e=>e.id);if(!ids.length){notice('Select fighters first');return}squads[index]=ids;notice('Squad '+(index+1)+' saved · '+ids.length+' units');hud()}
 function recallSquad(index){if(index<0||index>=squads.length)return;cancelGesture();boxMode=false;const ids=squads[index].filter(id=>own().some(e=>e.id===id));if(!ids.length){notice('Save fighters to this squad first');return}selection=ids;resourceId=null;placing=null;rallyMode=false;multiSelect=false;palette='army';const chosen=own().filter(e=>ids.includes(e.id));renderer.center(chosen.reduce((n,e)=>n+e.x,0)/chosen.length,chosen.reduce((n,e)=>n+e.y,0)/chosen.length);showPalette();hud()}
@@ -142,9 +142,9 @@ function bindBlueprint(b,kind){
    drag.last=p;
   };
   const cleanup=()=>{
-   document.removeEventListener('pointermove',move);
-   document.removeEventListener('pointerup',up);
-   document.removeEventListener('pointercancel',cancel);
+   document.removeEventListener('pointermove',move,true);
+   document.removeEventListener('pointerup',up,true);
+   document.removeEventListener('pointercancel',cancel,true);
   };
   const up=ev=>{
    if(drag?.mode!=='blueprint'||drag.id!==ev.pointerId)return;
@@ -155,9 +155,11 @@ function bindBlueprint(b,kind){
    if(drag?.mode!=='blueprint'||drag.id!==ev.pointerId)return;
    cleanup();cancelGesture();
   };
-  document.addEventListener('pointermove',move,{passive:false});
-  document.addEventListener('pointerup',up);
-  document.addEventListener('pointercancel',cancel);
+  drag.cleanup=cleanup;
+  // Resolve blueprint drags before battlefield handlers see the same event.
+  document.addEventListener('pointermove',move,{passive:false,capture:true});
+  document.addEventListener('pointerup',up,true);
+  document.addEventListener('pointercancel',cancel,true);
  });
 }
 function buildSiteForPointer(p){const r=canvas.getBoundingClientRect();return p.x>=0&&p.x<=r.width&&p.y>=0&&p.y<=r.height&&!renderer.minimapPoint(p.x,p.y)}

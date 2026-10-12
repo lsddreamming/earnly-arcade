@@ -89,6 +89,11 @@
 
     /* Keep the edit control inside the hub instead of reserving a separate row. */
     .profile-dashboard .profile-hero{position:relative!important}
+    .profile-icon-options{border:1px solid #36546d;border-radius:12px;padding:9px 10px;margin:8px 0}
+    .profile-icon-options>summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
+    .profile-icon-options>summary::-webkit-details-marker{display:none}
+    .profile-icon-options .avatar-picker{margin-top:10px}
+    .global-profile-save-hint{font-size:12px;color:#aebfd2}
     .profile-dashboard .profile-hero .profile-edit-card:not([open]){position:absolute!important;top:15px!important;right:12px!important;margin:0!important;width:auto!important;max-width:145px!important;z-index:4}
     .profile-dashboard .profile-hero .profile-edit-card:not([open])>summary{min-height:34px!important;padding:7px 9px!important;white-space:nowrap}
     .profile-dashboard .profile-hero .profile-edit-card[open]{position:relative!important;margin:10px 0!important;width:100%!important;max-width:100%!important;z-index:5}
@@ -120,11 +125,15 @@
         </div>
         
       </div>
+    <div class="profile-xp-line">
+        <span id="xpText">0 / 100 XP</span><span>Next level</span>
+      </div>
+      <div class="xp-bar"><span id="xpBar"></span></div>
     <details class="profile-edit-card">
       <summary>✏️ Edit Profile</summary>
       <form class="profile-name-form" id="nameForm">
         <input id="nameInput" type="text" maxlength="18" autocomplete="off" aria-label="Player name" placeholder="Player name">
-        <button type="submit">Save</button>
+        <button type="submit" id="saveProfileButton">Save Profile</button>
       </form>
       <div class="profile-edit-footer">
         <span>Nickname is your in-app display name.</span>
@@ -142,22 +151,18 @@
             Leaderboard username
             <input id="usernameInput" type="text" maxlength="18" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Example: Justin92" aria-label="Global leaderboard username">
           </label>
-          <div>
-            <div class="global-profile-head"><strong>Choose profile icon</strong><span>Tap any icon. You can change it anytime.</span></div>
+          <details class="profile-icon-options">
+            <summary>🎨 Change leaderboard icon <span id="currentProfileIcon" aria-hidden="true">🚀</span></summary>
+            <div class="global-profile-head"><span>Choose an icon for world rankings.</span></div>
             <div class="avatar-picker" id="avatarPicker" role="group" aria-label="Choose profile icon"></div>
-          </div>
+          </details>
           <div class="global-profile-actions">
-            <button class="green" id="saveGlobalProfile" type="button">Save Global Profile</button>
+            <span class="global-profile-save-hint">Use Save Profile above to save your changes.</span>
             <span class="global-profile-status" id="globalProfileStatus">Sign in to compete on world leaderboards.</span>
           </div>
         </div>
       </div>
     </details>
-      <div class="profile-xp-line">
-        <span id="xpText">0 / 100 XP</span>
-        <span>Next level</span>
-      </div>
-      <div class="xp-bar"><span id="xpBar"></span></div>
     </header>
 
 
@@ -344,6 +349,7 @@
     function renderAvatarPicker() {
       const root = document.getElementById('avatarPicker');
       root.replaceChildren();
+      document.getElementById('currentProfileIcon').textContent = Arcade.profileIcon();
       Object.entries(Arcade.profileAvatars).forEach(([key, emoji]) => {
         const button = document.createElement('button');
         button.type = 'button';
@@ -377,14 +383,12 @@
       } catch {}
     }
 
-    document.getElementById('saveGlobalProfile').addEventListener('click', async () => {
+    async function saveGlobalProfile() {
       const status = document.getElementById('globalProfileStatus');
-      const button = document.getElementById('saveGlobalProfile');
-      button.disabled = true;
       status.className = 'global-profile-status';
       status.textContent = 'Saving…';
       try {
-        if (!window.EarnlyCloud) throw new Error('Cloud connection is still loading.');
+        if (!window.EarnlyCloud) { status.textContent = 'Display name saved locally. Global profile sync is unavailable.'; return; }
         const saved = await EarnlyCloud.updatePublicProfile({
           displayName:Arcade.profileName(),
           username:document.getElementById('usernameInput').value,
@@ -402,21 +406,22 @@
       } catch (error) {
         status.className = 'global-profile-status error';
         status.textContent = error?.message || 'Could not save global profile.';
-      } finally {
-        button.disabled = false;
       }
-    });
+    }
 
     document.getElementById('soundButton').addEventListener('click', () => {
       Arcade.setSoundEnabled(!Arcade.soundEnabled());
       render();
     });
 
-    document.getElementById('nameForm').addEventListener('submit', event => {
+    document.getElementById('nameForm').addEventListener('submit', async event => {
       event.preventDefault();
       const name = Arcade.setProfileName(document.getElementById('nameInput').value);
       Arcade.toast('👤 Profile name saved as ' + name);
       render();
+      const button = document.getElementById('saveProfileButton');
+      button.disabled = true;
+      try { await saveGlobalProfile(); } finally { button.disabled = false; }
     });
 
     document.getElementById('rateEarnlyButton').addEventListener('click', async () => {
