@@ -385,11 +385,10 @@
 
     async function saveGlobalProfile() {
       const status = document.getElementById('globalProfileStatus');
-      const button = document.getElementById('saveProfileButton');
       status.className = 'global-profile-status';
       status.textContent = 'Saving…';
       try {
-        if (!window.EarnlyCloud) throw new Error('Cloud connection is still loading.');
+        if (!window.EarnlyCloud) { status.textContent = 'Display name saved locally. Global profile sync is unavailable.'; return; }
         const saved = await EarnlyCloud.updatePublicProfile({
           displayName:Arcade.profileName(),
           username:document.getElementById('usernameInput').value,
