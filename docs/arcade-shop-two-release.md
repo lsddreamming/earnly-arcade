@@ -31,3 +31,11 @@ Local ledger integration validates new slot defaults, proposed web prices, cosme
 Focused desktop: 46 tests passed before the compact-pass adjustment; 37 density/new-shop checks passed after adjustment. Existing simulations/source contracts: 23 passed. Full desktop and exact-commit GitHub QA are required before PR/merge. Local WebKit cannot launch because system libraries are missing; package installation encountered environment package-manager restrictions. GitHub macOS WebKit remains required. Signed iOS candidate workflow only archives; it has no Apple upload or submission step.
 
 Production deployment, real payments, actual subscription products, device purchase evidence and new signed archive are not yet verified. Do not describe this candidate as live or fully released.
+
+## Isolated deployed validation (2026-10-12)
+
+The new migration is applied to testing project `wphqfogbnpdsfkquvdsu` only. Testing functions: `apple-coins` v12, `avatars` v9, `arcade-pass` v1. The deployed catalog returns 109 items across 22 slots. Pass configuration reports both providers disabled. Unauthenticated Apple verification and bundle purchase requests return 401; the unconfigured Stripe pass webhook returns 503.
+
+A rollback-only real PostgreSQL transaction verified the four-piece bundle debits 750 exactly once, preserves purchased-coin provenance, equips the collection, activates a VIP frame, and falls back after a verified refund. No test users or balances were retained. Security advisors report no new exposed-table errors; deny-all RLS without browser policies is intentional for server-owned commerce tables. The existing testing-project leaked-password protection warning remains an account setting: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
+
+First branch build `ef78c7d`: native compilation and signed candidate archives passed. QA found a staging-test assertion still looking for the project guard in the old entrypoint after the runtime extraction. The guard itself remains in the imported shared runtime; the test now verifies both that import and the guard. Fresh full QA is required on `0873c571` and any later head.
