@@ -230,3 +230,24 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 #results .cc-card{height:auto;max-height:100%;overflow-y:auto}
 #results .cc-context{display:block;max-height:none;height:auto;overflow:visible;white-space:normal;margin:10px 0;line-height:1.5;min-height:0}
 #results .cc-card>*{flex-shrink:0}
+
+/* 1.3 mobile command controls: legible, thumb-friendly, and non-obstructive. */
+@media(max-width:799px){
+  .cc-tools{gap:7px}
+  .cc-tools button{min-height:44px;padding:9px 6px;font-size:11px;line-height:1.2}
+  .cc-palette{gap:8px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+  .cc-palette button{min-height:56px;scroll-snap-align:start;border-radius:12px}
+  .cc-session button{min-height:44px}
+  .cc-session #quit{width:74px}
+  .cc-context{font-size:11px;line-height:1.4}
+  .cc-hint{max-width:min(74%,280px);line-height:1.35}
+  .cc-field{overscroll-behavior:contain}
+  #battle{touch-action:none}
+}
+@media(max-width:380px){
+  .cc-tools button{font-size:10px;padding-inline:4px}
+  .cc-palette button{min-width:82px}
+}
+@media(prefers-reduced-motion:reduce){
+  .cc-palette{scroll-behavior:auto}
+}
