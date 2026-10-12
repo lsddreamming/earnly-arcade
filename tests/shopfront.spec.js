@@ -45,7 +45,7 @@ async function setup(page,{coins='1250',signedIn=true,native=false}={}) {
 test('Lookbook is upfront and prices only the pieces still to unlock',async({page})=>{
  await setup(page);await expect(page.locator('.look-card')).toHaveCount(3);
  await expect(page.locator('.look-card').nth(1).locator('.look-price')).toContainText('3,200');
- expect(await page.locator('#signature-looks').evaluate(e=>!!(e.compareDocumentPosition(document.querySelector('#collection'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBeTruthy();
+ expect(await page.locator('#collection').evaluate(e=>!!(e.compareDocumentPosition(document.querySelector('#signature-looks'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBeTruthy();
  await expect(page.locator('#get-coins-link')).toHaveAttribute('href','#coin-shop');
 });
 test('Complete look preview matches its card and never buys or equips anything',async({page})=>{
