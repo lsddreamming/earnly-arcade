@@ -59,3 +59,9 @@ test('VIP stays disabled before configuration and narrow layouts retain readable
  await page.setViewportSize({width:390,height:844});await setup(page);await expect(page.locator('#pass-buy')).toBeDisabled();await page.locator('#vip-pass summary').click();await expect(page.locator('#pass-disclosure')).toContainText('auto-renewing');await page.getByRole('button',{name:'♛ VIP',exact:true}).click();await expect(page.getByRole('button',{name:'Buy VIP Marquee',exact:true})).toBeDisabled();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/shop-two-phone.png',fullPage:true});
 });
+test('Complete Crystal collection shows a server quote and charges only after confirmation',async({page})=>{
+ const f=await setup(page);let charges=0,expected;
+ await page.route('**/avatars/api/ion-pack',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({price:750,remaining:4})}));
+ await page.route('**/avatars/api/shop/ion-pack',r=>{if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type,idempotency-key','Access-Control-Allow-Methods':'POST'}});charges++;expected=r.request().postDataJSON().expectedPrice;return r.fulfill({contentType:'application/json',body:JSON.stringify({user:f.user,charged:true,amount:750})});});
+ await page.getByRole('button',{name:'◆ Crystal Command',exact:true}).click();await page.locator('#ion-pack-preview').click();await expect(page.locator('.ion-pack-dialog')).toBeVisible();expect(charges).toBe(0);await expect(page.locator('.ion-pack-art img')).toHaveCount(4);await page.getByRole('button',{name:'Confirm · 750 coins',exact:true}).click();await expect(page.locator('.ion-pack-dialog')).toContainText('owned and equipped');expect(charges).toBe(1);expect(expected).toBe(750);
+});

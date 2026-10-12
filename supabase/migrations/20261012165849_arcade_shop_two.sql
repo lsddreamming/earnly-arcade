@@ -138,3 +138,38 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.arcade_pass_reserve(uuid,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.arcade_pass_reserve(uuid,uuid) TO service_role;
+-- Crystal collection bundle: one atomic debit, four ownership grants, safe retries.
+CREATE TABLE public.cosmetic_bundle_receipts (
+ user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+ request_id uuid NOT NULL, amount integer NOT NULL CHECK(amount>=0),
+ PRIMARY KEY(user_id,request_id)
+);
+ALTER TABLE public.cosmetic_bundle_receipts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.cosmetic_bundle_receipts FROM PUBLIC,anon,authenticated;
+GRANT ALL ON public.cosmetic_bundle_receipts TO service_role;
+CREATE FUNCTION public.cosmetic_ion_quote(p_user_id uuid) RETURNS jsonb
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path='' AS $$
+ SELECT jsonb_build_object('price',ceil(COALESCE(sum(i.coin_price),0)*5.0/6.0)::integer,'remaining',count(*))
+ FROM public.cosmetic_items i WHERE i.id IN ('ion-army','ion-commander','ion-building','ion-battlefx')
+ AND NOT EXISTS(SELECT 1 FROM public.cosmetic_inventory o WHERE o.user_id=p_user_id AND o.item_id=i.id)
+$$;
+CREATE FUNCTION public.cosmetic_buy_ion_pack(p_user_id uuid,p_request_id uuid,p_expected_price integer) RETURNS jsonb
+LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
+DECLARE price integer; receipt public.cosmetic_bundle_receipts; ids text[]:=ARRAY['ion-army','ion-commander','ion-building','ion-battlefx'];
+BEGIN
+ PERFORM public.cosmetic_lock_player(p_user_id);
+ SELECT * INTO receipt FROM public.cosmetic_bundle_receipts WHERE user_id=p_user_id AND request_id=p_request_id;
+ IF FOUND THEN RETURN jsonb_build_object('charged',false,'amount',receipt.amount,'user',public.cosmetic_user_state(p_user_id)); END IF;
+ IF (SELECT count(*) FROM public.cosmetic_items WHERE id=ANY(ids) AND active AND NOT vip_only AND (available_from IS NULL OR available_from<=now()) AND (available_until IS NULL OR available_until>now()))<>4 THEN RAISE EXCEPTION 'COLLECTION_UNAVAILABLE'; END IF;
+ price:=(public.cosmetic_ion_quote(p_user_id)->>'price')::integer;
+ IF price IS DISTINCT FROM p_expected_price THEN RAISE EXCEPTION 'PRICE_CHANGED'; END IF;
+ IF (SELECT balance FROM public.coin_wallets WHERE user_id=p_user_id)<price THEN RAISE EXCEPTION 'INSUFFICIENT_COINS'; END IF;
+ UPDATE public.coin_wallets SET balance=balance-price,updated_at=now() WHERE user_id=p_user_id;
+ INSERT INTO public.cosmetic_inventory(user_id,item_id) SELECT p_user_id,unnest(ids) ON CONFLICT DO NOTHING;
+ INSERT INTO public.cosmetic_loadouts(user_id,slot,item_id) SELECT p_user_id,slot,id FROM public.cosmetic_items WHERE id=ANY(ids)
+ ON CONFLICT(user_id,slot) DO UPDATE SET item_id=EXCLUDED.item_id;
+ INSERT INTO public.cosmetic_bundle_receipts VALUES(p_user_id,p_request_id,price);
+ RETURN jsonb_build_object('charged',price>0,'amount',price,'user',public.cosmetic_user_state(p_user_id));
+END $$;
+REVOKE ALL ON FUNCTION public.cosmetic_ion_quote(uuid),public.cosmetic_buy_ion_pack(uuid,uuid,integer) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.cosmetic_ion_quote(uuid),public.cosmetic_buy_ion_pack(uuid,uuid,integer) TO service_role;

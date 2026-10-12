@@ -444,7 +444,7 @@
     }
   }
   for(const button of document.querySelectorAll('[data-collection]'))button.addEventListener('click',()=>{
-    state.collection=button.dataset.collection; if(state.collection==='vip')$('vip-pass').open=true; state.search=''; $('shop-search').value='';
+    state.collection=button.dataset.collection; $('ion-pack-preview').hidden=state.collection!=='crystal'; if(state.collection==='vip')$('vip-pass').open=true; state.search=''; $('shop-search').value='';
     for(const b of document.querySelectorAll('[data-collection]'))b.setAttribute('aria-pressed',String(b===button));
     $('collection-window').textContent=({halloween:'Halloween collection · October 1–November 1, 2026 (UTC). Owned items remain yours.',christmas:'Christmas collection · December 1, 2026–January 5, 2027 (UTC). Preview now; unlocks open December 1.',crystal:'Crystal Command · cosmetic changes only. No damage, speed, visibility, or ranking advantages.',vip:'VIP cosmetics are available while your subscription is active.'})[state.collection]||'Free essentials and coin unlocks. Preview everything before buying.';
     renderShop();

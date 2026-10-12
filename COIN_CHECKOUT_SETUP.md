@@ -1,6 +1,8 @@
+Shop 2.0 candidate: see `docs/arcade-shop-two-release.md` for current release holds and subscription configuration.
+
 # Website coin checkout activation
 
-Implemented packs: 500 coins / $1.99; 1,500 / $4.99; 4,000 / $9.99 USD. Purchases are disabled until the owner connects a live Stripe account. Existing coin earnings, outfit unlocks and extra-play purchases remain available.
+Implemented packs: 500 coins / $0.99; 1,500 / $2.99; 4,000 / $4.99 USD. Purchases are disabled until the owner connects a live Stripe account. Existing coin earnings, outfit unlocks and extra-play purchases remain available.
 
 ## Owner setup
 
@@ -10,7 +12,7 @@ Implemented packs: 500 coins / $1.99; 1,500 / $4.99; 4,000 / $9.99 USD. Purchase
    Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`. Use the API version pinned by Stripe SDK 22.6.2 (`2026-08-26.dahlia`).
 3. Store `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in the Supabase project's Edge Function Secrets screen. Never put either key in a frontend file, repository, chat, screenshot or browser storage.
 4. Keep `COIN_CHECKOUT_ENABLED` unset while verifying deployment and merchant details. Test payments in a separate Supabase staging project: this production handler ignores test-mode events and refuses to credit test-mode sessions.
-5. Confirm the business's support contact, refund process and published purchase disclosures. Set `COIN_CHECKOUT_ENABLED=true` only after setup and staging verification are complete.
+5. Confirm the business's support contact, refund process and published purchase disclosures. Set both `COIN_CHECKOUT_ENABLED=true` and `SHOP_TWO_PAYMENTS_VERIFIED=true` only after setup and staging verification are complete.
 6. Perform an owner-controlled small live purchase, verify exactly one credit, verify a refresh/retry leaves the balance unchanged, then refund it through Stripe and verify the reversal. Do not activate advertising for purchases before this check passes.
 
 ## Behavior and recovery

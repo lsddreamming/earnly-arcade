@@ -1,5 +1,5 @@
 const CACHE_NAME = 'earnly-shop-two-20261012';const CORE_ASSETS = [
- './shop-two.css','./shop-two.js','./shop-presence.js','./battle-style.js',
+ './shop-two.css','./shop-bundles.js','./shop-two.js','./shop-presence.js','./battle-style.js',
  './rank-discovery.css',
  './arcade-chat.js','./arcade-chat.css','./potato-rig.js',
   './app-surfaces.css',

@@ -23,8 +23,10 @@ await db.close();console.log('PASS: sandbox rejects live payments, credits once,
 execFileSync(process.execPath,['scripts/build-apple-staging.mjs']);
 const apple=JSON.parse(readFileSync('/tmp/earnly-apple-staging.json','utf8'));
 assert.equal(apple.project,bundle.project);
-assert.match(apple.files[0].content,/STAGING_PROJECT_REQUIRED/);
-assert.doesNotMatch(apple.files[0].content,/Environment.PRODUCTION/);
+const appleRuntime=apple.files.find(f=>f.name==='_shared/apple-runtime.ts').content;
+assert.match(appleRuntime,/STAGING_PROJECT_REQUIRED/);
+assert.doesNotMatch(appleRuntime,/Environment.PRODUCTION/);
+assert.match(apple.files.find(f=>f.name==='apple-coins/index.ts').content,/apple-runtime[.]ts/);
 const adb=new PGlite();
 await adb.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;');
 await adb.exec(bundle.sql);await adb.exec(apple.sql);

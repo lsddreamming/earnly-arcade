@@ -1,3 +1,5 @@
+Shop 2.0 proposes new prices below; existing Apple product drafts have NOT yet been repriced. See `arcade-shop-two-release.md`.
+
 # Unified Arcade Coins — purchase release hold
 
 Status: implementation candidate, NOT approved for Apple upload or review submission.
@@ -12,9 +14,9 @@ Create consumable products for bundle `com.earnly.arcade`. Product identifiers a
 
 | Product ID | Arcade Coins | Proposed US price |
 | --- | ---: | ---: |
-| com.earnly.arcade.coins.starter | 500 | $1.99 |
-| com.earnly.arcade.coins.plus | 1,500 | $4.99 |
-| com.earnly.arcade.coins.vault | 4,000 | $9.99 |
+| com.earnly.arcade.coins.starter | 500 | $0.99 |
+| com.earnly.arcade.coins.plus | 1,500 | $2.99 |
+| com.earnly.arcade.coins.vault | 4,000 | $4.99 |
 
 Prices displayed in the app come from StoreKit, including localized currency. Complete paid-app agreements, banking/tax details, product availability, localizations, and review screenshots. All three consumable drafts were created on 2026-10-12 with the US prices above, English (U.S.) localizations, and all-region availability. Apple IDs: Starter 6821991072, Plus 6821994181, Vault 6821997355. Paid agreements, banking/tax eligibility, production Server API credentials/notifications and real IAP review screenshots still require verification. Sandbox credentials and signed TEST delivery were verified on 2026-10-12. No product was added for review.
 
