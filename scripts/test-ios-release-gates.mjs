@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const workflow = readFileSync(new URL('../.github/workflows/ios-v1-1-testflight.yml', import.meta.url), 'utf8');
+for (const workflowName of ['ios-v1-1-testflight.yml', 'ios-v1-3-testflight.yml']) {
+const workflow = readFileSync(new URL('../.github/workflows/' + workflowName, import.meta.url), 'utf8');
 const script = workflow.match(/          script: \|\n([\s\S]*?)\n\n  archive:/)[1].split('\n').map(line => line.slice(12)).join('\n');
 const execute = new (Object.getPrototypeOf(async function(){}).constructor)('github', 'context', 'core', 'setTimeout', script);
 const sha = 'candidate';
@@ -41,3 +42,5 @@ test('a newer main commit prevents uploading a stale candidate',async()=>{
 test('PR-only QA cannot substitute for main push QA',async()=>{
  await assert.rejects(run({runs:baseRuns.map(r=>r.id===1?{...r,event:'pull_request'}:r)}),/did not finish/);
 });
+
+}
