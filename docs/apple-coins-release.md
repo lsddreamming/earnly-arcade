@@ -16,7 +16,7 @@ Create consumable products for bundle `com.earnly.arcade`. Product identifiers a
 | com.earnly.arcade.coins.plus | 1,500 | $4.99 |
 | com.earnly.arcade.coins.vault | 4,000 | $9.99 |
 
-Prices displayed in the app come from StoreKit, including localized currency. Complete paid-app agreements, banking/tax details, product availability, localizations, and review screenshots. All three consumable drafts were created on 2026-10-12 with the US prices above, English (U.S.) localizations, and all-region availability. Apple IDs: Starter 6821991072, Plus 6821994181, Vault 6821997355. Paid agreements, banking/tax eligibility, Server API credentials, notifications, and real IAP review screenshots still require verification. No product was added for review.
+Prices displayed in the app come from StoreKit, including localized currency. Complete paid-app agreements, banking/tax details, product availability, localizations, and review screenshots. All three consumable drafts were created on 2026-10-12 with the US prices above, English (U.S.) localizations, and all-region availability. Apple IDs: Starter 6821991072, Plus 6821994181, Vault 6821997355. Paid agreements, banking/tax eligibility, production Server API credentials/notifications and real IAP review screenshots still require verification. Sandbox credentials and signed TEST delivery were verified on 2026-10-12. No product was added for review.
 
 Configure App Store Server Notifications V2 at `/functions/v1/apple-coins/notifications`. Configure Apple PKI DER root certificates (base64 JSON array) and the App Store Server API credentials only in backend secrets:
 
@@ -25,7 +25,7 @@ Configure App Store Server Notifications V2 at `/functions/v1/apple-coins/notifi
 - APPLE_IAP_PRIVATE_KEY
 - APPLE_IAP_KEY_ID
 - APPLE_IAP_ISSUER_ID
-- APPLE_COIN_PURCHASES_ENABLED (leave false until configuration and purchase testing pass)
+- APPLE_COIN_PURCHASES_ENABLED (production stays false until purchase testing passes; enable isolated sandbox after configuration verification for device tests)
 
 Production verification checks Apple's certificate chain with online revocation checks, retrieves current transaction data from Apple's API, checks bundle/product/type/quantity/environment/account binding, then fulfills atomically. A purchase is finished on the device only after the server returns a fulfilled or revoked receipt. Unfinished purchases recover on shop launch, account sign-in, focus, or reconnection. Refund delivery is idempotent and irreversible by replaying an old purchase. Already-spent refunds become purchase debt. Deleting an account preserves an anonymized transaction tombstone to prevent re-crediting the same transaction.
 
@@ -87,3 +87,14 @@ The generic all-desktop test discovery includes a separate touchscreen-only iPho
 - Sandbox ledger integration passed: Apple test coins purchase an avatar and three plays; purchased balance decreases correctly and lifetime earned remains zero. Anonymous/authenticated direct ledger access is denied.
 - Commerce and release-gate tests passed again after these changes.
 - Live staging Apple config is disabled pending credentials. Cosmetics catalog and native-origin endpoints are checked separately from real purchase verification.
+
+## Live Apple verification continuation (2026-10-12)
+
+- Apple IAP key, issuer, numeric app ID and three official Apple PKI roots are installed in the testing project's encrypted secrets. No private key is in this repository.
+- Sandbox notification URL is saved in App Store Connect. The current official `api.storekit-sandbox.apple.com` API returned HTTP 200 for authenticated history and TEST requests. Apple reported TEST delivery `SUCCESS` at 2026-10-12T16:17:38Z.
+- A real signed TEST exposed missing X509 methods and EC curve-name differences in the hosted Deno runtime. `apple-x509-compat.ts` supplies DER/PEM/OCSP accessors, cryptographic signature verification and equivalent curve names; Apple's verifier retains chain, trusted-root, Apple OID, expiry, OCSP, JWS, app and environment validation. The adapter never treats an unsupported operation as a successful signature.
+- The staging `apple-coins` function is version 10 (secret changes may increment the deployed version). Production remains untouched. Online certificate revocation checking remains enabled.
+- Four Deno regression tests cover RSA/EC certificate signatures, incorrect keys, tampered certificates, Apple certificate metadata, and the official verifier's acceptance of a real signed TEST plus rejection of tampered payload/signature, wrong app/environment and absent trusted roots. The TEST fixture contains only public app metadata and certificates, no purchase, user or private-key data.
+- `scripts/check-apple-sandbox.mjs` checks authenticated history, requests TEST, and waits briefly for delivery status. It accepts a key-file path plus key/issuer IDs in environment variables; it never prints credentials or signed payloads. Run only against sandbox.
+- Prior implementation head 6f6ab6c6 passed full QA (38271066528), native compilation (38271066576), and both signed archives (38271066660), versions 1.3 (1003) and 1.3 (2003). This backend fix requires fresh CI.
+- TEST notification delivery is not a purchase test. All three on-device purchases, refund/recovery tests, account deletion, and the complete App Review environment strategy remain release blockers. Nothing has been uploaded or submitted to Apple.

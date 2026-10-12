@@ -21,6 +21,8 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npx playwright install --with-deps chromium
+      - name: Verify Apple certificates on the deployed Deno generation
+        run: npm exec --yes --package=deno@2.1.4 -- deno test --no-check --allow-read --allow-env scripts/test-apple-x509.ts
       - name: Validate payment ledger and API boundaries
         run: node scripts/test-arcade-chat.mjs && node scripts/test-jungle-rewards.mjs && npm run test:commerce && node scripts/test-coin-staging.mjs && node scripts/test-avatar-staging.mjs && node --test scripts/test-native-environment.mjs && node --test scripts/test-ios-release-gates.mjs
       - name: Run simulations and source contracts once

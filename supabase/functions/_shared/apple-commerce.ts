@@ -43,6 +43,13 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
    const {data,error}=await db.rpc('apple_coin_fulfill',{p_user_id:t.appAccountToken,p_transaction_id:t.transactionId,p_product_id:t.productId,p_environment:t.environment,p_revoked:t.revocationDate!=null});
    if(error)throw error;
    return json(path==='/notifications'?{received:true}:data);
-  }catch { return fail('Purchase could not be verified. Reopen the shop to retry; pending purchases are kept by Apple.',503); }
+  }catch(error:any) {
+   // Deliberately exclude messages, signed payloads, credentials and account identifiers.
+   console.warn('APPLE_VERIFICATION_FAILURE',JSON.stringify({
+    status:Number.isInteger(error?.status)?error.status:null,
+    cause:typeof error?.cause?.name==='string'&&/^[A-Za-z]{1,40}$/.test(error.cause.name)?error.cause.name:null,
+    unsupported:typeof error?.cause?.message==='string'&&/not implemented|not supported/i.test(error.cause.message)
+   }));
+   return fail('Purchase could not be verified. Reopen the shop to retry; pending purchases are kept by Apple.',503); }
  };
 }
