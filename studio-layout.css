@@ -252,7 +252,8 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
  .studio-layout{display:flex;flex-direction:column;gap:10px}
  .showcase.panel{order:0}
  .shop.panel{order:1}
- .shop-tabs{display:none!important}
+ .shop-tabs{display:flex!important;overflow-x:auto;gap:7px;scroll-snap-type:x proximity;padding:5px 0;scrollbar-width:thin}
+ .shop-tabs button{flex:0 0 auto;min-height:44px;padding:9px 13px;scroll-snap-align:start}
  .collection-looks{margin-top:12px}
  .coin-shop{margin-top:12px}
  .personality-note{font-size:12px;margin-bottom:6px}
