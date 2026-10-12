@@ -11,7 +11,7 @@
     "native:ios:sync": "npm run native:web && npx cap sync ios && node scripts/configure-ios.mjs",
     "native:ios:release": "EARNLY_ADMOB_TEST_MODE=0 EARNLY_IOS_MARKETING_VERSION=1.1 EARNLY_IOS_BUILD_NUMBER=2 npm run native:ios:sync",
     "build:crystal-client": "esbuild crystal-command-client-entry.js --bundle --format=iife --minify --target=safari15 --outfile=crystal-command-vendor.js",
-    "test:commerce": "node scripts/test-coin-ledger.mjs && node --test scripts/test-coin-commerce.mjs"
+    "test:commerce": "node scripts/test-coin-ledger.mjs && node --test scripts/test-coin-commerce.mjs && node --test scripts/test-apple-commerce.mjs"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",

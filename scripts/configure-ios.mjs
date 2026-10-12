@@ -114,3 +114,11 @@ console.log(
   ' · AdMob ' + (testMode ? 'TEST' : 'LIVE') +
   ' · ' + skAdNetworkIds.length + ' SKAdNetwork IDs'
 );
+
+// CI recreates ios/: install the StoreKit bridge after every generation.
+const delegatePath = 'ios/App/App/AppDelegate.swift';
+let delegate = await readFile(delegatePath, 'utf8');
+delegate = delegate.split('// EARNLY STOREKIT BRIDGE')[0].trimEnd();
+await writeFile(delegatePath, delegate + '\n\n// EARNLY STOREKIT BRIDGE\n' + await readFile('native/ArcadePurchases.swift', 'utf8'));
+const scenePath = 'ios/App/App/SceneDelegate.swift';
+await writeFile(scenePath, (await readFile(scenePath, 'utf8')).replace('= CAPBridgeViewController()', '= EarnlyBridgeViewController()'));

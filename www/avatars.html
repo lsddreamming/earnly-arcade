@@ -17,6 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="cloud.js" defer></script>
     <script src="avatar-studio.js" defer></script>
+    <script src="native-purchases.js" defer></script>
     <script src="coin-shop.js" defer></script>
     <script src="potato-rig.js"></script>
   <link rel="stylesheet" href="app-surfaces.css?v=1">
@@ -50,21 +51,8 @@
         </div>
         <p>Try it. Mix it. Make it yours.<br />Your look follows you onto the leaderboard.</p>
       </div>
-      <nav class="studio-shortcuts" aria-label="Studio sections"><a href="#coin-shop" id="coin-shop-shortcut">◈ Buy coins</a><a href="#collection">Shop collection →</a><a href="#showcase-title">My character</a></nav>
+      <nav class="studio-shortcuts" aria-label="Studio sections"><a href="#collection">🎨 Customize</a><a href="#signature-looks">Featured looks</a><a href="#coin-shop" id="coin-shop-shortcut">◈ Buy coins</a></nav>
       <p id="status" role="status" aria-live="polite"></p>
-      <section class="collection-looks panel" id="signature-looks" hidden aria-labelledby="looks-title">
-        <p class="eyebrow">CURATED LOADOUTS</p><h2 id="looks-title">Find your next favorite.</h2>
-        <p class="collection-note">Try a complete look for free. Unlock your favorite pieces.</p>
-        <div id="featured-looks" class="featured-looks"></div>
-      </section>
-      <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
-        <p class="eyebrow">ARCADE COIN SHOP</p><h2 id="coins-title">Buy coins. Make it yours.</h2>
-        <p class="collection-note">Outfits. Accessories. More plays. Pick your pack or earn coins by playing.</p>
-        <div id="coin-packs" class="coin-packs"></div><p id="coin-status" role="status" aria-live="polite">Card purchases are coming soon.</p>
-        <a href="games.html" class="earn-coins-link">Play games &amp; earn coins →</a>
-        <a href="#collection" class="browse-unlocks">Explore what you can unlock <span aria-hidden="true">→</span></a>
-        <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
-      </section>
       <div class="studio-layout">
         <section class="showcase panel" aria-labelledby="showcase-title">
           <div class="panel-top">
@@ -103,7 +91,7 @@
             <span id="owned-count" class="muted"></span>
           </div>
           <p class="personality-note">Your potato. Your personality. Mix free eyes, brows, smiles and hair with your favorite outfit. Every style is for everyone.</p>
-          <div class="shop-tabs" role="group" aria-label="Shop category">
+          <label class="studio-category-label" for="studio-category">Customize category</label><select id="studio-category" aria-label="Choose customization category"><option value="avatar">Avatars</option><option value="eyes">Eyes</option><option value="brows">Eyebrows</option><option value="mouth">Mouths</option><option value="nose">Noses</option><option value="hair">Hair</option><option value="marks">Face details</option><option value="outfit">Outfits</option><option value="shoes">Shoes</option><option value="backpack">Backpacks</option><option value="face">Facewear</option><option value="beard">Beards</option><option value="head">Headwear</option><option value="weapon">Weapons</option></select><div class="shop-tabs" role="group" aria-label="Shop category">
             <button data-slot="avatar" aria-pressed="true">Avatars</button>
             <button data-slot="eyes" aria-pressed="false">Eyes</button>
             <button data-slot="brows" aria-pressed="false">Eyebrows</button>
@@ -129,6 +117,19 @@
           </div>
         </section>
       </div>
+      <section class="collection-looks panel" id="signature-looks" hidden aria-labelledby="looks-title">
+        <p class="eyebrow">CURATED LOADOUTS</p><h2 id="looks-title">Find your next favorite.</h2>
+        <p class="collection-note">Try a complete look for free. Unlock your favorite pieces.</p>
+        <div id="featured-looks" class="featured-looks"></div>
+      </section>
+      <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
+        <p class="eyebrow">ARCADE COIN SHOP</p><h2 id="coins-title">Buy coins. Make it yours.</h2>
+        <p class="collection-note">Outfits. Accessories. More plays. Pick your pack or earn coins by playing.</p>
+        <details id="coin-pack-options" class="coin-pack-options"><summary>View coin packages and prices</summary><div id="coin-packs" class="coin-packs"></div></details><p id="coin-status" role="status" aria-live="polite">Checking available coin packs…</p><p class="collection-note">One coin balance for plays and avatar upgrades. Coins have no cash value and cannot be redeemed, transferred, or withdrawn.</p>
+        <a href="games.html" class="earn-coins-link">Play games &amp; earn coins →</a>
+        <a href="#collection" class="browse-unlocks">Explore what you can unlock <span aria-hidden="true">→</span></a>
+        <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
+      </section>
       <section class="leaderboard panel" aria-labelledby="leaderboard-title">
         <div class="panel-top">
           <div>

@@ -11,6 +11,7 @@ const excluded = new Set([
   'coin-sandbox.html',
   'coin-sandbox.js',
   'native-ads-entry.js',
+  'native-purchases-entry.js',
   'crystal-command-client-entry.js',
   'playwright.config.js',
   'playwright.contract.config.js',
@@ -44,3 +45,5 @@ await build({
 });
 
 console.log('Prepared Earnly native web bundle in www/');
+
+await build({entryPoints:['native-purchases-entry.js'],outfile:'www/native-purchases.js',bundle:true,format:'iife',platform:'browser',target:['safari15']});

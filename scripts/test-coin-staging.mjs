@@ -20,3 +20,17 @@ assert.equal((await fulfill(false)).rows[0].data.wallet.balance,'500');
 assert.equal((await fulfill(false)).rows[0].data.wallet.balance,'500');
 for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(db.query('SELECT * FROM coin_wallets'),/permission denied/);await db.exec('RESET ROLE');}
 await db.close();console.log('PASS: sandbox rejects live payments, credits once, and keeps wallets private.');
+execFileSync(process.execPath,['scripts/build-apple-staging.mjs']);
+const apple=JSON.parse(readFileSync('/tmp/earnly-apple-staging.json','utf8'));
+assert.equal(apple.project,bundle.project);
+assert.match(apple.files[0].content,/STAGING_PROJECT_REQUIRED/);
+assert.doesNotMatch(apple.files[0].content,/Environment.PRODUCTION/);
+const adb=new PGlite();
+await adb.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;');
+await adb.exec(bundle.sql);await adb.exec(apple.sql);
+await adb.query('INSERT INTO auth.users VALUES ($1)',[uid]);await adb.query('INSERT INTO coin_wallets(user_id) VALUES ($1)',[uid]);
+const appleFulfill=env=>adb.query("select apple_coin_fulfill($1,'123','com.earnly.arcade.coins.starter',$2,false) as data",[uid,env]);
+await assert.rejects(appleFulfill('Production'),/INVALID_TRANSACTION/);
+assert.equal((await appleFulfill('Sandbox')).rows[0].data.wallet.balance,'500');
+assert.equal((await appleFulfill('Sandbox')).rows[0].data.wallet.balance,'500');
+await adb.close();console.log('PASS: Apple staging only accepts sandbox and credits once.');

@@ -32,14 +32,14 @@ test('Uncertain paid-play requests retry with the same receipt ID',async({page})
  await page.evaluate(()=>Arcade.consume('snake'));await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('earnly-paid-run:qa-paid-player:snake')||'null')?.ready)).toBe(true);
  expect(f.keys).toHaveLength(2);expect(f.keys[0]).toBe(f.keys[1]);
 });
-test('Native runtimes do not load website paid-play purchases',async({page})=>{
- await setup(page,{native:true});await page.goto('/snake.html');expect(await page.evaluate(()=>typeof window.EarnlyPaidPlays)).toBe('undefined');
+test('Native runtimes can consume server-owned extra plays',async({page})=>{
+ await setup(page,{native:true});await page.goto('/snake.html');await expect.poll(()=>page.evaluate(()=>window.EarnlyPaidPlays?.remaining('snake'))).toBe(3);
 });
 
 test('Switching accounts while checkout opens does not redirect the new player',async({page})=>{
  await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
  let release;const held=new Promise(resolve=>{release=resolve;});let requested=false;
  await page.route(API+'/checkout',async route=>{requested=true;await held;await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({orderId:'22222222-2222-4222-8222-222222222222',url:'https://checkout.stripe.com/c/pay/test'})});});
- await page.goto('/avatars.html');const button=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(button).toBeEnabled();await button.click();await expect.poll(()=>requested).toBe(true);
+ await page.goto('/avatars.html');await page.locator('#coin-pack-options summary').click();const button=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(button).toBeEnabled();await button.click();await expect.poll(()=>requested).toBe(true);
  await page.evaluate(()=>{window.qaUserId='another-account';});release();await expect(page.locator('#coin-status')).toContainText('account changed');await expect(page).toHaveURL(/avatars\.html/);
 });

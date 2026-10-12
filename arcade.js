@@ -4095,7 +4095,7 @@ const Arcade = (() => {
   }
 
   function start(){
-    if (location.protocol !== 'capacitor:' && !window.Capacitor?.isNativePlatform?.()) loadScript(new URL('paid-plays.js',location.href).href);
+    loadScript(new URL('paid-plays.js',location.href).href);
     if (window.EarnlyCloud) return;
 
     const cloudUrl = new URL('cloud.js', location.href).href;

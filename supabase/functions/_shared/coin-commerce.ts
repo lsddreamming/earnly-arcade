@@ -1,6 +1,6 @@
 /** Payment boundary: all prices and players come from trusted server sources. */
 export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnabled}:any) {
-  const origins=new Set(['https://earnlyarcade.com','https://www.earnlyarcade.com']);
+  const origins=new Set(['https://earnlyarcade.com','https://www.earnlyarcade.com','capacitor://localhost']);
   const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const unwrap=({data,error}:any)=>{if(error)throw error;return data;};
   async function fulfill(order:any) {
@@ -75,6 +75,7 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
         if(typeof body?.game!=='string')return fail('INVALID_GAME','Choose a game.');
         return json(unwrap(await db.rpc('coin_play_action',{p_user_id:user.id,p_game:body.game,p_request_id:key,p_action:path.endsWith('/buy')?'buy':'consume'})));
       }
+      if(origin==='capacitor://localhost')return fail('APPLE_PURCHASE_REQUIRED','Use Apple in-app purchases on iPhone.',403);
       if(!checkoutEnabled||!stripe)return fail('CHECKOUT_UNAVAILABLE','Card purchases are coming soon. You can still earn coins by playing.',503);
       if(typeof body?.packId!=='string'||!/^[a-z]{1,20}$/.test(body.packId))return fail('INVALID_PACK','Choose a coin pack.');
       const order=unwrap(await db.rpc('coin_order_create',{p_user_id:user.id,p_pack_id:body.packId,p_request_id:key}));

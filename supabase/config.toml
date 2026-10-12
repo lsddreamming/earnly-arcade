@@ -1,0 +1,3 @@
+[functions.apple-coins]
+# /verify validates the bearer with auth.getUser; /notifications validates Apple JWS.
+verify_jwt = false

@@ -1,10 +1,12 @@
-/* Website-only hosted checkout. A redirect never grants currency. */
+/* One coin wallet. Both payment providers credit only after server verification. */
 (() => {
   const endpoint='https://zdwziebtbpuolusztede.supabase.co/functions/v1/coin-shop';
+  const appleEndpoint=endpoint.replace('/coin-shop','/apple-coins');
+  const apple=window.EarnlyApplePurchases;
   const $=id=>document.getElementById(id);
   const arcade=typeof Arcade!=='undefined'?Arcade:null;
   const native=window.Capacitor?.isNativePlatform?.()||location.protocol==='capacitor:';
-  if(native){$('coin-shop').hidden=true;$('get-coins-link').hidden=true;$('coin-shop-shortcut').hidden=true;return;}
+  if(native)$('coin-pack-options').open=true;
   const fallback=[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}];
   let available=false,busy=false,configSequence=0;
   const pending=new Map();
@@ -15,7 +17,7 @@
     const headers={'Content-Type':'application/json'};
     if(session)headers.Authorization='Bearer '+session.access_token;
     if(options.key)headers['Idempotency-Key']=options.key;
-    const response=await fetch(endpoint+path,{method:options.body?'POST':'GET',headers,body:options.body?JSON.stringify(options.body):undefined,cache:'no-store'});
+    const response=await fetch((options.apple?appleEndpoint:endpoint)+path,{method:options.body?'POST':'GET',headers,body:options.body?JSON.stringify(options.body):undefined,cache:'no-store'});
     const data=await response.json();
     if(!response.ok){const error=new Error(data.error?.message||'Could not complete the request.');error.code=data.error?.code;throw error;}
     return data;
@@ -35,12 +37,15 @@
       }
       const amount=document.createElement('div');amount.className='coin-amount';amount.textContent='◈ '+pack.coins.toLocaleString();
       const note=document.createElement('p');note.textContent='Arcade Coins';
-      const rate=document.createElement('p');rate.className='pack-rate';rate.textContent=pack.coins>0?'$'+(pack.priceCents/pack.coins).toFixed(2)+' per 100 coins':'';
+      const rate=document.createElement('p');rate.className='pack-rate';rate.textContent=!native&&pack.coins>0?'$'+(pack.priceCents/pack.coins).toFixed(2)+' per 100 coins':'';
       const button=document.createElement('button');button.type='button';button.textContent=available?'$'+(pack.priceCents/100).toFixed(2)+' · Buy':'$'+(pack.priceCents/100).toFixed(2)+' · Soon';
-      button.disabled=!available||busy;button.setAttribute('aria-label',`Buy ${pack.coins} Arcade Coins for $${(pack.priceCents/100).toFixed(2)}`);
+      if(native)button.textContent=pack.displayPrice?pack.displayPrice+' · '+(available?'Buy':'Soon'):'Coming soon';
+      button.disabled=!available||busy||(native&&!pack.displayPrice);button.setAttribute('aria-label',`Buy ${pack.coins} Arcade Coins for $${(pack.priceCents/100).toFixed(2)}`);
+      if(native)button.setAttribute('aria-label',`Buy ${pack.coins} Arcade Coins${pack.displayPrice?' for '+pack.displayPrice:''}`);
       button.addEventListener('click',async()=>{
         if(busy)return;
         const session=await window.EarnlyCloud?.session?.();if(!session){$('auth-modal').showModal();return;}
+        if(native){await buyApple(pack,packs,session);return;}
         busy=true;render(packs);message('Opening secure card checkout…');
         const key=pending.get(pack.id)||crypto.randomUUID();pending.set(pack.id,key);
         try {
@@ -97,8 +102,53 @@
     }catch(error){$('play-status').textContent=error.message;$('play-status').className='error';}
     finally{button.disabled=false;}
   });
-  render(fallback);
-  async function init(){const sequence=++configSequence;try{const config=await api('/config');if(sequence!==configSequence)return;available=config.available;render(config.packs);message(available?'Secure card checkout · one-time purchase':'Card purchases are coming soon. Free coins and cosmetic unlocks are available now.');}catch{available=false;render(fallback);message('Card purchases are coming soon. Keep earning free coins by playing.');}await refreshAccount();await checkOrder();window.EarnlyCloud?.client?.auth?.onAuthStateChange?.(event=>{if(event!=='TOKEN_REFRESHED')setTimeout(()=>{refreshAccount();checkOrder();},0);});}
+  const delivering=new Map();
+  async function deliver(signedTransaction){
+    if(delivering.has(signedTransaction))return delivering.get(signedTransaction);
+    const task=(async()=>{
+      const session=await window.EarnlyCloud?.session?.();if(!session)throw new Error('Sign in to complete your pending purchase.');
+      const data=await api('/verify',{apple:true,account:session.user.id,body:{signedTransaction}});
+      if(!['fulfilled','revoked'].includes(data.status)||!/^\d+$/.test(data.transactionId))throw new Error('Purchase confirmation is incomplete. Reopen the shop to retry.');
+      await apple.finish({transactionId:data.transactionId});
+      if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)return;
+      arcade?.applyServerWallet?.(data.wallet);$('refresh-button').click();
+      message(data.status==='fulfilled'?'Purchase confirmed · your Arcade Coins are ready!':'This purchase was refunded. Your balance is updated.');
+    })();
+    delivering.set(signedTransaction,task);try{return await task;}finally{delivering.delete(signedTransaction);}
+  }
+  async function recover(){
+    if(!native||!apple||!(await window.EarnlyCloud?.session?.()))return;
+    try {for(const signed of (await apple.pending()).transactions||[])await deliver(signed);}
+    catch(error){message(error.message,true);}
+  }
+  async function buyApple(pack,packs,session){
+    busy=true;render(packs);message('Opening Apple purchase…');
+    try{
+      const result=await apple.purchase({productId:pack.productId,accountToken:session.user.id});
+      if(result.status==='purchased')await deliver(result.signedTransaction);
+      else if(result.status==='pending')message('Waiting for Apple approval. Your coins will arrive after confirmation.');
+      else if(result.status==='cancelled')message('Purchase cancelled. Your balance is unchanged.');
+      else throw new Error('Reopen the shop to check this purchase.');
+    }catch(error){message(error.message,true);}finally{busy=false;render(packs);}
+  }
+  render(native?fallback.map(p=>({...p,priceCents:0})):fallback);
+  let bound=false;
+  async function init(){
+    const sequence=++configSequence;
+    try{
+      if(native&&!apple)throw new Error('Apple purchases are not available in this build.');
+      const config=await api('/config',{apple:native});
+      let packs=config.packs;
+      if(native){const products=(await apple.products()).products||[];packs=packs.map(p=>({...p,displayPrice:products.find(item=>item.id===p.productId)?.displayPrice}));}
+      if(sequence!==configSequence)return;
+      available=config.available;render(packs);
+      message(native?(available?'Secure Apple purchase · one-time coin packs':'Apple coin packs are coming soon. Earn coins by playing.'):(available?'Secure card checkout · one-time purchase':'Card purchases are coming soon. Free coins and cosmetic unlocks are available now.'));
+    }catch(error){available=false;render(native?fallback.map(p=>({...p,priceCents:0})):fallback);message(native?error.message:'Card purchases are coming soon. Keep earning free coins by playing.');}
+    await refreshAccount();if(native)await recover();else await checkOrder();
+    if(bound)return;bound=true;
+    window.EarnlyCloud?.client?.auth?.onAuthStateChange?.(event=>{if(event!=='TOKEN_REFRESHED')setTimeout(()=>{refreshAccount();native?recover():checkOrder();},0);});
+    if(native&&apple){await apple.addListener('transaction',event=>deliver(event.signedTransaction).catch(error=>message(error.message,true)));window.addEventListener('focus',recover);window.addEventListener('online',recover);}
+  }
   window.addEventListener('earnly-cloud-ready',init,{once:true});
   window.addEventListener('earnly-cosmetics-change',refreshAccount);
   if(window.EarnlyCloud)init();

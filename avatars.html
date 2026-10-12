@@ -17,6 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="cloud.js" defer></script>
     <script src="avatar-studio.js" defer></script>
+    <script src="native-purchases.js" defer></script>
     <script src="coin-shop.js" defer></script>
     <script src="potato-rig.js"></script>
   <link rel="stylesheet" href="app-surfaces.css?v=1">
@@ -124,7 +125,7 @@
       <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
         <p class="eyebrow">ARCADE COIN SHOP</p><h2 id="coins-title">Buy coins. Make it yours.</h2>
         <p class="collection-note">Outfits. Accessories. More plays. Pick your pack or earn coins by playing.</p>
-        <details id="coin-pack-options" class="coin-pack-options"><summary>View coin packages and prices</summary><div id="coin-packs" class="coin-packs"></div></details><p id="coin-status" role="status" aria-live="polite">Card purchases are coming soon.</p>
+        <details id="coin-pack-options" class="coin-pack-options"><summary>View coin packages and prices</summary><div id="coin-packs" class="coin-packs"></div></details><p id="coin-status" role="status" aria-live="polite">Checking available coin packs…</p><p class="collection-note">One coin balance for plays and avatar upgrades. Coins have no cash value and cannot be redeemed, transferred, or withdrawn.</p>
         <a href="games.html" class="earn-coins-link">Play games &amp; earn coins →</a>
         <a href="#collection" class="browse-unlocks">Explore what you can unlock <span aria-hidden="true">→</span></a>
         <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>

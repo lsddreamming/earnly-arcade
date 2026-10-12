@@ -260,8 +260,7 @@
   function renderFundingOptions(needed) {
     const root = $("purchase-funding"); root.replaceChildren(); root.hidden = !needed;
     if (!needed) return;
-    const native = window.Capacitor?.isNativePlatform?.() || location.protocol === "capacitor:";
-    if (!native) {
+    {
       const coins = el("a", "funding-link", "See coin options"); coins.href = "#coin-shop";
       coins.addEventListener("click", () => { $("purchase-modal").close(); state.pending = null; });
       root.append(coins);
