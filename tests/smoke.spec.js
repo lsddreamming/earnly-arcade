@@ -159,7 +159,10 @@ test('rewarded play flow returns directly into the same game', async ({ page }) 
 test('profile global identity save stays wired to world rankings', async ({ page }) => {
   const profile = await (await page.request.get('/profile.html')).text();
   const cloud = await (await page.request.get('/cloud.js')).text();
-  expect(profile).toContain('Save Global Profile');
+  expect(profile).toContain('id="saveProfileButton">Save Profile');
+  expect(profile).toContain('await saveGlobalProfile()');
+  expect(profile).toContain('class="profile-icon-options"');
+  expect(profile).toContain('id="xpBar"');
   expect(profile).toContain('EarnlyCloud.updatePublicProfile');
   expect(profile).toContain("profile_identity_saved");
   expect(profile).toContain('leaderboards.html');
