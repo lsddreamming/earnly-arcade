@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict
 const root=new URL('../',import.meta.url);
 const db=new PGlite();await db.exec(await readFile(new URL('tests/commerce-fixture.sql',root),'utf8'));
 await db.exec('CREATE ROLE service_role BYPASSRLS; CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,source_type text,game text);');
-for(const name of ['20261007152428_avatar_studio.sql','20261007162312_mascot_accessory_slots.sql','20261007183740_avatar_atelier.sql','20261007183756_website_coin_checkout.sql','20261008154100_potato_personality.sql'])await db.exec(await readFile(new URL('supabase/migrations/'+name,root),'utf8'));
+for(const name of ['20261007152428_avatar_studio.sql','20261007162312_mascot_accessory_slots.sql','20261007183740_avatar_atelier.sql','20261007183756_website_coin_checkout.sql','20261008154100_potato_personality.sql','20261012144324_apple_coin_purchases.sql'])await db.exec(await readFile(new URL('supabase/migrations/'+name,root),'utf8'));
 const uid='00000000-0000-4000-8000-000000000001';let i=0;const key=()=>`11111111-1111-4111-8111-${String(++i).padStart(12,'0')}`;
 const data=async(sql,args)=> (await db.query(sql,args)).rows[0].data;
 let user=(await data('select cosmetic_me($1) as data',[uid])).user;assert.equal(Object.keys(user.equipped).length,14);assert.equal(user.inventory.length,56);
@@ -33,4 +33,19 @@ const beforeGalaxy=(await data('select cosmetic_me($1) as data',[uid])).user;
 const galaxy=(await data('select cosmetic_buy($1,$2,$3) as data',[uid,'eyes-galaxy',galaxyRequest])).user;
 assert.equal(BigInt(galaxy.coins),BigInt(beforeGalaxy.coins)-500n);assert.equal(galaxy.equipped.hair.id,'hair-ponytail');assert.equal(galaxy.equipped.eyes.id,'eyes-galaxy');
 assert.equal((await data('select cosmetic_buy($1,$2,$3) as data',[uid,'eyes-galaxy',galaxyRequest])).user.coins,galaxy.coins);
-console.log('PASS: 14 slots, 56 free items, independent facial saves, paid-eye ownership/retries, order prices/retries, live-only minting, refunds/debt, plays, RLS.');await db.close();
+console.log('PASS: 14 slots, 56 free items, independent facial saves, paid-eye ownership/retries, order prices/retries, live-only minting, refunds/debt, plays, RLS.');
+const beforeApple=(await db.query('select * from coin_wallets where user_id=$1',[uid])).rows[0];
+const apple=(id='123',owner=uid,env='Production',revoked=false)=>data('select apple_coin_fulfill($1,$2,$3,$4,$5) as data',[owner,id,'com.earnly.arcade.coins.starter',env,revoked]);
+await assert.rejects(apple('123',uid,'Sandbox'),/INVALID_TRANSACTION/);
+let minted=await apple();assert.equal(minted.wallet.lifetime_earned,String(beforeApple.lifetime_earned));
+assert.equal(BigInt(minted.wallet.balance),BigInt(beforeApple.balance)+500n-BigInt(beforeApple.purchase_debt));
+assert.deepEqual(await apple(),minted);
+await assert.rejects(apple('123','00000000-0000-4000-8000-000000000002'),/TRANSACTION_OWNER_MISMATCH/);
+const revoked=await apple('123',uid,'Production',true);assert.equal(revoked.status,'revoked');
+assert.deepEqual(await apple('123',uid,'Production',true),revoked);
+assert.deepEqual(await apple(),revoked); // old signed purchase cannot revive a refund
+const unknownRefund=await apple('124',uid,'Production',true);assert.equal(unknownRefund.wallet.balance,revoked.wallet.balance);
+assert.equal((await apple('124')).wallet.balance,revoked.wallet.balance);
+for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(apple('999'),/permission denied/);await assert.rejects(db.query('select * from apple_coin_transactions'),/permission denied/);await db.exec('RESET ROLE');}
+console.log('PASS: Apple replay, ownership, sandbox exclusion, earned-total isolation, monotonic refunds and RLS.');
+await db.close();

@@ -260,8 +260,7 @@
   function renderFundingOptions(needed) {
     const root = $("purchase-funding"); root.replaceChildren(); root.hidden = !needed;
     if (!needed) return;
-    const native = window.Capacitor?.isNativePlatform?.() || location.protocol === "capacitor:";
-    if (!native) {
+    {
       const coins = el("a", "funding-link", "See coin options"); coins.href = "#coin-shop";
       coins.addEventListener("click", () => { $("purchase-modal").close(); state.pending = null; });
       root.append(coins);
@@ -463,11 +462,19 @@
   for (const button of document.querySelectorAll("[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
+      $("studio-category").value = state.slot;
       for (const tab of document.querySelectorAll("[data-slot]"))
         tab.setAttribute("aria-pressed", String(tab === button));
       renderShop();
     });
-  for (const button of document.querySelectorAll("[data-close]"))
+  $("studio-category").addEventListener("change", event => {
+    const selected = document.querySelector('.shop-tabs [data-slot="' + event.target.value + '"]');
+    if (selected) selected.click();
+  });
+  for (const link of document.querySelectorAll('a[href="#coin-shop"]')) {
+    link.addEventListener("click", () => { $("coin-pack-options").open = true; });
+  }
+    for (const button of document.querySelectorAll("[data-close]"))
     button.addEventListener("click", () => {
       if (button.dataset.close === "purchase-modal" && state.busy) return;
       $(button.dataset.close).close();

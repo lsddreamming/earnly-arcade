@@ -5,6 +5,10 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 const origins = new Set(["https://earnlyarcade.com", "https://www.earnlyarcade.com", "https://lsddreamming.github.io", "capacitor://localhost", "http://localhost"]);
 const userLimits = new Map<string, {count:number;expires:number}>();
 const errors: Record<string,[number,string]> = {
+  PRICE_CHANGED:[409,"Your bundle price changed. Preview it again before buying."],
+  PASS_REQUIRED:[403,"An active VIP pass is required."],
+  VIP_ITEM:[403,"This item is included with VIP. Use Equip."],
+  COLLECTION_UNAVAILABLE:[409,"This collection is outside its availability dates."],
   WALLET_UNAVAILABLE:[409,"Your Coin wallet is not ready. Open Account & Data first."],
   PROFILE_REQUIRED:[409,"Choose your global username in Profile first."],
   REQUEST_REUSED:[409,"This purchase request belongs to another item."],
@@ -33,7 +37,7 @@ export async function handler(req:Request):Promise<Response> {
     if(req.method==="GET"&&path==="/api/shop") {
       const {data,error}=await admin.from("cosmetic_items").select("*").eq("active",true).order("slot").order("coin_price");
       if(error)throw error;
-      return json({items:(data||[]).map(i=>({id:i.id,name:i.name,slot:i.slot,coinPrice:i.coin_price,rarity:i.rarity,imageUrl:i.asset_path,isStarter:i.is_starter}))});
+      return json({items:(data||[]).map(i=>({id:i.id,name:i.name,slot:i.slot,coinPrice:i.coin_price,rarity:i.rarity,imageUrl:i.asset_path,isStarter:i.is_starter,collection:i.collection,availableFrom:i.available_from,availableUntil:i.available_until,vipOnly:i.vip_only}))});
     }
     const usernameMatch=path.match(/^\/api\/user\/([A-Za-z0-9_]{3,18})$/);
     if(req.method==="GET"&&(path==="/api/leaderboard"||usernameMatch)) {
@@ -46,7 +50,7 @@ export async function handler(req:Request):Promise<Response> {
       if(usernameMatch)return data?.length?json({profile:data[0]}):fail("PLAYER_NOT_FOUND","Player not found.",404);
       return json({game,players:data||[]});
     }
-    if(!((req.method==="GET"&&path==="/api/me")||(req.method==="POST"&&["/api/shop/buy","/api/user/equip"].includes(path))))
+    if(!((req.method==="GET"&&["/api/me","/api/ion-pack"].includes(path))||(req.method==="POST"&&["/api/shop/buy","/api/user/equip","/api/shop/ion-pack"].includes(path))))
       return fail("NOT_FOUND","API route not found.",404);
     const token=req.headers.get("Authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if(!token)return fail("SIGN_IN_REQUIRED","Sign in to customize your character.",401);
@@ -58,11 +62,17 @@ export async function handler(req:Request):Promise<Response> {
     const limit=userLimits.get(id);
     if(limit&&limit.expires>now){if(++limit.count>60)return fail("RATE_LIMITED","Too many requests. Try again shortly.",429);}
     else userLimits.set(id,{count:1,expires:now+60000});
+    if(req.method==="GET"&&path==="/api/ion-pack"){const {data,error}=await admin.rpc("cosmetic_ion_quote",{p_user_id:id});if(error)throw error;return json(data);}
     let rpc="cosmetic_me",args:Record<string,unknown>={p_user_id:id};
     if(req.method==="POST") {
       const raw=await req.text();
       if(raw.length>8192)return fail("REQUEST_TOO_LARGE","Request is too large.",413);
       let body;try{body=JSON.parse(raw);}catch{return fail("INVALID_JSON","Invalid JSON request.",400);}
+      if(path==='/api/shop/ion-pack'){
+        const key=req.headers.get('Idempotency-Key');
+        if(!key||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)||!Number.isSafeInteger(body.expectedPrice)||body.expectedPrice<0)return fail('INVALID_BUNDLE','Preview the pack before buying.',400);
+        const {data,error}=await admin.rpc('cosmetic_buy_ion_pack',{p_user_id:id,p_request_id:key,p_expected_price:body.expectedPrice});if(error)throw error;return json(data);
+      }
       const item=body?.itemId??body?.avatarId;
       if(typeof item!=="string"||!/^[a-z0-9-]{1,64}$/.test(item))return fail("INVALID_ITEM","Choose a valid shop item.",400);
       args.p_item_id=item;

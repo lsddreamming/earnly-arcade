@@ -89,10 +89,10 @@ test('Insufficient funds offers next steps, never charges, and preserves the pre
  await expect(page.locator('#purchase-modal')).not.toBeVisible();await expect(page.locator('#character-stage img[alt="Neon Phantom"]')).toHaveCount(1);
  await expect(page).toHaveURL(/#coin-shop$/);expect(f.writes).toHaveLength(0);
 });
-test('Native shortfall never exposes a website checkout link',async({page})=>{
+test('Native shortfall links to the unified shop and free earning',async({page})=>{
  await setup(page,{coins:'100',native:true});await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();
- await expect(page.getByRole('link',{name:'See coin options',exact:true})).toHaveCount(0);
- await expect(page.getByRole('link',{name:'Play & earn free coins →',exact:true})).toBeVisible();await expect(page.locator('#coin-shop')).toBeHidden();
+ await expect(page.getByRole('link',{name:'See coin options',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Play & earn free coins →',exact:true})).toBeVisible();await expect(page.locator('#coin-shop')).toBeVisible();
 });
 test('Guests can compare looks but must sign in before any purchase',async({page})=>{
  const f=await setup(page,{signedIn:false});await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();

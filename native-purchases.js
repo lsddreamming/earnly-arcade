@@ -1,0 +1,1 @@
+/* Apple purchases are provided by the packaged iOS build. */

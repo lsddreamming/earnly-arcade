@@ -4,7 +4,7 @@
  */
 (() => {
   const arcade=typeof Arcade!=='undefined'?Arcade:null;
-  if(!arcade||location.protocol==='capacitor:'||window.Capacitor?.isNativePlatform?.())return;
+  if(!arcade)return;
   const endpoint='https://zdwziebtbpuolusztede.supabase.co/functions/v1/coin-shop';
   let userId=null,credits={},epoch=0,loading=null;
   const preparing=new Set();

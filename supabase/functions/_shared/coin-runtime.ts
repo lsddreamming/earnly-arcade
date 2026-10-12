@@ -6,6 +6,6 @@ const webhookSecret=Deno.env.get('STRIPE_WEBHOOK_SECRET')||'';
 const stripe=/^(sk|rk)_live_/.test(secret)?new Stripe(secret,{httpClient:Stripe.createFetchHttpClient()}):null;
 const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
 export const handler=commerceHandler({db,stripe,
- checkoutEnabled:!!stripe&&!!webhookSecret&&Deno.env.get('COIN_CHECKOUT_ENABLED')==='true',
+ checkoutEnabled:!!stripe&&!!webhookSecret&&Deno.env.get('COIN_CHECKOUT_ENABLED')==='true'&&Deno.env.get('SHOP_TWO_PAYMENTS_VERIFIED')==='true',
  verifyUser:async(token:string)=>{const {data,error}=await db.auth.getUser(token);return error?null:data.user;},
  verifyEvent:webhookSecret&&stripe?async(raw:string,signature:string)=>stripe.webhooks.constructEventAsync(raw,signature,webhookSecret,300,Stripe.createSubtleCryptoProvider()):null});

@@ -63,7 +63,7 @@ test('Guests browse but sign in before attempting purchases',async({page})=>{
   await setup(page,{signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();await expect(page.locator('#auth-modal')).toBeVisible();await expect(page.locator('#coin-balance')).toHaveText('—');
 });
 test('Existing Profile links to the studio and displays the saved character',async({page})=>{
-  await setup(page);await page.goto('/profile.html');await expect(page.getByRole('link',{name:/Character Studio/})).toHaveAttribute('href','avatars.html');await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cosmetic-cyber-starter.svg$/);
+  await setup(page);await page.goto('/profile.html');await expect(page.getByRole('link',{name:/Arcade Shop/})).toHaveAttribute('href','avatars.html');await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cosmetic-cyber-starter.svg$/);
 });
 test('Existing World Ranks opens a cosmetic player card from avatar and username',async({page})=>{
   await setup(page);await page.goto('/leaderboards.html');await page.locator('.leader-avatar[data-username="PlayerOne"]').click();await expect(page.locator('.cosmetic-player-dialog')).toBeVisible();await expect(page.locator('#cosmetic-player-name')).toHaveText('@PlayerOne');await page.keyboard.press('Escape');await page.locator('.leader-profile-link[data-username="PlayerOne"]').click();await expect(page.locator('.cosmetic-player-dialog')).toBeVisible();
