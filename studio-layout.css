@@ -263,3 +263,8 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
  .item-card.is-owned:not(.is-equipped){border-color:#5786b6}
  .showcase .stage{height:260px!important}
 }
+
+/* Bound scrollable category rail to the phone viewport, never the document. */
+.studio-layout,.studio-layout>.shop,.shop-tabs{min-width:0;max-width:100%;box-sizing:border-box}
+.shop-tabs{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+@media(max-width:680px){.shop.panel{width:100%;overflow:hidden}.shop-tabs{display:flex!important;flex-wrap:nowrap;max-width:100%;width:100%}}
