@@ -16,7 +16,7 @@ Create consumable products for bundle `com.earnly.arcade`. Product identifiers a
 | com.earnly.arcade.coins.plus | 1,500 | $4.99 |
 | com.earnly.arcade.coins.vault | 4,000 | $9.99 |
 
-Prices displayed in the app come from StoreKit, including localized currency. Complete paid-app agreements, banking/tax details, product availability, localizations, and review screenshots. These have not been inspected or verified in this development session.
+Prices displayed in the app come from StoreKit, including localized currency. Complete paid-app agreements, banking/tax details, product availability, localizations, and review screenshots. All three consumable drafts were created on 2026-10-12 with the US prices above, English (U.S.) localizations, and all-region availability. Apple IDs: Starter 6821991072, Plus 6821994181, Vault 6821997355. Paid agreements, banking/tax eligibility, Server API credentials, notifications, and real IAP review screenshots still require verification. No product was added for review.
 
 Configure App Store Server Notifications V2 at `/functions/v1/apple-coins/notifications`. Configure Apple PKI DER root certificates (base64 JSON array) and the App Store Server API credentials only in backend secrets:
 
@@ -65,9 +65,12 @@ References: https://apple.github.io/app-store-server-library-node/classes/Signed
 - Commerce API tests: 11 passed, plus PostgreSQL ledger/RLS assertions.
 - Release gate tests: 14 passed.
 - Stripe and Apple isolated sandbox ledger tests passed.
-- Native web bundle and Capacitor iOS sync succeeded. This is not a compiled iOS archive.
+- Native web bundle, Capacitor sync, and Xcode native compilation succeeded (GitHub run 38266773397).
+- Signed iOS 1.3 (1001) archive/export succeeded (run 38266773476), artifact earnly-arcade-ios-1.3-1. No Apple upload step exists in this workflow.
 - Shop visually inspected at 390 × 844 with mocked StoreKit products.
-- Local iPhone WebKit could not launch because system libraries are absent; the environment cannot install them. macOS CI is required.
-- GitHub push was blocked by automatic approval review requesting explicit permission to upload source to the repository. No PR, remote QA result, signed IPA, production deployment, or Apple submission is claimed.
+- All three macOS mobile WebKit shards, desktop Chromium, and simulations/contracts passed on implementation commit 11bdc15591a1dc8272ae2cdc783e304b30a16fad (run 38266773523).
+- Draft PR #140: https://github.com/lsddreamming/earnly-arcade/pull/140 . Source uploaded after explicit user approval. No production deployment or Apple submission.
+- Four fresh current-UI captures (games, character studio, Player Hub, Crystal Command gameplay) were uploaded to the version 1.3 draft in 1320 × 2868 and 1206 × 2622 sizes. Captured using mobile Chromium with the actual read-only production cosmetics catalog cached for local network access. These are web-interface captures, not on-device StoreKit evidence.
+- Apple App ID is 6814277509. Version 1.3 remains Prepare for Submission.
 
-The generic all-desktop test discovery includes a separate touchscreen-only iPhone quit-stress suite. That invocation was stopped after missing-touch errors; the repository's actual desktop CI selection above completed successfully. The dedicated iPhone stress suite remains a macOS/mobile validation item.
+The generic all-desktop test discovery includes a separate touchscreen-only iPhone quit-stress suite. That invocation was stopped after missing-touch errors; the repository's actual desktop CI selection above completed successfully. The dedicated iPhone stress suite is outside the normal CI selection; real-device purchase testing remains required.
