@@ -1,6 +1,18 @@
-# Arcade Shop 2.0 release candidate
+# Arcade Shop 2.0 release status
 
-This branch extends PR #140. Do not activate live payments or submit to Apple.
+Shop 2.0 is deployed through merged PR #141 (including #140), main commit `ba9050f5fe8a0338f0202470458f80b58cc1c11e`. Real-money checkout remains disabled. Do not activate live payments or submit to Apple.
+
+## Verified rollout — 2026-10-12
+
+- Production migrations applied; `coin-shop` v12, `coin-webhook` v8, `avatars` v8, `apple-coins` v1 and `arcade-pass` v1 deployed. All 16 new collection items are active.
+- Main QA run 38287860393 passed: 426 desktop tests (2 existing skips), 428 WebKit tests, 23 simulations/contracts, plus commerce/security/certificate checks. Native build 38287860400 and Pages deployment 38289406483 passed.
+- Live shop: https://earnlyarcade.com/avatars.html . Twenty-six deployed assets matched source; mobile Chromium layout check found no horizontal overflow.
+- Signed, unsubmitted iOS candidates: run 38286335769, production 1.3 (1009), sandbox 1.3 (2009). Neither was uploaded or submitted to Apple.
+- Apple consumable drafts now have US prices 500/$0.99, 1,500/$2.99, 4,000/$4.99. VIP draft `com.earnly.arcade.vip.monthly` (Apple ID 6822054483) is one month at US $4.99, group 22469184. English product/group localization is saved; all remain Prepare for Submission.
+- Apple Business shows Paid Apps Agreement, banking and U.S. tax form Active. EU trader verification is pending. Review screenshots and device purchase evidence remain outstanding.
+- Stripe dashboard sign-in is blocked by a provider-reported Google authentication technical issue. No Stripe subscription configuration or live activation was performed.
+
+See `shop-payment-verification.md` for the remaining evidence and owner setup sequence. Historical validation notes below describe the candidate work and are not the current deployment status.
 
 ## Implementation
 
@@ -14,10 +26,10 @@ This branch extends PR #140. Do not activate live payments or submit to Apple.
 
 ## Required configuration and verification before activation
 
-- Apply `20261012165849_arcade_shop_two.sql` after the existing PR #140 migration, with backend deployment coordinated with the catalog response changes.
+- Both migrations are applied in production. Future deployments must preserve their order and coordinate backend/catalog compatibility.
 - Deploy `avatars`, `coin-shop`, `coin-webhook`, `apple-coins`, and new `arcade-pass`, including their shared modules. Subscription webhooks authenticate provider signatures; user routes authenticate Supabase sessions. `verify_jwt=false` is intentional for externally signed webhooks.
 - `SHOP_TWO_PAYMENTS_VERIFIED` defaults off. Existing `COIN_CHECKOUT_ENABLED` and `APPLE_COIN_PURCHASES_ENABLED` alone no longer activate this candidate's coin checkout.
-- Verify Apple agreements, banking/tax, all coin price changes, localized products, and review screenshots. Create `com.earnly.arcade.vip.monthly` as one monthly auto-renewable subscription in one group. Product configuration has NOT been changed by this branch.
+- Verify Apple agreements, banking/tax, all coin price changes, localized products, and review screenshots. Create `com.earnly.arcade.vip.monthly` as one monthly auto-renewable subscription in one group. Draft product configuration was completed on 2026-10-12 as recorded above; it is not proof of device purchase readiness.
 - Configure a Stripe monthly recurring USD 499-cent price in `STRIPE_PASS_PRICE_ID`, and Billing Portal cancellation. Configure `STRIPE_PASS_WEBHOOK_SECRET` for `/functions/v1/arcade-pass/stripe/webhook`. Subscribe to invoice payment/status, subscription lifecycle, charge refund and dispute events. Existing coin webhook remains separate and unchanged.
 - `ARCADE_PASS_WEB_ENABLED` and `ARCADE_PASS_APPLE_ENABLED` default off. Keep both off until real provider sandbox testing, product disclosures, renewal/cancellation/refund/recovery and cross-platform entitlement checks pass.
 - Verify complete App Review sandbox handling. The existing production Apple verifier rejects Sandbox, and this is still a release blocker; never redirect sandbox balances into production to bypass it.
@@ -30,7 +42,7 @@ Local ledger integration validates new slot defaults, proposed web prices, cosme
 
 Focused desktop: 46 tests passed before the compact-pass adjustment; 37 density/new-shop checks passed after adjustment. Existing simulations/source contracts: 23 passed. Full desktop and exact-commit GitHub QA are required before PR/merge. Local WebKit cannot launch because system libraries are missing; package installation encountered environment package-manager restrictions. GitHub macOS WebKit remains required. Signed iOS candidate workflow only archives; it has no Apple upload or submission step.
 
-Production deployment, real payments, actual subscription products, device purchase evidence and new signed archive are not yet verified. Do not describe this candidate as live or fully released.
+Historical candidate note: production deployment, product drafts and signed archives were subsequently verified above. Real payments and device lifecycle evidence remain unverified; the payment release is still on hold.
 
 ## Isolated deployed validation (2026-10-12)
 

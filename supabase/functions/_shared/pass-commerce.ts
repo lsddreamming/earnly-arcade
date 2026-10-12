@@ -7,7 +7,11 @@ export async function fulfillApplePass(db:any,t:any,userId?:string){
  const state=unwrap(await db.rpc('arcade_pass_record',{p_user_id:t.appAccountToken,p_provider:'apple',p_transaction_id:t.transactionId,p_subscription_id:t.originalTransactionId,p_expires_at:new Date(t.expiresDate).toISOString(),p_revoked:t.revocationDate!=null,p_observed_at:new Date(t.signedDate).toISOString()}));
  return {...state,transactionId:t.transactionId};
 }
-export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,webEnabled=false,appleEnabled=false,priceId}:any){
+export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,webEnabled=false,appleEnabled=false,paymentsVerified=false,priceId}:any){
+ // The release hold controls new sales only. Keep signed reconciliation, refunds,
+ // restore and cancellation available even when an operator disables checkout.
+ webEnabled=paymentsVerified===true&&webEnabled===true&&!!stripe&&!!verifyEvent&&!!priceId;
+ appleEnabled=paymentsVerified===true&&appleEnabled===true&&!!verifyTransaction;
  const getRow=async(id:string)=>unwrap(await db.from('arcade_pass_checkout').select('*').eq('user_id',id).maybeSingle());
  async function reconcileInvoice(invoiceId:string,forceRevoke=false){
   const invoice=await stripe.invoices.retrieve(invoiceId);

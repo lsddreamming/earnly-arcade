@@ -21,3 +21,39 @@ test('Stripe wrong price never reaches entitlement ledger',async()=>{const f=str
 
 test('Refunds for an older subscription survive a later checkout generation',async()=>{const f=stripeFixture({refunded:true});f.sub.metadata.earnlyRequest='33333333-3333-4333-8333-333333333333';assert.equal((await f.send('charge.refunded')).status,200);assert.equal(f.calls[0].args.p_revoked,true);});
 test('Malformed checkout provenance cannot grant a pass',async()=>{const f=stripeFixture();f.sub.metadata.earnlyRequest='forged';assert.equal((await f.send()).status,503);assert.equal(f.calls.length,0);});
+
+test('release hold overrides provider flags and blocks checkout before any provider or ledger call',async()=>{
+ for(const paymentsVerified of [undefined,false,'true',1]){
+  let calls=0;
+  const handler=passHandler({paymentsVerified,webEnabled:true,appleEnabled:true,priceId:'price_vip',
+   stripe:{prices:{retrieve:async()=>{calls++;throw Error('must not call Stripe');}}},
+   db:{rpc:async()=>{calls++;throw Error('must not write');}},
+   verifyUser:async()=>({id:uid}),verifyEvent:async()=>({}),verifyTransaction:async()=>transaction});
+  const config=await(await handler(new Request('https://test/arcade-pass/config'))).json();
+  assert.equal(config.webAvailable,false);assert.equal(config.appleAvailable,false);
+  const response=await handler(new Request('https://test/arcade-pass/checkout',{method:'POST',body:'{}',headers:{'idempotency-key':uid}}));
+  assert.equal(response.status,503);assert.equal(calls,0);
+ }
+});
+
+test('verified release still requires each provider switch and its dependencies',async()=>{
+ const ready={paymentsVerified:true,webEnabled:true,appleEnabled:true,stripe:{},priceId:'price_vip',verifyEvent:async()=>({}),verifyTransaction:async()=>transaction};
+ for(const [patch,web,apple] of [[{},true,true],[{webEnabled:false},false,true],[{appleEnabled:false},true,false],
+  [{stripe:null},false,true],[{priceId:''},false,true],[{verifyEvent:null},false,true],[{verifyTransaction:null},true,false]]){
+  const handler=passHandler({...ready,...patch});
+  const config=await(await handler(new Request('https://test/arcade-pass/config'))).json();
+  assert.equal(config.webAvailable,web);assert.equal(config.appleAvailable,apple);
+ }
+});
+
+test('release hold preserves Apple restore and website subscription management',async()=>{
+ const calls=[];
+ const db={rpc:async(name,args)=>{calls.push(name);return {data:{active:true}};},from(){return {select(){return this;},eq(){return this;},maybeSingle:async()=>({data:{customer_id:'cus_existing'}})};}};
+ const handler=passHandler({db,paymentsVerified:false,verifyUser:async()=>({id:uid}),verifyTransaction:async()=>transaction,
+  stripe:{billingPortal:{sessions:{create:async options=>{assert.equal(options.customer,'cus_existing');calls.push('portal');return {url:'https://billing.stripe.com/session/test'};}}}}});
+ for(const path of ['/apple/verify','/portal']){
+  const response=await handler(new Request('https://test/arcade-pass'+path,{method:'POST',body:JSON.stringify({signedTransaction:'verified-by-test-adapter'})}));
+  assert.equal(response.status,200);
+ }
+ assert.deepEqual(calls,['arcade_pass_record','portal']);
+});

@@ -1,10 +1,10 @@
-Shop 2.0 proposes new prices below; existing Apple product drafts have NOT yet been repriced. See `arcade-shop-two-release.md`.
+Current status: Shop 2.0 is deployed through PR #141. Apple drafts were repriced to $0.99/$2.99/$4.99 on 2026-10-12. Checkout remains disabled. See `arcade-shop-two-release.md` for current deployment and QA evidence; later sections here retain historical candidate notes.
 
 # Unified Arcade Coins — purchase release hold
 
 Status: implementation candidate, NOT approved for Apple upload or review submission.
 
-Read-only production check on 2026-10-12: website `/coin-shop/config` reports `available: true` for all three packs. This confirms configured availability, not an end-to-end card charge. Production has no redemption/withdrawal/cash-out RPC.
+Historical check before Shop 2.0 rollout: website `/coin-shop/config` reported `available: true`. The deployed Shop 2.0 configuration now reports `available: false`. This confirms configured availability, not an end-to-end card charge. Production has no redemption/withdrawal/cash-out RPC.
 
 Players see one Arcade Coins balance, earned in games or purchased. Coins buy avatar items and three additional plays for 25 coins. No coins, including rewards earned during paid plays, can be cashed out, transferred, converted to crypto, or redeemed for prizes. Purchased coins are tracked separately inside the existing wallet and do not increase lifetime earned totals. Any future redemption feature requires a new provenance design and review; do not enable it against this balance.
 
