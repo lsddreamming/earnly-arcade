@@ -1,6 +1,6 @@
 // One composition order for the studio, profile, and world ranks.
 (() => {
-  const layers=['backpack','avatar','outfit','shoes','eyes','brows','nose','mouth','marks','hair','face','beard','head','weapon'];
+  const layers=['backpack','avatar','outfit','shoes','eyes','brows','nose','mouth','marks','hair','face','beard','head','weapon','pet','frame','pose','effect'];
   const defaults={eyes:['eyes-classic','Bright Eyes'],brows:['brows-classic','Friendly Brows'],nose:['nose-classic','Button Nose'],mouth:['mouth-smile','Classic Smile'],marks:['marks-natural','Natural Dimples'],hair:['hair-sprout','Just a Sprout']};
   const bodies=new Set(['cyber-starter','neon-phantom','vortex-mech','astra-prime','russet-potato','cream-potato','rose-potato']);
   function compose(equipped={}) {

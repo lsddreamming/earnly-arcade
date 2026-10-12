@@ -44,7 +44,13 @@
     }).catch(error=>{if(current===epoch)arcade.toast(error.message);}).finally(()=>preparing.delete(game));
     return false;
   }
-  window.EarnlyPaidPlays={refresh,remaining,tryConsume};
+  const purchaseKeys=new Map();
+  async function buy(game){await refresh();if(!userId)throw new Error('Sign in to buy extra plays.');const owner=userId;
+    const key=purchaseKeys.get(game)||crypto.randomUUID();purchaseKeys.set(game,key);
+    await window.EarnlyCloud?.syncServerRewards?.();const data=await request('/plays/buy',{game},key);
+    if(owner!==userId)throw new Error('Account changed. Sign back in to check your plays.');purchaseKeys.delete(game);arcade.applyServerWallet?.(data.wallet);await refresh();return data;
+  }
+  window.EarnlyPaidPlays={refresh,remaining,tryConsume,buy};
   function bind(){window.EarnlyCloud?.client?.auth?.onAuthStateChange?.(event=>{
     if(event==='SIGNED_OUT'||event==='SIGNED_IN'){++epoch;userId=null;credits={};}
     if(event!=='TOKEN_REFRESHED')setTimeout(refresh,0);

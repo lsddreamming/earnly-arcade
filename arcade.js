@@ -2079,11 +2079,18 @@ const Arcade = (() => {
     });
 
     actions.append(primary, back);
+    const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Arcade Shop · customize your look';shopLink.className='result-shop-link';actions.append(shopLink);
+    if(game&&window.EarnlyPaidPlays){
+      const buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 25 coins';
+      buy.onclick=async()=>{buy.disabled=true;try{await window.EarnlyPaidPlays.buy(game);buy.textContent='Extra plays ready · return to Games to play';}catch(error){toast(error.message);buy.disabled=false;}};
+      actions.append(buy);
+    }
     modal.append(hero, main);
     if (game) modal.append(leaderboardBox);
     modal.append(statsBox, levelProgress);
     if (notes.childElementCount) modal.append(notes);
     modal.append(actions);
+    window.EarnlyShopAppearance?.decorate(hero);
     modal.showModal();
   }
 
@@ -4096,6 +4103,7 @@ const Arcade = (() => {
 
   function start(){
     loadScript(new URL('paid-plays.js',location.href).href);
+    loadScript(new URL('shop-presence.js',location.href).href);
     if (window.EarnlyCloud) return;
 
     const cloudUrl = new URL('cloud.js', location.href).href;

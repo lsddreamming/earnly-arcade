@@ -5,6 +5,7 @@
     items: [],
     user: null,
     slot: "avatar",
+    collection: "all",
     auth: null,
     config: null,
     busy: false,
@@ -21,8 +22,8 @@
   };
   const apiBase = window.EARNLY_AVATAR_API || "";
   const fmt = (value) => BigInt(value ?? 0).toLocaleString();
-  const slots = ["avatar", "eyes", "brows", "nose", "mouth", "hair", "marks", "outfit", "shoes", "backpack", "face", "beard", "head", "weapon"];
-  const prettySlot = { avatar: "Potato", eyes: "Eyes", brows: "Eyebrows", nose: "Nose", mouth: "Mouth", hair: "Hair", marks: "Face details", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon" };
+  const slots = ["avatar", "eyes", "brows", "nose", "mouth", "hair", "marks", "outfit", "shoes", "backpack", "face", "beard", "head", "weapon", "pet", "frame", "pose", "effect", "army", "commander", "building", "battlefx"];
+  const prettySlot = { avatar: "Potato", eyes: "Eyes", brows: "Eyebrows", nose: "Nose", mouth: "Mouth", hair: "Hair", marks: "Face details", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon", pet:"Pet", frame:"Profile frame", pose:"Victory pose", effect:"Effect", army:"Army skin", commander:"Commander", building:"Building skin", battlefx:"Battle effects" };
   function el(tag, classes, text) {
     const node = document.createElement(tag);
     if (classes) node.className = classes;
@@ -33,6 +34,7 @@
     const img = el("img");
     img.src = new URL(item.imageUrl, location.href).href;
     img.alt = item.name;
+    img.dataset.item = item.id; img.dataset.slot = item.slot;
     return img;
   }
   function status(message, error = false) {
@@ -47,9 +49,12 @@
       ]).filter(([, item]) => item),
     );
   }
-  function character(equipped) {
+  function character(equipped, focusSlot) {
     const root = el("div", "character");
-    for (const item of window.EarnlyPotatoRig.compose(equipped)) root.append(image(item));
+    const military=['army','commander','building','battlefx'];
+    const focus=focusSlot||(Object.keys(state.preview).reverse().find(slot=>military.includes(slot)));
+    if(military.includes(focus)&&equipped[focus])root.append(image(equipped[focus]));
+    else for (const item of window.EarnlyPotatoRig.compose(equipped)) root.append(image(item));
     return root;
   }
   function summary(root, equipped) {
@@ -123,7 +128,8 @@
     renderPreviewActions();
     $("shop-grid").replaceChildren();
     const filtered = state.items.filter(i =>
-      (state.search || i.slot === state.slot) &&
+      (state.search || state.collection !== "all" || i.slot === state.slot) &&
+      (state.collection === "all" || i.collection === state.collection) &&
       (!state.freeOnly || i.coinPrice === 0) &&
       (!state.ownedOnly || state.user?.inventory.includes(i.id)) &&
       (!state.affordableOnly || !state.user || state.user.inventory.includes(i.id) || BigInt(i.coinPrice) <= BigInt(state.user.coins)) &&
@@ -142,7 +148,7 @@
       card.classList.toggle("is-owned", !!owned);
       art.dataset.slot = item.slot;
       art.append(
-        character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item }),
+        character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item },item.slot),
         el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
       );
       const button = el(
@@ -157,13 +163,16 @@
               : "◈ " + fmt(item.coinPrice) + " · Buy",
       );
       button.type = "button";
-      button.disabled = !!equipped || state.busy;
+      const now=Date.now(), unavailable=!owned && ((item.availableFrom && now<Date.parse(item.availableFrom)) || (item.availableUntil && now>=Date.parse(item.availableUntil)));
+      button.disabled = !!equipped || state.busy || unavailable || (item.vipOnly && !window.EarnlyPass?.active);
+      if(unavailable)button.textContent='Outside collection dates';
+      if(item.vipOnly)button.textContent=equipped?'Equipped':window.EarnlyPass?.active?'Equip · VIP':'VIP pass required';
       button.dataset.itemId = item.id;
       button.setAttribute(
         "aria-label",
         (equipped ? "Equipped" : owned ? "Equip" : "Buy") + " " + item.name,
       );
-      button.addEventListener("click", () => chooseItem(item));
+      button.addEventListener("click", () => item.vipOnly ? equip(item) : chooseItem(item));
       const preview = el("button", "preview-item", "Try on");
       preview.type = "button";
       preview.dataset.previewItemId = item.id;
@@ -200,7 +209,7 @@
     state.pending = { item, key: crypto.randomUUID() };
     $("purchase-title").textContent = "Unlock " + item.name + "?";
     // Show exactly the single item that will be saved, with the current saved look.
-    $("purchase-preview").replaceChildren(character({ ...state.user.equipped, [item.slot]: item }));
+    $("purchase-preview").replaceChildren(character({ ...state.user.equipped, [item.slot]: item },item.slot));
     const remaining = BigInt(state.user.coins) - BigInt(item.coinPrice);
     $("purchase-price").textContent = fmt(item.coinPrice) + " Arcade Coins · Balance: " + fmt(state.user.coins);
     $("purchase-remaining").textContent = remaining >= 0n
@@ -236,7 +245,7 @@
       button.type = "button";
       button.disabled = state.busy;
       button.setAttribute("aria-label", (owned ? "Equip preview " : "Unlock preview ") + item.name);
-      button.addEventListener("click", () => chooseItem(item));
+      button.addEventListener("click", () => item.vipOnly ? equip(item) : chooseItem(item));
       row.append(copy, button);root.append(row);
     }
   }
@@ -434,6 +443,13 @@
       status(error.message, true);
     }
   }
+  for(const button of document.querySelectorAll('[data-collection]'))button.addEventListener('click',()=>{
+    state.collection=button.dataset.collection; if(state.collection==='vip')$('vip-pass').open=true; state.search=''; $('shop-search').value='';
+    for(const b of document.querySelectorAll('[data-collection]'))b.setAttribute('aria-pressed',String(b===button));
+    $('collection-window').textContent=({halloween:'Halloween collection · October 1–November 1, 2026 (UTC). Owned items remain yours.',christmas:'Christmas collection · December 1, 2026–January 5, 2027 (UTC). Preview now; unlocks open December 1.',crystal:'Crystal Command · cosmetic changes only. No damage, speed, visibility, or ranking advantages.',vip:'VIP cosmetics are available while your subscription is active.'})[state.collection]||'Free essentials and coin unlocks. Preview everything before buying.';
+    renderShop();
+  });
+  window.addEventListener('earnly-pass-change',()=>{ $('refresh-button').click(); });
   $("affordable-only").addEventListener("change", e => { state.affordableOnly = e.target.checked; renderShop(); });
   $("shop-sort").addEventListener("change", e => { state.sort = e.target.value; renderShop(); });
   $("compare-look").addEventListener("click", () => {

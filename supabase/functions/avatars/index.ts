@@ -5,6 +5,9 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 const origins = new Set(["https://earnlyarcade.com", "https://www.earnlyarcade.com", "https://lsddreamming.github.io", "capacitor://localhost", "http://localhost"]);
 const userLimits = new Map<string, {count:number;expires:number}>();
 const errors: Record<string,[number,string]> = {
+  PASS_REQUIRED:[403,"An active VIP pass is required."],
+  VIP_ITEM:[403,"This item is included with VIP. Use Equip."],
+  COLLECTION_UNAVAILABLE:[409,"This collection is outside its availability dates."],
   WALLET_UNAVAILABLE:[409,"Your Coin wallet is not ready. Open Account & Data first."],
   PROFILE_REQUIRED:[409,"Choose your global username in Profile first."],
   REQUEST_REUSED:[409,"This purchase request belongs to another item."],
@@ -33,7 +36,7 @@ export async function handler(req:Request):Promise<Response> {
     if(req.method==="GET"&&path==="/api/shop") {
       const {data,error}=await admin.from("cosmetic_items").select("*").eq("active",true).order("slot").order("coin_price");
       if(error)throw error;
-      return json({items:(data||[]).map(i=>({id:i.id,name:i.name,slot:i.slot,coinPrice:i.coin_price,rarity:i.rarity,imageUrl:i.asset_path,isStarter:i.is_starter}))});
+      return json({items:(data||[]).map(i=>({id:i.id,name:i.name,slot:i.slot,coinPrice:i.coin_price,rarity:i.rarity,imageUrl:i.asset_path,isStarter:i.is_starter,collection:i.collection,availableFrom:i.available_from,availableUntil:i.available_until,vipOnly:i.vip_only}))});
     }
     const usernameMatch=path.match(/^\/api\/user\/([A-Za-z0-9_]{3,18})$/);
     if(req.method==="GET"&&(path==="/api/leaderboard"||usernameMatch)) {

@@ -7,7 +7,7 @@
   const arcade=typeof Arcade!=='undefined'?Arcade:null;
   const native=window.Capacitor?.isNativePlatform?.()||location.protocol==='capacitor:';
   if(native)$('coin-pack-options').open=true;
-  const fallback=[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}];
+  const fallback=[{id:'starter',coins:500,priceCents:99},{id:'plus',coins:1500,priceCents:299},{id:'vault',coins:4000,priceCents:499}];
   let available=false,busy=false,configSequence=0;
   const pending=new Map();
   const message=(text,error=false)=>{$('coin-status').textContent=text;$('coin-status').className=error?'error':'';};
@@ -108,10 +108,11 @@
     const task=(async()=>{
       const session=await window.EarnlyCloud?.session?.();if(!session)throw new Error('Sign in to complete your pending purchase.');
       const data=await api('/verify',{apple:true,account:session.user.id,body:{signedTransaction}});
-      if(!['fulfilled','revoked'].includes(data.status)||!/^\d+$/.test(data.transactionId))throw new Error('Purchase confirmation is incomplete. Reopen the shop to retry.');
+      if((!['fulfilled','revoked'].includes(data.status)&&typeof data.active!=='boolean')||!/^\d+$/.test(data.transactionId))throw new Error('Purchase confirmation is incomplete. Reopen the shop to retry.');
       await apple.finish({transactionId:data.transactionId});
       if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)return;
-      arcade?.applyServerWallet?.(data.wallet);$('refresh-button').click();
+      if(data.wallet)arcade?.applyServerWallet?.(data.wallet);$('refresh-button').click();
+      if(typeof data.active==='boolean'){window.dispatchEvent(new Event('earnly-pass-recover'));message(data.active?'VIP restored.':'VIP subscription is inactive.');return;}
       message(data.status==='fulfilled'?'Purchase confirmed · your Arcade Coins are ready!':'This purchase was refunded. Your balance is updated.');
     })();
     delivering.set(signedTransaction,task);try{return await task;}finally{delivering.delete(signedTransaction);}

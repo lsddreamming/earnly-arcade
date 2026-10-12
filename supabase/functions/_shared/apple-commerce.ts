@@ -1,3 +1,4 @@
+import {fulfillApplePass,passProduct} from './pass-commerce.ts';
 /** Only decoded Apple-verified transactions cross this boundary. */
 export const appleProducts = [
  {id:'starter',productId:'com.earnly.arcade.coins.starter',coins:500},
@@ -35,6 +36,7 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
    if(typeof signed!=='string'||signed.length>60000)return fail('Missing signed transaction.');
    // Runtime verifies Apple's signature and retrieves current transaction state from Apple.
    const t=await verifyTransaction(signed);
+   if(t.productId===passProduct){const state=await fulfillApplePass(db,t,user?.id);return json(path==='/notifications'?{received:true}:state);}
    if(t.environment!=='Production'||t.bundleId!=='com.earnly.arcade'||t.type!=='Consumable'||t.quantity!==1||
       t.inAppOwnershipType!=='PURCHASED'||!appleProducts.some(p=>p.productId===t.productId)||
       typeof t.transactionId!=='string'||!/^\d{1,32}$/.test(t.transactionId)||

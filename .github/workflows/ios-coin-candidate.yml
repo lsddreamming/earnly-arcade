@@ -1,5 +1,7 @@
 name: Earnly coin-shop iOS candidate (no upload)
 on:
+  push:
+    branches: [feature/arcade-shop-2]
   pull_request:
     paths: ['supabase/functions/**', 'package.json', 'package-lock.json', 'native/**', 'native-purchases*', 'coin-shop.js', 'scripts/configure-ios.mjs', 'scripts/build-native-web.mjs', 'scripts/native-environment.mjs', '.github/workflows/ios-coin-candidate.yml']
   workflow_dispatch:
