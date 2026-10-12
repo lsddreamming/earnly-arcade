@@ -17,7 +17,7 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
   const uid=sub.metadata?.earnlyUser;
   if(!uuid.test(uid||'')||sub.metadata?.earnlyProduct!=='vip'||!sub.livemode)return;
   if(sub.items.data.length!==1||sub.items.data[0].price.id!==priceId||sub.items.data[0].quantity!==1)throw new Error('PAYMENT_MISMATCH');
-  const row=await getRow(uid);if(!row||row.customer_id!==sub.customer||row.request_id!==sub.metadata?.earnlyRequest)throw new Error('PAYMENT_MISMATCH');
+  const row=await getRow(uid);if(!row||row.customer_id!==sub.customer||!uuid.test(sub.metadata?.earnlyRequest||''))throw new Error('PAYMENT_MISMATCH');
   // Never grant on a success URL or invoice marked paid out of band.
   const payments=await stripe.invoicePayments.list({invoice:invoice.id,status:'paid',limit:100});
   if(payments.has_more)throw new Error('PAYMENT_REVIEW');
