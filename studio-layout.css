@@ -235,3 +235,36 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 .personality-note{max-width:62ch;color:#b9ceda;line-height:1.6;margin:0 0 16px;font-size:14px}
 .item-art:is([data-slot="eyes"],[data-slot="brows"],[data-slot="nose"],[data-slot="mouth"],[data-slot="hair"],[data-slot="marks"]){overflow:hidden}
 .item-art:is([data-slot="eyes"],[data-slot="brows"],[data-slot="nose"],[data-slot="mouth"],[data-slot="hair"],[data-slot="marks"]) .character{transform:scale(1.85);transform-origin:50% 18%}
+
+
+/* Character-first mobile studio: no product, price or purchase behavior changes. */
+.studio-category-label{display:block;margin:12px 0 6px;font-weight:750;font-size:13px;color:#b9dff0}
+#studio-category{display:block;width:100%;min-height:48px;padding:11px 14px;border:1px solid #487494;border-radius:13px;background:#10263c;color:#f2faff;font:inherit;font-weight:700}
+.coin-pack-options{border:1px solid #7b684b;border-radius:16px;padding:12px;margin-top:12px}
+.coin-pack-options>summary{cursor:pointer;font-weight:800;color:#ffdc9c;padding:8px;min-height:44px}
+.coin-pack-options:not([open]) #coin-packs{display:none}
+@media(max-width:680px){
+ .page-title{padding:6px 0 8px;margin:4px 0 8px}
+ .page-title h1{font-size:28px!important}
+ .page-title>p{display:none}
+ .studio-shortcuts{margin:5px 0 10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .studio-shortcuts a{font-size:10px;min-width:0;padding:9px 5px;text-align:center}
+ .studio-layout{display:flex;flex-direction:column;gap:10px}
+ .showcase.panel{order:0}
+ .shop.panel{order:1}
+ .shop-tabs{display:flex!important;overflow-x:auto;gap:7px;scroll-snap-type:x proximity;padding:5px 0;scrollbar-width:thin}
+ .shop-tabs button{flex:0 0 auto;min-height:44px;padding:9px 13px;scroll-snap-align:start}
+ .collection-looks{margin-top:12px}
+ .coin-shop{margin-top:12px}
+ .personality-note{font-size:12px;margin-bottom:6px}
+ .shop-filters{gap:10px}
+ .shop-toolbar{gap:8px}
+ .item-card.is-equipped{border-color:#64e5c8!important;box-shadow:inset 0 0 0 1px #64e5c877}
+ .item-card.is-owned:not(.is-equipped){border-color:#5786b6}
+ .showcase .stage{height:260px!important}
+}
+
+/* Bound scrollable category rail to the phone viewport, never the document. */
+.studio-layout,.studio-layout>.shop,.shop-tabs{min-width:0;max-width:100%;box-sizing:border-box}
+.shop-tabs{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+@media(max-width:680px){.shop.panel{width:100%;overflow:hidden}.shop-tabs{display:flex!important;flex-wrap:nowrap;max-width:100%;width:100%}}

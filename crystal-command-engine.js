@@ -1,6 +1,8 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CrystalCommand=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
 'use strict';
 const VERSION=8,SIZE=64,STEP=.05,BATTLE_LIMIT=Infinity;
+// Cache immutable type properties across the hot combat loop; refresh the cache each tick.
+
 const MAPS=Object.freeze({
  frontier:{name:'Crystal Frontier',description:'Wide flanking routes and a dangerous rich center.'},
  crossing:{name:'Shattered Crossing',description:'Three passages divide the battlefield. Watch your flanks.'},
@@ -174,12 +176,12 @@ function command(s,side,c){
   p.crystals-=cost;const time=(kind==='weapons'?18:16)+level*8;lab.research={kind,level:level+1,total:time,remaining:time};return{ok:true};
  }
  if(['move','attack','mine','stop'].includes(c.type)){
-  if(!Array.isArray(c.ids)||c.ids.length>80)return{ok:false,message:'Select a squad'};const ids=new Set(c.ids),selected=own.filter(e=>ids.has(e.id)&&unit(e.type));if(!selected.length)return{ok:false,message:'Select a squad'};
+  if(!Array.isArray(c.ids)||c.ids.length>120)return{ok:false,message:'Select a squad'};const ids=new Set(c.ids),selected=own.filter(e=>ids.has(e.id)&&unit(e.type));if(!selected.length)return{ok:false,message:'Select a squad'};
   if(c.type!=='stop'&&(!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=SIZE||c.y<0||c.y>=SIZE))return{ok:false,message:'Choose a point on the map'};
   const crystal=c.type==='mine'?s.crystals.find(n=>n.id===c.target&&n.left>0&&canSee(s,side,n)):null;if(c.type==='mine'&&!crystal)return{ok:false,message:'Choose a visible crystal field'};
   const target=c.type==='attack'&&c.target!==undefined?s.entities.find(e=>e.id===c.target&&e.side!==side&&e.hp>0&&canSee(s,side,e)):null;if(c.type==='attack'&&c.target!==undefined&&!target)return{ok:false,message:'Choose a visible enemy'};
   if(target&&!selected.some(e=>canTarget(e,target)))return{ok:false,message:TYPES[target.type].flying?'Selected troops cannot attack air':'Selected troops cannot attack this target'};
-  selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){x=clamp(x+((i%5)-2)*.5,0,SIZE-.1);y=clamp(y+(Math.floor(i/5)%5-2)*.5,0,SIZE-.1)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
+  selected.forEach((e,i)=>{let x=target?.x??c.x,y=target?.y??c.y;if(selected.length>1&&c.type!=='mine'){const columns=Math.min(12,Math.ceil(Math.sqrt(selected.length))),spacing=.62;const row=Math.floor(i/columns),column=i%columns;x=clamp(x+(column-(columns-1)/2)*spacing,0,SIZE-.1);y=clamp(y+(row-(Math.ceil(selected.length/columns)-1)/2)*spacing,0,SIZE-.1)}e.path=[];e.mine=0;e.patch=null;e.order=c.type==='stop'?{type:'stop'}:{type:c.type,x,y,target:crystal?.id??target?.id};});return{ok:true};
  }
  return{ok:false,message:'Unknown order'};
 }
@@ -262,22 +264,42 @@ function bot(s){
  const scout=own.find(e=>e.type==='scout'),route=[{x:47,y:55},{x:50,y:37},{x:12,y:28},{x:6,y:6},{x:16,y:8}];
  if(scout){const danger=visible.some(e=>canTarget(e,scout)&&dist(e,scout)<6);if(danger||scout.hp<scout.maxHp*.4)command(s,1,{type:'move',ids:[scout.id],x:base.x,y:base.y});else if(!scout.order||dist(scout,route[m.scoutIndex%route.length])<3){const at=route[m.scoutIndex++%route.length];command(s,1,{type:'move',ids:[scout.id],...at});}}
  if(s.time<m.tacticsAt)return;m.tacticsAt=s.time+4;
- const threat=visible.filter(e=>unit(e.type)&&e.type!=='worker'&&bases.some(b=>dist(b,e)<12)).sort((a,b)=>dist(a,base)-dist(b,base))[0];
- const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded)command(s,1,{type:'move',ids:[e.id],x:base.x,y:base.y});
+ const threat=visible.filter(e=>unit(e.type)&&e.type!=='worker'&&bases.some(b=>dist(b,e)<12)).sort((a,b)=>Math.min(...bases.map(t=>dist(t,a)))-Math.min(...bases.map(t=>dist(t,b))))[0];
+ // Protect threatened expansions rather than abandoning them for the original base.
+ const defendedBase=threat?bases.slice().sort((a,b)=>dist(a,threat)-dist(b,threat))[0]:base;
+ const wounded=army.filter(e=>e.hp<e.maxHp*.3&&dist(e,base)>9);for(const e of wounded){const shelter=bases.slice().sort((a,b)=>dist(a,e)-dist(b,e))[0]||base;command(s,1,{type:'move',ids:[e.id],x:shelter.x,y:shelter.y});}
  const ready=army.filter(e=>!wounded.includes(e));if(!ready.length)return;
- if(threat){command(s,1,{type:'attack',ids:ready.map(e=>e.id),x:threat.x,y:threat.y});return;}
+ if(threat){const defenders=ready.filter(e=>dist(e,defendedBase)<22);const squad=defenders.length?defenders:ready;command(s,1,{type:'attack',ids:squad.map(e=>e.id),x:threat.x-.38,y:threat.y});return;}
  if(s.time<level.attackAt||s.time<m.retreatUntil)return;
  const center={x:ready.reduce((n,e)=>n+e.x,0)/ready.length,y:ready.reduce((n,e)=>n+e.y,0)/ready.length};
- const opposition=visible.filter(e=>unit(e.type)&&canTarget(e,ready[0])&&dist(e,center)<10);
+ const opposition=visible.filter(e=>unit(e.type)&&ready.some(a=>canTarget(e,a))&&dist(e,center)<10);
  if(s.difficulty!=='easy'&&dist(center,base)>14&&opposition.reduce((n,e)=>n+e.hp,0)>ready.reduce((n,e)=>n+e.hp,0)*1.4){m.retreatUntil=s.time+12;command(s,1,{type:'move',ids:ready.map(e=>e.id),x:base.x,y:base.y});return;}
- if(ready.length<level.force||s.time<s.botAttackAt)return;s.botAttackAt=s.time+Math.max(6,level.wave);
- const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').slice(0,3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
+ const lateBattle=s.difficulty!=='easy'&&s.time>180;
+ const assaultMinimum=lateBattle?Math.min(level.armyCap,level.force+3):level.force;
+ const committed=ready.filter(e=>e.order?.type==='attack'&&dist(e,base)>12);
+ if(lateBattle&&committed.length>=level.force&&ready.length>=assaultMinimum&&s.time<s.botAttackAt){
+  const reserveTroops=ready.filter(e=>!committed.includes(e)&&dist(e,base)<12&&e.type!=='medic');
+  if(reserveTroops.length>=3){const lead=committed[0];command(s,1,{type:'attack',ids:reserveTroops.map(e=>e.id),x:lead.order?.x??lead.x,y:lead.order?.y??lead.y});return;}
+ }
+ if(ready.length<assaultMinimum||s.time<s.botAttackAt)return;
+ s.botAttackAt=s.time+Math.max(6,level.wave);
+ const raiders=s.difficulty==='easy'?[]:ready.filter(e=>e.type==='raider').sort((a,b)=>dist(a,center)-dist(b,center)).slice(0,s.difficulty==='hard'?5:3),miner=visible.filter(e=>e.type==='worker').sort((a,b)=>dist(a,center)-dist(b,center))[0];
  if(miner&&raiders.length)command(s,1,{type:'attack',ids:raiders.map(e=>e.id),x:miner.x,y:miner.y,target:miner.id});
  const main=ready.filter(e=>!miner||!raiders.includes(e)),targets=Object.values(m.structures).sort((a,b)=>(a.type==='base'?0:1)-(b.type==='base'?0:1)||dist(a,center)-dist(b,center));
- const target=targets[0]||{x:6,y:6};if(main.length)command(s,1,{type:'attack',ids:(s.difficulty==='easy'?main.slice(0,3):main).map(e=>e.id),x:target.x,y:target.y});
+ const target=targets[0]||{x:6,y:6};if(main.length){
+  const attackers=s.difficulty==='easy'?main.slice(0,3):main;
+  const frontline=attackers.filter(e=>e.type!=='medic');
+  const support=attackers.filter(e=>e.type==='medic');
+  const nearbyThreats=visible.filter(e=>e.hp>0&&e.side===0&&unit(e.type)&&e.type!=='worker'&&dist(e,center)<12);
+  const highThreat=nearbyThreats.sort((a,b)=>(TYPES[b.type].damage||0)+(TYPES[b.type].airDamage||0)-(TYPES[a.type].damage||0)-(TYPES[a.type].airDamage||0))[0];
+  const strikeTarget=highThreat&&dist(highThreat,target)<6&&dist(highThreat,center)<6&&frontline.some(e=>canTarget(e,highThreat))?highThreat:target;
+  if(frontline.length)command(s,1,{type:'attack',ids:frontline.map(e=>e.id),x:strikeTarget.x,y:strikeTarget.y});
+  if(support.length){const escort=frontline.find(e=>!TYPES[e.type].flying)||frontline[0];if(escort)command(s,1,{type:'move',ids:support.map(e=>e.id),x:escort.x,y:escort.y});}
+ }
 }
 function tick(s,dt=STEP){
  if(s.ended)return;dt=clamp(dt,0,.1);s.time+=dt;s.tick++;s.events=[];s.harvesting=new Set();vision(s);bot(s);
+ const alive=s.entities.filter(e=>e.hp>0),combatants=alive.filter(e=>unit(e.type)),fighters=[alive.filter(e=>e.side===0),alive.filter(e=>e.side===1)];
  for(const e of s.entities){if(e.hp<=0)continue;if(e.build>0){e.build=Math.max(0,e.build-dt);continue}
   if(s.time-(e.lastDamage??-100)>8){if(e.maxShield)e.shield=Math.min(e.maxShield,e.shield+e.maxShield*.1*dt);if(e.faction==='verdant'&&unit(e.type)&&e.type!=='worker')e.hp=Math.min(e.maxHp,e.hp+.5*dt)}
   if(e.faction==='verdant'&&e.type==='base'){e.broodAt+=dt;if(e.broodAt>=4){e.brood=Math.min(3,e.brood+1);e.broodAt=0}}
@@ -298,19 +320,19 @@ function tick(s,dt=STEP){
   if(e.type==='worker'){if(!e.order||e.order.type==='mine')harvest(s,e,dt);else if(e.order.type==='move'||e.order.type==='attack'){if(move(s,e,e.order,dt)){e.order=null;e.path=[]}}continue}
   const d=stats(e);e.cool=Math.max(0,e.cool-dt);
   if(d.heal){
-   const friends=s.entities.filter(t=>t.id!==e.id&&t.side===e.side&&t.hp>0&&unit(t.type)&&!TYPES[t.type].flying&&t.hp<t.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp||dist(e,a)-dist(e,b));
+   const friends=combatants.filter(t=>t.id!==e.id&&t.side===e.side&&!TYPES[t.type].flying&&t.hp<t.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp||dist(e,a)-dist(e,b));
    const patient=friends.find(t=>dist(e,t)<=d.range);if(patient&&e.order?.type!=='move'){if(!e.cool){patient.hp=Math.min(patient.maxHp,patient.hp+d.heal);e.cool=d.cool;s.events.push({type:'heal',side:e.side,x:e.x,y:e.y,tx:patient.x,ty:patient.y,kind:e.type})}continue}
    if(e.order&&['move','attack'].includes(e.order.type)){const follow=e.order.type==='attack'?friends.find(t=>dist(e,t)<d.vision):null;const target=follow||e.order;if(move(s,e,target,dt)&&target===e.order)e.order=null}continue
   }
   if(!d.damage&&!d.airDamage)continue;
-  const enemies=s.entities.filter(t=>t.hp>0&&t.side!==e.side&&canTarget(e,t)&&canSee(s,e.side,t));
+  const enemies=fighters[1-e.side].filter(t=>t.hp>0&&canTarget(e,t)&&canSee(s,e.side,t));
   const focus=enemies.find(t=>t.id===e.order?.target&&e.order?.type==='attack');if(focus){e.order.x=focus.x;e.order.y=focus.y}
   const inRange=enemies.filter(t=>(!focus||t.id===focus.id)&&dist(e,t)<=d.range+(TYPES[t.type].radius||.3)).sort((a,b)=>(unit(a.type)?0:4)-(unit(b.type)?0:4)||dist(e,a)-dist(e,b));
   if(inRange.length&&e.order?.type!=='move'){if(!e.cool){damage(s,e,inRange[0]);e.cool=d.cool}continue}
   if(unit(e.type)&&e.order&&['move','attack'].includes(e.order.type)){let target=e.order;if(e.order.type==='attack'){const near=enemies.filter(t=>dist(e,t)<d.vision).sort((a,b)=>dist(e,a)-dist(e,b))[0];if(focus||near)target=focus||near}if(move(s,e,target,dt)&&target===e.order)e.order=null}
  }
  // Central crystals surge for three seconds in every twelve-second cycle.
- if(s.time%12>9){for(const e of s.entities)if(unit(e.type)&&!TYPES[e.type].flying&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2)){if(!e.faction||e.faction==='human'){e.hp-=7*dt;e.lastDamage=s.time}else takeDamage(s,e,7*dt,'fire')}}
+ if(s.time%12>9){for(const e of combatants)if(e.hp>0&&!TYPES[e.type].flying&&s.crystals.some(n=>n.rich&&n.left>0&&dist(e,n)<2)){if(!e.faction||e.faction==='human'){e.hp-=7*dt;e.lastDamage=s.time}else takeDamage(s,e,7*dt,'fire')}}
  for(const e of s.entities)if(e.hp<=0)s.events.push({type:'destroyed',side:e.side,x:e.x,y:e.y,kind:e.type});
  s.entities=s.entities.filter(e=>e.hp>0);vision(s);
  // Buffer only public visual events so slower friend snapshots retain brief shots and explosions.
