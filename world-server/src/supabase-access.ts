@@ -3,10 +3,13 @@ import type {ItemPlacement} from './grid.ts';
 import {RoomRuntime} from './room-runtime.ts';
 import type {Identity} from './room-runtime.ts';
 import type {WorldAccess} from './gateway.ts';
-/** Server-only credentials. Do not import this module into the website bundle. */
+type Snapshot={roomId:string;username:string;name:string;ownerId:string|null;access:string;equipped:Record<string,unknown>;heightmap:string;revision:number;capacity:number;items:(ItemPlacement&{definitionId:string;sprite:string;color:string;name:string})[]};
+type Bootstrap={rooms:{id:string;ownerId:string|null}[];catalog:Record<string,any>[];items:Record<string,any>[];friends:Record<string,any>[]};
+/** Server-only credentials; never import into the website bundle. */
 export class SupabaseWorldAccess implements WorldAccess {
   #url:string;#key:string;
   #rooms=new Map<string,RoomRuntime>();
+  #queues=new Map<string,Promise<unknown>>();
   constructor(url:string,serviceKey:string){
     const parsed=new URL(url);
     if(parsed.protocol!=='https:'||!serviceKey)throw new Error('Secure Supabase configuration required');
@@ -14,38 +17,91 @@ export class SupabaseWorldAccess implements WorldAccess {
   }
   async #request(path:string,token:string,body?:unknown):Promise<any>{
     const response=await fetch(this.#url+path,{method:body===undefined?'GET':'POST',headers:{apikey:this.#key,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(4000)});
-    // Never include API responses, headers or bearer tokens in client errors/logs.
-    if(!response.ok)throw new Error('World account or room unavailable');
+    if(!response.ok){const rejected=await response.json().catch(()=>({}));const safeMessages=['Not enough Arcade Coins','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
     return response.json();
   }
   async authenticate(token:string):Promise<Identity>{
     const user=await this.#request('/auth/v1/user',token);
     if(typeof user?.id!=='string'||user.is_anonymous||!user.email_confirmed_at)throw new Error('Confirmed account required');
-    // Room snapshot supplies the canonical profile name before rendering.
     return {userId:user.id,username:user.id};
   }
-  async #snapshot(userId:string,roomId:string){
-    return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});
-  }
+  async #api(userId:string,action:string,data:unknown={}):Promise<any>{return this.#request('/rest/v1/rpc/world_api',this.#key,{p_actor:userId,p_action:action,p_data:data});}
+  async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
+  #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items,s.revision);}
   async enter(identity:Identity,roomId:string){
+    const bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
+    if(roomId==='plaza')roomId=bootstrap.rooms.find(r=>r.ownerId===null)?.id??'';
     const snapshot=await this.#snapshot(identity.userId,roomId);
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     let room=this.#rooms.get(roomId);
-    if(room&&room.grid.revision!==snapshot.revision){
-      if(room.memberCount)throw new Error('Room layout changed; reconnect after occupants leave');
-      this.#rooms.delete(roomId);room=undefined;
-    }
-    if(!room){
-      if(this.#rooms.size>=100)throw new Error('World capacity reached');
-      const grid=new RoomGrid(parseHeightmap(snapshot.heightmap),snapshot.items as ItemPlacement[],snapshot.revision);
-      room=new RoomRuntime(grid,snapshot.capacity);this.#rooms.set(roomId,room);
-    }
-    return {room,spawn:room.availableSpawn(),username:snapshot.username};
+    if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
+    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity);this.#rooms.set(roomId,room);}
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:snapshot,bootstrap};
   }
   async revalidate(token:string,identity:Identity,roomId:string){
-    const current=await this.authenticate(token);
-    if(current.userId!==identity.userId)return false;
+    const current=await this.authenticate(token);if(current.userId!==identity.userId)return false;
     const snapshot=await this.#snapshot(identity.userId,roomId);
     return snapshot.revision===this.#rooms.get(roomId)?.grid.revision;
+  }
+  async perform(identity:Identity,roomId:string,action:string,data:Record<string,unknown>){
+    const uid=identity.userId,room=this.#rooms.get(roomId);if(!room)throw new Error('Room unavailable');
+    // Recheck current permissions and suspensions before every write/read operation.
+    await this.#snapshot(uid,roomId);
+    let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
+    if(action==='place'){
+      const previous=this.#queues.get(roomId)??Promise.resolve();
+      const task=previous.catch(()=>{}).then(async()=>{
+        room.paused=true;let safe=true;
+        try{
+          const snapshot=await this.#snapshot(uid,roomId);if(snapshot.ownerId!==uid)throw new Error('Only your own room can be decorated');
+          if(snapshot.revision!==room.grid.revision)throw new Error('Room changed; reconnect');
+          const bootstrap:Bootstrap=await this.#api(uid,'bootstrap');
+          const item=bootstrap.items.find(i=>i.id===data.itemId);if(!item||item.room_id&&item.room_id!==roomId)throw new Error('Item unavailable');
+          const definition=bootstrap.catalog.find(d=>d.id===item.definition_id);if(!definition)throw new Error('Item unavailable');
+          let items=snapshot.items.filter(i=>i.id!==item.id);
+          // First verify removing this item does not leave an unsupported stack.
+          const base=new RoomGrid(parseHeightmap(snapshot.heightmap),items,snapshot.revision);
+          let z=0;
+          if(!data.pickup){
+            const x=data.x,y=data.y,rotation=data.rotation;
+            if(!Number.isInteger(x)||!Number.isInteger(y)||![0,2,4,6].includes(rotation as number))throw new Error('Choose a floor tile');
+            const tile=base.tile({x:x as number,y:y as number});if(!tile)throw new Error('Choose a floor tile');z=tile.z;
+            items=[...items,{id:item.id,x:x as number,y:y as number,z,rotation:rotation as 0|2|4|6,width:definition.width,length:definition.length,itemHeight:Number(definition.item_height),walkable:definition.walkable,canStack:definition.can_stack,canSit:definition.can_sit,canLay:definition.can_lay,definitionId:definition.id,sprite:definition.sprite_id,color:definition.color,name:definition.name}];
+          }
+          const next=new RoomGrid(parseHeightmap(snapshot.heightmap),items,snapshot.revision+1);
+          if(!room.canReplace(next))throw new Error('Move away from the item before placing it');
+          await this.#api(uid,'place',{roomId,revision:snapshot.revision,itemId:item.id,x:data.x,y:data.y,z,rotation:data.rotation,pickup:!!data.pickup});
+          room.replaceGrid(next);
+          return {...snapshot,items,revision:next.revision};
+        }catch(error){
+          // Ambiguous DB failures require fresh admission, not continued stale movement.
+          try{const fresh=await this.#snapshot(uid,roomId);if(fresh.revision!==room.grid.revision)room.replaceGrid(this.#grid(fresh));}catch{safe=false;throw error;}
+          throw error;
+        }finally{room.paused=!safe;}
+      });
+      this.#queues.set(roomId,task);try{result=await task;}finally{if(this.#queues.get(roomId)===task)this.#queues.delete(roomId);}
+      deliveries.push({roomId,userIds:room.members().map(m=>m.userId),packet:{type:'SCENE',scene:result}});
+    }else if(action==='say'){
+      const viewers=room.chatViewers(uid,String(data.mode),typeof data.userId==='string'?data.userId:undefined);
+      result=await this.#api(uid,'say',{text:data.text,requestId:data.requestId,mode:data.mode,viewers,roomId});
+      if(!result.duplicate)deliveries.push({roomId,userIds:result.viewers,packet:{type:'CHAT',...result,viewers:undefined,username:identity.username}});
+    }else if(action==='trade_create'){
+      if(!room.members().some(m=>m.userId===data.userId))throw new Error('Trade with someone in this room');
+      result=await this.#api(uid,action,data);deliveries.push({userIds:[uid,String(data.userId)],packet:{type:'TRADE',trade:result}});
+    }else if(action==='trade_action'){
+      if(!['edit','lock','confirm','cancel'].includes(String(data.action)))throw new Error('Invalid trade action');
+      const before=await this.#api(uid,'trade_read',{tradeId:data.tradeId});if(!before)throw new Error('Trade unavailable');
+      const other=before.player_a===uid?before.player_b:before.player_a;
+      if(data.action!=='cancel'&&!room.members().some(m=>m.userId===other))throw new Error('Your trading partner left');
+      await this.#request('/rest/v1/rpc/world_trade_action',this.#key,{p_actor:uid,p_trade:data.tradeId,p_revision:data.revision,p_action:data.action,p_items:data.items??[]});
+      result=await this.#api(uid,'trade_read',{tradeId:data.tradeId});
+      deliveries.push({userIds:[uid,other],packet:{type:'TRADE',trade:result}});
+    }else if(['bootstrap','create_room','room_access','buy','accept_chat','friend_request','friend_accept','friend_remove','block','private_feed','private_send','report','trade_read'].includes(action)){
+      if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
+      result=await this.#api(uid,action,data);
+      if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
+      if(action==='bootstrap')result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));
+    }else throw new Error('Unknown action');
+    return {data:result,deliveries};
   }
 }

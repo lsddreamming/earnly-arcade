@@ -28,3 +28,17 @@ test('whispers reach only sender and adjacent target and respect reciprocal bloc
  room.chat('a','blocked','normal',undefined,5000,(a,b)=>a==='b'&&b==='a');
  assert.equal(packets[1].filter(p=>p.type==='CHAT').length,1);
 });
+
+test('seat and bed interactions reserve occupied tiles and exit on server ticks',()=>{
+ const grid=new RoomGrid(parseHeightmap('0000\n0000\n0000'),[{id:'seat',x:1,y:1,z:0,width:1,length:1,rotation:0,itemHeight:.5,walkable:false,canStack:false,canSit:true,canLay:true}]);
+ const room=new RoomRuntime(grid);
+ room.join({userId:'a',username:'A'},{x:0,y:1},()=>{});
+ room.join({userId:'b',username:'B'},{x:2,y:1},()=>{});
+ assert.equal(room.receive('a',{type:'INTERACT',action:'sit',x:1,y:1},0),true);
+ assert.equal(room.receive('b',{type:'INTERACT',action:'lay',x:1,y:1},0),true);
+ assert.equal(room.members()[0].state,'std');room.tick();
+ assert.equal(room.members()[0].state,'sit');assert.equal(room.members()[1].state,'std');
+ assert.equal(room.receive('a',{type:'MOVE_TO',x:0,y:1},250),true);room.tick();
+ assert.deepEqual(room.members()[0].position,{x:0,y:1,z:0});
+ assert.equal(room.members()[1].state,'lay');
+});

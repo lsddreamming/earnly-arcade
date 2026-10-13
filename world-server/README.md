@@ -1,126 +1,135 @@
-# Earnly Rooms — architecture and grid engine
+# Earnly World
 
-Status: Tasks 1 and 2, ready for review. No database migrations, live room server, WebSocket transport, or player-facing world is deployed by this module. Earlier lightweight page and database drafts are excluded from this change. Apple submission remains on hold.
+World is a separate destination from Games. The website has an original isometric
+plaza preview and a live client. It renders each player's **existing saved potato
+avatar and cosmetic layers** as a small, nearest-neighbor character; it does not
+create a second avatar account. No competitor artwork is included.
 
-## Task 1: recommended stack
+`world-config.js` deliberately contains an empty endpoint until a WSS worker is
+hosted and its deployment is verified. Preview mode is labeled, contains no fake
+online players, and disables purchases. Publishing the website does not itself
+host multiplayer. No Apple build is submitted by this module.
 
-| Layer | Choice | Reason |
-| --- | --- | --- |
-| Authoritative room service | Node.js 24 LTS + TypeScript + Colyseus | One server-owned room simulation; authenticated clients send intents and receive state deltas. Configure a 250 ms movement tick and a 100–250 ms patch cadence. |
-| Browser/iOS renderer | PixiJS 8, WebGL renderer, original RGBA pixel sprite atlases | Sprite layering, nearest-neighbor sampling and texture batching suit the 2:1 diamond grid; reuse web assets in the existing Capacitor app. |
-| Durable data | Existing Supabase PostgreSQL | Preserve UUID account IDs, wallets, purchased-coin provenance and cosmetic ownership. Database transactions settle purchases and trades. |
-| Authentication | Existing Supabase Auth | Verify access tokens on the server; never accept a user ID or coin balance from a packet. No new password table. |
-| Live room state | In-memory room instance initially; Redis when deploying multiple workers | Avoid a database write per movement tick. Redis can provide shared presence, matchmaking and coordination when needed, but is not the source of item ownership. |
-| Hosting | Existing Pages frontend + separately hosted always-on WSS Node service | Static Pages cannot host an authoritative game process. Select a host and confirm its cost before provisioning. No new paid service is provisioned here. |
-| Verification | Node test runner and pinned TypeScript compiler | The deterministic grid engine has no runtime dependencies and runs independently of transport. |
+## Implemented stack
 
-Colyseus is preferred over wiring raw Socket.IO because room lifecycle and delta synchronization are central to this project. Exact framework versions should be pinned when the network module is implemented; this task adds no networking dependency. Current reference: https://docs.colyseus.io/room and https://docs.colyseus.io/netcode/server-input . Pixi rendering reference: https://pixijs.com/8.x/guides/components/renderers .
+- Node 24 + TypeScript + pinned `ws`: one authoritative worker, 250 ms room ticks,
+  bounded JSON intent packets and server-computed movement. The transport-independent
+  engine can be moved to a room framework when multi-worker routing is necessary.
+- HTML Canvas: original 2:1 tiles, procedural decor and existing layered potato
+  artwork sampled to small sprites. No large renderer dependency for the first release.
+- Existing Supabase Auth/PostgreSQL: verified sessions, UUID accounts, the existing
+  Arcade Coins wallet, purchase receipts, inventory and atomic item transfers.
+- Existing GitHub Pages frontend; a separate always-on Node service behind TLS.
 
-### Original visual direction
+## Features
 
-Working name: Earnly Rooms. Public destinations: The Plaza, Neon Lounge, Rooftop Garden. Player storage: Backpack. Use original potato bodies, original tile sets, decor silhouettes, palette and interface frames. Create eight directional atlas views for body, eyes, hair, clothing, shoes and props. Existing front-facing SVG avatars are identity references; they are not yet eight-direction pixel animation assets.
+- Seeded Earnly Plaza with static public decor and seating. Up to three personal
+  8x8 rooms per player; open or owner-only access. Room changes persist.
+- Twelve original catalog definitions, an enforced limited supply with serials,
+  idempotent purchases, Backpack, placement, rotation, pickup and supported stacking.
+- Saved potato outfits, small interpolated avatars, collision-aware A*, sitting
+  and laying on compatible items. Direction currently mirrors left/right; dedicated
+  eight-direction sprite atlases are a future art improvement.
+- Normal proximity chat, adjacent whispers, room-wide shout protocol, friend
+  requests/acceptance, online status, private message history and item-only trades.
+- Two offer locks plus two final confirmations, immutable revisions, ordered row
+  locks and atomic swaps. Edits reset acceptance. Ownership, account eligibility,
+  block lists, debt and capacity are checked again before settlement.
+- Chat-rule acceptance, rate limits, reciprocal blocking, message reports,
+  operator removal/suspension and retained report evidence.
 
-Projection: `screenX = originX + (x-y)*tileWidth/2`, `screenY = originY + (x+y)*tileHeight/2 - z*heightPixels`, with `tileWidth = 2*tileHeight`. Movement operates on grid coordinates, never rendered pixels. Render-order ties use x+y, elevation, item layer and stable instance ID. Large overlapping objects will require footprint-aware occlusion sorting.
+Purchased benefits remain non-redeemable. There are no cash-out, wagers, external
+sales or transferable coin balances. Purchases debit the existing wallet through
+its provenance trigger, and receipts record the purchased-coin portion. World does
+not route iOS payments to Stripe or modify payment configuration.
 
-### Planned authoritative contracts (not yet implemented)
+## Engine constraints
 
-- Each authenticated socket is bound to one server-selected account and room. Room access, bans, block lists and capacity are checked before joining. Password rooms store a password hash, never plaintext.
-- MOVE_TO contains x/y intent only. Server computes the path, moves one bounded step on its clock, checks occupants/height revisions again, then sends authoritative positions. The renderer interpolates for appearance only.
-- Each floor/item edit builds and validates a new immutable RoomGrid, then increments room revision. Reject unsupported stacks, collisions, edits beneath occupants, or edits sealing all exits. Stop stale paths and require/recompute a new route. Transactionally validate ownership before publishing a room change.
-- Seat/bed plans walk to an adjacent usable tile and execute the action only after reaching it; the room actor reserves the destination and revalidates at transition time. Exiting a seat is a distinct first step, followed by ordinary walking.
-- Normal speech is filtered/rate-limited and delivered to nearby permitted recipients. Shouts are room-wide. Whispers are server-filtered to the selected recipient within Euclidean distance <=1; never broadcast private text and hide it only in the client. Private messages need recipient consent, block enforcement and reporting. Public chat can reuse existing moderation concepts, but requires a room-scoped implementation.
-- Trading uses immutable item instance IDs and an offer revision. Any edit invalidates both locks and final confirmations. Stage 1 locks both participants' offers. Stage 2 requires both final confirmations. The database transaction locks instances in stable ID order, rechecks ownership/reservations/revision and performs all transfers plus the audit log together. Cancellation/disconnection/timeouts release reservations. No coins or cash are transferred through item trades.
-- Catalogue definitions carry server-authoritative price, timing and supply. Limited editions require transactionally enforced mint limits and serials; ordinary rare styling must not imply a finite supply. Never advertise a limited run until that enforcement exists.
-- Keep the existing Arcade Coins wallet. No new signup balance or second currency. Purchased decor can be traded only within the approved in-game system, with no cash-out, external sale tools or redeemable prizes. Refund/chargeback handling for already-traded purchases must be designed before paid trading launches.
+`src/grid.ts`, `pathfinding.ts`, `movement.ts` and `interactions.ts` implement the
+heightmap engine. XY are integers; floor strings use 0–9 and x for voids, maximum
+64x64. Item heights use exact quarter units, at most 2,048 placed instances and
+maximum surface height 64. Items must meet every supporting tile of their rotated
+footprint. Unsupported stacks, intersections and non-stackable supports are rejected.
+A tile has one top surface; bridges with walkable space underneath are unsupported.
 
-## Task 2: implemented engine
+A* uses octile costs (1 orthogonal, sqrt(2) diagonal), blocks corner cutting and
+checks fresh occupancy each tick. Client packets cannot advance simulation time.
+Seating needs an adjacent approach and is revalidated on the room tick; exiting
+is a separately validated first step. Room edits pause ticks, validate occupants,
+commit an expected database revision and then publish the new scene.
 
-Files:
-- `src/grid.ts`: strict heightmap parsing, bounds, immutable collision surfaces, item footprints, rotation, supported stacking, seat/bed flags.
-- `src/pathfinding.ts`: deterministic A* with binary min-heap, octile/Manhattan heuristic, orthogonal and diagonal movement, height limits, occupant collision and bounded search.
-- `src/interactions.ts`: nearest reachable approach to a seat/bed, authoritative final validation, and routes for exiting the interaction.
-- `src/movement.ts`: strict MOVE_TO parser and a server-ticked walking controller. Repeated packets do not advance time. Item revisions or new occupants stop stale paths.
-- `tests/engine.test.ts`: regression tests and comparison with an independent Dijkstra implementation on 100 seeded maps.
+## Local checks
 
-### Height model and intentional limits
-
-- x/y are integers; floor strings use digits 0–9 and `x` for voids. Numeric floor matrices permit integer heights 0–64. Rectangular maps are limited to 64×64.
-- Item heights use exact quarter units, not unrestricted floats, to avoid accumulation errors in collision checks. Up to 2,048 placed instances; each top surface must remain <=64 units.
-- A placed item stores absolute z. It must exactly meet the support surface at every tile of its rotated footprint. The resulting top equals floor plus supported item heights. Unsupported, intersecting or non-stackable support is rejected.
-- This engine models one top surface per tile. Bridges with walkable space underneath are deliberately unsupported; these require a multi-surface navigation graph.
-- A* uses costs 1 orthogonally and sqrt(2) diagonally. The controller accumulates those costs on 250 ms ticks, so diagonal movement cannot travel faster for free.
-- A chair or bed need not be walkable to be usable. Its canSit/canLay flags enable an interaction route; ordinary A* does not route through it. Final sit/lay changes run through completeInteraction, not through ordinary canStep.
-- The `occupied` set is a server snapshot of OTHER actors; exclude the requesting actor. Before each move/action, use a fresh occupant set and atomically reserve the destination in the room tick.
-- Room authorization, per-socket rate limits, destination reservations, door interactions and directional animation belong to the next module. A pathfinder alone does not provide network authentication or prevent every movement exploit.
-
-### Example
-
-```ts
-import { RoomGrid, parseHeightmap } from './src/grid.ts';
-import { findPath } from './src/pathfinding.ts';
-import { findInteraction, completeInteraction } from './src/interactions.ts';
-const room = new RoomGrid(parseHeightmap('0000\n0x00\n0000'), [], 1);
-const route = findPath(room, {x:0,y:0}, {x:3,y:2});
-// {status:'ok', path:[...authoritative XYZ waypoints], cost, expanded, revision:1}
-// To sit: findInteraction(room, position, chairTile, 'sit'), walk its path,
-// then completeInteraction(room, authoritativePosition, plan, {occupied}).
-```
-
-Validation commands (Node 24):
+Use Node 24:
 
 ```sh
-npm ci --prefix world-server
-npm test --prefix world-server
+npm ci --prefix world-server --ignore-scripts
+npm ci --ignore-scripts
 npm run typecheck --prefix world-server
+npm test --prefix world-server
+node scripts/test-world-persistence.mjs
+node scripts/test-world-features.mjs
+node scripts/test-world-network.mjs
+npx playwright test tests/world.spec.js --project=desktop-chromium
 ```
 
-Pause here for owner review. Next phase, only after review: persistent instance ownership and double-lock trades, then authenticated WSS room protocol. No migration from the draft implementation should be applied.
+The network check runs two real WebSocket clients against PostgreSQL-compatible
+PGlite through the actual gateway and access adapter. It covers chat, private
+messages, purchase, a completed trade, room switching and placement. It is local
+integration evidence, not a production load or real-account test. CI also runs
+mobile WebKit, existing commerce checks and the unchanged native build gate.
 
-## World foundation: room runtime and persistence
+## Deployment
 
-`RoomRuntime` binds server-verified identities to movement controllers, sends room
-snapshots/deltas, and filters proximity chat/whispers before delivery. The transport
-adapter must validate sessions and room access, apply moderation/block lists, bound
-packet sizes, and call `tick()` on a 250ms server timer. The `gateway.ts` adapter now exposes `/world` WebSockets behind HTTPS. Send callbacks must handle disconnected sockets without throwing.
+Apply, in order, the three `20261013*world*.sql` migrations to the selected Supabase
+project. All World tables live in the private `earnly_world` schema, with RLS and no
+anon/authenticated access. Only service-role RPCs write them. The worker derives
+actor IDs from verified sessions; browsers never call privileged RPCs directly.
 
-`TradeSession` implements revisioned double-lock offers. The SQL migration persists
-rooms, decor definitions, unique item instances, trades and transfer history. Its
-service-only `world_trade_action` repeats both confirmations and ownership validation
-inside PostgreSQL, locks item rows in stable order, and transfers both sides atomically.
-A trade timeout must be reconciled by ID; never create a new trade to retry a commit.
-The database trade is authoritative; adapters must use its returned revision/locks.
+Set server-only environment variables through the hosting provider's secret manager:
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WORLD_ORIGINS` (exact comma-separated
+HTTPS origins). Never put the service key in a frontend file, URL, argument or log.
+`npm start --prefix world-server` binds loopback port 8080 by default. A managed
+container may set `WORLD_BIND_HOST=0.0.0.0`; terminate TLS at a trusted proxy.
 
-This phase does not enable catalog sales, room editing or public chat. Before launch:
-finish password/doorbell entry, moderation/reporting,
-server-validated placement, catalog purchase receipts, and the original pixel renderer.
-The player-facing destination is **World / Earnly Plaza**, separate from Games.
+A container definition and optional Caddy Compose package are under `deploy/`.
+On an authorized Docker host, set the server environment and `WORLD_DOMAIN`, point
+that hostname's DNS at the host, then run:
 
+```sh
+docker compose -f world-server/deploy/compose.yaml up -d --build
+```
 
-### Running the first multiplayer worker
+Use one worker only. It bounds frames to 8 KiB, connections to 200, rooms to 100
+(evicting empty rooms), packets to 20/second and account operations to 5/second.
+Authentication has a five-second deadline; heartbeat/session checks run every
+15 seconds. Also configure the host's connection/IP limits. Multi-worker routing,
+shared presence, regional failover and large-scale load validation are not included.
 
-The first adapter uses the pinned `ws` package and bounded JSON v1 packets instead
-of introducing Colyseus state schemas before the renderer exists. Room logic remains
-transport-independent. Run one worker only; multiple workers require coordinated
-room routing and shared membership reservations before scaling out.
+Before setting `world-config.js` to the resulting `wss://HOST/world` endpoint,
+verify HTTPS health, two real staging accounts, reconnects, moderation, inventory
+persistence after worker restart, and purchase/trade reconciliation after interrupted
+connections. Then repeat the admission/permission checks against the intended
+production project. Publish only the public endpoint, never credentials.
 
-Set server-only `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `WORLD_ORIGINS`
-(comma-separated exact HTTPS origins). Run `npm ci --prefix world-server` then
-`npm start --prefix world-server`. The listener binds 127.0.0.1:8080 (override with
-`WORLD_PORT`) and requires a same-host TLS proxy for public WSS. Never put the
-service key into a frontend config, source file, URL or logs.
+## Moderation operations
 
-After applying the migration, an administrator must seed a valid room. There are
-no public rooms automatically created and no purchases enabled by this migration.
-First packet: `{type:"JOIN",version:1,token:ACCESS_TOKEN,roomId:ROOM_UUID}`.
-Tokens travel inside WSS messages rather than URLs. Auth uses Supabase's user
-endpoint, then the service-only room RPC checks current account bans, profile and
-open/owner access. Password/doorbell rooms deny guests until admission is built.
+Players can report messages they actually received and block other users. Private
+messages require an accepted friendship. Operator actions use the server environment:
 
-The gateway bounds frames to 8 KiB, limits each connection to 20 packets/second,
-requires authentication within five seconds, checks allowed origins, rejects
-parallel sessions for a player, uses ping/pong and revalidates accounts/room access
-every 15 seconds. Only movement is enabled on the wire. Chat/trade helpers exist,
-but their network intents remain disabled pending moderation and persistence wiring.
-Rooms stay cached for this worker's lifetime (100 distinct rooms maximum); production
-needs lifecycle-aware eviction and upstream connection/IP abuse controls. No claim
-of large-scale load readiness is made by the local two-client integration test.
+```sh
+node scripts/world-moderate.mjs queue
+node scripts/world-moderate.mjs remove MESSAGE_UUID
+node scripts/world-moderate.mjs suspend USER_UUID 24
+node scripts/world-moderate.mjs restore USER_UUID
+node scripts/world-moderate.mjs prune
+```
+
+Assign an operator to review reports before opening public chat. Removal hides
+messages from future history; already-delivered client copies are not recalled.
+Suspensions deny new operations immediately and disconnect at the next session
+check. Pruning deletes messages older than 30 days except unresolved report evidence.
+
+Later expansions: password/doorbell access, custom floorplan editing, dedicated
+pixel directional animation, in-room interactive props and live events. These are
+not presented as working controls in this release.

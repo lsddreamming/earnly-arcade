@@ -15,7 +15,9 @@ const server=createServer((request,response)=>{
  else{response.writeHead(404);response.end('{"error":"not_found"}');}
 });
 const gateway=attachWorldGateway(server,new SupabaseWorldAccess(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY),origins);
-server.listen(port,'127.0.0.1',()=>console.log('World server listening on loopback'));
+const host=process.env.WORLD_BIND_HOST??'127.0.0.1';
+if(!['127.0.0.1','0.0.0.0'].includes(host))throw new Error('Invalid bind host');
+server.listen(port,host,()=>console.log('World server listening'));
 let stopping=false;
 async function shutdown(){if(stopping)return;stopping=true;await gateway.close();server.close();}
 process.on('SIGTERM',()=>void shutdown());process.on('SIGINT',()=>void shutdown());

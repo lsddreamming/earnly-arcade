@@ -3331,6 +3331,7 @@ const Arcade = (() => {
 
     let active = file === 'index.html' ? 'home' : '';
     if (gameFiles.has(file)) active = 'games';
+    else if (file === 'world.html') active = 'world';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
     else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
@@ -3338,6 +3339,7 @@ const Arcade = (() => {
     const items = [
       ['home','🏠','Home','index.html'],
       ['games','🕹️','Games','games.html'],
+      ['world','🌐','World','world.html'],
       ['missions','📅','Missions','stats.html'],
       ['rewards','🎁','Rewards','rewards.html'],
       ['profile','👤','Profile','profile.html']
@@ -3374,6 +3376,7 @@ const Arcade = (() => {
 
     let active = file === 'index.html' ? 'home' : '';
     if (gameFiles.has(file)) active = 'games';
+    else if (file === 'world.html') active = 'world';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
     else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
@@ -3381,6 +3384,7 @@ const Arcade = (() => {
     const items = [
       ['home','🏠','Home','index.html'],
       ['games','🕹️','Games','games.html'],
+      ['world','🌐','World','world.html'],
       ['missions','📅','Missions','stats.html'],
       ['rewards','🎁','Rewards','rewards.html'],
       ['profile','👤','Profile','profile.html']

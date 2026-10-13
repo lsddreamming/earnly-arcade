@@ -1,0 +1,27 @@
+services:
+  world:
+    build: ..
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?Set Supabase URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set server-only key}
+      WORLD_ORIGINS: https://earnlyarcade.com,https://www.earnlyarcade.com
+    expose: ["8080"]
+    mem_limit: 512m
+    cpus: 1
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp"]
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      WORLD_DOMAIN: ${WORLD_DOMAIN:?Set World hostname}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  caddy_data:
+  caddy_config:
