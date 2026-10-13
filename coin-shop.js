@@ -31,6 +31,8 @@
       const heading=document.createElement('div');heading.className='pack-heading';
       const title=document.createElement('h3');title.textContent=({starter:'Starter stash',plus:'Style upgrade',vault:'Arcade vault'})[pack.id]||'Coin pack';
       heading.append(title);
+      const art=document.createElement('img');art.className='coin-pack-art';art.alt='';art.width=280;art.height=170;
+      art.src=({starter:'coin-pack-starter.svg',plus:'coin-pack-plus.svg',vault:'coin-pack-vault.svg'})[pack.id]||'coin-pack-starter.svg';
       if(priced.length>1&&pack.priceCents/pack.coins===bestRate&&priced.some(p=>p.priceCents/p.coins>bestRate)){
         card.classList.add('best-value');
         const badge=document.createElement('span');badge.className='pack-value';badge.textContent='Best value';heading.append(badge);
@@ -56,7 +58,7 @@
           location.assign(url.href);
         } catch(error){if(error.code==='CHECKOUT_EXPIRED')pending.delete(pack.id);message(error.message,true);busy=false;render(packs);}
       });
-      card.append(heading,amount,note,rate,button);$('coin-packs').append(card);
+      card.append(heading,art,amount,note,rate,button);$('coin-packs').append(card);
     }
   }
   async function refreshAccount() {
