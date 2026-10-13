@@ -5,7 +5,7 @@ BODIES = {'cyber-starter', 'neon-phantom', 'vortex-mech', 'astra-prime', 'russet
 
 def finish_face(name, art):
     if 'data-face-finish' in art:
-        return art
+        return refine_face(art)
     detail = ''
     if name in BODIES or (name.startswith('eyes-') and name != 'eyes-happy'):
         # Local gradients keep each selected iris color, with a luminous lower edge.
@@ -25,4 +25,25 @@ def finish_face(name, art):
         detail += '<path d="M144 154Q153 150 162 153Q154 158 146 156Z" fill="#d88789" opacity=".8"/><path d="M128 137l-3 3m49-5 3 3" stroke="#79504b" stroke-width="1.8" stroke-linecap="round"/><path d="M140 164Q151 168 163 163" fill="none" stroke="#ffe3bb" stroke-width="1.5" opacity=".5" stroke-linecap="round"/>'
     if name in BODIES or name in {'nose-classic','nose-round','nose-freckle'}:
         detail += '<path d="M147 120q3-4 6-1" fill="none" stroke="#fff0cc" stroke-width="2.3" opacity=".65" stroke-linecap="round"/><path d="M146 132q6 3 12-1" fill="none" stroke="#69463e" stroke-width="1.4" opacity=".35" stroke-linecap="round"/>'
-    return art + ('<g data-face-finish="1">'+detail+'</g>' if detail else '')
+    return refine_face(art + ('<g data-face-finish="1">'+detail+'</g>' if detail else ''))
+
+
+def refine_face(art):
+    """Soft studio light, clear eyes and less outlined skin, in the same rig."""
+    if 'face-pearl' in art:
+        return art
+    if 'rx="17" ry="21"' in art:
+        pearl = ('<defs><radialGradient id="face-pearl" cx=".42" cy=".36" r=".8">'
+                 '<stop stop-color="#ffffff"/><stop offset=".62" stop-color="#fff8e8"/>'
+                 '<stop offset="1" stop-color="#d8bda3"/></radialGradient></defs>')
+        art = re.sub(r'(rx="17" ry="21" fill=")#[a-fA-F0-9]+', r'\1url(#face-pearl)', art)
+        art = pearl + art
+        art = art.replace('stroke="#614336" stroke-width="1.5"', 'stroke="#795847" stroke-width="1.2"')
+        art = art.replace('stroke="#49343b" stroke-width="2.2"', 'stroke="#62463d" stroke-width="1.4"')
+        art = art.replace('r="4" fill="white"', 'r="3.3" fill="white"')
+        art = art.replace('stroke-width="1.6" opacity=".55"', 'stroke-width="1.2" opacity=".35"')
+    # Softer reflected light and cheek color on every skin, including blank rigs.
+    art = art.replace('stroke="#82ecff" stroke-width="2.5" stroke-linecap="round" opacity=".4"', 'stroke="#bce8df" stroke-width="1.8" stroke-linecap="round" opacity=".24"')
+    art = art.replace('fill="#dc785e" opacity=".35"', 'fill="#e88b79" opacity=".23"').replace('fill="#dc785e" opacity=".3"', 'fill="#e88b79" opacity=".2"')
+    art = art.replace('fill="#d88789" opacity=".8"', 'fill="#df9497" opacity=".65"')
+    return art
