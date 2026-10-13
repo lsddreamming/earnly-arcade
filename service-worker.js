@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-shop-header-20261013';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-potato-polish-20261013';const CORE_ASSETS = [
  './coin-pack-starter.svg','./coin-pack-plus.svg','./coin-pack-vault.svg',
  './shop-two.css','./shop-bundles.js','./shop-two.js','./shop-presence.js','./battle-style.js',
  './rank-discovery.css',

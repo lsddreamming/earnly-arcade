@@ -275,3 +275,11 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 .coin-pack:nth-child(2){border-color:#b88aff88!important;background:radial-gradient(ellipse at 50% 0,#7533b340,transparent 70%),#111b30!important}
 .coin-pack.best-value{border-color:#ffda6b99!important;background:radial-gradient(ellipse at 50% 0,#94712040,transparent 70%),#111b30!important}
 @media(max-width:680px){.coin-pack-art{height:86px}.coin-shop .coin-pack{flex-basis:min(66vw,250px);max-width:250px}.coin-pack .pack-heading{min-height:42px}}
+
+/* Neon display lighting frames the complete rig without shifting any layers. */
+.showcase .stage{background:radial-gradient(ellipse at 50% 42%,#45e5ed29,transparent 65%),linear-gradient(145deg,#13283e,#11192e)!important;border:1px solid #5edcde38;box-shadow:inset 0 1px 0 #afffff15!important}
+.showcase .stage:before{border-color:#70f3df88!important;box-shadow:0 0 20px #47ebda33,inset 0 0 14px #54cdec22}
+.showcase .stage .character{filter:drop-shadow(0 8px 8px #03081588)}
+.item-card .item-art{background:radial-gradient(ellipse at 50% 40%,#3b8d9c40,transparent 75%),linear-gradient(150deg,#162d43,#131d32)!important;border:1px solid #74dce31f}
+.item-card.is-equipped .item-art{border-color:#66e6c76b;box-shadow:inset 0 0 22px #54ebcd10}
+@media(hover:hover){.item-card:hover .item-art{border-color:#75eff270}}

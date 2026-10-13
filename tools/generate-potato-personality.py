@@ -15,7 +15,7 @@ for id,a,b,c,armor in palettes:
     art=mascot(a,b,c,armor)
     # Remove only the baked-in facial features. Preserve silhouette, dimples, sprout and hands.
     blank=re.sub(r'<path d="M113 79.*?/>','',art)
-    blank=re.sub(r'<g><ellipse cx="125".*?</g>','',blank)
+    blank=re.sub(r'<g><ellipse cx="125".*?</g>','',blank,flags=re.S)
     for prefix in ('M148 111','M129 139','M134 141'):
         blank=re.sub(r'<path d="'+prefix+r'.*?/>','',blank)
     svg(id+'-body',blank,a,b,c)
