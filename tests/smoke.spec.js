@@ -1314,8 +1314,7 @@ test('arcade gameplay still loads when the cloud CDN is unavailable', async ({ p
   expect(errors).toEqual([]);
 });
 
-test('core games always expose a result popup contract', async ({ page }) => {
-  const games = [
+const resultPopupGames = [
     ['snake.html','Snake'],
     ['blockdrop.html','Block Drop'],
     ['brickbreaker.html','Brick Breaker'],
@@ -1330,7 +1329,8 @@ test('core games always expose a result popup contract', async ({ page }) => {
     ['lanerunner.html','Lane Runner'],
     ['paddlerally.html','Paddle Rally']
   ];
-  for (const [path,name] of games) {
+for (const [path,name] of resultPopupGames) {
+  test(name + ' exposes a result popup contract', async ({ page }) => {
     await page.goto('/'+path);
     await expect(page.locator('#gameStatus'), name+' status').toBeVisible();
     await expect(page.locator('#startButton'), name+' start control').toHaveCount(1);
@@ -1341,8 +1341,8 @@ test('core games always expose a result popup contract', async ({ page }) => {
     expect(source, name+' must record a result').toContain('Arcade.recordResult');
     expect(source, name+' must award through Arcade').toContain('Arcade.earn');
     expect(source, name+' must show time played').toContain('Time played:');
-  }
-});
+  });
+}
 
 
 test('game catalog search filters cleanly and recovers', async ({ page }) => {
