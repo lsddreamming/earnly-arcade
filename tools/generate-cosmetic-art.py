@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def svg(name, art, a='#eac086', b='#93603e', accent='#58e4f5'):
     defs = f'''<defs>
-    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".55" stop-color="{b}"/><stop offset="1" stop-color="#392b37"/></radialGradient>
+    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".68" stop-color="{b}"/><stop offset="1" stop-color="#544052"/></radialGradient>
     <linearGradient id="cloth" x2=".8" y2="1"><stop stop-color="#3d5b75"/><stop offset=".5" stop-color="#253648"/><stop offset="1" stop-color="#101b2d"/></linearGradient>
     <linearGradient id="fabric" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="{accent}"/><stop offset=".3" stop-color="#46647a"/><stop offset="1" stop-color="#18283d"/></linearGradient>
     <linearGradient id="hood" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="{accent}"/><stop offset=".55" stop-color="#675877"/><stop offset="1" stop-color="#283549"/></linearGradient>
@@ -44,7 +44,7 @@ def mascot(a,b,accent,armor=False):
         if (x-150)**2/66**2+(y-103)**2/75**2 > .88 or (110<x<190 and 77<y<143): continue
         art+=f'<ellipse cx="{x}" cy="{y}" rx="{r.uniform(1,2.5):.1f}" ry="{r.uniform(1,2):.1f}" fill="#59392d" opacity=".3"/><path d="M{x-2} {y+2}l3 0" stroke="{a}" opacity=".5"/>'
     art+='''<path d="M100 70Q99 52 121 45" stroke="#fff6d9" opacity=".38" stroke-width="7" stroke-linecap="round" fill="none"/>
-    <ellipse cx="111" cy="126" rx="12" ry="6" fill="#dc785e" opacity=".35"/><ellipse cx="192" cy="126" rx="12" ry="6" fill="#dc785e" opacity=".3"/>
+    <path d="M91 101Q85 64 110 46" fill="none" stroke="#fff4ce" stroke-width="3" stroke-linecap="round" opacity=".45"/><path d="M211 86Q222 115 204 143Q196 158 183 165" fill="none" stroke="#82ecff" stroke-width="2.5" stroke-linecap="round" opacity=".4"/><path d="M126 165Q149 178 174 167" fill="none" stroke="#ffdfb1" stroke-width="2" stroke-linecap="round" opacity=".3"/><ellipse cx="111" cy="126" rx="12" ry="6" fill="#dc785e" opacity=".35"/><ellipse cx="192" cy="126" rx="12" ry="6" fill="#dc785e" opacity=".3"/>
     <path d="M113 79Q125 73 136 80M165 80Q177 73 188 79" fill="none" stroke="#59352c" stroke-width="5" stroke-linecap="round"/>
     <g><ellipse cx="125" cy="102" rx="17" ry="21" fill="#fff4d9"/><ellipse cx="176" cy="102" rx="17" ry="21" fill="#fff4d9"/>
     <ellipse cx="128" cy="104" rx="10" ry="14" fill="url(#lens)"/><ellipse cx="173" cy="104" rx="10" ry="14" fill="url(#lens)"/>
