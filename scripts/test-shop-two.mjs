@@ -24,6 +24,13 @@ await assert.rejects(record(other),/TRANSACTION_OWNER_MISMATCH/);
 assert.equal((await record(uid,true)).active,false);assert.equal((await record()).active,false);assert.equal((await me()).user.equipped.frame.id,'no-frame');
 await db.query("select arcade_pass_record($1,'apple','124','100',now()-interval '1 second',false,now())",[uid]);assert.equal((await me()).user.equipped.frame.id,'no-frame');
 for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(record(),/permission denied/);await assert.rejects(db.query('select * from arcade_pass_transactions'),/permission denied/);await assert.rejects(buy('orbit-pet'),/permission denied/);await db.exec('RESET ROLE');}
+// Stripe invoice identity is the durable idempotency key, including concurrent retries.
+const stripeRecord=()=>db.query("select arcade_pass_record($1,'stripe','in_duplicate','sub_test',now()+interval '1 month',false,now())",[uid]);
+await Promise.all([stripeRecord(),stripeRecord(),stripeRecord()]);
+assert.equal((await db.query("select count(*)::int as n from arcade_pass_transactions where provider='stripe' and transaction_id='in_duplicate'")).rows[0].n,1);
+await db.query("select arcade_pass_record($1,'stripe','in_duplicate','sub_test',now()+interval '1 month',true,now())",[uid]);
+await stripeRecord();
+assert.equal((await db.query("select revoked from arcade_pass_transactions where provider='stripe' and transaction_id='in_duplicate'")).rows[0].revoked,true);
 await db.query('delete from auth.users where id=$1',[uid]).catch(()=>{}); // other fixture tables restrict deletion; explicitly model the auth cascade below.
 await db.query('update arcade_pass_transactions set user_id=null where user_id=$1',[uid]);await assert.rejects(record(other),/TRANSACTION_OWNER_MISMATCH/);
 await db.close();console.log('PASS Shop 2.0: expanded equipment, prices, ownership, idempotency, seasons, VIP expiry/refunds/replay/account binding, RLS, no currency benefits.');
