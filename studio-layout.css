@@ -268,3 +268,10 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 .studio-layout,.studio-layout>.shop,.shop-tabs{min-width:0;max-width:100%;box-sizing:border-box}
 .shop-tabs{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
 @media(max-width:680px){.shop.panel{width:100%;overflow:hidden}.shop-tabs{display:flex!important;flex-wrap:nowrap;max-width:100%;width:100%}}
+
+/* Compact neon product art; text and StoreKit prices remain real controls. */
+.coin-pack-art{display:block;width:100%;height:112px;object-fit:contain;margin:0 auto 8px;filter:drop-shadow(0 0 12px #36ddff20)}
+.coin-pack{border-color:#39d9f766!important;background:radial-gradient(ellipse at 50% 0,#126a8140,transparent 70%),#111b30!important}
+.coin-pack:nth-child(2){border-color:#b88aff88!important;background:radial-gradient(ellipse at 50% 0,#7533b340,transparent 70%),#111b30!important}
+.coin-pack.best-value{border-color:#ffda6b99!important;background:radial-gradient(ellipse at 50% 0,#94712040,transparent 70%),#111b30!important}
+@media(max-width:680px){.coin-pack-art{height:86px}.coin-shop .coin-pack{flex-basis:min(66vw,250px);max-width:250px}.coin-pack .pack-heading{min-height:42px}}
