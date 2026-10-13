@@ -1,0 +1,32 @@
+# Preview hosting only. Upgrade the instance before opening public multiplayer.
+# Database credentials belong in Render's secret form, never in this file.
+services:
+  - type: web
+    name: earnly-world
+    runtime: docker
+    repo: https://github.com/lsddreamming/earnly-arcade
+    branch: main
+    region: oregon
+    plan: free
+    dockerfilePath: ./world-server/Dockerfile
+    dockerContext: ./world-server
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    buildFilter:
+      paths:
+        - world-server/**
+        - render.yaml
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WORLD_BIND_HOST
+        value: 0.0.0.0
+      - key: WORLD_PORT
+        value: "10000"
+      - key: WORLD_ORIGINS
+        value: https://earnlyarcade.com,https://www.earnlyarcade.com
+      - key: SUPABASE_URL
+        value: https://zdwziebtbpuolusztede.supabase.co
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
