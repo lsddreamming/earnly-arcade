@@ -4,3 +4,7 @@
 
 /* Shop chat stays in document flow so it never covers purchase controls. */
 .studio-dashboard .arcade-chat-launcher.arcade-chat-inline{position:static;flex:0 0 auto;min-height:44px;padding:9px 12px;z-index:auto;box-shadow:none}
+
+/* The shop account row includes Chat and must wrap on compact phones. */
+.studio-dashboard .account-bar{flex-wrap:wrap;min-width:0;max-width:100%;row-gap:8px}
+.studio-dashboard .header{flex-wrap:wrap}
