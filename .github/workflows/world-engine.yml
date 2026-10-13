@@ -1,0 +1,23 @@
+name: Earnly world grid engine
+on:
+  pull_request:
+    paths: ['world-server/**', '.github/workflows/world-engine.yml']
+  push:
+    branches: [main]
+    paths: ['world-server/**', '.github/workflows/world-engine.yml']
+permissions:
+  contents: read
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: world-server/package-lock.json
+      - run: npm ci --prefix world-server --ignore-scripts
+      - run: npm run typecheck --prefix world-server
+      - run: npm test --prefix world-server
