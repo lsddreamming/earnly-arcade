@@ -5,10 +5,14 @@ stable when adding new items so existing players can mix every equipment slot.
 """
 from pathlib import Path
 from random import Random
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from potato_face_finish import finish_face
 
 ROOT = Path(__file__).resolve().parents[1]
 
 def svg(name, art, a='#eac086', b='#93603e', accent='#58e4f5'):
+    art = finish_face(name, art)
     defs = f'''<defs>
     <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".68" stop-color="{b}"/><stop offset="1" stop-color="#544052"/></radialGradient>
     <linearGradient id="cloth" x2=".8" y2="1"><stop stop-color="#3d5b75"/><stop offset=".5" stop-color="#253648"/><stop offset="1" stop-color="#101b2d"/></linearGradient>
