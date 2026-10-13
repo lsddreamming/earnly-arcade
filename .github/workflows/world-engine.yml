@@ -1,10 +1,10 @@
 name: Earnly world grid engine
 on:
   pull_request:
-    paths: ['world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
   push:
     branches: [main]
-    paths: ['world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
 permissions:
   contents: read
 jobs:
