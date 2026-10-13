@@ -70,12 +70,15 @@ npm test --prefix world-server
 node scripts/test-world-persistence.mjs
 node scripts/test-world-features.mjs
 node scripts/test-world-network.mjs
+npx playwright install chromium
+node scripts/test-world-browser.mjs
 npx playwright test tests/world.spec.js --project=desktop-chromium
 ```
 
 The network check runs two real WebSocket clients against PostgreSQL-compatible
 PGlite through the actual gateway and access adapter. It covers chat, private
-messages, purchase, a completed trade, room switching and placement. It is local
+messages, purchase, a completed trade, room switching and placement. A second check uses two Chromium browsers and local TLS through the same server
+for avatar admission, chat, buying, room creation and canvas placement. It is local
 integration evidence, not a production load or real-account test. CI also runs
 mobile WebKit, existing commerce checks and the unchanged native build gate.
 

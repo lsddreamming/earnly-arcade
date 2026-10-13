@@ -10,7 +10,7 @@ permissions:
 jobs:
   engine:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,3 +25,5 @@ jobs:
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
       - run: node scripts/test-world-network.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/test-world-browser.mjs
