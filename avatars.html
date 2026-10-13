@@ -22,7 +22,7 @@
     <script src="potato-rig.js"></script>
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
-<link rel="stylesheet" href="shop-two.css"><script src="shop-two.js" defer></script><script src="shop-bundles.js" defer></script>
+<link rel="stylesheet" href="shop-two.css"><link rel="stylesheet" href="shop-polish.css?v=1"><script src="shop-two.js" defer></script><script src="shop-bundles.js" defer></script>
 </head>
   <body class="studio-dashboard">
     <header class="header">
@@ -47,8 +47,8 @@
     <main>
       <div class="page-title">
         <div>
-          <p class="eyebrow">PLAY. EARN. MAKE IT YOURS.</p>
-          <h1>Level up<br /><span>your look.</span></h1>
+          <p class="eyebrow">YOUR ARCADE. YOUR STYLE.</p>
+          <h1>Level up <span>your look.</span></h1>
         </div>
         <p>Try it. Mix it. Make it yours.<br />Your look follows you onto the leaderboard.</p>
       </div>
@@ -91,7 +91,7 @@
             </div>
             <span id="owned-count" class="muted"></span>
           </div>
-          <p class="personality-note">Your potato. Your personality. Mix free eyes, brows, smiles and hair with your favorite outfit. Every style is for everyone.</p>
+          <p class="personality-note">Mix faces, outfits and accessories. Try everything on for free.</p>
           <label class="studio-category-label" for="studio-category">Customize category</label><select id="studio-category" aria-label="Choose customization category"><option value="avatar">Avatars</option><option value="eyes">Eyes</option><option value="brows">Eyebrows</option><option value="mouth">Mouths</option><option value="nose">Noses</option><option value="hair">Hair</option><option value="marks">Face details</option><option value="outfit">Outfits</option><option value="shoes">Shoes</option><option value="backpack">Backpacks</option><option value="face">Facewear</option><option value="beard">Beards</option><option value="head">Headwear</option><option value="weapon">Weapons</option><option value="pet">Pets</option><option value="frame">Profile frames</option><option value="pose">Victory poses</option><option value="effect">Avatar effects</option><option value="army">Crystal armies</option><option value="commander">Commanders</option><option value="building">Building skins</option><option value="battlefx">Battle effects</option></select><div class="shop-tabs" role="group" aria-label="Shop category">
             <button data-slot="avatar" aria-pressed="true">Avatars</button>
             <button data-slot="eyes" aria-pressed="false">Eyes</button>
@@ -131,7 +131,7 @@
         <a href="#collection" class="browse-unlocks">Explore what you can unlock <span aria-hidden="true">→</span></a>
         <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
       </section>
-      <section class="leaderboard panel" aria-labelledby="leaderboard-title">
+      <details class="shop-leaderboard"><summary>🏆 World high scores <span>See the players behind the looks</span></summary><section class="leaderboard panel" aria-labelledby="leaderboard-title">
         <div class="panel-top">
           <div>
             <p class="eyebrow">MEET THE COMPETITION</p>
@@ -156,6 +156,7 @@
           No ranked players yet. Play a game to get on the board.
         </p>
       </section>
+      </details>
       <footer class="public-footer" aria-label="Earnly site information">
         <nav aria-label="Site information"><a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav>
         Arcade Coins are in-app points. Cash-out and real-value redemption are

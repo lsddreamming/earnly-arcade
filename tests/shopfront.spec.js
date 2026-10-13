@@ -79,7 +79,7 @@ test('Search spans categories, sorting is deterministic and empty filters can re
 });
 test('Within my balance uses server funds and retains owned items',async({page})=>{
  const f=await setup(page,{coins:'100'});await page.getByLabel('Within my balance').check();await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter']);
- f.user.inventory.push('astra-prime');await page.locator('#refresh-button').click();await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter','Astra Prime']);
+ f.user.inventory.push('astra-prime');await page.locator('.shop-leaderboard > summary').click();await page.locator('#refresh-button').click();await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter','Astra Prime']);
  expect(f.writes).toHaveLength(0);
 });
 test('Insufficient funds offers next steps, never charges, and preserves the preview',async({page})=>{
