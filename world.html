@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10182d"><title>Earnly World · Your potato. Your place.</title><link rel="icon" href="earnly-icon.svg"><link rel="stylesheet" href="world.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10182d"><title>Earnly World · Your potato. Your place.</title><link rel="icon" href="earnly-icon.svg"><link rel="stylesheet" href="public-info.css"><link rel="stylesheet" href="world.css"></head>
 <body><main class="world-app">
 <header class="world-header"><a class="brand" href="index.html">EARNLY<span>WORLD</span></a><span class="world-tag">YOUR POTATO. YOUR PLACE.</span><a class="coin-pill" href="games.html#coin-shop" id="coinBalance">◇ Arcade Coins</a></header>
 <section class="room-heading"><div><p class="eyebrow">WELCOME TO THE PLAZA</p><h1 id="roomName">A little world. All yours.</h1><p id="connectionStatus" role="status">Opening the plaza…</p></div><button id="reconnect" class="small-button">Connect</button></section>
@@ -7,6 +7,11 @@
 <nav class="world-tools" aria-label="World tools"><button data-panel="rooms">▧ <span>Rooms</span></button><button data-panel="catalog">▤ <span>Catalog</span></button><button data-panel="backpack">▣ <span>Backpack</span></button><button data-panel="friends">♧ <span>Friends</span></button><button data-panel="chat">☏ <span>Chat</span></button></nav>
 <form class="chat-bar" id="sayForm"><label class="sr-only" for="sayText">Room message</label><input id="sayText" maxlength="280" placeholder="Say hello to the room…" autocomplete="off"><button type="submit">Send ↑</button></form>
 <p class="world-note" id="worldNote">Decorate, collect, and meet your people. Arcade Coins and decor have no cash value.</p>
+<footer class="public-footer" aria-label="Earnly site information">
+        <nav aria-label="Site information"><a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav>
+        Arcade Coins are in-app points. Cash-out and real-value redemption are
+        not available.
+      </footer>
 </main>
 <nav class="world-bottom" aria-label="Earnly navigation"><a href="index.html">⌂<span>Home</span></a><a href="games.html">♟<span>Games</span></a><a href="world.html" aria-current="page">◎<span>World</span></a><a href="stats.html">▦<span>Missions</span></a><a href="rewards.html">◇<span>Rewards</span></a><a href="profile.html">♙<span>Profile</span></a></nav>
 <dialog id="worldPanel"><header><h2 id="panelTitle">World</h2><button id="closePanel" aria-label="Close panel">×</button></header><div id="panelContent"></div></dialog>
