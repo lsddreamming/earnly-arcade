@@ -1,0 +1,30 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {RoomGrid,parseHeightmap} from '../src/grid.ts';
+import {RoomRuntime} from '../src/room-runtime.ts';
+test('intents cannot impersonate or move before server tick; collisions stay exclusive',()=>{
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap('000\n000')));
+ const a:Record<string,unknown>[]=[],b:Record<string,unknown>[]=[];
+ room.join({userId:'a',username:'A'},{x:0,y:0},p=>a.push(p));
+ room.join({userId:'b',username:'B'},{x:2,y:0},p=>b.push(p));
+ assert.equal(room.receive('a',{type:'MOVE_TO',x:1,y:0,userId:'b'},0),false);
+ assert.equal(room.receive('a',{type:'MOVE_TO',x:1,y:0},100),true);
+ assert.equal(room.receive('b',{type:'MOVE_TO',x:1,y:0},100),true);
+ assert.equal(a.some(p=>p.type==='ROOM_DELTA'),false);
+ room.tick();
+ const delta=a.find(p=>p.type==='ROOM_DELTA')!;
+ const users=delta.users as {userId:string;position:{x:number}}[];
+ assert.equal(users.find(u=>u.userId==='a')!.position.x,1);
+ assert.equal(users.find(u=>u.userId==='b')!.position.x,2);
+});
+test('whispers reach only sender and adjacent target and respect reciprocal blocks',()=>{
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap('000')));
+ const packets:Record<string,unknown>[][]=[[],[],[]];
+ ['a','b','c'].forEach((id,x)=>room.join({userId:id,username:id},{x,y:0},p=>packets[x].push(p)));
+ assert.equal(room.chat('a','private','whisper','c',0,()=>false),false);
+ assert.equal(room.chat('a','private','whisper','b',0,()=>false),true);
+ assert.equal(packets[2].some(p=>p.type==='CHAT'),false);
+ assert.equal(packets[1].filter(p=>p.type==='CHAT').length,1);
+ room.chat('a','blocked','normal',undefined,5000,(a,b)=>a==='b'&&b==='a');
+ assert.equal(packets[1].filter(p=>p.type==='CHAT').length,1);
+});

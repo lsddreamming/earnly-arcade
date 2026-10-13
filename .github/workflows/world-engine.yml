@@ -1,10 +1,10 @@
 name: Earnly world grid engine
 on:
   pull_request:
-    paths: ['world-server/**', '.github/workflows/world-engine.yml']
+    paths: ['world-server/**', 'scripts/test-world-persistence.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
   push:
     branches: [main]
-    paths: ['world-server/**', '.github/workflows/world-engine.yml']
+    paths: ['world-server/**', 'scripts/test-world-persistence.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
 permissions:
   contents: read
 jobs:
@@ -21,3 +21,5 @@ jobs:
       - run: npm ci --prefix world-server --ignore-scripts
       - run: npm run typecheck --prefix world-server
       - run: npm test --prefix world-server
+      - run: npm ci --ignore-scripts
+      - run: node scripts/test-world-persistence.mjs

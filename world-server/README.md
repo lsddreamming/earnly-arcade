@@ -75,3 +75,23 @@ npm run typecheck --prefix world-server
 ```
 
 Pause here for owner review. Next phase, only after review: persistent instance ownership and double-lock trades, then authenticated WSS room protocol. No migration from the draft implementation should be applied.
+
+## World foundation: room runtime and persistence
+
+`RoomRuntime` binds server-verified identities to movement controllers, sends room
+snapshots/deltas, and filters proximity chat/whispers before delivery. The transport
+adapter must validate sessions and room access, apply moderation/block lists, bound
+packet sizes, and call `tick()` on a 250ms server timer. This module is not a public
+WebSocket endpoint yet. Send callbacks must handle disconnected sockets without throwing.
+
+`TradeSession` implements revisioned double-lock offers. The SQL migration persists
+rooms, decor definitions, unique item instances, trades and transfer history. Its
+service-only `world_trade_action` repeats both confirmations and ownership validation
+inside PostgreSQL, locks item rows in stable order, and transfers both sides atomically.
+A trade timeout must be reconciled by ID; never create a new trade to retry a commit.
+The database trade is authoritative; adapters must use its returned revision/locks.
+
+This phase does not enable catalog sales, room editing or public chat. Before launch:
+add authenticated WSS transport, room-entry/access rules, moderation/reporting,
+server-validated placement, catalog purchase receipts, and the original pixel renderer.
+The player-facing destination is **World / Earnly Plaza**, separate from Games.
