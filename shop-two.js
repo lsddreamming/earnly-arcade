@@ -10,7 +10,8 @@
   const available=native?config.appleAvailable:config.webAvailable;
   let price='$4.99';if(native&&apple){const products=(await apple.products()).products||[];price=products.find(p=>p.id===config.productId)?.displayPrice||'';}
   $('pass-buy').disabled=!available||!price||busy||state.active;$('pass-buy').textContent=state.active?'VIP active':available&&price?price+' / month · Subscribe':'Coming soon';
-  $('pass-disclosure').textContent=(available&&price?price:'Proposed $4.99')+'/month, auto-renewing. Cancel anytime in subscription settings. Perks last through your paid period. No coins or cash-equivalent rewards.';
+  $('pass-disclosure').textContent=(available&&price?price+'/month':'$4.99/month when available')+', auto-renewing. Cancel anytime in subscription settings. Perks last through your paid period. No coins or cash-equivalent rewards.';
+  document.querySelector('#vip-pass summary span').textContent='Cosmetic perks · '+(available&&price?price+'/month':'Coming soon');
   $('pass-manage').hidden=!state.provider;$('pass-manage').dataset.provider=state.provider||'';
   window.dispatchEvent(new Event('earnly-pass-change'));
  }catch(error){say(error.message+' Free play and your owned items remain available.');}}
