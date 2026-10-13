@@ -7,8 +7,7 @@ const apple=JSON.parse(readFileSync('/tmp/earnly-apple-staging.json','utf8'));
 const avatar=JSON.parse(readFileSync('/tmp/earnly-avatar-staging.json','utf8'));
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 let pass=read('supabase/functions/_shared/pass-commerce.ts').replace("t.environment!=='Production'","t.environment!=='Sandbox'");
-for(const object of ['invoice','sub','p','intent','event','price','session'])pass=pass.replaceAll('!'+object+'.livemode',object+'.livemode');
-const runtime=read('supabase/functions/arcade-pass/index.ts').replace('_live_','_test_').replace('apple-review-runtime.ts','apple-runtime.ts').replace(' allowSandboxTransaction:appleOptions.allowSandboxTransaction,','');
+const runtime=read('supabase/functions/arcade-pass/index.ts').replace('_live_','_test_').replace('passHandler({db,stripe,','passHandler({db,stripe,stripeLive:false,').replace("priceId:Deno.env.get('STRIPE_PASS_PRICE_ID')","priceId:'price_1UPqV8DiPv1t7Me2icvDqvHT'").replace('apple-review-runtime.ts','apple-runtime.ts').replace(' allowSandboxTransaction:appleOptions.allowSandboxTransaction,','');
 const common=apple.files.filter(f=>f.name.startsWith('_shared/')&&f.name!=='_shared/pass-commerce.ts');
 writeFileSync('/tmp/earnly-shop-staging.json',JSON.stringify({project:apple.project,functions:[
  {name:'apple-coins',files:apple.files},

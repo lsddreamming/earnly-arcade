@@ -8,7 +8,7 @@ export async function fulfillApplePass(db:any,t:any,userId?:string,allowSandboxT
  const state=unwrap(await db.rpc('arcade_pass_record',{p_user_id:t.appAccountToken,p_provider:sandbox?'apple_sandbox':'apple',p_transaction_id:t.transactionId,p_subscription_id:t.originalTransactionId,p_expires_at:new Date(t.expiresDate).toISOString(),p_revoked:t.revocationDate!=null,p_observed_at:new Date(t.signedDate).toISOString()}));
  return {...state,transactionId:t.transactionId};
 }
-export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,allowSandboxTransaction,webEnabled=false,appleEnabled=false,paymentsVerified=false,priceId}:any){
+export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,allowSandboxTransaction,webEnabled=false,appleEnabled=false,paymentsVerified=false,priceId,stripeLive=true}:any){
  // The release hold controls new sales only. Keep signed reconciliation, refunds,
  // restore and cancellation available even when an operator disables checkout.
  webEnabled=paymentsVerified===true&&webEnabled===true&&!!stripe&&!!verifyEvent&&!!priceId;
@@ -17,26 +17,32 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
  async function reconcileInvoice(invoiceId:string,forceRevoke=false){
   const invoice=await stripe.invoices.retrieve(invoiceId);
   const subscriptionId=invoice.parent?.subscription_details?.subscription;
-  if(typeof subscriptionId!=='string'||!invoice.livemode)return;
+  if(typeof subscriptionId!=='string'||invoice.livemode!==stripeLive)return;
   const sub=await stripe.subscriptions.retrieve(subscriptionId);
   const uid=sub.metadata?.earnlyUser;
-  if(!uuid.test(uid||'')||sub.metadata?.earnlyProduct!=='vip'||!sub.livemode)return;
-  if(sub.items.data.length!==1||sub.items.data[0].price.id!==priceId||sub.items.data[0].quantity!==1)throw new Error('PAYMENT_MISMATCH');
+  if(!uuid.test(uid||'')||sub.metadata?.earnlyProduct!=='vip'||sub.livemode!==stripeLive)return;
+  if(sub.items.has_more||sub.items.data.length!==1||sub.items.data[0].price.id!==priceId||sub.items.data[0].quantity!==1)throw new Error('PAYMENT_MISMATCH');
   const row=await getRow(uid);if(!row||row.customer_id!==sub.customer||!uuid.test(sub.metadata?.earnlyRequest||''))throw new Error('PAYMENT_MISMATCH');
+  // Immediate cancellation ends all periods, including delayed older invoices.
+  if(sub.status==='canceled'||sub.status==='incomplete_expired'){
+   unwrap(await db.from('arcade_pass_transactions').update({revoked:true}).eq('provider','stripe').eq('subscription_id',sub.id).eq('user_id',uid));
+   forceRevoke=true;
+  }
+  if(!forceRevoke&&!['active','past_due'].includes(sub.status))return;
   // Never grant on a success URL or invoice marked paid out of band.
   const payments=await stripe.invoicePayments.list({invoice:invoice.id,status:'paid',limit:100});
   if(payments.has_more)throw new Error('PAYMENT_REVIEW');
-  let paid=0,revoked=forceRevoke;
+  let paid=0,revoked=forceRevoke||['void','uncollectible'].includes(invoice.status);
   for(const p of payments.data){
-   if(!p.livemode||p.payment?.type!=='payment_intent')continue;
+   if(p.livemode!==stripeLive||p.payment?.type!=='payment_intent')continue;
    const intent=await stripe.paymentIntents.retrieve(p.payment.payment_intent,{expand:['latest_charge']});
    const charge=intent.latest_charge;
-   if(intent.status!=='succeeded'||intent.customer!==sub.customer||intent.currency!=='usd'||!intent.livemode||!charge||typeof charge==='string')continue;
+   if(intent.status!=='succeeded'||intent.customer!==sub.customer||intent.currency!=='usd'||intent.livemode!==stripeLive||!charge||typeof charge==='string')continue;
    paid+=p.amount_paid;revoked||=charge.amount_refunded>0||charge.disputed;
   }
   if(!revoked&&(invoice.status!=='paid'||invoice.currency!=='usd'||invoice.amount_paid<499||paid<invoice.amount_paid))return;
   const line=invoice.lines.data.find((l:any)=>l.pricing?.price_details?.price===priceId);
-  if(!line||!Number.isSafeInteger(line.period?.end))throw new Error('PAYMENT_MISMATCH');
+  if(invoice.lines.has_more||!line||!Number.isSafeInteger(line.period?.end))throw new Error('PAYMENT_MISMATCH');
   unwrap(await db.rpc('arcade_pass_record',{p_user_id:uid,p_provider:'stripe',p_transaction_id:invoice.id,p_subscription_id:sub.id,p_expires_at:new Date(line.period.end*1000).toISOString(),p_revoked:revoked,p_observed_at:new Date().toISOString()}));
   unwrap(await db.from('arcade_pass_checkout').update({subscription_id:sub.id}).eq('user_id',uid));
  }
@@ -50,13 +56,21 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
   if(origin&&!origins.includes(origin))return fail('Origin denied.',403);
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
   if(path==='/config'&&req.method==='GET')return json({webAvailable:!!webEnabled,appleAvailable:!!appleEnabled,productId:passProduct});
+  if(path==='/health'&&req.method==='GET')return json({service:'arcade-pass',mode:stripeLive?'live':'sandbox',stripeConfigured:!!stripe,webhookConfigured:!!verifyEvent,webAvailable:!!webEnabled,appleAvailable:!!appleEnabled});
   try{
    if(path==='/stripe/webhook'&&req.method==='POST'){
+    if(!req.headers.get('stripe-signature'))return fail('Invalid signature.');
     if(!verifyEvent||!stripe)return fail('Not configured.',503);
     const raw=await req.text();if(raw.length>262144)return fail('Request too large.',413);
     let event;try{event=await verifyEvent(raw,req.headers.get('stripe-signature')||'');}catch{return fail('Invalid signature.');}
-    if(!event.livemode)return json({received:true});
+    if(event.livemode!==stripeLive)return json({received:true});
     const object=event.data.object;
+    if(event.type==='checkout.session.completed'){
+     const session=await stripe.checkout.sessions.retrieve(object.id);
+     if(session.livemode!==stripeLive||session.mode!=='subscription')return json({received:true});
+     const id=typeof session.subscription==='string'?session.subscription:session.subscription?.id;
+     if(id){const sub=await stripe.subscriptions.retrieve(id);if(sub.latest_invoice)await reconcileInvoice(typeof sub.latest_invoice==='string'?sub.latest_invoice:sub.latest_invoice.id);}
+    }
     if(event.type.startsWith('invoice.'))await reconcileInvoice(object.id);
     else if(event.type.startsWith('customer.subscription.')){
      const sub=await stripe.subscriptions.retrieve(object.id);if(sub.latest_invoice)await reconcileInvoice(typeof sub.latest_invoice==='string'?sub.latest_invoice:sub.latest_invoice.id);
@@ -92,7 +106,7 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
     if(!webEnabled||!stripe||!priceId)return fail('Subscriptions are coming soon.',503);
     const key=req.headers.get('idempotency-key');if(!key||!uuid.test(key))return fail('Request ID required.');
     const price=await stripe.prices.retrieve(priceId);
-    if(!price.active||!price.livemode||price.unit_amount!==499||price.currency!=='usd'||price.recurring?.interval!=='month'||price.recurring?.interval_count!==1)throw new Error('PRICE_NOT_VERIFIED');
+    if(!price.active||price.livemode!==stripeLive||price.unit_amount!==499||price.currency!=='usd'||price.recurring?.interval!=='month'||price.recurring?.interval_count!==1)throw new Error('PRICE_NOT_VERIFIED');
     let row=unwrap(await db.rpc('arcade_pass_reserve',{p_user_id:user.id,p_request_id:key}));
     let session;if(row.session_id){session=await stripe.checkout.sessions.retrieve(row.session_id);
      if(session.status!=='open'){
@@ -106,8 +120,10 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
      const customer=row.customer_id|| (await stripe.customers.create({metadata:{earnlyUser:user.id}},{idempotencyKey:'earnly-vip-customer-'+row.request_id})).id;
      unwrap(await db.from('arcade_pass_checkout').update({customer_id:customer}).eq('user_id',user.id));
      session=await stripe.checkout.sessions.create({mode:'subscription',customer,line_items:[{price:priceId,quantity:1}],subscription_data:{metadata:{earnlyUser:user.id,earnlyProduct:'vip',earnlyRequest:row.request_id}},success_url:'https://earnlyarcade.com/avatars.html#vip-pass',cancel_url:'https://earnlyarcade.com/avatars.html#vip-pass'}, {idempotencyKey:'earnly-vip-'+row.request_id});
-     if(!session.livemode)throw new Error('MODE_MISMATCH');unwrap(await db.from('arcade_pass_checkout').update({session_id:session.id}).eq('user_id',user.id));
+     if(session.livemode!==stripeLive)throw new Error('MODE_MISMATCH');unwrap(await db.from('arcade_pass_checkout').update({session_id:session.id}).eq('user_id',user.id));
     }
+    if(session.livemode!==stripeLive)throw new Error('MODE_MISMATCH');
+    const checkoutUrl=new URL(session.url);if(checkoutUrl.protocol!=='https:'||checkoutUrl.hostname!=='checkout.stripe.com')throw new Error('INVALID_CHECKOUT_URL');
     return json({url:session.url});
    }
    return fail('Route not found.',404);
