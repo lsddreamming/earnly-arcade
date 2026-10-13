@@ -1,13 +1,14 @@
 export const passProduct='com.earnly.arcade.vip.monthly';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const unwrap=(result:any)=>{if(result.error)throw result.error;return result.data;};
-export async function fulfillApplePass(db:any,t:any,userId?:string){
- if(t.environment!=='Production'||t.bundleId!=='com.earnly.arcade'||t.productId!==passProduct||t.type!=='Auto-Renewable Subscription'||t.inAppOwnershipType!=='PURCHASED'||t.quantity!==1||!uuid.test(t.appAccountToken||'')||!/^\d{1,32}$/.test(t.transactionId||'')||!/^\d{1,32}$/.test(t.originalTransactionId||'')||!Number.isSafeInteger(t.expiresDate)||!Number.isSafeInteger(t.signedDate))throw new Error('INVALID_TRANSACTION');
+export async function fulfillApplePass(db:any,t:any,userId?:string,allowSandboxTransaction?:(t:any)=>Promise<boolean>){
+ const sandbox=t.environment==='Sandbox'&&await allowSandboxTransaction?.(t)===true;
+ if((t.environment!=='Production'&&!sandbox)||t.bundleId!=='com.earnly.arcade'||t.productId!==passProduct||t.type!=='Auto-Renewable Subscription'||t.inAppOwnershipType!=='PURCHASED'||t.quantity!==1||!uuid.test(t.appAccountToken||'')||!/^\d{1,32}$/.test(t.transactionId||'')||!/^\d{1,32}$/.test(t.originalTransactionId||'')||!Number.isSafeInteger(t.expiresDate)||!Number.isSafeInteger(t.signedDate))throw new Error('INVALID_TRANSACTION');
  if(userId&&userId.toLowerCase()!==t.appAccountToken.toLowerCase())throw new Error('TRANSACTION_OWNER_MISMATCH');
- const state=unwrap(await db.rpc('arcade_pass_record',{p_user_id:t.appAccountToken,p_provider:'apple',p_transaction_id:t.transactionId,p_subscription_id:t.originalTransactionId,p_expires_at:new Date(t.expiresDate).toISOString(),p_revoked:t.revocationDate!=null,p_observed_at:new Date(t.signedDate).toISOString()}));
+ const state=unwrap(await db.rpc('arcade_pass_record',{p_user_id:t.appAccountToken,p_provider:sandbox?'apple_sandbox':'apple',p_transaction_id:t.transactionId,p_subscription_id:t.originalTransactionId,p_expires_at:new Date(t.expiresDate).toISOString(),p_revoked:t.revocationDate!=null,p_observed_at:new Date(t.signedDate).toISOString()}));
  return {...state,transactionId:t.transactionId};
 }
-export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,webEnabled=false,appleEnabled=false,paymentsVerified=false,priceId,stripeLive=true}:any){
+export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,allowSandboxTransaction,webEnabled=false,appleEnabled=false,paymentsVerified=false,priceId,stripeLive=true}:any){
  // The release hold controls new sales only. Keep signed reconciliation, refunds,
  // restore and cancellation available even when an operator disables checkout.
  webEnabled=paymentsVerified===true&&webEnabled===true&&!!stripe&&!!verifyEvent&&!!priceId;
@@ -86,14 +87,15 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
     if(stripe&&row?.session_id){const session=await stripe.checkout.sessions.retrieve(row.session_id);if(session.subscription){const sub=await stripe.subscriptions.retrieve(session.subscription);if(sub.latest_invoice)await reconcileInvoice(typeof sub.latest_invoice==='string'?sub.latest_invoice:sub.latest_invoice.id);}}
     const active=unwrap(await db.rpc('arcade_pass_active',{p_user_id:user.id}));
     const transactions=unwrap(await db.from('arcade_pass_transactions').select('provider,expires_at').eq('user_id',user.id).order('expires_at',{ascending:false}).limit(1));
-    return json({active,provider:transactions?.[0]?.provider||null,expiresAt:transactions?.[0]?.expires_at||null});
+    const provider=transactions?.[0]?.provider;
+    return json({active,provider:provider==='apple_sandbox'?'apple':provider||null,expiresAt:transactions?.[0]?.expires_at||null});
    }
    if(req.method!=='POST')return fail('Route not found.',404);
    const raw=await req.text();if(raw.length>65536)return fail('Request too large.',413);let body;try{body=JSON.parse(raw);}catch{return fail('Invalid JSON.');}
    if(path==='/apple/verify'){
     if(!verifyTransaction)return fail('Apple verification not configured.',503);
     if(typeof body.signedTransaction!=='string')return fail('Signed transaction required.');
-    return json(await fulfillApplePass(db,await verifyTransaction(body.signedTransaction),user.id));
+    return json(await fulfillApplePass(db,await verifyTransaction(body.signedTransaction),user.id,allowSandboxTransaction));
    }
    if(origin==='capacitor://localhost')return fail('Use Apple subscription management on iPhone.',403);
    if(path==='/portal'){

@@ -5,7 +5,7 @@ export const appleProducts = [
  {id:'plus',productId:'com.earnly.arcade.coins.plus',coins:1500},
  {id:'vault',productId:'com.earnly.arcade.coins.vault',coins:4000}
 ];
-export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNotification,enabled}:any) {
+export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNotification,enabled,allowSandboxTransaction}:any) {
  const origins=new Set(['capacitor://localhost','https://earnlyarcade.com','https://www.earnlyarcade.com']);
  return async(req:Request)=>{
   const origin=req.headers.get('origin');
@@ -36,13 +36,14 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
    if(typeof signed!=='string'||signed.length>60000)return fail('Missing signed transaction.');
    // Runtime verifies Apple's signature and retrieves current transaction state from Apple.
    const t=await verifyTransaction(signed);
-   if(t.productId===passProduct){const state=await fulfillApplePass(db,t,user?.id);return json(path==='/notifications'?{received:true}:state);}
-   if(t.environment!=='Production'||t.bundleId!=='com.earnly.arcade'||t.type!=='Consumable'||t.quantity!==1||
+   if(t.productId===passProduct){const state=await fulfillApplePass(db,t,user?.id,allowSandboxTransaction);return json(path==='/notifications'?{received:true}:state);}
+   const sandbox=t.environment==='Sandbox'&&await allowSandboxTransaction?.(t)===true;
+   if((t.environment!=='Production'&&!sandbox)||t.bundleId!=='com.earnly.arcade'||t.type!=='Consumable'||t.quantity!==1||
       t.inAppOwnershipType!=='PURCHASED'||!appleProducts.some(p=>p.productId===t.productId)||
       typeof t.transactionId!=='string'||!/^\d{1,32}$/.test(t.transactionId)||
       typeof t.appAccountToken!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.appAccountToken)))return fail('This transaction is not eligible for this wallet.');
    if(user&&user.id.toLowerCase()!==t.appAccountToken.toLowerCase())return fail('Sign in to the account used for this purchase.',403);
-   const {data,error}=await db.rpc('apple_coin_fulfill',{p_user_id:t.appAccountToken,p_transaction_id:t.transactionId,p_product_id:t.productId,p_environment:t.environment,p_revoked:t.revocationDate!=null});
+   const {data,error}=await db.rpc(sandbox?'apple_sandbox_coin_fulfill':'apple_coin_fulfill',{p_user_id:t.appAccountToken,p_transaction_id:t.transactionId,p_product_id:t.productId,p_environment:t.environment,p_revoked:t.revocationDate!=null});
    if(error)throw error;
    return json(path==='/notifications'?{received:true}:data);
   }catch(error:any) {
