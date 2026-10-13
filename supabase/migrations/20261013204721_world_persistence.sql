@@ -141,3 +141,23 @@ begin
 end $$;
 revoke all on function public.world_trade_action(uuid,uuid,integer,text,uuid[]) from public,anon,authenticated;
 grant execute on function public.world_trade_action(uuid,uuid,integer,text,uuid[]) to service_role;
+
+-- Read-only room admission for the first release. Password and doorbell admission
+-- remain closed until their explicit approval flows are implemented.
+create or replace function public.world_room_snapshot(p_actor uuid,p_room uuid)
+returns jsonb language plpgsql security invoker set search_path='' as $$
+declare r earnly_world.rooms%rowtype; player_name text;
+begin
+ if not exists(select 1 from auth.users where id=p_actor and not coalesce(is_anonymous,false) and email_confirmed_at is not null)
+ or exists(select 1 from public.leaderboard_bans where user_id=p_actor) then raise exception 'Account unavailable'; end if;
+ select username into player_name from public.profiles where user_id=p_actor;
+ if player_name is null then raise exception 'Profile required'; end if;
+ select * into r from earnly_world.rooms where id=p_room;
+ if not found or (r.owner_id is distinct from p_actor and r.access_type<>'open') then raise exception 'Room unavailable'; end if;
+ return jsonb_build_object('roomId',r.id,'username',player_name,'heightmap',r.heightmap,'revision',r.revision,'capacity',r.max_users,
+ 'items',coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'x',i.x,'y',i.y,'z',i.z,'rotation',i.rotation,
+ 'width',d.width,'length',d.length,'itemHeight',d.item_height,'walkable',d.walkable,'canStack',d.can_stack,'canSit',d.can_sit,'canLay',d.can_lay))
+ from earnly_world.items i join earnly_world.item_definitions d on d.id=i.definition_id where i.room_id=r.id),'[]'::jsonb));
+end $$;
+revoke all on function public.world_room_snapshot(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.world_room_snapshot(uuid,uuid) to service_role;

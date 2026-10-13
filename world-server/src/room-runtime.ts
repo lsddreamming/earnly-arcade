@@ -18,6 +18,14 @@ export class RoomRuntime {
     this.grid=grid;this.capacity=capacity;
     if(!Number.isInteger(capacity)||capacity<1||capacity>100)throw new Error('Invalid capacity');
   }
+  get memberCount(){return this.#members.size;}
+  availableSpawn():XY {
+    const occupied=this.#occupied();
+    for(let y=0;y<this.grid.length;y++)for(let x=0;x<this.grid.width;x++){
+      if(this.grid.tile({x,y})?.walkable&&!occupied.has(tileKey({x,y})))return {x,y};
+    }
+    throw new Error('No free spawn');
+  }
   #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(m.movement.position)));}
   #broadcast(packet:Record<string,unknown>){for(const m of this.#members.values())m.send(packet);}
   join(identity:Identity,spawn:XY,send:Send){
