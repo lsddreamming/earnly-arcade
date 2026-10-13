@@ -75,3 +75,52 @@ npm run typecheck --prefix world-server
 ```
 
 Pause here for owner review. Next phase, only after review: persistent instance ownership and double-lock trades, then authenticated WSS room protocol. No migration from the draft implementation should be applied.
+
+## World foundation: room runtime and persistence
+
+`RoomRuntime` binds server-verified identities to movement controllers, sends room
+snapshots/deltas, and filters proximity chat/whispers before delivery. The transport
+adapter must validate sessions and room access, apply moderation/block lists, bound
+packet sizes, and call `tick()` on a 250ms server timer. The `gateway.ts` adapter now exposes `/world` WebSockets behind HTTPS. Send callbacks must handle disconnected sockets without throwing.
+
+`TradeSession` implements revisioned double-lock offers. The SQL migration persists
+rooms, decor definitions, unique item instances, trades and transfer history. Its
+service-only `world_trade_action` repeats both confirmations and ownership validation
+inside PostgreSQL, locks item rows in stable order, and transfers both sides atomically.
+A trade timeout must be reconciled by ID; never create a new trade to retry a commit.
+The database trade is authoritative; adapters must use its returned revision/locks.
+
+This phase does not enable catalog sales, room editing or public chat. Before launch:
+finish password/doorbell entry, moderation/reporting,
+server-validated placement, catalog purchase receipts, and the original pixel renderer.
+The player-facing destination is **World / Earnly Plaza**, separate from Games.
+
+
+### Running the first multiplayer worker
+
+The first adapter uses the pinned `ws` package and bounded JSON v1 packets instead
+of introducing Colyseus state schemas before the renderer exists. Room logic remains
+transport-independent. Run one worker only; multiple workers require coordinated
+room routing and shared membership reservations before scaling out.
+
+Set server-only `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `WORLD_ORIGINS`
+(comma-separated exact HTTPS origins). Run `npm ci --prefix world-server` then
+`npm start --prefix world-server`. The listener binds 127.0.0.1:8080 (override with
+`WORLD_PORT`) and requires a same-host TLS proxy for public WSS. Never put the
+service key into a frontend config, source file, URL or logs.
+
+After applying the migration, an administrator must seed a valid room. There are
+no public rooms automatically created and no purchases enabled by this migration.
+First packet: `{type:"JOIN",version:1,token:ACCESS_TOKEN,roomId:ROOM_UUID}`.
+Tokens travel inside WSS messages rather than URLs. Auth uses Supabase's user
+endpoint, then the service-only room RPC checks current account bans, profile and
+open/owner access. Password/doorbell rooms deny guests until admission is built.
+
+The gateway bounds frames to 8 KiB, limits each connection to 20 packets/second,
+requires authentication within five seconds, checks allowed origins, rejects
+parallel sessions for a player, uses ping/pong and revalidates accounts/room access
+every 15 seconds. Only movement is enabled on the wire. Chat/trade helpers exist,
+but their network intents remain disabled pending moderation and persistence wiring.
+Rooms stay cached for this worker's lifetime (100 distinct rooms maximum); production
+needs lifecycle-aware eviction and upstream connection/IP abuse controls. No claim
+of large-scale load readiness is made by the local two-client integration test.
