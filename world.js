@@ -35,6 +35,7 @@
   if(!/^wss:\/\//.test(endpoint))throw new Error('Secure World connection required');
   session=await window.EarnlyCloud?.session();if(!session){openPanel('Join Earnly World').append(note('Sign in to enter the plaza with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
   if(socket&&socket.readyState<2){const previous=socket;await new Promise(resolve=>{previous.addEventListener('close',resolve,{once:true});previous.close();setTimeout(resolve,1500);});}connected=false;$('connectionStatus').textContent='Connecting to your room…';
+  $('worldNote').textContent='Multiplayer beta · The first connection may take about a minute while the server wakes up.';
   const ws=new WebSocket(endpoint);socket=ws;
   ws.onopen=()=>ws.send(JSON.stringify({type:'JOIN',version:1,token:session.access_token,roomId}));
   ws.onmessage=e=>{if(socket!==ws)return;let p;try{p=JSON.parse(e.data);}catch{return;}
@@ -50,7 +51,7 @@
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
    $('peopleCount').textContent=renderer.users.size+' in the room';
   };
-  ws.onclose=()=>{if(socket!==ws)return;connected=false;$('connectionStatus').textContent='Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
+  ws.onclose=e=>{if(socket!==ws)return;connected=false;$('connectionStatus').textContent=e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
  }
  $('reconnect').onclick=()=>connect().catch(e=>toast(e.message));
