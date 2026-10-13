@@ -714,7 +714,7 @@ a{color:#93c5fd}
   transform:translateX(-50%);
   width:min(100%,520px);
   display:grid;
-  grid-template-columns:repeat(5,1fr);
+  grid-template-columns:repeat(6,minmax(0,1fr));
   gap:2px;
   padding:8px 8px max(8px,env(safe-area-inset-bottom));
   background:rgba(15,23,42,.96);
@@ -4332,7 +4332,7 @@ html.snake-game-active body{
     top:8px;
     z-index:44;
     display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr));
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:6px;
     margin:-2px 0 14px;
     padding:7px;

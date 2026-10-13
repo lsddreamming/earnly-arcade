@@ -1,0 +1,13 @@
+{$WORLD_DOMAIN} {
+  @world path /world /health
+  handle @world {
+    reverse_proxy world:8080
+  }
+  handle {
+    respond 404
+  }
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options "nosniff"
+  }
+}

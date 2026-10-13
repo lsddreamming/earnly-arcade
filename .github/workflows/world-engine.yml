@@ -1,16 +1,16 @@
 name: Earnly world grid engine
 on:
   pull_request:
-    paths: ['world-server/**', 'scripts/test-world-persistence.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
   push:
     branches: [main]
-    paths: ['world-server/**', 'scripts/test-world-persistence.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
 permissions:
   contents: read
 jobs:
   engine:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,3 +23,7 @@ jobs:
       - run: npm test --prefix world-server
       - run: npm ci --ignore-scripts
       - run: node scripts/test-world-persistence.mjs
+      - run: node scripts/test-world-features.mjs
+      - run: node scripts/test-world-network.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/test-world-browser.mjs
