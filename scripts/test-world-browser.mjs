@@ -50,10 +50,10 @@ try{
   await a.locator('[data-panel="staff"]').click();await a.getByRole('button',{name:'Say hello',exact:true}).click();await expect(a.locator('#panelTitle')).toContainText(role);await expect(a.locator('#panelContent')).toContainText('Staff NPC');
   await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a tip'}).click();await expect(a.locator('.staff-greeting')).toBeVisible();
   await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
-  // Tap actual seat sprite pixels, including the raised back, then use the visible Sit action.
+  // Tap actual seat sprite pixels, including the raised back, automatically walk over and sit without a dialog.
   const seatPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.canSit);const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y++)for(let x=ox-30;x<ox+40;x++)if(r.pickItem(x,y)?.id===i.id)return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};throw new Error('Seat sprite not found');});
   await a.locator('#worldCanvas').click({position:seatPoint});await expect(a.getByRole('button',{name:'Move',exact:true})).toHaveCount(0);
-  await a.getByRole('button',{name:'Sit',exact:true}).click();
+  await expect(a.locator('#worldPanel')).not.toBeVisible();
   await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000});
   await expect.poll(()=>a.evaluate(uid=>window.testWorldRenderer.users.get(uid)?.state,fixture.users[0])).toBe('sit');
   if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'-seated.png'});
