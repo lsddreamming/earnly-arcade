@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { RoomRuntime } from './room-runtime.ts';
 import type { Identity } from './room-runtime.ts';
 import type { XY } from './grid.ts';
+import {WorldAccessError} from './access-error.ts';
 
 export interface WorldAccess {
   /** Verify signature/session expiry AND current account eligibility. Never decode-only. */
@@ -18,7 +19,7 @@ export interface WorldAccess {
  * HTTPS server or trusted reverse proxy. Do not expose a plaintext listener publicly.
  * All actions are routed through the authenticated session and server adapters.
  */
-type GatewayOptions={joinTimeoutMs?:number;admissionTimeoutMs?:number;diagnostic?:(event:{event:string;stage:string})=>void};
+type GatewayOptions={joinTimeoutMs?:number;admissionTimeoutMs?:number;diagnostic?:(event:{event:string;stage:string;reason?:string})=>void};
 export function attachWorldGateway(server:Server,access:WorldAccess,origins:ReadonlySet<string>,options:GatewayOptions={}){
   if(!origins.size)throw new Error('An explicit origin allowlist is required');
   const wss=new WebSocketServer({noServer:true,maxPayload:8192,perMessageDeflate:false});
@@ -75,10 +76,15 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           room.join(resolvedIdentity,spawn,send);joined=true;clearTimeout(deadline);
           if(scene)send({type:'WELCOME',userId:identity.userId,roomId:roomId??p.roomId,scene,bootstrap});
           stage='admitted';diagnose('world_entry_ready');
-        }catch{
-          diagnose('world_entry_denied');
+        }catch(error){
+          const reason=error instanceof WorldAccessError?error.reason:undefined;
+          options.diagnostic?.({event:'world_entry_denied',stage,...(reason?{reason}:{})});
           if(reserved)reservations.delete(reserved);
-          active.delete(ws);ws.close(1008,'Entry denied');
+          active.delete(ws);
+          if(reason==='server_configuration')ws.close(1011,'World service configuration');
+          else if(reason==='sign_in_required')ws.close(4001,'Sign in required');
+          else if(reason==='confirmed_account_required')ws.close(4003,'Confirmed account required');
+          else ws.close(1008,'Entry denied');
         }
         return;
       }

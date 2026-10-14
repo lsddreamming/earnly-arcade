@@ -3,6 +3,7 @@ import type {ItemPlacement} from './grid.ts';
 import {RoomRuntime} from './room-runtime.ts';
 import type {Identity} from './room-runtime.ts';
 import type {WorldAccess} from './gateway.ts';
+import {WorldAccessError} from './access-error.ts';
 type Snapshot={roomId:string;username:string;name:string;ownerId:string|null;access:string;equipped:Record<string,unknown>;heightmap:string;revision:number;capacity:number;items:(ItemPlacement&{definitionId:string;sprite:string;color:string;name:string})[]};
 type Bootstrap={rooms:{id:string;ownerId:string|null}[];catalog:Record<string,any>[];items:Record<string,any>[];friends:Record<string,any>[]};
 /** Server-only credentials; never import into the website bundle. */
@@ -11,18 +12,22 @@ export class SupabaseWorldAccess implements WorldAccess {
   #rooms=new Map<string,RoomRuntime>();
   #queues=new Map<string,Promise<unknown>>();
   constructor(url:string,serviceKey:string){
-    const parsed=new URL(url);
-    if(parsed.protocol!=='https:'||!serviceKey)throw new Error('Secure Supabase configuration required');
-    this.#url=parsed.origin;this.#key=serviceKey;
+    const parsed=new URL(url.trim());
+    if(parsed.protocol!=='https:'||!serviceKey.trim())throw new Error('Secure Supabase configuration required');
+    this.#url=parsed.origin;this.#key=serviceKey.trim();
   }
   async #request(path:string,token:string,body?:unknown):Promise<any>{
     const response=await fetch(this.#url+path,{method:body===undefined?'GET':'POST',headers:{apikey:this.#key,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(4000)});
-    if(!response.ok){const rejected=await response.json().catch(()=>({}));const safeMessages=['Not enough Arcade Coins','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
+    if(!response.ok){const rejected=await response.json().catch(()=>({}));
+      // The gateway can reject the server API key while the player's JWT is valid.
+      if(response.headers.get('sb-error-code')==='UNAUTHORIZED_INVALID_API_KEY'||rejected.message==='Invalid API key')throw new WorldAccessError('server_configuration');
+      if(path==='/auth/v1/user'&&(response.status===401||response.status===403))throw new WorldAccessError('sign_in_required');
+      const safeMessages=['Not enough Arcade Coins','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
     return response.json();
   }
   async authenticate(token:string):Promise<Identity>{
     const user=await this.#request('/auth/v1/user',token);
-    if(typeof user?.id!=='string'||user.is_anonymous||!user.email_confirmed_at)throw new Error('Confirmed account required');
+    if(typeof user?.id!=='string'||user.is_anonymous||!user.email_confirmed_at)throw new WorldAccessError('confirmed_account_required');
     return {userId:user.id,username:user.id};
   }
   async #api(userId:string,action:string,data:unknown={}):Promise<any>{return this.#request('/rest/v1/rpc/world_api',this.#key,{p_actor:userId,p_action:action,p_data:data});}

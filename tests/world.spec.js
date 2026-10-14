@@ -13,3 +13,31 @@ test('World preview fits narrow screens and exposes catalog without enabling pur
  await expect(page.locator('#panelContent')).toContainText('stored here');
  expect(errors).toEqual([]);
 });
+
+
+test('World reports server configuration failure without asking players to sign in again',async({page})=>{
+ await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"test-player-token"})};'}));
+ await page.route('https://*.supabase.co/**',route=>route.fulfill({status:404,body:''}));
+ await page.addInitScript(()=>{
+  window.worldSockets=[];
+  window.WebSocket=class {
+   constructor(){this.readyState=0;window.worldSockets.push(this);}
+   close(){this.readyState=3;this.onclose?.({code:1000,reason:''});}
+   failConfig(){this.readyState=3;this.onclose?.({code:1011,reason:'World service configuration'});}
+  };
+ });
+ await page.goto('/world.html?multiplayer=1');
+ await expect(page.locator('#reconnect')).toBeDisabled();
+ await expect(page.locator('#connectionStatus')).toContainText('Connecting');
+ await page.locator('#reconnect').evaluate(button=>button.click());
+ expect(await page.evaluate(()=>window.worldSockets.length)).toBe(1);
+ await page.evaluate(()=>window.worldSockets[0].failConfig());
+ await expect(page.locator('#connectionStatus')).toContainText('Server setup needs attention');
+ await expect(page.locator('#connectionStatus')).not.toContainText('Sign in');
+ await expect(page.locator('#peopleCount')).toHaveText('Room preview');
+ await expect(page.locator('#reconnect')).toBeEnabled();
+ for(const selector of ['#worldCanvas','#reconnect','.world-tools']){
+  expect(await page.locator(selector).evaluate(el=>getComputedStyle(el).userSelect)).toBe('none');
+ }
+ expect(await page.locator('#sayText').evaluate(el=>getComputedStyle(el).userSelect)).toBe('text');
+});
