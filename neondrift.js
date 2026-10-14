@@ -22,7 +22,7 @@
     if(!running)return;audio.stop();audio.effect(state.time>=E.DURATION?'complete':'end');clearTimeout(settleTimer);settleTimer=setTimeout(()=>{if(!running&&!starting)audio.suspend();},1100);running=false;paused=false;cancelAnimationFrame(raf);resetInput();status('Run Over',false);el.driftCallout.hidden=true;el.driftMessage.hidden=true;
     const reward=E.rewards(state),coins=reward.total;let result={};
     localStorage.setItem('arcadeNeonDriftTopSector',String(Math.max(state.stage,Arcade.number('arcadeNeonDriftTopSector'))));
-    try{Arcade.earn(coins,'Neon Drift',{kind:'game',game,metric:state.score});}catch(err){console.error('Drift reward save failed',err);}
+    try{Arcade.earn(coins,'Neon Drift',{kind:'game',game,metric:state.score,aux:reward.bonus});}catch(err){console.error('Drift reward save failed',err);}
     try{result=Arcade.recordResult(game,state.score)||{};}catch(err){console.error('Drift result save failed',err);}
     chrome();
     Arcade.gameResult({game,icon:'🏁',title:state.time>=E.DURATION?'Midnight Run Complete':'Neon Drift Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:['🪙 Score Coins: '+reward.base+' · Bonus Coins: '+reward.bonus,'⚡ Pickups: '+state.cores+' · Clean sectors: '+state.cleanSectors,'🏁 Sector reached: '+state.stage+' / 6','🏁 Near misses: '+state.nearMisses,'⚡ Best combo: ×'+state.bestCombo,'↗ Drift time: '+Math.floor(state.drift)+'s','⏱️ Time played: '+Math.round(state.time)+'s'],onReplay:start,onMorePlays:()=>Arcade.out(game,chrome)});

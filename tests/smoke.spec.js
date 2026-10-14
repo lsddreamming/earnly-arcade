@@ -305,7 +305,7 @@ test('mobile catalog features Crystal Command above two-column arcade choices', 
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
-  await expect(cards).toHaveCount(23);
+  await expect(cards).toHaveCount(24);
   const featured = cards.first();
   await expect(featured).toHaveAttribute('data-game', 'crystalCommand');
   const feature = await featured.boundingBox();
@@ -522,7 +522,7 @@ test('all arcade games expose a consistent play balance', async ({ page }) => {
     localStorage.removeItem('arcadePlayDay');
     return Object.keys(Arcade.names).map(game => [game, Arcade.remaining(game)]);
   });
-  expect(balances.length).toBe(22);
+  expect(balances.length).toBe(23);
   for (const [game, plays] of balances) {
     expect(plays, game + ' should begin with three daily plays').toBe(3);
   }
@@ -2154,14 +2154,14 @@ test('repairs impossible daily coin counters and uses live catalog total', async
 
   await page.goto('/profile.html');
   const totalGames = await page.evaluate(() => Object.keys(Arcade.names).length);
-  expect(totalGames).toBe(22);
-  await expect(page.locator('#differentGames')).toContainText('/22');
+  expect(totalGames).toBe(23);
+  await expect(page.locator('#differentGames')).toContainText('/23');
 });
 
 
 test('global leaderboards expose all games and editable player identity', async ({ page }) => {
   await page.goto('/leaderboards.html');
-  await expect(page.locator('#gameSelect option')).toHaveCount(22);
+  await expect(page.locator('#gameSelect option')).toHaveCount(23);
   await expect(page.locator('#boardTitle')).toContainText('World Top 25');
   await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
 
@@ -2480,10 +2480,10 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   }
 });
 
-test('Crystal Command belongs to the 23-game catalog as a free searchable strategy beta', async ({page}) => {
+test('Crystal Command belongs to the 24-game catalog as a free searchable strategy beta', async ({page}) => {
   await page.goto('/games.html');
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(23);
-  await expect(page.locator('#gameBrowseCount')).toHaveText('23 games to explore');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(24);
+  await expect(page.locator('#gameBrowseCount')).toHaveText('24 games to explore');
   await page.locator('[data-filter=strategy]').click();
   const card=page.locator('#games [data-game=crystalCommand]');
   await expect(page.locator('#games .catalog-tile')).toHaveCount(1);

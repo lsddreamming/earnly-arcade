@@ -46,6 +46,7 @@ const Arcade = (() => {
     laneRunner: 'Lane Runner',
     safeCracker: 'Safe Cracker',
     neonDrift: 'Neon Drift',
+    turboKart: 'Turbo Kart',
     mergeRush: 'Merge Rush',
     perfectDrop: 'Perfect Drop',
     spiralDrop: 'Spiral Drop',
@@ -90,6 +91,7 @@ const Arcade = (() => {
     paddleRally: { key: 'paddleRallyBest', label: 'rallies', lower: false },
     laneRunner: { key: 'laneRunnerBest', label: 'seconds', lower: false },
     safeCracker: { key: 'safeCrackerBest', label: 'locks', lower: false },
+    turboKart: { key: 'turboKartBest', label: 'points', lower: false },
     neonDrift: { key: 'neonDriftBest', label: 'points', lower: false },
     mergeRush: { key: 'mergeRushBest', label: 'points', lower: false },
     perfectDrop: { key: 'perfectDropBest', label: 'hits', lower: false },
@@ -3326,7 +3328,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','neonmaze.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','turbo-kart.html','neonmaze.html','mini.html'
     ]);
 
     let active = file === 'index.html' ? 'home' : '';
@@ -3371,7 +3373,7 @@ const Arcade = (() => {
     const gameFiles = new Set([
       'games.html','leaderboards.html','snake.html','blockdrop.html','taprush.html','memory.html',
       'dodger.html','brickbreaker.html','junglehopper.html','towerstack.html',
-      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','neonmaze.html','mini.html'
+      'coincatch.html','colormatch.html','paddlerally.html','lanerunner.html','safecracker.html','stardefender.html','neonbreach.html','neondrift.html','turbo-kart.html','neonmaze.html','mini.html'
     ]);
 
     let active = file === 'index.html' ? 'home' : '';
@@ -3466,6 +3468,7 @@ const Arcade = (() => {
     'stardefender.html':'starDefender',
     'neonbreach.html':'neonBreach',
     'neondrift.html':'neonDrift',
+    'turbo-kart.html':'turboKart',
     'neonmaze.html':'neonMaze'
   };
 

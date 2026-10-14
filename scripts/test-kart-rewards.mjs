@@ -1,0 +1,23 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict';
+const read=p=>readFile(new URL('../'+p,import.meta.url),'utf8');
+const db=new PGlite();await db.exec(await read('tests/commerce-fixture.sql'));
+await db.exec(`CREATE ROLE service_role BYPASSRLS; ALTER TABLE coin_wallets ALTER balance SET DEFAULT 0;
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,client_event_id text,source_type text,source_label text,game text,metric integer,aux integer,amount integer,created_at timestamptz DEFAULT now(),UNIQUE(user_id,client_event_id));
+ALTER TABLE leaderboard_scores ADD CONSTRAINT leaderboard_scores_game_check CHECK(game IN ('snake','neonDrift'));
+`);
+await db.exec(await read('supabase/migrations/20261007183756_website_coin_checkout.sql'));
+await db.exec(await read('tests/kart-reward-baseline.sql'));
+const migration=await read('supabase/migrations/20261014225628_turbo_kart_rewards.sql');await db.exec(migration);await db.exec(migration);
+let n=0;const uid='00000000-0000-4000-8000-000000000001';await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);
+const claim=async(g,m,a=0,id='kart-event-'+(++n))=>(await db.query("select claim_coin_reward($1,'game',$2,$3,$4,null,'test') r",[id,g,m,a])).rows[0].r;
+for(let place=1;place<=5;place++){const r=await claim('turboKart',place,5);assert.equal(r.amount,[20,15,12,9,7][place-1]+5);}
+const first=await claim('turboKart',1,999,'kart-replay-0001');assert.equal(first.amount,25);const duplicate=await claim('turboKart',1,999,'kart-replay-0001');assert.equal(duplicate.duplicate,true);assert.equal(duplicate.wallet.balance,first.wallet.balance);
+await assert.rejects(claim('turboKart',0),/Invalid kart result/);await assert.rejects(claim('turboKart',6),/Invalid kart result/);
+for(let i=0;i<3;i++)await claim('turboKart',5);await assert.rejects(claim('turboKart',1),/Daily server reward limit/);
+for(const [game,metric,aux,expected]of [['neonDrift',2500,20,45],['neonDrift',400,7,11],['neonBreach',1500,10,10],['starDefender',1200,20,15],['neonMaze',90,1,15],['snake',9,0,3]])assert.equal((await claim(game,metric,aux)).amount,expected);
+const buy=(await db.query("select coin_play_action($1,'turboKart','11111111-1111-4111-8111-111111111111','buy') r",[uid])).rows[0].r;assert.equal(buy.remaining,3);
+const consumed=(await db.query("select coin_play_action($1,'turboKart','11111111-1111-4111-8111-111111111112','consume') r",[uid])).rows[0].r;assert.equal(consumed.remaining,2);
+await db.query("select set_config('request.jwt.claim.sub','',false)");await assert.rejects(claim('turboKart',1),/Sign in required/);
+console.log('PASS: kart placement/bonus caps, duplicates, daily cap, sign-in, paid plays, migration replay, and existing game reward parity.');await db.close();
