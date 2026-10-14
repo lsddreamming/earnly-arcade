@@ -89,7 +89,15 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
         return;
       }
       const session=active.get(ws);
-      if(!session||session.checking)return;
+      if(!session)return;
+      // Release membership before acknowledging: a proxy may delay the close frame.
+      // Keep the socket inert afterward so it cannot retain privileges or rejoin.
+      if(p.type==='LEAVE'){
+        if(busy){send({type:'ERROR',code:'ACTION_IN_PROGRESS'});return;}
+        active.delete(ws);reservations.delete(session.identity.userId);session.room.leave(session.identity.userId);
+        send({type:'LEFT'});ws.close(1000,'Left room');return;
+      }
+      if(session.checking)return;
       if(p.type==='MOVE_TO'||p.type==='INTERACT')session.room.receive(session.identity.userId,p,now);
       else if(p.type==='ACTION'&&access.perform){
         if(typeof p.requestId!=='string'||p.requestId.length>64||typeof p.action!=='string'||!p.data||typeof p.data!=='object'||Array.isArray(p.data)){ws.close(1008,'Invalid action');return;}

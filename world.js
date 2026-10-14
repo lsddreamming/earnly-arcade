@@ -49,7 +49,15 @@
   try{
   session=await window.EarnlyCloud?.session();if(!session){finishConnecting();openPanel('Join Earnly World').append(note('Sign in to enter the plaza with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
   const token=session.access_token;
-  if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise(resolve=>{previous.addEventListener('close',resolve,{once:true});previous.close();setTimeout(resolve,1500);});}connected=false;$('connectionStatus').textContent='Connecting to your room…';
+  if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise((resolve,reject)=>{
+    let timer;
+    const cleanup=()=>{clearTimeout(timer);previous.removeEventListener('message',onMessage);previous.removeEventListener('close',done);};
+    const done=()=>{cleanup();previous.close();resolve();};
+    const onMessage=e=>{try{if(JSON.parse(e.data).type==='LEFT')done();}catch{}};
+    previous.addEventListener('message',onMessage);previous.addEventListener('close',done,{once:true});
+    timer=setTimeout(()=>{cleanup();previous.close();reject(new Error('Room switch timed out. Tap Connect to retry.'));},6000);
+    if(previous.readyState===WebSocket.OPEN)previous.send(JSON.stringify({type:'LEAVE'}));else previous.close();
+   });}connected=false;$('connectionStatus').textContent='Connecting to your room…';
   $('worldNote').textContent='Multiplayer beta · The first connection may take about a minute while the server wakes up.';
   const ws=new WebSocket(endpoint);socket=ws;
   ws.onopen=()=>{if(socket===ws)ws.send(JSON.stringify({type:'JOIN',version:1,token,roomId}));};
