@@ -26,6 +26,7 @@ jobs:
       - run: node scripts/test-world-placement.mjs
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
+      - run: node scripts/test-world-rooms.mjs
       - run: node scripts/test-world-account-permissions.mjs
       - run: node scripts/test-world-network.mjs
       - run: npx playwright install --with-deps chromium

@@ -60,7 +60,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
         // A prompt JOIN is required, but authentication plus bootstrap and snapshot
         // can each take up to four seconds. First-time home entry also creates a room
         // and refreshes bootstrap, so allow those bounded requests to finish.
-        clearTimeout(deadline);deadline=setTimeout(expire,options.admissionTimeoutMs??(p.roomId==='home'?25000:15000));
+        clearTimeout(deadline);deadline=setTimeout(expire,options.admissionTimeoutMs??((p.roomId==='home'||p.roomId.startsWith('starter-'))?25000:15000));
         stage='authentication';
         let reserved:string|undefined;
         try{
@@ -84,6 +84,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           active.delete(ws);
           if(reason==='server_configuration')ws.close(1011,'World service configuration');
           else if(reason==='sign_in_required')ws.close(4001,'Sign in required');
+          else if(reason==='room_choice_required')ws.close(4004,'Choose your first room');
           else if(reason==='confirmed_account_required')ws.close(4003,'Confirmed account required');
           else ws.close(1008,'Entry denied');
         }

@@ -156,22 +156,41 @@
   draw(){const c=this.c,w=this.canvas.width,h=this.canvas.height;c.clearRect(0,0,w,h);if(!this.scene)return;const floor=this.scene.heightmap.split('\n'),n=floor[0].length,m=floor.length;
     this.scale=Math.min(w/((n+m)*18+70),h/((n+m)*9+150))*this.zoom;this.cx=w/2+(m-n)*9*this.scale+this.offset.x;this.cy=(h-(n+m)*9*this.scale)/2+44*this.scale+this.offset.y;c.save();c.translate(this.cx,this.cy);c.scale(this.scale,this.scale);c.imageSmoothingEnabled=false;
     const theme=this.scene.theme,outside=theme==='rooftop'||theme==='patio';
+    // Ground the floating room with a soft, inexpensive ambient shadow.
+    c.save();c.translate((n-m)*9,(n+m)*4.5+12);c.scale(1,.42);const ambient=c.createRadialGradient(0,0,15,0,0,(n+m)*10);ambient.addColorStop(0,'#030b20aa');ambient.addColorStop(1,'#030b2000');c.fillStyle=ambient;c.fillRect(-(n+m)*11,-(n+m)*11,(n+m)*22,(n+m)*22);c.restore();
     if(outside){
      c.fillStyle=theme==='rooftop'?'#19243c':'#405e58';c.fillRect(-m*18-10,-100,(n+m)*18+20,100);
      if(theme==='rooftop')for(let i=0;i<12;i++){const x=-m*18+i*36,height=24+(i*17)%55;c.fillStyle=i%2?'#293b57':'#324867';c.fillRect(x,-height,28,height);c.fillStyle='#d1b77d';for(let y=-height+7;y<-9;y+=12)c.fillRect(x+6,y,4,4);}
     }
     // Original mint/slate walls, window panels and neon lighting.
     if(!outside){
-    poly(c,[[0,0],[-m*18,m*9],[-m*18,m*9-58],[0,-58]],'#6d9397','#1d3b4d');poly(c,[[0,0],[n*18,n*9],[n*18,n*9-58],[0,-58]],'#91a5af','#284155');
-    for(let i=1;i<n-1;i+=3){const x=i*18,y=i*9;poly(c,[[x,y-43],[x+30,y-28],[x+30,y-10],[x,y-25]],'#234864','#cee5dc');poly(c,[[x+3,y-40],[x+27,y-28],[x+27,y-24],[x+3,y-36]],'#71e6d4');}
+    const leftWall=c.createLinearGradient(0,-58,-m*18,m*9);leftWall.addColorStop(0,'#527b89');leftWall.addColorStop(1,'#294c64');
+    const rightWall=c.createLinearGradient(0,-58,n*18,n*9);rightWall.addColorStop(0,'#8da3b9');rightWall.addColorStop(1,'#586b8b');
+    poly(c,[[0,0],[-m*18,m*9],[-m*18,m*9-58],[0,-58]],leftWall,'#203c53');poly(c,[[0,0],[n*18,n*9],[n*18,n*9-58],[0,-58]],rightWall,'#304359');
+    // Recessed wall panels and skirting add depth without covering the floor.
+    for(let i=1;i<m;i+=2){const x=-i*18,y=i*9;poly(c,[[x,y-46],[x-27,y-32.5],[x-27,y+6],[x,y-7.5]],'#16394d18','#8dcac21c');}
+    poly(c,[[0,-5],[-m*18,m*9-5],[-m*18,m*9],[0,0]],'#2b4558');poly(c,[[0,-5],[n*18,n*9-5],[n*18,n*9],[0,0]],'#40526d');
+    for(let i=1;i<n-1;i+=3){const x=i*18,y=i*9;poly(c,[[x,y-43],[x+30,y-28],[x+30,y-10],[x,y-25]],'#234864','#cee5dc');poly(c,[[x+3,y-40],[x+27,y-28],[x+27,y-24],[x+3,y-36]],'#71e6d4');poly(c,[[x+4,y-33],[x+26,y-22],[x+26,y-14],[x+4,y-25]],'#102d4e');poly(c,[[x+14,y-35],[x+15,y-34.5],[x+15,y-19],[x+14,y-19.5]],'#b4d6de');}
     poly(c,[[0,-55],[-m*18,m*9-55],[-m*18,m*9-52],[0,-52]],'#86f4d6');poly(c,[[0,-55],[n*18,n*9-55],[n*18,n*9-52],[0,-52]],'#c1adf2');
     }else{
      poly(c,[[0,0],[-m*18,m*9],[-m*18,m*9-16],[0,-16]],theme==='patio'?'#967e5d':'#65768f','#253b4c');
      poly(c,[[0,0],[n*18,n*9],[n*18,n*9-16],[0,-16]],theme==='patio'?'#b29a72':'#8391a7','#253b4c');
      for(let i=0;i<=n;i++){const x=i*18,y=i*9;c.fillStyle='#fae5a6';c.fillRect(x-2,y-24,4,5);c.fillRect(-x-2,y-24,4,5);}
     }
-    for(let y=0;y<m;y++)for(let x=0;x<n;x++){if(/[xX]/.test(floor[y][x]))continue;const z=Number(floor[y][x]),px=(x-y)*18,py=(x+y)*9-z*12;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],theme==='patio'?((x+y)%2?'#a8b58c':'#9cab80'):theme==='rooftop'?((x+y)%2?'#8993aa':'#7a869e'):theme==='lobby'?((x+y)%2?'#d4c2a4':'#c3b092'):((x+y)%2?'#b0b7aa':'#a5afa5'),'#8c9b9a');if(y===m-1||x===n-1){poly(c,[[px-18,py+9],[px,py+18],[px+18,py+9],[px+18,py+17],[px,py+26],[px-18,py+17]],'#54717b','#264655');}}
-    if(this.selected){const {x,y}=this.selected;if(x>=0&&y>=0&&x<n&&y<m){const px=(x-y)*18,py=(x+y)*9;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#7cf2ce88','#b9fff0');}}
+    const occupied=(x,y)=>x>=0&&y>=0&&x<n&&y<m&&!/[xX]/.test(floor[y][x]);
+    for(let y=0;y<m;y++)for(let x=0;x<n;x++){
+     if(!occupied(x,y))continue;
+     const z=Number(floor[y][x]),px=(x-y)*18,py=(x+y)*9-z*12;
+     const tint=theme==='patio'?((x+y)%2?'#adbb94':'#a2b28a'):theme==='rooftop'?((x+y)%2?'#929eb8':'#8490aa'):theme==='lobby'?((x+y)%2?'#dfceb2':'#d1bea0'):((x+y)%2?'#bdccca':'#afc2c1');
+     poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],tint,'#7e989f');
+     poly(c,[[px,py+1],[px+16,py+9],[px,py+17],[px-16,py+9]],'#ffffff06','#e9f8ec28');
+     if(x===0||y===0)poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#18344e18');
+     // Extrude every exposed edge, including L-shaped cutouts and courtyard holes.
+     if(!occupied(x,y+1))poly(c,[[px-18,py+9],[px,py+18],[px,py+26],[px-18,py+17]],'#436478','#203e54');
+     if(!occupied(x+1,y))poly(c,[[px,py+18],[px+18,py+9],[px+18,py+17],[px,py+26]],'#597c91','#29495e');
+    }
+
+    if(this.selected){const {x,y}=this.selected;if(occupied(x,y)){const px=(x-y)*18,py=(x+y)*9;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#7cf2ce88','#b9fff0');}}
     const preview=this.placement;
     if(preview){
      const check=this.placementResult();preview.valid=check.valid;preview.z=check.z;preview.reason=check.reason;
@@ -187,5 +206,10 @@
   }
  }
  function thumbnail(canvas,item){canvas.width=160;canvas.height=128;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.translate(80,(item.sprite||item.sprite_id)==='rug'?60:76);c.scale(1.5,1.5);decor(c,item,0,0);}
- window.EarnlyWorldRenderer={WorldRenderer,thumbnail};
+ function roomThumbnail(canvas,heightmap){
+  canvas.width=300;canvas.height=210;
+  const preview=Object.create(WorldRenderer.prototype);
+  Object.assign(preview,{canvas,c:canvas.getContext('2d'),scene:{heightmap,items:[]},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom:1,hit:[]});preview.draw();
+ }
+ window.EarnlyWorldRenderer={WorldRenderer,thumbnail,roomThumbnail};
 })();
