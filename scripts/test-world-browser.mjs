@@ -32,6 +32,15 @@ try{
   await a.locator('[data-panel="staff"]').click();await a.getByRole('button',{name:'Say hello',exact:true}).click();await expect(a.locator('#panelTitle')).toContainText(role);await expect(a.locator('#panelContent')).toContainText('Staff NPC');
   await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a tip'}).click();await expect(a.locator('.staff-greeting')).toBeVisible();
   await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
+  // Tap actual seat sprite pixels, including the raised back, then use the visible Sit action.
+  const seatPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.canSit);const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y++)for(let x=ox-30;x<ox+40;x++)if(r.pickItem(x,y)?.id===i.id)return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};throw new Error('Seat sprite not found');});
+  await a.locator('#worldCanvas').click({position:seatPoint});await expect(a.getByRole('button',{name:'Move',exact:true})).toHaveCount(0);
+  await a.getByRole('button',{name:'Sit',exact:true}).click();
+  await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000});
+  await expect.poll(()=>a.evaluate(uid=>window.testWorldRenderer.users.get(uid)?.state,fixture.users[0])).toBe('sit');
+  const floorPoint=await a.evaluate(()=>{const r=window.testWorldRenderer;for(let y=0;y<12;y++)for(let x=0;x<12;x++){const px=(x-y)*18,py=(x+y)*9+9;if(r.pickItem(px,py)||r.hit.some(h=>Math.abs(px-h.x)<15&&py>h.y-47&&py<h.y+4))continue;return {tile:{x,y},point:{x:r.cx+px*r.scale,y:r.cy+py*r.scale}};}throw new Error('No clear floor pixel');});
+  await a.locator('#worldCanvas').click({position:floorPoint.point});
+  await expect.poll(()=>a.evaluate(uid=>{const u=window.testWorldRenderer.users.get(uid);return [u.position.x,u.position.y,u.state];},fixture.users[0]),{timeout:15000}).toEqual([floorPoint.tile.x,floorPoint.tile.y,'std']);
   if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'.png'});
  }
  await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();

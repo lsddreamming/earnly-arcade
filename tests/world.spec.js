@@ -3,7 +3,10 @@ test('World preview fits narrow screens and exposes catalog without enabling pur
  await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.setViewportSize({width:320,height:740});await page.goto('/world.html');
- await expect(page.locator('#connectionStatus')).toContainText('Preview');
+ await expect(page.locator('#panelTitle')).toHaveText('Join Earnly World');
+ await expect(page.getByRole('link',{name:'Sign in',exact:true})).toHaveAttribute('href','account.html');
+ await page.getByRole('button',{name:'Close panel'}).click();
+ await expect(page.locator('#connectionStatus')).toContainText('Sign in');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
  await page.getByRole('button',{name:'Catalog',exact:false}).click();
  await expect(page.locator('.item-card')).toHaveCount(10);
@@ -26,7 +29,7 @@ test('World reports server configuration failure without asking players to sign 
    failConfig(){this.readyState=3;this.onclose?.({code:1011,reason:'World service configuration'});}
   };
  });
- await page.goto('/world.html?multiplayer=1');
+ await page.goto('/world.html');
  await expect(page.locator('#reconnect')).toBeDisabled();
  await expect(page.locator('#connectionStatus')).toContainText('Connecting');
  await page.locator('#reconnect').evaluate(button=>button.click());
@@ -63,7 +66,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
    }
   };
  });
- await page.goto('/world.html?multiplayer=1');await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.goto('/world.html');await expect(page.locator('#connectionStatus')).toContainText('Live');
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
  const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
  const distance=await page.evaluate(()=>144*window.testRenderer.scale);
