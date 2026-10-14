@@ -49,7 +49,25 @@ try{
  await a.getByRole('button',{name:'Backpack',exact:false}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button',{name:'Place',exact:true}).click();await a.locator('#placementHint').waitFor();
  // Tile is selected through the actual canvas, not by a direct API operation.
  const box=await a.locator('#worldCanvas').boundingBox();await a.locator('#worldCanvas').click({position:{x:box.width/2,y:box.height/2+30}});await a.locator('#worldToast').filter({hasText:'Placed in your room'}).waitFor();
+ // Furniture can be selected directly from its visible sprite, moved repeatedly,
+ // rotated in place, cancelled without a write, and returned to the Backpack.
+ const fern=()=>a.evaluate(()=>window.testWorldRenderer.scene.items.find(i=>i.name==='Moon Fern'));
+ const tapFern=async()=>{
+  await a.waitForTimeout(1100); // Respect the live action-rate limit between edits.
+  const point=await a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.name==='Moon Fern');return {x:r.cx+(i.x-i.y)*18*r.scale,y:r.cy+((i.x+i.y)*9-i.z*12-6)*r.scale};});
+  await a.locator('#worldCanvas').click({position:point});await expect(a.locator('#panelTitle')).toHaveText('Moon Fern');
+ };
+ const tapTile=async(x,y)=>{const point=await a.evaluate(({x,y})=>{const r=window.testWorldRenderer;return {x:r.cx+(x-y)*18*r.scale,y:r.cy+((x+y)*9+9)*r.scale};},{x,y});await a.locator('#worldCanvas').click({position:point});};
+ await tapFern();await a.getByRole('button',{name:'Move',exact:true}).click();await tapTile(2,2);
+ await expect.poll(async()=>{const i=await fern();return [i.x,i.y];}).toEqual([2,2]);
+ await tapFern();await a.getByRole('button',{name:'Rotate ↻',exact:true}).click();await expect.poll(async()=>(await fern()).rotation).toBe(2);
+ await tapFern();await a.getByRole('button',{name:'Move',exact:true}).click();await a.locator('#cancelPlace').click();
+ {const i=await fern();expect([i.x,i.y,i.rotation]).toEqual([2,2,2]);}
+ await tapFern();await a.getByRole('button',{name:'Move',exact:true}).click();await tapTile(3,2);
+ await expect.poll(async()=>{const i=await fern();return [i.x,i.y,i.rotation];}).toEqual([3,2,2]);
+ await tapFern();await a.getByRole('button',{name:'Return to Backpack',exact:true}).click();await expect.poll(fern).toBeUndefined();
+ await a.getByRole('button',{name:'Backpack',exact:false}).click();await expect(a.locator('.item-card').filter({hasText:'Moon Fern'})).toContainText('In Backpack');
  if(errors.length)throw new Error(errors.join(';'));
- console.log('Browser integration passed: two saved avatars, chat, catalog purchase, immediate trade-offer unlocks, personal room, Backpack placement.');
+ console.log('Browser integration passed: two saved avatars, chat, catalog purchase, trade-offer unlocks, personal room, placement, direct furniture selection, repeated movement, rotation, cancellation and pickup.');
 
 }finally{await browser.close();await gateway.close();await new Promise(r=>server.close(r));await fixture.close();await rm(tls,{recursive:true,force:true});}

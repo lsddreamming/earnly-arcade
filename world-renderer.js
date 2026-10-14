@@ -91,8 +91,16 @@
     new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();
     canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);this.drag={x:e.clientX,y:e.clientY,ox:this.offset.x,oy:this.offset.y,moved:false};});
     canvas.addEventListener('pointermove',e=>{if(this.drag){const dx=e.clientX-this.drag.x,dy=e.clientY-this.drag.y;if(Math.hypot(dx,dy)>8)this.drag.moved=true;if(this.drag.moved){this.offset={x:this.drag.ox+dx,y:this.drag.oy+dy};}}});
-    canvas.addEventListener('pointerup',e=>{if(this.drag&&!this.drag.moved){const r=canvas.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;const x=(px-this.cx)/this.scale,y=(py-this.cy)/this.scale;const person=[...this.hit].reverse().find(h=>Math.abs(x-h.x)<15&&y>h.y-47&&y<h.y+4);if(person)this.onTap({user:person.user});else{const tx=Math.floor((x/18+y/9)/2),ty=Math.floor((y/9-x/18)/2);this.selected={x:tx,y:ty};this.onTap({x:tx,y:ty});}}this.drag=null;});canvas.addEventListener('pointercancel',()=>this.drag=null);
+    canvas.addEventListener('pointerup',e=>{if(this.drag&&!this.drag.moved){const r=canvas.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;const x=(px-this.cx)/this.scale,y=(py-this.cy)/this.scale;const person=[...this.hit].reverse().find(h=>Math.abs(x-h.x)<15&&y>h.y-47&&y<h.y+4);if(person)this.onTap({user:person.user});else{const tx=Math.floor((x/18+y/9)/2),ty=Math.floor((y/9-x/18)/2);this.selected={x:tx,y:ty};this.onTap({x:tx,y:ty,item:this.pickItem(x,y)});}}this.drag=null;});canvas.addEventListener('pointercancel',()=>this.drag=null);
     this.running=true;const loop=()=>{if(!this.running)return;this.draw();requestAnimationFrame(loop);};requestAnimationFrame(loop);
+  }
+  pickItem(x,y){
+    // Hit-test the original sprite pixels, including tall decor above its floor tile.
+    const canvas=this.pickCanvas||(this.pickCanvas=document.createElement('canvas'));canvas.width=canvas.height=1;
+    const c=canvas.getContext('2d',{willReadFrequently:true});
+    const items=[...(this.scene?.items||[])].sort((a,b)=>(a.x+a.y+(a.width+a.length)/2)-(b.x+b.y+(b.width+b.length)/2));
+    for(const item of items.reverse()){c.clearRect(0,0,1,1);decor(c,item,(item.x-item.y)*18-x,(item.x+item.y)*9-item.z*12-y);if(c.getImageData(0,0,1,1).data[3]>0)return item;}
+    return null;
   }
   resize(){const r=this.canvas.getBoundingClientRect();this.canvas.width=Math.round(r.width);this.canvas.height=Math.round(r.height);this.c.imageSmoothingEnabled=false;}
   setScene(scene){this.scene=scene;this.offset={x:0,y:0};}

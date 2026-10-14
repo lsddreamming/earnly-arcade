@@ -14,7 +14,10 @@ const server=createServer((request,response)=>{
  if(request.url==='/health'){response.writeHead(200);response.end('{"status":"ok"}');}
  else{response.writeHead(404);response.end('{"error":"not_found"}');}
 });
-const gateway=attachWorldGateway(server,new SupabaseWorldAccess(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY),origins);
+const gateway=attachWorldGateway(server,new SupabaseWorldAccess(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY),origins,{
+ // Fixed event/stage labels only: never log tokens, account IDs, packets or raw errors.
+ diagnostic:event=>console.log(JSON.stringify(event))
+});
 const host=process.env.WORLD_BIND_HOST??'127.0.0.1';
 if(!['127.0.0.1','0.0.0.0'].includes(host))throw new Error('Invalid bind host');
 server.listen(port,host,()=>console.log('World server listening'));

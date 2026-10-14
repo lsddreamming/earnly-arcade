@@ -18,7 +18,8 @@ export interface WorldAccess {
  * HTTPS server or trusted reverse proxy. Do not expose a plaintext listener publicly.
  * All actions are routed through the authenticated session and server adapters.
  */
-export function attachWorldGateway(server:Server,access:WorldAccess,origins:ReadonlySet<string>){
+type GatewayOptions={joinTimeoutMs?:number;admissionTimeoutMs?:number;diagnostic?:(event:{event:string;stage:string})=>void};
+export function attachWorldGateway(server:Server,access:WorldAccess,origins:ReadonlySet<string>,options:GatewayOptions={}){
   if(!origins.size)throw new Error('An explicit origin allowlist is required');
   const wss=new WebSocketServer({noServer:true,maxPayload:8192,perMessageDeflate:false});
   const active=new Map<WebSocket,{token:string;identity:Identity;roomId:string;room:RoomRuntime;checking:boolean;alive:boolean}>();
@@ -30,7 +31,10 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
   server.on('upgrade',upgrade);
   wss.on('connection',ws=>{
     let authenticating=false,joined=false,busy=false,operations=0,windowStart=performance.now(),count=0;
-    const deadline=setTimeout(()=>ws.terminate(),5000);
+    let stage='awaiting_join';
+    const diagnose=(event:string)=>options.diagnostic?.({event,stage});
+    const expire=()=>{diagnose('world_entry_timeout');ws.close(1013,'Room loading timed out');};
+    let deadline=setTimeout(expire,options.joinTimeoutMs??5000);
     const send=(packet:Record<string,unknown>)=>{
       if(ws.readyState!==WebSocket.OPEN)return;
       if(ws.bufferedAmount>128*1024){ws.terminate();return;}
@@ -52,12 +56,17 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
       if(!joined){
         if(authenticating||p.type!=='JOIN'||p.version!==1||typeof p.token!=='string'||p.token.length<1||p.token.length>6000||typeof p.roomId!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(p.roomId)||Object.keys(p).some(k=>!['type','version','token','roomId'].includes(k))){ws.close(1008,'Invalid join');return;}
         authenticating=true;
+        // A prompt JOIN is required, but authentication plus bootstrap and snapshot
+        // can each take up to four seconds. Give those bounded requests their own budget.
+        clearTimeout(deadline);deadline=setTimeout(expire,options.admissionTimeoutMs??15000);
+        stage='authentication';
         let reserved:string|undefined;
         try{
           const identity=await access.authenticate(p.token);
           if(ws.readyState!==WebSocket.OPEN)return;
           if(reservations.has(identity.userId))throw new Error('Already connected');
           reserved=identity.userId;reservations.add(reserved);
+          stage='room_loading';
           const {room,spawn,username,roomId,equipped,scene,bootstrap}=await access.enter(identity,p.roomId);
           const resolvedIdentity={...identity,username:username??identity.username,equipped};
           if(ws.readyState!==WebSocket.OPEN){reservations.delete(reserved);return;}
@@ -65,7 +74,9 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           active.set(ws,{token:p.token,identity:resolvedIdentity,roomId:roomId??p.roomId,room,checking:false,alive:true});
           room.join(resolvedIdentity,spawn,send);joined=true;clearTimeout(deadline);
           if(scene)send({type:'WELCOME',userId:identity.userId,roomId:roomId??p.roomId,scene,bootstrap});
+          stage='admitted';diagnose('world_entry_ready');
         }catch{
+          diagnose('world_entry_denied');
           if(reserved)reservations.delete(reserved);
           active.delete(ws);ws.close(1008,'Entry denied');
         }
@@ -100,7 +111,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
       s.alive=false;ws.ping();
       if(s.checking)continue;
       s.checking=true;
-      void Promise.race([access.revalidate(s.token,s.identity,s.roomId),new Promise<boolean>(resolve=>{const timer=setTimeout(()=>resolve(false),5000);timer.unref();})])
+      void Promise.race([access.revalidate(s.token,s.identity,s.roomId),new Promise<boolean>(resolve=>{const timer=setTimeout(()=>resolve(false),10000);timer.unref();})])
         .then(ok=>{if(!ok)ws.close(1008,'Session expired');})
         .catch(()=>ws.close(1011,'Session unavailable'))
         .finally(()=>{s.checking=false;});

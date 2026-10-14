@@ -12,11 +12,20 @@
  function action(action,data={}){requireConnection();return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('Connection timed out. Refresh before retrying a purchase.'));},10000);pending.set(requestId,{resolve,reject,timer});socket.send(JSON.stringify({type:'ACTION',requestId,action,data}));});}
  async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();}
  const renderer=new EarnlyWorldRenderer.WorldRenderer($('worldCanvas'),async hit=>{
-  if(hit.user){showPlayer(hit.user);return;}if(!scene)return;const rows=scene.heightmap.split('\n');if(hit.x<0||hit.y<0||hit.y>=rows.length||hit.x>=rows[0].length||rows[hit.y][hit.x]==='x')return;
+  if(hit.user){showPlayer(hit.user);return;}if(!scene)return;
+  if(hit.item&&!placing&&connected&&scene.ownerId===userId){showDecor(hit.item);return;}
+  const rows=scene.heightmap.split('\n');if(hit.x<0||hit.y<0||hit.y>=rows.length||hit.x>=rows[0].length||rows[hit.y][hit.x]==='x')return;
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation});placing=null;showPlacement();await refresh();toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){scene=value;renderer.setScene(value);$('roomName').textContent=value.name||'Earnly Plaza';}
+ function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomName').textContent=value.name||'Earnly Plaza';$('stageTip').textContent=connected&&value.ownerId===userId?'Tap furniture to move or rotate · Drag to look around':'Tap to walk · Tap a potato to say hello';}
+ function beginPlacement(item,name){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');placing={...item,name};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;showPlacement();$('worldPanel').close();}
+ function showDecor(item){
+  if(!connected||scene.ownerId!==userId)return;
+  currentPanel='decor';const root=openPanel(item.name||'Room decor');
+  root.append(button('Move',()=>beginPlacement(item,item.name),'primary'),button('Rotate ↻',async()=>{await action('place',{itemId:item.id,x:item.x,y:item.y,rotation:(item.rotation+2)%8});await refresh();$('worldPanel').close();toast('Furniture rotated');}),button('Return to Backpack',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();$('worldPanel').close();toast('Returned to your Backpack');}));
+  if(item.canSit||item.canLay)root.append(button(item.canLay?'Lie down':'Sit',()=>{socket.send(JSON.stringify({type:'INTERACT',x:item.x,y:item.y,action:item.canLay?'lay':'sit'}));$('worldPanel').close();}));
+ }
  function showPlacement(){ $('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';}
  $('rotateItem').onclick=()=>{rotation=(rotation+2)%8;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{placing=null;showPlacement();};
  $('zoomIn').onclick=()=>renderer.zoom=Math.min(2.2,renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.zoom=Math.max(.6,renderer.zoom-.2);
@@ -51,7 +60,7 @@
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
    $('peopleCount').textContent=renderer.users.size+' in the room';
   };
-  ws.onclose=e=>{if(socket!==ws)return;connected=false;$('connectionStatus').textContent=e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
+  ws.onclose=e=>{if(socket!==ws)return;connected=false;placing=null;showPlacement();$('connectionStatus').textContent=e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
  }
  $('reconnect').onclick=()=>connect().catch(e=>toast(e.message));
@@ -70,7 +79,7 @@
  function showBackpack(){currentPanel='backpack';const root=openPanel('Your Backpack');if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in when the World opens to begin your collection.'));return;}
   root.append(note(scene.ownerId===userId?'Choose an item, then tap a tile in your room.':'Enter your own room to arrange your decor.'));
   const grid=el('div','catalog-grid');for(const item of bootstrap.items){const d=bootstrap.catalog.find(d=>d.id===item.definition_id);if(!d)continue;const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name),el('p','',`No. ${item.serial} · ${item.room_id?'Placed':'In Backpack'}`));
-   const place=button(item.room_id?'Move':'Place',()=>{placing={...item,name:d.name};rotation=0;showPlacement();$('worldPanel').close();});place.disabled=scene.ownerId!==userId||item.room_id&&item.room_id!==scene.roomId;card.append(place);
+   const place=button(item.room_id?'Move':'Place',()=>beginPlacement(item,d.name));place.disabled=scene.ownerId!==userId||item.room_id&&item.room_id!==scene.roomId;card.append(place);
    if(item.room_id===scene.roomId)card.append(button('Pick up',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));grid.append(card);
   }root.append(grid);if(!bootstrap.items.length)root.append(note('Your Backpack is empty. Find your first piece in the Catalog.'),button('Open Catalog',()=>showCatalog()));
  }
