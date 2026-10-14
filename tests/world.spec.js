@@ -66,7 +66,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.goto('/world.html?multiplayer=1');await expect(page.locator('#connectionStatus')).toContainText('Live');
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
  const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
- const distance=await page.evaluate(()=>180*window.testRenderer.scale);
+ const distance=await page.evaluate(()=>144*window.testRenderer.scale);
  let p=await point();await double(p);await expect(page.locator('#placementInstructions')).toContainText('Double-tap to drop');
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
  // The same pointer stream handles mouse and touch dragging; real touch pickup/drop is above.
