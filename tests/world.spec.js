@@ -9,7 +9,7 @@ test('World preview fits narrow screens and exposes catalog without enabling pur
  await expect(page.locator('#connectionStatus')).toContainText('Sign in');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
  await page.getByRole('button',{name:'Catalog',exact:false}).click();
- await expect(page.locator('.item-card')).toHaveCount(10);
+ await expect(page.locator('.item-card')).toHaveCount(22);
  await expect(page.locator('.item-card button').first()).toBeDisabled();
  await page.getByRole('button',{name:'Close panel'}).click();
  await page.getByRole('button',{name:'Backpack',exact:false}).click();
@@ -53,12 +53,13 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.addInitScript(()=>{
   const item={id:'owned-chair',name:'Arcade Chair',sprite:'chair',x:3,y:3,z:0,width:1,length:1,rotation:0,itemHeight:1,walkable:false,canStack:false,canSit:true,canLay:false};
   const scene={roomId:'my-room',name:'My room',ownerId:'owner',heightmap:Array(8).fill('00000000').join('\n'),items:[item]};
-  const bootstrap={items:[{id:item.id}],catalog:[],rooms:[],friends:[],balance:0};window.savedDrops=[];
+  const bootstrap={items:[{id:item.id}],catalog:[],rooms:[],friends:[],balance:0};window.savedDrops=[];window.seatRequests=[];
   window.WebSocket=class{
    static OPEN=1;
    constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}
    send(raw){const p=JSON.parse(raw),emit=x=>this.onmessage?.({data:JSON.stringify(x)});
     if(p.type==='JOIN'){emit({type:'WELCOME',userId:'owner',scene,bootstrap});emit({type:'ROOM_SNAPSHOT',users:[]});}
+    if(p.type==='INTERACT')window.seatRequests.push(p);
     if(p.type==='ACTION'){
      if(p.action==='place'){window.savedDrops.push(p.data);Object.assign(item,p.data);emit({type:'SCENE',scene});}
      emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?bootstrap:{}});
@@ -70,7 +71,12 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
  const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
  const distance=await page.evaluate(()=>144*window.testRenderer.scale);
- let p=await point();await double(p);await expect(page.locator('#placementInstructions')).toContainText('Double-tap to drop');
+ let p=await point();
+ if(isMobile)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
+ await expect.poll(()=>page.evaluate(()=>window.seatRequests.length)).toBe(1);
+ await expect(page.locator('#worldPanel')).not.toBeVisible();
+ await double(p);await expect(page.locator('#placementInstructions')).toContainText('Double-tap to drop');
+ expect(await page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
  // The same pointer stream handles mouse and touch dragging; real touch pickup/drop is above.
  await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x-distance,p.y,{steps:5});await page.mouse.up();
