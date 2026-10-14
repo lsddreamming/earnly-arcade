@@ -88,11 +88,11 @@
   const parts=window.EarnlyPotatoRig?.compose(equipped)||[];let drew=false;
   c.save();c.translate(Math.round(x),Math.round(y));c.fillStyle='#0b172a77';c.beginPath();c.ellipse(0,1,11,5,0,0,7);c.fill();
   if(user.facing==='left')c.scale(-1,1);
-  if(user.state==='sit')c.translate(0,7);if(user.state==='lay'){c.translate(-12,-10);c.rotate(Math.PI/2);}if(user.state==='wlk')c.translate(0,Math.sin(performance.now()/75)>0?-1:0);
+  if(user.state==='lay'){c.translate(-12,-10);c.rotate(Math.PI/2);}if(user.state==='wlk')c.translate(0,Math.sin(performance.now()/75)>0?-1:0);
   const key=JSON.stringify(parts.map(p=>p.imageUrl));let sprite=sprites.get(key);
   if(!sprite){const loaded=parts.map(p=>image(p.imageUrl));if(loaded.length&&loaded.every(i=>i?.complete&&i.naturalWidth)){sprite=document.createElement('canvas');sprite.width=32;sprite.height=48;const sc=sprite.getContext('2d');for(const img of loaded)sc.drawImage(img,0,0,32,48);sprites.set(key,sprite);}}
   if(user.isStaff){c.fillStyle=user.color;c.fillRect(-9,-22,18,19);c.fillStyle='#f4e7cb';c.fillRect(-8,-40,16,20);c.fillStyle='#263447';c.fillRect(-8,-44,16,6);c.fillRect(-4,-32,2,3);c.fillRect(4,-32,2,3);c.fillRect(-8,-4,6,5);c.fillRect(3,-4,6,5);c.fillStyle='#fff5db';c.fillRect(-5,-20,10,13);c.fillStyle='#dfb860';c.fillRect(5,-21,3,3);drew=true;}
-  if(sprite&&!user.isStaff){c.drawImage(sprite,-16,-46,32,48);drew=true;}
+  if(sprite&&!user.isStaff){if(user.state==='sit'){c.drawImage(sprite,0,0,32,34,-16,-38,32,30);c.drawImage(sprite,0,34,32,14,-12,-8,32,10);}else c.drawImage(sprite,-16,-46,32,48);drew=true;}
   if(!drew){c.fillStyle='#173f58';c.fillRect(-8,-20,16,17);c.fillStyle='#7ef0d6';c.fillRect(-8,-19,16,2);c.fillStyle='#ad855d';c.fillRect(-10,-37,20,19);c.fillStyle='#ecc898';c.fillRect(-8,-40,16,20);c.fillStyle='#fff3cf';c.fillRect(-5,-34,4,6);c.fillRect(3,-34,4,6);c.fillStyle='#1e495b';c.fillRect(-4,-32,2,4);c.fillRect(4,-32,2,4);c.fillStyle='#645448';c.fillRect(-2,-25,5,2);c.fillStyle='#73c292';c.fillRect(0,-44,3,5);c.fillStyle='#263447';c.fillRect(-8,-4,6,5);c.fillRect(3,-4,6,5);}
  c.restore();}
  class WorldRenderer{
