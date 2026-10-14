@@ -51,14 +51,14 @@
   try{session=await window.EarnlyCloud?.session();if(session){const res=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token}});if(res.ok){const data=await res.json();renderer.updateUser({userId,username:data.user.username||'You',equipped:data.user.equipped,position:{x:5,y:5,z:0}});}}}catch{}
  }
  function finishConnecting(){connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
- async function connect(roomId='plaza'){
+ async function connect(roomId=scene?.roomId||'home'){
   if(connecting)return;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
   if(!endpoint){toast('The World preview is ready. The multiplayer server is not live yet.');return;}
   if(!/^wss:\/\//.test(endpoint))throw new Error('Secure World connection required');
   connecting=true;$('reconnect').disabled=true;$('reconnect').textContent='Connecting…';
   try{
-  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();openPanel('Join Earnly World').append(note('Sign in to enter the plaza with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
+  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();openPanel('Join Earnly World').append(note('Sign in to start in your own room with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
   const token=session.access_token;
   if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise((resolve,reject)=>{
     let timer;

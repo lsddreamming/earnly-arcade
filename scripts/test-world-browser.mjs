@@ -24,7 +24,16 @@ try{
  await p.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={session:async()=>({access_token:${JSON.stringify(uid)}})};`}));
  await p.route('**/world-config.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyWorldConfig={endpoint:${JSON.stringify(origin.replace('https:','wss:')+'/world')}};`}));
  await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await p.locator('#connectionStatus').filter({hasText:'Live'}).waitFor();pages.push(p);}
- const [a,b]=pages;await a.locator('#peopleCount').filter({hasText:'2 in'}).waitFor();
+ const [a,b]=pages;
+ // First-time accounts spawn directly into their own private room.
+ for(const [index,p] of pages.entries()){
+  await expect(p.locator('#roomKind')).toHaveText('YOUR PERSONAL SPACE');
+  await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.ownerId)).toBe(fixture.users[index]);
+  await expect(p.locator('#peopleCount')).toHaveText('1 in the room');
+  await p.locator('[data-panel="rooms"]').click();await p.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
+  await expect(p.locator('#roomName')).toHaveText('Earnly Plaza');
+ }
+ await a.locator('#peopleCount').filter({hasText:'2 in'}).waitFor();
  // Visit each real persisted public room and interact through the visible staff UI.
  for(const [name,role] of [['Hotel Lobby','Receptionist'],['Rooftop Lounge','Bartender'],['Patio Hangout','Patio host']]){
   await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:name}).getByRole('button',{name:'Visit →'}).click();
