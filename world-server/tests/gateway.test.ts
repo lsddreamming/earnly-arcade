@@ -6,6 +6,7 @@ import {WebSocket} from 'ws';
 import {attachWorldGateway} from '../src/gateway.ts';
 import {RoomGrid,parseHeightmap} from '../src/grid.ts';
 import {RoomRuntime} from '../src/room-runtime.ts';
+import {setTimeout as delay} from 'node:timers/promises';
 
 test('real WebSocket connections require auth; joined users share server tick updates',async()=>{
  const server=createServer();const room=new RoomRuntime(new RoomGrid(parseHeightmap('000\n000')));
@@ -37,4 +38,42 @@ test('real WebSocket connections require auth; joined users share server tick up
    duplicate.send(JSON.stringify({type:'JOIN',version:1,token:'a',roomId:'plaza'}));
    assert.equal((await duplicateClosed)[0],1008);
  }finally{for(const ws of sockets)ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+
+test('room admission has a separate budget from receiving JOIN',async()=>{
+ const server=createServer();const room=new RoomRuntime(new RoomGrid(parseHeightmap('000\n000')));
+ const events:unknown[]=[];
+ const gateway=attachWorldGateway(server,{
+  authenticate:async()=>{await delay(150);return {userId:'slow',username:'Slow'};},
+  enter:async()=>{await delay(150);return {room,spawn:{x:0,y:0},scene:{name:'Test'},bootstrap:{}};},
+  revalidate:async()=>true
+ },new Set(['https://earnlyarcade.com']),{joinTimeoutMs:100,admissionTimeoutMs:1000,diagnostic:event=>events.push(event)});
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ const ws=new WebSocket(`ws://127.0.0.1:${(server.address() as {port:number}).port}/world`,{origin:'https://earnlyarcade.com'});
+ try{
+  await once(ws,'open');
+  const welcome=new Promise<any>((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(new Error('No welcome')),1500);
+   ws.on('message',data=>{const packet=JSON.parse(data.toString());if(packet.type==='WELCOME'){clearTimeout(timer);resolve(packet);}});
+  });
+  ws.send(JSON.stringify({type:'JOIN',version:1,token:'private-token',roomId:'plaza'}));
+  assert.equal((await welcome).userId,'slow');assert.equal(room.memberCount,1);
+  assert.deepEqual(events,[{event:'world_entry_ready',stage:'admitted'}]);
+ }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+
+test('stalled authentication closes with a retryable code and never admits a late result',async()=>{
+ const server=createServer();const events:unknown[]=[];let entered=false;
+ const gateway=attachWorldGateway(server,{
+  authenticate:async()=>{await delay(250);return {userId:'late',username:'Late'};},
+  enter:async()=>{entered=true;throw new Error('must not enter');},revalidate:async()=>true
+ },new Set(['https://earnlyarcade.com']),{joinTimeoutMs:500,admissionTimeoutMs:100,diagnostic:event=>events.push(event)});
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ const ws=new WebSocket(`ws://127.0.0.1:${(server.address() as {port:number}).port}/world`,{origin:'https://earnlyarcade.com'});
+ try{
+  await once(ws,'open');const closed=once(ws,'close');
+  ws.send(JSON.stringify({type:'JOIN',version:1,token:'private-token',roomId:'plaza'}));
+  assert.equal((await closed)[0],1013);await delay(200);assert.equal(entered,false);
+  assert.deepEqual(events,[{event:'world_entry_timeout',stage:'authentication'}]);
+ }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
