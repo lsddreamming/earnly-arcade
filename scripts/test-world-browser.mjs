@@ -26,11 +26,19 @@ try{
  await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await expect(p.locator('#panelTitle')).toHaveText('Choose your first room');
  await expect(p.locator('.room-layout-card')).toHaveCount(5);
  if(process.env.WORLD_TEST_SCREENSHOTS)await p.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/room-picker-'+pages.length+'.png'});
- await p.getByRole('button',{name:pages.length?'Corner Suite':'Cozy Studio',exact:true}).click();
+ await p.getByRole('button',{name:pages.length?'Split-Level Suite':'Cozy Studio',exact:true}).click();
  await p.getByRole('button',{name:/^Start in /}).click();
  await p.locator('#connectionStatus').filter({hasText:'Live'}).waitFor();
  if(process.env.WORLD_TEST_SCREENSHOTS)await p.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/starter-room-'+pages.length+'.png'});pages.push(p);}
  const [a,b]=pages;
+ // Walk down and back up the actual split-level room using projected floor clicks.
+ for(const target of [{x:3,y:12,z:0},{x:3,y:2,z:2}]){
+  const point=await b.evaluate(p=>{const r=window.testWorldRenderer;const x=(p.x-p.y)*18,y=(p.x+p.y)*9-p.z*12+9;const hit=r.floorAt(x,y);if(hit?.x!==p.x||hit?.y!==p.y)throw new Error('Raised floor hit mismatch');return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};},target);
+  await b.locator('#worldCanvas').click({position:point});
+  await expect.poll(()=>b.evaluate(uid=>window.testWorldRenderer.users.get(uid)?.position,fixture.users[1]),{timeout:15000}).toEqual(target);
+ }
+ if(process.env.WORLD_TEST_SCREENSHOTS)await b.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/split-level-stairs.png'});
+
  // First-time accounts spawn directly into their own private room.
  for(const [index,p] of pages.entries()){
   await expect(p.locator('#roomKind')).toHaveText('YOUR PERSONAL SPACE');

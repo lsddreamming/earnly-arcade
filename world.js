@@ -118,7 +118,7 @@
  }
  function showRoomCreator(first=false){
   currentPanel='room-create';const root=openPanel(first?'Choose your first room':'Create a room');
-  root.append(el('p','room-picker-intro',first?'Your own little world starts here. Pick a shape — every layout is free.':'More room for your ideas. Pick any layout, free.'));
+  root.append(el('p','room-picker-intro',first?'Choose 1×–5× the space of an 8 × 8 home. Every size is free, including the 3× split-level suite.':'Choose 1×–5× the space of an 8 × 8 home. Create any size for free.'));
   let selected=window.EarnlyWorldRooms[0],busy=false;
   const grid=el('div','room-layout-grid'),cards=[];
   for(const layout of window.EarnlyWorldRooms){
