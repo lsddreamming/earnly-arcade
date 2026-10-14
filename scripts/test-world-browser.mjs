@@ -25,6 +25,19 @@ try{
  await p.route('**/world-config.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyWorldConfig={endpoint:${JSON.stringify(origin.replace('https:','wss:')+'/world')}};`}));
  await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await p.locator('#connectionStatus').filter({hasText:'Live'}).waitFor();pages.push(p);}
  const [a,b]=pages;await a.locator('#peopleCount').filter({hasText:'2 in'}).waitFor();
+ // Visit each real persisted public room and interact through the visible staff UI.
+ for(const [name,role] of [['Hotel Lobby','Receptionist'],['Rooftop Lounge','Bartender'],['Patio Hangout','Patio host']]){
+  await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:name}).getByRole('button',{name:'Visit →'}).click();
+  await expect(a.locator('#roomName')).toHaveText(name);await expect(a.locator('#peopleCount')).toHaveText('1 in the room');
+  await a.locator('[data-panel="staff"]').click();await a.getByRole('button',{name:'Say hello',exact:true}).click();await expect(a.locator('#panelTitle')).toContainText(role);await expect(a.locator('#panelContent')).toContainText('Staff NPC');
+  await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a tip'}).click();await expect(a.locator('.staff-greeting')).toBeVisible();
+  await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
+  if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'.png'});
+ }
+ await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
+ await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBe(0);
+ await a.locator('#peopleCount').filter({hasText:'2 in'}).waitFor();
+
  for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
  await a.locator('#sayText').fill('Hello from my potato');await a.locator('#sayForm button').click();await b.getByRole('button',{name:'Chat',exact:false}).click();await b.locator('.chat-message').filter({hasText:'Hello from my potato'}).waitFor();await b.getByRole('button',{name:'Close panel'}).click();
  await a.getByRole('button',{name:'Catalog',exact:false}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button').click();await a.getByRole('button',{name:'Buy for ◇ 70'}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).waitFor();

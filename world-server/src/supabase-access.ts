@@ -1,3 +1,4 @@
+import {hangoutFor} from './public-hangouts.ts';
 import {RoomGrid,parseHeightmap} from './grid.ts';
 import type {ItemPlacement} from './grid.ts';
 import {RoomRuntime} from './room-runtime.ts';
@@ -5,7 +6,7 @@ import type {Identity} from './room-runtime.ts';
 import type {WorldAccess} from './gateway.ts';
 import {WorldAccessError} from './access-error.ts';
 type Snapshot={roomId:string;username:string;name:string;ownerId:string|null;access:string;equipped:Record<string,unknown>;heightmap:string;revision:number;capacity:number;items:(ItemPlacement&{definitionId:string;sprite:string;color:string;name:string})[]};
-type Bootstrap={rooms:{id:string;ownerId:string|null}[];catalog:Record<string,any>[];items:Record<string,any>[];friends:Record<string,any>[]};
+type Bootstrap={rooms:{id:string;name:string;ownerId:string|null}[];catalog:Record<string,any>[];items:Record<string,any>[];friends:Record<string,any>[]};
 /** Server-only credentials; never import into the website bundle. */
 export class SupabaseWorldAccess implements WorldAccess {
   #url:string;#key:string;
@@ -35,13 +36,13 @@ export class SupabaseWorldAccess implements WorldAccess {
   #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items,s.revision);}
   async enter(identity:Identity,roomId:string){
     const bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
-    if(roomId==='plaza')roomId=bootstrap.rooms.find(r=>r.ownerId===null)?.id??'';
+    if(roomId==='plaza')roomId=bootstrap.rooms.find(r=>r.ownerId===null&&r.name==='Earnly Plaza')?.id??'';
     const snapshot=await this.#snapshot(identity.userId,roomId);
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
-    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity);this.#rooms.set(roomId,room);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:snapshot,bootstrap};
+    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,hangoutFor(snapshot)?.staff);this.#rooms.set(roomId,room);}
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap};
   }
   async revalidate(token:string,identity:Identity,roomId:string){
     const current=await this.authenticate(token);if(current.userId!==identity.userId)return false;
@@ -53,7 +54,8 @@ export class SupabaseWorldAccess implements WorldAccess {
     // Recheck current permissions and suspensions before every write/read operation.
     await this.#snapshot(uid,roomId);
     let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
-    if(action==='place'){
+    if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
+    }else if(action==='place'){
       const previous=this.#queues.get(roomId)??Promise.resolve();
       const task=previous.catch(()=>{}).then(async()=>{
         room.paused=true;let safe=true;

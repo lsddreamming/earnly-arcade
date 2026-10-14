@@ -6,3 +6,5 @@
 /* Keep long presses on the room and controls out of iOS text selection. */
 :where(.world-app,.world-bottom,dialog),:where(.world-app,.world-bottom,dialog) *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+
+.room-card{padding:8px 12px;margin:10px 0;border:1px solid #496075;border-radius:12px;background:#1a2b3f}.room-card .muted{margin:4px 0}.staff-greeting{padding:16px;border-radius:12px;background:#263b4b;color:#fff1d3;line-height:1.6}.world-tools{grid-template-columns:repeat(6,minmax(0,1fr))}

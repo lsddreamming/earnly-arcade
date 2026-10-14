@@ -12,6 +12,7 @@
  function action(action,data={}){requireConnection();return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('Connection timed out. Refresh before retrying a purchase.'));},10000);pending.set(requestId,{resolve,reject,timer});socket.send(JSON.stringify({type:'ACTION',requestId,action,data}));});}
  async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();}
  const renderer=new EarnlyWorldRenderer.WorldRenderer($('worldCanvas'),async hit=>{
+  if(hit.staff){try{await showStaff(hit.staff);}catch(e){toast(e.message);}return;}
   if(hit.user){showPlayer(hit.user);return;}if(!scene)return;
   if(hit.item&&!connected){toast('Connect to World, then enter your own room to move furniture.');return;}
   if(hit.item&&!placing&&connected&&scene.ownerId===userId){showDecor(hit.item);return;}
@@ -19,7 +20,7 @@
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation});placing=null;showPlacement();await refresh();toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomName').textContent=value.name||'Earnly Plaza';$('stageTip').textContent=connected&&value.ownerId===userId?'Tap furniture to move or rotate · Drag to look around':'Tap to walk · Tap a potato to say hello';}
+ function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId?'YOUR PERSONAL SPACE':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Tap furniture to move or rotate · Drag to look around':'Tap to walk · Tap a potato to say hello';}
  function beginPlacement(item,name){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');placing={...item,name};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;showPlacement();$('worldPanel').close();}
  function showDecor(item){
   if(!connected||scene.ownerId!==userId)return;
@@ -63,11 +64,12 @@
   ws.onopen=()=>{if(socket===ws)ws.send(JSON.stringify({type:'JOIN',version:1,token,roomId}));};
   ws.onmessage=e=>{if(socket!==ws)return;let p;try{p=JSON.parse(e.data);}catch{return;}
    if(p.type==='RESULT'){const r=pending.get(p.requestId);if(r){clearTimeout(r.timer);pending.delete(p.requestId);p.error?r.reject(Object.assign(new Error(p.error),{definite:p.definite===true})):r.resolve(p.data);}return;}
-   if(p.type==='ROOM_SNAPSHOT')renderer.setUsers(p.users);
+   if(p.type==='NPC_SNAPSHOT')renderer.setStaff(p.staff);
+   else if(p.type==='ROOM_SNAPSHOT')renderer.setUsers(p.users);
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>renderer.updateUser(u));
-   else if(p.type==='WELCOME'){connected=true;finishConnecting();userId=p.userId;bootstrap=p.bootstrap;setScene(p.scene);$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
+   else if(p.type==='WELCOME'){connected=true;finishConnecting();userId=p.userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
@@ -99,10 +101,13 @@
   }root.append(grid);if(!bootstrap.items.length)root.append(note('Your Backpack is empty. Find your first piece in the Catalog.'),button('Open Catalog',()=>showCatalog()));
  }
  function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
-  for(const r of bootstrap.rooms)root.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));
+  root.append(note('Public hangouts are furnished and open to everyone. Staff NPCs stay at their posts; public decor stays here.'));
+  for(const r of bootstrap.rooms){const card=el('section','room-card');card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));const descriptions={'Hotel Lobby':'Velvet sofas · Reception with Pip','Rooftop Lounge':'City lights · Mocktail bar with Remy','Patio Hangout':'Garden seating · Patio host Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));root.append(card);}
   const form=el('form','panel-form'),input=el('input');input.placeholder='Name your new room';input.maxLength=40;input.required=true;const create=el('button','primary','Create');create.type='submit';form.append(input,create);form.onsubmit=async e=>{e.preventDefault();create.disabled=true;try{const r=await action('create_room',{name:input.value});await connect(r.roomId);}catch(err){toast(err.message);}finally{create.disabled=false;}};root.append(form,note('Up to 3 personal rooms. New rooms start closed to visitors.'));
   if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
  }
+ async function showStaff(staff){const reply=await action('staff_talk',{staffId:staff.staffId});currentPanel='staff';const root=openPanel(reply.name+' · '+reply.role);root.append(note('Staff NPC · Lives and works in this hangout'),el('p','staff-greeting',reply.greeting),button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a tip',()=>{const p=el('p','staff-greeting',reply.tip);root.replaceChildren(note('Staff NPC · '+reply.role),p,button('Explore rooms',()=>showRooms()));}),button('Explore rooms',()=>showRooms()));}
+ function showStaffList(){currentPanel='staff';const root=openPanel('Room staff');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button('Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  function showFriends(){currentPanel='friends';const root=openPanel('Friends');if(!connected){root.append(note('Accepted friends will appear here with online status and private messages.'));return;}
   for(const f of bootstrap.friends){const controls=f.accepted?[button('Message',()=>showPrivate(f)),button('Remove',async()=>{await action('friend_remove',{userId:f.userId});await refresh();showFriends();})]:f.incoming?[button('Accept',async()=>{await action('friend_accept',{userId:f.userId});await refresh();showFriends();})]:[];root.append(row(f.username+(f.accepted?(f.online?' · Online':' · Offline'):' · Request'),controls));}
   const form=el('form','panel-form'),input=el('input');input.placeholder='Friend’s username';input.maxLength=18;input.required=true;const submit=el('button','','Add');submit.type='submit';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();try{await action('friend_request',{username:input.value});await refresh();showFriends();toast('Friend request sent');}catch(err){toast(err.message);}};root.append(form,button('Refresh status',async()=>{await refresh();showFriends();}));
@@ -130,7 +135,7 @@
   const isA=(trade.player_a||trade.playerA)===userId,myLock=isA?trade.locked_a:trade.locked_b,myConfirmation=isA?trade.confirmed_a:trade.confirmed_b;const lock=button('Lock my offer',()=>perform('lock')),confirm=button(myConfirmation?'Waiting for partner':'Confirm exchange',()=>perform('confirm'),'primary');lock.disabled=!!myLock;confirm.disabled=!trade.locked_a||!trade.locked_b||!!myConfirmation;root.append(lock,confirm,button('Cancel trade',()=>perform('cancel')));
   root.append(note(`Your lock: ${(trade.player_a||trade.playerA)===userId?!!trade.locked_a:!!trade.locked_b} · Partner lock: ${(trade.player_a||trade.playerA)===userId?!!trade.locked_b:!!trade.locked_a}`));
  }
- const panels={rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
+ const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
  window.addEventListener('earnly-cloud-auth-change',()=>{if(socket)socket.close();connected=false;session=null;});
  preview().then(()=>{if(window.EarnlyWorldConfig?.endpoint)connect().catch(e=>toast(e.message));});
