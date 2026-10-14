@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {placementCheck} from '../world-placement-entry.js';
+const chair={id:'chair',x:1,y:1,z:0,width:1,length:1,rotation:0,itemHeight:1,walkable:false,canStack:false,canSit:true,canLay:false};
+const scene={heightmap:'0000\n0000\n0000\n000x',items:[chair]};
+assert.equal(placementCheck(scene,chair,{x:2,y:2,rotation:0}).valid,true);
+assert.equal(placementCheck(scene,chair,{x:3,y:3,rotation:0}).valid,false);
+assert.equal(placementCheck(scene,chair,{x:-1,y:0,rotation:0}).valid,false);
+assert.equal(placementCheck(scene,{...chair,width:2},{x:3,y:0,rotation:0}).valid,false);
+assert.equal(placementCheck(scene,{...chair,width:2},{x:3,y:0,rotation:2}).valid,true);
+assert.equal(placementCheck(scene,chair,{x:2,y:2,rotation:0},[{position:{x:2,y:2,z:0},state:'std'}]).valid,false);
+const occupied={...scene,items:[chair,{...chair,id:'other',x:2,y:2}]};
+assert.equal(placementCheck(occupied,chair,{x:2,y:2,rotation:0}).valid,false);
+const rug={...chair,id:'rug',x:2,y:2,canStack:true,walkable:true,itemHeight:.25};
+assert.deepEqual(placementCheck({...scene,items:[chair,rug]},chair,{x:2,y:2,rotation:0}),{valid:true,z:.25});
+const stacked={...scene,items:[{...chair,canStack:true},{...chair,id:'top',z:1}]};
+assert.equal(placementCheck(stacked,chair,{x:2,y:2,rotation:0}).valid,false);
+console.log('Placement preview passed: floor, bounds, full rotated footprint, occupants, overlap, stack height and unsupported-stack removal.');

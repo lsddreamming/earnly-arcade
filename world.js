@@ -15,21 +15,30 @@
   if(hit.staff){try{await showStaff(hit.staff);}catch(e){toast(e.message);}return;}
   if(hit.user){showPlayer(hit.user);return;}if(!scene)return;
   if(hit.item&&!connected){toast('Connect to World, then enter your own room to move furniture.');return;}
-  if(hit.item&&!placing&&connected&&scene.ownerId===userId){showDecor(hit.item);return;}
+  if(hit.item&&!placing&&connected&&scene.ownerId===userId){if(hit.doubleTap)beginPlacement(hit.item,hit.item.name,true);else showDecor(hit.item);return;}
   const rows=scene.heightmap.split('\n');if(hit.x<0||hit.y<0||hit.y>=rows.length||hit.x>=rows[0].length||rows[hit.y][hit.x]==='x')return;
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation});placing=null;showPlacement();await refresh();toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId?'YOUR PERSONAL SPACE':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Tap furniture to move or rotate · Drag to look around':'Tap to walk · Tap a potato to say hello';}
- function beginPlacement(item,name){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');placing={...item,name};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;showPlacement();$('worldPanel').close();}
+ function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId?'YOUR PERSONAL SPACE':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Double-tap furniture to move · Drag to look around':'Tap to walk · Tap a potato to say hello';}
+ function beginPlacement(item,name,gesture=false){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
  function showDecor(item){
   if(!connected||scene.ownerId!==userId)return;
   currentPanel='decor';const root=openPanel(item.name||'Room decor');
   root.append(button('Move',()=>beginPlacement(item,item.name),'primary'),button('Rotate ↻',async()=>{await action('place',{itemId:item.id,x:item.x,y:item.y,rotation:(item.rotation+2)%8});await refresh();$('worldPanel').close();toast('Furniture rotated');}),button('Return to Backpack',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();$('worldPanel').close();toast('Returned to your Backpack');}));
   if(item.canSit||item.canLay)root.append(button(item.canLay?'Lie down':'Sit',()=>{socket.send(JSON.stringify({type:'INTERACT',x:item.x,y:item.y,action:item.canLay?'lay':'sit'}));$('worldPanel').close();}));
  }
- function showPlacement(){ $('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';}
- $('rotateItem').onclick=()=>{rotation=(rotation+2)%8;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{placing=null;showPlacement();};
+ function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';}
+ $('rotateItem').onclick=()=>{if(renderer.placement?.saving)return;rotation=(rotation+2)%8;if(renderer.placement)renderer.placement.rotation=rotation;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{if(renderer.placement?.saving)return;placing=null;showPlacement();};
+ renderer.canEditItem=item=>connected&&scene?.ownerId===userId&&bootstrap.items.some(i=>i.id===item.id);
+ renderer.onPlacementDrop=async()=>{
+  const p=renderer.placement;if(!p||p.saving)return;
+  const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
+  p.saving=true;$('rotateItem').disabled=true;$('cancelPlace').disabled=true;
+  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation});if(renderer.placement===p){placing=null;showPlacement();await refresh();toast('Placed in your room');}}
+  catch(e){toast(e.message);}
+  finally{p.saving=false;$('rotateItem').disabled=false;$('cancelPlace').disabled=false;}
+ };
  $('zoomIn').onclick=()=>renderer.zoom=Math.min(2.2,renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.zoom=Math.max(.6,renderer.zoom-.2);
  $('closePanel').onclick=()=>$('worldPanel').close();
  $('worldPanel').addEventListener('click',e=>{if(e.target===$('worldPanel')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
@@ -137,6 +146,6 @@
  }
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
- window.addEventListener('earnly-cloud-auth-change',()=>{if(socket)socket.close();connected=false;session=null;});
+ window.addEventListener('earnly-cloud-auth-change',()=>{if(socket)socket.close();connected=false;session=null;placing=null;showPlacement();});
  preview().then(()=>{if(window.EarnlyWorldConfig?.endpoint)connect().catch(e=>toast(e.message));});
 })();

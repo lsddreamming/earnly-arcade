@@ -14,6 +14,7 @@ const excluded = new Set([
   'coin-sandbox.html',
   'coin-sandbox.js',
   'native-ads-entry.js',
+  'world-placement-entry.js',
   'native-purchases-entry.js',
   'crystal-command-client-entry.js',
   'playwright.config.js',

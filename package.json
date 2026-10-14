@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
+    "build:world-placement": "esbuild world-placement-entry.js --bundle --format=iife --global-name=EarnlyWorldPlacement --minify --outfile=world-placement.js",
     "test:contracts": "playwright test -c playwright.contract.config.js",
     "test:mobile": "playwright test --project=mobile-webkit",
     "test:smoke": "playwright test tests/smoke.spec.js",

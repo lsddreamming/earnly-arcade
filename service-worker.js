@@ -1,5 +1,5 @@
-const CACHE_NAME = 'earnly-world-preview-20261013';const CORE_ASSETS = [
- './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js',
+const CACHE_NAME = 'earnly-world-furniture-20261014';const CORE_ASSETS = [
+ './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-placement.js',
  './shop-polish.css',
  './coin-pack-starter.svg','./coin-pack-plus.svg','./coin-pack-vault.svg',
  './shop-two.css','./shop-bundles.js','./shop-two.js','./shop-presence.js','./battle-style.js',
