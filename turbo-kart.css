@@ -12,3 +12,5 @@ body.kart-page main.container .earnly-session-dock>[hidden]{display:none!importa
 @media(max-height:480px) and (orientation:landscape){body.kart-page.game-active main.container.kart-shell{width:100%!important;max-width:900px!important;grid-template-columns:minmax(0,1fr) 220px}}
 
 body.kart-page.game-active .public-footer{display:none!important}
+/* The shared touch layout hides legacy Start buttons; this game has its own overlay. */
+body.kart-page #kartMessage #startButton{display:block!important}
