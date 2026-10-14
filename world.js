@@ -51,7 +51,7 @@
   try{session=await window.EarnlyCloud?.session();if(session){const res=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token}});if(res.ok){const data=await res.json();renderer.updateUser({userId,username:data.user.username||'You',equipped:data.user.equipped,position:{x:5,y:5,z:0}});}}}catch{}
  }
  function finishConnecting(){connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
- async function connect(roomId=scene?.roomId||'home'){
+ async function connect(roomId=scene?.roomId||'choose-home'){
   if(connecting)return;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
   if(!endpoint){toast('The World preview is ready. The multiplayer server is not live yet.');return;}

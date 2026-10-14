@@ -36,13 +36,13 @@ export class SupabaseWorldAccess implements WorldAccess {
   #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items,s.revision);}
   async enter(identity:Identity,roomId:string){
     let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
-    if(roomId==='home'||roomId.startsWith('starter-')){
+    if(roomId==='home'||roomId==='choose-home'||roomId.startsWith('starter-')){
       const home=bootstrap.rooms.find(r=>r.ownerId===identity.userId);
       if(home)roomId=home.id;
-      else if(roomId==='home')throw new WorldAccessError('room_choice_required');
+      else if(roomId==='choose-home')throw new WorldAccessError('room_choice_required');
       else{
-        const layout=roomId.slice(8);
-        if(!['studio','square','loft','corner','courtyard'].includes(layout))throw new Error('Invalid room layout');
+        const layout=roomId==='home'?'classic':roomId.slice(8);
+        if(!['classic','studio','square','loft','corner','courtyard'].includes(layout))throw new Error('Invalid room layout');
         const created=await this.#api(identity.userId,'create_room',{name:'My Room',layout,firstRoom:true});
         roomId=created.roomId;
         bootstrap=await this.#api(identity.userId,'bootstrap');
