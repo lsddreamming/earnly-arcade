@@ -38,6 +38,7 @@ try{
   await a.getByRole('button',{name:'Sit',exact:true}).click();
   await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000});
   await expect.poll(()=>a.evaluate(uid=>window.testWorldRenderer.users.get(uid)?.state,fixture.users[0])).toBe('sit');
+  if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'-seated.png'});
   const floorPoint=await a.evaluate(()=>{const r=window.testWorldRenderer;for(let y=0;y<12;y++)for(let x=0;x<12;x++){const px=(x-y)*18,py=(x+y)*9+9;if(r.pickItem(px,py)||r.hit.some(h=>Math.abs(px-h.x)<15&&py>h.y-47&&py<h.y+4))continue;return {tile:{x,y},point:{x:r.cx+px*r.scale,y:r.cy+py*r.scale}};}throw new Error('No clear floor pixel');});
   await a.locator('#worldCanvas').click({position:floorPoint.point});
   await expect.poll(()=>a.evaluate(uid=>{const u=window.testWorldRenderer.users.get(uid);return [u.position.x,u.position.y,u.state];},fixture.users[0]),{timeout:15000}).toEqual([floorPoint.tile.x,floorPoint.tile.y,'std']);
