@@ -24,6 +24,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
+      - run: node scripts/test-world-account-permissions.mjs
       - run: node scripts/test-world-network.mjs
       - run: npx playwright install --with-deps chromium
       - run: node scripts/test-world-browser.mjs
