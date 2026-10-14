@@ -1,6 +1,6 @@
 (()=>{'use strict';
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
- let socket=null,connected=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer;
+ let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer;
  const pending=new Map();
  const demoCatalog=[['mint-sofa','Mint Cloud Sofa','sofa',180,'#59dcc5',2,1],['rose-sofa','Rose Cloud Sofa','sofa',180,'#f599bd',2,1],['arcade-chair','Arcade Chair','chair',60,'#799ff5',1,1],['low-table','Orbit Table','table',80,'#e1b786',1,1],['fern','Moon Fern','plant',70,'#64c786',1,1],['neon-lamp','Neon Tube Lamp','lamp',90,'#c293f3',1,1],['arcade-cabinet','Pocket Arcade Cabinet','arcade',450,'#f6c35e',1,1],['cloud-bed','Cloud Bed','bed',250,'#8cbbf4',1,2],['mint-rug','Mint Tile Rug','rug',40,'#61bfbb',2,2],['star-trophy','First Light Trophy','trophy',600,'#f8d46a',1,1]].map(([id,name,sprite_id,price,color,width,length])=>({id,name,sprite_id,price,color,width,length,category:sprite_id==='arcade'?'Arcade':sprite_id==='trophy'?'Collectors':'Neon Living',supply_limit:sprite_id==='trophy'?250:null,minted:0}));
  function toast(text){$('worldToast').textContent=text;$('worldToast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('worldToast').hidden=true,4200);}
@@ -13,6 +13,7 @@
  async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();}
  const renderer=new EarnlyWorldRenderer.WorldRenderer($('worldCanvas'),async hit=>{
   if(hit.user){showPlayer(hit.user);return;}if(!scene)return;
+  if(hit.item&&!connected){toast('Connect to World, then enter your own room to move furniture.');return;}
   if(hit.item&&!placing&&connected&&scene.ownerId===userId){showDecor(hit.item);return;}
   const rows=scene.heightmap.split('\n');if(hit.x<0||hit.y<0||hit.y>=rows.length||hit.x>=rows[0].length||rows[hit.y][hit.x]==='x')return;
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation});placing=null;showPlacement();await refresh();toast('Placed in your room');}catch(e){toast(e.message);}return;}
@@ -38,30 +39,36 @@
   $('connectionStatus').textContent='Preview · Explore the look while multiplayer is prepared';$('worldNote').textContent='Room preview only. Changes are not saved and purchases are disabled.';
   try{session=await window.EarnlyCloud?.session();if(session){const res=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token}});if(res.ok){const data=await res.json();renderer.updateUser({userId,username:data.user.username||'You',equipped:data.user.equipped,position:{x:5,y:5,z:0}});}}}catch{}
  }
+ function finishConnecting(){connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
  async function connect(roomId='plaza'){
+  if(connecting)return;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
   if(!endpoint){toast('The World preview is ready. The multiplayer server is not live yet.');return;}
   if(!/^wss:\/\//.test(endpoint))throw new Error('Secure World connection required');
-  session=await window.EarnlyCloud?.session();if(!session){openPanel('Join Earnly World').append(note('Sign in to enter the plaza with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
-  if(socket&&socket.readyState<2){const previous=socket;await new Promise(resolve=>{previous.addEventListener('close',resolve,{once:true});previous.close();setTimeout(resolve,1500);});}connected=false;$('connectionStatus').textContent='Connecting to your room…';
+  connecting=true;$('reconnect').disabled=true;$('reconnect').textContent='Connecting…';
+  try{
+  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();openPanel('Join Earnly World').append(note('Sign in to enter the plaza with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
+  const token=session.access_token;
+  if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise(resolve=>{previous.addEventListener('close',resolve,{once:true});previous.close();setTimeout(resolve,1500);});}connected=false;$('connectionStatus').textContent='Connecting to your room…';
   $('worldNote').textContent='Multiplayer beta · The first connection may take about a minute while the server wakes up.';
   const ws=new WebSocket(endpoint);socket=ws;
-  ws.onopen=()=>ws.send(JSON.stringify({type:'JOIN',version:1,token:session.access_token,roomId}));
+  ws.onopen=()=>{if(socket===ws)ws.send(JSON.stringify({type:'JOIN',version:1,token,roomId}));};
   ws.onmessage=e=>{if(socket!==ws)return;let p;try{p=JSON.parse(e.data);}catch{return;}
    if(p.type==='RESULT'){const r=pending.get(p.requestId);if(r){clearTimeout(r.timer);pending.delete(p.requestId);p.error?r.reject(Object.assign(new Error(p.error),{definite:p.definite===true})):r.resolve(p.data);}return;}
    if(p.type==='ROOM_SNAPSHOT')renderer.setUsers(p.users);
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>renderer.updateUser(u));
-   else if(p.type==='WELCOME'){connected=true;userId=p.userId;bootstrap=p.bootstrap;setScene(p.scene);$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
+   else if(p.type==='WELCOME'){connected=true;finishConnecting();userId=p.userId;bootstrap=p.bootstrap;setScene(p.scene);$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
-   $('peopleCount').textContent=renderer.users.size+' in the room';
+   if(connected)$('peopleCount').textContent=renderer.users.size+' in the room';
   };
-  ws.onclose=e=>{if(socket!==ws)return;connected=false;placing=null;showPlacement();$('connectionStatus').textContent=e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
+  ws.onclose=e=>{if(socket!==ws)return;connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
+  }catch(error){finishConnecting();throw error;}
  }
  $('reconnect').onclick=()=>connect().catch(e=>toast(e.message));
  function showCatalog(category='All'){

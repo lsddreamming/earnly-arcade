@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {WorldAccessError} from '../src/access-error.ts';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
@@ -75,5 +76,22 @@ test('stalled authentication closes with a retryable code and never admits a lat
   ws.send(JSON.stringify({type:'JOIN',version:1,token:'private-token',roomId:'plaza'}));
   assert.equal((await closed)[0],1013);await delay(200);assert.equal(entered,false);
   assert.deepEqual(events,[{event:'world_entry_timeout',stage:'authentication'}]);
+ }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+
+
+test('configuration failures never blame the player or admit them, and diagnostics contain fixed labels only',async()=>{
+ const server=createServer();const events:unknown[]=[];let entered=false;
+ const gateway=attachWorldGateway(server,{
+  authenticate:async()=>{throw new WorldAccessError('server_configuration');},
+  enter:async()=>{entered=true;throw new Error('must not enter');},revalidate:async()=>false
+ },new Set(['https://earnlyarcade.com']),{diagnostic:event=>events.push(event)});
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ const ws=new WebSocket(`ws://127.0.0.1:${(server.address() as {port:number}).port}/world`,{origin:'https://earnlyarcade.com'});
+ try{
+  await once(ws,'open');const closed=once(ws,'close');
+  ws.send(JSON.stringify({type:'JOIN',version:1,token:'private-player-token',roomId:'plaza'}));
+  const [code,reason]=await closed;assert.equal(code,1011);assert.equal(reason.toString(),'World service configuration');assert.equal(entered,false);
+  assert.deepEqual(events,[{event:'world_entry_denied',stage:'authentication',reason:'server_configuration'}]);
  }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
