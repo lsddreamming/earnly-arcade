@@ -3,6 +3,7 @@ const TurboKartRenderer=(()=>{
  function create(canvas){let ctx=canvas.getContext('2d');const E=TurboKartEngine;let background=null;
  const scenery=Array.from({length:75},(_,i)=>({x:Math.sin(i*29.7)*640,y:Math.cos(i*13.1)*520,size:10+(i%5)*4}));
  function path(){ctx.beginPath();E.points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();}
+ function roundRect(x,y,w,h,r){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
  function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
  function label(text,x,y,size,color){ctx.fillStyle=color;ctx.font=`800 ${size}px system-ui`;ctx.textAlign='center';ctx.fillText(text,x,y);}
  function render(s,{idle=false}={}){
@@ -29,11 +30,11 @@ ctx=display;}
  for(let i=4;i>=0;i--){const r=s.racers[i],t=E.sample(r.d,r.lane);ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.angle+(i===0&&s.wasDrifting?Math.sign(r.lane)*.23:0));
  if(r.boost>0){ctx.fillStyle='#b8ff70';ctx.beginPath();ctx.moveTo(-14,-7);ctx.lineTo(-30-Math.sin(s.time*30)*6,0);ctx.lineTo(-14,7);ctx.fill();}
  if(r.shield>0){ctx.strokeStyle='#a3e9ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,24,0,7);ctx.stroke();}
- ctx.fillStyle='#142b30';ctx.fillRect(-14,-14,9,7);ctx.fillRect(6,-14,8,7);ctx.fillRect(-14,7,9,7);ctx.fillRect(6,7,8,7);ctx.fillStyle=r.color;ctx.beginPath();ctx.roundRect(-17,-9,35,18,6);ctx.fill();ctx.fillStyle='#21494c';ctx.fillRect(5,-7,5,14);circle(-3,0,7,'#f1c69a');circle(-2,0,5,i?'#334b58':'#faf4df');ctx.fillStyle='#eef7dc';ctx.fillRect(15,-7,3,4);ctx.fillRect(15,3,3,4);ctx.restore();
+ ctx.fillStyle='#142b30';ctx.fillRect(-14,-14,9,7);ctx.fillRect(6,-14,8,7);ctx.fillRect(-14,7,9,7);ctx.fillRect(6,7,8,7);ctx.fillStyle=r.color;ctx.beginPath();roundRect(-17,-9,35,18,6);ctx.fill();ctx.fillStyle='#21494c';ctx.fillRect(5,-7,5,14);circle(-3,0,7,'#f1c69a');circle(-2,0,5,i?'#334b58':'#faf4df');ctx.fillStyle='#eef7dc';ctx.fillRect(15,-7,3,4);ctx.fillRect(15,3,3,4);ctx.restore();
  label(r.name,t.x,t.y-27,9,i?'#e2eee3':'#beff83');if(i===0){ctx.fillStyle='#b8ff70';ctx.beginPath();ctx.moveTo(t.x-4,t.y-23);ctx.lineTo(t.x+4,t.y-23);ctx.lineTo(t.x,t.y-18);ctx.fill();}}
  ctx.restore();
  if(!idle){ // Whole-course minimap keeps upcoming turns legible with the follow camera.
- const mw=100,mh=80;ctx.save();ctx.translate(12,12);ctx.fillStyle='#082a32df';ctx.beginPath();ctx.roundRect(0,0,mw,mh,10);ctx.fill();ctx.translate(mw/2,mh/2);ctx.scale(.105,.105);path();ctx.strokeStyle='#7faca4';ctx.lineWidth=17;ctx.stroke();for(let i=4;i>=0;i--){const t=E.sample(s.racers[i].d);circle(t.x,t.y,i?19:28,s.racers[i].color);}ctx.restore();}
+ const mw=100,mh=80;ctx.save();ctx.translate(12,12);ctx.fillStyle='#082a32df';ctx.beginPath();roundRect(0,0,mw,mh,10);ctx.fill();ctx.translate(mw/2,mh/2);ctx.scale(.105,.105);path();ctx.strokeStyle='#7faca4';ctx.lineWidth=17;ctx.stroke();for(let i=4;i>=0;i--){const t=E.sample(s.racers[i].d);circle(t.x,t.y,i?19:28,s.racers[i].color);}ctx.restore();}
  }
  return {render};
  }return {create};

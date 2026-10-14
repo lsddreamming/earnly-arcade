@@ -7,9 +7,9 @@
   for(let i=0;i<anchors.length;i++)for(let j=0;j<50;j++){
     const a=anchors[(i+anchors.length-1)%anchors.length],b=anchors[i],c=anchors[(i+1)%anchors.length],d=anchors[(i+2)%anchors.length],t=j/50;
     const p={};for(const [k,n]of [['x',0],['y',1]])p[k]=.5*(2*b[n]+(-a[n]+c[n])*t+(2*a[n]-5*b[n]+4*c[n]-d[n])*t*t+(-a[n]+3*b[n]-3*c[n]+d[n])*t*t*t);
-    if(points.length)length+=Math.hypot(p.x-points.at(-1).x,p.y-points.at(-1).y);p.d=length;points.push(p);
+    if(points.length)length+=Math.hypot(p.x-points[points.length-1].x,p.y-points[points.length-1].y);p.d=length;points.push(p);
   }
-  length+=Math.hypot(points[0].x-points.at(-1).x,points[0].y-points.at(-1).y);
+  length+=Math.hypot(points[0].x-points[points.length-1].x,points[0].y-points[points.length-1].y);
   function sample(distance,offset=0){const d=((distance%length)+length)%length;let lo=0,hi=points.length-1;while(lo<hi){const m=Math.ceil((lo+hi)/2);if(points[m].d<=d)lo=m;else hi=m-1;}
     const a=points[lo],b=points[(lo+1)%points.length],span=(lo===points.length-1?length:b.d)-a.d,t=(d-a.d)/span,angle=Math.atan2(b.y-a.y,b.x-a.x);
     return {x:a.x+(b.x-a.x)*t-Math.sin(angle)*offset,y:a.y+(b.y-a.y)*t+Math.cos(angle)*offset,angle};
