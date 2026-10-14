@@ -88,12 +88,13 @@ try{
  const cdp=await a.context().newCDPSession(a);
  const slide=async(dx,dy)=>{await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});finger={x:finger.x+dx,y:finger.y+dy};await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[finger]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});};
  // Slide well beyond usable floor: red preview, no drop, no camera pan.
- await slide(-120,0);
+ const dragDistance=await a.evaluate(()=>180*window.testWorldRenderer.scale);
+ await slide(-dragDistance,0);
  await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.placement.valid)).toBe(false);
  await doubleTouch(finger);await expect.poll(fern).toEqual(initial);
  expect(await a.evaluate(()=>window.testWorldRenderer.offset)).toEqual({x:0,y:0});
  // Move back onto free floor; release alone still does not save.
- await slide(120,32);
+ await slide(dragDistance,32);
  await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.placement.valid)).toBe(true);
  const destination=await a.evaluate(()=>{const p=window.testWorldRenderer.placement;return [p.x,p.y];});
  expect(await fern()).toEqual(initial);await doubleTouch(finger);
