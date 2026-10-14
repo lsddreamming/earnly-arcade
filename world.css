@@ -4,5 +4,5 @@
 .chat-bar button{white-space:nowrap;flex-shrink:0}.world-note{position:relative}.item-card button:disabled{opacity:.7}
 
 /* Keep long presses on the room and controls out of iOS text selection. */
-.world-app,.world-bottom,dialog{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+:where(.world-app,.world-bottom,dialog),:where(.world-app,.world-bottom,dialog) *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
