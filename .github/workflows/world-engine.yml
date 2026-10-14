@@ -29,4 +29,11 @@ jobs:
       - run: node scripts/test-world-account-permissions.mjs
       - run: node scripts/test-world-network.mjs
       - run: npx playwright install --with-deps chromium
-      - run: node scripts/test-world-browser.mjs
+      - run: mkdir -p world-seating-shots && node scripts/test-world-browser.mjs
+        env:
+          WORLD_TEST_SCREENSHOTS: world-seating-shots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: world-seating-screenshots
+          path: world-seating-shots/
+
