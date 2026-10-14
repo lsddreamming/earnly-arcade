@@ -9,7 +9,7 @@ test('World preview fits narrow screens and exposes catalog without enabling pur
  await expect(page.locator('#connectionStatus')).toContainText('Sign in');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
  await page.getByRole('button',{name:'Catalog',exact:false}).click();
- await expect(page.locator('.item-card')).toHaveCount(10);
+ await expect(page.locator('.item-card')).toHaveCount(22);
  await expect(page.locator('.item-card button').first()).toBeDisabled();
  await page.getByRole('button',{name:'Close panel'}).click();
  await page.getByRole('button',{name:'Backpack',exact:false}).click();
