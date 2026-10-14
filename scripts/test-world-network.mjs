@@ -32,7 +32,7 @@ try{
  await a.request('trade_action',{tradeId:t.id,revision:1,action:'lock'});await b.request('trade_action',{tradeId:t.id,revision:1,action:'lock'});
  await a.request('trade_action',{tradeId:t.id,revision:1,action:'confirm'});await b.request('trade_action',{tradeId:t.id,revision:1,action:'confirm'});
  assert.ok((await b.request('bootstrap')).items.some(i=>i.id===purchase.item_id));
- const own=await a.request('create_room',{name:'Personal room'});a.ws.close();await once(a.ws,'close');
+ const own=await a.request('create_room',{name:'Personal room'});const left=a.wait(p=>p.type==='LEFT');a.ws.send(JSON.stringify({type:'LEAVE'}));await left;
  const owner=await client(fixture.users[0],own.roomId);const chair=await owner.request('buy',{definitionId:'arcade-chair',requestId:randomUUID()});
  await assert.rejects(owner.request('place',{itemId:chair.item_id,x:0,y:0,rotation:0}));
  await owner.request('place',{itemId:chair.item_id,x:3,y:3,rotation:0,z:999});

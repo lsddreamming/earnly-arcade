@@ -38,6 +38,19 @@ test('real WebSocket connections require auth; joined users share server tick up
    const duplicate=await connect();const duplicateClosed=once(duplicate,'close');
    duplicate.send(JSON.stringify({type:'JOIN',version:1,token:'a',roomId:'plaza'}));
    assert.equal((await duplicateClosed)[0],1008);
+   // Model a delayed proxy close handshake while application messages still flow.
+   const closeOld=a.close.bind(a);a.close=()=>{};
+   const left=message(a,'LEFT');a.send(JSON.stringify({type:'LEAVE'}));await left;
+   assert.equal(room.memberCount,1);
+   const replacement=await connect();ready=message(replacement,'ROOM_SNAPSHOT');
+   replacement.send(JSON.stringify({type:'JOIN',version:1,token:'a',roomId:'plaza'}));await ready;
+   assert.equal(room.memberCount,2);
+   // The old socket closing must not clear the replacement's reservation.
+   closeOld();await delay(30);
+   const stillDuplicate=await connect();const stillClosed=once(stillDuplicate,'close');
+   stillDuplicate.send(JSON.stringify({type:'JOIN',version:1,token:'a',roomId:'plaza'}));
+   assert.equal((await stillClosed)[0],1008);
+
  }finally{for(const ws of sockets)ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
 
