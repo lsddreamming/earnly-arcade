@@ -19,7 +19,7 @@ const gateway=attachWorldGateway(server,new SupabaseWorldAccess('https://world-t
 const browser=await chromium.launch({executablePath:process.env.WORLD_TEST_CHROMIUM||undefined,args:['--ignore-certificate-errors']});
 let errors=[];
 try{
- const pages=[];for(const uid of fixture.users){const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:390,height:844}});const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
+ const pages=[];for(const uid of fixture.users){const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:390,height:844},hasTouch:true});const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
  await p.route('**/world-renderer.js',async r=>r.fulfill({contentType:'application/javascript',body:(await readFile(join(root,'world-renderer.js'),'utf8'))+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...args){super(...args);window.testWorldRenderer=this;}};}'}));
  await p.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={session:async()=>({access_token:${JSON.stringify(uid)}})};`}));
  await p.route('**/world-config.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyWorldConfig={endpoint:${JSON.stringify(origin.replace('https:','wss:')+'/world')}};`}));
@@ -78,6 +78,32 @@ try{
  {const i=await fern();expect([i.x,i.y,i.rotation]).toEqual([2,2,2]);}
  await tapFern();await a.getByRole('button',{name:'Move',exact:true}).click();await tapTile(3,2);
  await expect.poll(async()=>{const i=await fern();return [i.x,i.y,i.rotation];}).toEqual([3,2,2]);
+ // Real touch double-taps and finger sliding: no write until a valid drop.
+ await a.waitForTimeout(1100);
+ const touchPoint=async()=>a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.name==='Moon Fern'),b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-i.z*12-6)*r.scale};});
+ const doubleTouch=async p=>{await a.touchscreen.tap(p.x,p.y);await a.touchscreen.tap(p.x,p.y);};
+ const initial=await fern();let finger=await touchPoint();await doubleTouch(finger);
+ await expect.poll(()=>a.evaluate(()=>!!window.testWorldRenderer.placement)).toBe(true);
+ await expect(a.locator('#worldPanel')).not.toBeVisible();
+ const cdp=await a.context().newCDPSession(a);
+ const slide=async(dx,dy)=>{await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});finger={x:finger.x+dx,y:finger.y+dy};await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[finger]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});};
+ // Slide well beyond usable floor: red preview, no drop, no camera pan.
+ await slide(-120,0);
+ await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.placement.valid)).toBe(false);
+ await doubleTouch(finger);await expect.poll(fern).toEqual(initial);
+ expect(await a.evaluate(()=>window.testWorldRenderer.offset)).toEqual({x:0,y:0});
+ // Move back onto free floor; release alone still does not save.
+ await slide(120,32);
+ await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.placement.valid)).toBe(true);
+ const destination=await a.evaluate(()=>{const p=window.testWorldRenderer.placement;return [p.x,p.y];});
+ expect(await fern()).toEqual(initial);await doubleTouch(finger);
+ await expect.poll(async()=>{const i=await fern();return [i.x,i.y];}).toEqual(destination);
+ await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.placement)).toBeNull();
+ // Cancellation discards the preview without changing the saved furniture.
+ await a.waitForTimeout(1100);finger=await touchPoint();await doubleTouch(finger);await slide(20,0);
+ await a.locator('#cancelPlace').click();await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.placement)).toBeNull();
+ expect([ (await fern()).x,(await fern()).y ]).toEqual(destination);
+ await cdp.detach();
  await tapFern();await a.getByRole('button',{name:'Return to Backpack',exact:true}).click();await expect.poll(fern).toBeUndefined();
  await a.getByRole('button',{name:'Backpack',exact:false}).click();await expect(a.locator('.item-card').filter({hasText:'Moon Fern'})).toContainText('In Backpack');
  if(errors.length)throw new Error(errors.join(';'));
