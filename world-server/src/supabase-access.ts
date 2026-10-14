@@ -35,7 +35,16 @@ export class SupabaseWorldAccess implements WorldAccess {
   async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
   #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items,s.revision);}
   async enter(identity:Identity,roomId:string){
-    const bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
+    let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
+    if(roomId==='home'){
+      const home=bootstrap.rooms.find(r=>r.ownerId===identity.userId);
+      if(home)roomId=home.id;
+      else{
+        const created=await this.#api(identity.userId,'create_room',{name:'My Room'});
+        roomId=created.roomId;
+        bootstrap=await this.#api(identity.userId,'bootstrap');
+      }
+    }
     if(roomId==='plaza')roomId=bootstrap.rooms.find(r=>r.ownerId===null&&r.name==='Earnly Plaza')?.id??'';
     const snapshot=await this.#snapshot(identity.userId,roomId);
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');

@@ -58,8 +58,9 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
         if(authenticating||p.type!=='JOIN'||p.version!==1||typeof p.token!=='string'||p.token.length<1||p.token.length>6000||typeof p.roomId!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(p.roomId)||Object.keys(p).some(k=>!['type','version','token','roomId'].includes(k))){ws.close(1008,'Invalid join');return;}
         authenticating=true;
         // A prompt JOIN is required, but authentication plus bootstrap and snapshot
-        // can each take up to four seconds. Give those bounded requests their own budget.
-        clearTimeout(deadline);deadline=setTimeout(expire,options.admissionTimeoutMs??15000);
+        // can each take up to four seconds. First-time home entry also creates a room
+        // and refreshes bootstrap, so allow those bounded requests to finish.
+        clearTimeout(deadline);deadline=setTimeout(expire,options.admissionTimeoutMs??(p.roomId==='home'?25000:15000));
         stage='authentication';
         let reserved:string|undefined;
         try{
