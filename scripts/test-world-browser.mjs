@@ -77,9 +77,12 @@ try{
  for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
  await a.locator('#sayText').fill('Hello from my potato');await a.locator('#sayForm button').click();await b.getByRole('button',{name:'Chat',exact:false}).click();await b.locator('.chat-message').filter({hasText:'Hello from my potato'}).waitFor();await b.getByRole('button',{name:'Close panel'}).click();
  await a.getByRole('button',{name:'Catalog',exact:false}).click();
- await expect(a.locator('.item-card')).toHaveCount(24);
+ await expect(a.locator('.item-card')).toHaveCount(30);
+ await a.getByRole('button',{name:'Heritage',exact:true}).click();
+ await expect(a.locator('.item-card')).toHaveCount(5);
+ if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/heritage-catalog.png'});
  await a.getByRole('button',{name:'Garden',exact:true}).click();
- await expect(a.locator('.item-card')).toHaveCount(8);
+ await expect(a.locator('.item-card')).toHaveCount(9);
  if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/garden-catalog.png'});
  await a.getByRole('button',{name:'All',exact:true}).click();
 await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button').click();await a.getByRole('button',{name:'Buy for ◇ 70'}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).waitFor();
