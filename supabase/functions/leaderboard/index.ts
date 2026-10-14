@@ -31,6 +31,7 @@ const GAMES: Record<string, { label:string; lower?:boolean; max:number }> = {
   trafficEscape:{label:"cars",max:100000000},
   starDefender:{label:"points",max:1000000000},
   neonMaze:{label:"cells",max:1000000},
+  turboKart:{label:"points",max:6000},
   neonDrift:{label:"points",max:1000000},
   neonBreach:{label:"points",max:1000000000},
   meteorShield:{label:"meteors",max:100000000},

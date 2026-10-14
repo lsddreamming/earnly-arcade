@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-world-heritage-20261014';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-turbo-kart-20261014';const CORE_ASSETS = [
+ './turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
  './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-room-layouts.js','./world-placement.js',
  './shop-polish.css',
  './coin-pack-starter.svg','./coin-pack-plus.svg','./coin-pack-vault.svg',
