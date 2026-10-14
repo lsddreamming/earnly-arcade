@@ -23,13 +23,22 @@ try{
  await p.route('**/world-renderer.js',async r=>r.fulfill({contentType:'application/javascript',body:(await readFile(join(root,'world-renderer.js'),'utf8'))+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...args){super(...args);window.testWorldRenderer=this;}};}'}));
  await p.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={session:async()=>({access_token:${JSON.stringify(uid)}})};`}));
  await p.route('**/world-config.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyWorldConfig={endpoint:${JSON.stringify(origin.replace('https:','wss:')+'/world')}};`}));
- await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await p.locator('#connectionStatus').filter({hasText:'Live'}).waitFor();pages.push(p);}
+ await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await expect(p.locator('#panelTitle')).toHaveText('Choose your first room');
+ await expect(p.locator('.room-layout-card')).toHaveCount(5);
+ if(process.env.WORLD_TEST_SCREENSHOTS)await p.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/room-picker-'+pages.length+'.png'});
+ await p.getByRole('button',{name:pages.length?'Corner Suite':'Cozy Studio',exact:true}).click();
+ await p.getByRole('button',{name:/^Start in /}).click();
+ await p.locator('#connectionStatus').filter({hasText:'Live'}).waitFor();
+ if(process.env.WORLD_TEST_SCREENSHOTS)await p.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/starter-room-'+pages.length+'.png'});pages.push(p);}
  const [a,b]=pages;
  // First-time accounts spawn directly into their own private room.
  for(const [index,p] of pages.entries()){
   await expect(p.locator('#roomKind')).toHaveText('YOUR PERSONAL SPACE');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.ownerId)).toBe(fixture.users[index]);
   await expect(p.locator('#peopleCount')).toHaveText('1 in the room');
+  const homeId=await p.evaluate(()=>window.testWorldRenderer.scene.roomId);await p.reload();await expect(p.locator('#connectionStatus')).toContainText('Live');
+  await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.roomId)).toBe(homeId);
+  await expect(p.locator('#worldPanel')).not.toBeVisible();
   await p.locator('[data-panel="rooms"]').click();await p.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
   await expect(p.locator('#roomName')).toHaveText('Earnly Plaza');
  }
@@ -77,7 +86,7 @@ try{
  await expect(b.locator('.trade-offers')).not.toContainText('Moon Fern');
  await expect(a.getByRole('button',{name:'Lock my offer'})).toBeEnabled();await expect(b.getByRole('button',{name:'Lock my offer'})).toBeEnabled();
  await a.getByRole('button',{name:'Cancel trade',exact:true}).click();await expect(b.locator('#panelContent')).toContainText('This trade was cancelled.');
- await a.getByRole('button',{name:'Close panel'}).click();await a.getByRole('button',{name:'Rooms',exact:false}).click();await a.getByPlaceholder('Name your new room').fill('Potato Studio');await a.getByRole('button',{name:'Create',exact:true}).click();await a.locator('#roomName').filter({hasText:'Potato Studio'}).waitFor();
+ await a.getByRole('button',{name:'Close panel'}).click();await a.getByRole('button',{name:'Rooms',exact:false}).click();await a.getByRole('button',{name:'＋ Create room · Free',exact:true}).click();await a.getByRole('button',{name:'Grand Square',exact:true}).click();await a.getByLabel('Room name',{exact:true}).fill('Potato Studio');await a.getByRole('button',{name:'Create Grand Square · Free',exact:true}).click();await a.locator('#roomName').filter({hasText:'Potato Studio'}).waitFor();
  await a.getByRole('button',{name:'Backpack',exact:false}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button',{name:'Place',exact:true}).click();await a.locator('#placementHint').waitFor();
  // Tile is selected through the actual canvas, not by a direct API operation.
  const box=await a.locator('#worldCanvas').boundingBox();await a.locator('#worldCanvas').click({position:{x:box.width/2,y:box.height/2+30}});await a.locator('#worldToast').filter({hasText:'Placed in your room'}).waitFor();

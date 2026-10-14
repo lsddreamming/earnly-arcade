@@ -1,6 +1,6 @@
 (()=>{'use strict';
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
- let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer;
+ let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer,needsFirstRoom=false;
  const pending=new Map();
  const demoCatalog=[['mint-sofa','Mint Cloud Sofa','sofa',180,'#59dcc5',2,1],['rose-sofa','Rose Cloud Sofa','sofa',180,'#f599bd',2,1],['arcade-chair','Arcade Chair','chair',60,'#799ff5',1,1],['low-table','Orbit Table','table',80,'#e1b786',1,1],['fern','Moon Fern','plant',70,'#64c786',1,1],['neon-lamp','Neon Tube Lamp','lamp',90,'#c293f3',1,1],['arcade-cabinet','Pocket Arcade Cabinet','arcade',450,'#f6c35e',1,1],['cloud-bed','Cloud Bed','bed',250,'#8cbbf4',1,2],['mint-rug','Mint Tile Rug','rug',40,'#61bfbb',2,2],['star-trophy','First Light Trophy','trophy',600,'#f8d46a',1,1]].map(([id,name,sprite_id,price,color,width,length])=>({id,name,sprite_id,price,color,width,length,category:sprite_id==='arcade'?'Arcade':sprite_id==='trophy'?'Collectors':'Neon Living',supply_limit:sprite_id==='trophy'?250:null,minted:0}));
  function toast(text){$('worldToast').textContent=text;$('worldToast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('worldToast').hidden=true,4200);}
@@ -51,7 +51,7 @@
   try{session=await window.EarnlyCloud?.session();if(session){const res=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token}});if(res.ok){const data=await res.json();renderer.updateUser({userId,username:data.user.username||'You',equipped:data.user.equipped,position:{x:5,y:5,z:0}});}}}catch{}
  }
  function finishConnecting(){connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
- async function connect(roomId=scene?.roomId||'home'){
+ async function connect(roomId=scene?.roomId||'choose-home'){
   if(connecting)return;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
   if(!endpoint){toast('The World preview is ready. The multiplayer server is not live yet.');return;}
@@ -79,18 +79,18 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>renderer.updateUser(u));
-   else if(p.type==='WELCOME'){connected=true;finishConnecting();userId=p.userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
+   else if(p.type==='WELCOME'){connected=true;needsFirstRoom=false;finishConnecting();userId=p.userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
    if(connected){$('peopleCount').textContent=renderer.users.size+' in the room';const state=renderer.users.get(userId)?.state;$('connectionStatus').textContent=state==='sit'?'Live · Sitting · Tap clear floor to stand up':state==='lay'?'Live · Lying down · Tap clear floor to stand up':'Live · Tap seats to sit or a floor tile to walk';}
   };
-  ws.onclose=e=>{if(socket!==ws)return;connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
+  ws.onclose=e=>{if(socket!==ws)return;connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
   }catch(error){finishConnecting();throw error;}
  }
- $('reconnect').onclick=()=>connect().catch(e=>toast(e.message));
+ $('reconnect').onclick=()=>{if(needsFirstRoom)showRoomCreator(true);else connect().catch(e=>toast(e.message));};
  function showCatalog(category='All'){
   currentPanel='catalog';const root=openPanel('Decor Catalog');root.append(note(connected?'Find the next piece for your room. Purchases use Arcade Coins.':'Preview our original decor collection. Sign in and connect to buy decor.'));
   const filters=el('div','filters');for(const name of ['All',...new Set(bootstrap.catalog.map(d=>d.category))])filters.append(button(name,()=>showCatalog(name),name===category?'selected':''));root.append(filters);
@@ -110,11 +110,32 @@
    if(item.room_id===scene.roomId)card.append(button('Pick up',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));grid.append(card);
   }root.append(grid);if(!bootstrap.items.length)root.append(note('Your Backpack is empty. Find your first piece in the Catalog.'),button('Open Catalog',()=>showCatalog()));
  }
- function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
+ function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
   root.append(note('Public hangouts are furnished and open to everyone. Staff NPCs stay at their posts; public decor stays here.'));
   for(const r of bootstrap.rooms){const card=el('section','room-card');card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));const descriptions={'Hotel Lobby':'Velvet sofas · Reception with Pip','Rooftop Lounge':'City lights · Mocktail bar with Remy','Patio Hangout':'Garden seating · Patio host Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));root.append(card);}
-  const form=el('form','panel-form'),input=el('input');input.placeholder='Name your new room';input.maxLength=40;input.required=true;const create=el('button','primary','Create');create.type='submit';form.append(input,create);form.onsubmit=async e=>{e.preventDefault();create.disabled=true;try{const r=await action('create_room',{name:input.value});await connect(r.roomId);}catch(err){toast(err.message);}finally{create.disabled=false;}};root.append(form,note('Up to 3 personal rooms. New rooms start closed to visitors.'));
+  root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are private.'));
   if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
+ }
+ function showRoomCreator(first=false){
+  currentPanel='room-create';const root=openPanel(first?'Choose your first room':'Create a room');
+  root.append(el('p','room-picker-intro',first?'Your own little world starts here. Pick a shape — every layout is free.':'More room for your ideas. Pick any layout, free.'));
+  let selected=window.EarnlyWorldRooms[0],busy=false;
+  const grid=el('div','room-layout-grid'),cards=[];
+  for(const layout of window.EarnlyWorldRooms){
+   const card=button('',()=>{selected=layout;for(const [c,l] of cards)c.setAttribute('aria-pressed',String(l===layout));update();},'room-layout-card');
+   card.setAttribute('aria-label',layout.name);card.setAttribute('aria-pressed',String(layout===selected));
+   const canvas=el('canvas');canvas.setAttribute('aria-hidden','true');EarnlyWorldRenderer.roomThumbnail(canvas,layout.heightmap);
+   card.append(canvas,el('span','room-layout-title',layout.name),el('span','room-layout-detail',layout.detail),el('span','room-free','FREE'));cards.push([card,layout]);grid.append(card);
+  }
+  const input=el('input');input.id='newRoomName';input.maxLength=40;input.placeholder='Give your room a name';input.value='My Room';
+  const label=el('label','room-name-label','Room name');label.htmlFor=input.id;
+  const create=button('',async()=>{if(busy)return;busy=true;cards.forEach(([c])=>c.disabled=true);try{
+    if(first)await connect('starter-'+selected.id);
+    else{const name=input.value.trim();if(!name){input.focus();throw new Error('Give your room a name');}const result=await action('create_room',{name,layout:selected.id});await connect(result.roomId);}
+   }finally{busy=false;cards.forEach(([c])=>c.disabled=false);}},'primary room-create-button');
+  function update(){create.textContent=first?'Start in '+selected.name:'Create '+selected.name+' · Free';}
+  update();root.append(grid);if(!first)root.append(label,input);root.append(create,note('Private to you. Invite visitors later from Rooms.'));
+  if(!first)root.append(button('Back to rooms',showRooms));
  }
  async function showStaff(staff){const reply=await action('staff_talk',{staffId:staff.staffId});currentPanel='staff';const root=openPanel(reply.name+' · '+reply.role);root.append(note('Staff NPC · Lives and works in this hangout'),el('p','staff-greeting',reply.greeting),button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a tip',()=>{const p=el('p','staff-greeting',reply.tip);root.replaceChildren(note('Staff NPC · '+reply.role),p,button('Explore rooms',()=>showRooms()));}),button('Explore rooms',()=>showRooms()));}
  function showStaffList(){currentPanel='staff';const root=openPanel('Room staff');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button('Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
