@@ -2,6 +2,7 @@ import { RoomGrid, tileKey, validXY } from './grid.ts';
 import type { XY, XYZ } from './grid.ts';
 import { MovementController } from './movement.ts';
 import {findInteraction,completeInteraction,findInteractionExit,completeInteractionExit} from './interactions.ts';
+import type {Staff} from './public-hangouts.ts';
 import type {InteractionPlan} from './interactions.ts';
 
 export type Identity = Readonly<{ userId:string; username:string; equipped?:Record<string,unknown> }>;
@@ -14,13 +15,18 @@ type Member = {identity:Identity; movement:MovementController; send:Send; lastIn
 export class RoomRuntime {
   #members = new Map<string,Member>();
   #sequence = 0;
+  #staff:{definition:Staff;index:number}[]=[];
+  #ticks=0;
   grid:RoomGrid;
   paused=false;
   readonly capacity:number;
-  constructor(grid:RoomGrid, capacity=25) {
+  constructor(grid:RoomGrid, capacity=25, staff:Staff[]=[]) {
     this.grid=grid;this.capacity=capacity;
     if(!Number.isInteger(capacity)||capacity<1||capacity>100)throw new Error('Invalid capacity');
+    this.#staff=staff.map(definition=>{if(!definition.path.length||definition.path.some((p,i)=>!grid.tile(p)?.walkable||(i>0&&Math.abs(p.x-definition.path[i-1].x)+Math.abs(p.y-definition.path[i-1].y)!==1)))throw new Error('Invalid staff route');return {definition,index:0};});
   }
+  staff(){return this.#staff.map(({definition:d,index})=>({staffId:d.id,username:d.name,role:d.role,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:'std'}));}
+  talkToStaff(userId:string,id:unknown){if(!this.#members.has(userId))throw new Error('Player unavailable');const d=this.#staff.find(s=>s.definition.id===id)?.definition;if(!d)throw new Error('Staff unavailable in this room');return {name:d.name,role:d.role,greeting:d.greeting,tip:d.tip};}
   #position(m:Member):XYZ{return m.seat?.position??m.movement.position;}
   members(){return [...this.#members.values()].map(m=>({...m.identity,position:this.#position(m),state:m.seat?.state??'std'}));}
   chatViewers(userId:string,mode:string,target?:string){
@@ -41,7 +47,7 @@ export class RoomRuntime {
     }
     throw new Error('No free spawn');
   }
-  #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(this.#position(m))));}
+  #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(this.#position(m))).concat(this.staff().map(s=>tileKey(s.position))));}
   #broadcast(packet:Record<string,unknown>){for(const m of this.#members.values())m.send(packet);}
   join(identity:Identity,spawn:XY,send:Send){
     if(!identity.userId||!identity.username||this.#members.has(identity.userId))throw new Error('Duplicate or invalid member');
@@ -49,6 +55,7 @@ export class RoomRuntime {
     const member:Member={identity:{...identity},movement:new MovementController(this.grid,spawn),send,lastIntent:-Infinity,lastChat:-Infinity};
     this.#members.set(identity.userId,member);
     send({type:'ROOM_SNAPSHOT',revision:this.grid.revision,sequence:this.#sequence,users:[...this.#members.values()].map(m=>({...m.identity,position:this.#position(m),state:m.seat?.state??'std'}))});
+    send({type:'NPC_SNAPSHOT',staff:this.staff()});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
   leave(userId:string){if(this.#members.delete(userId))this.#broadcast({type:'USER_LEFT',userId});}
@@ -99,6 +106,11 @@ export class RoomRuntime {
   }
   tick(){
     if(this.paused)return;
+    if(++this.#ticks%32===0){
+      let moved=false;
+      for(const s of this.#staff){const next=(s.index+1)%s.definition.path.length,p=s.definition.path[next],from=s.definition.path[s.index];if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}}
+      if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
+    }
     const changes=[];
     // Stable join order plus fresh occupancy prevents two actors entering one tile.
     for(const [id,m] of this.#members){

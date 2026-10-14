@@ -38,5 +38,17 @@ try{
  await owner.request('place',{itemId:chair.item_id,x:3,y:3,rotation:0,z:999});
  const snapshot=(await fixture.db.query('select public.world_room_snapshot($1,$2) result',[fixture.users[0],own.roomId])).rows[0].result;
  assert.equal(snapshot.items[0].z,0);assert.equal(snapshot.revision,1);
+ const leaveOwner=owner.wait(p=>p.type==='LEFT');owner.ws.send(JSON.stringify({type:'LEAVE'}));await leaveOwner;
+ for(const name of ['Hotel Lobby','Rooftop Lounge','Patio Hangout']){
+  const entry=a.welcome.bootstrap.rooms.find(r=>r.name===name);assert.ok(entry);const visitor=await client(fixture.users[0],entry.id);
+  const staff=visitor.events.find(p=>p.type==='NPC_SNAPSHOT').staff[0];assert.ok(staff.isStaff);assert.ok(visitor.welcome.scene.items.length>=12);
+  assert.ok((await visitor.request('staff_talk',{staffId:staff.staffId})).greeting);
+  await assert.rejects(visitor.request('staff_talk',{staffId:'staff-elsewhere'}));
+  await assert.rejects(visitor.request('place',{itemId:visitor.welcome.scene.items[0].id,pickup:true}));
+  await assert.rejects(visitor.request('place',{itemId:chair.item_id,x:2,y:2,rotation:0}));
+  await assert.rejects(visitor.request('trade_create',{userId:staff.staffId}));
+  assert.ok(!(await visitor.request('bootstrap')).items.some(i=>i.id===staff.staffId));
+  const left=visitor.wait(p=>p.type==='LEFT');visitor.ws.send(JSON.stringify({type:'LEAVE'}));await left;
+ }
  console.log('World network: authenticated two-client chat, private messaging, purchase, atomic trade, room switching, placement collision and server-owned height passed.');
 }finally{for(const c of clients)c.ws.terminate();await gateway.close();await new Promise(r=>server.close(r));await fixture.close();}
