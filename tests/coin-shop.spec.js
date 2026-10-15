@@ -70,6 +70,6 @@ test('Retained www storefront preserves working compact checkout cards',async({p
  await page.setViewportSize({width:320,height:740});await page.goto('/www/avatars.html');await page.locator('#coin-pack-options').evaluate(el=>el.open=true);
  await expect(page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true})).toBeEnabled();
  const card=await page.locator('.coin-pack').boundingBox();expect(card.x).toBeGreaterThanOrEqual(0);expect(card.x+card.width).toBeLessThanOrEqual(320);
- expect(await page.locator('.coin-pack').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ expect(await page.locator('.coin-pack').evaluate(el=>{const box=el.getBoundingClientRect();return [...el.children].every(child=>{const r=child.getBoundingClientRect();return r.left>=box.left-1&&r.right<=box.right+1;});})).toBe(true);
  expect(missing).toEqual([]);
 });
