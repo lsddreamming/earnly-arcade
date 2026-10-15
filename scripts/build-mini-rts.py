@@ -13,7 +13,8 @@ html = html.replace('Crystal Command · Strategy Battles | Earnly Arcade', 'Crys
 html = html.replace('href="games.html"', 'href="#"').replace('← Games', '↻ Battle menu')
 html = html.replace('EARNLY STRATEGY · SECTOR 01', 'OFFLINE RTS · SECTOR 01').replace('1v1 BATTLES', 'VS AI OPPONENT')
 html = html.replace('<a class="cc-footer-link" href="privacy.html">Privacy</a>', '')
-html = html.replace('Beta battles are free and do not award Coins or ranked results.', 'Offline practice · no sign-in or connection required.')
+html = html.replace('Battles are free. Full battle wins earn 10–25 Arcade Coins for avatar gear and World furniture.', 'Offline practice · no sign-in, connection or Coins.')
+html = re.sub(r'<p><a href="avatars.html">Avatar shop</a>.*?</p>', '', html)
 html = html.replace('<div id="context"', '<p class="demo-controls"><b>COMMAND GUIDE</b><br>Drag a yellow box to select troops.<br>Right-click to move and fight.<br>Right-drag to explore the map.<br>Tap the radar to send selected troops.<br>Workers mine automatically. Build a factory to train Soldiers; add a Tech core for Heavy Mechs.</p><div id="context"')
 css = (ROOT / 'crystal-command.css').read_text() + '''
 .room-actions,#authLink,#joinForm,#roomPane{display:none!important}
@@ -30,9 +31,10 @@ html = html.replace('</head>', '<style>'+css+'</style></head>')
 # File URLs can forbid persistent storage; preferences still work in memory.
 client = (ROOT / 'crystal-command.js').read_text().replace("const E=CrystalCommand,", "const safeStorage={getItem(k){try{return localStorage.getItem(k)}catch{return this[k]??null}},setItem(k,v){try{localStorage.setItem(k,v)}catch{this[k]=v}}};\nconst E=CrystalCommand,")
 client = client.replace('localStorage.', 'safeStorage.')
+client = client.replace('Win a full battle to earn 10–25 Arcade Coins. Lessons and early endings do not award Coins.', 'Offline practice · no account or Coins.')
 client = client.replace('try{return safeStorage.getItem(k)}', 'try{return localStorage.getItem(k)}').replace('try{safeStorage.setItem(k,v)}', 'try{localStorage.setItem(k,v)}')
 # The standalone vocabulary matches the requested core unit types.
-code = '\n'.join((ROOT / f).read_text() for f in ['crystal-command-engine.js','crystal-command-art.js','crystal-command-renderer.js']) + '\n' + client
+code = '\n'.join((ROOT / f).read_text() for f in ['crystal-command-engine.js','crystal-command-art.js','crystal-command-renderer.js']) + '\nwindow.CrystalRewards={result:()=>null};\n' + client
 for old,new in [('Miners','Workers'),('Miner','Worker'),('Strikers','Soldiers'),('Striker','Soldier'),('Siege bot','Heavy Mech'),('siege bots','Heavy Mechs')]:
     html = html.replace(old,new)
     code = code.replace(old,new)
