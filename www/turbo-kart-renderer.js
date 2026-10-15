@@ -2,7 +2,7 @@
    Everything is drawn locally. No Nintendo characters, textures or downloaded assets. */
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
- function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;
+ function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
  function poly(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();}
  function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);ctx.fill();}
@@ -16,6 +16,8 @@ const TurboKartRenderer=(()=>{
   // Chunky treaded tires, pearlescent body panels and a separate rear wing.
   for(const side of [-1,1]){box(side<0?-22:13,-33,9,14,3,'#16253a');box(side<0?-27:15,-19,12,20,4,'#142239');line(side*21,-16,side*21,-3,'#44536b',2);}
   poly([{x:-19,y:-30},{x:17,y:-30},{x:24,y:-7},{x:18,y:0},{x:-18,y:0},{x:-24,y:-7}],r.color);
+  poly([{x:17,y:-30},{x:24,y:-7},{x:18,y:0},{x:15,y:-8}],'#173b5550');
+  line(-18,-12,-14,-24,'#e4fff9',1.5);
   poly([{x:-19,y:-10},{x:19,y:-10},{x:17,y:-3},{x:-17,y:-3}],'#243754');
   poly([{x:-16,y:-30},{x:-4,y:-35},{x:7,y:-33},{x:17,y:-30},{x:10,y:-14},{x:-11,y:-14}],'#efffff');
   box(-13,-33,26,18,6,'#283854');box(-11,-36,22,19,7,r.color);line(-8,-31,8,-31,'#efffff',2);
@@ -50,9 +52,10 @@ const TurboKartRenderer=(()=>{
   for(let layer=0;layer<2;layer++){const points=[{x:0,y:horizon+10}];for(let x=0;x<=w+20;x+=20)points.push({x,y:horizon-12-layer*10-Math.sin(x*.012+cameraAngle+layer*3)*(18+layer*6)-Math.cos(x*.029+layer)*10});points.push({x:w+20,y:horizon+25});poly(points,t.scene==='canyon'?['#d48d98','#e6a48c'][layer]:t.scene==='garden'?['#6460a0','#727cb3'][layer]:['#6fbbaf','#98d3b8'][layer]);}
   ctx.fillStyle=t.ground;ctx.fillRect(0,horizon+14,w,h-horizon);
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+s.time*2)%w,horizon+23+i*4,(i*89+s.time*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
-  const queue=[];let roadLayer=null;
-  function add(depth,draw){if(depth>4&&depth<820)queue.push({depth,draw});}
-  function ribbon(d1,d2,left,rightOffset,color){const a=project(E.sample(d1,left,t)),b=project(E.sample(d1,rightOffset,t)),c=project(E.sample(d2,rightOffset,t)),d=project(E.sample(d2,left,t));if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw);}
+  // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
+  const ground=[],decals=[],queue=[];let roadLayer=null;
+  function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
+  function ribbon(d1,d2,left,rightOffset,color){const a=project(E.sample(d1,left,t)),b=project(E.sample(d1,rightOffset,t)),c=project(E.sample(d2,rightOffset,t)),d=project(E.sample(d2,left,t));if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
   const segment=10,start=Math.floor((p.d-70)/segment)*segment;
   for(let i=0;i<78;i++){const d=start+i*segment,next=d+segment,alt=Math.floor(d/20)%2===0;roadLayer=[];
    ribbon(d,next,-65,65,alt?t.ground:(t.scene==='canyon'?'#edb781':t.scene==='garden'?'#3c918b':'#69c16c'));
@@ -60,24 +63,26 @@ const TurboKartRenderer=(()=>{
    ribbon(d,next,-49,-48,'#fff3d9');ribbon(d,next,48,49,'#fff3d9');
    if(Math.floor(d/25)%2===0)for(const lane of [-17,17])ribbon(d,next,lane-.45,lane+.45,'#d1dae29c');
    const mod=((d%t.length)+t.length)%t.length;if(mod<15){for(let cell=0;cell<10;cell++)ribbon(d,next,-50+cell*10,-40+cell*10,(cell+i)%2?'#f3ffef':'#253047');}
-   const layers=roadLayer;roadLayer=null;add(project(E.sample(d+5,0,t)).depth,()=>{for(const draw of layers)draw();});
+   const layers=roadLayer;roadLayer=null;add(project(E.sample(d+5,0,t)).depth,()=>{for(const draw of layers)draw();},ground);
   }
   // Curbs, booster strips and airborne pickups all share the road's projection.
-  for(const pad of s.pads){const d=p.d+((pad.d-p.d)%t.length+t.length)%t.length;ribbon(d-12,d+12,pad.lane-17,pad.lane+17,'#2c7c88');for(let j=0;j<3;j++){const q=project(E.sample(d-8+j*8,pad.lane,t));add(q.depth,()=>text('❯❯',q.x,q.y,Math.max(2,8*q.k),'#c7ff8b'));}}
+  for(const pad of s.pads){const d=p.d+((pad.d-p.d)%t.length+t.length)%t.length;ribbon(d-12,d+12,pad.lane-17,pad.lane+17,'#2c7c88');for(let j=0;j<3;j++){const q=project(E.sample(d-8+j*8,pad.lane,t));add(q.depth,()=>text('❯❯',q.x,q.y,Math.max(2,8*q.k),'#c7ff8b'),decals);}}
   for(const item of s.pickups){let d=p.d+((item.d-p.d)%t.length+t.length)%t.length;if(item.takenLap===Math.floor(d/t.length))continue;const q=project(E.sample(d,item.lane,t),5+Math.sin(s.time*3+item.d)*1.5);add(q.depth,()=>{const size=5.5*q.k;if(q.x<-size||q.x>w+size)return;if(item.type==='coin'){ellipse(q.x,q.y,size*.7,size,'#ffd96d');ellipse(q.x,q.y,size*.45,size*.72,'#ffed9b');text('◇',q.x,q.y+size*.4,size*1.2,'#b5754b');}else{poly([{x:q.x,y:q.y-size*1.4},{x:q.x+size,y:q.y},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#a4ffed');poly([{x:q.x,y:q.y-size*1.4},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#9479eb');text('ϟ',q.x,q.y+size*.45,size*1.3,'#fff9d7');}});}
-  // Hand-authored scenery families repeat deterministically along each unique circuit.
-  for(let i=0;i<110;i++){const d=i*t.length/110,gap=((d-p.d)%t.length+t.length)%t.length;if(gap>650)continue;const side=i%2?1:-1,offset=side*(83+(i%4)*18),q=project(E.sample(p.d+gap,offset,t));const type=t.scene==='canyon'?(i%9===0?'arch':i%4?'rock':'tower'):t.scene==='garden'?(i%4?'tree':'crystal'):(i%5===0?'tower':i%3===0?'umbrella':'tree');add(q.depth,()=>{if(q.x>-100*q.k&&q.x<w+100*q.k)prop(type,q.x,q.y,q.k,t.scene,i);});}
+  // Keep every prop clear of the whole circuit, including the inside of hairpins.
+  // Cache placement once; the extra clearance also leaves room to recover off-road.
+  if(!scenery.has(t.id)){const props=[];for(let i=0;i<84;i++){const d=i*t.length/84,offset=(i%2?1:-1)*(124+(i%3)*33),v=E.sample(d,offset,t);if(t.points.some(q=>Math.hypot(v.x-q.x,v.y-q.y)<112))continue;const type=t.scene==='canyon'?['rock','tower','rock','arch','rock','tower','rock'][i%7]:t.scene==='garden'?(i%4?'tree':'crystal'):(i%5===0?'tower':i%3===0?'umbrella':'tree');props.push({d,v,type,index:i,size:.58+(i%5)*.065});}scenery.set(t.id,props);}
+  for(const v of scenery.get(t.id)){const gap=((v.d-p.d)%t.length+t.length)%t.length;if(gap>650)continue;const q=project(v.v);add(q.depth,()=>{if(q.x>-60*q.k&&q.x<w+60*q.k)prop(v.type,q.x,q.y,q.k*v.size,t.scene,v.index);});}
   // Trackside arrow boards make the upcoming corner readable without watching the map.
   for(let i=0;i<14;i++){const d=i*t.length/14,gap=((d-p.d)%t.length+t.length)%t.length,bend=E.curvature(d,t);if(Math.abs(bend)<.002||gap>500)continue;const q=project(E.sample(p.d+gap,-Math.sign(bend)*69,t),6);add(q.depth,()=>{box(q.x-12*q.k,q.y-13*q.k,24*q.k,13*q.k,2*q.k,'#233e61');text(bend>0?'››':'‹‹',q.x,q.y-2*q.k,15*q.k,'#fff5ac');});}
-  for(const h of s.hazards){const q=project(E.sample(h.d,h.lane,t));add(q.depth,()=>{ellipse(q.x,q.y,14*q.k,4*q.k,'#382e78');ellipse(q.x-4*q.k,q.y-q.k,7*q.k,2*q.k,'#aa89e7');});}
+  for(const h of s.hazards){const q=project(E.sample(h.d,h.lane,t));add(q.depth,()=>{ellipse(q.x,q.y,14*q.k,4*q.k,'#382e78');ellipse(q.x-4*q.k,q.y-q.k,7*q.k,2*q.k,'#aa89e7');},decals);}
   for(const v of s.projectiles){const q=project(E.sample(v.d,v.lane,t),7);add(q.depth,()=>{ellipse(q.x,q.y,5*q.k,5*q.k,'#91fcff');text('ϟ',q.x,q.y+3*q.k,10*q.k,'#fff4cc');});}
   for(const v of s.effects){const q=project(E.sample(v.d,v.lane,t),2);add(q.depth,()=>{ctx.strokeStyle='#e3b9ff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,q.y,(.7-v.life)*90*q.k,(.7-v.life)*20*q.k,0,0,TAU);ctx.stroke();});}
   for(let i=0;i<s.racers.length;i++){const r=s.racers[i],q=project(E.sample(r.d,r.lane,t));add(q.depth,()=>{if(q.x<-60*q.k||q.x>w+60*q.k)return;kart(r,q.k*.43,q.x,q.y,s,i===0);if(i&&q.depth>80&&q.depth<320)text(r.name,q.x,q.y-28*q.k,Math.max(8,3*q.k),'#fff9ee');});}
-  queue.sort((a,b)=>b.depth-a.depth);for(const entry of queue)entry.draw();
+  for(const layer of [ground,decals,queue]){layer.sort((a,b)=>b.depth-a.depth);for(const entry of layer)entry.draw();}
   if(p.boost>0&&!reduced.matches){for(let i=0;i<9;i++){const side=i%2?1:-1,x=w/2+side*(w*.35+i*7),y=h*.48+(i*53+s.time*240)%(h*.5);line(x,y,x+side*12,y+30,'#e1fffd85',2);}}
   // Compact whole-course map, with a clear player marker and finish flag.
   const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);ctx.beginPath();t.points.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke();for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i)ellipse(q.x,q.y,17,17,'#49dabe');}ctx.restore();
-  if(!idle){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){text(bend>0?'RIGHT BEND ›':'‹ LEFT BEND',w/2,horizon*.68,Math.max(10,Math.min(13,w/35)),t.scene==='garden'?'#fff1d7':'#223b59');}}
+  if(!idle&&!(s.callout&&s.time<=s.calloutUntil)){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){const label=bend>0?'RIGHT BEND ›':'‹ LEFT BEND',size=Math.max(10,Math.min(13,w/35));box(w/2-64,horizon*.68-size-4,128,size+12,9,'#142640c9');text(label,w/2,horizon*.68,size,'#fff5d8');}}
  }
  return {render};
  }return {create};

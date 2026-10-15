@@ -24,3 +24,19 @@ body.kart-page #kartMessage #startButton{display:block!important}
 @media(prefers-reduced-motion:reduce){.kart-page *{scroll-behavior:auto}}
 
 @media(min-width:701px) and (min-height:481px){body.kart-page main.container.kart-shell{width:min(780px,96vw)!important}body.kart-page.game-active main.container.kart-shell{padding-top:8px!important}.kart-page.game-active .topbar{margin-bottom:4px}.kart-page.game-active .kart-stage{max-height:calc(100dvh - 340px);min-height:160px;aspect-ratio:1.65}.kart-page.game-active .kart-title{margin:4px 0}.kart-page.game-active .kart-hud{padding:7px 4px}}
+
+/* Treat the complete race UI as a game surface, including the shared Quit link.
+   Descendant rules are deliberate: iOS can select a nested button label otherwise. */
+body.kart-page :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls),
+body.kart-page :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls) *{
+ -webkit-user-select:none!important;user-select:none!important;
+ -webkit-touch-callout:none!important;-webkit-user-drag:none!important;
+}
+body.kart-page #sessionControls :is(button,a){touch-action:none}
+body.kart-page.game-active{overscroll-behavior:none}
+#kartControls #driftButton{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+#kartControls #driftButton small{margin:0;line-height:1.1;font-size:7px;white-space:nowrap;color:inherit}
+#kartControls button.held,#kartControls #driftButton.held{color:#102c39;background:#9effdf;border-color:#dbfff4;box-shadow:inset 0 2px 5px #1d786b33,0 1px 0 #091525}
+#kartControls button.held{transform:translateY(2px)}
+#kartControls #itemButton:not(:disabled):active{background:#a4ffe3;color:#102c39}
+body.kart-page #sessionControls :is(button,a):active{filter:brightness(1.2)}
