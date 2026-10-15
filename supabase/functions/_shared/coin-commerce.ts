@@ -66,7 +66,8 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
         const order=unwrap(await db.from('coin_orders').select('*').eq('id',id).eq('user_id',user.id).maybeSingle());
         if(!order)return fail('ORDER_NOT_FOUND','Order not found.',404);
         const result=await fulfill(order);
-        return json({orderId:order.id,status:result?.status||order.status,coins:order.coins,wallet:result?.wallet});
+        return json({orderId:order.id,packId:order.pack_id,status:result?.status||order.status,coins:order.coins,
+          refundedCoins:result?.refundedCoins??order.refunded_coins??0,wallet:result?.wallet});
       }
       const key=req.headers.get('Idempotency-Key');if(!key||!uuid.test(key))return fail('REQUEST_ID_REQUIRED','A valid request ID is required.');
       const raw=await req.text();if(raw.length>4096)return fail('REQUEST_TOO_LARGE','Request is too large.',413);
@@ -90,6 +91,11 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
           expires_at:Math.floor(Date.now()/1000)+1800},{idempotencyKey:'earnly-coins-'+order.id});
         if(!session.livemode)throw new Error('PAYMENT_NOT_LIVE_PAID');
         unwrap(await db.from('coin_orders').update({session_id:session.id}).eq('id',order.id).is('session_id',null));
+      }
+      if(session.status==='complete'){
+        const result=await fulfill(order);
+        if(result?.status==='fulfilled')return json({orderId:order.id,fulfilled:true});
+        return fail('CHECKOUT_PENDING','Your payment is still being confirmed. Retry to check this same purchase.',409);
       }
       if(session.status!=='open'||!session.url)return fail('CHECKOUT_EXPIRED','This checkout has expired. Choose the pack again.',409);
       const checkoutUrl=new URL(session.url);
