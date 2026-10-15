@@ -12,7 +12,7 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
   const headers:any={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','Access-Control-Allow-Headers':'authorization,content-type,apikey,x-client-info','Access-Control-Allow-Methods':'GET,POST,OPTIONS'};
   if(origin&&origins.has(origin))headers['Access-Control-Allow-Origin']=origin;
   const json=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers});
-  const fail=(message:string,status=400)=>json({error:{message}},status);
+  const fail=(message:string,status=400,code?:string)=>json({error:{message,...(code?{code}:{})}},status);
   if(origin&&!origins.has(origin))return fail('Origin denied.',403);
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
   const path=new URL(req.url).pathname.split('/apple-coins')[1];
@@ -44,7 +44,7 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
       t.inAppOwnershipType!=='PURCHASED'||!appleProducts.some(p=>p.productId===t.productId)||
       typeof t.transactionId!=='string'||!/^\d{1,32}$/.test(t.transactionId)||
       typeof t.appAccountToken!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.appAccountToken)))return fail('This transaction is not eligible for this wallet.');
-   if(user&&user.id.toLowerCase()!==t.appAccountToken.toLowerCase())return fail('Sign in to the account used for this purchase.',403);
+   if(user&&user.id.toLowerCase()!==t.appAccountToken.toLowerCase())return fail('This purchase belongs to another Earnly account. Sign in to that account to recover it.',403,'TRANSACTION_OWNER_MISMATCH');
    stage='fulfillment';
    const {data,error}=await db.rpc(sandbox?'apple_sandbox_coin_fulfill':'apple_coin_fulfill',{p_user_id:t.appAccountToken,p_transaction_id:t.transactionId,p_product_id:t.productId,p_environment:t.environment,p_revoked:t.revocationDate!=null});
    if(error)throw error;
@@ -59,6 +59,7 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
     cause:typeof error?.cause?.name==='string'&&/^[A-Za-z]{1,40}$/.test(error.cause.name)?error.cause.name:null,
     unsupported:typeof error?.cause?.message==='string'&&/not implemented|not supported/i.test(error.cause.message)
    }));
+   if(error?.message==='SANDBOX_TEST_ACCOUNT_REQUIRED')return fail('This test purchase belongs to an Earnly account that is not enabled for test purchases. It remains pending; reopening the shop will not change its account.',403,'SANDBOX_TEST_ACCOUNT_REQUIRED');
    return fail('Purchase could not be verified. Reopen the shop to retry; pending purchases are kept by Apple.',503); }
  };
 }

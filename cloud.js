@@ -4,6 +4,24 @@
   const SUPABASE_URL = 'https://zdwziebtbpuolusztede.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_wnizO81RYGI9LRO2R0Exgg_53T55AxZ';
 
+  // Capture recovery intent before Supabase consumes and removes the URL fragment.
+  const recoveryKey = 'earnlyPasswordRecovery';
+  let passwordRecovery = new URLSearchParams(location.search).has('recovery') ||
+    new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery' ||
+    sessionStorage.getItem(recoveryKey) === '1';
+  function isPasswordRecovery(){ return passwordRecovery; }
+  function cancelPasswordRecovery(){
+    passwordRecovery = false;
+    sessionStorage.removeItem(recoveryKey);
+  }
+  function showPasswordRecovery(){
+    passwordRecovery = true;
+    sessionStorage.setItem(recoveryKey, '1');
+    if (!/\/account\.html$/.test(location.pathname)) {
+      setTimeout(() => location.replace(new URL('account.html?recovery=1', location.href).href), 0);
+    }
+  }
+
   const client = window.supabase?.createClient
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth:{
@@ -135,7 +153,7 @@
   }
 
   async function sendPasswordReset(email){
-    const redirectTo = new URL('account.html?recovery=1', window.location.href).href.split('#')[0];
+    const redirectTo = 'https://earnlyarcade.com/account.html?recovery=1';
     const { data, error } = await requireClient().auth.resetPasswordForEmail(
       String(email || '').trim(),
       { redirectTo }
@@ -149,6 +167,7 @@
     if (cleaned.length < 6) throw new Error('Use a password with at least 6 characters.');
     const { data, error } = await requireClient().auth.updateUser({ password:cleaned });
     if (error) throw error;
+    cancelPasswordRecovery();
     return data;
   }
 
@@ -274,6 +293,7 @@
   }
 
   async function maybeRestoreFreshDevice(){
+    if (passwordRecovery) return { skipped:'password-recovery' };
     if (freshRestorePromise) return freshRestorePromise;
 
     freshRestorePromise = (async () => {
@@ -779,7 +799,7 @@
   const MAX_RETRY_DELAY = 60000;
 
   function scheduleAutoSync(reason = 'change', delay = 1400){
-    if (!autoSyncEnabled()) return false;
+    if (passwordRecovery || !autoSyncEnabled()) return false;
     clearTimeout(syncTimer);
     syncTimer = setTimeout(() => {
       autoSaveProgress(reason).catch(() => {});
@@ -795,6 +815,7 @@
   }
 
   async function autoSaveProgress(reason = 'change'){
+    if (passwordRecovery) return { skipped:'password-recovery' };
     if (accountTransition) return { skipped:'account-transition' };
     if (!autoSyncEnabled()) return { skipped:'disabled' };
     if (!navigator.onLine) {
@@ -998,6 +1019,7 @@
 
   if (client) {
     client.auth.onAuthStateChange((event, currentSession) => {
+      if (event === 'PASSWORD_RECOVERY' || (passwordRecovery && currentSession?.user)) showPasswordRecovery();
       window.dispatchEvent(new CustomEvent('earnly-cloud-auth-change', {
         detail:{ event, session:currentSession }
       }));
@@ -1016,7 +1038,7 @@
       }
 
       if (currentSession?.user && event !== 'SIGNED_OUT') {
-        if (accountTransition) return;
+        if (passwordRecovery || accountTransition) return;
         accountTransition = true;
         setTimeout(() => prepareSessionProgress(currentSession.user.id)
           .then(() => maybeRestoreFreshDevice())
@@ -1102,6 +1124,8 @@
     signInAndRestore,
     sendPasswordReset,
     updatePassword,
+    isPasswordRecovery,
+    cancelPasswordRecovery,
     signOut,
     deleteAccount,
     cloudSaveInfo,
