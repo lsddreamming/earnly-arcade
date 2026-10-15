@@ -160,7 +160,7 @@ test('profile global identity save stays wired to world rankings', async ({ page
   const profile = await (await page.request.get('/profile.html')).text();
   const cloud = await (await page.request.get('/cloud.js')).text();
   expect(profile).toContain('id="saveProfileButton">Save Profile');
-  expect(profile).toContain('await saveGlobalProfile()');
+  expect(profile).toContain('await saveGlobalProfile(username)');
   expect(profile).toContain('class="profile-icon-options"');
   expect(profile).toContain('id="xpBar"');
   expect(profile).toContain('EarnlyCloud.updatePublicProfile');
