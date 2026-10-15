@@ -1766,14 +1766,16 @@ const Arcade = (() => {
 
         try {
           const localBest = best(game).value;
-          if (localBest > 0 && leaderboardUsername()) {
-            try { await window.EarnlyCloud.submitLeaderboardScore(game, localBest); } catch {}
+          let submission = null, submissionFailed = false;
+          if (localBest > 0) {
+            try { submission = await window.EarnlyCloud.submitLeaderboardScore(game, localBest); }
+            catch { submissionFailed = true; }
           }
 
           const data = await window.EarnlyCloud.leaderboard(game, 25);
           const entries = Array.isArray(data?.entries) ? data.entries : [];
           const topThree = entries.slice(0, 3);
-          const myName = String(leaderboardUsername() || '').toLowerCase();
+          const myName = String(submission?.username || leaderboardUsername() || '').toLowerCase();
           const myEntry = myName
             ? entries.find(entry => String(entry.username || '').toLowerCase() === myName)
             : null;
@@ -1799,7 +1801,9 @@ const Arcade = (() => {
           const headTitle = document.createElement('strong');
           headTitle.textContent = '🏆 WORLD TOP 3';
           const rank = document.createElement('span');
-          rank.textContent = myEntry ? 'You: #' + myEntry.rank : (myName ? 'You: outside Top 25' : 'Set a username to rank');
+          const needsSync = submissionFailed || !!submission?.skipped;
+          rank.textContent = needsSync ? (submission?.skipped === 'signed-out' ? 'Sign in to save your score' : submission?.skipped === 'username-required' ? 'Choose a username to rank' : 'Score sync pending')
+            : submission?.rank ? 'You: #' + submission.rank : myEntry ? 'You: #' + myEntry.rank : (myName ? 'Rank not confirmed' : 'Set a username to rank');
           head.append(headTitle, rank);
           leaderboardBox.append(head);
 
@@ -1838,6 +1842,17 @@ const Arcade = (() => {
             footer.textContent = '🌎 View full world leaderboard →';
           }
           leaderboardBox.append(footer);
+          if (needsSync) {
+            const retry = document.createElement('button');
+            retry.type = 'button'; retry.className = 'button'; retry.textContent = 'Retry score sync';
+            retry.addEventListener('click', () => { retry.disabled = true; retry.textContent = 'Syncing…'; loadResultLeaderboard(); });
+            leaderboardBox.append(retry);
+            if (submission?.skipped) {
+              const account = document.createElement('a'); account.href = 'account.html';
+              account.textContent = submission.skipped === 'signed-out' ? 'Sign in' : 'Open Profile';
+              leaderboardBox.append(account);
+            }
+          }
         } catch {
           leaderboardBox.innerHTML = '<div class="result-leaderboard-empty">Could not load world rankings right now.</div>';
         }
