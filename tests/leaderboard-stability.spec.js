@@ -89,3 +89,23 @@ test('leaderboard web and bundled iOS copies stay identical', async ({ page }) =
   expect(web).toContain('refreshBoardWithoutResubmit');
   expect(web).not.toContain("window.addEventListener('earnly-leaderboard-updated', loadBoard)");
 });
+
+test('results show authoritative rank and username instead of a stale local identity',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{
+ localStorage.setItem('arcadeUsername','old_name');Arcade.recordResult('turboKart',3250);
+ window.EarnlyCloud={submitLeaderboardScore:async()=>({ok:true,rank:1,username:'current_player',score:3250}),leaderboard:async()=>({entries:[{rank:1,username:'current_player',score:3250}]})};
+ Arcade.gameResult({game:'turboKart',score:3250,coins:17});});
+ await expect(page.locator('.result-leaderboard-head')).toContainText('You: #1');await expect(page.locator('.result-leaderboard')).toContainText('@current_player');
+});
+test('failed score submission is visible and retry confirms rank without another reward',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{
+ localStorage.setItem('arcadeUsername','qa_player');Arcade.recordResult('turboKart',3250);window.rankCalls=0;
+ window.EarnlyCloud={submitLeaderboardScore:async()=>{if(++window.rankCalls===1)throw Error('offline');return {ok:true,rank:1,username:'qa_player'};},leaderboard:async()=>({entries:[{rank:1,username:'rival',score:2250}]})};
+ Arcade.gameResult({game:'turboKart',score:3250,coins:17});});
+ await expect(page.locator('.result-leaderboard')).toContainText('Score sync pending');await expect(page.locator('.result-leaderboard')).not.toContainText('outside Top 25');
+ const before=await page.evaluate(()=>Arcade.number('points'));await page.getByRole('button',{name:'Retry score sync'}).click();await expect(page.locator('.result-leaderboard-head')).toContainText('You: #1');expect(await page.evaluate(()=>Arcade.number('points'))).toBe(before);
+});
+test('signed-out result asks for sign-in rather than inventing a world rank',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{localStorage.setItem('arcadeUsername','qa_player');Arcade.recordResult('turboKart',3250);window.EarnlyCloud={submitLeaderboardScore:async()=>({skipped:'signed-out'}),leaderboard:async()=>({entries:[{rank:1,username:'rival',score:2250}]})};Arcade.gameResult({game:'turboKart',score:3250});});
+ await expect(page.locator('.result-leaderboard-head')).toContainText('Sign in to save your score');await expect(page.locator('.result-leaderboard').getByRole('link',{name:'Sign in',exact:true})).toBeVisible();
+});

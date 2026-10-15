@@ -1766,14 +1766,16 @@ const Arcade = (() => {
 
         try {
           const localBest = best(game).value;
-          if (localBest > 0 && leaderboardUsername()) {
-            try { await window.EarnlyCloud.submitLeaderboardScore(game, localBest); } catch {}
+          let submission = null, submissionFailed = false;
+          if (localBest > 0) {
+            try { submission = await window.EarnlyCloud.submitLeaderboardScore(game, localBest); }
+            catch { submissionFailed = true; }
           }
 
           const data = await window.EarnlyCloud.leaderboard(game, 25);
           const entries = Array.isArray(data?.entries) ? data.entries : [];
           const topThree = entries.slice(0, 3);
-          const myName = String(leaderboardUsername() || '').toLowerCase();
+          const myName = String(submission?.username || leaderboardUsername() || '').toLowerCase();
           const myEntry = myName
             ? entries.find(entry => String(entry.username || '').toLowerCase() === myName)
             : null;
@@ -1799,7 +1801,9 @@ const Arcade = (() => {
           const headTitle = document.createElement('strong');
           headTitle.textContent = '🏆 WORLD TOP 3';
           const rank = document.createElement('span');
-          rank.textContent = myEntry ? 'You: #' + myEntry.rank : (myName ? 'You: outside Top 25' : 'Set a username to rank');
+          const needsSync = submissionFailed || !!submission?.skipped;
+          rank.textContent = needsSync ? (submission?.skipped === 'signed-out' ? 'Sign in to save your score' : submission?.skipped === 'username-required' ? 'Choose a username to rank' : 'Score sync pending')
+            : submission?.rank ? 'You: #' + submission.rank : myEntry ? 'You: #' + myEntry.rank : (myName ? 'Rank not confirmed' : 'Set a username to rank');
           head.append(headTitle, rank);
           leaderboardBox.append(head);
 
@@ -1838,6 +1842,17 @@ const Arcade = (() => {
             footer.textContent = '🌎 View full world leaderboard →';
           }
           leaderboardBox.append(footer);
+          if (needsSync) {
+            const retry = document.createElement('button');
+            retry.type = 'button'; retry.className = 'button'; retry.textContent = 'Retry score sync';
+            retry.addEventListener('click', () => { retry.disabled = true; retry.textContent = 'Syncing…'; loadResultLeaderboard(); });
+            leaderboardBox.append(retry);
+            if (submission?.skipped) {
+              const account = document.createElement('a'); account.href = 'account.html';
+              account.textContent = submission.skipped === 'signed-out' ? 'Sign in' : 'Open Profile';
+              leaderboardBox.append(account);
+            }
+          }
         } catch {
           leaderboardBox.innerHTML = '<div class="result-leaderboard-empty">Could not load world rankings right now.</div>';
         }
@@ -2081,11 +2096,18 @@ const Arcade = (() => {
     });
 
     actions.append(primary, back);
+    const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Arcade Shop · customize your look';shopLink.className='result-shop-link';actions.append(shopLink);
+    if(game&&window.EarnlyPaidPlays){
+      const buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 25 coins';
+      buy.onclick=async()=>{buy.disabled=true;try{await window.EarnlyPaidPlays.buy(game);buy.textContent='Extra plays ready · return to Games to play';}catch(error){toast(error.message);buy.disabled=false;}};
+      actions.append(buy);
+    }
     modal.append(hero, main);
     if (game) modal.append(leaderboardBox);
     modal.append(statsBox, levelProgress);
     if (notes.childElementCount) modal.append(notes);
     modal.append(actions);
+    window.EarnlyShopAppearance?.decorate(hero);
     modal.showModal();
   }
 
@@ -3326,6 +3348,7 @@ const Arcade = (() => {
 
     let active = file === 'index.html' ? 'home' : '';
     if (gameFiles.has(file)) active = 'games';
+    else if (file === 'world.html') active = 'world';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
     else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
@@ -3333,6 +3356,7 @@ const Arcade = (() => {
     const items = [
       ['home','🏠','Home','index.html'],
       ['games','🕹️','Games','games.html'],
+      ['world','🌐','World','world.html'],
       ['missions','📅','Missions','stats.html'],
       ['rewards','🎁','Rewards','rewards.html'],
       ['profile','👤','Profile','profile.html']
@@ -3369,6 +3393,7 @@ const Arcade = (() => {
 
     let active = file === 'index.html' ? 'home' : '';
     if (gameFiles.has(file)) active = 'games';
+    else if (file === 'world.html') active = 'world';
     else if (file === 'stats.html') active = 'missions';
     else if (file === 'rewards.html') active = 'rewards';
     else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
@@ -3376,6 +3401,7 @@ const Arcade = (() => {
     const items = [
       ['home','🏠','Home','index.html'],
       ['games','🕹️','Games','games.html'],
+      ['world','🌐','World','world.html'],
       ['missions','📅','Missions','stats.html'],
       ['rewards','🎁','Rewards','rewards.html'],
       ['profile','👤','Profile','profile.html']
@@ -4099,6 +4125,7 @@ const Arcade = (() => {
 
   function start(){
     loadScript(new URL('paid-plays.js',location.href).href);
+    loadScript(new URL('shop-presence.js',location.href).href);
     if (window.EarnlyCloud) return;
 
     const cloudUrl = new URL('cloud.js', location.href).href;

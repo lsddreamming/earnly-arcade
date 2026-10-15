@@ -2,20 +2,20 @@
    Everything is drawn locally. No Nintendo characters, textures or downloaded assets. */
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
- function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();let driver=null;const poses=new WeakMap();
+ function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
  function poly(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();}
  function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);ctx.fill();}
  function box(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
  function text(t,x,y,size,color,align='center'){ctx.fillStyle=color;ctx.font=`900 ${size}px system-ui`;ctx.textAlign=align;ctx.fillText(t,x,y);}
  function line(x,y,x2,y2,color,width){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}
- function kart(r,scale,x,y,s,isPlayer){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);const turn=r.heading;ctx.rotate(turn*.15);
+ function kart(r,scale,x,y,s,isPlayer){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);const turn=r.heading;ctx.rotate(turn*.28);
   const motion=reduced.matches?0:1,lean=(r.steer||0)*(r.drifting? .18:.10)*motion;
   let pose=poses.get(r);if(!pose){pose={drifting:false,hopAt:-1};poses.set(r,pose);}if(r.drifting&&!pose.drifting)pose.hopAt=s.time;pose.drifting=r.drifting;
   const hopAge=s.time-pose.hopAt,hop=hopAge>=0&&hopAge<.24?Math.sin(hopAge/.24*Math.PI)*3:0;
   ctx.translate(0,(-hop+(r.boost>0?-1.5:0))*motion);
   ellipse(0,0,27,6,'#10203866');
-  if(r.boost>0){for(const side of [-1,1]){poly([{x:side*12-5,y:-4},{x:side*12+5,y:-4},{x:side*12,y:20+Math.sin(s.time*42)*5}],'#7ffcff');poly([{x:side*12-3,y:-4},{x:side*12+3,y:-4},{x:side*12,y:11}],'#fffbaf');}}
+  if(r.boost>0||r.coinSurge>0){for(const side of [-1,1]){poly([{x:side*12-5,y:-4},{x:side*12+5,y:-4},{x:side*12,y:20+Math.sin(s.time*42)*5}],r.boost>0?'#7ffcff':'#ffd96d');poly([{x:side*12-3,y:-4},{x:side*12+3,y:-4},{x:side*12,y:11}],'#fffbaf');}}
   if(r.drifting){const color=['#d9faff','#59deff','#ffc15d','#e59aff'][E.tier(r.charge)];for(const side of [-1,1]){line(side*23,-5,side*30,4,color,2);for(let i=0;i<4;i++)ellipse(side*(25+i*3),4+(Math.sin(s.time*30+i)*5),1.8,1.8,color);}}
   // Chunky treaded tires, pearlescent body panels and a separate rear wing.
   for(const side of [-1,1]){box(side<0?-22:13,-33,9,14,3,'#16253a');box(side<0?-27:15,-19,12,20,4,'#142239');line(side*21,-16,side*21,-3,'#44536b',2);}
@@ -63,6 +63,7 @@ const TurboKartRenderer=(()=>{
   ctx.fillStyle=t.ground;ctx.fillRect(0,horizon+14,w,h-horizon);
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+s.time*2)%w,horizon+23+i*4,(i*89+s.time*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
   // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
+  if(s.time<skidTime||s.time===0)skidMarks=[];if(s.time>skidTime){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-240);
   const ground=[],decals=[],queue=[];let roadLayer=null;
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
   function ribbon(d1,d2,left,rightOffset,color){const a=project(E.sample(d1,left,t)),b=project(E.sample(d1,rightOffset,t)),c=project(E.sample(d2,rightOffset,t)),d=project(E.sample(d2,left,t));if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
@@ -75,6 +76,7 @@ const TurboKartRenderer=(()=>{
    const mod=((d%t.length)+t.length)%t.length;if(mod<15){for(let cell=0;cell<10;cell++)ribbon(d,next,-50+cell*10,-40+cell*10,(cell+i)%2?'#f3ffef':'#253047');}
    const layers=roadLayer;roadLayer=null;add(project(E.sample(d+5,0,t)).depth,()=>{for(const draw of layers)draw();},ground);
   }
+  for(const mark of skidMarks)for(const side of [-1,1]){const q=project(E.sample(mark.d,mark.lane+side*9,t)),tail=project(E.sample(mark.d-2,mark.lane+side*9,t));add(q.depth,()=>line(q.x,q.y,tail.x,tail.y,'#17263a38',Math.max(.5,1.2*q.k)),decals);}
   // Curbs, booster strips and airborne pickups all share the road's projection.
   for(const pad of s.pads){const d=p.d+((pad.d-p.d)%t.length+t.length)%t.length;ribbon(d-12,d+12,pad.lane-17,pad.lane+17,'#2c7c88');for(let j=0;j<3;j++){const q=project(E.sample(d-8+j*8,pad.lane,t));add(q.depth,()=>text('❯❯',q.x,q.y,Math.max(2,8*q.k),'#c7ff8b'),decals);}}
   for(const item of s.pickups){let d=p.d+((item.d-p.d)%t.length+t.length)%t.length;if(item.takenLap===Math.floor(d/t.length))continue;const q=project(E.sample(d,item.lane,t),5+Math.sin(s.time*3+item.d)*1.5);add(q.depth,()=>{const size=5.5*q.k;if(q.x<-size||q.x>w+size)return;if(item.type==='coin'){ellipse(q.x,q.y,size*.7,size,'#ffd96d');ellipse(q.x,q.y,size*.45,size*.72,'#ffed9b');text('◇',q.x,q.y+size*.4,size*1.2,'#b5754b');}else{poly([{x:q.x,y:q.y-size*1.4},{x:q.x+size,y:q.y},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#a4ffed');poly([{x:q.x,y:q.y-size*1.4},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#9479eb');text('ϟ',q.x,q.y+size*.45,size*1.3,'#fff9d7');}});}
@@ -86,7 +88,7 @@ const TurboKartRenderer=(()=>{
   for(let i=0;i<14;i++){const d=i*t.length/14,gap=((d-p.d)%t.length+t.length)%t.length,bend=E.curvature(d,t);if(Math.abs(bend)<.002||gap>500)continue;const q=project(E.sample(p.d+gap,-Math.sign(bend)*69,t),6);add(q.depth,()=>{box(q.x-12*q.k,q.y-13*q.k,24*q.k,13*q.k,2*q.k,'#233e61');text(bend>0?'››':'‹‹',q.x,q.y-2*q.k,15*q.k,'#fff5ac');});}
   for(const h of s.hazards){const q=project(E.sample(h.d,h.lane,t));add(q.depth,()=>{ellipse(q.x,q.y,14*q.k,4*q.k,'#382e78');ellipse(q.x-4*q.k,q.y-q.k,7*q.k,2*q.k,'#aa89e7');},decals);}
   for(const v of s.projectiles){const q=project(E.sample(v.d,v.lane,t),7);add(q.depth,()=>{ellipse(q.x,q.y,5*q.k,5*q.k,'#91fcff');text('ϟ',q.x,q.y+3*q.k,10*q.k,'#fff4cc');});}
-  for(const v of s.effects){const q=project(E.sample(v.d,v.lane,t),2);add(q.depth,()=>{ctx.strokeStyle='#e3b9ff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,q.y,(.7-v.life)*90*q.k,(.7-v.life)*20*q.k,0,0,TAU);ctx.stroke();});}
+  for(const v of s.effects){const q=project(E.sample(v.d,v.lane,t),2);add(q.depth,()=>{if(v.type==='coin'){const age=.5-v.life;for(let i=0;i<8;i++){const a=i*TAU/8;ellipse(q.x+Math.cos(a)*age*36*q.k,q.y-12*q.k+Math.sin(a)*age*20*q.k,Math.max(.5,v.life*3*q.k),Math.max(.5,v.life*3*q.k),'#ffe790');}return;}ctx.strokeStyle='#e3b9ff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,q.y,(.7-v.life)*90*q.k,(.7-v.life)*20*q.k,0,0,TAU);ctx.stroke();});}
   for(let i=0;i<s.racers.length;i++){const r=s.racers[i],q=project(E.sample(r.d,r.lane,t));add(q.depth,()=>{if(q.x<-60*q.k||q.x>w+60*q.k)return;kart(r,q.k*.43,q.x,q.y,s,i===0);if(i&&q.depth>80&&q.depth<320)text(r.name,q.x,q.y-28*q.k,Math.max(8,3*q.k),'#fff9ee');});}
   for(const layer of [ground,decals,queue]){layer.sort((a,b)=>b.depth-a.depth);for(const entry of layer)entry.draw();}
   if(p.boost>0&&!reduced.matches){for(let i=0;i<9;i++){const side=i%2?1:-1,x=w/2+side*(w*.35+i*7),y=h*.48+(i*53+s.time*240)%(h*.5);line(x,y,x+side*12,y+30,'#e1fffd85',2);}}

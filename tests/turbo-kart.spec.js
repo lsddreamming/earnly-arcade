@@ -127,3 +127,15 @@ test('tiny track movements stay neutral; drag cancellation releases steering',as
  await expect(page.locator('#rightButton')).toHaveClass(/held/);
  await page.mouse.up();await expect(page.locator('#rightButton')).not.toHaveClass(/held/);
 });
+
+test('every coin gives a surge after the wallet bonus is capped, without duplicate pickup credit',()=>{
+ const s=E.create();s.coins=5;s.pickupCount=5;s.racers.slice(1).forEach(r=>r.d=-500);
+ const pick=s.pickups.find(p=>p.type==='coin'),p=s.racers[0];Object.assign(p,{d:pick.d-1,lane:pick.lane,speed:96});E.tick(s,.05);
+ expect(s.coins).toBe(5);expect(s.pickupCount).toBe(6);expect(p.coinSurge).toBe(.65);expect(s.callout).toContain('COIN SURGE');E.tick(s,.05);expect(s.pickupCount).toBe(6);expect(p.coinSurge).toBeLessThan(.65);
+ s.ended=true;s.finished=true;s.place=1;expect(E.rewards(s)).toBe(25);
+});
+test('collision immunity never allows a pack to interpenetrate or repeatedly slow racers',()=>{
+ const s=E.create();s.pickups=[];s.racers.forEach((r,i)=>Object.assign(r,{d:300,lane:i*.1,speed:90,cooldown:1,slow:0}));
+ for(let tick=0;tick<20;tick++){E.tick(s,1/60);for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)if(Math.abs(s.racers[i].d-s.racers[j].d)<18)expect(Math.abs(s.racers[i].lane-s.racers[j].lane)).toBeGreaterThan(22);}
+ expect(s.racers[0].slow).toBe(0);expect(s.racers.every(r=>Math.abs(r.lane)<=75)).toBe(true);
+});
