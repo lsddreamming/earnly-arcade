@@ -63,7 +63,7 @@ const TurboKartRenderer=(()=>{
   ctx.fillStyle=t.ground;ctx.fillRect(0,horizon+14,w,h-horizon);
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+s.time*2)%w,horizon+23+i*4,(i*89+s.time*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
   // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
-  if(s.time<skidTime||s.time===0)skidMarks=[];if(s.time>skidTime){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-240);
+  if(s.time<skidTime||s.time===0){skidMarks=[];skidTime=-1;}if(s.time>skidTime){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-240);
   const ground=[],decals=[],queue=[];let roadLayer=null;
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
   function ribbon(d1,d2,left,rightOffset,color){const a=project(E.sample(d1,left,t)),b=project(E.sample(d1,rightOffset,t)),c=project(E.sample(d2,rightOffset,t)),d=project(E.sample(d2,left,t));if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
