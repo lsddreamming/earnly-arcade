@@ -317,3 +317,19 @@ test('simultaneous structure elimination draws and the guided lesson stays base-
  const s=E.create();for(const e of s.entities)if(!E.TYPES[e.type].supply)e.hp=0;E.tick(s);expect(s.ended).toBe(true);expect(s.winner).toBe(null);
  const lesson=E.create({practice:true,learning:true});add(lesson,'relay',1,40,40);lesson.entities.find(e=>e.side===1&&e.type==='base').hp=0;E.tick(lesson);expect(lesson.winner).toBe(0);
 });
+
+test('only completed battle wins qualify for Coins; tutorials and early endings do not',async({page})=>{
+ await page.goto('/crystal-command.html');
+ const result=await page.evaluate(()=>{
+  const win={ended:true,learning:false,winner:0,reason:'All enemy structures destroyed',time:120,player:{kills:9}};
+  return {win:CrystalRewards.result(win,0),excluded:[{learning:true},{winner:1},{winner:null},{reason:'Commander surrendered'},{reason:'Opponent disconnected'},{time:59},{player:{kills:0}},{ended:false}].map(change=>CrystalRewards.result({...win,...change},0))};
+ });
+ expect(result.win).toEqual({metric:9,aux:120,coins:13});expect(result.excluded.every(v=>v===null)).toBe(true);
+});
+test('battle reward retry reuses its event and shows the confirmed wallet balance',async({page})=>{
+ await page.goto('/crystal-command.html');await page.locator('#practice').click();
+ await page.evaluate(()=>{window.rewardCalls=[];CrystalNetwork.claimReward=async(id,result)=>{rewardCalls.push({id,result});if(rewardCalls.length===1)throw Error('offline');return {amount:13,wallet:{balance:113}};};const s=CrystalGame.state;s.time=120;s.players[0].kills=9;s.ended=true;s.winner=0;s.reason='All enemy structures destroyed';});
+ await expect(page.locator('#rewardRetry')).toBeVisible();await page.locator('#rewardRetry').click();await expect(page.locator('#battleReward')).toHaveText('+13 Arcade Coins · Balance 113');
+ const calls=await page.evaluate(()=>rewardCalls);expect(calls).toHaveLength(2);expect(calls[0]).toEqual(calls[1]);await expect(page.locator('#rewardRetry')).toBeHidden();
+ await expect(page.locator('#results a[href="avatars.html"]')).toBeVisible();await expect(page.locator('#results a[href="world.html?multiplayer=1"]')).toBeVisible();
+});
