@@ -9,11 +9,12 @@
  function controls(){const values=[...pointers.values()];return {steer:drag?.steer??(Number(values.includes('right')||keys.has('ArrowRight')||keys.has('d'))-Number(values.includes('left')||keys.has('ArrowLeft')||keys.has('a'))),drift:values.includes('drift')||keys.has('Shift')};}
  function style(){const c=controls();el.leftButton.classList.toggle('held',c.steer<0);el.rightButton.classList.toggle('held',c.steer>0);el.driftButton.classList.toggle('held',c.drift);}
  function clear(){pointers.clear();keys.clear();drag=null;style();}
- function chrome(){const p=state.racers[0];for(const [key,value]of Object.entries({balance:Arcade.number('points').toLocaleString(),position:state.place+' / 5',lap:Math.min(3,Math.max(1,Math.floor(p.d/state.track.length)+1))+' / 3',time:Math.ceil(E.LIMIT-state.time),bonus:state.coins+' / 5',speed:Math.round(p.speed*1.2)+' KM/H',plays:Arcade.remaining(game)}))el[key].textContent=value;
+ function setText(element,value){if(element.textContent!==String(value))element.textContent=value;}
+ function chrome(){const p=state.racers[0];for(const [key,value]of Object.entries({balance:Arcade.number('points').toLocaleString(),position:state.place+' / 5',lap:Math.min(3,Math.max(1,Math.floor(p.d/state.track.length)+1))+' / 3',time:Math.ceil(E.LIMIT-state.time),bonus:state.coins+' / 5',speed:Math.round(p.speed*1.2)+' KM/H',plays:Arcade.remaining(game)}))setText(el[key],value);
  const level=E.tier(state.driftCharge);el.driftFill.style.width=(state.driftCharge/2.5*100)+'%';el.driftFill.dataset.tier=level;
  el.driftLabel.textContent=state.wasDrifting?(level?['','BLUE BOOST','GOLD SUPER BOOST','VIOLET ULTRA BOOST'][level]+' · RELEASE DRIFT':'CHARGING · KEEP YOUR LINE'):'HOLD DRIFT + STEER · RELEASE TO BOOST';
- const item=E.items[state.item];el.itemButton.textContent=item?item.icon+' USE ITEM':'NO ITEM';el.itemButton.disabled=!running||paused||!item;el.itemButton.setAttribute('aria-label',item?'Use '+item.name+': '+item.hint:'No item collected');el.itemSlot.textContent=item?item.icon:'◇';el.itemName.textContent=item?item.name:'PICK UP A GEM';
- el.kartCallout.hidden=!running||state.time>state.calloutUntil||!state.callout;el.kartCallout.textContent=state.callout;}
+ const item=E.items[state.item];el.itemButton.textContent=item?item.icon+' USE ITEM':'NO ITEM';el.itemButton.disabled=!running||paused||!item;el.itemButton.setAttribute('aria-label',item?'Use '+item.name+': '+item.hint:'No item collected');setText(el.itemSlot,item?item.icon:'◇');setText(el.itemName,item?item.name:'PICK UP A GEM');
+ el.kartCallout.hidden=!running||state.time>state.calloutUntil||!state.callout;setText(el.kartCallout,state.callout);}
 
  function status(text){el.gameStatus.textContent=text;document.body.classList.toggle('game-active',running||starting);}
  function finish(){if(!running)return;running=false;paused=false;cancelAnimationFrame(raf);clear();status('Race over');el.startButton.textContent='RACE AGAIN →';el.startButton.disabled=false;el.kartMessage.hidden=false;
