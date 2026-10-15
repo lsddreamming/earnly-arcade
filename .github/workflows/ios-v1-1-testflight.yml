@@ -1,10 +1,13 @@
 name: Earnly 1.2 App Store upload
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/ios-v1-1-testflight.yml']
   workflow_dispatch:
+    inputs:
+      confirm_apple_upload:
+        description: 'Upload to Apple only after explicit owner approval'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +19,7 @@ concurrency:
 
 jobs:
   release-gates:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_apple_upload == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

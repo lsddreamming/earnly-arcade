@@ -162,3 +162,13 @@ test('Backpack search and room filters find stored and placed furniture without 
  await page.getByRole('combobox').selectOption('elsewhere');await expect(cards).toHaveCount(1);await expect(page.getByRole('button',{name:'Visit Garden'})).toBeVisible();
  expect(await page.evaluate(()=>window.worldActions)).toEqual([]);
 });
+
+test('World iPhone view and furniture controls have comfortable touch targets',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.setViewportSize({width:320,height:740});await page.goto('/world.html');await page.getByRole('button',{name:'Close panel'}).click();
+ await page.locator('#placementHint').evaluate(el=>el.hidden=false);
+ for(const selector of ['#roomView','#focusMe','#zoomOut','#zoomIn','#rotateItem','#cancelPlace']){
+  const box=await page.locator(selector).boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);
+ }
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
