@@ -23,7 +23,7 @@
     .global-profile-head span,.global-profile-status{font-size:11px;color:#94a3b8}
     .global-profile-fields{display:grid;gap:10px}
     .global-profile-fields label{display:grid;gap:5px;font-size:11px;font-weight:800;color:#cbd5e1}
-    .global-profile-fields input{width:100%;min-height:42px;border:1px solid #475569;border-radius:12px;background:#0b1728;color:#fff;padding:9px 11px;font:inherit}
+    .global-profile-fields input{width:100%;min-height:42px;border:1px solid #475569;border-radius:12px;background:#0b1728;color:#fff;padding:9px 11px;font:inherit;font-size:16px}
     .avatar-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
     .avatar-choice{min-width:0;min-height:42px;padding:4px;border:1px solid #334155;border-radius:12px;background:#162438;font-size:22px}
     .avatar-choice.selected{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.18);background:#17345c}
@@ -334,6 +334,10 @@
       });
     }
 
+    const profileDraft = { name:false, username:false };
+    document.getElementById('nameInput').addEventListener('input', () => { profileDraft.name = true; });
+    document.getElementById('usernameInput').addEventListener('input', () => { profileDraft.username = true; });
+
     function render() {
       const stats = Arcade.stats();
       document.getElementById('arcadeMarathonProgress').textContent = Math.min(25, stats.gamesCompleted) + ' / 25';
@@ -342,9 +346,9 @@
       document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
       document.getElementById('nameDisplay').textContent = stats.name;
       if (!window.EarnlyCosmetics?.paint()) document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
-      document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
+      if (!profileDraft.name) document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
       const usernameInput = document.getElementById('usernameInput');
-      if (document.activeElement !== usernameInput) usernameInput.value = Arcade.leaderboardUsername();
+      if (!profileDraft.username && document.activeElement !== usernameInput) usernameInput.value = Arcade.leaderboardUsername();
       document.getElementById('level').textContent = xp.level;
       document.getElementById('xpText').textContent = xp.current + ' / ' + xp.needed + ' XP';
       document.getElementById('totalXP').textContent = xp.xp.toLocaleString() + ' total XP';
@@ -408,7 +412,7 @@
       } catch {}
     }
 
-    async function saveGlobalProfile() {
+    async function saveGlobalProfile(username) {
       const status = document.getElementById('globalProfileStatus');
       status.className = 'global-profile-status';
       status.textContent = 'Saving…';
@@ -416,11 +420,12 @@
         if (!window.EarnlyCloud) { status.textContent = 'Display name saved locally. Global profile sync is unavailable.'; return; }
         const saved = await EarnlyCloud.updatePublicProfile({
           displayName:Arcade.profileName(),
-          username:document.getElementById('usernameInput').value,
+          username,
           avatarKey:Arcade.profileIconKey()
         });
         status.className = 'global-profile-status ok';
         status.textContent = '@' + saved.username + ' · global profile saved';
+        if (document.getElementById('usernameInput').value === username) profileDraft.username = false;
         Arcade.trackEvent?.('profile_identity_saved', {
           hasUsername:!!saved.username,
           avatarKey:saved.avatar_key || Arcade.profileIconKey()
@@ -441,12 +446,14 @@
 
     document.getElementById('nameForm').addEventListener('submit', async event => {
       event.preventDefault();
+      const username = document.getElementById('usernameInput').value;
       const name = Arcade.setProfileName(document.getElementById('nameInput').value);
+      profileDraft.name = false;
       Arcade.toast('👤 Profile name saved as ' + name);
       render();
       const button = document.getElementById('saveProfileButton');
       button.disabled = true;
-      try { await saveGlobalProfile(); } finally { button.disabled = false; }
+      try { await saveGlobalProfile(username); } finally { button.disabled = false; }
     });
 
     document.getElementById('rateEarnlyButton').addEventListener('click', async () => {
