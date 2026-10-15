@@ -16,3 +16,17 @@ test('auth, signed verification and exact transaction eligibility protect mintin
 });
 test('verified purchase ignores client-supplied coin counts and user IDs',async()=>{const f=fixture();assert.equal((await f.request('/verify',{signedTransaction:'verified',coins:999999,userId:'attacker'})).status,200);assert.deepEqual(f.calls[0].args,{p_user_id:uid,p_transaction_id:'123',p_product_id:'com.earnly.arcade.coins.starter',p_environment:'Production',p_revoked:false});});
 test('signed refund notifications revoke through the same atomic ledger',async()=>{const f=fixture({revocationDate:123});assert.equal((await f.request('/notifications',{signedPayload:'signed'})).status,200);assert.equal(f.calls[0].args.p_revoked,true);const bad=fixture();assert.equal((await bad.request('/notifications',{signedPayload:'forged'})).status,503);assert.equal(bad.calls.length,0);});
+
+test('failure diagnostics identify only safe stages and allowlisted reasons',async()=>{
+ const logs=[];const warn=console.warn;console.warn=(...args)=>logs.push(args);
+ try {
+  for(const message of ['SANDBOX_TEST_ACCOUNT_REQUIRED','private receipt and account data']){
+   const handler=appleCommerceHandler({verifyUser:async()=>({id:uid}),verifyTransaction:async()=>{throw new Error(message);}});
+   const response=await handler(new Request('https://test/apple-coins/verify',{method:'POST',body:JSON.stringify({signedTransaction:'private signed receipt'})}));
+   assert.equal(response.status,503);
+  }
+  const first=JSON.parse(logs[0][1]);assert.equal(first.stage,'verification');assert.equal(first.reason,'SANDBOX_TEST_ACCOUNT_REQUIRED');
+  assert.equal(JSON.parse(logs[1][1]).reason,'UNCLASSIFIED');
+  assert.ok(!JSON.stringify(logs).includes('private'));
+ }finally{console.warn=warn;}
+});
