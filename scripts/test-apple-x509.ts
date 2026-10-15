@@ -1,17 +1,20 @@
 import {Buffer} from 'node:buffer';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import {CompatibleCertificate,installAppleX509Compatibility} from '../supabase/functions/_shared/apple-x509-compat.ts';
+import {CompatibleCertificate,installAppleX509Compatibility,verifyCertificateSignature} from '../supabase/functions/_shared/apple-x509-compat.ts';
 const fixture=JSON.parse(await Deno.readTextFile(new URL('../tests/fixtures/apple-certificates.json',import.meta.url)));
 const roots=fixture.roots.map((s:string)=>Buffer.from(s,'base64'));
 Deno.test('RSA and EC certificate signatures verify; wrong signer and tampering fail',()=>{
  for(const der of roots){
   const cert=new CompatibleCertificate(der);
   assert.equal(cert.verify(cert.publicKey),true);
+  assert.equal(verifyCertificateSignature(der,cert.publicKey),true);
   const other=new CompatibleCertificate(roots.find((r:Buffer)=>!r.equals(der))!);
   assert.equal(cert.verify(other.publicKey),false);
+  assert.equal(verifyCertificateSignature(der,other.publicKey),false);
   const altered=Buffer.from(der);altered[altered.length-1]^=1;
   assert.equal(new CompatibleCertificate(altered).verify(cert.publicKey),false);
+  assert.equal(verifyCertificateSignature(altered,cert.publicKey),false);
   assert.deepEqual(new CompatibleCertificate(cert.toString()).raw,der);
  }
 });
@@ -19,6 +22,7 @@ Deno.test('real Apple leaf and intermediate preserve OCSP URLs and CA constraint
  const [leaf,intermediate]=fixture.chain.map((s:string)=>new CompatibleCertificate(Buffer.from(s,'base64')));
  assert.equal(leaf.ca,false);assert.equal(intermediate.ca,true);
  assert.equal(leaf.verify(intermediate.publicKey),true);
+ assert.equal(verifyCertificateSignature(leaf.raw,intermediate.publicKey),true);
  assert.match(leaf.infoAccess!,/^OCSP - URI:http/);
  assert.match(intermediate.infoAccess!,/^OCSP - URI:http/);
  assert.equal(leaf.issuer,intermediate.subject);
