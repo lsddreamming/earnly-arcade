@@ -43,3 +43,23 @@ test('Switching accounts while checkout opens does not redirect the new player',
  await page.goto('/avatars.html');await page.locator('#coin-pack-options summary').click();const button=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(button).toBeEnabled();await button.click();await expect.poll(()=>requested).toBe(true);
  await page.evaluate(()=>{window.qaUserId='another-account';});release();await expect(page.locator('#coin-status')).toContainText('account changed');await expect(page).toHaveURL(/avatars\.html/);
 });
+
+test('Uncertain checkout survives reload and is isolated by account',async({page})=>{
+ await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
+ const keys=[];
+ await page.route(API+'/checkout',async route=>{keys.push(route.request().headers()['idempotency-key']);await route.abort();});
+ const buy=async()=>{await page.locator('#coin-pack-options').evaluate(el=>el.open=true);const b=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(b).toBeEnabled();await b.click();await expect(b).toBeEnabled();};
+ await page.goto('/avatars.html');await buy();await expect.poll(()=>keys.length).toBe(1);
+ await page.reload();await buy();await expect.poll(()=>keys.length).toBe(2);expect(keys[1]).toBe(keys[0]);
+ await page.evaluate(()=>window.qaUserId='second-player');await buy();await expect.poll(()=>keys.length).toBe(3);expect(keys[2]).not.toBe(keys[0]);
+});
+
+test('Refunded checkout shows the adjusted balance and clears only its account recovery key',async({page})=>{
+ await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
+ await page.addInitScript(()=>{localStorage.setItem('earnly-coin-checkout:qa-paid-player:starter','33333333-3333-4333-8333-333333333333');localStorage.setItem('earnly-coin-checkout:other:starter','44444444-4444-4444-8444-444444444444');});
+ await page.route(API+'/orders/*',r=>r.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({status:'fulfilled',coins:500,refundedCoins:500,packId:'starter'})}));
+ await page.goto('/avatars.html?coin_order=22222222-2222-4222-8222-222222222222');
+ await expect(page.locator('#coin-status')).toContainText('refunded');
+ expect(await page.evaluate(()=>localStorage.getItem('earnly-coin-checkout:qa-paid-player:starter'))).toBeNull();
+ expect(await page.evaluate(()=>localStorage.getItem('earnly-coin-checkout:other:starter'))).not.toBeNull();
+});

@@ -10,6 +10,17 @@
   const fallback=[{id:'starter',coins:500,priceCents:99},{id:'plus',coins:1500,priceCents:299},{id:'vault',coins:4000,priceCents:499}];
   let available=false,busy=false,configSequence=0;
   const pending=new Map();
+  // Keep uncertain checkouts recoverable across refreshes, separately for each account.
+  function checkoutKey(account,pack) {
+    const name='earnly-coin-checkout:'+account+':'+pack;
+    let key=pending.get(name);
+    try{key=key||localStorage.getItem(name);}catch{}
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key||''))key=crypto.randomUUID();
+    pending.set(name,key);
+    try{localStorage.setItem(name,key);}catch{}
+    return key;
+  }
+  function clearCheckout(account,pack){const name='earnly-coin-checkout:'+account+':'+pack;pending.delete(name);try{localStorage.removeItem(name);}catch{}}
   const message=(text,error=false)=>{$('coin-status').textContent=text;$('coin-status').className=error?'error':'';};
   async function api(path,options={}) {
     const session=await window.EarnlyCloud?.session?.();
@@ -49,14 +60,14 @@
         const session=await window.EarnlyCloud?.session?.();if(!session){$('auth-modal').showModal();return;}
         if(native){await buyApple(pack,packs,session);return;}
         busy=true;render(packs);message('Opening secure card checkout…');
-        const key=pending.get(pack.id)||crypto.randomUUID();pending.set(pack.id,key);
+        const key=checkoutKey(session.user.id,pack.id);
         try {
           const data=await api('/checkout',{body:{packId:pack.id},key,account:session.user.id});
           if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Return to your account to check this order.');
-          if(data.fulfilled){pending.delete(pack.id);location.assign('avatars.html?coin_order='+encodeURIComponent(data.orderId)+'#coin-shop');return;}
+          if(data.fulfilled){clearCheckout(session.user.id,pack.id);location.assign('avatars.html?coin_order='+encodeURIComponent(data.orderId)+'#coin-shop');return;}
           const url=new URL(data.url);if(url.protocol!=='https:'||url.hostname!=='checkout.stripe.com')throw new Error('Checkout could not open.');
           location.assign(url.href);
-        } catch(error){if(error.code==='CHECKOUT_EXPIRED')pending.delete(pack.id);message(error.message,true);busy=false;render(packs);}
+        } catch(error){if(error.code==='CHECKOUT_EXPIRED')clearCheckout(session.user.id,pack.id);message(error.message,true);busy=false;render(packs);}
       });
       card.append(heading,art,amount,note,rate,button);$('coin-packs').append(card);
     }
@@ -76,9 +87,12 @@
         const data=await api('/orders/'+order,{account:session.user.id});
         if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Sign back in to check this purchase.');
         if(data.status==='fulfilled'){
+          if(data.packId)clearCheckout(session.user.id,data.packId);
           if(data.wallet)arcade?.applyServerWallet?.(data.wallet);
           $('refresh-button').click();
-          message(Number.isSafeInteger(data.coins)&&data.coins>0
+          message(Number(data.refundedCoins)>0
+            ? 'This purchase was fully or partly refunded. Your current balance is updated.'
+            : Number.isSafeInteger(data.coins)&&data.coins>0
             ? `Purchase confirmed · ${data.coins.toLocaleString()} coins added. Enjoy your next unlock!`
             : 'Purchase confirmed. Your current balance is updated.');
           history.replaceState(null,'',location.pathname+'#coin-shop');return;

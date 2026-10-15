@@ -66,7 +66,8 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
         const order=unwrap(await db.from('coin_orders').select('*').eq('id',id).eq('user_id',user.id).maybeSingle());
         if(!order)return fail('ORDER_NOT_FOUND','Order not found.',404);
         const result=await fulfill(order);
-        return json({orderId:order.id,status:result?.status||order.status,coins:order.coins,wallet:result?.wallet});
+        return json({orderId:order.id,packId:order.pack_id,status:result?.status||order.status,coins:order.coins,
+          refundedCoins:result?.refundedCoins??order.refunded_coins??0,wallet:result?.wallet});
       }
       const key=req.headers.get('Idempotency-Key');if(!key||!uuid.test(key))return fail('REQUEST_ID_REQUIRED','A valid request ID is required.');
       const raw=await req.text();if(raw.length>4096)return fail('REQUEST_TOO_LARGE','Request is too large.',413);
