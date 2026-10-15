@@ -760,3 +760,11 @@ input {
 @media(max-width:850px){.featured-looks{grid-template-columns:1fr}.look-card{display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:center}.look-art{height:190px}.look-card p{min-height:0}}
 @media(max-width:680px){.item-art{height:225px}.coin-packs{grid-template-columns:1fr}.coin-pack{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:18px}.coin-pack .coin-amount{font-size:24px}.coin-pack button{grid-row:1/3;grid-column:2;width:auto;min-width:120px}.coin-pack p{margin:2px 0}.shop-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}.shop-tabs button{font-size:10px;padding:10px 3px}.look-card{grid-template-columns:105px 1fr;padding:14px;gap:12px}.look-art{height:160px}.get-coins{font-size:10px;padding:10px 8px}.account-bar{gap:6px}.profile-button{gap:5px}.profile-button #nav-name{max-width:85px;overflow:hidden;text-overflow:ellipsis}.coin-chip{padding:7px 8px}}
 @media(prefers-reduced-motion:reduce){.item-card{transition:none}}
+
+/* Retained /www/ storefront: keep checkout within narrow iPhone cards. */
+@media(max-width:400px){
+ .coin-pack{grid-template-columns:minmax(0,1fr)}
+ .coin-pack>*{min-width:0}
+ .coin-pack button{grid-row:auto;grid-column:auto;width:100%;min-width:0}
+ .coin-pack .pack-heading{flex-wrap:wrap}
+}
