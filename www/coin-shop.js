@@ -42,6 +42,8 @@
       const heading=document.createElement('div');heading.className='pack-heading';
       const title=document.createElement('h3');title.textContent=({starter:'Starter stash',plus:'Style upgrade',vault:'Arcade vault'})[pack.id]||'Coin pack';
       heading.append(title);
+      const art=document.createElement('img');art.className='coin-pack-art';art.alt='';art.width=280;art.height=170;
+      art.src=({starter:'coin-pack-starter.svg',plus:'coin-pack-plus.svg',vault:'coin-pack-vault.svg'})[pack.id]||'coin-pack-starter.svg';
       if(priced.length>1&&pack.priceCents/pack.coins===bestRate&&priced.some(p=>p.priceCents/p.coins>bestRate)){
         card.classList.add('best-value');
         const badge=document.createElement('span');badge.className='pack-value';badge.textContent='Best value';heading.append(badge);
@@ -67,7 +69,7 @@
           location.assign(url.href);
         } catch(error){if(error.code==='CHECKOUT_EXPIRED')clearCheckout(session.user.id,pack.id);message(error.message,true);busy=false;render(packs);}
       });
-      card.append(heading,amount,note,rate,button);$('coin-packs').append(card);
+      card.append(heading,art,amount,note,rate,button);$('coin-packs').append(card);
     }
   }
   async function refreshAccount() {
@@ -133,7 +135,14 @@
   }
   async function recover(){
     if(!native||!apple||!(await window.EarnlyCloud?.session?.()))return;
-    try {for(const signed of (await apple.pending()).transactions||[])await deliver(signed);}
+    try {
+      let failed=0,restricted=0;
+      for(const signed of (await apple.pending()).transactions||[]){
+        try {await deliver(signed);}catch(error){if(['SANDBOX_TEST_ACCOUNT_REQUIRED','TRANSACTION_OWNER_MISMATCH'].includes(error.code))restricted++;else failed++;}
+      }
+      if(restricted&&!failed)message(restricted+' pending purchase'+(restricted===1?' belongs':'s belong')+' to another or ineligible test account. They remain pending. Any purchases confirmed for this account have been applied.',true);
+      if(failed)message('Checked pending purchases. '+failed+' could not be verified and remain pending. Any confirmed purchases have been applied.',true);
+    }
     catch(error){message(error.message,true);}
   }
   async function buyApple(pack,packs,session){

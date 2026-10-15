@@ -135,9 +135,10 @@
       <div class="cloud-recovery" id="cloudRecovery" hidden>
         <span class="section-kicker">PASSWORD RECOVERY</span>
         <h3>Choose a new password</h3>
-        <p class="muted small">Enter a new password for this Earnly account.</p>
+        <p class="muted small">Enter a new password for this Earnly account. Then return to the app and sign in with it.</p>
         <input id="cloudNewPassword" type="password" minlength="6" autocomplete="new-password" placeholder="New password · 6+ characters">
         <button class="green wide" id="cloudUpdatePasswordButton" type="button">Update Password</button>
+        <button class="ghost wide" id="cloudCancelRecoveryButton" type="button">Back to sign in</button>
       </div>
 
       <div id="cloudSignedIn" hidden>
@@ -320,7 +321,7 @@
       event.currentTarget.setAttribute('aria-label',showing ? 'Hide password' : 'Show password');
       event.currentTarget.setAttribute('aria-pressed',String(showing));
     });
-    let recoveryMode = new URLSearchParams(location.search).has('recovery');
+    let recoveryMode = new URLSearchParams(location.search).has('recovery') || window.EarnlyCloud?.isPasswordRecovery?.();
 
     function friendlyTime(value){
       if (!value) return 'No cloud save yet';
@@ -379,6 +380,8 @@
           cloudRecovery.hidden = false;
           cloudBadge.textContent = 'Recovery';
           cloudBadge.classList.remove('connected');
+          document.getElementById('cloudUpdatePasswordButton').disabled = !signedIn;
+          if (!signedIn) cloudMessage.textContent = 'This reset link is expired or incomplete. Go back to sign in and request a new reset email.';
           return;
         }
 
@@ -677,6 +680,11 @@
         button.disabled = false;
         button.textContent = 'Send Reset Email';
       }
+    });
+
+    document.getElementById('cloudCancelRecoveryButton').addEventListener('click', () => {
+      EarnlyCloud.cancelPasswordRecovery();
+      location.replace('account.html');
     });
 
     document.getElementById('cloudUpdatePasswordButton').addEventListener('click', async () => {
@@ -1022,6 +1030,7 @@
       cloudSignedOut.hidden = true;
       cloudSignedIn.hidden = true;
       cloudRecovery.hidden = false;
+      renderCloud();
       cloudMessage.textContent = 'Password recovery verified. Choose your new password below.';
     });
     window.addEventListener('earnly-cloud-auto-restored', async event => {
