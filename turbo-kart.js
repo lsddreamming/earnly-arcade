@@ -30,13 +30,13 @@
  function selectCourse(id){if(running||starting)return;selectedCourse=id;state=E.create(id);el.courseName.textContent=state.track.name.toUpperCase();el.courseTag.textContent=state.track.tag;el.courseDescription.textContent=state.track.description;for(const button of document.querySelectorAll('[data-course]'))button.setAttribute('aria-pressed',String(button.dataset.course===id));chrome();renderer.render(state,{idle:true});}
  for(const button of document.querySelectorAll('[data-course]'))button.addEventListener('click',()=>selectCourse(button.dataset.course));
  canvas.addEventListener('pointerdown',e=>{if(!running||paused||drag||e.button>0)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,steer:0};});
- canvas.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;e.preventDefault();drag.steer=Math.max(-1,Math.min(1,(e.clientX-drag.x)/55));style();});
+ canvas.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;e.preventDefault();drag.steer=Math.max(-1,Math.min(1,Math.sign(e.clientX-drag.x)*Math.max(0,Math.abs(e.clientX-drag.x)-5)/Math.min(55,canvas.getBoundingClientRect().width*.16)));style();});
  // iOS callouts apply to links (including Quit) and nested labels, not just buttons.
  // Scope the guard to the racing surface so guides, dialogs and text fields stay normal.
  const surfaces=[...document.querySelectorAll('.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls')];
  function clearRaceSelection(){const selection=window.getSelection();if(selection?.rangeCount&&surfaces.some(surface=>surface.contains(selection.anchorNode)||surface.contains(selection.focusNode)))selection.removeAllRanges();}
  for(const surface of surfaces){for(const event of ['contextmenu','selectstart','dragstart'])surface.addEventListener(event,e=>e.preventDefault(),{capture:true});surface.addEventListener('pointerdown',clearRaceSelection,{capture:true});}
- for(const [id,value]of [['leftButton','left'],['rightButton','right'],['driftButton','drift']])el[id].addEventListener('pointerdown',e=>{if(!running||paused||e.button>0)return;e.preventDefault();el[id].setPointerCapture(e.pointerId);pointers.set(e.pointerId,value);if(value==='drift'&&!driftDrag)driftDrag={id:e.pointerId,x:e.clientX,steer:0};style();});
+ for(const [id,value]of [['leftButton','left'],['rightButton','right'],['driftButton','drift']])el[id].addEventListener('pointerdown',e=>{if(!running||paused||e.button>0||[...pointers.values()].includes(value))return;e.preventDefault();el[id].setPointerCapture(e.pointerId);pointers.set(e.pointerId,value);if(value==='drift'&&!driftDrag)driftDrag={id:e.pointerId,x:e.clientX,steer:0};style();});
  el.driftButton.addEventListener('pointermove',e=>{if(driftDrag?.id!==e.pointerId)return;e.preventDefault();const distance=e.clientX-driftDrag.x;driftDrag.steer=Math.sign(distance)*Math.min(1,Math.max(0,Math.abs(distance)-6)/48);style();});
  for(const event of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(event,e=>{pointers.delete(e.pointerId);if(drag?.id===e.pointerId)drag=null;if(driftDrag?.id===e.pointerId)driftDrag=null;style();});
  el.itemButton.addEventListener('click',()=>{if(running&&!paused){E.useItem(state);chrome();}});
@@ -45,5 +45,14 @@
  pause=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;cancelAnimationFrame(raf);clear();status('Paused');el.kartCallout.hidden=false;el.kartCallout.textContent='PAUSED · TAP STEER TO RESUME';},resume:()=>{if(!running||disposed)return;paused=false;clear();last=performance.now();status('Running');raf=requestAnimationFrame(loop);},resumeOnInput:e=>(e.type==='keydown'&&['ArrowLeft','ArrowRight','a','d','A','D'].includes(e.key))||!!e.target.closest?.('#leftButton,#rightButton,#driftButton,#game')});
  let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pause.button,document.getElementById('earnlyQuitButton'));}document.getElementById('sessionControls').append(dock);
  const background=()=>{clear();if(running&&!paused)pause.button.click();};window.addEventListener('blur',background);document.addEventListener('visibilitychange',()=>{if(document.hidden)background();});window.addEventListener('pagehide',()=>{disposed=true;running=false;starting=false;clear();cancelAnimationFrame(raf);});window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});window.addEventListener('resize',()=>renderer.render(state,{idle:!running}));
+ // Read-only profile loading. Never persist a loadout across account changes.
+ let driverVersion=0;
+ async function loadDriver(){const version=++driverVersion;renderer.setDriver(null);
+  let equipped=TurboKartDriver.defaults;
+  try{const session=await window.EarnlyCloud?.session();if(session){const response=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token},signal:AbortSignal.timeout(8000)});if(response.ok){const data=await response.json();equipped=data.user?.equipped||equipped;}}}catch{}
+  const driver=await TurboKartDriver.compose(equipped);if(version!==driverVersion||disposed)return;renderer.setDriver(driver);if(!running||paused)renderer.render(state,{idle:!running});
+ }
+ for(const event of ['earnly-cloud-ready','earnly-cloud-auth-change','earnly-public-profile-updated'])window.addEventListener(event,loadDriver);
+ loadDriver();
  chrome();renderer.render(state,{idle:true});
 })();

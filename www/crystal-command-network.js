@@ -14,4 +14,7 @@ function connect(room,onMessage,onStatus){const c=db(),channels=[],own=room.side
   async close(){if(closed)return;closed=true;await Promise.all(channels.map(ch=>c.removeChannel(ch)))}
  };
 }
-window.CrystalNetwork={action,connect};})();
+async function claimReward(eventId,result){const c=db(),{data:auth,error:authError}=await c.auth.getSession();if(authError)throw authError;if(!auth.session||auth.session.user?.is_anonymous)throw Error('Sign in to collect Arcade Coins');
+ const {data,error}=await c.rpc('claim_coin_reward',{p_event_id:eventId,p_kind:'game',p_game:'crystalCommand',p_metric:result.metric,p_aux:result.aux,p_source:'Crystal Command'});if(error)throw error;return data;
+}
+window.CrystalNetwork={action,connect,claimReward};})();

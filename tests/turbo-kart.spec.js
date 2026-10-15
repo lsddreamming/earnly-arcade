@@ -15,7 +15,7 @@ test('drift release, items, grass and pickup crossing have distinct effects',()=
  const c=E.create(),pick=c.pickups.find(p=>p.type==='coin');c.racers[0].d=pick.d-1;c.racers[0].lane=pick.lane;c.racers[0].speed=96;E.tick(c,.05);expect(c.coins).toBe(1);E.tick(c,.05);expect(c.coins).toBe(1);
  const a=E.create(),b=E.create();b.racers[0].lane=74;for(let i=0;i<30;i++){E.tick(a,1/60);E.tick(b,1/60,{steer:1});}expect(a.racers[0].speed).toBeGreaterThan(b.racers[0].speed);
 });
-test('kart web and native assets match',()=>{for(const file of ['turbo-kart.html','turbo-kart.css','turbo-kart.js','turbo-kart-engine.js','turbo-kart-renderer.js'])expect(fs.readFileSync('www/'+file,'utf8')).toBe(fs.readFileSync(file,'utf8'));});
+test('kart web and native assets match',()=>{for(const file of ['turbo-kart.html','turbo-kart.css','turbo-kart.js','turbo-kart-engine.js','turbo-kart-renderer.js','turbo-kart-driver.js'])expect(fs.readFileSync('www/'+file,'utf8')).toBe(fs.readFileSync(file,'utf8'));});
 test.beforeEach(async({page})=>{await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('arcadeSound','off');});});
 async function start(page){await page.goto('/turbo-kart.html');await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});}
 test('catalog, touch controls, pause and quit preserve the play lifecycle',async({page})=>{
@@ -95,4 +95,35 @@ test('road and boost strips never cut through the rear body on hairpins or the v
  const samples=await page.evaluate(()=>{const canvas=document.querySelector('#game'),E=TurboKartEngine,results=[];for(const course of E.courses)for(let step=0;step<24;step++)for(const lane of [-70,0,70]){const s=E.create(course.id);Object.assign(s.racers[0],{d:s.track.length*step/24,lane,heading:0,shield:6});s.pickups=[];s.racers.slice(1).forEach(r=>{r.d=s.racers[0].d;r.lane=1000;});const frame=TurboKartRenderer.create(canvas);frame.render(s);const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,rect=canvas.getBoundingClientRect(),scale=Math.min(rect.width*.92,rect.height*.88)/58*.43*w/rect.width;const x=Math.round(w/2),y=Math.round(h*.84-1.5*scale);const pixel=[...ctx.getImageData(x,y,1,1).data];results.push({course:course.id,step,lane,pixel});}return results;});
  for(const sample of samples)expect(sample.pixel,JSON.stringify(sample)).toEqual([101,245,220,255]);
  for(const course of ['harbor','canyon','garden']){await page.evaluate(course=>{const s=TurboKartEngine.create(course);s.racers[0].d=s.track.length*.36;s.racers[0].lane=-38;s.racers[0].heading=.25;s.racers[0].shield=6;TurboKartRenderer.create(document.querySelector('#game')).render(s);document.querySelector('#kartCallout').hidden=true;document.querySelector('#courseName').textContent=s.track.name.toUpperCase();},course);await page.screenshot({path:`test-results/turbo-kart-polish-${course}-${test.info().project.name}.png`});}
+});
+
+test('saved rear driver uses owned gear and omits front facial layers',async({page})=>{
+ await page.goto('/turbo-kart.html');
+ const result=await page.evaluate(async()=>{
+  const e={avatar:{id:'rose-potato'},outfit:{imageUrl:'cosmetic-starter-suit.svg'},head:{imageUrl:'cosmetic-hair-sprout.svg'},backpack:{imageUrl:'cosmetic-adventure-pack.svg'},eyes:{imageUrl:'cosmetic-eyes-classic.svg'},weapon:{imageUrl:'https://untrusted.example/image.svg'}};
+  const d=await TurboKartDriver.compose(e);return {parts:d.parts,pixels:d.canvas.getContext('2d').getImageData(130,80,1,1).data[3]};
+ });
+ expect(result.parts.map(p=>p.slot)).toEqual(['avatar','outfit','head','backpack']);expect(result.parts[0].src).toBe('cosmetic-rose-potato-body.svg');expect(result.pixels).toBeGreaterThan(0);
+});
+test('account change discards a late profile response and keeps wallet unchanged',async({page})=>{
+ await page.goto('/turbo-kart.html');
+ const result=await page.evaluate(async()=>{
+  const before=localStorage.getItem('points'),seen=[];let release;
+  TurboKartDriver.compose=async e=>{seen.push(e.avatar.id);const c=document.createElement('canvas');c.width=300;c.height=400;const x=c.getContext('2d');x.fillStyle=e.avatar.id==='rose-potato'?'#ff0088':'#0088ff';x.fillRect(0,0,300,400);return {canvas:c};};
+  window.EarnlyCloud={session:async()=>({access_token:'test-only'})};
+  const fetchOriginal=window.fetch;window.fetch=(url,opts)=>String(url).includes('/avatars/api/me')?new Promise(resolve=>release=()=>resolve({ok:true,json:async()=>({user:{equipped:{avatar:{id:'rose-potato'}}}})})):fetchOriginal(url,opts);
+  window.dispatchEvent(new Event('earnly-cloud-auth-change'));await new Promise(r=>setTimeout(r,10));
+  window.EarnlyCloud.session=async()=>null;window.dispatchEvent(new Event('earnly-cloud-auth-change'));await new Promise(r=>setTimeout(r,30));const signedOut=document.getElementById('game').toDataURL();release();await new Promise(r=>setTimeout(r,30));const afterLate=document.getElementById('game').toDataURL();
+  return {seen,before,after:localStorage.getItem('points'),sameDriver:signedOut===afterLate};
+ });
+ expect(result.sameDriver).toBe(true);expect(result.seen).toContain('cyber-starter');expect(result.before).toBe(result.after);
+});
+test('tiny track movements stay neutral; drag cancellation releases steering',async({page})=>{
+ await start(page);const canvas=page.locator('#game');
+ const b=await canvas.boundingBox();await page.mouse.move(b.x+150,b.y+b.height*.6);await page.mouse.down();
+ await page.mouse.move(b.x+153,b.y+b.height*.6);
+ await expect(page.locator('#rightButton')).not.toHaveClass(/held/);
+ await page.mouse.move(b.x+210,b.y+b.height*.6);
+ await expect(page.locator('#rightButton')).toHaveClass(/held/);
+ await page.mouse.up();await expect(page.locator('#rightButton')).not.toHaveClass(/held/);
 });

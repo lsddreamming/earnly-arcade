@@ -2,7 +2,7 @@
    Everything is drawn locally. No Nintendo characters, textures or downloaded assets. */
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
- function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();
+ function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();let driver=null;const poses=new WeakMap();
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
  function poly(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();}
  function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);ctx.fill();}
@@ -10,6 +10,10 @@ const TurboKartRenderer=(()=>{
  function text(t,x,y,size,color,align='center'){ctx.fillStyle=color;ctx.font=`900 ${size}px system-ui`;ctx.textAlign=align;ctx.fillText(t,x,y);}
  function line(x,y,x2,y2,color,width){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}
  function kart(r,scale,x,y,s,isPlayer){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);const turn=r.heading;ctx.rotate(turn*.15);
+  const motion=reduced.matches?0:1,lean=(r.steer||0)*(r.drifting? .18:.10)*motion;
+  let pose=poses.get(r);if(!pose){pose={drifting:false,hopAt:-1};poses.set(r,pose);}if(r.drifting&&!pose.drifting)pose.hopAt=s.time;pose.drifting=r.drifting;
+  const hopAge=s.time-pose.hopAt,hop=hopAge>=0&&hopAge<.24?Math.sin(hopAge/.24*Math.PI)*3:0;
+  ctx.translate(0,(-hop+(r.boost>0?-1.5:0))*motion);
   ellipse(0,0,27,6,'#10203866');
   if(r.boost>0){for(const side of [-1,1]){poly([{x:side*12-5,y:-4},{x:side*12+5,y:-4},{x:side*12,y:20+Math.sin(s.time*42)*5}],'#7ffcff');poly([{x:side*12-3,y:-4},{x:side*12+3,y:-4},{x:side*12,y:11}],'#fffbaf');}}
   if(r.drifting){const color=['#d9faff','#59deff','#ffc15d','#e59aff'][E.tier(r.charge)];for(const side of [-1,1]){line(side*23,-5,side*30,4,color,2);for(let i=0;i<4;i++)ellipse(side*(25+i*3),4+(Math.sin(s.time*30+i)*5),1.8,1.8,color);}}
@@ -21,9 +25,15 @@ const TurboKartRenderer=(()=>{
   poly([{x:-19,y:-10},{x:19,y:-10},{x:17,y:-3},{x:-17,y:-3}],'#243754');
   poly([{x:-16,y:-30},{x:-4,y:-35},{x:7,y:-33},{x:17,y:-30},{x:10,y:-14},{x:-11,y:-14}],'#efffff');
   box(-13,-33,26,18,6,'#283854');box(-11,-36,22,19,7,r.color);line(-8,-31,8,-31,'#efffff',2);
+  if(isPlayer&&driver){
+   ctx.save();ctx.translate(0,-23);ctx.rotate(lean);ctx.translate((r.steer||0)*2*motion,r.boost>0?2*motion:0);
+   // Feet and lap sit inside the cockpit; the back, hair, hat and pack face us.
+   ctx.drawImage(driver.canvas,0,0,300,300,-29,-39,58,50);ctx.restore();
+  }else{
   // Original little robot driver: two aerials, rounded helmet and turquoise visor.
   ellipse(turn*5,-42,12,12,'#19364d');ellipse(turn*5-1,-44,11,11,'#fff5df');ellipse(turn*5-1,-46,8,7,r.color);
   line(turn*5-1,-52,turn*5-1,-37,'#ffffff',2);box(turn*5-5,-39,8,3,1,'#7595a6');line(turn*5-4,-56,turn*5-4,-60,'#35445d',2);ellipse(turn*5-4,-61,2,2,r.color);
+  }
   line(-15,-18,-18,-29,'#273c58',3);line(15,-18,18,-29,'#273c58',3);box(-25,-25,50,6,2,'#1c3450');box(-24,-26,48,3,1,r.color);
   box(-16,-9,7,3,1,'#ff5d76');box(9,-9,7,3,1,'#ff5d76');box(-5,-9,10,6,1,'#e9fff1');text(isPlayer?'E':r.name[0],0,-4,5,'#283c58');
   if(r.shield>0){ctx.strokeStyle='#a4fdff';ctx.lineWidth=1.3;ctx.beginPath();ctx.ellipse(0,-28,34,39,0,0,TAU);ctx.stroke();}
@@ -84,6 +94,6 @@ const TurboKartRenderer=(()=>{
   const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);ctx.beginPath();t.points.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke();for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i)ellipse(q.x,q.y,17,17,'#49dabe');}ctx.restore();
   if(!idle&&!(s.callout&&s.time<=s.calloutUntil)){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){const label=bend>0?'RIGHT BEND ›':'‹ LEFT BEND',size=Math.max(10,Math.min(13,w/35));box(w/2-64,horizon*.68-size-4,128,size+12,9,'#142640c9');text(label,w/2,horizon*.68,size,'#fff5d8');}}
  }
- return {render};
+ return {render,setDriver(value){driver=value;}};
  }return {create};
 })();
