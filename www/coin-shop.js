@@ -133,7 +133,14 @@
   }
   async function recover(){
     if(!native||!apple||!(await window.EarnlyCloud?.session?.()))return;
-    try {for(const signed of (await apple.pending()).transactions||[])await deliver(signed);}
+    try {
+      let failed=0,restricted=0;
+      for(const signed of (await apple.pending()).transactions||[]){
+        try {await deliver(signed);}catch(error){if(['SANDBOX_TEST_ACCOUNT_REQUIRED','TRANSACTION_OWNER_MISMATCH'].includes(error.code))restricted++;else failed++;}
+      }
+      if(restricted&&!failed)message(restricted+' pending purchase'+(restricted===1?' belongs':'s belong')+' to another or ineligible test account. They remain pending. Any purchases confirmed for this account have been applied.',true);
+      if(failed)message('Checked pending purchases. '+failed+' could not be verified and remain pending. Any confirmed purchases have been applied.',true);
+    }
     catch(error){message(error.message,true);}
   }
   async function buyApple(pack,packs,session){

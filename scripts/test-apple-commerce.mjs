@@ -23,7 +23,9 @@ test('failure diagnostics identify only safe stages and allowlisted reasons',asy
   for(const message of ['SANDBOX_TEST_ACCOUNT_REQUIRED','private receipt and account data']){
    const handler=appleCommerceHandler({verifyUser:async()=>({id:uid}),verifyTransaction:async()=>{throw new Error(message);}});
    const response=await handler(new Request('https://test/apple-coins/verify',{method:'POST',body:JSON.stringify({signedTransaction:'private signed receipt'})}));
-   assert.equal(response.status,503);
+   assert.equal(response.status,message==='SANDBOX_TEST_ACCOUNT_REQUIRED'?403:503);
+   const body=await response.json();
+   if(message==='SANDBOX_TEST_ACCOUNT_REQUIRED'){assert.equal(body.error.code,message);assert.match(body.error.message,/reopening the shop will not change/);}
   }
   const first=JSON.parse(logs[0][1]);assert.equal(first.stage,'verification');assert.equal(first.reason,'SANDBOX_TEST_ACCOUNT_REQUIRED');
   assert.equal(JSON.parse(logs[1][1]).reason,'UNCLASSIFIED');

@@ -28,8 +28,10 @@ test('Paid plays prepare online, consume once and do not change daily free count
 test('Uncertain paid-play requests retry with the same receipt ID',async({page})=>{
  const f=await setup(page,{retry:true});await page.goto('/snake.html');await expect.poll(()=>page.evaluate(()=>window.EarnlyPaidPlays?.remaining('snake'))).toBe(3);
  await page.evaluate(()=>{Arcade.remaining('snake');localStorage.setItem('snakeGamesPlayed','3');Arcade.consume('snake');});
- await expect.poll(()=>f.consumes()).toBe(1);await page.waitForTimeout(300);
- await page.evaluate(()=>Arcade.consume('snake'));await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('earnly-paid-run:qa-paid-player:snake')||'null')?.ready)).toBe(true);
+ await expect.poll(()=>f.consumes()).toBe(1);
+ // Retry only until the aborted request has settled and a second request starts.
+ await expect.poll(async()=>{if(f.consumes()<2)await page.evaluate(()=>Arcade.consume('snake'));return f.consumes();}).toBe(2);
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('earnly-paid-run:qa-paid-player:snake')||'null')?.ready)).toBe(true);
  expect(f.keys).toHaveLength(2);expect(f.keys[0]).toBe(f.keys[1]);
 });
 test('Native runtimes can consume server-owned extra plays',async({page})=>{

@@ -2538,3 +2538,32 @@ test('profile draft survives refresh and saves the typed username', async ({ pag
   expect(await page.evaluate(()=>window.savedProfile.username)).toBe('Shrimp92');
   expect(await page.locator('#usernameInput').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
 });
+
+
+test('password recovery arriving on Home opens the new-password form before cloud restoration', async ({ page }) => {
+  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({contentType:'text/javascript',body:`
+    window.supabase={createClient:()=>({
+      auth:{getSession:async()=>({data:{session:{user:{id:'recovery-user'},access_token:'test-only'}}}),
+        onAuthStateChange:callback=>{setTimeout(()=>callback(location.pathname.endsWith('account.html')?'INITIAL_SESSION':'PASSWORD_RECOVERY',{user:{id:'recovery-user'}}),0);return {data:{subscription:{unsubscribe(){}}}};},
+        updateUser:async()=>({error:{message:'Expired test recovery session'}})},
+      rpc:async()=>({data:{}}),from:()=>{window.unexpectedRecoveryRestore=true;throw new Error('Recovery must not restore progress');}
+    })};` }));
+  await page.goto('/index.html#type=recovery');
+  await expect(page).toHaveURL(/account\.html\?recovery=1$/);
+  await expect(page.locator('#cloudRecovery')).toBeVisible();
+  await expect(page.locator('#cloudNewPassword')).toBeVisible();
+  await expect(page.locator('#cloudSignedIn')).toBeHidden();
+  expect(await page.evaluate(()=>window.EarnlyCloud.isPasswordRecovery())).toBe(true);
+  expect(await page.evaluate(()=>window.EarnlyCloud.scheduleAutoSync('test',0))).toBe(false);
+  await page.reload();
+  await expect(page.locator('#cloudRecovery')).toBeVisible();
+});
+
+test('native password-reset email uses the HTTPS recovery destination', async ({ page }) => {
+  await page.addInitScript(()=>{window.Capacitor={isNativePlatform:()=>true};});
+  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({contentType:'text/javascript',body:`
+    window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({}),resetPasswordForEmail:async(email,options)=>{window.resetRequest={email,options};return {data:{}};}},rpc:async()=>({data:{}})})};` }));
+  await page.goto('/account.html');
+  await page.evaluate(()=>window.EarnlyCloud.sendPasswordReset('test@example.com'));
+  expect(await page.evaluate(()=>window.resetRequest)).toEqual({email:'test@example.com',options:{redirectTo:'https://earnlyarcade.com/account.html?recovery=1'}});
+});
