@@ -2,6 +2,7 @@
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer,needsFirstRoom=false;
  const pending=new Map();
+ let connectTimer;
  const demoCatalog=[['mint-sofa','Mint Cloud Sofa','sofa',180,'#59dcc5',2,1],['rose-sofa','Rose Cloud Sofa','sofa',180,'#f599bd',2,1],['arcade-chair','Arcade Chair','chair',60,'#799ff5',1,1],['low-table','Orbit Table','table',80,'#e1b786',1,1],['fern','Moon Fern','plant',70,'#64c786',1,1],['neon-lamp','Neon Tube Lamp','lamp',90,'#c293f3',1,1],['arcade-cabinet','Pocket Arcade Cabinet','arcade',450,'#f6c35e',1,1],['cloud-bed','Cloud Bed','bed',250,'#8cbbf4',1,2],['mint-rug','Mint Tile Rug','rug',40,'#61bfbb',2,2],['star-trophy','First Light Trophy','trophy',600,'#f8d46a',1,1],["palm-tree", "Sunset Palm", "palm", 140, "#65be86", 1, 1, "Garden"],["ficus-tree", "Cloud Ficus", "tree", 125, "#71bc80", 1, 1, "Garden"],["blossom-tree", "Blossom Tree", "tree", 160, "#eea2c2", 1, 1, "Garden"],["flower-pot", "Starlight Flowers", "flowers", 55, "#eab2ed", 1, 1, "Garden"],["oak-bookshelf", "Oak Bookshelf", "bookshelf", 150, "#b88c66", 1, 1, "Essentials"],["reef-aquarium", "Pocket Reef Aquarium", "aquarium", 220, "#67cbd7", 1, 1, "Neon Living"],["sunset-sofa", "Sunset Sofa", "sofa", 180, "#e6a26f", 2, 1, "Neon Living"],["sage-chair", "Sage Garden Chair", "chair", 60, "#91bb96", 1, 1, "Garden"],["garden-parasol", "Garden Parasol Table", "umbrella", 160, "#edbd85", 1, 1, "Garden"],["amber-lantern", "Amber Lantern", "lamp", 90, "#edc582", 1, 1, "Garden"],["lavender-rug", "Lavender Tile Rug", "rug", 40, "#ac93c8", 2, 2, "Neon Living"],["walnut-table", "Walnut Coffee Table", "table", 80, "#aa8069", 1, 1, "Essentials"],["heirloom-clock", "Heirloom Clock", "clock", 220, "#ae8058", 1, 1, "Heritage"],["retro-tv", "Retro TV Cabinet", "television", 190, "#ac8059", 1, 1, "Heritage"],["courtyard-fountain", "Courtyard Fountain", "fountain", 210, "#adc4bd", 1, 1, "Garden"],["woven-divider", "Woven Room Divider", "divider", 120, "#b89b69", 2, 1, "Heritage"],["marble-column", "Marble Column", "column", 100, "#e3d8bc", 1, 1, "Heritage"],["ruby-sofa", "Ruby Velvet Sofa", "sofa", 200, "#b8586b", 2, 1, "Heritage"]].map(([id,name,sprite_id,price,color,width,length,category])=>({id,name,sprite_id,price,color,width,length,category:category||(sprite_id==='plant'?'Garden':sprite_id==='arcade'?'Arcade':sprite_id==='trophy'?'Collectors':'Neon Living'),supply_limit:sprite_id==='trophy'?250:null,minted:0}));
  function toast(text){$('worldToast').textContent=text;$('worldToast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('worldToast').hidden=true,4200);}
  function button(text,fn,cls){const b=el('button',cls,text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){toast(e.message||'Try again.');}finally{b.disabled=false;}};return b;}
@@ -53,7 +54,7 @@
   $('connectionStatus').textContent='Sign in to join · Explore the room preview';$('worldNote').textContent='Room preview only. Changes are not saved and purchases are disabled.';
   try{session=await window.EarnlyCloud?.session();if(session){const res=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token}});if(res.ok){const data=await res.json();renderer.updateUser({userId,username:data.user.username||'You',equipped:data.user.equipped,position:{x:5,y:5,z:0}});}}}catch{}
  }
- function finishConnecting(){connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
+ function finishConnecting(){clearTimeout(connectTimer);connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
  async function connect(roomId=scene?.roomId||'choose-home'){
   if(connecting)return;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
@@ -74,6 +75,13 @@
    });}connected=false;$('connectionStatus').textContent='Connecting to your room…';
   $('worldNote').textContent='Multiplayer beta · The first connection may take about a minute while the server wakes up.';
   const ws=new WebSocket(endpoint);socket=ws;
+  // Allow the free server to wake up, but never leave Connect disabled forever.
+  connectTimer=setTimeout(()=>{
+   if(socket!==ws||connected)return;
+   socket=null;ws.close();finishConnecting();
+   $('connectionStatus').textContent='Connection timed out · Tap Connect to retry';
+   $('worldNote').textContent='Your saved room and furniture are safe. Check your connection and try again.';
+  },75000);
   ws.onopen=()=>{if(socket===ws)ws.send(JSON.stringify({type:'JOIN',version:1,token,roomId}));};
   ws.onmessage=e=>{if(socket!==ws)return;let p;try{p=JSON.parse(e.data);}catch{return;}
    if(p.type==='RESULT'){const r=pending.get(p.requestId);if(r){clearTimeout(r.timer);pending.delete(p.requestId);p.error?r.reject(Object.assign(new Error(p.error),{definite:p.definite===true})):r.resolve(p.data);}return;}
@@ -108,10 +116,16 @@
  }
  function showBackpack(){currentPanel='backpack';const root=openPanel('Your Backpack');if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'));return;}
   root.append(note(scene.ownerId===userId?'Choose an item, then tap a tile in your room.':'Enter your own room to arrange your decor.'));
+  const search=el('input');search.type='search';search.placeholder='Find your furniture';search.setAttribute('aria-label','Find your furniture');root.append(search);
+  const filter=el('select');filter.setAttribute('aria-label','Furniture location');for(const [value,label] of [['all','All furniture'],['stored','In Backpack'],['here','In this room'],['elsewhere','In another room']]){const option=el('option','',label);option.value=value;filter.append(option);}root.append(filter);
   const grid=el('div','catalog-grid');for(const item of bootstrap.items){const d=bootstrap.catalog.find(d=>d.id===item.definition_id);if(!d)continue;const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name),el('p','',`No. ${item.serial} · ${item.room_id?'Placed':'In Backpack'}`));
+   card.dataset.name=d.name.toLowerCase();card.dataset.location=!item.room_id?'stored':item.room_id===scene.roomId?'here':'elsewhere';
    const place=button(item.room_id?'Move':'Place',()=>beginPlacement(item,d.name));place.disabled=scene.ownerId!==userId||item.room_id&&item.room_id!==scene.roomId;card.append(place);
-   if(item.room_id===scene.roomId)card.append(button('Pick up',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));grid.append(card);
+   if(item.room_id===scene.roomId)card.append(button('Pick up',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));
+   if(item.room_id&&item.room_id!==scene.roomId){const room=bootstrap.rooms.find(r=>r.id===item.room_id);if(room?.ownerId===userId)card.append(button('Visit '+room.name,()=>connect(room.id)));}grid.append(card);
   }root.append(grid);if(!bootstrap.items.length)root.append(note('Your Backpack is empty. Find your first piece in the Catalog.'),button('Open Catalog',()=>showCatalog()));
+  const empty=note('No furniture matches. Try another name or location.');empty.hidden=true;root.append(empty);
+  const applyFilter=()=>{let count=0;for(const card of grid.children){card.hidden=!card.dataset.name.includes(search.value.trim().toLowerCase())||(filter.value!=='all'&&card.dataset.location!==filter.value);if(!card.hidden)count++;}empty.hidden=count>0||!bootstrap.items.length;};search.oninput=applyFilter;filter.onchange=applyFilter;
  }
  function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
   root.append(note('Public hangouts are furnished and open to everyone. Staff NPCs stay at their posts; public decor stays here.'));
