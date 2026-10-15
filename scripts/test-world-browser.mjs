@@ -31,6 +31,9 @@ try{
  await p.locator('#connectionStatus').filter({hasText:'Live'}).waitFor();
  if(process.env.WORLD_TEST_SCREENSHOTS)await p.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/starter-room-'+pages.length+'.png'});pages.push(p);}
  const [a,b]=pages;
+ // Distant floor and furniture targets are reachable through the visible overview.
+ const overview=async p=>{await p.locator('#roomView').click();await expect(p.locator('#roomView')).toHaveAttribute('aria-pressed','true');await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));};
+ await overview(b);
  // Walk down and back up the actual split-level room using projected floor clicks.
  for(const target of [{x:3,y:12,z:0},{x:3,y:2,z:2}]){
   const point=await b.evaluate(p=>{const r=window.testWorldRenderer;const x=(p.x-p.y)*18,y=(p.x+p.y)*9-p.z*12+9;const hit=r.floorAt(x,y);if(hit?.x!==p.x||hit?.y!==p.y)throw new Error('Raised floor hit mismatch');return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};},target);
@@ -54,7 +57,7 @@ try{
  // Visit each real persisted public room and interact through the visible staff UI.
  for(const [name,role] of [['Hotel Lobby','Receptionist'],['Rooftop Lounge','Bartender'],['Patio Hangout','Patio host']]){
   await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:name}).getByRole('button',{name:'Visit →'}).click();
-  await expect(a.locator('#roomName')).toHaveText(name);await expect(a.locator('#peopleCount')).toHaveText('1 in the room');
+  await expect(a.locator('#roomName')).toHaveText(name);await overview(a);await expect(a.locator('#peopleCount')).toHaveText('1 in the room');
   await a.locator('[data-panel="staff"]').click();await a.getByRole('button',{name:'Say hello',exact:true}).click();await expect(a.locator('#panelTitle')).toContainText(role);await expect(a.locator('#panelContent')).toContainText('Staff NPC');
   await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a tip'}).click();await expect(a.locator('.staff-greeting')).toBeVisible();
   await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
@@ -71,7 +74,7 @@ try{
   if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'.png'});
  }
  await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
- await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBe(0);
+ await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await overview(a);await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBe(0);
  await a.locator('#peopleCount').filter({hasText:'2 in'}).waitFor();
 
  for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
@@ -103,7 +106,7 @@ await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button').
  await expect(b.locator('.trade-offers')).not.toContainText('Moon Fern');
  await expect(a.getByRole('button',{name:'Lock my offer'})).toBeEnabled();await expect(b.getByRole('button',{name:'Lock my offer'})).toBeEnabled();
  await a.getByRole('button',{name:'Cancel trade',exact:true}).click();await expect(b.locator('#panelContent')).toContainText('This trade was cancelled.');
- await a.getByRole('button',{name:'Close panel'}).click();await a.getByRole('button',{name:'Rooms',exact:false}).click();await a.getByRole('button',{name:'＋ Create room · Free',exact:true}).click();await a.getByRole('button',{name:'Grand Square',exact:true}).click();await a.getByLabel('Room name',{exact:true}).fill('Potato Studio');await a.getByRole('button',{name:'Create Grand Square · Free',exact:true}).click();await a.locator('#roomName').filter({hasText:'Potato Studio'}).waitFor();
+ await a.getByRole('button',{name:'Close panel'}).click();await a.getByRole('button',{name:'Rooms',exact:false}).click();await a.getByRole('button',{name:'＋ Create room · Free',exact:true}).click();await a.getByRole('button',{name:'Grand Square',exact:true}).click();await a.getByLabel('Room name',{exact:true}).fill('Potato Studio');await a.getByRole('button',{name:'Create Grand Square · Free',exact:true}).click();await a.locator('#roomName').filter({hasText:'Potato Studio'}).waitFor();await overview(a);
  await a.getByRole('button',{name:'Backpack',exact:false}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button',{name:'Place',exact:true}).click();await a.locator('#placementHint').waitFor();
  // Tile is selected through the actual canvas, not by a direct API operation.
  const box=await a.locator('#worldCanvas').boundingBox();await a.locator('#worldCanvas').click({position:{x:box.width/2,y:box.height/2+30}});await a.locator('#worldToast').filter({hasText:'Placed in your room'}).waitFor();

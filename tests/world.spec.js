@@ -93,3 +93,42 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.evaluate(()=>{window.testRenderer.scene.ownerId='someone-else';});
  p=await point();await double(p);await expect(page.locator('#placementHint')).not.toBeVisible();
 });
+
+test('Large rooms open close to your character, with overview, recentering and stable furniture refreshes',async({page},testInfo)=>{
+ test.setTimeout(60000);
+ const fs=require('node:fs');
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.route('**/world-renderer.js',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.getByRole('button',{name:'Close panel'}).click();
+ await page.evaluate(()=>{
+  const r=window.testRenderer;
+  r.setScene({...r.scene,roomId:'large-lobby',theme:'lobby',heightmap:Array(24).fill('0'.repeat(24)).join('\n'),items:r.scene.items.map(i=>({...i,x:i.x+7,y:i.y+7}))});
+  r.updateUser({userId:'preview',username:'Your potato',position:{x:8,y:8,z:0}});
+  r.updateUser({userId:'friend',username:'Friend',position:{x:9,y:9,z:0},state:'sit'});
+ });
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale*48)).toBeGreaterThan(55);
+ const closeScale=await page.evaluate(()=>window.testRenderer.scale);
+ await page.locator('#roomView').click();await expect(page.locator('#roomView')).toHaveAttribute('aria-pressed','true');
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale)).toBeLessThan(closeScale/2);
+ await page.locator('#focusMe').click();await expect(page.locator('#roomView')).toHaveAttribute('aria-pressed','false');
+ await page.evaluate(()=>{const r=window.testRenderer;r.offset={x:63,y:-22};r.setScene({...r.scene});});
+ expect(await page.evaluate(()=>window.testRenderer.offset)).toEqual({x:63,y:-22});
+ await page.locator('#focusMe').click();expect(await page.evaluate(()=>window.testRenderer.offset)).toEqual({x:0,y:0});
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale)).toBe(closeScale);
+ // Screen-to-floor coordinates must still work with a high-DPI backing canvas.
+ const tile=await page.evaluate(()=>{const r=window.testRenderer,b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(9-7)*18*r.scale,y:b.top+r.cy+((9+7)*9+9)*r.scale};});
+ await page.mouse.click(tile.x,tile.y);
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.users.get('preview').position)).toEqual({x:9,y:7,z:0});
+ await page.evaluate(()=>{const r=window.testRenderer;r.updateUser({userId:'preview',position:{x:8,y:8,z:0},state:'std'});r.bubble({userId:'friend',text:'Welcome! Grab a seat and stay a while.'});});
+ await page.waitForTimeout(300);
+ for(const size of [{width:390,height:844},{width:320,height:740}]){
+  await page.setViewportSize(size);
+  await expect.poll(()=>page.evaluate(()=>window.testRenderer.width)).toBeLessThan(size.width);
+  const rect=await page.locator('#sayForm').boundingBox(),nav=await page.locator('.world-bottom').boundingBox();
+  expect(rect.y+rect.height).toBeLessThanOrEqual(nav.y);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+  await page.screenshot({path:`test-results/world-close-${testInfo.project.name}-${size.width}.png`});
+ }
+ expect(errors).toEqual([]);
+});
