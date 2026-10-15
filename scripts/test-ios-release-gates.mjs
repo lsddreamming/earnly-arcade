@@ -44,3 +44,13 @@ test('PR-only QA cannot substitute for main push QA',async()=>{
 });
 
 }
+
+for(const name of ['ios-v1-1-testflight.yml','ios-v1-3-testflight.yml','upload-ios-review.yml']){
+ test(name+' requires explicit manual Apple upload confirmation',()=>{
+  const source=readFileSync(new URL('../.github/workflows/'+name,import.meta.url),'utf8');
+  const triggers=source.slice(source.indexOf('\non:'),source.indexOf('\npermissions:'));
+  assert.doesNotMatch(triggers,/\n  (push|pull_request|workflow_run):/);
+  assert.match(triggers,/confirm_apple_upload:[\s\S]*default: false/);
+  assert.match(source,/if: \$\{\{ github.event_name == 'workflow_dispatch' && inputs.confirm_apple_upload == true \}\}/);
+ });
+}

@@ -38,3 +38,12 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
  .chat-bar input{padding:6px;min-height:36px}.chat-bar button{min-height:36px;padding:6px 10px}
  .world-note{font-size:9px;line-height:1.4;margin:8px 0}
 }
+
+/* Comfortable iPhone controls, including while a piece is being arranged. */
+.stage-tools button{min-width:44px;width:44px;min-height:44px}
+#placementHint button{min-height:44px;min-width:64px;font-size:12px}
+#placementHint{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#placementHint[hidden]{display:none}
+#placementInstructions{flex-basis:100%}
+#placingName{flex:1;min-width:0;overflow-wrap:anywhere}
+@media(max-width:360px){.stage-tools{gap:3px;right:8px}.stage-label{top:64px;left:10px}}
