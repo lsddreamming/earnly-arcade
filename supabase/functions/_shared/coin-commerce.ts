@@ -92,6 +92,11 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
         if(!session.livemode)throw new Error('PAYMENT_NOT_LIVE_PAID');
         unwrap(await db.from('coin_orders').update({session_id:session.id}).eq('id',order.id).is('session_id',null));
       }
+      if(session.status==='complete'){
+        const result=await fulfill(order);
+        if(result?.status==='fulfilled')return json({orderId:order.id,fulfilled:true});
+        return fail('CHECKOUT_PENDING','Your payment is still being confirmed. Retry to check this same purchase.',409);
+      }
       if(session.status!=='open'||!session.url)return fail('CHECKOUT_EXPIRED','This checkout has expired. Choose the pack again.',409);
       const checkoutUrl=new URL(session.url);
       if(checkoutUrl.protocol!=='https:'||checkoutUrl.hostname!=='checkout.stripe.com')throw new Error('PAYMENT_MISMATCH');

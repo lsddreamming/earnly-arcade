@@ -30,3 +30,16 @@ test('order recovery includes the pack and authoritative refund adjustment',asyn
  const data=await (await f.handler(f.req('coin-shop/orders/'+id))).json();
  assert.equal(data.packId,'starter');assert.equal(data.refundedCoins,250);
 });
+
+test('completed checkout recovers the original paid order instead of expiring it',async()=>{
+ const f=fixture();f.session.status='complete';f.session.url=null;
+ const response=await f.handler(f.req('coin-shop/checkout',{method:'POST',body:{packId:'starter'}}));
+ assert.equal(response.status,200);assert.deepEqual(await response.json(),{orderId:id,fulfilled:true});
+ assert.equal(f.calls.filter(c=>c.name==='coin_order_fulfill').length,1);
+});
+test('completed but unpaid checkout stays pending so retries cannot start another payment',async()=>{
+ const f=fixture({paid:false});f.session.status='complete';f.session.url=null;
+ const response=await f.handler(f.req('coin-shop/checkout',{method:'POST',body:{packId:'starter'}}));
+ assert.equal(response.status,409);assert.equal((await response.json()).error.code,'CHECKOUT_PENDING');
+ assert.equal(f.calls.filter(c=>c.name==='coin_order_fulfill').length,0);
+});
