@@ -19,6 +19,7 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
   if(path==='/config'&&req.method==='GET')return json({available:!!enabled,packs:appleProducts});
   if(req.method!=='POST'||!['/verify','/notifications'].includes(path))return fail('Route not found.',404);
   if(!verifyTransaction)return fail('Apple purchases are not configured yet.',503);
+  let stage='request';
   try {
    const raw=await req.text();if(raw.length>65536)return fail('Request too large.',413);
    let body;try{body=JSON.parse(raw);}catch{return fail('Invalid request.');}
@@ -35,6 +36,7 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
    }
    if(typeof signed!=='string'||signed.length>60000)return fail('Missing signed transaction.');
    // Runtime verifies Apple's signature and retrieves current transaction state from Apple.
+   stage='verification';
    const t=await verifyTransaction(signed);
    if(t.productId===passProduct){const state=await fulfillApplePass(db,t,user?.id,allowSandboxTransaction);return json(path==='/notifications'?{received:true}:state);}
    const sandbox=t.environment==='Sandbox'&&await allowSandboxTransaction?.(t)===true;
@@ -43,12 +45,16 @@ export function appleCommerceHandler({db,verifyUser,verifyTransaction,verifyNoti
       typeof t.transactionId!=='string'||!/^\d{1,32}$/.test(t.transactionId)||
       typeof t.appAccountToken!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.appAccountToken)))return fail('This transaction is not eligible for this wallet.');
    if(user&&user.id.toLowerCase()!==t.appAccountToken.toLowerCase())return fail('Sign in to the account used for this purchase.',403);
+   stage='fulfillment';
    const {data,error}=await db.rpc(sandbox?'apple_sandbox_coin_fulfill':'apple_coin_fulfill',{p_user_id:t.appAccountToken,p_transaction_id:t.transactionId,p_product_id:t.productId,p_environment:t.environment,p_revoked:t.revocationDate!=null});
    if(error)throw error;
    return json(path==='/notifications'?{received:true}:data);
   }catch(error:any) {
    // Deliberately exclude messages, signed payloads, credentials and account identifiers.
    console.warn('APPLE_VERIFICATION_FAILURE',JSON.stringify({
+    stage,
+    reason:['SANDBOX_TEST_ACCOUNT_REQUIRED','PRODUCTION_ACCOUNT_REQUIRED','MISSING_TRANSACTION','TRANSACTION_MISMATCH','WALLET_UNAVAILABLE','TRANSACTION_OWNER_MISMATCH'].includes(error?.message)?error.message:'UNCLASSIFIED',
+    databaseCode:typeof error?.code==='string'&&/^[0-9A-Z]{5}$/.test(error.code)?error.code:null,
     status:Number.isInteger(error?.status)?error.status:null,
     cause:typeof error?.cause?.name==='string'&&/^[A-Za-z]{1,40}$/.test(error.cause.name)?error.cause.name:null,
     unsupported:typeof error?.cause?.message==='string'&&/not implemented|not supported/i.test(error.cause.message)

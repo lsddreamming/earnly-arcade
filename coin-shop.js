@@ -135,7 +135,13 @@
   }
   async function recover(){
     if(!native||!apple||!(await window.EarnlyCloud?.session?.()))return;
-    try {for(const signed of (await apple.pending()).transactions||[])await deliver(signed);}
+    try {
+      let failed=0;
+      for(const signed of (await apple.pending()).transactions||[]){
+        try {await deliver(signed);}catch{failed++;}
+      }
+      if(failed)message('Checked pending purchases. '+failed+' could not be verified and remain pending. Any confirmed purchases have been applied.',true);
+    }
     catch(error){message(error.message,true);}
   }
   async function buyApple(pack,packs,session){

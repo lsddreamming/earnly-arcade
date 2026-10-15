@@ -1,12 +1,25 @@
 /**
  * Fill missing X509 accessors in Supabase's older Deno Node-compat runtime.
  * Apple's library still performs chain, extension, expiry, OCSP and JWS checks.
- * The signature fallback uses the same pinned jsrsasign dependency as Apple.
+ * The fallback parses certificates with Apple's pinned dependency, but uses
+ * native crypto for signature math to stay within the Edge CPU budget.
  * Remove when the deployed runtime implements the complete X509Certificate API.
  */
 import crypto, {X509Certificate as NativeCertificate, type KeyObject} from 'node:crypto';
 import {Buffer} from 'node:buffer';
-import {X509} from 'npm:jsrsasign@11.1.5';
+import {X509,ASN1HEX} from 'npm:jsrsasign@11.1.5';
+
+export function verifyCertificateSignature(der:Buffer,key:KeyObject):boolean {
+ try {
+  const hex=der.toString('hex');
+  const cert=new X509();cert.readCertHex(hex);
+  const algorithm=cert.getSignatureAlgorithmField();
+  if(algorithm!==cert.getSignatureAlgorithmName())return false;
+  const match=/^SHA(1|256|384|512)with(RSA|ECDSA)$/.exec(algorithm);
+  if(!match||key.asymmetricKeyType!==(match[2]==='RSA'?'rsa':'ec'))return false;
+  return crypto.verify('sha'+match[1],Buffer.from(ASN1HEX.getTLVbyList(hex,0,[0],'30'),'hex'),key,Buffer.from(cert.getSignatureValueHex(),'hex'));
+ }catch{return false;}
+}
 
 function unsupported(error:unknown):boolean {
  return error instanceof Error && (error as Error & {code?:string}).code==='ERR_NOT_IMPLEMENTED';
@@ -23,8 +36,7 @@ export class CompatibleCertificate extends NativeCertificate {
  override toString():string {return '-----BEGIN CERTIFICATE-----\n'+this.der.toString('base64').match(/.{1,64}/g)!.join('\n')+'\n-----END CERTIFICATE-----\n';}
  override verify(key:KeyObject):boolean {
   try{return super.verify(key);}catch(error){if(!unsupported(error))throw error;}
-  try{return this.parsed().verifySignature(key.export({type:'spki',format:'pem'}));}
-  catch{return false;} // Unsupported/mismatched key algorithms fail closed.
+  return verifyCertificateSignature(this.der,key);
  }
  override get infoAccess():string|undefined {
   try{return super.infoAccess;}catch(error){if(!unsupported(error))throw error;}
