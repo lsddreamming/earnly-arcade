@@ -82,7 +82,7 @@ const TurboKartRenderer=(()=>{
   if(p.boost>0&&!reduced.matches){for(let i=0;i<9;i++){const side=i%2?1:-1,x=w/2+side*(w*.35+i*7),y=h*.48+(i*53+s.time*240)%(h*.5);line(x,y,x+side*12,y+30,'#e1fffd85',2);}}
   // Compact whole-course map, with a clear player marker and finish flag.
   const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);ctx.beginPath();t.points.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke();for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i)ellipse(q.x,q.y,17,17,'#49dabe');}ctx.restore();
-  if(!idle){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){const label=bend>0?'RIGHT BEND ›':'‹ LEFT BEND',size=Math.max(10,Math.min(13,w/35));box(w/2-64,horizon*.68-size-4,128,size+12,9,'#142640c9');text(label,w/2,horizon*.68,size,'#fff5d8');}}
+  if(!idle&&!(s.callout&&s.time<=s.calloutUntil)){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){const label=bend>0?'RIGHT BEND ›':'‹ LEFT BEND',size=Math.max(10,Math.min(13,w/35));box(w/2-64,horizon*.68-size-4,128,size+12,9,'#142640c9');text(label,w/2,horizon*.68,size,'#fff5d8');}}
  }
  return {render};
  }return {create};
