@@ -141,11 +141,15 @@ test('collision immunity never allows a pack to interpenetrate or repeatedly slo
 });
 
 test('race gestures block zoom across nested controls and gaps without swallowing session actions',async({page})=>{
- await start(page);
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>{const s=create(...args);s.pickups=[];window.kartTestState=s;return s;};});await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
  for(const selector of ['.kart-shell','#kartControls','#driftButton small','.drift-meter','#sessionControls','#itemButton'])expect(await page.locator(selector).evaluate(n=>getComputedStyle(n).touchAction),selector).toBe('none');
  for(const selector of ['#leftButton','#driftButton small','#kartControls','.drift-meter','#itemButton']){
   for(const type of ['touchstart','touchend','touchmove','gesturestart','gesturechange','gestureend','dblclick'])expect(await page.locator(selector).evaluate((n,type)=>!n.dispatchEvent(new Event(type,{bubbles:true,cancelable:true})),type),selector+' '+type).toBe(true);
  }
+ await page.evaluate(()=>{kartTestState.item='shield';});await expect(page.locator('#itemButton')).toBeEnabled();
+ expect(await page.locator('#itemButton').evaluate(n=>n.dispatchEvent(new Event('touchend',{bubbles:true,cancelable:true})))).toBe(true);
+ await page.locator('#itemButton').click();await expect(page.locator('#itemButton')).toBeDisabled();
+ expect(await page.evaluate(()=>kartTestState.racers[0].shield)).toBeGreaterThan(0);
  // Pause and Quit still receive their normal click activation after touch events.
  expect(await page.locator('#earnlyPauseButton').evaluate(n=>n.dispatchEvent(new Event('touchend',{bubbles:true,cancelable:true})))).toBe(true);
  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');
