@@ -250,6 +250,7 @@
     }
   }
   const looks = [
+    {name:"Neon Boardwalk",edition:"EARNLY ORIGINAL",description:"Electric mint, afterglow purple and light-up streetwear.",ids:["cyber-starter","boardwalk-jacket","boardwalk-cap","boardwalk-sneakers","boardwalk-hair","boardwalk-aura"]},
     {name:"Trail Society",description:"Warm knits, utility pockets, everyday high-tops.",ids:["cyber-starter","storm-coat","high-tops","adventure-pack","ribbed-beanie","round-glasses","explorer-beard"]},
     {name:"Aurora Vanguard",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
     {name:"Solar Royalty",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},

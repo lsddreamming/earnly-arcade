@@ -7,7 +7,7 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#080d19" />
-    <title>Character Studio · Earnly Arcade</title>
+    <title>Arcade Shop 2.0 · Earnly Arcade</title>
     <link rel="stylesheet" href="avatar-studio.css" />
     <link rel="stylesheet" href="shopfront.css?v=2" />
     <link rel="stylesheet" href="public-info.css">
@@ -22,11 +22,13 @@
     <script src="potato-rig.js"></script>
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
+<link rel="stylesheet" href="shop-two.css"><link rel="stylesheet" href="shop-polish.css?v=1"><script src="shop-two.js" defer></script><script src="shop-bundles.js" defer></script>
+<link rel="stylesheet" href="shop-premium.css?v=1"><script src="shop-premium.js" defer></script>
 </head>
   <body class="studio-dashboard">
     <header class="header">
       <a class="brand" href="games.html"
-        >EARNLY<span>ARCADE</span><small>CHARACTER STUDIO</small></a
+        >EARNLY<span>ARCADE</span><small>ARCADE SHOP 2.0</small></a
       >
       <div class="account-bar">
         <div class="coin-chip" aria-label="Arcade Coin balance">
@@ -46,14 +48,14 @@
     <main>
       <div class="page-title">
         <div>
-          <p class="eyebrow">THE ARCADE WARDROBE</p>
-          <h1>Your arcade.<br /><span>Your style.</span></h1>
+          <p class="eyebrow">YOUR ARCADE. YOUR STYLE.</p>
+          <h1>Level up <span>your look.</span></h1>
         </div>
         <p>Try it. Mix it. Make it yours.<br />Your look follows you onto the leaderboard.</p>
       </div>
-      <nav class="studio-shortcuts" aria-label="Studio sections"><a href="#collection">🎨 Customize</a><a href="#signature-looks">Featured looks</a><a href="#coin-shop" id="coin-shop-shortcut">◈ Buy coins</a></nav>
-      <p id="status" role="status" aria-live="polite"></p>
-      <div class="studio-layout">
+      <nav class="studio-shortcuts" aria-label="Studio sections"><a href="#collection">🎨 Customize</a><a href="#signature-looks">Featured looks</a><a href="#coin-shop" id="coin-shop-shortcut">◈ Buy coins</a><a href="#room-collections">Room decor</a><a href="#vip-pass">♛ VIP</a></nav>
+      <section class="shop-collections" aria-label="Shop collections"><button data-collection="all" aria-pressed="true">All styles</button><button data-collection="neon" aria-pressed="false">✦ Neon nights</button><button data-collection="crystal" aria-pressed="false">◆ Crystal Command</button><button data-collection="halloween" aria-pressed="false">☾ Halloween</button><button data-collection="christmas" aria-pressed="false">❄ Christmas</button><button data-collection="vip" aria-pressed="false">♛ VIP</button></section><p class="collection-window" id="collection-window">Free essentials and coin unlocks. Preview everything before buying.</p><button id="ion-pack-preview" class="ion-pack-preview" hidden>Preview complete Ion collection · up to 750 coins</button><p id="status" role="status" aria-live="polite"></p>
+      <details class="pass-banner" id="vip-pass" aria-labelledby="pass-title"><summary>♛ VIP Arcade Pass <span>Cosmetic perks · $4.99/month</span></summary><div><p class="eyebrow">OPTIONAL · COSMETICS ONLY</p><h2 id="pass-title">VIP Arcade Pass</h2><p>VIP Marquee frame + Aurora effect while subscribed. Free games stay free.</p><p id="pass-disclosure">$4.99/month when available. Auto-renews until cancelled. No coins, prizes, or competitive advantages.</p></div><div class="pass-actions"><button id="pass-buy" disabled>Coming soon</button><button id="pass-manage" hidden>Manage subscription</button><button id="pass-restore">Restore purchases</button><a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a></div><p id="pass-status" role="status"></p></details><div class="studio-layout">
         <section class="showcase panel" aria-labelledby="showcase-title">
           <div class="panel-top">
             <h2 id="showcase-title">Your character</h2>
@@ -90,8 +92,8 @@
             </div>
             <span id="owned-count" class="muted"></span>
           </div>
-          <p class="personality-note">Your potato. Your personality. Mix free eyes, brows, smiles and hair with your favorite outfit. Every style is for everyone.</p>
-          <label class="studio-category-label" for="studio-category">Customize category</label><select id="studio-category" aria-label="Choose customization category"><option value="avatar">Avatars</option><option value="eyes">Eyes</option><option value="brows">Eyebrows</option><option value="mouth">Mouths</option><option value="nose">Noses</option><option value="hair">Hair</option><option value="marks">Face details</option><option value="outfit">Outfits</option><option value="shoes">Shoes</option><option value="backpack">Backpacks</option><option value="face">Facewear</option><option value="beard">Beards</option><option value="head">Headwear</option><option value="weapon">Weapons</option></select><div class="shop-tabs" role="group" aria-label="Shop category">
+          <p class="personality-note">Mix faces, outfits and accessories. Try everything on for free.</p>
+          <label class="studio-category-label" for="studio-category">Customize category</label><select id="studio-category" aria-label="Choose customization category"><option value="avatar">Avatars</option><option value="eyes">Eyes</option><option value="brows">Eyebrows</option><option value="mouth">Mouths</option><option value="nose">Noses</option><option value="hair">Hair</option><option value="marks">Face details</option><option value="outfit">Outfits</option><option value="shoes">Shoes</option><option value="backpack">Backpacks</option><option value="face">Facewear</option><option value="beard">Beards</option><option value="head">Headwear</option><option value="weapon">Weapons</option><option value="pet">Pets</option><option value="frame">Profile frames</option><option value="pose">Victory poses</option><option value="effect">Avatar effects</option><option value="army">Crystal armies</option><option value="commander">Commanders</option><option value="building">Building skins</option><option value="battlefx">Battle effects</option></select><div class="shop-tabs" role="group" aria-label="Shop category">
             <button data-slot="avatar" aria-pressed="true">Avatars</button>
             <button data-slot="eyes" aria-pressed="false">Eyes</button>
             <button data-slot="brows" aria-pressed="false">Eyebrows</button>
@@ -105,7 +107,7 @@
             <button data-slot="face" aria-pressed="false">Facewear</button>
             <button data-slot="beard" aria-pressed="false">Beards</button>
             <button data-slot="head" aria-pressed="false">Headwear</button>
-            <button data-slot="weapon" aria-pressed="false">Weapons</button>
+            <button data-slot="weapon" aria-pressed="false">Weapons</button><button data-slot="pet" aria-pressed="false">Pets</button><button data-slot="frame" aria-pressed="false">Profile frames</button><button data-slot="pose" aria-pressed="false">Victory poses</button><button data-slot="effect" aria-pressed="false">Avatar effects</button><button data-slot="army" aria-pressed="false">Crystal armies</button><button data-slot="commander" aria-pressed="false">Commanders</button><button data-slot="building" aria-pressed="false">Building skins</button><button data-slot="battlefx" aria-pressed="false">Battle effects</button>
           </div>
           <label for="shop-search" class="search-label">Find your next piece</label><input type="search" id="shop-search" placeholder="Search eyes, hair, outfits & more" maxlength="64">
           <div class="shop-filters"><label class="free-filter"><input type="checkbox" id="free-only"> Free options only</label><label class="free-filter"><input type="checkbox" id="owned-only"> My collection</label></div>
@@ -130,7 +132,7 @@
         <a href="#collection" class="browse-unlocks">Explore what you can unlock <span aria-hidden="true">→</span></a>
         <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
       </section>
-      <section class="leaderboard panel" aria-labelledby="leaderboard-title">
+      <details class="shop-leaderboard"><summary>🏆 World high scores <span>See the players behind the looks</span></summary><section class="leaderboard panel" aria-labelledby="leaderboard-title">
         <div class="panel-top">
           <div>
             <p class="eyebrow">MEET THE COMPETITION</p>
@@ -155,6 +157,7 @@
           No ranked players yet. Play a game to get on the board.
         </p>
       </section>
+      </details>
       <footer class="public-footer" aria-label="Earnly site information">
         <nav aria-label="Site information"><a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav>
         Arcade Coins are in-app points. Cash-out and real-value redemption are

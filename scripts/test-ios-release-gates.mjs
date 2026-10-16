@@ -39,6 +39,9 @@ test('a failed publication prevents upload',async()=>{
 test('a newer main commit prevents uploading a stale candidate',async()=>{
  await assert.rejects(run({main:'newer'}),/Newer main/);
 });
+test('an explicitly dispatched native build can satisfy the native gate',async()=>{
+ assert.match((await run({runs:baseRuns.map(r=>r.id===2?{...r,event:'workflow_dispatch'}:r)})).at(-1),/All release gates passed/);
+});
 test('PR-only QA cannot substitute for main push QA',async()=>{
  await assert.rejects(run({runs:baseRuns.map(r=>r.id===1?{...r,event:'pull_request'}:r)}),/did not finish/);
 });

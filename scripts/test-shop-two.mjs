@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict
 const db=new PGlite();await db.exec(await readFile('tests/commerce-fixture.sql','utf8'));
 await db.exec('CREATE ROLE service_role BYPASSRLS; CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,source_type text,game text);');
 for(const name of ['20261007152428_avatar_studio','20261007162312_mascot_accessory_slots','20261007183740_avatar_atelier','20261007183756_website_coin_checkout','20261008154100_potato_personality','20261012144324_apple_coin_purchases','20261012165849_arcade_shop_two'])await db.exec(await readFile('supabase/migrations/'+name+'.sql','utf8'));
+await db.exec((await readFile('supabase/migrations/20261016140648_neon_boardwalk_collection.sql','utf8')).split('INSERT INTO earnly_world')[0]);
 const uid='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';let n=0;const key=()=>`11111111-1111-4111-8111-${String(++n).padStart(12,'0')}`;
 const call=async(sql,args)=>(await db.query(sql,args)).rows[0].data;
 const me=()=>call('select cosmetic_me($1) as data',[uid]);
@@ -33,4 +34,9 @@ await stripeRecord();
 assert.equal((await db.query("select revoked from arcade_pass_transactions where provider='stripe' and transaction_id='in_duplicate'")).rows[0].revoked,true);
 await db.query('delete from auth.users where id=$1',[uid]).catch(()=>{}); // other fixture tables restrict deletion; explicitly model the auth cascade below.
 await db.query('update arcade_pass_transactions set user_id=null where user_id=$1',[uid]);await assert.rejects(record(other),/TRANSACTION_OWNER_MISMATCH/);
+const boardwalkKey=key(),walletBefore=(await me()).user.coins;
+const boardwalk=await buy('boardwalk-hair',boardwalkKey);
+assert.equal(BigInt(boardwalk.user.coins),BigInt(walletBefore)-90n);
+assert.equal((await buy('boardwalk-hair',boardwalkKey)).user.coins,boardwalk.user.coins);
+assert.equal(boardwalk.user.equipped.hair.id,'boardwalk-hair');
 await db.close();console.log('PASS Shop 2.0: expanded equipment, prices, ownership, idempotency, seasons, VIP expiry/refunds/replay/account binding, RLS, no currency benefits.');

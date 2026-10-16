@@ -1,23 +1,8 @@
 name: Earnly iOS native build
 
+# Native builds are deliberate release actions; web QA remains automatic.
 on:
-  pull_request:
   workflow_dispatch:
-  push:
-    branches: [main, feature/arcade-shop-2]
-    paths:
-      - '*.html'
-      - '*.js'
-      - '*.css'
-      - '*.svg'
-      - 'package.json'
-      - 'capacitor.config.json'
-      - 'native-ads-entry.js'
-      - 'scripts/**'
-      - 'native/**'
-      - '.github/workflows/ios-native-build.yml'
-      - '.github/workflows/ios-v1-1-testflight.yml'
-      - '.github/workflows/ios-v1-3-testflight.yml'
 
 concurrency:
   group: earnly-ios-native-${{ github.ref }}

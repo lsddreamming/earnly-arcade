@@ -30,7 +30,7 @@ jobs:
             const required = ['Earnly automated tests', 'Earnly iOS native build', 'Publish Earnly Pages after QA'];
             for (let attempt = 0; attempt < 48; attempt++) {
               const {data} = await github.rest.actions.listWorkflowRunsForRepo({...context.repo, head_sha: context.sha, per_page: 100});
-              const runs = required.slice(0, 2).map(name => data.workflow_runs.find(r => r.name === name && r.head_branch === 'main' && r.event === 'push'));
+              const runs = required.slice(0, 2).map(name => data.workflow_runs.find(r => r.name === name && r.head_branch === 'main' && (r.event === 'push' || (name === 'Earnly iOS native build' && r.event === 'workflow_dispatch'))));
               // workflow_run also fires for PR checks: those Pages jobs are skipped.
               // Require an actual successful publish job, not merely a green wrapper run.
               let publication;

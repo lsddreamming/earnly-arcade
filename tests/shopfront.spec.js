@@ -50,25 +50,25 @@ test('Lookbook is upfront and prices only the pieces still to unlock',async({pag
 });
 test('Complete look preview matches its card and never buys or equips anything',async({page})=>{
  const f=await setup(page);const layers=await page.locator('.look-card').nth(1).locator('.character img').evaluateAll(imgs=>imgs.map(i=>i.src));
- await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
  expect(await page.locator('#character-stage img').evaluateAll(imgs=>imgs.map(i=>i.src))).toEqual(layers);
  await expect(page.locator('#tryon-total')).toHaveText('3,200 coins to unlock');
  expect(f.writes).toHaveLength(0);expect(f.user.equipped.avatar.id).toBe('cyber-starter');
 });
 test('Compare saved look toggles back to try-on without changing the wallet',async({page})=>{
- const f=await setup(page);await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
+ const f=await setup(page);await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
  await page.locator('#compare-look').click();await expect(page.locator('#character-stage img[alt="Pilot Suit"]')).toBeVisible();
  await page.locator('#compare-look').click();await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();
  await expect(page.locator('#coin-balance')).toHaveText('1,250');expect(f.writes).toHaveLength(0);
 });
 test('Buying one preview item updates remaining look cost and preserves other previews',async({page})=>{
- const f=await setup(page);await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
+ const f=await setup(page);await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
  await page.getByRole('button',{name:'Unlock preview Neon Phantom',exact:true}).click();await page.locator('#confirm-purchase').click();
  await expect(page.locator('#coin-balance')).toHaveText('1,000');await expect(page.locator('#tryon-total')).toHaveText('2,950 coins to unlock');
  await expect(page.locator('.look-card').nth(1).locator('.look-price')).toContainText('2,950');
  await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();
  expect(f.writes).toHaveLength(1);expect(f.writes[0].itemId).toBe('neon-phantom');
- await expect(page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await expect(page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true})).toBeEnabled();
 });
 test('Search spans categories, sorting is deterministic and empty filters can reset',async({page})=>{
  await setup(page);await page.getByLabel('Find your next piece').fill('jacket');await expect(page.locator('.item-card')).toHaveCount(2);
@@ -92,15 +92,15 @@ test('Insufficient funds offers next steps, never charges, and preserves the pre
 test('Native shortfall links to the unified shop and free earning',async({page})=>{
  await setup(page,{coins:'100',native:true});await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();
  await expect(page.getByRole('link',{name:'See coin options',exact:true})).toBeVisible();
- await expect(page.getByRole('link',{name:'Play & earn free coins →',exact:true})).toBeVisible();await expect(page.locator('#coin-shop')).toBeVisible();
+ await expect(page.getByRole('link',{name:'Play & earn free coins →',exact:true})).toBeVisible();await page.getByRole('link',{name:'See coin options',exact:true}).click();await expect(page.locator('#coin-shop')).toBeVisible();
 });
 test('Guests can compare looks but must sign in before any purchase',async({page})=>{
- const f=await setup(page,{signedIn:false});await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
+ const f=await setup(page,{signedIn:false});await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
  await expect(page.locator('#auth-modal')).not.toBeVisible();await expect(page.locator('#affordable-only')).toBeDisabled();
  await page.getByRole('button',{name:'Unlock preview Neon Phantom',exact:true}).click();await expect(page.locator('#auth-modal')).toBeVisible();expect(f.writes).toHaveLength(0);
 });
 test('Signing out clears preview totals and comparison state',async({page})=>{
- await setup(page);await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();await page.locator('#compare-look').click();await page.locator('#auth-button').click();
+ await setup(page);await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();await page.locator('#compare-look').click();await page.locator('#auth-button').click();
  await expect(page.locator('#nav-name')).toHaveText('Guest');await expect(page.locator('#tryon-summary')).toBeHidden();await expect(page.locator('#compare-look')).toBeHidden();
 });
 test('Lookbook stays contained at seven phone, tablet and desktop widths with motion reduced',async({page})=>{
@@ -108,14 +108,14 @@ test('Lookbook stays contained at seven phone, tablet and desktop widths with mo
  for(const width of [320,390,440,680,768,1024,1280]){
   await page.setViewportSize({width,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page overflow at ${width}px`).toBeTruthy();
-  const targets=await page.locator('.shop-tabs button,.look-card button').evaluateAll(bs=>bs.map(b=>b.getBoundingClientRect().height));for(const height of targets)expect(height).toBeGreaterThanOrEqual(44);
+  const targets=await page.locator('.shop-tabs button:visible,.look-card button:visible').evaluateAll(bs=>bs.map(b=>b.getBoundingClientRect().height));for(const height of targets)expect(height).toBeGreaterThanOrEqual(44);
  }
- await page.locator('#coin-pack-options summary').click();
+ await page.getByRole('button',{name:'Coin packs',exact:true}).click();
  await expect(page.locator('#coin-packs button')).toHaveCount(3);for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
 });
 test('Shop styling preserves hidden extra-play controls for guests and after sign-out',async({page})=>{
  const f=await setup(page);
- await expect(page.locator('#extra-plays')).toBeVisible();
+ await page.getByRole('button',{name:'Coin packs',exact:true}).click();await expect(page.locator('#extra-plays')).toBeVisible();
  await page.locator('#auth-button').click();
  await expect(page.locator('#nav-name')).toHaveText('Guest');
  await expect(page.locator('#extra-plays')).toBeHidden();
@@ -135,9 +135,9 @@ test('Narrow category rail reaches the last category and returns without spendin
 test('Phone coin rail reveals its last pack without decorative layers blocking buttons',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});const f=await setup(page);
- await page.locator('#coin-pack-options summary').click();
+ await page.getByRole('button',{name:'Coin packs',exact:true}).click();
  await expect(page.locator('#coin-packs button')).toHaveCount(3);
- expect(await page.locator('#coin-packs').evaluate(e=>e.scrollWidth>e.clientWidth)).toBeTruthy();
+ expect(await page.locator('#coin-packs').evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBeTruthy();
  const last=page.locator('#coin-packs button').last();
  await last.evaluate(e=>e.scrollIntoView({block:'center',inline:'center',behavior:'instant'}));
  await expect.poll(()=>last.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})).toBeTruthy();
@@ -163,7 +163,7 @@ test('Continue browsing returns to a searched item without changing the preview 
 });
 test('Lookbook continue browsing opens the collection with a keyboard destination',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});await setup(page);
- await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true}).click();
  await page.getByRole('button',{name:'Continue browsing',exact:true}).click();
  await expect(page.locator('#shop-search')).toBeFocused();
  await expect(page.locator('#shop-title')).toBeInViewport();
@@ -174,7 +174,7 @@ test('Coin comparisons follow current prices and the collection stays one tap aw
  const f=await setup(page);
  await expect(page.locator('.pack-rate')).toHaveText(['$0.40 per 100 coins','$0.33 per 100 coins','$0.25 per 100 coins']);
  await expect(page.locator('.coin-pack.best-value h3')).toHaveText('Arcade vault');
- await page.locator('#coin-shop').scrollIntoViewIfNeeded();
+ await page.getByRole('button',{name:'Coin packs',exact:true}).click();await page.locator('#coin-shop').scrollIntoViewIfNeeded();
  await page.screenshot({path:test.info().outputPath('shop-wallet.png')});
  await page.getByRole('link',{name:'Explore what you can unlock'}).click();
  await expect(page.locator('#shop-title')).toBeInViewport();
@@ -184,4 +184,22 @@ test('Coin comparisons follow current prices and the collection stays one tap aw
  await page.reload();
  await expect(page.locator('.coin-pack.best-value h3')).toHaveText('Starter stash');
  await expect(page.locator('.pack-rate').first()).toHaveText('$0.20 per 100 coins');
+});
+
+test('Premium departments preserve the wallet, show all packs and never invent fallback value claims',async({page})=>{
+ const f=await setup(page);await page.getByRole('button',{name:'Coin packs',exact:true}).click();
+ for(const width of [320,390,440,768]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const cards=await page.locator('.coin-pack').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:r.right};}));
+  for(const card of cards){expect(card.left).toBeGreaterThanOrEqual(0);expect(card.right).toBeLessThanOrEqual(width);}
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:test.info().outputPath('premium-coins-iphone.png')});
+ await expect(page.locator('.store-balance')).toContainText('1,250');
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await expect(page.locator('#room-collections')).toBeVisible();
+ await page.getByRole('button',{name:'Style studio',exact:true}).click();await expect(page.locator('#shop-grid')).toBeVisible();expect(f.writes).toHaveLength(0);
+ await page.route('**/coin-shop/config',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Unavailable'}})}));
+ await page.reload();await page.getByRole('button',{name:'Coin packs',exact:true}).click();
+ await expect(page.locator('#coin-status')).toContainText('coming soon');await expect(page.locator('.pack-value')).toHaveCount(0);
+ for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
 });

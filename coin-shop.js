@@ -8,7 +8,7 @@
   const native=window.Capacitor?.isNativePlatform?.()||location.protocol==='capacitor:';
   if(native)$('coin-pack-options').open=true;
   const fallback=[{id:'starter',coins:500,priceCents:99},{id:'plus',coins:1500,priceCents:299},{id:'vault',coins:4000,priceCents:499}];
-  let available=false,busy=false,configSequence=0;
+  let available=false,busy=false,configSequence=0,verifiedPrices=false;
   const pending=new Map();
   // Keep uncertain checkouts recoverable across refreshes, separately for each account.
   function checkoutKey(account,pack) {
@@ -44,11 +44,11 @@
       heading.append(title);
       const art=document.createElement('img');art.className='coin-pack-art';art.alt='';art.width=280;art.height=170;
       art.src=({starter:'coin-pack-starter.svg',plus:'coin-pack-plus.svg',vault:'coin-pack-vault.svg'})[pack.id]||'coin-pack-starter.svg';
-      if(priced.length>1&&pack.priceCents/pack.coins===bestRate&&priced.some(p=>p.priceCents/p.coins>bestRate)){
+      if(verifiedPrices&&!native&&priced.length>1&&pack.priceCents/pack.coins===bestRate&&priced.some(p=>p.priceCents/p.coins>bestRate)){
         card.classList.add('best-value');
         const badge=document.createElement('span');badge.className='pack-value';badge.textContent='Best value';heading.append(badge);
       }
-      const amount=document.createElement('div');amount.className='coin-amount';amount.textContent='◈ '+pack.coins.toLocaleString();
+      const amount=document.createElement('div');amount.className='coin-amount';amount.textContent=pack.coins.toLocaleString();
       const note=document.createElement('p');note.textContent='Arcade Coins';
       const rate=document.createElement('p');rate.className='pack-rate';rate.textContent=!native&&pack.coins>0?'$'+(pack.priceCents/pack.coins).toFixed(2)+' per 100 coins':'';
       const button=document.createElement('button');button.type='button';button.textContent=available?'$'+(pack.priceCents/100).toFixed(2)+' · Buy':'$'+(pack.priceCents/100).toFixed(2)+' · Soon';
@@ -165,9 +165,9 @@
       let packs=config.packs;
       if(native){const products=(await apple.products()).products||[];packs=packs.map(p=>({...p,displayPrice:products.find(item=>item.id===p.productId)?.displayPrice}));}
       if(sequence!==configSequence)return;
-      available=config.available;render(packs);
+      available=config.available;verifiedPrices=true;render(packs);
       message(native?(available?'Secure Apple purchase · one-time coin packs':'Apple coin packs are coming soon. Earn coins by playing.'):(available?'Secure card checkout · one-time purchase':'Card purchases are coming soon. Free coins and cosmetic unlocks are available now.'));
-    }catch(error){available=false;render(native?fallback.map(p=>({...p,priceCents:0})):fallback);message(native?error.message:'Card purchases are coming soon. Keep earning free coins by playing.');}
+    }catch(error){available=false;verifiedPrices=false;render(native?fallback.map(p=>({...p,priceCents:0})):fallback);message(native?error.message:'Card purchases are coming soon. Keep earning free coins by playing.');}
     await refreshAccount();if(native)await recover();else await checkOrder();
     if(bound)return;bound=true;
     window.EarnlyCloud?.client?.auth?.onAuthStateChange?.(event=>{if(event!=='TOKEN_REFRESHED')setTimeout(()=>{refreshAccount();native?recover():checkOrder();},0);});
