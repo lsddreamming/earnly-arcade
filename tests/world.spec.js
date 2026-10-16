@@ -348,11 +348,18 @@ test('Friends offer open room choices with player counts and entering uses the s
   window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;this.events={};setTimeout(()=>this.onopen?.(),10);}addEventListener(name,fn){(this.events[name]??=[]).push(fn);}removeEventListener(name,fn){this.events[name]=(this.events[name]||[]).filter(f=>f!==fn);}close(){this.readyState=3;setTimeout(()=>{this.onclose?.({code:1000});for(const fn of this.events.close||[])fn();},0);}send(raw){const p=JSON.parse(raw),send=data=>{const event={data:JSON.stringify(data)};this.onmessage?.(event);for(const fn of this.events.message||[])fn(event);};
    if(p.type==='JOIN'){window.roomJoins.push(p.roomId);send({type:'WELCOME',userId:'owner',scene:{roomId:p.roomId,name:p.roomId==='garden'?'Buddy Garden':'Home',ownerId:p.roomId==='garden'?'friend':'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap});}
    if(p.type==='LEAVE')send({type:'LEFT'});
+   if(p.type==='ACTION'&&p.action==='room_directory'){window.finishRoomDirectory=()=>send({type:'RESULT',requestId:p.requestId,data:rooms});return;}
    if(p.type==='ACTION')send({type:'RESULT',requestId:p.requestId,data:p.action==='friend_rooms'?(window.emptyFriendRooms?[]:[{id:'garden',name:'Buddy Garden',ownerId:'friend',occupancy:2},{id:'lounge',name:'Buddy Lounge',ownerId:'friend',occupancy:0}]):p.action==='room_directory'?rooms:bootstrap});
   }};
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
- await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-occupancy')).toHaveText('1 player in room');await page.locator('#closePanel').click();
+ await page.locator('[data-panel="rooms"]').click();
+ await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeDisabled();
+ await page.evaluate(()=>window.finishRoomDirectory());
+ await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeEnabled();
+ await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeEnabled();
+ await expect(page.locator('.room-occupancy')).toHaveText('1 player in room');await page.locator('#closePanel').click();
  await page.locator('[data-panel="friends"]').click();await page.locator('#panelContent').getByRole('button',{name:'Rooms',exact:true}).click();
  await expect(page.locator('#panelTitle')).toHaveText('Buddy’s rooms');await expect(page.locator('.room-occupancy')).toHaveText(['2 players in room','0 players in room']);
  await page.locator('.room-card').filter({hasText:'Buddy Garden'}).getByRole('button',{name:'Enter room'}).click();
