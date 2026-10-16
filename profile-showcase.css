@@ -1,0 +1,38 @@
+/* The player's equipped character leads; account and progress controls stay nearby. */
+body.profile-dashboard.has-app-nav .profile-container,body.profile-dashboard .profile-container{max-width:720px;padding-bottom:94px!important}
+body.profile-dashboard .profile-hero{padding:14px!important;border:1px solid #538ca14d!important;border-radius:22px!important;background:radial-gradient(ellipse at 12% 65%,#36d7ca28,transparent 60%),linear-gradient(130deg,#122b42,#171a35)!important}
+body.profile-dashboard .profile-eyebrow{font-size:10px;letter-spacing:2px;line-height:20px}
+body.profile-dashboard .profile-hero-row{gap:18px!important;margin-top:14px!important;align-items:center}
+body.profile-dashboard .profile-look{flex:0 0 106px;display:grid;justify-items:center;gap:3px}
+body.profile-dashboard .profile-look>span{font-size:9px;color:#9bc7d5;letter-spacing:1.5px;text-transform:uppercase}
+body.profile-dashboard .profile-hero .profile-avatar{width:106px!important;height:120px!important;border:0;border-radius:16px;background:radial-gradient(ellipse at 50% 80%,#6bf4d831,transparent 68%);box-shadow:none;font-size:48px;overflow:visible}
+body.profile-dashboard .profile-hero .profile-hero-copy{padding-right:0!important;min-width:0;flex:1}
+body.profile-dashboard .profile-hero-copy h1{font-size:clamp(21px,6vw,30px)!important;overflow-wrap:anywhere;line-height:1.12;margin:0 0 8px}
+body.profile-dashboard .profile-level-line{font-size:12px;line-height:1.6}
+body.profile-dashboard #totalXP{display:block;font-size:10px;color:#9caec5}
+body.profile-dashboard .profile-hero .profile-edit-card:not([open]){top:9px!important;right:10px!important;max-width:130px!important}
+body.profile-dashboard .profile-hero .profile-edit-card:not([open])>summary{min-height:44px!important;font-size:11px!important}
+body.profile-dashboard .profile-xp-line{margin-top:10px!important;font-size:10px}
+body.profile-dashboard .xp-bar{height:6px;margin-top:5px}
+body.profile-dashboard .profile-key-stats{margin:10px 0!important;padding:8px 0!important;border-top:0!important;border-bottom:1px solid #78a1bb29!important}
+body.profile-dashboard .profile-key-stats strong{font-size:20px!important}
+body.profile-dashboard .profile-key-stats span{font-size:10px!important}
+body.profile-dashboard .profile-style-actions{display:flex;gap:8px;margin:8px 0 15px}
+body.profile-dashboard .profile-style-actions>.avatar-studio-link{flex:1;min-width:0;min-height:48px!important;margin:0!important;padding:10px 12px!important;border-color:#5ed9cb66;background:linear-gradient(120deg,#184848,#20334c)}
+body.profile-dashboard .profile-style-actions strong{font-size:13px!important}
+body.profile-dashboard .profile-style-actions #profile-coin-shop:not([hidden]){display:flex}
+body.profile-dashboard #profile-coin-shop>a{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border:1px solid #bca56666;border-radius:15px;text-decoration:none;color:#ffe0a0;background:#28263a;min-height:48px}
+body.profile-dashboard .profile-progress-copy{text-align:left}
+body.profile-dashboard .profile-more-stats>summary{font-size:13px;padding:12px;min-height:44px}
+body.profile-dashboard .profile-more-stats>summary small{display:none}
+body.profile-dashboard .profile-extras>summary{font-size:12px;min-height:44px;text-align:left}
+body.profile-dashboard .profile-shortcuts a{min-height:66px}
+body.profile-dashboard .profile-shortcuts small{font-size:10px}
+body.profile-dashboard .public-footer{margin-top:14px;padding:12px 0}
+body.profile-dashboard .public-footer nav{gap:10px 16px}
+body.profile-dashboard .public-footer p{font-size:10px;margin-top:12px}
+@media(max-width:360px){body.profile-dashboard .profile-hero{padding:12px!important}body.profile-dashboard .profile-hero-row{gap:12px!important}body.profile-dashboard .profile-look{flex-basis:88px}body.profile-dashboard .profile-hero .profile-avatar{width:88px!important;height:110px!important}body.profile-dashboard .profile-eyebrow{font-size:8px;letter-spacing:1px}body.profile-dashboard .profile-style-actions strong{font-size:11px!important}body.profile-dashboard #profile-coin-shop>a{padding:8px}body.profile-dashboard .profile-style-actions>.avatar-studio-link{gap:7px!important;padding:9px!important}}
+
+body.profile-dashboard .topbar{gap:8px;flex-wrap:wrap}
+body.profile-dashboard .topbar .balance-chip{margin-left:auto}
+body.profile-dashboard .arcade-chat-launcher.arcade-chat-inline{position:static;min-height:44px;padding:8px 10px;font-size:12px;box-shadow:none;z-index:auto;flex:0 0 auto}

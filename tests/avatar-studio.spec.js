@@ -63,7 +63,7 @@ test('Guests browse but sign in before attempting purchases',async({page})=>{
   await setup(page,{signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');await page.getByRole('button',{name:'Buy Neon Phantom',exact:true}).click();await expect(page.locator('#auth-modal')).toBeVisible();await expect(page.locator('#coin-balance')).toHaveText('—');
 });
 test('Existing Profile links to the studio and displays the saved character',async({page})=>{
-  await setup(page);await page.goto('/profile.html');await expect(page.getByRole('link',{name:/Arcade Shop/})).toHaveAttribute('href','avatars.html');await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cosmetic-cyber-starter.svg$/);
+  await setup(page);await page.goto('/profile.html');await expect(page.getByRole('link',{name:/Style your avatar/})).toHaveAttribute('href','avatars.html');await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cosmetic-cyber-starter.svg$/);
 });
 test('Existing World Ranks opens a cosmetic player card from avatar and username',async({page})=>{
   await setup(page);await page.goto('/leaderboards.html');await page.locator('.leader-avatar[data-username="PlayerOne"]').click();await expect(page.locator('.cosmetic-player-dialog')).toBeVisible();await expect(page.locator('#cosmetic-player-name')).toHaveText('@PlayerOne');await page.keyboard.press('Escape');await page.locator('.leader-profile-link[data-username="PlayerOne"]').click();await expect(page.locator('.cosmetic-player-dialog')).toBeVisible();
@@ -182,4 +182,23 @@ test('Personality assets keep legacy looks intact and new features render withou
  });
  expect(result.old).toHaveLength(1);expect(result.old[0].imageUrl).toBe('cosmetic-cyber-starter.svg');expect(result.fresh[0].imageUrl).toBe('cosmetic-cyber-starter-body.svg');expect(result.fresh.filter(i=>i.slot==='eyes')).toHaveLength(1);
  for(const tab of ['Eyes','Eyebrows','Noses','Mouths','Hair','Face details']){await page.getByRole('button',{name:tab,exact:true}).click();await page.getByLabel('Free options only').check();expect(await page.locator('#shop-grid .item-card').count()).toBeGreaterThan(2);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
+});
+
+for(const prefix of ['', '/www'])test('Profile showcases equipped gear with compact actions '+prefix,async({page})=>{
+ const f=await setup(page);const before=JSON.stringify(f.user());
+ await page.addInitScript(()=>{localStorage.setItem('arcadeProfileName','DREAMER');localStorage.setItem('arcadeOnboardingSeen','1');});
+ await page.setViewportSize({width:390,height:844});await page.goto(prefix+'/profile.html');
+ await expect(page.locator('#profileAvatar img[alt="Pilot Suit"]')).toBeVisible();
+ await expect(page.locator('#profileAvatar img[alt="Trail Boots"]')).toBeVisible();
+ await expect(page.locator('#profileAvatar img[alt="Training Blaster"]')).toBeVisible();
+ const avatar=await page.locator('#profileAvatar').boundingBox();expect(avatar.width).toBeGreaterThanOrEqual(100);expect(avatar.height).toBeGreaterThanOrEqual(120);
+ await expect(page.locator('.profile-style-actions')).toBeInViewport();await expect(page.locator('.profile-shortcuts-essential')).toBeInViewport();
+ await expect(page.locator('.profile-more-stats')).not.toHaveAttribute('open','');await expect(page.locator('.profile-extras')).not.toHaveAttribute('open','');
+ await expect(page.locator('.topbar #arcadeChatButton')).toBeVisible();
+ await page.screenshot({path:test.info().outputPath('profile-iphone.png'),fullPage:true});
+ await page.locator('.profile-edit-card > summary').click();await page.locator('#nameInput').fill('LONGPLAYERNAME1234');
+ await expect(page.locator('#saveProfileButton')).toBeVisible();await expect(page.locator('#usernameInput')).toBeVisible();
+ await page.locator('.profile-icon-options > summary').click();await expect(page.locator('.avatar-choice')).toHaveCount(16);
+ for(const width of [320,390,440]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);}
+ expect(JSON.stringify(f.user())).toBe(before);expect(f.keys).toHaveLength(0);
 });
