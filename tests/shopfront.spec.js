@@ -16,7 +16,7 @@ const items=data.map(([id,name,slot,coinPrice])=>({id,name,slot,coinPrice,rarity
 const packs=[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}];
 async function setup(page,{coins='1250',signedIn=true,native=false}={}) {
  const user={username:'ShopTester',coins,lifetimeEarned:coins,inventory:items.filter(i=>i.coinPrice===0).map(i=>i.id),equipped:Object.fromEntries(items.filter(i=>i.isStarter).map(i=>[i.slot,i])),totalSkinsUnlocked:1};
- const writes=[];
+ const writes=[],passReads=[];
  if(native)await page.addInitScript(()=>{window.Capacitor={isNativePlatform:()=>true};});
  await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'text/javascript',body:`(()=>{let session=${signedIn?"{access_token:'test',user:{id:'qa'}}":"null"};const listeners=[];const auth={getSession:async()=>({data:{session}}),onAuthStateChange:fn=>{listeners.push(fn);return{};},signOut:async()=>{session=null;listeners.forEach(fn=>fn('SIGNED_OUT'));return{};}};window.EarnlyCloud={client:{auth},session:async()=>session,syncServerRewards:async()=>({}),profile:async()=>null,walletInfo:async()=>null};window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));})();`}));
@@ -40,9 +40,18 @@ async function setup(page,{coins='1250',signedIn=true,native=false}={}) {
   }
   return respond({error:{message:'Unknown mock route'}},404);
  });
+ // Keep VIP discovery local too; never contact a live subscription endpoint.
+ await page.route('**/arcade-pass/**',r=>{
+  const req=r.request(),path=new URL(req.url()).pathname.split('/arcade-pass')[1];
+  const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type,idempotency-key','Access-Control-Allow-Methods':'GET,POST,OPTIONS'};
+  if(req.method()==='OPTIONS')return r.fulfill({status:204,headers});
+  if(req.method()!=='GET'){writes.push({path,method:req.method()});return r.fulfill({status:409,headers,json:{error:{message:'Purchases disabled in preview fixture'}}});}
+  passReads.push(path);
+  return r.fulfill({headers,json:path==='/config'?{webAvailable:false,appleAvailable:false,productId:'com.earnly.arcade.vip.monthly'}:{active:false}});
+ });
  await page.goto('/avatars.html');
  await expect(page.locator('#coin-balance')).toHaveText(signedIn?Number(coins).toLocaleString('en-US'):'—');
- return {user,writes};
+ return {user,writes,passReads};
 }
 test('Lookbook is upfront and prices only the pieces still to unlock',async({page})=>{
  await setup(page);await expect(page.locator('.look-card')).toHaveCount(3);
@@ -207,7 +216,7 @@ test('Premium departments preserve the wallet, show all packs and never invent f
 });
 
 test('Furnished room ideas and VIP previews stay compact and never initiate purchases',async({page})=>{
- const f=await setup(page);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));const f=await setup(page);
  await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();
  for(const width of [320,390,440]){
   await page.setViewportSize({width,height:844});
@@ -222,5 +231,7 @@ test('Furnished room ideas and VIP previews stay compact and never initiate purc
  for(const image of await page.locator('.pass-perks img').all())expect(await image.evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
  await expect(page.locator('#pass-restore')).toBeVisible();await expect(page.locator('#pass-disclosure')).toContainText(/auto-renew/i);
  await page.screenshot({path:test.info().outputPath('vip-preview-iphone.png')});
+ await expect.poll(()=>f.passReads).toContain('/me');
+ await expect(page.locator('#pass-buy')).toBeDisabled();
  expect(f.writes).toHaveLength(0);expect(errors).toEqual([]);
 });
