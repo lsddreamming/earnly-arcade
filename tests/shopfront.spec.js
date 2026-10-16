@@ -205,3 +205,22 @@ test('Premium departments preserve the wallet, show all packs and never invent f
  await expect(page.locator('#coin-status')).toContainText('coming soon');await expect(page.locator('.pack-value')).toHaveCount(0);
  for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
 });
+
+test('Furnished room ideas and VIP previews stay compact and never initiate purchases',async({page})=>{
+ const f=await setup(page);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();
+ for(const width of [320,390,440]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  const previews=page.locator('[data-room-preview]');await expect(previews).toHaveCount(2);
+  expect(await previews.evaluateAll(nodes=>nodes.every(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v>0)))).toBe(true);
+  expect((await page.locator('.room-editions').boundingBox()).height).toBeLessThan(360);
+ }
+ await page.locator('#room-collections').scrollIntoViewIfNeeded();await page.screenshot({path:test.info().outputPath('real-furniture-iphone.png')});
+ await page.getByRole('button',{name:'VIP Pass',exact:true}).click();
+ await expect(page.locator('#vip-pass > summary')).toBeHidden();
+ for(const image of await page.locator('.pass-perks img').all())expect(await image.evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+ await expect(page.locator('#pass-restore')).toBeVisible();await expect(page.locator('#pass-disclosure')).toContainText(/auto-renew/i);
+ await page.screenshot({path:test.info().outputPath('vip-preview-iphone.png')});
+ expect(f.writes).toHaveLength(0);expect(errors).toEqual([]);
+});
