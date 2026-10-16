@@ -1,10 +1,10 @@
 name: Earnly world grid engine
 on:
   pull_request:
-    paths: ['world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['tests/world.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
   push:
     branches: [main]
-    paths: ['world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['tests/world.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
 permissions:
   contents: read
 jobs:
@@ -31,6 +31,7 @@ jobs:
       - run: node scripts/test-world-account-permissions.mjs
       - run: node scripts/test-world-network.mjs
       - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/world.spec.js --project=desktop-chromium --grep "Owned furniture" --repeat-each=5 --workers=2
       - run: mkdir -p world-seating-shots && node scripts/test-world-browser.mjs
         env:
           WORLD_TEST_SCREENSHOTS: world-seating-shots

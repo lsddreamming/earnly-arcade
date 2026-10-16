@@ -60,6 +60,9 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
   };
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#worldEntry')).toBeHidden();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ // Connection reveals the canvas; wait for its resize and first visible render before projecting pointer coordinates.
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.width)).toBeGreaterThan(0);
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
  const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
  const distance=await page.evaluate(()=>144*window.testRenderer.scale);
