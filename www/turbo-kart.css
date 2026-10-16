@@ -40,3 +40,8 @@ body.kart-page.game-active{overscroll-behavior:none}
 #kartControls button.held{transform:translateY(2px)}
 #kartControls #itemButton:not(:disabled):active{background:#a4ffe3;color:#102c39}
 body.kart-page #sessionControls :is(button,a):active{filter:brightness(1.2)}
+
+/* Include gaps and nested labels, not only the individual buttons. */
+body.kart-page.game-active .kart-shell,
+body.kart-page.game-active :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls),
+body.kart-page.game-active :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls) *{touch-action:none!important}
