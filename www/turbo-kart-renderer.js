@@ -64,7 +64,7 @@ const TurboKartRenderer=(()=>{
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+s.time*2)%w,horizon+23+i*4,(i*89+s.time*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
   // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
   if(s.time<skidTime||s.time===0){skidMarks=[];skidTime=-1;}if(s.time>skidTime){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-240);
-  const ground=[],decals=[],queue=[];let roadLayer=null;
+  const ground=[],decals=[],queue=[],labels=[];let roadLayer=null;
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
   function ribbon(d1,d2,left,rightOffset,color){const a=project(E.sample(d1,left,t)),b=project(E.sample(d1,rightOffset,t)),c=project(E.sample(d2,rightOffset,t)),d=project(E.sample(d2,left,t));if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
   const segment=10,start=Math.floor((p.d-70)/segment)*segment;
@@ -89,8 +89,19 @@ const TurboKartRenderer=(()=>{
   for(const h of s.hazards){const q=project(E.sample(h.d,h.lane,t));add(q.depth,()=>{ellipse(q.x,q.y,14*q.k,4*q.k,'#382e78');ellipse(q.x-4*q.k,q.y-q.k,7*q.k,2*q.k,'#aa89e7');},decals);}
   for(const v of s.projectiles){const q=project(E.sample(v.d,v.lane,t),7);add(q.depth,()=>{ellipse(q.x,q.y,5*q.k,5*q.k,'#91fcff');text('ϟ',q.x,q.y+3*q.k,10*q.k,'#fff4cc');});}
   for(const v of s.effects){const q=project(E.sample(v.d,v.lane,t),2);add(q.depth,()=>{if(v.type==='coin'){const age=.5-v.life;for(let i=0;i<8;i++){const a=i*TAU/8;ellipse(q.x+Math.cos(a)*age*36*q.k,q.y-12*q.k+Math.sin(a)*age*20*q.k,Math.max(.5,v.life*3*q.k),Math.max(.5,v.life*3*q.k),'#ffe790');}return;}ctx.strokeStyle='#e3b9ff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,q.y,(.7-v.life)*90*q.k,(.7-v.life)*20*q.k,0,0,TAU);ctx.stroke();});}
-  for(let i=0;i<s.racers.length;i++){const r=s.racers[i],q=project(E.sample(r.d,r.lane,t));add(q.depth,()=>{if(q.x<-60*q.k||q.x>w+60*q.k)return;kart(r,q.k*.43,q.x,q.y,s,i===0);if(i&&q.depth>80&&q.depth<320)text(r.name,q.x,q.y-28*q.k,Math.max(8,3*q.k),'#fff9ee');});}
+  for(let i=0;i<s.racers.length;i++){const r=s.racers[i],q=project(E.sample(r.d,r.lane,t));add(q.depth,()=>{if(q.x<-60*q.k||q.x>w+60*q.k)return;kart(r,q.k*.43,q.x,q.y,s,i===0);if(i&&q.depth>80&&q.depth<320)labels.push({name:r.name,x:q.x,y:q.y-28*q.k,size:Math.max(9,3*q.k),depth:q.depth});});}
   for(const layer of [ground,decals,queue]){layer.sort((a,b)=>b.depth-a.depth);for(const entry of layer)entry.draw();}
+  // Keep the nearest readable names; omit farther labels that collide on screen.
+  // Screen-space bounds matter here because separated world positions still project
+  // to the same few pixels near the horizon.
+  const occupied=[];
+  for(const label of labels.sort((a,b)=>a.depth-b.depth)){
+   ctx.font=`900 ${label.size}px system-ui`;
+   const width=ctx.measureText(label.name).width+10,height=label.size+8;
+   const bounds={left:label.x-width/2,right:label.x+width/2,top:label.y-label.size-4,bottom:label.y+4};
+   if(bounds.left<4||bounds.right>w-4||bounds.top<Math.max(105,h*.22)||bounds.bottom>h-40||occupied.some(b=>bounds.left<b.right+5&&bounds.right>b.left-5&&bounds.top<b.bottom+5&&bounds.bottom>b.top-5))continue;
+   occupied.push(bounds);box(bounds.left,bounds.top,width,height,4,'#142640c9');text(label.name,label.x,label.y,label.size,'#fff9ee');
+  }
   if(p.boost>0&&!reduced.matches){for(let i=0;i<9;i++){const side=i%2?1:-1,x=w/2+side*(w*.35+i*7),y=h*.48+(i*53+s.time*240)%(h*.5);line(x,y,x+side*12,y+30,'#e1fffd85',2);}}
   // Compact whole-course map, with a clear player marker and finish flag.
   const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);ctx.beginPath();t.points.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke();for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i)ellipse(q.x,q.y,17,17,'#49dabe');}ctx.restore();

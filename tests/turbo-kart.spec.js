@@ -139,3 +139,50 @@ test('collision immunity never allows a pack to interpenetrate or repeatedly slo
  for(let tick=0;tick<20;tick++){E.tick(s,1/60);for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)if(Math.abs(s.racers[i].d-s.racers[j].d)<18)expect(Math.abs(s.racers[i].lane-s.racers[j].lane)).toBeGreaterThan(22);}
  expect(s.racers[0].slow).toBe(0);expect(s.racers.every(r=>Math.abs(r.lane)<=75)).toBe(true);
 });
+
+test('race gestures block zoom across nested controls and gaps without swallowing session actions',async({page})=>{
+ await start(page);
+ for(const selector of ['.kart-shell','#kartControls','#driftButton small','.drift-meter','#sessionControls','#itemButton'])expect(await page.locator(selector).evaluate(n=>getComputedStyle(n).touchAction),selector).toBe('none');
+ for(const selector of ['#leftButton','#driftButton small','#kartControls','.drift-meter','#itemButton']){
+  for(const type of ['touchstart','touchend','touchmove','gesturestart','gesturechange','gestureend','dblclick'])expect(await page.locator(selector).evaluate((n,type)=>!n.dispatchEvent(new Event(type,{bubbles:true,cancelable:true})),type),selector+' '+type).toBe(true);
+ }
+ // Pause and Quit still receive their normal click activation after touch events.
+ expect(await page.locator('#earnlyPauseButton').evaluate(n=>n.dispatchEvent(new Event('touchend',{bubbles:true,cancelable:true})))).toBe(true);
+ await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.locator('#earnlyQuitButton').click();const quit=page.getByRole('button',{name:'Quit Game',exact:true});await expect(quit).toBeVisible();
+ expect(await quit.evaluate(n=>n.dispatchEvent(new Event('gesturestart',{bubbles:true,cancelable:true})))).toBe(true);
+});
+
+test('two simultaneous controls, repeated taps and cancellation release cleanly',async({page})=>{
+ await start(page);
+ await page.evaluate(()=>{
+  // Synthetic pointer IDs have no browser capture; stub capture only for this
+  // input-state test. Existing mouse tests exercise actual pointer capture.
+  for(const id of ['leftButton','driftButton'])document.getElementById(id).setPointerCapture=()=>{};
+ });
+ await page.locator('#leftButton').dispatchEvent('pointerdown',{pointerId:31,pointerType:'touch',button:0});
+ await page.locator('#driftButton').dispatchEvent('pointerdown',{pointerId:32,pointerType:'touch',button:0});
+ await expect(page.locator('#leftButton')).toHaveClass(/held/);await expect(page.locator('#driftButton')).toHaveClass(/held/);
+ await page.locator('#leftButton').dispatchEvent('pointerup',{pointerId:31});await expect(page.locator('#leftButton')).not.toHaveClass(/held/);await expect(page.locator('#driftButton')).toHaveClass(/held/);
+ await page.locator('#driftButton').dispatchEvent('pointercancel',{pointerId:32});await expect(page.locator('#driftButton')).not.toHaveClass(/held/);
+ for(let i=0;i<6;i++){await page.locator('#leftButton').dispatchEvent('pointerdown',{pointerId:40+i,pointerType:'touch',button:0});await page.locator('#leftButton').dispatchEvent('pointerup',{pointerId:40+i});}
+ await expect(page.locator('#leftButton')).not.toHaveClass(/held/);
+});
+
+test('rival labels stay readable when a pack projects into the same screen area',async({page})=>{
+ await page.goto('/turbo-kart.html');
+ const frames=await page.evaluate(()=>{
+  const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),original=ctx.fillText,frames=[];
+  for(const size of [[390,640],[780,480]]){
+   canvas.getBoundingClientRect=()=>({width:size[0],height:size[1]});
+   for(const distance of [90,130,190]){
+    const s=TurboKartEngine.create();s.pickups=[];s.racers.slice(1).forEach((r,i)=>{r.name='RIVAL'+i;r.d=distance+i*3;r.lane=i*2;});const labels=[];
+    ctx.fillText=function(t,x,y){if(String(t).startsWith('RIVAL')){const fontSize=parseFloat(this.font.match(/([\d.]+)px/)[1]),width=this.measureText(t).width;labels.push({left:x-width/2,right:x+width/2,top:y-fontSize,bottom:y});}return original.apply(this,arguments);};
+    TurboKartRenderer.create(canvas).render(s);frames.push(labels);
+   }
+  }ctx.fillText=original;return frames;
+ });
+ expect(frames.flat().length).toBeGreaterThan(0);
+ for(const labels of frames)for(let i=0;i<labels.length;i++)for(let j=i+1;j<labels.length;j++)expect(labels[i].right<=labels[j].left||labels[j].right<=labels[i].left||labels[i].bottom<=labels[j].top||labels[j].bottom<=labels[i].top).toBe(true);
+});

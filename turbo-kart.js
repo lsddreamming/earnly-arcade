@@ -36,6 +36,20 @@
  const surfaces=[...document.querySelectorAll('.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls')];
  function clearRaceSelection(){const selection=window.getSelection();if(selection?.rangeCount&&surfaces.some(surface=>surface.contains(selection.anchorNode)||surface.contains(selection.focusNode)))selection.removeAllRanges();}
  for(const surface of surfaces){for(const event of ['contextmenu','selectstart','dragstart'])surface.addEventListener(event,e=>e.preventDefault(),{capture:true});surface.addEventListener('pointerdown',clearRaceSelection,{capture:true});}
+ // Guard the common race surface too: two thumbs can start on different controls
+ // or their gaps. Pointer Events still own steering; click-based Pause/Quit/Item
+ // retain their normal activation, and dialogs outside these surfaces are untouched.
+ const raceShell=document.querySelector('.kart-shell');
+ function raceTouch(e){return (running||starting)&&surfaces.some(surface=>surface.contains(e.target));}
+ for(const type of ['gesturestart','gesturechange','gestureend','dblclick'])raceShell.addEventListener(type,e=>{if(raceTouch(e)&&e.cancelable)e.preventDefault();},{passive:false});
+ raceShell.addEventListener('touchmove',e=>{if(raceTouch(e)&&e.cancelable)e.preventDefault();},{passive:false});
+ for(const type of ['touchstart','touchend'])raceShell.addEventListener(type,e=>{
+  if(!raceTouch(e)||!e.cancelable)return;
+  // These controls are pointer-driven, so suppress Safari's synthetic double-tap.
+  // Non-actionable gaps also need protection, including the disabled item button.
+  const action=e.target.closest?.('button,a');
+  if(!action||action.disabled||action.matches('#leftButton,#rightButton,#driftButton'))e.preventDefault();
+ },{passive:false});
  for(const [id,value]of [['leftButton','left'],['rightButton','right'],['driftButton','drift']])el[id].addEventListener('pointerdown',e=>{if(!running||paused||e.button>0||[...pointers.values()].includes(value))return;e.preventDefault();el[id].setPointerCapture(e.pointerId);pointers.set(e.pointerId,value);if(value==='drift'&&!driftDrag)driftDrag={id:e.pointerId,x:e.clientX,steer:0};style();});
  el.driftButton.addEventListener('pointermove',e=>{if(driftDrag?.id!==e.pointerId)return;e.preventDefault();const distance=e.clientX-driftDrag.x;driftDrag.steer=Math.sign(distance)*Math.min(1,Math.max(0,Math.abs(distance)-6)/48);style();});
  for(const event of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(event,e=>{pointers.delete(e.pointerId);if(drag?.id===e.pointerId)drag=null;if(driftDrag?.id===e.pointerId)driftDrag=null;style();});
