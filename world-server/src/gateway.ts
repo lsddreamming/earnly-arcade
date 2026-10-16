@@ -84,7 +84,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           active.delete(ws);
           if(reason==='server_configuration')ws.close(1011,'World service configuration');
           else if(reason==='sign_in_required')ws.close(4001,'Sign in required');
-          else if(reason==='room_choice_required')ws.close(4004,'Choose your first room');
+          else if(reason==='room_choice_required'){send({type:'ROOM_CHOICE_REQUIRED'});ws.close(4004,'Choose your first room');}
           else if(reason==='confirmed_account_required')ws.close(4003,'Confirmed account required');
           else ws.close(1008,'Entry denied');
         }

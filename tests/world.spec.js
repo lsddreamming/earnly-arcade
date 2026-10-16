@@ -10,6 +10,36 @@ test('World starts at Connect without a plaza or an automatic connection',async(
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
+test('First-room selection survives a lost close code and enters the chosen room without retrying',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.worldJoins=[];
+  window.WebSocket=class{
+   static OPEN=1;
+   constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}
+   close(){this.readyState=3;setTimeout(()=>this.onclose?.({code:1006,reason:''}),10);}
+   send(raw){const p=JSON.parse(raw);if(p.type!=='JOIN')return;window.worldJoins.push(p.roomId);
+    if(p.roomId==='choose-home'){this.onmessage?.({data:JSON.stringify({type:'ROOM_CHOICE_REQUIRED'})});if(this.readyState!==3)this.close();}
+    else this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'new-room',name:'My Room',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:0,rooms:[],catalog:[],items:[],friends:[]}})});
+   }
+  };
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();
+ await expect(page.locator('#panelTitle')).toHaveText('Choose your first room');
+ await expect(page.locator('#entryStatus')).toContainText('it is free');
+ await page.getByRole('button',{name:'Close panel',exact:true}).click();
+ await page.locator('#connectWorld').click();
+ await expect(page.locator('#panelTitle')).toHaveText('Choose your first room');
+ expect(await page.evaluate(()=>window.worldJoins)).toEqual(['choose-home']);
+ await page.getByRole('button',{name:'Wide Loft',exact:true}).click();
+ await page.getByRole('button',{name:'Start in Wide Loft',exact:true}).click();
+ await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await expect(page.locator('#worldPanel')).not.toBeVisible();
+ await page.waitForTimeout(1700); // Pass the former automatic retry boundary.
+ expect(await page.evaluate(()=>window.worldJoins)).toEqual(['choose-home','starter-loft']);
+ await expect(page.locator('#connectionStatus')).toContainText('Live');
+});
+
 test('World reports server configuration failure without asking players to sign in again',async({page})=>{
  await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"test-player-token"})};'}));
  await page.route('https://*.supabase.co/**',route=>route.fulfill({status:404,body:''}));
