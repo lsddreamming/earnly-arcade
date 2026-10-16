@@ -27,6 +27,7 @@
  const footer=el('p','chat-footer');footer.append(document.createTextNode('Public to signed-in players · No links or personal details. '),link('Support','support.html'));
  dialog.append(header,subtitle,status,gate,list,jump,settings,form,footer);document.body.append(launcher,dialog);
  const shopHeader=document.querySelector('.studio-dashboard .header');if(shopHeader){shopHeader.append(launcher);launcher.classList.add('arcade-chat-inline');}
+ const progressHeader=document.querySelector('.rewards-dashboard .rewards-topbar,.missions-dashboard .topbar');if(progressHeader){progressHeader.append(launcher);launcher.classList.add('arcade-chat-inline');}
  const profileHeader=document.querySelector('.profile-dashboard .topbar');if(profileHeader){profileHeader.append(launcher);launcher.classList.add('arcade-chat-inline');}
  let uid=null,epoch=0,timer=null,loading=false,busy=false,data=null,signature='',pending=null,lastSeen='',forceScroll=true;
  const key=()=>`earnlyChatSeen:${uid}`;

@@ -15,9 +15,30 @@
   <title>Earnly Stats & Missions</title>
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=35">
-<link rel="stylesheet" href="public-info.css">
+  <style>
+    .missions-complete-toggle{
+      width:100%;
+      min-height:44px;
+      margin:10px 0 0;
+      padding:10px 12px;
+      border:1px solid rgba(52,211,153,.38);
+      border-radius:13px;
+      background:rgba(10,55,45,.72);
+      color:#9ff3c7;
+      font:inherit;
+      font-size:12px;
+      font-weight:850;
+      text-align:left;
+    }
+    .missions-complete-toggle[hidden]{display:none}
+    @media(max-width:699px){
+      .missions-dashboard .missions-weekly-card:has(.missions-complete-toggle:not([hidden])){padding-bottom:11px}
+    }
+  </style>
+  <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
+  <link rel="stylesheet" href="progress-hub.css?v=1">
 </head>
 <body class="missions-dashboard">
   <main class="container missions-container">
@@ -32,7 +53,7 @@
     <header class="missions-hero">
       <span class="missions-eyebrow">MISSIONS</span>
       <h1>Level up this week</h1>
-      <p>Complete missions, earn XP, and keep your streak moving.</p>
+
     </header>
 
     <section class="missions-player-strip">
@@ -52,10 +73,23 @@
         </div>
         <strong id="weekCount">0/4</strong>
       </div>
+      <button class="missions-complete-toggle" id="completedMissionsToggle" type="button" hidden></button>
       <div class="mission-list" id="missionList"></div>
       <div class="status-line success" id="weeklySweep" hidden></div>
     </section>
 
+    <details class="missions-detail-card" id="streakDetails">
+      <summary>🔥 Streak progress <span id="streakValue">0 days</span></summary>
+      <div class="streak-track">
+        <div class="streak-step" data-days="3"><strong>🔥 3</strong><span>Heating Up</span></div>
+        <div class="streak-step" data-days="7"><strong>📅 7</strong><span>Week Warrior</span></div>
+        <div class="streak-step" data-days="14"><strong>⚡ 14</strong><span>Locked In</span></div>
+      </div>
+      <p class="muted small" id="nextStreak"></p>
+      <div class="streak-reward-list" id="streakRewardList"></div>
+    </details>
+
+    <details class="missions-detail-card"><summary>Your lifetime highlights <span>View stats</span></summary>
     <section class="missions-highlights" aria-label="Lifetime highlights">
       <div><strong id="gamesCompleted">0</strong><span>Games</span></div>
       <div><strong id="lifetimeXP">0</strong><span>XP</span></div>
@@ -65,15 +99,6 @@
       <div><strong id="weeklyClears">0</strong><span>Sweeps</span></div>
     </section>
 
-    <details class="missions-detail-card" open>
-      <summary>🔥 Streak progress <span id="streakValue">0 days</span></summary>
-      <div class="streak-track">
-        <div class="streak-step" data-days="3"><strong>🔥 3</strong><span>Heating Up</span></div>
-        <div class="streak-step" data-days="7"><strong>📅 7</strong><span>Week Warrior</span></div>
-        <div class="streak-step" data-days="14"><strong>⚡ 14</strong><span>Locked In</span></div>
-      </div>
-      <p class="muted small" id="nextStreak"></p>
-      <div class="streak-reward-list" id="streakRewardList"></div>
     </details>
 
     <details class="missions-detail-card">
@@ -149,7 +174,8 @@
       shapeFit:'mini.html?game=shapeFit',
       bounceRun:'mini.html?game=bounceRun',
       trafficEscape:'mini.html?game=trafficEscape',
-      starDefender:'stardefender.html',
+      starDefender:'stardefender.html?sd=20260925d',
+      neonBreach:'neonbreach.html',
       neonMaze:'neonmaze.html'
     };
 
@@ -184,6 +210,8 @@
       })[type] || '✨';
     }
 
+    let showCompletedMissions = false;
+
     function renderMissions() {
       const weekly = Arcade.weeklyStatus();
       document.getElementById('weekCount').textContent = weekly.completed + '/' + weekly.total;
@@ -193,6 +221,12 @@
         'Resets ' + reset.toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' });
 
       const root = document.getElementById('missionList');
+      const completeToggle = document.getElementById('completedMissionsToggle');
+      completeToggle.hidden = !weekly.allClaimed;
+      completeToggle.textContent = showCompletedMissions
+        ? '✅ Weekly missions complete · ' + weekly.completed + '/' + weekly.total + ' · Hide details'
+        : '✅ Weekly missions complete · ' + weekly.completed + '/' + weekly.total + ' · View details';
+      root.hidden = weekly.allClaimed && !showCompletedMissions;
       root.replaceChildren();
 
       weekly.missions.forEach(mission => {
@@ -227,6 +261,7 @@
         bar.append(fill);
 
         card.append(head, desc, progressRow, bar);
+        bar.setAttribute('role','progressbar');bar.setAttribute('aria-label',mission.title);bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',String(mission.goal));bar.setAttribute('aria-valuenow',String(Math.min(mission.goal,mission.progress)));
 
         if (mission.claimed) {
           const claimed = document.createElement('div');
@@ -281,7 +316,13 @@
       } else {
         sweep.hidden = true;
       }
+      if (weekly.allClaimed && !showCompletedMissions) sweep.hidden = true;
     }
+
+    document.getElementById('completedMissionsToggle').addEventListener('click', () => {
+      showCompletedMissions = !showCompletedMissions;
+      renderMissions();
+    });
 
     function renderGameStats() {
       const root = document.getElementById('gameStatsList');
@@ -386,6 +427,11 @@
       root.replaceChildren();
       const status = Arcade.streakRewardStatus();
 
+      const readyCount=status.rewards.filter(item=>item.reached&&!item.claimed).length;
+      const summary=document.querySelector('#streakDetails > summary');
+      let ready=summary.querySelector('.streak-ready-count');
+      if(!ready){ready=document.createElement('b');ready.className='streak-ready-count';summary.append(ready);}
+      ready.hidden=!readyCount;ready.textContent=readyCount+' ready to claim';
       status.rewards.forEach(item => {
         const row = document.createElement('div');
         row.className = 'streak-reward' + (item.claimed ? ' claimed' : (item.reached ? ' ready' : ''));

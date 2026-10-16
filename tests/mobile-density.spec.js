@@ -60,3 +60,62 @@ test('Home starts with play and compact destinations; progress stays available o
  const overflow=await page.locator('body *').evaluateAll(nodes=>nodes.filter(n=>n.getBoundingClientRect().right>innerWidth+1&&n.getBoundingClientRect().width>0).map(n=>({tag:n.tagName,cls:n.className,width:n.getBoundingClientRect().width,right:n.getBoundingClientRect().right})));
  expect(overflow).toEqual([]);
 });
+
+for(const prefix of ['', 'www/']){
+ for(const name of ['rewards','stats']){
+  test('Progress hub '+prefix+name+' keeps mobile actions compact and chat in an opaque header',async({page})=>{
+   await page.route('https://**',r=>r.abort());
+   await page.route('**/cloud.js',r=>r.fulfill({contentType:'text/javascript',body:'window.EarnlyCloud={ready:true,session:async()=>null};window.dispatchEvent(new Event("earnly-cloud-ready"));'}));
+   await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('points','2232');localStorage.setItem('arcadeSound','off');});
+   await page.setViewportSize({width:390,height:844});await page.goto('/'+prefix+name+'.html');
+   const header=page.locator(name==='rewards'?'.rewards-topbar':'.missions-container>.topbar');
+   await expect(header.locator('#arcadeChatButton')).toBeVisible();
+   for(const width of [320,390,440]){
+    await page.setViewportSize({width,height:844});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+1);
+    expect(await header.evaluate(e=>getComputedStyle(e).backgroundColor)).toBe('rgb(11, 32, 53)');
+    expect((await header.boundingBox()).height).toBeLessThan(85);
+    const navRows=await page.locator('.bottom-nav-item').evaluateAll(nodes=>nodes.map(n=>Math.round(n.getBoundingClientRect().top)));
+    expect(new Set(navRows).size).toBe(1);
+    if(name==='stats'){
+     await expect(page.locator('.mission-card')).toHaveCount(4);
+     for(const card of await page.locator('.mission-card').all())expect((await card.boundingBox()).height).toBeLessThan(150);
+     await expect(page.locator('#streakDetails')).not.toHaveAttribute('open','');
+    }else{
+     await expect(page.locator('.rewards-wallet-actions a')).toHaveCount(3);
+     await expect(page.getByRole('link',{name:'Style your avatar →',exact:true})).toBeInViewport();
+     await expect(page.locator('.rewards-footnote')).not.toHaveAttribute('open','');
+     expect((await page.locator('.rewards-footnote>summary').boundingBox()).height).toBeGreaterThanOrEqual(44);
+    }
+   }
+   await page.evaluate(()=>scrollTo(0,500));
+   expect((await header.boundingBox()).y).toBeGreaterThanOrEqual(0);
+   await header.locator('#arcadeChatButton').click();await expect(page.locator('#arcadeChat')).toBeVisible();
+   await page.getByRole('button',{name:'Close chat',exact:true}).click();
+   expect(await page.evaluate(()=>Arcade.number('points'))).toBe(2232);
+   await page.evaluate(()=>scrollTo(0,0));await page.setViewportSize({width:390,height:844});
+   await page.screenshot({path:test.info().outputPath(name+'-compact.png'),fullPage:true});
+  });
+ }
+ test('Progress hub '+prefix+' preserves earnings expansion and weekly claim behavior',async({page})=>{
+  await page.route('https://**',r=>r.abort());await page.route('**/cloud.js',r=>r.fulfill({contentType:'text/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+  await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('arcadeSound','off');});
+  await page.goto('/'+prefix+'rewards.html');
+  await page.evaluate(()=>{for(let i=0;i<6;i++)Arcade.earn(2,'Fixture reward '+i,{kind:'test'});});
+  await expect(page.locator('#history .history-item')).toHaveCount(3);await page.locator('#historyToggle').click();
+  await expect(page.locator('#history .history-item')).toHaveCount(6);await page.locator('#historyToggle').click();await expect(page.locator('#history .history-item')).toHaveCount(3);
+  await page.locator('.rewards-footnote>summary').click();await expect(page.locator('.rewards-footnote')).toContainText('Purchased coins are never redeemable');
+  const balance=await page.evaluate(()=>Arcade.number('points'));
+  await page.goto('/'+prefix+'stats.html');
+  await page.evaluate(()=>{Arcade.weeklyStatus();localStorage.setItem('weeklyGamesCompleted','10');window.dispatchEvent(new Event('earnly-data-change'));});
+  const mission=await page.evaluate(()=>Arcade.weeklyStatus().missions.find(m=>m.type==='games'));
+  const xp=await page.evaluate(()=>Arcade.xpStatus().xp);
+  await page.getByRole('button',{name:'Claim +'+mission.rewardXP+' XP',exact:true}).click();
+  await expect(page.locator('.mission-card').filter({hasText:mission.title})).toContainText('Claimed ✓');
+  expect(await page.evaluate(()=>Arcade.xpStatus().xp)).toBe(xp+mission.rewardXP);
+  expect(await page.evaluate(()=>Arcade.number('points'))).toBe(balance);
+  expect(await page.evaluate(id=>Arcade.claimWeeklyMission(id),mission.id)).toBe(false);
+  await page.locator('#streakDetails>summary').click();await expect(page.locator('#streakRewardList')).toBeVisible();
+  await page.locator('.mission-play-button').first().click();await expect(page).not.toHaveURL(/stats.html$/);
+ });
+}
