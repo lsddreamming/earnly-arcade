@@ -1,0 +1,58 @@
+/* Compact reward and mission views. All ledger and claim behavior stays in Arcade. */
+body:is(.rewards-dashboard,.missions-dashboard) .container{max-width:720px;padding-bottom:94px!important}
+body:is(.rewards-dashboard,.missions-dashboard) :is(.topbar,.rewards-topbar){position:sticky!important;top:0;z-index:30;display:flex;align-items:center;gap:8px!important;flex-wrap:wrap;background:#0b2035!important;border-bottom:1px solid #49748c55!important;padding:10px 0!important;margin:0 0 12px!important;box-shadow:0 -20px 0 #0b2035!important}
+body:is(.rewards-dashboard,.missions-dashboard) :is(.brand,.rewards-brand){font-size:16px!important;white-space:nowrap}
+body.rewards-dashboard .rewards-top-actions,body.missions-dashboard .game-title-actions{margin-left:auto;display:flex;gap:6px}
+body.rewards-dashboard .rewards-top-actions>span,body.missions-dashboard .game-title-actions>a:first-child{display:none}
+body:is(.rewards-dashboard,.missions-dashboard) .arcade-chat-launcher.arcade-chat-inline{position:static;min-height:44px;padding:8px 10px;font-size:12px;box-shadow:none;z-index:auto;flex:0 0 auto}
+body:is(.rewards-dashboard,.missions-dashboard) :is(.rewards-hero,.missions-hero){margin:10px 0 14px!important;padding:0!important}
+body:is(.rewards-dashboard,.missions-dashboard) h1{font-size:clamp(26px,7vw,34px)!important;line-height:1.12!important}
+body.rewards-dashboard .rewards-balance-card{padding:16px!important;gap:9px;border-radius:20px;grid-template-columns:1fr auto}
+body.rewards-dashboard .rewards-balance-card>div:first-child strong{font-size:42px!important;line-height:1.12}
+body.rewards-dashboard .rewards-balance-card p{margin:0!important;font-size:12px!important;line-height:1.45}
+body.rewards-dashboard .rewards-balance-meta{margin:0;gap:8px}
+body.rewards-dashboard .rewards-balance-meta>span{padding:5px 8px}
+.rewards-wallet-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1/-1}
+.rewards-wallet-actions>a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px;border:1px solid #5ca9c177;border-radius:12px;background:#142d43;color:#bcf3f5;text-decoration:none;font-weight:800;font-size:12px;text-align:center}
+body.rewards-dashboard .rewards-wallet-actions>.rewards-play-link{grid-column:1/-1;background:linear-gradient(115deg,#8affdf,#65d9f7);color:#072532}
+.wallet-note{grid-column:1/-1;color:#a8bfd1;font-size:10px;line-height:1.4}
+body.rewards-dashboard .reward-protection-card{margin:0 0 14px!important;padding:10px 0!important;gap:10px;align-items:center}
+body.rewards-dashboard .reward-protection-icon{font-size:22px}
+body.rewards-dashboard .reward-protection-card strong{font-size:12px}
+body.rewards-dashboard .reward-protection-card small{font-size:10px;line-height:1.4}
+body.rewards-dashboard .reward-protection-card>a{min-height:44px;display:flex;align-items:center;padding:8px;font-size:11px}
+body.rewards-dashboard .rewards-section-heading{margin-bottom:8px}
+body.rewards-dashboard .rewards-section-heading h2{font-size:19px;margin:3px 0}
+body.rewards-dashboard .rewards-history{padding:4px 14px;border-radius:16px}
+body.rewards-dashboard .history-item{padding:12px 0!important;font-size:13px}
+body.rewards-dashboard .rewards-history-toggle{min-height:44px;margin-top:6px}
+body.rewards-dashboard .rewards-footnote{border:1px solid #3c617a;border-radius:14px;padding:0;background:#102338;margin:12px 0}
+body.rewards-dashboard .rewards-footnote summary{padding:14px;min-height:44px;font-size:12px;color:#c2e8f1;cursor:pointer}
+body.rewards-dashboard .rewards-footnote p{padding:0 14px;font-size:12px;line-height:1.5;color:#b3c7da}
+body.missions-dashboard .missions-player-strip{padding:10px 12px!important;margin-bottom:10px!important}
+body.missions-dashboard .missions-weekly-card{padding:12px!important;border-radius:20px;margin-bottom:10px!important}
+body.missions-dashboard .missions-weekly-head h2{font-size:18px}
+body.missions-dashboard .mission-list{gap:8px;margin-top:10px}
+body.missions-dashboard .mission-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:10px 12px!important}
+body.missions-dashboard .mission-head{grid-column:1/-1;gap:8px}
+body.missions-dashboard .mission-title{font-size:13px}
+body.missions-dashboard .mission-reward{font-size:10px;white-space:nowrap}
+body.missions-dashboard .mission-description{grid-column:1/-1;font-size:11px;margin:0;line-height:1.4}
+body.missions-dashboard .mission-progress-row{grid-column:1;grid-row:3;align-self:end;font-size:10px;margin:0}
+body.missions-dashboard .mission-progress-row>span{display:none}
+body.missions-dashboard .mission-progress{grid-column:1;grid-row:4;height:6px;align-self:start}
+body.missions-dashboard .mission-card button.wide,body.missions-dashboard .mission-card>.status-line{grid-column:2;grid-row:3/5;align-self:center;width:auto!important;min-height:44px!important;margin:0!important;padding:8px 10px!important;font-size:11px!important;max-width:160px;white-space:normal}
+body.missions-dashboard .missions-detail-card{margin:8px 0!important;border:1px solid #355e78!important;border-radius:14px!important;background:#0d2033!important;padding:0 12px!important}
+body.missions-dashboard .missions-detail-card>summary{min-height:48px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:10px 0;font-size:12px;cursor:pointer}
+body.missions-dashboard .missions-detail-card>summary>span{margin-left:auto;font-size:11px}
+body.missions-dashboard .streak-ready-count{color:#99f5cf;font-size:10px;flex-basis:100%}
+body.missions-dashboard .streak-ready-count[hidden]{display:none}
+body.missions-dashboard .missions-highlights{margin:0 0 12px}
+body:is(.rewards-dashboard,.missions-dashboard) .public-footer{margin-top:14px;padding:12px 0}
+body:is(.rewards-dashboard,.missions-dashboard) .public-footer nav{gap:10px 16px}
+body:is(.rewards-dashboard,.missions-dashboard) .public-footer p{font-size:10px;margin-top:12px}
+@media(min-width:700px){body.missions-dashboard .mission-list{display:grid;grid-template-columns:1fr 1fr}}
+@media(max-width:360px){body.missions-dashboard .mission-card{padding:9px!important;gap:5px 8px}body.missions-dashboard .mission-title{font-size:12px}body.missions-dashboard .mission-card button.wide{max-width:135px;font-size:10px!important}body.rewards-dashboard .prototype-badge{font-size:8px;padding:6px}}
+body.rewards-dashboard .rewards-footnote>summary{display:block}
+body.missions-dashboard .game-title-actions>a:first-child{display:none!important}
+body:is(.rewards-dashboard,.missions-dashboard) .bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}

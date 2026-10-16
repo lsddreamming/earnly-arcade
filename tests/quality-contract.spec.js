@@ -283,7 +283,8 @@ test('current release keeps unreleased rewards and account deletion clear', () =
   // Do not market specific payout methods that the current App Store build
   // does not actually offer.
   expect(rewards).not.toMatch(/Bitcoin|Gift Cards|Redeem later|Coin-to-dollar|COMING SOON/i);
-  expect(rewards).toContain('Future reward options are being evaluated');
+  expect(rewards).toContain('No cash-out, transfers, or withdrawals.');
+  expect(rewards).toContain('Purchased coins are never redeemable for cash or cash equivalents.');
   expect(rewards).toContain('not cash, cryptocurrency, or stored value');
   expect(rewards).toContain('eligible in-game features such as Continue');
   expect(home).toContain('Optional rewarded ads unlock extra plays and do not directly award Coins');

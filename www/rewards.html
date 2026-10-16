@@ -24,6 +24,9 @@
     .rewards-dashboard .rewards-balance-card>div:first-child strong { font-size:clamp(36px,10vw,48px); }
     .rewards-dashboard .rewards-balance-card p { max-width:none; font-size:12px; line-height:1.45; }
     .rewards-dashboard .prototype-badge { align-self:start; font-size:9px; white-space:nowrap; }
+    .rewards-history-toggle{width:100%;margin:8px 0 0;min-height:38px;border:1px solid #335475;border-radius:12px;background:#102038;color:#b8d7f5;font:inherit;font-size:11px;font-weight:800}
+    .rewards-history-toggle[hidden]{display:none}
+    .rewards-dashboard .rewards-hero p,.rewards-dashboard .rewards-now-later p,.rewards-dashboard .reward-protection-card small{color:#b3c2d3!important}
     .rewards-dashboard .rewards-balance-meta>span { font-size:11px; padding:7px 10px; }
     .rewards-dashboard .rewards-balance-meta strong { font-size:12px; color:#ffe188; }
     .rewards-play-link { display:inline-flex; justify-content:center; align-items:center; grid-column:1/-1; min-height:46px; border-radius:13px; background:#17b968; color:#061c16; font-weight:900; text-decoration:none; }
@@ -53,6 +56,7 @@
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
+  <link rel="stylesheet" href="progress-hub.css?v=1">
 </head>
 <body class="rewards-dashboard">
   <main class="container rewards-container">
@@ -67,7 +71,6 @@
     <header class="rewards-hero">
       <span class="rewards-eyebrow">REWARDS</span>
       <h1>Your Arcade Coins</h1>
-      <p>Earn Coins by playing games. Redemption is not available in this version.</p>
     </header>
 
     <section class="rewards-balance-card">
@@ -76,17 +79,13 @@
         <strong><span id="balance">0</span> <small>🪙</small></strong>
       </div>
       <span class="prototype-badge">IN-APP POINTS</span>
-      <p>Coins track your game rewards. Some in-game features can spend Coins. Coins cannot be cashed out, transferred, or withdrawn.</p>
+      <p>Make them yours: avatar styles, room furniture, and eligible game extras.</p>
       <div class="rewards-balance-meta">
         <span>Today <strong id="todayEarned">+0</strong></span>
         <span>Lifetime <strong id="lifetimeEarned">0</strong></span>
       </div>
-      <a class="rewards-play-link" href="games.html">Play games →</a>
-    </section>
-
-    <section class="rewards-now-later" aria-label="Current and future rewards">
-      <article><span>✓ Available now</span><strong>Earn Coins and level up</strong><p>Play games, complete challenges, and track your progress.</p></article>
-      <article><span>◷ Being explored</span><strong>Possible future rewards</strong><p>Future reward options are being evaluated. No redemption is live.</p></article>
+      <div class="rewards-wallet-actions"><a class="rewards-play-link" href="avatars.html">Style your avatar →</a><a href="world.html?multiplayer=1">Decorate your room →</a><a href="games.html">Play &amp; earn →</a></div>
+      <small class="wallet-note">In-app points only. No cash-out, transfers, or withdrawals.</small>
     </section>
 
     <section class="reward-protection-card" id="rewardProtectionCard">
@@ -99,44 +98,18 @@
     </section>
 
     <section class="rewards-section">
-      <div class="rewards-section-heading">
-        <div>
-          <span class="rewards-kicker">HOW EARNLY WORKS</span>
-          <h2>Coins, XP, and plays</h2>
-        </div>
-      </div>
-      <div class="rewards-basics">
-        <div class="rewards-basic-item"><span>🪙</span><div><strong>Coins</strong><small>Earned from games</small></div></div>
-        <div class="rewards-basic-item"><span>⭐</span><div><strong>XP</strong><small>Raises your level</small></div></div>
-        <div class="rewards-basic-item"><span>🎟️</span><div><strong>Plays</strong><small>Turns to play a game</small></div></div>
-      </div>
-    </section>
-
-    <section class="rewards-section">
       <div class="rewards-section-heading"><div><span class="rewards-kicker">ACTIVITY</span><h2>Recent earnings</h2></div></div>
       <div class="rewards-history" id="history"></div>
+      <button class="rewards-history-toggle" id="historyToggle" type="button" hidden>Show more</button>
     </section>
 
-    <details class="rewards-roadmap">
-      <summary>See the future rewards plan</summary>
-      <div class="roadmap-inner">
-        <p>Earnly is exploring reward redemption. Methods, eligibility, rates, minimums, and regions would be set before launch and may change. A future program may be funded partly by ad revenue; availability and value are not guaranteed.</p>
-        <div class="rewards-readiness">
-        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Game-earned Arcade Coins</strong><small>Coins come from gameplay, bonuses, and challenges</small></div></div>
-        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Secure Coin balance & ledger</strong><small>Server-backed when you sign in</small></div></div>
-        <div class="rewards-readiness-row ready"><span>✓</span><div><strong>Rewarded ads for extra plays</strong><small>Ads support the economy without directly minting Coins</small></div></div>
-        <div class="rewards-readiness-row"><span>4</span><div><strong>Define any future redemption rate</strong><small>Based on measured revenue, costs, eligibility, and sustainable payout math</small></div></div>
-        <div class="rewards-readiness-row"><span>5</span><div><strong>Payout & fraud protection</strong><small>Verify balances and stop abuse before real rewards launch</small></div></div>
-        <div class="rewards-readiness-row"><span>6</span><div><strong>Future reward redemption</strong><small>Launch eligible reward methods only after the economy and safeguards are validated</small></div></div>
-        </div>
-      </div>
-    </details>
-
     <details class="rewards-footnote">
-      <summary>How Arcade Coins work</summary>
-      <p>Arcade Coins come from game rewards, daily bonuses, and daily challenges. Rewarded ads offer voluntary +1-play unlocks, not Coins.</p>
+      <summary>Coins, XP &amp; plays explained</summary>
+      <p><strong>Coins</strong> unlock eligible items and extras. <strong>XP</strong> raises your level. <strong>Plays</strong> let you start games.</p>
+      <p>Some in-game features can spend Coins. Choose your items in the shop before purchasing.</p>
+      <p>Arcade Coins can be earned from games, daily bonuses, and daily challenges, or bought through available coin packs. Rewarded ads offer voluntary +1-play unlocks, not Coins.</p>
       <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server ledger.</p>
-      <p>Arcade Coins are in-app points. They can be used for eligible in-game features such as Continue, but they are not cash, cryptocurrency, or stored value. They have no fixed cash value and cannot be redeemed, transferred, or withdrawn in this version. Future reward terms may change before launch.</p>
+      <p>Arcade Coins are in-app points. They can be used for eligible in-game features such as Continue, but they are not cash, cryptocurrency, or stored value. They have no fixed cash value and cannot be redeemed, transferred, or withdrawn in this version. Purchased coins are never redeemable for cash or cash equivalents.</p>
     </details>
 
     <footer class="public-footer" aria-label="Earnly site information">
@@ -154,6 +127,7 @@
     const protectionTitle = document.getElementById('rewardProtectionTitle');
     const protectionText = document.getElementById('rewardProtectionText');
     const protectionAction = document.getElementById('rewardProtectionAction');
+    let showAllEarnings = false;
 
     async function renderRewardProtection() {
       const pendingRewards = Arcade.pendingSyncEvents().filter(event =>
@@ -173,15 +147,15 @@
       protectionCard.classList.toggle('warning', signedIn && pendingRewards > 0);
       protectionIcon.textContent = signedIn ? (pendingRewards ? '⏳' : '🛡️') : '🔐';
       protectionTitle.textContent = signedIn
-        ? (pendingRewards ? 'Coin rewards waiting to verify' : 'Secure Coin balance connected')
+        ? (pendingRewards ? 'Coin rewards waiting to verify' : 'Coins securely saved')
         : 'Protect your Arcade Coins';
       protectionText.textContent = !signedIn
         ? 'Sign in to attach your progress and Coin balance to your Earnly account.'
         : (pendingRewards
             ? pendingRewards + ' Coin reward' + (pendingRewards === 1 ? '' : 's') + ' will verify when Earnly syncs.'
             : (wallet
-                ? 'Server-protected balance: ' + Number(wallet.balance || 0).toLocaleString() + ' Coins.'
-                : 'Your signed-in rewards are checked against Earnly Cloud.'));
+                ? 'Saved securely: ' + Number(wallet.balance || 0).toLocaleString() + ' Coins.'
+                : 'Your signed-in Coins are securely saved with your Earnly account.'));
       protectionAction.textContent = signedIn ? 'Manage →' : 'Sign In →';
     }
 
@@ -195,8 +169,11 @@
       document.getElementById('lifetimeEarned').textContent = dailyCoins.lifetime.toLocaleString();
 
       const root = document.getElementById('history');
+      const toggle = document.getElementById('historyToggle');
       const items = Arcade.history();
       root.replaceChildren();
+      toggle.hidden = items.length <= 3;
+      toggle.textContent = showAllEarnings ? 'Show less' : 'Show more';
 
       if (!items.length) {
         const p = document.createElement('p');
@@ -206,7 +183,7 @@
         return;
       }
 
-      items.slice(0, 8).forEach(item => {
+      items.slice(0, showAllEarnings ? 12 : 3).forEach(item => {
         const row = document.createElement('div');
         row.className = 'history-item';
 
@@ -222,6 +199,11 @@
         root.append(row);
       });
     }
+
+    document.getElementById('historyToggle').addEventListener('click', () => {
+      showAllEarnings = !showAllEarnings;
+      render();
+    });
 
     render();
     window.addEventListener('pageshow', render);
