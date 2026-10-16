@@ -14,6 +14,7 @@
     refreshSequence: 0,
     authEpoch: 0,
     preview: {},
+    previewFocus: null,
     freeOnly: false,
     ownedOnly: false,
     search: "",
@@ -52,7 +53,7 @@
   function character(equipped, focusSlot) {
     const root = el("div", "character");
     const military=['army','commander','building','battlefx'];
-    const focus=focusSlot||(Object.keys(state.preview).reverse().find(slot=>military.includes(slot)));
+    const focus=focusSlot;
     if(military.includes(focus)&&equipped[focus])root.append(image(equipped[focus]));
     else for (const item of window.EarnlyPotatoRig.compose(equipped)) root.append(image(item));
     return root;
@@ -109,7 +110,7 @@
       $("character-rarity").textContent = equipped.avatar.rarity;
       $("character-rarity").className = "badge " + equipped.avatar.rarity;
     }
-    $("character-stage").replaceChildren(character(equipped));
+    $("character-stage").replaceChildren(character(equipped,state.previewFocus));
     $("character-owner").textContent = user
       ? "@" + user.username
       : "Sign in to save your look";
@@ -177,7 +178,7 @@
       preview.type = "button";
       preview.dataset.previewItemId = item.id;
       preview.setAttribute("aria-label", "Preview " + item.name);
-      preview.addEventListener("click", () => { state.preview[item.slot] = item; renderUser(); showPreview(item.id); });
+      preview.addEventListener("click", () => { state.preview[item.slot] = item; state.previewFocus = item.slot; renderUser(); showPreview(item.id); });
       card.append(
         art,
         el("h3", "", item.name),
@@ -229,7 +230,7 @@
     $("tryon-summary").hidden = !changed.length;
     $("compare-look").hidden = !changed.length;
     if ($("compare-look").getAttribute("aria-pressed") === "true") {
-      $("character-stage").replaceChildren(character({...(state.user?.equipped || starterLoadout()), ...state.preview}));
+      $("character-stage").replaceChildren(character({...(state.user?.equipped || starterLoadout()), ...state.preview},state.previewFocus));
       $("preview-note").textContent = changed.length ? "Preview only · your saved look is unchanged" : "Your saved look";
     }
     $("compare-look").setAttribute("aria-pressed", "false");
@@ -295,7 +296,7 @@
       const detail = el("p", "look-detail", state.user ? owned.length + " of " + pieces.length + " pieces owned · Items unlock separately" : pieces.length + " pieces · Items unlock separately");
       const button = el("button", "subtle", "Try this look →"); button.type = "button";
       button.setAttribute("aria-label", "Preview " + look.name);
-      button.addEventListener("click", () => { state.preview = {...equipped}; renderUser(); showPreview(); });
+      button.addEventListener("click", () => { state.preview = {...equipped}; state.previewFocus = null; renderUser(); showPreview(); });
       const progress = el("div", "look-progress");
       progress.setAttribute("aria-hidden", "true");
       for (const piece of pieces) progress.append(el("span", state.user?.inventory.includes(piece.id) ? "owned" : ""));
@@ -458,7 +459,7 @@
     const saved = state.user?.equipped || starterLoadout();
     button.setAttribute("aria-pressed", String(compare));
     button.textContent = compare ? "Back to your try-on" : "Compare saved look";
-    $("character-stage").replaceChildren(character(compare ? saved : {...saved,...state.preview}));
+    $("character-stage").replaceChildren(character(compare ? saved : {...saved,...state.preview},compare ? null : state.previewFocus));
     $("preview-note").textContent = compare ? "Showing your saved look · Preview only, nothing has changed" : "Preview only · your saved look is unchanged";
   });
   $("owned-only").addEventListener("change", e=>{state.ownedOnly=e.target.checked;renderShop();});
@@ -475,7 +476,7 @@
     destination.scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
     (target || $("shop-search")).focus({preventScroll: true});
   });
-  $("reset-preview").addEventListener("click", () => { state.preview = {}; renderUser(); });
+  $("reset-preview").addEventListener("click", () => { state.preview = {}; state.previewFocus = null; renderUser(); });
   for (const button of document.querySelectorAll("[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
@@ -600,7 +601,7 @@
           ++state.authEpoch;
           ++state.refreshSequence;
           state.user = null;
-          state.preview = {};
+          state.preview = {}; state.previewFocus = null;
           state.pending = null;
           renderUser();
           $("purchase-modal").close();
