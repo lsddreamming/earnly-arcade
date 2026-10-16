@@ -190,3 +190,24 @@ test('rival labels stay readable when a pack projects into the same screen area'
  expect(frames.flat().length).toBeGreaterThan(0);
  for(const labels of frames)for(let i=0;i<labels.length;i++)for(let j=i+1;j<labels.length;j++)expect(labels[i].right<=labels[j].left||labels[j].right<=labels[i].left||labels[i].bottom<=labels[j].top||labels[j].bottom<=labels[i].top).toBe(true);
 });
+
+test('racing keeps layout and wallet reads out of the frame hot path',async({page})=>{
+ await start(page);
+ const counts=await page.evaluate(async()=>{
+  const canvas=document.getElementById('game'),rect=canvas.getBoundingClientRect.bind(canvas),remaining=Arcade.remaining,sample=TurboKartEngine.sample;
+  let layout=0,account=0,samples=0,frames=0;
+  canvas.getBoundingClientRect=()=>{layout++;return rect();};
+  Arcade.remaining=(...args)=>{account++;return remaining(...args);};
+  TurboKartEngine.sample=(...args)=>{samples++;return sample(...args);};
+  const end=performance.now()+1200;
+  await new Promise(resolve=>{function frame(){frames++;if(performance.now()<end)requestAnimationFrame(frame);else resolve();}requestAnimationFrame(frame);});
+  canvas.getBoundingClientRect=rect;Arcade.remaining=remaining;TurboKartEngine.sample=sample;
+  return {layout,account,samples,frames};
+ });
+ expect(counts.frames).toBeGreaterThan(2);
+ expect(counts.layout).toBeLessThanOrEqual(3);
+ expect(counts.account).toBeLessThanOrEqual(3);
+ expect(counts.samples/counts.frames).toBeLessThan(650);
+ await page.setViewportSize({width:667,height:375});
+ await expect.poll(()=>page.locator('#game').evaluate(c=>Math.abs(c.width-c.getBoundingClientRect().width*Math.min(devicePixelRatio,2)))).toBeLessThanOrEqual(1);
+});

@@ -3,6 +3,9 @@
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
  function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
+ // Layout is read only on resize, never after per-frame HUD writes.
+ let size=null;const resize=()=>{size=canvas.getBoundingClientRect();};
+ const observer=new ResizeObserver(resize);observer.observe(canvas);window.addEventListener('resize',resize);
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
  function poly(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();}
  function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);ctx.fill();}
@@ -49,7 +52,7 @@ const TurboKartRenderer=(()=>{
   if(type==='umbrella'){line(0,0,0,-22,'#fff1d7',2);poly([{x:-23,y:-22},{x:0,y:-37},{x:23,y:-22}],index%2?'#ff9dac':'#aaffdc');ellipse(0,-1,10,2,'#ffdeaa');}
   ctx.restore();
  }
- function render(s,{idle=false}={}){const rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
+ function render(s,{idle=false}={}){const rect=size||(size=canvas.getBoundingClientRect()),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
   const t=s.track,p=s.racers[0],pos=E.sample(p.d,p.lane,t),target=pos.angle+p.heading*.38;
   if(cameraAngle===null||s.time<lastTime||lastTrack!==t.id)cameraAngle=target;
   const delta=Math.max(0,Math.min(.1,s.time-lastTime));cameraAngle+=Math.atan2(Math.sin(target-cameraAngle),Math.cos(target-cameraAngle))*(1-Math.exp(-delta*9));lastTime=s.time;lastTrack=t.id;
@@ -65,8 +68,12 @@ const TurboKartRenderer=(()=>{
   // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
   if(s.time<skidTime||s.time===0){skidMarks=[];skidTime=-1;}if(s.time>skidTime){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-240);
   const ground=[],decals=[],queue=[],labels=[];let roadLayer=null;
+  // Every ribbon shares the same centerline endpoints. Sample each endpoint
+  // once instead of repeating binary searches and trigonometry for every lane.
+  const roadSamples=new Map();
+  function roadPoint(distance,offset){let base=roadSamples.get(distance);if(!base){base=E.sample(distance,0,t);base.sin=Math.sin(base.angle);base.cos=Math.cos(base.angle);roadSamples.set(distance,base);}return project({x:base.x-base.sin*offset,y:base.y+base.cos*offset});}
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
-  function ribbon(d1,d2,left,rightOffset,color){const a=project(E.sample(d1,left,t)),b=project(E.sample(d1,rightOffset,t)),c=project(E.sample(d2,rightOffset,t)),d=project(E.sample(d2,left,t));if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
+  function ribbon(d1,d2,left,rightOffset,color){const a=roadPoint(d1,left),b=roadPoint(d1,rightOffset),c=roadPoint(d2,rightOffset),d=roadPoint(d2,left);if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
   const segment=10,start=Math.floor((p.d-70)/segment)*segment;
   for(let i=0;i<78;i++){const d=start+i*segment,next=d+segment,alt=Math.floor(d/20)%2===0;roadLayer=[];
    ribbon(d,next,-65,65,alt?t.ground:(t.scene==='canyon'?'#edb781':t.scene==='garden'?'#3c918b':'#69c16c'));
