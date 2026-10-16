@@ -11,6 +11,7 @@ type Bootstrap={rooms:{id:string;name:string;ownerId:string|null}[];catalog:Reco
 export class SupabaseWorldAccess implements WorldAccess {
   #url:string;#key:string;
   #rooms=new Map<string,RoomRuntime>();
+  #retired=new Set<string>();
   #queues=new Map<string,Promise<unknown>>();
   constructor(url:string,serviceKey:string){
     const parsed=new URL(url.trim());
@@ -49,7 +50,9 @@ export class SupabaseWorldAccess implements WorldAccess {
       }
     }
     if(roomId==='plaza')roomId=bootstrap.rooms.find(r=>r.ownerId===null&&r.name==='Earnly Plaza')?.id??'';
+    if(this.#retired.has(roomId))throw new Error('Room unavailable');
     const snapshot=await this.#snapshot(identity.userId,roomId);
+    if(this.#retired.has(roomId))throw new Error('Room unavailable');
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
@@ -58,7 +61,9 @@ export class SupabaseWorldAccess implements WorldAccess {
   }
   async revalidate(token:string,identity:Identity,roomId:string){
     const current=await this.authenticate(token);if(current.userId!==identity.userId)return false;
+    if(this.#retired.has(roomId))throw new Error('Room unavailable');
     const snapshot=await this.#snapshot(identity.userId,roomId);
+    if(this.#retired.has(roomId))throw new Error('Room unavailable');
     return snapshot.revision===this.#rooms.get(roomId)?.grid.revision;
   }
   async perform(identity:Identity,roomId:string,action:string,data:Record<string,unknown>){
@@ -66,7 +71,25 @@ export class SupabaseWorldAccess implements WorldAccess {
     // Recheck current permissions and suspensions before every write/read operation.
     await this.#snapshot(uid,roomId);
     let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
-    if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
+    if(action==='delete_room'){
+      const target=String(data.roomId??'');
+      if(data.confirm!==true)throw new Error('Confirm room deletion first');
+      if(this.#retired.has(target))throw new Error('Room unavailable');
+      // Block admission before awaiting ownership or persistence. Retain successful
+      // tombstones so an already-pending snapshot cannot resurrect the runtime.
+      this.#retired.add(target);
+      const targetRoom=this.#rooms.get(target);
+      try{
+        if(targetRoom?.members().some(m=>m.userId!==uid)||targetRoom?.memberCount&&target!==roomId)throw new Error('Ask visitors to leave this room before deleting it');
+        if(this.#queues.has(target))throw new Error('Wait for furniture changes to finish');
+        const snapshot=await this.#snapshot(uid,target);
+        if(snapshot.ownerId!==uid)throw new Error('Only your own rooms can be deleted');
+        if(targetRoom?.members().some(m=>m.userId!==uid))throw new Error('Ask visitors to leave this room before deleting it');
+        if(targetRoom)targetRoom.paused=true;
+        result=await this.#request('/rest/v1/rpc/world_delete_room',this.#key,{p_actor:uid,p_room:target});
+        this.#rooms.delete(target);
+      }catch(error){this.#retired.delete(target);if(targetRoom)targetRoom.paused=false;throw error;}
+    }else if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
     }else if(action==='place'){
       const previous=this.#queues.get(roomId)??Promise.resolve();
       const task=previous.catch(()=>{}).then(async()=>{
