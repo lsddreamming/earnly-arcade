@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {worldFixture} from './world-test-fixture.mjs';
+import {SupabaseWorldAccess} from '../world-server/src/supabase-access.ts';
+const f=await worldFixture(),[owner,other]=f.users,db=f.db;
+const api=async(actor,action,data={})=>(await db.query('select public.world_api($1,$2,$3::jsonb) result',[actor,action,JSON.stringify(data)])).rows[0].result;
+const del=(actor,id)=>db.query('select public.world_delete_room($1,$2)',[actor,id]);
+try{
+ const {roomId}=await api(owner,'create_room',{name:'Delete me'});
+ const kept=await api(owner,'create_room',{name:'Keep me'});
+ const item=await api(owner,'buy',{definitionId:'mint-sofa',requestId:randomUUID()});
+ await api(owner,'place',{roomId,revision:0,itemId:item.item_id,x:1,y:1,z:0,rotation:0});
+ const wallets=(await db.query('select * from coin_wallets order by user_id')).rows;
+ const receipts=(await db.query('select * from earnly_world.purchase_receipts')).rows;
+ await assert.rejects(del(other,roomId));
+ const plaza=(await api(owner,'bootstrap')).rooms.find(r=>r.ownerId===null);
+ await assert.rejects(del(owner,plaza.id));
+ for(const role of ['anon','authenticated']){await db.exec('set role '+role);await assert.rejects(del(owner,roomId));await db.exec('reset role');}
+ const access=new SupabaseWorldAccess('https://world-test.invalid','fixture-key');
+ const identity={userId:owner,username:'Owner'},visitor={userId:other,username:'Visitor'};
+ await api(owner,'room_access',{roomId,access:'open'});
+ const admitted=await access.enter(identity,roomId);admitted.room.join(identity,admitted.spawn,()=>{});
+ const guest=await access.enter(visitor,roomId);guest.room.join(visitor,guest.spawn,()=>{});
+ await assert.rejects(access.perform(identity,roomId,'delete_room',{roomId,confirm:true}),/visitors/);
+ guest.room.leave(other);
+ await assert.rejects(access.perform(identity,roomId,'delete_room',{roomId}),/Confirm/);
+ await db.exec('grant usage on schema auth to service_role; grant select(id,is_anonymous,email_confirmed_at) on auth.users to service_role; grant all on all tables in schema public to service_role; set role service_role');
+ const result=await access.perform(identity,roomId,'delete_room',{roomId,confirm:true});assert.equal(result.data.ok,true);
+ await assert.rejects(access.enter(identity,roomId));
+ await assert.rejects(del(owner,roomId));
+ const inventory=(await api(owner,'bootstrap')).items;
+ assert.equal(inventory.length,1);assert.equal(inventory[0].id,item.item_id);assert.equal(inventory[0].owner_id,owner);
+ for(const field of ['room_id','x','y','z'])assert.equal(inventory[0][field],null);
+ assert.deepEqual((await db.query('select * from coin_wallets order by user_id')).rows,wallets);
+ assert.deepEqual((await db.query('select * from earnly_world.purchase_receipts')).rows,receipts);
+ assert.ok((await api(owner,'bootstrap')).rooms.some(r=>r.id===kept.roomId));
+ await del(owner,kept.roomId);
+ await assert.rejects(access.enter(identity,'choose-home'),e=>e.reason==='room_choice_required');
+ console.log('PASS room deletion: confirmation, ownership, public-room protection, visitor protection, stale entry rejection, furniture/receipts/wallet preservation, last-room onboarding.');
+}finally{await f.close();}

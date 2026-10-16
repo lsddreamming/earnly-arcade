@@ -27,6 +27,7 @@ jobs:
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
       - run: node scripts/test-world-rooms.mjs
+      - run: node scripts/test-world-delete.mjs
       - run: node scripts/test-world-garden.mjs
       - run: node scripts/test-world-boardwalk.mjs
       - run: node scripts/test-world-account-permissions.mjs

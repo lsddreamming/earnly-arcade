@@ -142,9 +142,23 @@
  }
  function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
   root.append(note('Public hangouts are furnished and open to everyone. Staff NPCs stay at their posts; public decor stays here.'));
-  for(const r of bootstrap.rooms){const card=el('section','room-card');card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));const descriptions={'Hotel Lobby':'Velvet sofas · Reception with Pip','Rooftop Lounge':'City lights · Mocktail bar with Remy','Patio Hangout':'Garden seating · Patio host Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));root.append(card);}
+  for(const r of bootstrap.rooms){const card=el('section','room-card');card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));const descriptions={'Hotel Lobby':'Velvet sofas · Reception with Pip','Rooftop Lounge':'City lights · Mocktail bar with Remy','Patio Hangout':'Garden seating · Patio host Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r)));root.append(card);}
   root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are private.'));
   if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
+ }
+ function showDeleteRoom(room){
+  if(room.ownerId!==userId)return;
+  const root=openPanel('Delete this room?');
+  root.append(el('h3','',room.name),note('This permanently deletes this room and its room chat. All furniture returns to your Backpack. Your coins and purchases are kept. This cannot be undone.'),note('If you are inside, you will move to the plaza. Visitors must leave before the room can be deleted.'));
+  const cancel=button('Keep room',showRooms),remove=button('Yes, delete room',async()=>{
+   cancel.disabled=true;
+   try{await action('delete_room',{roomId:room.id,confirm:true});
+    if(scene.roomId===room.id){$('worldPanel').close();await connect('plaza');}
+    else{await refresh();showRooms();}
+    toast('Room deleted · Furniture saved in your Backpack');
+   }finally{cancel.disabled=false;}
+  },'danger');
+  root.append(cancel,remove);cancel.focus();
  }
  function showRoomCreator(first=false){
   currentPanel='room-create';const root=openPanel(first?'Choose your first room':'Create a room');

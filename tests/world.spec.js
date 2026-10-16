@@ -242,3 +242,41 @@ test('World pinch keeps the midpoint anchored, cancels taps and preserves furnit
  });
  expect(result.zoomIn).toBeGreaterThan(1);expect(result.zoomOut).toBeLessThan(result.zoomIn);expect(result.error).toBeLessThan(1);expect(result.taps).toBe(0);expect(result.position).toEqual([3,3]);expect(result.locked).toBe(false);expect(result.max).toBe(2.2);expect(result.min).toBe(.6);
 });
+
+test('Room deletion requires confirmation, protects other rooms, and leaves the deleted room',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  const rooms=[{id:'mine',name:'My Cozy Room',ownerId:'owner'},{id:'plaza',name:'Earnly Plaza',ownerId:null},{id:'other',name:'Friend Room',ownerId:'friend'}];
+  const bootstrap={rooms,catalog:[],items:[],friends:[],balance:500};window.deletions=[];window.joins=[];
+  window.WebSocket=class{
+   static OPEN=1;
+   constructor(){this.readyState=1;this.events={};setTimeout(()=>this.onopen?.(),10);}
+   addEventListener(name,fn){(this.events[name]??=[]).push(fn);}
+   removeEventListener(name,fn){this.events[name]=(this.events[name]||[]).filter(f=>f!==fn);}
+   close(){this.readyState=3;setTimeout(()=>{this.onclose?.({code:1000});for(const fn of this.events.close||[])fn();},0);}
+   send(raw){const p=JSON.parse(raw),emit=x=>{const event={data:JSON.stringify(x)};this.onmessage?.(event);for(const fn of this.events.message||[])fn(event);};
+    if(p.type==='JOIN'){window.joins.push(p.roomId);const room=rooms.find(r=>r.id===p.roomId)||rooms[0];emit({type:'WELCOME',userId:'owner',scene:{roomId:room.id,name:room.name,ownerId:room.ownerId,heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap});}
+    if(p.type==='LEAVE')emit({type:'LEFT'});
+    if(p.type==='ACTION'){
+     if(p.action==='delete_room'){window.deletions.push(p.data);rooms.splice(rooms.findIndex(r=>r.id===p.data.roomId),1);}
+     emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?bootstrap:{ok:true}});
+    }
+   }
+  };
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#roomName')).toHaveText('My Cozy Room');
+ await page.locator('[data-panel="rooms"]').click();
+ await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(1);
+ await page.getByRole('button',{name:'Delete room',exact:true}).click();
+ await expect(page.locator('#panelTitle')).toHaveText('Delete this room?');
+ await expect(page.locator('#panelContent')).toContainText('My Cozy Room');
+ await expect(page.locator('#panelContent')).toContainText('All furniture returns to your Backpack');
+ await expect(page.getByRole('button',{name:'Keep room',exact:true})).toBeFocused();
+ await page.getByRole('button',{name:'Keep room',exact:true}).click();expect(await page.evaluate(()=>window.deletions)).toEqual([]);
+ await page.getByRole('button',{name:'Delete room',exact:true}).click();await page.getByRole('button',{name:'Close panel',exact:true}).click();expect(await page.evaluate(()=>window.deletions)).toEqual([]);
+ await page.locator('[data-panel="rooms"]').click();await page.getByRole('button',{name:'Delete room',exact:true}).click();await page.getByRole('button',{name:'Yes, delete room',exact:true}).click();
+ await expect(page.locator('#roomName')).toHaveText('Earnly Plaza');
+ expect(await page.evaluate(()=>window.deletions)).toEqual([{roomId:'mine',confirm:true}]);
+ await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(2);await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
+ await expect(page.locator('#coinBalance')).toContainText('500');
+});
