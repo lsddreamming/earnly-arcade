@@ -8,3 +8,14 @@
 @media(prefers-reduced-motion:reduce){.studio-dashboard .coin-pack-art{animation:none}}
 
 .character img[data-item="boardwalk-aura"]{animation:boardwalk-signal 3s ease-in-out infinite}@keyframes boardwalk-signal{50%{opacity:.55;filter:drop-shadow(0 0 5px #83ffe1)}}@media(prefers-reduced-motion:reduce){.character img[data-item="boardwalk-aura"]{animation:none}}
+/* Replace the old shortcut rail and tall card overrides with one compact store nav. */
+.studio-dashboard .studio-shortcuts{display:none}
+.studio-dashboard .page-title{min-height:0}
+.studio-dashboard .coin-pack-options[open]>summary{display:none}
+.studio-dashboard #coin-packs{margin:8px 0;padding:4px 0 10px;overflow:visible;scroll-snap-type:none}
+.studio-dashboard .coin-pack{padding:16px!important;min-height:0;gap:0}
+.studio-dashboard .coin-pack:after,.studio-dashboard .coin-shop:before{display:none}
+.studio-dashboard .coin-pack .pack-rate{margin:6px 0 12px}
+@media(max-width:680px){.studio-dashboard .coin-pack{padding:10px 6px!important}.studio-dashboard .coin-pack .coin-amount{font-size:24px!important}.studio-dashboard .coin-pack-art{height:76px}.studio-dashboard .coin-pack .pack-rate{font-size:9px;margin:5px 0 8px}.studio-dashboard .coin-pack button{min-height:44px;font-size:11px;margin-top:auto}.studio-dashboard .coin-shop.panel{margin:0 0 20px;padding:16px 10px}.studio-dashboard .coin-shop h2{font-size:23px}.studio-dashboard .coin-shop .collection-note{margin:8px 0}.studio-dashboard .store-sections{margin-bottom:14px}}
+
+@media(max-width:680px){.studio-dashboard .coin-pack-art{height:60px}.studio-dashboard .coin-pack .coin-amount{white-space:nowrap;font-size:25px!important}}

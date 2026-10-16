@@ -160,7 +160,8 @@
  function avatar(c,user,x,y){const equipped=user.equipped||{avatar:{id:'cyber-starter',imageUrl:'cosmetic-cyber-starter.svg'},outfit:{imageUrl:'cosmetic-starter-suit.svg'},shoes:{imageUrl:'cosmetic-canvas-shoes.svg'}};
   const parts=window.EarnlyPotatoRig?.compose(equipped)||[];let drew=false;
   c.save();c.translate(x,y);c.fillStyle='#0b172a77';c.beginPath();c.ellipse(0,1,11,5,0,0,7);c.fill();
-  if(user.facing==='left')c.scale(-1,1);
+  // The portrait has two pixels of transparent padding below the soles.
+  c.translate(0,2);if(user.facing==='left')c.scale(-1,1);
   if(user.state==='lay'){c.translate(-12,-10);c.rotate(Math.PI/2);}
   const key=JSON.stringify(parts.map(p=>p.imageUrl));let sprite=sprites.get(key);
   if(!sprite){const loaded=parts.map(p=>image(p.imageUrl));if(loaded.length&&loaded.every(i=>i?.complete&&i.naturalWidth)){sprite=document.createElement('canvas');sprite.width=48;sprite.height=64;const sc=sprite.getContext('2d');for(const img of loaded)sc.drawImage(img,0,0,48,64);sprites.set(key,sprite);}}

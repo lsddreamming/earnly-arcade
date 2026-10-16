@@ -48,7 +48,7 @@
         card.classList.add('best-value');
         const badge=document.createElement('span');badge.className='pack-value';badge.textContent='Best value';heading.append(badge);
       }
-      const amount=document.createElement('div');amount.className='coin-amount';amount.textContent='◈ '+pack.coins.toLocaleString();
+      const amount=document.createElement('div');amount.className='coin-amount';amount.textContent=pack.coins.toLocaleString();
       const note=document.createElement('p');note.textContent='Arcade Coins';
       const rate=document.createElement('p');rate.className='pack-rate';rate.textContent=!native&&pack.coins>0?'$'+(pack.priceCents/pack.coins).toFixed(2)+' per 100 coins':'';
       const button=document.createElement('button');button.type='button';button.textContent=available?'$'+(pack.priceCents/100).toFixed(2)+' · Buy':'$'+(pack.priceCents/100).toFixed(2)+' · Soon';

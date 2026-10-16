@@ -13,7 +13,7 @@
  const routes={'#coin-shop':'coins','#signature-looks':'featured','#room-collections':'featured','#vip-pass':'vip','#collection':'style'};
  function followHash(){const key=routes[location.hash];if(key)show(key);}
  document.addEventListener('click',e=>{if(e.target.closest('.look-card button')){show('style');document.querySelector('.showcase').scrollIntoView({block:'start',behavior:'smooth'});}const a=e.target.closest('a[href^="#"]');if(a&&routes[a.getAttribute('href')])show(routes[a.getAttribute('href')]);});
- window.addEventListener('hashchange',followHash);show(routes[location.hash]||'style');
+ window.addEventListener('hashchange',followHash);show(routes[location.hash]||(new URLSearchParams(location.search).has('coin_order')||new URLSearchParams(location.search).has('coin_cancelled')?'coins':'style'));
  const balance=document.createElement('p');balance.className='store-balance';$('coins-title').after(balance);
  const updateBalance=()=>{balance.textContent='Your balance · '+$('coin-balance').textContent+' Arcade Coins';};new MutationObserver(updateBalance).observe($('coin-balance'),{childList:true,subtree:true,characterData:true});updateBalance();
  const status=$('coin-status');new MutationObserver(()=>{$('coin-shop').classList.toggle('purchase-confirmed',/^Purchase confirmed/.test(status.textContent));}).observe(status,{childList:true,characterData:true,subtree:true});
