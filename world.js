@@ -91,6 +91,9 @@
   },75000);
   ws.onopen=()=>{if(socket===ws)ws.send(JSON.stringify({type:'JOIN',version:1,token,roomId}));};
   ws.onmessage=e=>{if(socket!==ws)return;let p;try{p=JSON.parse(e.data);}catch{return;}
+   // Safari/proxies can report an abnormal close instead of the server close code.
+   // Handle onboarding as an application message, before the transport closes.
+   if(p.type==='ROOM_CHOICE_REQUIRED'){socket=null;ws.close();connected=false;needsFirstRoom=true;clearTimeout(retryTimer);finishConnecting();entryState('Choose your first room — it is free.');$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}
    if(p.type==='RESULT'){const r=pending.get(p.requestId);if(r){clearTimeout(r.timer);pending.delete(p.requestId);p.error?r.reject(Object.assign(new Error(p.error),{definite:p.definite===true})):r.resolve(p.data);}return;}
    if(p.type==='NPC_SNAPSHOT')renderer.setStaff(p.staff);
    else if(p.type==='ROOM_SNAPSHOT')renderer.setUsers(p.users);

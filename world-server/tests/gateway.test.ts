@@ -94,6 +94,23 @@ test('stalled authentication closes with a retryable code and never admits a lat
 });
 
 
+test('first-room choice is sent as a message before closing without granting room access',async()=>{
+ const server=createServer();const events:unknown[]=[];
+ const gateway=attachWorldGateway(server,{
+  authenticate:async()=>({userId:'new-player',username:'New player'}),
+  enter:async()=>{throw new WorldAccessError('room_choice_required');},revalidate:async()=>false
+ },new Set(['https://earnlyarcade.com']),{diagnostic:event=>events.push(event)});
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ const ws=new WebSocket(`ws://127.0.0.1:${(server.address() as {port:number}).port}/world`,{origin:'https://earnlyarcade.com'});
+ try{
+  await once(ws,'open');const message=once(ws,'message'),closed=once(ws,'close');
+  ws.send(JSON.stringify({type:'JOIN',version:1,token:'fixture-token',roomId:'choose-home'}));
+  assert.deepEqual(JSON.parse((await message)[0].toString()),{type:'ROOM_CHOICE_REQUIRED'});
+  assert.equal((await closed)[0],4004);
+  assert.deepEqual(events,[{event:'world_entry_denied',stage:'room_loading',reason:'room_choice_required'}]);
+ }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+
 test('configuration failures never blame the player or admit them, and diagnostics contain fixed labels only',async()=>{
  const server=createServer();const events:unknown[]=[];let entered=false;
  const gateway=attachWorldGateway(server,{
