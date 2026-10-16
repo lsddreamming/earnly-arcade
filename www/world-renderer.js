@@ -219,10 +219,11 @@
    const slice=(sx,sy,sw,sh,...dest)=>c.drawImage(sprite,sx*4,sy*4,sw*4,sh*4,...dest);
    // Keep every equipped cosmetic, with a larger raster and natural 3:4 proportions.
    if(user.state==='sit'){slice(0,0,48,48,-18,-42,36,34);slice(0,48,48,16,-13,-8,36,10);}
-   else if(user.gait>.001&&!reducedMotion.matches){
+   else if(user.gait>.001){
     // Partition the composed outfit, keeping every cosmetic pixel exactly once.
     // Feet pivot at the hips; opposite arms counter-swing. One foot stays grounded.
-    const stride=Math.sin(user.phase)*user.gait, bob=(1-Math.cos(user.phase*2))*.25*user.gait;
+    // Footsteps communicate locomotion even with Reduce Motion; omit body bob and soften swings.
+    const stride=Math.sin(user.phase)*user.gait*(reducedMotion.matches ? .65 : 1), bob=reducedMotion.matches?0:(1-Math.cos(user.phase*2))*.25*user.gait;
     const limb=(sx,sy,sw,sh,dx,dy,pivotX,pivotY,angle,lift=0)=>{c.save();c.translate(pivotX,pivotY-lift);c.rotate(angle);slice(sx,sy,sw,sh,dx-pivotX,dy-pivotY,sw*.75,sh*.75);c.restore();};
     limb(0,46,24,18,-18,-13.5,-4,-13.5,stride*.17,Math.max(0,stride)*1.4);
     limb(24,46,24,18,0,-13.5,4,-13.5,-stride*.17,Math.max(0,-stride)*1.4);

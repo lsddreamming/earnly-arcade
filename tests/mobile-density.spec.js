@@ -119,3 +119,13 @@ for(const prefix of ['', 'www/']){
   await page.locator('.mission-play-button').first().click();await expect(page).not.toHaveURL(/stats.html$/);
  });
 }
+
+test('Header coin balances consistently lead to coin packs without replacing the balance value',async({page})=>{
+ await page.route('https://**',r=>r.abort());
+ for(const prefix of ['', 'www/'])for(const name of ['profile.html','games.html','stats.html','turbo-kart.html','neondrift.html','avatars.html']){
+  await page.goto('/'+prefix+name);
+  const chip=page.locator(name==='avatars.html'?'.coin-chip':'.balance-chip').filter({has:page.locator(name==='avatars.html'?'#coin-balance':'#balance')});
+  await expect(chip).toHaveAttribute('href',name==='avatars.html'?'#coin-shop':'avatars.html#coin-shop');
+  expect(await chip.evaluate(el=>el.tagName)).toBe('A');
+ }
+});

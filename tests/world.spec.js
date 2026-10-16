@@ -307,3 +307,32 @@ test('World art stays crisp at close zoom and detailed furniture remains selecta
  await page.evaluate(()=>{const r=window.testRenderer;for(const state of ['sit','lay','std']){r.updateUser({userId:'art-player',position:{x:3,y:3,z:0},state});r.draw();}r.updateUser({userId:'art-player',position:{x:4,y:3,z:0},state:'walk'});});
  await page.waitForTimeout(150);expect(errors).toEqual([]);
 });
+
+test('World coin panel preserves its socket and opens the shop separately',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.worldCloses=0;window.worldJoins=0;
+  window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}close(){window.worldCloses++;this.readyState=3;}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN'){window.worldJoins++;this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'home',name:'Home',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:2232,rooms:[],catalog:[],items:[],friends:[]}})});}if(p.type==='ACTION')this.onmessage?.({data:JSON.stringify({type:'RESULT',requestId:p.requestId,data:{balance:2232,rooms:[],catalog:[],items:[],friends:[]}})});}};
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.locator('#coinBalance').click();await expect(page.locator('#worldWalletBalance')).toHaveText('2,232');
+ const buy=page.getByRole('link',{name:'Buy more coins'});await expect(buy).toHaveAttribute('href','avatars.html#coin-shop');await expect(buy).toHaveAttribute('target','_blank');
+ await page.getByRole('button',{name:'Back to room',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
+ expect(await page.evaluate(()=>({closes:window.worldCloses,joins:window.worldJoins}))).toEqual({closes:0,joins:1});await expect(page.locator('#connectionStatus')).toContainText('Live');
+});
+
+for(const motion of ['reduce','no-preference'])test(`Equipped avatars retain alternating footsteps with ${motion} motion`,async({page},testInfo)=>{
+ await page.emulateMedia({reducedMotion:motion});await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ await page.evaluate(async()=>{const urls=['cosmetic-cyber-starter.svg','cosmetic-starter-suit.svg','cosmetic-canvas-shoes.svg','cosmetic-neon-phantom.svg'];await Promise.all(urls.map(src=>new Promise(resolve=>{const i=new Image();i.onload=i.onerror=resolve;i.src=src;})));});
+ const result=await page.evaluate(async()=>{
+  const canvas=document.createElement('canvas');canvas.style='width:390px;height:400px';document.body.append(canvas);const r=new EarnlyWorldRenderer.WorldRenderer(canvas,()=>{});r.running=false;r.resize();r.setScene({roomId:'walk',heightmap:'0000\n0000\n0000\n0000',items:[]});
+  const results=[];for(const id of ['cyber-starter','neon-phantom']){
+   r.setUsers([{userId:'walker',position:{x:2,y:2,z:0},state:'wlk',equipped:{avatar:{id,imageUrl:'cosmetic-'+id+'.svg'},outfit:{imageUrl:'cosmetic-starter-suit.svg'},shoes:{imageUrl:'cosmetic-canvas-shoes.svg'}}}]);
+   r.draw();await new Promise(resolve=>setTimeout(resolve,100));r.draw();
+   const captures=[];const original=r.c.drawImage.bind(r.c);r.c.drawImage=(source,...args)=>{if(args[1]===184&&args[2]===96&&args[3]===72)captures.push(args[0]);return original(source,...args);};
+   const u=r.users.get('walker');u.gait=1;u.phase=Math.PI/2;r.draw();const a=canvas.toDataURL();u.gait=1;u.phase=Math.PI*1.5;r.draw();const b=canvas.toDataURL();r.c.drawImage=original;
+   results.push({id,left:captures.includes(0),right:captures.includes(96),different:a!==b});
+  }canvas.remove();return results;
+ });
+ for(const avatar of result){expect(avatar.left,avatar.id).toBe(true);expect(avatar.right,avatar.id).toBe(true);expect(avatar.different,avatar.id).toBe(true);}
+});

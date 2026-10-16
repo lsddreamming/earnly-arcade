@@ -4179,3 +4179,14 @@ const Arcade = (() => {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount,{once:true});
   else mount();
 })();
+
+// Every header coin balance has one destination; preserve its live balance node.
+(()=>{function mount(){
+ document.querySelectorAll('.balance-chip').forEach(chip=>{
+  if(!chip.querySelector('#balance'))return;
+  let link=chip;
+  if(chip.tagName!=='A'){link=document.createElement('a');for(const a of chip.attributes)link.setAttribute(a.name,a.value);while(chip.firstChild)link.append(chip.firstChild);chip.replaceWith(link);}
+  link.href='avatars.html#coin-shop';link.setAttribute('aria-label','Arcade Coins · open coin shop');
+ });
+ const home=document.querySelector('.home-metric #points')?.closest('a');if(home){home.href='avatars.html#coin-shop';home.setAttribute('aria-label','Arcade Coins · open coin shop');}
+}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();})();

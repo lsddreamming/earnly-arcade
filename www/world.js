@@ -210,6 +210,16 @@
   const isA=(trade.player_a||trade.playerA)===userId,myLock=isA?trade.locked_a:trade.locked_b,myConfirmation=isA?trade.confirmed_a:trade.confirmed_b;const lock=button('Lock my offer',()=>perform('lock')),confirm=button(myConfirmation?'Waiting for partner':'Confirm exchange',()=>perform('confirm'),'primary');lock.disabled=!!myLock;confirm.disabled=!trade.locked_a||!trade.locked_b||!!myConfirmation;root.append(lock,confirm,button('Cancel trade',()=>perform('cancel')));
   root.append(note(`Your lock: ${(trade.player_a||trade.playerA)===userId?!!trade.locked_a:!!trade.locked_b} · Partner lock: ${(trade.player_a||trade.playerA)===userId?!!trade.locked_b:!!trade.locked_a}`));
  }
+ function showCoins(){
+  currentPanel='coins';const root=openPanel('Your Arcade Coins');
+  const balance=el('strong','world-wallet-balance');balance.id='worldWalletBalance';balance.textContent=connected?BigInt(bootstrap.balance||0).toLocaleString():'—';
+  const buy=el('a','world-wallet-buy','Buy more coins ↗');buy.href='avatars.html#coin-shop';buy.target='_blank';buy.rel='noopener';
+  root.append(balance,note('Arcade Coins'),buy,note('The coin shop opens in a new tab. Your room stays open here.'),button('Back to room',()=>$('worldPanel').close()),note('Coins have no cash value. Purchased coins cannot be redeemed for cash or cash equivalents.'));
+  if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldPanel').open)balance.textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});
+  else root.append(note('Connect to World to see your saved room balance.'));
+ }
+ $('coinBalance').addEventListener('click',event=>{event.preventDefault();showCoins();});
+ window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
  window.addEventListener('earnly-cloud-auth-change',()=>{clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();entryState('Your account changed. Connect to enter your room.');});
