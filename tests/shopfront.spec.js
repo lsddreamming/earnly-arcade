@@ -68,7 +68,7 @@ test('Buying one preview item updates remaining look cost and preserves other pr
  await expect(page.locator('.look-card').nth(1).locator('.look-price')).toContainText('2,950');
  await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();
  expect(f.writes).toHaveLength(1);expect(f.writes[0].itemId).toBe('neon-phantom');
- await expect(page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await expect(page.getByRole('button',{name:'Preview Aurora Vanguard',exact:true})).toBeEnabled();
 });
 test('Search spans categories, sorting is deterministic and empty filters can reset',async({page})=>{
  await setup(page);await page.getByLabel('Find your next piece').fill('jacket');await expect(page.locator('.item-card')).toHaveCount(2);
@@ -184,4 +184,22 @@ test('Coin comparisons follow current prices and the collection stays one tap aw
  await page.reload();
  await expect(page.locator('.coin-pack.best-value h3')).toHaveText('Starter stash');
  await expect(page.locator('.pack-rate').first()).toHaveText('$0.20 per 100 coins');
+});
+
+test('Premium departments preserve the wallet, show all packs and never invent fallback value claims',async({page})=>{
+ const f=await setup(page);await page.getByRole('button',{name:'Coin packs',exact:true}).click();
+ for(const width of [320,390,440,768]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const cards=await page.locator('.coin-pack').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:r.right};}));
+  for(const card of cards){expect(card.left).toBeGreaterThanOrEqual(0);expect(card.right).toBeLessThanOrEqual(width);}
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:test.info().outputPath('premium-coins-iphone.png')});
+ await expect(page.locator('.store-balance')).toContainText('1,250');
+ await page.getByRole('button',{name:'Featured & rooms',exact:true}).click();await expect(page.locator('#room-collections')).toBeVisible();
+ await page.getByRole('button',{name:'Style studio',exact:true}).click();await expect(page.locator('#shop-grid')).toBeVisible();expect(f.writes).toHaveLength(0);
+ await page.route('**/coin-shop/config',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Unavailable'}})}));
+ await page.reload();await page.getByRole('button',{name:'Coin packs',exact:true}).click();
+ await expect(page.locator('#coin-status')).toContainText('coming soon');await expect(page.locator('.pack-value')).toHaveCount(0);
+ for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
 });
