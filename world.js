@@ -2,17 +2,30 @@
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer,needsFirstRoom=false;
  const pending=new Map();
- let connectTimer;
+ let connectTimer,retryTimer,retryCount=0,entryTarget='choose-home';
+ function entryState(message){
+  $('worldEntry').hidden=connected;$('worldConnected').hidden=!connected;$('reconnect').hidden=!connected;
+  $('connectWorld').disabled=connecting;$('connectWorld').textContent=connecting?'Connecting…':'Connect to World';
+  if(message)$('entryStatus').textContent=message;
+  if(connected)requestAnimationFrame(()=>renderer.resize());
+ }
+ function retryEntry(roomId){
+  if(retryCount>=2||navigator.onLine===false)return false;
+  const delay=1500*(++retryCount);
+  entryState('Reconnecting to your room… ('+retryCount+'/2)');
+  clearTimeout(retryTimer);retryTimer=setTimeout(()=>connect(roomId,true).catch(e=>entryState(e.message)),delay);return true;
+ }
  const demoCatalog=[['mint-sofa','Mint Cloud Sofa','sofa',180,'#59dcc5',2,1],['rose-sofa','Rose Cloud Sofa','sofa',180,'#f599bd',2,1],['arcade-chair','Arcade Chair','chair',60,'#799ff5',1,1],['low-table','Orbit Table','table',80,'#e1b786',1,1],['fern','Moon Fern','plant',70,'#64c786',1,1],['neon-lamp','Neon Tube Lamp','lamp',90,'#c293f3',1,1],['arcade-cabinet','Pocket Arcade Cabinet','arcade',450,'#f6c35e',1,1],['cloud-bed','Cloud Bed','bed',250,'#8cbbf4',1,2],['mint-rug','Mint Tile Rug','rug',40,'#61bfbb',2,2],['star-trophy','First Light Trophy','trophy',600,'#f8d46a',1,1],["palm-tree", "Sunset Palm", "palm", 140, "#65be86", 1, 1, "Garden"],["ficus-tree", "Cloud Ficus", "tree", 125, "#71bc80", 1, 1, "Garden"],["blossom-tree", "Blossom Tree", "tree", 160, "#eea2c2", 1, 1, "Garden"],["flower-pot", "Starlight Flowers", "flowers", 55, "#eab2ed", 1, 1, "Garden"],["oak-bookshelf", "Oak Bookshelf", "bookshelf", 150, "#b88c66", 1, 1, "Essentials"],["reef-aquarium", "Pocket Reef Aquarium", "aquarium", 220, "#67cbd7", 1, 1, "Neon Living"],["sunset-sofa", "Sunset Sofa", "sofa", 180, "#e6a26f", 2, 1, "Neon Living"],["sage-chair", "Sage Garden Chair", "chair", 60, "#91bb96", 1, 1, "Garden"],["garden-parasol", "Garden Parasol Table", "umbrella", 160, "#edbd85", 1, 1, "Garden"],["amber-lantern", "Amber Lantern", "lamp", 90, "#edc582", 1, 1, "Garden"],["lavender-rug", "Lavender Tile Rug", "rug", 40, "#ac93c8", 2, 2, "Neon Living"],["walnut-table", "Walnut Coffee Table", "table", 80, "#aa8069", 1, 1, "Essentials"],["heirloom-clock", "Heirloom Clock", "clock", 220, "#ae8058", 1, 1, "Heritage"],["retro-tv", "Retro TV Cabinet", "television", 190, "#ac8059", 1, 1, "Heritage"],["courtyard-fountain", "Courtyard Fountain", "fountain", 210, "#adc4bd", 1, 1, "Garden"],["woven-divider", "Woven Room Divider", "divider", 120, "#b89b69", 2, 1, "Heritage"],["marble-column", "Marble Column", "column", 100, "#e3d8bc", 1, 1, "Heritage"],["ruby-sofa", "Ruby Velvet Sofa", "sofa", 200, "#b8586b", 2, 1, "Heritage"]].map(([id,name,sprite_id,price,color,width,length,category])=>({id,name,sprite_id,price,color,width,length,category:category||(sprite_id==='plant'?'Garden':sprite_id==='arcade'?'Arcade':sprite_id==='trophy'?'Collectors':'Neon Living'),supply_limit:sprite_id==='trophy'?250:null,minted:0}));
  function toast(text){$('worldToast').textContent=text;$('worldToast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('worldToast').hidden=true,4200);}
  function button(text,fn,cls){const b=el('button',cls,text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){toast(e.message||'Try again.');}finally{b.disabled=false;}};return b;}
  function row(label,buttons=[]){const r=el('div','panel-row');r.append(el('strong','',label),...buttons);return r;}
  function note(text){return el('p','muted',text);}
  function openPanel(title){$('panelTitle').textContent=title;$('panelContent').replaceChildren();if(!$('worldPanel').open)$('worldPanel').showModal();return $('panelContent');}
- function requireConnection(){if(!connected)throw new Error('This is a room preview. Multiplayer is not connected yet.');}
+ function requireConnection(){if(!connected)throw new Error('Connect to World to enter your room first.');}
  function action(action,data={}){requireConnection();return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('Connection timed out. Refresh before retrying a purchase.'));},10000);pending.set(requestId,{resolve,reject,timer});socket.send(JSON.stringify({type:'ACTION',requestId,action,data}));});}
  async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();}
  const renderer=new EarnlyWorldRenderer.WorldRenderer($('worldCanvas'),async hit=>{
+  if(hit.door){showRooms();return;}
   if(hit.staff){try{await showStaff(hit.staff);}catch(e){toast(e.message);}return;}
   if(hit.user){showPlayer(hit.user);return;}if(!scene)return;
   if(hit.item&&!connected){toast('Connect to World, then enter your own room to move furniture.');return;}
@@ -47,22 +60,16 @@
  $('focusMe').onclick=()=>{renderer.focusMe();updateViewButtons();};
  $('closePanel').onclick=()=>$('worldPanel').close();
  $('worldPanel').addEventListener('click',e=>{if(e.target===$('worldPanel')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
- async function preview(){
-  bootstrap={catalog:demoCatalog,items:[],friends:[],rooms:[]};
-  setScene({name:'Earnly Plaza',heightmap:Array(10).fill('0000000000').join('\n'),ownerId:null,items:[['mint-sofa',1,2],['rose-sofa',6,1],['low-table',4,3],['fern',0,0],['fern',8,0],['neon-lamp',0,5],['arcade-cabinet',8,5],['arcade-chair',3,5],['star-trophy',7,8]].map(([id,x,y])=>{const d=demoCatalog.find(c=>c.id===id);return {...d,definitionId:id,sprite:d.sprite_id,x,y,z:0,rotation:0};})});
-  renderer.localUserId=userId;renderer.setUsers([{userId,username:'You',position:{x:5,y:5,z:0}}]);
-  $('connectionStatus').textContent='Sign in to join · Explore the room preview';$('worldNote').textContent='Room preview only. Changes are not saved and purchases are disabled.';
-  try{session=await window.EarnlyCloud?.session();if(session){const res=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token}});if(res.ok){const data=await res.json();renderer.updateUser({userId,username:data.user.username||'You',equipped:data.user.equipped,position:{x:5,y:5,z:0}});}}}catch{}
- }
- function finishConnecting(){clearTimeout(connectTimer);connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';}
- async function connect(roomId=scene?.roomId||'choose-home'){
+ function finishConnecting(){clearTimeout(connectTimer);connecting=false;$('reconnect').disabled=false;$('reconnect').textContent=connected?'Reconnect':'Connect';entryState();}
+ async function connect(roomId='choose-home',retry=false){
+  clearTimeout(retryTimer);if(!retry)retryCount=0;entryTarget=roomId;
   if(connecting)return;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
-  if(!endpoint){toast('The World preview is ready. The multiplayer server is not live yet.');return;}
+  if(!endpoint){toast('World is temporarily unavailable. Please try again shortly.');return;}
   if(!/^wss:\/\//.test(endpoint))throw new Error('Secure World connection required');
-  connecting=true;$('reconnect').disabled=true;$('reconnect').textContent='Connecting…';
+  connecting=true;entryState('Connecting to your room… The server may need a moment to wake up.');$('worldSignIn').hidden=true;$('reconnect').disabled=true;$('reconnect').textContent='Connecting…';
   try{
-  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();openPanel('Join Earnly World').append(note('Sign in to start in your own room with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
+  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();$('worldSignIn').hidden=false;entryState('Sign in once to enter your own room and meet other players.');openPanel('Join Earnly World').append(note('Sign in to start in your own room with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
   const token=session.access_token;
   if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise((resolve,reject)=>{
     let timer;
@@ -80,7 +87,7 @@
    if(socket!==ws||connected)return;
    socket=null;ws.close();finishConnecting();
    $('connectionStatus').textContent='Connection timed out · Tap Connect to retry';
-   $('worldNote').textContent='Your saved room and furniture are safe. Check your connection and try again.';
+   $('worldNote').textContent='Your saved room and furniture are safe. Check your connection and try again.';if(!retryEntry(roomId))entryState('Connection timed out. Tap Connect to World to try again.');
   },75000);
   ws.onopen=()=>{if(socket===ws)ws.send(JSON.stringify({type:'JOIN',version:1,token,roomId}));};
   ws.onmessage=e=>{if(socket!==ws)return;let p;try{p=JSON.parse(e.data);}catch{return;}
@@ -90,18 +97,19 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>renderer.updateUser(u));
-   else if(p.type==='WELCOME'){connected=true;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
+   else if(p.type==='WELCOME'){connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
    if(connected){$('peopleCount').textContent=renderer.users.size+' in the room';const state=renderer.users.get(userId)?.state;$('connectionStatus').textContent=state==='sit'?'Live · Sitting · Tap clear floor to stand up':state==='lay'?'Live · Lying down · Tap clear floor to stand up':'Live · Tap seats to sit or a floor tile to walk';}
   };
-  ws.onclose=e=>{if(socket!==ws)return;connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
+  ws.onclose=e=>{if(socket!==ws)return;connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;entryState('Choose your first room — it is free.');$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';entryState($('connectionStatus').textContent);if(e.code===4001||e.code===4003){$('worldSignIn').hidden=false;}if([1006,1012,1013].includes(e.code))retryEntry(roomId);for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
-  }catch(error){finishConnecting();throw error;}
+  }catch(error){finishConnecting();entryState(error.message);throw error;}
  }
- $('reconnect').onclick=()=>{if(needsFirstRoom)showRoomCreator(true);else connect().catch(e=>toast(e.message));};
+ $('reconnect').onclick=()=>{if(needsFirstRoom)showRoomCreator(true);else connect().catch(e=>{entryState(e.message);toast(e.message);});};
+ $('connectWorld').onclick=$('reconnect').onclick;
  function showCatalog(category='All'){
   currentPanel='catalog';const root=openPanel('Decor Catalog');root.append(note(connected?'Find the next piece for your room. Purchases use Arcade Coins.':'Preview our original decor collection. Sign in and connect to buy decor.'));
   const filters=el('div','filters');for(const name of ['All',...new Set(bootstrap.catalog.map(d=>d.category))])filters.append(button(name,()=>showCatalog(name),name===category?'selected':''));root.append(filters);
@@ -185,6 +193,7 @@
  }
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
- window.addEventListener('earnly-cloud-auth-change',()=>{if(socket)socket.close();connected=false;session=null;placing=null;showPlacement();});
- preview().then(()=>{if(window.EarnlyWorldConfig?.endpoint)connect().catch(e=>toast(e.message));});
+ window.addEventListener('earnly-cloud-auth-change',()=>{clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();entryState('Your account changed. Connect to enter your room.');});
+ bootstrap.catalog=demoCatalog;entryState();
+ window.addEventListener('online',()=>{if(!connected&&!connecting&&retryCount>0)connect(entryTarget,true).catch(e=>entryState(e.message));});
 })();
