@@ -47,7 +47,7 @@ try{
   await expect(p.locator('#roomKind')).toHaveText('YOUR PERSONAL SPACE');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.ownerId)).toBe(fixture.users[index]);
   await expect(p.locator('#peopleCount')).toHaveText('1 in the room');
-  const homeId=await p.evaluate(()=>window.testWorldRenderer.scene.roomId);await p.reload();await expect(p.locator('#connectionStatus')).toContainText('Live');
+  const homeId=await p.evaluate(()=>window.testWorldRenderer.scene.roomId);await p.reload();await expect(p.locator('#worldConnected')).toBeHidden();await p.locator('#connectWorld').click();await expect(p.locator('#connectionStatus')).toContainText('Live');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.roomId)).toBe(homeId);
   await expect(p.locator('#worldPanel')).not.toBeVisible();
   await p.locator('[data-panel="rooms"]').click();await p.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
