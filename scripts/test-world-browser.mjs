@@ -23,7 +23,7 @@ try{
  await p.route('**/world-renderer.js',async r=>r.fulfill({contentType:'application/javascript',body:(await readFile(join(root,'world-renderer.js'),'utf8'))+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...args){super(...args);window.testWorldRenderer=this;}};}'}));
  await p.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={session:async()=>({access_token:${JSON.stringify(uid)}})};`}));
  await p.route('**/world-config.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyWorldConfig={endpoint:${JSON.stringify(origin.replace('https:','wss:')+'/world')}};`}));
- await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await expect(p.locator('#panelTitle')).toHaveText('Choose your first room');
+ await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await p.locator('#connectWorld').click();await expect(p.locator('#panelTitle')).toHaveText('Choose your first room');
  await expect(p.locator('.room-layout-card')).toHaveCount(5);
  if(process.env.WORLD_TEST_SCREENSHOTS)await p.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/room-picker-'+pages.length+'.png'});
  await p.getByRole('button',{name:pages.length?'Split-Level Suite':'Cozy Studio',exact:true}).click();
@@ -47,7 +47,7 @@ try{
   await expect(p.locator('#roomKind')).toHaveText('YOUR PERSONAL SPACE');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.ownerId)).toBe(fixture.users[index]);
   await expect(p.locator('#peopleCount')).toHaveText('1 in the room');
-  const homeId=await p.evaluate(()=>window.testWorldRenderer.scene.roomId);await p.reload();await expect(p.locator('#connectionStatus')).toContainText('Live');
+  const homeId=await p.evaluate(()=>window.testWorldRenderer.scene.roomId);await p.reload();await expect(p.locator('#worldConnected')).toBeHidden();await p.locator('#connectWorld').click();await expect(p.locator('#connectionStatus')).toContainText('Live');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.roomId)).toBe(homeId);
   await expect(p.locator('#worldPanel')).not.toBeVisible();
   await p.locator('[data-panel="rooms"]').click();await p.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();

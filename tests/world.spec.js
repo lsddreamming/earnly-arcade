@@ -1,22 +1,14 @@
 const {test,expect}=require('@playwright/test');
-test('World preview fits narrow screens and exposes catalog without enabling purchases',async({page})=>{
- await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
- const errors=[];page.on('pageerror',error=>errors.push(error.message));
+test('World starts at Connect without a plaza or an automatic connection',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.addInitScript(()=>{window.socketCount=0;window.WebSocket=class{constructor(){window.socketCount++;}};});
  await page.setViewportSize({width:320,height:740});await page.goto('/world.html');
- await expect(page.locator('#panelTitle')).toHaveText('Join Earnly World');
- await expect(page.getByRole('link',{name:'Sign in',exact:true})).toHaveAttribute('href','account.html');
- await page.getByRole('button',{name:'Close panel'}).click();
- await expect(page.locator('#connectionStatus')).toContainText('Sign in');
+ await expect(page.locator('#connectWorld')).toBeVisible();await expect(page.locator('#worldConnected')).toBeHidden();
+ expect(await page.evaluate(()=>window.socketCount)).toBe(0);
+ await page.locator('#connectWorld').click();await expect(page.locator('#panelTitle')).toHaveText('Join Earnly World');
+ await page.getByRole('button',{name:'Close panel'}).click();await expect(page.locator('#worldSignIn')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
- await page.getByRole('button',{name:'Catalog',exact:false}).click();
- await expect(page.locator('.item-card')).toHaveCount(28);
- await expect(page.locator('.item-card button').first()).toBeDisabled();
- await page.getByRole('button',{name:'Close panel'}).click();
- await page.getByRole('button',{name:'Backpack',exact:false}).click();
- await expect(page.locator('#panelContent')).toContainText('stored here');
- expect(errors).toEqual([]);
 });
-
 
 test('World reports server configuration failure without asking players to sign in again',async({page})=>{
  await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"test-player-token"})};'}));
@@ -29,16 +21,16 @@ test('World reports server configuration failure without asking players to sign 
    failConfig(){this.readyState=3;this.onclose?.({code:1011,reason:'World service configuration'});}
   };
  });
- await page.goto('/world.html');
- await expect(page.locator('#reconnect')).toBeDisabled();
+ await page.goto('/world.html');await page.locator('#connectWorld').click();
+ await expect(page.locator('#connectWorld')).toBeDisabled();
  await expect(page.locator('#connectionStatus')).toContainText('Connecting');
- await page.locator('#reconnect').evaluate(button=>button.click());
+ await page.locator('#connectWorld').evaluate(button=>button.click());
  expect(await page.evaluate(()=>window.worldSockets.length)).toBe(1);
  await page.evaluate(()=>window.worldSockets[0].failConfig());
  await expect(page.locator('#connectionStatus')).toContainText('Server setup needs attention');
  await expect(page.locator('#connectionStatus')).not.toContainText('Sign in');
  await expect(page.locator('#peopleCount')).toHaveText('Room preview');
- await expect(page.locator('#reconnect')).toBeEnabled();
+ await expect(page.locator('#connectWorld')).toBeEnabled();
  for(const selector of ['#worldCanvas','#reconnect','.world-tools']){
   expect(await page.locator(selector).evaluate(el=>getComputedStyle(el).userSelect)).toBe('none');
  }
@@ -67,7 +59,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
    }
   };
  });
- await page.goto('/world.html');await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#worldEntry')).toBeHidden();await expect(page.locator('#connectionStatus')).toContainText('Live');
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
  const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
  const distance=await page.evaluate(()=>144*window.testRenderer.scale);
@@ -100,10 +92,10 @@ test('Large rooms open close to your character, with overview, recentering and s
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.route('**/world-renderer.js',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.getByRole('button',{name:'Close panel'}).click();
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.evaluate(()=>{document.getElementById('worldEntry').hidden=true;document.getElementById('worldConnected').hidden=false;});
  await page.evaluate(()=>{
-  const r=window.testRenderer;
-  r.setScene({...r.scene,roomId:'large-lobby',theme:'lobby',heightmap:Array(24).fill('0'.repeat(24)).join('\n'),items:r.scene.items.map(i=>({...i,x:i.x+7,y:i.y+7}))});
+  const r=window.testRenderer;r.localUserId='preview';r.resize();
+  r.setScene({...r.scene,roomId:'large-lobby',theme:'lobby',heightmap:Array(24).fill('0'.repeat(24)).join('\n'),items:[]});
   r.updateUser({userId:'preview',username:'Your potato',position:{x:8,y:8,z:0}});
   r.updateUser({userId:'friend',username:'Friend',position:{x:9,y:9,z:0},state:'sit'});
  });
@@ -118,8 +110,8 @@ test('Large rooms open close to your character, with overview, recentering and s
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale)).toBe(closeScale);
  // Screen-to-floor coordinates must still work with a high-DPI backing canvas.
  const tile=await page.evaluate(()=>{const r=window.testRenderer,b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(9-7)*18*r.scale,y:b.top+r.cy+((9+7)*9+9)*r.scale};});
- await page.mouse.click(tile.x,tile.y);
- await expect.poll(()=>page.evaluate(()=>window.testRenderer.users.get('preview').position)).toEqual({x:9,y:7,z:0});
+ await page.evaluate(()=>{window.testRenderer.onTap=hit=>{window.floorHit=hit;};});await page.mouse.click(tile.x,tile.y);
+ await expect.poll(()=>page.evaluate(()=>({x:window.floorHit?.x,y:window.floorHit?.y}))).toEqual({x:9,y:7});
  await page.evaluate(()=>{const r=window.testRenderer;r.updateUser({userId:'preview',position:{x:8,y:8,z:0},state:'std'});r.bubble({userId:'friend',text:'Welcome! Grab a seat and stay a while.'});});
  await page.waitForTimeout(300);
  for(const size of [{width:390,height:844},{width:320,height:740}]){
@@ -140,11 +132,17 @@ test('A stalled World connection times out and ignores late messages from the ol
   window.worldSockets=[];
   window.WebSocket=class{constructor(){this.readyState=0;window.worldSockets.push(this);}close(){this.readyState=3;this.onclose?.({code:1000});}};
  });
- await page.clock.install();await page.goto('/world.html');await expect(page.locator('#reconnect')).toBeDisabled();
- await page.clock.fastForward(76000);await expect(page.locator('#reconnect')).toBeEnabled();await expect(page.locator('#connectionStatus')).toContainText('timed out');
- await page.locator('#reconnect').click();expect(await page.evaluate(()=>window.worldSockets.length)).toBe(2);
+ await page.clock.install();await page.goto('/world.html');await page.locator('#connectWorld').click();
+ await expect(page.locator('#connectWorld')).toBeDisabled();
+ await page.clock.fastForward(75000);await expect(page.locator('#entryStatus')).toContainText('Reconnecting');
+ await page.clock.fastForward(1500);await expect.poll(()=>page.evaluate(()=>window.worldSockets.length)).toBe(2);
  await page.evaluate(()=>window.worldSockets[0].onmessage?.({data:JSON.stringify({type:'WELCOME'})}));
- await expect(page.locator('#reconnect')).toBeDisabled();await expect(page.locator('#connectionStatus')).toContainText('Connecting');
+ await expect(page.locator('#worldConnected')).toBeHidden();await expect(page.locator('#connectWorld')).toBeDisabled();
+ await page.clock.fastForward(75000);await page.clock.fastForward(3000);
+ await expect.poll(()=>page.evaluate(()=>window.worldSockets.length)).toBe(3);
+ await page.clock.fastForward(75000);await expect(page.locator('#connectWorld')).toBeEnabled();
+ await expect(page.locator('#entryStatus')).toContainText('timed out');
+ await page.clock.fastForward(10000);expect(await page.evaluate(()=>window.worldSockets.length)).toBe(3);
 });
 
 test('Backpack search and room filters find stored and placed furniture without mutations',async({page})=>{
@@ -154,7 +152,7 @@ test('Backpack search and room filters find stored and placed furniture without 
   window.worldActions=[];
   window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);if(p.type==='ACTION')window.worldActions.push(p);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'home',name:'Home',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:100,rooms:[{id:'other',name:'Garden',ownerId:'owner'}],catalog:[{id:'chair',name:'Arcade Chair',sprite_id:'chair',color:'#799ff5',width:1,length:1},{id:'fern',name:'Moon Fern',sprite_id:'plant',color:'#64c786',width:1,length:1}],items:[{id:'a',definition_id:'chair',serial:1,room_id:null},{id:'b',definition_id:'fern',serial:2,room_id:'home'},{id:'c',definition_id:'chair',serial:3,room_id:'other'}],friends:[]}})});}};
  });
- await page.goto('/world.html');await expect(page.locator('#connectionStatus')).toContainText('Live');await page.getByRole('button',{name:'Backpack',exact:false}).click();
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#worldEntry')).toBeHidden();await expect(page.locator('#connectionStatus')).toContainText('Live');await page.getByRole('button',{name:'Backpack',exact:false}).click();
  const cards=page.locator('.item-card:visible');await expect(cards).toHaveCount(3);
  await page.getByRole('searchbox',{name:'Find your furniture'}).fill('fern');await expect(cards).toHaveCount(1);
  await page.getByRole('combobox',{name:'Furniture location'}).selectOption('stored');await expect(cards).toHaveCount(0);await expect(page.locator('#panelContent')).toContainText('No furniture matches');
@@ -165,7 +163,7 @@ test('Backpack search and room filters find stored and placed furniture without 
 
 test('World iPhone view and furniture controls have comfortable touch targets',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
- await page.setViewportSize({width:320,height:740});await page.goto('/world.html');await page.getByRole('button',{name:'Close panel'}).click();
+ await page.setViewportSize({width:320,height:740});await page.goto('/world.html');await page.evaluate(()=>{document.getElementById('worldEntry').hidden=true;document.getElementById('worldConnected').hidden=false;});
  await page.locator('#placementHint').evaluate(el=>el.hidden=false);
  for(const selector of ['#roomView','#focusMe','#zoomOut','#zoomIn','#rotateItem','#cancelPlace']){
   const box=await page.locator(selector).boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);

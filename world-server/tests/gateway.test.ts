@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {worldOrigins} from '../src/origins.ts';
 import {WorldAccessError} from '../src/access-error.ts';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
@@ -15,11 +16,11 @@ test('real WebSocket connections require auth; joined users share server tick up
    authenticate:async token=>{if(!['a','b'].includes(token))throw new Error();return {userId:token,username:token};},
    enter:async identity=>({room,spawn:{x:identity.userId==='a'?0:2,y:0}}),
    revalidate:async()=>true
- },new Set(['https://earnlyarcade.com']));
+ },worldOrigins('https://earnlyarcade.com'));
  server.listen(0,'127.0.0.1');await once(server,'listening');
  const port=(server.address() as {port:number}).port;
  const sockets:WebSocket[]=[];
- const connect=async()=>{const ws=new WebSocket(`ws://127.0.0.1:${port}/world`,{origin:'https://earnlyarcade.com'});sockets.push(ws);await once(ws,'open');return ws;};
+ const connect=async(origin='https://earnlyarcade.com')=>{const ws=new WebSocket(`ws://127.0.0.1:${port}/world`,{origin});sockets.push(ws);await once(ws,'open');return ws;};
  const message=(ws:WebSocket,type:string)=>new Promise<Record<string,unknown>>((resolve,reject)=>{
    const timer=setTimeout(()=>{ws.off('message',listener);reject(new Error('Message timeout'));},2000);
    const listener=(data:Buffer)=>{const p=JSON.parse(data.toString());if(p.type===type){clearTimeout(timer);ws.off('message',listener);resolve(p);}};
@@ -31,7 +32,7 @@ test('real WebSocket connections require auth; joined users share server tick up
    assert.equal((await closed)[0],1008);
    const a=await connect();let ready=message(a,'ROOM_SNAPSHOT');
    a.send(JSON.stringify({type:'JOIN',version:1,token:'a',roomId:'plaza'}));await ready;
-   const b=await connect();ready=message(b,'ROOM_SNAPSHOT');
+   const b=await connect('capacitor://localhost');ready=message(b,'ROOM_SNAPSHOT');
    b.send(JSON.stringify({type:'JOIN',version:1,token:'b',roomId:'plaza'}));await ready;
    const delta=message(b,'ROOM_DELTA');a.send(JSON.stringify({type:'MOVE_TO',x:1,y:0}));
    const result=await delta;assert.equal((result.users as {userId:string}[])[0].userId,'a');
