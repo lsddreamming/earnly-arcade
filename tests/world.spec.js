@@ -280,3 +280,30 @@ test('Room deletion requires confirmation, protects other rooms, and leaves the 
  await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(2);await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
  await expect(page.locator('#coinBalance')).toContainText('500');
 });
+
+test('World art stays crisp at close zoom and detailed furniture remains selectable',async({page},testInfo)=>{
+ const fs=require('node:fs');
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.route('**/world-renderer.js',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
+ await page.evaluate(()=>{
+  document.getElementById('worldEntry').hidden=true;document.getElementById('worldConnected').hidden=false;
+  const r=window.testRenderer;r.resize();r.localUserId='art-player';
+  r.setScene({roomId:'art-fixture',heightmap:Array(8).fill('00000000').join('\n'),items:[
+   {id:'cabinet',sprite:'arcade',color:'#efbf56',x:2,y:1,z:0,width:1,length:1,rotation:0},
+   {id:'seat',sprite:'chair',color:'#799ff5',x:4,y:2,z:0,width:1,length:1,rotation:0},
+   {id:'water',sprite:'fountain',color:'#b2d7cd',x:4,y:5,z:0,width:1,length:1,rotation:0},
+   {id:'fern',sprite:'plant',color:'#67bc89',x:1,y:3,z:0,width:1,length:1,rotation:0}
+  ]});
+  r.updateUser({userId:'art-player',username:'DREAMER',position:{x:3,y:3,z:0},state:'std'});r.setZoom(2.2);
+  const draw=r.c.drawImage.bind(r.c);r.c.drawImage=(source,...args)=>{if(source instanceof HTMLCanvasElement&&source.height===256)window.crispAvatarSeen=true;return draw(source,...args);};
+ });
+ await expect.poll(()=>page.evaluate(()=>window.crispAvatarSeen)).toBe(true);
+ const hits=await page.evaluate(()=>{const r=window.testRenderer;return r.scene.items.map(i=>r.pickItem((i.x-i.y)*18,(i.x+i.y)*9-8)?.id);});
+ expect(hits).toEqual(['cabinet','seat','water','fern']);
+ await page.locator('#worldCanvas').screenshot({path:`test-results/world-art-${testInfo.project.name}.png`});
+ // Exercise the high-resolution source rectangles for every pose, including walking slices.
+ await page.evaluate(()=>{const r=window.testRenderer;for(const state of ['sit','lay','std']){r.updateUser({userId:'art-player',position:{x:3,y:3,z:0},state});r.draw();}r.updateUser({userId:'art-player',position:{x:4,y:3,z:0},state:'walk'});});
+ await page.waitForTimeout(150);expect(errors).toEqual([]);
+});
