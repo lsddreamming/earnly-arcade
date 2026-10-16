@@ -42,7 +42,7 @@ try{
  }
  if(process.env.WORLD_TEST_SCREENSHOTS)await b.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/split-level-stairs.png'});
 
- // First-time accounts spawn directly into their own private room.
+ // First-time accounts spawn directly into their own public room.
  for(const [index,p] of pages.entries()){
   await expect(p.locator('#roomKind')).toHaveText('YOUR PERSONAL SPACE');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.ownerId)).toBe(fixture.users[index]);

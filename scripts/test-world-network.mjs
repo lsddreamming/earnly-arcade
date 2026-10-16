@@ -23,7 +23,7 @@ try{
  await assert.rejects(access.enter({userId:fixture.users[0],username:'Player0'},'choose-home'),e=>e.reason==='room_choice_required');
  assert.equal((await fixture.db.query('select count(*)::int n from earnly_world.rooms where owner_id=$1',[fixture.users[0]])).rows[0].n,0);
  const homes=await Promise.all(fixture.users.map(id=>client(id,'starter-studio')));
- for(const [index,c] of homes.entries()){assert.equal(c.welcome.scene.ownerId,fixture.users[index]);assert.equal(c.welcome.scene.access,'closed');const left=c.wait(p=>p.type==='LEFT');c.ws.send(JSON.stringify({type:'LEAVE'}));await left;}
+ for(const [index,c] of homes.entries()){assert.equal(c.welcome.scene.ownerId,fixture.users[index]);assert.equal(c.welcome.scene.access,'open');const left=c.wait(p=>p.type==='LEFT');c.ws.send(JSON.stringify({type:'LEAVE'}));await left;}
  assert.notEqual(homes[0].welcome.roomId,homes[1].welcome.roomId);
  const [a,b]=await Promise.all(fixture.users.map(id=>client(id)));
  assert.equal(a.welcome.scene.equipped.avatar.id,'cyber-starter');

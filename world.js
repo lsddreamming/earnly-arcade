@@ -147,7 +147,7 @@
   draw(bootstrap.rooms);const version=panelVersion;
   const update=async()=>{for(const b of root.querySelectorAll('button'))b.disabled=true;try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}finally{if(version===panelVersion)for(const b of root.querySelectorAll('button'))b.disabled=false;}};
   root.append(button('Refresh rooms',update),note('Connected players · NPC staff are not counted.'));
-  root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are private.'));
+  root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are public. You can make yours private from Rooms.'));
   if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
   update();
  }
@@ -183,7 +183,7 @@
     else{const name=input.value.trim();if(!name){input.focus();throw new Error('Give your room a name');}const result=await action('create_room',{name,layout:selected.id});await connect(result.roomId);}
    }finally{busy=false;cards.forEach(([c])=>c.disabled=false);}},'primary room-create-button');
   function update(){create.textContent=first?'Start in '+selected.name:'Create '+selected.name+' · Free';}
-  update();root.append(grid);if(!first)root.append(label,input);root.append(create,note('Private to you. Invite visitors later from Rooms.'));
+  update();root.append(grid);if(!first)root.append(label,input);root.append(create,note('Public by default. Make it private anytime from Rooms.'));
   if(!first)root.append(button('Back to rooms',showRooms));
  }
  async function showStaff(staff){const reply=await action('staff_talk',{staffId:staff.staffId});currentPanel='staff';const root=openPanel(reply.name+' · '+reply.role);root.append(note('Staff NPC · Lives and works in this hangout'),el('p','staff-greeting',reply.greeting),button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a tip',()=>{const p=el('p','staff-greeting',reply.tip);root.replaceChildren(note('Staff NPC · '+reply.role),p,button('Explore rooms',()=>showRooms()));}),button('Explore rooms',()=>showRooms()));}
