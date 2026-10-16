@@ -145,10 +145,11 @@
   const list=el('div','room-directory');root.append(list);
   const draw=rooms=>{list.replaceChildren();for(const r of rooms){const card=el('section','room-card');card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));card.append(roomCount(r));const descriptions={'Hotel Lobby':'Velvet sofas · Reception with Pip','Rooftop Lounge':'City lights · Mocktail bar with Remy','Patio Hangout':'Garden seating · Patio host Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r)));list.append(card);}};
   draw(bootstrap.rooms);const version=panelVersion;
-  const update=async()=>{try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}};
-  root.append(button('Refresh rooms',update),note('Connected players · NPC staff are not counted.'));update();
+  const update=async()=>{for(const b of root.querySelectorAll('button'))b.disabled=true;try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}finally{if(version===panelVersion)for(const b of root.querySelectorAll('button'))b.disabled=false;}};
+  root.append(button('Refresh rooms',update),note('Connected players · NPC staff are not counted.'));
   root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are private.'));
   if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
+  update();
  }
  function showDeleteRoom(room){
   if(room.ownerId!==userId)return;
