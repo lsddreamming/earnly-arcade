@@ -69,4 +69,6 @@
  for(const event of ['earnly-cloud-ready','earnly-cloud-auth-change','earnly-public-profile-updated'])window.addEventListener(event,loadDriver);
  loadDriver();
  chrome();renderer.render(state,{idle:true});
+ // Only accept a start after the renderer and input handlers are ready.
+ status('Ready');el.startButton.textContent='START RACE →';el.startButton.disabled=false;
 })();
