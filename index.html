@@ -38,25 +38,19 @@
 
     <a class="home-primary-play" href="games.html" aria-label="Browse Earnly games and start playing">
       <span class="home-primary-play-icon">🎮</span>
-      <span class="home-primary-play-copy"><strong>Play Games</strong><small id="homePlayHint">First game? Pick one to earn Coins + XP</small></span>
+      <span class="home-primary-play-copy"><strong>Play Games</strong><small id="homePlayHint">Pick a game. Chase a high score.</small></span>
       <b>Play →</b>
     </a>
 
-    <a class="rank-discovery" href="leaderboards.html"><span aria-hidden="true">🏆</span><span><strong>Leaderboards</strong><small>See the Top 25. Find your next score to beat.</small></span><b aria-hidden="true">→</b></a>
 
-    <section class="home-install-banner browser-only" id="installCard">
-      <div class="home-install-main">
-        <div class="home-install-icon"><img src="earnly-icon.svg" alt=""></div>
-        <div class="home-install-copy">
-          <strong id="installTitle">Add Earnly to your iPhone</strong>
-          <span id="installText">Open it like an app.</span>
-        </div>
-      </div>
-      <div class="home-install-actions">
-        <button class="home-install-button" id="installButton" type="button">Add</button>
-        <button class="home-install-dismiss" id="installDismiss" type="button" aria-label="Hide install suggestion">×</button>
-      </div>
-    </section>
+
+    <nav class="home-destinations" aria-label="Explore Earnly">
+      <a class="home-world-link" href="world.html"><span aria-hidden="true">🌐</span><strong>World</strong><small>Rooms & friends</small></a>
+    <a id="home-coin-shop" class="coin-shop-entry" href="avatars.html"><span class="coin-shop-entry-icon" aria-hidden="true">✦</span><span><strong>Arcade Shop</strong><small>Looks & decor</small></span><span aria-hidden="true">→</span></a>
+    <a class="rank-discovery" href="leaderboards.html"><span aria-hidden="true">🏆</span><span><strong>Ranks</strong><small>Top scores</small></span><b aria-hidden="true">→</b></a>
+    </nav>
+
+
 
     <section class="home-transfer-banner" id="transferCard" hidden>
       <div class="home-transfer-copy">
@@ -83,7 +77,7 @@
       </div>
     </section>
 
-    <a id="home-coin-shop" class="coin-shop-entry" href="avatars.html"><span class="coin-shop-entry-icon" aria-hidden="true">✦</span><span><strong>Arcade Shop</strong><small>Free looks, collections &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
+
     <section class="home-overview" aria-label="Earnly overview">
       <a class="home-metric" href="rewards.html" aria-label="View Arcade Coin rewards">
         <span class="home-metric-label">Arcade Coins</span>
@@ -120,6 +114,16 @@
           <button class="home-row-button green" id="dailyBonusButton" type="button">Claim</button>
         </div>
 
+
+      </div>
+    </section>
+
+    <details class="home-section home-daily-disclosure" id="dailyMissionsSection">
+      <summary class="home-section-heading">
+        <span>Daily Challenges</span>
+        <span class="home-count-pill" id="dailyMissionCount">0/3</span>
+        <span class="home-expand-cue">View all <span aria-hidden="true">⌄</span></span>
+      </summary>
         <div class="home-divider"></div>
 
         <div class="home-challenge-row" id="challengeCard">
@@ -134,19 +138,11 @@
           <div class="challenge-progress home-challenge-progress" aria-hidden="true"><span id="challengeBar"></span></div>
           <button class="home-challenge-button" id="challengeButton" type="button" disabled>Keep Playing</button>
         </div>
-      </div>
-    </section>
-
-    <details class="home-section home-daily-disclosure" id="dailyMissionsSection">
-      <summary class="home-section-heading">
-        <span>Daily Challenges</span>
-        <span class="home-count-pill" id="dailyMissionCount">0/3</span>
-        <span class="home-expand-cue">View all <span aria-hidden="true">⌄</span></span>
-      </summary>
       <p class="daily-challenge-intro">Three goals every day · XP rewards added after your run</p>
       <div class="home-panel" id="dailyMissionList"></div>
     </details>
 
+    <details class="home-more-progress"><summary>Your progress <span>Streaks, missions & achievements</span></summary>
     <details class="home-section home-disclosure" id="streakRewardCard">
       <summary>
         <div>
@@ -183,16 +179,32 @@
       </div>
     </section>
 
+    </details>
+
     <a class="home-account-shortcut" id="homeAccountShortcut" href="account.html" aria-label="Create an Earnly account or sign in">
       <span class="home-account-shortcut-icon">🔐</span>
       <span class="home-account-shortcut-copy">
         <strong id="homeAccountTitle">Create or Sign In</strong>
-        <small id="homeAccountText">Guest progress saves in this browser. Sign in for cloud backup.</small>
+        <small id="homeAccountText">Save your progress across devices.</small>
       </span>
       <b id="homeAccountAction">Account →</b>
     </a>
 
-    <section class="home-public-intro" aria-labelledby="homeAboutTitle"><h2 id="homeAboutTitle">Your next personal best starts here</h2><p>Explore quick reaction games, puzzles, neon driving challenges, and robot waves. Play as a guest, earn XP, and take on daily missions.</p><p>Optional rewarded ads unlock extra plays and do not directly award Coins. Ad availability varies.</p><a href="about.html">About Earnly →</a><a href="game-guides.html">Game Guides →</a></section>
+
+
+    <section class="home-install-banner browser-only" id="installCard">
+      <div class="home-install-main">
+        <div class="home-install-icon"><img src="earnly-icon.svg" alt=""></div>
+        <div class="home-install-copy">
+          <strong id="installTitle">Add Earnly to your iPhone</strong>
+          <span id="installText">Open it like an app.</span>
+        </div>
+      </div>
+      <div class="home-install-actions">
+        <button class="home-install-button" id="installButton" type="button">Add</button>
+        <button class="home-install-dismiss" id="installDismiss" type="button" aria-label="Hide install suggestion">×</button>
+      </div>
+    </section>
 
     <footer class="public-footer" aria-label="Earnly site information">
       <nav aria-label="Site information">
@@ -321,7 +333,7 @@
         ? 'Earnly backup needs attention'
         : (signedIn ? 'Earnly account connected' : 'Create or Sign In');
       homeAccountText.textContent = !signedIn
-        ? 'Guest progress saves in this browser. Sign in for cloud backup.'
+        ? 'Save your progress across devices.'
         : (needsAttention
             ? 'Open Account to protect your latest progress.'
             : (rewardError
@@ -356,7 +368,7 @@
       points.textContent = Arcade.number('points').toLocaleString();
       document.getElementById('homePlayHint').textContent = Arcade.number('gamesCompletedEver') > 0
         ? 'Pick a game · earn XP + Arcade Coins'
-        : 'First game? Pick one to earn Coins + XP';
+        : 'Pick a game. Chase a high score.';
 
       const xp = Arcade.xpStatus();
       profileName.textContent = Arcade.profileName();
@@ -694,10 +706,8 @@
     resetHomeViewport();
     refreshHomeAccountShortcut();
 
-    // New testers need the quick explanation before they begin tapping around.
-    // showOnboarding() quietly skips returning players who already completed a
-    // game or dismissed the walkthrough, so this only appears when useful.
-    setTimeout(() => Arcade.showOnboarding(), 450);
+    // Keep the first screen ready to play. Help remains available from the info button.
+
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

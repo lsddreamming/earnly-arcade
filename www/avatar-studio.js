@@ -252,9 +252,9 @@
   }
   const looks = [
     {name:"Neon Boardwalk",edition:"EARNLY ORIGINAL",description:"Electric mint, afterglow purple and light-up streetwear.",ids:["cyber-starter","boardwalk-jacket","boardwalk-cap","boardwalk-sneakers","boardwalk-hair","boardwalk-aura"]},
-    {name:"Trail Society",description:"Warm knits, utility pockets, everyday high-tops.",ids:["cyber-starter","storm-coat","high-tops","adventure-pack","ribbed-beanie","round-glasses","explorer-beard"]},
-    {name:"Aurora Vanguard",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
-    {name:"Solar Royalty",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},
+    {name:"Trail Society",edition:"STREET EXPLORER",description:"Warm knits, utility pockets, everyday high-tops.",ids:["cyber-starter","storm-coat","high-tops","adventure-pack","ribbed-beanie","round-glasses","explorer-beard"]},
+    {name:"Aurora Vanguard",edition:"PRISMATIC TECH",description:"Prismatic armor, plated boots, a glowing scepter.",ids:["neon-phantom","aurora-armor","radiant-boots","aurora-pack","comms-headset","star-goggles","orb-scepter"]},
+    {name:"Solar Royalty",edition:"GOLDEN HOUR",description:"Golden accents with a crown to match.",ids:["astra-prime","solar-jacket","radiant-boots","sun-crown","amber-goggles","solar-cannon"]},
     {name:"Garden Day",edition:"FREE PERSONALITY",description:"Clover eyes, cocoa curls and a fresh pair of overalls.",ids:["russet-potato","eyes-green","brows-bold","nose-tiny","mouth-grin","hair-curls","marks-freckles","garden-overalls","no-handheld"]},
     {name:"Petal Party",edition:"FREE PERSONALITY",description:"Soft lashes, rosy cheeks and a golden ponytail. Make it yours.",ids:["cream-potato","eyes-lashes","brows-soft","nose-round","mouth-rose","hair-ponytail","marks-blush","petal-dress","no-handheld"]},
   ];
@@ -285,7 +285,7 @@
       const found = look.ids.map(id => state.items.find(i => i.id === id)).filter(Boolean);
       if (found.length !== look.ids.length) continue;
       const equipped = {...starterLoadout(), ...Object.fromEntries(found.map(i => [i.slot,i]))};
-      const pieces = Object.values(equipped).filter(Boolean);
+      const pieces = found;
       const owned = pieces.filter(i => state.user?.inventory.includes(i.id));
       const total = pieces.reduce((sum,i) => sum + (state.user?.inventory.includes(i.id) ? 0n : BigInt(i.coinPrice)), 0n);
       const card = el("article", "look-card"); card.dataset.look = String(index);

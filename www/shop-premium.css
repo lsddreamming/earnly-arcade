@@ -19,3 +19,34 @@
 @media(max-width:680px){.studio-dashboard .coin-pack{padding:10px 6px!important}.studio-dashboard .coin-pack .coin-amount{font-size:24px!important}.studio-dashboard .coin-pack-art{height:76px}.studio-dashboard .coin-pack .pack-rate{font-size:9px;margin:5px 0 8px}.studio-dashboard .coin-pack button{min-height:44px;font-size:11px;margin-top:auto}.studio-dashboard .coin-shop.panel{margin:0 0 20px;padding:16px 10px}.studio-dashboard .coin-shop h2{font-size:23px}.studio-dashboard .coin-shop .collection-note{margin:8px 0}.studio-dashboard .store-sections{margin-bottom:14px}}
 
 @media(max-width:680px){.studio-dashboard .coin-pack-art{height:60px}.studio-dashboard .coin-pack .coin-amount{white-space:nowrap;font-size:25px!important}}
+
+/* Furnished previews share World's renderer and stay compact on phones. */
+.studio-dashboard #room-collections{padding:18px;margin:14px 0;border-radius:20px;background:linear-gradient(145deg,#12273a,#11182b)}
+.studio-dashboard #room-collections h2{font-size:24px;margin:4px 0 8px;letter-spacing:-.6px}
+.studio-dashboard .room-editions{gap:10px;margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.studio-dashboard .room-editions>a{padding:0;gap:0;overflow:hidden;border-color:#467a875f;border-radius:16px;background:#0d1a2d}
+.studio-dashboard .room-scene{height:auto;width:100%;aspect-ratio:10/7;border-radius:0;background:radial-gradient(ellipse at 50% 30%,#224958,#0c192d 80%)}
+.room-edition-copy{display:grid;gap:6px;padding:12px}.studio-dashboard .room-editions strong{font-size:17px;line-height:1.2}.studio-dashboard .room-editions small{font-size:11px;line-height:1.4}.room-edition-copy>span{font-size:12px;line-height:1.4;font-weight:700}
+.studio-dashboard #vip-pass[open]>summary{display:none}
+.studio-dashboard #vip-pass{padding:20px;border-radius:22px}
+.studio-dashboard #vip-pass h2{font-size:28px;margin:5px 0 8px}
+.pass-perks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.pass-perks figure{margin:0;text-align:center;padding:12px;border:1px solid #ecd2a436;border-radius:16px;background:radial-gradient(ellipse at center,#61516c,#26263e 75%)}
+.pass-perks img{display:block;width:100%;height:128px;object-fit:contain;filter:drop-shadow(0 0 10px #ffd96c44)}
+.pass-perks figcaption{font-size:13px;font-weight:700;color:#ffe9ba;margin-top:8px}
+.studio-dashboard #vip-pass .pass-perks-note{font-size:13px}
+.studio-dashboard #vip-pass #pass-disclosure{font-size:12px;line-height:1.5;color:#c7c7dc}
+.studio-dashboard #vip-pass .pass-actions{gap:10px}
+.studio-dashboard #vip-pass #pass-buy{width:100%;min-height:48px}
+@media(max-width:680px){
+ .studio-dashboard .page-title{padding:18px 0 12px}.studio-dashboard .page-title h1{font-size:28px}
+ .studio-dashboard #signature-looks{margin-bottom:16px}.studio-dashboard #signature-looks h2{font-size:25px}
+ .studio-dashboard #featured-looks .look-card{flex-basis:100%;border-radius:20px;padding:14px;background:linear-gradient(135deg,#20364c,#232039)!important;border:1px solid #74c7cb33!important}
+ .studio-dashboard #featured-looks .look-art{height:175px}.studio-dashboard #featured-looks .look-description{font-size:11px;margin-bottom:8px}
+ .studio-dashboard #room-collections{padding:14px}.studio-dashboard #room-collections h2{font-size:22px}
+ .studio-dashboard .room-editions strong{font-size:15px}.room-edition-copy{padding:10px;gap:6px}.room-edition-copy>span{font-size:11px;min-height:30px}
+ .studio-dashboard #vip-pass{padding:18px}.pass-perks img{height:110px}
+}
+@media(max-width:360px){.studio-dashboard .room-editions{grid-template-columns:1fr}.studio-dashboard .room-editions>a{display:grid;grid-template-columns:44% 1fr;align-items:center}.studio-dashboard .room-scene{aspect-ratio:10/7}.room-edition-copy>span{min-height:0}}
+
+@media(max-width:680px){body.studio-dashboard #signature-looks #featured-looks .look-card{flex:0 0 100%!important;border-radius:20px!important;border:1px solid #74c7cb33!important;background:linear-gradient(135deg,#20364c,#232039)!important}}

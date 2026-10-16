@@ -198,11 +198,12 @@ test('growth events are routed to the locked server ingestion function', async (
   expect(cloud).toContain("syncGrowthEvents().catch(() => {})");
 });
 
-test('first-visit onboarding records shown and completion funnel events', async ({ page }) => {
+test('optional onboarding records shown and completion funnel events', async ({ page }) => {
   await page.goto('/index.html');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
+  await page.evaluate(() => Arcade.showOnboarding());
   const dialog = page.locator('dialog.onboarding-dialog');
   await expect(dialog).toBeVisible();
 
@@ -1754,25 +1755,18 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
 });
 
 
-test('first visit onboarding gets players to gameplay fast', async ({ page }) => {
+test('first visit starts with games and optional help without a blocking walkthrough', async ({ page }) => {
   await page.goto('/index.html');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-
-  const dialog = page.locator('dialog.onboarding-dialog');
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Welcome to Earnly Arcade');
-  await expect(dialog).toContainText('Three things. Then you’re playing.');
-  await expect(dialog.locator('.onboarding-flow-step')).toHaveCount(3);
-  await expect(dialog).toContainText('3 plays');
-  await expect(dialog).toContainText('Coins + XP');
-  await expect(dialog).toContainText('Tap Rush');
-  await expect(dialog).toContainText('20 seconds · just tap the targets');
-  await expect(dialog.getByRole('button', { name:'Browse Games' })).toBeVisible();
-
-  await dialog.getByRole('button', { name:'Play Tap Rush →' }).click();
-  await expect(page).toHaveURL(/taprush\.html$/);
-  expect(await page.evaluate(() => localStorage.getItem('arcadeOnboardingSeen'))).toBe('1');
+  await page.waitForTimeout(650);
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  await expect(page.locator('.home-primary-play')).toBeVisible();
+  await page.locator('#howEarnlyWorks').click();
+  await expect(page.locator('dialog.onboarding-dialog')).toContainText('How Earnly Works');
+  await page.locator('dialog').getByRole('button', {name:'Close',exact:true}).click();
+  await page.locator('.home-primary-play').click();
+  await expect(page).toHaveURL(/games\.html$/);
 });
 
 test('first completed run explains Coins and XP once', async ({ page }) => {
