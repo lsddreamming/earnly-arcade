@@ -173,3 +173,42 @@ test('World iPhone view and furniture controls have comfortable touch targets',a
  }
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
+
+test('World movement stays continuous through packet updates and stops at the authoritative tile',async({page})=>{
+ await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');document.body.append(canvas);
+  const r=new EarnlyWorldRenderer.WorldRenderer(canvas,()=>{});r.running=false;
+  r.updateUser({userId:'walker',position:{x:1,y:1,z:0},state:'std',equipped:{head:{id:'hat'}}});
+  r.updateUser({userId:'walker',position:{x:2,y:1,z:0},state:'wlk'});
+  let u=r.users.get('walker');u.at=performance.now()-125;
+  const before=r.sample(u);r.updateUser({userId:'walker',position:{x:3,y:1,z:0},state:'wlk'});u=r.users.get('walker');
+  const jump=Math.abs(r.sample(u).x-before.x);const at=u.at;
+  r.updateUser({userId:'walker',position:{x:3,y:1,z:0},state:'std'});u=r.users.get('walker');
+  const preserved=u.at===at;u.at=performance.now()-300;r.animate(u,performance.now());
+  for(let i=1;i<=60;i++)r.animate(u,performance.now()+i*17);
+  return {jump,preserved,end:r.sample(u),gait:u.gait,hat:u.equipped.head.id,facing:u.facing};
+ });
+ expect(result.jump).toBeLessThan(.05);expect(result.preserved).toBe(true);expect(result.end).toEqual({x:3,y:1,z:0});expect(result.gait).toBeLessThan(.01);expect(result.hat).toBe('hat');expect(result.facing).toBe('right');
+});
+
+test('World pinch keeps the midpoint anchored, cancels taps and preserves furniture placement',async({page})=>{
+ await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.style='width:390px;height:500px';document.body.append(canvas);
+  const taps=[];const r=new EarnlyWorldRenderer.WorldRenderer(canvas,p=>taps.push(p));r.running=false;r.resize();
+  r.setScene({roomId:'test',heightmap:Array(8).fill('00000000').join('\n'),items:[]});r.setView('room');r.draw();
+  // Pointer capture is browser-owned; supply the same two touch pointer streams on both engines.
+  canvas.setPointerCapture=()=>{};
+  const box=canvas.getBoundingClientRect();const event=(type,id,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',button:0,clientX:box.left+x,clientY:box.top+y,bubbles:true}));
+  const anchor={x:180,y:240},world={x:(anchor.x-r.cx)/r.scale,y:(anchor.y-r.cy)/r.scale};
+  event('pointerdown',1,140,240);event('pointerdown',2,220,240);event('pointermove',1,100,240);event('pointermove',2,260,240);
+  const zoomIn=r.zoom,error=Math.hypot(r.cx+world.x*r.scale-anchor.x,r.cy+world.y*r.scale-anchor.y);
+  event('pointerup',2,260,240);event('pointerup',1,100,240);
+  const placement={item:{width:1,length:1},x:3,y:3};r.placement=placement;r.draw=()=>{};
+  event('pointerdown',3,100,240);event('pointerdown',4,260,240);event('pointermove',3,140,240);event('pointermove',4,220,240);event('pointercancel',3,140,240);event('pointerup',4,220,240);
+  const zoomOut=r.zoom; r.setZoom(100);const max=r.zoom;r.setZoom(.01);const min=r.zoom;
+  return {zoomIn,zoomOut,error,taps:taps.length,position:[placement.x,placement.y],locked:r.gestureLock,max,min};
+ });
+ expect(result.zoomIn).toBeGreaterThan(1);expect(result.zoomOut).toBeLessThan(result.zoomIn);expect(result.error).toBeLessThan(1);expect(result.taps).toBe(0);expect(result.position).toEqual([3,3]);expect(result.locked).toBe(false);expect(result.max).toBe(2.2);expect(result.min).toBe(.6);
+});

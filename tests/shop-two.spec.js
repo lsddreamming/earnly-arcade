@@ -56,7 +56,7 @@ test('Pet purchases retain confirmation and equipped states; Crystal art preview
  await page.getByRole('button',{name:'◆ Crystal Command',exact:true}).click();await expect(page.locator('.item-card img[alt="Ion Legion"]')).toBeVisible();await page.getByRole('button',{name:'Preview Ion Legion',exact:true}).click();await expect(page.locator('#character-stage img')).toHaveCount(1);expect(f.writes).toHaveLength(1);
 });
 test('VIP stays disabled before configuration and narrow layouts retain readable wallet and controls',async({page})=>{
- await page.setViewportSize({width:390,height:844});await setup(page);await expect(page.locator('#pass-buy')).toBeDisabled();await page.locator('#vip-pass summary').click();await expect(page.locator('#pass-disclosure')).toContainText('auto-renewing');await page.getByRole('button',{name:'♛ VIP',exact:true}).click();await expect(page.getByRole('button',{name:'Buy VIP Marquee',exact:true})).toBeDisabled();
+ await page.setViewportSize({width:390,height:844});await setup(page);await expect(page.locator('#pass-buy')).toBeDisabled();await page.getByRole('button',{name:'VIP Pass',exact:true}).click();await expect(page.locator('#pass-disclosure')).toContainText('auto-renewing');await page.getByRole('button',{name:'Style studio',exact:true}).click();await page.getByRole('button',{name:'♛ VIP',exact:true}).click();await expect(page.getByRole('button',{name:'Buy VIP Marquee',exact:true})).toBeDisabled();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/shop-two-phone.png',fullPage:true});
 });
 test('Complete Crystal collection shows a server quote and charges only after confirmation',async({page})=>{

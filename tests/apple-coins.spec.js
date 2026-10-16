@@ -16,7 +16,7 @@ async function setup(page,{status='purchased',fail=false,recovery=false,noProduc
   if(!config&&r.request().postDataJSON()?.signedTransaction==='old-account')return r.fulfill({status:restricted?403:503,contentType:'application/json',body:JSON.stringify({error:{message:'Purchase could not be verified.',...(restricted?{code:'SANDBOX_TEST_ACCOUNT_REQUIRED'}:{})}})});
   return r.fulfill({status:!config&&fail?503:200,headers:{'Access-Control-Allow-Origin':'*'},contentType:'application/json',body:JSON.stringify(config?{available:true,packs:[{id:'starter',productId:'com.earnly.arcade.coins.starter',coins:500}]}:fail?{error:{message:'Verification unavailable. Reopen to retry.'}}:{status:'fulfilled',transactionId:'123',wallet:{balance:'1750',lifetime_earned:'1250'}})});
  });
- await page.goto('/avatars.html');return {verifies:()=>verifies};
+ await page.goto('/avatars.html');await page.getByRole('button',{name:'Coin packs',exact:true}).click();return {verifies:()=>verifies};
 }
 test('iPhone shop uses Apple localized prices and finishes only verified delivery',async({page})=>{
  const f=await setup(page);const buy=page.getByRole('button',{name:'Buy 500 Arcade Coins for €1.99'});await expect(buy).toBeEnabled();await buy.click();await expect(page.locator('#coin-status')).toContainText('Purchase confirmed');

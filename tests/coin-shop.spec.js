@@ -42,7 +42,7 @@ test('Switching accounts while checkout opens does not redirect the new player',
  await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
  let release;const held=new Promise(resolve=>{release=resolve;});let requested=false;
  await page.route(API+'/checkout',async route=>{requested=true;await held;await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({orderId:'22222222-2222-4222-8222-222222222222',url:'https://checkout.stripe.com/c/pay/test'})});});
- await page.goto('/avatars.html');await page.locator('#coin-pack-options summary').click();const button=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(button).toBeEnabled();await button.click();await expect.poll(()=>requested).toBe(true);
+ await page.goto('/avatars.html');await page.getByRole('button',{name:'Coin packs',exact:true}).click();const button=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(button).toBeEnabled();await button.click();await expect.poll(()=>requested).toBe(true);
  await page.evaluate(()=>{window.qaUserId='another-account';});release();await expect(page.locator('#coin-status')).toContainText('account changed');await expect(page).toHaveURL(/avatars\.html/);
 });
 
@@ -50,7 +50,7 @@ test('Uncertain checkout survives reload and is isolated by account',async({page
  await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
  const keys=[];
  await page.route(API+'/checkout',async route=>{keys.push(route.request().headers()['idempotency-key']);await route.abort();});
- const buy=async()=>{await page.locator('#coin-pack-options').evaluate(el=>el.open=true);const b=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(b).toBeEnabled();await b.click();await expect(b).toBeEnabled();};
+ const buy=async()=>{await page.getByRole('button',{name:'Coin packs',exact:true}).click();const b=page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true});await expect(b).toBeEnabled();await b.click();await expect(b).toBeEnabled();};
  await page.goto('/avatars.html');await buy();await expect.poll(()=>keys.length).toBe(1);
  await page.reload();await buy();await expect.poll(()=>keys.length).toBe(2);expect(keys[1]).toBe(keys[0]);
  await page.evaluate(()=>window.qaUserId='second-player');await buy();await expect.poll(()=>keys.length).toBe(3);expect(keys[2]).not.toBe(keys[0]);
@@ -69,7 +69,7 @@ test('Refunded checkout shows the adjusted balance and clears only its account r
 test('Retained www storefront preserves working compact checkout cards',async({page})=>{
  await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
  const missing=[];page.on('response',r=>{if(r.status()===404&&new URL(r.url()).pathname.startsWith('/www/coin-pack'))missing.push(r.url());});
- await page.setViewportSize({width:320,height:740});await page.goto('/www/avatars.html');await page.locator('#coin-pack-options').evaluate(el=>el.open=true);
+ await page.setViewportSize({width:320,height:740});await page.goto('/www/avatars.html');await page.getByRole('button',{name:'Coin packs',exact:true}).click();
  await expect(page.getByRole('button',{name:'Buy 500 Arcade Coins for $1.99',exact:true})).toBeEnabled();
  const card=await page.locator('.coin-pack').boundingBox();expect(card.x).toBeGreaterThanOrEqual(0);expect(card.x+card.width).toBeLessThanOrEqual(320);
  expect(await page.locator('.coin-pack').evaluate(el=>{const box=el.getBoundingClientRect();return [...el.children].every(child=>{const r=child.getBoundingClientRect();return r.left>=box.left-1&&r.right<=box.right+1;});})).toBe(true);
