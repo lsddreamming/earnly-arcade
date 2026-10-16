@@ -797,6 +797,14 @@
     if (!isNative) return { ready: false, reason: "not-native" };
     if (!initializationPromise) {
       initializationPromise = (async () => {
+        let tracking = await AdMob.trackingAuthorizationStatus();
+        if (tracking.status === "notDetermined") {
+          await AdMob.requestTrackingAuthorization();
+          tracking = await AdMob.trackingAuthorizationStatus();
+        }
+        if (!["authorized", "denied", "restricted"].includes(tracking.status)) {
+          throw new Error("Tracking permission is not resolved. Please try again.");
+        }
         await AdMob.initialize();
         let consentInfo2 = await AdMob.requestConsentInfo();
         if (consentInfo2?.isConsentFormAvailable && consentInfo2?.status === AdmobConsentStatus.REQUIRED) {
@@ -823,9 +831,7 @@
     const loaded = await AdMob.prepareRewardVideoAd({
       adId,
       isTesting: TEST_MODE,
-      // Version 1.0 requests non-personalized rewarded ads. This keeps the
-      // launch build simpler for App Store privacy/ATT while still allowing
-      // rewarded ads to function.
+      // Non-personalized ads still require the ATT/consent flow above.
       npa: true
     });
     const reward = await AdMob.showRewardVideoAd(

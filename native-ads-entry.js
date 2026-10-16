@@ -15,6 +15,18 @@ async function ensureAdMobReady() {
 
   if (!initializationPromise) {
     initializationPromise = (async () => {
+      // Explicit ATT flow: do not configure a second IDFA explainer in UMP.
+      // The first optional Watch Ad tap triggers this, never gameplay startup.
+      let tracking = await AdMob.trackingAuthorizationStatus();
+      if (tracking.status === 'notDetermined') {
+        await AdMob.requestTrackingAuthorization();
+        tracking = await AdMob.trackingAuthorizationStatus();
+      }
+      if (!['authorized', 'denied', 'restricted'].includes(tracking.status)) {
+        throw new Error('Tracking permission is not resolved. Please try again.');
+      }
+      // Denial/restriction is respected by iOS: no IDFA is available to the SDK.
+      // SDK 8.1 requires initialization before it can present a UMP form.
       await AdMob.initialize();
 
       let consentInfo = await AdMob.requestConsentInfo();
@@ -50,9 +62,7 @@ async function showRewarded(kind = 'extraPlays') {
   const loaded = await AdMob.prepareRewardVideoAd({
     adId,
     isTesting: TEST_MODE,
-    // Earnly requests non-personalized rewarded ads. This keeps the
-    // App Store privacy/ATT path simpler while still allowing optional
-    // rewarded-play ads to function.
+    // Non-personalized ads still require the ATT/consent flow above.
     npa: true
   });
 

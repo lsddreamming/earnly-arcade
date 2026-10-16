@@ -79,6 +79,8 @@ plist = plist
   .replace(skAdNetworkRegex, '');
 
 const skAdNetworkBlock = [
+  '  <key>NSUserTrackingUsageDescription</key>',
+  '  <string>Your permission lets our advertising partner use your device identifier to measure advertising across apps and websites.</string>',
   '  <key>GADApplicationIdentifier</key>',
   '  <string>' + appId + '</string>',
   '  <key>SKAdNetworkItems</key>',

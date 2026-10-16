@@ -84,8 +84,8 @@ jobs:
             EXPECTED_TEST_MODE="true"
           fi
           grep -q "<string>$EXPECTED_APP_ID</string>" ios/App/App/Info.plist
-          if grep -q "NSUserTrackingUsageDescription" ios/App/App/Info.plist; then
-            echo "Unexpected ATT usage text in non-personalized v1.3 build"
+          if ! grep -q "NSUserTrackingUsageDescription" ios/App/App/Info.plist; then
+            echo "Missing ATT usage description for native advertising"
             exit 1
           fi
           grep -Eq "TEST_MODE[[:space:]]*=[[:space:]]*$EXPECTED_TEST_MODE" www/native-ads.js
