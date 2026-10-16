@@ -130,23 +130,24 @@
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="rank-discovery.css">
+  <link rel="stylesheet" href="profile-showcase.css">
 </head>
 <body class="profile-dashboard">
   <main class="container profile-container">
     <div class="topbar">
       <a class="brand" href="index.html">🎮 Earnly</a>
-      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+      <a class="balance-chip" href="rewards.html" aria-label="Your Arcade Coin balance">🪙 <span id="balance">0</span></a>
     </div>
 
     <header class="profile-hero">
-      <span class="profile-eyebrow">PLAYER HUB</span>
+      <span class="profile-eyebrow">YOUR PLAYER CARD</span>
       <div class="profile-hero-row">
-        <div class="profile-avatar" id="profileAvatar" aria-label="Profile icon">🎮</div>
+        <div class="profile-look"><div class="profile-avatar" id="profileAvatar" aria-label="Your avatar and equipped cosmetics">🎮</div><span>Your look</span></div>
         <div class="profile-hero-copy">
           <h1 id="nameDisplay">Player</h1>
           <div class="profile-level-line">Level <strong id="level">1</strong> · <span id="totalXP">0 total XP</span></div>
         </div>
-        
+
       </div>
     <div class="profile-xp-line">
         <span id="xpText">0 / 100 XP</span><span>Next level</span>
@@ -197,32 +198,10 @@
       <div><strong id="streak">0</strong><span>Day streak</span></div>
     </section>
 
-    <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Arcade Shop</strong><small>Outfits, accessories &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
-
-    <div id="profile-coin-shop" hidden>
-      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Coin Shop</strong><small>Optional purchases · proposed from $0.99</small></span><span aria-hidden="true">→</span></a>
-    </div>
-
-    <details class="profile-more-stats">
-      <summary>
-        <span>More player stats</span>
-        <small>Exploration, favorites & run history</small>
-      </summary>
-      <section class="profile-secondary-stats" aria-label="More player stats">
-        <div><span>Games explored</span><strong id="differentGames">0</strong></div>
-        <div><span>Favorites</span><strong id="favoriteCount">0</strong></div>
-        <div><span>Most played</span><strong id="mostPlayedGame">—</strong></div>
-        <div><span>Tracked runs</span><strong id="trackedRuns">0</strong></div>
-      </section>
-    </details>
-
-    <section class="profile-section profile-favorites-section" id="profileFavoritesSection">
-      <div class="profile-section-head">
-        <h2>⭐ Favorite games</h2>
-        <a href="games.html">Edit</a>
-      </div>
-      <div class="quick-grid profile-favorites" id="favoriteGames"></div>
-    </section>
+    <nav class="profile-style-actions" aria-label="Customize your player">
+      <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">✦</span><span><strong>Style your avatar</strong></span><span aria-hidden="true">→</span></a>
+      <div id="profile-coin-shop" hidden><a href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><strong>Coin packs</strong></a></div>
+    </nav>
 
     <div class="profile-section-label">Progress</div>
     <section class="profile-progress-menu" aria-label="Player progress">
@@ -241,7 +220,28 @@
       </a>
     </section>
 
-    <details class="profile-extras"><summary>⭐ Milestones &amp; rate Earnly <span aria-hidden="true">⌄</span></summary><section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
+    <details class="profile-more-stats">
+      <summary>
+        <span>More stats &amp; favorites</span>
+        <small>Exploration, favorites & run history</small>
+      </summary>
+      <section class="profile-secondary-stats" aria-label="More player stats">
+        <div><span>Games explored</span><strong id="differentGames">0</strong></div>
+        <div><span>Favorites</span><strong id="favoriteCount">0</strong></div>
+        <div><span>Most played</span><strong id="mostPlayedGame">—</strong></div>
+        <div><span>Tracked runs</span><strong id="trackedRuns">0</strong></div>
+      </section>
+
+    <section class="profile-section profile-favorites-section" id="profileFavoritesSection">
+      <div class="profile-section-head">
+        <h2>⭐ Favorite games</h2>
+        <a href="games.html">Edit</a>
+      </div>
+      <div class="quick-grid profile-favorites" id="favoriteGames"></div>
+    </section>
+    </details>
+
+    <details class="profile-extras"><summary>Milestones &amp; feedback <span aria-hidden="true">⌄</span></summary><section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
       <div class="profile-review-copy"><strong>⭐ Enjoying Earnly Arcade?</strong><small>Your honest rating helps other players discover us. Reviews are optional and never required for rewards.</small></div>
       <button type="button" id="rateEarnlyButton" class="profile-rate-button">⭐ Rate Earnly Arcade →</button>
       <div class="profile-milestone">

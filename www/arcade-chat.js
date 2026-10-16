@@ -26,6 +26,7 @@
  const counter=el('span','chat-counter','0 / 280');const composeRow=el('div','chat-compose-row');composeRow.append(counter,send);form.append(input,composeRow);
  const footer=el('p','chat-footer');footer.append(document.createTextNode('Public to signed-in players · No links or personal details. '),link('Support','support.html'));
  dialog.append(header,subtitle,status,gate,list,jump,settings,form,footer);document.body.append(launcher,dialog);
+ const profileHeader=document.querySelector('.profile-dashboard .topbar');if(profileHeader){profileHeader.append(launcher);launcher.classList.add('arcade-chat-inline');}
  let uid=null,epoch=0,timer=null,loading=false,busy=false,data=null,signature='',pending=null,lastSeen='',forceScroll=true;
  const key=()=>`earnlyChatSeen:${uid}`;
  const isBottom=()=>list.scrollHeight-list.scrollTop-list.clientHeight<65;

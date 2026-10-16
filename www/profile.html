@@ -23,7 +23,7 @@
     .global-profile-head span,.global-profile-status{font-size:11px;color:#94a3b8}
     .global-profile-fields{display:grid;gap:10px}
     .global-profile-fields label{display:grid;gap:5px;font-size:11px;font-weight:800;color:#cbd5e1}
-    .global-profile-fields input{width:100%;min-height:42px;border:1px solid #475569;border-radius:12px;background:#0b1728;color:#fff;padding:9px 11px;font:inherit}
+    .global-profile-fields input{width:100%;min-height:42px;border:1px solid #475569;border-radius:12px;background:#0b1728;color:#fff;padding:9px 11px;font:inherit;font-size:16px}
     .avatar-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
     .avatar-choice{min-width:0;min-height:42px;padding:4px;border:1px solid #334155;border-radius:12px;background:#162438;font-size:22px}
     .avatar-choice.selected{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.18);background:#17345c}
@@ -38,6 +38,90 @@
     .profile-dashboard .profile-shortcuts small,
     .profile-dashboard .profile-level-line,
     .profile-dashboard .profile-xp-line{color:#aebfd2!important}
+    .profile-review-panel{margin:14px 0;padding:15px;border:1px solid rgba(77,189,245,.45);border-radius:17px;background:linear-gradient(145deg,#132b46,#101b32);display:grid;gap:11px}
+    .profile-review-copy{display:grid;gap:5px}.profile-review-copy strong{font-size:1rem;color:#fff}.profile-review-copy small,.profile-milestone small{font-size:.81rem;line-height:1.45;color:#b8c9df}
+    .profile-rate-button{min-height:44px;border-radius:12px;border:1px solid #62d7ff;background:linear-gradient(120deg,#145f9c,#176eb5);color:white;font-weight:800}
+    .profile-milestone{display:grid;gap:5px;padding-top:11px;border-top:1px solid rgba(148,163,184,.22)}.profile-milestone span{font-weight:750}.profile-milestone strong{color:#7dd3fc}.profile-milestone a{color:#7dd3fc;font-weight:700;font-size:.86rem}
+    /* Compact player hub: move edit action into the header, no tall standalone row. */
+    .profile-dashboard .profile-hero{padding:12px 14px!important;border-radius:16px!important}
+    .profile-dashboard .profile-hero-row{margin-top:5px!important;gap:9px}
+    .profile-dashboard .profile-hero-copy h1{font-size:clamp(20px,5vw,25px)!important}
+    .profile-dashboard .profile-hero .profile-avatar{width:46px!important;height:46px!important}
+    .profile-dashboard .profile-xp-line{margin-top:7px!important}
+    .profile-dashboard .profile-edit-card{position:relative;margin:-48px 52px 8px auto!important;width:max-content;max-width:calc(100% - 65px);z-index:3;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important}
+    .profile-dashboard .profile-edit-card>summary{min-height:38px;padding:8px 11px!important;border:1px solid rgba(91,164,217,.4);border-radius:11px;background:#10243d;color:#e7f5ff;cursor:pointer;list-style:none;font-size:12px!important}
+    .profile-dashboard .profile-edit-card>summary::-webkit-details-marker{display:none}
+    .profile-dashboard .profile-edit-card[open]{margin:8px 0!important;width:100%;max-width:100%;padding:12px!important;background:#10243d!important;border:1px solid #36546d!important}
+    .profile-dashboard .profile-key-stats{margin:9px 0 11px!important;gap:3px!important}
+    .profile-dashboard .profile-key-stats>div,.profile-dashboard .profile-key-stats>div:nth-child(2){padding:6px 2px!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important}
+    .profile-dashboard .profile-key-stats strong{font-size:clamp(16px,4vw,22px)!important}
+    .profile-dashboard .profile-key-stats span{font-size:10px!important}
+
+    /* Progress summary must span the full row at every viewport width. */
+    .profile-dashboard .profile-bests-row>summary{width:calc(100% + 20px)!important;box-sizing:border-box!important;max-width:none!important;margin-left:-10px!important;margin-right:-10px!important}
+    /* Expanded personal bests content must match its enclosing progress row. */
+    .profile-dashboard .profile-bests-row>#bestGrid{width:calc(100% + 22px)!important;max-width:none!important;box-sizing:border-box!important;margin-left:-11px!important;margin-right:-11px!important}
+    /* 1.3 mobile profile density: preserve all actions and expandable details. */
+    @media(max-width:600px){
+      .profile-container{padding-top:8px!important}
+      .profile-dashboard .profile-hero{padding:10px 12px!important}
+      .profile-dashboard .profile-hero-row{margin-top:2px!important}
+      .profile-dashboard .profile-key-stats{margin:5px 0 7px!important}
+      .profile-dashboard .profile-key-stats>div{padding:3px 2px!important}
+      .profile-dashboard .profile-edit-card{margin:-43px 48px 4px auto!important}
+      .profile-dashboard .avatar-studio-link{min-height:54px!important;padding:9px 12px!important;margin:6px 0!important;gap:9px!important}
+      .profile-dashboard .avatar-studio-link small{font-size:11px!important}
+      .profile-dashboard .profile-more-stats{margin:6px 0!important}
+      .profile-dashboard .profile-progress-menu{margin:5px 0 8px!important}
+      .profile-dashboard .profile-progress-row{min-height:54px!important;padding:9px 11px!important}
+      .profile-dashboard .profile-progress-icon{width:34px!important;height:34px!important}
+      .profile-dashboard .profile-review-panel{margin:8px 0!important;padding:10px 12px!important;gap:7px!important}
+      .profile-dashboard .profile-review-copy{display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .profile-dashboard .profile-review-copy strong{font-size:13px!important}
+      .profile-dashboard .profile-review-copy small{display:none}
+      .profile-dashboard .profile-rate-button{min-height:36px!important;font-size:12px!important}
+      .profile-dashboard .profile-milestone{padding-top:7px!important;gap:3px!important}
+      .profile-dashboard .profile-milestone span{font-size:12px!important}
+      .profile-dashboard .profile-milestone small{display:none}
+      .profile-dashboard .profile-milestone a{font-size:12px!important}
+      .profile-dashboard .profile-shortcuts{margin-top:7px!important}
+    }
+
+    /* Keep the edit control inside the hub instead of reserving a separate row. */
+    .profile-dashboard .profile-hero{position:relative!important}
+    .profile-icon-options{border:1px solid #36546d;border-radius:12px;padding:9px 10px;margin:8px 0}
+    .profile-icon-options>summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
+    .profile-icon-options>summary::-webkit-details-marker{display:none}
+    .profile-icon-options .avatar-picker{margin-top:10px}
+    .global-profile-save-hint{font-size:12px;color:#aebfd2}
+    .profile-dashboard .profile-hero .profile-edit-card:not([open]){position:absolute!important;top:15px!important;right:12px!important;margin:0!important;width:auto!important;max-width:145px!important;z-index:4}
+    .profile-dashboard .profile-hero .profile-edit-card:not([open])>summary{min-height:34px!important;padding:7px 9px!important;white-space:nowrap}
+    .profile-dashboard .profile-hero .profile-edit-card[open]{position:relative!important;margin:10px 0!important;width:100%!important;max-width:100%!important;z-index:5}
+    .profile-dashboard .profile-hero .profile-hero-copy{padding-right:145px!important}
+    @media(max-width:600px){.profile-dashboard .profile-hero .profile-edit-card:not([open]){top:10px!important;right:12px!important}.profile-dashboard .profile-hero .profile-hero-copy{padding-right:135px!important}}
+    /* 1.3 phone dashboard: actions visible without a long scroll. */
+    .profile-extras{margin:8px 0;border:1px solid #29455e;border-radius:12px;overflow:hidden}
+    .profile-extras>summary{padding:11px 13px;font-size:13px;font-weight:750;color:#cde8ff;cursor:pointer;list-style:none}
+    .profile-extras>summary::-webkit-details-marker{display:none}
+    .profile-extras>summary span{float:right}
+    .profile-extras .profile-review-panel{margin:0!important;border:0!important;border-top:1px solid #29455e!important;border-radius:0!important}
+    @media(max-width:600px){
+      .profile-dashboard .profile-hero{padding:8px 11px!important}
+      .profile-dashboard .profile-xp-line{margin-top:3px!important}
+      .profile-dashboard .profile-key-stats{margin:3px 0 5px!important}
+      .profile-dashboard .avatar-studio-link{min-height:43px!important;padding:6px 10px!important;margin:4px 0!important}
+      .profile-dashboard .avatar-studio-link strong{font-size:13px!important}
+      .profile-dashboard .avatar-studio-link small{display:none!important}
+      .profile-dashboard .profile-more-stats{margin:4px 0!important}
+      .profile-dashboard .profile-more-stats>summary small{display:none}
+      .profile-dashboard .profile-section-label{margin:5px 0!important}
+      .profile-dashboard .profile-progress-menu{margin:3px 0!important}
+      .profile-dashboard .profile-progress-row{min-height:44px!important;padding:6px 9px!important}
+      .profile-dashboard .profile-progress-copy small{display:none}
+      .profile-dashboard .profile-shortcuts{margin-top:5px!important}
+      .profile-dashboard .profile-shortcuts a{padding:9px!important}
+      .profile-dashboard .public-footer{margin-top:12px!important}
+    }
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="cosmetic-ui.css">
@@ -46,40 +130,39 @@
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="rank-discovery.css">
+  <link rel="stylesheet" href="profile-showcase.css">
 </head>
 <body class="profile-dashboard">
   <main class="container profile-container">
     <div class="topbar">
       <a class="brand" href="index.html">🎮 Earnly</a>
-      <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
+      <a class="balance-chip" href="rewards.html" aria-label="Your Arcade Coin balance">🪙 <span id="balance">0</span></a>
     </div>
 
     <header class="profile-hero">
-      <span class="profile-eyebrow">PLAYER HUB</span>
+      <span class="profile-eyebrow">YOUR PLAYER CARD</span>
       <div class="profile-hero-row">
-        <div class="profile-avatar" id="profileAvatar" aria-label="Profile icon">🎮</div>
+        <div class="profile-look"><div class="profile-avatar" id="profileAvatar" aria-label="Your avatar and equipped cosmetics">🎮</div><span>Your look</span></div>
         <div class="profile-hero-copy">
           <h1 id="nameDisplay">Player</h1>
           <div class="profile-level-line">Level <strong id="level">1</strong> · <span id="totalXP">0 total XP</span></div>
         </div>
-        <a class="profile-settings-link" href="settings.html" aria-label="Settings">⚙️</a>
+
       </div>
-      <div class="profile-xp-line">
-        <span id="xpText">0 / 100 XP</span>
-        <span>Next level</span>
+    <div class="profile-xp-line">
+        <span id="xpText">0 / 100 XP</span><span>Next level</span>
       </div>
       <div class="xp-bar"><span id="xpBar"></span></div>
-    </header>
-
     <details class="profile-edit-card">
-      <summary>Edit profile</summary>
+      <summary>✏️ Edit Profile</summary>
       <form class="profile-name-form" id="nameForm">
         <input id="nameInput" type="text" maxlength="18" autocomplete="off" aria-label="Player name" placeholder="Player name">
-        <button type="submit">Save</button>
+        <button type="submit" id="saveProfileButton">Save Profile</button>
       </form>
       <div class="profile-edit-footer">
         <span>Nickname is your in-app display name.</span>
         <button class="mini-button secondary" id="soundButton" type="button">🔊 Game Sounds On</button>
+        <a class="mini-button secondary" href="settings.html" aria-label="Open app settings">⚙️ App Settings →</a>
       </div>
 
       <div class="global-profile-card">
@@ -92,17 +175,21 @@
             Leaderboard username
             <input id="usernameInput" type="text" maxlength="18" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Example: Justin92" aria-label="Global leaderboard username">
           </label>
-          <div>
-            <div class="global-profile-head"><strong>Choose profile icon</strong><span>Tap any icon. You can change it anytime.</span></div>
+          <details class="profile-icon-options">
+            <summary>🎨 Change leaderboard icon <span id="currentProfileIcon" aria-hidden="true">🚀</span></summary>
+            <div class="global-profile-head"><span>Choose an icon for world rankings.</span></div>
             <div class="avatar-picker" id="avatarPicker" role="group" aria-label="Choose profile icon"></div>
-          </div>
+          </details>
           <div class="global-profile-actions">
-            <button class="green" id="saveGlobalProfile" type="button">Save Global Profile</button>
+            <span class="global-profile-save-hint">Use Save Profile above to save your changes.</span>
             <span class="global-profile-status" id="globalProfileStatus">Sign in to compete on world leaderboards.</span>
           </div>
         </div>
       </div>
     </details>
+    </header>
+
+
 
     <section class="profile-key-stats" aria-label="Player highlights">
       <div><strong id="gamesCompleted">0</strong><span>Games</span></div>
@@ -111,32 +198,10 @@
       <div><strong id="streak">0</strong><span>Day streak</span></div>
     </section>
 
-    <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">🤖</span><span><strong>Character Studio</strong><small>Outfits, accessories &amp; Arcade Coins</small></span><span aria-hidden="true">→</span></a>
-
-    <div id="profile-coin-shop" hidden>
-      <a class="avatar-studio-link" href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><span><strong>Buy Arcade Coins</strong><small>Outfits, accessories &amp; extra plays · from $1.99</small></span><span aria-hidden="true">→</span></a>
-    </div>
-
-    <details class="profile-more-stats">
-      <summary>
-        <span>More player stats</span>
-        <small>Exploration, favorites & run history</small>
-      </summary>
-      <section class="profile-secondary-stats" aria-label="More player stats">
-        <div><span>Games explored</span><strong id="differentGames">0</strong></div>
-        <div><span>Favorites</span><strong id="favoriteCount">0</strong></div>
-        <div><span>Most played</span><strong id="mostPlayedGame">—</strong></div>
-        <div><span>Tracked runs</span><strong id="trackedRuns">0</strong></div>
-      </section>
-    </details>
-
-    <section class="profile-section profile-favorites-section" id="profileFavoritesSection">
-      <div class="profile-section-head">
-        <h2>⭐ Favorite games</h2>
-        <a href="games.html">Edit</a>
-      </div>
-      <div class="quick-grid profile-favorites" id="favoriteGames"></div>
-    </section>
+    <nav class="profile-style-actions" aria-label="Customize your player">
+      <a class="avatar-studio-link" href="avatars.html"><span aria-hidden="true">✦</span><span><strong>Style your avatar</strong></span><span aria-hidden="true">→</span></a>
+      <div id="profile-coin-shop" hidden><a href="avatars.html#coin-shop"><span aria-hidden="true">◈</span><strong>Coin packs</strong></a></div>
+    </nav>
 
     <div class="profile-section-label">Progress</div>
     <section class="profile-progress-menu" aria-label="Player progress">
@@ -155,6 +220,38 @@
       </a>
     </section>
 
+    <details class="profile-more-stats">
+      <summary>
+        <span>More stats &amp; favorites</span>
+        <small>Exploration, favorites & run history</small>
+      </summary>
+      <section class="profile-secondary-stats" aria-label="More player stats">
+        <div><span>Games explored</span><strong id="differentGames">0</strong></div>
+        <div><span>Favorites</span><strong id="favoriteCount">0</strong></div>
+        <div><span>Most played</span><strong id="mostPlayedGame">—</strong></div>
+        <div><span>Tracked runs</span><strong id="trackedRuns">0</strong></div>
+      </section>
+
+    <section class="profile-section profile-favorites-section" id="profileFavoritesSection">
+      <div class="profile-section-head">
+        <h2>⭐ Favorite games</h2>
+        <a href="games.html">Edit</a>
+      </div>
+      <div class="quick-grid profile-favorites" id="favoriteGames"></div>
+    </section>
+    </details>
+
+    <details class="profile-extras"><summary>Milestones &amp; feedback <span aria-hidden="true">⌄</span></summary><section class="profile-review-panel" aria-label="Rate Earnly and play milestone">
+      <div class="profile-review-copy"><strong>⭐ Enjoying Earnly Arcade?</strong><small>Your honest rating helps other players discover us. Reviews are optional and never required for rewards.</small></div>
+      <button type="button" id="rateEarnlyButton" class="profile-rate-button">⭐ Rate Earnly Arcade →</button>
+      <div class="profile-milestone">
+        <span>🎮 Arcade Marathon · 25 completed games</span>
+        <strong id="arcadeMarathonProgress">0 / 25</strong>
+        <small>Unlock the Arcade Marathon achievement at 25 games. A separate 250-Coin reward is planned, pending secure payout support.</small>
+        <a href="games.html">Play games →</a>
+      </div>
+    </section>
+    </details>
     <section class="profile-shortcuts profile-shortcuts-essential" aria-label="Profile shortcuts">
       <a href="leaderboards.html"><span>🏆</span><strong>Leaderboards</strong><small>World Top 25</small></a>
       <a href="account.html"><span>☁️</span><strong>Account & Data</strong><small>Cloud, backup & delete</small></a>
@@ -237,16 +334,21 @@
       });
     }
 
+    const profileDraft = { name:false, username:false };
+    document.getElementById('nameInput').addEventListener('input', () => { profileDraft.name = true; });
+    document.getElementById('usernameInput').addEventListener('input', () => { profileDraft.username = true; });
+
     function render() {
       const stats = Arcade.stats();
+      document.getElementById('arcadeMarathonProgress').textContent = Math.min(25, stats.gamesCompleted) + ' / 25';
       const xp = Arcade.xpStatus();
 
       document.getElementById('balance').textContent = stats.currentCoins.toLocaleString();
       document.getElementById('nameDisplay').textContent = stats.name;
       if (!window.EarnlyCosmetics?.paint()) document.getElementById('profileAvatar').textContent = Arcade.profileIcon();
-      document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
+      if (!profileDraft.name) document.getElementById('nameInput').value = stats.name === 'Player' ? '' : stats.name;
       const usernameInput = document.getElementById('usernameInput');
-      if (document.activeElement !== usernameInput) usernameInput.value = Arcade.leaderboardUsername();
+      if (!profileDraft.username && document.activeElement !== usernameInput) usernameInput.value = Arcade.leaderboardUsername();
       document.getElementById('level').textContent = xp.level;
       document.getElementById('xpText').textContent = xp.current + ' / ' + xp.needed + ' XP';
       document.getElementById('totalXP').textContent = xp.xp.toLocaleString() + ' total XP';
@@ -276,6 +378,7 @@
     function renderAvatarPicker() {
       const root = document.getElementById('avatarPicker');
       root.replaceChildren();
+      document.getElementById('currentProfileIcon').textContent = Arcade.profileIcon();
       Object.entries(Arcade.profileAvatars).forEach(([key, emoji]) => {
         const button = document.createElement('button');
         button.type = 'button';
@@ -309,21 +412,20 @@
       } catch {}
     }
 
-    document.getElementById('saveGlobalProfile').addEventListener('click', async () => {
+    async function saveGlobalProfile(username) {
       const status = document.getElementById('globalProfileStatus');
-      const button = document.getElementById('saveGlobalProfile');
-      button.disabled = true;
       status.className = 'global-profile-status';
       status.textContent = 'Saving…';
       try {
-        if (!window.EarnlyCloud) throw new Error('Cloud connection is still loading.');
+        if (!window.EarnlyCloud) { status.textContent = 'Display name saved locally. Global profile sync is unavailable.'; return; }
         const saved = await EarnlyCloud.updatePublicProfile({
           displayName:Arcade.profileName(),
-          username:document.getElementById('usernameInput').value,
+          username,
           avatarKey:Arcade.profileIconKey()
         });
         status.className = 'global-profile-status ok';
         status.textContent = '@' + saved.username + ' · global profile saved';
+        if (document.getElementById('usernameInput').value === username) profileDraft.username = false;
         Arcade.trackEvent?.('profile_identity_saved', {
           hasUsername:!!saved.username,
           avatarKey:saved.avatar_key || Arcade.profileIconKey()
@@ -334,23 +436,44 @@
       } catch (error) {
         status.className = 'global-profile-status error';
         status.textContent = error?.message || 'Could not save global profile.';
-      } finally {
-        button.disabled = false;
       }
-    });
+    }
 
     document.getElementById('soundButton').addEventListener('click', () => {
       Arcade.setSoundEnabled(!Arcade.soundEnabled());
       render();
     });
 
-    document.getElementById('nameForm').addEventListener('submit', event => {
+    document.getElementById('nameForm').addEventListener('submit', async event => {
       event.preventDefault();
+      const username = document.getElementById('usernameInput').value;
       const name = Arcade.setProfileName(document.getElementById('nameInput').value);
+      profileDraft.name = false;
       Arcade.toast('👤 Profile name saved as ' + name);
       render();
+      const button = document.getElementById('saveProfileButton');
+      button.disabled = true;
+      try { await saveGlobalProfile(username); } finally { button.disabled = false; }
     });
 
+    document.getElementById('rateEarnlyButton').addEventListener('click', async () => {
+      // Apple reviews are never tied to a coin grant or any reward claim.
+      // Open the owner's verified listing; never award coins for reviews.
+      const url = 'https://apps.apple.com/us/app/earnly-arcade/id6814277509?action=write-review';
+      if (window.Capacitor?.isNativePlatform?.()) {
+        // Capacitor's Browser plugin is optional; the system URL fallback works
+        // without a custom rating plugin or any extra native dependency.
+        try {
+          if (window.Capacitor?.Plugins?.Browser?.open) {
+            await window.Capacitor.Plugins.Browser.open({ url });
+            return;
+          }
+        } catch {}
+        window.location.href = url;
+        return;
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
     render();
     renderAvatarPicker();
     window.addEventListener('earnly-cloud-ready', syncPublicProfileFromCloud);
