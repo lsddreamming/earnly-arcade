@@ -10,6 +10,8 @@ const data = [
  ['no-headwear','No Headwear','head',0],['ribbed-beanie','Ribbed Beanie','head',0],['comms-headset','Comms Headset','head',350],['sun-crown','Sun Crown','head',500],
 ];
 const starters=['cyber-starter','starter-suit','starter-blaster','trail-boots','no-backpack','no-beard','no-facewear','no-headwear'];
+// Production also includes transparent strategy-game defaults. They must not hide full avatar previews.
+for(const slot of ['army','commander','building','battlefx']){data.push(['default-'+slot,'Default '+slot,slot,0]);starters.push('default-'+slot);}
 const items=data.map(([id,name,slot,coinPrice])=>({id,name,slot,coinPrice,rarity:coinPrice===0?'common':coinPrice>=600?'legendary':'rare',imageUrl:'cosmetic-'+id+'.svg',isStarter:starters.includes(id)}));
 const packs=[{id:'starter',coins:500,priceCents:199},{id:'plus',coins:1500,priceCents:499},{id:'vault',coins:4000,priceCents:999}];
 async function setup(page,{coins='1250',signedIn=true,native=false}={}) {
