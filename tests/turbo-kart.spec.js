@@ -211,3 +211,20 @@ test('racing keeps layout and wallet reads out of the frame hot path',async({pag
  await page.setViewportSize({width:667,height:375});
  await expect.poll(()=>page.locator('#game').evaluate(c=>Math.abs(c.width-c.getBoundingClientRect().width*Math.min(devicePixelRatio,2)))).toBeLessThanOrEqual(1);
 });
+
+test('slow renderer loading keeps Start disabled until the first tap can start a race',async({page})=>{
+ let release;
+ const ready=new Promise(resolve=>release=resolve);
+ await page.route('**/turbo-kart-renderer.js*',async route=>{await ready;await route.continue();});
+ await page.goto('/turbo-kart.html',{waitUntil:'commit'});
+ try{
+  await expect(page.locator('#startButton')).toBeVisible();
+  await expect(page.locator('#startButton')).toBeDisabled();
+  await expect(page.locator('#gameStatus')).toHaveText('Loading');
+ }finally{release();}
+ await expect(page.locator('#startButton')).toBeEnabled();
+ await expect(page.locator('#plays')).toHaveText('3');
+ await page.locator('#startButton').click();
+ await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect(page.locator('#plays')).toHaveText('2');
+});
