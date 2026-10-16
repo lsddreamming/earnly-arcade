@@ -1,7 +1,7 @@
 import { RoomGrid, tileKey, validXY } from './grid.ts';
 import type { XY, XYZ } from './grid.ts';
 import { MovementController } from './movement.ts';
-import {findInteraction,completeInteraction,findInteractionExit,completeInteractionExit} from './interactions.ts';
+import {findFurnitureSeat,findInteraction,completeInteraction,findInteractionExit,completeInteractionExit} from './interactions.ts';
 import type {Staff} from './public-hangouts.ts';
 import type {InteractionPlan} from './interactions.ts';
 
@@ -79,7 +79,9 @@ export class RoomRuntime {
     }
     if(p.type==='INTERACT'&&!m.seat&&validXY(p)&&['sit','lay'].includes(String(interactionAction))&&!Object.keys(p).some(k=>!['type','x','y','action'].includes(k))){
       if(now-m.lastIntent<100)return false;m.lastIntent=now;
-      const plan=findInteraction(this.grid,this.#position(m),p,interactionAction as 'sit'|'lay',{occupied:this.#occupied(userId)});
+      const occupied=this.#occupied(userId);
+      for(const [id,other] of this.#members)if(id!==userId&&other.plan)occupied.add(tileKey(other.plan.destination));
+      const plan=interactionAction==='sit'?findFurnitureSeat(this.grid,this.#position(m),p,{occupied}):findInteraction(this.grid,this.#position(m),p,'lay',{occupied});
       if(plan.status!=='ok')return false;
       const result=m.movement.moveTo(this.grid,{type:'MOVE_TO',x:plan.approach.x,y:plan.approach.y},this.#occupied(userId));
       if(result.status==='ok')m.plan=plan;return result.status==='ok';

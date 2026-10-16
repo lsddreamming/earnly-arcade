@@ -32,6 +32,20 @@ export function findInteraction(grid:RoomGrid,start:XY,target:XY,action:'sit'|'l
   // Do not report an optimal plan if a cheaper approach could have exceeded its budget.
   return budgetHit?{status:'budget_exceeded'}:best??{status:'unreachable'};
 }
+/** A sofa tap chooses a reachable free seat on that same furniture item. */
+export function findFurnitureSeat(grid:RoomGrid,start:XY,target:XY,options:PathOptions={}):InteractionPlan|InteractionFailure {
+ const itemId=grid.tile(target)?.itemId;
+ if(!itemId||!grid.tile(target)?.canSit)return {status:'blocked'};
+ const preferred=findInteraction(grid,start,target,'sit',options);
+ if(preferred.status==='ok')return preferred;
+ let best:InteractionPlan|undefined;
+ for(let y=0;y<grid.length;y++)for(let x=0;x<grid.width;x++){
+  const tile=grid.tile({x,y});if(tile?.itemId!==itemId||!tile.canSit||(x===target.x&&y===target.y))continue;
+  const plan=findInteraction(grid,start,{x,y},'sit',options);
+  if(plan.status==='ok'&&(!best||plan.cost<best.cost))best=plan;
+ }
+ return best??preferred;
+}
 /** Invoke on the server AFTER walking the path, with current occupants/grid. */
 export function completeInteraction(grid:RoomGrid,current:XYZ,plan:InteractionPlan,options:PathOptions={}):{position:XYZ;state:'sit'|'lay'}|null {
   if(grid.revision!==plan.revision||current.x!==plan.approach.x||current.y!==plan.approach.y||current.z!==plan.approach.z)return null;
