@@ -35,6 +35,7 @@ export class SupabaseWorldAccess implements WorldAccess {
   async #api(userId:string,action:string,data:unknown={}):Promise<any>{return this.#request('/rest/v1/rpc/world_api',this.#key,{p_actor:userId,p_action:action,p_data:data});}
   async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
   #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items,s.revision);}
+  #roomCounts(rooms:Record<string,any>[]){return rooms.filter(r=>!this.#retired.has(r.id)).map(r=>({...r,occupancy:this.#rooms.get(r.id)?.memberCount??0}));}
   async enter(identity:Identity,roomId:string){
     let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
     if(roomId==='home'||roomId==='choose-home'||roomId.startsWith('starter-')){
@@ -89,6 +90,12 @@ export class SupabaseWorldAccess implements WorldAccess {
         result=await this.#request('/rest/v1/rpc/world_delete_room',this.#key,{p_actor:uid,p_room:target});
         this.#rooms.delete(target);
       }catch(error){this.#retired.delete(target);if(targetRoom)targetRoom.paused=false;throw error;}
+    }else if(action==='friend_rooms'){
+      if(typeof data.userId!=='string'||!/^[0-9a-f-]{36}$/i.test(data.userId))throw new Error('Player unavailable');
+      const rooms=await this.#request('/rest/v1/rpc/world_friend_rooms',this.#key,{p_actor:uid,p_friend:data.userId});
+      result=this.#roomCounts(rooms);
+    }else if(action==='room_directory'){
+      const directory=await this.#api(uid,'bootstrap');result=this.#roomCounts(directory.rooms);
     }else if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
     }else if(action==='place'){
       const previous=this.#queues.get(roomId)??Promise.resolve();
@@ -142,7 +149,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
-      if(action==='bootstrap')result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));
+      if(action==='bootstrap'){result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
   }

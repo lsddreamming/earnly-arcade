@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const db=new PGlite();
 await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,is_anonymous boolean default false,email_confirmed_at timestamptz default now());create table public.profiles(user_id uuid primary key,username text);create table public.leaderboard_bans(user_id uuid);create table public.coin_wallets(user_id uuid primary key,balance bigint,purchased_balance bigint,purchase_debt bigint default 0,updated_at timestamptz default now());create function public.cosmetic_loadout_json(uuid) returns jsonb language sql as 'select ''{}''::jsonb';
 create function public.test_coin_spend() returns trigger language plpgsql as $$ begin if new.balance<old.balance and new.purchased_balance=old.purchased_balance then new.purchased_balance:=greatest(0,old.purchased_balance-(old.balance-new.balance));end if;return new;end $$;create trigger coin_purchased_spend before update on public.coin_wallets for each row execute function public.test_coin_spend();`);
-for(const file of ['20261013204721_world_persistence','20261013210433_world_trade_offer_integrity','20261013211424_world_catalog_social'])await db.exec(await readFile(new URL('../supabase/migrations/'+file+'.sql',import.meta.url),'utf8'));
+for(const file of ['20261013204721_world_persistence','20261013210433_world_trade_offer_integrity','20261013211424_world_catalog_social','20261016221927_world_friend_room_directory'])await db.exec(await readFile(new URL('../supabase/migrations/'+file+'.sql',import.meta.url),'utf8'));
 const a=randomUUID(),b=randomUUID(),c=randomUUID();
 for(const [id,name] of [[a,'PlayerA'],[b,'PlayerB'],[c,'PlayerC']]){await db.query('insert into auth.users(id) values($1)',[id]);await db.query('insert into public.profiles values($1,$2)',[id,name]);await db.query('insert into public.coin_wallets(user_id,balance,purchased_balance) values($1,1000,400)',[id]);}
 const api=async(actor,action,data={})=>(await db.query('select public.world_api($1,$2,$3::jsonb) result',[actor,action,JSON.stringify(data)])).rows[0].result;
@@ -21,8 +21,16 @@ await assert.rejects(api(b,'place',{roomId:personal.roomId,itemId:buy.item_id,re
 await api(a,'place',{roomId:personal.roomId,itemId:buy.item_id,revision:0,x:0,y:0,z:0,rotation:0});await assert.rejects(api(a,'place',{roomId:personal.roomId,itemId:buy.item_id,revision:0,pickup:true}));
 await api(a,'friend_request',{username:'PlayerB'});await api(a,'friend_request',{username:'PlayerB'});assert.equal((await api(b,'bootstrap')).friends.length,1);
 await api(a,'accept_chat');await api(b,'accept_chat');await assert.rejects(api(a,'private_send',{userId:b,text:'hello',requestId:randomUUID()}));
-await api(b,'friend_accept',{userId:a});const msg=await api(a,'private_send',{userId:b,text:'hello friend',requestId:randomUUID()});assert.equal((await api(b,'private_feed',{userId:a}))[0].body,'hello friend');await assert.rejects(api(c,'private_feed',{userId:a}));await assert.rejects(api(c,'report',{messageId:msg.id,reason:'spam'}));await api(b,'report',{messageId:msg.id,reason:'spam'});
-await api(b,'block',{userId:a});await assert.rejects(api(a,'private_feed',{userId:b}));assert.equal((await api(a,'bootstrap')).friends.length,0);
+const friendRooms=async(actor,target)=>(await db.query('select public.world_friend_rooms($1,$2) result',[actor,target])).rows[0].result;
+await assert.rejects(friendRooms(b,a));await assert.rejects(friendRooms(c,a));
+await api(b,'friend_accept',{userId:a});
+assert.equal((await friendRooms(b,a))[0].id,personal.roomId);assert.deepEqual(await friendRooms(a,b),[]);
+await api(a,'room_access',{roomId:personal.roomId,access:'closed'});assert.deepEqual(await friendRooms(b,a),[]);
+await assert.rejects(db.query('select public.world_room_snapshot($1,$2)',[b,personal.roomId]));
+await api(a,'room_access',{roomId:personal.roomId,access:'open'});
+assert.equal((await db.query("select has_function_privilege('anon','public.world_friend_rooms(uuid,uuid)','execute') or has_function_privilege('authenticated','public.world_friend_rooms(uuid,uuid)','execute') as exposed")).rows[0].exposed,false);
+const msg=await api(a,'private_send',{userId:b,text:'hello friend',requestId:randomUUID()});assert.equal((await api(b,'private_feed',{userId:a}))[0].body,'hello friend');await assert.rejects(api(c,'private_feed',{userId:a}));await assert.rejects(api(c,'report',{messageId:msg.id,reason:'spam'}));await api(b,'report',{messageId:msg.id,reason:'spam'});
+await api(b,'block',{userId:a});await assert.rejects(friendRooms(a,b));await assert.rejects(friendRooms(b,a));await assert.rejects(api(a,'private_feed',{userId:b}));assert.equal((await api(a,'bootstrap')).friends.length,0);
 await db.query('update earnly_world.social_members set last_sent=null where user_id=$1',[a]);await assert.rejects(api(a,'say',{text:'https://spam.example',mode:'shout',roomId:initial.rooms[0].id,viewers:[a,c],requestId:randomUUID()}));
 const say=await api(a,'say',{text:'hello plaza',mode:'normal',roomId:initial.rooms[0].id,viewers:[a,b,c],requestId:randomUUID()});assert.deepEqual(new Set(say.viewers),new Set([a,c]));
 await db.query("select public.world_moderate('suspend',$1,1)",[a]);await assert.rejects(api(a,'bootstrap'));
