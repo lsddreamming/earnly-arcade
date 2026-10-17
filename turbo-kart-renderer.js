@@ -2,11 +2,11 @@
    Everything is drawn locally. No Nintendo characters, textures or downloaded assets. */
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
- function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map();let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
+ function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map(),maps=new Map();let skyCache=null;let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
  // Layout is read only on resize, never after per-frame HUD writes.
  let size=null;const resize=()=>{size=canvas.getBoundingClientRect();};
  const observer=new ResizeObserver(resize);observer.observe(canvas);window.addEventListener('resize',resize);
- const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),touch=window.matchMedia('(pointer: coarse)');
  function poly(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();}
  function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);ctx.fill();}
  function box(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
@@ -48,12 +48,13 @@ const TurboKartRenderer=(()=>{
   if(type==='rock'){poly([{x:-26,y:0},{x:-21,y:-35},{x:-12,y:-50},{x:10,y:-47},{x:24,y:-22},{x:29,y:0}],'#c97a83');poly([{x:-21,y:-35},{x:-12,y:-50},{x:10,y:-47},{x:3,y:-20},{x:-24,y:-16}],'#f8b18b');line(-20,-16,17,-12,'#ffc196',4);}
   if(type==='arch'){ctx.strokeStyle='#ce7d80';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(-23,0);ctx.lineTo(-23,-26);ctx.bezierCurveTo(-23,-57,23,-57,23,-26);ctx.lineTo(23,0);ctx.stroke();ctx.strokeStyle='#f9b88f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-29,-2);ctx.lineTo(-29,-26);ctx.bezierCurveTo(-29,-61,25,-61,28,-29);ctx.stroke();}
   if(type==='tower'){box(-13,-45,26,45,2,scene==='garden'?'#414b86':'#f9d2aa');box(7,-43,6,43,0,'#23395530');box(-10,-6,7,6,1,'#415674');line(-13,-17,13,-17,'#fff5d959',2);poly([{x:-17,y:-45},{x:0,y:-58},{x:17,y:-45}],scene==='garden'?'#a2a2ff':'#f37d8e');for(let j=0;j<3;j++){box(-8,-37+j*12,5,6,1,'#73e5ef');box(3,-37+j*12,5,6,1,'#73e5ef');}}
+  if(type==='boat'){ellipse(0,1,20,3,'#b5f7ef');poly([{x:-18,y:-4},{x:20,y:-4},{x:10,y:2},{x:-10,y:2}],'#fff4dc');line(0,-4,0,-42,'#516984',2);poly([{x:-2,y:-40},{x:-2,y:-7},{x:-20,y:-7}],index%2?'#ffb5ba':'#c3fff0');poly([{x:3,y:-32},{x:16,y:-7},{x:3,y:-7}],'#ffffff');}
   if(type==='lamp'){line(0,0,0,-40,'#35475f',3);box(-4,-3,8,3,1,'#687d92');line(0,-40,12,-40,'#35475f',3);box(8,-42,12,4,1,'#a6ffde');poly([{x:9,y:-38},{x:19,y:-38},{x:27,y:-6},{x:1,y:-6}],'#d8ffbc16');}
   if(type==='crystal'){poly([{x:0,y:-38},{x:12,y:-17},{x:0,y:1},{x:-12,y:-17}],'#8bfbea');poly([{x:0,y:-38},{x:0,y:1},{x:-12,y:-17}],'#ae9cff');}
   if(type==='umbrella'){line(0,0,0,-22,'#fff1d7',2);poly([{x:-23,y:-22},{x:0,y:-37},{x:23,y:-22}],index%2?'#ff9dac':'#aaffdc');ellipse(0,-1,10,2,'#ffdeaa');}
   ctx.restore();
  }
- function render(s,{idle=false}={}){const rect=size||(size=canvas.getBoundingClientRect()),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
+ function render(s,{idle=false}={}){const rect=size||(size=canvas.getBoundingClientRect()),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(window.devicePixelRatio||1,touch.matches?1.5:2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
   const ambientTime=reduced.matches?0:s.time;
   const t=s.track,p=s.racers[0],pos=E.sample(p.d,p.lane,t),target=pos.angle+p.heading*.38;
   if(cameraAngle===null||s.time<lastTime||lastTrack!==t.id)cameraAngle=target;
@@ -61,16 +62,21 @@ const TurboKartRenderer=(()=>{
   const f=Math.min(w*.92,h*.88)*(p.boost>0&&!reduced.matches?.94:1),horizon=h*.30,back=58,camHeight=h*.54*back/f;
   const forward={x:Math.cos(cameraAngle),y:Math.sin(cameraAngle)},right={x:-forward.y,y:forward.x},cam={x:pos.x-forward.x*back,y:pos.y-forward.y*back};
   function project(v,z=0){const dx=v.x-cam.x,dy=v.y-cam.y,depth=dx*forward.x+dy*forward.y,k=f/Math.max(depth,1);return {x:w/2+(dx*right.x+dy*right.y)*k,y:horizon+(camHeight-z)*k,k,depth};}
-  const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,t.sky[0]);sky.addColorStop(1,t.sky[1]);ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);ellipse(w*.74,horizon*.48,39,39,'#fff4d512');ellipse(w*.74,horizon*.48,30,30,'#fff4d51a');ellipse(w*.74,horizon*.48,24,24,t.scene==='garden'?'#fff3dc':'#fff4c6');
+  if(!skyCache||skyCache.id!==t.id||skyCache.horizon!==horizon){const gradient=ctx.createLinearGradient(0,0,0,horizon);gradient.addColorStop(0,t.sky[0]);gradient.addColorStop(1,t.sky[1]);skyCache={id:t.id,horizon,gradient};}ctx.fillStyle=skyCache.gradient;ctx.fillRect(0,0,w,h);ellipse(w*.74,horizon*.48,39,39,'#fff4d512');ellipse(w*.74,horizon*.48,30,30,'#fff4d51a');ellipse(w*.74,horizon*.48,24,24,t.scene==='garden'?'#fff3dc':'#fff4c6');
   if(t.scene==='garden'){for(let i=0;i<32;i++)ellipse((i*97)%w,12+(i*41)%Math.max(20,horizon*.8),1,1,'#ffe7ff');}
   else{for(let i=0;i<5;i++){const x=((i*w*.31-cameraAngle*35)%(w+180)+w+180)%(w+180)-80,y=30+(i%3)*horizon*.18;ellipse(x,y,32,10,'#ffffffb0');ellipse(x+18,y-7,23,14,'#ffffffb0');}}
   for(let layer=0;layer<2;layer++){const points=[{x:0,y:horizon+10}];for(let x=0;x<=w+20;x+=20)points.push({x,y:horizon-12-layer*10-Math.sin(x*.012+cameraAngle+layer*3)*(18+layer*6)-Math.cos(x*.029+layer)*10});points.push({x:w+20,y:horizon+25});poly(points,t.scene==='canyon'?['#d48d98','#e6a48c'][layer]:t.scene==='garden'?['#6460a0','#727cb3'][layer]:['#6fbbaf','#98d3b8'][layer]);}
   ctx.fillStyle=t.ground;ctx.fillRect(0,horizon+14,w,h-horizon);
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+ambientTime*2)%w,horizon+23+i*4,(i*89+ambientTime*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
-  // Small skyline landmarks remain behind the road and racers.
-  if(t.scene==='harbor'){for(let i=0;i<3;i++){const x=((i*w*.38-cameraAngle*22+w*4)%(w+80))-30,y=horizon+28+i*5;poly([{x:x-10,y},{x:x+13,y},{x:x+7,y:y+4},{x:x-5,y:y+4}],'#fff4dc');line(x,y,x,y-18,'#516984',1);poly([{x:x-1,y:y-17},{x:x-1,y:y-2},{x:x-10,y:y-2}],i%2?'#ffb5ba':'#c3fff0');}}
+  // A real infield bay: boats use the same world projection as the circuit.
+  // Clip the water polygon against the near plane before projecting it.
+  if(t.scene==='harbor'){
+   function bayPolygon(points,color){const clipped=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],da=project(a).depth,db=project(b).depth;if(da>=4)clipped.push(a);if((da>=4)!==(db>=4)){const f=(4-da)/(db-da);clipped.push({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f});}}if(clipped.length>=3)poly(clipped.map(v=>project(v)),color);}
+   bayPolygon([{x:-100,y:-110},{x:90,y:-110},{x:80,y:80},{x:-90,y:105}],'#e7d6a3');
+   bayPolygon([{x:-91,y:-101},{x:81,y:-101},{x:71,y:71},{x:-81,y:96}],'#58c4d7');
+  }
   // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
-  if(s.time<skidTime||s.time===0){skidMarks=[];skidTime=-1;}if(s.time>skidTime){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-240);
+  if(s.time<skidTime||s.time===0){skidMarks=[];skidTime=-1;}if(s.time-skidTime>=.045){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-90);
   const ground=[],decals=[],queue=[],labels=[];let roadLayer=null;
   // Every ribbon shares the same centerline endpoints. Sample each endpoint
   // once instead of repeating binary searches and trigonometry for every lane.
@@ -79,7 +85,7 @@ const TurboKartRenderer=(()=>{
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
   function ribbon(d1,d2,left,rightOffset,color){const a=roadPoint(d1,left),b=roadPoint(d1,rightOffset),c=roadPoint(d2,rightOffset),d=roadPoint(d2,left);if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
   const segment=10,start=Math.floor((p.d-70)/segment)*segment;
-  for(let i=0;i<78;i++){const d=start+i*segment,next=d+segment,alt=Math.floor(d/20)%2===0;roadLayer=[];
+  for(let d=start,i=0;d<start+780;i++){const step=d-p.d<120?10:d-p.d<300?20:40,next=d+step,alt=Math.floor(d/20)%2===0;roadLayer=[];
    ribbon(d,next,-65,65,alt?t.ground:(t.scene==='canyon'?'#edb781':t.scene==='garden'?'#3c918b':'#69c16c'));
    ribbon(d,next,-57,57,alt?'#fff2e4':t.curb);const boardwalk=t.scene==='harbor'&&((d%t.length+t.length)%t.length)/t.length>.43&&((d%t.length+t.length)%t.length)/t.length<.56;ribbon(d,next,-51,51,boardwalk?(alt?'#b88d83':'#ad8077'):t.road);
    // Restrained road facets and a recessed edge add depth without extra samples.
@@ -90,7 +96,7 @@ const TurboKartRenderer=(()=>{
    if(t.scene==='garden'){ribbon(d,next,-58,-57,'#a5ffe8');ribbon(d,next,57,58,'#a5ffe8');}
    if(Math.floor(d/25)%2===0)for(const lane of [-17,17])ribbon(d,next,lane-.45,lane+.45,'#d1dae29c');
    const mod=((d%t.length)+t.length)%t.length;if(mod<15){for(let cell=0;cell<10;cell++)ribbon(d,next,-50+cell*10,-40+cell*10,(cell+i)%2?'#f3ffef':'#253047');}
-   const layers=roadLayer;roadLayer=null;add(project(E.sample(d+5,0,t)).depth,()=>{for(const draw of layers)draw();},ground);
+   const layers=roadLayer;roadLayer=null;add(project(E.sample(d+step/2,0,t)).depth,()=>{for(const draw of layers)draw();},ground);d=next;
   }
   for(const mark of skidMarks)for(const side of [-1,1]){const q=project(E.sample(mark.d,mark.lane+side*9,t)),tail=project(E.sample(mark.d-2,mark.lane+side*9,t));add(q.depth,()=>line(q.x,q.y,tail.x,tail.y,'#17263a38',Math.max(.5,1.2*q.k)),decals);}
   // Curbs, booster strips and airborne pickups all share the road's projection.
@@ -98,8 +104,12 @@ const TurboKartRenderer=(()=>{
   for(const item of s.pickups){let d=p.d+((item.d-p.d)%t.length+t.length)%t.length;if(item.takenLap===Math.floor(d/t.length))continue;const q=project(E.sample(d,item.lane,t),5+Math.sin(ambientTime*3+item.d)*1.5);add(q.depth,()=>{const size=5.5*q.k;if(q.x<-size||q.x>w+size)return;if(item.type==='coin'){ellipse(q.x,q.y,size*.7,size,'#ffd96d');ellipse(q.x,q.y,size*.45,size*.72,'#ffed9b');text('◇',q.x,q.y+size*.4,size*1.2,'#b5754b');}else{poly([{x:q.x,y:q.y-size*1.4},{x:q.x+size,y:q.y},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#a4ffed');poly([{x:q.x,y:q.y-size*1.4},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#9479eb');text('ϟ',q.x,q.y+size*.45,size*1.3,'#fff9d7');}});}
   // Keep every prop clear of the whole circuit, including the inside of hairpins.
   // Cache placement once; the extra clearance also leaves room to recover off-road.
-  if(!scenery.has(t.id)){const props=[];for(let i=0;i<84;i++){const d=i*t.length/84,offset=(i%2?1:-1)*(124+(i%3)*33),v=E.sample(d,offset,t);if(t.points.some(q=>Math.hypot(v.x-q.x,v.y-q.y)<112))continue;const type=t.scene==='canyon'?['rock','tower','rock','arch','rock','tower','rock'][i%7]:t.scene==='garden'?(i%7===0?'lamp':i%4?'tree':'crystal'):(i%7===0?'lamp':i%5===0?'tower':i%3===0?'umbrella':'tree');props.push({d,v,type,index:i,size:.58+(i%5)*.065});}scenery.set(t.id,props);}
+  if(!scenery.has(t.id)){const props=[];for(let i=0;i<84;i++){const d=i*t.length/84,offset=(i%2?1:-1)*(124+(i%3)*33),v=E.sample(d,offset,t);if(t.points.some(q=>(v.x-q.x)**2+(v.y-q.y)**2<112*112))continue;const type=t.scene==='canyon'?['rock','tower','rock','arch','rock','tower','rock'][i%7]:t.scene==='garden'?(i%7===0?'lamp':i%4?'tree':'crystal'):(i%7===0?'lamp':i%5===0?'tower':i%3===0?'umbrella':'tree');props.push({d,v,type,index:i,size:.58+(i%5)*.065});}scenery.set(t.id,props);}
   for(const v of scenery.get(t.id)){const gap=((v.d-p.d)%t.length+t.length)%t.length;if(gap>650)continue;const q=project(v.v);add(q.depth,()=>{if(q.x>-60*q.k&&q.x<w+60*q.k)prop(v.type,q.x,q.y,q.k*v.size,t.scene,v.index);});}
+  if(t.scene==='harbor')for(let i=0;i<3;i++){
+   const base=[[-44,-48],[34,-2],[-22,57]][i],v={x:base[0]+Math.sin(ambientTime*.09+i)*9,y:base[1]+Math.cos(ambientTime*.09+i)*5},q=project(v);
+   add(q.depth,()=>{if(q.x>-30*q.k&&q.x<w+30*q.k)prop('boat',q.x,q.y,q.k*.65,t.scene,i);});
+  }
   // Trackside arrow boards make the upcoming corner readable without watching the map.
   for(let i=0;i<14;i++){const d=i*t.length/14,gap=((d-p.d)%t.length+t.length)%t.length,bend=E.curvature(d,t);if(Math.abs(bend)<.002||gap>500)continue;const q=project(E.sample(p.d+gap,-Math.sign(bend)*69,t),6);add(q.depth,()=>{box(q.x-12*q.k,q.y-13*q.k,24*q.k,13*q.k,2*q.k,'#233e61');text(bend>0?'››':'‹‹',q.x,q.y-2*q.k,15*q.k,'#fff5ac');});}
   for(const h of s.hazards){const q=project(E.sample(h.d,h.lane,t));add(q.depth,()=>{ellipse(q.x,q.y,14*q.k,4*q.k,'#382e78');ellipse(q.x-4*q.k,q.y-q.k,7*q.k,2*q.k,'#aa89e7');},decals);}
@@ -120,7 +130,7 @@ const TurboKartRenderer=(()=>{
   }
   if(p.boost>0&&!reduced.matches){for(let i=0;i<9;i++){const side=i%2?1:-1,x=w/2+side*(w*.35+i*7),y=h*.48+(i*53+s.time*240)%(h*.5);line(x,y,x+side*12,y+30,'#e1fffd85',2);}}
   // Compact whole-course map, with a clear player marker and finish flag.
-  const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);ctx.beginPath();t.points.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();ctx.lineWidth=36;ctx.strokeStyle='#081b36';ctx.stroke();ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke();const finish=E.sample(0,0,t);line(finish.x,finish.y,finish.x,finish.y-88,'#fff3dc',10);for(let row=0;row<2;row++)for(let col=0;col<3;col++){ctx.fillStyle=(row+col)%2?'#152b45':'#fff3dc';ctx.fillRect(finish.x+col*17,finish.y-88+row*17,17,17);}for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i){ellipse(q.x,q.y,17,17,'#49dabe');const a=q.angle;poly([{x:q.x+Math.cos(a)*52,y:q.y+Math.sin(a)*52},{x:q.x+Math.cos(a+2.2)*22,y:q.y+Math.sin(a+2.2)*22},{x:q.x+Math.cos(a-2.2)*22,y:q.y+Math.sin(a-2.2)*22}],'#a4ffe3');}}ctx.restore();
+  const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);let map=maps.get(t.id);if(!map){map=new Path2D();t.points.forEach((v,i)=>i?map.lineTo(v.x,v.y):map.moveTo(v.x,v.y));map.closePath();maps.set(t.id,map);}ctx.lineWidth=36;ctx.strokeStyle='#081b36';ctx.stroke(map);ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke(map);const finish=E.sample(0,0,t);line(finish.x,finish.y,finish.x,finish.y-88,'#fff3dc',10);for(let row=0;row<2;row++)for(let col=0;col<3;col++){ctx.fillStyle=(row+col)%2?'#152b45':'#fff3dc';ctx.fillRect(finish.x+col*17,finish.y-88+row*17,17,17);}for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i){ellipse(q.x,q.y,17,17,'#49dabe');const a=q.angle;poly([{x:q.x+Math.cos(a)*52,y:q.y+Math.sin(a)*52},{x:q.x+Math.cos(a+2.2)*22,y:q.y+Math.sin(a+2.2)*22},{x:q.x+Math.cos(a-2.2)*22,y:q.y+Math.sin(a-2.2)*22}],'#a4ffe3');}}ctx.restore();
   if(!idle&&!(s.callout&&s.time<=s.calloutUntil)){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){const label=bend>0?'RIGHT BEND ›':'‹ LEFT BEND',size=Math.max(10,Math.min(13,w/35));box(w/2-64,horizon*.68-size-4,128,size+12,9,'#142640c9');text(label,w/2,horizon*.68,size,'#fff5d8');}}
  }
  return {render,setDriver(value){driver=value;}};

@@ -35,7 +35,7 @@
  function selectCourse(id){if(running||starting)return;selectedCourse=id;state=E.create(id);el.courseName.textContent=state.track.name.toUpperCase();el.courseTag.textContent=state.track.tag;el.courseDescription.textContent=state.track.description;for(const button of document.querySelectorAll('[data-course]'))button.setAttribute('aria-pressed',String(button.dataset.course===id));chrome();renderer.render(state,{idle:true});}
  for(const button of document.querySelectorAll('[data-course]'))button.addEventListener('click',()=>selectCourse(button.dataset.course));
  canvas.addEventListener('pointerdown',e=>{if(!running||paused||drag||e.button>0)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,steer:0};});
- canvas.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;e.preventDefault();drag.steer=Math.max(-1,Math.min(1,Math.sign(e.clientX-drag.x)*Math.max(0,Math.abs(e.clientX-drag.x)-5)/Math.min(55,canvas.getBoundingClientRect().width*.16)));style();});
+ canvas.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;e.preventDefault();drag.steer=Math.max(-1,Math.min(1,Math.sign(e.clientX-drag.x)*Math.max(0,Math.abs(e.clientX-drag.x)-5)/Math.min(85,canvas.getBoundingClientRect().width*.22)));style();});
  // iOS callouts apply to links (including Quit) and nested labels, not just buttons.
  // Scope the guard to the racing surface so guides, dialogs and text fields stay normal.
  const surfaces=[...document.querySelectorAll('.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls')];
@@ -56,7 +56,7 @@
   if(!action||action.disabled||action.matches('#leftButton,#rightButton,#driftButton'))e.preventDefault();
  },{passive:false});
  for(const [id,value]of [['leftButton','left'],['rightButton','right'],['driftButton','drift']])el[id].addEventListener('pointerdown',e=>{if(!running||paused||e.button>0||[...pointers.values()].includes(value))return;e.preventDefault();el[id].setPointerCapture(e.pointerId);pointers.set(e.pointerId,value);if(value==='drift'&&!driftDrag)driftDrag={id:e.pointerId,x:e.clientX,steer:0};style();});
- el.driftButton.addEventListener('pointermove',e=>{if(driftDrag?.id!==e.pointerId)return;e.preventDefault();const distance=e.clientX-driftDrag.x;driftDrag.steer=Math.sign(distance)*Math.min(1,Math.max(0,Math.abs(distance)-6)/48);style();});
+ el.driftButton.addEventListener('pointermove',e=>{if(driftDrag?.id!==e.pointerId)return;e.preventDefault();const distance=e.clientX-driftDrag.x;driftDrag.steer=Math.sign(distance)*Math.min(1,Math.max(0,Math.abs(distance)-6)/64);style();});
  for(const event of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(event,e=>{pointers.delete(e.pointerId);if(drag?.id===e.pointerId)drag=null;if(driftDrag?.id===e.pointerId)driftDrag=null;style();});
  el.itemButton.addEventListener('click',()=>{if(running&&!paused){E.useItem(state);chrome();}});
  document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,dialog,.modal-backdrop'))return;const k=e.key.length===1?e.key.toLowerCase():e.key;if(['ArrowLeft','ArrowRight','a','d','Shift',' '].includes(k)){e.preventDefault();if(running&&!paused){if(k===' '&&!e.repeat){E.useItem(state);chrome();}else keys.add(k);style();}}});
