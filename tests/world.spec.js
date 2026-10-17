@@ -136,10 +136,12 @@ test('Large rooms open framed, with optional close view, recentering and stable 
   r.updateUser({userId:'preview',username:'Your potato',position:{x:8,y:8,z:0}});
   r.updateUser({userId:'friend',username:'Friend',position:{x:9,y:9,z:0},state:'sit'});
  });
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.viewMode)).toBe('room');
  const overviewScale=await page.evaluate(()=>window.testRenderer.scale);
  const bounds=await page.evaluate(()=>{const r=window.testRenderer;return {top:r.cy-58*r.scale,bottom:r.cy+48*9*r.scale,height:r.height};});
  expect(bounds.top).toBeGreaterThan(0);expect(bounds.bottom).toBeLessThan(bounds.height);
+ await page.screenshot({path:`test-results/world-overview-${testInfo.project.name}.png`});
  await page.locator('#focusMe').click();
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale)).toBeGreaterThan(overviewScale*2);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale*48)).toBeGreaterThan(55);
@@ -454,6 +456,9 @@ test('Afterglow furniture previews have distinct original art and transparent pr
  await page.goto('/world.html');
  const world=await page.locator('.world-bottom a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.world-nav-icon use').getAttribute('href'),label:a.querySelector('.world-nav-label').textContent})));
  expect(world).toEqual(usual);
+ expect(world.map(item=>item.icon)).toEqual(['home','games','world','missions','rewards','profile'].map(id=>'nav-icons.svg#'+id));
+ const icons=await page.request.get('/nav-icons.svg');expect(icons.ok()).toBe(true);
+ expect(await icons.text()).toContain('<symbol id="games"');
  await expect(page.locator('.world-bottom [aria-current="page"]')).toHaveAccessibleName('World');
  for(const width of [320,390,430]){
   await page.setViewportSize({width,height:740});
