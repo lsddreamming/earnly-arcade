@@ -101,3 +101,8 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .furniture-preview-status{font-size:.85rem;color:#b6ccd8;margin:.4rem 0 .7rem}
 .preview-tones{display:flex;gap:8px;margin:14px 0}.preview-tones button{flex:1;padding:12px 8px}.preview-tones button[aria-pressed=true]{border-color:#75efd2;background:#254b50;color:#bffff0}
 .furniture-price{font-size:1.3rem;font-weight:700;color:#f0d396}
+
+.wishlist-save{color:#addfd8;background:#172b40;border-color:#476779;font-size:.85rem;padding:10px 12px;min-height:44px}
+.wishlist-save[aria-pressed=true],.wishlist-filter[aria-pressed=true]{color:#ffcfdf;border-color:#d58ba7;background:#382f49}
+.catalog-search .wishlist-filter{grid-column:1/-1;min-height:44px;font-size:.9rem;padding:10px 14px}
+.wishlist-note{font-size:.8rem;color:#9bb4c5;margin:.5rem 0 1rem}
