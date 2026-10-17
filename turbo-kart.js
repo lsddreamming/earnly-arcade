@@ -1,7 +1,7 @@
 (()=>{
  'use strict';
  const E=TurboKartEngine,game='turboKart',renderer=TurboKartRenderer.create(document.getElementById('game'));
- const el=Object.fromEntries(['balance','position','lap','time','bonus','speed','gameStatus','kartMessage','kartCallout','startButton','plays','driftFill','driftLabel','leftButton','rightButton','driftButton','itemButton','itemSlot','itemName','courseName','courseTag','courseDescription'].map(id=>[id,document.getElementById(id)]));
+ const el=Object.fromEntries(['balance','position','lap','time','bonus','speed','gameStatus','kartMessage','kartCallout','startButton','plays','driftFill','driftLabel','leftButton','rightButton','driftButton','itemButton','itemSlot','itemName','courseName','courseTag','courseDescription','raceProgress'].map(id=>[id,document.getElementById(id)]));
  let selectedCourse='harbor';
  let state=E.create(selectedCourse),running=false,starting=false,paused=false,disposed=false,last=0,accumulator=0,raf=0,lastHud=-Infinity,lastAccount=-Infinity;
  const pointers=new Map(),keys=new Set();let pause,drag=null,driftDrag=null;
@@ -11,6 +11,11 @@
  function clear(){const ids=[...pointers.keys(),drag?.id];pointers.clear();keys.clear();drag=null;driftDrag=null;for(const target of [canvas,el.leftButton,el.rightButton,el.driftButton])for(const id of ids)if(id!==undefined&&target.hasPointerCapture(id))target.releasePointerCapture(id);style();}
  function setText(element,value){if(element.textContent!==String(value))element.textContent=value;}
  function chrome(){const now=performance.now();if(!running||now-lastAccount>=1000){setText(el.balance,Arcade.number('points').toLocaleString());setText(el.plays,Arcade.remaining(game));lastAccount=now;}const p=state.racers[0];for(const [key,value]of Object.entries({position:state.place+' / 5',lap:Math.min(3,Math.max(1,Math.floor(p.d/state.track.length)+1))+' / 3',time:Math.ceil(E.LIMIT-state.time),bonus:state.pickupCount,speed:Math.round(p.speed*1.2)+' KM/H'}))setText(el[key],value);
+ const progress=Math.round(Math.max(0,Math.min(1,p.d/(state.track.length*3)))*100);
+ el.raceProgress.style.width=progress+'%';el.raceProgress.parentElement.setAttribute('aria-valuenow',progress);
+ el.raceProgress.parentElement.setAttribute('aria-valuetext',progress+'% of race completed');
+ el.time.parentElement.classList.toggle('time-low',running&&E.LIMIT-state.time<=15);
+ el.time.setAttribute('aria-label',Math.ceil(Math.max(0,E.LIMIT-state.time))+' seconds remaining');
  const level=E.tier(state.driftCharge);el.driftFill.style.width=((state.wasDrifting?state.driftCharge/2.5:state.draft/1.1)*100)+'%';el.driftFill.dataset.tier=level;
  setText(el.driftLabel,state.wasDrifting?(level?['','BLUE BOOST','GOLD SUPER BOOST','VIOLET ULTRA BOOST'][level]+' · RELEASE DRIFT':'CHARGING · KEEP YOUR LINE'):(state.draft>0?'SLIPSTREAM · STAY BEHIND A RIVAL':'HOLD + SLIDE DRIFT · RELEASE TO BOOST'));
  const item=E.items[state.item];setText(el.itemButton,item?item.icon+' USE ITEM':'NO ITEM');el.itemButton.disabled=!running||paused||!item;el.itemButton.setAttribute('aria-label',item?'Use '+item.name+': '+item.hint:'No item collected');setText(el.itemSlot,item?item.icon:'◇');setText(el.itemName,item?item.name:'PICK UP A GEM');
