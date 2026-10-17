@@ -11,10 +11,12 @@ import {RoomRuntime} from '../src/room-runtime.ts';
 import {setTimeout as delay} from 'node:timers/promises';
 
 test('real WebSocket connections require auth; joined users share server tick updates',async()=>{
+ const entries:{userId:string;roomId:string;occupancy:number}[]=[];
  const server=createServer();const room=new RoomRuntime(new RoomGrid(parseHeightmap('000\n000')));
  const gateway=attachWorldGateway(server,{
    authenticate:async token=>{if(!['a','b'].includes(token))throw new Error();return {userId:token,username:token};},
    enter:async identity=>({room,spawn:{x:identity.userId==='a'?0:2,y:0}}),
+   recordEntry:async(identity,roomId,occupancy)=>{entries.push({userId:identity.userId,roomId,occupancy});throw new Error('Telemetry offline');},
    revalidate:async()=>true
  },worldOrigins('https://earnlyarcade.com'));
  server.listen(0,'127.0.0.1');await once(server,'listening');
@@ -51,6 +53,8 @@ test('real WebSocket connections require auth; joined users share server tick up
    const stillDuplicate=await connect();const stillClosed=once(stillDuplicate,'close');
    stillDuplicate.send(JSON.stringify({type:'JOIN',version:1,token:'a',roomId:'plaza'}));
    assert.equal((await stillClosed)[0],1008);
+   assert.deepEqual(entries.map(e=>e.userId),['a','b','a']);
+   assert.deepEqual(entries.map(e=>e.occupancy),[1,2,2]);
 
  }finally{for(const ws of sockets)ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });

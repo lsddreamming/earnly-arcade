@@ -4,3 +4,7 @@ verify_jwt = false
 
 [functions.arcade-pass]
 verify_jwt = false
+
+[functions.activity]
+# Every request verifies its bearer with auth.getUser; reporting also checks a server-only owner allowlist.
+verify_jwt = false

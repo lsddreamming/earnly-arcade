@@ -43,6 +43,7 @@ test('First-room selection survives a lost close code and enters the chosen room
 });
 
 test('World reports server configuration failure without asking players to sign in again',async({page})=>{
+ await page.route('**/activity.js',r=>r.fulfill({contentType:'application/javascript',body:'window.activityEvents=[];window.EarnlyActivity={track:k=>window.activityEvents.push(k)};'}));
  await page.route('**/cloud.js',route=>route.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"test-player-token"})};'}));
  await page.route('https://*.supabase.co/**',route=>route.fulfill({status:404,body:''}));
  await page.addInitScript(()=>{
@@ -58,7 +59,8 @@ test('World reports server configuration failure without asking players to sign 
  await expect(page.locator('#connectionStatus')).toContainText('Connecting');
  await page.locator('#connectWorld').evaluate(button=>button.click());
  expect(await page.evaluate(()=>window.worldSockets.length)).toBe(1);
- await page.evaluate(()=>window.worldSockets[0].failConfig());
+ await page.evaluate(()=>{window.worldSockets[0].failConfig();window.worldSockets[0].failConfig();});
+ expect(await page.evaluate(()=>window.activityEvents)).toEqual(['world_attempt','world_failure']);
  await expect(page.locator('#connectionStatus')).toContainText('Server setup needs attention');
  await expect(page.locator('#connectionStatus')).not.toContainText('Sign in');
  await expect(page.locator('#peopleCount')).toHaveText('Room preview');
