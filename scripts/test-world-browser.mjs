@@ -20,7 +20,7 @@ const browser=await chromium.launch({executablePath:process.env.WORLD_TEST_CHROM
 let errors=[];
 try{
  const pages=[];for(const uid of fixture.users){const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:390,height:844},hasTouch:true});const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
- await p.route('**/world-renderer.js',async r=>r.fulfill({contentType:'application/javascript',body:(await readFile(join(root,'world-renderer.js'),'utf8'))+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...args){super(...args);window.testWorldRenderer=this;}};}'}));
+ await p.route('**/world-renderer.js*',async r=>r.fulfill({contentType:'application/javascript',body:(await readFile(join(root,'world-renderer.js'),'utf8'))+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...args){super(...args);window.testWorldRenderer=this;}};}'}));
  await p.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={session:async()=>({access_token:${JSON.stringify(uid)}})};`}));
  await p.route('**/world-config.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyWorldConfig={endpoint:${JSON.stringify(origin.replace('https:','wss:')+'/world')}};`}));
  await p.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));await p.goto(origin+'/world.html');await p.locator('#connectWorld').click();await expect(p.locator('#panelTitle')).toHaveText('Choose your first room');
