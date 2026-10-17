@@ -229,8 +229,8 @@
   const roomId=scene.roomId,version=panelVersion,reply=await action('staff_talk',{staffId:staff.staffId});
   if(scene.roomId!==roomId||version!==panelVersion)return;
   currentPanel='staff';const root=openPanel(reply.name+' · '+reply.role),style=hangoutStyle(scene);
-  root.append(note('Your hangout host · NPC'),el('p','staff-greeting',reply.greeting));
-  const response=el('p','staff-greeting');response.hidden=true;response.setAttribute('aria-live','polite');
+  root.append(note('Staff NPC · Your hangout host'),el('p','staff-greeting',reply.greeting));
+  const response=el('p','staff-greeting staff-reply');response.hidden=true;response.setAttribute('aria-live','polite');
   root.append(button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a local tip',()=>{response.textContent=reply.tip;response.hidden=false;}),response);
   root.append(button('Find me a seat',findHangoutSeat,'primary'));
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
