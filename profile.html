@@ -265,6 +265,7 @@
     </footer>
 </main>
 
+  <a id="ownerActivityLink" href="owner.html" hidden>Owner activity dashboard →</a>
   <script src="arcade.js"></script>
   <script>
     document.getElementById('profile-coin-shop').hidden = !!(window.Capacitor?.isNativePlatform?.() || location.protocol === 'capacitor:');
@@ -488,7 +489,7 @@
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="cloud.js"></script>
+  <script src="cloud.js"></script><script src="activity.js"></script>
   <script src="cosmetic-ui.js"></script>
 <script src="arcade-chat.js"></script>
 </body>

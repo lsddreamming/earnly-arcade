@@ -1,0 +1,22 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const db=new PGlite();
+const owner='00000000-0000-4000-8000-000000000001',player='00000000-0000-4000-8000-000000000002',room='00000000-0000-4000-8000-000000000003';
+await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;grant usage on schema auth to service_role;create table auth.users(id uuid primary key,created_at timestamptz default now(),is_anonymous boolean default false,email_confirmed_at timestamptz default now(),deleted_at timestamptz);create schema earnly_world;grant usage on schema earnly_world to service_role;create table earnly_world.rooms(id uuid,name text);create table coin_orders(user_id uuid,status text,fulfilled_at timestamptz,refunded_coins bigint);create table apple_coin_transactions(user_id uuid,revoked boolean,created_at timestamptz);grant select on coin_orders,apple_coin_transactions,earnly_world.rooms to service_role;insert into auth.users(id) values('${owner}'),('${player}');insert into earnly_world.rooms values('${room}','Test room');`);
+await db.exec(await readFile(new URL('../supabase/migrations/20261017005656_owner_activity_dashboard.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261017010115_owner_activity_auth_columns.sql',import.meta.url),'utf8'));
+await db.query('insert into earnly_metrics.accounts values($1,true,true)',[owner]);
+let i=0;const id=()=>`10000000-0000-4000-8000-${String(++i).padStart(12,'0')}`;
+const record=(actor,kind='world_join',key=id())=>db.query('select activity_record($1,$2,$3,$4,2)',[actor,key,kind,room]);
+const report=async(include=false,actor=owner)=>(await db.query('select activity_report($1,7,$2) as data',[actor,include])).rows[0].data;
+await db.exec('set role service_role');const key=id();await record(player,'world_join',key);await record(player,'world_join',key);await record(owner);
+await assert.rejects(report(false,player),/Owner access required/);await assert.rejects(db.query('select activity_report($1,100,false)',[owner]),/Invalid range/);
+let r=await report();assert.equal(r.signups.total,1);assert.equal(r.world.entries,1);assert.equal(r.world.players,1);assert.equal(r.rooms[0].peak,2);assert.equal((await report(true)).world.entries,2);
+await db.exec('reset role');await db.query("insert into earnly_metrics.events values($1,$2,'world_join',$3,1,now()-interval '1 day')",[id(),player,room]);await db.query("insert into coin_orders values($1,'fulfilled',now(),0),($1,'fulfilled',now(),100),($1,'pending',null,0)",[player]);await db.query('insert into apple_coin_transactions values($1,false,now()),($1,true,now())',[player]);
+await db.exec('set role service_role');r=await report();assert.equal(r.world.returning,1);assert.equal(r.shop.purchases,2);assert.equal(r.shop.buyers,1);
+for(let n=0;n<125;n++)await record(player,'shop_view');r=await report();assert.equal(r.shop.views,119);
+await db.exec('reset role');
+for(const role of ['anon','authenticated']){await db.exec('set role '+role);await assert.rejects(report(),/permission denied/);await assert.rejects(record(player),/permission denied/);await assert.rejects(db.query('select * from earnly_metrics.events'),/permission denied/);await db.exec('reset role');}
+await db.query('update auth.users set deleted_at=now() where id=$1',[owner]);await db.exec('set role service_role');await assert.rejects(report(),/Owner access required/);
+await db.close();console.log('PASS: owner-only reporting, role isolation, deduplication, rate cap, test exclusions, returning players, verified/nonrefunded purchases.');

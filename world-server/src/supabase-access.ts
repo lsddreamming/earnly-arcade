@@ -60,6 +60,9 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,hangoutFor(snapshot)?.staff);this.#rooms.set(roomId,room);}
     return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap};
   }
+  async recordEntry(identity:Identity,roomId:string,occupancy:number){
+    await this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy});
+  }
   async revalidate(token:string,identity:Identity,roomId:string){
     const current=await this.authenticate(token);if(current.userId!==identity.userId)return false;
     if(this.#retired.has(roomId))throw new Error('Room unavailable');

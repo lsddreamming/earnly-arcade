@@ -12,6 +12,8 @@ export interface WorldAccess {
   /** Check room permissions and return the one authoritative runtime for this room. */
   enter(identity:Identity,roomId:string):Promise<{room:RoomRuntime;spawn:XY;username?:string;roomId?:string;equipped?:Record<string,unknown>;scene?:unknown;bootstrap?:unknown}>;
   perform?(identity:Identity,roomId:string,action:string,data:Record<string,unknown>):Promise<{data:unknown;deliveries?:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]}>;
+  /** Best-effort server-confirmed admission telemetry; must not delay a player. */
+  recordEntry?(identity:Identity,roomId:string,occupancy:number):Promise<void>;
   /** Recheck account bans, session validity and room permissions for active sockets. */
   revalidate(token:string,identity:Identity,roomId:string):Promise<boolean>;
 }
@@ -77,6 +79,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           room.join(resolvedIdentity,spawn,send);joined=true;clearTimeout(deadline);
           if(scene)send({type:'WELCOME',userId:identity.userId,roomId:roomId??p.roomId,scene,bootstrap});
           stage='admitted';diagnose('world_entry_ready');
+          void Promise.resolve().then(()=>access.recordEntry?.(identity,roomId??String(p.roomId),room.memberCount)).catch(()=>{});
         }catch(error){
           const reason=error instanceof WorldAccessError?error.reason:undefined;
           options.diagnostic?.({event:'world_entry_denied',stage,...(reason?{reason}:{})});

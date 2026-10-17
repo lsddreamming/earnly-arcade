@@ -10,6 +10,7 @@
   const fallback=[{id:'starter',coins:500,priceCents:99},{id:'plus',coins:1500,priceCents:299},{id:'vault',coins:4000,priceCents:499}];
   let available=false,busy=false,configSequence=0,verifiedPrices=false;
   const pending=new Map();
+  window.EarnlyActivity?.track('shop_view');
   // Keep uncertain checkouts recoverable across refreshes, separately for each account.
   function checkoutKey(account,pack) {
     const name='earnly-coin-checkout:'+account+':'+pack;
@@ -58,6 +59,7 @@
       button.addEventListener('click',async()=>{
         if(busy)return;
         const session=await window.EarnlyCloud?.session?.();if(!session){$('auth-modal').showModal();return;}
+        window.EarnlyActivity?.track('purchase_attempt');
         if(native){await buyApple(pack,packs,session);return;}
         busy=true;render(packs);message('Opening secure card checkout…');
         const key=checkoutKey(session.user.id,pack.id);
