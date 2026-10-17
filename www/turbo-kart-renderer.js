@@ -2,7 +2,7 @@
    Everything is drawn locally. No Nintendo characters, textures or downloaded assets. */
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
- function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map(),maps=new Map();let skyCache=null;let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
+ function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map(),maps=new Map(),bays=new Map(),roadCache=new Map();let skyCache=null;let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
  // Layout is read only on resize, never after per-frame HUD writes.
  let size=null;const resize=()=>{size=canvas.getBoundingClientRect();};
  const observer=new ResizeObserver(resize);observer.observe(canvas);window.addEventListener('resize',resize);
@@ -16,8 +16,8 @@ const TurboKartRenderer=(()=>{
   const motion=reduced.matches?0:1,lean=(r.steer||0)*(r.drifting? .18:.10)*motion;
   let pose=poses.get(r);if(!pose){pose={drifting:false,hopAt:-1};poses.set(r,pose);}if(r.drifting&&!pose.drifting)pose.hopAt=s.time;pose.drifting=r.drifting;
   const hopAge=s.time-pose.hopAt,hop=hopAge>=0&&hopAge<.24?Math.sin(hopAge/.24*Math.PI)*3:0;
-  ctx.translate(0,(-hop+(r.boost>0?-1.5:0))*motion);
   ellipse(0,1,30,7,'#10203824');ellipse(0,0,25,5,'#10203866');
+  ctx.translate(0,(-hop-(r.air>0?Math.sin(r.air/.75*Math.PI)*24:0)+(r.boost>0?-1.5:0))*motion);
   if(r.boost>0||r.coinSurge>0){for(const side of [-1,1]){poly([{x:side*12-5,y:-4},{x:side*12+5,y:-4},{x:side*12,y:20+Math.sin((reduced.matches?0:s.time)*42)*5}],r.boost>0?'#7ffcff':'#ffd96d');poly([{x:side*12-3,y:-4},{x:side*12+3,y:-4},{x:side*12,y:11}],'#fffbaf');}}
   if(r.drifting){const color=['#d9faff','#59deff','#ffc15d','#e59aff'][E.tier(r.charge)];for(const side of [-1,1]){line(side*23,-5,side*30,4,color,2);for(let i=0;i<4;i++)ellipse(side*(25+i*3),4+(Math.sin((reduced.matches?0:s.time)*30+i)*5),1.8,1.8,color);}}
   // Chunky treaded tires, pearlescent body panels and a separate rear wing.
@@ -70,7 +70,7 @@ const TurboKartRenderer=(()=>{
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+ambientTime*2)%w,horizon+23+i*4,(i*89+ambientTime*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
   // Trackside coves and boats share the circuit projection, passing out of view on bends.
   // Clip the water polygon against the near plane before projecting it.
-  const harbors=t.scene==='harbor'?[.12,.45,.78].map(d=>E.sample(t.length*d,-190,t)):[];
+  if(!bays.has(t.id))bays.set(t.id,t.scene==='harbor'?[.12,.45,.78].map(d=>E.sample(t.length*d,-190,t)):[]);const harbors=bays.get(t.id);
   if(harbors.length){
    function bayPolygon(points,color){const clipped=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],da=project(a).depth,db=project(b).depth;if(da>=4)clipped.push(a);if((da>=4)!==(db>=4)){const f=(4-da)/(db-da);clipped.push({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f});}}if(clipped.length>=3)poly(clipped.map(v=>project(v)),color);}
    for(const center of harbors)for(const [radius,color]of [[70,'#e7d6a3'],[64,'#58c4d7']])bayPolygon(Array.from({length:8},(_,i)=>({x:center.x+Math.cos(i*TAU/8)*radius,y:center.y+Math.sin(i*TAU/8)*radius})),color);
@@ -80,7 +80,9 @@ const TurboKartRenderer=(()=>{
   const ground=[],decals=[],queue=[],labels=[];let roadLayer=null;
   // Every ribbon shares the same centerline endpoints. Sample each endpoint
   // once instead of repeating binary searches and trigonometry for every lane.
-  const roadSamples=new Map();
+  if(!roadCache.has(t.id))roadCache.set(t.id,new Map());const roadSamples=roadCache.get(t.id);
+  // Keep only nearby endpoints: bounded cache avoids repeating track searches.
+  for(const distance of roadSamples.keys())if(distance<p.d-100||distance>p.d+850)roadSamples.delete(distance);
   function roadPoint(distance,offset){let base=roadSamples.get(distance);if(!base){base=E.sample(distance,0,t);base.sin=Math.sin(base.angle);base.cos=Math.cos(base.angle);roadSamples.set(distance,base);}return project({x:base.x-base.sin*offset,y:base.y+base.cos*offset});}
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
   function ribbon(d1,d2,left,rightOffset,color){const a=roadPoint(d1,left),b=roadPoint(d1,rightOffset),c=roadPoint(d2,rightOffset),d=roadPoint(d2,left);if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
@@ -100,6 +102,8 @@ const TurboKartRenderer=(()=>{
   }
   for(const mark of skidMarks)for(const side of [-1,1]){const q=project(E.sample(mark.d,mark.lane+side*9,t)),tail=project(E.sample(mark.d-2,mark.lane+side*9,t));add(q.depth,()=>line(q.x,q.y,tail.x,tail.y,'#17263a38',Math.max(.5,1.2*q.k)),decals);}
   // Curbs, booster strips and airborne pickups all share the road's projection.
+  for(const cut of s.cuts){const lap=Math.floor(p.d/t.length);for(const turn of [lap,lap+1]){const start=turn*t.length+cut.start,end=turn*t.length+cut.end;if(end<p.d-50||start>p.d+750)continue;for(let d=start;d<end;d+=15)ribbon(d,Math.min(end,d+15),cut.lane-9,cut.lane+9,'#b98aff');const q=project(E.sample(start,cut.lane,t),6);add(q.depth,()=>text('CUT ›',q.x,q.y,Math.max(4,7*q.k),'#fff2aa'));}}
+  for(const ramp of s.ramps){const d=p.d+((ramp.d-p.d)%t.length+t.length)%t.length;ribbon(d-18,d,ramp.lane-15,ramp.lane+15,'#ffba66');for(let j=0;j<3;j++){const q=project(E.sample(d-14+j*5,ramp.lane,t),j+1);add(q.depth,()=>text('↑↑',q.x,q.y,Math.max(3,9*q.k),'#4a3057'));}}
   for(const pad of s.pads){const d=p.d+((pad.d-p.d)%t.length+t.length)%t.length;ribbon(d-12,d+12,pad.lane-17,pad.lane+17,'#2c7c88');for(let j=0;j<3;j++){const q=project(E.sample(d-8+j*8,pad.lane,t));add(q.depth,()=>text('❯❯',q.x,q.y,Math.max(2,8*q.k),'#c7ff8b'),decals);}}
   for(const item of s.pickups){let d=p.d+((item.d-p.d)%t.length+t.length)%t.length;if(item.takenLap===Math.floor(d/t.length))continue;const q=project(E.sample(d,item.lane,t),5+Math.sin(ambientTime*3+item.d)*1.5);add(q.depth,()=>{const size=5.5*q.k;if(q.x<-size||q.x>w+size)return;if(item.type==='coin'){ellipse(q.x,q.y,size*.7,size,'#ffd96d');ellipse(q.x,q.y,size*.45,size*.72,'#ffed9b');text('◇',q.x,q.y+size*.4,size*1.2,'#b5754b');}else{poly([{x:q.x,y:q.y-size*1.4},{x:q.x+size,y:q.y},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#a4ffed');poly([{x:q.x,y:q.y-size*1.4},{x:q.x,y:q.y+size*1.4},{x:q.x-size,y:q.y}],'#9479eb');text('ϟ',q.x,q.y+size*.45,size*1.3,'#fff9d7');}});}
   // Keep every prop clear of the whole circuit, including the inside of hairpins.

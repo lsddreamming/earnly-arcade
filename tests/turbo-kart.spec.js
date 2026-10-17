@@ -42,7 +42,7 @@ test('60 driven races finish across all courses; AI stays competitive and reward
  }
 });
 test('blue, gold and violet drift releases grow stronger; stationary and grass drifts cannot farm boosts',()=>{
- const boosts=[];for(const seconds of [1.3,2,2.8]){const s=E.create();Object.assign(s.racers[0],{speed:100,heading:.15,lane:-30});s.racers.slice(1).forEach(r=>r.d=-500);for(let i=0;i<seconds*60;i++)E.tick(s,1/60,{steer:.25,drift:true});E.tick(s,1/60,{});expect(s.drifts).toBe(1);boosts.push(s.racers[0].boost);}
+ const boosts=[];for(const seconds of [.8,1.5,2.2]){const s=E.create();Object.assign(s.racers[0],{speed:100,heading:.15,lane:-30});s.racers.slice(1).forEach(r=>r.d=-500);for(let i=0;i<seconds*60;i++)E.tick(s,1/60,{steer:.25,drift:true});E.tick(s,1/60,{});expect(s.drifts).toBe(1);boosts.push(s.racers[0].boost);}
  expect(boosts[1]).toBeGreaterThan(boosts[0]);expect(boosts[2]).toBeGreaterThan(boosts[1]);
  const idle=E.create();for(let i=0;i<10;i++)E.tick(idle,1/60,{steer:1,drift:true});E.tick(idle,1/60,{});expect(idle.drifts).toBe(0);
  const grass=E.create();Object.assign(grass.racers[0],{speed:100,lane:70,charge:2.5,drifting:true});E.tick(grass,1/60,{});expect(grass.drifts).toBe(0);expect(grass.driftCharge).toBe(0);
@@ -291,4 +291,34 @@ test('120Hz callbacks do not redraw unchanged racing frames',async({page})=>{
  });
  expect(result.ticks).toBeGreaterThanOrEqual(59);expect(result.ticks).toBeLessThanOrEqual(62);
  expect(result.draws).toBeGreaterThanOrEqual(59);expect(result.draws).toBeLessThanOrEqual(62);
+});
+
+
+test('ramps launch once per crossing and landing grants speed without extra coins',()=>{
+ for(const course of E.courses){const s=E.create(course.id),p=s.racers[0],ramp=s.ramps[0];s.racers.slice(1).forEach(r=>r.d=-500);s.pickups=[];
+ Object.assign(p,{d:ramp.d-.5,lane:ramp.lane,speed:100});E.tick(s,1/60);expect(s.jumps).toBe(1);expect(p.air).toBe(.75);
+ for(let i=0;i<46;i++)E.tick(s,1/60);expect(p.air).toBe(0);expect(p.boost).toBeGreaterThan(.7);expect(s.jumps).toBe(1);expect(s.coins).toBe(0);
+ Object.assign(p,{d:ramp.d+s.track.length-.5,lane:ramp.lane,speed:100});E.tick(s,1/60);expect(s.jumps).toBe(2);
+ }
+});
+test('narrow shortcuts reward holding the lane and count each section once per lap',()=>{
+ for(const course of E.courses){const s=E.create(course.id),p=s.racers[0],cut=s.cuts[0];s.racers.slice(1).forEach(r=>r.d=-500);s.pickups=[];
+ Object.assign(p,{d:cut.start+10,lane:cut.lane,speed:108});E.tick(s,1/60);expect(p.speed).toBeGreaterThan(108);expect(s.cutsTaken).toBe(1);
+ p.lane=cut.lane+12;E.tick(s,1/60);expect(p.cutActive).toBe(false);expect(p.speed).toBeLessThan(108);
+ p.lane=cut.lane;E.tick(s,1/60);expect(s.cutsTaken).toBe(1);
+ Object.assign(p,{d:cut.start+s.track.length+10,lane:cut.lane});E.tick(s,1/60);expect(s.cutsTaken).toBe(2);expect(s.coins).toBe(0);
+ }
+});
+test('a stalled racing frame resumes with bounded catch-up and no wallet polling',async({page})=>{
+ await page.goto('/turbo-kart.html');await expect(page.locator('#startButton')).toBeEnabled();
+ const result=await page.evaluate(()=>{
+  const originalRAF=window.requestAnimationFrame;let callback;
+  window.requestAnimationFrame=fn=>{if(fn.name==='loop'){callback=fn;return 999999;}return originalRAF(fn);};Arcade.countdown=fn=>fn();document.getElementById('startButton').click();
+  const tick=TurboKartEngine.tick,remaining=Arcade.remaining;let ticks=0,reads=0;
+  TurboKartEngine.tick=(...args)=>{ticks++;return tick(...args);};Arcade.remaining=(...args)=>{reads++;return remaining(...args);};
+  const begin=performance.now();callback(begin+2000);const recovery=ticks;callback(begin+2000+1000/60);const resumed=ticks>recovery;
+  TurboKartEngine.tick=tick;Arcade.remaining=remaining;window.requestAnimationFrame=originalRAF;
+  return {recovery,resumed,reads};
+ });
+ expect(result.recovery).toBeLessThanOrEqual(3);expect(result.recovery).toBeGreaterThan(0);expect(result.resumed).toBe(true);expect(result.reads).toBe(0);
 });

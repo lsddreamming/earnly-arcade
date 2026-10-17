@@ -1,7 +1,7 @@
 /* Original Earnly racer. Deterministic fixed-step driving; no rendering or reward side effects. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.TurboKartEngine=api;})(typeof globalThis!=='undefined'?globalThis:this,()=>{
  'use strict';
- const LAPS=3,LIMIT=90,WIDTH=104,DRIFT_THRESHOLDS=[.65,1.35,2.1];
+ const LAPS=3,LIMIT=90,WIDTH=104,DRIFT_THRESHOLDS=[.45,1.1,1.8];
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),wrap=(n,l)=>((n%l)+l)%l;
  const angleDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
  const definitions=[
@@ -16,9 +16,9 @@
  const courses=definitions.map(buildTrack);
  function sample(distance,offset=0,track=courses[0]){const d=wrap(distance,track.length),points=track.points;let lo=0,hi=points.length-1;while(lo<hi){const m=Math.ceil((lo+hi)/2);if(points[m].d<=d)lo=m;else hi=m-1;}const a=points[lo],b=points[(lo+1)%points.length],span=(lo===points.length-1?track.length:b.d)-a.d,t=(d-a.d)/span,angle=Math.atan2(b.y-a.y,b.x-a.x);return {x:a.x+(b.x-a.x)*t-Math.sin(angle)*offset,y:a.y+(b.y-a.y)*t+Math.cos(angle)*offset,angle};}
  function curvature(d,track){return angleDiff(sample(d+12,0,track).angle,sample(d-12,0,track).angle)/24;}
- function create(course='harbor'){const track=courses.find(c=>c.id===course)||courses[0];return {track,time:0,ended:false,finished:false,place:5,coins:0,pickupCount:0,item:null,itemIndex:0,driftCharge:0,drifts:0,wasDrifting:false,events:[],callout:'',calloutUntil:0,projectiles:[],hazards:[],effects:[],draft:0,
-  racers:['YOU','PIP','NOVA','REMY','FERN'].map((name,i)=>({name,d:i?12+(4-i)*19:0,lane:i%2?22:-22,heading:0,steer:0,speed:0,boost:0,coinSurge:0,shield:0,slow:0,cooldown:0,item:null,itemIndex:i,charge:0,driftDirection:0,drifting:false,itemCooldown:3+i,finishTime:null,color:['#65f5dc','#ffc363','#cba6ff','#ff819e','#79c2ff'][i]})),
-  pickups:Array.from({length:24},(_,i)=>({d:track.length*(.055+Math.floor(i/3)*.12),lane:[-30,0,30][i%3],type:Math.floor(i/3)%2===0?'item':'coin',takenLap:-1,takenBy:[-1,-1,-1,-1,-1]})),pads:[{d:track.length*.27,lane:-26},{d:track.length*.69,lane:27}]};}
+ function create(course='harbor'){const track=courses.find(c=>c.id===course)||courses[0];return {track,time:0,ended:false,finished:false,place:5,coins:0,pickupCount:0,item:null,itemIndex:0,driftCharge:0,drifts:0,jumps:0,cutsTaken:0,wasDrifting:false,events:[],callout:'',calloutUntil:0,projectiles:[],hazards:[],effects:[],draft:0,
+  racers:['YOU','PIP','NOVA','REMY','FERN'].map((name,i)=>({name,d:i?12+(4-i)*19:0,lane:i%2?22:-22,heading:0,steer:0,speed:0,boost:0,coinSurge:0,shield:0,slow:0,cooldown:0,item:null,itemIndex:i,charge:0,air:0,cutActive:false,lastCut:null,driftDirection:0,drifting:false,itemCooldown:3+i,finishTime:null,color:['#65f5dc','#ffc363','#cba6ff','#ff819e','#79c2ff'][i]})),
+  pickups:Array.from({length:24},(_,i)=>({d:track.length*(.055+Math.floor(i/3)*.12),lane:[-30,0,30][i%3],type:Math.floor(i/3)%2===0?'item':'coin',takenLap:-1,takenBy:[-1,-1,-1,-1,-1]})),ramps:[{d:track.length*.19,lane:0},{d:track.length*.61,lane:24}],cuts:[{start:track.length*.33,end:track.length*.33+105,lane:-60},{start:track.length*.76,end:track.length*.76+105,lane:60}],pads:[{d:track.length*.27,lane:-26},{d:track.length*.69,lane:27}]};}
  const items={boost:{name:'Turbo Cell',icon:'↟',hint:'Speed burst'},shield:{name:'Prism Guard',icon:'⬡',hint:'Blocks attacks'},pulse:{name:'Sonic Bloom',icon:'◎',hint:'Slows nearby rivals'},bolt:{name:'Arc Bolt',icon:'ϟ',hint:'Chases a rival ahead'},slick:{name:'Ink Patch',icon:'◉',hint:'Trap behind you'}};
  function announce(s,text){s.callout=text;s.calloutUntil=s.time+1.6;s.events.push(text);}
  function hit(s,r,seconds){if(r.cooldown>0||r.finishTime!==null)return false;if(r.shield>0){r.shield=0;r.cooldown=.8;if(r===s.racers[0])announce(s,'PRISM GUARD · BLOCKED');return false;}r.slow=Math.max(r.slow,seconds);r.cooldown=1.3;if(r===s.racers[0])announce(s,'HIT! · KEEP RACING');return true;}
@@ -47,6 +47,9 @@
  function tick(s,dt,input={}){if(s.ended||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.05);s.time+=dt;s.events=[];const p=s.racers[0],track=s.track;
   if(input.item)useItem(s);
   for(let i=0;i<s.racers.length;i++){const r=s.racers[i];if(r.finishTime!==null)continue;for(const k of ['boost','coinSurge','shield','slow','cooldown','itemCooldown'])r[k]=Math.max(0,r[k]-dt);
+   const wasAir=r.air;r.air=Math.max(0,r.air-dt);if(wasAir>0&&r.air===0){r.boost=Math.max(r.boost,.8);if(!i)announce(s,'SMOOTH LANDING · BOOST');}
+   const cut=s.cuts.find(c=>wrap(r.d,track.length)>=c.start&&wrap(r.d,track.length)<=c.end&&Math.abs(r.lane-c.lane)<9);
+   const cutKey=cut?Math.floor(r.d/track.length)+':'+cut.start:null;if(cutKey&&cutKey!==r.lastCut&&!i){r.lastCut=cutKey;s.cutsTaken++;announce(s,'SHORTCUT · HOLD YOUR LINE');}r.cutActive=!!cut;
    const control=i?aiInput(s,i):input,steer=clamp(Number(control.steer)||0,-1,1),onRoad=Math.abs(r.lane)<WIDTH/2-5,bend=curvature(r.d,track);
    const drifting=!!control.drift&&(r.drifting||Math.abs(steer)>.12)&&r.speed>38&&onRoad&&r.slow===0;
    if(drifting&&!r.drifting)r.driftDirection=Math.sign(steer);
@@ -65,12 +68,13 @@
    }
    r.lane+=Math.sin(r.heading)*r.speed*dt;
    if(Math.abs(r.lane)>75){r.lane=clamp(r.lane,-75,75);r.heading*=.85;}
-   const off=Math.abs(r.lane)>WIDTH/2-5,base=i?111+i*.65:108,cornerSpeed=i?clamp(1-Math.abs(curvature(r.d+45,track))*12,.9,1):1;
-   const target=base*cornerSpeed*(off?.46:1)*(r.slow>0?.58:1)*(r.boost>0?1.42:r.coinSurge>0?1.12:1)*(drifting?.94:1);
+   const off=Math.abs(r.lane)>WIDTH/2-5&&!cut,base=i?111+i*.65:108,cornerSpeed=i?clamp(1-Math.abs(curvature(r.d+45,track))*12,.9,1):1;
+   const target=base*cornerSpeed*(cut?1.3:1)*(off?.46:1)*(r.slow>0?.58:1)*(r.boost>0?1.42:r.coinSurge>0?1.12:1)*(drifting?.94:1);
    r.speed+=(target-r.speed)*Math.min(1,dt*(target<r.speed?3.2:2));const before=r.d;r.d+=r.speed*Math.max(.65,Math.cos(r.heading))*dt;
    if(!i&&Math.floor(r.d/track.length)>Math.floor(before/track.length)&&r.d<track.length*LAPS)announce(s,r.d>=track.length*2?'FINAL LAP!':'LAP 2 · KEEP PUSHING');
    if(r.d>=track.length*LAPS){r.finishTime=s.time-dt+(track.length*LAPS-before)/(r.d-before)*dt;r.d=track.length*LAPS;}
    for(const pick of s.pickups){const lap=Math.floor(before/track.length),next=lap*track.length+pick.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-pick.lane)<16&&pick.takenBy[i]!==lap){pick.takenBy[i]=lap;if(!i)pick.takenLap=lap;if(pick.type==='coin'){r.coinSurge=.65;if(!i){s.pickupCount++;const earned=s.coins<5;s.coins=Math.min(5,s.coins+1);s.effects.push({type:'coin',d:r.d,lane:r.lane,life:.5});announce(s,earned?'+1 COIN · SPEED SURGE':'COIN SURGE · KEEP PUSHING');}}else if(pick.type==='item'&&!(i?r.item:s.item)){const item=chooseItem(s,i);if(i)r.item=item;else{s.item=item;announce(s,items[item].name.toUpperCase()+' READY');}}}}
+   for(const ramp of s.ramps){const next=Math.floor(before/track.length)*track.length+ramp.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-ramp.lane)<15&&r.speed>65&&r.air===0){r.air=.75;if(!i){s.jumps++;announce(s,'AIR TIME!');}}}
    for(const pad of s.pads){const next=Math.floor(before/track.length)*track.length+pad.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-pad.lane)<19){r.boost=Math.max(r.boost,1.6);if(!i)announce(s,'BOOST STRIP');}}
   }
   for(const shot of s.projectiles){shot.life-=dt;const target=s.racers[shot.target];if(target&&target.finishTime===null)shot.lane+=clamp(target.lane-shot.lane,-85*dt,85*dt);const before=shot.d;shot.d+=205*dt;for(let i=0;i<s.racers.length;i++){const r=s.racers[i];if(i!==shot.owner&&r.d>=before-9&&r.d<=shot.d+9&&Math.abs(r.lane-shot.lane)<15){hit(s,r,1.9);shot.life=0;break;}}}
