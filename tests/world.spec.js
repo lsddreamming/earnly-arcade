@@ -328,6 +328,7 @@ test('World coin panel preserves its socket and opens the shop separately',async
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
  await page.locator('#coinBalance').click();await expect(page.locator('#worldWalletBalance')).toHaveText('2,232');
+ const earn=page.getByRole('link',{name:'Play games to earn coins'});await expect(earn).toHaveAttribute('href','games.html');await expect(earn).toHaveAttribute('target','_blank');
  const buy=page.getByRole('link',{name:'Buy more coins'});await expect(buy).toHaveAttribute('href','avatars.html#coin-shop');await expect(buy).toHaveAttribute('target','_blank');
  await page.getByRole('button',{name:'Back to room',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
  expect(await page.evaluate(()=>({closes:window.worldCloses,joins:window.worldJoins}))).toEqual({closes:0,joins:1});await expect(page.locator('#connectionStatus')).toContainText('Live');

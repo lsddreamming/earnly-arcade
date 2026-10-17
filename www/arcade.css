@@ -6368,3 +6368,5 @@ html body.brick-breaker-page.game-active .earnly-session-dock #earnlyPauseButton
 .result-best-target { color:#7dd3fc; font-size:12px; line-height:1.5; margin-top:6px; }
 .result-best-target:empty { display:none; }
 .daily-challenge-intro { color:#b8cce5; font-size:12px; line-height:1.5; margin:0 0 10px; }
+
+.result-room-link{grid-column:1/-1;border:1px solid #397d78;border-radius:12px;background:rgba(55,210,184,.08);font-weight:700;text-decoration:none}.result-room-hint{display:block;margin-top:4px;color:#c3d5df;font-size:12px;font-weight:400}

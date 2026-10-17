@@ -56,3 +56,22 @@ test('cloud best corrects a premature local record celebration', async ({page}) 
   await expect(page.locator('.result-best-target')).toContainText('10 apples to match your best');
   await expect(page.locator('.result-badge')).not.toContainText('NEW BEST');
 });
+
+
+test('results connect earned coins to the furniture catalog without spending them', async ({page}) => {
+  await page.goto('/index.html');
+  await page.evaluate(() => {
+    window.EarnlyCloud = { leaderboard:async () => ({entries:[]}) };
+    localStorage.setItem('arcadeCoins', '25');
+    Arcade.gameResult({game:'snake', score:10, coins:2, onReplay:() => {}});
+  });
+  const link = page.locator('.result-room-link');
+  await expect(link).toContainText('Play to earn coins. Decorate your room.');
+  await expect(link).toHaveAttribute('href', 'world.html?catalog=All');
+  const before = await page.evaluate(() => localStorage.getItem('arcadeCoins'));
+  await link.click();
+  await expect(page).toHaveURL(/world\.html\?catalog=All/);
+  await expect(page.locator('#worldPanel')).toBeVisible();
+  await expect(page.locator('#worldPanel')).toContainText('Decor Catalog');
+  expect(await page.evaluate(() => localStorage.getItem('arcadeCoins'))).toBe(before);
+});
