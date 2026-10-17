@@ -24,6 +24,8 @@ try{
  assert.equal(bootstrap.items.some(i=>i.id===a.item_id),false);
  await db.query("insert into earnly_world.items(owner_id,definition_id,serial,origin) select $1,'arcade-chair',10000+n,'earned' from generate_series(1,500) n",[users[1]]);
  await record('in_full',users[1],'sub_2');assert.equal((await award('in_full',users[1],'sub_2')).item_id,null);
+ // Ending the subscription preserves an already-paid pending gift.
+ await db.query("update arcade_pass_transactions set revoked=true where transaction_id='in_full'");
  await db.query("delete from earnly_world.items where owner_id=$1 and definition_id='arcade-chair' and serial=10001",[users[1]]);
  const recovered=await award('in_full',users[1],'sub_2');assert.ok(recovered.item_id);assert.equal((await award('in_full',users[1],'sub_2')).item_id,recovered.item_id);
  assert.deepEqual((await db.query('select * from coin_wallets order by user_id')).rows,balance);
