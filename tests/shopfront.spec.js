@@ -236,3 +236,19 @@ test('Furnished room ideas and VIP previews stay compact and never initiate purc
  await expect(page.locator('#pass-buy')).toBeDisabled();
  expect(f.writes).toHaveLength(0);expect(errors).toEqual([]);
 });
+
+test('Shop departments survive reload and browser history, with World furniture one tap away',async({page})=>{
+ const f=await setup(page);await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'Coin packs',exact:true}).click();await expect(page).toHaveURL(/#coin-shop$/);
+ await page.reload();await expect(page.getByRole('button',{name:'Coin packs',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#coin-shop')).toBeVisible();
+ const furniture=page.getByRole('link',{name:'Furnish your World Preview furniture before you buy →',exact:true});
+ await expect(furniture).toHaveAttribute('href','world.html?catalog=All');
+ expect(await furniture.locator('canvas').evaluate(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(v=>v!==0))).toBe(true);
+ for(const width of [320,390]){await page.setViewportSize({width,height:844});await expect(furniture).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);}
+ await page.locator('.coin-use-links').scrollIntoViewIfNeeded();await page.screenshot({path:test.info().outputPath('coin-shop-world-links.png')});
+ await page.getByRole('button',{name:'VIP Pass',exact:true}).click();await expect(page).toHaveURL(/#vip-pass$/);
+ await page.goBack();await expect(page.getByRole('button',{name:'Coin packs',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('#coin-shop')).toBeVisible();
+ await page.goForward();await expect(page.getByRole('button',{name:'VIP Pass',exact:true})).toHaveAttribute('aria-pressed','true');
+ expect(f.writes).toHaveLength(0);
+});
