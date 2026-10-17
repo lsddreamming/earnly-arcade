@@ -73,7 +73,7 @@ test('World reports server configuration failure without asking players to sign 
 
 test('Owned furniture double-taps lift and drop while invalid tiles and cancellation preserve it',async({page,isMobile})=>{
  const fs=require('node:fs');
- await page.route('**/world-renderer.js',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
+ await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));
  await page.addInitScript(()=>{
@@ -127,7 +127,7 @@ test('Large rooms open framed, with optional close view, recentering and stable 
  test.setTimeout(60000);
  const fs=require('node:fs');
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
- await page.route('**/world-renderer.js',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
+ await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.evaluate(()=>{document.getElementById('worldEntry').hidden=true;document.getElementById('worldConnected').hidden=false;});
  await page.evaluate(()=>{
@@ -296,7 +296,7 @@ test('Room deletion requires confirmation, protects other rooms, and leaves the 
 test('World art stays crisp at close zoom and detailed furniture remains selectable',async({page},testInfo)=>{
  const fs=require('node:fs');
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
- await page.route('**/world-renderer.js',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
+ await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
  await page.evaluate(()=>{
@@ -466,4 +466,33 @@ test('Afterglow furniture previews have distinct original art and transparent pr
   expect(boxes.every(b=>b.x>=0&&b.right<=width&&b.width>=44&&b.height>=44)).toBe(true);
  }
  await page.screenshot({path:`test-results/world-navigation-${testInfo.project.name}.png`});
+});
+
+test('Original World collections can be explored before connecting and searched without spending',async({page},testInfo)=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
+ await expect(page.locator('#worldInspiration')).toBeVisible();await page.locator('#browseDecor').click();
+ await expect(page.locator('.collection-card')).toHaveCount(3);
+ await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(4);
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('coffee');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Bramble Coffee Station');await expect(page.locator('.item-card button')).toBeDisabled();
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('no-match');await expect(page.locator('#panelContent')).toContainText('No pieces match');
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('price');await expect(page.locator('.item-card').first()).toContainText('Bramble Bentwood Chair');
+ await page.screenshot({path:`test-results/world-collection-catalog-${testInfo.project.name}.png`,fullPage:true});
+ await page.setViewportSize({width:900,height:700});
+ const art=await page.evaluate(()=>{
+  const sheet=document.createElement('canvas');sheet.id='collectionSheet';sheet.width=800;sheet.height=540;sheet.style='width:800px;height:540px;position:fixed;inset:0;z-index:9999';const c=sheet.getContext('2d');c.fillStyle='#142a3b';c.fillRect(0,0,800,540);const data=[];
+  EarnlyWorldCollections.items.forEach((item,i)=>{const preview=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(preview,item);data.push(preview.toDataURL());const x=(i%4)*200,y=Math.floor(i/4)*180;c.drawImage(preview,x+20,y+3);c.fillStyle='#e2f3e8';c.font='12px sans-serif';c.textAlign='center';c.fillText(item.name,x+100,y+150);c.fillStyle='#a7c4bb';c.fillText(item.width+' × '+item.length+' · '+item.price+' Coins',x+100,y+169);});
+  document.getElementById('worldPanel').close();document.body.append(sheet);return data;
+ });
+ expect(new Set(art).size).toBe(12);await page.locator('#collectionSheet').screenshot({path:`test-results/world-collection-art-${testInfo.project.name}.png`});
+ await page.locator('#collectionSheet').evaluate(n=>n.remove());
+ for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});await page.locator('#browseDecor').click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.getByRole('button',{name:'Close panel',exact:true}).click();}
+});
+
+test('World collections respect inventory filters and expose a useful empty-room invitation',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'home',name:'Home',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:3000,rooms:[],catalog:window.EarnlyWorldCollections.items,items:[{id:'owned',definition_id:'bramble-chair',serial:1,room_id:null}],friends:[]}})});}};});
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#roomInvitation')).toBeVisible();await page.locator('#startDecorating').click();await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();
+ await expect(page.locator('.owned-label')).toHaveText('1 owned');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('unowned');await expect(page.locator('.item-card')).toHaveCount(3);await expect(page.locator('.item-card').filter({hasText:'Bramble Bentwood Chair'})).toHaveCount(0);
+ await expect(page.locator('#coinBalance')).toHaveText('◇ 3,000');
 });
