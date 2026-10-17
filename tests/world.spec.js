@@ -375,3 +375,52 @@ test('Friends offer open room choices with player counts and entering uses the s
  await expect(page.locator('#roomName')).toHaveText('Buddy Garden');expect(await page.evaluate(()=>window.roomJoins)).toEqual(['choose-home','garden']);
  await page.evaluate(()=>{window.emptyFriendRooms=true;});await page.locator('[data-panel="friends"]').click();await page.locator('#panelContent').getByRole('button',{name:'Rooms',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('No rooms open to visitors yet');await page.getByRole('button',{name:'Back to friends'}).click();await expect(page.locator('#panelTitle')).toHaveText('Friends');
 });
+
+test('Shared room invitation preserves sign-in destination and rejects invalid room IDs',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ const id='d814eae3-14d0-43ef-ae1a-6cbd48aad149';
+ await page.goto('/world.html?room='+id);
+ await expect(page.locator('#panelContent a')).toHaveAttribute('href','account.html?worldRoom='+id);
+ await page.goto('/account.html?worldRoom='+id);
+ expect(await page.evaluate(()=>EarnlyWorldLinks.afterSignIn())).toBe('world.html?room='+id);
+ await page.goto('/account.html?worldRoom=https://evil.example');
+ expect(await page.evaluate(()=>EarnlyWorldLinks.afterSignIn())).toBe('index.html');
+ await page.goto('/world.html?room=invalid');
+ await expect(page.locator('#worldPanel')).not.toBeVisible();
+});
+
+test('Shared room enters directly, sharing keeps connection, and first-visit hint stays dismissed',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.joins=[];window.closes=0;
+  Object.defineProperty(navigator,'clipboard',{value:{writeText:async text=>{window.copiedRoom=text;}}});
+  window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}close(){window.closes++;this.readyState=3;}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN'){window.joins.push(p.roomId);this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'guest',scene:{roomId:p.roomId,name:'Friend Garden',ownerId:'friend',access:'open',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:0,rooms:[],catalog:[],items:[],friends:[]}})});}}};
+ });
+ const id='d814eae3-14d0-43ef-ae1a-6cbd48aad149';
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html?room='+id);
+ await expect(page.locator('#roomName')).toHaveText('Friend Garden');
+ expect(await page.evaluate(()=>window.joins)).toEqual([id]);
+ await expect(page.locator('#firstVisitHint')).toBeVisible();await page.locator('#dismissWorldHint').click();
+ await page.locator('#shareRoom').click();await page.getByRole('button',{name:'Copy link',exact:true}).click();
+ expect(await page.evaluate(()=>window.copiedRoom)).toBe('https://earnlyarcade.com/world.html?room='+id);
+ expect(await page.evaluate(()=>window.closes)).toBe(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+ await page.reload();await expect(page.locator('#roomName')).toHaveText('Friend Garden');await expect(page.locator('#firstVisitHint')).toBeHidden();
+});
+
+test('A denied shared room offers own room without automatically retrying admission',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{window.joins=[];window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN'){window.joins.push(p.roomId);this.readyState=3;this.onclose?.({code:1008});}}};});
+ const id='d814eae3-14d0-43ef-ae1a-6cbd48aad149';await page.goto('/world.html?room='+id);
+ await expect(page.locator('#panelTitle')).toHaveText('Room unavailable');
+ await page.getByRole('button',{name:'Go to my room',exact:true}).click();
+ await expect.poll(()=>page.evaluate(()=>window.joins)).toEqual([id,'choose-home']);
+});
+
+for(const auto of [true,false])test('Successful sign-in returns to invited room, auto restore '+auto,async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={ready:Promise.resolve(),session:async()=>null,signInAndRestore:async()=>({restore:{auto:${auto},restored:1,skipped:'no-cloud-save'}})};`}));
+ const id='d814eae3-14d0-43ef-ae1a-6cbd48aad149';await page.goto('/account.html?worldRoom='+id);
+ await page.locator('#cloudEmail').fill('player@example.com');await page.locator('#cloudPassword').fill('example-password');await page.locator('#cloudSignInButton').click();
+ await expect(page).toHaveURL(new RegExp('/world.html\\?room='+id+'$'));
+});

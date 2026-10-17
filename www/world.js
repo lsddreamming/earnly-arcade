@@ -2,9 +2,11 @@
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer,needsFirstRoom=false;
  const pending=new Map();let panelVersion=0;
- let connectTimer,retryTimer,retryCount=0,entryTarget='choose-home';
+ const sharedRoom=window.EarnlyWorldLinks.room;
+ $('worldSignIn').href=window.EarnlyWorldLinks.signIn();
+ let connectTimer,retryTimer,retryCount=0,entryTarget=sharedRoom||'choose-home';
  function entryState(message){
-  $('worldEntry').hidden=connected;$('worldConnected').hidden=!connected;$('reconnect').hidden=!connected;
+  $('worldEntry').hidden=connected;$('worldConnected').hidden=!connected;$('reconnect').hidden=!connected;$('shareRoom').hidden=!connected;
   $('connectWorld').disabled=connecting;$('connectWorld').textContent=connecting?'Connecting…':'Connect to World';
   if(message)$('entryStatus').textContent=message;
   if(connected)requestAnimationFrame(()=>renderer.resize());
@@ -69,7 +71,7 @@
   if(!/^wss:\/\//.test(endpoint))throw new Error('Secure World connection required');
   connecting=true;entryState('Connecting to your room… The server may need a moment to wake up.');$('worldSignIn').hidden=true;$('reconnect').disabled=true;$('reconnect').textContent='Connecting…';
   try{
-  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();$('worldSignIn').hidden=false;entryState('Sign in once to enter your own room and meet other players.');openPanel('Join Earnly World').append(note('Sign in to start in your own room with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:'account.html'}));return;}
+  session=await window.EarnlyCloud?.session();if(!session){finishConnecting();$('worldSignIn').hidden=false;entryState('Sign in once to enter your own room and meet other players.');openPanel('Join Earnly World').append(note('Sign in to start in your own room with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:window.EarnlyWorldLinks.signIn()}));return;}
   const token=session.access_token;
   window.EarnlyActivity?.track('world_attempt');if(retry)window.EarnlyActivity?.track('world_reconnect');
   if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise((resolve,reject)=>{
@@ -102,7 +104,7 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>renderer.updateUser(u));
-   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();}
+   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
@@ -110,11 +112,11 @@
    if(p.type==='WELCOME'){const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}
    if(connected){$('peopleCount').textContent=renderer.users.size+' in the room';const state=renderer.users.get(userId)?.state;$('connectionStatus').textContent=state==='sit'?'Live · Sitting · Tap clear floor to stand up':state==='lay'?'Live · Lying down · Tap clear floor to stand up':'Live · Tap seats to sit or a floor tile to walk';}
   };
-  ws.onclose=e=>{if(socket!==ws)return;if(e.code!==4004)trackFailure();connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;entryState('Choose your first room — it is free.');$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';entryState($('connectionStatus').textContent);if(e.code===4001||e.code===4003){$('worldSignIn').hidden=false;}if([1006,1012,1013].includes(e.code))retryEntry(roomId);for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
+  ws.onclose=e=>{if(socket!==ws)return;if(e.code!==4004)trackFailure();connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;entryState('Choose your first room — it is free.');$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';if(roomId===sharedRoom&&e.code===1008){$('connectionStatus').textContent='This room is unavailable. It may be private, full, or removed.';openPanel('Room unavailable').append(note('A shared link does not bypass room permissions.'),button('Go to my room',()=>connect('choose-home'),'primary'));}entryState($('connectionStatus').textContent);if(e.code===4001||e.code===4003){$('worldSignIn').hidden=false;}if([1006,1012,1013].includes(e.code))retryEntry(roomId);for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
   }catch(error){finishConnecting();entryState(error.message);throw error;}
  }
- $('reconnect').onclick=()=>{if(connected)window.EarnlyActivity?.track('world_reconnect');if(needsFirstRoom)showRoomCreator(true);else connect().catch(e=>{entryState(e.message);toast(e.message);});};
+ $('reconnect').onclick=()=>{if(connected)window.EarnlyActivity?.track('world_reconnect');if(needsFirstRoom)showRoomCreator(true);else connect(entryTarget).catch(e=>{entryState(e.message);toast(e.message);});};
  $('connectWorld').onclick=$('reconnect').onclick;
  function showCatalog(category='All'){
   currentPanel='catalog';const root=openPanel('Decor Catalog');root.append(note(connected?'Find the next piece for your room. Purchases use Arcade Coins.':'Preview our original decor collection. Sign in and connect to buy decor.'));
@@ -242,6 +244,21 @@
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
  window.addEventListener('earnly-cloud-auth-change',()=>{clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();entryState('Your account changed. Connect to enter your room.');});
+
+ function showFirstVisitHint(){let seen=false;try{seen=localStorage.getItem('earnly.world.hint.'+userId)==='1';}catch{}$('firstVisitHint').hidden=seen;}
+ $('dismissWorldHint').onclick=()=>{$('firstVisitHint').hidden=true;try{localStorage.setItem('earnly.world.hint.'+userId,'1');}catch{}};
+ $('shareRoom').onclick=()=>{
+  if(!connected||!scene)return;
+  const root=openPanel('Share this room');
+  if(scene.access==='closed'){root.append(note('This room is private. Open it to visitors from Rooms before inviting friends.'));return;}
+  const url=window.EarnlyWorldLinks.shareURL(scene.roomId);
+  root.append(note('Invite a friend to '+scene.name+'. They will need an Earnly account.'));
+  const input=el('input');input.value=url;input.readOnly=true;input.setAttribute('aria-label','Room link');input.onclick=()=>input.select();root.append(input);
+  if(navigator.share)root.append(button('Share invitation',async()=>{try{await navigator.share({title:'Join me in Earnly World',text:'Meet me in '+scene.name,url});}catch(e){if(e.name!=='AbortError')toast('Use Copy link to share this room.');}},'primary'));
+  root.append(button('Copy link',async()=>{try{await navigator.clipboard.writeText(url);toast('Room link copied');}catch{input.focus();input.select();toast('Select and copy the room link above.');}}),note('Sharing keeps you connected here. Private rooms and room permissions still apply.'));
+ };
+
  bootstrap.catalog=demoCatalog;entryState();
+ if(sharedRoom)connect(sharedRoom).catch(e=>entryState(e.message));
  window.addEventListener('online',()=>{if(!connected&&!connecting&&retryCount>0)connect(entryTarget,true).catch(e=>entryState(e.message));});
 })();
