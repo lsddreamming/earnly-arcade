@@ -64,3 +64,5 @@ body.kart-page.game-active :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,
 /* Keep short race feedback clear of the racing line and steering controls. */
 body.kart-page #kartCallout{top:auto;bottom:48px;max-width:85%;padding:6px 12px;font-size:10px;box-shadow:none;background:#132c45eb;color:#d6ff9f;border:1px solid #8ab6b955}
 body.kart-page #kartMessage .race-goal{font-size:12px;color:#bcd8e5}
+
+#leftButton small,#rightButton small{display:block;font-size:8px;letter-spacing:.4px;margin-top:5px}
