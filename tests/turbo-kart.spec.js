@@ -322,3 +322,44 @@ test('a stalled racing frame resumes with bounded catch-up and no wallet polling
  });
  expect(result.recovery).toBeLessThanOrEqual(3);expect(result.recovery).toBeGreaterThan(0);expect(result.resumed).toBe(true);expect(result.reads).toBe(0);
 });
+
+test('a resting track touch does not block drift steering and both touches release cleanly',async({page})=>{
+ await start(page);
+ await page.evaluate(()=>{for(const id of ['game','driftButton'])document.getElementById(id).setPointerCapture=()=>{};});
+ await page.locator('#game').dispatchEvent('pointerdown',{pointerId:81,pointerType:'touch',button:0,clientX:100});
+ await page.locator('#driftButton').dispatchEvent('pointerdown',{pointerId:82,pointerType:'touch',button:0,clientX:150});
+ await page.locator('#driftButton').dispatchEvent('pointermove',{pointerId:82,pointerType:'touch',clientX:180});
+ await expect(page.locator('#rightButton')).toHaveClass(/held/);await expect(page.locator('#driftButton')).toHaveClass(/held/);
+ await page.locator('#driftButton').dispatchEvent('pointermove',{pointerId:82,pointerType:'touch',clientX:120});await expect(page.locator('#leftButton')).toHaveClass(/held/);
+ await page.locator('#driftButton').dispatchEvent('pointercancel',{pointerId:82});await expect(page.locator('#leftButton')).not.toHaveClass(/held/);await expect(page.locator('#driftButton')).not.toHaveClass(/held/);
+ await page.locator('#game').dispatchEvent('pointerup',{pointerId:81});
+});
+
+async function observeKartDriver(page,{hold=false}={}){
+ await page.route('**/turbo-kart.js*',r=>r.fulfill({contentType:'application/javascript',body:`
+ window.driverChanges=[];window.driverCompositions=0;
+ const originalCreate=TurboKartRenderer.create;
+ TurboKartRenderer.create=(...args)=>{const renderer=originalCreate(...args),set=renderer.setDriver;renderer.setDriver=d=>{window.driverChanges.push(d?d.marker:null);return set(d);};return renderer;};
+ TurboKartDriver.compose=async()=>{const marker=++window.driverCompositions;if(${hold}&&marker===1)await new Promise(resolve=>window.releaseDriver=resolve);const canvas=document.createElement('canvas');canvas.width=300;canvas.height=400;return {canvas,marker};};
+ `+fs.readFileSync('turbo-kart.js','utf8')}));
+ await page.goto('/turbo-kart.html');await expect(page.locator('#startButton')).toBeEnabled();await page.evaluate(()=>Arcade.countdown=fn=>fn());
+}
+
+test('profile refresh keeps the equipped driver until the race ends; account changes clear it',async({page})=>{
+ await observeKartDriver(page);await expect.poll(()=>page.evaluate(()=>driverChanges.at(-1))).toBe(1);
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.evaluate(()=>{dispatchEvent(new Event('earnly-public-profile-updated'));dispatchEvent(new Event('earnly-cloud-ready'));});
+ expect(await page.evaluate(()=>({changes:driverChanges,compositions:driverCompositions}))).toEqual({changes:[1],compositions:1});
+ await page.evaluate(()=>{const tick=TurboKartEngine.tick;TurboKartEngine.tick=(s,...args)=>{tick(s,...args);s.ended=true;TurboKartEngine.tick=tick;};});
+ await expect(page.locator('#gameStatus')).toHaveText('Race over');await expect.poll(()=>page.evaluate(()=>driverChanges.at(-1))).toBe(2);
+ await page.locator('dialog').getByRole('button',{name:/Play Again/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.evaluate(()=>dispatchEvent(new Event('earnly-cloud-auth-change')));expect(await page.evaluate(()=>driverChanges.at(-1))).toBeNull();
+});
+
+test('a driver composition finishing after Start waits until racing ends',async({page})=>{
+ await observeKartDriver(page,{hold:true});await expect.poll(()=>page.evaluate(()=>typeof window.releaseDriver)).toBe('function');
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.evaluate(async()=>{window.releaseDriver();await Promise.resolve();await Promise.resolve();});expect(await page.evaluate(()=>driverChanges)).toEqual([]);
+ await page.evaluate(()=>{const tick=TurboKartEngine.tick;TurboKartEngine.tick=(s,...args)=>{tick(s,...args);s.ended=true;TurboKartEngine.tick=tick;};});
+ await expect.poll(()=>page.evaluate(()=>driverChanges.at(-1))).toBe(2);
+});
