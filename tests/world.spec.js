@@ -323,6 +323,10 @@ test('World coin panel preserves its socket and opens the shop separately',async
  const buy=page.getByRole('link',{name:'Buy more coins'});await expect(buy).toHaveAttribute('href','avatars.html#coin-shop');await expect(buy).toHaveAttribute('target','_blank');
  await page.getByRole('button',{name:'Back to room',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
  expect(await page.evaluate(()=>({closes:window.worldCloses,joins:window.worldJoins}))).toEqual({closes:0,joins:1});await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.evaluate(()=>window.dispatchEvent(new Event('earnly-cloud-auth-change')));
+ await expect(page.locator('#worldConnected')).toBeHidden();await expect(page.locator('#connectWorld')).toBeVisible();
+ await expect(page.locator('#connectionStatus')).toContainText('Disconnected');await expect(page.locator('#connectionStatus')).not.toContainText('Live');
+ expect(await page.evaluate(()=>window.worldCloses)).toBe(1);
 });
 
 for(const motion of ['reduce','no-preference'])test(`Equipped avatars retain alternating footsteps with ${motion} motion`,async({page},testInfo)=>{
@@ -435,4 +439,20 @@ test('Afterglow furniture previews have distinct original art and transparent pr
  const art=await page.locator('.item-card canvas').evaluateAll(nodes=>nodes.map(c=>c.toDataURL()));expect(new Set(art).size).toBe(5);
  for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/afterglow-catalog.png',fullPage:true});
+});
+
+ test('World keeps familiar navigation icons and phone-sized tap targets',async({page},testInfo)=>{
+ await page.goto('/profile.html');
+ const usual=await page.locator('#arcadeBottomNav a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.bottom-nav-icon').textContent,label:a.querySelector('.bottom-nav-label').textContent})));
+ expect(usual).toHaveLength(6);
+ await page.goto('/world.html');
+ const world=await page.locator('.world-bottom a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.world-nav-icon').textContent,label:a.querySelector('.world-nav-label').textContent})));
+ expect(world).toEqual(usual);
+ await expect(page.locator('.world-bottom [aria-current="page"]')).toHaveAccessibleName('World');
+ for(const width of [320,390,430]){
+  await page.setViewportSize({width,height:740});
+  const boxes=await page.locator('.world-bottom a').evaluateAll(links=>links.map(a=>{const r=a.getBoundingClientRect();return {x:r.x,right:r.right,width:r.width,height:r.height};}));
+  expect(boxes.every(b=>b.x>=0&&b.right<=width&&b.width>=44&&b.height>=44)).toBe(true);
+ }
+ await page.screenshot({path:`test-results/world-navigation-${testInfo.project.name}.png`});
 });
