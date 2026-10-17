@@ -60,3 +60,9 @@ body.kart-page.game-active :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,
 #kartMessage #startButton:active{transform:translateY(2px);box-shadow:0 2px 0 #48a896}
 @media(max-height:480px) and (orientation:landscape){.kart-page.game-active .race-progress{position:absolute;width:calc(100% - 250px);left:max(10px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));z-index:2;border:0}.kart-page.game-active .kart-shell{position:relative}}
 @media(prefers-reduced-motion:reduce){.race-progress i,.course-picker button{transition:none!important}}
+
+/* Keep short race feedback clear of the racing line and steering controls. */
+body.kart-page #kartCallout{top:auto;bottom:48px;max-width:85%;padding:6px 12px;font-size:10px;box-shadow:none;background:#132c45eb;color:#d6ff9f;border:1px solid #8ab6b955}
+body.kart-page #kartMessage .race-goal{font-size:12px;color:#bcd8e5}
+
+#leftButton small,#rightButton small{display:block;font-size:8px;letter-spacing:.4px;margin-top:5px}

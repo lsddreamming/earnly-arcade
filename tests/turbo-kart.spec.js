@@ -50,7 +50,7 @@ test('blue, gold and violet drift releases grow stronger; stationary and grass d
 test('steering changes heading and line; releasing input settles steering and corners push an unsteered kart outward',()=>{
  const s=E.create();s.racers.slice(1).forEach(r=>r.d=-500);Object.assign(s.racers[0],{speed:100,lane:0});const angle=s.racers[0].heading;for(let i=0;i<30;i++)E.tick(s,1/60,{steer:1});expect(s.racers[0].heading).toBeGreaterThan(angle+.1);expect(s.racers[0].lane).toBeGreaterThan(3);
  for(let i=0;i<60;i++)E.tick(s,1/60,{});expect(Math.abs(s.racers[0].steer)).toBeLessThan(.01);
- const coast=E.create();coast.racers.slice(1).forEach(r=>r.d=-500);Object.assign(coast.racers[0],{d:450,speed:100,lane:0});for(let i=0;i<60;i++)E.tick(coast,1/60,{});expect(Math.abs(coast.racers[0].lane)).toBeGreaterThan(5);
+ const coast=E.create();coast.racers.slice(1).forEach(r=>r.d=-500);Object.assign(coast.racers[0],{d:450,speed:100,lane:0});for(let i=0;i<60;i++)E.tick(coast,1/60,{});expect(Math.abs(coast.racers[0].lane)).toBeGreaterThan(2);expect(Math.abs(coast.racers[0].lane)).toBeLessThan(6);
 });
 test('Arc Bolt travels to its target, Prism Guard absorbs it, and Ink Patch catches a following rival',()=>{
  for(const shield of [0,6]){const s=E.create();s.racers.slice(2).forEach(r=>r.d=-500);Object.assign(s.racers[0],{d:200,lane:0,speed:100});Object.assign(s.racers[1],{d:250,lane:0,speed:100,shield});s.item='bolt';E.useItem(s);expect(s.projectiles).toHaveLength(1);let struck=false;for(let i=0;i<100;i++){E.tick(s,1/60,drive(s));if(s.racers[1].slow>1){struck=true;break;}}if(shield){expect(struck).toBe(false);expect(s.racers[1].shield).toBe(0);}else expect(struck).toBe(true);expect(s.item).toBeNull();}
@@ -274,4 +274,21 @@ test('phone rendering has bounded road work and world-space boats pass through t
  const xs=result.frames.flat().map(b=>Math.round(b.x));expect(new Set(xs).size).toBeGreaterThan(6);expect(result.frames.some(f=>!f.length)).toBe(true);expect(result.frames.filter(f=>f.length>0).length).toBeGreaterThan(4);expect(Math.max(...xs)-Math.min(...xs)).toBeGreaterThan(150);
  await page.setViewportSize({width:390,height:700});await start(page);await page.locator('#earnlyPauseButton').click();
  for(const [label,fraction]of [['bay',0],['reverse-view',.35]]){await page.evaluate(f=>{const s=TurboKartEngine.create();s.racers[0].d=s.track.length*f;TurboKartRenderer.create(document.getElementById('game')).render(s);},fraction);await page.screenshot({path:`test-results/turbo-kart-${label}-${test.info().project.name}.png`});}
+});
+
+test('120Hz callbacks do not redraw unchanged racing frames',async({page})=>{
+ await page.goto('/turbo-kart.html');await expect(page.locator('#startButton')).toBeEnabled();
+ const result=await page.evaluate(()=>{
+  const originalRAF=window.requestAnimationFrame;let callback;
+  window.requestAnimationFrame=fn=>{if(fn.name==='loop'){callback=fn;return 999999;}return originalRAF(fn);};
+  Arcade.countdown=fn=>fn();
+  document.getElementById('startButton').click();
+  const ctx=document.getElementById('game').getContext('2d'),transform=ctx.setTransform.bind(ctx),tick=TurboKartEngine.tick;let draws=0,ticks=0;
+  ctx.setTransform=(...args)=>{draws++;return transform(...args);};TurboKartEngine.tick=(...args)=>{ticks++;return tick(...args);};
+  const begin=performance.now();for(let frame=1;frame<=120;frame++)callback(begin+frame*1000/120);
+  ctx.setTransform=transform;TurboKartEngine.tick=tick;window.requestAnimationFrame=originalRAF;
+  return {draws,ticks};
+ });
+ expect(result.ticks).toBeGreaterThanOrEqual(59);expect(result.ticks).toBeLessThanOrEqual(62);
+ expect(result.draws).toBeGreaterThanOrEqual(59);expect(result.draws).toBeLessThanOrEqual(62);
 });

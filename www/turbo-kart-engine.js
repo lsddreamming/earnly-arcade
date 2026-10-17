@@ -55,10 +55,14 @@
    if(drifting&&Math.abs(r.heading)>.06)r.charge=Math.min(2.5,r.charge+dt);
    if(!drifting&&r.drifting){const level=tier(r.charge);if(level&&onRoad&&r.slow===0&&!control.drift){r.boost=Math.max(r.boost,[0,1.1,1.8,2.6][level]);if(!i){s.drifts++;announce(s,['','DRIFT BOOST','SUPER DRIFT','ULTRA DRIFT'][level]);}}r.charge=0;}
    r.drifting=drifting;r.steer+=(steer-r.steer)*Math.min(1,dt*12);
-   r.heading=clamp(r.heading+((drifting?r.steer*.72+r.driftDirection*.2:r.steer*1.35)-bend*r.speed)*dt,-.85,.85);r.heading*=Math.exp(-(drifting?1.45:1.9)*dt);
-   // Recover grip promptly when the player releases or countersteers. Drifting
-   // retains its deliberate slide; this does not recenter the kart or auto-drive.
-   if(!i&&!drifting&&(Math.abs(steer)<.05||Math.sign(steer)!==Math.sign(r.heading)))r.heading*=Math.exp(-5*dt);
+   if(!i&&!drifting){
+    // Normal steering sets a direction rather than accumulating a slide.
+    // A small curve force keeps corners meaningful without fighting the thumb.
+    const desired=clamp(r.steer*.34-bend*r.speed*.12,-.45,.45);
+    r.heading+=(desired-r.heading)*(1-Math.exp(-14*dt));
+   }else{
+    r.heading=clamp(r.heading+((drifting?r.steer*.72+r.driftDirection*.2:r.steer*1.35)-bend*r.speed)*dt,-.85,.85);r.heading*=Math.exp(-(drifting?1.45:1.9)*dt);
+   }
    r.lane+=Math.sin(r.heading)*r.speed*dt;
    if(Math.abs(r.lane)>75){r.lane=clamp(r.lane,-75,75);r.heading*=.85;}
    const off=Math.abs(r.lane)>WIDTH/2-5,base=i?111+i*.65:108,cornerSpeed=i?clamp(1-Math.abs(curvature(r.d+45,track))*12,.9,1):1;
