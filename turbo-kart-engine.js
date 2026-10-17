@@ -56,6 +56,9 @@
    if(!drifting&&r.drifting){const level=tier(r.charge);if(level&&onRoad&&r.slow===0&&!control.drift){r.boost=Math.max(r.boost,[0,1.1,1.8,2.6][level]);if(!i){s.drifts++;announce(s,['','DRIFT BOOST','SUPER DRIFT','ULTRA DRIFT'][level]);}}r.charge=0;}
    r.drifting=drifting;r.steer+=(steer-r.steer)*Math.min(1,dt*12);
    r.heading=clamp(r.heading+((drifting?r.steer*.72+r.driftDirection*.2:r.steer*1.35)-bend*r.speed)*dt,-.85,.85);r.heading*=Math.exp(-(drifting?1.45:1.9)*dt);
+   // Recover grip promptly when the player releases or countersteers. Drifting
+   // retains its deliberate slide; this does not recenter the kart or auto-drive.
+   if(!i&&!drifting&&(Math.abs(steer)<.05||Math.sign(steer)!==Math.sign(r.heading)))r.heading*=Math.exp(-5*dt);
    r.lane+=Math.sin(r.heading)*r.speed*dt;
    if(Math.abs(r.lane)>75){r.lane=clamp(r.lane,-75,75);r.heading*=.85;}
    const off=Math.abs(r.lane)>WIDTH/2-5,base=i?111+i*.65:108,cornerSpeed=i?clamp(1-Math.abs(curvature(r.d+45,track))*12,.9,1):1;
@@ -71,9 +74,9 @@
   s.projectiles=s.projectiles.filter(v=>v.life>0);s.hazards=s.hazards.filter(v=>v.life>0);s.effects=s.effects.filter(v=>(v.life-=dt)>0);
   // Contact separation never waits for damage immunity: karts stay solid during a bump.
   // Match the rendered 23-unit chassis width, resolve packs without changing race distance.
-  for(let pass=0;pass<32;pass++)for(let i=0;i<s.racers.length;i++)for(let j=i+1;j<s.racers.length;j++){
+  for(let pass=0;pass<32;pass++){let contacts=false;for(let i=0;i<s.racers.length;i++)for(let j=i+1;j<s.racers.length;j++){
    const a=s.racers[i],b=s.racers[j];if(a.finishTime!==null||b.finishTime!==null)continue;
-   if(Math.abs(a.d-b.d)<18&&Math.abs(a.lane-b.lane)<24){
+   if(Math.abs(a.d-b.d)<18&&Math.abs(a.lane-b.lane)<24){contacts=true;
     const direction=a.lane===b.lane?(i<j?-1:1):Math.sign(a.lane-b.lane),push=(24-Math.abs(a.lane-b.lane))/2+.01;
     const nextA=a.lane+direction*push,nextB=b.lane-direction*push;
     a.lane=clamp(nextA,-75,75);b.lane=clamp(nextB,-75,75);
@@ -82,6 +85,7 @@
     if(!a.cooldown&&!b.cooldown){if(!a.shield)a.slow=.35;if(!b.shield)b.slow=.35;a.cooldown=b.cooldown=1;}
    }
   }
+  if(!contacts)break;}
   const drafting=s.racers.slice(1).some(r=>r.d-p.d>16&&r.d-p.d<65&&Math.abs(r.lane-p.lane)<12)&&Math.abs(p.lane)<47&&p.speed>60;
   s.draft=drafting?s.draft+dt:Math.max(0,s.draft-dt*2);if(s.draft>1.1){p.boost=Math.max(p.boost,.8);s.draft=0;announce(s,'SLIPSTREAM');}
   s.driftCharge=p.charge;s.wasDrifting=p.drifting;s.place=rank(s);

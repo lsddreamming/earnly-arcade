@@ -209,7 +209,7 @@ test('racing keeps layout and wallet reads out of the frame hot path',async({pag
  expect(counts.account).toBeLessThanOrEqual(3);
  expect(counts.samples/counts.frames).toBeLessThan(650);
  await page.setViewportSize({width:667,height:375});
- await expect.poll(()=>page.locator('#game').evaluate(c=>Math.abs(c.width-c.getBoundingClientRect().width*Math.min(devicePixelRatio,2)))).toBeLessThanOrEqual(1);
+ await expect.poll(()=>page.locator('#game').evaluate(c=>Math.abs(c.width-c.getBoundingClientRect().width*Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1.5:2)))).toBeLessThanOrEqual(1);
 });
 
 test('slow renderer loading keeps Start disabled until the first tap can start a race',async({page})=>{
@@ -255,4 +255,23 @@ test('Reduce Motion freezes decorative water and pickup bobbing without changing
   return {same:first===canvas.toDataURL(),untouched:JSON.stringify(s)===before,transition:getComputedStyle(document.getElementById('raceProgress')).transitionDuration};
  });
  expect(results.same).toBe(true);expect(results.untouched).toBe(true);expect(results.transition).toBe('0s');
+});
+
+test('release settles promptly and countersteering reverses without a lingering slide',()=>{
+ for(const reverse of [false,true]){const s=E.create();s.pickups=[];s.racers.slice(1).forEach(r=>r.d=-500);Object.assign(s.racers[0],{lane:0,speed:100});for(let i=0;i<20;i++)E.tick(s,1/60,{steer:.7});const lane=s.racers[0].lane;let reversedAt=Infinity;for(let i=0;i<30;i++){E.tick(s,1/60,{steer:reverse?-.7:0});if(s.racers[0].heading<0)reversedAt=Math.min(reversedAt,i/60);}if(reverse)expect(reversedAt).toBeLessThanOrEqual(.15);else expect(Math.abs(s.racers[0].lane-lane)).toBeLessThan(2);}
+});
+
+test('phone rendering has bounded road work and world-space boats pass through the view',async({page})=>{
+ await page.goto('/turbo-kart.html');
+ const result=await page.evaluate(()=>{
+  const c=document.createElement('canvas');c.getBoundingClientRect=()=>({width:390,height:560});const ctx=c.getContext('2d'),fill=ctx.fill.bind(ctx),line=ctx.lineTo.bind(ctx);let fills=0,lines=0,boats=[];
+  ctx.fill=(...args)=>{fills++;if(ctx.fillStyle==='#fff4dc'){const m=ctx.getTransform();const ratio=c.width/390;const x=m.e/ratio,y=m.f/ratio;if(x>15&&x<375&&y>0&&y<560)boats.push({x,y});}return fill(...args);};ctx.lineTo=(...args)=>{lines++;return line(...args);};
+  const renderer=TurboKartRenderer.create(c),s=TurboKartEngine.create();renderer.render(s);fills=lines=0;
+  const frames=[];for(let i=0;i<24;i++){s.racers[0].d=s.track.length*i/24;s.time=-i-1;boats=[];renderer.render(s);frames.push(boats);}
+  return {fills:fills/24,lines:lines/24,pixels:c.width*c.height,cap:390*560*Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1.5:2)**2,frames};
+ });
+ expect(result.fills).toBeLessThan(650);expect(result.lines).toBeLessThan(1800);expect(result.pixels).toBeLessThanOrEqual(result.cap+1500);
+ const xs=result.frames.flat().map(b=>Math.round(b.x));expect(new Set(xs).size).toBeGreaterThan(6);expect(result.frames.some(f=>!f.length)).toBe(true);expect(result.frames.filter(f=>f.length>0).length).toBeGreaterThan(4);expect(Math.max(...xs)-Math.min(...xs)).toBeGreaterThan(150);
+ await page.setViewportSize({width:390,height:700});await start(page);await page.locator('#earnlyPauseButton').click();
+ for(const [label,fraction]of [['bay',0],['reverse-view',.35]]){await page.evaluate(f=>{const s=TurboKartEngine.create();s.racers[0].d=s.track.length*f;TurboKartRenderer.create(document.getElementById('game')).render(s);},fraction);await page.screenshot({path:`test-results/turbo-kart-${label}-${test.info().project.name}.png`});}
 });
