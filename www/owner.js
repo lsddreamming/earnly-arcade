@@ -19,6 +19,6 @@
   finally{if(current===sequence)$('refresh').disabled=false;}
  }
  $('filters').addEventListener('submit',e=>{e.preventDefault();refresh();});
- window.EarnlyCloud?.client?.auth?.onAuthStateChange?.((event)=>{if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;sequence++;$('report').hidden=true;$('status').textContent='Account changed. Refresh to view activity.';});
+ window.EarnlyCloud?.client?.auth?.onAuthStateChange?.((event)=>{if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;sequence++;$('report').hidden=true;$('refresh').disabled=false;for(const id of ['signups','world','shop','rooms'])$(id).replaceChildren();$('status').textContent='Account changed. Refresh to view activity.';});
  refresh();
 })();
