@@ -59,7 +59,7 @@ try{
   await a.locator('[data-panel="rooms"]').click();await a.locator('.room-card').filter({hasText:name}).getByRole('button',{name:'Visit →'}).click();
   await expect(a.locator('#roomName')).toHaveText(name);await overview(a);await expect(a.locator('#peopleCount')).toHaveText('1 in the room');
   await a.locator('[data-panel="staff"]').click();await a.getByRole('button',{name:'Say hello',exact:true}).click();await expect(a.locator('#panelTitle')).toContainText(role);await expect(a.locator('#panelContent')).toContainText('Staff NPC');
-  await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a tip'}).click();await expect(a.locator('.staff-greeting')).toBeVisible();
+  await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a local tip'}).click();await expect(a.locator('.staff-reply')).toBeVisible();await expect(a.getByRole('button',{name:'Find me a seat'})).toBeVisible();
   await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
   // Tap actual seat sprite pixels, including the raised back, automatically walk over and sit without a dialog.
   const seatPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.canSit);const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y++)for(let x=ox-30;x<ox+40;x++)if(r.pickItem(x,y)?.id===i.id)return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};throw new Error('Seat sprite not found');});
