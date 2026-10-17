@@ -4,7 +4,7 @@
  const gifts=[
   {id:'vip-neon-throne',name:'Sovereign Neon Throne',sprite_id:'vip-throne',color:'#b09af2',months:'Jan · Apr · Jul · Oct',description:'A crown-topped seat with jewel tones and neon edges. Give your room its centerpiece.',theme:'lobby'},
   {id:'vip-aurora-fountain',name:'Aurora Crystal Fountain',sprite_id:'vip-fountain',color:'#79e8dc',months:'Feb · May · Aug · Nov',description:'A luminous crystal wrapped in golden rings. Build a tranquil corner with a little cosmic drama.',theme:'rooftop'},
-  {id:'vip-lunar-bloom',name:'Lunar Bloom Conservatory',sprite_id:'vip-bloom',color:'#b4a1f3',months:'Mar · Jun · Sep · Dec',description:'Sculptural crystal blooms inside a delicate glass frame. Turn your room into a moonlit retreat.',theme:'patio'}
+  {id:'vip-lunar-bloom',name:'Lunar Bloom Conservatory',sprite_id:'vip-bloom',color:'#b4a1f3',months:'Mar · Jun · Sep · Dec',description:'Sculptural crystal blooms inside a delicate glass frame. Turn your room into a moonlit retreat.',theme:'suite'}
  ];
  let selected=null;
  function preview(index,userChosen=false){
@@ -17,8 +17,8 @@
   const canvas=document.getElementById('vip-room-preview');canvas.setAttribute('aria-label',gift.name+' styled in an example room');
   window.EarnlyWorldRenderer?.roomThumbnail(canvas,'00000\n00000\n00000\n00000\n00000',[
    {...gift,sprite:gift.sprite_id,x:2,y:2,z:0,rotation:0,width:1,length:1},
-   {sprite:'plant',color:'#85b99c',x:0,y:1,z:0,width:1,length:1},
-   {sprite:'lamp',color:'#e8ca8a',x:4,y:1,z:0,width:1,length:1}
+   {id:'preview-plant',sprite:'plant',color:'#85b99c',x:0,y:1,z:0,width:1,length:1},
+   {id:'preview-lamp',sprite:'lamp',color:'#e8ca8a',x:4,y:1,z:0,width:1,length:1}
   ],gift.theme);
  }
  function render(){

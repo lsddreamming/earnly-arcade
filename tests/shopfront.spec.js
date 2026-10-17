@@ -228,7 +228,7 @@ test('Furnished room ideas and VIP previews stay compact and never initiate purc
  await page.locator('#room-collections').scrollIntoViewIfNeeded();await page.screenshot({path:test.info().outputPath('real-furniture-iphone.png')});
  await page.getByRole('button',{name:'VIP Pass',exact:true}).click();
  await expect(page.locator('#vip-pass > summary')).toBeHidden();
- await expect(page.locator('.vip-avatar-preview img')).toHaveCount(3);
+ await expect(page.locator('.vip-avatar-preview img')).toHaveCount(5);
  for(const image of await page.locator('.vip-avatar-preview img').all())expect(await image.evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
  await expect(page.locator('#pass-restore')).toBeVisible();await expect(page.locator('#pass-disclosure')).toContainText(/auto-renew/i);
  await page.screenshot({path:test.info().outputPath('vip-preview-iphone.png')});
