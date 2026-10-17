@@ -472,7 +472,7 @@ test('Original World collections can be explored before connecting and searched 
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
  await expect(page.locator('#worldInspiration')).toBeVisible();await page.locator('#browseDecor').click();
- await expect(page.locator('.collection-card')).toHaveCount(3);
+ await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeInViewport();await page.screenshot({path:testInfo.outputPath('catalog-search-first.png')});await expect(page.locator('.catalog-collections')).not.toHaveAttribute('open','');await page.locator('.catalog-collections summary').click();await expect(page.locator('.collection-card')).toHaveCount(3);
  await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(4);
  await page.getByRole('searchbox',{name:'Search decor'}).fill('coffee');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Bramble Coffee Station');await expect(page.locator('.item-card button')).toBeDisabled();
  await page.getByRole('searchbox',{name:'Search decor'}).fill('no-match');await expect(page.locator('#panelContent')).toContainText('No pieces match');
@@ -492,7 +492,7 @@ test('Original World collections can be explored before connecting and searched 
 test('World collections respect inventory filters and expose a useful empty-room invitation',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.addInitScript(()=>{window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'home',name:'Home',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:3000,rooms:[],catalog:window.EarnlyWorldCollections.items,items:[{id:'owned',definition_id:'bramble-chair',serial:1,room_id:null}],friends:[]}})});}};});
- await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#roomInvitation')).toBeVisible();await page.locator('#startDecorating').click();await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#roomInvitation')).toBeVisible();await page.locator('#startDecorating').click();await page.locator('.catalog-collections summary').click();await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();
  await expect(page.locator('.owned-label')).toHaveText('1 owned');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('unowned');await expect(page.locator('.item-card')).toHaveCount(3);await expect(page.locator('.item-card').filter({hasText:'Bramble Bentwood Chair'})).toHaveCount(0);
  await expect(page.locator('#coinBalance')).toHaveText('◇ 3,000');
 });
@@ -513,7 +513,7 @@ test('Public hangouts show decor previews and staff find an unoccupied seat',asy
   }};
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
- await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.hangout-preview')).toHaveCount(3);
+ await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.hangout-preview')).toHaveCount(3);expect((await page.locator('.hangout-card').first().boundingBox()).height).toBeLessThan(280);
  await expect(page.locator('.room-card').first()).toContainText('2 players in room');
  await expect(page.locator('.room-card').last().locator('canvas')).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Refresh rooms',exact:true})).toBeEnabled();
@@ -525,4 +525,18 @@ test('Public hangouts show decor previews and staff find an unoccupied seat',asy
  await expect(page.locator('#worldPanel')).not.toBeVisible();
  expect(await page.evaluate(()=>window.hangoutPackets.filter(p=>p.type==='INTERACT'))).toEqual([{type:'INTERACT',x:5,y:4,action:'sit'}]);
  await page.screenshot({path:testInfo.outputPath('hangout-rooftop.png')});
+});
+
+test('Foreground foliage fades only when it covers the local avatar',async({page})=>{
+ await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.width=390;canvas.height=500;
+  const renderer=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype),context=canvas.getContext('2d');let faded=0;
+  const wrapped=new Proxy(context,{get(target,key){const value=target[key];return typeof value==='function'?function(...args){if(key==='fill'&&target.globalAlpha<.3)faded++;return value.apply(target,args);}:value;},set(target,key,value){target[key]=value;return true;}});
+  Object.assign(renderer,{canvas,c:wrapped,scene:{heightmap:Array(6).fill('000000').join('\n'),items:[{id:'palm',sprite:'palm',x:1,y:1,z:0,width:1,length:1}]},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom:1,hit:[],localUserId:'me'});
+  renderer.setUsers([{userId:'me',position:{x:0,y:0,z:0},state:'std'}]);renderer.draw();const behind=faded;
+  faded=0;renderer.setUsers([{userId:'me',position:{x:4,y:4,z:0},state:'std'}]);renderer.draw();const clear=faded;
+  faded=0;renderer.users.clear();renderer.draw();return {behind,clear,empty:faded};
+ });
+ expect(result.behind).toBeGreaterThan(0);expect(result.clear).toBe(0);expect(result.empty).toBe(0);
 });
