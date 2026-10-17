@@ -68,12 +68,12 @@ const TurboKartRenderer=(()=>{
   for(let layer=0;layer<2;layer++){const points=[{x:0,y:horizon+10}];for(let x=0;x<=w+20;x+=20)points.push({x,y:horizon-12-layer*10-Math.sin(x*.012+cameraAngle+layer*3)*(18+layer*6)-Math.cos(x*.029+layer)*10});points.push({x:w+20,y:horizon+25});poly(points,t.scene==='canyon'?['#d48d98','#e6a48c'][layer]:t.scene==='garden'?['#6460a0','#727cb3'][layer]:['#6fbbaf','#98d3b8'][layer]);}
   ctx.fillStyle=t.ground;ctx.fillRect(0,horizon+14,w,h-horizon);
   if(t.scene==='harbor'){ctx.fillStyle='#58c4d7';ctx.fillRect(0,horizon+12,w,Math.max(10,h*.1));for(let i=0;i<8;i++)line((i*89+ambientTime*2)%w,horizon+23+i*4,(i*89+ambientTime*2)%w+35,horizon+23+i*4,'#a9e9de',1);}
-  // A real infield bay: boats use the same world projection as the circuit.
+  // Trackside coves and boats share the circuit projection, passing out of view on bends.
   // Clip the water polygon against the near plane before projecting it.
-  if(t.scene==='harbor'){
+  const harbors=t.scene==='harbor'?[.12,.45,.78].map(d=>E.sample(t.length*d,-190,t)):[];
+  if(harbors.length){
    function bayPolygon(points,color){const clipped=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],da=project(a).depth,db=project(b).depth;if(da>=4)clipped.push(a);if((da>=4)!==(db>=4)){const f=(4-da)/(db-da);clipped.push({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f});}}if(clipped.length>=3)poly(clipped.map(v=>project(v)),color);}
-   bayPolygon([{x:-100,y:-110},{x:90,y:-110},{x:80,y:80},{x:-90,y:105}],'#e7d6a3');
-   bayPolygon([{x:-91,y:-101},{x:81,y:-101},{x:71,y:71},{x:-81,y:96}],'#58c4d7');
+   for(const center of harbors)for(const [radius,color]of [[70,'#e7d6a3'],[64,'#58c4d7']])bayPolygon(Array.from({length:8},(_,i)=>({x:center.x+Math.cos(i*TAU/8)*radius,y:center.y+Math.sin(i*TAU/8)*radius})),color);
   }
   // Flat ground is a separate pass: a wide, near road quad must never cover a kart.
   if(s.time<skidTime||s.time===0){skidMarks=[];skidTime=-1;}if(s.time-skidTime>=.045){for(const r of s.racers)if(r.drifting)skidMarks.push({d:r.d,lane:r.lane,time:s.time});skidTime=s.time;}skidMarks=skidMarks.filter(v=>s.time-v.time<1.3).slice(-90);
@@ -107,7 +107,7 @@ const TurboKartRenderer=(()=>{
   if(!scenery.has(t.id)){const props=[];for(let i=0;i<84;i++){const d=i*t.length/84,offset=(i%2?1:-1)*(124+(i%3)*33),v=E.sample(d,offset,t);if(t.points.some(q=>(v.x-q.x)**2+(v.y-q.y)**2<112*112))continue;const type=t.scene==='canyon'?['rock','tower','rock','arch','rock','tower','rock'][i%7]:t.scene==='garden'?(i%7===0?'lamp':i%4?'tree':'crystal'):(i%7===0?'lamp':i%5===0?'tower':i%3===0?'umbrella':'tree');props.push({d,v,type,index:i,size:.58+(i%5)*.065});}scenery.set(t.id,props);}
   for(const v of scenery.get(t.id)){const gap=((v.d-p.d)%t.length+t.length)%t.length;if(gap>650)continue;const q=project(v.v);add(q.depth,()=>{if(q.x>-60*q.k&&q.x<w+60*q.k)prop(v.type,q.x,q.y,q.k*v.size,t.scene,v.index);});}
   if(t.scene==='harbor')for(let i=0;i<3;i++){
-   const base=[[-44,-48],[34,-2],[-22,57]][i],v={x:base[0]+Math.sin(ambientTime*.09+i)*9,y:base[1]+Math.cos(ambientTime*.09+i)*5},q=project(v);
+   const base=harbors[i],v={x:base.x+Math.sin(ambientTime*.09+i)*9,y:base.y+Math.cos(ambientTime*.09+i)*5},q=project(v);
    add(q.depth,()=>{if(q.x>-30*q.k&&q.x<w+30*q.k)prop('boat',q.x,q.y,q.k*.65,t.scene,i);});
   }
   // Trackside arrow boards make the upcoming corner readable without watching the map.
