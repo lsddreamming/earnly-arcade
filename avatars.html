@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
 <link rel="stylesheet" href="shop-two.css"><link rel="stylesheet" href="shop-polish.css?v=1"><script src="shop-two.js?v=2" defer></script><script src="shop-bundles.js" defer></script>
-<link rel="stylesheet" href="shop-premium.css?v=1"><script src="world-renderer.js" defer></script><link rel="stylesheet" href="vip-showcase.css?v=2"><script src="vip-furniture.js?v=2" defer></script><script src="shop-premium.js" defer></script>
+<link rel="stylesheet" href="shop-premium.css?v=1"><script src="world-renderer.js" defer></script><link rel="stylesheet" href="vip-showcase.css?v=2"><script src="vip-furniture.js?v=2" defer></script><script src="shop-premium.js?v=coin-world1" defer></script>
 </head>
   <body class="studio-dashboard">
     <header class="header">
@@ -138,10 +138,10 @@
       </section>
       <section class="coin-shop panel" id="coin-shop" aria-labelledby="coins-title">
         <p class="eyebrow">ARCADE COIN SHOP</p><h2 id="coins-title">Buy coins. Make it yours.</h2>
-        <p class="collection-note">Outfits. Accessories. More plays. Pick your pack or earn coins by playing.</p>
-        <details id="coin-pack-options" class="coin-pack-options"><summary>View coin packages and prices</summary><div id="coin-packs" class="coin-packs"></div></details><p id="coin-status" role="status" aria-live="polite">Checking available coin packs…</p><p class="collection-note">One coin balance for plays and avatar upgrades. Coins have no cash value and cannot be redeemed, transferred, or withdrawn.</p>
+        <p class="collection-note">Your room. Your look. More plays. Pick a pack or earn coins by playing.</p>
+        <details id="coin-pack-options" class="coin-pack-options"><summary>View coin packages and prices</summary><div id="coin-packs" class="coin-packs"></div></details><p id="coin-status" role="status" aria-live="polite">Checking available coin packs…</p><p class="collection-note">One coin balance for room furniture, plays and avatar upgrades. Coins have no cash value and cannot be redeemed, transferred, or withdrawn.</p>
         <a href="games.html" class="earn-coins-link">Play games &amp; earn coins →</a>
-        <a href="#collection" class="browse-unlocks">Explore what you can unlock <span aria-hidden="true">→</span></a>
+        <div class="coin-use-links"><a href="world.html?catalog=All" class="coin-use-room"><canvas width="240" height="140" aria-hidden="true"></canvas><strong>Furnish your World</strong><span>Preview furniture before you buy →</span></a><a href="#collection" class="browse-unlocks" aria-label="Explore what you can unlock"><img src="cosmetic-cyber-starter.svg" alt="" width="120" height="140"><strong>Style your avatar</strong><span>Preview your next look →</span></a></div>
         <div id="extra-plays" hidden><h3>Three more plays · 25 coins</h3><label for="play-game">Choose a game</label><select id="play-game"></select><button id="buy-plays">Unlock 3 plays</button><p id="play-status" role="status"></p></div>
       </section>
       <details class="shop-leaderboard"><summary>🏆 World high scores <span>See the players behind the looks</span></summary><section class="leaderboard panel" aria-labelledby="leaderboard-title">

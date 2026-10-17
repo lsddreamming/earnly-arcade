@@ -50,3 +50,13 @@
 @media(max-width:360px){.studio-dashboard .room-editions{grid-template-columns:1fr}.studio-dashboard .room-editions>a{display:grid;grid-template-columns:44% 1fr;align-items:center}.studio-dashboard .room-scene{aspect-ratio:10/7}.room-edition-copy>span{min-height:0}}
 
 @media(max-width:680px){body.studio-dashboard #signature-looks #featured-looks .look-card{flex:0 0 100%!important;border-radius:20px!important;border:1px solid #74c7cb33!important;background:linear-gradient(135deg,#20364c,#232039)!important}}
+
+/* Make the two main coin uses visible without another shop menu. */
+.studio-dashboard .coin-use-links{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.studio-dashboard .coin-use-links>a{width:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;padding:12px;margin:0;border:1px solid #577d985e;border-radius:16px;text-align:center;text-decoration:none;background:linear-gradient(145deg,#213b4c,#17233a);color:#d4f9f1;font-size:13px;line-height:1.4}
+.studio-dashboard .coin-use-links>a:last-child{background:linear-gradient(145deg,#383254,#17233a)}
+.studio-dashboard .coin-use-links canvas,.studio-dashboard .coin-use-links img{display:block;width:100%;height:100px;object-fit:contain}
+.studio-dashboard .coin-use-links strong{font-size:14px}.studio-dashboard .coin-use-links .coin-use-room>span{font-size:11px;color:#b8d4dc}
+@media(max-width:360px){.studio-dashboard .coin-use-links>a{padding:9px 6px;font-size:12px}.studio-dashboard .coin-use-links canvas,.studio-dashboard .coin-use-links img{height:82px}}
+
+.studio-dashboard .coin-use-links .browse-unlocks>span{font-size:11px;line-height:1.4;font-weight:400;color:#b8d4dc}.studio-dashboard .coin-use-links .browse-unlocks strong{font-size:14px;line-height:1.4}
