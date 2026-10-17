@@ -6,7 +6,7 @@
  let state=E.create(selectedCourse),running=false,starting=false,paused=false,disposed=false,last=0,accumulator=0,raf=0,lastHud=-Infinity;
  const pointers=new Map(),keys=new Set();let pause,drag=null,driftDrag=null;
  const canvas=document.getElementById('game');
- function controls(){const values=[...pointers.values()],buttons=Number(values.includes('right')||keys.has('ArrowRight')||keys.has('d'))-Number(values.includes('left')||keys.has('ArrowLeft')||keys.has('a'));return {steer:buttons||(drag?.steer??driftDrag?.steer??0),drift:values.includes('drift')||keys.has('Shift')};}
+ function controls(){const values=[...pointers.values()],buttons=Number(values.includes('right')||keys.has('ArrowRight')||keys.has('d'))-Number(values.includes('left')||keys.has('ArrowLeft')||keys.has('a'));return {steer:buttons||(drag?.steer||driftDrag?.steer||0),drift:values.includes('drift')||keys.has('Shift')};}
  function style(){const c=controls();el.leftButton.classList.toggle('held',c.steer<0);el.rightButton.classList.toggle('held',c.steer>0);el.driftButton.classList.toggle('held',c.drift);}
  function clear(){const ids=[...pointers.keys(),drag?.id];pointers.clear();keys.clear();drag=null;driftDrag=null;for(const target of [canvas,el.leftButton,el.rightButton,el.driftButton])for(const id of ids)if(id!==undefined&&target.hasPointerCapture(id))target.releasePointerCapture(id);style();}
  function setText(element,value){if(element.textContent!==String(value))element.textContent=value;}
@@ -64,13 +64,14 @@
  pause=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;cancelAnimationFrame(raf);clear();status('Paused');el.kartCallout.hidden=false;el.kartCallout.textContent='PAUSED · TAP STEER TO RESUME';},resume:()=>{if(!running||disposed)return;paused=false;clear();last=performance.now();status('Running');raf=requestAnimationFrame(loop);},resumeOnInput:e=>(e.type==='keydown'&&['ArrowLeft','ArrowRight','a','d','A','D'].includes(e.key))||!!e.target.closest?.('#leftButton,#rightButton,#driftButton,#game')});
  let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pause.button,document.getElementById('earnlyQuitButton'));}document.getElementById('sessionControls').append(dock);
  const background=()=>{clear();if(running&&!paused)pause.button.click();};window.addEventListener('blur',background);document.addEventListener('visibilitychange',()=>{if(document.hidden)background();});window.addEventListener('pagehide',()=>{disposed=true;running=false;starting=false;clear();cancelAnimationFrame(raf);});window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});window.addEventListener('resize',()=>renderer.render(state,{idle:!running}));
- // Read-only profile loading. Never persist a loadout across account changes.
+ // Keep the current driver through same-account refreshes; apply changes between races.
+ // Account changes clear it immediately, and late work cannot replace a racing driver.
  let driverVersion=0,driverPending=false;
- async function loadDriver(){const version=++driverVersion;renderer.setDriver(null);if(running||starting){driverPending=true;return;}driverPending=false;
+ async function loadDriver(event){const version=++driverVersion;if(event?.type==='earnly-cloud-auth-change')renderer.setDriver(null);if(running||starting){driverPending=true;return;}driverPending=false;
   let equipped=TurboKartDriver.defaults;
   try{const session=await window.EarnlyCloud?.session();if(session){const response=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token},signal:AbortSignal.timeout(8000)});if(response.ok){const data=await response.json();equipped=data.user?.equipped||equipped;}}}catch{}
   if(version!==driverVersion||disposed)return;if(running||starting){driverPending=true;return;}
-  const driver=await TurboKartDriver.compose(equipped);if(version!==driverVersion||disposed)return;renderer.setDriver(driver);if(!running||paused)renderer.render(state,{idle:!running});
+  const driver=await TurboKartDriver.compose(equipped);if(version!==driverVersion||disposed)return;if(running||starting){driverPending=true;return;}renderer.setDriver(driver);if(!running||paused)renderer.render(state,{idle:!running});
  }
  for(const event of ['earnly-cloud-ready','earnly-cloud-auth-change','earnly-public-profile-updated'])window.addEventListener(event,loadDriver);
  loadDriver();
