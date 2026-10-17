@@ -81,3 +81,13 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .hangout-tag{font-size:11px;letter-spacing:.15em;font-weight:800;color:var(--hangout-accent);margin:8px 0}
 .hangout-caption{font-size:12px;color:#adc3d1;margin:10px 0 0}.hangout-card .panel-row{gap:10px}.hangout-card button{min-height:44px}
 @media(min-width:600px){.hangout-preview{height:190px}}
+
+/* Compact room discovery keeps visit actions and counts in reach. */
+.hangout-card{display:grid;grid-template-columns:112px minmax(0,1fr);column-gap:12px;padding:12px}
+.hangout-card .hangout-preview{grid-column:1;grid-row:1/5;width:112px;height:120px;align-self:center}
+.hangout-card .hangout-tag,.hangout-card .panel-row,.hangout-card .room-occupancy,.hangout-card .muted{grid-column:2}
+.hangout-card .hangout-tag{font-size:9px;letter-spacing:.08em;margin:0 0 4px}
+.hangout-card .panel-row{padding:0;border:0;gap:6px}.hangout-card .panel-row strong{font-size:15px;flex-basis:100%}.hangout-card .panel-row button{padding:7px 12px;font-size:12px}
+.hangout-card .room-occupancy{font-size:12px;margin:5px 0}.hangout-card .muted{font-size:12px;line-height:1.4;margin:0}.hangout-card .hangout-caption{grid-column:1/-1;font-size:10px;margin:8px 0 0;color:#9eb4c3}
+.catalog-collections{border:1px solid #41616d;border-radius:12px;margin:12px 0;padding:10px 12px}.catalog-collections summary{cursor:pointer;color:#b8eadc;font-size:13px;font-weight:600;min-height:24px;line-height:24px}.catalog-collections .collection-showcase{margin-bottom:0}
+@media(max-width:360px){.hangout-card{grid-template-columns:86px minmax(0,1fr);column-gap:8px}.hangout-card .hangout-preview{width:86px;height:100px}.hangout-card .muted{font-size:11px}}

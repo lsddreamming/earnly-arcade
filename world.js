@@ -124,16 +124,16 @@
  function showCatalog(category='All'){
   currentPanel='catalog';const root=openPanel('Decor Catalog');root.append(note(connected?'Make a room people remember. Every piece is bought separately with Arcade Coins.':'Explore original Earnly furniture. Connect to buy and decorate your own room.'));
   if(category==='All'){
-   const showcase=el('div','collection-showcase');
+   const collectionToggle=el('details','catalog-collections'),summary=el('summary','','Explore furniture collections');collectionToggle.append(summary);const showcase=el('div','collection-showcase');
    for(const set of EarnlyWorldCollections.collections){const available=set.ids.map(id=>bootstrap.catalog.find(d=>d.id===id)).filter(Boolean);if(!available.length)continue;
     const card=el('section','collection-card'),canvas=el('canvas');canvas.setAttribute('aria-label',set.name+' furniture inspiration');collectionPreview(canvas,set,bootstrap.catalog);
     card.style.setProperty('--collection-color',set.color);card.append(canvas,el('p','collection-tag',set.tag),el('h3','',set.name),note(set.description));
     const owned=available.filter(d=>bootstrap.items.some(i=>i.definition_id===d.id)).length;card.append(el('p','collection-meta',owned+' / '+available.length+' styles owned · From ◇ '+Math.min(...available.map(d=>Number(d.price)))));
     card.append(button('Explore '+set.name,()=>showCatalog(set.name)));showcase.append(card);
-   }root.append(showcase);
+   }collectionToggle.append(showcase);root.append(collectionToggle);
   }else{const set=EarnlyWorldCollections.collections.find(c=>c.name===category);if(set)root.append(note(set.description));}
   const filters=el('div','filters');for(const name of ['All',...new Set(bootstrap.catalog.map(d=>d.category))]){const b=button(name,()=>showCatalog(name),name===category?'selected':'');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}root.append(filters);
-  const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);root.append(tools);
+  const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);root.prepend(tools,filters);
   const count=el('p','muted'),grid=el('div','catalog-grid'),empty=note('No pieces match. Try another name or collection.');count.setAttribute('role','status');root.append(count,grid,empty);
   const draw=()=>{grid.replaceChildren();let pieces=bootstrap.catalog.filter(d=>(category==='All'||d.category===category)&&(d.name+' '+d.category).toLowerCase().includes(search.value.trim().toLowerCase()));if(sort.value==='unowned')pieces=pieces.filter(d=>!bootstrap.items.some(i=>i.definition_id===d.id));if(sort.value==='price')pieces.sort((a,b)=>Number(a.price)-Number(b.price));count.textContent=pieces.length+' pieces';empty.hidden=pieces.length>0;
    for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name));

@@ -457,7 +457,15 @@
       c.fillStyle='#e8d8b2';c.beginPath();c.arc(75,-77,10,0,Math.PI*2);c.fill();c.fillStyle='#19243c';c.beginPath();c.arc(80,-80,9,0,Math.PI*2);c.fill();
       c.fillStyle='#bdd9e5';for(const [x,y] of [[-85,-82],[-36,-65],[20,-91],[112,-61],[-130,-48]])c.fillRect(x,y,1.5,1.5);
      }else{
-      for(let i=0;i<9;i++){const x=-m*18+i*(n+m)*4.5;c.fillStyle=i%2?'#335a50':'#2b4d47';c.beginPath();c.ellipse(x,-22,26,38+(i%3)*7,0,0,Math.PI*2);c.fill();}
+      for(let i=0;i<9;i++){
+       const x=-m*18+i*(n+m)*4.5,top=-50-(i%3)*7;
+       c.fillStyle='#69594a';c.fillRect(x-2,top+24,4,31);c.strokeStyle='#69594a';c.lineWidth=2;c.beginPath();c.moveTo(x,top+42);c.lineTo(x-10,top+25);c.moveTo(x,top+36);c.lineTo(x+11,top+19);c.stroke();
+       const crown=[[x-24,top+23],[x-20,top+10],[x-10,top+7],[x-7,top-3],[x+6,top-7],[x+17,top+1],[x+20,top+13],[x+27,top+19],[x+24,top+32],[x+11,top+39],[x-7,top+37],[x-20,top+32]];
+       poly(c,crown,i%2?'#355e50':'#294d45','#25453e');
+       poly(c,[[x-18,top+16],[x-7,top+9],[x-4,top+1],[x+5,top-2],[x+12,top+5],[x+10,top+15],[x-1,top+22],[x-15,top+25]],'#47785c');
+       poly(c,[[x+3,top+25],[x+13,top+17],[x+21,top+22],[x+17,top+31],[x+5,top+34]],'#3b6852');
+       c.fillStyle='#69936d';for(const [dx,dy] of [[-10,14],[0,7],[8,14],[-14,23],[12,27]])c.fillRect(x+dx,top+dy,3,2);
+      }
      }
     }
     // Original mint/slate walls, window panels and neon lighting.
@@ -534,7 +542,13 @@
      for(let y=preview.y;y<preview.y+pl;y++)for(let x=preview.x;x<preview.x+pw;x++){const px=(x-y)*18,py=(x+y)*9-check.z*12;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],tint,edge);}
     }
     const nodes=(this.scene.items||[]).filter(i=>i.id!==preview?.item.id).map(item=>({depth:item.x+item.y+(item.width+item.length)/2-.3,item}));for(const u of [...this.users.values(),...this.staff.values()]){let depth=(u.visual||u.position).x+(u.visual||u.position).y+1;if(u.state==='sit'||u.state==='lay'){const seat=nodes.find(n=>{const i=n.item;if(!i)return false;const turned=i.rotation===2||i.rotation===6;return u.position.x>=i.x&&u.position.y>=i.y&&u.position.x<i.x+(turned?i.length:i.width)&&u.position.y<i.y+(turned?i.width:i.length);});if(seat)depth=Math.max(depth,seat.depth+.1);}nodes.push({depth,user:u});}nodes.sort((a,b)=>a.depth-b.depth);this.hit=[];
-    for(const node of nodes){if(node.item){const i=node.item;decor(c,i,(i.x-i.y)*18,(i.x+i.y)*9-i.z*12);}else{const u=node.user,{x:px,y:py,z}=u.visual;const x=(px-py)*18,y=(px+py)*9+9-z*12;if(u.userId===this.localUserId){c.strokeStyle='#93ffe1';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,13,5,0,0,Math.PI*2);c.stroke();}avatar(c,u,x,y);this.hit.push({x,y,user:u});}}
+    const local=nodes.find(n=>n.user&&n.user.userId===this.localUserId),localPos=local?.user?.visual;
+    for(const node of nodes){if(node.item){const i=node.item,ix=(i.x-i.y)*18,iy=(i.x+i.y)*9-i.z*12;
+     // Fade foreground foliage only while it overlaps your avatar; collision and picking stay intact.
+     const foliage=['palm','tree','plant','vine-screen'].includes(i.sprite||i.sprite_id),lx=localPos?(localPos.x-localPos.y)*18:0,ly=localPos?(localPos.x+localPos.y)*9+9-localPos.z*12:0;
+     const obscures=foliage&&local&&node.depth>local.depth&&Math.abs(ix-lx)<29&&ly>iy-82&&ly-38<iy+18;
+     c.save();if(obscures)c.globalAlpha=.28;decor(c,i,ix,iy);c.restore();
+    }else{const u=node.user,{x:px,y:py,z}=u.visual;const x=(px-py)*18,y=(px+py)*9+9-z*12;if(u.userId===this.localUserId){c.strokeStyle='#93ffe1';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,13,5,0,0,Math.PI*2);c.stroke();}avatar(c,u,x,y);this.hit.push({x,y,user:u});}}
     if(preview){c.save();c.globalAlpha=.65;decor(c,{...preview.item,x:preview.x,y:preview.y,z:preview.z,rotation:preview.rotation},(preview.x-preview.y)*18,(preview.x+preview.y)*9-preview.z*12-5);c.restore();}
     c.restore();
     // Labels and speech use screen pixels, so they remain readable at every zoom.
