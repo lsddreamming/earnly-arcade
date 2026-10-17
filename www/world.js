@@ -58,7 +58,7 @@
  };
  const updateViewButtons=()=>{$('roomView').setAttribute('aria-pressed',String(renderer.viewMode==='room'));};
  $('zoomIn').onclick=()=>renderer.setZoom(renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.setZoom(renderer.zoom-.2);
- $('roomView').onclick=()=>{renderer.setView(renderer.viewMode==='room'?'close':'room');updateViewButtons();};
+ $('roomView').onclick=()=>{renderer.setView('room');updateViewButtons();};
  $('focusMe').onclick=()=>{renderer.focusMe();updateViewButtons();};
  $('closePanel').onclick=()=>$('worldPanel').close();
  $('worldPanel').addEventListener('click',e=>{if(e.target===$('worldPanel')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});

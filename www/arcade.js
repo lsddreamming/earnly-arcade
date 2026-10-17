@@ -3420,7 +3420,8 @@ const Arcade = (() => {
 
       const iconSpan = document.createElement('span');
       iconSpan.className = 'bottom-nav-icon';
-      iconSpan.textContent = icon;
+      iconSpan.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><use href="nav-icons.svg#${key}"></use></svg>`;
+      iconSpan.setAttribute('aria-hidden', 'true');
 
       const labelSpan = document.createElement('span');
       labelSpan.className = 'bottom-nav-label';
