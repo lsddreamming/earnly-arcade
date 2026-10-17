@@ -416,3 +416,11 @@ test('A denied shared room offers own room without automatically retrying admiss
  await page.getByRole('button',{name:'Go to my room',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>window.joins)).toEqual([id,'choose-home']);
 });
+
+for(const auto of [true,false])test('Successful sign-in returns to invited room, auto restore '+auto,async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.EarnlyCloud={ready:Promise.resolve(),session:async()=>null,signInAndRestore:async()=>({restore:{auto:${auto},restored:1,skipped:'no-cloud-save'}})};`}));
+ const id='d814eae3-14d0-43ef-ae1a-6cbd48aad149';await page.goto('/account.html?worldRoom='+id);
+ await page.locator('#cloudEmail').fill('player@example.com');await page.locator('#cloudPassword').fill('example-password');await page.locator('#cloudSignInButton').click();
+ await expect(page).toHaveURL(new RegExp('/world.html\\?room='+id+'$'));
+});
