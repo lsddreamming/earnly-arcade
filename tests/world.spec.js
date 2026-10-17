@@ -496,3 +496,33 @@ test('World collections respect inventory filters and expose a useful empty-room
  await expect(page.locator('.owned-label')).toHaveText('1 owned');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('unowned');await expect(page.locator('.item-card')).toHaveCount(3);await expect(page.locator('.item-card').filter({hasText:'Bramble Bentwood Chair'})).toHaveCount(0);
  await expect(page.locator('#coinBalance')).toHaveText('◇ 3,000');
 });
+
+test('Public hangouts show decor previews and staff find an unoccupied seat',async({page},testInfo)=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.hangoutPackets=[];
+  const rooms=[{id:'roof',name:'Rooftop Lounge',ownerId:null,occupancy:2},{id:'lobby',name:'Hotel Lobby',ownerId:null,occupancy:0},{id:'patio',name:'Patio Hangout',ownerId:null,occupancy:0},{id:'copy',name:'Hotel Lobby',ownerId:'someone',occupancy:0}];
+  const bootstrap={rooms,balance:100,catalog:[],items:[],friends:[]};
+  window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);window.hangoutPackets.push(p);const emit=data=>this.onmessage?.({data:JSON.stringify(data)});
+   if(p.type==='JOIN'){
+    emit({type:'WELCOME',userId:'owner',scene:{roomId:'roof',name:'Rooftop Lounge',ownerId:null,theme:'rooftop',heightmap:Array(12).fill('000000000000').join('\n'),items:[{id:'sofa',name:'Moonlight sofa',sprite:'channel-sofa',color:'#718bb5',x:4,y:4,z:0,width:2,length:1,canSit:true,rotation:0}]},bootstrap});
+    emit({type:'ROOM_SNAPSHOT',users:[{userId:'guest',username:'Guest',position:{x:4,y:4,z:0},state:'sit'}]});
+    emit({type:'NPC_SNAPSHOT',staff:[{staffId:'remy',username:'Remy',role:'Bartender',color:'#a78aca',position:{x:3,y:1,z:0},state:'std'}]});
+   }
+   if(p.type==='ACTION')emit({type:'RESULT',requestId:p.requestId,data:p.action==='room_directory'?rooms:p.action==='staff_talk'?{name:'Remy',role:'Bartender',greeting:'Welcome to the skyline.',tip:'Moonberry Fizz · Mint Cloud Cooler'}:bootstrap});
+  }};
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.hangout-preview')).toHaveCount(3);
+ await expect(page.locator('.room-card').first()).toContainText('2 players in room');
+ await expect(page.locator('.room-card').last().locator('canvas')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Refresh rooms',exact:true})).toBeEnabled();
+ await page.screenshot({path:testInfo.outputPath('hangout-directory.png')});
+ await page.locator('#closePanel').click();await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Say hello',exact:true}).click();
+ await page.getByRole('button',{name:'See the mocktail menu'}).click();await expect(page.locator('#panelContent')).toContainText('Moonberry Fizz');
+ await expect(page.getByRole('button',{name:'Browse Morrow Lounge'})).toBeVisible();
+ await page.getByRole('button',{name:'Find me a seat'}).click();
+ await expect(page.locator('#worldPanel')).not.toBeVisible();
+ expect(await page.evaluate(()=>window.hangoutPackets.filter(p=>p.type==='INTERACT'))).toEqual([{type:'INTERACT',x:5,y:4,action:'sit'}]);
+ await page.screenshot({path:testInfo.outputPath('hangout-rooftop.png')});
+});

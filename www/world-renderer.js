@@ -451,6 +451,15 @@
      c.fillStyle=theme==='rooftop'?'#19243c':'#405e58';c.fillRect(-m*18-10,-100,(n+m)*18+20,100);
      if(theme==='rooftop')for(let i=0;i<12;i++){const x=-m*18+i*36,height=24+(i*17)%55;c.fillStyle=i%2?'#293b57':'#324867';c.fillRect(x,-height,28,height);c.fillStyle='#d1b77d';for(let y=-height+7;y<-9;y+=12)c.fillRect(x+6,y,4,4);}
     }
+    if(outside){
+     // Static atmosphere: no extra animation loop or particle work on phones.
+     if(theme==='rooftop'){
+      c.fillStyle='#e8d8b2';c.beginPath();c.arc(75,-77,10,0,Math.PI*2);c.fill();c.fillStyle='#19243c';c.beginPath();c.arc(80,-80,9,0,Math.PI*2);c.fill();
+      c.fillStyle='#bdd9e5';for(const [x,y] of [[-85,-82],[-36,-65],[20,-91],[112,-61],[-130,-48]])c.fillRect(x,y,1.5,1.5);
+     }else{
+      for(let i=0;i<9;i++){const x=-m*18+i*(n+m)*4.5;c.fillStyle=i%2?'#335a50':'#2b4d47';c.beginPath();c.ellipse(x,-22,26,38+(i%3)*7,0,0,Math.PI*2);c.fill();}
+     }
+    }
     // Original mint/slate walls, window panels and neon lighting.
     if(!outside){
     const wallHeight=58+Math.max(...floor.flatMap(row=>[...row].filter(v=>/[0-9]/.test(v)).map(Number)))*12;
@@ -473,7 +482,9 @@
     }else{
      poly(c,[[0,0],[-m*18,m*9],[-m*18,m*9-16],[0,-16]],theme==='patio'?'#967e5d':'#65768f','#253b4c');
      poly(c,[[0,0],[n*18,n*9],[n*18,n*9-16],[0,-16]],theme==='patio'?'#b29a72':'#8391a7','#253b4c');
-     for(let i=0;i<=n;i++){const x=i*18,y=i*9;c.fillStyle='#fae5a6';c.fillRect(x-2,y-24,4,5);c.fillRect(-x-2,y-24,4,5);}
+     for(const side of [-1,1]){const span=side<0?m:n;c.beginPath();c.moveTo(0,-31);c.quadraticCurveTo(side*span*9,span*4.5-17,side*span*18,span*9-31);c.strokeStyle='#354652';c.lineWidth=1;c.stroke();
+      for(let i=0;i<=span;i++){const t=i/span,x=side*i*18,y=i*9-31+28*t*(1-t);c.fillStyle='#fae5a61a';c.beginPath();c.arc(x,y+3,6,0,Math.PI*2);c.fill();c.fillStyle=i%3===0?'#b6f4df':'#fae5a6';c.fillRect(x-1.5,y,3,4);}
+     }
     }
     const occupied=(x,y)=>x>=0&&y>=0&&x<n&&y<m&&!/[xX]/.test(floor[y][x]);
     for(let y=0;y<m;y++)for(let x=0;x<n;x++){
