@@ -79,3 +79,23 @@ test('VIP furniture previews show the paid-month rotation and delivery without e
  for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
  await page.setViewportSize({width:390,height:844});await page.locator('#vip-furniture').screenshot({path:'test-results/vip-furniture.png'});
 });
+
+
+test('VIP showcase previews each piece without spending and failed restoration stays truthful',async({page},testInfo)=>{
+ const {writes}=await setup(page);await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'VIP Pass',exact:true}).click();
+ const art=[];
+ for(const name of ['Sovereign Neon Throne','Aurora Crystal Fountain','Lunar Bloom Conservatory']){
+  const button=page.getByRole('button',{name:'Preview '+name,exact:true});await button.click();
+  await expect(button).toHaveAttribute('aria-pressed','true');await expect(page.locator('#vip-preview-name')).toHaveText(name);
+  art.push(await page.locator('#vip-room-preview').evaluate(c=>c.toDataURL()));
+ }
+ expect(new Set(art).size).toBe(3);expect(writes).toHaveLength(0);await expect(page.locator('#pass-buy')).toBeDisabled();
+ await page.locator('.vip-intro').scrollIntoViewIfNeeded();await page.screenshot({path:`test-results/vip-showcase-${testInfo.project.name}.png`});
+ await page.locator('#vip-pass').screenshot({path:`test-results/vip-showcase-full-${testInfo.project.name}.png`});
+ await page.route('**/arcade-pass/**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Could not verify this request.'}})}));
+ await page.locator('#pass-restore').click();await expect(page.locator('#pass-status')).toContainText('couldn’t check your VIP status');
+ await expect(page.locator('#pass-status')).not.toContainText('ownership refreshed');await expect(page.locator('#pass-buy')).toBeDisabled();
+ await page.route('**/arcade-pass/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(r.request().url().endsWith('/config')?{webAvailable:false,appleAvailable:false}:{active:false})}));
+ await page.locator('#pass-restore').click();await expect(page.locator('#pass-status')).toContainText('Account ownership refreshed');
+});
