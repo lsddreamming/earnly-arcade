@@ -297,7 +297,8 @@
   currentPanel='coins';const root=openPanel('Your Arcade Coins');
   const balance=el('strong','world-wallet-balance');balance.id='worldWalletBalance';balance.textContent=connected?BigInt(bootstrap.balance||0).toLocaleString():'—';
   const buy=el('a','world-wallet-buy','Buy more coins ↗');buy.href='avatars.html#coin-shop';buy.target='_blank';buy.rel='noopener';
-  root.append(balance,note('Arcade Coins'),buy,note('The coin shop opens in a new tab. Your room stays open here.'),button('Back to room',()=>$('worldPanel').close()),note('Coins have no cash value. Purchased coins cannot be redeemed for cash or cash equivalents.'));
+  const earn=el('a','world-wallet-buy','Play games to earn coins ↗');earn.href='games.html';earn.target='_blank';earn.rel='noopener';
+  root.append(balance,note('Play to earn coins. Decorate your room.'),earn,note('Games open in a new tab so your room stays open.'),buy,note('The coin shop opens in a new tab. Your room stays open here.'),button('Back to room',()=>$('worldPanel').close()),note('Coins have no cash value. Purchased coins cannot be redeemed for cash or cash equivalents.'));
   if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldPanel').open)balance.textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});
   else root.append(note('Connect to World to see your saved room balance.'));
  }
@@ -325,5 +326,6 @@
  $('startDecorating').onclick=()=>showCatalog();$('findHangout').onclick=()=>showRooms();
  entryState();
  if(sharedRoom)connect(sharedRoom).catch(e=>entryState(e.message));
+ else {const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}
  window.addEventListener('online',()=>{if(!connected&&!connecting&&retryCount>0)connect(entryTarget,true).catch(e=>entryState(e.message));});
 })();

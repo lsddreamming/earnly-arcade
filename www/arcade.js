@@ -2096,7 +2096,16 @@ const Arcade = (() => {
     });
 
     actions.append(primary, back);
-    const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Arcade Shop · customize your look';shopLink.className='result-shop-link';actions.append(shopLink);
+    const roomLink = document.createElement('a');
+    roomLink.href = 'world.html?catalog=All';
+    roomLink.className = 'result-shop-link result-room-link';
+    roomLink.textContent = '◇ Decorate your room →';
+    const roomHint = document.createElement('span');
+    roomHint.className = 'result-room-hint';
+    roomHint.textContent = 'Play to earn coins. Decorate your room.';
+    roomLink.append(roomHint);
+    actions.append(roomLink);
+    const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Customize your avatar';shopLink.className='result-shop-link';actions.append(shopLink);
     if(game&&window.EarnlyPaidPlays){
       const buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 25 coins';
       buy.onclick=async()=>{buy.disabled=true;try{await window.EarnlyPaidPlays.buy(game);buy.textContent='Extra plays ready · return to Games to play';}catch(error){toast(error.message);buy.disabled=false;}};
