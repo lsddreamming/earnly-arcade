@@ -228,3 +228,31 @@ test('slow renderer loading keeps Start disabled until the first tap can start a
  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
  await expect(page.locator('#plays')).toHaveText('2');
 });
+
+test('race distance and final seconds stay clear without narrowing the circuit',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>(window.kartTestState=create(...args));});
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.evaluate(()=>{kartTestState.racers[0].d=kartTestState.track.length*1.5;kartTestState.time=76;});
+ await expect(page.getByRole('progressbar',{name:'Race distance'})).toHaveAttribute('aria-valuenow','50');
+ await expect(page.locator('#time').locator('..')).toHaveClass(/time-low/);
+ await page.locator('#earnlyPauseButton').click();
+ const progress=await page.getByRole('progressbar',{name:'Race distance'}).getAttribute('aria-valuenow');await page.waitForTimeout(150);
+ await expect(page.getByRole('progressbar',{name:'Race distance'})).toHaveAttribute('aria-valuenow',progress);
+ for(const viewport of [{width:1280,height:720},{width:390,height:664}]){
+  await page.setViewportSize(viewport);const hud=await page.locator('.kart-hud').boundingBox(),stage=await page.locator('.kart-stage').boundingBox();
+  expect(Math.abs(hud.width-stage.width)).toBeLessThanOrEqual(2);
+  await page.screenshot({path:`test-results/turbo-kart-polished-${test.info().project.name}-${viewport.width}.png`});
+ }
+});
+
+test('Reduce Motion freezes decorative water and pickup bobbing without changing race state',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/turbo-kart.html');
+ const results=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.getBoundingClientRect=()=>({width:390,height:500});
+  const renderer=TurboKartRenderer.create(canvas),s=TurboKartEngine.create('harbor');
+  s.time=1;renderer.render(s);const first=canvas.toDataURL();
+  s.time=10;const before=JSON.stringify(s);renderer.render(s);
+  return {same:first===canvas.toDataURL(),untouched:JSON.stringify(s)===before,transition:getComputedStyle(document.getElementById('raceProgress')).transitionDuration};
+ });
+ expect(results.same).toBe(true);expect(results.untouched).toBe(true);expect(results.transition).toBe('0s');
+});

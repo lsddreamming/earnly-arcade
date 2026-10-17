@@ -45,3 +45,18 @@ body.kart-page #sessionControls :is(button,a):active{filter:brightness(1.2)}
 body.kart-page.game-active .kart-shell,
 body.kart-page.game-active :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls),
 body.kart-page.game-active :is(.kart-stage,.kart-hud,.drift-meter,#kartControls,#sessionControls) *{touch-action:none!important}
+
+/* Track distance stays readable in a single thin ribbon, including landscape. */
+.race-progress{position:relative;height:5px;flex-shrink:0;background:#081a2b;border-inline:1px solid #355575;overflow:hidden}
+.race-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#69d7fa,#a4ffe3);transition:width .1s linear}
+.race-progress span{position:absolute;top:0;bottom:0;width:2px;background:#e1faff80;left:33.333%}.race-progress span:last-child{left:66.666%}
+.kart-hud .time-low strong{color:#ffd28a}.kart-hud .time-low small{color:#ffd28a}
+.kart-hud .time-low{background:#65462940;border-radius:7px}
+.kart-stage{width:100%;box-shadow:0 14px 35px #030d1c45}
+.item-display b{background:linear-gradient(145deg,#284a68ed,#10253eed);box-shadow:inset 0 1px 0 #ffffff50,0 3px 0 #081a2b60}
+#kartMessage{background:linear-gradient(160deg,#0d2545e8,#112f4bb5 60%,#10233ee8)}
+.course-picker button{box-shadow:inset 0 1px 0 #ffffff20,0 3px 0 #071a3070;transition:border-color .15s,background .15s}
+.course-picker button[aria-pressed=true]{box-shadow:inset 0 1px 0 #ffffff80,0 3px 0 #3b9d8d}
+#kartMessage #startButton:active{transform:translateY(2px);box-shadow:0 2px 0 #48a896}
+@media(max-height:480px) and (orientation:landscape){.kart-page.game-active .race-progress{position:absolute;width:calc(100% - 250px);left:max(10px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));z-index:2;border:0}.kart-page.game-active .kart-shell{position:relative}}
+@media(prefers-reduced-motion:reduce){.race-progress i,.course-picker button{transition:none!important}}
