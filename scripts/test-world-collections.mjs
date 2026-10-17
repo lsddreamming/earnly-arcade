@@ -24,5 +24,24 @@ try{
  }
  assert.equal(Number((await api('bootstrap')).balance),Number(wallet)-total);
  assert.equal((await api('bootstrap')).items.filter(i=>collections.items.some(d=>d.id===i.definition_id)).length,12);
+ const expandedMigration=await readFile('supabase/migrations/20261017235224_world_catalog_expansion.sql','utf8');
+ const existing=(await db.query('select * from earnly_world.item_definitions order by id')).rows;
+ const balanceBefore=(await api('bootstrap')).balance;
+ await db.exec(expandedMigration);await db.exec(expandedMigration);
+ const expanded=await api('bootstrap');assert.equal(expanded.catalog.length,71);
+ assert.equal(expanded.balance,balanceBefore,'Catalog expansion never changes wallets');
+ for(const old of existing)assert.deepEqual((await db.query('select * from earnly_world.item_definitions where id=$1',[old.id])).rows[0],old);
+ // Test-only funds cover buying every new piece; no production wallet is touched.
+ await db.query('update public.coin_wallets set balance=10000 where user_id=$1',[users[0]]);
+ let expansionTotal=0;
+ for(const item of collections.expansionItems){
+  const d=expanded.catalog.find(d=>d.id===item.id);for(const key of ['sprite_id','width','length','can_sit','can_lay','can_stack','walkable','tradeable','category'])assert.equal(d[key],item[key],item.id+' '+key);assert.equal(Number(d.price),item.price);
+  const requestId=crypto.randomUUID(),bought=await api('buy',{definitionId:item.id,requestId});assert.equal((await api('buy',{definitionId:item.id,requestId})).item_id,bought.item_id);expansionTotal+=item.price;
+  await api('place',{itemId:bought.item_id,roomId:personal.roomId,x:1,y:1,z:0,rotation:0});
+  await assert.rejects(db.query("select public.world_api($1,'place',$2::jsonb)",[users[1],JSON.stringify({itemId:bought.item_id,roomId:personal.roomId,x:2,y:2,rotation:0})]));
+  await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
+ }
+ assert.equal(Number((await api('bootstrap')).balance),10000-expansionTotal);
+ console.log('PASS: 24 expanded pieces, exact charges, duplicate protection, placement/pickup, owner permissions, migration replay and existing catalog preservation.');
  console.log('PASS: 12 original pieces, catalog parity, exact single charges, duplicate protection, owner permissions, 3 public room refreshes, stable footprints and untouched private rooms.');
 }finally{await close();}

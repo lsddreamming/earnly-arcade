@@ -473,7 +473,7 @@ test('Original World collections can be explored before connecting and searched 
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
  await expect(page.locator('#worldInspiration')).toBeVisible();await page.locator('#browseDecor').click();
- await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeInViewport();await page.screenshot({path:testInfo.outputPath('catalog-search-first.png')});await expect(page.locator('.catalog-collections')).not.toHaveAttribute('open','');await page.locator('.catalog-collections summary').click();await expect(page.locator('.collection-card')).toHaveCount(3);
+ await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeInViewport();await page.screenshot({path:testInfo.outputPath('catalog-search-first.png')});await expect(page.locator('.catalog-collections')).not.toHaveAttribute('open','');await page.locator('.catalog-collections summary').click();await expect(page.locator('.collection-card')).toHaveCount(9);
  await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(4);
  await page.getByRole('searchbox',{name:'Search decor'}).fill('coffee');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Bramble Coffee Station');await expect(page.locator('.item-card').getByRole('button',{name:/· Buy$/})).toBeDisabled();await expect(page.getByRole('button',{name:'Preview Bramble Coffee Station',exact:true})).toBeEnabled();
  await page.getByRole('searchbox',{name:'Search decor'}).fill('no-match');await expect(page.locator('#panelContent')).toContainText('No pieces match');
@@ -585,4 +585,17 @@ test('World wishlist handles malformed storage and failed saves truthfully',asyn
  await page.locator('#browseDecor').click();await page.getByRole('searchbox',{name:'Search decor'}).fill('booth');
  await page.getByRole('button',{name:'Save to wishlist: Afterglow Diner Booth',exact:true}).click();
  await expect(page.locator('#worldToast')).toContainText('Could not save your wishlist');await expect(page.getByRole('button',{name:'Save to wishlist: Afterglow Diner Booth',exact:true})).toHaveAttribute('aria-pressed','false');
+});
+
+
+test('Expanded furniture collections render distinct art and preserve browse-only balances',async({page})=>{
+ await page.goto('/world.html?catalog=All');
+ const before=await page.evaluate(()=>localStorage.getItem('arcadeCoins'));
+ const art=await page.evaluate(()=>EarnlyWorldCollections.expansionItems.map(item=>{const c=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(c,item);return c.toDataURL();}));
+ expect(art).toHaveLength(24);expect(new Set(art).size).toBe(24);
+ for(const name of ['Tide Retreat','Pixel Den','Ember Kitchen','Lunar Bedroom','Maker Studio','Stillwater Court']){
+  await page.getByRole('button',{name,exact:true}).click();await expect(page.locator('.catalog-grid .item-card')).toHaveCount(4);
+ }
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('koi');await expect(page.locator('.catalog-grid')).toContainText('Stillwater Koi Pond');
+ expect(await page.evaluate(()=>localStorage.getItem('arcadeCoins'))).toBe(before);
 });

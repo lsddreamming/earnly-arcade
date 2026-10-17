@@ -1,0 +1,27 @@
+-- 24 original optional pieces. Existing inventory, prices, rooms and wallets remain unchanged.
+insert into earnly_world.item_definitions(id,name,sprite_id,item_height,price,width,length,can_sit,can_lay,can_stack,walkable,category,color) values
+('tide-hammock','Tide Hammock','hammock',0.5,240,2,1,false,true,false,false,'Tide Retreat','#7ccfc6'),
+('tide-surf','Tide Surfboard Rack','surf-rack',1.5,130,1,1,false,false,false,false,'Tide Retreat','#edb77f'),
+('tide-shell','Tide Shell Light','shell-light',1.5,65,1,1,false,false,false,false,'Tide Retreat','#ffd4ba'),
+('tide-cooler','Tide Picnic Cooler','cooler',0.5,90,1,1,false,false,false,false,'Tide Retreat','#81bfd2'),
+('pixel-pinball','Pixel Pinball Table','pinball',1.5,320,1,2,false,false,false,false,'Pixel Den','#a58aed'),
+('pixel-crane','Pixel Prize Crane','prize-crane',1.5,380,1,1,false,false,false,false,'Pixel Den','#f0a3c8'),
+('pixel-dance','Pixel Dance Floor','dance-floor',0.25,180,2,2,false,false,false,true,'Pixel Den','#71dbd1'),
+('pixel-speaker-stack','Pixel Speaker Stack','speaker-stack',1.5,140,1,1,false,false,false,false,'Pixel Den','#b696e8'),
+('ember-range','Ember Cooking Range','range',1.5,230,1,1,false,false,false,false,'Ember Kitchen','#dca780'),
+('ember-fridge','Ember Retro Fridge','fridge',1.5,260,1,1,false,false,false,false,'Ember Kitchen','#8dcac0'),
+('ember-island','Ember Kitchen Island','kitchen-island',1.5,190,2,1,false,false,false,false,'Ember Kitchen','#c39b74'),
+('ember-stool','Ember Breakfast Stool','stool',0.5,55,1,1,true,false,false,false,'Ember Kitchen','#e6bb8d'),
+('lunar-canopy','Lunar Canopy Bed','canopy-bed',0.5,350,1,2,false,true,false,false,'Lunar Bedroom','#b4a3dc'),
+('lunar-nightstand','Lunar Bedside Cabinet','nightstand',0.5,70,1,1,false,false,false,false,'Lunar Bedroom','#c5acda'),
+('lunar-wardrobe','Lunar Wardrobe','wardrobe',1.5,210,2,1,false,false,false,false,'Lunar Bedroom','#b1a0cc'),
+('lunar-vanity','Lunar Mirror Vanity','vanity',1.5,175,1,1,false,false,false,false,'Lunar Bedroom','#dbb4ca'),
+('maker-bench','Maker Workbench','workbench',1.5,180,2,1,false,false,false,false,'Maker Studio','#b49772'),
+('maker-easel','Maker Paint Easel','easel',1.5,95,1,1,false,false,false,false,'Maker Studio','#d5ac76'),
+('maker-sewing','Maker Sewing Desk','sewing-desk',1.5,155,2,1,false,false,false,false,'Maker Studio','#82b9b1'),
+('maker-tools','Maker Tool Stand','tool-stand',1.5,110,1,1,false,false,false,false,'Maker Studio','#cf9a72'),
+('zen-bonsai','Stillwater Bonsai','bonsai',1.5,90,1,1,false,false,false,false,'Stillwater Court','#7baa87'),
+('zen-lantern','Stillwater Stone Lantern','stone-lantern',1.5,125,1,1,false,false,false,false,'Stillwater Court','#b6c4b5'),
+('zen-pond','Stillwater Koi Pond','koi-pond',0.5,280,2,2,false,false,false,false,'Stillwater Court','#8bbbbb'),
+('zen-screen','Stillwater Bamboo Screen','bamboo-screen',1.5,140,2,1,false,false,false,false,'Stillwater Court','#a9bd8b')
+on conflict (id) do nothing;
