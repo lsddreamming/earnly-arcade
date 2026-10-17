@@ -424,3 +424,15 @@ for(const auto of [true,false])test('Successful sign-in returns to invited room,
  await page.locator('#cloudEmail').fill('player@example.com');await page.locator('#cloudPassword').fill('example-password');await page.locator('#cloudSignInButton').click();
  await expect(page).toHaveURL(new RegExp('/world.html\\?room='+id+'$'));
 });
+
+
+test('Afterglow furniture previews have distinct original art and transparent prices',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.goto('/world.html');await page.evaluate(()=>document.getElementById('worldConnected').hidden=false);await page.locator('[data-panel="catalog"]').click();await page.getByRole('button',{name:'Afterglow District',exact:true}).click();
+ await expect(page.locator('.item-card')).toHaveCount(5);
+ for(const name of ['Afterglow Diner Booth','Orbit Soda Display','Starlight Hologram Table','Moonrise Pod Bed','Desert Bloom Cactus'])await expect(page.getByRole('heading',{name,exact:true})).toBeVisible();
+ for(const price of [200,260,180,280,75])await expect(page.getByRole('button',{name:'◇ '+price+' · Buy',exact:true})).toBeVisible();
+ const art=await page.locator('.item-card canvas').evaluateAll(nodes=>nodes.map(c=>c.toDataURL()));expect(new Set(art).size).toBe(5);
+ for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/afterglow-catalog.png',fullPage:true});
+});

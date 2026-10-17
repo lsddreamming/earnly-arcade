@@ -6,7 +6,7 @@ import {RoomGrid,parseHeightmap} from '../world-server/src/grid.ts';
 const fixture=await worldFixture(),[owner]=fixture.users;
 const api=async(action,data={})=>(await fixture.db.query('select public.world_api($1,$2,$3::jsonb) result',[owner,action,JSON.stringify(data)])).rows[0].result;
 try{
- const initial=await api('bootstrap');assert.equal(initial.catalog.length,30);
+ const initial=await api('bootstrap');assert.equal(initial.catalog.length,35);
  for(const id of ['palm-tree','ficus-tree','blossom-tree','flower-pot']){
   const d=initial.catalog.find(d=>d.id===id);assert.deepEqual([d.width,d.length,d.walkable,d.can_sit,d.can_stack],[1,1,false,false,false]);
   const requestId=randomUUID(),purchase=await api('buy',{definitionId:id,requestId});
@@ -19,6 +19,12 @@ try{
   const d=initial.catalog.find(d=>d.id===id);assert.ok(d);const requestId=randomUUID();const bought=await api('buy',{definitionId:id,requestId});assert.equal((await api('buy',{definitionId:id,requestId})).item_id,bought.item_id);
  }
  assert.equal(Number((await api('bootstrap')).balance),Number(initial.balance)-1520);
+ const afterglow=[['afterglow-booth',200,2,1,true,false],['orbit-vending',260,1,1,false,false],['holo-table',180,1,1,false,false],['moon-pod',280,1,2,false,true],['desert-cactus',75,1,1,false,false]];
+ for(const [id,price,width,length,sit,lay] of afterglow){
+  const d=initial.catalog.find(d=>d.id===id);assert.ok(d);assert.deepEqual([Number(d.price),d.width,d.length,d.can_sit,d.can_lay,d.walkable],[price,width,length,sit,lay,false]);
+  const requestId=randomUUID(),bought=await api('buy',{definitionId:id,requestId});assert.equal((await api('buy',{definitionId:id,requestId})).item_id,bought.item_id,'New collection purchases are idempotent');
+ }
+ assert.equal(Number((await api('bootstrap')).balance),Number(initial.balance)-2515,'All five new items charge exactly their listed price once');
  const rooms=(await fixture.db.query('select heightmap,public_items from earnly_world.rooms where owner_id is null')).rows;
  assert.equal(rooms.length,4);for(const r of rooms)assert.ok(r.public_items.some(i=>['tree','palm'].includes(i.sprite)&&i.width===1&&i.length===1));
  for(const r of rooms){
@@ -27,5 +33,5 @@ try{
   while(queue.length){const [x,y]=queue.shift();for(const [nx,ny] of [[x+1,y],[x-1,y],[x,y+1],[x,y-1]])if(!seen.has(nx+','+ny)&&canStep(grid,{x,y},{x:nx,y:ny})){seen.add(nx+','+ny);queue.push([nx,ny]);}}
   for(let y=0;y<24;y++)for(let x=0;x<24;x++)if(grid.tile({x,y}).walkable)assert.ok(seen.has(x+','+y),'Every public floor tile must remain reachable');
  }
- console.log('Garden catalog: 30 items, four single-tile plants, idempotent purchases, exact charges, and greenery in every furnished public room passed.');
+ console.log('Garden catalog: 35 items, four single-tile plants, idempotent purchases, exact charges, and greenery in every furnished public room passed.');
 }finally{await fixture.close();}

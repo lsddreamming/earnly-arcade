@@ -80,7 +80,7 @@ try{
  for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
  await a.locator('#sayText').fill('Hello from my potato');await a.locator('#sayForm button').click();await b.getByRole('button',{name:'Chat',exact:false}).click();await b.locator('.chat-message').filter({hasText:'Hello from my potato'}).waitFor();await b.getByRole('button',{name:'Close panel'}).click();
  await a.getByRole('button',{name:'Catalog',exact:false}).click();
- await expect(a.locator('.item-card')).toHaveCount(30);
+ await expect(a.locator('.item-card')).toHaveCount(35);
  await a.getByRole('button',{name:'Heritage',exact:true}).click();
  await expect(a.locator('.item-card')).toHaveCount(5);
  if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/heritage-catalog.png'});
