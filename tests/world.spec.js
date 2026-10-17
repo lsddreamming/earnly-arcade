@@ -123,7 +123,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  p=await point();await double(p);await expect(page.locator('#placementHint')).not.toBeVisible();
 });
 
-test('Large rooms open close to your character, with overview, recentering and stable furniture refreshes',async({page},testInfo)=>{
+test('Large rooms open framed, with optional close view, recentering and stable furniture refreshes',async({page},testInfo)=>{
  test.setTimeout(60000);
  const fs=require('node:fs');
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
@@ -136,6 +136,12 @@ test('Large rooms open close to your character, with overview, recentering and s
   r.updateUser({userId:'preview',username:'Your potato',position:{x:8,y:8,z:0}});
   r.updateUser({userId:'friend',username:'Friend',position:{x:9,y:9,z:0},state:'sit'});
  });
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.viewMode)).toBe('room');
+ const overviewScale=await page.evaluate(()=>window.testRenderer.scale);
+ const bounds=await page.evaluate(()=>{const r=window.testRenderer;return {top:r.cy-58*r.scale,bottom:r.cy+48*9*r.scale,height:r.height};});
+ expect(bounds.top).toBeGreaterThan(0);expect(bounds.bottom).toBeLessThan(bounds.height);
+ await page.locator('#focusMe').click();
+ await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale)).toBeGreaterThan(overviewScale*2);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.scale*48)).toBeGreaterThan(55);
  const closeScale=await page.evaluate(()=>window.testRenderer.scale);
  await page.locator('#roomView').click();await expect(page.locator('#roomView')).toHaveAttribute('aria-pressed','true');
@@ -443,10 +449,10 @@ test('Afterglow furniture previews have distinct original art and transparent pr
 
  test('World keeps familiar navigation icons and phone-sized tap targets',async({page},testInfo)=>{
  await page.goto('/profile.html');
- const usual=await page.locator('#arcadeBottomNav a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.bottom-nav-icon').textContent,label:a.querySelector('.bottom-nav-label').textContent})));
+ const usual=await page.locator('#arcadeBottomNav a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.bottom-nav-icon use').getAttribute('href'),label:a.querySelector('.bottom-nav-label').textContent})));
  expect(usual).toHaveLength(6);
  await page.goto('/world.html');
- const world=await page.locator('.world-bottom a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.world-nav-icon').textContent,label:a.querySelector('.world-nav-label').textContent})));
+ const world=await page.locator('.world-bottom a').evaluateAll(links=>links.map(a=>({href:a.getAttribute('href'),icon:a.querySelector('.world-nav-icon use').getAttribute('href'),label:a.querySelector('.world-nav-label').textContent})));
  expect(world).toEqual(usual);
  await expect(page.locator('.world-bottom [aria-current="page"]')).toHaveAccessibleName('World');
  for(const width of [320,390,430]){
