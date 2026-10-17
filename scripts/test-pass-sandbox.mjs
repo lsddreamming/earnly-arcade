@@ -9,7 +9,7 @@ const bundle=JSON.parse(readFileSync('/tmp/earnly-shop-staging.json','utf8'));
 const files=bundle.functions.find(f=>f.name==='arcade-pass').files;
 const runtime=files.find(f=>f.name==='arcade-pass/index.ts').content;
 const source=files.find(f=>f.name==='_shared/pass-commerce.ts').content;
-const built=await build({stdin:{contents:source,loader:'ts'},bundle:true,write:false,format:'esm',platform:'node'});
+const built=await build({stdin:{contents:source,loader:'ts',resolveDir:process.cwd()+'/supabase/functions/_shared'},bundle:true,write:false,format:'esm',platform:'node'});
 const {passHandler}=await import('data:text/javascript;base64,'+Buffer.from(built.outputFiles[0].text).toString('base64'));
 // Local fixture only; not a provider credential or deployed signing secret.
 const secret='whsec_local_automated_fixture';

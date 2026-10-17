@@ -124,8 +124,8 @@
   const grid=el('div','catalog-grid');for(const d of bootstrap.catalog.filter(d=>category==='All'||d.category===category)){
    const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name));
    const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)card.append(el('p','owned-label',owned+' owned'));
-   card.append(el('p','',d.supply_limit?`${Math.max(0,d.supply_limit-d.minted)} of ${d.supply_limit} left`:'Collect · Decorate · Trade'));
-   const buy=button('◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d));buy.disabled=!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
+   card.append(el('p','',d.vip_only?'VIP monthly gift · Not tradeable':d.supply_limit?`${Math.max(0,d.supply_limit-d.minted)} of ${d.supply_limit} left`:'Collect · Decorate · Trade'));
+   const buy=button(d.vip_only?'VIP exclusive':'◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d));buy.disabled=d.vip_only||!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
   }root.append(grid);
  }
  function showBuy(d){const root=openPanel('Add to your Backpack?'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);canvas.style='display:block;margin:auto';const preview=el('canvas');preview.className='decor-room-preview';EarnlyWorldRenderer.decorPreview(preview,d);root.append(preview,el('h3','',d.name),note('Price: '+d.price+' Arcade Coins. This purchase adds one decor item to your Backpack.'));
