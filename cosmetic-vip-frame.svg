@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400" role="img" aria-label="VIP Marquee"><g fill="#ffd96c" stroke="#ffd96c" stroke-linejoin="round"><rect x="13" y="22" width="294" height="364" rx="54" fill="none" stroke-width="9"/><path d="M60 24 L80 8 L101 24 M220 24 L241 8 L261 24 M60 386 L80 399 L101 386" fill="none" stroke-width="5"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400" role="img" aria-label="VIP Marquee neon crystal frame">
+<defs><linearGradient id="metal" x2=".8" y2="1"><stop stop-color="#fff0ba"/><stop offset=".35" stop-color="#d6ac64"/><stop offset=".65" stop-color="#8a6040"/><stop offset="1" stop-color="#ffe2a0"/></linearGradient><linearGradient id="neon" x2="1" y2="1"><stop stop-color="#8dffe6"/><stop offset=".5" stop-color="#86bcff"/><stop offset="1" stop-color="#dba2ff"/></linearGradient></defs>
+<path d="M61 20H116L133 9H187L204 20H259L303 64V336L259 380H61L17 336V64Z" fill="none" stroke="#111e36" stroke-width="17" stroke-linejoin="round"/>
+<path d="M61 20H116L133 9H187L204 20H259L303 64V336L259 380H61L17 336V64Z" fill="none" stroke="url(#metal)" stroke-width="8" stroke-linejoin="round"/>
+<path d="M66 30H111M209 30H254L292 68V151M292 248V332L254 370H66L28 332V248M28 151V68Z" fill="none" stroke="url(#neon)" stroke-width="4" stroke-linecap="round"/>
+<g fill="#192b44" stroke="url(#metal)" stroke-width="2"><path d="M5 151L26 166V234L5 249Z M315 151L294 166V234L315 249Z"/><path d="M121 7L133 26H187L199 7L181 15L160 0L139 15Z"/><path d="M122 371L138 358H182L198 371L182 389H138Z"/></g>
+<g fill="url(#neon)" stroke="#e4fff7" stroke-width="1.4"><path d="M160 7L169 17L160 27L151 17Z M160 363L172 374L160 385L148 374Z"/><path d="M17 184L23 200L17 216L11 200Z M303 184L309 200L303 216L297 200Z"/></g>
+<g stroke="#fff0cc" stroke-width="2" fill="none"><path d="M47 39L36 50M273 39L284 50M47 361L36 350M273 361L284 350"/></g>
+</svg>
