@@ -65,3 +65,17 @@ test('Complete Crystal collection shows a server quote and charges only after co
  await page.route('**/avatars/api/shop/ion-pack',r=>{if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type,idempotency-key','Access-Control-Allow-Methods':'POST'}});charges++;expected=r.request().postDataJSON().expectedPrice;return r.fulfill({contentType:'application/json',body:JSON.stringify({user:f.user,charged:true,amount:750})});});
  await page.getByRole('button',{name:'◆ Crystal Command',exact:true}).click();await page.locator('#ion-pack-preview').click();await expect(page.locator('.ion-pack-dialog')).toBeVisible();expect(charges).toBe(0);await expect(page.locator('.ion-pack-art img')).toHaveCount(4);await page.getByRole('button',{name:'Confirm · 750 coins',exact:true}).click();await expect(page.locator('.ion-pack-dialog')).toContainText('owned and equipped');expect(charges).toBe(1);expect(expected).toBe(750);
 });
+
+test('VIP furniture previews show the paid-month rotation and delivery without enabling checkout',async({page})=>{
+ const {writes}=await setup(page);
+ await page.route('**/arcade-pass/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(r.request().url().endsWith('/config')?{webAvailable:false,appleAvailable:false,productId:'com.earnly.arcade.vip.monthly',furnitureAvailable:true,giftMonth:9}:{active:false,furniture:[{name:'Sovereign Neon Throne',delivered:true,revoked:false}]})}));
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await page.getByRole('button',{name:'VIP Pass',exact:true}).click();
+ await expect(page.locator('#vip-gift-availability')).toContainText('Sovereign Neon Throne');
+ await expect(page.locator('#vip-gift-delivery')).toContainText('1 VIP gift(s) delivered');
+ await expect(page.locator('.vip-gift-grid canvas')).toHaveCount(3);
+ const previews=await page.locator('.vip-gift-grid canvas').evaluateAll(nodes=>nodes.map(n=>n.toDataURL()));expect(new Set(previews).size).toBe(3);
+ await expect(page.locator('#pass-buy')).toBeDisabled();expect(writes).toHaveLength(0);
+ for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
+ await page.setViewportSize({width:390,height:844});await page.locator('#vip-furniture').screenshot({path:'test-results/vip-furniture.png'});
+});

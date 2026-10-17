@@ -1,3 +1,5 @@
+import {appleFurnitureEvidence,stripeFurnitureEvidence} from './vip-furniture.ts';
+import {deliverFurniture} from './vip-furniture-delivery.ts';
 export const passProduct='com.earnly.arcade.vip.monthly';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const unwrap=(result:any)=>{if(result.error)throw result.error;return result.data;};
@@ -6,6 +8,7 @@ export async function fulfillApplePass(db:any,t:any,userId?:string,allowSandboxT
  if((t.environment!=='Production'&&!sandbox)||t.bundleId!=='com.earnly.arcade'||t.productId!==passProduct||t.type!=='Auto-Renewable Subscription'||t.inAppOwnershipType!=='PURCHASED'||t.quantity!==1||!uuid.test(t.appAccountToken||'')||!/^\d{1,32}$/.test(t.transactionId||'')||!/^\d{1,32}$/.test(t.originalTransactionId||'')||!Number.isSafeInteger(t.expiresDate)||!Number.isSafeInteger(t.signedDate))throw new Error('INVALID_TRANSACTION');
  if(userId&&userId.toLowerCase()!==t.appAccountToken.toLowerCase())throw new Error('TRANSACTION_OWNER_MISMATCH');
  const state=unwrap(await db.rpc('arcade_pass_record',{p_user_id:t.appAccountToken,p_provider:sandbox?'apple_sandbox':'apple',p_transaction_id:t.transactionId,p_subscription_id:t.originalTransactionId,p_expires_at:new Date(t.expiresDate).toISOString(),p_revoked:t.revocationDate!=null,p_observed_at:new Date(t.signedDate).toISOString()}));
+ if(!sandbox){if(t.revocationDate!=null)unwrap(await db.rpc('arcade_pass_furniture_revoke',{p_user_id:t.appAccountToken,p_provider:'apple',p_transaction_id:t.transactionId}));else await deliverFurniture(db,appleFurnitureEvidence(t,t.appAccountToken));}
  return {...state,transactionId:t.transactionId};
 }
 export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,allowSandboxTransaction,webEnabled=false,appleEnabled=false,paymentsVerified=false,priceId,stripeLive=true}:any){
@@ -16,6 +19,7 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
  const getRow=async(id:string)=>unwrap(await db.from('arcade_pass_checkout').select('*').eq('user_id',id).maybeSingle());
  async function reconcileInvoice(invoiceId:string,forceRevoke=false){
   const invoice=await stripe.invoices.retrieve(invoiceId);
+  let giftRefund=forceRevoke;
   const subscriptionId=invoice.parent?.subscription_details?.subscription;
   if(typeof subscriptionId!=='string'||invoice.livemode!==stripeLive)return;
   const sub=await stripe.subscriptions.retrieve(subscriptionId);
@@ -38,12 +42,13 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
    const intent=await stripe.paymentIntents.retrieve(p.payment.payment_intent,{expand:['latest_charge']});
    const charge=intent.latest_charge;
    if(intent.status!=='succeeded'||intent.customer!==sub.customer||intent.currency!=='usd'||intent.livemode!==stripeLive||!charge||typeof charge==='string')continue;
-   paid+=p.amount_paid;revoked||=charge.amount_refunded>0||charge.disputed;
+   paid+=p.amount_paid;giftRefund||=charge.amount_refunded>0||charge.disputed;revoked||=charge.amount_refunded>0||charge.disputed;
   }
   if(!revoked&&(invoice.status!=='paid'||invoice.currency!=='usd'||invoice.amount_paid<499||paid<invoice.amount_paid))return;
   const line=invoice.lines.data.find((l:any)=>l.pricing?.price_details?.price===priceId);
   if(invoice.lines.has_more||!line||!Number.isSafeInteger(line.period?.end))throw new Error('PAYMENT_MISMATCH');
   unwrap(await db.rpc('arcade_pass_record',{p_user_id:uid,p_provider:'stripe',p_transaction_id:invoice.id,p_subscription_id:sub.id,p_expires_at:new Date(line.period.end*1000).toISOString(),p_revoked:revoked,p_observed_at:new Date().toISOString()}));
+  if(stripeLive){if(giftRefund)unwrap(await db.rpc('arcade_pass_furniture_revoke',{p_user_id:uid,p_provider:'stripe',p_transaction_id:invoice.id}));else if(!revoked)await deliverFurniture(db,stripeFurnitureEvidence(invoice,sub,priceId,paid,false));}
   unwrap(await db.from('arcade_pass_checkout').update({subscription_id:sub.id}).eq('user_id',uid));
  }
  return async(req:Request)=>{
@@ -55,7 +60,7 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
   const fail=(message:string,status=400)=>json({error:{message}},status);
   if(origin&&!origins.includes(origin))return fail('Origin denied.',403);
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
-  if(path==='/config'&&req.method==='GET')return json({webAvailable:!!webEnabled,appleAvailable:!!appleEnabled,productId:passProduct});
+  if(path==='/config'&&req.method==='GET')return json({webAvailable:!!webEnabled,appleAvailable:!!appleEnabled,productId:passProduct,furnitureAvailable:stripeLive,giftMonth:new Date().getUTCMonth()});
   if(path==='/health'&&req.method==='GET')return json({service:'arcade-pass',mode:stripeLive?'live':'sandbox',stripeConfigured:!!stripe,webhookConfigured:!!verifyEvent,webAvailable:!!webEnabled,appleAvailable:!!appleEnabled});
   try{
    if(path==='/stripe/webhook'&&req.method==='POST'){
@@ -88,7 +93,8 @@ export function passHandler({db,stripe,verifyUser,verifyEvent,verifyTransaction,
     const active=unwrap(await db.rpc('arcade_pass_active',{p_user_id:user.id}));
     const transactions=unwrap(await db.from('arcade_pass_transactions').select('provider,expires_at').eq('user_id',user.id).order('expires_at',{ascending:false}).limit(1));
     const provider=transactions?.[0]?.provider;
-    return json({active,provider:provider==='apple_sandbox'?'apple':provider||null,expiresAt:transactions?.[0]?.expires_at||null});
+    const furniture=stripeLive?unwrap(await db.rpc('arcade_pass_furniture_me',{p_user_id:user.id})):[];
+    return json({active,furniture,provider:provider==='apple_sandbox'?'apple':provider||null,expiresAt:transactions?.[0]?.expires_at||null});
    }
    if(req.method!=='POST')return fail('Route not found.',404);
    const raw=await req.text();if(raw.length>65536)return fail('Request too large.',413);let body;try{body=JSON.parse(raw);}catch{return fail('Invalid JSON.');}

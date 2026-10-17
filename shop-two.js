@@ -6,11 +6,11 @@
  const say=text=>$('pass-status').textContent=text;
  async function api(path,body){const session=await window.EarnlyCloud?.session?.();const response=await fetch(endpoint+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(session?{Authorization:'Bearer '+session.access_token}:{}),...(requestId?{'Idempotency-Key':requestId}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Pass service is unavailable.');return data;}
  async function refresh(){try{
-  config=await api('/config');const session=await window.EarnlyCloud?.session?.();const state=session?await api('/me'):{active:false};window.EarnlyPass=state;
+  config=await api('/config');const session=await window.EarnlyCloud?.session?.();const state=session?await api('/me'):{active:false};state.furnitureAvailable=config.furnitureAvailable===true;state.giftMonth=config.giftMonth;window.EarnlyPass=state;
   const available=native?config.appleAvailable:config.webAvailable;
   let price='$4.99';if(native&&apple){const products=(await apple.products()).products||[];price=products.find(p=>p.id===config.productId)?.displayPrice||'';}
   $('pass-buy').disabled=!available||!price||busy||state.active;$('pass-buy').textContent=state.active?'VIP active':available&&price?price+' / month · Subscribe':'Coming soon';
-  $('pass-disclosure').textContent=(available&&price?price+'/month':'$4.99/month when available')+', auto-renewing. Cancel anytime in subscription settings. Perks last through your paid period. No coins or cash-equivalent rewards.';
+  $('pass-disclosure').textContent=(available&&price?price+'/month':'$4.99/month when available')+', auto-renewing. Cancel anytime in subscription settings. Frame and effect last through your paid period. Paid-month furniture gifts stay after cancellation. No coins or cash-equivalent rewards.';
   document.querySelector('#vip-pass summary span').textContent='Cosmetic perks · '+(available&&price?price+'/month':'Coming soon');
   $('pass-manage').hidden=!state.provider;$('pass-manage').dataset.provider=state.provider||'';
   window.dispatchEvent(new Event('earnly-pass-change'));
