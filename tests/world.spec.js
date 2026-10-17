@@ -474,7 +474,7 @@ test('Original World collections can be explored before connecting and searched 
  await expect(page.locator('#worldInspiration')).toBeVisible();await page.locator('#browseDecor').click();
  await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeInViewport();await page.screenshot({path:testInfo.outputPath('catalog-search-first.png')});await expect(page.locator('.catalog-collections')).not.toHaveAttribute('open','');await page.locator('.catalog-collections summary').click();await expect(page.locator('.collection-card')).toHaveCount(3);
  await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(4);
- await page.getByRole('searchbox',{name:'Search decor'}).fill('coffee');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Bramble Coffee Station');await expect(page.locator('.item-card button')).toBeDisabled();
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('coffee');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Bramble Coffee Station');await expect(page.locator('.item-card').getByRole('button',{name:/· Buy$/})).toBeDisabled();await expect(page.getByRole('button',{name:'Preview Bramble Coffee Station',exact:true})).toBeEnabled();
  await page.getByRole('searchbox',{name:'Search decor'}).fill('no-match');await expect(page.locator('#panelContent')).toContainText('No pieces match');
  await page.getByRole('searchbox',{name:'Search decor'}).fill('');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('price');await expect(page.locator('.item-card').first()).toContainText('Bramble Bentwood Chair');
  await page.screenshot({path:`test-results/world-collection-catalog-${testInfo.project.name}.png`,fullPage:true});
@@ -539,4 +539,25 @@ test('Foreground foliage fades only when it covers the local avatar',async({page
   faded=0;renderer.users.clear();renderer.draw();return {behind,clear,empty:faded};
  });
  expect(result.behind).toBeGreaterThan(0);expect(result.clear).toBe(0);expect(result.empty).toBe(0);
+});
+
+test('Furniture showroom previews without connecting and preserves catalog search',async({page},testInfo)=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.addInitScript(()=>{window.socketCount=0;window.WebSocket=class{constructor(){window.socketCount++;}};});
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
+ await page.getByRole('button',{name:'Explore furniture collections',exact:false}).click();
+ const search=page.getByRole('searchbox',{name:'Search decor'});await search.fill('booth');
+ await page.getByRole('combobox',{name:'Sort decor'}).selectOption('price');
+ await page.getByRole('button',{name:'Preview Afterglow Diner Booth',exact:true}).click();
+ await expect(page.locator('#panelTitle')).toHaveText('Afterglow Diner Booth');
+ await expect(page.locator('.item-footprint')).toContainText('2 × 1 tiles');
+ await expect(page.getByRole('button',{name:'Choose this piece'})).toHaveCount(0);
+ const canvas=page.locator('.furniture-stage canvas');const before=await canvas.evaluate(c=>c.toDataURL());
+ await page.getByRole('button',{name:'Rotate preview'}).click();await expect(page.locator('.furniture-preview-status')).toContainText('Turned view');
+ expect(await canvas.evaluate(c=>c.toDataURL())).not.toBe(before);
+ await page.getByRole('button',{name:'Warm',exact:true}).click();await expect(page.getByRole('button',{name:'Warm',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.screenshot({path:testInfo.outputPath('furniture-showroom.png')});
+ await page.getByRole('button',{name:'Back to catalog'}).click();await expect(search).toHaveValue('booth');await expect(page.getByRole('combobox',{name:'Sort decor'})).toHaveValue('price');
+ expect(await page.evaluate(()=>window.socketCount)).toBe(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

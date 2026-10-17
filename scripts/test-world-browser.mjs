@@ -88,7 +88,7 @@ try{
  await expect(a.locator('.item-card')).toHaveCount(9);
  if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/garden-catalog.png'});
  await a.getByRole('button',{name:'All',exact:true}).click();
-await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button').click();await a.getByRole('button',{name:'Buy for ◇ 70'}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).waitFor();
+await a.getByRole('button',{name:'Preview Moon Fern',exact:true}).click();await a.getByRole('button',{name:'Rotate preview'}).click();await a.getByRole('button',{name:'Choose this piece',exact:true}).click();await a.getByRole('button',{name:'Buy for ◇ 70'}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).waitFor();
  await a.getByRole('button',{name:'Close panel'}).click();
  // Start a trade by tapping the other saved avatar in the real canvas.
  const target=await a.evaluate(uid=>{const r=window.testWorldRenderer,h=r.hit.find(h=>h.user.userId===uid);return {x:r.cx+h.x*r.scale,y:r.cy+(h.y-25)*r.scale};},fixture.users[1]);

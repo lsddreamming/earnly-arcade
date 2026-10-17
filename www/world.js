@@ -121,7 +121,7 @@
  $('reconnect').onclick=()=>{if(connected)window.EarnlyActivity?.track('world_reconnect');if(needsFirstRoom)showRoomCreator(true);else connect(entryTarget).catch(e=>{entryState(e.message);toast(e.message);});};
  $('connectWorld').onclick=$('reconnect').onclick;
  function collectionPreview(canvas,collection,catalog=demoCatalog){EarnlyWorldRenderer.roomThumbnail(canvas,'000000\n000000\n000000\n000000\n000000\n000000',EarnlyWorldCollections.vignette(collection,catalog));}
- function showCatalog(category='All'){
+ function showCatalog(category='All',view={}){
   currentPanel='catalog';const root=openPanel('Decor Catalog');root.append(note(connected?'Make a room people remember. Every piece is bought separately with Arcade Coins.':'Explore original Earnly furniture. Connect to buy and decorate your own room.'));
   if(category==='All'){
    const collectionToggle=el('details','catalog-collections'),summary=el('summary','','Explore furniture collections');collectionToggle.append(summary);const showcase=el('div','collection-showcase');
@@ -136,13 +136,27 @@
   const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);root.prepend(tools,filters);
   const count=el('p','muted'),grid=el('div','catalog-grid'),empty=note('No pieces match. Try another name or collection.');count.setAttribute('role','status');root.append(count,grid,empty);
   const draw=()=>{grid.replaceChildren();let pieces=bootstrap.catalog.filter(d=>(category==='All'||d.category===category)&&(d.name+' '+d.category).toLowerCase().includes(search.value.trim().toLowerCase()));if(sort.value==='unowned')pieces=pieces.filter(d=>!bootstrap.items.some(i=>i.definition_id===d.id));if(sort.value==='price')pieces.sort((a,b)=>Number(a.price)-Number(b.price));count.textContent=pieces.length+' pieces';empty.hidden=pieces.length>0;
-   for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name));
+   for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);const inspect=button('',()=>showFurniturePreview(d,()=>showCatalog(category,{search:search.value,sort:sort.value,scroll:root.scrollTop})), 'furniture-inspect');inspect.setAttribute('aria-label','Preview '+d.name);inspect.append(canvas,el('span','','Preview'));card.append(inspect,el('h3','',d.name));
     const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)card.append(el('p','owned-label',owned+' owned'));
     card.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')));
     card.append(el('p','',d.vip_only?'VIP monthly gift · Not tradeable':d.supply_limit?`${Math.max(0,d.supply_limit-d.minted)} of ${d.supply_limit} left`:d.tradeable===false?'Keep & decorate':'Collect · Decorate · Trade'));
     const buy=button(d.vip_only?'VIP exclusive':'◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d));buy.disabled=d.vip_only||!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
    }
-  };search.oninput=draw;sort.onchange=draw;draw();
+  };search.value=view.search||'';sort.value=view.sort||'featured';search.oninput=draw;sort.onchange=draw;draw();if(view.scroll)requestAnimationFrame(()=>root.scrollTop=view.scroll);
+ }
+ function showFurniturePreview(d,back){
+  currentPanel='catalog';const root=openPanel(d.name),stage=el('section','furniture-stage'),canvas=el('canvas'),caption=el('p','furniture-preview-status');let facing=0,tone='midnight';
+  canvas.className='decor-room-preview';canvas.setAttribute('role','img');canvas.setAttribute('aria-label',d.name+' on a sample room floor');caption.setAttribute('role','status');
+  const draw=()=>{EarnlyWorldRenderer.decorPreview(canvas,{...d,rotation:facing},{tone});caption.textContent=(facing===0?'Original view':'Turned view')+' · '+tone.charAt(0).toUpperCase()+tone.slice(1)+' floor';};
+  const rotate=button('Rotate preview ↻',()=>{facing=facing===0?2:0;draw();});stage.append(canvas,caption,rotate);root.append(stage);
+  const tones=el('div','preview-tones');tones.setAttribute('role','group');tones.setAttribute('aria-label','Preview floor');
+  for(const name of ['midnight','warm','garden']){const b=button(name.charAt(0).toUpperCase()+name.slice(1),()=>{tone=name;for(const child of tones.children)child.setAttribute('aria-pressed',String(child===b));draw();});b.setAttribute('aria-pressed',String(name===tone));tones.append(b);}root.append(tones);
+  root.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')),note('Sample floor for inspiration. Furniture is sold separately.'));
+  const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)root.append(el('p','owned-label',owned+' owned'));
+  if(d.vip_only)root.append(note('VIP monthly gift · Not available for individual purchase.'));
+  else if(d.supply_limit&&d.minted>=d.supply_limit)root.append(note('This piece is sold out.'));
+  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d),'primary'));else root.append(note('Connect to World to buy this piece.'));}
+  root.append(button('Back to catalog',back));draw();
  }
  function showBuy(d){const root=openPanel('Add to your Backpack?'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);canvas.style='display:block;margin:auto';const preview=el('canvas');preview.className='decor-room-preview';EarnlyWorldRenderer.decorPreview(preview,d);root.append(preview,el('h3','',d.name),note('Price: '+d.price+' Arcade Coins. This purchase adds one decor item to your Backpack.'));
   const purchaseKey='earnlyWorldPendingPurchase:'+userId;let saved;try{saved=JSON.parse(localStorage.getItem(purchaseKey)||'null');}catch{}const requestId=saved?.definitionId===d.id?saved.requestId:crypto.randomUUID();root.append(button('Buy for ◇ '+d.price,async()=>{if(saved&&saved.definitionId!==d.id)throw new Error('Reopen your previous item to confirm its purchase first.');localStorage.setItem(purchaseKey,JSON.stringify({definitionId:d.id,requestId}));try{await action('buy',{definitionId:d.id,requestId});}catch(error){if(error.definite)localStorage.removeItem(purchaseKey);throw error;}localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');showBackpack();},'primary'),button('Back to catalog',()=>showCatalog()));
