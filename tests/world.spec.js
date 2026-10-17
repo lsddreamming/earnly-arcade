@@ -561,3 +561,27 @@ test('Furniture showroom previews without connecting and preserves catalog searc
  expect(await page.evaluate(()=>window.socketCount)).toBe(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test('World wishlist survives reload, filters saved pieces and removes from preview without spending',async({page},testInfo)=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.addInitScript(()=>{window.socketCount=0;window.WebSocket=class{constructor(){window.socketCount++;}};});
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.locator('#browseDecor').click();
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('booth');
+ await page.getByRole('button',{name:'Save to wishlist: Afterglow Diner Booth',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Remove from wishlist: Afterglow Diner Booth',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.reload();await page.locator('#browseDecor').click();await page.getByRole('button',{name:'♥ Wishlist · 1',exact:true}).click();
+ await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card h3')).toHaveText('Afterglow Diner Booth');
+ await page.screenshot({path:testInfo.outputPath('world-wishlist.png')});
+ await page.getByRole('button',{name:'Preview Afterglow Diner Booth',exact:true}).click();await page.getByRole('button',{name:'Remove from wishlist: Afterglow Diner Booth',exact:true}).click();
+ await page.getByRole('button',{name:'Back to catalog',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(0);
+ await expect(page.locator('#panelContent')).toContainText('No saved pieces match');await expect(page.getByRole('button',{name:'♥ Wishlist · 0',exact:true})).toHaveAttribute('aria-pressed','true');
+ expect(await page.evaluate(()=>window.socketCount)).toBe(0);expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnlyWorldWishlistV1')))).toEqual([]);
+});
+
+test('World wishlist handles malformed storage and failed saves truthfully',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+ await page.goto('/world.html');await page.evaluate(()=>{localStorage.setItem('earnlyWorldWishlistV1','{"bad":true}');const original=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='earnlyWorldWishlistV1')throw new Error('blocked');return original.call(this,k,v);};});
+ await page.locator('#browseDecor').click();await page.getByRole('searchbox',{name:'Search decor'}).fill('booth');
+ await page.getByRole('button',{name:'Save to wishlist: Afterglow Diner Booth',exact:true}).click();
+ await expect(page.locator('#worldToast')).toContainText('Could not save your wishlist');await expect(page.getByRole('button',{name:'Save to wishlist: Afterglow Diner Booth',exact:true})).toHaveAttribute('aria-pressed','false');
+});
