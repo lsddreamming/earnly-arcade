@@ -65,7 +65,7 @@
     }
     function robot(s,x,y,size,time){
       const calm=reduced(),cycle=s.stride??time*(s.type==='tank'?5:9),frame=calm?0:Math.floor((cycle+(s.phase||0))/TAU*8)%8;
-      const sprite=art.robot(s.type,s.elite,frame),accent=s.elite?'#ffcf78':colors[s.type],spawn=Math.min(1,(s.spawn||0)/.55),charge=s.charge||0;
+      const sprite=art.robot(s.type,s.elite,frame),accent=s.elite?'#ffcf78':colors[s.type],spawn=Math.min(1,(s.spawn||0)/E.SPAWN_DELAY),charge=s.charge||0;
       const recoil=calm?0:(s.firing||0)*.18,lean=calm?0:Math.sin(cycle)*.012*(s.motion??1)+(s.hit?-.025:0);
       c.fillStyle='#0008';c.beginPath();c.ellipse(x,y+size*1.018,size*(s.type==='tank'?.38:.29),size*.065,0,0,TAU);c.fill();
       c.save();c.translate(x,y+size);c.rotate(lean);c.translate(0,-size);c.scale(1,1-recoil);
@@ -253,13 +253,19 @@
       const radar=57,rx=w-radar-14,ry=43,cell=radar/E.MAP.length;
       c.fillStyle='#030d1cbb';c.fillRect(rx-3,ry-3,radar+6,radar+6);
       for(let y=0;y<E.MAP.length;y++)for(let x=0;x<E.MAP[y].length;x++)if(E.MAP[y][x]==='1'){c.fillStyle='#38566f';c.fillRect(rx+x*cell,ry+y*cell,Math.max(1,cell-.5),Math.max(1,cell-.5))}
-      for(const enemy of s.enemies)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<6.5){c.fillStyle=enemy.elite?'#ffcf78':colors[enemy.type];c.fillRect(rx+enemy.x*cell-1,ry+enemy.y*cell-1,2,2)}
+      for(const enemy of s.enemies)if(enemy.spawn>0||Math.hypot(enemy.x-p.x,enemy.y-p.y)<6.5){c.fillStyle=enemy.elite?'#ffcf78':colors[enemy.type];c.fillRect(rx+enemy.x*cell-1,ry+enemy.y*cell-1,2,2)}
       c.save();c.translate(rx+p.x*cell,ry+p.y*cell);c.rotate(p.a);polygon([[3,0],[-2,-2],[-2,2]],'#e9ffff');c.restore();
       for(const item of s.pickups){
         const x=rx+item.x*cell,y=ry+item.y*cell;c.globalAlpha=Math.min(1,.35+item.life/4);c.strokeStyle=colors[item.type];c.lineWidth=1;
         // Hollow diamonds distinguish supplies from solid hostile contacts.
         c.beginPath();c.moveTo(x,y-2.5);c.lineTo(x+2.5,y);c.lineTo(x,y+2.5);c.lineTo(x-2.5,y);c.closePath();c.stroke();c.globalAlpha=1;
       }
+      const incoming=s.enemies.filter(e=>e.spawn>0);
+      if(running&&incoming.length){
+        text(`${incoming.length} INCOMING / ROBOTS MATERIALIZING`,w/2,115,8,'#ffdc9a','center');
+        // Edge arrows reveal warnings even when a portal is outside the camera view.
+        for(const e of incoming){const bearing=E.angle(Math.atan2(e.y-p.y,e.x-p.x)-p.a);if(Math.abs(bearing)<.55)continue;const right=bearing>0,ax=right?w-13:13,ay=horizon;c.save();c.translate(ax,ay);c.rotate(right?0:Math.PI);polygon([[5,0],[-4,-5],[-4,5]],'#ffdc9a');c.restore();}
+      }else if(running&&s.spawnBlocked)text('TURN TOWARD THE ARENA TO CONTINUE',w/2,115,8,'#ffdc9a','center');
       const zone=NeonBreachArt.zones[NeonBreachArt.zoneAt(p.x)];
       text(zone.name+(s.wave>=6?(s.wave>=10?' / EXTREME':' / HIGH'):''),18,62,8,zone.color);
       const healthColor=p.hp<=25?'#ff7b92':s.shield>0?'#76cfff':'#78f4ce';text(s.shield>0?'SHIELD':'HULL',16,h-39,9,healthColor);text(`${p.hp}`,16,h-20,17,healthColor);c.fillStyle='#162e40';c.fillRect(16,h-12,85,3);c.fillStyle=healthColor;c.fillRect(16,h-12,85*p.hp/100,3);
