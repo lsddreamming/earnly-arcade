@@ -533,7 +533,7 @@ test('Foreground foliage fades only when it covers the local avatar',async({page
  const result=await page.evaluate(()=>{
   const canvas=document.createElement('canvas');canvas.width=390;canvas.height=500;
   const renderer=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype),context=canvas.getContext('2d');let faded=0;
-  const wrapped=new Proxy(context,{get(target,key){const value=target[key];return typeof value==='function'?function(...args){if(key==='fill'&&target.globalAlpha<.3)faded++;return value.apply(target,args);}:value;},set(target,key,value){target[key]=value;return true;}});
+  const wrapped=new Proxy(context,{get(target,key){const value=target[key];return typeof value==='function'?function(...args){if((key==='fill'||key==='drawImage')&&target.globalAlpha<.3)faded++;return value.apply(target,args);}:value;},set(target,key,value){target[key]=value;return true;}});
   Object.assign(renderer,{canvas,c:wrapped,scene:{heightmap:Array(6).fill('000000').join('\n'),items:[{id:'palm',sprite:'palm',x:1,y:1,z:0,width:1,length:1}]},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom:1,hit:[],localUserId:'me'});
   renderer.setUsers([{userId:'me',position:{x:0,y:0,z:0},state:'std'}]);renderer.draw();const behind=faded;
   faded=0;renderer.setUsers([{userId:'me',position:{x:4,y:4,z:0},state:'std'}]);renderer.draw();const clear=faded;
