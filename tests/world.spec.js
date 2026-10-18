@@ -830,3 +830,26 @@ test('An empty room rotates its walls and doorway, not just its furniture',async
  expect(result.edges).toEqual([[false,false],[false,true],[true,true],[true,false]]);
  expect(result.restored).toBe(true);expect(result.unchanged).toBe(true);
 });
+
+test('Room spin drifts through 360 degrees, responds to flicks and never moves saved furniture',async({page})=>{
+ const fs=require('node:fs');
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.spinRenderer=this;}};}'}));
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{window.spinPackets=[];window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);spinPackets.push(p);if(p.type==='JOIN'){this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'spin',name:'My Room',ownerId:'owner',heightmap:'00000000\n00000000\n00000000\n00000000\n00000000\n00000000',items:[{id:'chair',sprite:'chair',x:2,y:2,z:0,width:1,length:1,rotation:0,color:'#74bdb0'}]},bootstrap:{balance:0,rooms:[],catalog:[],items:[],friends:[]}})});this.onmessage?.({data:JSON.stringify({type:'ROOM_SNAPSHOT',users:[{userId:'owner',username:'Dreamer',position:{x:4,y:3,z:0}}]})});}}};});
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#worldConnected')).toBeVisible();
+ const original=await page.evaluate(()=>JSON.stringify(spinRenderer.scene));const before=await page.evaluate(()=>spinPackets.length);
+ await page.getByRole('button',{name:'Rotate room',exact:true}).click();await expect(page.getByRole('button',{name:'Stop rotating',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect.poll(()=>page.evaluate(()=>spinRenderer.spinAngle)).toBeGreaterThan(0);
+ const initial=await page.evaluate(()=>spinRenderer.spinSpeed);expect(initial).toBeLessThan(.1);
+ const box=await page.locator('#worldCanvas').boundingBox();await page.mouse.move(box.x+60,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+240,box.y+box.height/2,{steps:5});await page.mouse.up();
+ expect(await page.evaluate(()=>spinRenderer.spinSpeed)).toBeGreaterThan(initial);expect(await page.evaluate(()=>Math.abs(spinRenderer.spinSpeed))).toBeLessThanOrEqual(12);
+ await page.mouse.move(box.x+240,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+60,box.y+box.height/2,{steps:5});await page.mouse.up();expect(await page.evaluate(()=>spinRenderer.spinSpeed)).toBeLessThan(0);
+ const checks=await page.evaluate(()=>{const r=spinRenderer;r.spinDrag=null;r.spinSpeed=4;r.spinAngle=Math.PI*2-.01;r.spinAt=100;r.advanceSpin(150);const wrapped=r.spinAngle>=0&&r.spinAngle<.2,slowed=r.spinSpeed<4;const captures=[];for(const a of [0,.4,1.2,2.4,3.7,5.8]){r.spinAngle=a;r.drawSpinScene();captures.push(r.canvas.toDataURL());}const sameRoom=r.scene;r.setScene({...sameRoom});return {wrapped,slowed,unique:new Set(captures).size,kept:r.spinning};});
+ expect(checks).toEqual({wrapped:true,slowed:true,unique:6,kept:true});
+ await page.locator('#worldCanvas').focus();await page.keyboard.press('ArrowRight');expect(await page.evaluate(()=>spinPackets.length)).toBe(before);expect(await page.evaluate(()=>JSON.stringify(spinRenderer.scene))).toBe(original);
+ await page.getByRole('button',{name:'Stop rotating',exact:true}).click();await expect(page.getByRole('button',{name:'Rotate room',exact:true})).toHaveAttribute('aria-pressed','false');expect(await page.evaluate(()=>spinRenderer.spinning)).toBe(false);
+ await page.locator('#worldCanvas').focus();await page.keyboard.press('ArrowUp');expect(await page.evaluate(()=>spinPackets.at(-1).type)).toBe('MOVE_TO');
+ await page.locator('#spinRoom').click();await page.evaluate(()=>spinRenderer.setScene({...spinRenderer.scene,roomId:'another'}));await expect(page.locator('#spinRoom')).toHaveText('Rotate room');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

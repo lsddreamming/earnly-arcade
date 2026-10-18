@@ -32,13 +32,13 @@
   if(hit.staff){try{await showStaff(hit.staff);}catch(e){toast(e.message);}return;}
   if(hit.user){showPlayer(hit.user);return;}if(!scene)return;
   if(hit.item&&!connected){toast('Connect to World, then enter your own room to move furniture.');return;}
-  if(hit.item&&!placing&&connected){if(hit.doubleTap&&scene.ownerId===userId)beginPlacement(hit.item,hit.item.name,true);else if(hit.item.canSit||hit.item.canLay){try{useSeat(hit.item);}catch(e){toast(e.message);}}else showDecor(hit.item);return;}
+  if(hit.item&&!placing&&connected){if((hit.doubleTap||hit.longPress)&&scene.ownerId===userId)beginPlacement(hit.item,hit.item.name,true);else if(hit.item.canSit||hit.item.canLay){try{useSeat(hit.item);}catch(e){toast(e.message);}}else showDecor(hit.item);return;}
   const rows=scene.heightmap.split('\n');if(hit.x<0||hit.y<0||hit.y>=rows.length||hit.x>=rows[0].length||rows[hit.y][hit.x]==='x')return;
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation,centered:false});placing=null;showPlacement();await refresh();toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId?'YOUR PERSONAL SPACE':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Double-tap furniture to move · Drag to pan · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
- function beginPlacement(item,name,gesture=false){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
+ function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';if(renderer.spinning)updateSpinControls(true);}
+ function beginPlacement(item,name,gesture=false){renderer.stopSpin();requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
  function useSeat(item){const rotated=item.rotation===2||item.rotation===6,w=rotated?item.length:item.width,h=rotated?item.width:item.length;const occupied=new Set([...renderer.users.values(),...renderer.staff.values()].map(u=>u.position.x+','+u.position.y));const seats=[];for(let y=item.y;y<item.y+h;y++)for(let x=item.x;x<item.x+w;x++)if(!occupied.has(x+','+y))seats.push({x,y});if(!seats.length)throw new Error('This seat is occupied. Choose another seat.');const me=renderer.users.get(userId)?.position||item;seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));socket.send(JSON.stringify({type:'INTERACT',...seats[0],action:item.canLay?'lay':'sit'}));$('worldPanel').close();toast('Walking to '+item.name+' · Tap clear floor to stand up');}
  function showDecor(item){
   if(!connected)return;
@@ -51,18 +51,29 @@
   }
   if(scene.ownerId===userId)root.append(button('Move',()=>beginPlacement(item,item.name),'primary'),button('Rotate ↻',async()=>{await action('place',{itemId:item.id,x:item.x,y:item.y,rotation:(item.rotation+2)%8});await refresh();$('worldPanel').close();toast('Furniture rotated');}),button('Return to Backpack',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();$('worldPanel').close();toast('Returned to your Backpack');}));
  }
- function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';}
+ function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
  $('rotateItem').onclick=()=>{if(renderer.placement?.saving)return;rotation=(rotation+2)%8;if(renderer.placement)renderer.placement.rotation=rotation;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{if(renderer.placement?.saving)return;placing=null;showPlacement();};
- renderer.canEditItem=item=>connected&&scene?.ownerId===userId&&bootstrap.items.some(i=>i.id===item.id);
- renderer.onPlacementDrop=async()=>{
-  const p=renderer.placement;if(!p||p.saving)return;
-  const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
-  p.saving=true;$('rotateItem').disabled=true;$('cancelPlace').disabled=true;
-  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();toast('Placed in your room');}}
+ $('returnItem').onclick=async()=>{
+  const p=renderer.placement;if(!p||p.saving||!renderer.canEditItem(p.item))return;
+  p.saving=true;for(const id of ['rotateItem','returnItem','cancelPlace'])$(id).disabled=true;
+  try{await action('place',{itemId:p.item.id,pickup:true});if(renderer.placement===p){placing=null;showPlacement();}await refresh();toast('Returned to your Backpack');}
   catch(e){toast(e.message);}
-  finally{p.saving=false;$('rotateItem').disabled=false;$('cancelPlace').disabled=false;}
+  finally{p.saving=false;for(const id of ['rotateItem','returnItem','cancelPlace'])$(id).disabled=false;}
  };
+ renderer.canEditItem=item=>connected&&scene?.ownerId===userId&&bootstrap.items.some(i=>i.id===item.id);
+ renderer.onPlacementDrop=async nextItem=>{
+  const p=renderer.placement,roomId=scene?.roomId;if(!p||p.saving)return;
+  const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
+  p.saving=true;$('rotateItem').disabled=true;$('returnItem').disabled=true;$('cancelPlace').disabled=true;
+  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();toast('Placed in your room');if(nextItem&&scene?.roomId===roomId&&!placing){const next=scene.items.find(i=>i.id===nextItem.id);if(next&&renderer.canEditItem(next))beginPlacement(next,next.name,true);}}}
+  catch(e){toast(e.message);}
+  finally{p.saving=false;$('rotateItem').disabled=false;$('returnItem').disabled=false;$('cancelPlace').disabled=false;}
+ };
+ const updateSpinControls=active=>{$('worldCanvas').setAttribute('aria-label',active?'Spinning room. Swipe to control speed and direction. Arrow keys change spin speed. Escape stops rotation.':'Room view. Tap a floor tile to walk. Use arrow keys to move.');if(connected)$('connectionStatus').textContent=active?'Live · Spinning room':'Live · Tap seats to sit or a floor tile to walk';$('spinRoom').textContent=active?'Stop rotating':'Rotate room';$('spinRoom').setAttribute('aria-pressed',String(active));$('spinHelp').textContent=active?'Spin to rotate room · Swipe slowly or flick fast':'Try a slow 360° spin';$('stageTip').textContent=active?'Swipe to spin · Stop to walk or decorate':connected&&scene?.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';for(const id of ['viewLeft','viewRight','roomView','focusMe'])$(id).disabled=active;};
+ renderer.onSpinChange=updateSpinControls;
+ $('spinRoom').onclick=()=>{if(renderer.spinning)renderer.stopSpin();else if(!renderer.startSpin())toast('Finish placing your furniture first.');};
  const updateViewButtons=()=>{$('roomView').setAttribute('aria-pressed',String(renderer.viewMode==='room'));};
+ $('viewLeft').onclick=()=>renderer.rotateView(-1);$('viewRight').onclick=()=>renderer.rotateView(1);
  $('zoomIn').onclick=()=>renderer.setZoom(renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.setZoom(renderer.zoom-.2);
  $('roomView').onclick=()=>{renderer.setView('room');updateViewButtons();};
  $('focusMe').onclick=()=>{renderer.focusMe();updateViewButtons();};
@@ -140,14 +151,15 @@
    }collectionToggle.append(showcase);root.append(collectionToggle);
   }else{const set=EarnlyWorldCollections.collections.find(c=>c.name===category);if(set)root.append(note(set.description));}
   let savedOnly=!!view.savedOnly;const filters=el('div','filters');for(const name of ['All',...new Set(bootstrap.catalog.map(d=>d.category))]){const b=button(name,()=>showCatalog(name,{savedOnly}),name===category?'selected':'');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}root.append(filters);
-  const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);const wishlist=button('',()=>{savedOnly=!savedOnly;draw();},'wishlist-filter');tools.append(wishlist);root.prepend(tools,filters);
+  const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);const wishlist=button('',()=>{savedOnly=!savedOnly;draw();},'wishlist-filter');tools.append(wishlist);root.prepend(button('View Backpack',showBackpack,'catalog-backpack'),tools,filters);
+  const returnToCatalog=()=>{const savedView={search:search.value,sort:sort.value,scroll:root.scrollTop,savedOnly};return ()=>showCatalog(category,savedView);};
   const count=el('p','muted'),grid=el('div','catalog-grid'),empty=note('No pieces match. Try another name or collection.');count.setAttribute('role','status');root.append(count,grid,empty);
   const draw=()=>{const saved=readWishlist();wishlist.textContent='♥ Wishlist · '+saved.size;wishlist.setAttribute('aria-pressed',String(savedOnly));empty.textContent=savedOnly?'No saved pieces match. Tap Save on a piece you like.':'No pieces match. Try another name or collection.';grid.replaceChildren();let pieces=bootstrap.catalog.filter(d=>(category==='All'||d.category===category)&&(d.name+' '+d.category).toLowerCase().includes(search.value.trim().toLowerCase()));if(savedOnly)pieces=pieces.filter(d=>saved.has(d.id));if(sort.value==='unowned')pieces=pieces.filter(d=>!bootstrap.items.some(i=>i.definition_id===d.id));if(sort.value==='price')pieces.sort((a,b)=>Number(a.price)-Number(b.price));count.textContent=pieces.length+(savedOnly?' saved pieces · Saved on this device':' pieces');empty.hidden=pieces.length>0;
-   for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);const inspect=button('',()=>showFurniturePreview(d,()=>showCatalog(category,{search:search.value,sort:sort.value,scroll:root.scrollTop,savedOnly})), 'furniture-inspect');inspect.setAttribute('aria-label','Preview '+d.name);inspect.append(canvas,el('span','','Preview'));card.append(inspect,el('h3','',d.name),wishlistButton(d,()=>{if(savedOnly)draw();else wishlist.textContent='♥ Wishlist · '+readWishlist().size;}));
+   for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);const inspect=button('',()=>showFurniturePreview(d,returnToCatalog()), 'furniture-inspect');inspect.setAttribute('aria-label','Preview '+d.name);inspect.append(canvas,el('span','','Preview'));card.append(inspect,el('h3','',d.name),wishlistButton(d,()=>{if(savedOnly)draw();else wishlist.textContent='♥ Wishlist · '+readWishlist().size;}));
     const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)card.append(el('p','owned-label',owned+' owned'));
     card.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')));
     card.append(el('p','',d.vip_only?'VIP monthly gift · Not tradeable':d.supply_limit?`${Math.max(0,d.supply_limit-d.minted)} of ${d.supply_limit} left`:d.tradeable===false?'Keep & decorate':'Collect · Decorate · Trade'));
-    const buy=button(d.vip_only?'VIP exclusive':'◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d));buy.disabled=d.vip_only||!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
+    const buy=button(d.vip_only?'VIP exclusive':'◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d,null,returnToCatalog()));buy.disabled=d.vip_only||!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
    }
   };search.value=view.search||'';sort.value=view.sort||'featured';search.oninput=draw;sort.onchange=draw;draw();if(view.scroll)requestAnimationFrame(()=>root.scrollTop=view.scroll);
  }
@@ -169,10 +181,10 @@
   const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)root.append(el('p','owned-label',owned+' owned'));
   if(d.vip_only)root.append(note('VIP monthly gift · Not available for individual purchase.'));
   else if(d.supply_limit&&d.minted>=d.supply_limit)root.append(note('This piece is sold out.'));
-  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d,selectedColor),'primary'));else root.append(note('Connect to World to buy this piece.'));}
+  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d,selectedColor,back),'primary'));else root.append(note('Connect to World to buy this piece.'));}
   root.append(wishlistButton(d),el('p','wishlist-note','Wishlist saved on this device.'),button('Back to catalog',back));draw();
  }
- function showBuy(d,initialColor=null){
+ function showBuy(d,initialColor=null,back=()=>showCatalog()){
   const root=openPanel('Add to your Backpack?'),preview=el('canvas');preview.className='decor-room-preview';
   const purchaseKey='earnlyWorldPendingPurchase:'+userId;let saved;try{saved=JSON.parse(localStorage.getItem(purchaseKey)||'null');}catch{}
   const retry=saved?.definitionId===d.id;let selectedColor=retry?saved.color||null:initialColor;const requestId=retry?saved.requestId:crypto.randomUUID();
@@ -185,8 +197,8 @@
    const purchase={definitionId:d.id,requestId,color:selectedColor};localStorage.setItem(purchaseKey,JSON.stringify(purchase));saved=purchase;
    for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=true;
    try{await action('buy',purchase);}catch(error){if(error.definite){localStorage.removeItem(purchaseKey);saved=null;for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=false;}throw error;}
-   localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');showBackpack();
-  },'primary');root.append(buy,button('Back to catalog',()=>showCatalog()));
+   localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');back();
+  },'primary');root.append(buy,button('Back to catalog',back));
  }
 
  function showBackpack(){currentPanel='backpack';const root=openPanel('Your Backpack');if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'));return;}
@@ -203,15 +215,16 @@
   const applyFilter=()=>{let count=0;for(const card of grid.children){card.hidden=!card.dataset.name.includes(search.value.trim().toLowerCase())||(filter.value!=='all'&&card.dataset.location!==filter.value);if(!card.hidden)count++;}empty.hidden=count>0||!bootstrap.items.length;};search.oninput=applyFilter;filter.onchange=applyFilter;
  }
  const hangoutStyles={
-  'Hotel Lobby':{theme:'lobby',collection:'Bramble Cafe',tag:'COFFEE & COMPANY',description:'A warm café corner, velvet seats and a welcome from Pip.',host:'Pip',color:'#dcad79'},
-  'Rooftop Lounge':{theme:'rooftop',collection:'Morrow Lounge',tag:'ABOVE THE CITY',description:'Find a skyline seat, browse Remy’s mocktail menu and catch up.',host:'Remy',color:'#b39bd9'},
-  'Patio Hangout':{theme:'patio',collection:'Dewglass Garden',tag:'YOUR LITTLE GREEN ESCAPE',description:'Garden tables, soft lanterns and a quiet moment with Fern.',host:'Fern',color:'#8dc7b1'}
+  'Earnly Plaza':{theme:'plaza',tag:'MEET & PLAY',description:'Meet other players, chat and play together.',color:'#74f3d0',previewIds:['mint-sofa','arcade-cabinet','fern','low-table']},
+  'Hotel Lobby':{theme:'lobby',collection:'Bramble Cafe',tag:'COFFEE & COMPANY',description:'Coffee, cozy seats and a welcome from Pip.',host:'Pip',color:'#dcad79'},
+  'Rooftop Lounge':{theme:'rooftop',collection:'Morrow Lounge',tag:'ABOVE THE CITY',description:'City views and mocktails with Remy.',host:'Remy',color:'#b39bd9'},
+  'Patio Hangout':{theme:'patio',collection:'Dewglass Garden',tag:'YOUR LITTLE GREEN ESCAPE',description:'Relax in the garden with Fern.',host:'Fern',color:'#8dc7b1'}
  };
  function hangoutStyle(room){return room?.ownerId===null?hangoutStyles[room.name]:null;}
  function hangoutPreview(card,style){
   const set=EarnlyWorldCollections.collections.find(c=>c.name===style.collection),canvas=el('canvas','hangout-preview');
-  canvas.setAttribute('aria-label',style.collection+' decor vignette');
-  EarnlyWorldRenderer.roomThumbnail(canvas,Array(6).fill('000000').join('\n'),EarnlyWorldCollections.vignette(set),style.theme);
+  canvas.setAttribute('role','img');canvas.setAttribute('aria-label',(style.previewIds?'Earnly Plaza':style.collection)+' room preview');
+  EarnlyWorldRenderer.roomThumbnail(canvas,Array(6).fill('000000').join('\n'),EarnlyWorldCollections.vignette(style.previewIds?{previewIds:style.previewIds}:set,style.previewIds?demoCatalog:undefined),style.theme);
   card.style.setProperty('--hangout-accent',style.color);card.append(canvas,el('p','hangout-tag',style.tag));
  }
  function findHangoutSeat(){
@@ -221,16 +234,48 @@
   seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));
   if(!seats.length)throw new Error('All seats are taken. Stay a while or try another hangout.');useSeat(seats[0]);
  }
- function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
-  root.append(el('h3','','Rooms with people first'),note('Most connected players first. Pick a room and join in.'));
-  const list=el('div','room-directory');root.append(list);
-  const draw=rooms=>{list.replaceChildren();for(const r of activeRoomsFirst(rooms)){const style=hangoutStyle(r),card=el('section','room-card'+(style?' hangout-card':''));if(style)hangoutPreview(card,style);card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));card.append(roomCount(r));const descriptions={'Hotel Lobby':'Coffee corner · Velvet seating · Meet Pip','Rooftop Lounge':'Vinyl lounge · Crescent lights · Meet Remy','Patio Hangout':'Plant house · Woven seats · Meet Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(style?style.description:r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));if(style)card.append(el('p','hangout-caption','Decor inspiration · Meet '+style.host+' inside'));if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r)));list.append(card);}};
+ function showRooms(initialTab='mine'){currentPanel='rooms';const root=openPanel('Rooms');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
+  let selected=['mine','public','explore'].includes(initialTab)?initialTab:'mine',limit=12,explore=[],nextOffset=null,query='',request=0;
+  const tabs=el('div','room-browser-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Room categories');
+  const search=el('input','room-browser-search');search.type='search';search.placeholder='Room name or owner';search.setAttribute('aria-label','Search rooms by name or owner');search.maxLength=80;
+  const intro=el('p','room-browser-intro'),management=el('div','room-browser-management');
+  const list=el('div','room-directory'),status=el('p','room-browser-status');status.setAttribute('role','status');
+  const more=button('Load more',()=>{if(selected==='explore')loadExplore(true);else{limit+=12;draw(bootstrap.rooms);}});
+  const tabButtons=[];
+  const ownerName=r=>r.ownerUsername||bootstrap.friends.find(f=>f.userId===r.ownerId)?.username||'Player';
+  const draw=rooms=>{
+   management.hidden=selected!=='mine';intro.textContent=selected==='mine'?'Your spaces to decorate and share.':selected==='public'?'Everyone is welcome. Pick a place to hang out.':'Visit rooms created by other players.';
+   search.hidden=selected!=='explore';tabButtons.forEach(([key,b])=>b.setAttribute('aria-pressed',String(key===selected)));
+   let visible=selected==='explore'?explore:activeRoomsFirst(rooms.filter(r=>selected==='mine'?r.ownerId===userId:r.ownerId===null));
+   more.hidden=selected==='explore'?nextOffset===null:visible.length<=limit;
+   if(selected!=='explore')visible=visible.slice(0,limit);
+   list.replaceChildren();
+   if(!visible.length)list.append(note(selected==='mine'?'Your rooms appear here. Create your first room below.':selected==='explore'?'No public player rooms found. Try another room name or owner.':'No public hangouts available.'));
+   for(const r of visible){const style=hangoutStyle(r),card=el('section','room-card room-browser-card'+(style?' hangout-card':''));if(style)hangoutPreview(card,style);
+    card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]),roomCount(r));
+    if(r.ownerId!==null)card.append(note(r.ownerId===userId?'Owned by you':'Owned by '+ownerName(r)));
+    if(style)card.append(note(style.description));
+    if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r),'room-delete'));list.append(card);
+   }
+  };
+  const loadExplore=async(append=false)=>{
+   const ticket=++request;status.textContent='Finding rooms…';more.disabled=true;
+   try{const result=await action('room_explore',{query,offset:append?nextOffset:0});
+    if(ticket!==request||version!==panelVersion||selected!=='explore')return;
+    if(!Array.isArray(result?.rooms))throw new Error('Directory unavailable');
+    explore=append?[...explore,...result.rooms.filter(r=>!explore.some(e=>e.id===r.id))]:result.rooms;nextOffset=result.nextOffset??null;status.textContent='';draw(bootstrap.rooms);
+   }catch(e){if(ticket===request&&version===panelVersion)status.textContent='Rooms unavailable. Tap Refresh rooms to retry.';}
+   finally{if(ticket===request)more.disabled=false;}
+  };
+  for(const [key,label] of [['mine','My Rooms'],['public','Public Hangouts'],['explore','Explore']]){const b=button(label,()=>{selected=key;limit=12;request++;more.disabled=false;status.textContent='';draw(bootstrap.rooms);if(key==='explore')loadExplore();});tabButtons.push([key,b]);tabs.append(b);}
+  let searchTimer;search.oninput=()=>{query=search.value.trim();request++;explore=[];nextOffset=null;draw(bootstrap.rooms);status.textContent='Finding rooms…';clearTimeout(searchTimer);searchTimer=setTimeout(()=>{if(version===panelVersion&&selected==='explore')loadExplore();},250);};
+  root.append(tabs,intro,search,status,list,more);
   draw(bootstrap.rooms);const version=panelVersion;
   const update=async()=>{for(const b of root.querySelectorAll('button'))b.disabled=true;try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}finally{if(version===panelVersion)for(const b of root.querySelectorAll('button'))b.disabled=false;}};
-  root.append(button('Refresh rooms',update),note('Connected players · NPC staff are not counted.'));
-  root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are public. You can make yours private from Rooms.'));
-  if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
-  update();
+  root.append(button('Refresh rooms',()=>selected==='explore'?loadExplore():update(),'room-refresh'));root.append(management);
+  management.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('New rooms are open to visitors. You can make yours private.'));
+  if(scene.ownerId===userId)management.append(note('Visitors for '+scene.name+': '+(scene.access==='open'?'Allowed':'Private')),button(scene.access==='open'?'Make this room private':'Allow visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
+  update();if(selected==='explore')loadExplore();
  }
  function showDeleteRoom(room){
   if(room.ownerId!==userId)return;
@@ -276,7 +321,7 @@
   root.append(button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a local tip',()=>{response.textContent=reply.tip;response.hidden=false;}),response);
   root.append(button('Find me a seat',findHangoutSeat,'primary'));
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
-  root.append(button('Explore other rooms',showRooms));
+  root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
  function showStaffList(){currentPanel='staff';const root=openPanel('Room staff');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button('Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  function showFriends(){currentPanel='friends';const root=openPanel('Friends');if(!connected){root.append(note('Accepted friends will appear here with online status and private messages.'));return;}
@@ -330,7 +375,7 @@
  $('coinBalance').addEventListener('click',event=>{event.preventDefault();showCoins();});
  window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
- $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
+ $('worldCanvas').onkeydown=e=>{if(renderer.spinning){if(e.key==='Escape'){e.preventDefault();renderer.stopSpin();}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const direction=e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:Math.sign(renderer.spinSpeed)||1;renderer.spinSpeed=direction*Math.min(12,Math.max(.08,Math.abs(renderer.spinSpeed)+(e.key==='ArrowDown'?-.4:.4)));}return;}const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key],view=renderer.toView(u.position),target=renderer.fromView({x:view.x+x,y:view.y+y});if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:target.x,y:target.y}));};
  window.addEventListener('earnly-cloud-auth-change',()=>{clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
 
  function showFirstVisitHint(){let seen=false;try{seen=localStorage.getItem('earnly.world.hint.'+userId)==='1';}catch{}$('firstVisitHint').hidden=seen;}
@@ -348,7 +393,7 @@
 
  bootstrap.catalog=demoCatalog;
  collectionPreview($('worldInspiration'),EarnlyWorldCollections.collections[0]);$('browseDecor').onclick=()=>showCatalog();
- $('startDecorating').onclick=()=>showCatalog();$('findHangout').onclick=()=>showRooms();
+ $('startDecorating').onclick=()=>showCatalog();$('findHangout').onclick=()=>showRooms('public');
  entryState();
  if(sharedRoom)connect(sharedRoom).catch(e=>entryState(e.message));
  else {const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}

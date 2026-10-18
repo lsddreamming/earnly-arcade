@@ -157,3 +157,9 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 #placementHint{position:static;margin:6px 0;width:100%;font-size:11px}
 
 #viewLeft,#viewRight{font-size:23px;line-height:1}
+
+/* Spin is an explicit viewing mode; controls remain fixed while the room orbits. */
+.spin-bar{display:flex;align-items:center;gap:10px;margin:7px 0;color:#a9c1d3;font-size:11px}
+.spin-bar button{min-height:44px;min-width:116px;padding:8px 12px;font-size:12px;flex-shrink:0}
+.spin-bar button[aria-pressed="true"]{background:var(--mint);color:#103a38;border-color:var(--mint)}
+.spin-bar span{line-height:1.35}
