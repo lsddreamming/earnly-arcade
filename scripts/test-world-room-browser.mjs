@@ -1,0 +1,20 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+const db=new PGlite();
+await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,is_anonymous boolean default false,email_confirmed_at timestamptz default now());create table public.profiles(user_id uuid primary key,username text);create table public.leaderboard_bans(user_id uuid);create table public.coin_wallets(user_id uuid primary key,balance bigint,purchased_balance bigint,purchase_debt bigint default 0,updated_at timestamptz default now());create function public.cosmetic_loadout_json(uuid) returns jsonb language sql as 'select ''{}''::jsonb';
+create function public.test_coin_spend() returns trigger language plpgsql as $$ begin if new.balance<old.balance and new.purchased_balance=old.purchased_balance then new.purchased_balance:=greatest(0,old.purchased_balance-(old.balance-new.balance));end if;return new;end $$;create trigger coin_purchased_spend before update on public.coin_wallets for each row execute function public.test_coin_spend();`);
+for(const file of ['20261013204721_world_persistence','20261013210433_world_trade_offer_integrity','20261013211424_world_catalog_social','20261016221927_world_friend_room_directory'])await db.exec(await readFile(new URL('../supabase/migrations/'+file+'.sql',import.meta.url),'utf8'));
+await db.exec(await readFile('supabase/migrations/20261018111638_world_room_browser.sql','utf8'));
+const a=randomUUID(),b=randomUUID();
+for(const [id,name] of [[a,'Owner'],[b,'Buddy']]){await db.query('insert into auth.users(id) values($1)',[id]);await db.query('insert into public.profiles values($1,$2)',[id,name]);}
+for(let i=0;i<137;i++)await db.query("insert into earnly_world.rooms(owner_id,name,heightmap,access_type) values($1,$2,'00','open')",[b,i===136?'Faraway Garden':'My Room']);
+await db.query("insert into earnly_world.rooms(owner_id,name,heightmap,access_type) values($1,'Secret','00','closed'),($2,'Mine','00','open')",[b,a]);
+const explore=async(query='',offset=0)=>(await db.query('select public.world_explore_rooms($1,$2,$3) result',[a,query,offset])).rows[0].result;
+let offset=0,seen=new Set();do{const page=await explore('',offset);assert.ok(page.rooms.length<=12);for(const room of page.rooms){assert.equal(room.ownerUsername,'Buddy');assert.equal(room.ownerId,b);assert.ok(!seen.has(room.id));seen.add(room.id);}offset=page.nextOffset;}while(offset!==null);
+assert.equal(seen.size,137);assert.equal((await explore('Faraway')).rooms.length,1);assert.equal((await explore('bUdDy')).rooms.length,12);assert.equal((await explore('Secret')).rooms.length,0);assert.equal((await explore('%')).rooms.length,0);
+assert.equal((await db.query("select has_function_privilege('anon','public.world_explore_rooms(uuid,text,integer)','execute') or has_function_privilege('authenticated','public.world_explore_rooms(uuid,text,integer)','execute') exposed")).rows[0].exposed,false);
+await db.query('insert into earnly_world.blocks(user_id,blocked_id) values($1,$2)',[b,a]);assert.equal((await explore()).rooms.length,0);
+await assert.rejects(db.query('select public.world_explore_rooms($1)',[randomUUID()]));
+console.log('Room browser: 137 rooms paginated; name/owner search, private/own/blocked filtering and server-only permissions passed');await db.close();

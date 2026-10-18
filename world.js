@@ -37,7 +37,7 @@
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation,centered:false});placing=null;showPlacement();await refresh();toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId?'YOUR PERSONAL SPACE':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Double-tap furniture to move · Drag to pan · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
+ function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Double-tap furniture to move · Drag to pan · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
  function beginPlacement(item,name,gesture=false){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
  function useSeat(item){const rotated=item.rotation===2||item.rotation===6,w=rotated?item.length:item.width,h=rotated?item.width:item.length;const occupied=new Set([...renderer.users.values(),...renderer.staff.values()].map(u=>u.position.x+','+u.position.y));const seats=[];for(let y=item.y;y<item.y+h;y++)for(let x=item.x;x<item.x+w;x++)if(!occupied.has(x+','+y))seats.push({x,y});if(!seats.length)throw new Error('This seat is occupied. Choose another seat.');const me=renderer.users.get(userId)?.position||item;seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));socket.send(JSON.stringify({type:'INTERACT',...seats[0],action:item.canLay?'lay':'sit'}));$('worldPanel').close();toast('Walking to '+item.name+' · Tap clear floor to stand up');}
  function showDecor(item){
@@ -221,16 +221,46 @@
   seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));
   if(!seats.length)throw new Error('All seats are taken. Stay a while or try another hangout.');useSeat(seats[0]);
  }
- function showRooms(){currentPanel='rooms';const root=openPanel('Find your place');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
-  root.append(el('h3','','Rooms with people first'),note('Most connected players first. Pick a room and join in.'));
-  const list=el('div','room-directory');root.append(list);
-  const draw=rooms=>{list.replaceChildren();for(const r of activeRoomsFirst(rooms)){const style=hangoutStyle(r),card=el('section','room-card'+(style?' hangout-card':''));if(style)hangoutPreview(card,style);card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]));card.append(roomCount(r));const descriptions={'Hotel Lobby':'Coffee corner · Velvet seating · Meet Pip','Rooftop Lounge':'Vinyl lounge · Crescent lights · Meet Remy','Patio Hangout':'Plant house · Woven seats · Meet Fern','Earnly Plaza':'The original shared meeting spot'};card.append(note(style?style.description:r.ownerId===null?descriptions[r.name]||'Public hangout':r.ownerId===userId?'Your personal room':'Player-owned room'));if(style)card.append(el('p','hangout-caption','Decor inspiration · Meet '+style.host+' inside'));if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r)));list.append(card);}};
+ function showRooms(initialTab='mine'){currentPanel='rooms';const root=openPanel('Find your place');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('The plaza is a shared hangout. Personal rooms will let you decorate, invite friends, and show off your collection.'),button('Connect to World',()=>connect()));return;}
+  let selected=['mine','public','explore'].includes(initialTab)?initialTab:'mine',limit=12,explore=[],nextOffset=null,query='',request=0;
+  const tabs=el('div','room-browser-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Room categories');
+  const search=el('input','room-browser-search');search.type='search';search.placeholder='Room name or owner';search.setAttribute('aria-label','Search rooms by name or owner');search.maxLength=80;
+  const list=el('div','room-directory'),status=el('p','room-browser-status');status.setAttribute('role','status');
+  const more=button('Load more',()=>{if(selected==='explore')loadExplore(true);else{limit+=12;draw(bootstrap.rooms);}});
+  const tabButtons=[];
+  const ownerName=r=>r.ownerUsername||bootstrap.friends.find(f=>f.userId===r.ownerId)?.username||'Player';
+  const draw=rooms=>{
+   search.hidden=selected!=='explore';tabButtons.forEach(([key,b])=>b.setAttribute('aria-pressed',String(key===selected)));
+   let visible=selected==='explore'?explore:activeRoomsFirst(rooms.filter(r=>selected==='mine'?r.ownerId===userId:r.ownerId===null));
+   more.hidden=selected==='explore'?nextOffset===null:visible.length<=limit;
+   if(selected!=='explore')visible=visible.slice(0,limit);
+   list.replaceChildren();
+   if(!visible.length)list.append(note(selected==='mine'?'Your rooms appear here. Create your first room below.':selected==='explore'?'No public player rooms found. Try another room name or owner.':'No public hangouts available.'));
+   for(const r of visible){const style=hangoutStyle(r),card=el('section','room-card'+(style?' hangout-card':''));if(style)hangoutPreview(card,style);
+    card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]),roomCount(r));
+    card.append(note(r.ownerId===userId?'Owned by you':r.ownerId===null?'Official public hangout':'Owned by '+ownerName(r)));
+    if(style)card.append(note(style.description),el('p','hangout-caption','Decor inspiration · Meet '+style.host+' inside'));
+    if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r)));list.append(card);
+   }
+  };
+  const loadExplore=async(append=false)=>{
+   const ticket=++request;status.textContent='Finding rooms…';more.disabled=true;
+   try{const result=await action('room_explore',{query,offset:append?nextOffset:0});
+    if(ticket!==request||version!==panelVersion||selected!=='explore')return;
+    if(!Array.isArray(result?.rooms))throw new Error('Directory unavailable');
+    explore=append?[...explore,...result.rooms.filter(r=>!explore.some(e=>e.id===r.id))]:result.rooms;nextOffset=result.nextOffset??null;status.textContent='';draw(bootstrap.rooms);
+   }catch(e){if(ticket===request&&version===panelVersion)status.textContent='Rooms unavailable. Tap Refresh rooms to retry.';}
+   finally{if(ticket===request)more.disabled=false;}
+  };
+  for(const [key,label] of [['mine','My Rooms'],['public','Public Hangouts'],['explore','Explore']]){const b=button(label,()=>{selected=key;limit=12;request++;more.disabled=false;status.textContent='';draw(bootstrap.rooms);if(key==='explore')loadExplore();});tabButtons.push([key,b]);tabs.append(b);}
+  let searchTimer;search.oninput=()=>{query=search.value.trim();request++;explore=[];nextOffset=null;draw(bootstrap.rooms);status.textContent='Finding rooms…';clearTimeout(searchTimer);searchTimer=setTimeout(()=>{if(version===panelVersion&&selected==='explore')loadExplore();},250);};
+  root.append(tabs,search,status,list,more);
   draw(bootstrap.rooms);const version=panelVersion;
   const update=async()=>{for(const b of root.querySelectorAll('button'))b.disabled=true;try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}finally{if(version===panelVersion)for(const b of root.querySelectorAll('button'))b.disabled=false;}};
-  root.append(button('Refresh rooms',update),note('Connected players · NPC staff are not counted.'));
+  root.append(button('Refresh rooms',()=>selected==='explore'?loadExplore():update()),note('Connected players · NPC staff are not counted.'));
   root.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Every room is free. Create another whenever you like. New rooms are public. You can make yours private from Rooms.'));
   if(scene.ownerId===userId)root.append(button(scene.access==='open'?'Close to visitors':'Open to visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
-  update();
+  update();if(selected==='explore')loadExplore();
  }
  function showDeleteRoom(room){
   if(room.ownerId!==userId)return;
@@ -276,7 +306,7 @@
   root.append(button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a local tip',()=>{response.textContent=reply.tip;response.hidden=false;}),response);
   root.append(button('Find me a seat',findHangoutSeat,'primary'));
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
-  root.append(button('Explore other rooms',showRooms));
+  root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
  function showStaffList(){currentPanel='staff';const root=openPanel('Room staff');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button('Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  function showFriends(){currentPanel='friends';const root=openPanel('Friends');if(!connected){root.append(note('Accepted friends will appear here with online status and private messages.'));return;}
@@ -348,7 +378,7 @@
 
  bootstrap.catalog=demoCatalog;
  collectionPreview($('worldInspiration'),EarnlyWorldCollections.collections[0]);$('browseDecor').onclick=()=>showCatalog();
- $('startDecorating').onclick=()=>showCatalog();$('findHangout').onclick=()=>showRooms();
+ $('startDecorating').onclick=()=>showCatalog();$('findHangout').onclick=()=>showRooms('public');
  entryState();
  if(sharedRoom)connect(sharedRoom).catch(e=>entryState(e.message));
  else {const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}

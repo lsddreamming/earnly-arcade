@@ -289,7 +289,7 @@ test('Room deletion requires confirmation, protects other rooms, and leaves the 
  await page.locator('[data-panel="rooms"]').click();await page.getByRole('button',{name:'Delete room',exact:true}).click();await page.getByRole('button',{name:'Yes, delete room',exact:true}).click();
  await expect(page.locator('#roomName')).toHaveText('Earnly Plaza');
  expect(await page.evaluate(()=>window.deletions)).toEqual([{roomId:'mine',confirm:true}]);
- await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(2);await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
+ await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(0);await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
  await expect(page.locator('#coinBalance')).toContainText('500');
 });
 
@@ -374,7 +374,9 @@ test('Friends offer open room choices with player counts and entering uses the s
  await page.evaluate(()=>window.finishRoomDirectory());
  await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeEnabled();
  await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeEnabled();
- await expect(page.locator('.room-occupancy')).toHaveText(['3 players in room','1 player in room','0 players in room','Player count unavailable']);
+ await expect(page.locator('.room-occupancy')).toHaveText(['1 player in room']);
+ await page.getByRole('button',{name:'Public Hangouts',exact:true}).click();
+ await expect(page.locator('.room-occupancy')).toHaveText(['3 players in room','0 players in room','Player count unavailable']);
  await expect(page.locator('.room-card').first()).toContainText('Busy plaza');
  await page.evaluate(()=>{window.roomDirectory[0].occupancy=4;});
  await page.getByRole('button',{name:'Refresh rooms',exact:true}).click();
@@ -514,9 +516,9 @@ test('Public hangouts show decor previews and staff find an unoccupied seat',asy
   }};
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
- await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.hangout-preview')).toHaveCount(3);expect((await page.locator('.hangout-card').first().boundingBox()).height).toBeLessThan(280);
+ await page.locator('[data-panel="rooms"]').click();await page.getByRole('button',{name:'Public Hangouts',exact:true}).click();await expect(page.locator('.hangout-preview')).toHaveCount(3);expect((await page.locator('.hangout-card').first().boundingBox()).height).toBeLessThan(280);
  await expect(page.locator('.room-card').first()).toContainText('2 players in room');
- await expect(page.locator('.room-card').last().locator('canvas')).toHaveCount(0);
+ await expect(page.locator('.room-card').filter({hasText:'Owned by you'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Refresh rooms',exact:true})).toBeEnabled();
  await page.screenshot({path:testInfo.outputPath('hangout-directory.png')});
  await page.locator('#closePanel').click();await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Say hello',exact:true}).click();
@@ -681,4 +683,31 @@ test('Outdoor scenery has no opaque horizon strip at wide or close zoom',async({
   return results;
  });
  expect(result.every(r=>r.opaque===0)).toBe(true);
+});
+
+test('Room browser separates ownership, searches owners, pages Explore and resets to My Rooms',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  const mine={id:'mine',name:'The Hangout',ownerId:'owner',occupancy:0};
+  const others=Array.from({length:25},(_,i)=>({id:'other-'+i,name:i===24?'Garden':'My Room',ownerId:'friend',ownerUsername:'Buddy',occupancy:0}));
+  const rooms=[...others,{id:'plaza',name:'Earnly Plaza',ownerId:null,occupancy:2},mine];
+  const bootstrap={rooms,balance:500,catalog:[],items:[],friends:[]};window.exploreRequests=[];
+  window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw),emit=data=>this.onmessage?.({data:JSON.stringify(data)});
+   if(p.type==='JOIN')emit({type:'WELCOME',userId:'owner',scene:{roomId:'mine',name:'The Hangout',ownerId:'owner',heightmap:'0000\n0000',items:[]},bootstrap});
+   if(p.type==='ACTION'){let data=bootstrap;
+    if(p.action==='room_directory')data=rooms;
+    if(p.action==='room_explore'){window.exploreRequests.push(p.data);const matches=others.filter(r=>(r.name+' '+r.ownerUsername).toLowerCase().includes(p.data.query.toLowerCase()));const start=p.data.offset;data={rooms:matches.slice(start,start+12),nextOffset:start+12<matches.length?start+12:null};}
+    emit({type:'RESULT',requestId:p.requestId,data});
+   }
+  }};
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('The Hangout');await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(1);
+ await page.getByRole('button',{name:'Public Hangouts',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('Official public hangout');await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Explore',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(12);await expect(page.locator('.room-card').first()).toContainText('Owned by Buddy');
+ await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(24);await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(25);await expect(page.getByRole('button',{name:'Load more',exact:true})).toBeHidden();
+ await page.getByRole('searchbox',{name:'Search rooms by name or owner'}).fill('Garden');await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('Garden');
+ await page.getByRole('searchbox',{name:'Search rooms by name or owner'}).fill('Buddy');await expect(page.locator('.room-card')).toHaveCount(12);await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.locator('#closePanel').click();await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('The Hangout');
 });
