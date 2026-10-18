@@ -56,6 +56,25 @@ try{
   await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
  }
  assert.equal(Number((await api('bootstrap')).balance),beforeBedBalance-bedTotal);
+ const themedMigration=await readFile('supabase/migrations/20261018010214_world_themed_catalog_150.sql','utf8');
+ const beforeThemes=(await db.query('select * from earnly_world.item_definitions order by id')).rows;
+ const beforeThemeBalance=(await api('bootstrap')).balance;
+ await db.exec(themedMigration);await db.exec(themedMigration);
+ const themed=await api('bootstrap');assert.equal(themed.catalog.length,143);assert.equal(themed.balance,beforeThemeBalance);
+ for(const old of beforeThemes)assert.deepEqual((await db.query('select * from earnly_world.item_definitions where id=$1',[old.id])).rows[0],old);
+ await db.query('update public.coin_wallets set balance=30000 where user_id=$1',[users[0]]);
+ let themedTotal=0;
+ for(const item of collections.themedItems){
+  const d=themed.catalog.find(d=>d.id===item.id);
+  for(const key of ['sprite_id','width','length','can_sit','can_lay','can_stack','walkable','tradeable','category'])assert.equal(d[key],item[key],item.id+' '+key);
+  assert.equal(Number(d.price),item.price);
+  const requestId=crypto.randomUUID(),bought=await api('buy',{definitionId:item.id,requestId});
+  assert.equal((await api('buy',{definitionId:item.id,requestId})).item_id,bought.item_id);themedTotal+=item.price;
+  for(const rotation of [0,2,4,6])await api('place',{itemId:bought.item_id,roomId:personal.roomId,x:1,y:1,z:0,rotation});
+  await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
+ }
+ assert.equal(Number((await api('bootstrap')).balance),30000-themedTotal);
+ console.log('PASS: 64 themed designs, metadata parity, four rotations, exact charges and replay-safe preservation.');
  console.log('PASS: eight distinct beds, all four placement directions, exact charges, replay-safe migration, preserved existing definitions and wallets.');
  console.log('PASS: 24 expanded pieces, exact charges, duplicate protection, placement/pickup, owner permissions, migration replay and existing catalog preservation.');
  console.log('PASS: 12 original pieces, catalog parity, exact single charges, duplicate protection, owner permissions, 3 public room refreshes, stable footprints and untouched private rooms.');
