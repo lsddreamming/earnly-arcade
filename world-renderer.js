@@ -61,7 +61,10 @@
   }else if(s==='walnut-nesting'){
    for(const [u,v,a,z]of [[0,0,.7,18],[.42,.4,.58,11]]){for(const x of [u,u+a-.07])for(const y of [v,v+a-.07])block(x,y,.07,.07,z,0,'#5b4d45');block(u,v,a,a,3,z,color);}
   }else if(s==='blossom-boughs'){
-   block(.2,.2,.6,.6,8,0,'#ba9876');block(.45,.45,.1,.1,30,8,'#89654c');for(const [u,v,z]of [[.05,.15,30],[.55,.12,39],[.18,.58,42],[.6,.55,29]]){block(u,v,.35,.3,9,z,color);block(u+.08,v+.07,.19,.16,5,z+9,'#f4dfdf');}
+   block(.2,.2,.6,.6,8,0,'#ba9876');block(.17,.17,.66,.66,2,8,'#d5b18c');block(.45,.45,.1,.1,27,8,'#89654c');
+   // Overlapping rounded blossom clusters restore the fluffy canopy from every side.
+   const puff=(u,v,z,r,h,tint)=>{const at=(a,b)=>[u+Math.cos(a)*Math.sin(b)*r,v+Math.sin(a)*Math.sin(b)*r,z+Math.cos(b)*h];for(let j=0;j<6;j++)for(let k=0;k<12;k++){const a=k*Math.PI/6,b=j*Math.PI/6;const points=j===0?[at(a,b),at(a,b+Math.PI/6),at(a+Math.PI/6,b+Math.PI/6)]:j===5?[at(a,b),at(a,b+Math.PI/6),at(a+Math.PI/6,b)]:[at(a,b),at(a,b+Math.PI/6),at(a+Math.PI/6,b+Math.PI/6),at(a+Math.PI/6,b)];detail(points,shade(tint,Math.round(Math.cos(b+.26)*13+Math.cos(a+.26)*5)));}};
+   for(const [u,v,z,r,h,tint]of [[.2,.2,34,.4,10,-16],[.8,.22,36,.42,11,-6],[.5,.48,45,.46,12,12],[.18,.72,36,.43,11,0],[.75,.75,38,.44,11,20]])puff(u,v,z,r,h,shade(color,tint));
   }else if(s==='sunset-woven-rug'||s==='lavender-mosaic-rug'){
    block(.02,.02,1.96,1.96,1,0,color);if(s==='sunset-woven-rug'){for(let j=0;j<8;j++)block(.08,.08+j*.23,1.84,.1,.3,1,j%2?'#e8cba3':'#ac7868');for(let j=0;j<10;j++){block(.05+j*.19,0,.08,.1,.5,.4,'#e6d5b5');block(.05+j*.19,1.9,.08,.1,.5,.4,'#e6d5b5');}}else{for(let u=0;u<4;u++)for(let v=0;v<4;v++)if((u+v)%2===0)block(.08+u*.46,.08+v*.46,.38,.38,.3,1,'#ddd5ef');}
   }else
@@ -659,7 +662,9 @@
      const twice=last&&now-last.at<360&&Math.hypot(e.clientX-last.x,e.clientY-last.y)<28;
      if(this.placement){
       if(this.placement.saving)return;
-      if(twice){resetTap();this.onPlacementDrop?.();}else this.lastTap={at:now,x:e.clientX,y:e.clientY};
+      const preview=this.placement,check=this.placementResult();
+      const onFurniture=this.pickItem(p.x,p.y,[{...preview.item,x:preview.x,y:preview.y,z:check.z??preview.item.z,rotation:preview.rotation}]);
+      if(twice||!onFurniture){const next=this.pickItem(p.x,p.y,(this.scene?.items||[]).filter(i=>i.id!==preview.item.id));resetTap();this.onPlacementDrop?.(next&&this.canEditItem?.(next)?next:null);}else this.lastTap={at:now,x:e.clientX,y:e.clientY};
       return;
      }
      if(this.doorHit&&Math.abs(p.x-this.doorHit.x)<22&&p.y>this.doorHit.y-52&&p.y<this.doorHit.y+8){resetTap();this.onTap({door:true});return;}
@@ -689,11 +694,11 @@
    }
    return null;
   }
-  pickItem(x,y){
+  pickItem(x,y,source=this.scene?.items||[]){
     // Hit-test the original sprite pixels, including tall decor above its floor tile.
     const canvas=this.pickCanvas||(this.pickCanvas=document.createElement('canvas'));canvas.width=canvas.height=1;
     const c=canvas.getContext('2d',{willReadFrequently:true});
-    const items=[...(this.scene?.items||[])].sort((a,b)=>furnitureDepth(a)-furnitureDepth(b));
+    const items=[...source].sort((a,b)=>furnitureDepth(a)-furnitureDepth(b));
     for(const item of items.reverse()){c.clearRect(0,0,1,1);decor(c,item,(item.x-item.y)*18-x,(item.x+item.y)*9-item.z*12-y);if(c.getImageData(0,0,1,1).data[3]>0)return item;}
     return null;
   }

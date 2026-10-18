@@ -78,8 +78,9 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));
  await page.addInitScript(()=>{
   const item={id:'owned-chair',name:'Arcade Chair',sprite:'chair',x:3,y:3,z:0,width:1,length:1,rotation:0,itemHeight:1,walkable:false,canStack:false,canSit:true,canLay:false};
-  const scene={roomId:'my-room',name:'My room',ownerId:'owner',heightmap:Array(8).fill('00000000').join('\n'),items:[item]};
-  const bootstrap={items:[{id:item.id}],catalog:[],rooms:[],friends:[],balance:0};window.savedDrops=[];window.seatRequests=[];
+  const other={...item,id:'other-chair',name:'Second Chair',x:6,y:1};
+  const scene={roomId:'my-room',name:'My room',ownerId:'owner',heightmap:Array(8).fill('00000000').join('\n'),items:[item,other]};
+  const bootstrap={items:[{id:item.id},{id:other.id}],catalog:[],rooms:[],friends:[],balance:0};window.savedDrops=[];window.seatRequests=[];
   window.WebSocket=class{
    static OPEN=1;
    constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}
@@ -87,7 +88,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
     if(p.type==='JOIN'){emit({type:'WELCOME',userId:'owner',scene,bootstrap});emit({type:'ROOM_SNAPSHOT',users:[]});}
     if(p.type==='INTERACT')window.seatRequests.push(p);
     if(p.type==='ACTION'){
-     if(p.action==='place'){window.savedDrops.push(p.data);Object.assign(item,p.data);emit({type:'SCENE',scene});}
+     if(p.action==='place'){window.savedDrops.push(p.data);Object.assign(scene.items.find(i=>i.id===p.data.itemId),p.data);emit({type:'SCENE',scene});}
      emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?bootstrap:{}});
     }
    }
@@ -104,7 +105,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  if(isMobile)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
  await expect.poll(()=>page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect(page.locator('#worldPanel')).not.toBeVisible();
- await double(p);await expect(page.locator('#placementInstructions')).toContainText('Double-tap to drop');
+ await double(p);await expect(page.locator('#placementInstructions')).toContainText('double-tap to drop');
  expect(await page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
  // The same pointer stream handles mouse and touch dragging; real touch pickup/drop is above.
@@ -138,6 +139,21 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
   await page.waitForTimeout(600);await expect(page.locator('#placementHint')).not.toBeVisible();
   await pointer('pointerup',p);if(mode==='pinch')await pointer('pointerup',p,72);
  }
+ // Tapping away saves the preview position, never the tapped floor coordinates.
+ const tap=async q=>{if(isMobile)await page.touchscreen.tap(q.x,q.y);else await page.mouse.click(q.x,q.y);};
+ const floorPoint=await page.evaluate(()=>{const r=window.testRenderer,b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+18*r.scale,y:b.top+r.cy+18*r.scale};});
+ p=await point();await double(p);await page.evaluate(()=>{window.testRenderer.placement.x=-1;});
+ await tap(floorPoint);expect(await page.evaluate(()=>window.savedDrops.length)).toBe(1);
+ await expect(page.locator('#placementHint')).toBeVisible();
+ await page.evaluate(()=>{Object.assign(window.testRenderer.placement,{x:2,y:5});});
+ await tap(floorPoint);await expect(page.locator('#placementHint')).not.toBeVisible();
+ expect(await page.evaluate(()=>window.savedDrops.at(-1))).toMatchObject({itemId:'owned-chair',x:2,y:5});
+ // A different owned piece becomes selected only after the first is saved.
+ p=await point();await double(p);
+ const otherPoint=await page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[1],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
+ await tap(otherPoint);await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.item.id)).toBe('other-chair');
+ expect(await page.evaluate(()=>window.savedDrops.length)).toBe(3);
+ await page.locator('#cancelPlace').click();
  // A visitor cannot enter editing even if they can see the furniture.
  await page.evaluate(()=>{window.testRenderer.scene.ownerId='someone-else';});
  p=await point();await pointer('pointerdown',p);await page.waitForTimeout(600);await pointer('pointerup',p);await expect(page.locator('#placementHint')).not.toBeVisible();
