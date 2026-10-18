@@ -34,7 +34,7 @@ client = client.replace('localStorage.', 'safeStorage.')
 client = client.replace('Win a full battle to earn 10–25 Arcade Coins. Lessons and early endings do not award Coins.', 'Offline practice · no account or Coins.')
 client = client.replace('try{return safeStorage.getItem(k)}', 'try{return localStorage.getItem(k)}').replace('try{safeStorage.setItem(k,v)}', 'try{localStorage.setItem(k,v)}')
 # The standalone vocabulary matches the requested core unit types.
-code = '\n'.join((ROOT / f).read_text() for f in ['crystal-command-engine.js','crystal-command-art.js','crystal-command-renderer.js']) + '\nwindow.CrystalRewards={result:()=>null};\n' + client
+code = '\n'.join((ROOT / f).read_text() for f in ['crystal-command-engine.js','crystal-command-art.js','crystal-command-renderer.js','crystal-command-voices.js']) + '\nwindow.CrystalRewards={result:()=>null};\n' + client
 for old,new in [('Miners','Workers'),('Miner','Worker'),('Strikers','Soldiers'),('Striker','Soldier'),('Siege bot','Heavy Mech'),('siege bots','Heavy Mechs')]:
     html = html.replace(old,new)
     code = code.replace(old,new)
