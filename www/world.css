@@ -106,3 +106,5 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .wishlist-save[aria-pressed=true],.wishlist-filter[aria-pressed=true]{color:#ffcfdf;border-color:#d58ba7;background:#382f49}
 .catalog-search .wishlist-filter{grid-column:1/-1;min-height:44px;font-size:.9rem;padding:10px 14px}
 .wishlist-note{font-size:.8rem;color:#9bb4c5;margin:.5rem 0 1rem}
+
+.furniture-colors{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}.furniture-swatch{display:flex;align-items:center;gap:7px;min-height:44px;padding:8px 12px}.furniture-swatch::before{content:"";width:20px;height:20px;background:var(--swatch);border:1px solid #ffffff99;border-radius:50%}.furniture-swatch[aria-pressed="true"]{outline:2px solid #a5f4d2;background:#29465b}.furniture-color-label{margin:10px 0 4px;font-weight:700}

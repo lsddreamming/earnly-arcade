@@ -118,7 +118,7 @@ export class SupabaseWorldAccess implements WorldAccess {
             const x=data.x,y=data.y,rotation=data.rotation;
             if(!Number.isInteger(x)||!Number.isInteger(y)||![0,2,4,6].includes(rotation as number))throw new Error('Choose a floor tile');
             const tile=base.tile({x:x as number,y:y as number});if(!tile)throw new Error('Choose a floor tile');z=tile.z;
-            items=[...items,{id:item.id,x:x as number,y:y as number,z,rotation:rotation as 0|2|4|6,width:definition.width,length:definition.length,itemHeight:Number(definition.item_height),walkable:definition.walkable,canStack:definition.can_stack,canSit:definition.can_sit,canLay:definition.can_lay,definitionId:definition.id,sprite:definition.sprite_id,color:definition.color,name:definition.name}];
+            items=[...items,{id:item.id,x:x as number,y:y as number,z,rotation:rotation as 0|2|4|6,width:definition.width,length:definition.length,itemHeight:Number(definition.item_height),walkable:definition.walkable,canStack:definition.can_stack,canSit:definition.can_sit,canLay:definition.can_lay,definitionId:definition.id,sprite:definition.sprite_id,color:item.color??definition.color,name:definition.name}];
           }
           const next=new RoomGrid(parseHeightmap(snapshot.heightmap),items,snapshot.revision+1);
           if(!room.canReplace(next))throw new Error('Move away from the item before placing it');
