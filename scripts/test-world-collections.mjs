@@ -42,6 +42,21 @@ try{
   await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
  }
  assert.equal(Number((await api('bootstrap')).balance),10000-expansionTotal);
+ const bedMigration=await readFile('supabase/migrations/20261018000633_world_dream_beds.sql','utf8');
+ const beforeBeds=(await db.query('select * from earnly_world.item_definitions order by id')).rows;
+ const beforeBedBalance=Number((await api('bootstrap')).balance);
+ await db.exec(bedMigration);await db.exec(bedMigration);
+ const beds=await api('bootstrap');assert.equal(beds.catalog.length,79);assert.equal(Number(beds.balance),beforeBedBalance);
+ for(const old of beforeBeds)assert.deepEqual((await db.query('select * from earnly_world.item_definitions where id=$1',[old.id])).rows[0],old);
+ let bedTotal=0;
+ for(const item of collections.bedItems){
+  const d=beds.catalog.find(d=>d.id===item.id);for(const key of ['sprite_id','width','length','can_lay','can_sit','walkable','category'])assert.equal(d[key],item[key],item.id+' '+key);assert.equal(Number(d.price),item.price);
+  const requestId=crypto.randomUUID(),bought=await api('buy',{definitionId:item.id,requestId});assert.equal((await api('buy',{definitionId:item.id,requestId})).item_id,bought.item_id);bedTotal+=item.price;
+  for(const rotation of [0,2,4,6])await api('place',{itemId:bought.item_id,roomId:personal.roomId,x:1,y:1,z:0,rotation});
+  await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
+ }
+ assert.equal(Number((await api('bootstrap')).balance),beforeBedBalance-bedTotal);
+ console.log('PASS: eight distinct beds, all four placement directions, exact charges, replay-safe migration, preserved existing definitions and wallets.');
  console.log('PASS: 24 expanded pieces, exact charges, duplicate protection, placement/pickup, owner permissions, migration replay and existing catalog preservation.');
  console.log('PASS: 12 original pieces, catalog parity, exact single charges, duplicate protection, owner permissions, 3 public room refreshes, stable footprints and untouched private rooms.');
 }finally{await close();}

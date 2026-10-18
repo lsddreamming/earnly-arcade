@@ -150,8 +150,8 @@
  function showFurniturePreview(d,back){
   currentPanel='catalog';const root=openPanel(d.name),stage=el('section','furniture-stage'),canvas=el('canvas'),caption=el('p','furniture-preview-status');let facing=0,tone='midnight';
   canvas.className='decor-room-preview';canvas.setAttribute('role','img');canvas.setAttribute('aria-label',d.name+' on a sample room floor');caption.setAttribute('role','status');
-  const draw=()=>{EarnlyWorldRenderer.decorPreview(canvas,{...d,rotation:facing},{tone});caption.textContent=(facing===0?'Original view':'Turned view')+' · '+tone.charAt(0).toUpperCase()+tone.slice(1)+' floor';};
-  const rotate=button('Rotate preview ↻',()=>{facing=facing===0?2:0;draw();});stage.append(canvas,caption,rotate);root.append(stage);
+  const draw=()=>{EarnlyWorldRenderer.decorPreview(canvas,{...d,rotation:facing},{tone});caption.textContent=(facing===0?'Original view':'Turned view '+facing*45+'°')+' · '+tone.charAt(0).toUpperCase()+tone.slice(1)+' floor';};
+  const rotate=button('Rotate preview ↻',()=>{facing=(facing+2)%8;draw();});stage.append(canvas,caption,rotate);root.append(stage);
   const tones=el('div','preview-tones');tones.setAttribute('role','group');tones.setAttribute('aria-label','Preview floor');
   for(const name of ['midnight','warm','garden']){const b=button(name.charAt(0).toUpperCase()+name.slice(1),()=>{tone=name;for(const child of tones.children)child.setAttribute('aria-pressed',String(child===b));draw();});b.setAttribute('aria-pressed',String(name===tone));tones.append(b);}root.append(tones);
   root.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')),note('Sample floor for inspiration. Furniture is sold separately.'));
