@@ -40,11 +40,11 @@
   const block=(u,v,a,b,h,z,tint)=>{face([[u,v,z+h],[u+a,v,z+h],[u+a,v+b,z+h],[u,v+b,z+h]],tint);face([[u,v,z],[u+a,v,z],[u+a,v,z+h],[u,v,z+h]],tint);face([[u+a,v+b,z],[u,v+b,z],[u,v+b,z+h],[u+a,v+b,z+h]],tint);face([[u,v+b,z],[u,v,z],[u,v,z+h],[u,v+b,z+h]],tint);face([[u+a,v,z],[u+a,v+b,z],[u+a,v+b,z+h],[u+a,v,z+h]],tint);};
   const mattress=(z=9,width=w)=>{block(.08,.18,width-.16,1.72,7,z,'#eee8dc');block(.09,.78,width-.18,1.1,3,z+7,color);block(.09,.77,width-.18,.16,1,z+10,shade(color,35));for(let u=.14;u<width-.25;u+=.87)block(u,.27,Math.min(.65,width-.28),.36,4,z+7,'#fff3db');};
   if(s==='boardwalk-seat'){
-   block(.08,.08,1.84,.84,8,4,'#956d50');for(let u=.06;u<2;u+=.24)block(u,.04,.1,.14,25,5,'#d0aa77');for(const u of [.02,1.82])block(u,.2,.16,.76,14,5,'#b88d60');for(const u of [.22,1.02])block(u,.22,.75,.68,6,12,'#e8be91');block(.36,.3,.35,.3,7,18,'#e78d7b');block(1.2,.24,.4,.15,11,18,'#82bbba');
+   block(.08,.08,1.84,.84,8,4,'#956d50');for(let u=.06;u<2;u+=.24)block(u,.04,.1,.14,25,5,'#d0aa77');for(const u of [.02,1.82])block(u,.2,.16,.76,14,5,'#b88d60');for(const u of [.22,1.02])block(u,.22,.75,.68,6,12,color);block(.36,.3,.35,.3,7,18,'#e78d7b');block(1.2,.24,.4,.15,11,18,'#82bbba');
   }else if(s==='boardwalk-light'){
-   block(.1,.1,.8,.8,3,0,'#8d6c55');block(.44,.44,.12,.12,36,3,'#c69d67');block(.1,.1,.8,.8,13,37,'#f1c28d');for(const u of [.12,.84])for(const v of [.12,.84])block(u,v,.05,.05,13,37,'#a37856');block(.08,.08,.84,.84,2,50,'#ac7a56');
+   block(.1,.1,.8,.8,3,0,'#8d6c55');block(.44,.44,.12,.12,36,3,'#c69d67');block(.1,.1,.8,.8,13,37,color);for(const u of [.12,.84])for(const v of [.12,.84])block(u,v,.05,.05,13,37,'#a37856');block(.08,.08,.84,.84,2,50,'#ac7a56');
   }else if(s==='boardwalk-table'){
-   block(.12,.12,.76,.76,4,1,'#99724e');for(const u of [.13,.79])for(const v of [.13,.79])block(u,v,.08,.08,17,4,'#c49a6e');block(0,0,1,1,3,21,'#ddbb8c');for(let v=.15;v<1;v+=.23)block(.02,v,.96,.02,.3,24,'#9d7855');block(.25,.25,.5,.45,1,8,'#88aba9');
+   block(.12,.12,.76,.76,4,1,'#99724e');for(const u of [.13,.79])for(const v of [.13,.79])block(u,v,.08,.08,17,4,'#c49a6e');block(0,0,1,1,3,21,color);for(let v=.15;v<1;v+=.23)block(.02,v,.96,.02,.3,24,'#9d7855');block(.25,.25,.5,.45,1,8,'#88aba9');
   }else if(s==='round-bed'){
    // An actual circular platform, with a segmented cylindrical sidewall.
    const disk=(radius,z,h,tint)=>{const top=[];for(let i=0;i<24;i++){const a=i*Math.PI/12,b=(i+1)*Math.PI/12,p=[1+Math.cos(a)*radius,1+Math.sin(a)*radius],q=[1+Math.cos(b)*radius,1+Math.sin(b)*radius];top.push([...p,z+h]);face([[...q,z],[...p,z],[...p,z+h],[...q,z+h]],tint);}face(top,tint);};

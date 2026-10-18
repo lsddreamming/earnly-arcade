@@ -147,29 +147,50 @@
    }
   };search.value=view.search||'';sort.value=view.sort||'featured';search.oninput=draw;sort.onchange=draw;draw();if(view.scroll)requestAnimationFrame(()=>root.scrollTop=view.scroll);
  }
+ function furnitureColorPicker(root,d,selected,onChange,locked=false){
+  const group=el('div','furniture-colors'),label=el('p','furniture-color-label');group.setAttribute('role','group');group.setAttribute('aria-label','Furniture color');
+  const options=[{name:'Original',color:null},...(!d.vip_only?(connected?bootstrap.furnitureColors||[]:EarnlyWorldCollections.furnitureColors):[])];
+  const draw=()=>{label.textContent='Color: '+(options.find(o=>o.color===selected)?.name||'Original');for(const b of group.children)b.setAttribute('aria-pressed',String(b.dataset.color===(selected||'')));};
+  for(const option of options){const b=button(option.name,()=>{selected=option.color;draw();onChange(selected);},'furniture-swatch');b.dataset.color=option.color||'';b.style.setProperty('--swatch',option.color||d.color);b.disabled=locked;b.setAttribute('aria-label','Color: '+option.name);group.append(b);}
+  root.append(label,group);draw();
+ }
  function showFurniturePreview(d,back){
-  currentPanel='catalog';const root=openPanel(d.name),stage=el('section','furniture-stage'),canvas=el('canvas'),caption=el('p','furniture-preview-status');let facing=0,tone='midnight';
+  currentPanel='catalog';const root=openPanel(d.name),stage=el('section','furniture-stage'),canvas=el('canvas'),caption=el('p','furniture-preview-status');let facing=0,tone='midnight',selectedColor=null;
   canvas.className='decor-room-preview';canvas.setAttribute('role','img');canvas.setAttribute('aria-label',d.name+' on a sample room floor');caption.setAttribute('role','status');
-  const draw=()=>{EarnlyWorldRenderer.decorPreview(canvas,{...d,rotation:facing},{tone});caption.textContent=(facing===0?'Original view':'Turned view '+facing*45+'°')+' · '+tone.charAt(0).toUpperCase()+tone.slice(1)+' floor';};
-  const rotate=button('Rotate preview ↻',()=>{facing=(facing+2)%8;draw();});stage.append(canvas,caption,rotate);root.append(stage);
+  const draw=()=>{EarnlyWorldRenderer.decorPreview(canvas,{...d,color:selectedColor||d.color,rotation:facing},{tone});caption.textContent=(facing===0?'Original view':'Turned view '+facing*45+'°')+' · '+tone.charAt(0).toUpperCase()+tone.slice(1)+' floor';};
+  const rotate=button('Rotate preview ↻',()=>{facing=(facing+2)%8;draw();});stage.append(canvas,caption,rotate);root.append(stage);furnitureColorPicker(root,d,selectedColor,color=>{selectedColor=color;draw();});
   const tones=el('div','preview-tones');tones.setAttribute('role','group');tones.setAttribute('aria-label','Preview floor');
   for(const name of ['midnight','warm','garden']){const b=button(name.charAt(0).toUpperCase()+name.slice(1),()=>{tone=name;for(const child of tones.children)child.setAttribute('aria-pressed',String(child===b));draw();});b.setAttribute('aria-pressed',String(name===tone));tones.append(b);}root.append(tones);
   root.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')),note('Sample floor for inspiration. Furniture is sold separately.'));
   const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)root.append(el('p','owned-label',owned+' owned'));
   if(d.vip_only)root.append(note('VIP monthly gift · Not available for individual purchase.'));
   else if(d.supply_limit&&d.minted>=d.supply_limit)root.append(note('This piece is sold out.'));
-  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d),'primary'));else root.append(note('Connect to World to buy this piece.'));}
+  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d,selectedColor),'primary'));else root.append(note('Connect to World to buy this piece.'));}
   root.append(wishlistButton(d),el('p','wishlist-note','Wishlist saved on this device.'),button('Back to catalog',back));draw();
  }
- function showBuy(d){const root=openPanel('Add to your Backpack?'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);canvas.style='display:block;margin:auto';const preview=el('canvas');preview.className='decor-room-preview';EarnlyWorldRenderer.decorPreview(preview,d);root.append(preview,el('h3','',d.name),note('Price: '+d.price+' Arcade Coins. This purchase adds one decor item to your Backpack.'));
-  const purchaseKey='earnlyWorldPendingPurchase:'+userId;let saved;try{saved=JSON.parse(localStorage.getItem(purchaseKey)||'null');}catch{}const requestId=saved?.definitionId===d.id?saved.requestId:crypto.randomUUID();root.append(button('Buy for ◇ '+d.price,async()=>{if(saved&&saved.definitionId!==d.id)throw new Error('Reopen your previous item to confirm its purchase first.');localStorage.setItem(purchaseKey,JSON.stringify({definitionId:d.id,requestId}));try{await action('buy',{definitionId:d.id,requestId});}catch(error){if(error.definite)localStorage.removeItem(purchaseKey);throw error;}localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');showBackpack();},'primary'),button('Back to catalog',()=>showCatalog()));
+ function showBuy(d,initialColor=null){
+  const root=openPanel('Add to your Backpack?'),preview=el('canvas');preview.className='decor-room-preview';
+  const purchaseKey='earnlyWorldPendingPurchase:'+userId;let saved;try{saved=JSON.parse(localStorage.getItem(purchaseKey)||'null');}catch{}
+  const retry=saved?.definitionId===d.id;let selectedColor=retry?saved.color||null:initialColor;const requestId=retry?saved.requestId:crypto.randomUUID();
+  const draw=()=>EarnlyWorldRenderer.decorPreview(preview,{...d,color:selectedColor||d.color});
+  root.append(preview,el('h3','',d.name),note('Price: '+d.price+' Arcade Coins. This purchase adds one decor item to your Backpack.'));
+  furnitureColorPicker(root,d,selectedColor,color=>{selectedColor=color;draw();},!!retry);draw();
+  if(retry)root.append(note('Confirming your previous purchase with its selected color. You will only be charged once.'));
+  const buy=button('Buy for ◇ '+d.price,async()=>{
+   if(saved&&saved.definitionId!==d.id)throw new Error('Reopen your previous item to confirm its purchase first.');
+   const purchase={definitionId:d.id,requestId,color:selectedColor};localStorage.setItem(purchaseKey,JSON.stringify(purchase));saved=purchase;
+   for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=true;
+   try{await action('buy',purchase);}catch(error){if(error.definite){localStorage.removeItem(purchaseKey);saved=null;for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=false;}throw error;}
+   localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');showBackpack();
+  },'primary');root.append(buy,button('Back to catalog',()=>showCatalog()));
  }
+
  function showBackpack(){currentPanel='backpack';const root=openPanel('Your Backpack');if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'));return;}
   root.append(note(scene.ownerId===userId?'Choose an item, then tap a tile in your room.':'Enter your own room to arrange your decor.'));
   const search=el('input');search.type='search';search.placeholder='Find your furniture';search.setAttribute('aria-label','Find your furniture');root.append(search);
   const filter=el('select');filter.setAttribute('aria-label','Furniture location');for(const [value,label] of [['all','All furniture'],['stored','In Backpack'],['here','In this room'],['elsewhere','In another room']]){const option=el('option','',label);option.value=value;filter.append(option);}root.append(filter);
-  const grid=el('div','catalog-grid');for(const item of bootstrap.items){const d=bootstrap.catalog.find(d=>d.id===item.definition_id);if(!d)continue;const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name),el('p','',`No. ${item.serial} · ${item.room_id?'Placed':'In Backpack'}`));
-   card.dataset.name=d.name.toLowerCase();card.dataset.location=!item.room_id?'stored':item.room_id===scene.roomId?'here':'elsewhere';
+  const grid=el('div','catalog-grid');for(const item of bootstrap.items){const d=bootstrap.catalog.find(d=>d.id===item.definition_id);if(!d)continue;const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});card.append(canvas,el('h3','',d.name),el('p','',`No. ${item.serial} · ${item.room_id?'Placed':'In Backpack'}`));
+   if(item.color)card.append(el('p','furniture-color-label',(EarnlyWorldCollections.furnitureColors.find(c=>c.color===item.color)?.name||'Selected')+' color'));card.dataset.name=d.name.toLowerCase();card.dataset.location=!item.room_id?'stored':item.room_id===scene.roomId?'here':'elsewhere';
    const place=button(item.room_id?'Move':'Place',()=>beginPlacement(item,d.name));place.disabled=scene.ownerId!==userId||item.room_id&&item.room_id!==scene.roomId;card.append(place);
    if(item.room_id===scene.roomId)card.append(button('Pick up',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));
    if(item.room_id&&item.room_id!==scene.roomId){const room=bootstrap.rooms.find(r=>r.id===item.room_id);if(room?.ownerId===userId)card.append(button('Visit '+room.name,()=>connect(room.id)));}grid.append(card);

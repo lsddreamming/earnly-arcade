@@ -616,3 +616,29 @@ test('Expanded furniture collections render distinct art and preserve browse-onl
   await page.getByRole('searchbox',{name:'Search decor'}).fill('Dream Rooms');
   await expect(page.locator('.catalog-grid .item-card')).toHaveCount(8);
  });
+
+test('Furniture color choice previews, purchases and appears in the Backpack',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.purchases=[];
+  window.WebSocket=class{
+   static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}close(){this.readyState=3;}
+   send(raw){const p=JSON.parse(raw),emit=data=>this.onmessage?.({data:JSON.stringify(data)});
+    const d=EarnlyWorldCollections.bedItems[0];this.bootstrap??={balance:1000,rooms:[],catalog:[d],items:[],friends:[],furnitureColors:EarnlyWorldCollections.furnitureColors};
+    if(p.type==='JOIN')emit({type:'WELCOME',userId:'owner',scene:{roomId:'home',name:'Home',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:this.bootstrap});
+    if(p.type==='ACTION'){
+     if(p.action==='buy'){window.purchases.push(p.data);this.bootstrap.balance-=d.price;this.bootstrap.items.push({id:'owned-bed',definition_id:d.id,serial:1,color:p.data.color});}
+     emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?this.bootstrap:{}});
+    }
+   }
+  };
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.locator('[data-panel="catalog"]').click();await page.getByRole('button',{name:'Preview Oak Cabin Single',exact:true}).click();
+ const before=await page.locator('.decor-room-preview').evaluate(c=>c.toDataURL());
+ await page.getByRole('button',{name:'Color: Rose',exact:true}).click();await expect(page.getByRole('button',{name:'Color: Rose',exact:true})).toHaveAttribute('aria-pressed','true');
+ expect(await page.locator('.decor-room-preview').evaluate(c=>c.toDataURL())).not.toBe(before);
+ await page.getByRole('button',{name:'Choose this piece',exact:true}).click();await expect(page.getByRole('button',{name:'Color: Rose',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'Buy for ◇ 120',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Your Backpack');await expect(page.locator('#panelContent')).toContainText('Rose color');
+ expect(await page.evaluate(()=>window.purchases.map(p=>({id:p.definitionId,color:p.color})))).toEqual([{id:'oak-single',color:'#d9a0b5'}]);await expect(page.locator('#coinBalance')).toContainText('880');
+});
