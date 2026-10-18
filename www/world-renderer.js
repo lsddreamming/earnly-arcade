@@ -784,7 +784,7 @@
   resize(){const r=this.canvas.getBoundingClientRect();this.width=Math.round(r.width);this.height=Math.round(r.height);this.dpr=Math.min(2,window.devicePixelRatio||1);this.canvas.width=Math.round(this.width*this.dpr);this.canvas.height=Math.round(this.height*this.dpr);this.c.imageSmoothingEnabled=false;}
   setView(mode){this.viewMode=mode;this.zoom=1;this.offset={x:0,y:0};}
   focusMe(){this.setView('close');}
-  setZoom(amount,anchor){const before=this.zoom;this.zoom=Math.max(.6,Math.min(2.2,amount));if(anchor&&this.scene&&this.scale){const x=(anchor.x-this.cx)/this.scale,y=(anchor.y-this.cy)/this.scale;this.draw();this.offset.x+=anchor.x-(this.cx+x*this.scale);this.offset.y+=anchor.y-(this.cy+y*this.scale);}if(before!==this.zoom)this.draw();}
+  setZoom(amount,anchor){if(this.spinning)anchor=null;const before=this.zoom;this.zoom=Math.max(.6,Math.min(2.2,amount));if(anchor&&this.scene&&this.scale){const x=(anchor.x-this.cx)/this.scale,y=(anchor.y-this.cy)/this.scale;this.draw();this.offset.x+=anchor.x-(this.cx+x*this.scale);this.offset.y+=anchor.y-(this.cy+y*this.scale);}if(before!==this.zoom)this.draw();}
   sample(u,now=performance.now()){const t=Math.max(0,Math.min(1,(now-u.at)/250));return {x:u.old.x+(u.position.x-u.old.x)*t,y:u.old.y+(u.position.y-u.old.y)*t,z:u.old.z+(u.position.z-u.old.z)*t};}
   animate(u,now){const p=this.sample(u,now),last=u.visual||p,dt=Math.min(.05,Math.max(0,(now-(u.frameAt||now))/1000)),distance=Math.hypot(p.x-last.x,p.y-last.y);const moving=distance>.00001&&u.state!=='sit'&&u.state!=='lay';u.phase=(u.phase||0)+distance*Math.PI*2;u.gait=(u.gait||0)+((moving?1:0)-(u.gait||0))*(1-Math.exp(-dt*18));u.visual=p;u.frameAt=now;return p;}
 
