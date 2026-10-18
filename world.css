@@ -134,3 +134,6 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .room-browser-management>.muted{font-size:12px;line-height:1.4;margin:8px 0}
 .room-browser-management>button:not(.primary){font-size:12px}
 @media(max-width:360px){.room-browser-card.hangout-card{grid-template-columns:72px minmax(0,1fr);gap:3px 8px}.room-browser-card.hangout-card .hangout-preview{width:72px;height:92px}.room-browser-card .panel-row strong{font-size:14px}.room-browser-card .panel-row button{padding:8px;font-size:11px}}
+
+/* Personal camera controls sit below zoom without crowding the room count. */
+.view-rotation{position:absolute;right:8px;top:56px;display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:10px;background:#142b3cdd}.view-rotation span{font-size:10px;color:#c2dce5;padding:0 4px}.view-rotation button{min-width:40px;min-height:40px;padding:4px;font-size:23px}

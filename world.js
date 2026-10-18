@@ -70,6 +70,7 @@
   finally{p.saving=false;$('rotateItem').disabled=false;$('returnItem').disabled=false;$('cancelPlace').disabled=false;}
  };
  const updateViewButtons=()=>{$('roomView').setAttribute('aria-pressed',String(renderer.viewMode==='room'));};
+ $('viewLeft').onclick=()=>renderer.rotateView(-1);$('viewRight').onclick=()=>renderer.rotateView(1);
  $('zoomIn').onclick=()=>renderer.setZoom(renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.setZoom(renderer.zoom-.2);
  $('roomView').onclick=()=>{renderer.setView('room');updateViewButtons();};
  $('focusMe').onclick=()=>{renderer.focusMe();updateViewButtons();};
