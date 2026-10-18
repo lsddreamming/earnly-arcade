@@ -807,6 +807,7 @@ test('Rotate view buttons send no multiplayer packets and walking uses the origi
  expect(await page.evaluate(()=>cameraRenderer.viewRotation)).toBe(1);expect(await page.evaluate(()=>cameraPackets.length)).toBe(before);
  const p=await page.evaluate(()=>{const r=cameraRenderer;r.draw();const v=r.toView({x:5,y:3}),b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(v.x-v.y)*18*r.scale,y:b.top+r.cy+((v.x+v.y)*9+9)*r.scale};});
  await page.mouse.click(p.x,p.y);expect(await page.evaluate(()=>cameraPackets.at(-1))).toEqual({type:'MOVE_TO',x:5,y:3});
+ await page.evaluate(()=>cameraRenderer.updateUser({userId:'owner',position:{x:5,y:3,z:0},state:'std'}));await page.locator('#worldCanvas').focus();await page.keyboard.press('ArrowUp');expect(await page.evaluate(()=>cameraPackets.at(-1))).toEqual({type:'MOVE_TO',x:4,y:3});
  await page.locator('.world-stage').screenshot({path:`test-results/world-camera-${testInfo.project.name}.png`});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
