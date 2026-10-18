@@ -230,3 +230,5 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 #results .cc-card{height:auto;max-height:100%;overflow-y:auto}
 #results .cc-context{display:block;max-height:none;height:auto;overflow:visible;white-space:normal;margin:10px 0;line-height:1.5;min-height:0}
 #results .cc-card>*{flex-shrink:0}
+
+.cc-voice-caption{position:absolute;bottom:10px;left:10px;max-width:calc(100% - 110px);padding:7px 10px;border:1px solid #78e8cf55;border-radius:8px;background:#071522ed;color:#d8fff3;font-size:11px;line-height:1.4;pointer-events:none;z-index:3}.cc-voice-caption[hidden],.cc-menu .cc-voice-caption{display:none}
