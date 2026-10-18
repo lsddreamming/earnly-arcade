@@ -238,3 +238,18 @@ test('Shield visor expires cleanly and damaged robots honor reduced motion',asyn
  });
  expect(result).toEqual({clean:0,shield:10,fading:10,dimmed:true,expired:0,restored:true,animated:true,calm:true,smokeRemoved:true});
 });
+
+test('New waves spawn at a safe distance and never in the rear hemisphere',()=>{
+ for(let y=1;y<17;y++)for(let x=1;x<17;x++)if(E.clear(x+.5,y+.5))for(let a=0;a<8;a++){
+  const s=E.create(()=>.41);Object.assign(s.player,{x:x+.5,y:y+.5,a:a*Math.PI/4});E.spawn(s);
+  for(const e of s.enemies){expect(Math.hypot(e.x-s.player.x,e.y-s.player.y)).toBeGreaterThanOrEqual(6);expect(Math.abs(E.angle(Math.atan2(e.y-s.player.y,e.x-s.player.x)-s.player.a))).toBeLessThanOrEqual(Math.PI/2+.00001);expect(e.spawn).toBe(2)}
+  if(!s.enemies.length){expect(s.wave).toBe(0);expect(s.score).toBe(0);expect(s.spawnBlocked).toBe(true)}
+ }
+ const s=E.create();Object.assign(s.player,{x:1.5,y:1.5,a:-Math.PI*3/4});E.spawn(s);expect(s.spawnBlocked).toBe(true);s.player.a=Math.PI/4;E.spawn(s);expect(s.enemies.length).toBeGreaterThan(0);expect(s.wave).toBe(1);
+});
+test('Materializing robots stay harmless and wait if a player walks into their warning',()=>{
+ const s=E.create();s.wave=2;const robot={x:6.5,y:10.5,type:'sentry',hp:2,attack:0,spawn:2,phase:0};s.enemies=[robot];
+ for(let i=0;i<39;i++)E.tick(s,.05);expect(robot.x).toBe(6.5);expect(robot.y).toBe(10.5);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
+ Object.assign(s.player,{x:6.5,y:10.5});for(let i=0;i<60;i++)E.tick(s,.05);expect(robot.spawn).toBeGreaterThan(0);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
+ s.player.y=15.5;for(let i=0;i<25;i++)E.tick(s,.05);expect(robot.spawn).toBe(0);expect(s.events.some(e=>e.type==='robot-fire')).toBe(true);
+});
