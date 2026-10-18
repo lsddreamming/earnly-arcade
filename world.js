@@ -51,16 +51,23 @@
   }
   if(scene.ownerId===userId)root.append(button('Move',()=>beginPlacement(item,item.name),'primary'),button('Rotate ↻',async()=>{await action('place',{itemId:item.id,x:item.x,y:item.y,rotation:(item.rotation+2)%8});await refresh();$('worldPanel').close();toast('Furniture rotated');}),button('Return to Backpack',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();$('worldPanel').close();toast('Returned to your Backpack');}));
  }
- function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';}
+ function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
  $('rotateItem').onclick=()=>{if(renderer.placement?.saving)return;rotation=(rotation+2)%8;if(renderer.placement)renderer.placement.rotation=rotation;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{if(renderer.placement?.saving)return;placing=null;showPlacement();};
- renderer.canEditItem=item=>connected&&scene?.ownerId===userId&&bootstrap.items.some(i=>i.id===item.id);
- renderer.onPlacementDrop=async()=>{
-  const p=renderer.placement;if(!p||p.saving)return;
-  const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
-  p.saving=true;$('rotateItem').disabled=true;$('cancelPlace').disabled=true;
-  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();toast('Placed in your room');}}
+ $('returnItem').onclick=async()=>{
+  const p=renderer.placement;if(!p||p.saving||!renderer.canEditItem(p.item))return;
+  p.saving=true;for(const id of ['rotateItem','returnItem','cancelPlace'])$(id).disabled=true;
+  try{await action('place',{itemId:p.item.id,pickup:true});if(renderer.placement===p){placing=null;showPlacement();}await refresh();toast('Returned to your Backpack');}
   catch(e){toast(e.message);}
-  finally{p.saving=false;$('rotateItem').disabled=false;$('cancelPlace').disabled=false;}
+  finally{p.saving=false;for(const id of ['rotateItem','returnItem','cancelPlace'])$(id).disabled=false;}
+ };
+ renderer.canEditItem=item=>connected&&scene?.ownerId===userId&&bootstrap.items.some(i=>i.id===item.id);
+ renderer.onPlacementDrop=async nextItem=>{
+  const p=renderer.placement,roomId=scene?.roomId;if(!p||p.saving)return;
+  const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
+  p.saving=true;$('rotateItem').disabled=true;$('returnItem').disabled=true;$('cancelPlace').disabled=true;
+  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();toast('Placed in your room');if(nextItem&&scene?.roomId===roomId&&!placing){const next=scene.items.find(i=>i.id===nextItem.id);if(next&&renderer.canEditItem(next))beginPlacement(next,next.name,true);}}}
+  catch(e){toast(e.message);}
+  finally{p.saving=false;$('rotateItem').disabled=false;$('returnItem').disabled=false;$('cancelPlace').disabled=false;}
  };
  const updateViewButtons=()=>{$('roomView').setAttribute('aria-pressed',String(renderer.viewMode==='room'));};
  $('zoomIn').onclick=()=>renderer.setZoom(renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.setZoom(renderer.zoom-.2);
@@ -140,14 +147,15 @@
    }collectionToggle.append(showcase);root.append(collectionToggle);
   }else{const set=EarnlyWorldCollections.collections.find(c=>c.name===category);if(set)root.append(note(set.description));}
   let savedOnly=!!view.savedOnly;const filters=el('div','filters');for(const name of ['All',...new Set(bootstrap.catalog.map(d=>d.category))]){const b=button(name,()=>showCatalog(name,{savedOnly}),name===category?'selected':'');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}root.append(filters);
-  const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);const wishlist=button('',()=>{savedOnly=!savedOnly;draw();},'wishlist-filter');tools.append(wishlist);root.prepend(tools,filters);
+  const tools=el('div','catalog-search'),search=el('input'),sort=el('select');search.type='search';search.placeholder='Find a piece for your room';search.setAttribute('aria-label','Search decor');sort.setAttribute('aria-label','Sort decor');for(const [value,label]of [['featured','Featured'],['price','Price: low to high'],['unowned','Not owned yet']]){const option=el('option','',label);option.value=value;sort.append(option);}tools.append(search,sort);const wishlist=button('',()=>{savedOnly=!savedOnly;draw();},'wishlist-filter');tools.append(wishlist);root.prepend(button('View Backpack',showBackpack,'catalog-backpack'),tools,filters);
+  const returnToCatalog=()=>{const savedView={search:search.value,sort:sort.value,scroll:root.scrollTop,savedOnly};return ()=>showCatalog(category,savedView);};
   const count=el('p','muted'),grid=el('div','catalog-grid'),empty=note('No pieces match. Try another name or collection.');count.setAttribute('role','status');root.append(count,grid,empty);
   const draw=()=>{const saved=readWishlist();wishlist.textContent='♥ Wishlist · '+saved.size;wishlist.setAttribute('aria-pressed',String(savedOnly));empty.textContent=savedOnly?'No saved pieces match. Tap Save on a piece you like.':'No pieces match. Try another name or collection.';grid.replaceChildren();let pieces=bootstrap.catalog.filter(d=>(category==='All'||d.category===category)&&(d.name+' '+d.category).toLowerCase().includes(search.value.trim().toLowerCase()));if(savedOnly)pieces=pieces.filter(d=>saved.has(d.id));if(sort.value==='unowned')pieces=pieces.filter(d=>!bootstrap.items.some(i=>i.definition_id===d.id));if(sort.value==='price')pieces.sort((a,b)=>Number(a.price)-Number(b.price));count.textContent=pieces.length+(savedOnly?' saved pieces · Saved on this device':' pieces');empty.hidden=pieces.length>0;
-   for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);const inspect=button('',()=>showFurniturePreview(d,()=>showCatalog(category,{search:search.value,sort:sort.value,scroll:root.scrollTop,savedOnly})), 'furniture-inspect');inspect.setAttribute('aria-label','Preview '+d.name);inspect.append(canvas,el('span','','Preview'));card.append(inspect,el('h3','',d.name),wishlistButton(d,()=>{if(savedOnly)draw();else wishlist.textContent='♥ Wishlist · '+readWishlist().size;}));
+   for(const d of pieces){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);const inspect=button('',()=>showFurniturePreview(d,returnToCatalog()), 'furniture-inspect');inspect.setAttribute('aria-label','Preview '+d.name);inspect.append(canvas,el('span','','Preview'));card.append(inspect,el('h3','',d.name),wishlistButton(d,()=>{if(savedOnly)draw();else wishlist.textContent='♥ Wishlist · '+readWishlist().size;}));
     const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)card.append(el('p','owned-label',owned+' owned'));
     card.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')));
     card.append(el('p','',d.vip_only?'VIP monthly gift · Not tradeable':d.supply_limit?`${Math.max(0,d.supply_limit-d.minted)} of ${d.supply_limit} left`:d.tradeable===false?'Keep & decorate':'Collect · Decorate · Trade'));
-    const buy=button(d.vip_only?'VIP exclusive':'◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d));buy.disabled=d.vip_only||!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
+    const buy=button(d.vip_only?'VIP exclusive':'◇ '+Number(d.price).toLocaleString()+' · Buy',()=>showBuy(d,null,returnToCatalog()));buy.disabled=d.vip_only||!connected||d.supply_limit&&d.minted>=d.supply_limit;card.append(buy);grid.append(card);
    }
   };search.value=view.search||'';sort.value=view.sort||'featured';search.oninput=draw;sort.onchange=draw;draw();if(view.scroll)requestAnimationFrame(()=>root.scrollTop=view.scroll);
  }
@@ -169,10 +177,10 @@
   const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)root.append(el('p','owned-label',owned+' owned'));
   if(d.vip_only)root.append(note('VIP monthly gift · Not available for individual purchase.'));
   else if(d.supply_limit&&d.minted>=d.supply_limit)root.append(note('This piece is sold out.'));
-  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d,selectedColor),'primary'));else root.append(note('Connect to World to buy this piece.'));}
+  else{root.append(el('p','furniture-price','◇ '+Number(d.price).toLocaleString()+' Arcade Coins'));if(connected)root.append(button('Choose this piece',()=>showBuy(d,selectedColor,back),'primary'));else root.append(note('Connect to World to buy this piece.'));}
   root.append(wishlistButton(d),el('p','wishlist-note','Wishlist saved on this device.'),button('Back to catalog',back));draw();
  }
- function showBuy(d,initialColor=null){
+ function showBuy(d,initialColor=null,back=()=>showCatalog()){
   const root=openPanel('Add to your Backpack?'),preview=el('canvas');preview.className='decor-room-preview';
   const purchaseKey='earnlyWorldPendingPurchase:'+userId;let saved;try{saved=JSON.parse(localStorage.getItem(purchaseKey)||'null');}catch{}
   const retry=saved?.definitionId===d.id;let selectedColor=retry?saved.color||null:initialColor;const requestId=retry?saved.requestId:crypto.randomUUID();
@@ -185,8 +193,8 @@
    const purchase={definitionId:d.id,requestId,color:selectedColor};localStorage.setItem(purchaseKey,JSON.stringify(purchase));saved=purchase;
    for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=true;
    try{await action('buy',purchase);}catch(error){if(error.definite){localStorage.removeItem(purchaseKey);saved=null;for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=false;}throw error;}
-   localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');showBackpack();
-  },'primary');root.append(buy,button('Back to catalog',()=>showCatalog()));
+   localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');back();
+  },'primary');root.append(buy,button('Back to catalog',back));
  }
 
  function showBackpack(){currentPanel='backpack';const root=openPanel('Your Backpack');if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'));return;}

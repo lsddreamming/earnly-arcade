@@ -78,8 +78,9 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.route('https://*.supabase.co/**',r=>r.fulfill({status:404,body:''}));
  await page.addInitScript(()=>{
   const item={id:'owned-chair',name:'Arcade Chair',sprite:'chair',x:3,y:3,z:0,width:1,length:1,rotation:0,itemHeight:1,walkable:false,canStack:false,canSit:true,canLay:false};
-  const scene={roomId:'my-room',name:'My room',ownerId:'owner',heightmap:Array(8).fill('00000000').join('\n'),items:[item]};
-  const bootstrap={items:[{id:item.id}],catalog:[],rooms:[],friends:[],balance:0};window.savedDrops=[];window.seatRequests=[];
+  const other={...item,id:'other-chair',name:'Second Chair',x:6,y:1};
+  const scene={roomId:'my-room',name:'My room',ownerId:'owner',heightmap:Array(8).fill('00000000').join('\n'),items:[item,other]};
+  const bootstrap={items:[{id:item.id},{id:other.id}],catalog:[],rooms:[],friends:[],balance:0};window.savedDrops=[];window.seatRequests=[];
   window.WebSocket=class{
    static OPEN=1;
    constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}
@@ -87,7 +88,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
     if(p.type==='JOIN'){emit({type:'WELCOME',userId:'owner',scene,bootstrap});emit({type:'ROOM_SNAPSHOT',users:[]});}
     if(p.type==='INTERACT')window.seatRequests.push(p);
     if(p.type==='ACTION'){
-     if(p.action==='place'){window.savedDrops.push(p.data);Object.assign(item,p.data);emit({type:'SCENE',scene});}
+     if(p.action==='place'){window.savedDrops.push(p.data);if(p.data.pickup)scene.items=scene.items.filter(i=>i.id!==p.data.itemId);else Object.assign(scene.items.find(i=>i.id===p.data.itemId),p.data);emit({type:'SCENE',scene});}
      emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?bootstrap:{}});
     }
    }
@@ -104,9 +105,19 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  if(isMobile)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
  await expect.poll(()=>page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect(page.locator('#worldPanel')).not.toBeVisible();
- await double(p);await expect(page.locator('#placementInstructions')).toContainText('Double-tap to drop');
+ await double(p);await expect(page.locator('#placementInstructions')).toContainText('double-tap to drop');
  expect(await page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
+ // Idle preview frames reuse collision checks, but movement and occupancy invalidate them.
+ expect(await page.evaluate(()=>{
+  const r=window.testRenderer,engine=window.EarnlyWorldPlacement;let checks=0;
+  window.EarnlyWorldPlacement={...engine,placementCheck(...args){checks++;return engine.placementCheck(...args);}};
+  r.placementCache=null;for(let i=0;i<30;i++)r.placementResult();const idle=checks;
+  r.placement.x++;r.placementResult();const moved=checks;
+  r.users.set('blocker',{position:{x:r.placement.x,y:r.placement.y,z:0}});const occupied=r.placementResult().valid;
+  r.users.delete('blocker');r.placement.x--;r.placementCache=null;window.EarnlyWorldPlacement=engine;
+  return {idle,moved,occupied};
+ })).toEqual({idle:1,moved:2,occupied:false});
  // The same pointer stream handles mouse and touch dragging; real touch pickup/drop is above.
  await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x-distance,p.y,{steps:5});await page.mouse.up();
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement.valid)).toBe(false);
@@ -138,6 +149,23 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
   await page.waitForTimeout(600);await expect(page.locator('#placementHint')).not.toBeVisible();
   await pointer('pointerup',p);if(mode==='pinch')await pointer('pointerup',p,72);
  }
+ // Tapping away saves the preview position, never the tapped floor coordinates.
+ const tap=async q=>{if(isMobile)await page.touchscreen.tap(q.x,q.y);else await page.mouse.click(q.x,q.y);};
+ const floorPoint=await page.evaluate(()=>{const r=window.testRenderer,b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+18*r.scale,y:b.top+r.cy+18*r.scale};});
+ p=await point();await double(p);await page.evaluate(()=>{window.testRenderer.placement.x=-1;});
+ await tap(floorPoint);expect(await page.evaluate(()=>window.savedDrops.length)).toBe(1);
+ await expect(page.locator('#placementHint')).toBeVisible();
+ await page.evaluate(()=>{Object.assign(window.testRenderer.placement,{x:2,y:5});});
+ await tap(floorPoint);await expect(page.locator('#placementHint')).not.toBeVisible();
+ expect(await page.evaluate(()=>window.savedDrops.at(-1))).toMatchObject({itemId:'owned-chair',x:2,y:5});
+ // A different owned piece becomes selected only after the first is saved.
+ p=await point();await double(p);
+ const otherPoint=await page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[1],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
+ await tap(otherPoint);await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.item.id)).toBe('other-chair');
+ expect(await page.evaluate(()=>window.savedDrops.length)).toBe(3);
+ await page.getByRole('button',{name:'Return to bag',exact:true}).click();await expect(page.locator('#placementHint')).not.toBeVisible();
+ expect(await page.evaluate(()=>window.savedDrops.at(-1))).toEqual({itemId:'other-chair',pickup:true});
+ expect(await page.evaluate(()=>window.testRenderer.scene.items.map(i=>i.id))).toEqual(['owned-chair']);
  // A visitor cannot enter editing even if they can see the furniture.
  await page.evaluate(()=>{window.testRenderer.scene.ownerId='someone-else';});
  p=await point();await pointer('pointerdown',p);await page.waitForTimeout(600);await pointer('pointerup',p);await expect(page.locator('#placementHint')).not.toBeVisible();
@@ -657,12 +685,12 @@ test('Furniture color choice previews, purchases and appears in the Backpack',as
   };
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
- await page.locator('[data-panel="catalog"]').click();await page.getByRole('button',{name:'Preview Oak Cabin Single',exact:true}).click();
+ await page.locator('[data-panel="catalog"]').click();await page.getByRole('searchbox',{name:'Search decor'}).fill('Oak');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('price');await page.getByRole('button',{name:'Preview Oak Cabin Single',exact:true}).click();
  const before=await page.locator('.decor-room-preview').evaluate(c=>c.toDataURL());
  await page.getByRole('button',{name:'Color: Rose',exact:true}).click();await expect(page.getByRole('button',{name:'Color: Rose',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(await page.locator('.decor-room-preview').evaluate(c=>c.toDataURL())).not.toBe(before);
  await page.getByRole('button',{name:'Choose this piece',exact:true}).click();await expect(page.getByRole('button',{name:'Color: Rose',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.getByRole('button',{name:'Buy for ◇ 120',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Your Backpack');await expect(page.locator('#panelContent')).toContainText('Rose color');
+ await page.getByRole('button',{name:'Buy for ◇ 120',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Decor Catalog');await expect(page.locator('.owned-label')).toContainText('1 owned');await expect(page.getByRole('searchbox',{name:'Search decor'})).toHaveValue('Oak');await expect(page.getByRole('combobox',{name:'Sort decor'})).toHaveValue('price');await page.getByRole('button',{name:'View Backpack',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Your Backpack');await expect(page.locator('#panelContent')).toContainText('Rose color');
  expect(await page.evaluate(()=>window.purchases.map(p=>({id:p.definitionId,color:p.color})))).toEqual([{id:'oak-single',color:'#d9a0b5'}]);await expect(page.locator('#coinBalance')).toContainText('880');
 });
 
