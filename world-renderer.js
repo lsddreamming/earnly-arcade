@@ -721,23 +721,38 @@
     // Ground the floating room with a soft, inexpensive ambient shadow.
     c.save();c.translate((n-m)*9,(n+m)*4.5+12);c.scale(1,.42);const ambient=c.createRadialGradient(0,0,15,0,0,(n+m)*10);ambient.addColorStop(0,'#030b20aa');ambient.addColorStop(1,'#030b2000');c.fillStyle=ambient;c.fillRect(-(n+m)*11,-(n+m)*11,(n+m)*22,(n+m)*22);c.restore();
     if(outside){
-     c.fillStyle=theme==='rooftop'?'#19243c':'#405e58';c.fillRect(-m*18-10,-100,(n+m)*18+20,100);
-     if(theme==='rooftop')for(let i=0;i<12;i++){const x=-m*18+i*36,height=24+(i*17)%55;c.fillStyle=i%2?'#293b57':'#324867';c.fillRect(x,-height,28,height);c.fillStyle='#d1b77d';for(let y=-height+7;y<-9;y+=12)c.fillRect(x+6,y,4,4);}
-    }
-    if(outside){
-     // Static atmosphere: no extra animation loop or particle work on phones.
+     // Scenery belongs to the two receding room edges, never a screen-wide banner.
+     // Transparent atmosphere fades back into the canvas at every zoom and pan.
+     const glow=c.createRadialGradient(0,-22,8,0,-22,Math.max(n,m)*20);
+     glow.addColorStop(0,theme==='patio'?'#719d6625':'#8199d326');glow.addColorStop(1,'#45607000');
+     c.fillStyle=glow;c.fillRect(-Math.max(n,m)*22,-Math.max(n,m)*22,Math.max(n,m)*44,Math.max(n,m)*44);
      if(theme==='rooftop'){
-      c.fillStyle='#e8d8b2';c.beginPath();c.arc(75,-77,10,0,Math.PI*2);c.fill();c.fillStyle='#19243c';c.beginPath();c.arc(80,-80,9,0,Math.PI*2);c.fill();
-      c.fillStyle='#bdd9e5';for(const [x,y] of [[-85,-82],[-36,-65],[20,-91],[112,-61],[-130,-48]])c.fillRect(x,y,1.5,1.5);
+      // Separate, dimensional city silhouettes follow the terrace perspective.
+      for(const side of [-1,1]){const span=side<0?m:n;
+       for(let i=span-1;i>=2;i-=3){const bx=side*(i*18+30),by=i*9-24,height=20+(i*13+(side+1)*7)%34;
+        c.save();c.globalAlpha=.30+(i%3)*.04;box(c,bx,by,1.1,.85,height,i%2?'#516c8d':'#435b7c');
+        for(let z=8;z<height-3;z+=8)for(let q=0;q<2;q++){
+         const wx=bx-12+q*6,wy=by+10+q*3-z;c.fillStyle=(i+q+z)%3?'#d8c493':'#93c8ce';c.fillRect(wx,wy,2,2.5);
+        }c.restore();
+       }
+      }
+      // A transparent crescent avoids a dark cutout patch on the sky.
+      c.save();c.translate(65,-79);c.fillStyle='#e8d8b2';c.beginPath();c.arc(0,0,9,.45*Math.PI,1.55*Math.PI);c.quadraticCurveTo(-1,0,9*Math.cos(.45*Math.PI),9*Math.sin(.45*Math.PI));c.fill();c.restore();
+      c.fillStyle='#bdd9e580';for(const [x,y]of [[-85,-82],[-36,-65],[20,-91],[112,-61],[-130,-48]])c.fillRect(x,y,1,1);
      }else{
-      for(let i=0;i<9;i++){
-       const x=-m*18+i*(n+m)*4.5,top=-50-(i%3)*7;
-       c.fillStyle='#69594a';c.fillRect(x-2,top+24,4,31);c.strokeStyle='#69594a';c.lineWidth=2;c.beginPath();c.moveTo(x,top+42);c.lineTo(x-10,top+25);c.moveTo(x,top+36);c.lineTo(x+11,top+19);c.stroke();
-       const crown=[[x-24,top+23],[x-20,top+10],[x-10,top+7],[x-7,top-3],[x+6,top-7],[x+17,top+1],[x+20,top+13],[x+27,top+19],[x+24,top+32],[x+11,top+39],[x-7,top+37],[x-20,top+32]];
-       poly(c,crown,i%2?'#355e50':'#294d45','#25453e');
-       poly(c,[[x-18,top+16],[x-7,top+9],[x-4,top+1],[x+5,top-2],[x+12,top+5],[x+10,top+15],[x-1,top+22],[x-15,top+25]],'#47785c');
-       poly(c,[[x+3,top+25],[x+13,top+17],[x+21,top+22],[x+17,top+31],[x+5,top+34]],'#3b6852');
-       c.fillStyle='#69936d';for(const [dx,dy] of [[-10,14],[0,7],[8,14],[-14,23],[12,27]])c.fillRect(x+dx,top+dy,3,2);
+      // Layered garden crowns are rooted just outside the diagonal boundary.
+      for(const side of [-1,1]){const span=side<0?m:n;
+       for(let i=span-1;i>=2;i-=3){
+        const x=side*(i*18+18+(i*7)%9),base=i*9-7,scale=.72+((i*7)%5)*.065,top=base-45*scale;
+        c.save();c.translate(x,top);c.scale(scale,scale);
+        c.fillStyle='#69594a';c.fillRect(-2,24,4,21);c.strokeStyle='#69594a';c.lineWidth=2;c.beginPath();c.moveTo(0,39);c.lineTo(-10,25);c.moveTo(0,34);c.lineTo(11,19);c.stroke();
+        const crown=[[-24,23],[-20,10],[-10,7],[-7,-3],[6,-7],[17,1],[20,13],[27,19],[24,32],[11,39],[-7,37],[-20,32]];
+        poly(c,crown,i%2?'#355e50':'#294d45','#25453e');
+        poly(c,[[-18,16],[-7,9],[-4,1],[5,-2],[12,5],[10,15],[-1,22],[-15,25]],'#47785c');
+        poly(c,[[3,25],[13,17],[21,22],[17,31],[5,34]],'#3b6852');
+        c.fillStyle='#69936d';for(const [dx,dy]of [[-10,14],[0,7],[8,14],[-14,23],[12,27]])c.fillRect(dx,dy,3,2);
+        c.restore();
+       }
       }
      }
     }
