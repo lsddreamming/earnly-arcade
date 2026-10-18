@@ -118,9 +118,30 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await expect(page.locator('#placementHint')).not.toBeVisible();
  p=await point();await double(p);await page.locator('#cancelPlace').click();
  expect(await page.evaluate(()=>window.savedDrops.length)).toBe(1);
+ // Hold-to-lift uses the same touch pointer path, without sitting or dropping on release.
+ const pointer=async(type,p,id=71)=>page.locator('#worldCanvas').dispatchEvent(type,{pointerId:id,pointerType:'touch',button:0,clientX:p.x,clientY:p.y});
+ // Synthetic pointers cannot acquire native capture; retain real capture for the rest of the test.
+ await page.evaluate(()=>{window.testRenderer.canvas.setPointerCapture=()=>{};});
+ p=await point();const seatsBefore=await page.evaluate(()=>window.seatRequests.length);
+ await pointer('pointerdown',p);await expect(page.locator('#placementHint')).toBeVisible();
+ await pointer('pointermove',{x:p.x+40,y:p.y+20});await pointer('pointerup',{x:p.x+40,y:p.y+20});
+ expect(await page.evaluate(()=>window.seatRequests.length)).toBe(seatsBefore);
+ expect(await page.evaluate(()=>window.savedDrops.length)).toBe(1);
+ expect(await page.evaluate(()=>Number.isFinite(window.testRenderer.placement.x))).toBe(true);
+ await page.locator('#cancelPlace').click();
+ // Panning, a second finger, and pointer cancellation all cancel pending pickup.
+ for(const mode of ['pan','pinch','cancel']){
+  p=await point();await pointer('pointerdown',p);
+  if(mode==='pan')await pointer('pointermove',{x:p.x+20,y:p.y});
+  if(mode==='pinch')await pointer('pointerdown',{x:p.x+50,y:p.y},72);
+  if(mode==='cancel')await pointer('pointercancel',p);
+  await page.waitForTimeout(600);await expect(page.locator('#placementHint')).not.toBeVisible();
+  await pointer('pointerup',p);if(mode==='pinch')await pointer('pointerup',p,72);
+ }
  // A visitor cannot enter editing even if they can see the furniture.
  await page.evaluate(()=>{window.testRenderer.scene.ownerId='someone-else';});
- p=await point();await double(p);await expect(page.locator('#placementHint')).not.toBeVisible();
+ p=await point();await pointer('pointerdown',p);await page.waitForTimeout(600);await pointer('pointerup',p);await expect(page.locator('#placementHint')).not.toBeVisible();
+ await double(p);await expect(page.locator('#placementHint')).not.toBeVisible();
 });
 
 test('Large rooms open framed, with optional close view, recentering and stable furniture refreshes',async({page},testInfo)=>{
