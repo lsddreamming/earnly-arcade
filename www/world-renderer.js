@@ -2,7 +2,7 @@
 (()=>{
  const images=new Map(),sprites=new Map(),reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
  function image(src){if(!/^cosmetic-[a-z0-9-]+\.svg$/.test(src))return null;if(!images.has(src)){const i=new Image();i.src=src;images.set(src,i);}return images.get(src);}
- function poly(c,points,color,stroke){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=color;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}}
+ function poly(c,points,color,stroke){if(c.__capture){c.__face(points.map(p=>c.__convert(p)),color,true);return;}c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=color;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}}
  function shade(hex,n){const rgb=String(hex).match(/^rgb\((\d+),(\d+),(\d+)\)$/),v=parseInt((hex||'#78bed1').slice(1),16),channels=rgb?rgb.slice(1).map(Number):[v>>16,(v>>8)&255,v&255];return 'rgb('+channels.map(c=>Math.max(0,Math.min(255,c+n))).join(',')+')';}
  function box(c,x,y,w,l,h,color){const a=[x,y-h],b=[x+w*18,y+w*9-h],d=[x-l*18,y+l*9-h],e=[x+(w-l)*18,y+(w+l)*9-h];poly(c,[a,b,e,d],shade(color,22),'#172333');poly(c,[d,e,[e[0],e[1]+h],[d[0],d[1]+h]],shade(color,-24),'#172333');poly(c,[b,e,[e[0],e[1]+h],[b[0],b[1]+h]],color,'#172333');
   // Fine bevels preserve the chunky silhouette while separating material planes.
@@ -10,14 +10,98 @@
    c.beginPath();c.moveTo(e[0],e[1]+1);c.lineTo(e[0],e[1]+h-1);c.strokeStyle=shade(color,-42);c.lineWidth=.6;c.stroke();}
  }
  // Small, original pixel-scale details stay legible both in rooms and the catalog.
+
+ // BSP ordering clips intersecting planes so backrests correctly hide cushions.
+ const furnitureFaces=new Map();
+ function orderFaces(faces){
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const make=f=>{const [a,b,c]=f.p,u=b.map((v,i)=>v-a[i]),v=c.map((v,i)=>v-a[i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],len=Math.hypot(...n);if(len<1e-8)return null;return {n:n.map(x=>x/len),d:dot(n,a)/len,faces:[f],front:null,back:null};};
+  const insert=(node,f)=>{if(!node)return make(f);const ds=f.p.map(p=>dot(node.n,p)-node.d),front=ds.some(d=>d>1e-5),back=ds.some(d=>d< -1e-5);if(!front&&!back){node.faces.push(f);return node;}if(!back){node.front=insert(node.front,f);return node;}if(!front){node.back=insert(node.back,f);return node;}
+   const a=[],b=[];for(let i=0;i<f.p.length;i++){const p=f.p[i],q=f.p[(i+1)%f.p.length],d=ds[i],e=ds[(i+1)%ds.length];if(d>=-1e-5)a.push(p);if(d<=1e-5)b.push(p);if(d*e<0&&Math.abs(d)>1e-5&&Math.abs(e)>1e-5){const t=d/(d-e),cut=p.map((v,j)=>v+(q[j]-v)*t);a.push(cut);b.push(cut);}}
+   if(a.length>=3)node.front=insert(node.front,{...f,p:a,cut:true});if(b.length>=3)node.back=insert(node.back,{...f,p:b,cut:true});return node;};
+  let root=null;for(const f of faces)root=insert(root,f);const ordered=[];const walk=n=>{if(!n)return;const front=dot(n.n,[1,1,18])>=0;walk(front?n.back:n.front);ordered.push(...n.faces);walk(front?n.front:n.back);};walk(root);return ordered;
+ }
+ // Furniture is built in tile coordinates so all four orientations have real backs.
+ function solidDecor(c,item,x,y){
+  const id=item.definitionId||item.definition_id||item.id;
+  const aliases={'boardwalk-sofa':'boardwalk-seat','boardwalk-lamp':'boardwalk-light','boardwalk-table':'boardwalk-table'};
+  const s=aliases[id]||item.sprite||item.sprite_id,color=item.color||'#81c8c4';
+  const key=JSON.stringify([s,color,item.width,item.length,item.rotation||0]);
+  const paint=art=>{c.drawImage(art.canvas,x+art.left,y+art.top,art.width,art.height);return true;};
+  if(furnitureFaces.has(key))return paint(furnitureFaces.get(key));
+  const beds=['cabin-bed','velvet-bed','bunk-bed','poster-bed','round-bed','capsule-bed','racer-bed','platform-bed'];
+
+  const defaults={sofa:[2,1],bed:[1,2],rug:[2,2],divider:[2,1],'diner-booth':[2,1],'pod-bed':[1,2]};
+  const w=item.width||defaults[s]?.[0]||1,l=item.length||defaults[s]?.[1]||1,r=((item.rotation||0)%8+8)%8,faces=[];
+  const turn=(u,v,z)=>r===2?[l-v,u,z]:r===4?[w-u,l-v,z]:r===6?[v,w-u,z]:[u,v,z];
+  const face=(vertices,tint,doubleSided=false)=>{const p=vertices.map(q=>turn(...q));const a=p[0],b=p[1],d=p[2];const normal=[(b[1]-a[1])*(d[2]-a[2])-(b[2]-a[2])*(d[1]-a[1]),(b[2]-a[2])*(d[0]-a[0])-(b[0]-a[0])*(d[2]-a[2]),(b[0]-a[0])*(d[1]-a[1])-(b[1]-a[1])*(d[0]-a[0])];
+   if(!doubleSided&&normal[0]+normal[1]+normal[2]*18<=0)return;
+   faces.push({p,tint:doubleSided?tint:shade(tint,normal[2]>0?22:normal[0]>0?0:-22),depth:p.reduce((n,q)=>n+q[0]+q[1]+q[2]/18,0)/p.length});};
+  const block=(u,v,a,b,h,z,tint)=>{face([[u,v,z+h],[u+a,v,z+h],[u+a,v+b,z+h],[u,v+b,z+h]],tint);face([[u,v,z],[u+a,v,z],[u+a,v,z+h],[u,v,z+h]],tint);face([[u+a,v+b,z],[u,v+b,z],[u,v+b,z+h],[u+a,v+b,z+h]],tint);face([[u,v+b,z],[u,v,z],[u,v,z+h],[u,v+b,z+h]],tint);face([[u+a,v,z],[u+a,v+b,z],[u+a,v+b,z+h],[u+a,v,z+h]],tint);};
+  const mattress=(z=9,width=w)=>{block(.08,.18,width-.16,1.72,7,z,'#eee8dc');block(.09,.78,width-.18,1.1,3,z+7,color);block(.09,.77,width-.18,.16,1,z+10,shade(color,35));for(let u=.14;u<width-.25;u+=.87)block(u,.27,Math.min(.65,width-.28),.36,4,z+7,'#fff3db');};
+  if(s==='boardwalk-seat'){
+   block(.08,.08,1.84,.84,8,4,'#956d50');for(let u=.06;u<2;u+=.24)block(u,.04,.1,.14,25,5,'#d0aa77');for(const u of [.02,1.82])block(u,.2,.16,.76,14,5,'#b88d60');for(const u of [.22,1.02])block(u,.22,.75,.68,6,12,'#e8be91');block(.36,.3,.35,.3,7,18,'#e78d7b');block(1.2,.24,.4,.15,11,18,'#82bbba');
+  }else if(s==='boardwalk-light'){
+   block(.1,.1,.8,.8,3,0,'#8d6c55');block(.44,.44,.12,.12,36,3,'#c69d67');block(.1,.1,.8,.8,13,37,'#f1c28d');for(const u of [.12,.84])for(const v of [.12,.84])block(u,v,.05,.05,13,37,'#a37856');block(.08,.08,.84,.84,2,50,'#ac7a56');
+  }else if(s==='boardwalk-table'){
+   block(.12,.12,.76,.76,4,1,'#99724e');for(const u of [.13,.79])for(const v of [.13,.79])block(u,v,.08,.08,17,4,'#c49a6e');block(0,0,1,1,3,21,'#ddbb8c');for(let v=.15;v<1;v+=.23)block(.02,v,.96,.02,.3,24,'#9d7855');block(.25,.25,.5,.45,1,8,'#88aba9');
+  }else if(s==='round-bed'){
+   // An actual circular platform, with a segmented cylindrical sidewall.
+   const disk=(radius,z,h,tint)=>{const top=[];for(let i=0;i<24;i++){const a=i*Math.PI/12,b=(i+1)*Math.PI/12,p=[1+Math.cos(a)*radius,1+Math.sin(a)*radius],q=[1+Math.cos(b)*radius,1+Math.sin(b)*radius];top.push([...p,z+h]);face([[...q,z],[...p,z],[...p,z+h],[...q,z+h]],tint);}face(top,tint);};
+   disk(.97,1,7,'#566b88');disk(.89,8,7,'#e9e4ef');disk(.85,15,2,color);block(.4,.25,.52,.35,5,17,'#f8ebdf');block(1.06,.25,.52,.35,5,17,'#f8ebdf');block(.78,.78,.44,.4,2,17,'#c5a3cf');
+  }else if(s==='bunk-bed'){
+   for(const z of [5,36]){block(0,0,1,2,4,z,'#5e7e91');mattress(z+4);}
+   for(const u of [0,.92])for(const v of [0,1.92])block(u,v,.08,.08,61,0,'#658593');
+   for(const u of [0,.94])block(u,.04,.06,1.85,4,56,color);
+   for(const v of [1.08,1.75])block(.95,v,.05,.07,54,0,'#ddbd89');for(let z=5;z<52;z+=8)block(.95,1.08,.05,.74,2,z,'#ddbd89');
+  }else if(s==='capsule-bed'){
+   block(0,0,1,2,9,0,'#475c77');block(0,0,1,.22,37,9,'#7c94ae');block(0,.05,.13,1.9,25,9,'#6f88a4');block(.87,.05,.13,1.9,25,9,'#6f88a4');mattress(9);block(0,0,1,.7,5,43,'#9cb9cc');block(.08,.2,.84,.05,2,39,color);for(const u of [0,.94])block(u,.76,.06,1.14,2,34,color);
+  }else if(s==='racer-bed'){
+   block(0,0,1,2,9,4,color);mattress(9);for(const u of [0,.86]){block(u,.12,.14,1.82,9,14,color);for(const v of [.3,1.5])block(u-.03,v,.2,.3,8,0,'#304052');}block(0,1.82,1,.18,5,22,color);block(.12,1.98,.2,.02,3,10,'#ffe2a0');block(.68,1.98,.2,.02,3,10,'#ffe2a0');block(.43,1.84,.14,.15,1,27,'#f8e8c9');
+  }else if(beds.includes(s)){
+   const timber=s==='cabin-bed'?'#a57952':s==='poster-bed'?'#796078':s==='platform-bed'?'#b89573':'#88667c';
+   block(0,0,w,2,s==='platform-bed'?5:8,2,timber);mattress(s==='platform-bed'?7:10);
+   if(s==='platform-bed'){block(0,0,w,.13,14,7,'#ad977a');for(let u=.18;u<w;u+=.27)block(u,.02,.03,.13,12,9,'#d1bd97');}
+   else {block(0,0,w,.14,s==='velvet-bed'?34:28,7,timber);if(s==='velvet-bed'){for(let u=.12;u<w;u+=.35)block(u,.14,.28,.07,22,16,color);}else for(let u=.12;u<w;u+=.24)block(u,.14,.08,.05,19,12,'#d2ab7d');}
+   if(s==='poster-bed'){for(const u of [0,w-.1])for(const v of [0,1.9]){block(u,v,.1,.1,59,0,'#ad8b63');block(u-.02,v-.02,.14,.14,3,59,'#e2bf88');}for(const u of [0,w-.1])block(u,0,.1,2,3,56,'#ad8b63');for(const v of [0,1.9])block(0,v,w,.1,3,56,'#ad8b63');}
+   if(s==='cabin-bed')block(0,1.88,w,.12,13,4,timber);
+   if(s==='platform-bed')for(let v=1;v<1.8;v+=.17)block(.1,v,w-.2,.025,.2,17.2,'#d6dfbf');
+  }
+  else {
+   // Reuse the established furniture geometry, now projected and occluded in 3D.
+   // Canvas-only ornaments are rebuilt below where their surfaces need a back.
+   let anchor=[0,0,0],matrix=new DOMMatrix(),stack=[],path=[];
+   const flat=['range','koi-pond','listening-console'].includes(s);
+   const convert=p=>{if(p.world)return p.world;const q=matrix.transformPoint({x:p[0],y:p[1]}),[u,v,z]=anchor,dx=q.x-(u-v)*18,dy=q.y-((u+v)*9-z);return flat?[u+dx/36+dy/18,v-dx/36+dy/18,z]:[u+dx/18,v,z+dx/2-dy];};
+   const stroke=(points,tint,width=1)=>{for(let i=1;i<points.length;i++){const a=convert(points[i-1]),b=convert(points[i]),d=Math.max(.012,width/36);const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2];if(Math.abs(dx)+Math.abs(dy)<.001)block(a[0]-d/2,a[1]-d/2,d,d,Math.max(.1,Math.abs(dz)),Math.min(a[2],b[2]),tint);else{const n=Math.hypot(dx,dy),ox=-dy/n*d/2,oy=dx/n*d/2;face([[a[0]+ox,a[1]+oy,a[2]+.3],[b[0]+ox,b[1]+oy,b[2]+.3],[b[0]-ox,b[1]-oy,b[2]-.3],[a[0]-ox,a[1]-oy,a[2]-.3]],tint,true);}}};
+   const ctx={__capture:true,__face:face,__block:block,__convert:convert,__anchor:p=>{anchor=p;},__line:stroke,fillStyle:'#ffffff',strokeStyle:'#ffffff',lineWidth:1,
+    save(){stack.push({matrix:matrix.toString(),fillStyle:this.fillStyle,strokeStyle:this.strokeStyle,lineWidth:this.lineWidth});},restore(){const old=stack.pop();if(old){matrix=new DOMMatrix(old.matrix);Object.assign(this,{fillStyle:old.fillStyle,strokeStyle:old.strokeStyle,lineWidth:old.lineWidth});}},
+    translate(x,y){matrix=matrix.translate(x,y);},scale(x,y){matrix=matrix.scale(x,y);},rotate(a){matrix=matrix.rotate(a*180/Math.PI);},transform(a,b,c,d,e,f){matrix=matrix.multiply(new DOMMatrix([a,b,c,d,e,f]));},
+    beginPath(){path=[];},moveTo(x,y){path.push([x,y]);},lineTo(x,y){path.push([x,y]);},closePath(){if(path.length)path.push(path[0]);},
+    ellipse(x,y,rx,ry,rotation,start,end){const count=Math.max(4,Math.ceil(Math.abs(end-start)*5));for(let i=0;i<=count;i++){const a=start+(end-start)*i/count,dx=Math.cos(a)*rx,dy=Math.sin(a)*ry;path.push([x+dx*Math.cos(rotation)-dy*Math.sin(rotation),y+dx*Math.sin(rotation)+dy*Math.cos(rotation)]);}},
+    arc(x,y,r,start,end){this.ellipse(x,y,r,r,0,start,Math.min(end,start+Math.PI*2));},
+    fill(){if(path.length>=3)face(path.map(convert),this.fillStyle,true);},stroke(){stroke(path,this.strokeStyle,this.lineWidth);},
+    fillRect(x,y,w,h){face([[x,y],[x+w,y],[x+w,y+h],[x,y+h]].map(convert),this.fillStyle,true);}
+   };
+   const capture=new Proxy(ctx,{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});
+   decor(capture,{...item,rotation:0},0,0);
+
+  }
+  const ordered=orderFaces(faces).map(f=>({...f,p:f.p.map(([u,v,z])=>[(u-v)*18,(u+v)*9-z])}));
+  const points=ordered.flatMap(f=>f.p),left=Math.floor(Math.min(...points.map(p=>p[0])))-2,top=Math.floor(Math.min(...points.map(p=>p[1])))-2,width=Math.ceil(Math.max(...points.map(p=>p[0])))-left+2,height=Math.ceil(Math.max(...points.map(p=>p[1])))-top+2;
+  const canvas=document.createElement('canvas');canvas.width=width*3;canvas.height=height*3;const ctx=canvas.getContext('2d');ctx.scale(3,3);ctx.translate(-left,-top);for(const f of ordered)poly(ctx,f.p,f.tint,f.cut?null:'#263547');
+  const art={canvas,left,top,width,height};if(furnitureFaces.size>128)furnitureFaces.clear();furnitureFaces.set(key,art);return paint(art);
+ }
+
  function decor(c,item,x,y){
+  if(!c.__capture&&solidDecor(c,item,x,y))return;
   const color=item.color||'#67d1cc',s=item.sprite||item.sprite_id||'table';
   const dims={'diner-booth':[2,1],'pod-bed':[1,2],sofa:[2,1],bed:[1,2],rug:[2,2],divider:[2,1]},[w,l]=dims[s]||[item.width||1,item.length||1];
   c.save();c.translate(x,y);
   if(item.rotation===2||item.rotation===6)c.scale(-1,1);
-  const point=(u,v,z=0)=>[(u-v)*18,(u+v)*9-z];
-  const cube=(u,v,a,b,h,z,tint)=>{const [px,py]=point(u,v,z);box(c,px,py,a,b,h,tint);};
-  const line=(points,tint,width=1)=>{c.beginPath();points.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.strokeStyle=tint;c.lineWidth=width;c.stroke();};
+  const point=(u,v,z=0)=>{const p=[(u-v)*18,(u+v)*9-z];p.world=[u,v,z];if(c.__capture)c.__anchor(p.world);return p;};
+  const cube=(u,v,a,b,h,z,tint)=>{if(c.__capture){c.__block(u,v,a,b,h,z,tint);return;}const [px,py]=point(u,v,z);box(c,px,py,a,b,h,tint);};
+  const line=(points,tint,width=1)=>{if(c.__capture){c.__line(points,tint,width);return;}c.beginPath();points.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.strokeStyle=tint;c.lineWidth=width;c.stroke();};
   const tile=(u,v,a,b,z,tint,edge)=>poly(c,[point(u,v,z),point(u+a,v,z),point(u+a,v+b,z),point(u,v+b,z)],tint,edge);
   const panel=(u,v,a,z,h,fill,edge)=>poly(c,[point(u,v,z+h),point(u+a,v,z+h),point(u+a,v,z),point(u,v,z)],fill,edge);
   // Layered contact shadow stays inside the existing furniture footprint.
@@ -621,7 +705,7 @@
 
   }
  }
- function thumbnail(canvas,item){canvas.width=160;canvas.height=128;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.translate(80,['rug','dance-floor','koi-pond'].includes(item.sprite||item.sprite_id)?60:['surf-rack','shell-light','pinball','prize-crane','speaker-stack','fridge','canopy-bed','wardrobe','vanity','easel','tool-stand','stone-lantern','bamboo-screen','coffee-station','pastry-counter','record-jukebox','listening-console','crescent-light','plant-house','vine-screen','vip-throne','vip-fountain','vip-bloom','vending','cactus','palm','tree','flowers','plant','bookshelf','aquarium','clock','television','column','divider','fountain'].includes(item.sprite||item.sprite_id)?88:76);c.scale(1.5,1.5);decor(c,item,0,0);}
+ function thumbnail(canvas,item){canvas.width=160;canvas.height=128;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.translate(80,['rug','dance-floor','koi-pond'].includes(item.sprite||item.sprite_id)?60:['bunk-bed','poster-bed','capsule-bed','boardwalk-light','surf-rack','shell-light','pinball','prize-crane','speaker-stack','fridge','canopy-bed','wardrobe','vanity','easel','tool-stand','stone-lantern','bamboo-screen','coffee-station','pastry-counter','record-jukebox','listening-console','crescent-light','plant-house','vine-screen','vip-throne','vip-fountain','vip-bloom','vending','cactus','palm','tree','flowers','plant','bookshelf','aquarium','clock','television','column','divider','fountain'].includes(item.sprite||item.sprite_id)?88:76);c.scale(1.5,1.5);decor(c,item,0,0);}
  function roomThumbnail(canvas,heightmap,items=[],theme){
   canvas.width=300;canvas.height=210;
   const preview=Object.create(WorldRenderer.prototype);

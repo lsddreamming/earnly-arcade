@@ -473,7 +473,7 @@ test('Original World collections can be explored before connecting and searched 
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
  await expect(page.locator('#worldInspiration')).toBeVisible();await page.locator('#browseDecor').click();
- await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeInViewport();await page.screenshot({path:testInfo.outputPath('catalog-search-first.png')});await expect(page.locator('.catalog-collections')).not.toHaveAttribute('open','');await page.locator('.catalog-collections summary').click();await expect(page.locator('.collection-card')).toHaveCount(9);
+ await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeInViewport();await page.screenshot({path:testInfo.outputPath('catalog-search-first.png')});await expect(page.locator('.catalog-collections')).not.toHaveAttribute('open','');await page.locator('.catalog-collections summary').click();await expect(page.locator('.collection-card')).toHaveCount(10);
  await page.getByRole('button',{name:'Explore Bramble Cafe',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(4);
  await page.getByRole('searchbox',{name:'Search decor'}).fill('coffee');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Bramble Coffee Station');await expect(page.locator('.item-card').getByRole('button',{name:/· Buy$/})).toBeDisabled();await expect(page.getByRole('button',{name:'Preview Bramble Coffee Station',exact:true})).toBeEnabled();
  await page.getByRole('searchbox',{name:'Search decor'}).fill('no-match');await expect(page.locator('#panelContent')).toContainText('No pieces match');
@@ -533,7 +533,7 @@ test('Foreground foliage fades only when it covers the local avatar',async({page
  const result=await page.evaluate(()=>{
   const canvas=document.createElement('canvas');canvas.width=390;canvas.height=500;
   const renderer=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype),context=canvas.getContext('2d');let faded=0;
-  const wrapped=new Proxy(context,{get(target,key){const value=target[key];return typeof value==='function'?function(...args){if(key==='fill'&&target.globalAlpha<.3)faded++;return value.apply(target,args);}:value;},set(target,key,value){target[key]=value;return true;}});
+  const wrapped=new Proxy(context,{get(target,key){const value=target[key];return typeof value==='function'?function(...args){if((key==='fill'||key==='drawImage')&&target.globalAlpha<.3)faded++;return value.apply(target,args);}:value;},set(target,key,value){target[key]=value;return true;}});
   Object.assign(renderer,{canvas,c:wrapped,scene:{heightmap:Array(6).fill('000000').join('\n'),items:[{id:'palm',sprite:'palm',x:1,y:1,z:0,width:1,length:1}]},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom:1,hit:[],localUserId:'me'});
   renderer.setUsers([{userId:'me',position:{x:0,y:0,z:0},state:'std'}]);renderer.draw();const behind=faded;
   faded=0;renderer.setUsers([{userId:'me',position:{x:4,y:4,z:0},state:'std'}]);renderer.draw();const clear=faded;
@@ -599,3 +599,20 @@ test('Expanded furniture collections render distinct art and preserve browse-onl
  await page.getByRole('searchbox',{name:'Search decor'}).fill('koi');await expect(page.locator('.catalog-grid')).toContainText('Stillwater Koi Pond');
  expect(await page.evaluate(()=>localStorage.getItem('arcadeCoins'))).toBe(before);
 });
+
+ test('Dream beds have distinct designs and four real orientations, including furniture backs',async({page})=>{
+  await page.goto('/world.html?catalog=All');
+  const result=await page.evaluate(()=>{
+   const render=item=>{const c=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(c,item);return c.toDataURL();};
+   const beds=EarnlyWorldCollections.bedItems;
+   return {beds:beds.map(d=>({id:d.id,lay:d.can_lay,art:[0,2,4,6].map(rotation=>render({...d,rotation}))})),
+    sofas:[{id:'boardwalk-sofa'},{id:'mint-sofa'}].map(d=>render({...d,sprite_id:'sofa',width:2,length:1,color:'#63dcd6'})),
+    lamps:[{id:'boardwalk-lamp'},{id:'neon-lamp'}].map(d=>render({...d,sprite_id:'lamp',width:1,length:1,color:'#e2a0ed'})),
+    chairs:[0,2,4,6].map(rotation=>render({sprite_id:'chair',width:1,length:1,rotation}))};
+  });
+  expect(result.beds).toHaveLength(8);expect(new Set(result.beds.map(d=>d.art[0])).size).toBe(8);
+  for(const d of result.beds){expect(d.lay).toBe(true);expect(new Set(d.art).size,d.id).toBe(4);}
+  expect(new Set(result.sofas).size).toBe(2);expect(new Set(result.lamps).size).toBe(2);expect(new Set(result.chairs).size).toBe(4);
+  await page.getByRole('searchbox',{name:'Search decor'}).fill('Dream Rooms');
+  await expect(page.locator('.catalog-grid .item-card')).toHaveCount(8);
+ });
