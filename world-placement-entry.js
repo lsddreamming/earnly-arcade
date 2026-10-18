@@ -6,7 +6,7 @@ export function placementCheck(scene,item,position,users=[]){
   const floor=parseHeightmap(scene.heightmap),items=scene.items.filter(i=>i.id!==item.id);
   const base=new RoomGrid(floor,items),tile=base.tile(position);
   if(!tile)throw new Error('Choose a floor tile');
-  const placed={...item,...position,z:tile.z};
+  const placed={...item,...position,centered:false,z:tile.z};
   const next=new RoomGrid(floor,[...items,placed]);
   for(const user of users){const t=next.tile(user.position);if(!t||t.z!==user.position.z||!(t.walkable||user.state==='sit'&&t.canSit||user.state==='lay'&&t.canLay))throw new Error('Move away from the item before placing it');}
   return {valid:true,z:tile.z};

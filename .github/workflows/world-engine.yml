@@ -31,6 +31,7 @@ jobs:
       - run: node scripts/test-world-garden.mjs
       - run: node scripts/test-world-collections.mjs
       - run: node scripts/test-world-colors.mjs
+      - run: node scripts/test-world-centered-tables.mjs
       - run: node scripts/test-world-boardwalk.mjs
       - run: node scripts/test-world-account-permissions.mjs
       - run: node scripts/test-world-network.mjs

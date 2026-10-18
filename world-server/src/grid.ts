@@ -6,7 +6,7 @@ export type ItemPlacement = Readonly<{
   id: string; x: number; y: number; z: number;
   width: number; length: number; rotation: 0 | 2 | 4 | 6;
   itemHeight: number; walkable: boolean; canStack: boolean;
-  canSit?: boolean; canLay?: boolean;
+  canSit?: boolean; canLay?: boolean; centered?: boolean;
 }>;
 const MAX_SIDE = 64;
 const MAX_HEIGHT = 64;
@@ -55,9 +55,10 @@ export class RoomGrid {
     const ids = new Set<string>();
     for (const item of items as readonly ItemPlacement[]) {
       if (!item || typeof item.id !== 'string' || !item.id.length || item.id.length > 128 || ids.has(item.id) || !validXY(item) || ![0,2,4,6].includes(item.rotation) || !Number.isInteger(item.width) || !Number.isInteger(item.length) || item.width < 1 || item.length < 1 || item.width > MAX_SIDE || item.length > MAX_SIDE || !height(item.z) || !height(item.itemHeight) || item.itemHeight <= 0 || item.z + item.itemHeight > MAX_HEIGHT || typeof item.walkable !== 'boolean' || typeof item.canStack !== 'boolean' || (item.canSit !== undefined && typeof item.canSit !== 'boolean') || (item.canLay !== undefined && typeof item.canLay !== 'boolean')) throw new Error('Invalid room item');
+      if(item.centered!==undefined&&typeof item.centered!=='boolean'||item.centered&&(item.width!==1||item.length!==1||item.canStack))throw new Error('Invalid centered table');
       ids.add(item.id);
       const turned = item.rotation === 2 || item.rotation === 6;
-      const w = turned ? item.length : item.width, h = turned ? item.width : item.length;
+      const w = (turned ? item.length : item.width)+(item.centered?1:0), h = (turned ? item.width : item.length)+(item.centered?1:0);
       for (let y = item.y; y < item.y + h; y++) for (let x = item.x; x < item.x + w; x++) {
         if (!this.inBounds({x,y}) || !tiles[y * this.width + x]) throw new Error('Item outside usable floor');
         const key = y * this.width + x;

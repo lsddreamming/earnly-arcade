@@ -21,6 +21,7 @@
    if(a.length>=3)node.front=insert(node.front,{...f,p:a,cut:true});if(b.length>=3)node.back=insert(node.back,{...f,p:b,cut:true});return node;};
   let root=null;for(const f of faces)root=insert(root,f);const ordered=[];const walk=n=>{if(!n)return;const front=dot(n.n,[1,1,18])>=0;walk(front?n.back:n.front);ordered.push(...n.faces);walk(front?n.front:n.back);};walk(root);return ordered;
  }
+ const furnitureDepth=i=>i.x+i.y+(i.width+i.length)/2+(i.centered?1:0)+(i.z||0)*.01-(i.walkable&&i.itemHeight<=.5?10000:0);
  // Furniture is built in tile coordinates so all four orientations have real backs.
  function solidDecor(c,item,x,y){
   const id=item.definitionId||item.definition_id||item.id;
@@ -94,6 +95,7 @@
  }
 
  function decor(c,item,x,y){
+  if(item.centered&&!c.__capture)y+=9;
   if(!c.__capture&&solidDecor(c,item,x,y))return;
   const color=item.color||'#67d1cc',s=item.sprite||item.sprite_id||'table';
   const dims={'diner-booth':[2,1],'pod-bed':[1,2],sofa:[2,1],bed:[1,2],rug:[2,2],divider:[2,1]},[w,l]=dims[s]||[item.width||1,item.length||1];
@@ -543,7 +545,7 @@
     // Hit-test the original sprite pixels, including tall decor above its floor tile.
     const canvas=this.pickCanvas||(this.pickCanvas=document.createElement('canvas'));canvas.width=canvas.height=1;
     const c=canvas.getContext('2d',{willReadFrequently:true});
-    const items=[...(this.scene?.items||[])].sort((a,b)=>(a.x+a.y+(a.width+a.length)/2)-(b.x+b.y+(b.width+b.length)/2));
+    const items=[...(this.scene?.items||[])].sort((a,b)=>furnitureDepth(a)-furnitureDepth(b));
     for(const item of items.reverse()){c.clearRect(0,0,1,1);decor(c,item,(item.x-item.y)*18-x,(item.x+item.y)*9-item.z*12-y);if(c.getImageData(0,0,1,1).data[3]>0)return item;}
     return null;
   }
@@ -675,7 +677,7 @@
      const tint=check.valid?'#54f09a88':'#ff526f99',edge=check.valid?'#a6ffd0':'#ffb3bf';
      for(let y=preview.y;y<preview.y+pl;y++)for(let x=preview.x;x<preview.x+pw;x++){const px=(x-y)*18,py=(x+y)*9-check.z*12;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],tint,edge);}
     }
-    const nodes=(this.scene.items||[]).filter(i=>i.id!==preview?.item.id).map(item=>({depth:item.x+item.y+(item.width+item.length)/2-.3,item}));for(const u of [...this.users.values(),...this.staff.values()]){let depth=(u.visual||u.position).x+(u.visual||u.position).y+1;if(u.state==='sit'||u.state==='lay'){const seat=nodes.find(n=>{const i=n.item;if(!i)return false;const turned=i.rotation===2||i.rotation===6;return u.position.x>=i.x&&u.position.y>=i.y&&u.position.x<i.x+(turned?i.length:i.width)&&u.position.y<i.y+(turned?i.width:i.length);});if(seat)depth=Math.max(depth,seat.depth+.1);}nodes.push({depth,user:u});}nodes.sort((a,b)=>a.depth-b.depth);this.hit=[];
+    const nodes=(this.scene.items||[]).filter(i=>i.id!==preview?.item.id).map(item=>({depth:furnitureDepth(item)-.3,item}));for(const u of [...this.users.values(),...this.staff.values()]){let depth=(u.visual||u.position).x+(u.visual||u.position).y+1;if(u.state==='sit'||u.state==='lay'){const seat=nodes.find(n=>{const i=n.item;if(!i)return false;const turned=i.rotation===2||i.rotation===6;return u.position.x>=i.x&&u.position.y>=i.y&&u.position.x<i.x+(turned?i.length:i.width)&&u.position.y<i.y+(turned?i.width:i.length);});if(seat)depth=Math.max(depth,seat.depth+.1);}nodes.push({depth,user:u});}nodes.sort((a,b)=>a.depth-b.depth);this.hit=[];
     const local=nodes.find(n=>n.user&&n.user.userId===this.localUserId),localPos=local?.user?.visual;
     for(const node of nodes){if(node.item){const i=node.item,ix=(i.x-i.y)*18,iy=(i.x+i.y)*9-i.z*12;
      // Fade foreground foliage only while it overlaps your avatar; collision and picking stay intact.

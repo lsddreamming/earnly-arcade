@@ -642,3 +642,24 @@ test('Furniture color choice previews, purchases and appears in the Backpack',as
  await page.getByRole('button',{name:'Buy for ◇ 120',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Your Backpack');await expect(page.locator('#panelContent')).toContainText('Rose color');
  expect(await page.evaluate(()=>window.purchases.map(p=>({id:p.definitionId,color:p.color})))).toEqual([{id:'oak-single',color:'#d9a0b5'}]);await expect(page.locator('#coinBalance')).toContainText('880');
 });
+
+test('Small tables can be centered on a rug through their furniture controls',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  Object.defineProperty(window,'EarnlyWorldRenderer',{configurable:true,set(value){const Original=value.WorldRenderer;value.WorldRenderer=class extends Original{constructor(...args){super(...args);window.centerTestRenderer=this;}};Object.defineProperty(window,'EarnlyWorldRenderer',{value,configurable:true});}});
+  window.centerActions=[];
+  window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}close(){}
+   send(raw){const p=JSON.parse(raw),emit=data=>this.onmessage?.({data:JSON.stringify(data)});this.scene??={roomId:'home',name:'Home',ownerId:'owner',heightmap:'000000\n000000\n000000\n000000\n000000\n000000',items:[{id:'rug',name:'Mint Rug',sprite:'rug',color:'#8fbba7',x:2,y:2,z:0,width:2,length:2,rotation:0,itemHeight:.25,walkable:true,canStack:true},{id:'table',definitionId:'low-table',name:'Orbit Table',sprite:'table',color:'#e1b786',x:4,y:1,z:0,width:1,length:1,rotation:0,itemHeight:.5,walkable:false,canStack:true}]};
+    const bootstrap={centeredTables:true,balance:1000,rooms:[],catalog:[],items:[{id:'table',definition_id:'low-table'}],friends:[]};
+    if(p.type==='JOIN')emit({type:'WELCOME',userId:'owner',scene:this.scene,bootstrap});
+    if(p.type==='ACTION'){if(p.action==='place'){window.centerActions.push(p.data);Object.assign(this.scene.items[1],{x:2,y:2,z:.25,centered:true,canStack:false});emit({type:'SCENE',scene:this.scene});}emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?bootstrap:{}});}
+   }
+  };
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ const point=await page.evaluate(()=>{const r=centerTestRenderer;for(let y=15;y<70;y++)for(let x=30;x<80;x++)if([[0,0],[-2,0],[2,0],[0,-2],[0,2]].every(([dx,dy])=>r.pickItem(x+dx,y+dy)?.id==='table'))return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};throw new Error('No visible table pixels');});
+ await page.locator('#worldCanvas').click({position:point});await page.getByRole('button',{name:'Center on rug',exact:true}).click();await page.getByRole('button',{name:'Mint Rug · tile 3, 3',exact:true}).click();
+ await expect(page.locator('#worldToast')).toHaveText('Table centered on rug');expect(await page.evaluate(()=>window.centerActions)).toEqual([{itemId:'table',centerOnRug:'rug',rotation:0}]);
+ expect(await page.evaluate(()=>centerTestRenderer.scene.items.find(i=>i.id==='table').centered)).toBe(true);
+});
