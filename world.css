@@ -108,3 +108,5 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .wishlist-note{font-size:.8rem;color:#9bb4c5;margin:.5rem 0 1rem}
 
 .furniture-colors{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}.furniture-swatch{display:flex;align-items:center;gap:7px;min-height:44px;padding:8px 12px}.furniture-swatch::before{content:"";width:20px;height:20px;background:var(--swatch);border:1px solid #ffffff99;border-radius:50%}.furniture-swatch[aria-pressed="true"]{outline:2px solid #a5f4d2;background:#29465b}.furniture-color-label{margin:10px 0 4px;font-weight:700}
+
+.room-browser-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.room-browser-tabs button{flex:1;padding:10px 8px;font-size:13px;white-space:nowrap}.room-browser-tabs button[aria-pressed="true"]{background:#7cf3d5;color:#103a36;border-color:#7cf3d5}.room-browser-search{box-sizing:border-box;width:100%;margin-bottom:10px}.room-browser-search[hidden]{display:none}.room-browser-status:empty{display:none}

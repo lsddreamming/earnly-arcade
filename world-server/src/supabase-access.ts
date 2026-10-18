@@ -97,6 +97,11 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(typeof data.userId!=='string'||!/^[0-9a-f-]{36}$/i.test(data.userId))throw new Error('Player unavailable');
       const rooms=await this.#request('/rest/v1/rpc/world_friend_rooms',this.#key,{p_actor:uid,p_friend:data.userId});
       result=this.#roomCounts(rooms);
+    }else if(action==='room_explore'){
+      const query=typeof data.query==='string'?data.query.trim().slice(0,80):'';
+      const offset=typeof data.offset==='number'&&Number.isSafeInteger(data.offset)&&data.offset>=0?data.offset:0;
+      const directory=await this.#request('/rest/v1/rpc/world_explore_rooms',this.#key,{p_actor:uid,p_query:query,p_offset:offset});
+      result={...directory,rooms:this.#roomCounts(directory.rooms)};
     }else if(action==='room_directory'){
       const directory=await this.#api(uid,'bootstrap');result=this.#roomCounts(directory.rooms);
     }else if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
