@@ -88,7 +88,7 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
     if(p.type==='JOIN'){emit({type:'WELCOME',userId:'owner',scene,bootstrap});emit({type:'ROOM_SNAPSHOT',users:[]});}
     if(p.type==='INTERACT')window.seatRequests.push(p);
     if(p.type==='ACTION'){
-     if(p.action==='place'){window.savedDrops.push(p.data);Object.assign(scene.items.find(i=>i.id===p.data.itemId),p.data);emit({type:'SCENE',scene});}
+     if(p.action==='place'){window.savedDrops.push(p.data);if(p.data.pickup)scene.items=scene.items.filter(i=>i.id!==p.data.itemId);else Object.assign(scene.items.find(i=>i.id===p.data.itemId),p.data);emit({type:'SCENE',scene});}
      emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?bootstrap:{}});
     }
    }
@@ -163,7 +163,9 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  const otherPoint=await page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[1],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
  await tap(otherPoint);await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.item.id)).toBe('other-chair');
  expect(await page.evaluate(()=>window.savedDrops.length)).toBe(3);
- await page.locator('#cancelPlace').click();
+ await page.getByRole('button',{name:'Return to bag',exact:true}).click();await expect(page.locator('#placementHint')).not.toBeVisible();
+ expect(await page.evaluate(()=>window.savedDrops.at(-1))).toEqual({itemId:'other-chair',pickup:true});
+ expect(await page.evaluate(()=>window.testRenderer.scene.items.map(i=>i.id))).toEqual(['owned-chair']);
  // A visitor cannot enter editing even if they can see the furniture.
  await page.evaluate(()=>{window.testRenderer.scene.ownerId='someone-else';});
  p=await point();await pointer('pointerdown',p);await page.waitForTimeout(600);await pointer('pointerup',p);await expect(page.locator('#placementHint')).not.toBeVisible();

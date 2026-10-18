@@ -51,16 +51,23 @@
   }
   if(scene.ownerId===userId)root.append(button('Move',()=>beginPlacement(item,item.name),'primary'),button('Rotate ↻',async()=>{await action('place',{itemId:item.id,x:item.x,y:item.y,rotation:(item.rotation+2)%8});await refresh();$('worldPanel').close();toast('Furniture rotated');}),button('Return to Backpack',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();$('worldPanel').close();toast('Returned to your Backpack');}));
  }
- function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';}
+ function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
  $('rotateItem').onclick=()=>{if(renderer.placement?.saving)return;rotation=(rotation+2)%8;if(renderer.placement)renderer.placement.rotation=rotation;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{if(renderer.placement?.saving)return;placing=null;showPlacement();};
+ $('returnItem').onclick=async()=>{
+  const p=renderer.placement;if(!p||p.saving||!renderer.canEditItem(p.item))return;
+  p.saving=true;for(const id of ['rotateItem','returnItem','cancelPlace'])$(id).disabled=true;
+  try{await action('place',{itemId:p.item.id,pickup:true});if(renderer.placement===p){placing=null;showPlacement();}await refresh();toast('Returned to your Backpack');}
+  catch(e){toast(e.message);}
+  finally{p.saving=false;for(const id of ['rotateItem','returnItem','cancelPlace'])$(id).disabled=false;}
+ };
  renderer.canEditItem=item=>connected&&scene?.ownerId===userId&&bootstrap.items.some(i=>i.id===item.id);
  renderer.onPlacementDrop=async nextItem=>{
   const p=renderer.placement,roomId=scene?.roomId;if(!p||p.saving)return;
   const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
-  p.saving=true;$('rotateItem').disabled=true;$('cancelPlace').disabled=true;
+  p.saving=true;$('rotateItem').disabled=true;$('returnItem').disabled=true;$('cancelPlace').disabled=true;
   try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();toast('Placed in your room');if(nextItem&&scene?.roomId===roomId&&!placing){const next=scene.items.find(i=>i.id===nextItem.id);if(next&&renderer.canEditItem(next))beginPlacement(next,next.name,true);}}}
   catch(e){toast(e.message);}
-  finally{p.saving=false;$('rotateItem').disabled=false;$('cancelPlace').disabled=false;}
+  finally{p.saving=false;$('rotateItem').disabled=false;$('returnItem').disabled=false;$('cancelPlace').disabled=false;}
  };
  const updateViewButtons=()=>{$('roomView').setAttribute('aria-pressed',String(renderer.viewMode==='room'));};
  $('zoomIn').onclick=()=>renderer.setZoom(renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.setZoom(renderer.zoom-.2);
