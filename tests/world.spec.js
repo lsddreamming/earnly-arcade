@@ -663,3 +663,22 @@ test('Small tables can be centered on a rug through their furniture controls',as
  await expect(page.locator('#worldToast')).toHaveText('Table centered on rug');expect(await page.evaluate(()=>window.centerActions)).toEqual([{itemId:'table',centerOnRug:'rug',rotation:0}]);
  expect(await page.evaluate(()=>centerTestRenderer.scene.items.find(i=>i.id==='table').centered)).toBe(true);
 });
+
+test('Outdoor scenery has no opaque horizon strip at wide or close zoom',async({page})=>{
+ await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const results=[];
+  for(const theme of ['patio','rooftop'])for(const zoom of [.65,1.4]){
+   const canvas=document.createElement('canvas');canvas.width=700;canvas.height=850;
+   const renderer=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype);
+   Object.assign(renderer,{canvas,c:canvas.getContext('2d'),scene:{heightmap:Array(24).fill('0'.repeat(24)).join('\n'),items:[],theme},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom,hit:[]});
+   renderer.draw();
+   const c=canvas.getContext('2d'),y=Math.round(renderer.cy-94*renderer.scale),left=Math.max(0,Math.round(renderer.cx-180*renderer.scale)),right=Math.min(699,Math.round(renderer.cx+180*renderer.scale));
+   const row=c.getImageData(left,y,right-left+1,1).data;let opaque=0;
+   for(let i=3;i<row.length;i+=4)if(row[i]>150)opaque++;
+   results.push({theme,zoom,opaque});
+  }
+  return results;
+ });
+ expect(result.every(r=>r.opaque===0)).toBe(true);
+});
