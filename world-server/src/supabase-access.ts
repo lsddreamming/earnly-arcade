@@ -113,16 +113,22 @@ export class SupabaseWorldAccess implements WorldAccess {
           let items=snapshot.items.filter(i=>i.id!==item.id);
           // First verify removing this item does not leave an unsupported stack.
           const base=new RoomGrid(parseHeightmap(snapshot.heightmap),items,snapshot.revision);
-          let z=0;
+          let z=0,centered=false,placeX=data.x,placeY=data.y;
           if(!data.pickup){
-            const x=data.x,y=data.y,rotation=data.rotation;
+            centered=typeof data.centerOnRug==='string'||item.centered===true&&data.x===item.x&&data.y===item.y&&data.centered!==false;
+            if(centered){
+              if(definition.width!==1||definition.length!==1||!['table','bistro-table','holo-table'].includes(definition.sprite_id))throw new Error('Only small tables can be centered');
+              const rug=snapshot.items.find(i=>(data.centerOnRug?i.id===data.centerOnRug:i.x===item.x&&i.y===item.y)&&i.sprite==='rug'&&i.width===2&&i.length===2&&i.walkable&&i.canStack);
+              if(!rug)throw new Error('Choose a rug in this room');placeX=rug.x;placeY=rug.y;
+            }
+            const x=placeX,y=placeY,rotation=data.rotation;
             if(!Number.isInteger(x)||!Number.isInteger(y)||![0,2,4,6].includes(rotation as number))throw new Error('Choose a floor tile');
             const tile=base.tile({x:x as number,y:y as number});if(!tile)throw new Error('Choose a floor tile');z=tile.z;
-            items=[...items,{id:item.id,x:x as number,y:y as number,z,rotation:rotation as 0|2|4|6,width:definition.width,length:definition.length,itemHeight:Number(definition.item_height),walkable:definition.walkable,canStack:definition.can_stack,canSit:definition.can_sit,canLay:definition.can_lay,definitionId:definition.id,sprite:definition.sprite_id,color:item.color??definition.color,name:definition.name}];
+            items=[...items,{id:item.id,x:x as number,y:y as number,z,rotation:rotation as 0|2|4|6,width:definition.width,length:definition.length,itemHeight:Number(definition.item_height),walkable:definition.walkable,canStack:centered?false:definition.can_stack,centered,canSit:definition.can_sit,canLay:definition.can_lay,definitionId:definition.id,sprite:definition.sprite_id,color:item.color??definition.color,name:definition.name}];
           }
           const next=new RoomGrid(parseHeightmap(snapshot.heightmap),items,snapshot.revision+1);
           if(!room.canReplace(next))throw new Error('Move away from the item before placing it');
-          await this.#api(uid,'place',{roomId,revision:snapshot.revision,itemId:item.id,x:data.x,y:data.y,z,rotation:data.rotation,pickup:!!data.pickup});
+          await this.#api(uid,'place',{roomId,revision:snapshot.revision,itemId:item.id,x:placeX,y:placeY,z,rotation:data.rotation,centered,pickup:!!data.pickup});
           room.replaceGrid(next);
           return {...snapshot,items,revision:next.revision};
         }catch(error){
