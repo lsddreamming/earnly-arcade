@@ -785,6 +785,7 @@ test('Room camera turns locally, maps raised floors and furniture, and resets on
   a.updateUser({userId:'visitor',position:{x:5,y:4,z:1},state:'std'});a.localUserId='visitor';
   for(let q=0;q<4;q++){
    a.draw();images.push(a.canvas.toDataURL());
+   const centered=a.viewItem({id:"centered",x:3,y:1,width:1,length:1,rotation:0,centered:true}),expected=[[3,1],[2,3],[2,2],[1,2]][q];checks.push(centered.x===expected[0]&&centered.y===expected[1]);
    for(const p of [{x:0,y:0,z:0},{x:6,y:1,z:0},{x:4,y:4,z:1}]){const v=a.toView(p),picked=a.floorAt((v.x-v.y)*18,(v.x+v.y)*9-p.z*12+9);checks.push(JSON.stringify(picked)===JSON.stringify({x:p.x,y:p.y}));}
    const item=a.viewItem(scene.items[0]);let hit=false;
    for(let x=-25;x<45&&!hit;x+=4)for(let y=-35;y<25&&!hit;y+=4)hit=a.pickItem((item.x-item.y)*18+x,(item.x+item.y)*9+y)?.id==='seat';checks.push(hit);
@@ -802,6 +803,8 @@ test('Rotate view buttons send no multiplayer packets and walking uses the origi
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.addInitScript(()=>{window.cameraPackets=[];window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);window.cameraPackets.push(p);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'camera-live',name:'My Room',ownerId:'owner',heightmap:'00000000\n00000000\n00000000\n00000000\n00000000\n00000000',items:[{id:'chair',sprite:'sofa',x:1,y:2,z:0,width:2,length:1,rotation:0,color:'#74bdb0'}]},bootstrap:{balance:0,rooms:[],catalog:[],items:[],friends:[]}})});}close(){}};});
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ const stage=await page.locator('.world-stage').boundingBox();expect(stage.height).toBeLessThanOrEqual(440);
+ for(const id of ['viewLeft','viewRight','zoomIn','zoomOut']){const box=await page.locator('#'+id).boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);}
  const before=await page.evaluate(()=>cameraPackets.length);
  await page.locator('#viewRight').click();await page.locator('#viewRight').click();await page.locator('#viewLeft').click();
  expect(await page.evaluate(()=>cameraRenderer.viewRotation)).toBe(1);expect(await page.evaluate(()=>cameraPackets.length)).toBe(before);

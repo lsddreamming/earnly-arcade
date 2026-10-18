@@ -746,7 +746,7 @@
   cameraSize(){if(this.sizeCache?.heightmap!==this.scene.heightmap){const rows=this.scene.heightmap.split('\n');this.sizeCache={heightmap:this.scene.heightmap,n:rows[0].length,m:rows.length};}return this.sizeCache;}
   toView(p){const {n,m}=this.cameraSize(),q=this.viewRotation||0;return {...p,...(q===1?{x:m-1-p.y,y:p.x}:q===2?{x:n-1-p.x,y:m-1-p.y}:q===3?{x:p.y,y:n-1-p.x}:{x:p.x,y:p.y})};}
   fromView(p){const {n,m}=this.cameraSize(),q=this.viewRotation||0;return {...p,...(q===1?{x:p.y,y:m-1-p.x}:q===2?{x:n-1-p.x,y:m-1-p.y}:q===3?{x:n-1-p.y,y:p.x}:{x:p.x,y:p.y})};}
-  viewItem(item){if(!this.viewRotation)return item;const turned=item.rotation===2||item.rotation===6,w=turned?item.length:item.width,l=turned?item.width:item.length,a=this.toView(item),b=this.toView({x:item.x+(w||1)-1,y:item.y+(l||1)-1});return {...item,x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),rotation:((item.rotation||0)+this.viewRotation*2)%8,sourceItem:item};}
+  viewItem(item){if(!this.viewRotation)return item;const turned=item.rotation===2||item.rotation===6,w=(turned?item.length:item.width)+(item.centered?1:0),l=(turned?item.width:item.length)+(item.centered?1:0),a=this.toView(item),b=this.toView({x:item.x+(w||1)-1,y:item.y+(l||1)-1});return {...item,x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),rotation:((item.rotation||0)+this.viewRotation*2)%8,sourceItem:item};}
   cameraScene(){
    if(!this.viewRotation)return this.scene;
    if(this.viewCache?.source===this.scene&&this.viewCache.rotation===this.viewRotation)return this.viewCache.scene;
@@ -756,7 +756,7 @@
    this.viewCache={source:this.scene,rotation:this.viewRotation,scene};return scene;
   }
   rotateView(step){
-   if(!this.scene||this.placement?.saving)return;
+   if(!this.scene||this.placement?.saving||this.pointers?.size)return;
    clearTimeout(this.holdTimer);clearTimeout(this.tapTimer);this.lastTap=null;this.drag=null;this.pinch=null;this.pointers?.clear();this.gestureLock=false;
    this.viewRotation=((this.viewRotation||0)+step+4)%4;this.offset={x:0,y:0};this.draw();
   }
