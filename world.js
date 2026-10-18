@@ -70,6 +70,7 @@
   finally{p.saving=false;$('rotateItem').disabled=false;$('returnItem').disabled=false;$('cancelPlace').disabled=false;}
  };
  const updateViewButtons=()=>{$('roomView').setAttribute('aria-pressed',String(renderer.viewMode==='room'));};
+ $('viewLeft').onclick=()=>renderer.rotateView(-1);$('viewRight').onclick=()=>renderer.rotateView(1);
  $('zoomIn').onclick=()=>renderer.setZoom(renderer.zoom+.2);$('zoomOut').onclick=()=>renderer.setZoom(renderer.zoom-.2);
  $('roomView').onclick=()=>{renderer.setView('room');updateViewButtons();};
  $('focusMe').onclick=()=>{renderer.focusMe();updateViewButtons();};
@@ -371,7 +372,7 @@
  $('coinBalance').addEventListener('click',event=>{event.preventDefault();showCoins();});
  window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
- $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key];if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:u.position.x+x,y:u.position.y+y}));};
+ $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key],view=renderer.toView(u.position),target=renderer.fromView({x:view.x+x,y:view.y+y});if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:target.x,y:target.y}));};
  window.addEventListener('earnly-cloud-auth-change',()=>{clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
 
  function showFirstVisitHint(){let seen=false;try{seen=localStorage.getItem('earnly.world.hint.'+userId)==='1';}catch{}$('firstVisitHint').hidden=seen;}

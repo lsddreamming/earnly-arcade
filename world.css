@@ -134,3 +134,26 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .room-browser-management>.muted{font-size:12px;line-height:1.4;margin:8px 0}
 .room-browser-management>button:not(.primary){font-size:12px}
 @media(max-width:360px){.room-browser-card.hangout-card{grid-template-columns:72px minmax(0,1fr);gap:3px 8px}.room-browser-card.hangout-card .hangout-preview{width:72px;height:92px}.room-browser-card .panel-row strong{font-size:14px}.room-browser-card .panel-row button{padding:8px;font-size:11px}}
+
+/* Camera tools belong to the frame, so zooming never moves them off screen. */
+.world-stage{padding-top:60px;height:clamp(320px,52svh,520px)}
+.world-stage canvas{height:100%}
+.stage-tools{top:8px;right:8px;gap:4px}
+.stage-label{top:70px;left:10px}
+.world-bottom{background:#071322}
+.world-app{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.room-invitation{gap:6px;padding:8px 10px;margin:6px 0}
+.room-invitation>div{flex:1 1 100%;font-size:12px}
+.room-invitation p{display:none}
+.room-invitation button{flex:1;min-height:44px;padding:6px 8px;font-size:11px}
+@media(max-width:600px){
+ .world-stage{height:clamp(300px,48svh,440px);min-height:300px;max-height:440px}
+ .stage-tools{left:8px;right:8px;justify-content:flex-end}
+ .stage-tools button{flex:0 0 44px;min-width:44px}
+ .stage-tip{font-size:9px}
+ .world-app{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+}
+
+#placementHint{position:static;margin:6px 0;width:100%;font-size:11px}
+
+#viewLeft,#viewRight{font-size:23px;line-height:1}

@@ -45,7 +45,8 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 #placementHint{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #placementHint[hidden]{display:none}
 #placementInstructions{flex-basis:100%}
-#placingName{flex:1;min-width:0;overflow-wrap:anywhere}
+#placingName{flex-basis:100%;min-width:0;overflow-wrap:anywhere}
+#placementHint button{flex:1;margin-left:0;white-space:nowrap}
 @media(max-width:360px){.stage-tools{gap:3px;right:8px}.stage-label{top:64px;left:10px}}
 
 [hidden]{display:none!important}.world-entry{min-height:350px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 20px;border:1px solid #41667c;border-radius:24px;background:radial-gradient(ellipse at top,#284b59,#132239 70%)}.world-entry h2{font-size:26px;margin:12px 0}.world-entry p{max-width:380px;color:#b5cddd;line-height:1.5}.world-entry p:last-child{font-size:12px}.world-entry .primary{min-width:230px;min-height:52px;font-size:17px}.entry-door{font-size:58px;color:#85f7d6;text-shadow:0 0 28px #74f3d066}#worldSignIn{margin-top:18px}#worldConnected .world-tools{grid-template-columns:repeat(6,minmax(0,1fr))}
@@ -108,3 +109,51 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .wishlist-note{font-size:.8rem;color:#9bb4c5;margin:.5rem 0 1rem}
 
 .furniture-colors{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}.furniture-swatch{display:flex;align-items:center;gap:7px;min-height:44px;padding:8px 12px}.furniture-swatch::before{content:"";width:20px;height:20px;background:var(--swatch);border:1px solid #ffffff99;border-radius:50%}.furniture-swatch[aria-pressed="true"]{outline:2px solid #a5f4d2;background:#29465b}.furniture-color-label{margin:10px 0 4px;font-weight:700}
+
+.room-browser-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.room-browser-tabs button{flex:1;padding:10px 8px;font-size:13px;white-space:nowrap}.room-browser-tabs button[aria-pressed="true"]{background:#7cf3d5;color:#103a36;border-color:#7cf3d5}.room-browser-search{box-sizing:border-box;width:100%;margin-bottom:10px}.room-browser-search[hidden]{display:none}.room-browser-status:empty{display:none}
+
+/* Compact room browser: one clear purpose per section. */
+.room-browser-intro{font-size:12px;line-height:1.4;color:#aac6d5;margin:0 0 12px}
+.room-browser-card{padding:12px;border-radius:16px;margin-bottom:10px}
+.room-browser-card .panel-row{padding:0;border:0;gap:8px;align-items:center}
+.room-browser-card .panel-row strong{font-size:15px;line-height:1.25;overflow-wrap:anywhere}
+.room-browser-card .panel-row button{font-size:12px;padding:8px 12px;flex-shrink:0}
+.room-browser-card .room-occupancy{font-size:12px;margin:8px 0 4px}
+.room-browser-card>.muted{font-size:12px;line-height:1.4;margin:0}
+.room-browser-card.hangout-card{grid-template-columns:92px minmax(0,1fr);gap:3px 12px;min-height:126px}
+.room-browser-card.hangout-card .hangout-preview{width:92px;height:104px;grid-row:1/5}
+.room-browser-card.hangout-card .panel-row{display:flex;flex-wrap:nowrap}
+.room-browser-card.hangout-card .panel-row strong{flex-basis:auto;flex:1}
+.room-browser-card.hangout-card .hangout-tag{font-size:9px;margin:0}
+.room-browser-card.hangout-card .room-occupancy{margin:3px 0}
+.room-browser-card .room-delete{background:transparent;color:#a9bdcc;border-color:transparent;font-size:11px;min-height:44px;padding:8px 0;margin-top:2px;text-decoration:underline;text-underline-offset:3px}
+.room-refresh{font-size:12px;background:transparent;min-height:44px;margin:0 0 4px}
+.room-browser-management{border-top:1px solid #2b405c;padding-top:12px;margin-top:8px}
+.room-browser-management[hidden]{display:none}
+.room-browser-management>.primary{width:100%}
+.room-browser-management>.muted{font-size:12px;line-height:1.4;margin:8px 0}
+.room-browser-management>button:not(.primary){font-size:12px}
+@media(max-width:360px){.room-browser-card.hangout-card{grid-template-columns:72px minmax(0,1fr);gap:3px 8px}.room-browser-card.hangout-card .hangout-preview{width:72px;height:92px}.room-browser-card .panel-row strong{font-size:14px}.room-browser-card .panel-row button{padding:8px;font-size:11px}}
+
+/* Camera tools belong to the frame, so zooming never moves them off screen. */
+.world-stage{padding-top:60px;height:clamp(320px,52svh,520px)}
+.world-stage canvas{height:100%}
+.stage-tools{top:8px;right:8px;gap:4px}
+.stage-label{top:70px;left:10px}
+.world-bottom{background:#071322}
+.world-app{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.room-invitation{gap:6px;padding:8px 10px;margin:6px 0}
+.room-invitation>div{flex:1 1 100%;font-size:12px}
+.room-invitation p{display:none}
+.room-invitation button{flex:1;min-height:44px;padding:6px 8px;font-size:11px}
+@media(max-width:600px){
+ .world-stage{height:clamp(300px,48svh,440px);min-height:300px;max-height:440px}
+ .stage-tools{left:8px;right:8px;justify-content:flex-end}
+ .stage-tools button{flex:0 0 44px;min-width:44px}
+ .stage-tip{font-size:9px}
+ .world-app{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+}
+
+#placementHint{position:static;margin:6px 0;width:100%;font-size:11px}
+
+#viewLeft,#viewRight{font-size:23px;line-height:1}

@@ -775,3 +775,42 @@ test('Showcase furniture is searchable with distinct art and VIP models render i
  await page.getByRole('searchbox',{name:'Search decor'}).fill('Tidal Glass');await expect(page.locator('.catalog-grid .item-card')).toHaveCount(1);await expect(page.locator('.catalog-grid')).toContainText('340');
  await page.screenshot({path:testInfo.outputPath('showcase-aquarium.png')});expect(errors).toEqual([]);
 });
+
+test('Room camera turns locally, maps raised floors and furniture, and resets only on room entry',async({page})=>{
+ await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const make=()=>{const canvas=document.createElement('canvas');canvas.style='width:390px;height:500px';document.body.append(canvas);const r=new EarnlyWorldRenderer.WorldRenderer(canvas,()=>{});r.running=false;r.resize();return r;};
+  const a=make(),b=make(),scene={roomId:'camera-room',heightmap:'0000000\n0000000\n00xx000\n0011111\n0011111',items:[{id:'seat',sprite:'sofa',x:3,y:0,z:0,width:2,length:1,rotation:0,color:'#b688cb'}]};
+  a.setScene(scene);b.setScene(scene);const original=JSON.stringify(scene),images=[],checks=[];
+  a.updateUser({userId:'visitor',position:{x:5,y:4,z:1},state:'std'});a.localUserId='visitor';
+  for(let q=0;q<4;q++){
+   a.draw();images.push(a.canvas.toDataURL());
+   const centered=a.viewItem({id:"centered",x:3,y:1,width:1,length:1,rotation:0,centered:true}),expected=[[3,1],[2,3],[2,2],[1,2]][q];checks.push(centered.x===expected[0]&&centered.y===expected[1]);
+   for(const p of [{x:0,y:0,z:0},{x:6,y:1,z:0},{x:4,y:4,z:1}]){const v=a.toView(p),picked=a.floorAt((v.x-v.y)*18,(v.x+v.y)*9-p.z*12+9);checks.push(JSON.stringify(picked)===JSON.stringify({x:p.x,y:p.y}));}
+   const item=a.viewItem(scene.items[0]);let hit=false;
+   for(let x=-25;x<45&&!hit;x+=4)for(let y=-35;y<25&&!hit;y+=4)hit=a.pickItem((item.x-item.y)*18+x,(item.x+item.y)*9+y)?.id==='seat';checks.push(hit);
+   a.placement={item:scene.items[0],x:4,y:1,rotation:0};const before=JSON.stringify(a.placementResult());a.rotateView(1);checks.push(JSON.stringify(a.placementResult())===before&&a.placement.x===4&&a.placement.y===1&&a.placement.rotation===0);a.clearPlacement();
+  }
+  a.rotateView(1);a.setScene({...scene,items:[...scene.items]});const kept=a.viewRotation===1;a.setScene({...scene,roomId:'next-room'});
+  return {checks,unique:new Set(images).size,unchanged:JSON.stringify(scene)===original,otherView:b.viewRotation,kept,reset:a.viewRotation,position:a.users.get('visitor').position};
+ });
+ expect(result.checks.every(Boolean)).toBe(true);expect(result.unique).toBe(4);expect(result.unchanged).toBe(true);expect(result.otherView).toBe(0);expect(result.kept).toBe(true);expect(result.reset).toBe(0);expect(result.position).toEqual({x:5,y:4,z:1});
+});
+
+test('Rotate view buttons send no multiplayer packets and walking uses the original tile',async({page},testInfo)=>{
+ const fs=require('node:fs');
+ await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.cameraRenderer=this;}};}'}));
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{window.cameraPackets=[];window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);window.cameraPackets.push(p);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'camera-live',name:'My Room',ownerId:'owner',heightmap:'00000000\n00000000\n00000000\n00000000\n00000000\n00000000',items:[{id:'chair',sprite:'sofa',x:1,y:2,z:0,width:2,length:1,rotation:0,color:'#74bdb0'}]},bootstrap:{balance:0,rooms:[],catalog:[],items:[],friends:[]}})});}close(){}};});
+ await page.setViewportSize({width:390,height:844});await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ const stage=await page.locator('.world-stage').boundingBox();expect(stage.height).toBeLessThanOrEqual(440);
+ for(const id of ['viewLeft','viewRight','zoomIn','zoomOut']){const box=await page.locator('#'+id).boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);}
+ const before=await page.evaluate(()=>cameraPackets.length);
+ await page.locator('#viewRight').click();await page.locator('#viewRight').click();await page.locator('#viewLeft').click();
+ expect(await page.evaluate(()=>cameraRenderer.viewRotation)).toBe(1);expect(await page.evaluate(()=>cameraPackets.length)).toBe(before);
+ const p=await page.evaluate(()=>{const r=cameraRenderer;r.draw();const v=r.toView({x:5,y:3}),b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(v.x-v.y)*18*r.scale,y:b.top+r.cy+((v.x+v.y)*9+9)*r.scale};});
+ await page.mouse.click(p.x,p.y);expect(await page.evaluate(()=>cameraPackets.at(-1))).toEqual({type:'MOVE_TO',x:5,y:3});
+ await page.evaluate(()=>cameraRenderer.updateUser({userId:'owner',position:{x:5,y:3,z:0},state:'std'}));await page.locator('#worldCanvas').focus();await page.keyboard.press('ArrowUp');expect(await page.evaluate(()=>cameraPackets.at(-1))).toEqual({type:'MOVE_TO',x:4,y:3});
+ await page.locator('.world-stage').screenshot({path:`test-results/world-camera-${testInfo.project.name}.png`});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

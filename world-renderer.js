@@ -678,9 +678,9 @@
   if(!drew){c.fillStyle='#173f58';c.fillRect(-8,-20,16,17);c.fillStyle='#7ef0d6';c.fillRect(-8,-19,16,2);c.fillStyle='#ad855d';c.fillRect(-10,-37,20,19);c.fillStyle='#ecc898';c.fillRect(-8,-40,16,20);c.fillStyle='#fff3cf';c.fillRect(-5,-34,4,6);c.fillRect(3,-34,4,6);c.fillStyle='#1e495b';c.fillRect(-4,-32,2,4);c.fillRect(4,-32,2,4);c.fillStyle='#645448';c.fillRect(-2,-25,5,2);c.fillStyle='#73c292';c.fillRect(0,-44,3,5);c.fillStyle='#263447';c.fillRect(-8,-4,6,5);c.fillRect(3,-4,6,5);}
  c.restore();}
  class WorldRenderer{
-  constructor(canvas,onTap){this.canvas=canvas;this.c=canvas.getContext('2d');this.onTap=onTap;this.scene=null;this.users=new Map();this.staff=new Map();this.offset={x:0,y:0};this.zoom=1;this.viewMode='room';this.localUserId=null;this.hit=[];this.selected=null;this.bubbles=new Map();this.pointers=new Map();
+  constructor(canvas,onTap){this.canvas=canvas;this.c=canvas.getContext('2d');this.onTap=onTap;this.scene=null;this.users=new Map();this.staff=new Map();this.offset={x:0,y:0};this.zoom=1;this.viewRotation=0;this.viewMode='room';this.localUserId=null;this.hit=[];this.selected=null;this.bubbles=new Map();this.pointers=new Map();
     new ResizeObserver(()=>this.resize()).observe(canvas);this.resize();
-    const point=e=>{const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left-this.cx)/this.scale,y=(e.clientY-r.top-this.cy)/this.scale;const tile=this.floorAt(x,y);return {x,y,tx:tile?.x??Math.floor((x/18+y/9)/2),ty:tile?.y??Math.floor((y/9-x/18)/2)};};
+    const point=e=>{const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left-this.cx)/this.scale,y=(e.clientY-r.top-this.cy)/this.scale;const tile=this.floorAt(x,y)||this.fromView({x:Math.floor((x/18+y/9)/2),y:Math.floor((y/9-x/18)/2)});return {x,y,tx:tile.x,ty:tile.y};};
     const resetTap=()=>{clearTimeout(this.tapTimer);this.lastTap=null;};
     const cancelHold=()=>{clearTimeout(this.holdTimer);this.holdTimer=null;};
     canvas.addEventListener('pointerdown',e=>{
@@ -742,13 +742,31 @@
     for(const type of ['gesturestart','gesturechange','gestureend','contextmenu'])canvas.addEventListener(type,e=>e.preventDefault());
     this.running=true;const loop=()=>{if(!this.running)return;this.draw();requestAnimationFrame(loop);};requestAnimationFrame(loop);
   }
+  // Camera coordinates are presentation-only; scene and network positions stay unchanged.
+  cameraSize(){if(this.sizeCache?.heightmap!==this.scene.heightmap){const rows=this.scene.heightmap.split('\n');this.sizeCache={heightmap:this.scene.heightmap,n:rows[0].length,m:rows.length};}return this.sizeCache;}
+  toView(p){const {n,m}=this.cameraSize(),q=this.viewRotation||0;return {...p,...(q===1?{x:m-1-p.y,y:p.x}:q===2?{x:n-1-p.x,y:m-1-p.y}:q===3?{x:p.y,y:n-1-p.x}:{x:p.x,y:p.y})};}
+  fromView(p){const {n,m}=this.cameraSize(),q=this.viewRotation||0;return {...p,...(q===1?{x:p.y,y:m-1-p.x}:q===2?{x:n-1-p.x,y:m-1-p.y}:q===3?{x:n-1-p.y,y:p.x}:{x:p.x,y:p.y})};}
+  viewItem(item){if(!this.viewRotation)return item;const turned=item.rotation===2||item.rotation===6,w=(turned?item.length:item.width)+(item.centered?1:0),l=(turned?item.width:item.length)+(item.centered?1:0),a=this.toView(item),b=this.toView({x:item.x+(w||1)-1,y:item.y+(l||1)-1});return {...item,x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),rotation:((item.rotation||0)+this.viewRotation*2)%8,sourceItem:item};}
+  cameraScene(){
+   if(!this.viewRotation)return this.scene;
+   if(this.viewCache?.source===this.scene&&this.viewCache.rotation===this.viewRotation)return this.viewCache.scene;
+   const rows=this.scene.heightmap.split('\n'),n=rows[0].length,m=rows.length,odd=this.viewRotation%2,grid=Array.from({length:odd?n:m},()=>Array(odd?m:n).fill('x'));
+   for(let y=0;y<m;y++)for(let x=0;x<n;x++){const p=this.toView({x,y});grid[p.y][p.x]=rows[y][x];}
+   const scene={...this.scene,heightmap:grid.map(r=>r.join('')).join('\n'),items:(this.scene.items||[]).map(i=>this.viewItem(i))};
+   this.viewCache={source:this.scene,rotation:this.viewRotation,scene};return scene;
+  }
+  rotateView(step){
+   if(!this.scene||this.placement?.saving||this.pointers?.size)return;
+   clearTimeout(this.holdTimer);clearTimeout(this.tapTimer);this.lastTap=null;this.drag=null;this.pinch=null;this.pointers?.clear();this.gestureLock=false;
+   this.viewRotation=((this.viewRotation||0)+step+4)%4;this.offset={x:0,y:0};this.draw();
+  }
   floorAt(px,py){
-   const rows=this.scene?.heightmap.split('\n')||[];
+   const rows=this.cameraScene()?.heightmap.split('\n')||[];
    // Reverse painter order resolves raised floor diamonds before tiles behind them.
    for(let y=rows.length-1;y>=0;y--)for(let x=rows[y].length-1;x>=0;x--){
     if(!/[0-9]/.test(rows[y][x]))continue;
     const cx=(x-y)*18,cy=(x+y)*9-Number(rows[y][x])*12+9;
-    if(Math.abs(px-cx)/18+Math.abs(py-cy)/9<=1)return {x,y};
+    if(Math.abs(px-cx)/18+Math.abs(py-cy)/9<=1)return this.fromView({x,y});
    }
    return null;
   }
@@ -756,8 +774,8 @@
     // Hit-test the original sprite pixels, including tall decor above its floor tile.
     const canvas=this.pickCanvas||(this.pickCanvas=document.createElement('canvas'));canvas.width=canvas.height=1;
     const c=canvas.getContext('2d',{willReadFrequently:true});
-    const items=[...source].sort((a,b)=>furnitureDepth(a)-furnitureDepth(b));
-    for(const item of items.reverse()){c.clearRect(0,0,1,1);decor(c,item,(item.x-item.y)*18-x,(item.x+item.y)*9-item.z*12-y);if(c.getImageData(0,0,1,1).data[3]>0)return item;}
+    const items=source.map(i=>this.viewItem(i)).sort((a,b)=>furnitureDepth(a)-furnitureDepth(b));
+    for(const item of items.reverse()){c.clearRect(0,0,1,1);decor(c,item,(item.x-item.y)*18-x,(item.x+item.y)*9-item.z*12-y);if(c.getImageData(0,0,1,1).data[3]>0)return item.sourceItem||item;}
     return null;
   }
   resize(){const r=this.canvas.getBoundingClientRect();this.width=Math.round(r.width);this.height=Math.round(r.height);this.dpr=Math.min(2,window.devicePixelRatio||1);this.canvas.width=Math.round(this.width*this.dpr);this.canvas.height=Math.round(this.height*this.dpr);this.c.imageSmoothingEnabled=false;}
@@ -767,7 +785,7 @@
   sample(u,now=performance.now()){const t=Math.max(0,Math.min(1,(now-u.at)/250));return {x:u.old.x+(u.position.x-u.old.x)*t,y:u.old.y+(u.position.y-u.old.y)*t,z:u.old.z+(u.position.z-u.old.z)*t};}
   animate(u,now){const p=this.sample(u,now),last=u.visual||p,dt=Math.min(.05,Math.max(0,(now-(u.frameAt||now))/1000)),distance=Math.hypot(p.x-last.x,p.y-last.y);const moving=distance>.00001&&u.state!=='sit'&&u.state!=='lay';u.phase=(u.phase||0)+distance*Math.PI*2;u.gait=(u.gait||0)+((moving?1:0)-(u.gait||0))*(1-Math.exp(-dt*18));u.visual=p;u.frameAt=now;return p;}
 
-  setScene(scene){this.placementCache=null;if(!this.scene||this.scene.roomId!==scene.roomId){clearTimeout(this.holdTimer);this.placement=null;this.drag=null;this.pointers?.clear();this.pinch=null;this.gestureLock=false;clearTimeout(this.tapTimer);this.lastTap=null;this.setView('room');this.bubbles.clear();}this.scene=scene;}
+  setScene(scene){this.placementCache=null;if(!this.scene||this.scene.roomId!==scene.roomId){clearTimeout(this.holdTimer);this.placement=null;this.drag=null;this.pointers?.clear();this.pinch=null;this.gestureLock=false;clearTimeout(this.tapTimer);this.lastTap=null;this.viewRotation=0;this.viewCache=null;this.setView('room');this.bubbles.clear();}this.scene=scene;}
   clearPlacement(){clearTimeout(this.holdTimer);this.placement=null;this.drag=null;this.lastTap=null;clearTimeout(this.tapTimer);}
   placementResult(){
    const p=this.placement;if(!p)return null;
@@ -787,11 +805,21 @@
     facing:changed&&Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')});}
 
   bubble(packet){this.bubbles.set(packet.userId,{text:packet.text,until:performance.now()+6000,mode:packet.mode});}
-  draw(){const c=this.c,w=this.width||this.canvas.width,h=this.height||this.canvas.height;c.setTransform(this.dpr||1,0,0,this.dpr||1,0,0);c.clearRect(0,0,w,h);if(!this.scene)return;const floor=this.scene.heightmap.split('\n'),n=floor[0].length,m=floor.length;
+  draw(){
+   if(!this.scene)return this.drawScene();
+   const now=performance.now();for(const u of [...this.users.values(),...this.staff.values()])this.animate(u,now);
+   if(!this.viewRotation)return this.drawScene();
+   // Reuse cached room/furniture geometry. Only live avatar coordinates change per frame.
+   const view=Object.create(this),mapUsers=source=>new Map([...source].map(([id,u])=>{const visual=this.toView(u.visual||u.position),old=this.toView(u.old),position=this.toView(u.position),dx=position.x-old.x,dy=position.y-old.y;return [id,{...u,visual,old,position,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):u.facing,sourceUser:u}];}));
+   view.scene=this.cameraScene();view.worldTile=(x,y)=>this.fromView({x,y});view.users=mapUsers(this.users);view.staff=mapUsers(this.staff);view.selected=this.selected?this.toView(this.selected):null;
+   view.placementResult=()=>this.placementResult();
+   if(this.placement){const p=this.placement,check=this.placementResult(),item=this.viewItem({...p.item,x:p.x,y:p.y,z:check.z,rotation:p.rotation});Object.assign(p,{valid:check.valid,z:check.z,reason:check.reason});view.placement={...p,x:item.x,y:item.y,rotation:item.rotation};}
+   view.drawScene();for(const key of ['cx','cy','scale','doorHit'])this[key]=view[key];this.hit=view.hit.map(h=>({...h,user:h.user.sourceUser||h.user}));
+  }
+  drawScene(){const c=this.c,w=this.width||this.canvas.width,h=this.height||this.canvas.height;c.setTransform(this.dpr||1,0,0,this.dpr||1,0,0);c.clearRect(0,0,w,h);if(!this.scene)return;const floor=this.scene.heightmap.split('\n'),n=floor[0].length,m=floor.length;
     const fit=Math.min(w/((n+m)*18+70),h/((n+m)*9+150));
     this.scale=(this.viewMode==='close'?Math.max(fit,Math.min(1.65,w/290)):fit)*this.zoom;
     this.cx=w/2+(m-n)*9*this.scale+this.offset.x;this.cy=(h-(n+m)*9*this.scale)/2+44*this.scale+this.offset.y;
-    const now=performance.now();for(const u of [...this.users.values(),...this.staff.values()])this.animate(u,now);
     const me=this.users.get(this.localUserId);
     if(this.viewMode==='close'&&me){const {x:px,y:py,z}=me.visual;
      this.cx=w/2-(px-py)*18*this.scale+this.offset.x;this.cy=h*.55-((px+py)*9+9-z*12-20)*this.scale+this.offset.y;
@@ -865,6 +893,7 @@
     const occupied=(x,y)=>x>=0&&y>=0&&x<n&&y<m&&!/[xX]/.test(floor[y][x]);
     for(let y=0;y<m;y++)for(let x=0;x<n;x++){
      if(!occupied(x,y))continue;
+     const {x:ox,y:oy}=this.worldTile?.(x,y)||{x,y};
      const z=Number(floor[y][x]),px=(x-y)*18,py=(x+y)*9-z*12;
      const tint=theme==='patio'?((x+y)%2?'#adbb94':'#a2b28a'):theme==='rooftop'?((x+y)%2?'#929eb8':'#8490aa'):theme==='lobby'?((x+y)%2?'#dfceb2':'#d1bea0'):((x+y)%2?'#bdccca':'#afc2c1');
      poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],tint,'#7e989f');
@@ -873,12 +902,12 @@
      poly(c,[[px,py+1],[px+16,py+9],[px,py+10],[px-16,py+9]],'#ffffff0b');
      poly(c,[[px-16,py+10],[px,py+17],[px+16,py+10],[px,py+15]],'#18344e09');
      if(theme==='lobby'){
-      const lounge=(x>=1&&x<=10&&y>=5&&y<=9)||(x>=15&&x<=20&&y>=12&&y<=17)||(x>=13&&x<=19&&y>=18&&y<=22);
+      const lounge=(ox>=1&&ox<=10&&oy>=5&&oy<=9)||(ox>=15&&ox<=20&&oy>=12&&oy<=17)||(ox>=13&&ox<=19&&oy>=18&&oy<=22);
       if(lounge){poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#985354','#b87b67');poly(c,[[px,py+5],[px+8,py+9],[px,py+13],[px-8,py+9]],'#c5926d');}
       else if((x+y)%4===0)poly(c,[[px,py+6],[px+6,py+9],[px,py+12],[px-6,py+9]],'#bda078');
      }else if(outside){
       // Fine decking with staggered joints, garden paths and a slate bar apron.
-      const deck=theme==='rooftop'||(x>1&&x<11&&y>1&&y<11);
+      const deck=theme==='rooftop'||(ox>1&&ox<11&&oy>1&&oy<11);
       if(deck){poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],theme==='patio'?'#b59c73':'#9a87a4','#665e71');
        for(const q of [.25,.5,.75]){c.beginPath();c.moveTo(px+q*18,py+q*9);c.lineTo(px+(q-1)*18,py+(q+1)*9);c.strokeStyle=theme==='patio'?'#d3ba8d':'#b8a5bc';c.lineWidth=.6;c.stroke();}}
       else if((x*7+y*11)%5===0){c.fillStyle='#d2d9aa';c.fillRect(px-1,py+8,2,2);}
