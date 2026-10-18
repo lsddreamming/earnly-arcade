@@ -108,6 +108,16 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await double(p);await expect(page.locator('#placementInstructions')).toContainText('double-tap to drop');
  expect(await page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
+ // Idle preview frames reuse collision checks, but movement and occupancy invalidate them.
+ expect(await page.evaluate(()=>{
+  const r=window.testRenderer,engine=window.EarnlyWorldPlacement;let checks=0;
+  window.EarnlyWorldPlacement={...engine,placementCheck(...args){checks++;return engine.placementCheck(...args);}};
+  r.placementCache=null;for(let i=0;i<30;i++)r.placementResult();const idle=checks;
+  r.placement.x++;r.placementResult();const moved=checks;
+  r.users.set('blocker',{position:{x:r.placement.x,y:r.placement.y,z:0}});const occupied=r.placementResult().valid;
+  r.users.delete('blocker');r.placement.x--;r.placementCache=null;window.EarnlyWorldPlacement=engine;
+  return {idle,moved,occupied};
+ })).toEqual({idle:1,moved:2,occupied:false});
  // The same pointer stream handles mouse and touch dragging; real touch pickup/drop is above.
  await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x-distance,p.y,{steps:5});await page.mouse.up();
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement.valid)).toBe(false);
@@ -673,12 +683,12 @@ test('Furniture color choice previews, purchases and appears in the Backpack',as
   };
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
- await page.locator('[data-panel="catalog"]').click();await page.getByRole('button',{name:'Preview Oak Cabin Single',exact:true}).click();
+ await page.locator('[data-panel="catalog"]').click();await page.getByRole('searchbox',{name:'Search decor'}).fill('Oak');await page.getByRole('combobox',{name:'Sort decor'}).selectOption('price');await page.getByRole('button',{name:'Preview Oak Cabin Single',exact:true}).click();
  const before=await page.locator('.decor-room-preview').evaluate(c=>c.toDataURL());
  await page.getByRole('button',{name:'Color: Rose',exact:true}).click();await expect(page.getByRole('button',{name:'Color: Rose',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(await page.locator('.decor-room-preview').evaluate(c=>c.toDataURL())).not.toBe(before);
  await page.getByRole('button',{name:'Choose this piece',exact:true}).click();await expect(page.getByRole('button',{name:'Color: Rose',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.getByRole('button',{name:'Buy for ◇ 120',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Your Backpack');await expect(page.locator('#panelContent')).toContainText('Rose color');
+ await page.getByRole('button',{name:'Buy for ◇ 120',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Decor Catalog');await expect(page.locator('.owned-label')).toContainText('1 owned');await expect(page.getByRole('searchbox',{name:'Search decor'})).toHaveValue('Oak');await expect(page.getByRole('combobox',{name:'Sort decor'})).toHaveValue('price');await page.getByRole('button',{name:'View Backpack',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Your Backpack');await expect(page.locator('#panelContent')).toContainText('Rose color');
  expect(await page.evaluate(()=>window.purchases.map(p=>({id:p.definitionId,color:p.color})))).toEqual([{id:'oak-single',color:'#d9a0b5'}]);await expect(page.locator('#coinBalance')).toContainText('880');
 });
 
