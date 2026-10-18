@@ -17,7 +17,7 @@
   if(refreshFailed){say('');refreshFailed=false;}
   $('pass-manage').hidden=!state.provider;$('pass-manage').dataset.provider=state.provider||'';
   window.dispatchEvent(new Event('earnly-pass-change'));return true;
- }catch(error){eligible=false;refreshFailed=true;$('pass-buy').disabled=true;say('We couldn’t check your VIP status. Try again in a moment. Your saved items are safe.');return false;}}
+ }catch(error){eligible=false;refreshFailed=true;$('pass-buy').disabled=true;$('pass-buy').textContent='Temporarily unavailable';if($('vip-access-note'))$('vip-access-note').textContent='VIP status is temporarily unavailable. Use Restore purchases to retry.';if($('vip-gift-availability'))$('vip-gift-availability').textContent='Monthly gift status is temporarily unavailable.';say('We couldn’t check your VIP status. Try again in a moment. Your saved items are safe.');return false;}}
  async function deliver(signedTransaction){const data=await api('/apple/verify',{signedTransaction});await apple.finish({transactionId:data.transactionId});return data;}
  $('pass-buy').onclick=async()=>{if(busy)return;if(!(await window.EarnlyCloud?.session?.())){$('auth-modal').showModal();return;}busy=true;$('pass-buy').disabled=true;
  try{if(native){const session=await window.EarnlyCloud.session();const result=await apple.purchase({productId:config.productId,accountToken:session.user.id});if(result.status==='purchased'){await deliver(result.signedTransaction);say('VIP activated. Your cosmetics are ready.');}else say(result.status==='pending'?'Waiting for Apple approval.':'Purchase cancelled.');}

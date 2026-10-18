@@ -5,12 +5,17 @@ const {db,users,close}=await worldFixture();
 try{
  await db.exec(`create table public.arcade_pass_transactions(provider text,transaction_id text,subscription_id text,user_id uuid,expires_at timestamptz,revoked boolean default false,primary key(provider,transaction_id));grant select on public.arcade_pass_transactions to service_role;`);
  await db.exec(await readFile('supabase/migrations/20261017022225_vip_furniture_gifts.sql','utf8'));
+ await assert.rejects(db.query('select arcade_pass_furniture_me($1)',[users[0]]),/ambiguous/);
+ await db.exec(await readFile('supabase/migrations/20261018162547_fix_vip_furniture_status.sql','utf8'));
+ const gifts=async(user)=>(await db.query('select arcade_pass_furniture_me($1) gifts',[user])).rows[0].gifts;
+ await db.exec('set role service_role');assert.deepEqual(await gifts(users[0]),[]);await db.exec('reset role');
  const start=new Date(Date.now()-86400000).toISOString(),end=new Date(Date.now()+29*86400000).toISOString();
  const record=async(id,user=users[0],sub='sub_1')=>db.query('insert into arcade_pass_transactions(provider,transaction_id,subscription_id,user_id,expires_at) values($1,$2,$3,$4,$5)',['stripe',id,sub,user,end]);
  const award=async(id,user=users[0],sub='sub_1')=>(await db.query('select arcade_pass_furniture_award($1,$2,$3,$4,$5,$6) a',[user,'stripe',id,sub,start,end])).rows[0].a;
  const balance=(await db.query('select * from coin_wallets order by user_id')).rows;
  await assert.rejects(award('missing'),/VERIFIED_PAYMENT_REQUIRED/);
  await record('in_1');const a=await award('in_1');assert.ok(a.item_id);assert.deepEqual(await award('in_1'),a);
+ assert.equal((await gifts(users[0]))[0].definitionId,a.definition_id);assert.equal((await gifts(users[0]))[0].delivered,true);assert.deepEqual(await gifts(users[1]),[]);
  await record('in_duplicate');assert.equal((await award('in_duplicate')).item_id,a.item_id);
  await assert.rejects(award('in_1',users[1]),/VERIFIED_PAYMENT_REQUIRED/);
  await assert.rejects(db.query("select world_api($1,'buy',$2)",[users[0],JSON.stringify({definitionId:a.definition_id,requestId:crypto.randomUUID()})]),/VIP_GIFT_ONLY/);
@@ -27,6 +32,7 @@ try{
  // Ending the subscription preserves an already-paid pending gift.
  await db.query("update arcade_pass_transactions set revoked=true where transaction_id='in_full'");
  await db.query("delete from earnly_world.items where owner_id=$1 and definition_id='arcade-chair' and serial=10001",[users[1]]);
+ assert.equal((await gifts(users[1]))[0].delivered,true);
  const recovered=await award('in_full',users[1],'sub_2');assert.ok(recovered.item_id);assert.equal((await award('in_full',users[1],'sub_2')).item_id,recovered.item_id);
  assert.deepEqual((await db.query('select * from coin_wallets order by user_id')).rows,balance);
  console.log('VIP ledger: verified ownership, transaction/period replay, forbidden coin purchase, non-tradeability, private RPCs, refund invalidation, pending-backpack recovery and untouched wallets passed.');

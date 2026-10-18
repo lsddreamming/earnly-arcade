@@ -95,6 +95,7 @@ test('VIP showcase previews each piece without spending and failed restoration s
  await page.locator('#vip-pass').screenshot({path:`test-results/vip-showcase-full-${testInfo.project.name}.png`});
  await page.route('**/arcade-pass/**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Could not verify this request.'}})}));
  await page.locator('#pass-restore').click();await expect(page.locator('#pass-status')).toContainText('couldn’t check your VIP status');
+ await expect(page.locator('#pass-buy')).toHaveText('Temporarily unavailable');await expect(page.locator('#vip-access-note')).not.toContainText('coming soon');
  await expect(page.locator('#pass-status')).not.toContainText('ownership refreshed');await expect(page.locator('#pass-buy')).toBeDisabled();
  await page.route('**/arcade-pass/**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(r.request().url().endsWith('/config')?{webAvailable:false,appleAvailable:false}:{active:false})}));
  await page.locator('#pass-restore').click();await expect(page.locator('#pass-status')).toContainText('Account ownership refreshed');
