@@ -251,3 +251,5 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #ff
 @media(prefers-reduced-motion:reduce){
   .cc-palette{scroll-behavior:auto}
 }
+
+.cc-voice-caption{position:absolute;bottom:10px;left:10px;max-width:calc(100% - 110px);padding:7px 10px;border:1px solid #78e8cf55;border-radius:8px;background:#071522ed;color:#d8fff3;font-size:11px;line-height:1.4;pointer-events:none;z-index:3}.cc-voice-caption[hidden],.cc-menu .cc-voice-caption{display:none}
