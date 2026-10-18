@@ -811,10 +811,51 @@
    if(!this.viewRotation)return this.drawScene();
    // Reuse cached room/furniture geometry. Only live avatar coordinates change per frame.
    const view=Object.create(this),mapUsers=source=>new Map([...source].map(([id,u])=>{const visual=this.toView(u.visual||u.position),old=this.toView(u.old),position=this.toView(u.position),dx=position.x-old.x,dy=position.y-old.y;return [id,{...u,visual,old,position,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):u.facing,sourceUser:u}];}));
-   view.scene=this.cameraScene();view.worldTile=(x,y)=>this.fromView({x,y});view.users=mapUsers(this.users);view.staff=mapUsers(this.staff);view.selected=this.selected?this.toView(this.selected):null;
+   view.sourceScene=this.scene;view.scene=this.cameraScene();view.worldTile=(x,y)=>this.fromView({x,y});view.users=mapUsers(this.users);view.staff=mapUsers(this.staff);view.selected=this.selected?this.toView(this.selected):null;
    view.placementResult=()=>this.placementResult();
    if(this.placement){const p=this.placement,check=this.placementResult(),item=this.viewItem({...p.item,x:p.x,y:p.y,z:check.z,rotation:p.rotation});Object.assign(p,{valid:check.valid,z:check.z,reason:check.reason});view.placement={...p,x:item.x,y:item.y,rotation:item.rotation};}
    view.drawScene();for(const key of ['cx','cy','scale','doorHit'])this[key]=view[key];this.hit=view.hit.map(h=>({...h,user:h.user.sourceUser||h.user}));
+  }
+  // Boundary vertices rotate with the floor, unlike tile centers (which use n - 1).
+  roomVertex(x,y){const source=this.sourceScene||this.scene,rows=source.heightmap.split('\n'),n=rows[0].length,m=rows.length,q=this.viewRotation||0;
+   const p=q===1?{x:m-y,y:x}:q===2?{x:n-x,y:m-y}:q===3?{x:y,y:n-x}:{x,y};return {x:(p.x-p.y)*18,y:(p.x+p.y)*9};
+  }
+  roomEdge(side){const origin=this.roomVertex(0,0),end=this.roomVertex(side===1?1:0,side===-1?1:0),a=(end.x-origin.x)/(side*18),b=(end.y-origin.y)/(side*18)-side*.5;
+   return {a,b,x:origin.x,y:origin.y,front:a<0};
+  }
+  drawRoomShell(front){const c=this.c,source=this.sourceScene||this.scene,floor=source.heightmap.split('\n'),n=floor[0].length,m=floor.length,theme=source.theme,outside=theme==='rooftop'||theme==='patio';
+   const height=58+Math.max(...floor.flatMap(row=>[...row].filter(v=>/[0-9]/.test(v)).map(Number)))*12;
+   for(const side of [-1,1]){const edge=this.roomEdge(side);if(edge.front!==front)continue;
+    const span=side===-1?m:n;c.save();c.transform(edge.a,edge.b,0,1,edge.x,edge.y);
+    // Keep foreground walls attached, but translucent so players can see inside.
+    if(front)c.globalAlpha=.28;
+    if(!outside){
+     const gradient=c.createLinearGradient(0,-58,side*span*18,span*9);
+     gradient.addColorStop(0,theme==='lobby'?(side<0?'#c8ae7b':'#f0d5a0'):(side<0?'#527b89':'#8da3b9'));
+     gradient.addColorStop(1,theme==='lobby'?(side<0?'#86654b':'#bb946c'):(side<0?'#294c64':'#586b8b'));
+     poly(c,[[0,0],[side*span*18,span*9],[side*span*18,span*9-height],[0,-height]],gradient,side<0?'#203c53':'#304359');
+     poly(c,[[0,-5],[side*span*18,span*9-5],[side*span*18,span*9],[0,0]],side<0?'#2b4558':'#40526d');
+     if(side<0)for(let i=1;i<m-1;i+=2){const x=-i*18,y=i*9;poly(c,[[x,y-46],[x-27,y-32.5],[x-27,y+6],[x,y-7.5]],'#16394d18','#8dcac21c');}
+     else for(let i=1;i<n-1;i+=3){const x=i*18,y=i*9-Number(floor[0][i]||0)*12;poly(c,[[x,y-43],[x+30,y-28],[x+30,y-10],[x,y-25]],'#234864','#cee5dc');poly(c,[[x+3,y-40],[x+27,y-28],[x+27,y-24],[x+3,y-36]],'#71e6d4');poly(c,[[x+4,y-33],[x+26,y-22],[x+26,y-14],[x+4,y-25]],'#102d4e');poly(c,[[x+14,y-35],[x+15,y-34.5],[x+15,y-19],[x+14,y-19.5]],'#b4d6de');}
+     if(theme==='lobby')for(let i=1;i<span-2;i+=3){const wx=i*18*side,wy=i*9;
+      poly(c,[[wx,wy-21],[wx+side*36,wy-3],[wx+side*36,wy+12],[wx,wy-6]],'#77503c','#e0b982');poly(c,[[wx+side*4,wy-16],[wx+side*32,wy-2],[wx+side*32,wy+7],[wx+side*4,wy-7]],'#a27851','#c59a64');
+      if(side===1)for(const u of [0,27])poly(c,[[wx+u,wy-46+u/2],[wx+u+5,wy-43.5+u/2],[wx+u+5,wy-16+u/2],[wx+u,wy-21+u/2]],'#914c51','#d4a36d');
+     }
+     poly(c,[[0,-height+3],[side*span*18,span*9-height+3],[side*span*18,span*9-height+6],[0,-height+6]],theme==='lobby'?(side<0?'#ecd19c':'#ffe2a7'):(side<0?'#86f4d6':'#c1adf2'));
+    }else{
+     poly(c,[[0,0],[side*span*18,span*9],[side*span*18,span*9-16],[0,-16]],theme==='patio'?(side<0?'#967e5d':'#b29a72'):(side<0?'#65768f':'#8391a7'),'#253b4c');
+     c.beginPath();c.moveTo(0,-31);c.quadraticCurveTo(side*span*9,span*4.5-17,side*span*18,span*9-31);c.strokeStyle='#354652';c.lineWidth=1;c.stroke();
+     for(let i=0;i<=span;i++){const t=i/span,x=side*i*18,y=i*9-31+28*t*(1-t);c.fillStyle='#fae5a61a';c.beginPath();c.arc(x,y+3,6,0,Math.PI*2);c.fill();c.fillStyle=i%3===0?'#b6f4df':'#fae5a6';c.fillRect(x-1.5,y,3,4);}
+    }
+    if(side===-1){const row=floor.findIndex(row=>/[0-9]/.test(row)),col=row<0?-1:floor[row].search(/[0-9]/);
+     if(col>=0){const dx=(col-row)*18,dy=(col+row)*9-Number(floor[row][col])*12;
+      this.doorHit={x:edge.a*(dx-12)+edge.x,y:edge.b*(dx-12)+dy+edge.y};
+      poly(c,[[dx,dy-49],[dx-25,dy-36.5],[dx-25,dy+12.5],[dx,dy]],'#d8c59a','#203b4b');poly(c,[[dx-3,dy-43],[dx-22,dy-33.5],[dx-22,dy+8.5],[dx-3,dy-1]],'#173b4b','#81e8ce');
+      c.fillStyle='#f7d891';c.beginPath();c.arc(dx-7,dy-14,1.8,0,Math.PI*2);c.fill();
+     }
+    }
+    c.restore();
+   }
   }
   drawScene(){const c=this.c,w=this.width||this.canvas.width,h=this.height||this.canvas.height;c.setTransform(this.dpr||1,0,0,this.dpr||1,0,0);c.clearRect(0,0,w,h);if(!this.scene)return;const floor=this.scene.heightmap.split('\n'),n=floor[0].length,m=floor.length;
     const fit=Math.min(w/((n+m)*18+70),h/((n+m)*9+150));
@@ -864,38 +905,13 @@
       }
      }
     }
-    // Original mint/slate walls, window panels and neon lighting.
-    if(!outside){
-    const wallHeight=58+Math.max(...floor.flatMap(row=>[...row].filter(v=>/[0-9]/.test(v)).map(Number)))*12;
-    const leftWall=c.createLinearGradient(0,-58,-m*18,m*9);leftWall.addColorStop(0,theme==='lobby'?'#c8ae7b':'#527b89');leftWall.addColorStop(1,theme==='lobby'?'#86654b':'#294c64');
-    const rightWall=c.createLinearGradient(0,-58,n*18,n*9);rightWall.addColorStop(0,theme==='lobby'?'#f0d5a0':'#8da3b9');rightWall.addColorStop(1,theme==='lobby'?'#bb946c':'#586b8b');
-    poly(c,[[0,0],[-m*18,m*9],[-m*18,m*9-wallHeight],[0,-wallHeight]],leftWall,'#203c53');poly(c,[[0,0],[n*18,n*9],[n*18,n*9-wallHeight],[0,-wallHeight]],rightWall,'#304359');
-    // Recessed wall panels and skirting add depth without covering the floor.
-    for(let i=1;i<m-1;i+=2){const x=-i*18,y=i*9;poly(c,[[x,y-46],[x-27,y-32.5],[x-27,y+6],[x,y-7.5]],'#16394d18','#8dcac21c');}
-    poly(c,[[0,-5],[-m*18,m*9-5],[-m*18,m*9],[0,0]],'#2b4558');poly(c,[[0,-5],[n*18,n*9-5],[n*18,n*9],[0,0]],'#40526d');
-    for(let i=1;i<n-1;i+=3){const x=i*18,y=i*9-Number(floor[0][i]||0)*12;poly(c,[[x,y-43],[x+30,y-28],[x+30,y-10],[x,y-25]],'#234864','#cee5dc');poly(c,[[x+3,y-40],[x+27,y-28],[x+27,y-24],[x+3,y-36]],'#71e6d4');poly(c,[[x+4,y-33],[x+26,y-22],[x+26,y-14],[x+4,y-25]],'#102d4e');poly(c,[[x+14,y-35],[x+15,y-34.5],[x+15,y-19],[x+14,y-19.5]],'#b4d6de');}
-    if(theme==='lobby'){
-     for(const side of [-1,1])for(let i=1;i<(side===1?n:m)-2;i+=3){
-      const wx=i*18*side,wy=i*9;
-      poly(c,[[wx,wy-21],[wx+side*36,wy-3],[wx+side*36,wy+12],[wx,wy-6]],'#77503c','#e0b982');
-      poly(c,[[wx+side*4,wy-16],[wx+side*32,wy-2],[wx+side*32,wy+7],[wx+side*4,wy-7]],'#a27851','#c59a64');
-      if(side===1){for(const u of [0,27])poly(c,[[wx+u,wy-46+u/2],[wx+u+5,wy-43.5+u/2],[wx+u+5,wy-16+u/2],[wx+u,wy-21+u/2]],'#914c51','#d4a36d');}
-     }
-    }
-    poly(c,[[0,-wallHeight+3],[-m*18,m*9-wallHeight+3],[-m*18,m*9-wallHeight+6],[0,-wallHeight+6]],theme==='lobby'?'#ecd19c':'#86f4d6');poly(c,[[0,-wallHeight+3],[n*18,n*9-wallHeight+3],[n*18,n*9-wallHeight+6],[0,-wallHeight+6]],theme==='lobby'?'#ffe2a7':'#c1adf2');
-    }else{
-     poly(c,[[0,0],[-m*18,m*9],[-m*18,m*9-16],[0,-16]],theme==='patio'?'#967e5d':'#65768f','#253b4c');
-     poly(c,[[0,0],[n*18,n*9],[n*18,n*9-16],[0,-16]],theme==='patio'?'#b29a72':'#8391a7','#253b4c');
-     for(const side of [-1,1]){const span=side<0?m:n;c.beginPath();c.moveTo(0,-31);c.quadraticCurveTo(side*span*9,span*4.5-17,side*span*18,span*9-31);c.strokeStyle='#354652';c.lineWidth=1;c.stroke();
-      for(let i=0;i<=span;i++){const t=i/span,x=side*i*18,y=i*9-31+28*t*(1-t);c.fillStyle='#fae5a61a';c.beginPath();c.arc(x,y+3,6,0,Math.PI*2);c.fill();c.fillStyle=i%3===0?'#b6f4df':'#fae5a6';c.fillRect(x-1.5,y,3,4);}
-     }
-    }
+    this.drawRoomShell(false);
     const occupied=(x,y)=>x>=0&&y>=0&&x<n&&y<m&&!/[xX]/.test(floor[y][x]);
     for(let y=0;y<m;y++)for(let x=0;x<n;x++){
      if(!occupied(x,y))continue;
      const {x:ox,y:oy}=this.worldTile?.(x,y)||{x,y};
      const z=Number(floor[y][x]),px=(x-y)*18,py=(x+y)*9-z*12;
-     const tint=theme==='patio'?((x+y)%2?'#adbb94':'#a2b28a'):theme==='rooftop'?((x+y)%2?'#929eb8':'#8490aa'):theme==='lobby'?((x+y)%2?'#dfceb2':'#d1bea0'):((x+y)%2?'#bdccca':'#afc2c1');
+     const tint=theme==='patio'?((ox+oy)%2?'#adbb94':'#a2b28a'):theme==='rooftop'?((ox+oy)%2?'#929eb8':'#8490aa'):theme==='lobby'?((ox+oy)%2?'#dfceb2':'#d1bea0'):((ox+oy)%2?'#bdccca':'#afc2c1');
      poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],tint,'#7e989f');
      poly(c,[[px,py+1],[px+16,py+9],[px,py+17],[px-16,py+9]],'#ffffff06','#e9f8ec28');
      // Two restrained facets read as ceramic rather than a flat checkerboard.
@@ -904,7 +920,7 @@
      if(theme==='lobby'){
       const lounge=(ox>=1&&ox<=10&&oy>=5&&oy<=9)||(ox>=15&&ox<=20&&oy>=12&&oy<=17)||(ox>=13&&ox<=19&&oy>=18&&oy<=22);
       if(lounge){poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#985354','#b87b67');poly(c,[[px,py+5],[px+8,py+9],[px,py+13],[px-8,py+9]],'#c5926d');}
-      else if((x+y)%4===0)poly(c,[[px,py+6],[px+6,py+9],[px,py+12],[px-6,py+9]],'#bda078');
+      else if((ox+oy)%4===0)poly(c,[[px,py+6],[px+6,py+9],[px,py+12],[px-6,py+9]],'#bda078');
      }else if(outside){
       // Fine decking with staggered joints, garden paths and a slate bar apron.
       const deck=theme==='rooftop'||(ox>1&&ox<11&&oy>1&&oy<11);
@@ -912,7 +928,7 @@
        for(const q of [.25,.5,.75]){c.beginPath();c.moveTo(px+q*18,py+q*9);c.lineTo(px+(q-1)*18,py+(q+1)*9);c.strokeStyle=theme==='patio'?'#d3ba8d':'#b8a5bc';c.lineWidth=.6;c.stroke();}}
       else if((x*7+y*11)%5===0){c.fillStyle='#d2d9aa';c.fillRect(px-1,py+8,2,2);}
      }
-     if(x===0||y===0)poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#18344e18');
+     if(ox===0||oy===0)poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#18344e18');
      // Visible risers make real walkable height transitions read as broad stairs.
      const south=occupied(x,y+1)?Math.max(0,z-Number(floor[y+1][x]))*12:8+z*12;
      const east=occupied(x+1,y)?Math.max(0,z-Number(floor[y][x+1]))*12:8+z*12;
@@ -921,15 +937,6 @@
      if(south&&occupied(x,y+1))poly(c,[[px-18,py+8],[px,py+17],[px,py+19],[px-18,py+10]],'#d3e8db');
     }
 
-    // Every layout has a wall-mounted doorway, including outdoor rooms.
-    const doorRow=floor.findIndex(row=>/[0-9]/.test(row)),doorCol=doorRow<0?-1:floor[doorRow].search(/[0-9]/);
-    if(doorCol>=0){const dx=(doorCol-doorRow)*18,dy=(doorCol+doorRow)*9-Number(floor[doorRow][doorCol])*12;
-     this.doorHit={x:dx-12,y:dy};
-     poly(c,[[dx,dy-49],[dx-25,dy-36.5],[dx-25,dy+12.5],[dx,dy]],'#d8c59a','#203b4b');
-     poly(c,[[dx-3,dy-43],[dx-22,dy-33.5],[dx-22,dy+8.5],[dx-3,dy-1]],'#173b4b','#81e8ce');
-     c.fillStyle='#f7d891';c.beginPath();c.arc(dx-7,dy-14,1.8,0,Math.PI*2);c.fill();
-     poly(c,[[dx,dy],[dx-25,dy+12.5],[dx-15,dy+17.5],[dx+10,dy+5]],'#73d8ba','#b9f7df');
-    }
     if(this.selected){const {x,y}=this.selected;if(occupied(x,y)){const px=(x-y)*18,py=(x+y)*9-Number(floor[y][x])*12;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],'#7cf2ce88','#b9fff0');}}
     const preview=this.placement;
     if(preview){
@@ -947,6 +954,7 @@
      c.save();if(obscures)c.globalAlpha=.28;decor(c,i,ix,iy);c.restore();
     }else{const u=node.user,{x:px,y:py,z}=u.visual;const x=(px-py)*18,y=(px+py)*9+9-z*12;if(u.userId===this.localUserId){c.strokeStyle='#93ffe1';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,13,5,0,0,Math.PI*2);c.stroke();}avatar(c,u,x,y);this.hit.push({x,y,user:u});}}
     if(preview){c.save();c.globalAlpha=.65;decor(c,{...preview.item,x:preview.x,y:preview.y,z:preview.z,rotation:preview.rotation},(preview.x-preview.y)*18,(preview.x+preview.y)*9-preview.z*12-5);c.restore();}
+    this.drawRoomShell(true);
     c.restore();
     // Labels and speech use screen pixels, so they remain readable at every zoom.
     const bubbles=[];

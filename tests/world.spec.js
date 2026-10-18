@@ -814,3 +814,19 @@ test('Rotate view buttons send no multiplayer packets and walking uses the origi
  await page.locator('.world-stage').screenshot({path:`test-results/world-camera-${testInfo.project.name}.png`});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test('An empty room rotates its walls and doorway, not just its furniture',async({page})=>{
+ await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=560;
+  const r=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype);
+  Object.assign(r,{canvas,c:canvas.getContext('2d'),width:640,height:560,dpr:1,zoom:1,offset:{x:0,y:0},viewMode:'room',viewRotation:0,users:new Map(),staff:new Map(),bubbles:new Map(),pointers:new Map(),scene:{roomId:'empty',heightmap:Array(8).fill('00000000').join('\n'),items:[]}});
+  const original=JSON.stringify(r.scene),images=[],doors=[],edges=[];
+  for(let i=0;i<4;i++){r.draw();images.push(canvas.toDataURL());doors.push({...r.doorHit});edges.push([-1,1].map(side=>r.roomEdge(side).front));r.rotateView(1);}
+  r.draw();return {unique:new Set(images).size,doors,edges,restored:canvas.toDataURL()===images[0],unchanged:JSON.stringify(r.scene)===original};
+ });
+ expect(result.unique).toBe(4);
+ expect(new Set(result.doors.map(p=>JSON.stringify(p))).size).toBe(4);
+ expect(result.edges).toEqual([[false,false],[false,true],[true,true],[true,false]]);
+ expect(result.restored).toBe(true);expect(result.unchanged).toBe(true);
+});
