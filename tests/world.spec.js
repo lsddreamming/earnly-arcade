@@ -760,3 +760,18 @@ test('Room browser separates ownership, searches owners, pages Explore and reset
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.locator('#closePanel').click();await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('The Hangout');
 });
+
+test('Showcase furniture is searchable with distinct art and VIP models render in all orientations',async({page},testInfo)=>{
+ await page.goto('/world.html?catalog=All');
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const result=await page.evaluate(()=>{
+  const items=EarnlyWorldCollections.showcaseItems;
+  const vip=['throne','fountain','bloom'].map(s=>({id:'vip-'+s,sprite_id:'vip-'+s,width:1,length:1,color:'#b4a1f3'}));
+  return [...items,...vip].map(d=>({id:d.id,art:[0,2,4,6].map(rotation=>{const c=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(c,{...d,rotation});const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;return {data:c.toDataURL(),pixels:Array.from(px).filter((v,i)=>i%4===3&&v>0).length};})}));
+ });
+ expect(result).toHaveLength(11);expect(new Set(result.map(d=>d.art[0].data)).size).toBe(11);
+ for(const d of result)for(const a of d.art)expect(a.pixels,d.id).toBeGreaterThan(350);
+ for(const category of ['Arcade','Collectors']){await page.getByRole('button',{name:category,exact:true}).click();await expect(page.locator('.catalog-grid .item-card')).toHaveCount(5);}
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('Tidal Glass');await expect(page.locator('.catalog-grid .item-card')).toHaveCount(1);await expect(page.locator('.catalog-grid')).toContainText('340');
+ await page.screenshot({path:testInfo.outputPath('showcase-aquarium.png')});expect(errors).toEqual([]);
+});

@@ -74,6 +74,24 @@ try{
   await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
  }
  assert.equal(Number((await api('bootstrap')).balance),30000-themedTotal);
+ const beforeShowcase=(await db.query('select * from earnly_world.item_definitions order by id')).rows;
+ const beforeShowcaseBalance=Number((await api('bootstrap')).balance);
+ const showcaseMigration=await readFile('supabase/migrations/20261018152333_world_showcase_furniture.sql','utf8');
+ await db.exec(showcaseMigration);await db.exec(showcaseMigration);
+ const showcase=await api('bootstrap');assert.equal(showcase.catalog.length,151);assert.equal(Number(showcase.balance),beforeShowcaseBalance);
+ for(const old of beforeShowcase)assert.deepEqual((await db.query('select * from earnly_world.item_definitions where id=$1',[old.id])).rows[0],old);
+ let showcaseTotal=0;
+ for(const item of collections.showcaseItems){
+  const d=showcase.catalog.find(d=>d.id===item.id);
+  for(const key of ['sprite_id','width','length','can_sit','can_lay','can_stack','walkable','tradeable','category'])assert.equal(d[key],item[key],item.id+' '+key);
+  assert.equal(Number(d.price),item.price);
+  const requestId=crypto.randomUUID(),bought=await api('buy',{definitionId:item.id,requestId});
+  assert.equal((await api('buy',{definitionId:item.id,requestId})).item_id,bought.item_id);showcaseTotal+=item.price;
+  for(const rotation of [0,2,4,6])await api('place',{itemId:bought.item_id,roomId:personal.roomId,x:1,y:1,z:0,rotation});
+  await api('place',{itemId:bought.item_id,roomId:personal.roomId,pickup:true});
+ }
+ assert.equal(Number((await api('bootstrap')).balance),beforeShowcaseBalance-showcaseTotal);
+ console.log('PASS: eight showcase pieces, exact purchases, duplicate protection, four rotations, pickup and preservation.');
  console.log('PASS: 64 themed designs, metadata parity, four rotations, exact charges and replay-safe preservation.');
  console.log('PASS: eight distinct beds, all four placement directions, exact charges, replay-safe migration, preserved existing definitions and wallets.');
  console.log('PASS: 24 expanded pieces, exact charges, duplicate protection, placement/pickup, owner permissions, migration replay and existing catalog preservation.');

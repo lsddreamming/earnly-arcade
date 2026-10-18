@@ -48,6 +48,64 @@
   const mattress=(z=9,width=w)=>{block(.08,.18,width-.16,1.72,7,z,'#eee8dc');block(.09,.78,width-.18,1.1,3,z+7,color);block(.09,.77,width-.18,.16,1,z+10,shade(color,35));fabric(.09,.78,width-.18,1.1,z+10.04,color);for(let u=.14;u<width-.25;u+=.87){const a=Math.min(.65,width-.28);block(u,.27,a,.36,4,z+7,'#fff3db');fabric(u,.27,a,.36,z+11.04,'#fff3db');}ribbon([.085,.2,z+2],[.085,1.87,z+2],'#d2cabb',.009);};
   // Original themed furniture, built as volumes for correct front/back rotation.
   const themeModel=s.startsWith('theme-')?s.slice(6):null;
+  const cylinder=(u,v,r,z,h,tint,n=12)=>{const top=[];for(let j=0;j<n;j++){const a=j*Math.PI*2/n,b=(j+1)*Math.PI*2/n,p=[u+Math.cos(a)*r,v+Math.sin(a)*r],q=[u+Math.cos(b)*r,v+Math.sin(b)*r];top.push([...p,z+h]);face([[...p,z],[...q,z],[...q,z+h],[...p,z+h]],tint);}face(top,tint);};
+  const gem=(u,v,z,r,h,tint)=>{for(let j=0;j<6;j++){const a=j*Math.PI/3,b=(j+1)*Math.PI/3,p=[u+Math.cos(a)*r,v+Math.sin(a)*r,z+h*.4],q=[u+Math.cos(b)*r,v+Math.sin(b)*r,z+h*.4];face([[u,v,z+h],p,q],shade(tint,j%2?18:-8),true);face([[u,v,z],q,p],shade(tint,-24),true);}};
+  const ring=(u,v,r,z,tint)=>{for(let j=0;j<24;j++){const a=j*Math.PI/12,b=(j+1)*Math.PI/12;ribbon([u+Math.cos(a)*r,v+Math.sin(a)*r,z],[u+Math.cos(b)*r,v+Math.sin(b)*r,z],tint,.015);}};
+  if(s==='vip-throne'){
+   const gold='#d9b76e',dark='#493563';
+   for(const u of [.12,.78])for(const v of [.14,.76])block(u,v,.12,.12,7,0,gold);
+   block(.04,.06,.92,.88,7,6,dark);block(.07,.08,.86,.83,1,12,gold);
+   block(.08,.05,.84,.18,38,12,gold);block(.16,.24,.68,.035,29,16,dark);
+   for(let row=0;row<3;row++)for(let col=0;col<3;col++){const u=.19+col*.21,z=19+row*8;block(u,.28,.18,.055,6,z,shade(color,col%2?8:-4));gem(u+.09,.34,z+2,.025,2,'#ffe6ab');}
+   block(.16,.32,.68,.55,5,13,color);fabric(.16,.32,.68,.55,18.05,color);
+   for(const u of [.02,.85]){block(u,.15,.13,.76,12,12,gold);block(u+.02,.23,.09,.6,2,24,dark);gem(u+.065,.19,24,.075,7,'#a4f7e5');}
+   for(const v of [.04,.24])detail([[.08,v,50],[.18,v,56],[.34,v,52],[.5,v,61],[.66,v,52],[.82,v,56],[.92,v,50]],gold);
+   gem(.5,.27,49,.09,7,'#9df3df');ribbon([.12,.95,10],[.88,.95,10],'#9cf6e2',.018);
+   for(const u of [.12,.8])block(u,.03,.06,.02,29,17,dark);
+  }else if(s==='vip-fountain'){
+   cylinder(.5,.5,.49,0,5,'#493e68');cylinder(.5,.5,.46,5,2,'#e5c789');cylinder(.5,.5,.41,7,4,'#766296');cylinder(.5,.5,.35,11,1,'#65cbc8');ring(.5,.5,.38,12,'#e7d49b');
+   gem(.5,.5,16,.23,35,color);
+   for(let j=0;j<4;j++){const a=j*Math.PI/2,u=.5+Math.cos(a)*.28,v=.5+Math.sin(a)*.28;gem(u,v,12,.08,10,'#c4aff2');let last=[.5,.5,31];for(let k=1;k<=8;k++){const t=k/8,p=[.5+Math.cos(a)*.31*t,.5+Math.sin(a)*.31*t,31+12*t-31*t*t];ribbon(last,p,'#c5fff0',.016);last=p;}}
+   for(const z of [24,37])ring(.5,.5,.43,z,'#e3c68e');
+   for(const [u,v]of [[.24,.3],[.72,.65]])ring(u,v,.06,12.2,'#e3fff4');
+  }else if(s==='vip-bloom'){
+   block(.06,.06,.88,.88,6,0,'#514269');block(.02,.02,.96,.96,2,6,'#dfbf7d');block(.12,.12,.76,.76,3,8,'#667568');
+   for(const u of [.08,.89])for(const v of [.08,.89]){block(u,v,.035,.035,38,8,'#b7ddcc');gem(u+.017,v+.017,46,.04,3,'#edce87');}
+   for(const v of [.1,.9]){ribbon([.1,v,46],[.5,v,56],'#e6ca8a',.025);ribbon([.5,v,56],[.9,v,46],'#e6ca8a',.025);}
+   ribbon([.5,.1,56],[.5,.9,56],'#e6ca8a',.025);
+   for(const [u,v,z]of [[.3,.32,29],[.68,.38,34],[.48,.68,41]]){ribbon([.5,.5,11],[u,v,z],'#8bcdb0',.025);foliage(u,v,z-9,.22,.05,3,'#83c7ab');foliage(u,v,z-15,-.18,.1,4,'#9ed9ba');for(let j=0;j<6;j++){const a=j*Math.PI/3,b=a+.7;detail([[u,v,z],[u+Math.cos(a)*.24,v+Math.sin(a)*.24,z+4],[u+Math.cos(b)*.22,v+Math.sin(b)*.22,z+5]],shade(color,j%2?30:4));}gem(u,v,z,.045,4,'#ffe4a2');}
+   for(const v of [.09,.92]){detail([[.1,v,10],[.9,v,10],[.9,v,46],[.1,v,46]],'#c8ffef12');ribbon([.16,v,37],[.28,v,42],'#ddfff680',.018);}
+  }else if(s==='show-racer'){
+   block(.03,.05,.94,1.9,4,0,'#293d56');block(.08,.06,.84,.48,28,4,color);block(.15,.55,.7,.06,17,17,'#172839');block(.2,.615,.6,.01,11,20,'#7ad7e2');
+   for(let j=0;j<3;j++)ribbon([.35+j*.15,.63,21],[.41+j*.09,.63,30],'#f5dc8f',.012);
+   block(.12,.64,.76,.22,3,16,'#d5dce0');cylinder(.5,.76,.13,19,2,'#263747');block(.2,1.3,.6,.5,6,5,color);block(.2,1.73,.6,.12,19,7,color);fabric(.2,1.3,.6,.5,11.05,color);
+   for(const u of [.04,.9])ribbon([u,.1,4.1],[u,1.88,4.1],'#8ef5e2',.02);
+  }else if(s==='show-airhockey'){
+   for(const u of [.15,.78])for(const v of [.16,1.7])block(u,v,.09,.12,16,0,'#34465d');block(0,0,1,2,5,16,color);block(.08,.08,.84,1.84,1,21,'#e4eee2');
+   for(const u of [0,.94])block(u,0,.06,2,3,21,'#516b89');for(const v of [0,1.94])block(0,v,1,.06,3,21,'#516b89');ribbon([.08,1,22.1],[.92,1,22.1],'#d17a88',.014);ring(.5,1,.23,22.1,'#d17a88');
+   for(const [u,v,t]of [[.33,.4,'#df8f9e'],[.68,1.6,'#78bfc9']]){cylinder(u,v,.1,22,1,t);cylinder(u,v,.04,23,3,t);}cylinder(.6,.85,.06,22,1,'#3d4e65');
+  }else if(s==='show-ticket'){
+   block(.08,.12,.84,.76,36,2,color);block(.03,.08,.94,.84,4,38,'#f0d69b');block(.18,.89,.64,.02,15,20,'#20374e');for(let j=0;j<4;j++)block(.23+j*.14,.92,.08,.02,6,24,'#a3f1ce');block(.24,.9,.52,.04,3,11,'#20374e');
+   detail([[.37,.95,13],[.63,.95,13],[.63,1.08,7],[.37,1.08,7]],'#fff0cb');for(const z of [8,10])ribbon([.4,1.08,z],[.6,1.08,z],'#b27a67',.008);for(const u of [.14,.78])block(u,.13,.07,.7,2,3,'#3e5469');
+  }else if(s==='show-gumball'){
+   cylinder(.5,.5,.36,0,4,'#3f5068');cylinder(.5,.5,.25,4,15,color);cylinder(.5,.5,.38,19,3,'#e4c487');
+   for(let j=0;j<15;j++){const a=j*2.4,r=.12+(j%3)*.07;gem(.5+Math.cos(a)*r,.5+Math.sin(a)*r,23+Math.floor(j/5)*5,.085,5,['#e99dbb','#9ce0ca','#e7cf86'][j%3]);}
+   for(let j=0;j<12;j++){const a=j*Math.PI/6,b=(j+1)*Math.PI/6;detail([[.5+Math.cos(a)*.33,.5+Math.sin(a)*.33,22],[.5+Math.cos(b)*.33,.5+Math.sin(b)*.33,22],[.5+Math.cos(b)*.29,.5+Math.sin(b)*.29,40],[.5+Math.cos(a)*.29,.5+Math.sin(a)*.29,40]],'#b5f3f620');}cylinder(.5,.5,.3,40,3,color);gem(.5,.5,43,.07,4,'#e4c487');block(.4,.76,.2,.04,5,9,'#263b4d');block(.47,.81,.06,.03,2,14,'#e4c487');
+  }else if(s==='show-meteor'){
+   block(.08,.08,.84,.84,4,0,'#34475c');block(.16,.16,.68,.68,13,4,color);block(.1,.1,.8,.8,2,17,'#e0ca91');gem(.5,.5,20,.3,24,'#76d7ce');for(let j=0;j<3;j++)gem(.25+j*.23,.65,19,.08,8,'#bd9de0');block(.34,.85,.32,.02,3,8,'#f0d8a4');
+  }else if(s==='show-aquarium'){
+   block(.02,.05,1.96,.9,5,0,'#344b5b');block(.08,.12,1.84,.76,11,5,color);block(0,0,2,1,3,16,'#d7c494');block(.08,.08,1.84,.84,2,19,'#bdba8f');
+   for(const u of [.25,1.65])for(let j=0;j<3;j++)foliage(u,.4,21,Math.cos(j*2)*.18,Math.sin(j*2)*.18,12+j*3,'#6db49c');
+   for(const [u,v,z,t]of [[.65,.6,32,'#f1bf79'],[1.3,.45,37,'#d8ade5']]){gem(u,v,z,.13,4,t);detail([[u+.1,v,z+2],[u+.3,v,z+5],[u+.3,v,z-1]],t);}
+   for(const v of [.05,.95])detail([[.05,v,20],[1.95,v,20],[1.95,v,46],[.05,v,46]],'#8ddbe32a');for(const u of [.05,1.95])detail([[u,.05,20],[u,.95,20],[u,.95,46],[u,.05,46]],'#8ddbe320');block(0,0,2,1,3,46,'#344b5b');ribbon([.25,.96,28],[.6,.96,42],'#d6fff880',.022);
+  }else if(s==='show-orrery'){
+   cylinder(.5,.5,.4,0,4,'#3e4868');cylinder(.5,.5,.28,4,12,color);cylinder(.5,.5,.43,16,3,'#dbc28b');block(.47,.47,.06,.06,24,19,'#dbc28b');gem(.5,.5,34,.17,12,'#efcd7e');
+   for(const [r,z]of [[.26,28],[.44,24]])ring(.5,.5,r,z,'#e2cc98');for(const [u,v,z,t]of [[.24,.5,27,'#a4d8dd'],[.5,.94,23,'#c9abe5'],[.85,.23,23,'#da9b8f']])gem(u,v,z,.07,6,t);
+  }else if(s==='show-gallery'){
+   block(.04,.1,1.92,.8,5,0,'#3d4d63');for(const u of [.1,1.85])block(u,.15,.05,.7,40,5,'#d5ba83');for(const z of [5,22,43])block(.08,.15,1.84,.7,2,z,color);
+   gem(.48,.45,25,.16,15,'#98e1d4');gem(1.35,.45,25,.14,12,'#c7ace8');cylinder(.5,.48,.19,7,3,'#d9bd80');cylinder(1.4,.48,.19,7,9,'#c3d2d8');
+   for(const v of [.16,.86])detail([[.12,v,7],[1.88,v,7],[1.88,v,43],[.12,v,43]],'#bde9ea12');for(const u of [.4,1.25])block(u,.88,.3,.01,2,20,'#e5d3a5');
+  }else
   if(s==='rose-chaise'){
    for(const u of [.12,1.75])for(const v of [.15,.75])block(u,v,.12,.12,6,0,'#b3916e');block(.05,.1,1.9,.85,8,6,color);block(.05,.1,.2,.85,22,6,color);block(.05,.1,1.4,.12,18,6,color);block(.35,.25,.45,.5,5,14,'#f2dbd3');
   }else if(s==='ruby-tufted'){
