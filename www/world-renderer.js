@@ -804,7 +804,18 @@
 
   }
  }
- function thumbnail(canvas,item){canvas.width=160;canvas.height=128;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.translate(80,(item.definitionId||item.definition_id||item.id)==='boardwalk-lamp'?88:(item.sprite||item.sprite_id)==='tree'?96:(item.sprite||item.sprite_id||'').startsWith('theme-')?((item.width||1)+(item.length||1)>3?64:82):['rug','dance-floor','koi-pond'].includes(item.sprite||item.sprite_id)?60:['bunk-bed','poster-bed','capsule-bed','boardwalk-light','surf-rack','shell-light','pinball','prize-crane','speaker-stack','fridge','canopy-bed','wardrobe','vanity','easel','tool-stand','stone-lantern','bamboo-screen','coffee-station','pastry-counter','record-jukebox','listening-console','crescent-light','plant-house','vine-screen','vip-throne','vip-fountain','vip-bloom','vending','cactus','palm','tree','flowers','plant','bookshelf','aquarium','clock','television','column','divider','fountain'].includes(item.sprite||item.sprite_id)?88:76);c.scale(1.5,1.5);decor(c,item,0,0);}
+ // Fit the complete rendered silhouette, including backs and tall details.
+ const thumbnailStage=document.createElement('canvas');thumbnailStage.width=256;thumbnailStage.height=256;
+ function thumbnail(canvas,item){
+  canvas.width=160;canvas.height=128;
+  const stage=thumbnailStage.getContext('2d');stage.setTransform(1,0,0,1,0,0);stage.clearRect(0,0,256,256);
+  stage.imageSmoothingEnabled=false;stage.translate(128,152);stage.scale(1.5,1.5);decor(stage,item,0,0);
+  const pixels=stage.getImageData(0,0,256,256).data;let left=256,top=256,right=-1,bottom=-1;
+  for(let y=0;y<256;y++)for(let x=0;x<256;x++)if(pixels[(y*256+x)*4+3]){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+  if(right<left)return;
+  const width=right-left+1,height=bottom-top+1,scale=Math.min(1,148/width,116/height),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
+  c.drawImage(thumbnailStage,left,top,width,height,(160-width*scale)/2,(128-height*scale)/2,width*scale,height*scale);
+ }
  function roomThumbnail(canvas,heightmap,items=[],theme){
   canvas.width=300;canvas.height=210;
   const preview=Object.create(WorldRenderer.prototype);
