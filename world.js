@@ -122,6 +122,7 @@
    else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
+   else if(p.type==='ROOM_INVITE'){ $('worldCommunity').textContent='Community · New invite';toast('A friend invited you to a room. Open Room invitations.');}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
    if(p.type==='WELCOME'){const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}
@@ -329,7 +330,8 @@
  }
  function showStaffList(){currentPanel='staff';const root=openPanel('Room staff');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button('Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  function showFriends(){currentPanel='friends';const root=openPanel('Friends');if(!connected){root.append(note('Accepted friends will appear here with online status and private messages.'));return;}
-  for(const f of bootstrap.friends){const controls=f.accepted?[button('Rooms',()=>showFriendRooms(f)),button('Message',()=>showPrivate(f)),button('Remove',async()=>{await action('friend_remove',{userId:f.userId});await refresh();showFriends();})]:f.incoming?[button('Accept',async()=>{await action('friend_accept',{userId:f.userId});await refresh();showFriends();})]:[];root.append(row(f.username+(f.accepted?(f.online?' · Online':' · Offline'):' · Request'),controls));}
+  for(const f of bootstrap.friends){const controls=f.accepted?[button('Rooms',()=>showFriendRooms(f)),button('Message',()=>showPrivate(f)),...(bootstrap.socialDiscovery?[button('Invite here',()=>sendRoomInvite(f))]:[]),button('Remove',async()=>{await action('friend_remove',{userId:f.userId});await refresh();showFriends();})]:f.incoming?[button('Accept',async()=>{await action('friend_accept',{userId:f.userId});await refresh();showFriends();})]:[];root.append(row(f.username+(f.accepted?(f.online?' · Online':' · Offline'):' · Request'),controls));}
+  if(bootstrap.socialDiscovery)root.prepend(button('Room invitations',showRoomInvites));
   const form=el('form','panel-form'),input=el('input');input.placeholder='Friend’s username';input.maxLength=18;input.required=true;const submit=el('button','','Add');submit.type='submit';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();try{await action('friend_request',{username:input.value});await refresh();showFriends();toast('Friend request sent');}catch(err){toast(err.message);}};root.append(form,button('Refresh status',async()=>{await refresh();showFriends();}));
  }
  function activeRoomsFirst(rooms){const count=r=>Number.isInteger(r.occupancy)&&r.occupancy>=0?r.occupancy:-1;return [...rooms].sort((a,b)=>count(b)-count(a));}
@@ -404,11 +406,63 @@
   }catch(e){if(version!==panelVersion)return;root.replaceChildren(note('Could not check missions. Your progress and coins are safe.'),button('Try again',showDailyMissions));}
  }
  $('worldDaily').onclick=()=>showDailyMissions();
+ function socialPanel(title){const root=openPanel(title);if(!connected||!bootstrap.socialDiscovery){root.append(note(connected?'Reconnect to World to load this update.':'Connect to World to explore with friends.'));return null;}return root;}
+ async function showRoomReactions(){
+  currentPanel='reactions';const root=socialPanel('Room reactions');if(!root)return;const version=panelVersion;root.append(note('Loading reactions…'));
+  try{const r=await action('reactions');if(version!==panelVersion)return;root.replaceChildren(el('h3','',scene.name),note(r.canReact?'Leave one reaction. Tap your selected reaction again to remove it.':'Visitors can leave a reaction in open player rooms.'));
+   const choices=el('div','reaction-choices');for(const [key,label] of [['heart','♥ Love it'],['thumb','👍 Nice room']]){const b=button(label+' · '+Number(r[key]||0),async()=>{await action('react',{reaction:r.mine===key?null:key});await showRoomReactions();});b.setAttribute('aria-pressed',String(r.mine===key));b.disabled=!r.canReact;choices.append(b);}root.append(choices);
+  }catch(e){if(version===panelVersion)root.replaceChildren(note('Reactions unavailable. Try again.'),button('Retry',showRoomReactions));}
+ }
+ async function showFeaturedRooms(){
+  currentPanel='featured';const root=socialPanel('Featured rooms');if(!root)return;const version=panelVersion;root.append(note('Finding player creations…'));
+  try{const rooms=await action('featured');if(version!==panelVersion)return;root.replaceChildren(note('Community spotlight · Open player rooms with at least 3 pieces. Visitor reactions lead the list; ties rotate weekly.'));
+   const grid=el('div','featured-room-grid');for(const r of rooms){const card=el('section','featured-room-card'),canvas=el('canvas');canvas.setAttribute('role','img');canvas.setAttribute('aria-label',r.name+' room preview');EarnlyWorldRenderer.roomThumbnail(canvas,r.heightmap,r.items);card.append(canvas,el('h3','',r.name),note('By '+r.ownerUsername+' · '+Number(r.score||0)+' reactions'),roomCount(r));if(r.weeklyEntry)card.append(el('span','weekly-entry-label','This week’s challenge entry'));card.append(button(r.ownerId===userId?'Visit my room':'Visit room',()=>connect(r.id),'primary'));grid.append(card);}root.append(grid);
+   if(!rooms.length)root.append(note('The spotlight is waiting for its first rooms. Decorate an open room with 3 pieces to appear here.'),button('Go to my room',()=>connect('choose-home')));
+   root.append(button('Refresh spotlight',showFeaturedRooms),button('Browse all player rooms',()=>showRooms('explore')));
+  }catch(e){if(version===panelVersion)root.replaceChildren(note('Featured rooms unavailable. Try again.'),button('Retry',showFeaturedRooms));}
+ }
+ async function sendRoomInvite(friend){
+  if(scene.access!=='open')throw new Error('Open this room to visitors from Rooms before inviting.');
+  const result=await action('invite',{userId:friend.userId});toast(result.duplicate?'Your invitation is already in their inbox.':'Invited '+friend.username+' · Expires in 1 hour');
+ }
+ function showInviteFriends(){
+  currentPanel='invite-friends';const root=socialPanel('Invite friends here');if(!root)return;
+  root.append(note('Invite an accepted friend to '+scene.name+'. Invitations last 1 hour and never unlock private rooms.'));
+  if(scene.access!=='open'){root.append(note('Open this room to visitors from Rooms first.'),button('Room settings',showRooms));return;}
+  const friends=bootstrap.friends.filter(f=>f.accepted);for(const f of friends)root.append(row(f.username,[button('Invite here',()=>sendRoomInvite(f))]));
+  if(!friends.length)root.append(note('Add a friend and accept their request to send an invitation.'),button('Find friends',showFriends));
+ }
+ async function showRoomInvites(){
+  currentPanel='invites';const root=socialPanel('Room invitations');if(!root)return;const version=panelVersion;root.append(note('Checking invitations…'));
+  try{const invites=await action('invites');if(version!==panelVersion)return;$('worldCommunity').textContent='Community';root.replaceChildren(note('Invitations from accepted friends · Expire after 1 hour.'));
+   for(const i of invites){const card=el('section','room-invite-card');card.append(el('h3','',i.roomName),note('From '+i.username+' · Until '+new Date(i.expiresAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})),button('Join room',()=>connect(i.roomId),'primary'),button('Dismiss',async()=>{await action('dismiss_invite',{id:i.id});await showRoomInvites();}));root.append(card);}
+   if(!invites.length)root.append(note('No invitations right now. Invite a friend to join you.'));
+   root.append(button('Invite friends here',showInviteFriends),button('Refresh invitations',showRoomInvites));
+  }catch(e){if(version===panelVersion)root.replaceChildren(note('Invitations unavailable. Try again.'),button('Retry',showRoomInvites));}
+ }
+ async function showWeeklyChallenge(){
+  currentPanel='weekly';const root=socialPanel('Weekly decorating challenge');if(!root)return;const version=panelVersion;root.append(note('Loading this week’s theme…'));
+  try{const w=await action('weekly');if(version!==panelVersion)return;root.replaceChildren(el('p','weekly-entry-label','THIS WEEK'),el('h3','weekly-theme',w.theme),note('Make the theme your own using furniture you already have. This is a participation challenge, not a competition.'),note('Place, move, or rotate a piece in your open room this week. Have at least 3 pieces in that room, then enter here.'),note('Resets '+new Date(w.endsAt).toLocaleString([],{weekday:'long',hour:'numeric',minute:'2-digit'})+' · One 10-coin reward per week.'));
+   if(w.entered){root.append(el('strong','weekly-complete','✓ Entered · 10 coins claimed'));if(w.entryRoomId)root.append(button('Visit my entry',()=>connect(w.entryRoomId)));}
+   else if(w.ready)root.append(button('Enter this room & claim 10 coins',async()=>{await action('weekly_enter');await refresh();await showWeeklyChallenge();toast('Challenge entered · +10 Arcade Coins');},'primary'));
+   else root.append(note(scene.ownerId===userId?'Your room needs a change this week, 3 placed pieces, and visitors allowed.':'Enter your own room to decorate and submit your entry.'),button(scene.ownerId===userId?'Open Backpack':'Go to my room',()=>scene.ownerId===userId?showBackpack():connect('choose-home')));
+   root.append(button('Featured rooms',showFeaturedRooms),button('Refresh challenge',showWeeklyChallenge));
+  }catch(e){if(version===panelVersion)root.replaceChildren(note('Challenge unavailable. Your coins are safe.'),button('Retry',showWeeklyChallenge));}
+ }
+ function showCommunity(){const root=socialPanel('World community');if(!root)return;const grid=el('div','community-menu');for(const [id,label,description,run] of [
+  ['worldFeatured','★ Featured rooms','Discover spaces made by other players.',showFeaturedRooms],
+  ['worldReactions','♡ Room reactions','Leave a little appreciation for this room.',showRoomReactions],
+  ['worldInvites','♧ Room invitations','Meet an accepted friend in World.',showRoomInvites],
+  ['worldWeekly','✦ Weekly challenge','A fresh decorating theme and 10 coins.',showWeeklyChallenge]
+ ]){const card=button('',run);card.id=id;card.append(el('strong','',label),el('span','',description));grid.append(card);}root.append(grid);}
+ $('worldCommunity').onclick=showCommunity;
+
  $('dismissWorldHint').onclick=()=>{$('firstVisitHint').hidden=true;try{localStorage.setItem('earnly.world.hint.'+userId,'1');}catch{}};
  $('shareRoom').onclick=()=>{
   if(!connected||!scene)return;
   const root=openPanel('Share this room');
   if(scene.access==='closed'){root.append(note('This room is private. Open it to visitors from Rooms before inviting friends.'));return;}
+  if(bootstrap.socialDiscovery)root.append(button('Invite a friend here',showInviteFriends,'primary'));
   const url=window.EarnlyWorldLinks.shareURL(scene.roomId);
   root.append(note('Invite a friend to '+scene.name+'. They will need an Earnly account.'));
   const input=el('input');input.value=url;input.readOnly=true;input.setAttribute('aria-label','Room link');input.onclick=()=>input.select();root.append(input);
