@@ -34,7 +34,7 @@ export class SupabaseWorldAccess implements WorldAccess {
   }
   async #api(userId:string,action:string,data:unknown={}):Promise<any>{return this.#request('/rest/v1/rpc/world_api',this.#key,{p_actor:userId,p_action:action,p_data:data});}
   async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
-  #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items,s.revision);}
+  #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items.map(item=>({...item,petBed:({'pet-bed-dog':'dog','pet-bed-cat':'cat','pet-bed-rabbit':'rabbit'} as Record<string,string>)[item.sprite]})),s.revision);}
   #roomCounts(rooms:Record<string,any>[]){return rooms.filter(r=>!this.#retired.has(r.id)).map(r=>({...r,occupancy:this.#rooms.get(r.id)?.memberCount??0}));}
   async enter(identity:Identity,roomId:string){
     let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
@@ -166,7 +166,7 @@ export class SupabaseWorldAccess implements WorldAccess {
             const tile=base.tile({x:x as number,y:y as number});if(!tile)throw new Error('Choose a floor tile');z=tile.z;
             items=[...items,{id:item.id,x:x as number,y:y as number,z,rotation:rotation as 0|2|4|6,width:definition.width,length:definition.length,itemHeight:Number(definition.item_height),walkable:definition.walkable,canStack:centered?false:definition.can_stack,centered,canSit:definition.can_sit,canLay:definition.can_lay,definitionId:definition.id,sprite:definition.sprite_id,color:item.color??definition.color,name:definition.name}];
           }
-          const next=new RoomGrid(parseHeightmap(snapshot.heightmap),items,snapshot.revision+1);
+          const next=this.#grid({...snapshot,items,revision:snapshot.revision+1});
           if(!room.canReplace(next))throw new Error('Move away from the item before placing it');
           await this.#api(uid,'place',{roomId,revision:snapshot.revision,itemId:item.id,x:placeX,y:placeY,z,rotation:data.rotation,centered,pickup:!!data.pickup});
           room.replaceGrid(next);
