@@ -25,7 +25,7 @@ export class RoomRuntime {
     if(!Number.isInteger(capacity)||capacity<1||capacity>100)throw new Error('Invalid capacity');
     this.#staff=staff.map(definition=>{if(!definition.path.length||definition.path.some((p,i)=>!grid.tile(p)?.walkable||(i>0&&Math.abs(p.x-definition.path[i-1].x)+Math.abs(p.y-definition.path[i-1].y)!==1)))throw new Error('Invalid staff route');return {definition,index:0};});
   }
-  staff(){return this.#staff.map(({definition:d,index})=>({staffId:d.id,username:d.name,role:d.role,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:'std'}));}
+  staff(){return this.#staff.map(({definition:d,index})=>({staffId:d.id,username:d.name,role:d.role,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:'std'}));}
   talkToStaff(userId:string,id:unknown){if(!this.#members.has(userId))throw new Error('Player unavailable');const d=this.#staff.find(s=>s.definition.id===id)?.definition;if(!d)throw new Error('Staff unavailable in this room');return {name:d.name,role:d.role,greeting:d.greeting,tip:d.tip};}
   #position(m:Member):XYZ{return m.seat?.position??m.movement.position;}
   members(){return [...this.#members.values()].map(m=>({...m.identity,position:this.#position(m),state:m.seat?.state??'std'}));}
@@ -37,7 +37,7 @@ export class RoomRuntime {
     if(mode==='whisper'&&!nearby.some(m=>m.identity.userId===target))throw new Error('Move beside this player to whisper');
     return (mode==='shout'?[...this.#members.values()]:nearby).filter(m=>mode!=='whisper'||m.identity.userId===userId||m.identity.userId===target).map(m=>m.identity.userId);
   }
-  canReplace(grid:RoomGrid){return this.members().every(m=>{const tile=grid.tile(m.position);return !!tile&&tile.z===m.position.z&&(tile.walkable||(m.state==='sit'&&tile.canSit)||(m.state==='lay'&&tile.canLay));});}
+  canReplace(grid:RoomGrid){return this.staff().every(s=>{const t=grid.tile(s.position);return !!t?.walkable&&t.z===s.position.z;})&&this.members().every(m=>{const tile=grid.tile(m.position);return !!tile&&tile.z===m.position.z&&(tile.walkable||(m.state==='sit'&&tile.canSit)||(m.state==='lay'&&tile.canLay));});}
   replaceGrid(grid:RoomGrid){if(!this.canReplace(grid))throw new Error('A player is standing there');this.grid=grid;}
   get memberCount(){return this.#members.size;}
   availableSpawn():XY {
@@ -108,9 +108,9 @@ export class RoomRuntime {
   }
   tick(){
     if(this.paused)return;
-    if(++this.#ticks%32===0){
+    if(++this.#ticks%4===0){
       let moved=false;
-      for(const s of this.#staff){const next=(s.index+1)%s.definition.path.length,p=s.definition.path[next],from=s.definition.path[s.index];if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}}
+      for(const s of this.#staff){if(this.#ticks%(s.definition.species?4:32)!==0)continue;if(s.definition.species&&this.#ticks%24===0)continue;const next=(s.index+1)%s.definition.path.length,p=s.definition.path[next],from=s.definition.path[s.index];if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}}
       if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
     }
     const changes=[];

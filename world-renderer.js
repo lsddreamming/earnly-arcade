@@ -623,7 +623,29 @@
   }
   c.restore();
  }
- function avatar(c,user,x,y){const equipped=user.equipped||{avatar:{id:'cyber-starter',imageUrl:'cosmetic-cyber-starter.svg'},outfit:{imageUrl:'cosmetic-starter-suit.svg'},shoes:{imageUrl:'cosmetic-canvas-shoes.svg'}};
+ function animal(c,u,x,y){
+  const rabbit=u.species==='rabbit',cat=u.species==='cat',gait=u.gait||0,phase=u.phase||0,t=performance.now()/1000;
+  const coat=u.color||'#cc965c',step=Math.sin(phase)*gait*2.5;
+  c.save();c.translate(x,y);c.fillStyle='#0b172a55';c.beginPath();c.ellipse(0,1,12,4,0,0,7);c.fill();
+  if(u.facing==='left')c.scale(-1,1);
+  const oval=(x,y,rx,ry,color)=>{c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.fill();};
+  // Four grounded paws alternate diagonally; rabbits lift their body into a small hop.
+  const hop=rabbit?Math.abs(step)*.7:Math.abs(step)*.15;
+  for(const [px,sign] of [[-7,1],[5,-1],[-4,-1],[8,1]]){c.fillStyle=shade(coat,px===-7||px===5?-32:-12);c.fillRect(px+step*sign,-6-hop,3,7-Math.max(0,step*sign));}
+  c.save();c.translate(0,-hop);
+  c.strokeStyle=coat;c.lineWidth=cat?3:4;c.lineCap='round';c.beginPath();c.moveTo(-8,-11);c.quadraticCurveTo(-18,-14+Math.sin(t*5)*2,-14,cat?-24:-17+Math.sin(t*9)*3);if(!rabbit)c.stroke();else oval(-10,-10,4,4,'#fff5e7');
+  oval(-1,-10,11,7,coat);oval(1,-9,7,4,shade(coat,14));
+  oval(8,-17+Math.sin(t*2)*.3,7,7,coat);
+  if(rabbit){oval(5,-28,2.5,9,coat);oval(11,-29,2.5,10,coat);oval(5,-28,1,6,'#dca6ae');oval(11,-29,1,7,'#dca6ae');}
+  else if(cat){poly(c,[[2,-21],[3,-29],[8,-22]],coat);poly(c,[[9,-23],[14,-28],[15,-18]],coat);poly(c,[[4,-23],[4,-26],[6,-23]],'#dba4aa');}
+  else{oval(3,-16,3,7,shade(coat,-40));oval(11,-22,3,4,shade(coat,-28));}
+  oval(12,-14,4,3,rabbit?'#fff7eb':shade(coat,28));
+  const blink=Math.sin(t*1.7)>.995;c.fillStyle='#233345';c.fillRect(10,-20,2,blink?1:3);oval(15,-15,1.5,1.2,cat||rabbit?'#cd8e9e':'#293745');
+  if(cat){c.strokeStyle='#ece6dd';c.lineWidth=.6;for(const dy of [-1,1]){c.beginPath();c.moveTo(13,-13);c.lineTo(19,-13+dy*2);c.stroke();}}
+  if(!rabbit){c.fillStyle=cat?'#a4dbd1':'#729ee7';c.fillRect(5,-11,7,2);oval(9,-8,1.5,1.5,'#f1ce74');}
+  c.restore();c.restore();
+ }
+ function avatar(c,user,x,y){if(user.species){animal(c,user,x,y);return;}const equipped=user.equipped||{avatar:{id:'cyber-starter',imageUrl:'cosmetic-cyber-starter.svg'},outfit:{imageUrl:'cosmetic-starter-suit.svg'},shoes:{imageUrl:'cosmetic-canvas-shoes.svg'}};
   const parts=window.EarnlyPotatoRig?.compose(equipped)||[];let drew=false;
   c.save();c.translate(x,y);c.fillStyle='#0b172a77';c.beginPath();c.ellipse(0,1,11,5,0,0,7);c.fill();
   // The portrait has two pixels of transparent padding below the soles.
@@ -785,7 +807,7 @@
   resetView(){if(this.placement?.saving||this.pointers?.size)return;this.rotateView(-(this.viewRotation||0));this.setView('room');this.draw();}
   focusMe(){this.setView('close');}
   setZoom(amount,anchor){const before=this.zoom;this.zoom=Math.max(.6,Math.min(2.2,amount));if(anchor&&this.scene&&this.scale){const x=(anchor.x-this.cx)/this.scale,y=(anchor.y-this.cy)/this.scale;this.draw();this.offset.x+=anchor.x-(this.cx+x*this.scale);this.offset.y+=anchor.y-(this.cy+y*this.scale);}if(before!==this.zoom)this.draw();}
-  sample(u,now=performance.now()){const t=Math.max(0,Math.min(1,(now-u.at)/250));return {x:u.old.x+(u.position.x-u.old.x)*t,y:u.old.y+(u.position.y-u.old.y)*t,z:u.old.z+(u.position.z-u.old.z)*t};}
+  sample(u,now=performance.now()){const t=Math.max(0,Math.min(1,(now-u.at)/(u.species?700:250)));return {x:u.old.x+(u.position.x-u.old.x)*t,y:u.old.y+(u.position.y-u.old.y)*t,z:u.old.z+(u.position.z-u.old.z)*t};}
   animate(u,now){const p=this.sample(u,now),last=u.visual||p,dt=Math.min(.05,Math.max(0,(now-(u.frameAt||now))/1000)),distance=Math.hypot(p.x-last.x,p.y-last.y);const moving=distance>.00001&&u.state!=='sit'&&u.state!=='lay';u.phase=(u.phase||0)+distance*Math.PI*2;u.gait=(u.gait||0)+((moving?1:0)-(u.gait||0))*(1-Math.exp(-dt*18));u.visual=p;u.frameAt=now;return p;}
 
   setScene(scene){this.placementCache=null;if(!this.scene||this.scene.roomId!==scene.roomId){this.turnAnimation?.cancel();clearTimeout(this.holdTimer);this.placement=null;this.drag=null;this.pointers?.clear();this.pinch=null;this.gestureLock=false;clearTimeout(this.tapTimer);this.lastTap=null;this.viewRotation=0;this.viewCache=null;this.setView('room');this.bubbles.clear();}this.scene=scene;}
@@ -797,7 +819,7 @@
    const result=EarnlyWorldPlacement.placementCheck(this.scene,p.item,{x:p.x,y:p.y,rotation:p.rotation},users);
    this.placementCache={scene:this.scene,item:p.item,key,result};return result;
   }
-  setStaff(staff){const old=this.staff;this.staff=new Map(staff.map(s=>[s.staffId,{...s,old:old.get(s.staffId)?.position||s.position,at:performance.now()}]));}
+  setStaff(staff){const old=this.staff,now=performance.now();this.staff=new Map(staff.map(s=>{const previous=old.get(s.staffId),from=previous?this.sample(previous,now):s.position,dx=s.position.x-from.x,dy=s.position.y-from.y;return [s.staffId,{...previous,...s,old:from,at:now,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')}];}));}
   setUsers(users){const present=new Set(users.map(u=>u.userId));for(const id of this.users.keys())if(!present.has(id))this.users.delete(id);users.forEach(u=>this.updateUser(u));}
   updateUser(u){const previous=this.users.get(u.userId),now=performance.now();
    // Chat, look and standing packets must not restart an in-flight step.
@@ -964,7 +986,7 @@
     const bubbles=[];
     for(const hit of this.hit){const x=this.cx+hit.x*this.scale,y=this.cy+hit.y*this.scale;
      if(x<-40||x>w+40||y<-10||y>h+65)continue;
-     const name=(hit.user.username||'You').slice(0,18)+(hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
+     const name=(hit.user.username||'You').slice(0,18)+(hit.user.species?' · '+hit.user.species:hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
      c.fillStyle='#122c3ee6';c.fillRect(x-labelWidth/2,y+5,labelWidth,17);c.fillStyle=hit.user.isStaff?'#ffe0a0':hit.user.userId===this.localUserId?'#9bffe3':'#f2fff8';c.fillText(name,x,y+17);
      const bubble=this.bubbles.get(hit.user.userId);if(!bubble||bubble.until<=performance.now())continue;
      c.font=(bubble.mode==='shout'?'bold ':'')+'12px system-ui';const limit=Math.min(226,w-48);
