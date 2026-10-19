@@ -43,7 +43,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
     const send=(packet:Record<string,unknown>)=>{
       if(ws.readyState!==WebSocket.OPEN)return;
       if(ws.bufferedAmount>128*1024){ws.terminate();return;}
-      if(packet.type==='PET_CHAT'&&!active.get(ws)?.animals)return;
+      if((packet.type==='PET_CHAT'||packet.type==='PET_REACTION')&&!active.get(ws)?.animals)return;
       if(packet.type==='NPC_SNAPSHOT'&&!active.get(ws)?.animals&&Array.isArray(packet.staff))packet={...packet,staff:packet.staff.filter((s:any)=>!s.species)};
       ws.send(JSON.stringify(packet),error=>{if(error)ws.terminate();});
       const binding=active.get(ws);

@@ -625,7 +625,7 @@
  }
  function animal(c,u,x,y){
   const rabbit=u.species==='rabbit',cat=u.species==='cat',gait=u.gait||0,phase=u.phase||0,t=performance.now()/1000;
-  const coat=u.color||'#cc965c',step=Math.sin(phase)*gait*2.3,hop=rabbit?Math.abs(step)*.65:Math.abs(step)*.13;
+  const happy=(u.happyUntil||0)>performance.now(),coat=u.color||'#cc965c',step=Math.sin(phase)*gait*2.3,hop=(rabbit?Math.abs(step)*.65:Math.abs(step)*.13)+(happy?Math.abs(Math.sin(t*8))*(rabbit?1.5:.5):0);
   c.save();c.translate(x,y);
   const oval=(x,y,rx,ry,color,angle=0)=>{c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,angle,0,Math.PI*2);c.fill();};
   const fur=(x,y,rx,ry,color,angle=0)=>{const g=c.createLinearGradient(x-rx,y-ry,x+rx,y+ry);g.addColorStop(0,shade(color,28));g.addColorStop(.45,color);g.addColorStop(1,shade(color,-35));oval(x,y,rx,ry,g,angle);};
@@ -636,7 +636,7 @@
   c.save();c.translate(0,-hop);
   c.lineCap='round';c.lineJoin='round';
   if(rabbit)fur(-10,-10,4,3.8,'#fff5e7');
-  else{c.strokeStyle=shade(coat,-18);c.lineWidth=cat?3.3:4;c.beginPath();c.moveTo(-9,-10);c.bezierCurveTo(-16,-12,-17,-18+Math.sin(t*1.4)*1.2,-14,cat?-24:-17);c.stroke();c.strokeStyle=shade(coat,20);c.lineWidth=1.1;c.stroke();}
+  else{c.strokeStyle=shade(coat,-18);c.lineWidth=cat?3.3:4;c.beginPath();c.moveTo(-9,-10);c.bezierCurveTo(-16,-12,-17,-18+Math.sin(t*(happy?12:1.4))*(happy?4:1.2),-14,cat?-24:-17);c.stroke();c.strokeStyle=shade(coat,20);c.lineWidth=1.1;c.stroke();}
   fur(-1,-10,10.8,7.1,coat,-.08);oval(-1,-11,7.3,4.2,shade(coat,14),-.1);
   if(cat){c.strokeStyle=shade(coat,-30);c.lineWidth=1.2;for(const px of [-5,-1,3]){c.beginPath();c.moveTo(px,-16);c.lineTo(px+1,-13);c.stroke();}}
   for(const [px,sign] of [[-5,-1],[7,1]]){fur(px+step*sign,-4,2.2,4.5,coat);oval(px+step*sign+1,.2-Math.max(0,step*sign),rabbit?3.3:2.8,1.5,shade(coat,18));}
@@ -842,6 +842,7 @@
     ...(teleport?{visual:u.position,gait:0,phase:0,frameAt:now}:{}),
     facing:changed&&Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')});}
 
+  petReaction(packet){const pet=this.staff.get(packet.staffId);if(!pet||!pet.species||packet.reaction!=='happy')return;pet.happyUntil=performance.now()+4000;this.bubble({userId:packet.staffId,text:'♥',mode:'pet'});}
   bubble(packet){this.bubbles.set(packet.userId,{text:packet.text,until:performance.now()+6000,mode:packet.mode});}
   draw(){
    if(!this.scene)return this.drawScene();

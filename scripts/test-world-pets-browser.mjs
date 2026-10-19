@@ -42,14 +42,18 @@ try{
  }
  await expect.poll(()=>guest.evaluate(()=>testWorldRenderer.staff.size)).toBe(3);
  await expect(owner.locator('#peopleCount')).toHaveText('2 in the room');await expect(guest.locator('#peopleCount')).toHaveText('2 in the room');
- await guest.locator('[data-panel="staff"]').click();await guest.locator('.panel-row').filter({hasText:'Biscuit'}).getByRole('button',{name:'Meet pet'}).click();await expect(guest.locator('#panelContent')).toContainText('Room companion');await expect(guest.getByRole('button',{name:'Manage my pets'})).toHaveCount(0);await guest.locator('#closePanel').click();
+ await guest.locator('[data-panel="staff"]').click();await guest.locator('.panel-row').filter({hasText:'Biscuit'}).getByRole('button',{name:'Meet pet'}).click();await expect(guest.locator('#panelContent')).toContainText('Room companion');await expect(guest.getByRole('button',{name:'Manage my pets'})).toHaveCount(0);await expect(guest.getByRole('button',{name:'Call over',exact:true})).toHaveCount(0);await guest.locator('#closePanel').click();
  await owner.locator('#closePanel').click();
  const before=await guest.evaluate(()=>[...testWorldRenderer.staff.values()].map(p=>p.position));await expect.poll(()=>guest.evaluate(()=>[...testWorldRenderer.staff.values()].map(p=>p.position)),{timeout:65000,intervals:[1000]}).not.toEqual(before);
+ await owner.locator('[data-panel="staff"]').click();await owner.locator('.panel-row').filter({hasText:'Biscuit'}).getByRole('button',{name:'Meet pet'}).click();await owner.getByRole('button',{name:'Call over',exact:true}).click();
+ await expect.poll(()=>owner.evaluate(()=>{const r=testWorldRenderer,p=[...r.staff.values()].find(p=>p.username==='Biscuit'),u=r.users.get(r.localUserId);return Math.hypot(p.position.x-u.position.x,p.position.y-u.position.y);}),{timeout:30000,intervals:[500]}).toBeLessThanOrEqual(1.5);
+ await owner.locator('[data-panel="staff"]').click();await owner.locator('.panel-row').filter({hasText:'Biscuit'}).getByRole('button',{name:'Meet pet'}).click();await owner.getByRole('button',{name:'Pet',exact:true}).click();
+ for(const p of [owner,guest])await expect.poll(()=>p.evaluate(()=>{const r=testWorldRenderer,pet=[...r.staff.values()].find(p=>p.username==='Biscuit');return pet.happyUntil>performance.now()&&r.bubbles.get(pet.staffId)?.text==='♥';})).toBe(true);
  if(process.env.WORLD_TEST_SCREENSHOTS){await owner.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/personal-pets-room.png'});}
  await owner.reload();await expect.poll(()=>owner.evaluate(()=>testWorldRenderer.staff.size)).toBe(3);
  await owner.locator('[data-panel="backpack"]').click();await owner.getByRole('button',{name:'Pets',exact:true}).click();
  if(process.env.WORLD_TEST_SCREENSHOTS)await owner.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/personal-pets-backpack.png'});
  await owner.locator('.pet-card').filter({hasText:'Biscuit'}).getByRole('button',{name:'Return to Backpack',exact:true}).click();await expect.poll(()=>guest.evaluate(()=>testWorldRenderer.staff.size)).toBe(2);await expect(owner.locator('.pet-card').filter({hasText:'Biscuit'})).toContainText('In Backpack');
  await expect(owner.locator('#coinBalance')).toHaveText('◇ 1,650');expect(errors).toEqual([]);
- console.log('PASS: two connected mobile-size browsers adopt three species, debit exact prices, rename, place, see shared roaming, reconnect and pick up without losing ownership.');
+ console.log('PASS: two connected mobile-size browsers adopt three species, debit exact prices, rename, place, see shared roaming, call over with safe pathfinding, share happy reactions, reconnect and pick up without losing ownership.');
 }finally{await browser.close();await gateway.close();await new Promise(r=>server.close(r));await fixture.close();await rm(tls,{recursive:true,force:true});}

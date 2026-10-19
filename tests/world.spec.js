@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 // World fixtures use local assets and mocked auth; avoid remote font/layout races.
-test.beforeEach(async({page})=>{await page.route('https://**',route=>route.abort());});
+test.beforeEach(async({page})=>{await page.route(url=>url.protocol==='https:',route=>route.fulfill({status:200,contentType:route.request().resourceType()==='stylesheet'?'text/css':'application/javascript',body:''}));});
 test('World starts at Connect without a plaza or an automatic connection',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.addInitScript(()=>{window.socketCount=0;window.WebSocket=class{constructor(){window.socketCount++;}};});
@@ -268,7 +268,7 @@ test('World iPhone view and furniture controls have comfortable touch targets',a
 });
 
 test('World movement stays continuous through packet updates and stops at the authoritative tile',async({page})=>{
- await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:r.request().resourceType()==='stylesheet'?'text/css':'application/javascript',body:''}));await page.goto('/world.html');
  const result=await page.evaluate(()=>{
   const canvas=document.createElement('canvas');document.body.append(canvas);
   const r=new EarnlyWorldRenderer.WorldRenderer(canvas,()=>{});r.running=false;
@@ -286,7 +286,7 @@ test('World movement stays continuous through packet updates and stops at the au
 });
 
 test('World pinch keeps the midpoint anchored, cancels taps and preserves furniture placement',async({page})=>{
- await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:r.request().resourceType()==='stylesheet'?'text/css':'application/javascript',body:''}));await page.goto('/world.html');
  const result=await page.evaluate(()=>{
   const canvas=document.createElement('canvas');canvas.style='width:390px;height:500px';document.body.append(canvas);
   const taps=[];const r=new EarnlyWorldRenderer.WorldRenderer(canvas,p=>taps.push(p));r.running=false;r.resize();
@@ -390,7 +390,7 @@ test('World coin panel preserves its socket and opens the shop separately',async
 });
 
 for(const motion of ['reduce','no-preference'])test(`Equipped avatars retain alternating footsteps with ${motion} motion`,async({page},testInfo)=>{
- await page.emulateMedia({reducedMotion:motion});await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ await page.emulateMedia({reducedMotion:motion});await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:r.request().resourceType()==='stylesheet'?'text/css':'application/javascript',body:''}));await page.goto('/world.html');
  await page.evaluate(async()=>{const urls=['cosmetic-cyber-starter.svg','cosmetic-starter-suit.svg','cosmetic-canvas-shoes.svg','cosmetic-neon-phantom.svg'];await Promise.all(urls.map(src=>new Promise(resolve=>{const i=new Image();i.onload=i.onerror=resolve;i.src=src;})));});
  const result=await page.evaluate(async()=>{
   const canvas=document.createElement('canvas');canvas.style='width:390px;height:400px';document.body.append(canvas);const r=new EarnlyWorldRenderer.WorldRenderer(canvas,()=>{});r.running=false;r.resize();r.setScene({roomId:'walk',heightmap:'0000\n0000\n0000\n0000',items:[]});

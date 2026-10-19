@@ -121,6 +121,7 @@
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>{const before=renderer.users.get(u.userId);if(u.userId===userId&&before&&(before.position.x!==u.position.x||before.position.y!==u.position.y))completeGuideStep('walk');renderer.updateUser(u);});
    else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
+   else if(p.type==='PET_REACTION')renderer.petReaction(p);
    else if(p.type==='PET_CHAT')renderer.bubble({userId:p.staffId,text:p.text,mode:'pet'});
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='ROOM_INVITE'){ $('worldCommunity').textContent='Community · New invite';toast('A friend invited you to a room. Open Room invitations.');}
@@ -401,7 +402,17 @@
  async function showStaff(staff){
   const roomId=scene.roomId,version=panelVersion,reply=await action('staff_talk',{staffId:staff.staffId});
   if(scene.roomId!==roomId||version!==panelVersion)return;
-  currentPanel='staff';const root=openPanel(reply.name+' · '+reply.role),style=hangoutStyle(scene);
+  currentPanel='staff';const root=openPanel(staff.species?reply.name:reply.name+' · '+reply.role),style=hangoutStyle(scene);
+  if(staff.species&&bootstrap.petInteractions){
+   const canvas=el('canvas','pet-purchase-preview');canvas.setAttribute('aria-label',reply.name);EarnlyWorldRenderer.petPreview(canvas,staff);root.append(canvas,note('Room companion · '+staff.species));
+   const controls=el('div','pet-interactions');let busy=false;
+   const interact=async kind=>{if(busy)return;busy=true;for(const b of controls.children)b.disabled=true;try{const result=await action('pet_interact',{staffId:staff.staffId,kind});if(scene.roomId===roomId){$('worldPanel').close();toast(result.message);}}finally{busy=false;for(const b of controls.children)b.disabled=false;pet.disabled=!reply.canPet;}};
+   const pet=button('Pet',()=>interact('pet'),'primary');pet.disabled=!reply.canPet;controls.append(pet);
+   if(reply.canCall)controls.append(button('Call over',()=>interact('call'),'primary'));
+   root.append(controls);if(!reply.canPet)root.append(note(reply.canCall?'Call your pet over, then tap it to give it some love.':'Walk beside this companion to pet it.'));
+   if(staff.petId&&staff.ownerId===userId)root.append(button('Manage my pets',()=>showPets()));
+   root.append(button('Back to room',()=>$('worldPanel').close()));return;
+  }
   root.append(note(staff.species?'Room companion · '+staff.species:'Staff NPC · Your hangout host'),el('p','staff-greeting',reply.greeting));
   const response=el('p','staff-greeting staff-reply');response.hidden=true;response.setAttribute('aria-live','polite');
   root.append(button(staff.species?'About this companion':reply.role==='Bartender'?'See the mocktail menu':'Ask for a local tip',()=>{response.textContent=reply.tip;response.hidden=false;}),response);

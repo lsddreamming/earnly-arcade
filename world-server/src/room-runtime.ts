@@ -9,7 +9,7 @@ import type {InteractionPlan} from './interactions.ts';
 export type RoomPet={id:string;ownerId:string;name:string;species:'dog'|'cat'|'rabbit';color:string};
 export type Identity = Readonly<{ userId:string; username:string; equipped?:Record<string,unknown> }>;
 export type Send = (packet:Record<string,unknown>)=>void;
-type Resident={definition:Staff;index:number;nextWalk?:number;nextVoice?:number;route?:XY[]};
+type Resident={definition:Staff;index:number;nextWalk?:number;nextVoice?:number;route?:XY[];callOwner?:string;callUntil?:number;lastPet?:number;lastCall?:number};
 type Member = {identity:Identity; movement:MovementController; send:Send; lastIntent:number; lastChat:number;seat?:{position:XYZ;state:'sit'|'lay'};plan?:InteractionPlan;exit?:{next:XYZ;revision:number;goal:XY}};
 /** Transport-independent authoritative room. Only the authenticated gateway may join users.
  * The gateway must enforce room access, account bans and message byte limits before dispatch.
@@ -54,7 +54,35 @@ export class RoomRuntime {
     for(let attempt=0;attempt<12&&targets.length;attempt++){const goal=targets.splice(this.#random(0,targets.length-1),1)[0],result=findPath(this.grid,from,goal,{occupied,diagonal:false,maxExpanded:512});if(result.status==='ok'&&result.path.length<=16)return result.path;}
     return [];
   }
-  talkToStaff(userId:string,id:unknown){if(!this.#members.has(userId))throw new Error('Player unavailable');const d=this.#staff.find(s=>s.definition.id===id)?.definition;if(!d)throw new Error('Staff unavailable in this room');return {name:d.name,role:d.role,greeting:d.greeting,tip:d.tip};}
+  #beside(s:Resident,m:Member){const p=s.definition.path[s.index],a=this.#position(m);return Math.hypot(p.x-a.x,p.y-a.y)<=1.5&&Math.abs(this.grid.tile(p)!.z-a.z)<=1;}
+  #callRoute(s:Resident,userId:string){
+    const member=this.#members.get(userId);if(!member)return null;
+    const a=this.#position(member),from=s.definition.path[s.index],occupied=this.#occupied();occupied.delete(tileKey(from));
+    if(this.#beside(s,member))return [];
+    let best:XY[]|null=null;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const goal={x:a.x+dx,y:a.y+dy};if(Math.abs((this.grid.tile(goal)?.z??Infinity)-a.z)>1)continue;const result=findPath(this.grid,from,goal,{occupied,diagonal:false,maxExpanded:1024});if(result.status==='ok'&&(!best||result.path.length<best.length))best=result.path;}
+    return best;
+  }
+  #rest(s:Resident){s.route=[];s.callOwner=undefined;s.callUntil=undefined;s.nextWalk=this.#ticks+this.#random(80,240);}
+  petInteract(userId:string,id:unknown,kind:'pet'|'call'){
+    const member=this.#members.get(userId),s=this.#staff.find(s=>s.definition.id===id&&s.definition.species);
+    if(!member||!s)throw new Error('Pet unavailable in this room');if(this.paused)throw new Error('The room is updating. Try again.');
+    if(kind==='call'){
+      if(!s.definition.petId||s.definition.ownerId!==userId)throw new Error('Only the owner can call this pet');
+      if(this.#ticks-(s.lastCall??-Infinity)<32)throw new Error('Give your pet a moment before calling again');
+      const route=this.#callRoute(s,userId);if(route===null)throw new Error('Your pet cannot reach you. Try a clear floor tile.');
+      s.lastCall=this.#ticks;
+      if(!route.length){this.#rest(s);return {message:s.definition.name+' is already beside you'};}
+      s.route=route;s.callOwner=userId;s.callUntil=this.#ticks+120;s.nextWalk=this.#ticks+1;
+      return {message:s.definition.name+' is coming over'};
+    }
+    if(kind!=='pet')throw new Error('Unknown pet interaction');
+    if(!this.#beside(s,member))throw new Error('Move beside your pet first, or call it over');
+    if(this.#ticks-(s.lastPet??-Infinity)<32)throw new Error('Give your pet a moment to enjoy that');
+    s.lastPet=this.#ticks;this.#rest(s);this.#broadcast({type:'PET_REACTION',staffId:s.definition.id,reaction:'happy'});
+    return {message:s.definition.name+' loves the attention'};
+  }
+  talkToStaff(userId:string,id:unknown){const member=this.#members.get(userId);if(!member)throw new Error('Player unavailable');const s=this.#staff.find(s=>s.definition.id===id);if(!s)throw new Error('Staff unavailable in this room');const d=s.definition;return {name:d.name,role:d.role,greeting:d.greeting,tip:d.tip,canPet:!!d.species&&this.#beside(s,member),canCall:!!d.petId&&d.ownerId===userId};}
   #position(m:Member):XYZ{return m.seat?.position??m.movement.position;}
   members(){return [...this.#members.values()].map(m=>({...m.identity,position:this.#position(m),state:m.seat?.state??'std'}));}
   chatViewers(userId:string,mode:string,target?:string){
@@ -142,12 +170,13 @@ export class RoomRuntime {
       if(d.species){
         if(this.#ticks>=s.nextVoice!){this.#broadcast({type:'PET_CHAT',staffId:d.id,text:d.species==='dog'?'Woof!':d.species==='cat'?'Meow!':'*sniff sniff*'});s.nextVoice=this.#ticks+this.#random(1080,1320);}
         if(this.#ticks<s.nextWalk!)continue;
+        if(s.callOwner){const route=this.#ticks<s.callUntil!?this.#callRoute(s,s.callOwner):null;if(!route?.length){this.#rest(s);continue;}s.route=route;}
         if(!s.route?.length)s.route=this.#petRoute(s);
         const next=s.route.shift(),from=d.path[s.index];
         if(next&&canStep(this.grid,from,next,{occupied:this.#occupied(),diagonal:false})){
           if(d.petId)d.path[0]=next;else s.index=d.path.findIndex(p=>p.x===next.x&&p.y===next.y);
-          moved=true;s.nextWalk=this.#ticks+(s.route.length?3:this.#random(80,240));
-        }else{s.route=[];s.nextWalk=this.#ticks+this.#random(80,240);}
+          moved=true;if(s.route.length)s.nextWalk=this.#ticks+3;else this.#rest(s);
+        }else{this.#rest(s);}
       }else if(this.#ticks%32===0){
         const next=(s.index+1)%d.path.length,p=d.path[next],from=d.path[s.index];
         if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}

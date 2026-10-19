@@ -45,3 +45,22 @@ test('personal pets rest 20–60 seconds, take long walks, and share sparse spec
  assert(voices.length>=2&&voices.length<=3);assert(voices[0]>=1080&&voices[0]<=1320);assert(voices.slice(1).every((t,i)=>t-voices[i]>=1080&&t-voices[i]<=1320));
  assert.deepEqual(a.filter(p=>p.type==='PET_CHAT'),b.filter(p=>p.type==='PET_CHAT'));assert(a.filter(p=>p.type==='PET_CHAT').every(p=>p.text==='Woof!'));
 });
+
+test('only an owner can call a pet; it walks beside them and rests before roaming',()=>{
+ const grid=new RoomGrid(parseHeightmap(Array(12).fill('000000000000').join('\n')),[]),room=new RoomRuntime(grid,25,[],[{id:'p',ownerId:'a',name:'Pup',species:'dog',color:'#cc965c'}]);
+ const a:Record<string,unknown>[]=[],b:Record<string,unknown>[]=[];room.join({userId:'a',username:'A'},{x:8,y:8},p=>a.push(p));room.join({userId:'b',username:'B'},{x:8,y:7},p=>b.push(p));
+ assert.throws(()=>room.petInteract('b','pet-p','call'),/owner/);assert.throws(()=>room.petInteract('outsider','pet-p','pet'),/unavailable/);assert.throws(()=>room.petInteract('a','pet-p','pet'),/beside/);
+ assert.match(room.petInteract('a','pet-p','call').message,/coming/);assert.throws(()=>room.petInteract('a','pet-p','call'),/moment/);
+ let last=room.staff()[0].position,steps=0;
+ for(let n=0;n<90;n++){room.tick();const p=room.staff()[0].position;assert(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<=1);if(tileKey(p)!==tileKey(last))steps++;assert(!room.members().some(m=>tileKey(m.position)===tileKey(p)));last=p;if(room.talkToStaff('a','pet-p').canPet)break;}
+ assert(steps>=10);assert(room.talkToStaff('a','pet-p').canPet);room.petInteract('a','pet-p','pet');assert.throws(()=>room.petInteract('a','pet-p','pet'),/moment/);
+ assert.deepEqual(a.filter(p=>p.type==='PET_REACTION'),b.filter(p=>p.type==='PET_REACTION'));assert.equal(a.filter(p=>p.type==='PET_REACTION').length,1);
+ const parked=room.staff()[0].position;for(let n=0;n<79;n++)room.tick();assert.deepEqual(room.staff()[0].position,parked);
+});
+test('calls respect obstacles and cancel when the owner leaves',()=>{
+ const split=new RoomRuntime(new RoomGrid(parseHeightmap('00x00\n00x00\n00x00'),[]),25,[],[{id:'p',ownerId:'a',name:'Cat',species:'cat',color:'#999999'}]);split.join({userId:'a',username:'A'},{x:4,y:2},()=>{});assert.throws(()=>split.petInteract('a','pet-p','call'),/cannot reach/);
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n')),[]),25,[],[{id:'p',ownerId:'a',name:'Cat',species:'cat',color:'#999999'}]);room.join({userId:'a',username:'A'},{x:7,y:7},()=>{});room.petInteract('a','pet-p','call');room.leave('a');const before=room.staff()[0].position;for(let n=0;n<40;n++)room.tick();assert.deepEqual(room.staff()[0].position,before);
+});
+test('visitors can pet a nearby companion but cannot spam reactions',()=>{
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap('0000\n0000\n0000'),[]),25,[],[{id:'p',ownerId:'a',name:'Bunny',species:'rabbit',color:'#eeeeee'}]);room.join({userId:'guest',username:'Guest'},{x:1,y:0},()=>{});assert.equal(room.talkToStaff('guest','pet-p').canCall,false);assert.equal(room.talkToStaff('guest','pet-p').canPet,true);assert.match(room.petInteract('guest','pet-p','pet').message,/attention/);assert.throws(()=>room.petInteract('guest','pet-p','pet'),/moment/);
+});
