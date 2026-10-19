@@ -986,6 +986,7 @@
     const bubbles=[];
     for(const hit of this.hit){const x=this.cx+hit.x*this.scale,y=this.cy+hit.y*this.scale;
      if(x<-40||x>w+40||y<-10||y>h+65)continue;
+     if(hit.user.species)continue; // Pet names are available on tap and in Hosts & pets; keep roaming bodies visible.
      const name=(hit.user.username||'You').slice(0,18)+(hit.user.species?' · '+hit.user.species:hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
      c.fillStyle='#122c3ee6';c.fillRect(x-labelWidth/2,y+5,labelWidth,17);c.fillStyle=hit.user.isStaff?'#ffe0a0':hit.user.userId===this.localUserId?'#9bffe3':'#f2fff8';c.fillText(name,x,y+17);
      const bubble=this.bubbles.get(hit.user.userId);if(!bubble||bubble.until<=performance.now())continue;
@@ -1020,5 +1021,6 @@
   Object.assign(preview,{canvas,c:canvas.getContext('2d'),scene:{heightmap,items,theme},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom:1,hit:[]});preview.draw();
  }
  function decorPreview(canvas,item,options={}){canvas.width=360;canvas.height=220;const c=canvas.getContext('2d');c.fillStyle='#12243b';c.fillRect(0,0,360,220);c.save();c.translate(180,70);c.scale(1.5,1.5);for(let y=0;y<4;y++)for(let x=0;x<4;x++){const px=(x-y)*18,py=(x+y)*9;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],(options.tone==='warm'?['#bda989','#d5c6a6']:options.tone==='garden'?['#739887','#91b39c']:['#78999d','#89abad'])[(x+y)%2],'#517780');}decor(c,{...item,x:1,y:1,z:0,rotation:item.rotation||0},0,18);c.restore();}
- window.EarnlyWorldRenderer={WorldRenderer,thumbnail,roomThumbnail,decorPreview};
+ function petPreview(canvas,pet){canvas.width=180;canvas.height=140;const c=canvas.getContext('2d');c.clearRect(0,0,180,140);c.save();c.translate(90,112);c.scale(2.8,2.8);animal(c,{...pet,facing:'right',gait:0},0,0);c.restore();}
+ window.EarnlyWorldRenderer={WorldRenderer,thumbnail,roomThumbnail,decorPreview,petPreview};
 })();

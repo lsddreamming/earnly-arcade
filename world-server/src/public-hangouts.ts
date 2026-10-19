@@ -1,5 +1,5 @@
 import type {ItemPlacement,XY} from './grid.ts';
-export type Staff={species?:'dog'|'cat'|'rabbit';id:string;name:string;role:string;color:string;path:XY[];greeting:string;tip:string};
+export type Staff={petId?:string;ownerId?:string;species?:'dog'|'cat'|'rabbit';id:string;name:string;role:string;color:string;path:XY[];greeting:string;tip:string};
 type Prop=ItemPlacement&{definitionId:string;name:string;sprite:string;color:string};
 const prop=(id:string,sprite:string,name:string,x:number,y:number,color:string,width=1,length=1):Prop=>({id,definitionId:'public-'+sprite,name,sprite,color,x,y,z:0,width,length,rotation:0,itemHeight:sprite==='rug'?.25:['chair','sofa','table'].includes(sprite)?.5:1,walkable:sprite==='rug',canStack:false,canSit:['chair','sofa'].includes(sprite),canLay:false});
 const plant=(id:string,x:number,y:number)=>prop(id,id.startsWith('patio')?'tree':'palm',id.startsWith('patio')?'Cloud Ficus':'Sunset Palm',x,y,'#71bc80');
