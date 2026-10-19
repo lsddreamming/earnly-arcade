@@ -442,11 +442,25 @@
  }
  async function showWeeklyChallenge(){
   currentPanel='weekly';const root=socialPanel('Weekly decorating challenge');if(!root)return;const version=panelVersion;root.append(note('Loading this week’s theme…'));
-  try{const w=await action('weekly');if(version!==panelVersion)return;root.replaceChildren(el('p','weekly-entry-label','THIS WEEK'),el('h3','weekly-theme',w.theme),note('Make the theme your own using furniture you already have. This is a participation challenge, not a competition.'),note('Place, move, or rotate a piece in your open room this week. Have at least 3 pieces in that room, then enter here.'),note('Resets '+new Date(w.endsAt).toLocaleString([],{weekday:'long',hour:'numeric',minute:'2-digit'})+' · One 10-coin reward per week.'));
-   if(w.entered){root.append(el('strong','weekly-complete','✓ Entered · 10 coins claimed'));if(w.entryRoomId)root.append(button('Visit my entry',()=>connect(w.entryRoomId)));}
-   else if(w.ready)root.append(button('Enter this room & claim 10 coins',async()=>{await action('weekly_enter');await refresh();await showWeeklyChallenge();toast('Challenge entered · +10 Arcade Coins');},'primary'));
-   else root.append(note(scene.ownerId===userId?'Your room needs a change this week, 3 placed pieces, and visitors allowed.':'Enter your own room to decorate and submit your entry.'),button(scene.ownerId===userId?'Open Backpack':'Go to my room',()=>scene.ownerId===userId?showBackpack():connect('choose-home')));
-   root.append(button('Featured rooms',showFeaturedRooms),button('Refresh challenge',showWeeklyChallenge));
+  try{const w=await action('weekly');if(version!==panelVersion)return;
+   const own=scene.ownerId===userId,count=(scene.items||[]).length,open=scene.access==='open';
+   root.replaceChildren(el('p','weekly-entry-label','THIS WEEK · +10 ARCADE COINS'),el('h3','weekly-theme',w.theme),note('Use this theme for inspiration. Any furniture counts — no new purchases needed.'));
+   if(w.entered){root.append(el('strong','weekly-complete','✓ Entered · 10 coins claimed'),note('You’re done for this week! Come back after the reset for a new theme.'));if(w.entryRoomId)root.append(button('Visit my entry',()=>connect(w.entryRoomId)));}
+   else {
+    const steps=el('ol','weekly-steps');
+    for(const [title,detail,done] of [
+     ['Choose your own room',own?'You’re in '+scene.name+'.':'Visit your room before starting.',own],
+     ['Place at least 3 furniture pieces',own?count+' of 3 pieces placed.':'Furniture in your Backpack counts once you place it.',own&&count>=3],
+     ['Allow visitors',own&&open?'Your room is open.':'Open Rooms → Allow visitors.',own&&open],
+     ['Make one change this week',w.ready?'Your decorating change is complete.':'Place, move, or rotate one piece, then tap Check progress below.',w.ready]
+    ]){const item=el('li',done?'is-complete':'');item.append(el('strong','',(done?'✓ ':'')+title),note(detail));steps.append(item);}
+    root.append(steps);
+    const actions=el('div','weekly-actions');
+    if(w.ready)actions.append(button('Enter this room & claim 10 coins',async()=>{await action('weekly_enter');await refresh();await showWeeklyChallenge();toast('Challenge entered · +10 Arcade Coins');},'primary'));
+    else {actions.append(button(own?'Open Backpack':'Go to my room',()=>own?showBackpack():connect('choose-home'),'primary'));if(own&&!open)actions.append(button('Room settings',showRooms));actions.append(button('Check progress',showWeeklyChallenge));}
+    root.append(actions,note('Once all steps are complete, claim your 10 coins here. Everyone who completes the steps can earn the reward.'));
+   }
+   root.append(note('Next theme: '+new Date(w.endsAt).toLocaleString([],{weekday:'long',hour:'numeric',minute:'2-digit'})+' · One reward per week.'),button('See other rooms',showFeaturedRooms));
   }catch(e){if(version===panelVersion)root.replaceChildren(note('Challenge unavailable. Your coins are safe.'),button('Retry',showWeeklyChallenge));}
  }
  function showCommunity(){const root=socialPanel('World community');if(!root)return;const grid=el('div','community-menu');for(const [id,label,description,run] of [

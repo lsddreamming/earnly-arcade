@@ -16,7 +16,7 @@ async function fixture(page,guest=false){
     if(p.action==='dismiss_invite')this.dismissed=true;
     if(['invites','dismiss_invite'].includes(p.action))data=this.dismissed?[]:[{id:'33333333-3333-4333-8333-333333333333',roomId:'invited-room',roomName:'Buddy’s room',username:'Buddy',expiresAt:'2026-10-19T16:00:00Z'}];
     if(p.action==='weekly_enter')this.entered=true;
-    if(['weekly','weekly_enter'].includes(p.action))data={theme:'Cozy Arcade',week:'2026-10-19',endsAt:'2026-10-26T00:00:00Z',entered:!!this.entered,ready:true,reward:10,entryRoomId:this.entered?'current-room':null};
+    if(['weekly','weekly_enter'].includes(p.action))data={theme:'Cozy Arcade',week:'2026-10-19',endsAt:'2026-10-26T00:00:00Z',entered:!!this.entered,ready:this.weeklyReady!==false,reward:10,entryRoomId:this.entered?'current-room':null};
     if(p.action==='bootstrap')data={...this.bootstrap,balance:this.entered?110:100};
     this.emit({type:'RESULT',requestId:p.requestId,data});
    }
@@ -34,4 +34,17 @@ test('Friends can invite, dismiss and join rooms; weekly entry refreshes the bal
  await page.locator('#closePanel').click();await page.evaluate(()=>window.socialSocket.emit({type:'ROOM_INVITE'}));await expect(page.locator('#worldCommunity')).toContainText('New invite');await page.locator('#worldCommunity').click();await page.locator('#worldInvites').click();await expect(page.locator('.room-invite-card')).toContainText('Buddy’s room');await page.getByRole('button',{name:'Dismiss',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('No invitations right now');
  await page.locator('#closePanel').click();await page.locator('#worldCommunity').click();await page.locator('#worldWeekly').click();await expect(page.locator('.weekly-theme')).toHaveText('Cozy Arcade');await page.screenshot({path:'test-results/world-social-weekly.png',fullPage:true});await page.getByRole('button',{name:'Enter this room & claim 10 coins',exact:true}).click();await expect(page.locator('#coinBalance')).toHaveText('◇ 110');await expect(page.locator('#panelContent')).toContainText('Entered · 10 coins claimed');expect(await page.evaluate(()=>window.socialActions.filter(p=>p.action==='weekly_enter').length)).toBe(1);
  await page.locator('#closePanel').click();await page.evaluate(()=>{window.socialSocket.dismissed=false;});await page.locator('#worldCommunity').click();await page.locator('#worldInvites').click();await page.getByRole('button',{name:'Join room',exact:true}).click();await expect.poll(()=>page.evaluate(()=>window.joins.at(-1))).toBe('invited-room');
+});
+
+test('Weekly challenge explains missing room steps without offering an early reward',async({page})=>{
+ await fixture(page);await page.evaluate(()=>{window.socialSocket.weeklyReady=false;});
+ await page.locator('#worldCommunity').click();await page.locator('#worldWeekly').click();
+ await expect(page.locator('.weekly-steps li')).toHaveCount(4);
+ await expect(page.locator('.weekly-steps')).toContainText('0 of 3 pieces placed');
+ await expect(page.locator('.weekly-steps')).toContainText('Your room is open');
+ await expect(page.locator('.weekly-steps')).toContainText('Place, move, or rotate one piece');
+ await expect(page.getByRole('button',{name:'Enter this room & claim 10 coins',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Check progress',exact:true}).click();
+ expect(await page.evaluate(()=>window.socialActions.filter(p=>p.action==='weekly_enter').length)).toBe(0);
+ await page.screenshot({path:'test-results/weekly-steps.png',fullPage:true});
 });
