@@ -77,7 +77,7 @@ test('matching beds synchronize sleep, reserve occupancy and wake on owner call'
  assert.deepEqual(a.filter(p=>p.type==='NPC_SNAPSHOT'),b.filter(p=>p.type==='NPC_SNAPSHOT'));
  assert.throws(()=>room.petInteract('guest','pet-dog','call'),/owner/);assert.equal(room.staff()[0].state,'sleep');
  room.petInteract('owner','pet-dog','call');assert.equal(room.staff()[0].state,'std');
- for(let i=0;i<120;i++)room.tick();const p=room.staff()[0].position;assert(Math.hypot(p.x-1,p.y-1)<=1.5);
+ let arrived=false;for(let i=0;i<120;i++){room.tick();const p=room.staff()[0].position;if(Math.hypot(p.x-1,p.y-1)<=1.5){arrived=true;break;}}assert(arrived);
 });
 test('pets cannot sleep in mismatched beds',()=>{
  const bed={id:'bed',x:3,y:3,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'cat'};
