@@ -1,5 +1,5 @@
 import type {ItemPlacement,XY} from './grid.ts';
-export type Staff={id:string;name:string;role:string;color:string;path:XY[];greeting:string;tip:string};
+export type Staff={petId?:string;ownerId?:string;species?:'dog'|'cat'|'rabbit';id:string;name:string;role:string;color:string;path:XY[];greeting:string;tip:string};
 type Prop=ItemPlacement&{definitionId:string;name:string;sprite:string;color:string};
 const prop=(id:string,sprite:string,name:string,x:number,y:number,color:string,width=1,length=1):Prop=>({id,definitionId:'public-'+sprite,name,sprite,color,x,y,z:0,width,length,rotation:0,itemHeight:sprite==='rug'?.25:['chair','sofa','table'].includes(sprite)?.5:1,walkable:sprite==='rug',canStack:false,canSit:['chair','sofa'].includes(sprite),canLay:false});
 const plant=(id:string,x:number,y:number)=>prop(id,id.startsWith('patio')?'tree':'palm',id.startsWith('patio')?'Cloud Ficus':'Sunset Palm',x,y,'#71bc80');
@@ -10,3 +10,14 @@ export const HANGOUTS=[
 ];
 export const hangoutFor=(room:{ownerId:string|null;name:string})=>room.ownerId===null?HANGOUTS.find(h=>h.name===room.name):undefined;
 export const HANGOUT_FLOOR=Array(12).fill('000000000000').join('\n');
+
+/** Original hangout companions; never inventory or player accounts. */
+export function hangoutAnimals(room:{ownerId:string|null;name:string}):Staff[]{
+ const h=hangoutFor(room);if(!h)return [];
+ const species=h.theme==='lobby'?'dog':h.theme==='rooftop'?'cat':'rabbit';
+ const name=species==='dog'?'Biscuit':species==='cat'?'Mochi':'Clover';
+ return [{id:'animal-'+species,species,name,role:species==='dog'?'Lobby dog':species==='cat'?'Rooftop cat':'Garden rabbit',color:species==='dog'?'#cc965c':species==='cat'?'#8c98b2':'#eee0cd',
+ path:[{x:4,y:10},{x:5,y:10},{x:6,y:10},{x:6,y:11},{x:5,y:11},{x:4,y:11}],
+ greeting:species==='dog'?'Biscuit wags his tail and gives you a friendly sniff.':species==='cat'?'Mochi greets you with a soft purr.':'Clover wiggles her nose and perks up her ears.',
+ tip:'This companion lives in the hangout. Watch them wander, pause and explore with everyone in the room.'}];
+}

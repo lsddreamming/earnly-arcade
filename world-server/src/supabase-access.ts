@@ -1,11 +1,11 @@
-import {hangoutFor} from './public-hangouts.ts';
+import {hangoutFor,hangoutAnimals} from './public-hangouts.ts';
 import {RoomGrid,parseHeightmap} from './grid.ts';
 import type {ItemPlacement} from './grid.ts';
 import {RoomRuntime} from './room-runtime.ts';
-import type {Identity} from './room-runtime.ts';
+import type {Identity,RoomPet} from './room-runtime.ts';
 import type {WorldAccess} from './gateway.ts';
 import {WorldAccessError} from './access-error.ts';
-type Snapshot={roomId:string;username:string;name:string;ownerId:string|null;access:string;equipped:Record<string,unknown>;heightmap:string;revision:number;capacity:number;items:(ItemPlacement&{definitionId:string;sprite:string;color:string;name:string})[]};
+type Snapshot={pets?:RoomPet[];roomId:string;username:string;name:string;ownerId:string|null;access:string;equipped:Record<string,unknown>;heightmap:string;revision:number;capacity:number;items:(ItemPlacement&{definitionId:string;sprite:string;color:string;name:string})[]};
 type Bootstrap={rooms:{id:string;name:string;ownerId:string|null}[];catalog:Record<string,any>[];items:Record<string,any>[];friends:Record<string,any>[]};
 /** Server-only credentials; never import into the website bundle. */
 export class SupabaseWorldAccess implements WorldAccess {
@@ -24,7 +24,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       // The gateway can reject the server API key while the player's JWT is valid.
       if(response.headers.get('sb-error-code')==='UNAUTHORIZED_INVALID_API_KEY'||rejected.message==='Invalid API key')throw new WorldAccessError('server_configuration');
       if(path==='/auth/v1/user'&&(response.status===401||response.status===403))throw new WorldAccessError('sign_in_required');
-      const safeMessages=['Not enough Arcade Coins','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable','Visit another player’s open room to react','Open this room to visitors before inviting','Decorate your open room with at least 3 pieces this week'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
+      const safeMessages=['Not enough Arcade Coins','Pet unavailable','Pet collection full','Visit the room containing this pet first','Use 1 to 18 letters or numbers for a pet name','Only your own room can hold your pets','Up to three pets can roam in a room','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable','Visit another player’s open room to react','Open this room to visitors before inviting','Decorate your open room with at least 3 pieces this week'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
     return response.json();
   }
   async authenticate(token:string):Promise<Identity>{
@@ -57,8 +57,8 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
-    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,hangoutFor(snapshot)?.staff);this.#rooms.set(roomId,room);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,dailyMissions:true,socialDiscovery:true}};
+    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);this.#rooms.set(roomId,room);}
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,personalPets:true,dailyMissions:true,socialDiscovery:true}};
   }
   async recordEntry(identity:Identity,roomId:string,occupancy:number){
     await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId}),this.#request('/rest/v1/rpc/world_track_step',this.#key,{p_actor:identity.userId,p_step:'join',p_room:roomId})]);
@@ -116,6 +116,29 @@ export class SupabaseWorldAccess implements WorldAccess {
     }else if(action==='room_directory'){
       const directory=await this.#api(uid,'bootstrap');result=this.#roomCounts(directory.rooms);
     }else if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
+    }else if(['pet_buy','pet_place','pet_pickup','pet_rename'].includes(action)){
+      const previous=this.#queues.get(roomId)??Promise.resolve();
+      const task=previous.catch(()=>{}).then(async()=>{
+        room.paused=true;let safe=true;
+        try{
+          if(action==='pet_place'){
+            const snapshot=await this.#snapshot(uid,roomId);
+            if(snapshot.ownerId!==uid)throw new Error('Only your own room can hold your pets');
+            if(!(snapshot.pets||[]).some(p=>p.id===data.petId)){
+              if((snapshot.pets||[]).length>=3)throw new Error('Up to three pets can roam in a room');
+              try{room.availableSpawn();}catch{throw new Error('Clear some floor space for your pet first');}
+            }
+          }
+          const reply=await this.#request('/rest/v1/rpc/world_pets',this.#key,{p_actor:uid,p_room:roomId,p_action:action.slice(4),p_data:data});
+          const snapshot=await this.#snapshot(uid,roomId);room.setPets(snapshot.pets||[]);
+          return reply;
+        }catch(error){
+          try{const snapshot=await this.#snapshot(uid,roomId);room.setPets(snapshot.pets||[]);}catch{safe=false;}
+          throw error;
+        }finally{room.paused=!safe;}
+      });
+      this.#queues.set(roomId,task);try{result=await task;}finally{if(this.#queues.get(roomId)===task)this.#queues.delete(roomId);}
+      deliveries.push({roomId,userIds:room.members().map(m=>m.userId),packet:{type:'NPC_SNAPSHOT',staff:room.staff()}});
     }else if(action==='place'){
       const previous=this.#queues.get(roomId)??Promise.resolve();
       const task=previous.catch(()=>{}).then(async()=>{
@@ -174,7 +197,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
-      if(action==='bootstrap'){result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
+      if(action==='bootstrap'){result.personalPets=true;result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
   }

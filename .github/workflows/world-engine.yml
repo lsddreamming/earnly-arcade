@@ -26,6 +26,7 @@ jobs:
       - run: node scripts/test-world-placement.mjs
       - run: node scripts/test-world-daily.mjs
       - run: node scripts/test-world-social.mjs
+      - run: node scripts/test-world-pets.mjs
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
       - run: node scripts/test-world-room-browser.mjs
@@ -41,6 +42,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/world.spec.js --project=desktop-chromium --grep "Owned furniture" --repeat-each=5 --workers=2
       - run: mkdir -p world-seating-shots && node scripts/test-world-browser.mjs
+        env:
+          WORLD_TEST_SCREENSHOTS: world-seating-shots
+      - run: node scripts/test-world-pets-browser.mjs
         env:
           WORLD_TEST_SCREENSHOTS: world-seating-shots
       - uses: actions/upload-artifact@v4

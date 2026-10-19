@@ -119,7 +119,7 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>{const before=renderer.users.get(u.userId);if(u.userId===userId&&before&&(before.position.x!==u.position.x||before.position.y!==u.position.y))completeGuideStep('walk');renderer.updateUser(u);});
-   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
+   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='ROOM_INVITE'){ $('worldCommunity').textContent='Community · New invite';toast('A friend invited you to a room. Open Room invitations.');}
@@ -139,7 +139,7 @@
  function readWishlist(){try{const ids=JSON.parse(localStorage.getItem(wishlistKey)||'[]');return new Set(Array.isArray(ids)?ids.filter(id=>typeof id==='string'&&id.length<100).slice(0,200):[]);}catch{return new Set();}}
  function wishlistButton(d,onChange=()=>{}){const b=button('',()=>{const ids=readWishlist();if(ids.has(d.id))ids.delete(d.id);else{if(ids.size>=200)throw new Error('Your wishlist is full. Remove a piece before saving another.');ids.add(d.id);}try{localStorage.setItem(wishlistKey,JSON.stringify([...ids]));}catch{throw new Error('Could not save your wishlist on this device. Please try again.');}update();onChange();toast(ids.has(d.id)?'Saved to your wishlist':'Removed from your wishlist');},'wishlist-save');function update(){const saved=readWishlist().has(d.id);b.textContent=saved?'♥ Saved':'♡ Save';b.setAttribute('aria-label',(saved?'Remove from wishlist: ':'Save to wishlist: ')+d.name);b.setAttribute('aria-pressed',String(saved));}update();return b;}
  function showCatalog(category='All',view={}){
-  currentPanel='catalog';const root=openPanel('Decor Catalog');root.append(note(connected?'Preview a piece, then buy or place one you own.':'Explore furniture. Connect to buy and decorate.'));
+  currentPanel='catalog';const root=openPanel('Decor Catalog');if(bootstrap.personalPets&&bootstrap.petsEnabled)root.append(button('Pet Shop',()=>showPets(true),'primary'));root.append(note(connected?'Preview a piece, then buy or place one you own.':'Explore furniture. Connect to buy and decorate.'));
   if(category==='All'){
    const vip=el('section','world-vip-showcase');vip.append(el('strong','','VIP · Preview monthly furniture gifts'),note('One furniture gift per verified paid month. Cosmetic only. Keep paid-month gifts after cancellation.'));const gifts=el('div','world-vip-previews');for(const d of bootstrap.catalog.filter(d=>d.vip_only)){const preview=button('',()=>showFurniturePreview(d,()=>showCatalog()));const canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);preview.append(canvas,el('span','',d.name));gifts.append(preview);}if(gifts.children.length)vip.append(gifts);appendVipLink(vip);root.append(vip);
    const collectionToggle=el('details','catalog-collections'),summary=el('summary','','Explore furniture collections');collectionToggle.append(summary);const showcase=el('div','collection-showcase');
@@ -214,6 +214,7 @@
  function showBackpack(){
   currentPanel='backpack';const root=openPanel('Your Backpack');
   if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'));return;}
+  if(bootstrap.personalPets&&bootstrap.petsEnabled)root.append(petTabs(false));
   if(backpackView.userId!==userId)backpackView={userId,search:'',location:'all',sort:'stored',scroll:0};
   const locationOf=item=>!item.room_id?'stored':item.room_id===scene.roomId?'here':'elsewhere';
   const entries=bootstrap.items.map(item=>{
@@ -256,6 +257,47 @@
   const savedScroll=backpackView.scroll||0;search.oninput=draw;filter.onchange=draw;sort.onchange=draw;draw();
   root.append(button('Browse Catalog',()=>showCatalog(),'backpack-catalog'));
   requestAnimationFrame(()=>{if(currentPanel==='backpack')$('worldPanel').scrollTop=savedScroll;});
+ }
+ function petTabs(selected){const tabs=el('div','filters');tabs.setAttribute('aria-label','Backpack sections');for(const [label,active,fn] of [['Furniture',!selected,()=>showBackpack()],['Pets',selected,()=>showPets()]]){const b=button(label,fn,active?'selected':'');b.setAttribute('aria-pressed',String(active));tabs.append(b);}return tabs;}
+ function showPets(shop=false){
+  requireConnection();currentPanel='backpack';const root=openPanel(shop?'Pet Shop':'Your Pets');
+  root.append(petTabs(true),note(shop?'A permanent companion for Arcade Coins. Up to 3 can roam in each room.':'Place pets in your own room. Return them here anytime without losing them.'),button(shop?'My pets':'Visit Pet Shop',()=>showPets(!shop)));
+  const grid=el('div','catalog-grid');root.append(grid);
+  const pets=bootstrap.pets||[],catalog=bootstrap.petCatalog||[],here=pets.filter(p=>p.room_id===scene.roomId);
+  for(const item of shop?catalog:pets){
+   const d=shop?item:catalog.find(d=>d.id===item.species);if(!d)continue;
+   const card=el('article','item-card pet-card'),canvas=el('canvas');canvas.setAttribute('role','img');canvas.setAttribute('aria-label',d.name);EarnlyWorldRenderer.petPreview(canvas,{species:d.id,color:d.color});
+   card.append(canvas,el('h3','',shop?d.name:item.name),note(d.id[0].toUpperCase()+d.id.slice(1)));
+   if(shop){card.append(note(d.price+' Arcade Coins'),button('Adopt '+d.name,()=>showPetBuy(d),'primary'));}
+   else{
+    const room=bootstrap.rooms.find(r=>r.id===item.room_id),elsewhere=item.room_id&&item.room_id!==scene.roomId;
+    card.append(note(!item.room_id?'In Backpack':item.room_id===scene.roomId?'Roaming in this room':room?.name||'In another room'));
+    if(elsewhere){if(room)card.append(button('Visit '+room.name,()=>connect(room.id)));}
+    else{
+     if(item.room_id)card.append(button('Return to Backpack',async()=>{await action('pet_pickup',{petId:item.id});await refresh();showPets();toast(item.name+' is safely in your Backpack');}));
+     else{const place=button('Place in room',async()=>{await action('pet_place',{petId:item.id});await refresh();$('worldPanel').close();toast(item.name+' is exploring your room');},'primary');place.disabled=scene.ownerId!==userId||here.length>=3;card.append(place);if(scene.ownerId!==userId)card.append(note('Enter your own room to place a pet.'));else if(here.length>=3)card.append(note('3 pets are already roaming here.'));}
+     card.append(button('Rename',()=>showPetRename(item)));
+    }
+   }
+   grid.append(card);
+  }
+  if(!shop&&!pets.length)root.append(note('Your first companion is waiting in the Pet Shop.'));
+ }
+ function showPetBuy(d){
+  const key='earnlyWorldPendingPet:'+userId;let saved;try{saved=JSON.parse(localStorage.getItem(key)||'null');}catch{}
+  if(saved&&saved.species!==d.id){const other=(bootstrap.petCatalog||[]).find(p=>p.id===saved.species);if(other){showPetBuy(other);toast('Resolve your previous pet purchase first.');return;}throw new Error('A pet purchase needs confirmation. Reconnect and try again.');}
+  const purchase=saved||{species:d.id,requestId:crypto.randomUUID()},root=openPanel('Adopt '+d.name+'?'),canvas=el('canvas','pet-purchase-preview');EarnlyWorldRenderer.petPreview(canvas,{species:d.id,color:d.color});
+  root.append(canvas,note(d.price+' Arcade Coins · One permanent pet, stored in Backpack.'),note('Name your pet after adoption. No feeding fees.'));
+  if(saved)root.append(note('Confirming your previous request will not charge twice.'));
+  root.append(button(saved?'Confirm previous adoption':'Adopt for '+d.price+' Coins',async()=>{
+   localStorage.setItem(key,JSON.stringify(purchase));
+   try{await action('pet_buy',purchase);}catch(error){if(error.definite)localStorage.removeItem(key);throw error;}
+   localStorage.removeItem(key);await refresh();showPets();toast(d.name+' joined your Backpack');
+  },'primary'),button('Back to pets',()=>showPets(true)));
+ }
+ function showPetRename(pet){
+  const root=openPanel('Name your pet'),label=el('label','','Pet name'),input=el('input');input.value=pet.name;input.maxLength=18;input.setAttribute('aria-label','Pet name');label.append(input);root.append(label,note('1–18 letters or numbers. Spaces, apostrophes and hyphens are welcome.'));
+  root.append(button('Save name',async()=>{const name=input.value.trim();if(!/^[A-Za-z0-9][A-Za-z0-9 '-]{0,17}$/.test(name))throw new Error('Choose a name with 1–18 letters or numbers.');await action('pet_rename',{petId:pet.id,name});await refresh();showPets();toast('Pet name saved');},'primary'),button('Back to pets',()=>showPets()));
  }
  const hangoutStyles={
   'Earnly Plaza':{theme:'plaza',tag:'MEET & PLAY',description:'Meet other players, chat and play together.',color:'#74f3d0',previewIds:['mint-sofa','arcade-cabinet','fern','low-table']},
@@ -359,14 +401,15 @@
   const roomId=scene.roomId,version=panelVersion,reply=await action('staff_talk',{staffId:staff.staffId});
   if(scene.roomId!==roomId||version!==panelVersion)return;
   currentPanel='staff';const root=openPanel(reply.name+' · '+reply.role),style=hangoutStyle(scene);
-  root.append(note('Staff NPC · Your hangout host'),el('p','staff-greeting',reply.greeting));
+  root.append(note(staff.species?'Room companion · '+staff.species:'Staff NPC · Your hangout host'),el('p','staff-greeting',reply.greeting));
   const response=el('p','staff-greeting staff-reply');response.hidden=true;response.setAttribute('aria-live','polite');
-  root.append(button(reply.role==='Bartender'?'See the mocktail menu':'Ask for a local tip',()=>{response.textContent=reply.tip;response.hidden=false;}),response);
+  root.append(button(staff.species?'About this companion':reply.role==='Bartender'?'See the mocktail menu':'Ask for a local tip',()=>{response.textContent=reply.tip;response.hidden=false;}),response);
+  if(staff.petId&&staff.ownerId===userId)root.append(button('Manage my pets',()=>showPets(),'primary'));
   root.append(button('Find me a seat',findHangoutSeat,'primary'));
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
   root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
- function showStaffList(){currentPanel='staff';const root=openPanel('Room staff');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button('Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
+ function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  function showFriends(){currentPanel='friends';const root=openPanel('Friends');if(!connected){root.append(note('Accepted friends will appear here with online status and private messages.'));return;}
   for(const f of bootstrap.friends){const controls=f.accepted?[button('Rooms',()=>showFriendRooms(f)),button('Message',()=>showPrivate(f)),...(bootstrap.socialDiscovery?[button('Invite here',()=>sendRoomInvite(f))]:[]),button('Remove',async()=>{await action('friend_remove',{userId:f.userId});await refresh();showFriends();})]:f.incoming?[button('Accept',async()=>{await action('friend_accept',{userId:f.userId});await refresh();showFriends();})]:[];root.append(row(f.username+(f.accepted?(f.online?' · Online':' · Offline'):' · Request'),controls));}
   if(bootstrap.socialDiscovery)root.prepend(button('Room invitations',showRoomInvites));
