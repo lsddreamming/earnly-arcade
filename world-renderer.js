@@ -51,7 +51,13 @@
   const cylinder=(u,v,r,z,h,tint,n=12)=>{const top=[];for(let j=0;j<n;j++){const a=j*Math.PI*2/n,b=(j+1)*Math.PI*2/n,p=[u+Math.cos(a)*r,v+Math.sin(a)*r],q=[u+Math.cos(b)*r,v+Math.sin(b)*r];top.push([...p,z+h]);face([[...p,z],[...q,z],[...q,z+h],[...p,z+h]],tint);}face(top,tint);};
   const gem=(u,v,z,r,h,tint)=>{for(let j=0;j<6;j++){const a=j*Math.PI/3,b=(j+1)*Math.PI/3,p=[u+Math.cos(a)*r,v+Math.sin(a)*r,z+h*.4],q=[u+Math.cos(b)*r,v+Math.sin(b)*r,z+h*.4];face([[u,v,z+h],p,q],shade(tint,j%2?18:-8),true);face([[u,v,z],q,p],shade(tint,-24),true);}};
   const ring=(u,v,r,z,tint)=>{for(let j=0;j<24;j++){const a=j*Math.PI/12,b=(j+1)*Math.PI/12;ribbon([u+Math.cos(a)*r,v+Math.sin(a)*r,z],[u+Math.cos(b)*r,v+Math.sin(b)*r,z],tint,.015);}};
-  if(s==='vip-throne'){
+  if(s==='pet-toy-dog'||s==='pet-toy-cat'){
+   cylinder(.5,.5,.4,0,.6,shade(color,-35),24);
+   const point=(a,b)=>[.5+Math.cos(a)*Math.sin(b)*.19,.5+Math.sin(a)*Math.sin(b)*.19,4.8+Math.cos(b)*4];
+   for(let j=0;j<16;j++)for(let k=0;k<8;k++){const a=j*Math.PI/8,b=k*Math.PI/8;face([point(a,b),point(a+Math.PI/8,b),point(a+Math.PI/8,b+Math.PI/8),point(a,b+Math.PI/8)],shade(color,Math.cos(a)*12+Math.cos(b)*18),true);}
+   for(const b of [Math.PI*.3,Math.PI*.5,Math.PI*.7])for(let j=0;j<32;j++)ribbon(point(j*Math.PI/16,b),point((j+1)*Math.PI/16,b),s==='pet-toy-cat'?'#f1c6d7':'#eaf3cd',.009);
+   if(s==='pet-toy-cat'){ribbon([.64,.6,1],[.81,.72,.8],color,.02);ribbon([.81,.72,.8],[.6,.83,.8],color,.02);}
+  }else if(s==='vip-throne'){
    const gold='#d9b76e',dark='#493563';
    for(const u of [.12,.78])for(const v of [.14,.76])block(u,v,.12,.12,7,0,gold);
    block(.04,.06,.92,.88,7,6,dark);block(.07,.08,.86,.83,1,12,gold);
@@ -303,7 +309,19 @@
   tile(.12,.12,Math.max(.1,w-.16),Math.max(.1,l-.16),0,'#14273724');
   tile(.22,.22,Math.max(.1,w-.36),Math.max(.1,l-.36),0,'#14273726');
   const legs=(a,b)=>{for(const [u,v] of [[.12,.12],[a-.23,.12],[.12,b-.23],[a-.23,b-.23]])cube(u,v,.12,.12,6,0,'#334455');};
-  if(s.startsWith('pet-bed-')){
+  if(s.startsWith('pet-toy-')){
+   tile(.08,.08,.84,.84,.5,shade(color,-30),shade(color,10));
+   if(s==='pet-toy-rabbit'){
+    // A fabric roof with open ends gives rabbits a real tunnel silhouette.
+    for(let j=0;j<8;j++){const a=j*Math.PI/8,b=(j+1)*Math.PI/8,v=.5+Math.cos(a)*.38,v2=.5+Math.cos(b)*.38,z=2+Math.sin(a)*21,z2=2+Math.sin(b)*21;poly(c,[point(.12,v,z),point(.81,v,z),point(.81,v2,z2),point(.12,v2,z2)],shade(color,j<4?15:-12));}
+    for(const u of [.12,.35,.58,.81]){line([point(u,.12,1),point(u,.12,15),point(u,.28,23),point(u,.7,23),point(u,.88,15),point(u,.88,1)],color,3);}
+    for(const v of [.12,.88])line([point(.12,v,14),point(.81,v,14)],shade(color,20),2);
+   }else{
+    const q=point(.5,.5,5);cube(.34,.34,.32,.32,6,1,color);
+    for(let i=0;i<4;i++)line([point(.35,.36+i*.08,7.1),point(.65,.36+i*.08,7.1)],s==='pet-toy-cat'?'#f8d8df':'#f5edd0',.6);
+    if(s==='pet-toy-cat')line([point(.6,.5,2),point(.8,.67,1),point(.62,.8,1)],color,1);
+   }
+  }else if(s.startsWith('pet-bed-')){
    cube(.05,.05,.9,.9,2,0,shade(color,-30));
    cube(.09,.09,.82,.82,2,2,color);
    cube(.1,.1,.8,.12,5,3,shade(color,15));cube(.1,.1,.12,.8,5,3,shade(color,8));
@@ -633,8 +651,8 @@
   c.restore();
  }
  function animal(c,u,x,y){
-  const rabbit=u.species==='rabbit',cat=u.species==='cat',gait=u.gait||0,phase=u.phase||0,t=performance.now()/1000;
-  const happy=(u.happyUntil||0)>performance.now(),coat=u.color||'#cc965c',step=Math.sin(phase)*gait*2.3,hop=(rabbit?Math.abs(step)*.65:Math.abs(step)*.13)+(happy?Math.abs(Math.sin(t*8))*(rabbit?1.5:.5):0);
+  const rabbit=u.species==='rabbit',cat=u.species==='cat',gait=u.gait||0,phase=u.phase||0,t=u.state==='play'?(performance.now()-(u.playAt??performance.now()))/1000:performance.now()/1000;
+  const happy=u.state==='play'||(u.happyUntil||0)>performance.now(),coat=u.color||'#cc965c',step=Math.sin(phase)*gait*2.3,hop=(rabbit?Math.abs(step)*.65:Math.abs(step)*.13)+(happy?Math.abs(Math.sin(t*8))*(rabbit?1.5:.5):0);
   c.save();c.translate(x,y);
   const oval=(x,y,rx,ry,color,angle=0)=>{c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,angle,0,Math.PI*2);c.fill();};
   const fur=(x,y,rx,ry,color,angle=0)=>{const g=c.createLinearGradient(x-rx,y-ry,x+rx,y+ry);g.addColorStop(0,shade(color,28));g.addColorStop(.45,color);g.addColorStop(1,shade(color,-35));oval(x,y,rx,ry,g,angle);};
@@ -648,6 +666,12 @@
    else{fur(3,-4,2.6,4.5,shade(coat,-28),-.5);fur(-10,-4,4,1.8,coat,Math.sin(t)*.08);}
    c.strokeStyle='#4c4145';c.lineWidth=.8;c.beginPath();c.moveTo(6,-4);c.quadraticCurveTo(7.5,-3,9,-4);c.stroke();oval(11,-2.5,1,.7,cat||rabbit?'#c67e93':'#283544');
    c.restore();c.save();c.translate(x,y);c.font='600 6px system-ui';c.fillStyle='#d9eced';c.textAlign='center';c.globalAlpha=.65+Math.sin(t)*.15;c.fillText('Zzz',3,-18-Math.sin(t*.7));c.restore();return;
+  }
+  if(u.state==='play'&&!rabbit){
+   const bx=cat?13+Math.sin(t*5)*2:17+Math.abs(Math.sin(t*3))*3,by=-1-Math.abs(Math.sin(t*5))*.7;
+   fur(bx,by,3.1,3.1,cat?'#d68fa8':'#79cbb6');c.strokeStyle=cat?'#f7d5df':'#e9f6d2';c.lineWidth=.55;
+   for(let i=0;i<3;i++){c.beginPath();c.ellipse(bx,by,1+i*.6,2.6,t*2+i*.5,0,Math.PI*2);c.stroke();}
+   if(cat){fur(9+Math.sin(t*5),-4,2,3,coat,.6+Math.sin(t*5)*.4);}
   }
   // Far legs are shaded; curved paws stay grounded between deliberate walks.
   for(const [px,sign] of [[-6,1],[6,-1]]){fur(px+step*sign,-4-hop,2.2,4.6,shade(coat,-28));oval(px+step*sign+1,0-Math.max(0,step*sign),2.5,1.5,shade(coat,-18));}
@@ -850,7 +874,7 @@
    const result=EarnlyWorldPlacement.placementCheck(this.scene,p.item,{x:p.x,y:p.y,rotation:p.rotation},users);
    this.placementCache={scene:this.scene,item:p.item,key,result};return result;
   }
-  setStaff(staff){const old=this.staff,now=performance.now();this.staff=new Map(staff.map(s=>{const previous=old.get(s.staffId),changed=!previous||['x','y','z'].some(k=>s.position[k]!==previous.position[k]),from=previous?this.sample(previous,now):s.position,dx=s.position.x-from.x,dy=s.position.y-from.y;return [s.staffId,{...previous,...s,old:changed?from:previous.old,at:changed?now:previous.at,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')}];}));}
+  setStaff(staff){const old=this.staff,now=performance.now();this.staff=new Map(staff.map(s=>{const previous=old.get(s.staffId),changed=!previous||['x','y','z'].some(k=>s.position[k]!==previous.position[k]),from=previous?this.sample(previous,now):s.position,dx=s.position.x-from.x,dy=s.position.y-from.y;return [s.staffId,{...previous,...s,playAt:s.state==='play'?now-(s.playElapsed||0):undefined,old:changed?from:previous.old,at:changed?now:previous.at,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')}];}));}
   setUsers(users){const present=new Set(users.map(u=>u.userId));for(const id of this.users.keys())if(!present.has(id))this.users.delete(id);users.forEach(u=>this.updateUser(u));}
   updateUser(u){const previous=this.users.get(u.userId),now=performance.now();
    // Chat, look and standing packets must not restart an in-flight step.
@@ -1003,7 +1027,7 @@
      const tint=check.valid?'#54f09a88':'#ff526f99',edge=check.valid?'#a6ffd0':'#ffb3bf';
      for(let y=preview.y;y<preview.y+pl;y++)for(let x=preview.x;x<preview.x+pw;x++){const px=(x-y)*18,py=(x+y)*9-check.z*12;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],tint,edge);}
     }
-    const nodes=(this.scene.items||[]).filter(i=>i.id!==preview?.item.id).map(item=>({depth:furnitureDepth(item)-.3,item}));for(const u of [...this.users.values(),...this.staff.values()]){let depth=(u.visual||u.position).x+(u.visual||u.position).y+1;if(u.state==='sit'||u.state==='lay'){const seat=nodes.find(n=>{const i=n.item;if(!i)return false;const turned=i.rotation===2||i.rotation===6;return u.position.x>=i.x&&u.position.y>=i.y&&u.position.x<i.x+(turned?i.length:i.width)&&u.position.y<i.y+(turned?i.width:i.length);});if(seat)depth=Math.max(depth,seat.depth+.1);}nodes.push({depth,user:u});}nodes.sort((a,b)=>a.depth-b.depth);this.hit=[];
+    const playingToys=new Set([...this.staff.values()].filter(u=>u.state==='play'&&u.species!=='rabbit').map(u=>u.toyId));const nodes=(this.scene.items||[]).filter(i=>i.id!==preview?.item.id&&!playingToys.has(i.id)).map(item=>({depth:furnitureDepth(item)-.3,item}));for(const u of [...this.users.values(),...this.staff.values()]){let depth=(u.visual||u.position).x+(u.visual||u.position).y+1;if(u.state==='sit'||u.state==='lay'){const seat=nodes.find(n=>{const i=n.item;if(!i)return false;const turned=i.rotation===2||i.rotation===6;return u.position.x>=i.x&&u.position.y>=i.y&&u.position.x<i.x+(turned?i.length:i.width)&&u.position.y<i.y+(turned?i.width:i.length);});if(seat)depth=Math.max(depth,seat.depth+.1);}nodes.push({depth,user:u});}nodes.sort((a,b)=>a.depth-b.depth);this.hit=[];
     const local=nodes.find(n=>n.user&&n.user.userId===this.localUserId),localPos=local?.user?.visual;
     for(const node of nodes){if(node.item){const i=node.item,ix=(i.x-i.y)*18,iy=(i.x+i.y)*9-i.z*12;
      // Fade foreground foliage only while it overlaps your avatar; collision and picking stay intact.

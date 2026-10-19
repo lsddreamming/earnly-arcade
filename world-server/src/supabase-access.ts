@@ -34,7 +34,7 @@ export class SupabaseWorldAccess implements WorldAccess {
   }
   async #api(userId:string,action:string,data:unknown={}):Promise<any>{return this.#request('/rest/v1/rpc/world_api',this.#key,{p_actor:userId,p_action:action,p_data:data});}
   async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
-  #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items.map(item=>({...item,petBed:({'pet-bed-dog':'dog','pet-bed-cat':'cat','pet-bed-rabbit':'rabbit'} as Record<string,string>)[item.sprite]})),s.revision);}
+  #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items.map(item=>({...item,petToy:({'pet-toy-dog':'dog','pet-toy-cat':'cat','pet-toy-rabbit':'rabbit'} as Record<string,string>)[item.sprite],petBed:({'pet-bed-dog':'dog','pet-bed-cat':'cat','pet-bed-rabbit':'rabbit'} as Record<string,string>)[item.sprite]})),s.revision);}
   #roomCounts(rooms:Record<string,any>[]){return rooms.filter(r=>!this.#retired.has(r.id)).map(r=>({...r,occupancy:this.#rooms.get(r.id)?.memberCount??0}));}
   async enter(identity:Identity,roomId:string){
     let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');

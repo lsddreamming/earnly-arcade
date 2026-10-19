@@ -9,7 +9,7 @@ import type {InteractionPlan} from './interactions.ts';
 export type RoomPet={id:string;ownerId:string;name:string;species:'dog'|'cat'|'rabbit';color:string};
 export type Identity = Readonly<{ userId:string; username:string; equipped?:Record<string,unknown> }>;
 export type Send = (packet:Record<string,unknown>)=>void;
-type Resident={definition:Staff;index:number;nextWalk?:number;nextVoice?:number;route?:XY[];callOwner?:string;callUntil?:number;lastPet?:number;lastCall?:number;bed?:XY;sleepUntil?:number};
+type Resident={definition:Staff;index:number;nextWalk?:number;nextVoice?:number;route?:XY[];callOwner?:string;callUntil?:number;lastPet?:number;lastCall?:number;bed?:XY;sleepUntil?:number;toy?:XY;toyId?:string;playUntil?:number;nextPlay?:number};
 type Member = {identity:Identity; movement:MovementController; send:Send; lastIntent:number; lastChat:number;seat?:{position:XYZ;state:'sit'|'lay'};plan?:InteractionPlan;exit?:{next:XYZ;revision:number;goal:XY}};
 /** Transport-independent authoritative room. Only the authenticated gateway may join users.
  * The gateway must enforce room access, account bans and message byte limits before dispatch.
@@ -30,7 +30,7 @@ export class RoomRuntime {
     this.#staff=staff.map(definition=>{if(!definition.path.length||definition.path.some((p,i)=>!grid.tile(p)?.walkable||(i>0&&Math.abs(p.x-definition.path[i-1].x)+Math.abs(p.y-definition.path[i-1].y)!==1)))throw new Error('Invalid staff route');return {definition,index:0,...(definition.species?this.#petClock():{})};});
     this.setPets(pets);
   }
-  staff(){return this.#staff.map(({definition:d,index,sleepUntil})=>({staffId:d.id,username:d.name,role:d.role,petId:d.petId,ownerId:d.ownerId,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:sleepUntil?'sleep':'std'}));}
+  staff(){return this.#staff.map(({definition:d,index,sleepUntil,playUntil,toyId})=>({staffId:d.id,username:d.name,role:d.role,petId:d.petId,ownerId:d.ownerId,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:sleepUntil?'sleep':playUntil?'play':'std',toyId:playUntil?toyId:undefined,playElapsed:playUntil?(32-playUntil+this.#ticks)*250:undefined}));}
   setPets(pets:RoomPet[]){
     if(pets.length>3)throw new Error('Up to three pets can roam in a room');
     const previous=new Map(this.#staff.filter(s=>s.definition.petId).map(s=>[s.definition.petId!,s]));
@@ -71,7 +71,24 @@ export class RoomRuntime {
     while(beds.length){const goal=beds.splice(this.#random(0,beds.length-1),1)[0],result=findPath(this.grid,from,goal,{occupied,diagonal:false,maxExpanded:1024});if(result.status==='ok'){s.bed=goal;s.route=result.path;return true;}}
     return false;
   }
-  #wake(s:Resident){const asleep=!!s.sleepUntil;s.sleepUntil=undefined;s.bed=undefined;if(asleep)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});}
+  #toyRoute(s:Resident){
+    if(!s.definition.petId||this.#ticks<(s.nextPlay??0))return false;
+    const from=s.definition.path[s.index],occupied=this.#occupied();occupied.delete(tileKey(from));
+    const toys:XY[]=[];
+    for(let y=0;y<this.grid.length;y++)for(let x=0;x<this.grid.width;x++)if(this.grid.tile({x,y})?.petToy===s.definition.species&&!occupied.has(tileKey({x,y}))&&!this.#staff.some(other=>other!==s&&other.toy?.x===x&&other.toy?.y===y))toys.push({x,y});
+    while(toys.length){const goal=toys.splice(this.#random(0,toys.length-1),1)[0],result=findPath(this.grid,from,goal,{occupied,diagonal:false,maxExpanded:1024});if(result.status==='ok'){s.toy=goal;s.toyId=this.grid.tile(goal)!.itemId;s.route=result.path;return true;}}
+    return false;
+  }
+  #play(s:Resident){
+    const from=s.definition.path[s.index];s.playUntil=this.#ticks+32;s.nextPlay=this.#ticks+this.#random(480,960);s.route=[];s.nextWalk=this.#ticks+6;
+    // A short out-and-back chase keeps the toy near its placed home. Each step
+    // is checked again against live occupancy by the normal movement loop.
+    if(s.definition.species!=='cat')for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
+      const a={x:from.x+dx,y:from.y+dy},b={x:from.x+2*dx,y:from.y+2*dy},occupied=this.#occupied();occupied.delete(tileKey(from));
+      if(canStep(this.grid,from,a,{occupied,diagonal:false})&&canStep(this.grid,a,b,{occupied,diagonal:false})){s.route=[a,b,a,from];break;}
+    }
+  }
+  #wake(s:Resident){const asleep=!!s.sleepUntil||!!s.playUntil;s.sleepUntil=undefined;s.bed=undefined;s.toy=undefined;s.toyId=undefined;s.playUntil=undefined;if(asleep)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});}
   #sleep(s:Resident){s.sleepUntil=this.#ticks+this.#random(240,480);s.nextWalk=s.sleepUntil;s.route=[];}
   #rest(s:Resident){this.#wake(s);s.route=[];s.callOwner=undefined;s.callUntil=undefined;s.nextWalk=this.#ticks+this.#random(80,240);}
   petInteract(userId:string,id:unknown,kind:'pet'|'call'){
@@ -178,17 +195,21 @@ export class RoomRuntime {
     for(const s of this.#staff){
       const d=s.definition;
       if(d.species){
+        if(s.toy&&(this.grid.tile(s.toy)?.petToy!==d.species||this.grid.tile(s.toy)?.itemId!==s.toyId)){this.#rest(s);moved=true;continue;}
+        if(s.playUntil&&this.#ticks>=s.playUntil){this.#rest(s);s.nextWalk=this.#ticks+this.#random(240,480);moved=true;continue;}
+        if(s.playUntil&&!s.route?.length)continue;
         if(s.bed&&this.grid.tile(s.bed)?.petBed!==d.species){this.#rest(s);moved=true;continue;}
         if(s.sleepUntil){if(this.#ticks<s.sleepUntil)continue;this.#rest(s);moved=true;continue;}
         if(this.#ticks>=s.nextVoice!){this.#broadcast({type:'PET_CHAT',staffId:d.id,text:d.species==='dog'?'Woof!':d.species==='cat'?'Meow!':'*sniff sniff*'});s.nextVoice=this.#ticks+this.#random(1080,1320);}
         if(this.#ticks<s.nextWalk!)continue;
         if(s.callOwner){const route=this.#ticks<s.callUntil!?this.#callRoute(s,s.callOwner):null;if(!route?.length){this.#rest(s);continue;}s.route=route;}
-        if(!s.route?.length){if(!(this.#random(0,2)===0&&this.#bedRoute(s)))s.route=this.#petRoute(s);}
+        if(!s.route?.length){const activity=this.#random(0,3);if(!(activity===0&&this.#bedRoute(s))&&!(activity===1&&this.#toyRoute(s)))s.route=this.#petRoute(s);}
+        if(s.toy&&!s.playUntil&&!s.route?.length){this.#play(s);moved=true;continue;}
         if(s.bed&&!s.route?.length){this.#sleep(s);moved=true;continue;}
         const next=s.route?.shift(),from=d.path[s.index];
         if(next&&canStep(this.grid,from,next,{occupied:this.#occupied(),diagonal:false})){
           if(d.petId)d.path[0]=next;else s.index=d.path.findIndex(p=>p.x===next.x&&p.y===next.y);
-          moved=true;if(s.route?.length)s.nextWalk=this.#ticks+3;else if(s.bed){this.#sleep(s);}else this.#rest(s);
+          moved=true;if(s.route?.length)s.nextWalk=this.#ticks+3;else if(s.playUntil){s.nextWalk=s.playUntil;}else if(s.toy){this.#play(s);}else if(s.bed){this.#sleep(s);}else this.#rest(s);
         }else{this.#rest(s);}
       }else if(this.#ticks%32===0){
         const next=(s.index+1)%d.path.length,p=d.path[next],from=d.path[s.index];
