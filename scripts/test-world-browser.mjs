@@ -108,7 +108,7 @@ await a.getByRole('button',{name:'Preview Moon Fern',exact:true}).click();await 
  await a.getByRole('button',{name:'Cancel trade',exact:true}).click();await expect(b.locator('#panelContent')).toContainText('This trade was cancelled.');
  await a.getByRole('button',{name:'Close panel'}).click();await a.getByRole('button',{name:'Rooms',exact:false}).click();await a.getByRole('button',{name:'＋ Create room · Free',exact:true}).click();await a.getByRole('button',{name:'Grand Square',exact:true}).click();await a.getByLabel('Room name',{exact:true}).fill('Potato Studio');await a.waitForTimeout(1100); // Keep the preceding rapid trade + directory actions below the production rate limit.
  await a.getByRole('button',{name:'Create Grand Square · Free',exact:true}).click();await a.locator('#roomName').filter({hasText:'Potato Studio'}).waitFor();await overview(a);
- await a.getByRole('button',{name:'Backpack',exact:false}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button',{name:'Place',exact:true}).click();await a.locator('#placementHint').waitFor();
+ await a.locator('[data-panel="backpack"]').click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).getByRole('button',{name:'Place',exact:true}).click();await a.locator('#placementHint').waitFor();
  // Tile is selected through the actual canvas, not by a direct API operation.
  const box=await a.locator('#worldCanvas').boundingBox();await a.locator('#worldCanvas').click({position:{x:box.width/2,y:box.height/2+30}});await a.locator('#worldToast').filter({hasText:'Placed in your room'}).waitFor();
  // Furniture can be selected directly from its visible sprite, moved repeatedly,
@@ -155,7 +155,7 @@ await a.getByRole('button',{name:'Preview Moon Fern',exact:true}).click();await 
  expect([ (await fern()).x,(await fern()).y ]).toEqual(destination);
  await cdp.detach();
  await tapFern();await a.getByRole('button',{name:'Return to Backpack',exact:true}).click();await expect.poll(fern).toBeUndefined();
- await a.getByRole('button',{name:'Backpack',exact:false}).click();await expect(a.locator('.item-card').filter({hasText:'Moon Fern'})).toContainText('In Backpack');
+ await a.locator('[data-panel="backpack"]').click();await expect(a.locator('.item-card').filter({hasText:'Moon Fern'})).toContainText('In Backpack');
  if(errors.length)throw new Error(errors.join(';'));
  console.log('Browser integration passed: two saved avatars, chat, catalog purchase, trade-offer unlocks, personal room, placement, direct furniture selection, repeated movement, rotation, cancellation and pickup.');
 
