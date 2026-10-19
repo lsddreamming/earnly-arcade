@@ -35,3 +35,9 @@ test('three placed pets disable further placement with a readable explanation',a
 test('pet purchases remain hidden until the connected server supports them',async({page})=>{
  await fixture(page,{ready:false});await page.locator('[data-panel="catalog"]').click();await expect(page.getByRole('button',{name:'Pet Shop',exact:true})).toHaveCount(0);
 });
+
+test('pet shop fits three clear choices on a phone without oversized cards',async({page},info)=>{
+ await page.setViewportSize({width:390,height:844});await fixture(page);await page.locator('[data-panel="catalog"]').click();await expect(page.locator('.catalog-refine')).not.toHaveAttribute('open','');await page.getByRole('button',{name:'Pet Shop',exact:true}).click();
+ await expect(page.locator('.pet-card')).toHaveCount(3);await expect(page.locator('.pet-card').last().getByRole('button')).toBeInViewport();await page.screenshot({path:info.outputPath('calm-pet-shop.png')});
+ expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+});
