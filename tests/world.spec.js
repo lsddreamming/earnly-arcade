@@ -252,6 +252,8 @@ test('Backpack search and room filters find stored and placed furniture without 
  await page.getByRole('combobox',{name:'Furniture location'}).selectOption('stored');await expect(cards).toHaveCount(0);await expect(page.locator('#panelContent')).toContainText('No furniture matches');
  await page.getByRole('searchbox').fill('');await expect(cards).toHaveCount(1);
  await page.getByRole('combobox',{name:'Furniture location'}).selectOption('elsewhere');await expect(cards).toHaveCount(1);await expect(page.getByRole('button',{name:'Visit Garden'})).toBeVisible();
+ await expect(page.locator('.backpack-room:visible')).toHaveText('Garden');await expect(page.locator('.backpack-results')).toHaveText('1 of 3 pieces');
+ await page.getByRole('searchbox').fill('missing');await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(cards).toHaveCount(3);await expect(page.locator('.backpack-results')).toHaveText('3 of 3 pieces');
  expect(await page.evaluate(()=>window.worldActions)).toEqual([]);
 });
 
