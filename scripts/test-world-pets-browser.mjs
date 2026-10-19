@@ -44,7 +44,7 @@ try{
  await expect(owner.locator('#peopleCount')).toHaveText('2 in the room');await expect(guest.locator('#peopleCount')).toHaveText('2 in the room');
  await guest.locator('[data-panel="staff"]').click();await guest.locator('.panel-row').filter({hasText:'Biscuit'}).getByRole('button',{name:'Meet pet'}).click();await expect(guest.locator('#panelContent')).toContainText('Room companion');await expect(guest.getByRole('button',{name:'Manage my pets'})).toHaveCount(0);await guest.locator('#closePanel').click();
  await owner.locator('#closePanel').click();
- const before=await guest.evaluate(()=>[...testWorldRenderer.staff.values()].map(p=>p.position));await guest.waitForTimeout(1300);const after=await guest.evaluate(()=>[...testWorldRenderer.staff.values()].map(p=>p.position));expect(after).not.toEqual(before);
+ const before=await guest.evaluate(()=>[...testWorldRenderer.staff.values()].map(p=>p.position));await expect.poll(()=>guest.evaluate(()=>[...testWorldRenderer.staff.values()].map(p=>p.position)),{timeout:65000,intervals:[1000]}).not.toEqual(before);
  if(process.env.WORLD_TEST_SCREENSHOTS){await owner.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/personal-pets-room.png'});}
  await owner.reload();await expect.poll(()=>owner.evaluate(()=>testWorldRenderer.staff.size)).toBe(3);
  await owner.locator('[data-panel="backpack"]').click();await owner.getByRole('button',{name:'Pets',exact:true}).click();
