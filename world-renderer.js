@@ -782,6 +782,7 @@
   }
   resize(){const r=this.canvas.getBoundingClientRect();this.width=Math.round(r.width);this.height=Math.round(r.height);this.dpr=Math.min(2,window.devicePixelRatio||1);this.canvas.width=Math.round(this.width*this.dpr);this.canvas.height=Math.round(this.height*this.dpr);this.c.imageSmoothingEnabled=false;}
   setView(mode){this.viewMode=mode;this.zoom=1;this.offset={x:0,y:0};}
+  resetView(){if(this.placement?.saving||this.pointers?.size)return;this.rotateView(-(this.viewRotation||0));this.setView('room');this.draw();}
   focusMe(){this.setView('close');}
   setZoom(amount,anchor){const before=this.zoom;this.zoom=Math.max(.6,Math.min(2.2,amount));if(anchor&&this.scene&&this.scale){const x=(anchor.x-this.cx)/this.scale,y=(anchor.y-this.cy)/this.scale;this.draw();this.offset.x+=anchor.x-(this.cx+x*this.scale);this.offset.y+=anchor.y-(this.cy+y*this.scale);}if(before!==this.zoom)this.draw();}
   sample(u,now=performance.now()){const t=Math.max(0,Math.min(1,(now-u.at)/250));return {x:u.old.x+(u.position.x-u.old.x)*t,y:u.old.y+(u.position.y-u.old.y)*t,z:u.old.z+(u.position.z-u.old.z)*t};}
@@ -797,13 +798,14 @@
    this.placementCache={scene:this.scene,item:p.item,key,result};return result;
   }
   setStaff(staff){const old=this.staff;this.staff=new Map(staff.map(s=>[s.staffId,{...s,old:old.get(s.staffId)?.position||s.position,at:performance.now()}]));}
-  setUsers(users){this.users.clear();users.forEach(u=>this.updateUser(u));}
+  setUsers(users){const present=new Set(users.map(u=>u.userId));for(const id of this.users.keys())if(!present.has(id))this.users.delete(id);users.forEach(u=>this.updateUser(u));}
   updateUser(u){const previous=this.users.get(u.userId),now=performance.now();
    // Chat, look and standing packets must not restart an in-flight step.
    const changed=!previous||['x','y','z'].some(k=>u.position[k]!==previous.position[k]);
    const from=previous?this.sample(previous,now):u.position,dx=u.position.x-from.x,dy=u.position.y-from.y;
    const teleport=Math.hypot(dx,dy)>4;
    this.users.set(u.userId,{...previous,...u,old:changed?(teleport?u.position:from):previous.old,at:changed?now:previous.at,
+    ...(teleport?{visual:u.position,gait:0,phase:0,frameAt:now}:{}),
     facing:changed&&Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')});}
 
   bubble(packet){this.bubbles.set(packet.userId,{text:packet.text,until:performance.now()+6000,mode:packet.mode});}

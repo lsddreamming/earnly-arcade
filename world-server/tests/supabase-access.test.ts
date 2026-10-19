@@ -63,11 +63,12 @@ test('room directories count connected humans, refresh after leave, and use the 
  await assert.rejects(access.perform(identity,home.roomId,'friend_rooms',{userId:'invalid'}),/Player unavailable/);
 });
 
-test('entry telemetry uses the server-only RPC and trusted identity',async t=>{
- t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{
-  assert.equal(url,'https://world-test.invalid/rest/v1/rpc/activity_record');
-  assert.equal(options.headers.Authorization,'Bearer server-key');
-  const body=JSON.parse(options.body);assert.equal(body.p_actor,'actor');assert.equal(body.p_room,'room');assert.equal(body.p_kind,'world_join');assert.equal(body.p_occupancy,2);assert.match(body.p_id,/^[0-9a-f-]{36}$/);return Response.json(true);
- });
+test('entry telemetry and public-visit evidence use the server-only RPCs and trusted identity',async t=>{
+ const calls:{url:string;body:any;authorization:string}[]=[];
+ t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{calls.push({url:String(url),body:JSON.parse(options.body),authorization:options.headers.Authorization});return Response.json(true);});
  await new SupabaseWorldAccess('https://world-test.invalid','server-key').recordEntry({userId:'actor',username:'Player'},'room',2);
+ assert.equal(calls.length,2);
+ for(const call of calls){assert.equal(call.authorization,'Bearer server-key');assert.equal(call.body.p_actor,'actor');assert.equal(call.body.p_room,'room');}
+ assert.equal(calls[0].url,'https://world-test.invalid/rest/v1/rpc/activity_record');assert.equal(calls[0].body.p_kind,'world_join');assert.equal(calls[0].body.p_occupancy,2);
+ assert.equal(calls[1].url,'https://world-test.invalid/rest/v1/rpc/world_daily_visit');
 });

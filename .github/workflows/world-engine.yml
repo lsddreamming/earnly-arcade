@@ -24,6 +24,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run build:world-placement && git diff --exit-code -- world-placement.js
       - run: node scripts/test-world-placement.mjs
+      - run: node scripts/test-world-daily.mjs
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
       - run: node scripts/test-world-room-browser.mjs
