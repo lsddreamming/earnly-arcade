@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 test('room animals animate, face their walking direction, and remain distinct from visitors',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('https://**',r=>r.abort());await page.goto('/world.html');
+ await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:r.request().resourceType()==='stylesheet'?'text/css':'application/javascript',body:''}));await page.goto('/world.html');
  const result=await page.evaluate(async()=>{
   document.querySelector('#worldEntry').hidden=true;document.querySelector('#worldConnected').hidden=false;
   const r=new EarnlyWorldRenderer.WorldRenderer(document.querySelector('#worldCanvas'),()=>{});window.petPreview=r;

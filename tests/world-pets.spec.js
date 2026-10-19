@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 async function fixture(page,{full=false,ready=true,interactions=false,visitor=false}={}){
- await page.route('https://**',r=>r.abort());
+ await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:r.request().resourceType()==='stylesheet'?'text/css':'application/javascript',body:''}));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.addInitScript(({full,ready,interactions,visitor})=>{
   const home='00000000-0000-4000-8000-000000000001';
