@@ -139,7 +139,7 @@ test('older clients never render animals as people; capable clients opt in after
  server.listen(0,'127.0.0.1');await once(server,'listening');const clients:WebSocket[]=[];
  try{
   const port=(server.address() as {port:number}).port,events:Record<string,any>[][]=[];
-  for(const id of ['a','b']){const ws=new WebSocket(`ws://127.0.0.1:${port}/world`,{origin:'https://earnlyarcade.com'});clients.push(ws);const packets:Record<string,any>[]=[];events.push(packets);ws.on('message',b=>packets.push(JSON.parse(String(b))));await once(ws,'open');ws.send(JSON.stringify({type:'JOIN',version:1,token:id,roomId:'home'}));for(let i=0;i<50&&!packets.some(p=>p.type==='WELCOME');i++)await delay(10);assert(packets.some(p=>p.type==='WELCOME'));assert.equal(packets.find(p=>p.type==='NPC_SNAPSHOT').staff.length,0);}
+  for(const id of ['a','b']){const ws=new WebSocket(`ws://127.0.0.1:${port}/world`,{origin:'https://earnlyarcade.com'});clients.push(ws);const packets:Record<string,any>[]=[];events.push(packets);ws.on('message',b=>packets.push(JSON.parse(String(b))));await once(ws,'open');ws.send(JSON.stringify({type:'JOIN',version:1,token:id,roomId:'home'}));for(let i=0;i<50&&!packets.some(p=>p.type==='WELCOME');i++)await delay(10);assert(packets.some(p=>p.type==='WELCOME'));assert.equal(packets.find(p=>p.type==='NPC_SNAPSHOT')?.staff.length,0);}
   clients[0].send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));for(let i=0;i<50&&!events[0].some(p=>p.type==='NPC_SNAPSHOT'&&p.staff.length);i++)await delay(10);
   assert(events[0].some(p=>p.type==='NPC_SNAPSHOT'&&p.staff[0]?.species==='dog'));
   clients[0].send(JSON.stringify({type:'ACTION',requestId:'refresh-pets',action:'test',data:{}}));await delay(1100);
