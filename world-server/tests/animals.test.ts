@@ -93,3 +93,23 @@ test('a removed destination cancels the nap and two pets never share a bed',()=>
  // A same-height replacement changes the bed's purpose without displacing a pet.
  room.replaceGrid(new RoomGrid(floor,[{...bed,petBed:undefined}],1));room.tick();assert(room.staff().every(p=>p.state==='std'));
 });
+for(const species of ['dog','cat','rabbit'] as const)test(species+' toy play is shared, bounded, interruptible and followed by a long rest',()=>{
+ const floor=parseHeightmap(Array(10).fill('0000000000').join('\n'));
+ const item={id:'toy',x:4,y:4,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petToy:species};
+ const room=new RoomRuntime(new RoomGrid(floor,[item]),25,[],[{id:'p',ownerId:'o',name:'Pet',species,color:'#aaa'}]);
+ const a:Record<string,unknown>[]=[],b:Record<string,unknown>[]=[];
+ room.join({userId:'o',username:'Owner'},{x:1,y:1},p=>a.push(p));room.join({userId:'g',username:'Guest'},{x:2,y:1},p=>b.push(p));
+ let started=false;for(let i=0;i<20000;i++){room.tick();if(room.staff()[0].state==='play'){started=true;break;}}assert(started);
+ assert.equal(room.staff()[0].toyId,'toy');assert.equal(room.staff()[0].playElapsed,0);
+ const positions=new Set<string>();for(let i=0;i<35;i++){const before=room.staff()[0].position;room.tick();const p=room.staff()[0];positions.add(tileKey(p.position));assert(Math.abs(p.position.x-before.x)+Math.abs(p.position.y-before.y)<=1);assert(!room.members().some(m=>tileKey(m.position)===tileKey(p.position)));}
+ if(species!=='cat')assert(positions.size>=3);assert.equal(room.staff()[0].state,'std');const pos=room.staff()[0].position;for(let i=0;i<200;i++)room.tick();assert.deepEqual(room.staff()[0].position,pos);
+ assert.deepEqual(a.filter(p=>p.type==='NPC_SNAPSHOT'),b.filter(p=>p.type==='NPC_SNAPSHOT'));
+ for(let i=0;i<20000&&room.staff()[0].state!=='play';i++)room.tick();assert.equal(room.staff()[0].state,'play');
+ assert.throws(()=>room.petInteract('g','pet-p','call'),/owner/);room.petInteract('o','pet-p','call');assert.equal(room.staff()[0].state,'std');assert.equal(room.staff()[0].toyId,undefined);
+});
+test('removed toys cancel play and two pets cannot reserve the same toy',()=>{
+ const floor=parseHeightmap(Array(9).fill('000000000').join('\n')),toy={id:'toy',x:4,y:4,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petToy:'cat'};
+ const room=new RoomRuntime(new RoomGrid(floor,[toy]),25,[],[1,2].map(i=>({id:String(i),ownerId:'o',name:'Cat',species:'cat' as const,color:'#aaa'})));
+ let played=false;for(let i=0;i<20000;i++){room.tick();assert(room.staff().filter(s=>s.state==='play').length<=1);if(room.staff().some(s=>s.state==='play')){played=true;break;}}assert(played);
+ room.replaceGrid(new RoomGrid(floor,[{...toy,petToy:undefined}],1));room.tick();assert(room.staff().every(s=>s.state==='std'));
+});

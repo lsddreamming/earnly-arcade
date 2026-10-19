@@ -26,6 +26,7 @@ jobs:
       - run: node scripts/test-world-placement.mjs
       - run: node scripts/test-world-daily.mjs
       - run: node scripts/test-world-social.mjs
+      - run: node scripts/test-world-pet-toys.mjs
       - run: node scripts/test-world-pets.mjs
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
