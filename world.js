@@ -23,7 +23,7 @@
  function button(text,fn,cls){const b=el('button',cls,text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){toast(e.message||'Try again.');}finally{b.disabled=false;}};return b;}
  function row(label,buttons=[]){const r=el('div','panel-row');r.append(el('strong','',label),...buttons);return r;}
  function note(text){return el('p','muted',text);}
- function openPanel(title){panelVersion++;$('panelTitle').textContent=title;$('panelContent').replaceChildren();$('panelContent').classList.remove('catalog-content');$('worldPanel').scrollTop=0;if(!$('worldPanel').open)$('worldPanel').showModal();return $('panelContent');}
+ function openPanel(title){const resetScroll=!$('worldPanel').open||$('panelTitle').textContent!==title;panelVersion++;$('panelTitle').textContent=title;$('panelContent').replaceChildren();$('panelContent').classList.remove('catalog-content');if(resetScroll)$('worldPanel').scrollTop=0;if(!$('worldPanel').open)$('worldPanel').showModal();return $('panelContent');}
  function requireConnection(){if(!connected)throw new Error('Connect to World to enter your room first.');}
  function action(action,data={}){requireConnection();return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('Connection timed out. Refresh before retrying a purchase.'));},10000);pending.set(requestId,{resolve,reject,timer});socket.send(JSON.stringify({type:'ACTION',requestId,action,data}));});}
  async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();showFirstVisitHint();}
