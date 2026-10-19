@@ -132,3 +132,17 @@ test('configuration failures never blame the player or admit them, and diagnosti
   assert.deepEqual(events,[{event:'world_entry_denied',stage:'authentication',reason:'server_configuration'}]);
  }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
+
+test('older clients never render animals as people; capable clients opt in after admission',async()=>{
+ const server=createServer(),room=new RoomRuntime(new RoomGrid(parseHeightmap('0000\n0000\n0000')),25,[],[{id:'pet',ownerId:'a',name:'Pup',species:'dog',color:'#cc965c'}]);
+ const gateway=attachWorldGateway(server,{authenticate:async token=>({userId:token,username:token}),enter:async()=>({room,spawn:room.availableSpawn(),scene:{roomId:'home'},bootstrap:{personalPets:true}}),revalidate:async()=>true,perform:async()=>({data:{ok:true},deliveries:[{userIds:['a','b'],packet:{type:'NPC_SNAPSHOT',staff:room.staff()}}]})},new Set(['https://earnlyarcade.com']));
+ server.listen(0,'127.0.0.1');await once(server,'listening');const clients:WebSocket[]=[];
+ try{
+  const port=(server.address() as {port:number}).port,events:Record<string,any>[][]=[];
+  for(const id of ['a','b']){const ws=new WebSocket(`ws://127.0.0.1:${port}/world`,{origin:'https://earnlyarcade.com'});clients.push(ws);const packets:Record<string,any>[]=[];events.push(packets);ws.on('message',b=>packets.push(JSON.parse(String(b))));await once(ws,'open');ws.send(JSON.stringify({type:'JOIN',version:1,token:id,roomId:'home'}));for(let i=0;i<50&&!packets.some(p=>p.type==='WELCOME');i++)await delay(10);assert(packets.some(p=>p.type==='WELCOME'));assert.equal(packets.find(p=>p.type==='NPC_SNAPSHOT').staff.length,0);}
+  clients[0].send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));for(let i=0;i<50&&!events[0].some(p=>p.type==='NPC_SNAPSHOT'&&p.staff.length);i++)await delay(10);
+  assert(events[0].some(p=>p.type==='NPC_SNAPSHOT'&&p.staff[0]?.species==='dog'));
+  clients[0].send(JSON.stringify({type:'ACTION',requestId:'refresh-pets',action:'test',data:{}}));await delay(1100);
+  assert(events[1].filter(p=>p.type==='NPC_SNAPSHOT').every(p=>p.staff.length===0));
+ }finally{for(const ws of clients)ws.close();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
