@@ -139,7 +139,8 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .world-stage{padding-top:60px;height:clamp(320px,52svh,520px)}
 .world-stage canvas{height:100%}
 .stage-tools{top:8px;right:8px;gap:4px}
-.stage-label{top:70px;left:10px}
+.stage-label{top:17px;left:10px}
+@media(max-width:413px){.stage-label{top:60px}}
 .world-bottom{background:#071322}
 .world-app{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
 .room-invitation{gap:6px;padding:8px 10px;margin:6px 0}
