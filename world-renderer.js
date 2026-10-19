@@ -303,7 +303,16 @@
   tile(.12,.12,Math.max(.1,w-.16),Math.max(.1,l-.16),0,'#14273724');
   tile(.22,.22,Math.max(.1,w-.36),Math.max(.1,l-.36),0,'#14273726');
   const legs=(a,b)=>{for(const [u,v] of [[.12,.12],[a-.23,.12],[.12,b-.23],[a-.23,b-.23]])cube(u,v,.12,.12,6,0,'#334455');};
-  if(s==='hammock'){
+  if(s.startsWith('pet-bed-')){
+   cube(.05,.05,.9,.9,2,0,shade(color,-30));
+   cube(.09,.09,.82,.82,2,2,color);
+   cube(.1,.1,.8,.12,5,3,shade(color,15));cube(.1,.1,.12,.8,5,3,shade(color,8));
+   cube(.23,.24,.61,.6,1.5,4,shade(color,34));
+   for(let i=0;i<5;i++)line([point(.25+i*.11,.27,5.6),point(.25+i*.11,.81,5.6)],shade(color,20),.4);
+   if(s==='pet-bed-dog'){cube(.35,.25,.28,.2,2,5,'#e8d2ae');line([point(.4,.35,7.1),point(.58,.35,7.1)],'#b58b64',2);}
+   if(s==='pet-bed-cat'){cube(.25,.22,.2,.23,2,5,'#d9c8ee');line([point(.29,.27,7.1),point(.39,.37,7.1)],'#a488c3',1.5);}
+   if(s==='pet-bed-rabbit'){for(let i=0;i<6;i++)line([point(.26+i*.08,.27,5.8),point(.3+i*.08,.73,5.8)],'#e7d6a0',1);}
+  }else if(s==='hammock'){
    for(const u of [.08,1.82]){cube(u,.1,.1,.8,4,0,'#856b51');line([point(u,.5,3),point(u,.5,35)],'#c9aa79',3);}
    poly(c,[point(.1,.5,32),point(.45,.15,20),point(1.55,.15,20),point(1.9,.5,32),point(1.55,.9,14),point(.45,.9,14)],color,'#e5e1bd');
    for(let u=.45;u<1.6;u+=.2)line([point(u,.18,20),point(u,.87,14)],'#e7e5bb');cube(.4,.3,.3,.4,3,20,'#f6dbb5');
@@ -631,6 +640,15 @@
   const fur=(x,y,rx,ry,color,angle=0)=>{const g=c.createLinearGradient(x-rx,y-ry,x+rx,y+ry);g.addColorStop(0,shade(color,28));g.addColorStop(.45,color);g.addColorStop(1,shade(color,-35));oval(x,y,rx,ry,g,angle);};
   oval(0,1,12,3.6,'#07172433');oval(0,1,8,2,'#07172430');
   if(u.facing==='left')c.scale(-1,1);
+  if(u.state==='sleep'){
+   const breath=Math.sin(t*1.6)*.28;
+   fur(-1,-5,10.5,5.7+breath,coat);fur(7,-4,5,4.1,shade(coat,14));
+   if(rabbit){fur(1,-8,6.5,1.9,coat,-.15);fur(4,-10,6,1.7,shade(coat,10),-.1);fur(-10,-5,3.5,3,'#fff5e7');}
+   else if(cat){poly(c,[[4,-6],[4,-11],[8,-7]],shade(coat,-12));poly(c,[[9,-7],[12,-10],[12,-4]],coat);c.strokeStyle=shade(coat,-22);c.lineWidth=3;c.beginPath();c.moveTo(-9,-3);c.bezierCurveTo(-4,2,5,2,7,-1);c.stroke();}
+   else{fur(3,-4,2.6,4.5,shade(coat,-28),-.5);fur(-10,-4,4,1.8,coat,Math.sin(t)*.08);}
+   c.strokeStyle='#4c4145';c.lineWidth=.8;c.beginPath();c.moveTo(6,-4);c.quadraticCurveTo(7.5,-3,9,-4);c.stroke();oval(11,-2.5,1,.7,cat||rabbit?'#c67e93':'#283544');
+   c.restore();c.save();c.translate(x,y);c.font='600 6px system-ui';c.fillStyle='#d9eced';c.textAlign='center';c.globalAlpha=.65+Math.sin(t)*.15;c.fillText('Zzz',3,-18-Math.sin(t*.7));c.restore();return;
+  }
   // Far legs are shaded; curved paws stay grounded between deliberate walks.
   for(const [px,sign] of [[-6,1],[6,-1]]){fur(px+step*sign,-4-hop,2.2,4.6,shade(coat,-28));oval(px+step*sign+1,0-Math.max(0,step*sign),2.5,1.5,shade(coat,-18));}
   c.save();c.translate(0,-hop);
@@ -640,8 +658,9 @@
   fur(-1,-10,10.8,7.1,coat,-.08);oval(-1,-11,7.3,4.2,shade(coat,14),-.1);
   if(cat){c.strokeStyle=shade(coat,-30);c.lineWidth=1.2;for(const px of [-5,-1,3]){c.beginPath();c.moveTo(px,-16);c.lineTo(px+1,-13);c.stroke();}}
   for(const [px,sign] of [[-5,-1],[7,1]]){fur(px+step*sign,-4,2.2,4.5,coat);oval(px+step*sign+1,.2-Math.max(0,step*sign),rabbit?3.3:2.8,1.5,shade(coat,18));}
+  if(cat&&gait<.1&&!happy&&Math.sin(t*.17)>.97){fur(9,-12,2,4,coat,Math.sin(t*6)*.25);c.rotate(Math.sin(t*6)*.025);}
   c.translate(0,Math.sin(t*1.8)*.22);
-  if(rabbit){fur(4,-27,2.7,10,coat,-.12);fur(11,-29,2.8,11,coat,.12);oval(4,-28,1.15,7,'#dba6ad',-.12);oval(11,-30,1.15,7.5,'#dba6ad',.12);}
+  if(rabbit){fur(4,-27,2.7,10,coat,-.12+(gait<.1&&Math.sin(t*.23)>.96?Math.sin(t*9)*.07:0));fur(11,-29,2.8,11,coat,.12);oval(4,-28,1.15,7,'#dba6ad',-.12);oval(11,-30,1.15,7.5,'#dba6ad',.12);}
   else if(cat){poly(c,[[1,-20],[2,-29],[8,-23]],shade(coat,-12));poly(c,[[9,-24],[15,-29],[16,-19]],shade(coat,-15));poly(c,[[3,-24],[3,-27],[6,-23]],'#dea7b1');poly(c,[[11,-24],[14,-27],[14,-22]],'#dea7b1');}
   else fur(12,-22,3.2,5.4,shade(coat,-22),-.2);
   fur(8,-17,7.9,7.5,coat);oval(9,-14,5.8,4.4,rabbit?'#fff5e7':shade(coat,32));

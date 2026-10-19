@@ -1,12 +1,12 @@
 /** Original Earnly room geometry. x/y are integers; z uses quarter-height units. */
 export type XY = Readonly<{ x: number; y: number }>;
 export type XYZ = Readonly<{ x: number; y: number; z: number }>;
-export type Tile = Readonly<{ z: number; walkable: boolean; canSit: boolean; canLay: boolean; itemId?: string }>;
+export type Tile = Readonly<{ z: number; walkable: boolean; canSit: boolean; canLay: boolean; itemId?: string; petBed?: string }>;
 export type ItemPlacement = Readonly<{
   id: string; x: number; y: number; z: number;
   width: number; length: number; rotation: 0 | 2 | 4 | 6;
   itemHeight: number; walkable: boolean; canStack: boolean;
-  canSit?: boolean; canLay?: boolean; centered?: boolean;
+  canSit?: boolean; canLay?: boolean; centered?: boolean; petBed?: string;
 }>;
 const MAX_SIDE = 64;
 const MAX_HEIGHT = 64;
@@ -71,7 +71,7 @@ export class RoomGrid {
       for (const item of stack) {
         // Exact quarter units avoid floating-point drift; no floating or intersecting items.
         if (item.z !== top.z || !stackable) throw new Error('Unsupported or overlapping item stack');
-        top = { z:item.z + item.itemHeight, walkable:item.walkable, canSit:item.canSit === true, canLay:item.canLay === true, itemId:item.id };
+        top = { z:item.z + item.itemHeight, walkable:item.walkable, canSit:item.canSit === true, canLay:item.canLay === true, itemId:item.id, petBed:item.petBed };
         stackable = item.canStack;
       }
       tiles[key] = top;

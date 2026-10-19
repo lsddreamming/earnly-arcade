@@ -64,3 +64,32 @@ test('calls respect obstacles and cancel when the owner leaves',()=>{
 test('visitors can pet a nearby companion but cannot spam reactions',()=>{
  const room=new RoomRuntime(new RoomGrid(parseHeightmap('0000\n0000\n0000'),[]),25,[],[{id:'p',ownerId:'a',name:'Bunny',species:'rabbit',color:'#eeeeee'}]);room.join({userId:'guest',username:'Guest'},{x:1,y:0},()=>{});assert.equal(room.talkToStaff('guest','pet-p').canCall,false);assert.equal(room.talkToStaff('guest','pet-p').canPet,true);assert.match(room.petInteract('guest','pet-p','pet').message,/attention/);assert.throws(()=>room.petInteract('guest','pet-p','pet'),/moment/);
 });
+test('matching beds synchronize sleep, reserve occupancy and wake on owner call',()=>{
+ const bed={id:'bed',x:6,y:6,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'dog'};
+ const grid=new RoomGrid(parseHeightmap(Array(9).fill('000000000').join('\n')),[bed]);
+ const room=new RoomRuntime(grid,25,[],[{id:'dog',ownerId:'owner',name:'Pup',species:'dog',color:'#cc965c'}]);
+ const a:Record<string,unknown>[]=[],b:Record<string,unknown>[]=[];
+ room.join({userId:'owner',username:'Owner'},{x:1,y:1},p=>a.push(p));room.join({userId:'guest',username:'Guest'},{x:2,y:1},p=>b.push(p));
+ let asleep=false;
+ for(let i=0;i<20000;i++){room.tick();if(room.staff()[0].state==='sleep'){asleep=true;break;}}
+ assert(asleep,'pet eventually chooses its matching bed');assert.deepEqual(room.staff()[0].position,{x:6,y:6,z:.25});
+ const start=room.staff()[0].position;for(let i=0;i<100;i++)room.tick();assert.equal(room.staff()[0].state,'sleep');assert.deepEqual(room.staff()[0].position,start);
+ assert.deepEqual(a.filter(p=>p.type==='NPC_SNAPSHOT'),b.filter(p=>p.type==='NPC_SNAPSHOT'));
+ assert.throws(()=>room.petInteract('guest','pet-dog','call'),/owner/);assert.equal(room.staff()[0].state,'sleep');
+ room.petInteract('owner','pet-dog','call');assert.equal(room.staff()[0].state,'std');
+ let arrived=false;for(let i=0;i<120;i++){room.tick();const p=room.staff()[0].position;if(Math.hypot(p.x-1,p.y-1)<=1.5){arrived=true;break;}}assert(arrived);
+});
+test('pets cannot sleep in mismatched beds',()=>{
+ const bed={id:'bed',x:3,y:3,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'cat'};
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap('00000\n00000\n00000\n00000\n00000'),[bed]),25,[],[{id:'dog',ownerId:'o',name:'Pup',species:'dog',color:'#cc965c'}]);
+ for(let i=0;i<3000;i++){room.tick();assert.equal(room.staff()[0].state,'std');}
+});
+
+test('a removed destination cancels the nap and two pets never share a bed',()=>{
+ const floor=parseHeightmap(Array(8).fill('00000000').join('\n'));
+ const bed={id:'bed',x:6,y:6,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'cat'};
+ const room=new RoomRuntime(new RoomGrid(floor,[bed]),25,[],[1,2].map(i=>({id:String(i),ownerId:'o',name:'Cat '+i,species:'cat' as const,color:'#aaa'})));
+ let naps=0;for(let i=0;i<10000;i++){room.tick();const pets=room.staff();assert.notEqual(tileKey(pets[0].position),tileKey(pets[1].position));assert(pets.filter(p=>p.state==='sleep').length<=1);naps+=pets.some(p=>p.state==='sleep')?1:0;}assert(naps>0);
+ // A same-height replacement changes the bed's purpose without displacing a pet.
+ room.replaceGrid(new RoomGrid(floor,[{...bed,petBed:undefined}],1));room.tick();assert(room.staff().every(p=>p.state==='std'));
+});
