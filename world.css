@@ -168,3 +168,6 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 @media(max-width:600px){.catalog-grid{gap:8px}.catalog-grid .item-card{padding:9px}.item-card .furniture-inspect{min-height:140px}.first-visit-hint p{font-size:12px}}
 
 #roomView{font-size:11px;padding:5px 3px}.world-vip-showcase summary{cursor:pointer;color:#e2c9ff;font-size:13px;font-weight:700;min-height:24px}.world-vip-showcase[open] summary{margin-bottom:12px}
+
+.catalog-collections{margin:8px 0;border:1px solid #4a6478;border-radius:12px;padding:10px}.catalog-collections>summary{min-height:24px;cursor:pointer;font-size:12px;color:var(--mint);font-weight:600}.catalog-search{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.catalog-search input{grid-column:1/-1}.catalog-search .wishlist-filter{grid-column:auto;padding:8px;font-size:12px}.catalog-search select{padding:8px;font-size:13px}.catalog-search{margin:8px 0}.catalog-backpack{font-size:12px;padding:8px 12px}
+@media(max-width:600px){.first-visit-hint{display:grid;grid-template-columns:1fr auto;padding:9px}.first-visit-hint>div{grid-column:1/-1}.first-visit-hint button{min-height:44px}.first-visit-hint[hidden]{display:none}}
