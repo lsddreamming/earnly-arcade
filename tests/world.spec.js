@@ -831,3 +831,34 @@ test('An empty room rotates its walls and doorway, not just its furniture',async
  expect(result.edges).toEqual([[false,false],[false,true],[true,true],[true,false]]);
  expect(result.restored).toBe(true);expect(result.unchanged).toBe(true);
 });
+
+test('Reset restores the default camera without changing furniture or another viewer',async({page})=>{
+ await page.goto('/world.html');
+ const result=await page.evaluate(()=>{
+  const create=()=>{const c=document.createElement('canvas');c.style='width:360px;height:400px';document.body.append(c);const r=new EarnlyWorldRenderer.WorldRenderer(c,()=>{});r.running=false;r.setScene({roomId:'reset',heightmap:'0000\n0000\n0000\n0000',items:[]});return r;};
+  const a=create(),b=create();a.rotateView(1);a.setZoom(2);a.offset={x:100,y:80};a.resetView();return {angle:a.viewRotation,zoom:a.zoom,offset:a.offset,other:b.viewRotation};
+ });
+ expect(result).toEqual({angle:0,zoom:1,offset:{x:0,y:0},other:0});
+});
+
+test('Room snapshots preserve an in-flight walk and teleports do not animate a long stride',async({page})=>{
+ await page.goto('/world.html');const result=await page.evaluate(()=>{
+  const c=document.createElement('canvas');document.body.append(c);const r=new EarnlyWorldRenderer.WorldRenderer(c,()=>{});r.running=false;
+  r.updateUser({userId:'me',position:{x:1,y:1,z:0}});r.updateUser({userId:'me',position:{x:2,y:1,z:0}});r.users.get('me').at=performance.now()-100;
+  const before=r.sample(r.users.get('me'));r.setUsers([{userId:'me',position:{x:2,y:1,z:0}}]);const after=r.sample(r.users.get('me'));r.users.get('me').gait=1;r.updateUser({userId:'me',position:{x:15,y:15,z:0}});return {jump:Math.abs(before.x-after.x),gait:r.users.get('me').gait,position:r.sample(r.users.get('me'))};
+ });expect(result.jump).toBeLessThan(.05);expect(result.gait).toBe(0);expect(result.position).toEqual({x:15,y:15,z:0});
+});
+
+test('World guide advances on confirmed movement and daily claims refresh from the server',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.actions=[];window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;window.dailySocket=this;setTimeout(()=>this.onopen?.(),10);}close(){}emit(p){this.onmessage?.({data:JSON.stringify(p)});}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN'){this.bootstrap={balance:100,dailyMissions:true,rooms:[],items:[{id:'chair',definition_id:'chair',room_id:null}],friends:[],catalog:[{id:'chair',name:'Test Chair',sprite_id:'chair',price:60,width:1,length:1,color:'#74c9ba'}]};this.emit({type:'WELCOME',userId:'daily-owner',scene:{roomId:'home',ownerId:'daily-owner',name:'My room',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:this.bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[{userId:'daily-owner',position:{x:0,y:0,z:0}}]});}if(p.type==='ACTION'){window.actions.push(p);if(p.action==='daily_missions'){if(p.data.claim)this.claimed=true;this.emit({type:'RESULT',requestId:p.requestId,data:{resetsAt:'2026-10-20T00:00:00Z',missions:[{id:'visit',title:'Visit a public hangout',description:'Visit the plaza.',complete:true,claimed:!!this.claimed}]}});}if(p.action==='bootstrap')this.emit({type:'RESULT',requestId:p.requestId,data:{...this.bootstrap,balance:105}});}}};
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#guideStep')).toContainText('1 / 3');
+ await page.evaluate(()=>window.dailySocket.emit({type:'ROOM_DELTA',users:[{userId:'daily-owner',position:{x:1,y:0,z:0}}]}));await expect(page.locator('#guideStep')).toContainText('2 / 3');
+ await page.locator('#dismissWorldHint').click();await page.locator('#worldGuide').click();await expect(page.locator('#firstVisitHint')).toBeVisible();
+ await page.screenshot({path:'test-results/world-welcome-guide.png',fullPage:true});
+ await page.locator('[data-panel="catalog"]').click();await page.screenshot({path:'test-results/world-welcome-shop.png',fullPage:true});await page.getByRole('button',{name:'Place owned piece',exact:true}).click();await expect(page.locator('#placingName')).toHaveText('Test Chair');await expect(page.locator('#worldPanel')).not.toBeVisible();await page.locator('#cancelPlace').click();
+ await page.locator('#worldDaily').click();await page.getByRole('button',{name:'Claim 5 coins',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('✓ Claimed');await expect(page.locator('#coinBalance')).toHaveText('◇ 105');
+ await page.screenshot({path:'test-results/world-welcome-missions.png',fullPage:true});expect(await page.evaluate(()=>window.actions.filter(p=>p.data.claim).length)).toBe(1);
+});

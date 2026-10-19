@@ -158,3 +158,13 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 #placementHint{position:static;margin:6px 0;width:100%;font-size:11px}
 
 #viewLeft,#viewRight{font-size:23px;line-height:1}
+
+/* A compact guide and daily route stay outside the play surface. */
+.first-visit-hint{flex-wrap:wrap;gap:8px}.first-visit-hint>div{flex:1 1 180px}.first-visit-hint strong{font-size:12px;color:var(--mint)}.first-visit-hint button{font-size:12px;padding:6px 10px}
+.world-discovery{display:flex;gap:8px;margin:8px 0}.world-discovery button{font-size:12px;min-height:44px}.world-discovery #worldDaily{flex:1;color:#ffdf8c;border-color:#7c714e;background:#2b302f}
+.daily-world-card{border:1px solid #3b5967;border-radius:16px;padding:14px;margin:10px 0;background:linear-gradient(120deg,#203e45,#172a3e)}.daily-world-card h3{margin:0;font-size:16px}.daily-world-card strong{display:block;color:var(--mint);margin:10px 0}.daily-world-card button,.daily-game-link{display:block;width:100%;text-align:center;min-height:44px;padding:12px}
+.world-vip-showcase{border:1px solid #9276b7;border-radius:16px;padding:14px;margin:12px 0;background:linear-gradient(135deg,#302c49,#1d3446)}.world-vip-showcase>strong{color:#e2c9ff}.world-vip-link{display:block;min-height:44px;padding:12px 0;font-size:13px}.world-vip-previews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.world-vip-previews button{min-width:0;padding:5px;font-size:10px;background:#18293d}.world-vip-previews canvas{width:100%;height:auto}.world-vip-previews span{display:block}
+.catalog-grid .item-card{display:flex;flex-direction:column;gap:6px;padding:12px}.item-card .furniture-inspect{min-height:152px;background:radial-gradient(ellipse at center,#478b8138,#14293c);border-color:#486978}.item-card .furniture-inspect canvas{width:100%;height:auto;max-height:170px;object-fit:contain}.item-card h3{margin:5px 0}.item-card p{margin:3px 0}.item-card .owned-label{color:#a4ffdb}.item-card .owned-place{margin-top:auto}.world-stage button,#placementHint button{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+@media(max-width:600px){.catalog-grid{gap:8px}.catalog-grid .item-card{padding:9px}.item-card .furniture-inspect{min-height:140px}.first-visit-hint p{font-size:12px}}
+
+#roomView{font-size:11px;padding:5px 3px}.world-vip-showcase summary{cursor:pointer;color:#e2c9ff;font-size:13px;font-weight:700;min-height:24px}.world-vip-showcase[open] summary{margin-bottom:12px}

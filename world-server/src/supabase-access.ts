@@ -58,10 +58,10 @@ export class SupabaseWorldAccess implements WorldAccess {
     let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
     if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,hangoutFor(snapshot)?.staff);this.#rooms.set(roomId,room);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap};
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,dailyMissions:true}};
   }
   async recordEntry(identity:Identity,roomId:string,occupancy:number){
-    await this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy});
+    await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId})]);
   }
   async revalidate(token:string,identity:Identity,roomId:string){
     const current=await this.authenticate(token);if(current.userId!==identity.userId)return false;
@@ -75,7 +75,10 @@ export class SupabaseWorldAccess implements WorldAccess {
     // Recheck current permissions and suspensions before every write/read operation.
     await this.#snapshot(uid,roomId);
     let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
-    if(action==='delete_room'){
+    if(action==='daily_missions'){
+      if(data.claim!==undefined&&!['visit','decorate','game'].includes(String(data.claim)))throw new Error('Unknown daily mission');
+      result=await this.#request('/rest/v1/rpc/world_daily_missions',this.#key,{p_actor:uid,p_claim:data.claim??null});
+    }else if(action==='delete_room'){
       const target=String(data.roomId??'');
       if(data.confirm!==true)throw new Error('Confirm room deletion first');
       if(this.#retired.has(target))throw new Error('Room unavailable');
@@ -163,7 +166,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
-      if(action==='bootstrap'){result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
+      if(action==='bootstrap'){result.dailyMissions=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
   }
