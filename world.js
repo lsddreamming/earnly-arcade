@@ -26,7 +26,7 @@
  function openPanel(title){panelVersion++;$('panelTitle').textContent=title;$('panelContent').replaceChildren();if(!$('worldPanel').open)$('worldPanel').showModal();return $('panelContent');}
  function requireConnection(){if(!connected)throw new Error('Connect to World to enter your room first.');}
  function action(action,data={}){requireConnection();return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('Connection timed out. Refresh before retrying a purchase.'));},10000);pending.set(requestId,{resolve,reject,timer});socket.send(JSON.stringify({type:'ACTION',requestId,action,data}));});}
- async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();}
+ async function refresh(){bootstrap=await action('bootstrap');$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();showFirstVisitHint();}
  const renderer=new EarnlyWorldRenderer.WorldRenderer($('worldCanvas'),async hit=>{
   if(hit.door){showRooms();return;}
   if(hit.staff){try{await showStaff(hit.staff);}catch(e){toast(e.message);}return;}
@@ -119,7 +119,7 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>{const before=renderer.users.get(u.userId);if(u.userId===userId&&before&&(before.position.x!==u.position.x||before.position.y!==u.position.y))completeGuideStep('walk');renderer.updateUser(u);});
-   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');}
+   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='ROOM_INVITE'){ $('worldCommunity').textContent='Community · New invite';toast('A friend invited you to a room. Open Room invitations.');}
@@ -382,14 +382,51 @@
  window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key],view=renderer.toView(u.position),target=renderer.fromView({x:view.x+x,y:view.y+y});if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:target.x,y:target.y}));};
- window.addEventListener('earnly-cloud-auth-change',()=>{clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
+ window.addEventListener('earnly-cloud-auth-change',()=>{guideResumed=false;guideDecorateOnArrival=false;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
 
- const guideSteps=[{id:'walk',title:'1 / 3 · Take a few steps',text:'Tap a clear floor tile to walk. Pinch to zoom.',action:'Try it',run:()=>{$('worldPanel').close();$('worldCanvas').focus();}},
-  {id:'decorate',title:'2 / 3 · Make it yours',text:'Place a piece from your Backpack. Hold furniture to move it.',action:'Open Backpack',run:()=>scene.ownerId===userId?showBackpack():connect('choose-home')},
-  {id:'visit',title:'3 / 3 · Meet the neighborhood',text:'Visit a public hangout. Your room stays saved.',action:'Visit plaza',run:()=>connect('plaza')}];
- function guideProgress(){try{return JSON.parse(localStorage.getItem('earnly.world.guide.'+userId)||'{}')||{};}catch{return {};}}
- function completeGuideStep(id){if(!connected)return;const progress=guideProgress();if(progress[id])return;progress[id]=true;try{localStorage.setItem('earnly.world.guide.'+userId,JSON.stringify(progress));}catch{}showFirstVisitHint();}
- function showFirstVisitHint(force=false){let seen=false;try{seen=localStorage.getItem('earnly.world.hint.'+userId)==='1';}catch{}const progress=guideProgress(),step=guideSteps.find(s=>!progress[s.id]);$('firstVisitHint').hidden=!force&&(seen||!step);$('guideStep').textContent=step?.title||'You’re ready to explore';$('guideText').textContent=step?.text||'Decorate, meet friends, and come back for daily missions.';$('guideAction').textContent=step?.action||'Daily missions';$('guideAction').onclick=()=>Promise.resolve((step?.run||showDailyMissions)()).catch(e=>toast(e.message));}
+ let guideResumed=false,guideDecorateOnArrival=false;
+ const guideMemory=new Map();
+ const guideSteps=[{id:'walk',title:'1 / 3 · Take a few steps',text:'Tap an empty floor tile to walk. Pinch with two fingers to zoom.',action:'Try walking',run:()=>{$('worldPanel').close();$('worldCanvas').focus({preventScroll:true});$('worldCanvas').scrollIntoView({block:'nearest'});}},
+  {id:'decorate',title:'2 / 3 · Place your first piece',text:'Choose furniture you own, then tap a clear floor tile to place it.',action:'Choose a piece',run:startGuidedDecorating},
+  {id:'visit',title:'3 / 3 · Explore a hangout',text:'Visit the plaza. Your room and furniture stay saved.',action:'Visit plaza',run:()=>connect('plaza')}];
+ function guideProgress(){
+  if(guideMemory.has(userId))return guideMemory.get(userId);
+  let saved={};try{const value=JSON.parse(localStorage.getItem('earnly.world.guide.'+userId)||'{}');if(value&&typeof value==='object'&&!Array.isArray(value))saved=value;}catch{}
+  const progress=Object.fromEntries(guideSteps.map(s=>[s.id,saved[s.id]===true]));guideMemory.set(userId,progress);return progress;
+ }
+ function guideDismissed(){try{return localStorage.getItem('earnly.world.hint.'+userId)==='1';}catch{return false;}}
+ function completeGuideStep(id){if(!connected)return;const progress=guideProgress();if(progress[id])return;progress[id]=true;try{localStorage.setItem('earnly.world.guide.'+userId,JSON.stringify(progress));}catch{}
+  const finished=guideSteps.every(s=>progress[s.id]);showFirstVisitHint(finished&&(!guideDismissed()||guideResumed));
+ }
+ function showFirstVisitHint(force=false){
+  if(!connected){$('firstVisitHint').hidden=true;return;}if(force)guideResumed=true;
+  const progress=guideProgress(),step=guideSteps.find(s=>!progress[s.id]),done=guideSteps.filter(s=>progress[s.id]).length;
+  $('firstVisitHint').hidden=!guideResumed&&(guideDismissed()||!step);
+  $('guideStep').textContent=step?.title||'✓ You’re ready to explore';
+  $('guideText').textContent=step?.text||'You walked, decorated, and visited a hangout. Check Daily missions for rewards you can claim.';
+  if(step?.id==='decorate'&&scene.ownerId!==userId)$('guideText').textContent='Head to your own room to arrange your furniture.';
+  $('guideAction').textContent=step?.id==='decorate'&&scene.ownerId!==userId?'Go to my room':step?.action||'Daily missions';
+  $('guideAction').onclick=async()=>{const b=$('guideAction');b.disabled=true;try{await (step?.run||showDailyMissions)();}catch(e){toast(e.message);}finally{b.disabled=false;}};
+  $('guideProgress').textContent=done+' of 3 complete';
+  $('worldGuide').textContent=step?'Room guide · '+done+'/3':'Room guide';
+ }
+ async function startGuidedDecorating(){requireConnection();if(scene.ownerId!==userId){guideDecorateOnArrival=true;try{await connect('choose-home');}catch(e){guideDecorateOnArrival=false;throw e;}return;}showFirstPiece();}
+ function showFirstPiece(){
+  requireConnection();if(scene.ownerId!==userId){startGuidedDecorating().catch(e=>toast(e.message));return;}
+  currentPanel='first-piece';const root=openPanel('Make this room yours');
+  const owned=bootstrap.items.filter(i=>(!i.room_id||i.room_id===scene.roomId)&&bootstrap.catalog.some(d=>d.id===i.definition_id)).sort((a,b)=>Number(!!a.room_id)-Number(!!b.room_id));
+  root.append(note(owned.length?'Start with a piece you already own. Choose it below, then tap an empty floor tile.':'Your Backpack is empty. You can earn coins in the arcade or choose a piece from the Catalog.'));
+  const grid=el('div','catalog-grid guide-piece-grid');
+  for(const item of owned.slice(0,4)){const d=bootstrap.catalog.find(d=>d.id===item.definition_id),card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});card.append(canvas,el('h3','',d.name),el('p','owned-label',item.room_id?'Already in this room · Move it to try decorating':'Already yours · No coins needed'),button(item.room_id?'Move this piece':'Place this piece',()=>beginPlacement(item,d.name),'primary'));grid.append(card);}
+  if(owned.length)root.append(grid,button('See all my furniture',showBackpack));
+  else if(bootstrap.items.length)root.append(note('You have furniture in another room. Find it in your Backpack.'),button('Find my furniture',showBackpack,'primary'));
+  else {const options=bootstrap.catalog.filter(d=>!d.vip_only&&(!d.supply_limit||d.minted<d.supply_limit)).sort((a,b)=>Number(a.price)-Number(b.price)).slice(0,3);
+   for(const d of options){const card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,d);card.append(canvas,el('h3','',d.name),note(Number(d.price).toLocaleString()+' Arcade Coins'));
+    const buy=button('Choose this piece',()=>showBuy(d,null,showFirstPiece));buy.disabled=BigInt(bootstrap.balance||0)<BigInt(d.price);if(buy.disabled)buy.textContent='Need '+(BigInt(d.price)-BigInt(bootstrap.balance||0)).toLocaleString()+' more coins';card.append(buy);grid.append(card);}if(options.length)root.append(grid);
+   const earn=el('a','daily-game-link','Play games to earn coins ↗');earn.href='games.html';earn.target='_blank';earn.rel='noopener';root.append(earn,note('Games open in a new tab so your room stays open.'));
+  }
+  root.append(button('Browse Catalog',()=>showCatalog('All',{sort:'price'})),button('Back to my room',()=>$('worldPanel').close()));
+ }
  $('worldGuide').onclick=()=>showFirstVisitHint(true);
  async function showDailyMissions(){
   currentPanel='daily';const root=openPanel('Daily World missions'),version=panelVersion;
@@ -471,7 +508,7 @@
  ]){const card=button('',run);card.id=id;card.append(el('strong','',label),el('span','',description));grid.append(card);}root.append(grid);}
  $('worldCommunity').onclick=showCommunity;
 
- $('dismissWorldHint').onclick=()=>{$('firstVisitHint').hidden=true;try{localStorage.setItem('earnly.world.hint.'+userId,'1');}catch{}};
+ $('dismissWorldHint').onclick=()=>{guideResumed=false;$('firstVisitHint').hidden=true;try{localStorage.setItem('earnly.world.hint.'+userId,'1');}catch{}};
  $('shareRoom').onclick=()=>{
   if(!connected||!scene)return;
   const root=openPanel('Share this room');
