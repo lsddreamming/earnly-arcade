@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Verify World controls
-        run: npx playwright test tests/world.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+        run: npx playwright test tests/world.spec.js tests/world-social.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload World collection previews
         if: always()
         uses: actions/upload-artifact@v4

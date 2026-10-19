@@ -24,7 +24,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       // The gateway can reject the server API key while the player's JWT is valid.
       if(response.headers.get('sb-error-code')==='UNAUTHORIZED_INVALID_API_KEY'||rejected.message==='Invalid API key')throw new WorldAccessError('server_configuration');
       if(path==='/auth/v1/user'&&(response.status===401||response.status===403))throw new WorldAccessError('sign_in_required');
-      const safeMessages=['Not enough Arcade Coins','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
+      const safeMessages=['Not enough Arcade Coins','Item unavailable','Backpack full','Wallet unavailable','Accept the chat rules first','Please slow down','Please edit that message','Private messages are for accepted friends','Player unavailable','Both offers must be locked','Trade closed or expired','Stale trade revision','Items unavailable','Visit another player’s open room to react','Open this room to visitors before inviting','Decorate your open room with at least 3 pieces this week'];const message=safeMessages.includes(rejected.message)?rejected.message:'Action unavailable. Refresh and try again.';throw Object.assign(new Error(message),{definite:response.status===400&&rejected.code==='P0001'});}
     return response.json();
   }
   async authenticate(token:string):Promise<Identity>{
@@ -58,11 +58,12 @@ export class SupabaseWorldAccess implements WorldAccess {
     let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
     if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,hangoutFor(snapshot)?.staff);this.#rooms.set(roomId,room);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,dailyMissions:true}};
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,dailyMissions:true,socialDiscovery:true}};
   }
   async recordEntry(identity:Identity,roomId:string,occupancy:number){
-    await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId})]);
+    await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId}),this.#request('/rest/v1/rpc/world_track_step',this.#key,{p_actor:identity.userId,p_step:'join',p_room:roomId})]);
   }
+  async recordWalk(identity:Identity,roomId:string){await this.#request('/rest/v1/rpc/world_track_step',this.#key,{p_actor:identity.userId,p_step:'walk',p_room:roomId});}
   async revalidate(token:string,identity:Identity,roomId:string){
     const current=await this.authenticate(token);if(current.userId!==identity.userId)return false;
     if(this.#retired.has(roomId))throw new Error('Room unavailable');
@@ -75,7 +76,14 @@ export class SupabaseWorldAccess implements WorldAccess {
     // Recheck current permissions and suspensions before every write/read operation.
     await this.#snapshot(uid,roomId);
     let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
-    if(action==='daily_missions'){
+    if(['reactions','react','featured','invite','invites','dismiss_invite','weekly','weekly_enter'].includes(action)){
+      const clean:Record<string,unknown>={};
+      if(action==='react'){if(data.reaction!==null&&!['heart','thumb'].includes(String(data.reaction)))throw new Error('Invalid reaction');clean.reaction=data.reaction;}
+      if(action==='invite'||action==='dismiss_invite'){const key=action==='invite'?'userId':'id';if(typeof data[key]!=='string'||!/^[0-9a-f-]{36}$/i.test(String(data[key])))throw new Error('Player unavailable');clean[key]=data[key];}
+      result=await this.#request('/rest/v1/rpc/world_social',this.#key,{p_actor:uid,p_room:roomId,p_action:action,p_data:clean});
+      if(action==='featured')result=this.#roomCounts(result);
+      if(action==='invite'&&!result.duplicate)deliveries.push({userIds:[result.recipient],packet:{type:'ROOM_INVITE'}});
+    }else if(action==='daily_missions'){
       if(data.claim!==undefined&&!['visit','decorate','game'].includes(String(data.claim)))throw new Error('Unknown daily mission');
       result=await this.#request('/rest/v1/rpc/world_daily_missions',this.#key,{p_actor:uid,p_claim:data.claim??null});
     }else if(action==='delete_room'){
@@ -166,7 +174,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
-      if(action==='bootstrap'){result.dailyMissions=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
+      if(action==='bootstrap'){result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
   }

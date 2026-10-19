@@ -1,10 +1,10 @@
 name: Earnly world grid engine
 on:
   pull_request:
-    paths: ['tests/world.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['tests/world*.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
   push:
     branches: [main]
-    paths: ['tests/world.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['tests/world*.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
 permissions:
   contents: read
 jobs:
@@ -25,6 +25,7 @@ jobs:
       - run: npm run build:world-placement && git diff --exit-code -- world-placement.js
       - run: node scripts/test-world-placement.mjs
       - run: node scripts/test-world-daily.mjs
+      - run: node scripts/test-world-social.mjs
       - run: node scripts/test-world-persistence.mjs
       - run: node scripts/test-world-features.mjs
       - run: node scripts/test-world-room-browser.mjs

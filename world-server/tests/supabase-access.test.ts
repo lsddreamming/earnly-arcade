@@ -67,8 +67,27 @@ test('entry telemetry and public-visit evidence use the server-only RPCs and tru
  const calls:{url:string;body:any;authorization:string}[]=[];
  t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{calls.push({url:String(url),body:JSON.parse(options.body),authorization:options.headers.Authorization});return Response.json(true);});
  await new SupabaseWorldAccess('https://world-test.invalid','server-key').recordEntry({userId:'actor',username:'Player'},'room',2);
- assert.equal(calls.length,2);
+ assert.equal(calls.length,3);
  for(const call of calls){assert.equal(call.authorization,'Bearer server-key');assert.equal(call.body.p_actor,'actor');assert.equal(call.body.p_room,'room');}
  assert.equal(calls[0].url,'https://world-test.invalid/rest/v1/rpc/activity_record');assert.equal(calls[0].body.p_kind,'world_join');assert.equal(calls[0].body.p_occupancy,2);
  assert.equal(calls[1].url,'https://world-test.invalid/rest/v1/rpc/world_daily_visit');
+ assert.equal(calls[2].body.p_step,'join');
+});
+
+test('social actions bind actor and room on the server and notify only the invited friend once',async t=>{
+ const actor='22222222-2222-4222-8222-222222222222',friend='11111111-1111-4111-8111-111111111111';let duplicate=false;const calls:any[]=[];
+ t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{
+  const p=JSON.parse(options.body);
+  if(String(url).endsWith('world_api'))return Response.json({rooms:[],catalog:[],items:[],friends:[]});
+  if(String(url).endsWith('world_social')){calls.push(p);return Response.json(p.p_action==='invite'?{recipient:friend,duplicate}:[]);}
+  return Response.json({roomId:p.p_room,username:'Player',name:'Room',ownerId:actor,access:'open',heightmap:'0000\n0000\n0000\n0000',revision:0,capacity:25,items:[],equipped:{}});
+ });
+ const access=new SupabaseWorldAccess('https://world-test.invalid','key'),identity={userId:actor,username:'Me'};await access.enter(identity,'current-room');
+ const first=await access.perform(identity,'current-room','invite',{userId:friend,roomId:'forged-room',p_actor:friend});
+ assert.deepEqual(calls[0],{p_actor:actor,p_room:'current-room',p_action:'invite',p_data:{userId:friend}});
+ assert.deepEqual(first.deliveries,[{userIds:[friend],packet:{type:'ROOM_INVITE'}}]);
+ duplicate=true;assert.deepEqual((await access.perform(identity,'current-room','invite',{userId:friend})).deliveries,[]);
+ await access.perform(identity,'current-room','weekly_enter',{amount:999,userId:friend});assert.deepEqual(calls.at(-1).p_data,{});
+ await assert.rejects(access.perform(identity,'current-room','react',{reaction:'bad'}),/Invalid reaction/);
+ await assert.rejects(access.perform(identity,'current-room','invite',{userId:'bad'}),/Player unavailable/);
 });

@@ -14,6 +14,8 @@ export interface WorldAccess {
   perform?(identity:Identity,roomId:string,action:string,data:Record<string,unknown>):Promise<{data:unknown;deliveries?:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]}>;
   /** Best-effort server-confirmed admission telemetry; must not delay a player. */
   recordEntry?(identity:Identity,roomId:string,occupancy:number):Promise<void>;
+  /** Best-effort first-session milestone after authoritative movement. */
+  recordWalk?(identity:Identity,roomId:string):Promise<void>;
   /** Recheck account bans, session validity and room permissions for active sockets. */
   revalidate(token:string,identity:Identity,roomId:string):Promise<boolean>;
 }
@@ -34,7 +36,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
   server.on('upgrade',upgrade);
   wss.on('connection',ws=>{
     let authenticating=false,joined=false,busy=false,operations=0,windowStart=performance.now(),count=0;
-    let stage='awaiting_join';
+    let stage='awaiting_join',walked=false;let admittedAt:XY|undefined,entryRecorded:Promise<unknown>=Promise.resolve();
     const diagnose=(event:string)=>options.diagnostic?.({event,stage});
     const expire=()=>{diagnose('world_entry_timeout');ws.close(1013,'Room loading timed out');};
     let deadline=setTimeout(expire,options.joinTimeoutMs??5000);
@@ -42,6 +44,13 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
       if(ws.readyState!==WebSocket.OPEN)return;
       if(ws.bufferedAmount>128*1024){ws.terminate();return;}
       ws.send(JSON.stringify(packet),error=>{if(error)ws.terminate();});
+      const binding=active.get(ws);
+      if(!walked&&admittedAt&&binding&&packet.type==='ROOM_DELTA'&&Array.isArray(packet.users)){
+        const me=packet.users.find((u:any)=>u.userId===binding.identity.userId);
+        if(me?.position&&(me.position.x!==admittedAt.x||me.position.y!==admittedAt.y)){
+          walked=true;void entryRecorded.then(()=>access.recordWalk?.(binding.identity,binding.roomId)).catch(()=>{});
+        }
+      }
     };
     ws.on('error',()=>ws.terminate());
     ws.on('pong',()=>{const s=active.get(ws);if(s)s.alive=true;});
@@ -76,10 +85,10 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           if(ws.readyState!==WebSocket.OPEN){reservations.delete(reserved);return;}
           // Register before join so a close caused by backpressure releases membership.
           active.set(ws,{token:p.token,identity:resolvedIdentity,roomId:roomId??p.roomId,room,checking:false,alive:true});
-          room.join(resolvedIdentity,spawn,send);joined=true;clearTimeout(deadline);
+          admittedAt={...spawn};room.join(resolvedIdentity,spawn,send);joined=true;clearTimeout(deadline);
           if(scene)send({type:'WELCOME',userId:identity.userId,roomId:roomId??p.roomId,scene,bootstrap});
           stage='admitted';diagnose('world_entry_ready');
-          void Promise.resolve().then(()=>access.recordEntry?.(identity,roomId??String(p.roomId),room.memberCount)).catch(()=>{});
+          entryRecorded=Promise.resolve().then(()=>access.recordEntry?.(identity,roomId??String(p.roomId),room.memberCount)).catch(()=>{});
         }catch(error){
           const reason=error instanceof WorldAccessError?error.reason:undefined;
           options.diagnostic?.({event:'world_entry_denied',stage,...(reason?{reason}:{})});
