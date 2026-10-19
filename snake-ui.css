@@ -177,3 +177,26 @@ body.snake-page canvas#game.snake-apple-collected {
   border-color:#4ade80 !important;
   box-shadow:0 0 0 2px rgba(74,222,128,.22),0 0 24px rgba(74,222,128,.34) !important;
 }
+
+/* Keep the score cards and live ticker mutually exclusive. */
+html body.snake-page.game-guide-page #earnlyCompactLeaderboard.compact-leaderboard-card {
+  height:auto!important; max-height:none!important; min-height:30px!important;
+  pointer-events:auto!important; text-shadow:none;
+}
+html body.snake-page.game-guide-page:not(.snake-game-active) #earnlyCompactLeaderboard .compact-leaderboard-ticker { display:none!important; }
+html body.snake-page.game-guide-page:not(.snake-game-active) #earnlyCompactLeaderboard .compact-leaderboard-head { display:flex!important; }
+html body.snake-page.game-guide-page:not(.snake-game-active) #earnlyCompactLeaderboard .compact-leaderboard-list { display:grid!important; }
+html body.snake-page.game-guide-page.snake-game-active #earnlyCompactLeaderboard :is(.compact-leaderboard-head,.compact-leaderboard-list,.compact-leaderboard-target) { display:none!important; }
+html body.snake-page.game-guide-page.snake-game-active #earnlyCompactLeaderboard .compact-leaderboard-ticker {
+  position:static!important; display:block!important; line-height:24px!important;
+  text-shadow:none; color:#bdeee2; letter-spacing:0;
+}
+html body.snake-page.game-guide-page.snake-game-active #earnlyCompactLeaderboard { padding:2px 8px!important; }
+@media(prefers-reduced-motion:reduce) {
+  html body.snake-page #earnlyCompactLeaderboard .compact-leaderboard-ticker-track { animation:none!important; }
+}
+/* Keep small phones focused on play; help returns when the run ends. */
+body.snake-page.snake-game-active :is(.public-footer,.game-guide-link) { display:none!important; }
+@media(max-width:360px) {
+  html body.snake-page.game-guide-page:not(.snake-game-active) #earnlyCompactLeaderboard .compact-leaderboard-head { display:none!important; }
+}

@@ -30,6 +30,9 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
     const start=page.locator('#startButton'), pause=page.locator('#earnlyPauseButton'), quit=page.locator('#snakeQuit');
     await expect(page.locator('#earnlyCompactLeaderboard .compact-leaderboard-row')).toHaveCount(3);
     await expect(start).toBeInViewport();
+    await expect(page.locator('#earnlyCompactLeaderboard .compact-leaderboard-ticker')).toBeHidden();
+    const cardsFit=await page.locator('#earnlyCompactLeaderboard').evaluate(card=>{const r=card.getBoundingClientRect();return [...card.querySelectorAll('.compact-leaderboard-row')].every(row=>row.getBoundingClientRect().bottom<=r.bottom);});
+    expect(cardsFit).toBe(true);
     for(const selector of ['.game-start-summary','.game-guide-strip','.game-guide-overlay']) await expect(page.locator(selector)).toBeHidden();
     await expect(page.locator('.snake-quick-tip')).toContainText('Swipe anywhere');
     await expect(page.locator('#snakeControlDock')).toBeHidden();
@@ -74,6 +77,8 @@ for (const size of [{width:320,height:568},{width:390,height:844},{width:440,hei
       return getComputedStyle(ticker).display!=='none' && r.top>=frame.top && r.bottom<=frame.bottom;
     });
     expect(tickerInside).toBe(true);
+    await expect(page.locator('#earnlyCompactLeaderboard .compact-leaderboard-list')).toBeHidden();
+    await expect(page.locator('#earnlyCompactLeaderboard .compact-leaderboard-head')).toBeHidden();
     for (const id of ['snakeQuit','earnlyPauseButton']) {
       const control=await page.locator('#'+id).boundingBox(); expect(control.height, id + " must retain a full-size touch target").toBeGreaterThanOrEqual(44);
       expect(control.y).toBeGreaterThanOrEqual(live.dock.bottom); expect(control.y+control.height).toBeLessThanOrEqual(size.height);
