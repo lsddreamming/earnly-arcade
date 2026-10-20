@@ -267,6 +267,7 @@ test('World iPhone view and furniture controls have comfortable touch targets',a
   const box=await page.locator(selector).boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);
  }
  for(const selector of ['#dropItem','#rotateItem','#cancelPlace'])expect((await page.locator(selector).boundingBox()).height).toBeGreaterThanOrEqual(48);
+ const stage=await page.locator('.world-stage').boundingBox(),dock=await page.locator('#placementHint').boundingBox();expect(dock.y).toBeGreaterThanOrEqual(stage.y+stage.height);
  await page.screenshot({path:`test-results/world-collection-placement-${test.info().project.name}.png`});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
