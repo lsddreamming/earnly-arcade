@@ -18,8 +18,8 @@ test('drift release, items, grass and pickup crossing have distinct effects',()=
 test('kart web and native assets match',()=>{for(const file of ['turbo-kart.html','turbo-kart.css','turbo-kart.js','turbo-kart-engine.js','turbo-kart-renderer.js','turbo-kart-driver.js'])expect(fs.readFileSync('www/'+file,'utf8')).toBe(fs.readFileSync(file,'utf8'));});
 test.beforeEach(async({page})=>{await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('arcadeSound','off');});});
 async function start(page){await page.goto('/turbo-kart.html');await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});}
-test('catalog, touch controls, pause and quit preserve the play lifecycle',async({page})=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/games.html');await page.locator('#gameSearch').fill('Turbo Kart');await page.locator('a[href="turbo-kart.html"]').first().click();await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await expect(page.locator('#plays')).toHaveText('2');
+test('unlisted catalog entry and archived touch controls preserve the play lifecycle',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/games.html');await page.locator('#gameSearch').fill('Turbo Kart');await expect(page.locator('a[href="turbo-kart.html"]')).toHaveCount(0);await page.goto('/turbo-kart.html');await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await expect(page.locator('#plays')).toHaveText('2');
  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');const t=await page.locator('#time').textContent();await page.waitForTimeout(250);await expect(page.locator('#time')).toHaveText(t);await page.locator('#leftButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
  const box=await page.locator('#rightButton').boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.locator('#rightButton').dispatchEvent('pointercancel',{pointerId:1});await expect(page.locator('#rightButton')).not.toHaveClass(/held/);await page.mouse.up();
  await page.locator('#earnlyQuitButton').click();await page.getByRole('button',{name:'Quit Game',exact:true}).click();await expect(page).toHaveURL(/games.html/);expect(await page.evaluate(()=>Number(localStorage.getItem('points')))).toBe(0);expect(errors).toEqual([]);
@@ -214,7 +214,7 @@ test('racing keeps layout and wallet reads out of the frame hot path',async({pag
  await page.setViewportSize({width:667,height:375});
  // Both adaptive phone resolutions must preserve the resized canvas aspect ratio.
  await expect.poll(()=>page.locator('#game').evaluate(c=>{
-  const rect=c.getBoundingClientRect(),caps=matchMedia('(pointer: coarse)').matches?[1,0.8]:[2];
+  const rect=c.getBoundingClientRect(),caps=matchMedia('(pointer: coarse)').matches?[0.8,0.6]:[2];
   return rect.width>0&&rect.height>0&&caps.some(cap=>{
    const ratio=Math.min(devicePixelRatio,cap);
    return Math.abs(c.width-rect.width*ratio)<=1&&Math.abs(c.height-rect.height*ratio)<=1;
