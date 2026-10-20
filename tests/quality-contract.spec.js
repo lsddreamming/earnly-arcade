@@ -94,7 +94,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('24 catalog games include the free strategy beta and 23 reward games', () => {
+test('23 catalog games retain historical reward records for the unlisted racer', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
