@@ -1,0 +1,33 @@
+name: Bubble Pop preview checks
+on:
+  pull_request:
+    paths: ['bubble-pop*', 'www/bubble-pop*', 'tests/bubble-pop.spec.js', '.github/workflows/bubble-pop-preview.yml']
+  push:
+    branches: [main]
+    paths: ['bubble-pop*', 'www/bubble-pop*', 'tests/bubble-pop.spec.js', '.github/workflows/bubble-pop-preview.yml']
+jobs:
+  preview:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: macos-latest
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test tests/bubble-pop.spec.js --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bubble-pop-${{ matrix.project }}
+          path: test-results/
