@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=35">
   <style>
+    .world-mission-options{display:grid;gap:12px}.world-mission-options a{display:grid;gap:8px;padding:16px;border:1px solid #47617c;border-radius:14px;background:#13233b;color:#f1f5f9;text-decoration:none}.world-mission-options span{font-size:14px;line-height:1.5;color:#cbd5e1}.world-mission-options b{font-size:14px;color:#6ee7b7}.world-mission-options a:focus-visible{outline:3px solid #6ee7b7;outline-offset:3px}
     .missions-complete-toggle{
       width:100%;
       min-height:44px;
@@ -52,7 +53,8 @@
 
     <header class="missions-hero">
       <span class="missions-eyebrow">MISSIONS</span>
-      <h1>Level up this week</h1>
+      <h1>Your missions & rewards</h1>
+      <p>Earn XP to level up. Earn Arcade Coins to spend in the shop.</p>
 
     </header>
 
@@ -68,7 +70,7 @@
     <section class="missions-weekly-card">
       <div class="missions-weekly-head">
         <div>
-          <h2>📅 This week</h2>
+          <h2>📅 Weekly arcade missions · XP</h2>
           <span id="weekReset">Resets Monday</span>
         </div>
         <strong id="weekCount">0/4</strong>
@@ -76,6 +78,15 @@
       <button class="missions-complete-toggle" id="completedMissionsToggle" type="button" hidden></button>
       <div class="mission-list" id="missionList"></div>
       <div class="status-line success" id="weeklySweep" hidden></div>
+    </section>
+
+    <section class="missions-weekly-card" aria-labelledby="worldMissionsTitle">
+      <h2 id="worldMissionsTitle">World missions · Arcade Coins</h2>
+      <p>Sign in and connect to World to check your progress and claim rewards.</p>
+      <div class="world-mission-options">
+        <a href="world.html?mission=daily"><strong>Daily World missions</strong><span>Visit, decorate, and play · Up to 15 coins daily</span><b>View daily missions →</b></a>
+        <a href="world.html?mission=weekly"><strong>Weekly decorating challenge</strong><span>Decorate your open room · 10 coins each week</span><b>View weekly challenge →</b></a>
+      </div>
     </section>
 
     <details class="missions-detail-card" id="streakDetails">
@@ -229,7 +240,7 @@
       root.hidden = weekly.allClaimed && !showCompletedMissions;
       root.replaceChildren();
 
-      weekly.missions.forEach(mission => {
+      [...weekly.missions].sort((a,b)=>(a.claimed?2:a.complete?0:1)-(b.claimed?2:b.complete?0:1)).forEach(mission => {
         const card = document.createElement('div');
         card.className = 'mission-card' + (mission.complete ? ' complete' : '');
 
@@ -252,7 +263,8 @@
 
         const progressRow = document.createElement('div');
         progressRow.className = 'mission-progress-row';
-        progressRow.innerHTML = '<span>Progress</span><strong>' + mission.progress + ' / ' + mission.goal + '</strong>';
+        const units={games10:'games finished',variety4:'different games finished',jungle20:'vines passed',tower25:'floors stacked'};
+        progressRow.textContent = mission.claimed ? 'Reward claimed' : mission.complete ? 'Ready to claim' : mission.progress + ' of ' + mission.goal + ' ' + (units[mission.id] || 'complete');
 
         const bar = document.createElement('div');
         bar.className = 'mission-progress';

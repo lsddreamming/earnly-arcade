@@ -85,3 +85,25 @@ test('Removing a friend requires confirmation and Keep friend makes no request',
  await expect(page.locator('.friend-card')).toHaveCount(0);await expect(page.locator('#worldToast')).toHaveText('Friend removed');
  expect(await page.evaluate(()=>window.socialActions.filter(p=>p.action==='friend_remove').map(p=>p.data.userId))).toEqual(['11111111-1111-4111-8111-111111111111']);
 });
+
+
+test('Missions separates XP from World coins and sends players to the weekly panel after connecting',async({page})=>{
+ await page.goto('/stats.html');
+ await page.evaluate(()=>{
+  const original=Arcade.weeklyStatus();
+  Arcade.weeklyStatus=()=>({...original,allClaimed:false,missions:[
+   {...original.missions[0],complete:false,claimed:false,progress:2},
+   {...original.missions[1],complete:true,claimed:true},
+   {...original.missions[2],complete:true,claimed:false}
+  ]});renderMissions();
+ });
+ await expect(page.locator('#missionList .mission-card').first()).toContainText('Ready to claim');
+ await expect(page.locator('#missionList .mission-card').nth(1)).toContainText('2 of 10 games finished');
+ await expect(page.locator('#missionList .mission-card').last()).toContainText('Reward claimed');
+ await expect(page.getByRole('link',{name:/View daily missions/})).toHaveAttribute('href','world.html?mission=daily');
+ await expect(page.getByRole('link',{name:/View weekly challenge/})).toHaveAttribute('href','world.html?mission=weekly');
+ await fixture(page);
+ await page.goto('/world.html?mission=weekly');await page.locator('#connectWorld').click();
+ await expect(page.locator('.weekly-theme')).toHaveText('Cozy Arcade');
+ await expect(page.getByRole('button',{name:'Enter this room & claim 10 coins',exact:true})).toBeVisible();
+});
