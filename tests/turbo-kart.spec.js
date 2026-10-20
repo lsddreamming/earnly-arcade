@@ -212,7 +212,14 @@ test('racing keeps layout and wallet reads out of the frame hot path',async({pag
  expect(counts.account).toBeLessThanOrEqual(3);
  expect(counts.samples/counts.frames).toBeLessThan(650);
  await page.setViewportSize({width:667,height:375});
- await expect.poll(()=>page.locator('#game').evaluate(c=>Math.abs(c.width-c.getBoundingClientRect().width*Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1.5:2)))).toBeLessThanOrEqual(1);
+ // Both adaptive phone resolutions must preserve the resized canvas aspect ratio.
+ await expect.poll(()=>page.locator('#game').evaluate(c=>{
+  const rect=c.getBoundingClientRect(),caps=matchMedia('(pointer: coarse)').matches?[1,0.8]:[2];
+  return rect.width>0&&rect.height>0&&caps.some(cap=>{
+   const ratio=Math.min(devicePixelRatio,cap);
+   return Math.abs(c.width-rect.width*ratio)<=1&&Math.abs(c.height-rect.height*ratio)<=1;
+  });
+ })).toBe(true);
 });
 
 test('slow renderer loading keeps Start disabled until the first tap can start a race',async({page})=>{
