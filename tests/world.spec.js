@@ -106,6 +106,8 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await expect.poll(()=>page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect(page.locator('#worldPanel')).not.toBeVisible();
  await double(p);await expect(page.locator('#placementInstructions')).toContainText('double-tap to drop');
+ // A click synthesized from the canvas gesture must not cancel the newly revealed dock.
+ await page.locator('#cancelPlace').dispatchEvent('click',{detail:1});await expect(page.locator('#placementHint')).toBeVisible();
  expect(await page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
  // Idle preview frames reuse collision checks, but movement and occupancy invalidate them.
