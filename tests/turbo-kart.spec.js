@@ -142,10 +142,12 @@ test('collision immunity never allows a pack to interpenetrate or repeatedly slo
 
 test('race gestures block zoom across nested controls and gaps without swallowing session actions',async({page})=>{
  await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>{const s=create(...args);s.pickups=[];window.kartTestState=s;return s;};});await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
- for(const selector of ['.kart-shell','#kartControls','#driftButton small','.drift-meter','#sessionControls','#itemButton'])expect(await page.locator(selector).evaluate(n=>getComputedStyle(n).touchAction),selector).toBe('none');
- for(const selector of ['#leftButton','#driftButton small','#kartControls','.drift-meter','#itemButton']){
-  for(const type of ['touchstart','touchend','touchmove','gesturestart','gesturechange','gestureend','dblclick'])expect(await page.locator(selector).evaluate((n,type)=>!n.dispatchEvent(new Event(type,{bubbles:true,cancelable:true})),type),selector+' '+type).toBe(true);
- }
+ const gestures=await page.evaluate(()=>({
+  styles:['.kart-shell','#kartControls','#driftButton small','.drift-meter','#sessionControls','#itemButton'].map(selector=>({selector,value:getComputedStyle(document.querySelector(selector)).touchAction})),
+  events:['#leftButton','#driftButton small','#kartControls','.drift-meter','#itemButton'].flatMap(selector=>['touchstart','touchend','touchmove','gesturestart','gesturechange','gestureend','dblclick'].map(type=>({selector,type,blocked:!document.querySelector(selector).dispatchEvent(new Event(type,{bubbles:true,cancelable:true}))})))
+ }));
+ for(const result of gestures.styles)expect(result.value,result.selector).toBe('none');
+ for(const result of gestures.events)expect(result.blocked,result.selector+' '+result.type).toBe(true);
  await page.evaluate(()=>{kartTestState.item='shield';});await expect(page.locator('#itemButton')).toBeEnabled();
  expect(await page.locator('#itemButton').evaluate(n=>n.dispatchEvent(new Event('touchend',{bubbles:true,cancelable:true})))).toBe(true);
  await page.locator('#itemButton').click();await expect(page.locator('#itemButton')).toBeDisabled();
