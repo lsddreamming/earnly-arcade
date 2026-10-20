@@ -252,3 +252,29 @@ test('Shop departments survive reload and browser history, with World furniture 
  await page.goForward();await expect(page.getByRole('button',{name:'VIP Pass',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(f.writes).toHaveLength(0);
 });
+
+test('Gear detail isolates pieces, preserves try-on and never changes ownership',async({page})=>{
+ if(test.info().project.name==='desktop-chromium')await page.setViewportSize({width:390,height:844});
+ const f=await setup(page);const saved=JSON.stringify(f.user.equipped);
+ await page.locator('.shop-tabs [data-slot="outfit"]').click();
+ await page.getByRole('button',{name:'Gear detail',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Gear detail',exact:true})).toHaveAttribute('aria-pressed','true');
+ for(const slot of ['outfit','shoes','backpack','face','head']){
+  await page.locator(`.shop-tabs [data-slot="${slot}"]`).click();
+  const cards=page.locator('.item-art[data-detail="true"]');await expect(cards).not.toHaveCount(0);
+  for(const card of await cards.all()){
+   const images=card.locator('img');expect(await images.count()).toBeLessThanOrEqual(1);
+   for(const img of await images.all())await expect.poll(()=>img.evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  }
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-'+slot+'.png')});
+ }
+ await page.locator('.shop-tabs [data-slot="outfit"]').click();await page.getByRole('button',{name:'Preview Aurora Armor',exact:true}).click();
+ await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();expect(await page.locator('#character-stage img').count()).toBeGreaterThan(1);
+ await page.getByRole('button',{name:'On avatar',exact:true}).click();await expect(page.locator('.item-art[data-detail="true"]')).toHaveCount(0);
+ expect(await page.locator('.item-art').first().locator('img').count()).toBeGreaterThan(1);
+ await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-outfits-on-avatar.png')});
+ await page.locator('.shop-tabs [data-slot="avatar"]').click();await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-skins.png')});
+ for(const button of await page.locator('.item-card button').all())expect(await button.evaluate(b=>{const box=b.getBoundingClientRect(),card=b.closest('.item-card').getBoundingClientRect();return box.left>=card.left&&box.right<=card.right&&b.scrollWidth<=b.clientWidth;})).toBe(true);
+ expect(JSON.stringify(f.user.equipped)).toBe(saved);expect(f.writes).toHaveLength(0);await expect(page.locator('#coin-balance')).toHaveText('1,250');
+});

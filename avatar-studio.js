@@ -15,6 +15,7 @@
     authEpoch: 0,
     preview: {},
     previewFocus: null,
+    gearDetail: false,
     freeOnly: false,
     ownedOnly: false,
     search: "",
@@ -148,10 +149,19 @@
       card.classList.toggle("is-equipped", !!equipped);
       card.classList.toggle("is-owned", !!owned);
       art.dataset.slot = item.slot;
+      const detail=state.gearDetail && ['outfit','shoes','backpack','face','beard','head','weapon'].includes(item.slot);
+      art.dataset.detail=String(detail);
+      let artwork;
+      if(detail){
+        artwork=el('div','character gear-piece');
+        if(item.id.startsWith('no-'))artwork=el('p','gear-empty','No accessory');
+        else artwork.append(image(item));
+      }else artwork=character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item },item.slot);
       art.append(
-        character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item },item.slot),
+        artwork,
         el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
       );
+      if(owned)art.append(el("span","item-state",equipped?"✓ Equipped":"✓ Owned"));
       const button = el(
         "button",
         equipped ? "equipped" : owned ? "" : "buy",
@@ -453,6 +463,11 @@
   });
   window.addEventListener('earnly-pass-change',()=>{ $('refresh-button').click(); });
   $("affordable-only").addEventListener("change", e => { state.affordableOnly = e.target.checked; renderShop(); });
+  for(const option of document.querySelectorAll('[data-gear-view]'))option.addEventListener('click',()=>{
+    state.gearDetail=option.dataset.gearView==='detail';
+    for(const button of document.querySelectorAll('[data-gear-view]'))button.setAttribute('aria-pressed',String(button===option));
+    renderShop();
+  });
   $("shop-sort").addEventListener("change", e => { state.sort = e.target.value; renderShop(); });
   $("compare-look").addEventListener("click", () => {
     const button = $("compare-look"), compare = button.getAttribute("aria-pressed") !== "true";
