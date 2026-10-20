@@ -92,7 +92,7 @@ const TurboKartRenderer=(()=>{
    ribbon(d,next,-57,57,alt?'#fff2e4':t.curb);const boardwalk=t.scene==='harbor'&&((d%t.length+t.length)%t.length)/t.length>.43&&((d%t.length+t.length)%t.length)/t.length<.56;ribbon(d,next,-51,51,boardwalk?(alt?'#b88d83':'#ad8077'):t.road);
    // Restrained road facets and a recessed edge add depth without extra samples.
    ribbon(d,next,-51,-47,'#14243930');ribbon(d,next,47,51,'#14243930');
-   if(!alt)ribbon(d,next,-47,47,'#ffffff0b');ribbon(d,next,-46,-42,'#132c4224');ribbon(d,next,42,46,'#132c4224');if(Math.floor(d/40)%2===0){ribbon(d,d+8,-59,-57,t.accent);ribbon(d,d+8,57,59,t.accent);}
+   if(!alt)ribbon(d,next,-47,47,'#ffffff0b');if(Math.floor(d/40)%2===0){ribbon(d,d+8,-59,-57,t.accent);ribbon(d,d+8,57,59,t.accent);}
    if(boardwalk)ribbon(d,d+1,-47,47,'#593f4c45');
    ribbon(d,next,-49,-48,'#fff3d9');ribbon(d,next,48,49,'#fff3d9');
    if(t.scene==='garden'){ribbon(d,next,-58,-57,'#a5ffe8');ribbon(d,next,57,58,'#a5ffe8');}
