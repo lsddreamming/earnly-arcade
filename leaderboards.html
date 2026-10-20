@@ -102,7 +102,7 @@
       ['memory','🧠','Memory Match'],['brickBreaker','💥','Brick Breaker'],
       ['jungleHopper','🐸','Jungle Hopper'],['towerStack','🏗️','Tower Stack'],['coinCatch','💰','Coin Catch'],
       ['colorMatch','🎨','Color Match'],['paddleRally','🏓','Paddle Rally'],['laneRunner','🏎️','Lane Runner'],
-      ['safeCracker','🔐','Safe Cracker'],['turboKart','🏎️','Turbo Kart'],['neonDrift','🏁','Neon Drift'],['mergeRush','🔢','Merge Rush'],
+      ['safeCracker','🔐','Safe Cracker'],['neonDrift','🏁','Neon Drift'],['mergeRush','🔢','Merge Rush'],
       ['perfectDrop','🎯','Perfect Drop'],['spiralDrop','🌀','Spiral Drop'],['shapeFit','🧠','Shape Fit'],
       ['bounceRun','⚪','Bounce Run'],['trafficEscape','🚦','Traffic Escape'],['starDefender','👾','Star Defender'],['neonBreach','🤖','Neon Breach'],['neonMaze','🟡','Neon Maze']
     ];
@@ -177,7 +177,7 @@
       document.getElementById('boardTitle').textContent = info[1] + ' ' + info[2] + ' · World Top 25';
       document.getElementById('boardRule').textContent = game === 'memory' ? 'Fewest moves wins' : 'Highest score wins';
 
-      const directGames = {snake:'snake.html',blockDrop:'blockdrop.html',tapRush:'taprush.html',memory:'memory.html',brickBreaker:'brickbreaker.html',jungleHopper:'junglehopper.html',towerStack:'towerstack.html',coinCatch:'coincatch.html',colorMatch:'colormatch.html',paddleRally:'paddlerally.html',laneRunner:'lanerunner.html',safeCracker:'safecracker.html',turboKart:'turbo-kart.html',neonDrift:'neondrift.html',starDefender:'stardefender.html',neonBreach:'neonbreach.html',neonMaze:'neonmaze.html'};
+      const directGames = {snake:'snake.html',blockDrop:'blockdrop.html',tapRush:'taprush.html',memory:'memory.html',brickBreaker:'brickbreaker.html',jungleHopper:'junglehopper.html',towerStack:'towerstack.html',coinCatch:'coincatch.html',colorMatch:'colormatch.html',paddleRally:'paddlerally.html',laneRunner:'lanerunner.html',safeCracker:'safecracker.html',neonDrift:'neondrift.html',starDefender:'stardefender.html',neonBreach:'neonbreach.html',neonMaze:'neonmaze.html'};
       const play = document.getElementById('rankPlay');
       play.href = directGames[game] || 'mini.html?game=' + encodeURIComponent(game);
       play.textContent = 'Play ' + info[2] + ' →';

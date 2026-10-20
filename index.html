@@ -271,7 +271,7 @@
       paddleRally:'paddlerally.html',
       laneRunner:'lanerunner.html',
       safeCracker:'safecracker.html',
-      turboKart:'turbo-kart.html',neonDrift:'neondrift.html',
+      neonDrift:'neondrift.html',
       mergeRush:'mini.html?game=mergeRush',
       perfectDrop:'mini.html?game=perfectDrop',
       spiralDrop:'mini.html?game=spiralDrop',
@@ -391,7 +391,6 @@
         paddleRally:['🏓','Paddle Rally','paddlerally.html'],
         laneRunner:['🏎️','Lane Runner','lanerunner.html'],
         safeCracker:['🔐','Safe Cracker','safecracker.html'],
-        turboKart:['🏎️','Turbo Kart','turbo-kart.html'],
         neonDrift:['🏁','Neon Drift','neondrift.html'],
         mergeRush:['🔢','Merge Rush','mini.html?game=mergeRush'],
         perfectDrop:['🎯','Perfect Drop','mini.html?game=perfectDrop'],
@@ -402,7 +401,7 @@
         starDefender:['👾','Star Defender','stardefender.html?sd=20260925d'],
         neonMaze:['🟡','Neon Maze','neonmaze.html']
       };
-      const recent = Arcade.recentGames()[0];
+      const recent = Arcade.recentGames().find(game => gameMeta[game]);
       const recentInfo = recent && gameMeta[recent];
 
       if (recentInfo) {
