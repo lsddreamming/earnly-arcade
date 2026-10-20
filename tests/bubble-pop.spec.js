@@ -1,7 +1,8 @@
 const {test,expect}=require('@playwright/test');
 const E=require('../bubble-pop-engine');
+const assert=require('node:assert/strict');
 test('1000 complete rounds preserve move limits, valid boards, and final scores',()=>{
- for(let seed=1;seed<=1000;seed++){let n=seed;const rng=()=>((n=Math.imul(n,1664525)+1013904223>>>0)/4294967296),g=E.create(rng);let score=0;for(let m=0;m<20;m++){const s=g.state(),choices=s.board.map((c,i)=>({i,size:c.bomb?9:g.group(i).length})).filter(c=>c.size>=2);expect(choices.length).toBeGreaterThan(0);const r=g.pop(choices[Math.floor(rng()*choices.length)].i);expect(r.valid).toBe(true);expect(r.moves).toBe(19-m);expect(r.score).toBeGreaterThan(score);score=r.score;expect(r.board).toHaveLength(56);}expect(g.pop(0).valid).toBe(false);expect(g.state().score).toBe(score);g.reset();expect(g.state().moves).toBe(20);expect(g.state().score).toBe(0);}
+ for(let seed=1;seed<=1000;seed++){let n=seed;const rng=()=>((n=Math.imul(n,1664525)+1013904223>>>0)/4294967296),g=E.create(rng);let score=0;for(let m=0;m<20;m++){const s=g.state(),choices=s.board.map((c,i)=>({i,size:c.bomb?9:g.group(i).length})).filter(c=>c.size>=2);assert(choices.length>0);const r=g.pop(choices[Math.floor(rng()*choices.length)].i);assert.equal(r.valid,true);assert.equal(r.moves,19-m);assert(r.score>score);score=r.score;assert.equal(r.board.length,56);}assert.equal(g.pop(0).valid,false);assert.equal(g.state().score,score);g.reset();assert.equal(g.state().moves,20);assert.equal(g.state().score,0);}
 });
 async function setup(page){await page.addInitScript(()=>{Math.random=()=>0;localStorage.setItem('points','123');localStorage.setItem('arcadePlays','untouched');});await page.goto('/bubble-pop.html');await page.getByRole('button',{name:'Let’s play'}).click();}
 async function firstCell(page){const b=await page.locator('#board').boundingBox(),size=Math.min((b.width-14)/7,(b.height-14)/8);return {x:(b.width-size*7)/2+size/2,y:(b.height-size*8)/2+size/2};}
