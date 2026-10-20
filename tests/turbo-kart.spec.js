@@ -271,12 +271,32 @@ test('phone rendering has bounded road work and world-space boats pass through t
   ctx.fill=(...args)=>{fills++;if(ctx.fillStyle==='#fff4dc'){const m=ctx.getTransform();const ratio=c.width/390;const x=m.e/ratio,y=m.f/ratio;if(x>15&&x<375&&y>0&&y<560)boats.push({x,y});}return fill(...args);};ctx.lineTo=(...args)=>{lines++;return line(...args);};
   const renderer=TurboKartRenderer.create(c),s=TurboKartEngine.create();renderer.render(s);fills=lines=0;
   const frames=[];for(let i=0;i<24;i++){s.racers[0].d=s.track.length*i/24;s.time=-i-1;boats=[];renderer.render(s);frames.push(boats);}
-  return {fills:fills/24,lines:lines/24,pixels:c.width*c.height,cap:390*560*Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1.5:2)**2,frames};
+  return {fills:fills/24,lines:lines/24,pixels:c.width*c.height,cap:390*560*Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1:2)**2,frames};
  });
- expect(result.fills).toBeLessThan(650);expect(result.lines).toBeLessThan(1800);expect(result.pixels).toBeLessThanOrEqual(result.cap+1500);
+ expect(result.fills).toBeLessThan(450);expect(result.lines).toBeLessThan(1400);expect(result.pixels).toBeLessThanOrEqual(result.cap+1500);
  const xs=result.frames.flat().map(b=>Math.round(b.x));expect(new Set(xs).size).toBeGreaterThan(6);expect(result.frames.some(f=>!f.length)).toBe(true);expect(result.frames.filter(f=>f.length>0).length).toBeGreaterThan(4);expect(Math.max(...xs)-Math.min(...xs)).toBeGreaterThan(150);
  await page.setViewportSize({width:390,height:700});await start(page);await page.locator('#earnlyPauseButton').click();
  for(const [label,fraction]of [['bay',0],['reverse-view',.35]]){await page.evaluate(f=>{const s=TurboKartEngine.create();s.racers[0].d=s.track.length*f;TurboKartRenderer.create(document.getElementById('game')).render(s);},fraction);await page.screenshot({path:`test-results/turbo-kart-${label}-${test.info().project.name}.png`});}
+});
+
+test('sustained late phone frames lower rendering cost without changing the race',async({page})=>{
+ await page.goto('/turbo-kart.html');
+ const result=await page.evaluate(()=>{
+  const c=document.createElement('canvas');c.getBoundingClientRect=()=>({width:390,height:560});
+  const renderer=TurboKartRenderer.create(c),s=TurboKartEngine.create(),before=JSON.stringify(s);
+  renderer.render(s);const initial=c.width*c.height;
+  renderer.noteFrame(33);renderer.noteFrame(2000);
+  for(let i=0;i<60;i++)renderer.noteFrame(1000/60);
+  renderer.render(s);const recovered=c.width*c.height;
+  for(let i=0;i<30;i++)renderer.noteFrame(1000/30);
+  renderer.render(s);const fallback=c.width*c.height;
+  for(let i=0;i<60;i++)renderer.noteFrame(1000/60);
+  renderer.render(s);
+  return {initial,recovered,fallback,stable:c.width*c.height,unchanged:JSON.stringify(s)===before,coarse:matchMedia('(pointer: coarse)').matches};
+ });
+ expect(result.recovered).toBe(result.initial);expect(result.unchanged).toBe(true);
+ if(result.coarse)expect(result.fallback).toBeLessThan(result.initial*.7);else expect(result.fallback).toBe(result.initial);
+ expect(result.stable).toBe(result.fallback);
 });
 
 test('120Hz callbacks do not redraw unchanged racing frames',async({page})=>{
