@@ -371,3 +371,20 @@ test('pause immediately disables held item and resume restores its action',async
  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#itemButton')).toBeDisabled();await expect(page.locator('#kartCallout')).toContainText('PAUSED');
  await page.locator('#leftButton').click();await expect(page.locator('#itemButton')).toBeEnabled();await expect(page.locator('#kartCallout')).not.toContainText('PAUSED');
 });
+
+test('last selected course survives reload without spending plays',async({page})=>{
+ await page.goto('/turbo-kart.html');const plays=await page.locator('#plays').textContent();
+ await page.locator('[data-course="canyon"]').click();await page.reload();
+ await expect(page.locator('[data-course="canyon"]')).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#courseName')).toHaveText(E.courses.find(c=>c.id==='canyon').name.toUpperCase());
+ await expect(page.locator('#plays')).toHaveText(plays);
+ await page.evaluate(()=>localStorage.setItem('earnlyKartCourse','unknown-course'));await page.reload();
+ await expect(page.locator('[data-course="harbor"]')).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#startButton')).toBeEnabled();
+});
+test('course selection works when device storage is blocked',async({page})=>{
+ await page.addInitScript(()=>{const get=Storage.prototype.getItem,set=Storage.prototype.setItem;Storage.prototype.getItem=function(k){if(k==='earnlyKartCourse')throw new Error('blocked');return get.call(this,k);};Storage.prototype.setItem=function(k,v){if(k==='earnlyKartCourse')throw new Error('blocked');return set.call(this,k,v);};});
+ await page.goto('/turbo-kart.html');await page.locator('[data-course="garden"]').click();
+ await expect(page.locator('[data-course="garden"]')).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#startButton')).toBeEnabled();
+});

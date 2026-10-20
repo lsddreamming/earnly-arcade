@@ -66,3 +66,22 @@ test('placement explains blocked tiles and refreshes after moving or rotating th
  expect(await page.evaluate(()=>window.actions.filter(a=>a.action==='place').length)).toBe(0);
  await page.locator('#cancelPlace').click();await expect(page.locator('#placementStatus')).toBeEmpty();
 });
+
+ test('Catalog clear filters restores hidden pieces without changing wishlist or purchases',async({page})=>{
+ await fixture(page);await page.locator('[data-panel="catalog"]').click();
+ await expect(page.getByRole('button',{name:'Clear filters',exact:true})).toBeHidden();
+ await page.getByRole('button',{name:'Save to wishlist: Mint Chair',exact:true}).click();
+ await page.locator('.catalog-refine summary').click();
+ await page.getByRole('button',{name:/Wishlist/}).click();
+ await page.getByRole('button',{name:'Not owned',exact:true}).click();
+ await page.getByRole('combobox',{name:'Sort decor'}).selectOption('price');
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('missing furniture');
+ await expect(page.locator('.catalog-grid .item-card')).toHaveCount(0);
+ await page.getByRole('button',{name:'Clear filters',exact:true}).click();
+ await expect(page.getByRole('searchbox',{name:'Search decor'})).toHaveValue('');
+ await expect(page.getByRole('searchbox',{name:'Search decor'})).toBeFocused();
+ await expect(page.locator('.catalog-grid .item-card')).toHaveCount(1);
+ await expect(page.getByRole('button',{name:'Remove from wishlist: Mint Chair',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Clear filters',exact:true})).toBeHidden();
+ expect(await page.evaluate(()=>window.actions.some(a=>a.action==='buy'))).toBe(false);
+ });
