@@ -213,3 +213,14 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 
 /* Large placement actions stay below the room so every floor tile remains touchable. */
 @media(max-width:600px){#placementHint{position:relative;bottom:auto;left:auto;right:auto;margin:12px 0;z-index:16;display:grid;grid-template-columns:1fr 1fr;padding:12px;gap:8px;background:#123340;box-shadow:0 8px 28px #0007}#placementHint[hidden]{display:none}#placingName{grid-column:1/-1;grid-row:1;font-size:14px}#placementInstructions,#placementStatus{grid-column:1/-1;line-height:1.4;margin:0}#placementHint button{min-height:48px;min-width:0;font-size:13px}#dropItem{grid-column:1/-1;font-size:15px!important}#returnItem{grid-column:1/-1;grid-row:7}#cancelPlace{border-color:#688591}#placementStatus[data-valid="false"]{color:#ffd4a4}}
+
+/* Keep ownership actions compact so one purchase cannot stretch its neighbors. */
+.catalog-content .catalog-grid{align-items:start}
+.catalog-content .catalog-grid .item-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;align-content:start}
+.catalog-content .catalog-grid .item-card>*{grid-column:1/-1;min-width:0}
+.catalog-content .catalog-grid .item-card .owned-label{display:none}
+.catalog-content .catalog-grid .item-card .owned-location{margin:0;font-size:10px;line-height:1.35;min-height:0}
+.catalog-content .catalog-grid .item-card>button:last-child,.catalog-content .catalog-grid .item-card .owned-place{margin-top:0;min-height:44px}
+.catalog-content .catalog-grid .has-owned-action>.owned-place{grid-column:1}
+.catalog-content .catalog-grid .has-owned-action>.owned-place+button{grid-column:2;font-size:11px;padding:6px 3px}
+.catalog-content .catalog-grid .item-card .furniture-inspect canvas{height:100px;max-height:100px;object-fit:contain}
