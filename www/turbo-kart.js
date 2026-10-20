@@ -3,6 +3,7 @@
  const E=TurboKartEngine,game='turboKart',renderer=TurboKartRenderer.create(document.getElementById('game'));
  const el=Object.fromEntries(['balance','position','lap','time','bonus','speed','gameStatus','kartMessage','kartCallout','startButton','plays','driftFill','driftLabel','leftButton','rightButton','driftButton','itemButton','itemSlot','itemName','courseName','courseTag','courseDescription','raceProgress'].map(id=>[id,document.getElementById(id)]));
  let selectedCourse='harbor';
+ try{const saved=localStorage.getItem('earnlyKartCourse');if(E.courses.some(course=>course.id===saved))selectedCourse=saved;}catch{}
  let state=E.create(selectedCourse),running=false,starting=false,paused=false,disposed=false,last=0,accumulator=0,raf=0,lastHud=-Infinity;
  const pointers=new Map(),keys=new Set();let pause,drag=null,driftDrag=null;
  const canvas=document.getElementById('game');
@@ -32,7 +33,7 @@
  function start(){if(running||starting||disposed)return;if(!Arcade.consume(game)){Arcade.out(game,chrome);return;}starting=true;state=E.create(selectedCourse);clear();el.startButton.disabled=true;el.kartMessage.hidden=true;status('Starting');chrome();renderer.render(state);
  Arcade.countdown(()=>{if(disposed)return;starting=false;running=true;paused=false;last=performance.now();accumulator=0;status('Running');chrome();pause.sync();raf=requestAnimationFrame(loop);if(document.hidden)pause.button.click();});}
  el.startButton.addEventListener('click',start);
- function selectCourse(id){if(running||starting)return;selectedCourse=id;state=E.create(id);el.courseName.textContent=state.track.name.toUpperCase();el.courseTag.textContent=state.track.tag;el.courseDescription.textContent=state.track.description;for(const button of document.querySelectorAll('[data-course]'))button.setAttribute('aria-pressed',String(button.dataset.course===id));chrome();renderer.render(state,{idle:true});}
+ function selectCourse(id){if(running||starting)return;selectedCourse=id;try{localStorage.setItem('earnlyKartCourse',id);}catch{}state=E.create(id);el.courseName.textContent=state.track.name.toUpperCase();el.courseTag.textContent=state.track.tag;el.courseDescription.textContent=state.track.description;for(const button of document.querySelectorAll('[data-course]'))button.setAttribute('aria-pressed',String(button.dataset.course===id));chrome();renderer.render(state,{idle:true});}
  for(const button of document.querySelectorAll('[data-course]'))button.addEventListener('click',()=>selectCourse(button.dataset.course));
  canvas.addEventListener('pointerdown',e=>{if(!running||paused||drag||e.button>0)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,steer:0};});
  canvas.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;e.preventDefault();drag.steer=Math.max(-1,Math.min(1,Math.sign(e.clientX-drag.x)*Math.max(0,Math.abs(e.clientX-drag.x)-5)/Math.min(85,canvas.getBoundingClientRect().width*.22)));style();});
@@ -75,7 +76,7 @@
  }
  for(const event of ['earnly-cloud-ready','earnly-cloud-auth-change','earnly-public-profile-updated'])window.addEventListener(event,loadDriver);
  loadDriver();
- chrome();renderer.render(state,{idle:true});
+ selectCourse(selectedCourse);
  // Only accept a start after the renderer and input handlers are ready.
  status('Ready');el.startButton.textContent='START RACE →';el.startButton.disabled=false;
 })();

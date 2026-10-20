@@ -208,3 +208,5 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .placement-success{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px;margin:12px 0;border:1px solid var(--mint);border-radius:14px;background:#153b3c}.placement-success[hidden]{display:none}.placement-success p{flex:1 1 220px;margin:0}.placement-success strong,.placement-success span{display:block}.placement-success span{margin-top:5px;font-size:13px;line-height:1.45;color:#d6e5ec}.placement-success button{min-height:44px}
 
 #placementStatus{display:block;flex-basis:100%;font-size:.8rem;color:#a6ffd0}#placementStatus[data-valid="false"]{color:#ffc0cb}
+
+.catalog-reset{min-height:44px;margin:0 0 10px;font-size:12px;padding:8px 14px}.catalog-reset[hidden]{display:none}
