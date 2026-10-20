@@ -16,13 +16,13 @@
  const courses=definitions.map(buildTrack);
  function sample(distance,offset=0,track=courses[0]){const d=wrap(distance,track.length),points=track.points;let lo=0,hi=points.length-1;while(lo<hi){const m=Math.ceil((lo+hi)/2);if(points[m].d<=d)lo=m;else hi=m-1;}const a=points[lo],b=points[(lo+1)%points.length],span=(lo===points.length-1?track.length:b.d)-a.d,t=(d-a.d)/span,angle=Math.atan2(b.y-a.y,b.x-a.x);return {x:a.x+(b.x-a.x)*t-Math.sin(angle)*offset,y:a.y+(b.y-a.y)*t+Math.cos(angle)*offset,angle};}
  function curvature(d,track){return angleDiff(sample(d+12,0,track).angle,sample(d-12,0,track).angle)/24;}
- function create(course='harbor'){const track=courses.find(c=>c.id===course)||courses[0];return {track,time:0,ended:false,finished:false,place:5,coins:0,pickupCount:0,item:null,itemIndex:0,driftCharge:0,drifts:0,jumps:0,cutsTaken:0,wasDrifting:false,events:[],callout:'',calloutUntil:0,projectiles:[],hazards:[],effects:[],draft:0,
+ function create(course='harbor'){const track=courses.find(c=>c.id===course)||courses[0];return {track,time:0,ended:false,finished:false,place:5,coins:0,pickupCount:0,item:null,reserveItem:null,itemsCollected:0,itemIndex:0,driftCharge:0,drifts:0,jumps:0,cutsTaken:0,wasDrifting:false,events:[],callout:'',calloutUntil:0,projectiles:[],hazards:[],effects:[],draft:0,
   racers:['YOU','PIP','NOVA','REMY','FERN'].map((name,i)=>({name,d:i?12+(4-i)*19:0,lane:i%2?22:-22,heading:0,steer:0,speed:0,boost:0,coinSurge:0,shield:0,slow:0,cooldown:0,item:null,itemIndex:i,charge:0,air:0,cutActive:false,lastCut:null,driftDirection:0,drifting:false,itemCooldown:3+i,finishTime:null,color:['#65f5dc','#ffc363','#cba6ff','#ff819e','#79c2ff'][i]})),
-  pickups:Array.from({length:24},(_,i)=>({d:track.length*(.055+Math.floor(i/3)*.12),lane:[-30,0,30][i%3],type:Math.floor(i/3)%2===0?'item':'coin',takenLap:-1,takenBy:[-1,-1,-1,-1,-1]})),ramps:[{d:track.length*.19,lane:0},{d:track.length*.61,lane:24}],cuts:[{start:track.length*.33,end:track.length*.33+105,lane:-60},{start:track.length*.76,end:track.length*.76+105,lane:60}],pads:[{d:track.length*.27,lane:-26},{d:track.length*.69,lane:27}]};}
+  pickups:[...Array.from({length:50},(_,i)=>({d:track.length*(.025+Math.floor(i/5)*.1),lane:[-36,-18,0,18,36][i%5],type:'item',takenLap:-1,takenBy:[-1,-1,-1,-1,-1]})),...Array.from({length:12},(_,i)=>({d:track.length*(.115+Math.floor(i/3)*.24),lane:[-30,0,30][i%3],type:'coin',takenLap:-1,takenBy:[-1,-1,-1,-1,-1]}))],ramps:[{d:track.length*.19,lane:0},{d:track.length*.61,lane:24}],cuts:[{start:track.length*.33,end:track.length*.33+105,lane:-60},{start:track.length*.76,end:track.length*.76+105,lane:60}],pads:[{d:track.length*.27,lane:-26},{d:track.length*.69,lane:27}]};}
  const items={boost:{name:'Turbo Cell',icon:'↟',hint:'Speed burst'},shield:{name:'Prism Guard',icon:'⬡',hint:'Blocks attacks'},pulse:{name:'Sonic Bloom',icon:'◎',hint:'Slows nearby rivals'},bolt:{name:'Arc Bolt',icon:'ϟ',hint:'Chases a rival ahead'},slick:{name:'Ink Patch',icon:'◉',hint:'Trap behind you'}};
  function announce(s,text){s.callout=text;s.calloutUntil=s.time+1.6;s.events.push(text);}
- function hit(s,r,seconds){if(r.cooldown>0||r.finishTime!==null)return false;if(r.shield>0){r.shield=0;r.cooldown=.8;if(r===s.racers[0])announce(s,'PRISM GUARD · BLOCKED');return false;}r.slow=Math.max(r.slow,seconds);r.cooldown=1.3;if(r===s.racers[0])announce(s,'HIT! · KEEP RACING');return true;}
- function useItem(s,index=0){if(s.ended)return;const r=s.racers[index],item=index?r.item:s.item;if(!item||r.finishTime!==null)return;if(index)r.item=null;else s.item=null;
+ function hit(s,r,seconds){if(r.cooldown>0||r.finishTime!==null)return false;if(r.shield>0){r.shield=0;r.cooldown=.8;if(r===s.racers[0])announce(s,'PRISM GUARD · BLOCKED');return false;}r.slow=Math.max(r.slow,seconds);r.cooldown=3;if(r===s.racers[0])announce(s,'HIT! · KEEP RACING');return true;}
+ function useItem(s,index=0){if(s.ended)return;const r=s.racers[index],item=index?r.item:s.item;if(!item||r.finishTime!==null)return;if(index)r.item=null;else{s.item=s.reserveItem;s.reserveItem=null;}
   if(item==='boost')r.boost=Math.max(r.boost,2.6);
   if(item==='shield')r.shield=6;
   if(item==='pulse'){for(const other of s.racers)if(other!==r&&Math.abs(other.d-r.d)<135)hit(s,other,2.1);s.effects.push({type:'pulse',d:r.d,lane:r.lane,life:.65});}
@@ -37,12 +37,12 @@
  function chooseItem(s,index){const r=s.racers[index],place=rank(s,index),pool=place>=4?['boost','bolt','shield','pulse','boost']:place===1?['shield','slick','boost']:['bolt','pulse','boost','shield','slick'];return pool[(r.itemIndex++ + Math.floor(r.d/s.track.length))%pool.length];}
  // Same steering and grip model for every racer. AI anticipates bends, pickups and traffic.
  function aiInput(s,index){const r=s.racers[index],bend=curvature(r.d+42,s.track);let lane=clamp(bend*4500,-24,24);
-  const pickup=s.pickups.find(q=>wrap(q.d-r.d,s.track.length)<90&&q.takenBy[index]!==Math.max(0,Math.floor(r.d/s.track.length))&&(q.type==='item'&&!r.item));if(pickup)lane=pickup.lane;
+  const pickup=s.pickups.filter(q=>wrap(q.d-r.d,s.track.length)<90&&q.takenBy[index]!==Math.max(0,Math.floor(r.d/s.track.length))&&(q.type==='item'&&!r.item)).sort((a,b)=>(wrap(a.d-r.d,s.track.length)+Math.abs(a.lane-r.lane))-(wrap(b.d-r.d,s.track.length)+Math.abs(b.lane-r.lane)))[0];if(pickup)lane=pickup.lane;
   for(const other of s.racers)if(other!==r&&other.d-r.d>0&&other.d-r.d<40&&Math.abs(other.lane-r.lane)<17)lane=clamp(other.lane+(r.lane>=other.lane?25:-25),-35,35);
   for(const h of s.hazards)if(h.d-r.d>0&&h.d-r.d<75&&Math.abs(h.lane-lane)<20)lane=h.lane>0?-26:26;
   const desired=clamp((lane-r.lane)*.017,-.38,.38),steer=clamp((desired-r.heading)*3.3+bend*r.speed/1.35,-1,1);
-  if(r.item&&r.itemCooldown<=0){const ahead=s.racers.some(v=>v!==r&&v.d>r.d&&v.d-r.d<200);if(r.item==='shield'||r.item==='slick'||(r.item==='boost'&&Math.abs(bend)<.005)||(['bolt','pulse'].includes(r.item)&&ahead)){useItem(s,index);r.itemCooldown=5+index;}}
-  return {steer,drift:Math.abs(bend)>.003&&Math.abs(r.lane)<33&&r.charge<1.5};
+  if(r.item&&r.itemCooldown<=0){const ahead=s.racers.some(v=>v!==r&&v.d>r.d&&v.d-r.d<200);if(r.item==='shield'||r.item==='slick'||(r.item==='boost'&&Math.abs(r.lane)<40)||(['bolt','pulse'].includes(r.item)&&ahead)){useItem(s,index);r.itemCooldown=1.6+index*.2;}}
+  return {steer,drift:Math.abs(bend)>.003&&Math.abs(bend)<.006&&Math.abs(r.lane)<24&&r.charge<1.1};
  }
  function tick(s,dt,input={}){if(s.ended||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.05);s.time+=dt;s.events=[];const p=s.racers[0],track=s.track;
   if(input.item)useItem(s);
@@ -61,23 +61,23 @@
    if(!i&&!drifting){
     // Normal steering sets a direction rather than accumulating a slide.
     // A small curve force keeps corners meaningful without fighting the thumb.
-    const desired=clamp(r.steer*.34-bend*r.speed*.12,-.45,.45);
-    r.heading+=(desired-r.heading)*(1-Math.exp(-14*dt));
+    const desired=clamp(r.steer*.34-bend*r.speed*.095,-.45,.45);
+    r.heading+=(desired-r.heading)*(1-Math.exp(-20*dt));
    }else{
     r.heading=clamp(r.heading+((drifting?r.steer*.72+r.driftDirection*.2:r.steer*1.35)-bend*r.speed)*dt,-.85,.85);r.heading*=Math.exp(-(drifting?1.45:1.9)*dt);
    }
    r.lane+=Math.sin(r.heading)*r.speed*dt;
    if(Math.abs(r.lane)>75){r.lane=clamp(r.lane,-75,75);r.heading*=.85;}
-   const off=Math.abs(r.lane)>WIDTH/2-5&&!cut,base=i?111+i*.65:108,cornerSpeed=i?clamp(1-Math.abs(curvature(r.d+45,track))*12,.9,1):1;
-   const target=base*cornerSpeed*(cut?1.3:1)*(off?.46:1)*(r.slow>0?.58:1)*(r.boost>0?1.42:r.coinSurge>0?1.12:1)*(drifting?.94:1);
-   r.speed+=(target-r.speed)*Math.min(1,dt*(target<r.speed?3.2:2));const before=r.d;r.d+=r.speed*Math.max(.65,Math.cos(r.heading))*dt;
+   const off=Math.abs(r.lane)>WIDTH/2-5&&!cut,base=i?155+i*.65:134,cornerSpeed=i?clamp(1-Math.abs(curvature(r.d+45,track))*12,.9,1):1;
+   const target=base*cornerSpeed*(cut?1.3:1)*(off?.4:1)*(r.slow>0?.58:1)*(r.boost>0?1.42:r.coinSurge>0?1.12:1)*(drifting?.94:1);
+   r.speed+=(target-r.speed)*Math.min(1,dt*(target<r.speed?(off?5:3.2):3.4));const before=r.d;r.d+=r.speed*Math.max(.65,Math.cos(r.heading))*dt;
    if(!i&&Math.floor(r.d/track.length)>Math.floor(before/track.length)&&r.d<track.length*LAPS)announce(s,r.d>=track.length*2?'FINAL LAP!':'LAP 2 · KEEP PUSHING');
    if(r.d>=track.length*LAPS){r.finishTime=s.time-dt+(track.length*LAPS-before)/(r.d-before)*dt;r.d=track.length*LAPS;}
-   for(const pick of s.pickups){const lap=Math.floor(before/track.length),next=lap*track.length+pick.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-pick.lane)<16&&pick.takenBy[i]!==lap){pick.takenBy[i]=lap;if(!i)pick.takenLap=lap;if(pick.type==='coin'){r.coinSurge=.65;if(!i){s.pickupCount++;const earned=s.coins<5;s.coins=Math.min(5,s.coins+1);s.effects.push({type:'coin',d:r.d,lane:r.lane,life:.5});announce(s,earned?'+1 COIN · SPEED SURGE':'COIN SURGE · KEEP PUSHING');}}else if(pick.type==='item'&&!(i?r.item:s.item)){const item=chooseItem(s,i);if(i)r.item=item;else{s.item=item;announce(s,items[item].name.toUpperCase()+' READY');}}}}
+   for(const pick of s.pickups){const lap=Math.floor(before/track.length),next=lap*track.length+pick.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-pick.lane)<16&&pick.takenBy[i]!==lap){pick.takenBy[i]=lap;if(!i)pick.takenLap=lap;if(pick.type==='coin'){r.coinSurge=.65;if(!i){s.pickupCount++;const earned=s.coins<5;s.coins=Math.min(5,s.coins+1);s.effects.push({type:'coin',d:r.d,lane:r.lane,life:.5});announce(s,earned?'+1 COIN · SPEED SURGE':'COIN SURGE · KEEP PUSHING');}}else if(pick.type==='item'&&r.lastItemRow!==lap+':'+pick.d&&!(i?r.item:s.reserveItem)){r.lastItemRow=lap+':'+pick.d;const item=chooseItem(s,i);if(i)r.item=item;else{s.itemsCollected++;if(s.item){s.reserveItem=item;announce(s,'RESERVE · '+items[item].name.toUpperCase());}else{s.item=item;announce(s,items[item].name.toUpperCase()+' READY');}}}}}
    for(const ramp of s.ramps){const next=Math.floor(before/track.length)*track.length+ramp.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-ramp.lane)<15&&r.speed>65&&r.air===0){r.air=.75;if(!i){s.jumps++;announce(s,'AIR TIME!');}}}
    for(const pad of s.pads){const next=Math.floor(before/track.length)*track.length+pad.d;if(before<=next&&r.d>=next&&Math.abs(r.lane-pad.lane)<19){r.boost=Math.max(r.boost,1.6);if(!i)announce(s,'BOOST STRIP');}}
   }
-  for(const shot of s.projectiles){shot.life-=dt;const target=s.racers[shot.target];if(target&&target.finishTime===null)shot.lane+=clamp(target.lane-shot.lane,-85*dt,85*dt);const before=shot.d;shot.d+=205*dt;for(let i=0;i<s.racers.length;i++){const r=s.racers[i];if(i!==shot.owner&&r.d>=before-9&&r.d<=shot.d+9&&Math.abs(r.lane-shot.lane)<15){hit(s,r,1.9);shot.life=0;break;}}}
+  for(const shot of s.projectiles){shot.life-=dt;const target=s.racers[shot.target];if(target&&target.finishTime===null)shot.lane+=clamp(target.lane-shot.lane,-85*dt,85*dt);const before=shot.d;shot.d+=265*dt;for(let i=0;i<s.racers.length;i++){const r=s.racers[i];if(i!==shot.owner&&r.d>=before-9&&r.d<=shot.d+9&&Math.abs(r.lane-shot.lane)<15){hit(s,r,1.9);shot.life=0;break;}}}
   for(const h of s.hazards){h.life-=dt;for(let i=0;i<s.racers.length;i++){const r=s.racers[i];if(i!==h.owner&&Math.abs(r.d-h.d)<12&&Math.abs(r.lane-h.lane)<17){hit(s,r,1.7);h.life=0;break;}}}
   s.projectiles=s.projectiles.filter(v=>v.life>0);s.hazards=s.hazards.filter(v=>v.life>0);s.effects=s.effects.filter(v=>(v.life-=dt)>0);
   // Contact separation never waits for damage immunity: karts stay solid during a bump.

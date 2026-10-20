@@ -393,3 +393,22 @@ test('Timed out kart results explain progress and do not promise pickup rewards'
  await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>{const s=create(...args);s.time=TurboKartEngine.LIMIT-.001;s.racers[0].d=s.track.length*1.5;s.coins=4;return s;};});
  await page.locator('#startButton').click();const result=page.locator('dialog.game-result-dialog');await expect(result).toBeVisible({timeout:10000});await expect(result).toContainText('50% of 3 laps completed');await expect(result).toContainText('No finish reward');await expect(result).not.toContainText('pickup bonus =');await expect(page.locator('#balance')).toHaveText('0');
 });
+
+test('energy stations give one item per row, bank a reserve and never overwrite a full loadout',()=>{
+ for(const course of E.courses){const s=E.create(course.id),p=s.racers[0];s.racers.slice(1).forEach(r=>r.d=-500);
+ const rows=[...new Set(s.pickups.filter(q=>q.type==='item').map(q=>q.d))];expect(rows).toHaveLength(10);
+ const cross=d=>{Object.assign(p,{d:d-.5,lane:9,heading:0,speed:100});E.tick(s,1/60);};
+ cross(rows[0]);const first=s.item;expect(first).toBeTruthy();expect(s.reserveItem).toBeNull();expect(s.itemsCollected).toBe(1);
+ cross(rows[1]);const second=s.reserveItem;expect(second).toBeTruthy();expect(s.item).toBe(first);expect(s.itemsCollected).toBe(2);
+ cross(rows[2]);expect([s.item,s.reserveItem]).toEqual([first,second]);expect(s.itemsCollected).toBe(2);
+ E.useItem(s);expect(s.item).toBe(second);expect(s.reserveItem).toBeNull();E.useItem(s);expect(s.item).toBeNull();
+ cross(rows[3]);expect(s.item).toBeTruthy();expect(s.itemsCollected).toBe(3);expect(s.coins).toBe(0);
+ }
+});
+test('reserve HUD and course switching preserve the play and reward lifecycle',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{Arcade.countdown=fn=>fn();const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>(window.energyState=create(...args));});
+ await page.locator('#startButton').click();await page.evaluate(()=>{energyState.item='shield';energyState.reserveItem='boost';});
+ await expect(page.locator('#reserveItem')).toHaveText('NEXT: Turbo Cell');await page.locator('#itemButton').click();await expect(page.locator('#itemName')).toHaveText('Turbo Cell');await expect(page.locator('#reserveItem')).toHaveText('RESERVE EMPTY');
+ await page.evaluate(()=>{energyState.ended=true;});await expect(page.locator('#kartChooseCourse')).toBeVisible();const plays=await page.locator('#plays').textContent(),balance=await page.locator('#balance').textContent();
+ await page.locator('#kartChooseCourse').click();await expect(page.locator('dialog.game-result-dialog')).not.toBeVisible();await page.locator('[data-course="garden"]').click();await expect(page.locator('#plays')).toHaveText(plays);await expect(page.locator('#balance')).toHaveText(balance);await expect(page.locator('[data-course="garden"]')).toHaveAttribute('aria-pressed','true');
+});
