@@ -56,7 +56,7 @@ test('Empty Backpack hides unused filters and offers first furniture or games',a
 
 test('placement explains blocked tiles and refreshes after moving or rotating the room',async({page})=>{
  await fixture(page);await walked(page);await page.locator('#guideAction').click();await page.getByRole('button',{name:'Place this piece',exact:true}).click();
- await page.evaluate(()=>{const r=window.testRenderer;r.placement={item:{id:'chair1',name:'Chair',width:1,length:1,walkable:false,height:1},x:-1,y:-1,rotation:0,explicitConfirm:true};r.draw();});
+ await page.evaluate(()=>{const r=window.testRenderer;r.placement={item:{id:'chair1',name:'Chair',width:1,length:1,walkable:false,itemHeight:1,canStack:false,z:0,rotation:0},x:-1,y:-1,rotation:0,explicitConfirm:true};r.draw();});
  await expect(page.locator('#placementStatus')).toHaveAttribute('data-valid','false');await expect(page.locator('#placementStatus')).not.toBeEmpty();
  await page.evaluate(()=>{const r=window.testRenderer;r.placement.x=3;r.placement.y=3;r.rotateView(1);r.draw();});
  await expect(page.locator('#placementStatus')).toHaveText('Fits here · Ready to place');
