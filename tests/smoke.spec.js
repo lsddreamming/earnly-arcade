@@ -2155,7 +2155,7 @@ test('repairs impossible daily coin counters and uses live catalog total', async
 
 test('global leaderboards expose all games and editable player identity', async ({ page }) => {
   await page.goto('/leaderboards.html');
-  await expect(page.locator('#gameSelect option')).toHaveCount(23);
+  await expect(page.locator('#gameSelect option')).toHaveCount(22);
   await expect(page.locator('#boardTitle')).toContainText('World Top 25');
   await expect(page.getByRole('link', { name:'Edit username & icon' })).toBeVisible();
 
