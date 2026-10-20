@@ -797,7 +797,7 @@
      const twice=last&&now-last.at<360&&Math.hypot(e.clientX-last.x,e.clientY-last.y)<28;
      if(this.placement){
       if(this.placement.saving)return;
-      const preview=this.placement,check=this.placementResult();
+      const preview=this.placement;if(preview.explicitConfirm){preview.x=p.tx;preview.y=p.ty;resetTap();return;}const check=this.placementResult();
       const onFurniture=this.pickItem(p.x,p.y,[{...preview.item,x:preview.x,y:preview.y,z:check.z??preview.item.z,rotation:preview.rotation}]);
       if(twice||!onFurniture){const next=this.pickItem(p.x,p.y,(this.scene?.items||[]).filter(i=>i.id!==preview.item.id));resetTap();this.onPlacementDrop?.(next&&this.canEditItem?.(next)?next:null);}else this.lastTap={at:now,x:e.clientX,y:e.clientY};
       return;
