@@ -35,11 +35,12 @@
   if(hit.item&&!connected){toast('Connect to World, then enter your own room to move furniture.');return;}
   if(hit.item&&!placing&&connected){if((hit.doubleTap||hit.longPress)&&scene.ownerId===userId)beginPlacement(hit.item,hit.item.name,true);else if(hit.item.canSit||hit.item.canLay){try{useSeat(hit.item);}catch(e){toast(e.message);}}else showDecor(hit.item);return;}
   const rows=scene.heightmap.split('\n');if(hit.x<0||hit.y<0||hit.y>=rows.length||hit.x>=rows[0].length||rows[hit.y][hit.x]==='x')return;
+  if(placing?.guided){renderer.placement={item:placing,x:hit.x,y:hit.y,rotation,explicitConfirm:true};showPlacement();return;}
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation,centered:false});placing=null;showPlacement();await refresh();completeGuideStep('decorate');toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
- function beginPlacement(item,name,gesture=false){requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
+ function setScene(value){if(scene?.roomId!==value.roomId){$('placementSuccess').hidden=true;placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
+ function beginPlacement(item,name,gesture=false){$('placementSuccess').hidden=true;requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
  function useSeat(item){const rotated=item.rotation===2||item.rotation===6,w=rotated?item.length:item.width,h=rotated?item.width:item.length;const occupied=new Set([...renderer.users.values(),...renderer.staff.values()].map(u=>u.position.x+','+u.position.y));const seats=[];for(let y=item.y;y<item.y+h;y++)for(let x=item.x;x<item.x+w;x++)if(!occupied.has(x+','+y))seats.push({x,y});if(!seats.length)throw new Error('This seat is occupied. Choose another seat.');const me=renderer.users.get(userId)?.position||item;seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));socket.send(JSON.stringify({type:'INTERACT',...seats[0],action:item.canLay?'lay':'sit'}));$('worldPanel').close();toast('Walking to '+item.name+' · Tap clear floor to stand up');}
  function showDecor(item){
   if(!connected)return;
@@ -52,7 +53,7 @@
   }
   if(scene.ownerId===userId)root.append(button('Move',()=>beginPlacement(item,item.name),'primary'),button('Rotate ↻',async()=>{await action('place',{itemId:item.id,x:item.x,y:item.y,rotation:(item.rotation+2)%8});await refresh();$('worldPanel').close();toast('Furniture rotated');}),button('Return to Backpack',async()=>{await action('place',{itemId:item.id,pickup:true});await refresh();$('worldPanel').close();toast('Returned to your Backpack');}));
  }
- function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':'Tap a floor tile to place';$('placementHint').hidden=!placing;$('dropItem').hidden=!renderer.placement;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
+ function showPlacement(){ if(!placing)renderer.clearPlacement();$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':placing?.guided?'Tap a floor tile to preview · Nothing is saved yet':'Tap a floor tile to place';if(renderer.placement?.explicitConfirm)$('placementInstructions').textContent='Tap or slide to adjust · Green fits · Tap Place here to save';$('placementHint').hidden=!placing;$('dropItem').hidden=!renderer.placement;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
  $('rotateItem').onclick=()=>{if(renderer.placement?.saving)return;rotation=(rotation+2)%8;if(renderer.placement)renderer.placement.rotation=rotation;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{if(renderer.placement?.saving)return;placing=null;showPlacement();};
  $('returnItem').onclick=async()=>{
   const p=renderer.placement;if(!p||p.saving||!renderer.canEditItem(p.item))return;
@@ -66,7 +67,7 @@
   const p=renderer.placement,roomId=scene?.roomId;if(!p||p.saving)return;
   const check=renderer.placementResult();if(!check.valid){toast(check.reason||'Cannot place here · Slide to a green tile');return;}
   p.saving=true;$('dropItem').disabled=true;$('rotateItem').disabled=true;$('returnItem').disabled=true;$('cancelPlace').disabled=true;
-  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();completeGuideStep('decorate');toast('Placed in your room');if(nextItem&&scene?.roomId===roomId&&!placing){const next=scene.items.find(i=>i.id===nextItem.id);if(next&&renderer.canEditItem(next))beginPlacement(next,next.name,true);}}}
+  try{await action('place',{itemId:p.item.id,x:p.x,y:p.y,rotation:p.rotation,centered:false});if(renderer.placement===p){placing=null;showPlacement();await refresh();completeGuideStep('decorate');toast('Furniture placed · Saved in your room');if(p.explicitConfirm)$('placementSuccess').hidden=false;if(nextItem&&scene?.roomId===roomId&&!placing){const next=scene.items.find(i=>i.id===nextItem.id);if(next&&renderer.canEditItem(next))beginPlacement(next,next.name,true);}}}
   catch(e){toast(e.message);}
   finally{p.saving=false;$('dropItem').disabled=false;$('rotateItem').disabled=false;$('returnItem').disabled=false;$('cancelPlace').disabled=false;}
  };
@@ -216,7 +217,7 @@
  let backpackView={};
  function showBackpack(){
   currentPanel='backpack';const root=openPanel('Your Backpack');
-  if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'));return;}
+  if(!connected){root.append(note('Your purchased and collected decor will be stored here. Sign in and connect to begin your collection.'),button('Connect to World',()=>connect(),'primary'));return;}
   if(bootstrap.personalPets&&bootstrap.petsEnabled)root.append(petTabs(false));
   if(backpackView.userId!==userId)backpackView={userId,search:'',location:'all',sort:'stored',scroll:0};
   const locationOf=item=>!item.room_id?'stored':item.room_id===scene.roomId?'here':'elsewhere';
@@ -226,6 +227,7 @@
    const color=item.color?(EarnlyWorldCollections.furnitureColors.find(c=>c.color===item.color)?.name||'Selected'):'Original';
    return {item,d,room,location,roomName,color,search:[d.name,d.category,color,item.serial,item.room_id?roomName:'Backpack'].filter(v=>v!=null).join(' ').toLowerCase()};
   }).filter(Boolean);
+  if(!entries.length){root.append(el('h3','','Your room starts with one piece'),note('Your Backpack is empty. Furniture you buy appears here, ready to place in your room.'),button('Choose my first piece',startGuidedDecorating,'primary'));const earn=el('a','daily-game-link','Play games to earn coins ↗');earn.href='games.html';earn.target='_blank';earn.rel='noopener';root.append(earn,note('Games open in a new tab. Come back to World when you’re ready to decorate.'));return;}
   const stored=entries.filter(e=>e.location==='stored').length;
   root.append(el('p','backpack-summary',entries.length+' pieces · '+stored+' ready to place'),note(scene.ownerId===userId?'Place a stored piece, or pick up furniture to use it again.':'Visit your own room to place or pick up furniture.'));
   const tools=el('div','backpack-tools'),search=el('input'),filter=el('select'),sort=el('select');
@@ -439,6 +441,8 @@
    const visible=friends.filter(f=>(friendBrowser.filter==='requests'?!f.accepted:friendBrowser.filter==='online'?f.accepted&&f.online:f.accepted)&&f.username.toLowerCase().includes(query)).sort((a,b)=>Number(!!b.online)-Number(!!a.online)||a.username.localeCompare(b.username));
    list.replaceChildren();status.textContent=visible.length+' '+(friendBrowser.filter==='requests'?'requests':'friends')+(query?' found':'');
    if(!visible.length)list.append(note(query?'No matching friends. Try another name.':friendBrowser.filter==='online'?'No friends online right now. You can still visit their open rooms from All.':friendBrowser.filter==='requests'?'No pending requests.':'Add a friend below to visit their rooms.'));
+   if(!visible.length&&!query&&friendBrowser.filter==='all'&&!accepted.length){list.append(note('Meet players in a public hangout. Tap a player to open their profile and send a friend request.'),button('Visit plaza',()=>connect('plaza'),'primary'));}
+   if(!visible.length&&!query&&friendBrowser.filter==='online'&&accepted.length)list.append(button('Show all friends',()=>{friendBrowser.filter='all';redraw();}));
    for(const f of visible){
     const card=el('section','friend-card'),heading=el('div','friend-heading'),avatar=el('span','friend-initial',f.username.slice(0,1).toUpperCase()),identity=el('div');avatar.setAttribute('aria-hidden','true');
     identity.append(el('h3','',f.username),el('p','friend-presence'+(f.accepted&&f.online?' is-online':''),f.accepted?(f.online?'Online':'Offline'):f.incoming?'Wants to be your friend':'Request sent'));
@@ -513,12 +517,12 @@
  window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key],view=renderer.toView(u.position),target=renderer.fromView({x:view.x+x,y:view.y+y});if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:target.x,y:target.y}));};
- window.addEventListener('earnly-cloud-auth-change',()=>{guideResumed=false;guideDecorateOnArrival=false;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
+ window.addEventListener('earnly-cloud-auth-change',()=>{guideResumed=false;guideDecorateOnArrival=false;$('placementSuccess').hidden=true;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
 
  let guideResumed=false,guideDecorateOnArrival=false;
  const guideMemory=new Map();
  const guideSteps=[{id:'walk',title:'1 / 3 · Take a few steps',text:'Tap an empty floor tile to walk. Pinch with two fingers to zoom.',action:'Try walking',run:()=>{$('worldPanel').close();$('worldCanvas').focus({preventScroll:true});$('worldCanvas').scrollIntoView({block:'nearest'});}},
-  {id:'decorate',title:'2 / 3 · Place your first piece',text:'Choose furniture you own, then tap a clear floor tile to place it.',action:'Choose a piece',run:startGuidedDecorating},
+  {id:'decorate',title:'2 / 3 · Place your first piece',text:'Choose a piece, preview it on the floor, then tap Place here to save.',action:'Choose a piece',run:startGuidedDecorating},
   {id:'visit',title:'3 / 3 · Explore a hangout',text:'Visit the plaza. Your room and furniture stay saved.',action:'Visit plaza',run:()=>connect('plaza')}];
  function guideProgress(){
   if(guideMemory.has(userId))return guideMemory.get(userId);
@@ -546,9 +550,9 @@
   requireConnection();if(scene.ownerId!==userId){startGuidedDecorating().catch(e=>toast(e.message));return;}
   currentPanel='first-piece';const root=openPanel('Make this room yours');
   const owned=bootstrap.items.filter(i=>(!i.room_id||i.room_id===scene.roomId)&&bootstrap.catalog.some(d=>d.id===i.definition_id)).sort((a,b)=>Number(!!a.room_id)-Number(!!b.room_id));
-  root.append(note(owned.length?'Start with a piece you already own. Choose it below, then tap an empty floor tile.':'Your Backpack is empty. You can earn coins in the arcade or choose a piece from the Catalog.'));
+  root.append(note(owned.length?'1. Choose an owned piece. 2. Tap the floor to preview. 3. Tap Place here to save.':'Your Backpack is empty. You can earn coins in the arcade or choose a piece from the Catalog.'));
   const grid=el('div','catalog-grid guide-piece-grid');
-  for(const item of owned.slice(0,4)){const d=bootstrap.catalog.find(d=>d.id===item.definition_id),card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});card.append(canvas,el('h3','',d.name),el('p','owned-label',item.room_id?'Already in this room · Move it to try decorating':'Already yours · No coins needed'),button(item.room_id?'Move this piece':'Place this piece',()=>beginPlacement(item,d.name),'primary'));grid.append(card);}
+  for(const item of owned.slice(0,4)){const d=bootstrap.catalog.find(d=>d.id===item.definition_id),card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});card.append(canvas,el('h3','',d.name),el('p','owned-label',item.room_id?'Already in this room · Move it to try decorating':'Already yours · No coins needed'),button(item.room_id?'Move this piece':'Place this piece',()=>{beginPlacement({...d,...item,sprite:d.sprite_id,itemHeight:Number(d.item_height),walkable:d.walkable===true,canStack:d.can_stack===true,canSit:d.can_sit===true,canLay:d.can_lay===true},d.name);placing.guided=true;showPlacement();},'primary'));grid.append(card);}
   if(owned.length)root.append(grid,button('See all my furniture',showBackpack));
   else if(bootstrap.items.length)root.append(note('You have furniture in another room. Find it in your Backpack.'),button('Find my furniture',showBackpack,'primary'));
   else {const options=bootstrap.catalog.filter(d=>!d.vip_only&&(!d.supply_limit||d.minted<d.supply_limit)).sort((a,b)=>Number(a.price)-Number(b.price)).slice(0,3);
@@ -559,6 +563,9 @@
   root.append(button('Browse Catalog',()=>showCatalog('All',{sort:'price'})),button('Back to my room',()=>$('worldPanel').close()));
  }
  $('worldGuide').onclick=()=>showFirstVisitHint(true);
+ $('placementMissions').onclick=()=>{$('placementSuccess').hidden=true;showDailyMissions();};
+ $('placementContinue').onclick=()=>{$('placementSuccess').hidden=true;startGuidedDecorating().catch(e=>toast(e.message));};
+ $('dismissPlacementSuccess').onclick=()=>{$('placementSuccess').hidden=true;};
  async function showDailyMissions(){
   currentPanel='daily';const root=openPanel('Daily World missions'),version=panelVersion;
   if(!connected){root.append(note('Connect to World to see your daily missions.'));return;}
