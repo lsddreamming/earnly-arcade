@@ -422,10 +422,47 @@
   root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
  function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
- function showFriends(){currentPanel='friends';const root=openPanel('Friends');if(!connected){root.append(note('Accepted friends will appear here with online status and private messages.'));return;}
-  for(const f of bootstrap.friends){const controls=f.accepted?[button('Rooms',()=>showFriendRooms(f)),button('Message',()=>showPrivate(f)),...(bootstrap.socialDiscovery?[button('Invite here',()=>sendRoomInvite(f))]:[]),button('Remove',async()=>{await action('friend_remove',{userId:f.userId});await refresh();showFriends();})]:f.incoming?[button('Accept',async()=>{await action('friend_accept',{userId:f.userId});await refresh();showFriends();})]:[];root.append(row(f.username+(f.accepted?(f.online?' · Online':' · Offline'):' · Request'),controls));}
-  if(bootstrap.socialDiscovery)root.prepend(button('Room invitations',showRoomInvites));
-  const form=el('form','panel-form'),input=el('input');input.placeholder='Friend’s username';input.maxLength=18;input.required=true;const submit=el('button','','Add');submit.type='submit';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();try{await action('friend_request',{username:input.value});await refresh();showFriends();toast('Friend request sent');}catch(err){toast(err.message);}};root.append(form,button('Refresh status',async()=>{await refresh();showFriends();}));
+ const friendBrowser={query:'',filter:'all'};
+ function showFriends(){
+  currentPanel='friends';const root=openPanel('Friends'),version=panelVersion;
+  if(!connected){root.append(note('Connect to World to visit friends and send messages.'),button('Connect to World',()=>connect(),'primary'));return;}
+  const friends=bootstrap.friends||[],accepted=friends.filter(f=>f.accepted),requests=friends.filter(f=>!f.accepted);
+  const summary=el('p','friends-summary',`${accepted.filter(f=>f.online).length} online · ${accepted.length} friends`);
+  const search=el('input','friends-search');search.type='search';search.placeholder='Find a friend';search.setAttribute('aria-label','Find a friend');search.maxLength=18;search.value=friendBrowser.query;
+  const tabs=el('div','friends-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Friend filters');
+  const list=el('div','friends-list'),status=el('p','friends-results');status.setAttribute('role','status');
+  const filters=[['all','All'],['online','Online'],['requests',`Requests (${requests.length})`]],tabButtons=[];
+  const redraw=()=>{
+   tabButtons.forEach(([key,b])=>b.setAttribute('aria-pressed',String(friendBrowser.filter===key)));
+   const query=friendBrowser.query.trim().toLowerCase();
+   const visible=friends.filter(f=>(friendBrowser.filter==='requests'?!f.accepted:friendBrowser.filter==='online'?f.accepted&&f.online:f.accepted)&&f.username.toLowerCase().includes(query)).sort((a,b)=>Number(!!b.online)-Number(!!a.online)||a.username.localeCompare(b.username));
+   list.replaceChildren();status.textContent=visible.length+' '+(friendBrowser.filter==='requests'?'requests':'friends')+(query?' found':'');
+   if(!visible.length)list.append(note(query?'No matching friends. Try another name.':friendBrowser.filter==='online'?'No friends online right now. You can still visit their open rooms from All.':friendBrowser.filter==='requests'?'No pending requests.':'Add a friend below to visit their rooms.'));
+   for(const f of visible){
+    const card=el('section','friend-card'),heading=el('div','friend-heading'),avatar=el('span','friend-initial',f.username.slice(0,1).toUpperCase()),identity=el('div');avatar.setAttribute('aria-hidden','true');
+    identity.append(el('h3','',f.username),el('p','friend-presence'+(f.accepted&&f.online?' is-online':''),f.accepted?(f.online?'Online':'Offline'):f.incoming?'Wants to be your friend':'Request sent'));
+    heading.append(avatar,identity);card.append(heading);
+    const actions=el('div','friend-actions');
+    if(f.accepted){
+     actions.append(button('Visit rooms',()=>showFriendRooms(f),'primary'),button('Message',()=>showPrivate(f)));
+     if(bootstrap.socialDiscovery)actions.append(button('Invite here',()=>sendRoomInvite(f)));
+     const more=el('details','friend-options');more.append(el('summary','','Manage friend'),button('Remove friend',()=>showRemoveFriend(f)));card.append(actions,more);
+    }else if(f.incoming){actions.append(button('Accept request',async()=>{await action('friend_accept',{userId:f.userId});await refresh();if(version===panelVersion&&$('worldPanel').open)showFriends();},'primary'));card.append(actions);}
+    list.append(card);
+   }
+  };
+  for(const [key,label] of filters){const b=button(label,()=>{friendBrowser.filter=key;redraw();});tabButtons.push([key,b]);tabs.append(b);}
+  search.oninput=()=>{friendBrowser.query=search.value;redraw();};root.append(summary);
+  if(bootstrap.socialDiscovery)root.append(button('Room invitations',showRoomInvites,'friends-invitations'));
+  root.append(search,tabs,status,list);
+  const add=el('section','friends-add'),form=el('form','panel-form'),input=el('input');input.placeholder='Friend’s username';input.setAttribute('aria-label','Friend’s username');input.maxLength=18;input.required=true;
+  const submit=el('button','','Send request');submit.type='submit';form.append(input,submit);
+  form.onsubmit=async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;try{await action('friend_request',{username:input.value.trim()});await refresh();if(version===panelVersion&&$('worldPanel').open){friendBrowser.filter='requests';friendBrowser.query='';showFriends();toast('Friend request sent');}}catch(err){toast(err.message);}finally{submit.disabled=false;}};
+  add.append(el('h3','','Add a friend'),form);root.append(add,button('Refresh status',async()=>{await refresh();if(version===panelVersion&&$('worldPanel').open)showFriends();}));redraw();
+ }
+ function showRemoveFriend(friend){
+  const root=openPanel('Remove friend?'),version=panelVersion;
+  root.append(note(`Remove ${friend.username} from your friends? You can send a new request later.`),button('Keep friend',showFriends,'primary'),button('Remove friend',async()=>{await action('friend_remove',{userId:friend.userId});await refresh();if(version===panelVersion&&$('worldPanel').open){showFriends();toast('Friend removed');}}));
  }
  function activeRoomsFirst(rooms){const count=r=>Number.isInteger(r.occupancy)&&r.occupancy>=0?r.occupancy:-1;return [...rooms].sort((a,b)=>count(b)-count(a));}
  function roomCount(room){const count=Number.isInteger(room.occupancy)&&room.occupancy>=0?room.occupancy:null;return el('p','room-occupancy',count===null?'Player count unavailable':`${count} ${count===1?'player':'players'} in room`);}
@@ -436,7 +473,7 @@
    if(!rooms.length)root.append(note('No rooms open to visitors yet. Your friend can open a room from their Rooms menu.'));
    for(const room of activeRoomsFirst(rooms)){const card=el('section','room-card');card.append(row(room.name,[button('Enter room →',()=>connect(room.id))]),roomCount(room));root.append(card);}
    root.append(button('Refresh rooms',()=>showFriendRooms(friend)));
-  }catch(e){if(version!==panelVersion||!$('worldPanel').open)return;root.replaceChildren(note('Rooms unavailable. Your friend may have changed access.'));}
+  }catch(e){if(version!==panelVersion||!$('worldPanel').open)return;root.replaceChildren(note('Rooms unavailable. Your friend may have changed access.'),button('Try again',()=>showFriendRooms(friend)));}
   root.append(button('Back to friends',showFriends));
  }
  async function showPrivate(friend){privateTarget=friend;currentPanel='private';const root=openPanel('Message '+friend.username);root.append(note('Loading conversation…'));try{const messages=await action('private_feed',{userId:friend.userId});root.replaceChildren(note('Private messages are for accepted friends. Block and report are always available.'));for(const m of messages)root.append(messageRow({id:m.id,text:m.body,username:m.sender===userId?'You':friend.username,userId:m.sender}));

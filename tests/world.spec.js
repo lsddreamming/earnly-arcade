@@ -435,11 +435,11 @@ test('Friends offer open room choices with player counts and entering uses the s
  await expect(page.locator('.room-card').first()).toContainText('Quiet room');
  await expect(page.locator('.room-occupancy').first()).toHaveText('4 players in room');
  await page.locator('#closePanel').click();
- await page.locator('[data-panel="friends"]').click();await page.locator('#panelContent').getByRole('button',{name:'Rooms',exact:true}).click();
+ await page.locator('[data-panel="friends"]').click();await page.locator('#panelContent').getByRole('button',{name:'Visit rooms',exact:true}).click();
  await expect(page.locator('#panelTitle')).toHaveText('Buddy’s rooms');await expect(page.locator('.room-occupancy')).toHaveText(['2 players in room','0 players in room']);
  await page.locator('.room-card').filter({hasText:'Buddy Garden'}).getByRole('button',{name:'Enter room'}).click();
  await expect(page.locator('#roomName')).toHaveText('Buddy Garden');expect(await page.evaluate(()=>window.roomJoins)).toEqual(['choose-home','garden']);
- await page.evaluate(()=>{window.emptyFriendRooms=true;});await page.locator('[data-panel="friends"]').click();await page.locator('#panelContent').getByRole('button',{name:'Rooms',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('No rooms open to visitors yet');await page.getByRole('button',{name:'Back to friends'}).click();await expect(page.locator('#panelTitle')).toHaveText('Friends');
+ await page.evaluate(()=>{window.emptyFriendRooms=true;});await page.locator('[data-panel="friends"]').click();await page.locator('#panelContent').getByRole('button',{name:'Visit rooms',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('No rooms open to visitors yet');await page.getByRole('button',{name:'Back to friends'}).click();await expect(page.locator('#panelTitle')).toHaveText('Friends');
 });
 
 test('Shared room invitation preserves sign-in destination and rejects invalid room IDs',async({page})=>{
