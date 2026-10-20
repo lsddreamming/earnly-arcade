@@ -363,3 +363,11 @@ test('a driver composition finishing after Start waits until racing ends',async(
  await page.evaluate(()=>{const tick=TurboKartEngine.tick;TurboKartEngine.tick=(s,...args)=>{tick(s,...args);s.ended=true;TurboKartEngine.tick=tick;};});
  await expect.poll(()=>page.evaluate(()=>driverChanges.at(-1))).toBe(2);
 });
+
+test('pause immediately disables held item and resume restores its action',async({page})=>{
+ await page.goto('/turbo-kart.html');await expect(page.locator('#startButton')).toBeEnabled();
+ await page.evaluate(()=>{Arcade.countdown=fn=>fn();const tick=TurboKartEngine.tick;TurboKartEngine.tick=(s,...args)=>{tick(s,...args);s.item='shield';};});
+ await page.locator('#startButton').click();await expect(page.locator('#itemButton')).toBeEnabled();
+ await page.locator('#earnlyPauseButton').click();await expect(page.locator('#itemButton')).toBeDisabled();await expect(page.locator('#kartCallout')).toContainText('PAUSED');
+ await page.locator('#leftButton').click();await expect(page.locator('#itemButton')).toBeEnabled();await expect(page.locator('#kartCallout')).not.toContainText('PAUSED');
+});

@@ -53,3 +53,16 @@ test('Empty Backpack hides unused filters and offers first furniture or games',a
  await expect(page.getByRole('link',{name:'Play games to earn coins ↗'})).toHaveAttribute('href','games.html');
  await page.getByRole('button',{name:'Choose my first piece'}).click();await expect(page.locator('#panelTitle')).toHaveText('Make this room yours');
 });
+
+test('placement explains blocked tiles and refreshes after moving or rotating the room',async({page})=>{
+ await fixture(page);await walked(page);await page.locator('#guideAction').click();await page.getByRole('button',{name:'Place this piece',exact:true}).click();
+ await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+ const tile=await page.evaluate(()=>{const r=window.testRenderer,b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx,y:b.top+r.cy+4*9*r.scale};});
+ await page.mouse.click(tile.x,tile.y);await expect(page.locator('#dropItem')).toBeVisible();
+ await page.evaluate(()=>{const r=window.testRenderer;r.placement.x=-1;r.placement.y=-1;r.draw();});
+ await expect(page.locator('#placementStatus')).toHaveAttribute('data-valid','false');await expect(page.locator('#placementStatus')).not.toBeEmpty();
+ await page.evaluate(()=>{const r=window.testRenderer;r.placement.x=3;r.placement.y=3;r.rotateView(1);r.draw();});
+ await expect(page.locator('#placementStatus')).toHaveText('Fits here · Ready to place');
+ expect(await page.evaluate(()=>window.actions.filter(a=>a.action==='place').length)).toBe(0);
+ await page.locator('#cancelPlace').click();await expect(page.locator('#placementStatus')).toBeEmpty();
+});

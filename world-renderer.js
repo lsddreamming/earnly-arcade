@@ -888,6 +888,7 @@
   petReaction(packet){const pet=this.staff.get(packet.staffId);if(!pet||!pet.species||packet.reaction!=='happy')return;pet.happyUntil=performance.now()+4000;this.bubble({userId:packet.staffId,text:'♥',mode:'pet'});}
   bubble(packet){this.bubbles.set(packet.userId,{text:packet.text,until:performance.now()+6000,mode:packet.mode});}
   draw(){
+   if(this.placement)this.onPlacementStatus?.(this.placementResult(),this.placement);
    if(!this.scene)return this.drawScene();
    const now=performance.now();for(const u of [...this.users.values(),...this.staff.values()])this.animate(u,now);
    if(!this.viewRotation)return this.drawScene();
