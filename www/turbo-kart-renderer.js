@@ -2,7 +2,7 @@
    Everything is drawn locally. No Nintendo characters, textures or downloaded assets. */
 const TurboKartRenderer=(()=>{
  const E=TurboKartEngine,TAU=Math.PI*2;
- function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map(),maps=new Map(),bays=new Map(),roadCache=new Map();let skyCache=null;let driver=null;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
+ function create(canvas){const ctx=canvas.getContext('2d',{alpha:false});let cameraAngle=null,lastTime=-1,lastTrack=null;const scenery=new Map(),maps=new Map(),bays=new Map(),roadCache=new Map();let skyCache=null;let driver=null;let lateFrames=0,lowDetail=false;const poses=new WeakMap();let skidMarks=[];let skidTime=-1;
  // Layout is read only on resize, never after per-frame HUD writes.
  let size=null;const resize=()=>{size=canvas.getBoundingClientRect();};
  const observer=new ResizeObserver(resize);observer.observe(canvas);window.addEventListener('resize',resize);
@@ -54,7 +54,7 @@ const TurboKartRenderer=(()=>{
   if(type==='umbrella'){line(0,0,0,-22,'#fff1d7',2);poly([{x:-23,y:-22},{x:0,y:-37},{x:23,y:-22}],index%2?'#ff9dac':'#aaffdc');ellipse(0,-1,10,2,'#ffdeaa');}
   ctx.restore();
  }
- function render(s,{idle=false}={}){const rect=size||(size=canvas.getBoundingClientRect()),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(window.devicePixelRatio||1,touch.matches?1.5:2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
+ function render(s,{idle=false}={}){const rect=size||(size=canvas.getBoundingClientRect()),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(window.devicePixelRatio||1,touch.matches?(lowDetail ? .8 : 1):2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);
   const ambientTime=reduced.matches?0:s.time;
   const t=s.track,p=s.racers[0],pos=E.sample(p.d,p.lane,t),target=pos.angle+p.heading*.38;
   if(cameraAngle===null||s.time<lastTime||lastTrack!==t.id)cameraAngle=target;
@@ -87,14 +87,14 @@ const TurboKartRenderer=(()=>{
   function add(depth,draw,layer=queue){if(depth>4&&depth<820)layer.push({depth,draw});}
   function ribbon(d1,d2,left,rightOffset,color){const a=roadPoint(d1,left),b=roadPoint(d1,rightOffset),c=roadPoint(d2,rightOffset),d=roadPoint(d2,left);if(Math.min(a.depth,b.depth,c.depth,d.depth)<4)return;const draw=()=>{poly([a,b,c,d],color);if(left===-51&&rightOffset===51){ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();}};if(roadLayer)roadLayer.push(draw);else add((a.depth+c.depth)/2,draw,decals);}
   const segment=10,start=Math.floor((p.d-70)/segment)*segment;
-  for(let d=start,i=0;d<start+780;i++){const step=d-p.d<120?10:d-p.d<300?20:40,next=d+step,alt=Math.floor(d/20)%2===0;roadLayer=[];
+  for(let d=start,i=0;d<start+(lowDetail?540:660);i++){const step=d-p.d<120?15:d-p.d<300?30:60,next=d+step,alt=Math.floor(d/20)%2===0;roadLayer=[];
    ribbon(d,next,-65,65,alt?t.ground:(t.scene==='canyon'?'#edb781':t.scene==='garden'?'#3c918b':'#69c16c'));
    ribbon(d,next,-57,57,alt?'#fff2e4':t.curb);const boardwalk=t.scene==='harbor'&&((d%t.length+t.length)%t.length)/t.length>.43&&((d%t.length+t.length)%t.length)/t.length<.56;ribbon(d,next,-51,51,boardwalk?(alt?'#b88d83':'#ad8077'):t.road);
    // Restrained road facets and a recessed edge add depth without extra samples.
-   ribbon(d,next,-51,-47,'#14243930');ribbon(d,next,47,51,'#14243930');
-   if(!alt)ribbon(d,next,-47,47,'#ffffff0b');if(Math.floor(d/40)%2===0){ribbon(d,d+8,-59,-57,t.accent);ribbon(d,d+8,57,59,t.accent);}
+   if(d-p.d<180){ribbon(d,next,-51,-47,'#14243930');ribbon(d,next,47,51,'#14243930');}
+   if(!alt&&d-p.d<180)ribbon(d,next,-47,47,'#ffffff0b');if(Math.floor(d/40)%2===0){ribbon(d,d+8,-59,-57,t.accent);ribbon(d,d+8,57,59,t.accent);}
    if(boardwalk)ribbon(d,d+1,-47,47,'#593f4c45');
-   ribbon(d,next,-49,-48,'#fff3d9');ribbon(d,next,48,49,'#fff3d9');
+   if(d-p.d<240){ribbon(d,next,-49,-48,'#fff3d9');ribbon(d,next,48,49,'#fff3d9');}
    if(t.scene==='garden'){ribbon(d,next,-58,-57,'#a5ffe8');ribbon(d,next,57,58,'#a5ffe8');}
    if(Math.floor(d/25)%2===0)for(const lane of [-17,17])ribbon(d,next,lane-.45,lane+.45,'#d1dae29c');
    const mod=((d%t.length)+t.length)%t.length;if(mod<15){for(let cell=0;cell<10;cell++)ribbon(d,next,-50+cell*10,-40+cell*10,(cell+i)%2?'#f3ffef':'#253047');}
@@ -116,7 +116,7 @@ const TurboKartRenderer=(()=>{
   // Keep every prop clear of the whole circuit, including the inside of hairpins.
   // Cache placement once; the extra clearance also leaves room to recover off-road.
   if(!scenery.has(t.id)){const props=[];for(let i=0;i<84;i++){const d=i*t.length/84,offset=(i%2?1:-1)*(124+(i%3)*33),v=E.sample(d,offset,t);if(t.points.some(q=>(v.x-q.x)**2+(v.y-q.y)**2<112*112))continue;const type=t.scene==='canyon'?['rock','tower','rock','arch','rock','tower','rock'][i%7]:t.scene==='garden'?(i%7===0?'lamp':i%4?'tree':'crystal'):(i%7===0?'lamp':i%5===0?'tower':i%3===0?'umbrella':'tree');props.push({d,v,type,index:i,size:.58+(i%5)*.065});}scenery.set(t.id,props);}
-  for(const v of scenery.get(t.id)){const gap=((v.d-p.d)%t.length+t.length)%t.length;if(gap>650)continue;const q=project(v.v);add(q.depth,()=>{if(q.x>-60*q.k&&q.x<w+60*q.k)prop(v.type,q.x,q.y,q.k*v.size,t.scene,v.index);});}
+  for(const v of scenery.get(t.id)){const gap=((v.d-p.d)%t.length+t.length)%t.length;if(gap>(lowDetail?360:650))continue;const q=project(v.v);add(q.depth,()=>{if(q.x>-60*q.k&&q.x<w+60*q.k)prop(v.type,q.x,q.y,q.k*v.size,t.scene,v.index);});}
   if(t.scene==='harbor')for(let i=0;i<3;i++){
    const base=harbors[i],v={x:base.x+Math.sin(ambientTime*.09+i)*9,y:base.y+Math.cos(ambientTime*.09+i)*5},q=project(v);
    add(q.depth,()=>{if(q.x>-30*q.k&&q.x<w+30*q.k)prop('boat',q.x,q.y,q.k*.65,t.scene,i);});
@@ -144,6 +144,12 @@ const TurboKartRenderer=(()=>{
   const mw=Math.min(100,w*.24),mh=mw*.82,ox=w-mw-12,oy=14;box(ox,oy,mw,mh,12,'#142640b8');ctx.save();ctx.translate(ox+mw/2,oy+mh/2);const scale=mw/1050;ctx.scale(scale,scale);let map=maps.get(t.id);if(!map){map=new Path2D();t.points.forEach((v,i)=>i?map.lineTo(v.x,v.y):map.moveTo(v.x,v.y));map.closePath();maps.set(t.id,map);}ctx.lineWidth=36;ctx.strokeStyle='#081b36';ctx.stroke(map);ctx.lineWidth=18;ctx.strokeStyle='#f0f5ec90';ctx.stroke(map);const finish=E.sample(0,0,t);line(finish.x,finish.y,finish.x,finish.y-88,'#fff3dc',10);for(let row=0;row<2;row++)for(let col=0;col<3;col++){ctx.fillStyle=(row+col)%2?'#152b45':'#fff3dc';ctx.fillRect(finish.x+col*17,finish.y-88+row*17,17,17);}for(let i=4;i>=0;i--){const q=E.sample(s.racers[i].d,0,t);ellipse(q.x,q.y,i?23:34,i?23:34,i?s.racers[i].color:'#fffce5');if(!i){ellipse(q.x,q.y,17,17,'#49dabe');const a=q.angle;poly([{x:q.x+Math.cos(a)*52,y:q.y+Math.sin(a)*52},{x:q.x+Math.cos(a+2.2)*22,y:q.y+Math.sin(a+2.2)*22},{x:q.x+Math.cos(a-2.2)*22,y:q.y+Math.sin(a-2.2)*22}],'#a4ffe3');}}ctx.restore();
   if(!idle&&!(s.callout&&s.time<=s.calloutUntil)){const bend=E.curvature(p.d+95,t);if(Math.abs(bend)>.003){const label=bend>0?'RIGHT BEND ›':'‹ LEFT BEND',size=Math.max(10,Math.min(13,w/35));box(w/2-64,horizon*.68-size-4,128,size+12,9,'#142640c9');text(label,w/2,horizon*.68,size,'#fff5d8');}}
  }
- return {render,setDriver(value){driver=value;}};
+ return {render,setDriver(value){driver=value;},noteFrame(milliseconds){
+  // Ignore tab switches and one-off stalls. Sustained missed frames lower only
+  // decorative detail and backing resolution, never simulation or input rate.
+  if(!touch.matches||lowDetail||milliseconds<=0||milliseconds>=100)return;
+  lateFrames=milliseconds>24?lateFrames+1:Math.max(0,lateFrames-2);
+  if(lateFrames>=30)lowDetail=true;
+ }};
  }return {create};
 })();

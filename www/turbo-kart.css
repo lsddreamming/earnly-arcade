@@ -70,3 +70,6 @@ body.kart-page #kartMessage .race-goal{font-size:12px;color:#bcd8e5}
 /* Energy-racing HUD: readable at phone size, with a separate reserve slot. */
 .item-display{max-width:65%;align-items:flex-start}.item-display>div{display:grid;gap:4px}.item-display span{max-width:125px;display:block;font-size:11px}.item-display small{font-size:10px;font-weight:800;color:#d0dbff;background:#152444df;border:1px solid #707dac;border-radius:6px;padding:5px 7px;max-width:130px;line-height:1.35}.item-display b[data-ready="true"]{border-color:#b7ffe5;background:linear-gradient(145deg,#286e73,#26365e);box-shadow:0 0 16px #68ffd44d,inset 0 1px 0 #ffffff80}
 #kartChooseCourse{min-height:48px}.kart-stage{box-shadow:0 15px 50px #050e3240,inset 0 0 0 1px #a4dfff30}.kart-page .race-progress i{box-shadow:0 0 12px #89ffe7}.kart-page #itemButton:not(:disabled){box-shadow:0 3px 0 #091525,inset 0 0 18px #57ffca24}
+
+/* Keep the moving canvas isolated from decorative page compositing. */
+body.kart-page.game-active::before{display:none}body.kart-page.game-active .kart-stage{contain:layout paint;box-shadow:none}
