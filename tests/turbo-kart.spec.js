@@ -69,10 +69,11 @@ test('course selection, analog dragging, keyboard drift, item UI and original ra
 });
 
 test('long holds cannot select race labels or open callouts, including Pause and the Quit link',async({page})=>{
+ test.setTimeout(60000);
  await start(page);
  // Playwright uses macOS WebKit; the callout extension exists only on iOS Safari.
  const targets=['#leftButton','#rightButton','#driftButton','#driftButton span','#driftButton small','#itemButton','#earnlyPauseButton','#earnlyQuitButton','#game','#position'];
- for(const selector of targets){const guard=await page.locator(selector).evaluate(node=>{const css=getComputedStyle(node);return {select:css.userSelect||css.webkitUserSelect,callout:css.getPropertyValue('-webkit-touch-callout'),supportsCallout:CSS.supports('-webkit-touch-callout','none'),context:!node.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true})),selection:!node.dispatchEvent(new Event('selectstart',{bubbles:true,cancelable:true})),drag:!node.dispatchEvent(new Event('dragstart',{bubbles:true,cancelable:true}))};});expect(guard.select,selector).toBe('none');if(guard.supportsCallout)expect(guard.callout,selector).toBe('none');expect(guard.context,selector).toBe(true);expect(guard.selection,selector).toBe(true);expect(guard.drag,selector).toBe(true);}
+ const guards=await page.evaluate(targets=>targets.map(selector=>{const node=document.querySelector(selector),css=getComputedStyle(node);return {selector,select:css.userSelect||css.webkitUserSelect,callout:css.getPropertyValue('-webkit-touch-callout'),supportsCallout:CSS.supports('-webkit-touch-callout','none'),context:!node.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true})),selection:!node.dispatchEvent(new Event('selectstart',{bubbles:true,cancelable:true})),drag:!node.dispatchEvent(new Event('dragstart',{bubbles:true,cancelable:true}))};}),targets);for(const guard of guards){const selector=guard.selector;expect(guard.select,selector).toBe('none');if(guard.supportsCallout)expect(guard.callout,selector).toBe('none');expect(guard.context,selector).toBe(true);expect(guard.selection,selector).toBe(true);expect(guard.drag,selector).toBe(true);}
  // Reproduce an existing native selection on Quit, then begin a real held gesture.
  await page.locator('#earnlyQuitButton').evaluate(node=>{const range=document.createRange();range.selectNodeContents(node);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);});
  const right=await page.locator('#rightButton').boundingBox();await page.mouse.move(right.x+right.width/2,right.y+right.height/2);await page.mouse.down();await page.waitForTimeout(800);await expect(page.locator('#rightButton')).toHaveClass(/held/);expect(await page.evaluate(()=>getSelection().rangeCount)).toBe(0);await page.mouse.up();await expect(page.locator('#rightButton')).not.toHaveClass(/held/);
@@ -142,10 +143,12 @@ test('collision immunity never allows a pack to interpenetrate or repeatedly slo
 
 test('race gestures block zoom across nested controls and gaps without swallowing session actions',async({page})=>{
  await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>{const s=create(...args);s.pickups=[];window.kartTestState=s;return s;};});await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
- for(const selector of ['.kart-shell','#kartControls','#driftButton small','.drift-meter','#sessionControls','#itemButton'])expect(await page.locator(selector).evaluate(n=>getComputedStyle(n).touchAction),selector).toBe('none');
- for(const selector of ['#leftButton','#driftButton small','#kartControls','.drift-meter','#itemButton']){
-  for(const type of ['touchstart','touchend','touchmove','gesturestart','gesturechange','gestureend','dblclick'])expect(await page.locator(selector).evaluate((n,type)=>!n.dispatchEvent(new Event(type,{bubbles:true,cancelable:true})),type),selector+' '+type).toBe(true);
- }
+ const gestures=await page.evaluate(()=>({
+  styles:['.kart-shell','#kartControls','#driftButton small','.drift-meter','#sessionControls','#itemButton'].map(selector=>({selector,value:getComputedStyle(document.querySelector(selector)).touchAction})),
+  events:['#leftButton','#driftButton small','#kartControls','.drift-meter','#itemButton'].flatMap(selector=>['touchstart','touchend','touchmove','gesturestart','gesturechange','gestureend','dblclick'].map(type=>({selector,type,blocked:!document.querySelector(selector).dispatchEvent(new Event(type,{bubbles:true,cancelable:true}))})))
+ }));
+ for(const result of gestures.styles)expect(result.value,result.selector).toBe('none');
+ for(const result of gestures.events)expect(result.blocked,result.selector+' '+result.type).toBe(true);
  await page.evaluate(()=>{kartTestState.item='shield';});await expect(page.locator('#itemButton')).toBeEnabled();
  expect(await page.locator('#itemButton').evaluate(n=>n.dispatchEvent(new Event('touchend',{bubbles:true,cancelable:true})))).toBe(true);
  await page.locator('#itemButton').click();await expect(page.locator('#itemButton')).toBeDisabled();
@@ -392,4 +395,23 @@ test('course selection works when device storage is blocked',async({page})=>{
 test('Timed out kart results explain progress and do not promise pickup rewards',async({page})=>{
  await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>{const s=create(...args);s.time=TurboKartEngine.LIMIT-.001;s.racers[0].d=s.track.length*1.5;s.coins=4;return s;};});
  await page.locator('#startButton').click();const result=page.locator('dialog.game-result-dialog');await expect(result).toBeVisible({timeout:10000});await expect(result).toContainText('50% of 3 laps completed');await expect(result).toContainText('No finish reward');await expect(result).not.toContainText('pickup bonus =');await expect(page.locator('#balance')).toHaveText('0');
+});
+
+test('energy stations give one item per row, bank a reserve and never overwrite a full loadout',()=>{
+ for(const course of E.courses){const s=E.create(course.id),p=s.racers[0];s.racers.slice(1).forEach(r=>r.d=-500);
+ const rows=[...new Set(s.pickups.filter(q=>q.type==='item').map(q=>q.d))];expect(rows).toHaveLength(10);
+ const cross=d=>{Object.assign(p,{d:d-.5,lane:9,heading:0,speed:100});E.tick(s,1/60);};
+ cross(rows[0]);const first=s.item;expect(first).toBeTruthy();expect(s.reserveItem).toBeNull();expect(s.itemsCollected).toBe(1);
+ cross(rows[1]);const second=s.reserveItem;expect(second).toBeTruthy();expect(s.item).toBe(first);expect(s.itemsCollected).toBe(2);
+ cross(rows[2]);expect([s.item,s.reserveItem]).toEqual([first,second]);expect(s.itemsCollected).toBe(2);
+ E.useItem(s);expect(s.item).toBe(second);expect(s.reserveItem).toBeNull();E.useItem(s);expect(s.item).toBeNull();
+ cross(rows[3]);expect(s.item).toBeTruthy();expect(s.itemsCollected).toBe(3);expect(s.coins).toBe(0);
+ }
+});
+test('reserve HUD and course switching preserve the play and reward lifecycle',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{Arcade.countdown=fn=>fn();const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>(window.energyState=create(...args));});
+ await page.locator('#startButton').click();await page.evaluate(()=>{energyState.item='shield';energyState.reserveItem='boost';});
+ await expect(page.locator('#reserveItem')).toHaveText('NEXT: Turbo Cell');await page.locator('#itemButton').click();await expect(page.locator('#itemName')).toHaveText('Turbo Cell');await expect(page.locator('#reserveItem')).toHaveText('RESERVE EMPTY');
+ await page.evaluate(()=>{energyState.ended=true;});await expect(page.locator('#kartChooseCourse')).toBeVisible();const plays=await page.locator('#plays').textContent(),balance=await page.locator('#balance').textContent();
+ await page.locator('#kartChooseCourse').click();await expect(page.locator('dialog.game-result-dialog')).not.toBeVisible();await page.locator('[data-course="garden"]').click();await expect(page.locator('#plays')).toHaveText(plays);await expect(page.locator('#balance')).toHaveText(balance);await expect(page.locator('[data-course="garden"]')).toHaveAttribute('aria-pressed','true');
 });

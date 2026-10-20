@@ -106,6 +106,8 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await expect.poll(()=>page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect(page.locator('#worldPanel')).not.toBeVisible();
  await double(p);await expect(page.locator('#placementInstructions')).toContainText('double-tap to drop');
+ // A click synthesized from the canvas gesture must not cancel the newly revealed dock.
+ await page.locator('#cancelPlace').dispatchEvent('click',{detail:1});await expect(page.locator('#placementHint')).toBeVisible();
  expect(await page.evaluate(()=>window.seatRequests.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.placement?.valid)).toBe(true);
  // Idle preview frames reuse collision checks, but movement and occupancy invalidate them.
@@ -261,9 +263,12 @@ test('World iPhone view and furniture controls have comfortable touch targets',a
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.setViewportSize({width:320,height:740});await page.goto('/world.html');await page.evaluate(()=>{document.getElementById('worldEntry').hidden=true;document.getElementById('worldConnected').hidden=false;});
  await page.locator('#placementHint').evaluate(el=>el.hidden=false);
- for(const selector of ['#roomView','#focusMe','#zoomOut','#zoomIn','#rotateItem','#cancelPlace']){
+ for(const selector of ['#roomView','#focusMe','#zoomOut','#zoomIn','#dropItem','#rotateItem','#cancelPlace']){
   const box=await page.locator(selector).boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);
  }
+ for(const selector of ['#dropItem','#rotateItem','#cancelPlace'])expect((await page.locator(selector).boundingBox()).height).toBeGreaterThanOrEqual(48);
+ const stage=await page.locator('.world-stage').boundingBox(),dock=await page.locator('#placementHint').boundingBox();expect(dock.y).toBeGreaterThanOrEqual(stage.y+stage.height);
+ await page.screenshot({path:`test-results/world-collection-placement-${test.info().project.name}.png`});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
