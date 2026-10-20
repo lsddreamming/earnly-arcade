@@ -9,6 +9,7 @@ async function fixture(page,guest=false){
    close(){this.readyState=3;this.dispatchEvent(new Event('close'));}
    send(raw){const p=JSON.parse(raw);if(p.type==='LEAVE'){this.emit({type:'LEFT'});return;}if(p.type==='JOIN'){window.joins.push(p.roomId);this.bootstrap={socialDiscovery:true,dailyMissions:true,balance:100,rooms:[],items:[],catalog:[],friends:[{userId:friend,username:'Buddy',accepted:true,online:true}]};this.emit({type:'WELCOME',userId:actor,scene:{roomId:'current-room',ownerId:guest?friend:actor,name:'Cozy room',access:'open',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:this.bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[]});return;}
     if(p.type!=='ACTION')return;window.socialActions.push(p);let data={};
+    if(p.action==='friend_remove')this.bootstrap.friends=this.bootstrap.friends.filter(f=>f.userId!==p.data.userId);
     if(p.action==='react')this.mine=p.data.reaction;
     if(['react','reactions'].includes(p.action))data={heart:this.mine==='heart'?1:0,thumb:this.mine==='thumb'?1:0,mine:this.mine??null,canReact:guest};
     if(p.action==='featured')data=[{id:'featured-room',name:'Neon <Garden>',ownerId:friend,ownerUsername:'Buddy',heightmap:'0000\n0000\n0000\n0000',items:[{id:'preview-chair',x:2,y:2,z:0,sprite:'chair',width:1,length:1,color:'#74c9ba',rotation:0,itemHeight:1}],score:3,occupancy:2,weeklyEntry:true}];
@@ -47,4 +48,40 @@ test('Weekly challenge explains missing room steps without offering an early rew
  await page.getByRole('button',{name:'Check progress',exact:true}).click();
  expect(await page.evaluate(()=>window.socialActions.filter(p=>p.action==='weekly_enter').length)).toBe(0);
  await page.screenshot({path:'test-results/weekly-steps.png',fullPage:true});
+});
+
+
+test('Friends prioritize online visits, search safely and separate incoming and sent requests',async({page})=>{
+ if(test.info().project.name==='desktop-chromium')await page.setViewportSize({width:390,height:844});
+ await fixture(page);
+ await page.evaluate(()=>{window.socialSocket.bootstrap.friends=[
+  {userId:'offline',username:'Amy',accepted:true,online:false},
+  {userId:'online',username:'Zoe',accepted:true,online:true},
+  {userId:'incoming',username:'NewPal',accepted:false,incoming:true},
+  {userId:'sent',username:'SentPal',accepted:false,incoming:false}
+ ];});
+ await page.locator('[data-panel="friends"]').click();await page.getByRole('button',{name:'Refresh status',exact:true}).click();
+ await expect(page.locator('.friends-summary')).toHaveText('1 online · 2 friends');
+ await expect(page.locator('.friend-card h3')).toHaveText(['Zoe','Amy']);
+ await expect(page.getByRole('button',{name:'Visit rooms',exact:true})).toHaveCount(2);
+ await page.getByRole('button',{name:'Online',exact:true}).click();await expect(page.locator('.friend-card h3')).toHaveText(['Zoe']);
+ await page.getByRole('button',{name:'All',exact:true}).click();await page.getByRole('searchbox',{name:'Find a friend'}).fill('aMy');await expect(page.locator('.friend-card h3')).toHaveText(['Amy']);
+ await page.getByRole('button',{name:'Refresh status',exact:true}).click();await expect(page.getByRole('searchbox',{name:'Find a friend'})).toHaveValue('aMy');await expect(page.locator('.friend-card h3')).toHaveText(['Amy']);
+ await page.getByRole('searchbox',{name:'Find a friend'}).fill('<script>');await expect(page.locator('.friends-list')).toContainText('No matching friends');
+ await page.getByRole('searchbox',{name:'Find a friend'}).fill('');await page.getByRole('button',{name:'Requests (2)',exact:true}).click();
+ await expect(page.locator('.friend-card')).toHaveCount(2);await expect(page.locator('.friend-card').filter({hasText:'NewPal'})).toContainText('Wants to be your friend');await expect(page.locator('.friend-card').filter({hasText:'SentPal'})).toContainText('Request sent');await expect(page.getByRole('button',{name:'Accept request',exact:true})).toHaveCount(1);
+ await page.getByRole('button',{name:'All',exact:true}).click();
+ expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+ await page.screenshot({path:'test-results/world-friends-'+test.info().project.name+'.png',fullPage:true});
+});
+
+test('Removing a friend requires confirmation and Keep friend makes no request',async({page})=>{
+ await fixture(page);await page.locator('[data-panel="friends"]').click();
+ await expect(page.getByRole('button',{name:'Remove friend',exact:true})).not.toBeVisible();
+ await page.getByText('Manage friend',{exact:true}).click();await page.getByRole('button',{name:'Remove friend',exact:true}).click();
+ await expect(page.locator('#panelTitle')).toHaveText('Remove friend?');await page.getByRole('button',{name:'Keep friend',exact:true}).click();
+ expect(await page.evaluate(()=>window.socialActions.filter(p=>p.action==='friend_remove').length)).toBe(0);
+ await page.getByText('Manage friend',{exact:true}).click();await page.getByRole('button',{name:'Remove friend',exact:true}).click();await page.getByRole('button',{name:'Remove friend',exact:true}).click();
+ await expect(page.locator('.friend-card')).toHaveCount(0);await expect(page.locator('#worldToast')).toHaveText('Friend removed');
+ expect(await page.evaluate(()=>window.socialActions.filter(p=>p.action==='friend_remove').map(p=>p.data.userId))).toEqual(['11111111-1111-4111-8111-111111111111']);
 });
