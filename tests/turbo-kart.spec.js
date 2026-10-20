@@ -25,7 +25,7 @@ test('catalog, touch controls, pause and quit preserve the play lifecycle',async
  await page.locator('#earnlyQuitButton').click();await page.getByRole('button',{name:'Quit Game',exact:true}).click();await expect(page).toHaveURL(/games.html/);expect(await page.evaluate(()=>Number(localStorage.getItem('points')))).toBe(0);expect(errors).toEqual([]);
 });
 test('finish awards once, passes identical server metrics, and replay spends one play',async({page})=>{
- await page.goto('/turbo-kart.html');await page.evaluate(()=>{const original=TurboKartEngine.create;TurboKartEngine.create=()=>{const s=original();s.time=70;s.racers[0].d=TurboKartEngine.length*3-.1;s.racers[0].speed=96;s.coins=4;TurboKartEngine.create=original;return s;};});await page.locator('#startButton').click();await expect(page.locator('dialog.game-result-dialog')).toBeVisible({timeout:10000});await expect(page.locator('#balance')).toHaveText('24');await page.waitForTimeout(250);await expect(page.locator('#balance')).toHaveText('24');
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{const original=TurboKartEngine.create;TurboKartEngine.create=()=>{const s=original();s.time=70;s.racers[0].d=TurboKartEngine.length*3-.1;s.racers[0].speed=96;s.coins=4;TurboKartEngine.create=original;return s;};});await page.locator('#startButton').click();await expect(page.locator('dialog.game-result-dialog')).toBeVisible({timeout:10000});await expect(page.locator('#balance')).toHaveText('24');await expect(page.locator('dialog.game-result-dialog')).toContainText('20 finish + 4 pickup bonus = 24 Arcade Coins');await expect(page.locator('dialog.game-result-dialog')).toContainText('Next race:');await page.waitForTimeout(250);await expect(page.locator('#balance')).toHaveText('24');
  const awards=await page.evaluate(()=>Arcade.pendingSyncEvents().filter(e=>e.type==='coin_award'&&e.payload.server?.game==='turboKart'));expect(awards).toHaveLength(1);expect(awards[0].payload.server).toEqual({kind:'game',game:'turboKart',metric:1,aux:4});await page.locator('dialog').getByRole('button',{name:/Play Again/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});await expect(page.locator('#plays')).toHaveText('1');
 });
 test('small phones keep all driving and session controls visible',async({page})=>{
@@ -387,4 +387,9 @@ test('course selection works when device storage is blocked',async({page})=>{
  await page.goto('/turbo-kart.html');await page.locator('[data-course="garden"]').click();
  await expect(page.locator('[data-course="garden"]')).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('#startButton')).toBeEnabled();
+});
+
+test('Timed out kart results explain progress and do not promise pickup rewards',async({page})=>{
+ await page.goto('/turbo-kart.html');await page.evaluate(()=>{const create=TurboKartEngine.create;TurboKartEngine.create=(...args)=>{const s=create(...args);s.time=TurboKartEngine.LIMIT-.001;s.racers[0].d=s.track.length*1.5;s.coins=4;return s;};});
+ await page.locator('#startButton').click();const result=page.locator('dialog.game-result-dialog');await expect(result).toBeVisible({timeout:10000});await expect(result).toContainText('50% of 3 laps completed');await expect(result).toContainText('No finish reward');await expect(result).not.toContainText('pickup bonus =');await expect(page.locator('#balance')).toHaveText('0');
 });

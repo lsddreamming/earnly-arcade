@@ -5,7 +5,7 @@
  let missionEntry=new URLSearchParams(location.search).get('mission');
  const sharedRoom=window.EarnlyWorldLinks.room;
  $('worldSignIn').href=window.EarnlyWorldLinks.signIn();
- let connectTimer,retryTimer,retryCount=0,entryTarget=sharedRoom||'choose-home';
+ let connectTimer,retryTimer,retryCount=0,waitingForNetwork=false,entryTarget=sharedRoom||'choose-home';
  function entryState(message){
   $('worldEntry').hidden=connected;$('worldConnected').hidden=!connected;$('reconnect').hidden=!connected;$('shareRoom').hidden=!connected;
   $('connectWorld').disabled=connecting;$('connectWorld').textContent=connecting?'Connecting…':'Connect to World';
@@ -13,9 +13,10 @@
   if(connected)requestAnimationFrame(()=>renderer.resize());
  }
  function retryEntry(roomId){
-  if(retryCount>=2||navigator.onLine===false)return false;
+  if(navigator.onLine===false){waitingForNetwork=true;$('connectionStatus').textContent='Offline · Waiting for your connection';entryState('You’re offline. We’ll reconnect when your internet returns. Unsaved changes may need to be tried again.');return true;}
+  if(retryCount>=2){$('connectionStatus').textContent='Could not reconnect · Try again';entryState('Automatic reconnect paused after 2 attempts. Tap Connect to World to try again.');return false;}
   const delay=1500*(++retryCount);
-  entryState('Reconnecting to your room… ('+retryCount+'/2)');
+  const message='Reconnecting in '+(delay/1000)+' seconds · Attempt '+retryCount+' of 2';$('connectionStatus').textContent=message;entryState(message);
   clearTimeout(retryTimer);retryTimer=setTimeout(()=>connect(roomId,true).catch(e=>entryState(e.message)),delay);return true;
  }
  const demoCatalog=[['mint-sofa','Mint Cloud Sofa','sofa',180,'#59dcc5',2,1],['rose-sofa','Rose Cloud Sofa','sofa',180,'#f599bd',2,1],['arcade-chair','Arcade Chair','chair',60,'#799ff5',1,1],['low-table','Orbit Table','table',80,'#e1b786',1,1],['fern','Moon Fern','plant',70,'#64c786',1,1],['neon-lamp','Neon Tube Lamp','lamp',90,'#c293f3',1,1],['arcade-cabinet','Pocket Arcade Cabinet','arcade',450,'#f6c35e',1,1],['cloud-bed','Cloud Bed','bed',250,'#8cbbf4',1,2],['mint-rug','Mint Tile Rug','rug',40,'#61bfbb',2,2],['star-trophy','First Light Trophy','trophy',600,'#f8d46a',1,1],["palm-tree", "Sunset Palm", "palm", 140, "#65be86", 1, 1, "Garden"],["ficus-tree", "Cloud Ficus", "tree", 125, "#71bc80", 1, 1, "Garden"],["blossom-tree", "Blossom Tree", "tree", 160, "#eea2c2", 1, 1, "Garden"],["flower-pot", "Starlight Flowers", "flowers", 55, "#eab2ed", 1, 1, "Garden"],["oak-bookshelf", "Oak Bookshelf", "bookshelf", 150, "#b88c66", 1, 1, "Essentials"],["reef-aquarium", "Pocket Reef Aquarium", "aquarium", 220, "#67cbd7", 1, 1, "Neon Living"],["sunset-sofa", "Sunset Sofa", "sofa", 180, "#e6a26f", 2, 1, "Neon Living"],["sage-chair", "Sage Garden Chair", "chair", 60, "#91bb96", 1, 1, "Garden"],["garden-parasol", "Garden Parasol Table", "umbrella", 160, "#edbd85", 1, 1, "Garden"],["amber-lantern", "Amber Lantern", "lamp", 90, "#edc582", 1, 1, "Garden"],["lavender-rug", "Lavender Tile Rug", "rug", 40, "#ac93c8", 2, 2, "Neon Living"],["walnut-table", "Walnut Coffee Table", "table", 80, "#aa8069", 1, 1, "Essentials"],["heirloom-clock", "Heirloom Clock", "clock", 220, "#ae8058", 1, 1, "Heritage"],["retro-tv", "Retro TV Cabinet", "television", 190, "#ac8059", 1, 1, "Heritage"],["courtyard-fountain", "Courtyard Fountain", "fountain", 210, "#adc4bd", 1, 1, "Garden"],["woven-divider", "Woven Room Divider", "divider", 120, "#b89b69", 2, 1, "Heritage"],["marble-column", "Marble Column", "column", 100, "#e3d8bc", 1, 1, "Heritage"],["ruby-sofa", "Ruby Velvet Sofa", "sofa", 200, "#b8586b", 2, 1, "Heritage"], ["afterglow-booth","Afterglow Diner Booth","diner-booth",200,"#ef829b",2,1,"Afterglow District"], ["orbit-vending","Orbit Soda Display","vending",260,"#749aeb",1,1,"Afterglow District"], ["holo-table","Starlight Hologram Table","holo-table",180,"#66e6d2",1,1,"Afterglow District"], ["moon-pod","Moonrise Pod Bed","pod-bed",280,"#9c98e9",1,2,"Afterglow District"], ["desert-cactus","Desert Bloom Cactus","cactus",75,"#76bd8c",1,1,"Afterglow District"]].map(([id,name,sprite_id,price,color,width,length,category])=>({id,name,sprite_id,price,color,width,length,category:category||(sprite_id==='plant'?'Garden':sprite_id==='arcade'?'Arcade':sprite_id==='trophy'?'Collectors':'Neon Living'),supply_limit:sprite_id==='trophy'?250:null,minted:0}));
@@ -84,6 +85,8 @@
  async function connect(roomId='choose-home',retry=false){
   clearTimeout(retryTimer);if(!retry)retryCount=0;entryTarget=roomId;
   if(connecting)return;
+  if(navigator.onLine===false){retryEntry(roomId);return;}
+  waitingForNetwork=false;
   const endpoint=window.EarnlyWorldConfig?.endpoint;
   if(!endpoint){toast('World is temporarily unavailable. Please try again shortly.');return;}
   if(!/^wss:\/\//.test(endpoint))throw new Error('Secure World connection required');
@@ -122,7 +125,7 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>{const before=renderer.users.get(u.userId);if(u.userId===userId&&before&&(before.position.x!==u.position.x||before.position.y!==u.position.y))completeGuideStep('walk');renderer.updateUser(u);});
-   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
+   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;waitingForNetwork=false;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='PET_REACTION')renderer.petReaction(p);
    else if(p.type==='PET_CHAT')renderer.bubble({userId:p.staffId,text:p.text,mode:'pet'});
@@ -518,7 +521,7 @@
  window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key],view=renderer.toView(u.position),target=renderer.fromView({x:view.x+x,y:view.y+y});if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:target.x,y:target.y}));};
- window.addEventListener('earnly-cloud-auth-change',()=>{guideResumed=false;guideDecorateOnArrival=false;$('placementSuccess').hidden=true;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
+ window.addEventListener('earnly-cloud-auth-change',()=>{guideResumed=false;guideDecorateOnArrival=false;$('placementSuccess').hidden=true;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;waitingForNetwork=false;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
 
  let guideResumed=false,guideDecorateOnArrival=false;
  const guideMemory=new Map();
@@ -676,5 +679,5 @@
  entryState();
  if(sharedRoom)connect(sharedRoom).catch(e=>entryState(e.message));
  else {const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}
- window.addEventListener('online',()=>{if(!connected&&!connecting&&retryCount>0)connect(entryTarget,true).catch(e=>entryState(e.message));});
+ window.addEventListener('online',()=>{if(!connected&&!connecting&&waitingForNetwork)connect(entryTarget,true).catch(e=>entryState(e.message));});
 })();

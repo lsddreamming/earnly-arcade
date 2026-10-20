@@ -85,3 +85,21 @@ test('placement explains blocked tiles and refreshes after moving or rotating th
  await expect(page.getByRole('button',{name:'Clear filters',exact:true})).toBeHidden();
  expect(await page.evaluate(()=>window.actions.some(a=>a.action==='buy'))).toBe(false);
  });
+
+test('World reconnects after offline loss without replaying actions',async({page})=>{
+ await fixture(page);
+ await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,value:false});window.guideSocket.readyState=3;window.guideSocket.onclose({code:1006});});
+ await expect(page.locator('#entryStatus')).toContainText('We’ll reconnect when your internet returns');
+ await expect(page.locator('#connectionStatus')).toContainText('Offline');
+ expect(await page.evaluate(()=>window.joins.length)).toBe(1);
+ await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,value:true});window.dispatchEvent(new Event('online'));});
+ await expect(page.locator('#worldConnected')).toBeVisible();
+ expect(await page.evaluate(()=>window.joins.length)).toBe(2);
+ expect(await page.evaluate(()=>window.actions)).toEqual([]);
+});
+test('Account change cancels pending offline recovery',async({page})=>{
+ await fixture(page);
+ await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,value:false});window.guideSocket.readyState=3;window.guideSocket.onclose({code:1006});window.dispatchEvent(new Event('earnly-cloud-auth-change'));Object.defineProperty(navigator,'onLine',{configurable:true,value:true});window.dispatchEvent(new Event('online'));});
+ await expect(page.locator('#entryStatus')).toContainText('Your account changed');
+ expect(await page.evaluate(()=>window.joins.length)).toBe(1);
+});
