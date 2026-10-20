@@ -2,6 +2,7 @@
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer,needsFirstRoom=false;
  const pending=new Map();let panelVersion=0;
+ let missionEntry=new URLSearchParams(location.search).get('mission');
  const sharedRoom=window.EarnlyWorldLinks.room;
  $('worldSignIn').href=window.EarnlyWorldLinks.signIn();
  let connectTimer,retryTimer,retryCount=0,entryTarget=sharedRoom||'choose-home';
@@ -127,7 +128,7 @@
    else if(p.type==='ROOM_INVITE'){ $('worldCommunity').textContent='Community · New invite';toast('A friend invited you to a room. Open Room invitations.');}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
-   if(p.type==='WELCOME'){const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);}
+   if(p.type==='WELCOME'){const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);else if(missionEntry){const entry=missionEntry;missionEntry=null;if(entry==='daily')showDailyMissions();else if(entry==='weekly')showWeeklyChallenge();}}
    if(connected){$('peopleCount').textContent=renderer.users.size+' in the room';const state=renderer.users.get(userId)?.state;$('connectionStatus').textContent=state==='sit'?'Live · Sitting · Tap clear floor to stand up':state==='lay'?'Live · Lying down · Tap clear floor to stand up':'Live · Tap seats to sit or a floor tile to walk';}
   };
   ws.onclose=e=>{if(socket!==ws)return;if(e.code!==4004)trackFailure();connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;entryState('Choose your first room — it is free.');$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';if(roomId===sharedRoom&&e.code===1008){$('connectionStatus').textContent='This room is unavailable. It may be private, full, or removed.';openPanel('Room unavailable').append(note('A shared link does not bypass room permissions.'),button('Go to my room',()=>connect('choose-home'),'primary'));}entryState($('connectionStatus').textContent);if(e.code===4001||e.code===4003){$('worldSignIn').hidden=false;}if([1006,1012,1013].includes(e.code))retryEntry(roomId);for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
@@ -564,12 +565,22 @@
   if(!bootstrap.dailyMissions){root.append(note('Daily missions are arriving soon. Reconnect to check for the update.'));return;}
   root.append(note('Checking today’s progress…'));
   try{const status=await action('daily_missions');if(version!==panelVersion||!$('worldPanel').open)return;root.replaceChildren();
-   const reset=new Date(status.resetsAt);root.append(note('Up to 15 Arcade Coins each day · Resets '+reset.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'.'));
-   for(const mission of status.missions){const card=el('section','daily-world-card');card.append(el('h3','',mission.title),note(mission.description),el('strong','',mission.claimed?'✓ Claimed':mission.complete?'Ready · +5 coins':'+5 Arcade Coins'));
+   const reset=new Date(status.resetsAt),missions=[...status.missions].sort((a,b)=>(a.claimed?2:a.complete?0:1)-(b.claimed?2:b.complete?0:1));
+   const ready=missions.filter(m=>m.complete&&!m.claimed).length,claimed=missions.filter(m=>m.claimed).length;
+   root.append(el('p','mission-summary',ready?ready+' reward'+(ready===1?'':'s')+' ready to claim':claimed===missions.length?'All daily rewards claimed':'Choose a mission to get started'),note(claimed+' of '+missions.length+' rewards claimed · Up to 15 Arcade Coins each day.'));
+   const details={visit:'Visit the plaza or another public hangout today.',decorate:'Place, move, or rotate one furniture piece in your own room today. Buying furniture alone does not count.',game:'Finish a game while signed in and earn a coin reward saved to your account. Return here and refresh progress.'};
+   for(const mission of missions){const state=mission.claimed?'claimed':mission.complete?'ready':'active',card=el('section','daily-world-card is-'+state);
+    card.append(el('span','mission-state',mission.claimed?'CLAIMED':mission.complete?'READY TO CLAIM':'DAILY · +5 COINS'),el('h3','',mission.title),note(details[mission.id]||mission.description),el('strong','',mission.claimed?'✓ Claimed · +5 coins':mission.complete?'1 of 1 complete · +5 coins':'0 of 1 complete'));
     if(mission.complete&&!mission.claimed)card.append(button('Claim 5 coins',async()=>{await action('daily_missions',{claim:mission.id});await refresh();await showDailyMissions();toast('Daily mission claimed · +5 Arcade Coins');},'primary'));
-    else if(!mission.claimed){if(mission.id==='visit')card.append(button('Visit plaza',()=>connect('plaza')));else if(mission.id==='decorate')card.append(button(scene.ownerId===userId?'Open Backpack':'Go to my room',()=>scene.ownerId===userId?showBackpack():connect('choose-home')));else{const link=el('a','daily-game-link','Play an arcade game ↗');link.href='games.html';link.target='_blank';link.rel='noopener';card.append(link);}}
+    else if(!mission.claimed){
+     if(mission.id==='visit')card.append(button('Visit plaza',()=>connect('plaza')));
+     else if(mission.id==='decorate')card.append(button('Decorate my room',()=>scene.ownerId===userId?showBackpack():connect('choose-home')));
+     else {const link=el('a','daily-game-link','Play an arcade game ↗');link.href='games.html';link.target='_blank';link.rel='noopener';card.append(link);}
+    }
     root.append(card);
-   }root.append(button('Refresh progress',showDailyMissions),note('Game mission counts a signed-in game with a coin reward saved to your account. Games open in a new tab.'));
+   }
+   root.append(button('Refresh progress',showDailyMissions),note('Daily reset: '+reset.toLocaleString([],{weekday:'long',hour:'numeric',minute:'2-digit'})+'. Games open in a new tab.'));
+   const weeklyLink=button('View weekly decorating challenge',showWeeklyChallenge);root.append(weeklyLink);
   }catch(e){if(version!==panelVersion)return;root.replaceChildren(note('Could not check missions. Your progress and coins are safe.'),button('Try again',showDailyMissions));}
  }
  $('worldDaily').onclick=()=>showDailyMissions();
@@ -617,14 +628,14 @@
     const steps=el('ol','weekly-steps');
     for(const [title,detail,done] of [
      ['Choose your own room',own?'You’re in '+scene.name+'.':'Visit your room before starting.',own],
-     ['Place at least 3 furniture pieces',own?count+' of 3 pieces placed.':'Furniture in your Backpack counts once you place it.',own&&count>=3],
+     ['Place at least 3 furniture pieces',own?Math.min(count,3)+' of 3 pieces placed.':'Furniture in your Backpack counts once you place it.',own&&count>=3],
      ['Allow visitors',own&&open?'Your room is open.':'Open Rooms → Allow visitors.',own&&open],
-     ['Make one change this week',w.ready?'Your decorating change is complete.':'Place, move, or rotate one piece, then tap Check progress below.',w.ready]
+     ['Make one change this week',w.ready?'Your decorating change is complete.':'Place, move, or rotate one piece this week. Check progress to confirm all requirements.',w.ready]
     ]){const item=el('li',done?'is-complete':'');item.append(el('strong','',(done?'✓ ':'')+title),note(detail));steps.append(item);}
-    root.append(steps);
+    root.append(el('p','mission-summary',w.ready?'Ready to enter · Claim 10 coins':!own?'Next: visit your own room':count<3?'Next: place '+(3-count)+' more furniture piece'+(3-count===1?'':'s'):!open?'Next: allow visitors':'Next: make a decorating change, then check progress'),steps);
     const actions=el('div','weekly-actions');
     if(w.ready)actions.append(button('Enter this room & claim 10 coins',async()=>{await action('weekly_enter');await refresh();await showWeeklyChallenge();toast('Challenge entered · +10 Arcade Coins');},'primary'));
-    else {actions.append(button(own?'Open Backpack':'Go to my room',()=>own?showBackpack():connect('choose-home'),'primary'));if(own&&!open)actions.append(button('Room settings',showRooms));actions.append(button('Check progress',showWeeklyChallenge));}
+    else {if(!own)actions.append(button('Go to my room',()=>connect('choose-home'),'primary'));else if(count>=3&&!open)actions.append(button('Allow visitors · Room settings',showRooms,'primary'));else actions.append(button('Decorate my room',showBackpack,'primary'));actions.append(button('Check progress',showWeeklyChallenge));}
     root.append(actions,note('Once all steps are complete, claim your 10 coins here. Everyone who completes the steps can earn the reward.'));
    }
    root.append(note('Next theme: '+new Date(w.endsAt).toLocaleString([],{weekday:'long',hour:'numeric',minute:'2-digit'})+' · One reward per week.'),button('See other rooms',showFeaturedRooms));
