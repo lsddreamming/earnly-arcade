@@ -350,6 +350,12 @@
     }
   }
 
+  async function adBonus(action='status', placement){
+    const { data, error } = await requireClient().functions.invoke('ad-bonus', { body:{ action, placement } });
+    if (error) throw error;
+    return data;
+  }
+
   async function walletInfo(){
     const current = await user();
     if (!current) return null;
@@ -1130,6 +1136,7 @@
     deleteAccount,
     cloudSaveInfo,
     walletInfo,
+    adBonus,
     spendContinue,
     continueReceipt,
     syncServerRewards,

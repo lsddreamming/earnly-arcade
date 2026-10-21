@@ -15,11 +15,11 @@ function harness(initial='notDetermined', answer='authorized', canRequestAds=tru
     requestTrackingAuthorization:async()=>{calls.push('att');if(fail) throw Error('unavailable');status=answer;},
     initialize:async()=>calls.push('initialize'),
     requestConsentInfo:async()=>{calls.push('consent');if(options.failConsent) throw Error('Request consent info failed');return {canRequestAds:options.canRequestAds ?? canRequestAds,status:'NOT_REQUIRED',privacyOptionsRequirementStatus:options.privacyOptionsRequired ? 'REQUIRED' : 'NOT_REQUIRED'};},
-    prepareRewardVideoAd:async request=>{calls.push('load');if(options.failLoad) throw Error('No fill');assert.equal(request.npa,true);assert.equal(request.isTesting,options.testMode !== false);assert.equal(request.adId, options.testMode === false ? 'ca-app-pub-8864401806510610/8249888009' : 'ca-app-pub-3940256099942544/1712485313');return {};},
+    prepareRewardVideoAd:async request=>{calls.push('load');if(options.failLoad) throw Error('No fill');assert.equal(request.npa,true);assert.equal(request.isTesting,options.testMode !== false);assert.equal(request.adId, options.testMode === false ? (options.placement==='bonusCoins'?'ca-app-pub-8864401806510610/1831908609':'ca-app-pub-8864401806510610/8249888009') : 'ca-app-pub-3940256099942544/1712485313');if(options.ticket)assert.equal(request.ssv.customData,options.ticket);else assert.equal(request.ssv,undefined);return {};},
     showPrivacyOptionsForm:async()=>{calls.push('privacy');if(options.failPrivacy) throw Error('interrupted');options.canRequestAds=false;},
     showRewardVideoAd:async()=>{calls.push('show');started();if(options.failShow) throw Error('Closed');if(options.holdShow) return new Promise(()=>{});emit('reward',{amount:1});emit('dismiss');return {amount:1};}
   };
-  const window={dispatchEvent(){}};
+  const window={dispatchEvent(){},EarnlyCloud:options.cloud};
   vm.runInNewContext(source,{AdMob,RewardAdPluginEvents:events,Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'ios'},AdmobConsentStatus:{REQUIRED:'REQUIRED'},__EARNLY_ADMOB_TEST_MODE__:options.testMode !== false,window,CustomEvent:class {}});
   return {calls,ads:window.EarnlyNativeAds,emit,listeners,showStarted};
 }
@@ -111,4 +111,17 @@ test('a later request refreshes consent without restarting the SDK',async()=>{
   assert.equal(h.calls.filter(x=>x==='consent').length,2);
   assert.equal(h.calls.filter(x=>x==='initialize').length,1);
   assert.equal(h.calls.filter(x=>x==='load').length,1);
+});
+
+test('bonus Coins require a server ticket before loading an ad',async()=>{
+ const h=harness('denied','denied',true,false,{testMode:false});
+ assert.equal((await h.ads.showRewarded('bonusCoins')).earned,false);assert.ok(!h.calls.includes('load'));
+});
+test('bonus Coins send the server nonce as SSV custom data',async()=>{
+ const ticket='server-nonce';const h=harness('denied','denied',true,false,{testMode:false,placement:'bonusCoins',ticket,cloud:{adBonus:async(action,placement)=>{assert.equal(action,'ticket');assert.equal(placement,'bonusCoins');return {ticket};}}});
+ assert.equal((await h.ads.showRewarded('bonusCoins')).earned,true);
+});
+test('extra plays still work when bonus ticket service is unavailable',async()=>{
+ const h=harness('denied','denied',true,false,{testMode:false,cloud:{adBonus:async()=>{throw Error('offline');}}});
+ assert.equal((await h.ads.showRewarded('extraPlays')).earned,true);
 });
