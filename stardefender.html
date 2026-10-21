@@ -185,7 +185,7 @@
         if(Arcade.offerAdContinue({
           message:'Keep '+score+' points and wave '+wave+'. Return with one life and a 3-second shield. One bonus life per run.',
           onContinue:()=>{bonusLifeUsed=true;lives=1;enemyShots=[];invincible=3;chrome();status('Get Ready',true);Arcade.countdown(()=>{pauseTotal+=performance.now()-stoppedAt;starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);last=performance.now();raf=requestAnimationFrame(loop)})},
-          onFinish:()=>finish(true)
+          onFinish:()=>{pauseTotal+=performance.now()-stoppedAt;finish(true)}
         }))return;
       }
       starting=false;els.startButton.disabled=false;

@@ -647,7 +647,7 @@
               game = setInterval(draw, snakeTickMs());
             });
           },
-          onFinish: () => gameOver(reason, true)
+          onFinish: () => { totalPausedMs += performance.now() - stoppedAt; gameOver(reason, true); }
         })) return;
         starting = false;
       }
