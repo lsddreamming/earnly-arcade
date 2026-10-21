@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { AdMob, AdmobConsentStatus } from '@capacitor-community/admob';
+import { AdMob, AdmobConsentStatus, RewardAdPluginEvents } from '@capacitor-community/admob';
 
 const TEST_REWARDED_IOS = 'ca-app-pub-3940256099942544/1712485313';
 const PRODUCTION_REWARDED = {
@@ -9,6 +9,16 @@ const PRODUCTION_REWARDED = {
 const TEST_MODE = __EARNLY_ADMOB_TEST_MODE__;
 const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 let initializationPromise = null;
+let sdkInitialized = false;
+
+async function adStep(code, action) {
+  try { return await action(); }
+  catch (cause) {
+    const error = new Error('Rewarded ad step failed: ' + code, { cause });
+    error.code = code;
+    throw error;
+  }
+}
 
 async function ensureAdMobReady() {
   if (!isNative) return { ready:false, reason:'not-native' };
@@ -17,24 +27,29 @@ async function ensureAdMobReady() {
     initializationPromise = (async () => {
       // Explicit ATT flow: do not configure a second IDFA explainer in UMP.
       // The first optional Watch Ad tap triggers this, never gameplay startup.
-      let tracking = await AdMob.trackingAuthorizationStatus();
+      let tracking = await adStep('EARNLY_AD_TRACKING', () => AdMob.trackingAuthorizationStatus());
       if (tracking.status === 'notDetermined') {
-        await AdMob.requestTrackingAuthorization();
-        tracking = await AdMob.trackingAuthorizationStatus();
+        await adStep('EARNLY_AD_TRACKING', () => AdMob.requestTrackingAuthorization());
+        tracking = await adStep('EARNLY_AD_TRACKING', () => AdMob.trackingAuthorizationStatus());
       }
       if (!['authorized', 'denied', 'restricted'].includes(tracking.status)) {
-        throw new Error('Tracking permission is not resolved. Please try again.');
+        const error = new Error('Tracking permission is not resolved. Please try again.');
+        error.code = 'EARNLY_AD_TRACKING';
+        throw error;
       }
       // Denial/restriction is respected by iOS: no IDFA is available to the SDK.
       // SDK 8.1 requires initialization before it can present a UMP form.
-      await AdMob.initialize();
+      if (!sdkInitialized) {
+        await adStep('EARNLY_AD_INITIALIZE', () => AdMob.initialize());
+        sdkInitialized = true;
+      }
 
-      let consentInfo = await AdMob.requestConsentInfo();
+      let consentInfo = await adStep('EARNLY_AD_CONSENT', () => AdMob.requestConsentInfo());
       if (
         consentInfo?.isConsentFormAvailable &&
         consentInfo?.status === AdmobConsentStatus.REQUIRED
       ) {
-        consentInfo = await AdMob.showConsentForm();
+        consentInfo = await adStep('EARNLY_AD_CONSENT', () => AdMob.showConsentForm());
       }
 
       return consentInfo;
@@ -45,10 +60,54 @@ async function ensureAdMobReady() {
   }
 
   const consentInfo = await initializationPromise;
+  // Refresh consent for every new request, including a restored game page
+  // after the player changed privacy choices elsewhere in the app.
+  initializationPromise = null;
   return {
     ready: !!consentInfo?.canRequestAds,
-    reason: consentInfo?.canRequestAds ? '' : 'consent-not-ready'
+    reason: consentInfo?.canRequestAds ? '' : 'consent-not-ready',
+    privacyOptionsRequired: consentInfo?.privacyOptionsRequirementStatus === 'REQUIRED'
   };
+}
+
+async function showPrivacyOptions() {
+  if (!isNative) return { shown:false, reason:'not-native' };
+  const readiness = await ensureAdMobReady();
+  if (!readiness.privacyOptionsRequired) return { shown:false, reason:'not-required' };
+  try {
+    await AdMob.showPrivacyOptionsForm();
+    return { shown:true };
+  } finally {
+    // A changed or interrupted choice must never reuse cached ad permission.
+    initializationPromise = null;
+  }
+}
+
+// The iOS plugin's show promise resolves on reward, but can remain pending
+// after an unrewarded dismissal. Settle from lifecycle events instead.
+async function presentRewarded(options) {
+  let reward = null;
+  let settled = false;
+  const listeners = [];
+  let resolve, reject;
+  const completion = new Promise((yes, no) => { resolve = yes; reject = no; });
+  const finish = error => {
+    if (settled) return;
+    settled = true;
+    for (const listener of listeners) Promise.resolve(listener.remove()).catch(() => {});
+    if (error) reject(error); else resolve(reward);
+  };
+  try {
+    listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, value => {
+      if (!settled) reward = value;
+    }));
+    listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => finish()));
+    listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => finish(new Error('Ad presentation failed'))));
+    Promise.resolve(AdMob.showRewardVideoAd(options)).then(value => {
+      if (!settled) reward = value;
+    }, finish);
+  } catch (error) { finish(error); }
+  return completion;
 }
 
 async function showRewarded(kind = 'extraPlays') {
@@ -59,17 +118,18 @@ async function showRewarded(kind = 'extraPlays') {
   if (!productionId) throw new Error('Unknown Earnly rewarded-ad placement: ' + kind);
 
   const adId = TEST_MODE ? TEST_REWARDED_IOS : productionId;
-  const loaded = await AdMob.prepareRewardVideoAd({
+  const loaded = await adStep('EARNLY_AD_LOAD', () => AdMob.prepareRewardVideoAd({
     adId,
     isTesting: TEST_MODE,
     // Non-personalized ads still require the ATT/consent flow above.
     npa: true
-  });
+  }));
 
-  const reward = await AdMob.showRewardVideoAd(
+  const reward = await adStep('EARNLY_AD_SHOW', () => presentRewarded(
     loaded?.adUnitId ? { adId:loaded.adUnitId } : undefined
-  );
+  ));
 
+  if (!reward) return { earned:false, reason:'dismissed' };
   return {
     earned:true,
     amount:Number(reward?.amount || 1),
@@ -83,6 +143,7 @@ window.EarnlyNativeAds = Object.freeze({
   isNative,
   testMode:TEST_MODE,
   ensureReady:ensureAdMobReady,
+  showPrivacyOptions,
   showRewarded
 });
 

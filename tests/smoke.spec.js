@@ -2561,3 +2561,22 @@ test('native password-reset email uses the HTTPS recovery destination', async ({
   await page.evaluate(()=>window.EarnlyCloud.sendPasswordReset('test@example.com'));
   expect(await page.evaluate(()=>window.resetRequest)).toEqual({email:'test@example.com',options:{redirectTo:'https://earnlyarcade.com/account.html?recovery=1'}});
 });
+
+test('ad privacy choices are native-only and opening them never requests a reward', async ({page})=>{
+  await page.goto('/privacy.html');
+  await expect(page.locator('#adPrivacyOptions')).toBeHidden();
+  await page.addInitScript(()=>{
+    window.Capacitor={isNativePlatform:()=>true,getPlatform:()=> 'ios'};
+    window.privacyCalls=0; window.rewardCalls=0;
+    window.EarnlyNativeAds={showPrivacyOptions:async()=>{window.privacyCalls++;return {shown:true};},showRewarded:async()=>{window.rewardCalls++;}};
+  });
+  await page.reload();
+  await expect(page.locator('#adPrivacyOptions')).toBeVisible();
+  await page.locator('#adPrivacyButton').click();
+  await expect(page.locator('#adPrivacyStatus')).toHaveText('Your privacy choices have been updated.');
+  expect(await page.evaluate(()=>({privacy:window.privacyCalls,rewards:window.rewardCalls}))).toEqual({privacy:1,rewards:0});
+  await page.evaluate(()=>{window.EarnlyNativeAds.showPrivacyOptions=async()=>{throw Error('offline');};});
+  await page.locator('#adPrivacyButton').click();
+  await expect(page.locator('#adPrivacyStatus')).toContainText('Check your connection');
+  await expect(page.locator('#adPrivacyButton')).toBeEnabled();
+});
