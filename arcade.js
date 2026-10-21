@@ -2158,8 +2158,16 @@ const Arcade = (() => {
     modal.append(hero, main);
     if (game) modal.append(leaderboardBox);
     modal.append(statsBox, levelProgress);
-    if (notes.childElementCount) modal.append(notes);
-    modal.append(actions);
+    if (game === 'neonDrift') {
+      const details=document.createElement('details');details.className='result-run-details';
+      const summary=document.createElement('summary');summary.textContent='Run details';details.append(summary,notes);
+      const explore=document.createElement('details');explore.className='result-run-details';
+      const exploreLabel=document.createElement('summary');exploreLabel.textContent='Use your coins';explore.append(exploreLabel,roomLink,shopLink);
+      modal.append(actions,details,explore);
+    } else {
+      if (notes.childElementCount) modal.append(notes);
+      modal.append(actions);
+    }
     window.EarnlyShopAppearance?.decorate(hero);
     modal.showModal();
   }
