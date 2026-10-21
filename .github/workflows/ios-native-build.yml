@@ -1,8 +1,15 @@
 name: Earnly iOS native build
 
-# Native builds are deliberate release actions; web QA remains automatic.
+# Compile ad integration changes without signing or uploading to Apple.
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'native-ads-entry.js'
+      - 'privacy-ads.js'
+      - 'scripts/build-native-web.mjs'
+      - 'scripts/configure-ios.mjs'
+      - '.github/workflows/ios-native-build.yml'
 
 concurrency:
   group: earnly-ios-native-${{ github.ref }}

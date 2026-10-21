@@ -9,10 +9,10 @@ function harness(initial='notDetermined', answer='authorized', canRequestAds=tru
     trackingAuthorizationStatus:async()=>{calls.push('status');return {status};},
     requestTrackingAuthorization:async()=>{calls.push('att');if(fail) throw Error('unavailable');status=answer;},
     initialize:async()=>calls.push('initialize'),
-    requestConsentInfo:async()=>{calls.push('consent');return {canRequestAds:options.canRequestAds ?? canRequestAds,status:'NOT_REQUIRED',privacyOptionsRequirementStatus:options.privacyOptionsRequired ? 'REQUIRED' : 'NOT_REQUIRED'};},
-    prepareRewardVideoAd:async request=>{calls.push('load');assert.equal(request.npa,true);assert.equal(request.isTesting,options.testMode !== false);assert.equal(request.adId, options.testMode === false ? 'ca-app-pub-8864401806510610/8249888009' : 'ca-app-pub-3940256099942544/1712485313');return {};},
+    requestConsentInfo:async()=>{calls.push('consent');if(options.failConsent) throw Error('Request consent info failed');return {canRequestAds:options.canRequestAds ?? canRequestAds,status:'NOT_REQUIRED',privacyOptionsRequirementStatus:options.privacyOptionsRequired ? 'REQUIRED' : 'NOT_REQUIRED'};},
+    prepareRewardVideoAd:async request=>{calls.push('load');if(options.failLoad) throw Error('No fill');assert.equal(request.npa,true);assert.equal(request.isTesting,options.testMode !== false);assert.equal(request.adId, options.testMode === false ? 'ca-app-pub-8864401806510610/8249888009' : 'ca-app-pub-3940256099942544/1712485313');return {};},
     showPrivacyOptionsForm:async()=>{calls.push('privacy');if(options.failPrivacy) throw Error('interrupted');options.canRequestAds=false;},
-    showRewardVideoAd:async()=>{calls.push('show');return {amount:1};}
+    showRewardVideoAd:async()=>{calls.push('show');if(options.failShow) throw Error('Closed');return {amount:1};}
   };
   const window={dispatchEvent(){}};
   vm.runInNewContext(source,{AdMob,Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'ios'},AdmobConsentStatus:{REQUIRED:'REQUIRED'},__EARNLY_ADMOB_TEST_MODE__:options.testMode !== false,window,CustomEvent:class {}});
@@ -68,4 +68,16 @@ test('consent not ready can recover on a later attempt',async()=>{
   const options={canRequestAds:false};const h=harness('denied','denied',false,false,options);
   assert.equal((await h.ads.showRewarded()).earned,false);options.canRequestAds=true;
   assert.equal((await h.ads.showRewarded()).earned,true);
+});
+
+test('consent setup failures are distinct from no-fill and can retry without a reward',async()=>{
+  const options={failConsent:true};const h=harness('denied','denied',true,false,options);
+  await assert.rejects(h.ads.showRewarded(),error=>error.code==='EARNLY_AD_CONSENT');
+  assert.ok(!h.calls.includes('load'));assert.ok(!h.calls.includes('show'));
+  options.failConsent=false;assert.equal((await h.ads.showRewarded()).earned,true);
+});
+for(const [option,code] of [['failLoad','EARNLY_AD_LOAD'],['failShow','EARNLY_AD_SHOW']]) test(`${code} never returns an earned reward`,async()=>{
+  const h=harness('denied','denied',true,false,{[option]:true});
+  await assert.rejects(h.ads.showRewarded(),error=>error.code===code);
+  if(option==='failLoad') assert.ok(!h.calls.includes('show'));
 });

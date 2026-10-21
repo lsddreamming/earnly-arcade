@@ -2521,7 +2521,11 @@ const Arcade = (() => {
           busy = false;
           panel(
             'Rewarded ad unavailable',
-            'The ad could not load right now. Your play balance was not changed.',
+            (error?.code === 'EARNLY_AD_CONSENT'
+              ? 'The ad privacy check could not finish. Check your connection and try again. (A02)'
+              : error?.code === 'EARNLY_AD_TRACKING'
+                ? 'The iPhone privacy prompt could not finish. Return to the app and try again. (A01)'
+                : 'The ad could not load right now. Please try again later.') + ' Your play balance was not changed.',
             [
               ['Try Again', () => playAd(g, done), 'green'],
               ['Back to Arcade', () => location.href = 'games.html', 'secondary']
