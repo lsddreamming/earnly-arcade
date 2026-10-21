@@ -22,7 +22,7 @@ export function verifyReceipt(url:string,keys:any[],now=Date.now()){
  if(!key?.pem)throw new Error('Unknown signing key');
  // Google's reference verifier uses URI.getQuery(), which percent-decodes the signed content.
  const signature=Buffer.from(decodeURIComponent(match[2]),'base64url');
- if(!verify('sha256',Buffer.from(decodeURIComponent(match[1])),key.pem,signature))throw new Error('Invalid signature');
+ if(!verify('sha256',Buffer.from(decodeURIComponent(match[1].replace(/\+/g,' '))),key.pem,signature))throw new Error('Invalid signature');
  let unit=p.get('ad_unit')||'';
  if(['8249888009','1831908609'].includes(unit))unit='ca-app-pub-8864401806510610/'+unit;
  const ticket=p.get('custom_data')||'',transaction=p.get('transaction_id')||'';
