@@ -1789,6 +1789,13 @@ const Arcade = (() => {
       main.append(bestTarget);
     }
 
+    const rankDetails = game === 'neonDrift' ? document.createElement('details') : null;
+    const rankSummary = rankDetails ? document.createElement('summary') : null;
+    if (rankDetails) {
+      rankDetails.className = 'result-run-details';
+      rankSummary.textContent = 'World ranking · checking…';
+      rankDetails.append(rankSummary);
+    }
     const leaderboardBox = document.createElement('div');
     leaderboardBox.className = 'result-leaderboard';
     leaderboardBox.setAttribute('aria-live', 'polite');
@@ -1804,6 +1811,7 @@ const Arcade = (() => {
           await new Promise(resolve => setTimeout(resolve, 250));
         }
         if (!window.EarnlyCloud?.leaderboard) {
+          if (rankSummary) rankSummary.textContent = 'World ranking · unavailable';
           leaderboardBox.innerHTML = '<div class="result-leaderboard-empty">World rankings are unavailable right now.</div>';
           return;
         }
@@ -1848,6 +1856,7 @@ const Arcade = (() => {
           const needsSync = submissionFailed || !!submission?.skipped;
           rank.textContent = needsSync ? (submission?.skipped === 'signed-out' ? 'Sign in to save your score' : submission?.skipped === 'username-required' ? 'Choose a username to rank' : 'Score sync pending')
             : submission?.rank ? 'You: #' + submission.rank : myEntry ? 'You: #' + myEntry.rank : (myName ? 'Rank not confirmed' : 'Set a username to rank');
+          if (rankSummary) rankSummary.textContent = 'World ranking · ' + rank.textContent;
           head.append(headTitle, rank);
           leaderboardBox.append(head);
 
@@ -1898,6 +1907,7 @@ const Arcade = (() => {
             }
           }
         } catch {
+          if (rankSummary) rankSummary.textContent = 'World ranking · unavailable';
           leaderboardBox.innerHTML = '<div class="result-leaderboard-empty">Could not load world rankings right now.</div>';
         }
       };
@@ -2156,8 +2166,9 @@ const Arcade = (() => {
       actions.append(buy);
     }
     modal.append(hero, main);
-    if (game) modal.append(leaderboardBox);
+    if (game && !rankDetails) modal.append(leaderboardBox);
     modal.append(statsBox, levelProgress);
+    if (rankDetails) { rankDetails.append(leaderboardBox); modal.append(rankDetails); }
     if (game === 'neonDrift') {
       const details=document.createElement('details');details.className='result-run-details';
       const summary=document.createElement('summary');summary.textContent='Run details';details.append(summary,notes);
