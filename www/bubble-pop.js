@@ -35,7 +35,7 @@
    s.board.forEach((c,i)=>{const p=center(i),fall=transition?.falls[i];let y=p.y;if(fall)y=g.y+(.5+fall.from+(fall.to-fall.from)*progress)*g.size;bubble(c,p.x,y,g.size*.405);});
   }
   if(!transition){
-   s.board.forEach((c,i)=>{if(!c.power)return;for(const n of E.neighbors(i))if(n>i&&s.board[n].power){const a=center(i),b=center(n);ctx.strokeStyle='#f8d983';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}});
+   s.board.forEach((c,i)=>{if(!c.power)return;for(const n of E.neighbors(i))if(n>i&&s.board[n].power){const a=center(i),b=center(n);ctx.strokeStyle='#f8d983';ctx.lineWidth=3;ctx.beginPath();const dx=(b.x-a.x)*.43,dy=(b.y-a.y)*.43;ctx.moveTo(a.x+dx,a.y+dy);ctx.lineTo(b.x-dx,b.y-dy);ctx.stroke();}});
    if(canvas===document.activeElement){const p=center(selected);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,g.size*.46,0,Math.PI*2);ctx.stroke();}
   }
   if(transition){

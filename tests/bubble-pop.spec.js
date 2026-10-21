@@ -74,3 +74,10 @@ test('board and controls fit phones, and goals, ice, stars and powers have revie
 test('reduced motion, keyboard play, blocked storage and idle rendering remain safe',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});await page.addInitScript(()=>{Math.random=()=>0;Storage.prototype.setItem=()=>{throw Error('blocked')};Storage.prototype.getItem=()=>{throw Error('blocked')};window.framesRequested=0;const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>{window.framesRequested++;return raf(fn);};});await page.goto('/bubble-pop.html');await page.locator('#play').click();await page.locator('#board').focus();await page.keyboard.press('Enter');await expect(page.locator('#moves')).toHaveText('19');await expect(page.locator('#score')).not.toHaveText('0');await page.waitForTimeout(100);const n=await page.evaluate(()=>framesRequested);await page.waitForTimeout(150);expect(await page.evaluate(()=>framesRequested)).toBe(n);
 });
+test('animated turns ignore repeat taps, sleep when idle and pause when backgrounded',async({page})=>{
+ await page.addInitScript(()=>{window.framesRequested=0;const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>{window.framesRequested++;return raf(fn);};});await setup(page);
+ const p=await firstCell(page),b=await page.locator('#board').boundingBox();
+ await page.locator('#board').dispatchEvent('pointerdown',{clientX:b.x+p.x,clientY:b.y+p.y});await page.locator('#board').dispatchEvent('pointerdown',{clientX:b.x+p.x,clientY:b.y+p.y});await expect(page.locator('#moves')).toHaveText('19');await page.waitForTimeout(500);
+ const n=await page.evaluate(()=>framesRequested);expect(n).toBeGreaterThan(0);await page.waitForTimeout(150);expect(await page.evaluate(()=>framesRequested)).toBe(n);
+ await page.locator('#board').dispatchEvent('pointerdown',{clientX:b.x+p.x,clientY:b.y+p.y});await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});await expect(page.locator('#resultTitle')).toHaveText('Take a breather.');await expect(page.locator('#moves')).toHaveText('18');
+});
