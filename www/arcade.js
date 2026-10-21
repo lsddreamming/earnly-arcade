@@ -1613,6 +1613,7 @@ const Arcade = (() => {
     }
 
     modal.className = '';
+    modal.oncancel = null;
     modal.replaceChildren();
 
     const h = document.createElement('h2');
@@ -2460,6 +2461,38 @@ const Arcade = (() => {
     };
     window.dispatchEvent(new CustomEvent('earnly-bonus-plays-unlocked', { detail }));
     return detail;
+  }
+
+  // This rewards the current run, never the daily play balance.
+  function offerAdContinue({ message, onContinue, onFinish }) {
+    if (!window.EarnlyNativeAds?.isNative || busy) return false;
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; onFinish(); } };
+    const offer = (error = '') => {
+      panel('One more chance?', message + (error ? '\n\n' + error : ''), [
+        ['📺 Watch Ad · Continue', async () => {
+          if (settled || busy) return;
+          busy = true;
+          toast('📺 Loading bonus-life ad…');
+          try {
+            const reward = await window.EarnlyNativeAds.showRewarded('extraPlays');
+            busy = false;
+            if (!reward?.earned) {
+              offer('Ad closed without a reward. Your run is still here.');
+              return;
+            }
+            settled = true;
+            onContinue();
+          } catch (error) {
+            busy = false;
+            offer('The ad is unavailable right now. Retry or finish your run.');
+          }
+        }, 'green'],
+        ['Finish run', finish, 'secondary']
+      ], { render: dialog => { dialog.oncancel = event => event.preventDefault(); } });
+    };
+    offer();
+    return true;
   }
 
   function playAd(g, done = () => {}) {
@@ -4105,6 +4138,7 @@ const Arcade = (() => {
     isProtectedGameControlTarget,
     inExpandedGameZone,
     gameSurfaceX,
+    offerAdContinue,
     playAd,
     ad:playAd,
     out,

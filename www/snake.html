@@ -617,12 +617,40 @@
       }
     }
 
-    function gameOver(reason = '') {
-      if (game === null) return;
+    let bonusLifeUsed = false;
+    function gameOver(reason = '', finalize = false) {
+      if (game === null && !finalize) return;
       clearInterval(game);
       game = null;
       pauseStartedAt = 0;
       disableFullScreenSteering();
+
+      if (!finalize && !snakeTestRun && !bonusLifeUsed && score > 0) {
+        starting = true;
+        startButton.disabled = true;
+        const stoppedAt = performance.now();
+        if (Arcade.offerAdContinue({
+          message: 'Keep your ' + score + ' apples and continue with a short snake in a safe spot. One bonus life per run. No Coins or extra play needed.',
+          onContinue: () => {
+            bonusLifeUsed = true;
+            snake = [{x:200,y:200}];
+            direction = nextDirection = 'RIGHT';
+            queuedDirections.length = 0;
+            syncDirectionButtons('RIGHT');
+            if (food.x === 200 && food.y === 200) food = randomFood();
+            setStatus('Get Ready');
+            Arcade.countdown(() => {
+              totalPausedMs += performance.now() - stoppedAt;
+              starting = false;
+              enableFullScreenSteering();
+              setStatus('Running', 'running');
+              game = setInterval(draw, snakeTickMs());
+            });
+          },
+          onFinish: () => { totalPausedMs += performance.now() - stoppedAt; gameOver(reason, true); }
+        })) return;
+        starting = false;
+      }
 
       const finishedTestRun = snakeTestRun;
       snakeTestRun = false;
@@ -708,6 +736,7 @@
       nextDirection = 'RIGHT';
       queuedDirections.length = 0;
       syncDirectionButtons('RIGHT');
+      bonusLifeUsed = false;
       score = 0;
       lastWallAppleScore = -5;
       clearTimeout(appleFlashTimer);
