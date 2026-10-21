@@ -78,16 +78,8 @@ jobs:
         run: npx playwright install webkit
       - name: Verify rewarded continues
         run: npx playwright test tests/rewarded-continue.spec.js tests/daily-ad-bonus.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
-      - name: Verify Turbo Kart controls and rewards
-        run: npx playwright test tests/turbo-kart.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
-      - name: Upload Turbo Kart course and viewport screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: turbo-kart-preview-${{ matrix.project }}${{ matrix.artifact_suffix }}
-          path: test-results/turbo-kart-*.png
-          if-no-files-found: ignore
-          retention-days: 7
+      # Turbo Kart is retired from the catalog. Its archived browser suite
+      # remains in tests/turbo-kart.spec.js for explicit maintenance runs.
       - name: Verify World controls
         run: npx playwright test tests/world.spec.js tests/world-social.spec.js tests/world-onboarding.spec.js tests/world-animals.spec.js tests/world-pets.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload World collection previews

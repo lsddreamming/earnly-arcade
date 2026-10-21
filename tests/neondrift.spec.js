@@ -136,3 +136,33 @@ test('Neon Drift completes its final clean sector once and preserves earned lega
  const s=E.create(()=>.5);s.time=89.99;s.stage=6;s.pickupIn=99;E.tick(s,.02);expect(s.ended).toBe(true);expect(s.bonusCoins).toBe(2);E.tick(s,.02);expect(s.bonusCoins).toBe(2);
  await page.addInitScript(()=>localStorage.setItem('arcadeDodgerTopLevel','5'));await page.goto('/neondrift.html');await expect(page.locator('#sectorProgress')).toContainText('GOLD CAR');expect(await page.evaluate(()=>Arcade.best('neonDrift').value)).toBe(0);
 });
+
+test('track drag reverses direction and releases cleanly',async({page})=>{
+ await ready(page);
+ const box=await page.locator('#game').boundingBox();
+ const x=box.x+box.width*.55,y=box.y+box.height*.7;
+ await page.mouse.move(x,y);await page.mouse.down();
+ await page.mouse.move(x+box.width*.15,y,{steps:5});
+ await expect(page.locator('#rightButton')).toHaveClass(/held/);
+ await page.waitForTimeout(250);
+ await page.mouse.move(x-box.width*.1,y,{steps:5});
+ await expect(page.locator('#leftButton')).toHaveClass(/held/);
+ await page.mouse.up();
+ await expect(page.locator('#leftButton')).not.toHaveClass(/held/);
+ await expect(page.locator('#rightButton')).not.toHaveClass(/held/);
+ await expect(page.locator('#plays')).toHaveText('2');
+});
+
+test('Neon Drift results keep replay before collapsed run details',async({page})=>{
+ await page.goto('/neondrift.html');
+ await page.evaluate(()=>{const create=NeonDriftEngine.create;NeonDriftEngine.create=()=>{const s=create();s.time=89.99;s.stage=6;s.sectorClean=false;return s;};});
+ await page.locator('#startButton').click();
+ const dialog=page.locator('dialog.game-result-dialog');await expect(dialog).toBeVisible({timeout:10000});
+ await expect(dialog.getByText('Run details',{exact:true})).toBeVisible();
+ await expect(dialog.locator('.result-notes')).toBeHidden();
+ await expect(dialog.locator('.result-leaderboard')).toBeHidden();
+ await expect(dialog.getByText(/World ranking ·/)).toBeVisible();
+ await expect(dialog.getByRole('button',{name:/Play Again/})).toBeVisible();
+ await dialog.getByText('Run details',{exact:true}).click();
+ await expect(dialog.locator('.result-notes')).toBeVisible();
+});

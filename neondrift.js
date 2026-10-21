@@ -5,10 +5,10 @@
   const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
   function newState(){const s=E.create();s.paintSector=Math.max(Arcade.number('arcadeNeonDriftTopSector'),Arcade.number('arcadeDodgerTopLevel'));return s;}
   let state=newState(),running=false,starting=false,paused=false,disposed=false,last=0,raf=0,calloutUntil=0,settleTimer=0;
-  const pointers=new Map(),keys=new Set();let pauseControl;
-  const steering=()=>Math.max(-1,Math.min(1,[...pointers.values()].reduce((a,b)=>a+b,0)+(keys.has('ArrowRight')||keys.has('d')?1:0)-(keys.has('ArrowLeft')||keys.has('a')?1:0)));
+  const pointers=new Map(),keys=new Set();let pauseControl,trackDrag=null;
+  const steering=()=>Math.max(-1,Math.min(1,[...pointers.values()].reduce((a,b)=>a+b,0)+(trackDrag? (trackDrag.target-state.x)*.045-state.vx*.009:0)+(keys.has('ArrowRight')||keys.has('d')?1:0)-(keys.has('ArrowLeft')||keys.has('a')?1:0)));
   function inputStyle(){const n=steering();el.leftButton.classList.toggle('held',n<0);el.rightButton.classList.toggle('held',n>0);}
-  function resetInput(){pointers.clear();keys.clear();inputStyle();}
+  function resetInput(){trackDrag=null;pointers.clear();keys.clear();inputStyle();}
   function chrome(){
     const values={score:state.score,hull:state.hull,time:Math.ceil(E.DURATION-state.time),plays:Arcade.remaining(game),balance:Arcade.number('points').toLocaleString(),speed:running?Math.round(E.difficulty(state.time).speed*.65):0,combo:'×'+state.combo,driftState:running?(state.boost>0?'OVERDRIVE':Math.abs(state.vx)>48?'DRIFTING':'SECTOR 0'+state.stage):'MIDNIGHT CIRCUIT'};
     values.sectorProgress=running?'SECTOR 0'+state.stage+' / 06 · '+Math.ceil(E.SECTOR_SECONDS-state.time%E.SECTOR_SECONDS)+'s':('BEST SECTOR '+Math.max(1,Arcade.number('arcadeNeonDriftTopSector'))+' · '+(Math.max(state.stage,state.paintSector)>=5?'GOLD CAR':Math.max(state.stage,state.paintSector)>=3?'VIOLET CAR':'CYAN CAR'));values.runCoins=Arcade.gameReward('neonDrift',state.score,E.rewards(state).bonus)+' Coins';values.pickupStreak=state.boost>0?'⚡ OVERDRIVE':'⚡ '+state.coreStreak+' / 5';el.sectorBar.style.width=(state.time%E.SECTOR_SECONDS/E.SECTOR_SECONDS*100)+'%';
@@ -43,11 +43,25 @@
     Arcade.countdown(()=>{if(disposed)return;starting=false;running=true;paused=false;status('Running',true);chrome();pauseControl.sync();last=performance.now();raf=requestAnimationFrame(loop);if(document.hidden)pauseControl.button.click();});
   }
   el.startButton.addEventListener('click',start);
-  for(const [button,value]of [[el.leftButton,-1],[el.rightButton,1],[canvas,0]]){
+  for(const [button,value]of [[el.leftButton,-1],[el.rightButton,1]]){
     button.addEventListener('pointerdown',e=>{if(!running||paused||disposed||e.button>0)return;e.preventDefault();button.setPointerCapture(e.pointerId);pointers.set(e.pointerId,value|| (e.clientX<button.getBoundingClientRect().left+button.clientWidth/2?-1:1));inputStyle();});
-    if(button===canvas)button.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)||!running||paused)return;const r=canvas.getBoundingClientRect();pointers.set(e.pointerId,e.clientX<r.left+r.width/2?-1:1);inputStyle();});
+
   }
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(type,e=>{pointers.delete(e.pointerId);inputStyle();});
+  canvas.addEventListener('pointerdown',e=>{
+    if(!running||paused||disposed||e.button>0||e.isPrimary===false||trackDrag)return;
+    e.preventDefault();canvas.setPointerCapture(e.pointerId);
+    trackDrag={id:e.pointerId,lastX:e.clientX,target:state.x};
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!trackDrag||trackDrag.id!==e.pointerId||!running||paused)return;
+    const width=canvas.getBoundingClientRect().width;
+    if(width<=0)return;
+    const delta=(e.clientX-trackDrag.lastX)*canvas.width/width;
+    trackDrag.lastX=e.clientX;
+    trackDrag.target=Math.max(14,Math.min(canvas.width-14,trackDrag.target+delta));
+    inputStyle();
+  });
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(type,e=>{if(trackDrag?.id===e.pointerId)trackDrag=null;pointers.delete(e.pointerId);inputStyle();});
   document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,a,.modal-backdrop,dialog,#soundButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['ArrowLeft','ArrowRight','a','d'].includes(key)){e.preventDefault();if(running&&!paused){keys.add(key);inputStyle();}}if(key==='Enter'&&!running&&!starting)start();});
   document.addEventListener('keyup',e=>{keys.delete(e.key.length===1?e.key.toLowerCase():e.key);inputStyle();});
   pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();cancelAnimationFrame(raf);resetInput();message('PAUSED','Tap a drift control to resume');},resume:()=>{if(!paused||!running||disposed)return;paused=false;audio.unlock();el.driftMessage.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop);},allowWhilePaused:e=>!!e.target.closest?.('#soundButton'),resumeOnInput:e=>(e.type==='keydown'&&['ArrowLeft','ArrowRight','a','d','A','D'].includes(e.key))||!!e.target.closest?.('#driftControls,#game')});
