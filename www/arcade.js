@@ -3045,6 +3045,7 @@ const Arcade = (() => {
     const refresh = () => {
       const statusText = (statusEl?.textContent || '').trim().toLowerCase();
       const active =
+        statusEl?.classList.contains('running') ||
         statusText.includes('running') ||
         statusText.includes('get ready') ||
         statusText.includes('starting') ||

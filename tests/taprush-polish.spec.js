@@ -1,8 +1,13 @@
 const { test, expect } = require('@playwright/test');
 
-async function start(page) {
+async function start(page, lastPlay = false) {
   await page.addInitScript(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
   await page.goto('/taprush.html');
+  if (lastPlay) await page.evaluate(() => {
+    Arcade.remaining('tapRush');
+    localStorage.setItem('tapRushGamesPlayed', '2');
+    refreshChrome();
+  });
   if(await page.locator('#startButton').isVisible()) await page.locator('#startButton').click();
   else await page.locator('#board').click();
   await expect(page.locator('#gameStatus')).toHaveText('Running');
@@ -76,3 +81,25 @@ test('Tap Rush compact controls sit below the board and replay clears streaks', 
   await expect(page.locator('#hits')).toHaveText('0');
   expect(await page.evaluate(() => ({bonusCoins,bestStreak,expiredTargets}))).toEqual({bonusCoins:0,bestStreak:0,expiredTargets:0});
 });
+
+for (const lastPlay of [false, true]) {
+  test(`Tap Rush miss feedback keeps real taps playable (${lastPlay ? 'last play' : 'plays remaining'})`, async ({page,isMobile}) => {
+    await start(page, lastPlay);
+    const spent = await page.evaluate(() => localStorage.getItem('tapRushGamesPlayed'));
+    const before = await page.evaluate(() => roundEndsAt);
+    await page.locator('#board').click({position:{x:5,y:5}});
+    await expect(page.locator('#gameStatus')).toContainText('Miss 1');
+    await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
+    expect(await page.evaluate(() => roundEndsAt)).toBe(before - 750);
+    const targetBox = await page.locator('#target').boundingBox();
+    const input = isMobile ? page.touchscreen : page.mouse;
+    if (isMobile) await input.tap(targetBox.x + targetBox.width/2, targetBox.y + targetBox.height/2);
+    else await input.click(targetBox.x + targetBox.width/2, targetBox.y + targetBox.height/2);
+    await expect(page.locator('#hits')).toHaveText('1');
+    await expect(page.locator('.game-guide-overlay')).toHaveClass(/hidden/);
+    expect(await page.evaluate(() => localStorage.getItem('tapRushGamesPlayed'))).toBe(spent);
+    await page.evaluate(() => finishGame());
+    await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
+    if (lastPlay) await expect(page.locator('.game-guide-overlay-title')).toHaveText('Out of Plays');
+  });
+}
