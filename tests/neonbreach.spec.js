@@ -4,7 +4,7 @@ test('Expanded sector is connected and every spawn has a route to the player',()
  const s=E.create();E.navigation(s);let floor=0;
  for(let y=0;y<E.MAP.length;y++)for(let x=0;x<E.MAP[y].length;x++)if(E.MAP[y][x]==='0'){floor++;expect(s.nav[y*E.MAP[0].length+x]).toBeGreaterThanOrEqual(0)}
  expect(floor).toBeGreaterThan(210);
- for(const wave of [1,4,7,10,16]){const run=E.create(()=>.37);run.wave=wave-1;E.spawn(run);expect(run.enemies).toHaveLength(E.difficulty(wave).count);for(const e of run.enemies){expect(E.clear(e.x,e.y)).toBe(true);expect(Math.hypot(e.x-run.player.x,e.y-run.player.y)).toBeGreaterThan(3)}}
+ for(const wave of [1,4,7,10,16]){const run=E.create(()=>.37);run.wave=wave-1;E.spawn(run);expect(run.enemies).toHaveLength(E.difficulty(wave).count);for(const e of run.enemies){expect(E.clear(e.x,e.y)).toBe(true);expect(Math.hypot(e.x-run.player.x,e.y-run.player.y)).toBeGreaterThanOrEqual(E.SPAWN_DISTANCE)}}
 });
 test('Robots navigate around cover instead of getting trapped in the expanded map',()=>{
  for(const pos of [[2.5,2.5],[12.5,2.5],[14.5,8.5],[5.5,12.5],[15.5,15.5]]){
@@ -74,6 +74,13 @@ test('Neon Breach renders audible lasers and robot voice with bounded levels',as
  });
  expect(result.spoke).toBe(true);expect(result.overlap).toBe(false);expect(result.clips).toBe(10);expect(result.peak).toBeGreaterThan(.15);expect(result.peak).toBeLessThan(1);expect(result.rms).toBeGreaterThan(.015);
  expect(result.activeType).toBe('playback');expect(result.mutedType).toBe('auto');
+});
+
+test('Neon Breach never announces system failure just because kills hit a milestone',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const source=await page.evaluate(()=>fetch('neonbreach.js').then(r=>r.text()));
+ expect(source).not.toContain("say('failing')");
+ expect(source).toContain("say('critical',true)");
 });
 
 test('Neon Breach sound and voice settings persist and stop playback on pause',async({page})=>{
@@ -239,17 +246,29 @@ test('Shield visor expires cleanly and damaged robots honor reduced motion',asyn
  expect(result).toEqual({clean:0,shield:10,fading:10,dimmed:true,expired:0,restored:true,animated:true,calm:true,smokeRemoved:true});
 });
 
-test('New waves spawn at a safe distance and never in the rear hemisphere',()=>{
+test('New waves stay far ahead of the player and spread robots apart',()=>{
+ let checked=0;
  for(let y=1;y<17;y++)for(let x=1;x<17;x++)if(E.clear(x+.5,y+.5))for(let a=0;a<8;a++){
   const s=E.create(()=>.41);Object.assign(s.player,{x:x+.5,y:y+.5,a:a*Math.PI/4});E.spawn(s);
-  for(const e of s.enemies){expect(Math.hypot(e.x-s.player.x,e.y-s.player.y)).toBeGreaterThanOrEqual(6);expect(Math.abs(E.angle(Math.atan2(e.y-s.player.y,e.x-s.player.x)-s.player.a))).toBeLessThanOrEqual(Math.PI/2+.00001);expect(e.spawn).toBe(2)}
+  for(let i=0;i<s.enemies.length;i++){
+   const e=s.enemies[i],bearing=E.angle(Math.atan2(e.y-s.player.y,e.x-s.player.x)-s.player.a);
+   expect(Math.hypot(e.x-s.player.x,e.y-s.player.y)).toBeGreaterThanOrEqual(E.SPAWN_DISTANCE);
+   expect(Math.abs(bearing)).toBeLessThanOrEqual(E.SPAWN_ARC+.00001);
+   expect(e.spawn).toBe(E.SPAWN_DELAY);
+   for(let j=0;j<i;j++)expect(Math.hypot(e.x-s.enemies[j].x,e.y-s.enemies[j].y)).toBeGreaterThanOrEqual(E.SPAWN_SEPARATION);
+   checked++;
+  }
   if(!s.enemies.length){expect(s.wave).toBe(0);expect(s.score).toBe(0);expect(s.spawnBlocked).toBe(true)}
  }
+ expect(checked).toBeGreaterThan(1000);
  const s=E.create();Object.assign(s.player,{x:1.5,y:1.5,a:-Math.PI*3/4});E.spawn(s);expect(s.spawnBlocked).toBe(true);s.player.a=Math.PI/4;E.spawn(s);expect(s.enemies.length).toBeGreaterThan(0);expect(s.wave).toBe(1);
 });
-test('Materializing robots stay harmless and wait if a player walks into their warning',()=>{
- const s=E.create();s.wave=2;const robot={x:6.5,y:10.5,type:'sentry',hp:2,attack:0,spawn:2,phase:0};s.enemies=[robot];
- for(let i=0;i<39;i++)E.tick(s,.05);expect(robot.x).toBe(6.5);expect(robot.y).toBe(10.5);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
- Object.assign(s.player,{x:6.5,y:10.5});for(let i=0;i<60;i++)E.tick(s,.05);expect(robot.spawn).toBeGreaterThan(0);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
- s.player.y=15.5;for(let i=0;i<25;i++)E.tick(s,.05);expect(robot.spawn).toBe(0);expect(s.events.some(e=>e.type==='robot-fire')).toBe(true);
+test('Materializing robots stay harmless and extend warning time when the player approaches',()=>{
+ const s=E.create();s.wave=2;const robot={x:6.5,y:10.5,type:'sentry',hp:2,attack:0,spawn:E.SPAWN_DELAY,phase:0};s.enemies=[robot];
+ for(let i=0;i<Math.ceil(E.SPAWN_DELAY/.05)-1;i++)E.tick(s,.05);
+ expect(robot.x).toBe(6.5);expect(robot.y).toBe(10.5);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
+ Object.assign(s.player,{x:6.5,y:13.5});for(let i=0;i<60;i++)E.tick(s,.05);
+ expect(Math.hypot(s.player.x-robot.x,s.player.y-robot.y)).toBeLessThan(E.SPAWN_PLAYER_BUFFER);
+ expect(robot.spawn).toBeGreaterThan(0);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
+ s.player.y=15.5;for(let i=0;i<30;i++)E.tick(s,.05);expect(robot.spawn).toBe(0);expect(s.events.some(e=>e.type==='robot-fire')).toBe(true);
 });

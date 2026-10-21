@@ -18,7 +18,7 @@ function events(){
  for(const event of state.events){renderer.event(event);
   if(event.type==='fire')audio.effect('fire',state.overdrive>0);
   else if(event.type==='wall-impact'||event.type==='robot-fire')audio.effect(event.type);
-  else if(event.type==='impact'){audio.effect(event.killed?'kill':'hit');if(event.killed&&state.kills%5===0)say('failing')}
+  else if(event.type==='impact'){audio.effect(event.killed?'kill':'hit')}
   else if(event.type==='damage')audio.effect(event.shield?'shield':'damage');
   else if(event.type==='pickup'){audio.effect('pickup');if(event.kind!=='health')say(event.kind,true)}
   else if(event.type==='wave'){audio.effect('wave');say(state.wave===1?'acquired':state.wave%3===0?'heavy':['pursuit','resistance','hide'][(state.wave-2)%3])}

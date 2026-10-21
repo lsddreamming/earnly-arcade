@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const MAP=['111111111111111111','100000000000000001','100000000000000001','100110011001110001','100000000000000001','100000000000000001','100000000000000001','100110011000011001','100000000000000001','100000000000000001','100000000000000001','100011000110000001','100000000000000001','100000000000000001','100110001100110001','100000000000000001','100000000000000001','111111111111111111'];
-const TAU=Math.PI*2,SPAWN_DELAY=2,SPAWN_DISTANCE=6;
+const TAU=Math.PI*2,SPAWN_DELAY=2.5,SPAWN_DISTANCE=7,SPAWN_ARC=Math.PI*.42,SPAWN_SEPARATION=2.2,SPAWN_PLAYER_BUFFER=3.75;
 const angle=a=>Math.atan2(Math.sin(a),Math.cos(a));
 function wall(x,y){return MAP[Math.floor(y)]?.[Math.floor(x)]!=='0'}
 function clear(x,y,r=.22){return ![[-r,-r],[r,-r],[-r,r],[r,r]].some(([dx,dy])=>wall(x+dx,y+dy))}
@@ -17,15 +17,23 @@ function difficulty(wave){
 function spawn(s){
  const rules=difficulty(s.wave+1),cells=[];
  for(let y=1;y<MAP.length-1;y++)for(let x=1;x<MAP[0].length-1;x++){
-  const d=Math.hypot(x+.5-s.player.x,y+.5-s.player.y);
-  if(clear(x+.5,y+.5)&&d>=SPAWN_DISTANCE&&Math.abs(angle(Math.atan2(y+.5-s.player.y,x+.5-s.player.x)-s.player.a))<=Math.PI/2&&!s.enemies.some(e=>Math.hypot(e.x-x-.5,e.y-y-.5)<.6))cells.push({x:x+.5,y:y+.5});
+  const px=x+.5,py=y+.5,d=Math.hypot(px-s.player.x,py-s.player.y),bearing=Math.atan2(py-s.player.y,px-s.player.x);
+  if(clear(px,py)&&d>=SPAWN_DISTANCE&&Math.abs(angle(bearing-s.player.a))<=SPAWN_ARC&&!s.enemies.some(e=>Math.hypot(e.x-px,e.y-py)<SPAWN_SEPARATION)){
+   const visible=ray(s.player.x,s.player.y,bearing,d)>=d-.07;
+   cells.push({x:px,y:py,visible});
+  }
  }
  if(!cells.length){s.spawnBlocked=true;s.nextWave=.25;return}
  s.spawnBlocked=false;s.wave++;
- for(let i=0;i<rules.count&&cells.length;i++){
-  const pos=cells.splice(Math.min(cells.length-1,Math.floor(s.random()*cells.length)),1)[0];
+ const placed=[];
+ for(let i=0;i<rules.count;i++){
+  const eligible=cells.filter(pos=>placed.every(other=>Math.hypot(pos.x-other.x,pos.y-other.y)>=SPAWN_SEPARATION));
+  if(!eligible.length)break;
+  const visible=eligible.filter(pos=>pos.visible),pool=visible.length?visible:eligible;
+  const pos=pool[Math.min(pool.length-1,Math.floor(s.random()*pool.length))];
+  cells.splice(cells.indexOf(pos),1);placed.push(pos);
   const type=s.wave>=3&&i%3===0?'tank':s.wave>=2&&i%2===0?'sentry':'rusher',elite=s.wave>=6&&i%5===0,maxHp=(type==='tank'?4:type==='sentry'?2:1)+(elite?1:0);
-  s.enemies.push({...pos,type,elite,hp:maxHp,maxHp,attack:.8+s.random()*.8,phase:s.random()*TAU,stride:0,motion:0,spawn:SPAWN_DELAY,firing:0,charge:0,heading:0});
+  s.enemies.push({x:pos.x,y:pos.y,type,elite,hp:maxHp,maxHp,attack:.8+s.random()*.8,phase:s.random()*TAU,stride:0,motion:0,spawn:SPAWN_DELAY,firing:0,charge:0,heading:0});
  }
  s.nextWave=rules.rest;s.navTimer=0;s.score+=s.wave>1?50:0;emit(s,{type:'wave',wave:s.wave});
 }
@@ -84,7 +92,7 @@ s.navTimer-=dt;if(!s.nav||s.navTimer<=0)navigation(s);const rules=difficulty(s.w
 for(const e of s.enemies){
  e.hit=Math.max(0,(e.hit||0)-dt);
  // Materializing robots cannot move, charge, shoot or deal contact damage.
- if(e.spawn>0){e.spawn=Math.max(Math.hypot(p.x-e.x,p.y-e.y)<2.5?.15:0,e.spawn-dt);e.motion=0;e.charge=0;e.firing=0;continue}
+ if(e.spawn>0){e.spawn=Math.max(Math.hypot(p.x-e.x,p.y-e.y)<SPAWN_PLAYER_BUFFER?.3:0,e.spawn-dt);e.motion=0;e.charge=0;e.firing=0;continue}
  e.firing=Math.max(0,(e.firing||0)-dt);
  const d=Math.hypot(p.x-e.x,p.y-e.y),a=Math.atan2(p.y-e.y,p.x-e.x),oldX=e.x,oldY=e.y;
  e.attack-=dt;const visible=ray(e.x,e.y,a,d)>=d-.07;
@@ -104,5 +112,5 @@ for(const e of s.enemies){
 for(const b of s.shots){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(wall(b.x,b.y))b.life=0;if(Math.hypot(b.x-p.x,b.y-p.y)<.26){damage(s,18,{x:b.x-b.vx*.2,y:b.y-b.vy*.2});b.life=0}}s.shots=s.shots.filter(b=>b.life>0);
 for(const item of s.pickups){item.life-=dt;if(Math.hypot(item.x-p.x,item.y-p.y)<.55){const before=p.hp;if(item.type==='health')p.hp=Math.min(100,p.hp+30);else s[item.type]=8;emit(s,{type:'pickup',kind:item.type,amount:item.type==='health'?p.hp-before:8});item.life=0}}s.pickups=s.pickups.filter(i=>i.life>0);if(!s.enemies.length){s.nextWave-=dt;if(s.nextWave<=0){spawn(s)}}if(s.time>=180)s.ended=true;
 }
-const api={MAP,SPAWN_DELAY,SPAWN_DISTANCE,difficulty,navigation,angle,wall,clear,ray,move,create,spawn,aim,fire,tick};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NeonBreachEngine=api;
+const api={MAP,SPAWN_DELAY,SPAWN_DISTANCE,SPAWN_ARC,SPAWN_SEPARATION,SPAWN_PLAYER_BUFFER,difficulty,navigation,angle,wall,clear,ray,move,create,spawn,aim,fire,tick};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NeonBreachEngine=api;
 })(typeof window!=='undefined'?window:globalThis);
