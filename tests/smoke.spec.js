@@ -1375,7 +1375,7 @@ test('game start screen explains plays reward and controls before play', async (
     await expect(page.locator('.snake-stats')).toContainText('Plays');
     await expect(page.locator('.snake-quick-tip')).toContainText('Swipe anywhere');
     await page.locator('.game-guide-more summary').click();
-    await expect(page.locator('.game-guide-more')).toContainText('Max 30 Coins per run');
+    await expect(page.locator('.game-guide-more')).toContainText('Up to 100 Coins per run');
   } else {
     await expect(summary).toBeVisible();
     await expect(summary.locator('.game-start-plays')).toContainText('play');
