@@ -7,6 +7,7 @@
 - Extra Plays Rewarded: ca-app-pub-8864401806510610/8249888009, matching the native bridge.
 - No app-level or ad-unit frequency cap.
 - Both root and www app-ads.txt return HTTP 200 and publisher pub-8864401806510610; robots.txt allows crawling.
+- Signed IPA artifacts verified: 1.4 build 201 (run 39167765345) and 1.5 build 301 (run 39421468110) both contain TEST_MODE=false, the production app ID and production rewarded unit. Both contain consent gating and lack a privacy-options entry point.
 - Last-seven-days account dashboard showed zero requests and impressions; actual delivery is not verified.
 
 ## Prepared, not published
@@ -15,7 +16,7 @@ No European consent message existed. Saved an English draft named “Earnly Arca
 The draft still uses Google's existing account-level vendor/purpose defaults. Review these before publishing: the preview references 210 partners and precise geolocation, which must not be assumed to describe Earnly's intended setup. Do not publish merely to bypass a consent error.
 
 ## App changes
-Adds Privacy → Manage ad privacy choices in native iOS, invalidates cached permission after changes, retries consent readiness after a not-ready result, and removes misleading test-ad wording from live ad failures. Privacy access never loads an ad or grants a reward. Separates privacy-check (A02), iPhone permission (A01), and load errors without exposing raw SDK data to players. Native ad changes trigger an unsigned iOS simulator compile only, never an Apple upload.
+Adds Privacy → Manage ad privacy choices in native iOS, invalidates cached permission after changes, retries consent readiness after a not-ready result, and removes misleading test-ad wording from live ad failures. Privacy access never loads an ad or grants a reward. Separates privacy-check (A02), iPhone permission (A01), and load errors without exposing raw SDK data to players. Handles native dismissed and failed-to-show events even when the plugin promise never settles; rewards are returned only after dismissal, and listeners are removed. Native ad changes trigger an unsigned iOS simulator compile only, never an Apple upload.
 
 ## Remaining release gates
 1. Run hosted desktop/mobile QA and a native build against this change.

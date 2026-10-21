@@ -5,18 +5,23 @@ import {readFileSync} from 'node:fs';
 const source = readFileSync('native-ads-entry.js','utf8').replace(/^import .*;\n/gm,'');
 function harness(initial='notDetermined', answer='authorized', canRequestAds=true, fail=false, options={}) {
   const calls=[]; let status=initial;
+  const listeners=new Map();
+  const events={Rewarded:'reward',Dismissed:'dismiss',FailedToShow:'failed'};
+  let started;const showStarted=new Promise(resolve=>{started=resolve;});
+  const emit=(event,data)=>listeners.get(event)?.(data);
   const AdMob={
+    addListener:async(event,callback)=>{listeners.set(event,callback);return {remove:async()=>listeners.delete(event)};},
     trackingAuthorizationStatus:async()=>{calls.push('status');return {status};},
     requestTrackingAuthorization:async()=>{calls.push('att');if(fail) throw Error('unavailable');status=answer;},
     initialize:async()=>calls.push('initialize'),
     requestConsentInfo:async()=>{calls.push('consent');if(options.failConsent) throw Error('Request consent info failed');return {canRequestAds:options.canRequestAds ?? canRequestAds,status:'NOT_REQUIRED',privacyOptionsRequirementStatus:options.privacyOptionsRequired ? 'REQUIRED' : 'NOT_REQUIRED'};},
     prepareRewardVideoAd:async request=>{calls.push('load');if(options.failLoad) throw Error('No fill');assert.equal(request.npa,true);assert.equal(request.isTesting,options.testMode !== false);assert.equal(request.adId, options.testMode === false ? 'ca-app-pub-8864401806510610/8249888009' : 'ca-app-pub-3940256099942544/1712485313');return {};},
     showPrivacyOptionsForm:async()=>{calls.push('privacy');if(options.failPrivacy) throw Error('interrupted');options.canRequestAds=false;},
-    showRewardVideoAd:async()=>{calls.push('show');if(options.failShow) throw Error('Closed');return {amount:1};}
+    showRewardVideoAd:async()=>{calls.push('show');started();if(options.failShow) throw Error('Closed');if(options.holdShow) return new Promise(()=>{});emit('reward',{amount:1});emit('dismiss');return {amount:1};}
   };
   const window={dispatchEvent(){}};
-  vm.runInNewContext(source,{AdMob,Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'ios'},AdmobConsentStatus:{REQUIRED:'REQUIRED'},__EARNLY_ADMOB_TEST_MODE__:options.testMode !== false,window,CustomEvent:class {}});
-  return {calls,ads:window.EarnlyNativeAds};
+  vm.runInNewContext(source,{AdMob,RewardAdPluginEvents:events,Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'ios'},AdmobConsentStatus:{REQUIRED:'REQUIRED'},__EARNLY_ADMOB_TEST_MODE__:options.testMode !== false,window,CustomEvent:class {}});
+  return {calls,ads:window.EarnlyNativeAds,emit,listeners,showStarted};
 }
 test('first ad waits for ATT before SDK, consent and loading',async()=>{
   const h=harness();assert.equal(h.calls.length,0);
@@ -80,4 +85,21 @@ for(const [option,code] of [['failLoad','EARNLY_AD_LOAD'],['failShow','EARNLY_AD
   const h=harness('denied','denied',true,false,{[option]:true});
   await assert.rejects(h.ads.showRewarded(),error=>error.code===code);
   if(option==='failLoad') assert.ok(!h.calls.includes('show'));
+});
+
+test('closing an unrewarded ad settles even when the plugin show promise never settles',async()=>{
+  const h=harness('denied','denied',true,false,{holdShow:true});
+  const result=h.ads.showRewarded();await h.showStarted;h.emit('dismiss');
+  assert.equal((await result).earned,false);assert.equal(h.listeners.size,0);
+});
+test('earned reward waits for dismissal and listeners are removed once',async()=>{
+  const h=harness('denied','denied',true,false,{holdShow:true});
+  let finished=false;const result=h.ads.showRewarded().then(value=>{finished=true;return value;});
+  await h.showStarted;h.emit('reward',{amount:1});await Promise.resolve();assert.equal(finished,false);
+  h.emit('dismiss');assert.equal((await result).earned,true);assert.equal(h.listeners.size,0);
+  h.emit('reward',{amount:100});h.emit('dismiss');assert.equal(h.listeners.size,0);
+});
+test('native failure-to-show event releases the caller even with a pending plugin promise',async()=>{
+  const h=harness('denied','denied',true,false,{holdShow:true});const result=h.ads.showRewarded();
+  await h.showStarted;h.emit('failed');await assert.rejects(result,error=>error.code==='EARNLY_AD_SHOW');assert.equal(h.listeners.size,0);
 });

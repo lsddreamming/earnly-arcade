@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { AdMob, AdmobConsentStatus } from '@capacitor-community/admob';
+import { AdMob, AdmobConsentStatus, RewardAdPluginEvents } from '@capacitor-community/admob';
 
 const TEST_REWARDED_IOS = 'ca-app-pub-3940256099942544/1712485313';
 const PRODUCTION_REWARDED = {
@@ -77,6 +77,33 @@ async function showPrivacyOptions() {
   }
 }
 
+// The iOS plugin's show promise resolves on reward, but can remain pending
+// after an unrewarded dismissal. Settle from lifecycle events instead.
+async function presentRewarded(options) {
+  let reward = null;
+  let settled = false;
+  const listeners = [];
+  let resolve, reject;
+  const completion = new Promise((yes, no) => { resolve = yes; reject = no; });
+  const finish = error => {
+    if (settled) return;
+    settled = true;
+    for (const listener of listeners) Promise.resolve(listener.remove()).catch(() => {});
+    if (error) reject(error); else resolve(reward);
+  };
+  try {
+    listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, value => {
+      if (!settled) reward = value;
+    }));
+    listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => finish()));
+    listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => finish(new Error('Ad presentation failed'))));
+    Promise.resolve(AdMob.showRewardVideoAd(options)).then(value => {
+      if (!settled) reward = value;
+    }, finish);
+  } catch (error) { finish(error); }
+  return completion;
+}
+
 async function showRewarded(kind = 'extraPlays') {
   const readiness = await ensureAdMobReady();
   if (!readiness.ready) return { earned:false, reason:readiness.reason };
@@ -92,10 +119,11 @@ async function showRewarded(kind = 'extraPlays') {
     npa: true
   }));
 
-  const reward = await adStep('EARNLY_AD_SHOW', () => AdMob.showRewardVideoAd(
+  const reward = await adStep('EARNLY_AD_SHOW', () => presentRewarded(
     loaded?.adUnitId ? { adId:loaded.adUnitId } : undefined
   ));
 
+  if (!reward) return { earned:false, reason:'dismissed' };
   return {
     earned:true,
     amount:Number(reward?.amount || 1),
