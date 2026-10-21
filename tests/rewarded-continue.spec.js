@@ -36,13 +36,13 @@ test('web does not offer a simulated rewarded life', async({page})=>{
 });
 
 for(const game of ['snake','stardefender']) test(game+' preserves progress and offers only one life before final payout', async({page})=>{
-  if(game==='stardefender') await page.route('**/stardefender.html',async route=>{
+  if(game==='stardefender') await page.route('**/stardefender.html*',async route=>{
     const response=await route.fetch();
     const html=(await response.text()).replace('    function finish(finalize=false)', `    window.lifeTest={die:()=>{score=240;wave=3;lives=0;elapsed=20;running=true;finish()},used:()=>bonusLifeUsed,score:()=>score,end:()=>{lives=0;finish()}};
     function finish(finalize=false)`);
     await route.fulfill({response,body:html});
   });
-  await page.goto('/'+game+'.html');
+  await page.goto('/'+game+'.html'+(game==='stardefender'?'?sd=20260925d':''));
   await page.evaluate(game=>{
     window.EarnlyNativeAds={isNative:true,showRewarded:async()=>({earned:true})};
     window.payouts=0; Arcade.earn=()=>window.payouts++;
