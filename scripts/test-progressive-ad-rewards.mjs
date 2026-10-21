@@ -15,7 +15,7 @@ await db.exec('update ad_bonus_settings set enabled=true');
 const oldTicket=(await scalar("select ad_bonus_ticket($1,'bonusCoins')",[legacy])).ticket;
 await db.exec(await readFile('supabase/migrations/20261021153607_progressive_ad_rewards.sql','utf8'));
 assert.equal((await status(legacy)).coins,100);
-assert.equal((await status()).coins,750);
+assert.equal((await status()).coins,600);
 assert.equal((await status()).earnedCoins,0);
 const unit='ca-app-pub-8864401806510610/1831908609',extra='ca-app-pub-8864401806510610/8249888009';
 const complete=(ticket,tx,ad=unit)=>scalar('select ad_bonus_complete($1,$2,$3,now())',[ticket,tx,ad]);
@@ -31,13 +31,13 @@ for(let i=1;i<=5;i++){
  if(i===2){assert.equal(await complete(t,'tx-1',extra),false);assert.equal((await status()).watched,1);}
  assert.equal(await complete(t,'tx-'+i,i===2?extra:unit),true);
  await complete(t,'tx-'+i,i===2?extra:unit);
- const earned=i*100+(i===5?250:0);
+ const earned=i*100+(i===5?100:0);
  assert.equal((await status()).earnedCoins,earned);
  assert.equal(await scalar('select balance from coin_wallets where user_id=$1',[uid]),1250+earned);
 }
 assert.equal((await status()).awarded,true);
 assert.equal(await ticket(),undefined);
-assert.equal(await scalar('select count(*)::int from coin_ledger where user_id=$1',[uid]),8);
+assert.equal(await scalar('select count(*)::int from coin_ledger where user_id=$1',[uid]),6);
 for(let i=1;i<=5;i++)await complete(i===1?oldTicket:await ticket(legacy),'old-'+i);
 assert.equal((await status(legacy)).earnedCoins,100);
 assert.equal(await scalar('select balance from coin_wallets where user_id=$1',[legacy]),2100);

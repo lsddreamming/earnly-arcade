@@ -548,7 +548,7 @@
         'Fill a complete horizontal row to clear it. The run ends when a new piece can no longer fit.',
         'You can also use the Left, Rotate, Right, and Drop buttons below the board.'
       ],
-      reward:'Earn up to 5 Coins per run. After that, keep clearing lines for bonus XP and a higher best score.'
+      reward:'Earn up to 100 Coins per run. After that, keep clearing lines for bonus XP and a higher best score.'
     });
 
     const rows = 20;
@@ -581,13 +581,13 @@
     let pieceSerial = 0;
     let upcomingPieces = [];
 
-    function rewardForLines(value) { return Math.min(Math.max(0, Number(value) || 0), 5); }
+    function rewardForLines(value) { return Arcade.gameReward('blockDrop',value); }
 
     function refreshReward() {
       const reward = rewardForLines(lines);
-      rewardPreviewEl.textContent = reward >= 5 ? 'MAX 5 · XP ↑' : String(reward);
-      runRewardPill.setAttribute('aria-label', reward >= 5
-        ? 'Maximum 5 Arcade Coins reached. Keep clearing lines for performance XP and a higher best score.'
+      rewardPreviewEl.textContent = reward >= 100 ? 'MAX 100 · XP ↑' : String(reward);
+      runRewardPill.setAttribute('aria-label', reward >= 100
+        ? 'Maximum 100 Arcade Coins reached. Keep clearing lines for performance XP and a higher best score.'
         : reward + ' Arcade Coins earned this run');
       if (game && game !== 'paused' && reward > lastRewardShown) {
         runRewardPill.classList.remove('reward-bump');

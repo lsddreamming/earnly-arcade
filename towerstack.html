@@ -170,13 +170,13 @@
         'Any overhang is cut away, so every miss makes the next floor harder to place.',
         'If a floor completely misses the tower, the run ends. Centered drops count as perfects.'
       ],
-      reward:'Floors and perfect stacks can earn up to 25 Coins.'
+      reward:'Floors and perfect stacks can earn up to 100 Coins.'
     });
 
     const blockHeight = 28;
     const startWidth = 190;
     const baseY = 500;
-    const MAX_COINS = 25;
+    const MAX_COINS = 100;
 
     let blocks = [];
     let moving = null;
@@ -191,13 +191,7 @@
 
     const palette = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6'];
 
-    function rewardFor(floorCount, perfectCount) {
-      let coins = Math.floor(floorCount / 3) + Math.floor(perfectCount / 3);
-      if (floorCount >= 10) coins += 2;
-      if (floorCount >= 20) coins += 3;
-      if (floorCount >= 30) coins += 5;
-      return Math.min(coins, MAX_COINS);
-    }
+    function rewardFor(floorCount, perfectCount) { return Arcade.gameReward('towerStack',floorCount,perfectCount); }
 
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('towerStack');
@@ -453,7 +447,7 @@
         Arcade.out('towerStack', refreshChrome);
         return;
       }
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       resetGame();
       running = false;

@@ -11,7 +11,7 @@
   function resetInput(){pointers.clear();keys.clear();inputStyle();}
   function chrome(){
     const values={score:state.score,hull:state.hull,time:Math.ceil(E.DURATION-state.time),plays:Arcade.remaining(game),balance:Arcade.number('points').toLocaleString(),speed:running?Math.round(E.difficulty(state.time).speed*.65):0,combo:'×'+state.combo,driftState:running?(state.boost>0?'OVERDRIVE':Math.abs(state.vx)>48?'DRIFTING':'SECTOR 0'+state.stage):'MIDNIGHT CIRCUIT'};
-    values.sectorProgress=running?'SECTOR 0'+state.stage+' / 06 · '+Math.ceil(E.SECTOR_SECONDS-state.time%E.SECTOR_SECONDS)+'s':('BEST SECTOR '+Math.max(1,Arcade.number('arcadeNeonDriftTopSector'))+' · '+(Math.max(state.stage,state.paintSector)>=5?'GOLD CAR':Math.max(state.stage,state.paintSector)>=3?'VIOLET CAR':'CYAN CAR'));values.runCoins=E.rewards(state).total+' Coins';values.pickupStreak=state.boost>0?'⚡ OVERDRIVE':'⚡ '+state.coreStreak+' / 5';el.sectorBar.style.width=(state.time%E.SECTOR_SECONDS/E.SECTOR_SECONDS*100)+'%';
+    values.sectorProgress=running?'SECTOR 0'+state.stage+' / 06 · '+Math.ceil(E.SECTOR_SECONDS-state.time%E.SECTOR_SECONDS)+'s':('BEST SECTOR '+Math.max(1,Arcade.number('arcadeNeonDriftTopSector'))+' · '+(Math.max(state.stage,state.paintSector)>=5?'GOLD CAR':Math.max(state.stage,state.paintSector)>=3?'VIOLET CAR':'CYAN CAR'));values.runCoins=Arcade.gameReward('neonDrift',state.score,E.rewards(state).bonus)+' Coins';values.pickupStreak=state.boost>0?'⚡ OVERDRIVE':'⚡ '+state.coreStreak+' / 5';el.sectorBar.style.width=(state.time%E.SECTOR_SECONDS/E.SECTOR_SECONDS*100)+'%';
     for(const [key,value]of Object.entries(values))if(el[key].textContent!==String(value))el[key].textContent=value;
   }
   function soundControl(){const on=Arcade.soundEnabled();el.soundButton.textContent=on?'♫ On':'♫ Off';el.soundButton.setAttribute('aria-pressed',String(on));el.soundButton.setAttribute('aria-label',on?'Mute sound effects':'Enable sound effects');}
@@ -20,12 +20,12 @@
   function message(title,subtitle){el.driftMessage.innerHTML='<strong>'+title+'</strong><span>'+subtitle+'</span>';el.driftMessage.hidden=false;}
   function finish(){
     if(!running)return;audio.stop();audio.effect(state.time>=E.DURATION?'complete':'end');clearTimeout(settleTimer);settleTimer=setTimeout(()=>{if(!running&&!starting)audio.suspend();},1100);running=false;paused=false;cancelAnimationFrame(raf);resetInput();status('Run Over',false);el.driftCallout.hidden=true;el.driftMessage.hidden=true;
-    const reward=E.rewards(state),coins=reward.total;let result={};
+    const reward=E.rewards(state),coins=Arcade.gameReward('neonDrift',state.score,reward.bonus);let result={};
     localStorage.setItem('arcadeNeonDriftTopSector',String(Math.max(state.stage,Arcade.number('arcadeNeonDriftTopSector'))));
     try{Arcade.earn(coins,'Neon Drift',{kind:'game',game,metric:state.score,aux:reward.bonus});}catch(err){console.error('Drift reward save failed',err);}
     try{result=Arcade.recordResult(game,state.score)||{};}catch(err){console.error('Drift result save failed',err);}
     chrome();
-    Arcade.gameResult({game,icon:'🏁',title:state.time>=E.DURATION?'Midnight Run Complete':'Neon Drift Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:['🪙 Score Coins: '+reward.base+' · Bonus Coins: '+reward.bonus,'⚡ Pickups: '+state.cores+' · Clean sectors: '+state.cleanSectors,'🏁 Sector reached: '+state.stage+' / 6','🏁 Near misses: '+state.nearMisses,'⚡ Best combo: ×'+state.bestCombo,'↗ Drift time: '+Math.floor(state.drift)+'s','⏱️ Time played: '+Math.round(state.time)+'s'],onReplay:start,onMorePlays:()=>Arcade.out(game,chrome)});
+    Arcade.gameResult({game,icon:'🏁',title:state.time>=E.DURATION?'Midnight Run Complete':'Neon Drift Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:['🪙 Score Coins: '+reward.base*2+' · Bonus Coins: '+reward.bonus*2,'⚡ Pickups: '+state.cores+' · Clean sectors: '+state.cleanSectors,'🏁 Sector reached: '+state.stage+' / 6','🏁 Near misses: '+state.nearMisses,'⚡ Best combo: ×'+state.bestCombo,'↗ Drift time: '+Math.floor(state.drift)+'s','⏱️ Time played: '+Math.round(state.time)+'s'],onReplay:start,onMorePlays:()=>Arcade.out(game,chrome)});
     // The shared dialog can be dismissed; keep an explicit replay button behind it.
     message('RUN COMPLETE','One more midnight run?');const replay=document.createElement('button');replay.id='startButton';replay.textContent='▶ PLAY AGAIN';replay.type='button';replay.addEventListener('click',start);el.driftMessage.append(replay);el.startButton=replay;
   }

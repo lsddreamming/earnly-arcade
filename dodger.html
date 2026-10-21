@@ -260,14 +260,7 @@
         :'Best: Level '+bestLevel+' · Score '+bestStyle.toLocaleString()+' · Swipe for cores · 5 in a row = OVERDRIVE';
     }
 
-    function rewardFor(seconds,dodgedCount){
-      // Survival rewards remain capped even though the run can continue.
-      let coins=Math.floor(seconds/6)+Math.floor(dodgedCount/12);
-      if(seconds>=20) coins+=1;
-      if(seconds>=40) coins+=2;
-      if(seconds>=60) coins+=3;
-      return Math.min(coins,20);
-    }
+    function rewardFor(seconds,dodgedCount){ return Arcade.gameReward('dodger',seconds,dodgedCount); }
 
     function refreshChrome(){
       const remaining=Arcade.remaining('dodger');

@@ -14,7 +14,7 @@ test('Jungle gold is optional, collected once, and paid with the vine score unch
     const collected={safe,bonusCoins,coinsCollected,score,reward:rewardFor(score)};
     finishGame();return collected;
   });
-  expect(got).toEqual({safe:0,bonusCoins:1,coinsCollected:1,score:1,reward:1});
+  expect(got).toEqual({safe:0,bonusCoins:1,coinsCollected:1,score:1,reward:4});
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Gold collected: 1');
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('arcadeSyncQueue')||'[]').filter(e=>e.type==='coin_award').map(e=>e.payload.server).find(s=>s?.game==='jungleHopper'))).toEqual({kind:'game',game:'jungleHopper',metric:1,aux:1});
 });
@@ -42,7 +42,7 @@ test('Jungle collision ends the run before awarding a nearby coin, rewards stay 
     stepGame();const collision={running,bonusCoins};
     bonusCoins=20;return {...collision,cap:rewardFor(100)};
   });
-  expect(got).toEqual({running:false,bonusCoins:0,cap:25});
+  expect(got).toEqual({running:false,bonusCoins:0,cap:100});
 });
 test('Jungle pause freezes gold and physics; replay resets the run',async({page,isMobile})=>{
   await ready(page);

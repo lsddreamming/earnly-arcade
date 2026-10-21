@@ -228,7 +228,7 @@
       steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the basket'},{icon:'💰',title:'Goal',text:'Catch coins, avoid bombs'}],
       overlayIcon:'💰',overlayTitle:'Catch the Coins',overlayText:'Catch coins. A missed coin costs 1 strike; catching a bomb costs 2. Five strikes ends the run.',replayTitle:'Tap to Play Again',
       tips:['Move with your finger/mouse, or use ← → / A D on a keyboard.','Strikes carry across levels: missed coin = 1, caught bomb = 2, 5 strikes ends the run.'],
-      reward:'Keep advancing through harder levels. The 25-Coin max now takes a deep run, and high scores also earn bonus XP.'
+      reward:'Keep advancing through harder levels. The 100-Coin max now takes a deep run, and high scores also earn bonus XP.'
     });
     const basket={x:137,y:448,w:86,h:24};
     const LEVEL_SECONDS=20;
@@ -263,27 +263,20 @@
         liveTipTimer=null;
       },duration);
     }
-    function rewardFor(v){
-      const catches=Math.max(0,Math.floor(Number(v)||0));
-      let c=catches>=6 ? 1+Math.floor((catches-6)/12) : 0;
-      if(catches>=75)c+=1;
-      if(catches>=150)c+=1;
-      if(catches>=225)c+=1;
-      return Math.min(c,25);
-    }
+    function rewardFor(v){ return Arcade.gameReward('coinCatch',v); }
     let lastRewardShown=0;
     function refreshReward(){
       const reward=rewardFor(score);
       rewardPreviewEl.textContent=String(reward);
-      earnedCoinsEl.textContent=reward>=25?'MAX +25 · XP ↑':'+'+reward;
-      earnedHudEl.setAttribute('aria-label', reward>=25
-        ? 'Maximum 25 Arcade Coins reached. Keep playing for performance XP and a higher best score.'
+      earnedCoinsEl.textContent=reward>=100?'MAX +100 · XP ↑':'+'+reward;
+      earnedHudEl.setAttribute('aria-label', reward>=100
+        ? 'Maximum 100 Arcade Coins reached. Keep playing for performance XP and a higher best score.'
         : reward+' Arcade Coins earned this run');
       if(running&&reward>lastRewardShown){
         earnedHudEl.classList.remove('bump');
         void earnedHudEl.offsetWidth;
         earnedHudEl.classList.add('bump');
-        if(reward===5||reward===10||reward===15||reward===20||reward===25){
+        if(reward===20||reward===40||reward===60||reward===80||reward===100){
           Arcade.feedback('success',{message:'🪙 '+reward+' Arcade Coins this run'});
         }
       }

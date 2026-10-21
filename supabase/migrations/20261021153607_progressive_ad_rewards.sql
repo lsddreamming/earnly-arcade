@@ -1,18 +1,18 @@
 -- Preserve the original promise for days/tickets already in progress.
--- New days pay 100 per verified session plus 250 on completion (750 maximum).
+-- New days pay 100 per verified session plus 100 on completion (600 maximum).
 -- Play allowances and tester status deliberately have no role in eligibility.
 insert into public.ad_bonus_days(user_id,day)
  select distinct user_id,day from public.ad_bonus_tickets on conflict do nothing;
 alter table public.ad_bonus_days add column per_ad_coins integer not null default 0 check(per_ad_coins between 0 and 100);
 alter table public.ad_bonus_days add column completion_coins integer not null default 100 check(completion_coins in (100,250));
 alter table public.ad_bonus_days alter column per_ad_coins set default 100;
-alter table public.ad_bonus_days alter column completion_coins set default 250;
+alter table public.ad_bonus_days alter column completion_coins set default 100;
 
 create or replace function public.ad_bonus_status(p_actor uuid) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare d date:=(now() at time zone 'UTC')::date; w integer; a boolean; per_ad integer; finish integer;
 begin
  select watched,awarded,per_ad_coins,completion_coins into w,a,per_ad,finish from public.ad_bonus_days where user_id=p_actor and day=d;
- return jsonb_build_object('enabled',coalesce((select enabled from public.ad_bonus_settings where id),false),'watched',coalesce(w,0),'awarded',coalesce(a,false),'goal',5,'coins',coalesce(per_ad,100)*5+coalesce(finish,250),'perAdCoins',coalesce(per_ad,100),'completionBonus',coalesce(finish,250),'earnedCoins',coalesce(w,0)*coalesce(per_ad,100)+case when coalesce(a,false) then coalesce(finish,250) else 0 end,'day',d,'resetAt',((d+1)::timestamp at time zone 'UTC'));
+ return jsonb_build_object('enabled',coalesce((select enabled from public.ad_bonus_settings where id),false),'watched',coalesce(w,0),'awarded',coalesce(a,false),'goal',5,'coins',coalesce(per_ad,100)*5+coalesce(finish,100),'perAdCoins',coalesce(per_ad,100),'completionBonus',coalesce(finish,100),'earnedCoins',coalesce(w,0)*coalesce(per_ad,100)+case when coalesce(a,false) then coalesce(finish,100) else 0 end,'day',d,'resetAt',((d+1)::timestamp at time zone 'UTC'));
 end $$;
 
 create or replace function public.ad_bonus_complete(p_ticket uuid,p_transaction text,p_ad_unit text,p_rewarded_at timestamptz) returns boolean language plpgsql security invoker set search_path='' as $$

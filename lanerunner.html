@@ -131,9 +131,9 @@
     const canvas=document.getElementById('game'),laneControlZone=document.getElementById('laneControlZone'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
       overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
-      tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 35 Coins.'});
+      tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 100 Coins.'});
     const lanes=[72,180,288];let lane=1,targetLane=1,playerX=lanes[1],obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
-    function rewardFor(s,p){let c=Math.floor(s/8)+Math.floor(p/14);if(s>=30)c+=2;if(s>=60)c+=3;if(s>=90)c+=4;return Math.min(c,35)}
+    function rewardFor(s,p){ return Arcade.gameReward('laneRunner',s,p); }
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
     function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;playerX=lanes[1];obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function drawCar(x,y,isPlayer,variant){

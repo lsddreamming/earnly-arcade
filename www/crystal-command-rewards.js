@@ -5,6 +5,6 @@ window.CrystalRewards={
   if(!view?.ended||view.learning||view.winner!==side||view.reason!=='All enemy structures destroyed'||view.time<60||view.player?.kills<1)return null;
   const metric=Math.min(10000,Math.max(0,Math.floor(view.player.kills))),aux=Math.min(10000,Math.max(0,Math.floor(view.time)));
   if(!Number.isFinite(metric)||!Number.isFinite(aux))return null;
-  return {metric,aux,coins:10+Math.min(15,Math.floor(metric/3))};
+  return {metric,aux,coins:4*(10+Math.min(15,Math.floor(metric/3)))};
  }
 };
