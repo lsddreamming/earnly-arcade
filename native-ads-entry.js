@@ -3,7 +3,8 @@ import { AdMob, AdmobConsentStatus, RewardAdPluginEvents } from '@capacitor-comm
 
 const TEST_REWARDED_IOS = 'ca-app-pub-3940256099942544/1712485313';
 const PRODUCTION_REWARDED = {
-  extraPlays: 'ca-app-pub-8864401806510610/8249888009'
+  extraPlays: 'ca-app-pub-8864401806510610/8249888009',
+  bonusCoins: 'ca-app-pub-8864401806510610/1831908609'
 };
 
 const TEST_MODE = __EARNLY_ADMOB_TEST_MODE__;
@@ -117,12 +118,19 @@ async function showRewarded(kind = 'extraPlays') {
   const productionId = PRODUCTION_REWARDED[kind];
   if (!productionId) throw new Error('Unknown Earnly rewarded-ad placement: ' + kind);
 
+  let ticket;
+  if (!TEST_MODE) {
+    try { ticket = (await window.EarnlyCloud?.adBonus('ticket', kind))?.ticket; } catch {}
+  }
+  if (kind === 'bonusCoins' && !ticket) return { earned:false, reason:'bonus-unavailable' };
+
   const adId = TEST_MODE ? TEST_REWARDED_IOS : productionId;
   const loaded = await adStep('EARNLY_AD_LOAD', () => AdMob.prepareRewardVideoAd({
     adId,
     isTesting: TEST_MODE,
     // Non-personalized ads still require the ATT/consent flow above.
-    npa: true
+    npa: true,
+    ...(ticket ? { ssv:{ customData:ticket } } : {})
   }));
 
   const reward = await adStep('EARNLY_AD_SHOW', () => presentRewarded(
@@ -142,6 +150,7 @@ async function showRewarded(kind = 'extraPlays') {
 window.EarnlyNativeAds = Object.freeze({
   isNative,
   testMode:TEST_MODE,
+  supportsDailyBonus:!TEST_MODE,
   ensureReady:ensureAdMobReady,
   showPrivacyOptions,
   showRewarded

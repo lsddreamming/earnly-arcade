@@ -8,3 +8,7 @@ verify_jwt = false
 [functions.activity]
 # Every request verifies its bearer with auth.getUser; reporting also checks a server-only owner allowlist.
 verify_jwt = false
+
+[functions.ad-bonus]
+# GET authenticates Google signatures; POST validates the signed-in user.
+verify_jwt = false
