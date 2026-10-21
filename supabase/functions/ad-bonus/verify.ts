@@ -19,12 +19,16 @@ export function verifyReceipt(url:string,keys:any[],now=Date.now()){
  const p=new URLSearchParams(raw);
  for(const name of p.keys())if(p.getAll(name).length!==1)throw new Error('Duplicate field');
  const key=keys.find(k=>String(k.keyId)===match[3]);
- if(!key?.pem||!verify('sha256',Buffer.from(match[1]),key.pem,Buffer.from(decodeURIComponent(match[2]),'base64url')))throw new Error('Invalid signature');
+ if(!key?.pem)throw new Error('Unknown signing key');
+ // Google's reference verifier uses URI.getQuery(), which percent-decodes the signed content.
+ const signature=Buffer.from(decodeURIComponent(match[2]),'base64url');
+ if(!verify('sha256',Buffer.from(decodeURIComponent(match[1])),key.pem,signature))throw new Error('Invalid signature');
  let unit=p.get('ad_unit')||'';
  if(['8249888009','1831908609'].includes(unit))unit='ca-app-pub-8864401806510610/'+unit;
  const ticket=p.get('custom_data')||'',transaction=p.get('transaction_id')||'';
  const time=Number(p.get('timestamp'));
- if(!UNITS.has(unit)||!/^\d+$/.test(p.get('timestamp')||'')||time>now+300000||time<now-172800000)throw new Error('Invalid receipt context');
+ const test=unit==='1234567890'&&ticket==='00000000-0000-4000-8000-000000000000'&&transaction==='123456789';
+ if((!test&&!UNITS.has(unit))||!/^\d+$/.test(p.get('timestamp')||'')||time>now+300000||time<now-172800000)throw new Error('Invalid receipt context');
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticket)||!transaction||transaction.length>128)throw new Error('Invalid reward identity');
- return {ticket,transaction,unit,time:new Date(time).toISOString()};
+ return {ticket,transaction,unit,test,time:new Date(time).toISOString()};
 }

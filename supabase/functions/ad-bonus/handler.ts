@@ -5,7 +5,12 @@ export async function handleAdBonus(req:Request,db:any,getKeys=googleKeys){
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
  if(req.method==='GET'){
   let receipt;
-  try{receipt=verifyReceipt(req.url,await getKeys());}catch{return json({error:'Invalid receipt'},400);}
+  try{receipt=verifyReceipt(req.url,await getKeys());}catch(error){
+   const u=new URL(req.url);
+   console.warn('Ad bonus receipt rejected', {reason:error instanceof Error?error.message:'unknown',fields:[...u.searchParams.keys()],adUnit:u.searchParams.get('ad_unit'),timestamp:u.searchParams.get('timestamp')});
+   return json({error:'Invalid receipt'},400);
+  }
+  if(receipt.test)return json({verified:true,test:true}); // Signed AdMob dashboard probe: never a player reward.
   const r=await db.rpc('ad_bonus_complete',{p_ticket:receipt.ticket,p_transaction:receipt.transaction,p_ad_unit:receipt.unit,p_rewarded_at:receipt.time});
   return r.error?json({error:'Receipt temporarily unavailable'},503):json({accepted:true});
  }
