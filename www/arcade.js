@@ -2501,7 +2501,7 @@ const Arcade = (() => {
         .then(result => {
           if (!result?.earned) {
             busy = false;
-            toast('Ad closed before a reward was earned.');
+            toast(result?.reason === 'consent-not-ready' ? 'Ad privacy setup is not ready. Please try again later.' : 'Ad closed before a reward was earned.');
             return;
           }
 
@@ -2521,7 +2521,7 @@ const Arcade = (() => {
           busy = false;
           panel(
             'Rewarded ad unavailable',
-            'The test ad could not load right now. Your play balance was not changed.',
+            'The ad could not load right now. Your play balance was not changed.',
             [
               ['Try Again', () => playAd(g, done), 'green'],
               ['Back to Arcade', () => location.href = 'games.html', 'secondary']

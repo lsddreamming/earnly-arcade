@@ -3,18 +3,19 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source = readFileSync('native-ads-entry.js','utf8').replace(/^import .*;\n/gm,'');
-function harness(initial='notDetermined', answer='authorized', canRequestAds=true, fail=false) {
+function harness(initial='notDetermined', answer='authorized', canRequestAds=true, fail=false, options={}) {
   const calls=[]; let status=initial;
   const AdMob={
     trackingAuthorizationStatus:async()=>{calls.push('status');return {status};},
     requestTrackingAuthorization:async()=>{calls.push('att');if(fail) throw Error('unavailable');status=answer;},
     initialize:async()=>calls.push('initialize'),
-    requestConsentInfo:async()=>{calls.push('consent');return {canRequestAds,status:'NOT_REQUIRED'};},
-    prepareRewardVideoAd:async options=>{calls.push('load');assert.equal(options.npa,true);return {};},
+    requestConsentInfo:async()=>{calls.push('consent');return {canRequestAds:options.canRequestAds ?? canRequestAds,status:'NOT_REQUIRED',privacyOptionsRequirementStatus:options.privacyOptionsRequired ? 'REQUIRED' : 'NOT_REQUIRED'};},
+    prepareRewardVideoAd:async request=>{calls.push('load');assert.equal(request.npa,true);assert.equal(request.isTesting,options.testMode !== false);assert.equal(request.adId, options.testMode === false ? 'ca-app-pub-8864401806510610/8249888009' : 'ca-app-pub-3940256099942544/1712485313');return {};},
+    showPrivacyOptionsForm:async()=>{calls.push('privacy');if(options.failPrivacy) throw Error('interrupted');options.canRequestAds=false;},
     showRewardVideoAd:async()=>{calls.push('show');return {amount:1};}
   };
   const window={dispatchEvent(){}};
-  vm.runInNewContext(source,{AdMob,Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'ios'},AdmobConsentStatus:{REQUIRED:'REQUIRED'},__EARNLY_ADMOB_TEST_MODE__:true,window,CustomEvent:class {}});
+  vm.runInNewContext(source,{AdMob,Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'ios'},AdmobConsentStatus:{REQUIRED:'REQUIRED'},__EARNLY_ADMOB_TEST_MODE__:options.testMode !== false,window,CustomEvent:class {}});
   return {calls,ads:window.EarnlyNativeAds};
 }
 test('first ad waits for ATT before SDK, consent and loading',async()=>{
@@ -37,4 +38,34 @@ test('consent blocks ad requests and rewards',async()=>{
 });
 test('concurrent readiness only initializes once',async()=>{
   const h=harness();await Promise.all([h.ads.ensureReady(),h.ads.ensureReady()]);assert.equal(h.calls.filter(x=>x==='att').length,1);assert.equal(h.calls.filter(x=>x==='initialize').length,1);
+});
+
+test('production loads the configured live rewarded unit, never the sample unit', async()=>{
+  const h=harness('denied','denied',true,false,{testMode:false});
+  assert.equal((await h.ads.showRewarded()).earned,true);
+});
+test('privacy choices do not load ads or grant rewards and invalidate cached permission', async()=>{
+  const options={privacyOptionsRequired:true};
+  const h=harness('denied','denied',true,false,options);
+  assert.equal((await h.ads.showPrivacyOptions()).shown,true);
+  assert.ok(!h.calls.includes('load')); assert.ok(!h.calls.includes('show'));
+  assert.equal((await h.ads.showRewarded()).earned,false);
+  assert.equal(h.calls.filter(x=>x==='consent').length,2);
+});
+test('unavailable privacy options do not attempt a form or an ad', async()=>{
+  const h=harness('denied');assert.equal((await h.ads.showPrivacyOptions()).shown,false);
+  assert.ok(!h.calls.includes('privacy'));assert.ok(!h.calls.includes('load'));
+});
+test('interrupted privacy form invalidates cached permission', async()=>{
+  const options={privacyOptionsRequired:true,failPrivacy:true};
+  const h=harness('denied','denied',true,false,options);
+  await assert.rejects(h.ads.showPrivacyOptions());options.canRequestAds=false;
+  assert.equal((await h.ads.showRewarded()).earned,false);
+  assert.equal(h.calls.filter(x=>x==='consent').length,2);
+});
+
+test('consent not ready can recover on a later attempt',async()=>{
+  const options={canRequestAds:false};const h=harness('denied','denied',false,false,options);
+  assert.equal((await h.ads.showRewarded()).earned,false);options.canRequestAds=true;
+  assert.equal((await h.ads.showRewarded()).earned,true);
 });

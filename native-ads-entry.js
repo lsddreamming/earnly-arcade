@@ -45,10 +45,25 @@ async function ensureAdMobReady() {
   }
 
   const consentInfo = await initializationPromise;
+  if (!consentInfo?.canRequestAds) initializationPromise = null;
   return {
     ready: !!consentInfo?.canRequestAds,
-    reason: consentInfo?.canRequestAds ? '' : 'consent-not-ready'
+    reason: consentInfo?.canRequestAds ? '' : 'consent-not-ready',
+    privacyOptionsRequired: consentInfo?.privacyOptionsRequirementStatus === 'REQUIRED'
   };
+}
+
+async function showPrivacyOptions() {
+  if (!isNative) return { shown:false, reason:'not-native' };
+  const readiness = await ensureAdMobReady();
+  if (!readiness.privacyOptionsRequired) return { shown:false, reason:'not-required' };
+  try {
+    await AdMob.showPrivacyOptionsForm();
+    return { shown:true };
+  } finally {
+    // A changed or interrupted choice must never reuse cached ad permission.
+    initializationPromise = null;
+  }
 }
 
 async function showRewarded(kind = 'extraPlays') {
@@ -83,6 +98,7 @@ window.EarnlyNativeAds = Object.freeze({
   isNative,
   testMode:TEST_MODE,
   ensureReady:ensureAdMobReady,
+  showPrivacyOptions,
   showRewarded
 });
 
