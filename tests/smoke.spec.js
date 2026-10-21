@@ -2580,3 +2580,25 @@ test('ad privacy choices are native-only and opening them never requests a rewar
   await expect(page.locator('#adPrivacyStatus')).toContainText('Check your connection');
   await expect(page.locator('#adPrivacyButton')).toBeEnabled();
 });
+
+test('Coin Catch shows the next payout and alternates reachable drop lanes', async ({page,isMobile}) => {
+  await page.goto('/coincatch.html');
+  await expect(page.locator('#nextCoinReward')).toHaveText('6 catches to +4 Arcade Coins');
+  const pattern=await page.evaluate(()=>{
+    const random=Math.random;Math.random=()=>.5;
+    try{level=2;drops=[];dropPattern=0;const xs=[];
+      for(let i=0;i<4;i++){drops=[];spawn(i+1);xs.push(drops[0].x);}
+      score=50;refreshReward();return {xs,width:canvas.width,seconds:LEVEL_SECONDS};
+    }finally{Math.random=random;}
+  });
+  expect(pattern.seconds).toBe(15);
+  expect(pattern.xs).toEqual([.22,.5,.78,.5].map(x=>x*pattern.width));
+  await expect(page.locator('#earnedCoins')).toHaveText('+16');
+  await expect(page.locator('#nextCoinReward')).toHaveText('4 catches to +4 Arcade Coins');
+  if(isMobile){
+    await page.evaluate(()=>{running=true;setStatus('Running','running');});
+    await expect(page.locator('#coinCatchExit')).toBeVisible();
+    const quit=await page.locator('#coinCatchExit').boundingBox(),board=await page.locator('canvas').boundingBox();
+    expect(quit.y).toBeGreaterThanOrEqual(board.y+board.height);
+  }
+});
