@@ -92,7 +92,7 @@
       body.coincatch-page.game-active [data-game-guide],
       body.coincatch-page.game-active #startButton{display:none!important}
       body.coincatch-page.game-active .container>a.button.wide.secondary:not(#coinCatchExit){display:none!important}
-      body.coincatch-page.game-active #coinCatchExit{display:inline-flex!important;position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:9px!important;z-index:1300!important;width:auto!important;min-height:38px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)}
+      body.coincatch-page.game-active #coinCatchExit{display:inline-flex!important;position:relative!important;top:auto!important;left:auto!important;z-index:2!important;width:auto!important;min-height:44px!important;margin:0!important;padding:8px 11px!important;border:1px solid rgba(248,113,113,.55)!important;border-radius:12px!important;background:rgba(69,10,10,.92)!important;color:#fecaca!important;font-size:12px!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important;backdrop-filter:blur(8px)}
       body.coincatch-page.game-active .catch-board-wrap{width:min(94vw,calc((100dvh - 210px) * .72),380px)!important;max-width:380px!important;flex:0 0 auto!important;min-height:0!important;margin:10px auto 0!important;display:block!important}
       body.coincatch-page.game-active .catch-board{width:100%!important;height:auto!important;max-width:100%!important;margin:0!important;display:block!important}
       body.coincatch-page.game-active .page-header{gap:0!important}
@@ -176,7 +176,7 @@
       <div class="catch-miss-hud" id="catchMissHud">❌ Strikes <strong id="misses">0</strong>/5</div>
       <canvas class="catch-board touch-surface" id="game" width="360" height="500" aria-label="Coin Catch game board"></canvas>
     </div>
-    <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe anywhere below Pause to move basket"><span>↔</span> Swipe anywhere below Pause to move</div>
+    <div class="catch-control-zone" id="catchControlZone" aria-label="Swipe anywhere below Pause to move basket"><span>↔ Drag to move <small id="nextCoinReward" style="display:block;font-size:11px;color:#fde68a">6 catches to +4 Arcade Coins</small></span></div>
     <a class="button wide secondary coincatch-exit" id="coinCatchExit" href="games.html">✕ Quit Game</a>
 
     <a class="game-guide-link" href="game-guides.html#coinCatch">How to play Coin Catch · guide &amp; tips</a>
@@ -231,7 +231,8 @@
       reward:'Keep advancing through harder levels. The 100-Coin max now takes a deep run, and high scores also earn bonus XP.'
     });
     const basket={x:137,y:448,w:86,h:24};
-    const LEVEL_SECONDS=20;
+    const LEVEL_SECONDS=15;
+    let dropPattern=0;
     const MAX_MISSES=5;
     const LEVEL_BANNER_MS=1500;
     const START_TIP_MS=6000;
@@ -268,7 +269,10 @@
     function refreshReward(){
       const reward=rewardFor(score);
       rewardPreviewEl.textContent=String(reward);
+      let nextCatch=score+1;
+      while(nextCatch<score+30 && rewardFor(nextCatch)<=reward) nextCatch++;
       earnedCoinsEl.textContent=reward>=100?'MAX +100 · XP ↑':'+'+reward;
+      document.getElementById('nextCoinReward').textContent=reward>=100?'Coin maximum reached':(nextCatch-score)+' catches to +'+(rewardFor(nextCatch)-reward)+' Arcade Coins';
       earnedHudEl.setAttribute('aria-label', reward>=100
         ? 'Maximum 100 Arcade Coins reached. Keep playing for performance XP and a higher best score.'
         : reward+' Arcade Coins earned this run');
@@ -282,17 +286,20 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){dropPattern=0;cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
       const previous=drops[drops.length-1];
-      let x=18+Math.random()*(canvas.width-36);
+      // Alternating lanes demand movement while every drop remains reachable.
+      const lanes=[.22,.5,.78,.5];
+      const lane=lanes[dropPattern++%lanes.length];
+      let x=level>=2 ? canvas.width*lane+(Math.random()-.5)*32 : 18+Math.random()*(canvas.width-36);
       if(previous && previous.y<90 && Math.abs(x-previous.x)<44){
         x=previous.x<canvas.width/2
           ? Math.min(canvas.width-18,previous.x+58+Math.random()*42)
           : Math.max(18,previous.x-58-Math.random()*42);
       }
-      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:2.6+Math.min(7,(level-1)*.8)+Math.random()*1.05});
+      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:3.2+Math.min(6,(level-1)*.65)+Math.random()*.7});
       lastSpawn=now;
     }
     function drawCoin(d){
@@ -440,7 +447,7 @@
       if(transitioning){draw();animation=requestAnimationFrame(loop);return}
       if(!lastFrame)lastFrame=now;const dt=Math.min(50,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
       if(!lastSpawn||now-lastSpawn<0)lastSpawn=now;
-      const interval=Math.max(220,650-(level-1)*65);if(now-lastSpawn>=interval)spawn(now);
+      const interval=Math.max(310,560-(level-1)*40);if(now-lastSpawn>=interval)spawn(now);
       for(let i=drops.length-1;i>=0;i--){
         const d=drops[i];d.y+=d.speed*dt;
         const basketTop=basket.y-7;
