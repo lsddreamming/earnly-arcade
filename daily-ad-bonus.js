@@ -3,24 +3,29 @@
   const root=document.getElementById('daily-furniture-boost');
   if(!root)return;
   let state=null,busy=false,pending=false,timer;
-  root.innerHTML='<h2>Daily Furniture Boost</h2><p>Complete 5 rewarded ads today to earn <strong>100 Arcade Coins</strong> for your room.</p><progress max="5" value="0" aria-label="Verified ads today" style="width:100%"></progress><p data-progress></p><p data-status role="status" aria-live="polite"></p><button type="button" class="btn" data-watch>Watch ad · Build your boost</button><p><small>Extra-life and extra-play ads count too. One bonus per day. Each completed ad session counts once.</small></p><p data-reset></p>';
+  root.innerHTML='<h2>Daily Furniture Boost</h2><p data-offer></p><progress max="5" value="0" aria-label="Verified ads today" style="width:100%"></progress><p data-progress></p><p data-status role="status" aria-live="polite"></p><button type="button" class="btn" data-watch>Watch ad · Build your boost</button><p><small>Extra-life and extra-play ads count too. Coin rewards apply to your first five verified sessions each day. Each completed session counts once.</small></p><p data-reset></p>';
   const q=s=>root.querySelector(s),watch=q('[data-watch]'),status=q('[data-status]');
   const capable=()=>window.EarnlyNativeAds?.isNative&&window.EarnlyNativeAds?.supportsDailyBonus;
   function paint(){
     if(!state?.enabled){root.hidden=true;root.style.display='none';return;}
     root.hidden=false;root.style.display='block';
+    q('progress').max=state.goal||5;
     q('progress').value=state.watched;
-    q('[data-progress]').textContent=state.watched+' / 5 completed'+(state.awarded?' · 100 Coins earned!':'');
+    const perAd=Number(state.perAdCoins||0),total=Number(state.coins||100);
+    q('[data-offer]').textContent=perAd?`${perAd} Arcade Coins per completed ad + ${state.completionBonus} bonus after 5. Up to ${total} Coins daily. Keep each reward, even if you stop early.`:`Complete 5 rewarded ads today to earn ${total} Arcade Coins for your room.`;
+    q('[data-progress]').textContent=state.watched+' / 5 completed · '+Number(state.earnedCoins??(state.awarded?state.coins||100:0))+' Coins earned';
     watch.disabled=busy||pending||state.awarded||!capable();
-    watch.textContent=busy?'Loading ad…':pending?'Verifying your reward…':state.awarded?'Today’s boost complete':'Watch ad · Build your boost';
+    watch.textContent=busy?'Loading ad…':pending?'Verifying your reward…':state.awarded?'Today’s boost complete':(perAd?`Watch ad · +${perAd} Coins${state.watched===4?` + ${state.completionBonus} bonus`:''}`:'Watch ad · Build your boost');
     q('[data-reset]').textContent='Resets '+new Date(state.resetAt).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})+'.';
     if(!capable())status.textContent='Use the latest iPhone app to watch rewarded ads.';
   }
   async function refresh(){
     try{
       const next=await window.EarnlyCloud.adBonus();
-      const wasAwarded=state?.awarded;state=next;paint();
-      if(next.awarded&&!wasAwarded){
+      const priorEarned=state?.earnedCoins??(state?.awarded?state.coins||100:0);
+      const earned=next.earnedCoins??(next.awarded?next.coins||100:0);
+      state=next;paint();
+      if(earned>priorEarned){
         const wallet=await window.EarnlyCloud.walletInfo();
         if(wallet)window.Arcade?.applyServerWallet?.(wallet);
       }
@@ -30,7 +35,7 @@
   async function poll(previous,attempt=0){
     const next=await refresh();
     if(next&&(next.watched>previous||next.awarded)){
-      pending=false;status.textContent=next.awarded?'100 Arcade Coins added to your account!':'Ad verified. You’re closer to your next furniture piece.';paint();return;
+      pending=false;status.textContent=next.awarded?`${next.earnedCoins??next.coins??100} Arcade Coins earned today!`:next.perAdCoins?`${next.perAdCoins} Arcade Coins added to your account!`:'Ad verified. You’re closer to your next furniture piece.';paint();return;
     }
     if(attempt>=10){pending=false;status.textContent='Your ad is still being verified. Your progress will update when confirmation arrives.';paint();return;}
     timer=setTimeout(()=>poll(previous,attempt+1),3000);
