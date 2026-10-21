@@ -9,6 +9,7 @@ const PRODUCTION_REWARDED = {
 const TEST_MODE = __EARNLY_ADMOB_TEST_MODE__;
 const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 let initializationPromise = null;
+let sdkInitialized = false;
 
 async function adStep(code, action) {
   try { return await action(); }
@@ -38,7 +39,10 @@ async function ensureAdMobReady() {
       }
       // Denial/restriction is respected by iOS: no IDFA is available to the SDK.
       // SDK 8.1 requires initialization before it can present a UMP form.
-      await adStep('EARNLY_AD_INITIALIZE', () => AdMob.initialize());
+      if (!sdkInitialized) {
+        await adStep('EARNLY_AD_INITIALIZE', () => AdMob.initialize());
+        sdkInitialized = true;
+      }
 
       let consentInfo = await adStep('EARNLY_AD_CONSENT', () => AdMob.requestConsentInfo());
       if (
@@ -56,7 +60,9 @@ async function ensureAdMobReady() {
   }
 
   const consentInfo = await initializationPromise;
-  if (!consentInfo?.canRequestAds) initializationPromise = null;
+  // Refresh consent for every new request, including a restored game page
+  // after the player changed privacy choices elsewhere in the app.
+  initializationPromise = null;
   return {
     ready: !!consentInfo?.canRequestAds,
     reason: consentInfo?.canRequestAds ? '' : 'consent-not-ready',

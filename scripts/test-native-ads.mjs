@@ -103,3 +103,12 @@ test('native failure-to-show event releases the caller even with a pending plugi
   const h=harness('denied','denied',true,false,{holdShow:true});const result=h.ads.showRewarded();
   await h.showStarted;h.emit('failed');await assert.rejects(result,error=>error.code==='EARNLY_AD_SHOW');assert.equal(h.listeners.size,0);
 });
+
+test('a later request refreshes consent without restarting the SDK',async()=>{
+  const options={canRequestAds:true};const h=harness('denied','denied',true,false,options);
+  assert.equal((await h.ads.showRewarded()).earned,true);options.canRequestAds=false;
+  assert.equal((await h.ads.showRewarded()).earned,false);
+  assert.equal(h.calls.filter(x=>x==='consent').length,2);
+  assert.equal(h.calls.filter(x=>x==='initialize').length,1);
+  assert.equal(h.calls.filter(x=>x==='load').length,1);
+});
