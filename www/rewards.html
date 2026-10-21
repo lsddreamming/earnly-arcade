@@ -57,6 +57,7 @@
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="progress-hub.css?v=1">
+  <link rel="stylesheet" href="earn-coins.css?v=1">
 </head>
 <body class="rewards-dashboard">
   <main class="container rewards-container">
@@ -79,13 +80,21 @@
         <strong><span id="balance">0</span> <small>🪙</small></strong>
       </div>
       <span class="prototype-badge">IN-APP POINTS</span>
-      <p>Make them yours: avatar styles, room furniture, and eligible game extras.</p>
+      <p>Spend on furniture, avatar styles, and game extras.</p>
       <div class="rewards-balance-meta">
         <span>Today <strong id="todayEarned">+0</strong></span>
         <span>Lifetime <strong id="lifetimeEarned">0</strong></span>
       </div>
       <div class="rewards-wallet-actions"><a class="rewards-play-link" href="avatars.html">Style your avatar →</a><a href="world.html?multiplayer=1">Decorate your room →</a><a href="games.html">Play &amp; earn →</a></div>
       <small class="wallet-note">In-app points only. No cash-out, transfers, or withdrawals.</small>
+    </section>
+
+    <section class="earn-coins-hub" id="earn-coins" aria-labelledby="earn-coins-title">
+      <h2 id="earn-coins-title">Earn more coins</h2>
+      <p>More ways to make your room yours.</p>
+      <div class="earn-coins-options"><a href="index.html#dailyBonusButton"><strong>Daily bonus</strong><span>Claim your free coins →</span></a><a href="games.html"><strong>Play &amp; earn</strong><span>Pick your next game →</span></a></div>
+      <section id="daily-furniture-boost" class="rewards-balance-card" hidden aria-label="Daily Furniture Boost"></section>
+      <p class="earn-ads-availability">Ad rewards appear here when available. Live website reward ads are not available yet.</p>
     </section>
 
     <section class="reward-protection-card" id="rewardProtectionCard">
@@ -107,7 +116,7 @@
       <summary>Coins, XP &amp; plays explained</summary>
       <p><strong>Coins</strong> unlock eligible items and extras. <strong>XP</strong> raises your level. <strong>Plays</strong> let you start games.</p>
       <p>Some in-game features can spend Coins. Choose your items in the shop before purchasing.</p>
-      <p>Arcade Coins can be earned from games, daily bonuses, and daily challenges, or bought through available coin packs. Rewarded ads offer voluntary +1-play unlocks, not Coins.</p>
+      <p>Arcade Coins can be earned from games, daily bonuses, and daily challenges, or bought through available coin packs. Available rewarded ads offer voluntary +1-play unlocks or verified daily Coin bonuses.</p>
       <p>Signed-in progress can sync to Earnly Cloud, and Coin rewards are reconciled against the secure server ledger.</p>
       <p>Arcade Coins are in-app points. They can be used for eligible in-game features such as Continue, but they are not cash, cryptocurrency, or stored value. They have no fixed cash value and cannot be redeemed, transferred, or withdrawn in this version. Purchased coins are never redeemable for cash or cash equivalents.</p>
     </details>
@@ -118,7 +127,7 @@
       </nav>
       <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
     </footer>
-<section id="daily-furniture-boost" class="rewards-balance-card" hidden aria-label="Daily Furniture Boost"></section>
+
 </main>
 
   <script src="arcade.js"></script>

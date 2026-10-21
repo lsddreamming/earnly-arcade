@@ -289,7 +289,9 @@ test('current release keeps unreleased rewards and account deletion clear', () =
   expect(rewards).toContain('Purchased coins are never redeemable for cash or cash equivalents.');
   expect(rewards).toContain('not cash, cryptocurrency, or stored value');
   expect(rewards).toContain('eligible in-game features such as Continue');
-  expect(home).toContain('Optional rewarded ads unlock extra plays and do not directly award Coins');
+  expect(home).toContain('rewards.html#earn-coins');
+  expect(rewards).toContain('verified daily Coin bonuses');
+  expect(rewards).toContain('Live website reward ads are not available yet.');
   expect(support).toContain('not cash, cryptocurrency, or stored value');
   expect(support).toContain('Some game features can spend Coins');
   expect(privacy).toContain('cannot be redeemed, transferred, or withdrawn in this version');

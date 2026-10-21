@@ -3,7 +3,7 @@
   const root=document.getElementById('daily-furniture-boost');
   if(!root)return;
   let state=null,busy=false,pending=false,timer;
-  root.innerHTML='<h2>Daily Furniture Boost</h2><p data-offer></p><progress max="5" value="0" aria-label="Verified ads today" style="width:100%"></progress><p data-progress></p><p data-status role="status" aria-live="polite"></p><button type="button" class="btn" data-watch>Watch ad · Build your boost</button><p><small>Extra-life and extra-play ads count too. Coin rewards apply to your first five verified sessions each day. Each completed session counts once.</small></p><p data-reset></p>';
+  root.innerHTML='<h3>Watch ads · Earn Coins</h3><p data-offer></p><progress max="5" value="0" aria-label="Verified ads today" style="width:100%"></progress><p data-progress></p><p data-status role="status" aria-live="polite"></p><button type="button" class="btn" data-watch>Watch ad · Build your boost</button><details><summary>How it works</summary><p>Extra-life and extra-play ads count too. Your first five verified ads earn daily rewards. Each ad counts once.</p></details><p data-reset></p>';
   const q=s=>root.querySelector(s),watch=q('[data-watch]'),status=q('[data-status]');
   const capable=()=>window.EarnlyNativeAds?.isNative&&window.EarnlyNativeAds?.supportsDailyBonus;
   function paint(){
@@ -12,7 +12,7 @@
     q('progress').max=state.goal||5;
     q('progress').value=state.watched;
     const perAd=Number(state.perAdCoins||0),total=Number(state.coins||100);
-    q('[data-offer]').textContent=perAd?`${perAd} Arcade Coins per completed ad + ${state.completionBonus} bonus after 5. Up to ${total} Coins daily. Keep each reward, even if you stop early.`:`Complete 5 rewarded ads today to earn ${total} Arcade Coins for your room.`;
+    q('[data-offer]').textContent=perAd?`+${perAd} Coins each ad · +${state.completionBonus} bonus at 5. Up to ${total} Coins today.`:`Complete 5 rewarded ads today to earn ${total} Arcade Coins for your room.`;
     q('[data-progress]').textContent=state.watched+' / 5 completed · '+Number(state.earnedCoins??(state.awarded?state.coins||100:0))+' Coins earned';
     watch.disabled=busy||pending||state.awarded||!capable();
     watch.textContent=busy?'Loading ad…':pending?'Verifying your reward…':state.awarded?'Today’s boost complete':(perAd?`Watch ad · +${perAd} Coins${state.watched===4?` + ${state.completionBonus} bonus`:''}`:'Watch ad · Build your boost');
