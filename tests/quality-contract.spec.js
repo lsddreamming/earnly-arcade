@@ -219,12 +219,14 @@ test('gameplay clocks start after the 3-2-1 countdown', () => {
   expect(countdownBody).toMatch(/runStartedAt\s*=\s*performance\.now\(\)/);
 });
 
-test('native rewarded ads stay play-only in the current release', () => {
+test('native coin bonus requires a server ticket while play unlocks stay separate', () => {
   const nativeAds = read('native-ads-entry.js');
   const arcade = read('arcade.js');
 
   expect(nativeAds).toContain("extraPlays: 'ca-app-pub-8864401806510610/8249888009'");
-  expect(nativeAds).not.toContain('bonusCoins');
+  expect(nativeAds).toContain("bonusCoins: 'ca-app-pub-8864401806510610/1831908609'");
+  expect(nativeAds).toContain("kind === 'bonusCoins' && !ticket");
+  expect(nativeAds).toContain('ssv:{ customData:ticket }');
   expect(arcade).toContain("nativeAds.showRewarded('extraPlays')");
   expect(arcade).not.toContain("showRewarded('bonusCoins')");
 });
