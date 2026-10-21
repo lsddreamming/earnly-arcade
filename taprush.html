@@ -229,11 +229,11 @@
         'Every successful tap moves the target. A miss costs 0.75 seconds, so random tapping will end the run early.',
         'Targets fade faster each stage. Keep a clean streak to light up Rush mode. Gold targets add 1 Coin, within the 20 Coin cap.'
       ],
-      reward:'Earn Coins from hits and milestones. Max 20 Coins per run.'
+      reward:'Earn Coins from hits and milestones. Max 60 Coins per run.'
     });
 
     const ROUND_SECONDS = 20;
-    const MAX_COINS = 20;
+    const MAX_COINS = 60;
     const MISS_PENALTY_MS = 750;
 
     let hits = 0;
@@ -283,13 +283,7 @@
       setTimeout(() => effects.forEach(el => el.remove()), 520);
     }
 
-    function rewardForHits(value) {
-      let coins = Math.floor(value / 5);
-      if (value >= 20) coins += 2;
-      if (value >= 35) coins += 3;
-      if (value >= 50) coins += 5;
-      return Math.min(coins + bonusCoins, MAX_COINS);
-    }
+    function rewardForHits(value) { return Arcade.gameReward('tapRush',value,bonusCoins); }
 
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('tapRush');
@@ -374,7 +368,7 @@
       board.classList.remove('urgent','fever');
 
       const earned = rewardForHits(hits);
-      Arcade.earn(earned, 'Tap Rush', { kind:'game', game:'tapRush', metric:hits });
+      Arcade.earn(earned, 'Tap Rush', { kind:'game', game:'tapRush', metric:hits, aux:bonusCoins });
       Arcade.feedback(hits > 0 ? 'success' : 'fail');
       timeLeft = 0;
       timeEl.textContent = '0';

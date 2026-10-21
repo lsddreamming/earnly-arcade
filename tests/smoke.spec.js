@@ -1375,7 +1375,7 @@ test('game start screen explains plays reward and controls before play', async (
     await expect(page.locator('.snake-stats')).toContainText('Plays');
     await expect(page.locator('.snake-quick-tip')).toContainText('Swipe anywhere');
     await page.locator('.game-guide-more summary').click();
-    await expect(page.locator('.game-guide-more')).toContainText('Max 30 Coins per run');
+    await expect(page.locator('.game-guide-more')).toContainText('Up to 100 Coins per run');
   } else {
     await expect(summary).toBeVisible();
     await expect(summary.locator('.game-start-plays')).toContainText('play');
@@ -1443,25 +1443,25 @@ test('Block Drop and Color Match expose live run rewards', async ({ page }) => {
   await page.goto('/blockdrop.html');
   await expect(page.locator('#runRewardPill')).toBeVisible();
   await expect(page.locator('#rewardPreview')).toHaveText('0');
-  expect(await page.evaluate(() => rewardForLines(3))).toBe(3);
-  expect(await page.evaluate(() => rewardForLines(9))).toBe(5);
+  expect(await page.evaluate(() => rewardForLines(3))).toBe(9);
+  expect(await page.evaluate(() => rewardForLines(9))).toBe(32);
 
   await page.goto('/colormatch.html');
   await expect(page.locator('#runRewardPill')).toContainText('Run Reward');
   await expect(page.locator('#rewardPreview')).toHaveText('0');
-  expect(await page.evaluate(() => rewardFor(4))).toBe(1);
-  expect(await page.evaluate(() => rewardFor(15))).toBe(5);
+  expect(await page.evaluate(() => rewardFor(4))).toBe(4);
+  expect(await page.evaluate(() => rewardFor(15))).toBe(20);
 });
 
 test('Coin Catch reward curve lasts into deep runs and awards performance XP', async ({ page }) => {
   await page.goto('/coincatch.html');
   expect(await page.evaluate(() => rewardFor(5))).toBe(0);
-  expect(await page.evaluate(() => rewardFor(6))).toBe(1);
-  expect(await page.evaluate(() => rewardFor(11))).toBe(1);
-  expect(await page.evaluate(() => rewardFor(75))).toBe(7);
-  expect(await page.evaluate(() => rewardFor(150))).toBe(15);
-  expect(await page.evaluate(() => rewardFor(227))).toBe(22);
-  expect(await page.evaluate(() => rewardFor(264))).toBe(25);
+  expect(await page.evaluate(() => rewardFor(6))).toBe(4);
+  expect(await page.evaluate(() => rewardFor(11))).toBe(4);
+  expect(await page.evaluate(() => rewardFor(75))).toBe(28);
+  expect(await page.evaluate(() => rewardFor(150))).toBe(60);
+  expect(await page.evaluate(() => rewardFor(227))).toBe(88);
+  expect(await page.evaluate(() => rewardFor(264))).toBe(100);
 
   const xp = await page.evaluate(() => {
     localStorage.clear();

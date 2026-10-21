@@ -176,7 +176,7 @@
         'Gold coins near gap edges add bonus Coins. Chasing them leaves less room to recover.',
         'Touching a vine, the top, or the ground ends the run.'
       ],
-      reward:'Vines + collected gold earn up to 25 Arcade Coins per run.'
+      reward:'Vines + collected gold earn up to 100 Arcade Coins per run.'
     });
 
     const frog = { x: 82, y: 270, r: 15, vy: 0 };
@@ -194,7 +194,7 @@
       const gapSize = Math.max(MIN_GAP_SIZE, BASE_GAP_SIZE - value * 0.42);
       return { speed, gapSize };
     }
-    const MAX_COINS = 25;
+    const MAX_COINS = 100;
 
     let obstacles = [];
     let score = 0;
@@ -209,13 +209,7 @@
     const STEP_MS = 1000 / 60;
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function rewardFor(value) {
-      let coins = Math.floor(value / 2);
-      if (value >= 10) coins += 2;
-      if (value >= 20) coins += 3;
-      if (value >= 30) coins += 5;
-      return Math.min(coins + bonusCoins, MAX_COINS);
-    }
+    function rewardFor(value) { return Arcade.gameReward('jungleHopper',value,bonusCoins); }
 
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('jungleHopper');
@@ -576,7 +570,7 @@
         Arcade.out('jungleHopper', refreshChrome);
         return;
       }
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0; 
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
 
       resetGame();
       running = false;

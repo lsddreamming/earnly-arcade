@@ -1509,6 +1509,49 @@ const Arcade = (() => {
     return { earned, balance, lifetime };
   }
 
+  // BEGIN BALANCED GAME REWARDS: keep browser/server parity tests green.
+  function gameReward(game,metric,aux=0) {
+    const m=Math.max(0,Math.min(10000,Math.floor(Number(metric)||0)));
+    const a=Math.max(0,Math.min(10000,Math.floor(Number(aux)||0)));
+    const {floor,ceil,min,max}=Math,b=(at,coins)=>m>=at?coins:0;
+    if(game==='memory'&&m<1)return 0;
+    if(game==='crystalCommand'&&(m<1||a<60))return 0;
+    switch(game){
+      case 'snake':return min(100,(floor(m/3)+b(10,2)+b(25,3)+b(50,4))*3);
+      case 'blockDrop':return min(100,(m*3+b(5,5)+b(10,10)+b(20,15))*1);
+      case 'tapRush':return min(60,(floor(m/5)+b(20,2)+b(35,3)+b(50,5)+min(a,m))*3);
+      case 'memory':return min(60,(8+(m<=16?7:m<=20?5:m<=24?3:m<=30?1:0))*4);
+      case 'dodger':return min(80,(floor(m/6)+floor(a/12)+b(20,1)+b(40,2)+b(60,3))*4);
+      case 'jungleHopper':return min(100,(floor(m/2)+b(10,2)+b(20,3)+b(30,5)+min(a,floor((m+1)/2)+floor((m+1)/6),25))*4);
+      case 'towerStack':return min(100,(floor(m/3)+floor(min(a,m)/3)+b(10,2)+b(20,3)+b(30,5))*4);
+      case 'coinCatch':return min(100,((m>=6?1+floor((m-6)/12):0)+b(75,1)+b(150,1)+b(225,1))*4);
+      case 'colorMatch':return min(88,(floor(m/4)+b(15,2)+b(25,3)+b(35,4))*4);
+      case 'paddleRally':return min(100,(floor(m/3)+b(10,2)+b(20,3)+b(35,5))*4);
+      case 'laneRunner':return min(100,(floor(m/8)+floor(a/14)+b(30,2)+b(60,3)+b(90,4))*3);
+      case 'safeCracker':return min(100,(floor(m/2)+b(8,2)+b(15,4)+b(25,5))*4);
+      case 'blockGrid':return min(100,(floor(m/40)+b(250,3)+b(500,5))*4);
+      case 'mergeRush':return min(100,((m>=50?max(1,floor(m/100)):0)+b(500,2)+b(1000,3)+b(2500,5))*4);
+      case 'perfectDrop':return min(100,(ceil(m/3)+b(5,1)+b(10,2)+b(15,3)+b(20,5))*4);
+      case 'spiralDrop':return min(100,(b(5,1)+b(10,1)+b(15,1)+b(20,2)+b(30,2)+b(40,3)+b(50,3)+b(60,3)+b(70,3)+b(85,3)+b(100,3))*4);
+      case 'shapeFit':return min(100,(floor(m/3)+b(15,3)+b(30,5)+b(50,5))*4);
+      case 'bounceRun':return min(100,(floor(m/80)+b(500,2)+b(900,3)+b(1400,4)+b(1900,5))*4);
+      case 'trafficEscape':return min(100,(floor(m/9)+b(30,1)+b(60,2)+b(100,3)+b(150,4)+b(210,5))*3);
+      case 'neonMaze':return min(100,(floor(m/6))*4);
+      case 'starDefender':return min(60,(floor(m/80))*4);
+      case 'neonBreach':return min(100,(floor(m/150))*4);
+      case 'neonDrift':return min(90,(min(floor(m/100),25)+min(a,20))*2);
+      case 'crystalCommand':return min(100,(10+min(15,floor(m/3)))*4);
+      case 'brickBreaker': {
+        let coins=floor(m/12)+b(50,1)+b(100,1);
+        const clears=[0,2,3,3,4,4,5,5,6,6,7,7,8];
+        for(let i=1;i<=min(a,100);i++)coins+=clears[min(i,12)];
+        return min(100,coins);
+      }
+      default:return 0;
+    }
+  }
+  // END BALANCED GAME REWARDS
+
   function earn(n, source = 'Arcade reward', server = null) {
     n = Math.max(0, Math.floor(Number(n) || 0));
     if (!n && !server) return number('points');
@@ -3110,7 +3153,7 @@ const Arcade = (() => {
 
       [
         ['🎟️','Plays','Each game starts with 3 free plays every day.'],
-        ['🪙','Coins + XP','Game runs can earn Arcade Coins and XP. Ads do not award Arcade Coins.'],
+        ['🪙','Coins + XP','Game runs can earn Arcade Coins and XP. Optional verified ad rewards are available in Rewards.'],
         ['🔥','More plays','Up to 2 optional rewarded ads per game each day can unlock +1 play each.']
       ].forEach(([itemIcon,itemTitle,itemText]) => {
         const row = document.createElement('div');
@@ -4116,6 +4159,7 @@ const Arcade = (() => {
     weeklyStatus,
     claimWeeklyMission,
     activity,
+    gameReward,
     earn,
     recordCoinSpend,
     panel,

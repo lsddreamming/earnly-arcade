@@ -5,12 +5,12 @@
   const key = ['mergeRush','perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape'].includes(requested) ? requested : 'mergeRush';
 
   const configs = {
-    mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'Make 64 in 48 swipes. Equal numbers merge. Clear targets to score.',reward:v=>Math.min(25,(v>=50?Math.max(1,Math.floor(v/100)):0)+(v>=500?2:0)+(v>=1000?3:0)+(v>=2500?5:0))},
-    perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Math.min(25,(v>=1?Math.ceil(v/3):0)+(v>=5?1:0)+(v>=10?2:0)+(v>=15?3:0)+(v>=20?5:0))},
-    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Math.min(25,(v>=5?1:0)+(v>=10?1:0)+(v>=15?1:0)+(v>=20?2:0)+(v>=30?2:0)+(v>=40?3:0)+(v>=50?3:0)+(v>=60?3:0)+(v>=70?3:0)+(v>=85?3:0)+(v>=100?3:0))},
-    shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Math.min(25,Math.floor(v/3)+(v>=15?3:0)+(v>=30?5:0)+(v>=50?5:0))},
-    bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Math.min(25,Math.floor(v/80)+(v>=500?2:0)+(v>=900?3:0)+(v>=1400?4:0)+(v>=1900?5:0))},
-    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap only cars with a clear arrow path. Every cleared road raises density and tightens the timer. Three crashes ends the run.',reward:v=>Math.min(35,Math.floor(v/9)+(v>=30?1:0)+(v>=60?2:0)+(v>=100?3:0)+(v>=150?4:0)+(v>=210?5:0))}
+    mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'Make 64 in 48 swipes. Equal numbers merge. Clear targets to score.',reward:v=>Arcade.gameReward('mergeRush',v)},
+    perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Arcade.gameReward('perfectDrop',v)},
+    spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Move left or right so the ball falls through each opening.',reward:v=>Arcade.gameReward('spiralDrop',v)},
+    shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Arcade.gameReward('shapeFit',v)},
+    bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Arcade.gameReward('bounceRun',v)},
+    trafficEscape:{icon:'🚦',name:'Traffic Escape',scoreLabel:'Cars',secondaryLabel:'Level',help:'Tap only cars with a clear arrow path. Every cleared road raises density and tightens the timer. Three crashes ends the run.',reward:v=>Arcade.gameReward('trafficEscape',v)}
   };
 
   const config = configs[key] || configs.mergeRush;

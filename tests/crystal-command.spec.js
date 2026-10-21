@@ -324,7 +324,7 @@ test('only completed battle wins qualify for Coins; tutorials and early endings 
   const win={ended:true,learning:false,winner:0,reason:'All enemy structures destroyed',time:120,player:{kills:9}};
   return {win:CrystalRewards.result(win,0),excluded:[{learning:true},{winner:1},{winner:null},{reason:'Commander surrendered'},{reason:'Opponent disconnected'},{time:59},{player:{kills:0}},{ended:false}].map(change=>CrystalRewards.result({...win,...change},0))};
  });
- expect(result.win).toEqual({metric:9,aux:120,coins:13});expect(result.excluded.every(v=>v===null)).toBe(true);
+ expect(result.win).toEqual({metric:9,aux:120,coins:52});expect(result.excluded.every(v=>v===null)).toBe(true);
 });
 test('battle reward retry reuses its event and shows the confirmed wallet balance',async({page})=>{
  await page.goto('/crystal-command.html');await page.locator('#practice').click();

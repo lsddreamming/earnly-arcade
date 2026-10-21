@@ -102,7 +102,7 @@
         'While playing, the entire screen becomes the controller. Swipe normally or keep one finger down and steer anywhere.',
         'Eat apples to grow. Hitting a wall or your own body ends the run.'
       ],
-      reward:'Earn 1 Coin every 3 apples, plus milestone bonuses. Max 30 Coins per run.'
+      reward:'Earn Coins from apples and milestones. Up to 100 Coins per run.'
     });
 
     if (snakeGuide?.overlay) {
@@ -135,7 +135,7 @@
     }
 
     const box = 20;
-    const MAX_SNAKE_COINS = 30;
+    const MAX_SNAKE_COINS = 100;
 
     let snake = [{ x: 200, y: 200 }];
     let direction = 'RIGHT';
@@ -150,15 +150,7 @@
     let snakeTestRun = false;
     let snakeTesterAccess = false;
 
-    function snakeReward(apples) {
-      let coins = Math.floor(apples / 3);
-
-      if (apples >= 10) coins += 2;
-      if (apples >= 25) coins += 3;
-      if (apples >= 50) coins += 4;
-
-      return Math.min(coins, MAX_SNAKE_COINS);
-    }
+    function snakeReward(apples) { return Arcade.gameReward('snake',apples); }
 
 
     function currentTesterState() {

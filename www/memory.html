@@ -205,7 +205,7 @@
         'A move is counted each time you reveal two cards. Matching cards stay face-up.',
         'You have 60 seconds. The first 2 mismatches are free; each later mismatch costs 4 seconds.'
       ],
-      reward:'Beat the 60-second clock. Faster clears and fewer moves earn the best reward, up to 15 Coins.'
+      reward:'Beat the 60-second clock. Faster clears and fewer moves earn the best reward, up to 60 Coins.'
     });
 
     const icons = ['🍎','⭐','🎲','🍕','🚀','🐸','🎧','💎'];
@@ -265,14 +265,7 @@
       return items;
     }
 
-    function rewardForMoves(value){
-      let reward = 8;
-      if(value <= 16) reward += 7;
-      else if(value <= 20) reward += 5;
-      else if(value <= 24) reward += 3;
-      else if(value <= 30) reward += 1;
-      return Math.min(reward,15);
-    }
+    function rewardForMoves(value){ return Arcade.gameReward('memory',value); }
 
     let lastRewardPreview = 15;
     function refreshRewardPreview(){

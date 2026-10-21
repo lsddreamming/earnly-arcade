@@ -18,14 +18,14 @@ test('Tap Rush earns gold bonuses and ramps stages without inflating hit scores'
   await expect(page.locator('#target')).toHaveClass(/gold/);
   await hit(page);
   await expect(page.locator('#hits')).toHaveText('7');
-  await expect(page.locator('#rewardPreview')).toHaveText('2');
+  await expect(page.locator('#rewardPreview')).toHaveText('6');
   for(let i=7;i<10;i++) await hit(page);
   await expect(page.locator('#rushStage')).toContainText('Stage 2');
   await expect(page.locator('#rushStreak')).toContainText('Rush · 10');
   expect(await page.evaluate(() => targetExpiresAt-performance.now())).toBeLessThan(1550);
   await page.evaluate(() => finishGame());
   await expect(page.locator('dialog.game-result-dialog')).toContainText('Best streak: 10');
-  expect(await page.evaluate(() => rewardForHits(200))).toBe(20);
+  expect(await page.evaluate(() => rewardForHits(200))).toBe(60);
 });
 
 test('Tap Rush rejects late target taps and resets the streak on expiry', async ({page}) => {
