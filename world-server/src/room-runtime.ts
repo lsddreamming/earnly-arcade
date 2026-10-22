@@ -1,3 +1,4 @@
+import {randomInt} from 'node:crypto';
 import { RoomGrid, tileKey, validXY } from './grid.ts';
 import type { XY, XYZ } from './grid.ts';
 import {canStep,findPath} from './pathfinding.ts';
@@ -10,7 +11,7 @@ export type RoomPet={id:string;ownerId:string;name:string;species:'dog'|'cat'|'r
 export type Identity = Readonly<{ userId:string; username:string; equipped?:Record<string,unknown> }>;
 export type Send = (packet:Record<string,unknown>)=>void;
 type Resident={definition:Staff;index:number;nextWalk?:number;nextVoice?:number;route?:XY[];callOwner?:string;callUntil?:number;lastPet?:number;lastCall?:number;bed?:XY;sleepUntil?:number;toy?:XY;toyId?:string;playUntil?:number;nextPlay?:number};
-type Member = {identity:Identity; movement:MovementController; send:Send; lastIntent:number; lastChat:number;seat?:{position:XYZ;state:'sit'|'lay'};plan?:InteractionPlan;exit?:{next:XYZ;revision:number;goal:XY}};
+type Member = {identity:Identity; movement:MovementController; send:Send; lastIntent:number; lastChat:number;lastFurnitureUse?:number;seat?:{position:XYZ;state:'sit'|'lay'};plan?:InteractionPlan;exit?:{next:XYZ;revision:number;goal:XY}};
 /** Transport-independent authoritative room. Only the authenticated gateway may join users.
  * The gateway must enforce room access, account bans and message byte limits before dispatch.
  * Tick once per 250ms; client packets can never advance the simulation clock.
@@ -18,6 +19,7 @@ type Member = {identity:Identity; movement:MovementController; send:Send; lastIn
 export class RoomRuntime {
   #members = new Map<string,Member>();
   #sequence = 0;
+  #furnitureResults=new Map<string,{value:number;at:number;x:number;y:number}>();
   #staff:Resident[]=[];
   #ticks=0;
   #petRandom=(Math.random()*0x100000000)>>>0;
@@ -139,6 +141,7 @@ export class RoomRuntime {
     this.#members.set(identity.userId,member);
     send({type:'ROOM_SNAPSHOT',revision:this.grid.revision,sequence:this.#sequence,users:[...this.#members.values()].map(m=>({...m.identity,position:this.#position(m),state:m.seat?.state??'std'}))});
     send({type:'NPC_SNAPSHOT',staff:this.staff()});
+    for(const [itemId,result] of this.#furnitureResults)if(result.value>0&&this.grid.tile(result)?.itemId===itemId)send({type:'FURNITURE_RESULT',itemId,value:result.value,kind:'dice',snapshot:true});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
   leave(userId:string){if(this.#members.delete(userId))this.#broadcast({type:'USER_LEFT',userId});}
@@ -147,6 +150,21 @@ export class RoomRuntime {
     const m=this.#members.get(userId);
     if(this.paused||!m||!Number.isFinite(now)||!packet||typeof packet!=='object'||Array.isArray(packet))return false;
     const p=packet as Record<string,unknown>;const interactionAction=p.action;
+    if(p.type==='INTERACT'&&['roll','serve'].includes(String(p.action))){
+      const reply=(error:string)=>{m.send({type:'FURNITURE_RESULT',error});return false;};
+      if(!validXY(p)||Object.keys(p).some(k=>!['type','x','y','action'].includes(k)))return false;
+      const tile=this.grid.tile(p),kind=interactionAction==='roll'?'dice':'serve';
+      if(!tile?.itemId||tile.furnitureUse!==kind)return reply('This piece cannot be used.');
+      const pos=this.#position(m);
+      if(m.seat||Math.abs(pos.x-p.x)+Math.abs(pos.y-p.y)!==1||Math.abs(pos.z-tile.z)>2)return reply('Walk beside the piece, then tap Use.');
+      if(now-(m.lastFurnitureUse??-Infinity)<3000)return reply('Give it a moment before using again.');
+      const last=this.#furnitureResults.get(tile.itemId);
+      if(last&&now-last.at<3000)return reply('This piece is already in use.');
+      m.lastFurnitureUse=now;
+      const value=kind==='dice'?randomInt(1,7):0;
+      this.#furnitureResults.set(tile.itemId,{value,at:now,x:p.x,y:p.y});
+      this.#broadcast({type:'FURNITURE_RESULT',itemId:tile.itemId,userId,value,kind});return true;
+    }
     if(p.type==='MOVE_TO'){
       if(now-m.lastIntent<100)return false;
       m.lastIntent=now;
@@ -192,6 +210,7 @@ export class RoomRuntime {
   tick(){
     if(this.paused)return;
     ++this.#ticks;let moved=false;
+    for(const [id,result] of this.#furnitureResults)if(this.grid.tile(result)?.itemId!==id)this.#furnitureResults.delete(id);
     for(const s of this.#staff){
       const d=s.definition;
       if(d.species){

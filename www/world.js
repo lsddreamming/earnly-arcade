@@ -1,6 +1,7 @@
 (()=>{'use strict';
  const $=id=>document.getElementById(id),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  let socket=null,connected=false,connecting=false,session=null,userId='preview',scene=null,bootstrap={catalog:[],items:[],rooms:[],friends:[]},placing=null,rotation=0,chat=[],trade=null,currentPanel='',privateTarget=null,toastTimer,needsFirstRoom=false;
+ const furnitureResults=new Map();
  const pending=new Map();let panelVersion=0;
  let missionEntry=new URLSearchParams(location.search).get('mission');
  const sharedRoom=window.EarnlyWorldLinks.room;
@@ -40,13 +41,17 @@
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation,centered:false});placing=null;showPlacement();await refresh();completeGuideStep('decorate');toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){$('placementSuccess').hidden=true;placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('renameRoom').hidden=value.ownerId!==userId;$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
+ function setScene(value){if(scene?.roomId!==value.roomId){$('placementSuccess').hidden=true;placing=null;showPlacement();}scene=value;for(const item of value.items||[]){const result=furnitureResults.get(item.id);if(result)Object.assign(item,result);}renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('renameRoom').hidden=value.ownerId!==userId;$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
  function beginPlacement(item,name,gesture=false){$('placementSuccess').hidden=true;requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
  function useSeat(item){const rotated=item.rotation===2||item.rotation===6,w=rotated?item.length:item.width,h=rotated?item.width:item.length;const occupied=new Set([...renderer.users.values(),...renderer.staff.values()].map(u=>u.position.x+','+u.position.y));const seats=[];for(let y=item.y;y<item.y+h;y++)for(let x=item.x;x<item.x+w;x++)if(!occupied.has(x+','+y))seats.push({x,y});if(!seats.length)throw new Error('This seat is occupied. Choose another seat.');const me=renderer.users.get(userId)?.position||item;seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));socket.send(JSON.stringify({type:'INTERACT',...seats[0],action:item.canLay?'lay':'sit'}));$('worldPanel').close();toast('Walking to '+item.name+' · Tap clear floor to stand up');}
  function showDecor(item){
   if(!connected)return;
   currentPanel='decor';const root=openPanel(item.name||'Room decor');
-  const preview=el('canvas');preview.className='decor-room-preview';EarnlyWorldRenderer.decorPreview(preview,item);root.append(preview,note('A decorative piece for your space.'));
+  const preview=el('canvas');preview.className='decor-room-preview';EarnlyWorldRenderer.decorPreview(preview,item);root.append(preview);
+  const sprite=item.sprite||item.sprite_id,dice=['play-neon-dice','play-clockwork-dice'].includes(sprite),serve=sprite==='play-soft-serve',roller=sprite==='play-neon-roller';
+  root.append(note(dice?'Walk beside it, then roll a number from 1–6. Everyone sees the same result.':serve?'Walk beside it, then serve a treat.':roller?'Step on to ride. Tap beside the belt to step off. Rotate to change direction.':'A decorative piece for your space.'));
+  if(dice||serve)root.append(button(dice?'Roll dice · Free':'Serve ice cream · Free',()=>{socket.send(JSON.stringify({type:'INTERACT',x:item.x,y:item.y,action:dice?'roll':'serve'}));$('worldPanel').close();},'primary'));
+  if(roller)root.append(button('Step onto roller',()=>{socket.send(JSON.stringify({type:'MOVE_TO',x:item.x,y:item.y}));$('worldPanel').close();},'primary'));
   const definition=bootstrap.catalog.find(d=>d.id===item.definitionId);if(definition)root.append(button('Explore '+definition.category,()=>showCatalog(definition.category)));
   if(scene.ownerId===userId&&bootstrap.centeredTables&&item.width===1&&item.length===1&&['table','bistro-table','holo-table'].includes(item.sprite||item.sprite_id)){
    const rugs=scene.items.filter(i=>i.sprite==='rug'&&i.width===2&&i.length===2&&i.canStack&&i.walkable);
@@ -134,6 +139,12 @@
    else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;waitingForNetwork=false;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='PET_REACTION')renderer.petReaction(p);
+   else if(p.type==='FURNITURE_RESULT'){
+    if(p.error){toast(p.error);return;}
+    const item=scene?.items?.find(i=>i.id===p.itemId);
+    if(p.kind==='dice'&&Number.isInteger(p.value)&&p.value>=1&&p.value<=6){const result={diceValue:p.value,diceRollingUntil:p.snapshot?0:performance.now()+800};if(furnitureResults.size>=2048)furnitureResults.clear();furnitureResults.set(p.itemId,result);if(item){Object.assign(item,result);renderer.setScene(scene);}}
+    if(!p.snapshot){const text=p.kind==='dice'?'Rolled '+p.value+' 🎲':'Ice cream served! 🍦';renderer.bubble({userId:p.userId,text,mode:'normal'});toast(text);}
+   }
    else if(p.type==='PET_CHAT')renderer.bubble({userId:p.staffId,text:p.text,mode:'pet'});
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='ROOM_NAME'){if(scene?.roomId===p.roomId){scene.name=p.name;$('roomName').textContent=p.name;}for(const r of bootstrap.rooms)if(r.id===p.roomId)r.name=p.name;}
