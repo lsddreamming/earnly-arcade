@@ -69,7 +69,7 @@ jobs:
         run: |
           mkdir -p _pages
           cp -- ./*.html ./*.css ./*.js ./*.svg ./*.webmanifest ./CNAME _pages/
-          cp -- ./sitemap.xml ./robots.txt ./app-ads.txt _pages/
+          cp -- ./sitemap.xml ./robots.txt ./ads.txt ./app-ads.txt _pages/
           # The existing branch-backed site also serves the native web mirror
           # at /www/, so keep that URL tree available after the source switch.
           cp -R -- ./www _pages/www
