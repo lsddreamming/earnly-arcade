@@ -61,8 +61,8 @@ test('touch pops once, immediate pause settles animation, restart and quit can b
 });
 test('cleared level waits for Next, persists unlock and shows the ice objective',async({page})=>{
  await page.addInitScript(()=>{Math.random=()=>.8;});await page.goto('/bubble-pop.html');await page.locator('#play').click();await page.locator('#board').click({position:await firstCell(page)});
- await expect(page.locator('#resultTitle')).toHaveText('Level cleared!');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1 / 6');await page.waitForTimeout(450);await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1 / 6');await page.locator('#play').click();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 2 / 6');await expect(page.locator('#goals')).toContainText('0/12');
- await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 2 / 6');await expect(page.locator('#resultText')).toContainText('break 12 ice tiles');
+ await expect(page.locator('#resultTitle')).toHaveText('Level cleared!');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1 / 1000');await page.waitForTimeout(450);await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1 / 1000');await page.locator('#play').click();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 2 / 1000');await expect(page.locator('#goals')).toContainText('0/12');
+ await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 2 / 1000');await expect(page.locator('#resultText')).toContainText('break 12 ice tiles');
 });
 test('board and controls fit phones, and goals, ice, stars and powers have review screenshots',async({page},info)=>{
  for(const [width,height] of [[390,844],[390,664],[320,568]]){

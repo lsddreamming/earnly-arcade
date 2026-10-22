@@ -69,7 +69,7 @@
   started=false;paused=false;const s=game.state();if(s.score>best){best=s.score;save('earnlyBubblePopPreviewBest',best);}update();$('pause').disabled=true;$('restart').disabled=true;
   if(s.status==='won'){
    tone('win');const last=s.level===s.levelCount-1;save('earnlyBubblePopLevel',last?0:s.level+1);
-   overlay(last?'complete':'won',last?'All six cleared!':'Level cleared!',`${s.score.toLocaleString()} points · ${s.moves} moves to spare`,last?'Play from level 1 →':'Next level →',last?'Try building bigger power-up combos on your next run.':`Next: ${E.LEVELS[s.level+1].name}`);
+   overlay(last?'complete':'won',last?`All ${s.levelCount.toLocaleString()} cleared!`:'Level cleared!',`${s.score.toLocaleString()} points · ${s.moves} moves to spare`,last?'Play from level 1 →':'Next level →',last?'Try building bigger power-up combos on your next run.':`Next: ${E.levelRules(s.level+1).name}`);
   }else overlay('lost','So close!',goalText(s)+'.','Try this level again →','Aim at the goals. Save touching power-ups for a bigger blast.');
   $('play').focus({preventScroll:true});
  }
@@ -106,5 +106,5 @@
  canvas.addEventListener('focus',draw);canvas.addEventListener('blur',draw);
  document.addEventListener('visibilitychange',()=>{if(document.hidden){audio?.suspend();if(busy)settle();if(started&&!paused)pause();}});
  media.addEventListener('change',()=>{if(media.matches&&busy)settle();});
- overlay('start','Make it pop.',goalText(game.state())+` in ${game.state().moves} moves.`,'Let’s play →',tip(game.state()));new ResizeObserver(layout).observe(canvas);layout();update();
+ const opening=game.state();overlay('start',opening.level?'Ready for level '+(opening.level+1)+'?':'Make it pop.',goalText(opening)+` in ${opening.moves} moves.`,opening.level?'Continue level '+(opening.level+1)+' →':'Let’s play →',tip(opening));new ResizeObserver(layout).observe(canvas);layout();update();
 })();
