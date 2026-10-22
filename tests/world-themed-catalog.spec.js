@@ -19,7 +19,7 @@ test('themed furniture has distinct art, working colors and complete four-direct
   // Tall and wide legacy pieces used to lose edges in the fixed preview box.
   const legacy=[{id:'ficus-tree',sprite_id:'tree',width:1,length:1},{id:'boardwalk-lamp',sprite_id:'lamp',width:1,length:1},{id:'garden-parasol',sprite_id:'umbrella',width:1,length:1}];
   for(const item of [...EarnlyWorldCollections.allItems,...legacy])for(const rotation of [0,2,4,6])render(item,rotation,item.color||'#80c9b5');
-  for(const set of collections.slice(-4)){if(set.ids.length!==16||vignette(set).length!==4)problems.push(set.name+' incomplete');}
+  for(const set of collections.filter(s=>['Canopy Jungle','Timber Lodge','Moonveil Gothic','Roast & Gather'].includes(s.name))){if(set.ids.length!==16||vignette(set).length!==4)problems.push(set.name+' incomplete');}
   if(collections.find(s=>s.name==='Dream Rooms').ids.length!==bedItems.length)problems.push('Missing featured beds');
   return {count:themedItems.length,unique:new Set(themedItems.map(i=>i.id)).size,problems};
  });
