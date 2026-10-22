@@ -81,7 +81,7 @@ jobs:
       # Turbo Kart is retired from the catalog. Its archived browser suite
       # remains in tests/turbo-kart.spec.js for explicit maintenance runs.
       - name: Verify World controls
-        run: npx playwright test tests/world.spec.js tests/world-social.spec.js tests/world-onboarding.spec.js tests/world-animals.spec.js tests/world-pets.spec.js tests/world-bathroom.spec.js tests/world-playroom.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+        run: npx playwright test tests/world.spec.js tests/world-social.spec.js tests/world-onboarding.spec.js tests/world-animals.spec.js tests/world-pets.spec.js tests/world-bathroom.spec.js tests/world-playroom.spec.js tests/world-halloween.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload World collection previews
         if: always()
         uses: actions/upload-artifact@v4
