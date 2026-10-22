@@ -1,7 +1,8 @@
 /* Bubble Pop's deterministic rules. Rendering and sound cannot change a turn. */
 (function(root){
  'use strict';
- const COLS=7,ROWS=8,COLORS=4;
+ const COLS=7,ROWS=8,COLORS=4,CAMPAIGN_LEVELS=1000;
+ // Keep the six introduction levels stable. Later levels remix their objectives.
  const LEVELS=[
   {name:'Mint condition',moves:20,color:3,collect:18,ice:0,stars:0},
   {name:'Break the ice',moves:20,color:1,collect:0,ice:12,stars:0},
@@ -10,11 +11,20 @@
   {name:'Frozen stars',moves:24,color:0,collect:0,ice:16,stars:4},
   {name:'Supernova',moves:25,color:0,collect:26,ice:14,stars:4}
  ];
+ const THEMES=['Coral Coast','Crystal Cavern','Starlight Station','Mint Garden'];
+ function normalizeLevel(value){const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.min(CAMPAIGN_LEVELS-1,Math.floor(n))):0;}
+ function levelRules(value){
+  const level=normalizeLevel(value);
+  if(level<LEVELS.length)return {...LEVELS[level]};
+  const offset=level-LEVELS.length,chapter=Math.floor(offset/12),step=offset%12,base=LEVELS[step%6],tier=Math.min(3,Math.floor(chapter/3));
+  // Difficulty has a ceiling: variety comes from goals and layouts, not impossible speed or quotas.
+  return {name:`${THEMES[chapter%THEMES.length]} ${chapter+1}-${step+1}`,moves:base.moves+2+(step>=6?1:0)+tier,color:(base.color+chapter+Math.floor(step/6))%COLORS,collect:base.collect?base.collect+tier*2:0,ice:base.ice?Math.min(20,base.ice+tier*2):0,stars:base.stars};
+ }
  function neighbors(i){const x=i%COLS,y=Math.floor(i/COLS);return [x>0?i-1:-1,x<COLS-1?i+1:-1,y>0?i-COLS:-1,y<ROWS-1?i+COLS:-1].filter(n=>n>=0);}
  function create(random=Math.random,initialLevel=0){
   let board=[],ice=[],score=0,levelScore=0,moves=0,combo=0,nextId=1,level=0,collected=0,delivered=0,status='playing';
   const cell=()=>({color:Math.max(0,Math.min(COLORS-1,Math.floor(random()*COLORS))),power:null,star:false,id:nextId++});
-  const rules=()=>LEVELS[level];
+  const rules=()=>levelRules(level);
   function group(i){
    if(!board[i]||board[i].star||board[i].power)return [];
    const color=board[i].color,seen=new Set([i]),queue=[i];
@@ -27,23 +37,23 @@
    for(let i=0;i<board.length;i++)if(!board[i].star)for(const j of neighbors(i))if(!board[j].star){board[j].color=board[i].color;return true;}
    return false;
   }
-  function state(){return {board:board.map(c=>({...c})),ice:[...ice],score,levelScore,moves,combo,level,levelCount:LEVELS.length,name:rules().name,status,done:status!=='playing',goals:{color:rules().color,collect:rules().collect,collected,ice:rules().ice,iceLeft:ice.filter(Boolean).length,stars:rules().stars,delivered}};}
+  function state(){return {board:board.map(c=>({...c})),ice:[...ice],score,levelScore,moves,combo,level,levelCount:CAMPAIGN_LEVELS,name:rules().name,status,done:status!=='playing',goals:{color:rules().color,collect:rules().collect,collected,ice:rules().ice,iceLeft:ice.filter(Boolean).length,stars:rules().stars,delivered}};}
   function reset(target=level,keepScore=false){
-   level=Math.max(0,Math.min(LEVELS.length-1,Math.floor(Number(target)||0)));
+   level=normalizeLevel(target);
    if(!keepScore)score=0;
    levelScore=0;combo=0;collected=0;delivered=0;status='playing';moves=rules().moves;
    board=Array.from({length:COLS*ROWS},cell);ice=Array(COLS*ROWS).fill(false);
-   // Ice stays on its tile; popping a bubble there breaks it in one hit.
-   const pockets=[16,18,23,25,30,32,37,39,44,46,51,53,17,24,31,38];
+   // The stride is coprime with 56, so every generated ice tile is unique.
+   const pockets=level<LEVELS.length?[16,18,23,25,30,32,37,39,44,46,51,53,17,24,31,38]:Array.from({length:COLS*ROWS},(_,i)=>(i*17+level*11)%(COLS*ROWS));
    pockets.slice(0,rules().ice).forEach(i=>{ice[i]=true;});
    const starColumns=rules().stars===4?[0,2,4,6]:[1,3,5];
-   starColumns.slice(0,rules().stars).forEach((x,n)=>{const i=(n%2+1)*COLS+x;board[i]={...board[i],star:true,color:-1};});
+   starColumns.slice(0,rules().stars).forEach((x,n)=>{const column=level<LEVELS.length?x:(x+level)%COLS,row=level<LEVELS.length?n%2+1:(n+Math.floor(level/6))%3+1,i=row*COLS+column;board[i]={...board[i],star:true,color:-1};});
    if(level===2)board[52]={...board[52],color:-1,power:'vertical'};
-   if(level>=4){board[51]={...board[51],color:-1,power:'bomb'};board[52]={...board[52],color:-1,power:'horizontal'};}
+   if(level>=4){const i=level<LEVELS.length?51:49+level%6;board[i]={...board[i],color:-1,power:'bomb'};board[i+1]={...board[i+1],color:-1,power:level<LEVELS.length||level%2===0?'horizontal':'vertical'};}
    ensure();return state();
   }
   function restart(){score-=levelScore;return reset(level,true);}
-  function next(){if(status!=='won'||level===LEVELS.length-1)return false;return reset(level+1,true);}
+  function next(){if(status!=='won'||level===CAMPAIGN_LEVELS-1)return false;return reset(level+1,true);}
   function pop(i){
    if(status!=='playing'||!Number.isInteger(i)||!board[i]||board[i].star)return {valid:false};
    const old=board.map(c=>({...c})),oldIce=[...ice],initial=board[i].power?[i]:group(i);
@@ -94,5 +104,5 @@
   }
   reset(initialLevel);return {state,reset,restart,next,pop,group};
  }
- const api={create,COLS,ROWS,COLORS,LEVELS,neighbors};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.BubblePopEngine=api;
+ const api={create,COLS,ROWS,COLORS,LEVELS,neighbors,CAMPAIGN_LEVELS,levelRules,normalizeLevel};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.BubblePopEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
