@@ -90,3 +90,25 @@ test('Google no-fill finishes with no reward and no prompt',async({page})=>{
   await request(page);await expect.poll(()=>page.evaluate(()=>window.adResult?.earned)).toBe(false);
   await expect(page.getByRole('dialog',{name:'Optional video reward'})).toHaveCount(0);
 });
+test('expired request ignores late availability and completion',async({page})=>{
+  await setup(page);await page.clock.install();
+  await page.evaluate(()=>window.adsbygoogle={push:c=>{if(c.onReady)c.onReady();if(c.type==='reward')window.lateAd=c;}});
+  await request(page);await page.clock.fastForward(16000);
+  await expect.poll(()=>page.evaluate(()=>window.adResult?.reason)).toBe('timeout');
+  await page.evaluate(()=>{window.lateAd.beforeReward(()=>window.lateShown=true);window.lateAd.adViewed();window.lateAd.adBreakDone({breakStatus:'viewed'});});
+  expect(await page.evaluate(()=>!!window.lateShown)).toBe(false);
+  expect(await page.evaluate(()=>window.adResult.earned)).toBe(false);
+});
+test('public host cannot enable Google test rewards',async({page})=>{
+  await page.route('https://earnlyarcade.com/h5-fixture',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><body></body>'}));
+  await page.goto('https://earnlyarcade.com/h5-fixture');
+  await page.addScriptTag({content:source.replace('const ENABLED = false;','const ENABLED = true;').replace('const TEST_MODE = false;','const TEST_MODE = true;')});
+  expect(await page.evaluate(()=>window.EarnlyWebAds.enabled)).toBe(false);
+});
+test('account changes before opt-in cannot show an ad',async({page})=>{
+  await setup(page);await request(page);await expect(page.getByRole('button',{name:'Watch ad',exact:true})).toBeVisible();
+  await page.evaluate(()=>window.dispatchEvent(new Event('earnly-cloud-auth-change')));
+  await page.getByRole('button',{name:'Watch ad',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.adResult?.reason)).toBe('account-changed');
+  expect(await page.evaluate(()=>window.adShows||0)).toBe(0);
+});
