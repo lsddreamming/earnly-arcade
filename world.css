@@ -231,7 +231,7 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .is-guided-placing #firstVisitHint{display:none}
 @media(max-width:600px){
  .is-guided-placing .world-stage{height:45dvh;min-height:250px}
- #placementHint{position:sticky;bottom:calc(62px + env(safe-area-inset-bottom));gap:6px;padding:10px}
- #placementInstructions{font-size:11px}#placementStatus{font-size:12px}
- #placementHint button{min-height:48px;padding:9px}
+ .is-guided-placing #placementHint{position:sticky;bottom:calc(62px + env(safe-area-inset-bottom));gap:6px;padding:10px}
+ .is-guided-placing #placementInstructions{font-size:11px}.is-guided-placing #placementStatus{font-size:12px}
+ .is-guided-placing #placementHint button{min-height:48px;padding:9px}
 }
