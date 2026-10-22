@@ -31,6 +31,13 @@ if (/\/dodger\.html$/i.test(location.pathname)) location.replace('neondrift.html
   } catch {}
 })();
 
+// Web provider is independently gated; the iOS bridge remains separate.
+if (!window.Capacitor?.isNativePlatform?.() && /^https?:$/.test(location.protocol)) {
+  const webAds = document.createElement('script');
+  webAds.src = 'web-ads.js?v=h5prep1';
+  document.head.append(webAds);
+}
+
 const Arcade = (() => {
   const names = {
     snake: 'Snake',
@@ -2200,6 +2207,12 @@ const Arcade = (() => {
   }
 
   let audioContext = null;
+  let webAdMuted = false;
+  window.addEventListener('earnly-web-ad-started', () => {
+    webAdMuted = true;
+    if (audioContext?.state === 'running') audioContext.suspend().catch(() => {});
+  });
+  window.addEventListener('earnly-web-ad-ended', () => { webAdMuted = false; });
 
   function soundEnabled() {
     return localStorage.getItem('arcadeSound') !== 'off';
@@ -2242,7 +2255,7 @@ const Arcade = (() => {
   }
 
   function audio() {
-    if (!soundEnabled()) return null;
+    if (webAdMuted || !soundEnabled()) return null;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return null;
 
@@ -2525,9 +2538,15 @@ const Arcade = (() => {
     return detail;
   }
 
+  function rewardedProvider() {
+    return window.EarnlyNativeAds?.isNative ? window.EarnlyNativeAds :
+      window.EarnlyWebAds?.enabled ? window.EarnlyWebAds : null;
+  }
+
   // This rewards the current run, never the daily play balance.
   function offerAdContinue({ message, onContinue, onFinish }) {
-    if (!window.EarnlyNativeAds?.isNative || busy) return false;
+    const provider = rewardedProvider();
+    if (!provider || busy) return false;
     let settled = false;
     const finish = () => { if (!settled) { settled = true; onFinish(); } };
     const offer = (error = '') => {
@@ -2537,7 +2556,7 @@ const Arcade = (() => {
           busy = true;
           toast('📺 Loading bonus-life ad…');
           try {
-            const reward = await window.EarnlyNativeAds.showRewarded('extraPlays');
+            const reward = await provider.showRewarded(provider.isNative ? 'extraPlays' : 'continue');
             busy = false;
             if (!reward?.earned) {
               offer('Ad closed without a reward. Your run is still here.');
@@ -2586,9 +2605,9 @@ const Arcade = (() => {
     busy = true;
 
     const gameName = names[g] || 'game';
-    const nativeAds = window.EarnlyNativeAds;
+    const nativeAds = rewardedProvider();
 
-    if (nativeAds?.isNative) {
+    if (nativeAds) {
       busy = true;
       toast(nativeAds.testMode ? '📺 Loading rewarded test ad…' : '📺 Loading rewarded ad…');
 
@@ -2786,8 +2805,8 @@ const Arcade = (() => {
       return;
     }
 
-    const rewardedLabel = window.EarnlyNativeAds?.isNative
-      ? (window.EarnlyNativeAds.testMode ? 'Watch test ad' : 'Watch ad')
+    const rewardedLabel = rewardedProvider()
+      ? (rewardedProvider().testMode ? 'Watch test ad' : 'Watch ad')
       : 'Watch demo ad';
 
     queueEvent('one_more_run_shown', {
