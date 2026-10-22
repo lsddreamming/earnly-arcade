@@ -65,7 +65,7 @@ test('a verified reward retries a failed wallet refresh without replaying the ad
 });
 
 async function mount(page,native){
- await page.setContent('<main class="rewards-dashboard"><section class="earn-coins-hub"><h2>Get more Arcade Coins</h2><div class="earn-coins-options"><a href="index.html#dailyBonusButton"><strong>Daily bonus</strong><span>Claim free Coins</span></a><a href="games.html"><strong>Play &amp; earn</strong><span>Pick a game</span></a></div><section id="daily-furniture-boost" hidden></section><p class="earn-ads-availability" role="status"></p></section></main>');
+ await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><main class="rewards-dashboard"><section class="earn-coins-hub"><h2>Get more Arcade Coins</h2><div class="earn-coins-options"><a href="index.html#dailyBonusButton"><strong>Daily bonus</strong><span>Claim free Coins</span></a><a href="games.html"><strong>Play &amp; earn</strong><span>Pick a game</span></a></div><section id="daily-furniture-boost" hidden></section><p class="earn-ads-availability" role="status"></p></section></main></body></html>');
  await page.addStyleTag({content:'*{box-sizing:border-box}body{margin:0;background:#081222;color:white;font:16px system-ui}main{padding:12px}'+styles});
  await page.evaluate(({native,state})=>{window.testRewardState=state;window.rewardCalls=0;window.walletUpdates=[];window.EarnlyCloud={adBonus:async()=>({...window.testRewardState}),walletInfo:async()=>({balance:123+window.testRewardState.earnedCoins})};window.Arcade={applyServerWallet:w=>window.walletUpdates.push(w)};window.EarnlyNativeAds={isNative:native,supportsDailyBonus:true,showRewarded:async()=>{window.rewardCalls++;return {earned:true};}};},{native,state:offer()});
  await page.addScriptTag({content:source});
@@ -73,9 +73,10 @@ async function mount(page,native){
 test('website rewards show useful alternatives, not a misleading Watch ad offer',async({page})=>{
  await mount(page,false);await expect(page.locator('#daily-furniture-boost')).toBeHidden();await expect(page.locator('.earn-ads-availability')).toContainText('not available on this website');await expect(page.getByRole('link',{name:/Daily bonus/})).toBeVisible();await expect(page.getByRole('link',{name:/Play & earn/})).toBeVisible();expect(await page.evaluate(()=>window.rewardCalls)).toBe(0);
 });
-test('the verified reward offer is readable, keyboard accessible and fits small phones',async({page})=>{
+test('the verified reward offer is readable, keyboard accessible and fits small phones',async({page},info)=>{
  for(const width of [320,390]){
   await page.setViewportSize({width,height:844});await mount(page,true);const watch=page.locator('[data-watch]');await expect(watch).toBeEnabled();await expect(watch).toHaveText('Watch ad · +100 Coins');await watch.focus();await expect(watch).toBeFocused();const b=await watch.boundingBox();expect(b.height).toBeGreaterThanOrEqual(44);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  await page.screenshot({path:'test-results/rewards-offer-'+info.project.name+'-'+width+'.png',fullPage:true});
  }
 });
 test('background return reconciles real server progress in the browser, never the SDK alone',async({page})=>{
