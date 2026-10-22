@@ -536,10 +536,7 @@
       appleFlashTimer = setTimeout(() => canvas.classList.remove('snake-apple-collected'), 220);
     }
 
-    function draw() {
-      direction = queuedDirections.shift() || direction;
-      nextDirection = queuedDirections[0] || direction;
-
+    function paintBoard() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw the wall on the true canvas boundary. The outermost grid cells are
@@ -553,6 +550,12 @@
       drawSnakeBody();
       drawSnakeHead();
       drawApple();
+    }
+
+    function draw() {
+      direction = queuedDirections.shift() || direction;
+      nextDirection = queuedDirections[0] || direction;
+      paintBoard();
 
       let snakeX = snake[0].x;
       let snakeY = snake[0].y;
@@ -609,6 +612,20 @@
       }
     }
 
+    // A closed route lets even a long snake keep every segment without overlap.
+    // The head faces across the open middle of the board; the body trails behind.
+    function safeContinueSnake(length) {
+      const route = [{x:0,y:0}];
+      for (let y=0;y<20;y++) {
+        for (let n=1;n<20;n++) {
+          route.push({x:(y%2 ? 20-n : n)*box,y:y*box});
+        }
+      }
+      for (let y=19;y>0;y--) route.push({x:0,y:y*box});
+      const head = route.findIndex(p=>p.x===6*box && p.y===10*box);
+      return Array.from({length},(_,i)=>({...route[(head-i+route.length)%route.length]}));
+    }
+
     let bonusLifeUsed = false;
     function gameOver(reason = '', finalize = false) {
       if (game === null && !finalize) return;
@@ -622,14 +639,22 @@
         startButton.disabled = true;
         const stoppedAt = performance.now();
         if (Arcade.offerAdContinue({
-          message: 'Keep your ' + score + ' apples and continue with a short snake in a safe spot. One bonus life per run. No Coins or extra play needed.',
+          message: 'Keep your ' + score + ' apples and full snake length. Restart in a safe spot with a countdown. One bonus life per run. No Coins or extra play needed.',
           onContinue: () => {
             bonusLifeUsed = true;
-            snake = [{x:200,y:200}];
+            snake = safeContinueSnake(snake.length);
             direction = nextDirection = 'RIGHT';
             queuedDirections.length = 0;
             syncDirectionButtons('RIGHT');
-            if (food.x === 200 && food.y === 200) food = randomFood();
+            if (snake.some(part=>part.x===food.x && part.y===food.y)) {
+              const occupied = new Set(snake.map(p=>p.x+','+p.y));
+              const free = [];
+              for(let y=0;y<400;y+=box) for(let x=0;x<400;x+=box) {
+                if(!occupied.has(x+','+y)) free.push({x,y});
+              }
+              if(free.length) food = free[Math.floor(Math.random()*free.length)];
+            }
+            paintBoard();
             setStatus('Get Ready');
             Arcade.countdown(() => {
               totalPausedMs += performance.now() - stoppedAt;

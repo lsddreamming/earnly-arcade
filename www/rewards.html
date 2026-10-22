@@ -219,6 +219,7 @@
     window.addEventListener('pageshow', render);
     window.addEventListener('focus', render);
     window.addEventListener('storage', render);
+    window.addEventListener('earnly-wallet-change', render);
     window.addEventListener('earnly-cloud-ready', renderRewardProtection);
     window.addEventListener('earnly-cloud-auth-change', renderRewardProtection);
     window.addEventListener('earnly-server-rewards-synced', () => {
