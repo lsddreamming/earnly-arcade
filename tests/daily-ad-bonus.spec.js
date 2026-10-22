@@ -21,6 +21,9 @@ test('unlimited-play tester earns 100 coins on the first verified ad',async({pag
  await expect(page.locator('[data-watch]')).toContainText('+100 Coins');
  await page.locator('[data-watch]').click();
  await expect(page.locator('[data-progress]')).toContainText('1 / 5 verified today · 100 Coins earned');
+ await expect(page.locator('#balance')).toHaveText('223');
+ await expect(page.locator('#topBalance')).toHaveText('223');
+ await expect(page.locator('#lifetimeEarned')).toHaveText('223');
  await expect(page.locator('[data-watch]')).toBeEnabled();
  expect(await page.evaluate(()=>walletCalls)).toBe(1);
  expect(await page.evaluate(()=>sessionStorage.getItem('earnlyUnlimitedPlays'))).toBe('1');
