@@ -40,7 +40,7 @@
       if(earned(next)>prior||(changedDay&&earned(next)>0)||walletPending){
         walletPending=true;
         status.textContent=next.awarded?`${earned(next)} Coins earned today.`:'Your verified reward progress updated.';
-        try{const wallet=await window.EarnlyCloud.walletInfo();if(generation===epoch&&wallet){window.Arcade?.applyServerWallet?.(wallet);walletPending=false;}}catch{if(generation===epoch)status.textContent='Reward verified. Your wallet will refresh when the connection returns.';}
+        try{const wallet=await window.EarnlyCloud.walletInfo();if(generation===epoch&&wallet){const arcade=typeof Arcade!=='undefined'?Arcade:window.Arcade;if(typeof arcade?.applyServerWallet!=='function')throw Error('Wallet unavailable');arcade.applyServerWallet(wallet);walletPending=false;}}catch{if(generation===epoch)status.textContent='Reward verified. Your wallet will refresh when the connection returns.';}
       }
       return generation===epoch?next:null;
     }).catch(()=>{
