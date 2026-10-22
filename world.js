@@ -40,7 +40,7 @@
   if(placing){try{await action('place',{itemId:placing.id,x:hit.x,y:hit.y,rotation,centered:false});placing=null;showPlacement();await refresh();completeGuideStep('decorate');toast('Placed in your room');}catch(e){toast(e.message);}return;}
   if(connected){const item=(scene.items||[]).find(i=>{const rotated=i.rotation===2||i.rotation===6;return hit.x>=i.x&&hit.y>=i.y&&hit.x<i.x+(rotated?i.length:i.width)&&hit.y<i.y+(rotated?i.width:i.length);});socket.send(JSON.stringify(item&&(item.canSit||item.canLay)?{type:'INTERACT',x:hit.x,y:hit.y,action:item.canLay?'lay':'sit'}:{type:'MOVE_TO',x:hit.x,y:hit.y}));}else renderer.updateUser({userId,username:'You',position:{x:hit.x,y:hit.y,z:0}});
  });
- function setScene(value){if(scene?.roomId!==value.roomId){$('placementSuccess').hidden=true;placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
+ function setScene(value){if(scene?.roomId!==value.roomId){$('placementSuccess').hidden=true;placing=null;showPlacement();}scene=value;renderer.setScene(value);$('roomInvitation').hidden=value.ownerId!==userId||(value.items||[]).length>=3;updateViewButtons();$('roomName').textContent=value.name||'Earnly Plaza';$('renameRoom').hidden=value.ownerId!==userId;$('roomKind').textContent=value.ownerId===userId?'YOUR PERSONAL SPACE':value.ownerId?'PLAYER ROOM':'PUBLIC HANGOUT';$('stageTip').textContent=connected&&value.ownerId===userId?'Hold or double-tap furniture to move · Pinch to zoom':'Tap seats to sit · Pinch to zoom';}
  function beginPlacement(item,name,gesture=false){$('placementSuccess').hidden=true;requireConnection();if(scene.ownerId!==userId)throw new Error('Enter your own room to decorate.');renderer.clearPlacement();placing={...item,name,centered:false};rotation=scene.items.find(i=>i.id===item.id)?.rotation??0;if(gesture){renderer.selected=null;renderer.placement={item:{...item,centered:false},x:item.x,y:item.y,rotation};renderer.lastTap=null;}showPlacement();$('worldPanel').close();}
  function useSeat(item){const rotated=item.rotation===2||item.rotation===6,w=rotated?item.length:item.width,h=rotated?item.width:item.length;const occupied=new Set([...renderer.users.values(),...renderer.staff.values()].map(u=>u.position.x+','+u.position.y));const seats=[];for(let y=item.y;y<item.y+h;y++)for(let x=item.x;x<item.x+w;x++)if(!occupied.has(x+','+y))seats.push({x,y});if(!seats.length)throw new Error('This seat is occupied. Choose another seat.');const me=renderer.users.get(userId)?.position||item;seats.sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y));socket.send(JSON.stringify({type:'INTERACT',...seats[0],action:item.canLay?'lay':'sit'}));$('worldPanel').close();toast('Walking to '+item.name+' · Tap clear floor to stand up');}
  function showDecor(item){
@@ -61,7 +61,7 @@
  document.addEventListener('pointerdown',e=>{placementPress=e.target.closest?.('#placementHint button')||null;},true);
  document.addEventListener('pointercancel',()=>{placementPress=null;},true);
  $('placementHint').addEventListener('click',e=>{const button=e.target.closest('button');if(!button)return;const startedHere=placementPress===button;placementPress=null;if(e.detail>0&&!startedHere){e.preventDefault();e.stopImmediatePropagation();}},true);
- function showPlacement(){ if(!placing){renderer.clearPlacement();$('placementStatus').textContent='';}$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':placing?.guided?'Tap a floor tile to preview · Nothing is saved yet':'Tap a floor tile to place';if(renderer.placement?.explicitConfirm)$('placementInstructions').textContent='Tap or slide to adjust · Green fits · Tap Place here to save';$('placementHint').hidden=!placing;$('dropItem').hidden=!renderer.placement;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
+ function showPlacement(){ if(!placing){renderer.clearPlacement();$('placementStatus').textContent='';}$('placementInstructions').textContent=renderer.placement?'Slide to move · Tap elsewhere or double-tap to drop':placing?.guided?'Tap a floor tile to preview · Nothing is saved yet':'Tap a floor tile to place';if(renderer.placement?.explicitConfirm)$('placementInstructions').textContent='Tap or slide to adjust · Green fits · Tap Place here to save';$('placementHint').hidden=!placing;document.body.classList.toggle('is-placing',!!placing);$('dropItem').hidden=!renderer.placement;$('stageTip').hidden=!!placing;$('placingName').textContent=placing?.name||'';$('returnItem').hidden=!placing||!scene?.items.some(i=>i.id===placing.id);}
  $('rotateItem').onclick=()=>{if(renderer.placement?.saving)return;rotation=(rotation+2)%8;if(renderer.placement)renderer.placement.rotation=rotation;toast('Rotated '+(rotation*45)+'°');};$('cancelPlace').onclick=()=>{if(renderer.placement?.saving)return;placing=null;showPlacement();};
  $('returnItem').onclick=async()=>{
   const p=renderer.placement;if(!p||p.saving||!renderer.canEditItem(p.item))return;
@@ -136,6 +136,7 @@
    else if(p.type==='PET_REACTION')renderer.petReaction(p);
    else if(p.type==='PET_CHAT')renderer.bubble({userId:p.staffId,text:p.text,mode:'pet'});
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
+   else if(p.type==='ROOM_NAME'){if(scene?.roomId===p.roomId){scene.name=p.name;$('roomName').textContent=p.name;}for(const r of bootstrap.rooms)if(r.id===p.roomId)r.name=p.name;}
    else if(p.type==='ROOM_INVITE'){ $('worldCommunity').textContent='Community · New invite';toast('A friend invited you to a room. Open Room invitations.');}
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
@@ -357,7 +358,7 @@
     card.append(row(r.name,[button(r.ownerId===userId?'My room →':'Visit →',()=>connect(r.id))]),roomCount(r));
     if(r.ownerId!==null)card.append(note(r.ownerId===userId?'Owned by you':'Owned by '+ownerName(r)));
     if(style)card.append(note(style.description));
-    if(r.ownerId===userId)card.append(button('Delete room',()=>showDeleteRoom(r),'room-delete'));list.append(card);
+    if(r.ownerId===userId)card.append(button('Rename room',()=>showRenameRoom(r),'room-rename'),button('Delete room',()=>showDeleteRoom(r),'room-delete'));list.append(card);
    }
   };
   const loadExplore=async(append=false)=>{
@@ -379,6 +380,25 @@
   if(scene.ownerId===userId)management.append(note('Visitors for '+scene.name+': '+(scene.access==='open'?'Allowed':'Private')),button(scene.access==='open'?'Make this room private':'Allow visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
   update();if(selected==='explore')loadExplore();
  }
+ function showRenameRoom(room){
+  if(room.ownerId!==userId)return;
+  const root=openPanel('Rename room'),input=el('input'),label=el('label','room-name-label','Room name');
+  input.id='renameRoomName';input.maxLength=40;input.value=room.name;input.autocomplete='off';label.htmlFor=input.id;
+  const status=el('p','room-browser-status');status.setAttribute('role','status');
+  const cancel=button('Cancel',showRooms),save=button('Save name',async()=>{
+   const name=input.value.trim();if(!name||[...name].length>40||/[\x00-\x1f\x7f]/.test(name)){status.textContent='Use 1–40 characters, without line breaks.';input.focus();return;}
+   cancel.disabled=true;input.disabled=true;status.textContent='Saving…';
+   try{const result=await action('rename_room',{roomId:room.id,name});
+    for(const r of bootstrap.rooms)if(r.id===room.id)r.name=result.name;
+    if(scene.roomId===room.id){scene.name=result.name;$('roomName').textContent=result.name;}
+    showRooms();toast('Room name saved');
+   }catch(e){status.textContent=e.message||'Could not save. Try again.';}
+   finally{cancel.disabled=false;input.disabled=false;}
+  },'primary');
+  input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();if(!save.disabled)save.click();}};
+  root.append(label,input,note('You can change this anytime. Your furniture and room link stay the same.'),status,save,cancel);input.focus();input.select();
+ }
+ $('renameRoom').onclick=()=>showRenameRoom({id:scene.roomId,name:scene.name,ownerId:scene.ownerId});
  function showDeleteRoom(room){
   if(room.ownerId!==userId)return;
   const root=openPanel('Delete this room?');
@@ -558,13 +578,21 @@
   $('worldGuide').textContent=step?'Room guide · '+done+'/3':'Room guide';
  }
  async function startGuidedDecorating(){requireConnection();if(scene.ownerId!==userId){guideDecorateOnArrival=true;try{await connect('choose-home');}catch(e){guideDecorateOnArrival=false;throw e;}return;}showFirstPiece();}
+ function previewFirstPiece(){
+  // Start on a real, clear footprint, including split-level rooms. Nothing is saved yet.
+  const rows=scene.heightmap.split('\n'),candidates=[];
+  for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++)if(rows[y][x]!=='x')candidates.push({x,y});
+  candidates.sort((a,b)=>Math.hypot(a.x-rows[0].length/2,a.y-rows.length/2)-Math.hypot(b.x-rows[0].length/2,b.y-rows.length/2));
+  for(const tile of candidates){renderer.placement={item:placing,...tile,rotation,explicitConfirm:true};if(renderer.placementResult().valid)return;}
+  renderer.clearPlacement();
+ }
  function showFirstPiece(){
   requireConnection();if(scene.ownerId!==userId){startGuidedDecorating().catch(e=>toast(e.message));return;}
   currentPanel='first-piece';const root=openPanel('Make this room yours');
   const owned=bootstrap.items.filter(i=>(!i.room_id||i.room_id===scene.roomId)&&bootstrap.catalog.some(d=>d.id===i.definition_id)).sort((a,b)=>Number(!!a.room_id)-Number(!!b.room_id));
   root.append(note(owned.length?'1. Choose an owned piece. 2. Tap the floor to preview. 3. Tap Place here to save.':'Your Backpack is empty. You can earn coins in the arcade or choose a piece from the Catalog.'));
   const grid=el('div','catalog-grid guide-piece-grid');
-  for(const item of owned.slice(0,4)){const d=bootstrap.catalog.find(d=>d.id===item.definition_id),card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});card.append(canvas,el('h3','',d.name),el('p','owned-label',item.room_id?'Already in this room · Move it to try decorating':'Already yours · No coins needed'),button(item.room_id?'Move this piece':'Place this piece',()=>{beginPlacement({...d,...item,sprite:d.sprite_id,itemHeight:Number(d.item_height),walkable:d.walkable===true,canStack:d.can_stack===true,canSit:d.can_sit===true,canLay:d.can_lay===true},d.name);placing.guided=true;showPlacement();},'primary'));grid.append(card);}
+  for(const item of owned.slice(0,4)){const d=bootstrap.catalog.find(d=>d.id===item.definition_id),card=el('article','item-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});card.append(canvas,el('h3','',d.name),el('p','owned-label',item.room_id?'Already in this room · Move it to try decorating':'Already yours · No coins needed'),button(item.room_id?'Move this piece':'Place this piece',()=>{beginPlacement({...d,...item,sprite:d.sprite_id,itemHeight:Number(d.item_height),walkable:d.walkable===true,canStack:d.can_stack===true,canSit:d.can_sit===true,canLay:d.can_lay===true},d.name);placing.guided=true;previewFirstPiece();showPlacement();},'primary'));grid.append(card);}
   if(owned.length)root.append(grid,button('See all my furniture',showBackpack));
   else if(bootstrap.items.length)root.append(note('You have furniture in another room. Find it in your Backpack.'),button('Find my furniture',showBackpack,'primary'));
   else {const options=bootstrap.catalog.filter(d=>!d.vip_only&&(!d.supply_limit||d.minted<d.supply_limit)).sort((a,b)=>Number(a.price)-Number(b.price)).slice(0,3);

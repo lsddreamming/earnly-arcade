@@ -86,6 +86,14 @@ export class SupabaseWorldAccess implements WorldAccess {
     }else if(action==='daily_missions'){
       if(data.claim!==undefined&&!['visit','decorate','game'].includes(String(data.claim)))throw new Error('Unknown daily mission');
       result=await this.#request('/rest/v1/rpc/world_daily_missions',this.#key,{p_actor:uid,p_claim:data.claim??null});
+    }else if(action==='rename_room'){
+      const target=typeof data.roomId==='string'?data.roomId:'';
+      const name=typeof data.name==='string'?data.name.trim():'';
+      if(!/^[0-9a-f-]{36}$/i.test(target))throw new Error('Room unavailable');
+      if(!name||[...name].length>40||/[\x00-\x1f\x7f]/.test(name))throw new Error('Use 1–40 characters for your room name');
+      result=await this.#request('/rest/v1/rpc/world_rename_room',this.#key,{p_actor:uid,p_room:target,p_name:name});
+      const targetRoom=this.#rooms.get(target);
+      deliveries.push({roomId:target,userIds:targetRoom?.members().map(m=>m.userId)??[],packet:{type:'ROOM_NAME',roomId:target,name:result.name}});
     }else if(action==='delete_room'){
       const target=String(data.roomId??'');
       if(data.confirm!==true)throw new Error('Confirm room deletion first');
