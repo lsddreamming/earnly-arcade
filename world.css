@@ -228,10 +228,10 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 /* Keep placement reachable without scrolling between the preview and Save. */
 .room-rename{min-height:44px;margin:4px 8px 4px 0}.room-rename[hidden]{display:none}
 #renameRoomName{width:100%;box-sizing:border-box;min-height:48px}
-.is-placing #firstVisitHint{display:none}
+.is-guided-placing #firstVisitHint{display:none}
 @media(max-width:600px){
- .is-placing .world-stage{height:45dvh;min-height:250px}
+ .is-guided-placing .world-stage{height:45dvh;min-height:250px}
  #placementHint{position:sticky;bottom:calc(62px + env(safe-area-inset-bottom));gap:6px;padding:10px}
  #placementInstructions{font-size:11px}#placementStatus{font-size:12px}
- #placementHint button{min-height:44px;padding:9px}
+ #placementHint button{min-height:48px;padding:9px}
 }
