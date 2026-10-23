@@ -9,3 +9,25 @@ body.studio-dashboard .item-card{border:1px solid #35475d!important;border-radiu
 body.studio-dashboard .item-card button{width:auto!important;min-width:0;justify-self:stretch;margin:0 4px!important;white-space:normal;overflow-wrap:anywhere}
 
 .item-art[data-detail=true][data-slot=jewelry] .gear-piece{transform:translateY(-7%) scale(2);transform-origin:50% 50%}
+
+/* Compact cards: one ownership badge, one price, stable actions. */
+body.studio-dashboard #shop-grid{align-items:stretch;gap:12px}
+body.studio-dashboard #shop-grid .item-card{display:flex;flex-direction:column;gap:0;padding-bottom:10px!important}
+body.studio-dashboard #shop-grid .item-art{width:100%;height:205px;flex:none;margin:0}
+body.studio-dashboard #shop-grid .item-card h3{margin:10px 10px 3px;min-height:2.7em;font-size:14px;line-height:1.35}
+body.studio-dashboard #shop-grid .item-category{margin:0 10px 9px;min-height:0;font-size:11px;line-height:1.3}
+body.studio-dashboard #shop-grid .item-actions{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:6px;margin: auto 8px 0}
+body.studio-dashboard #shop-grid .item-actions button{margin:0!important;min-height:44px;padding:8px 4px;font-size:11px;line-height:1.25;align-self:stretch}
+body.studio-dashboard #shop-grid .preview-item{background:transparent;border-color:#57718a;text-decoration:none}
+body.studio-dashboard #shop-grid .item-art[data-slot=jewelry]:not([data-detail=true]) .character img{transform:translateY(-2%) scale(1.5);transform-origin:50% 53%}
+@media(max-width:600px){
+ body.studio-dashboard #shop-grid{gap:10px}
+ body.studio-dashboard #shop-grid .item-art{height:180px}
+ body.studio-dashboard #shop-grid .item-card h3{font-size:13px;margin:9px 8px 3px}
+ body.studio-dashboard #shop-grid .item-category{margin:0 8px 8px}
+ body.studio-dashboard #shop-grid .item-actions{margin-inline:6px;gap:4px}
+}
+@media(max-width:350px){
+ body.studio-dashboard #shop-grid .item-actions{grid-template-columns:1fr}
+ body.studio-dashboard #shop-grid .item-art{height:165px}
+}

@@ -278,3 +278,21 @@ test('Gear detail isolates pieces, preserves try-on and never changes ownership'
  for(const button of await page.locator('.item-card button').all())expect(await button.evaluate(b=>{const box=b.getBoundingClientRect(),card=b.closest('.item-card').getBoundingClientRect();return box.left>=card.left&&box.right<=card.right&&b.scrollWidth<=b.clientWidth;})).toBe(true);
  expect(JSON.stringify(f.user.equipped)).toBe(saved);expect(f.writes).toHaveLength(0);await expect(page.locator('#coin-balance')).toHaveText('1,250');
 });
+
+test('Compact shop cards keep readable controls and one price at phone widths',async({page})=>{
+ await setup(page);
+ for(const width of [320,390]){
+  await page.setViewportSize({width,height:844});
+  await page.locator('.shop-tabs [data-slot="outfit"]').click();
+  await expect(page.locator('#shop-grid .item-ownership')).toHaveCount(0);
+  const card=page.locator('.item-card').filter({has:page.getByRole('heading',{name:'Neon Jacket',exact:true})});
+  await expect(card).toContainText('300 · Buy');
+  expect((await card.boundingBox()).height).toBeLessThan(width===320?340:310);
+  for(const button of await card.locator('button').all()){
+   const b=await button.boundingBox();expect(b.height).toBeGreaterThanOrEqual(44);
+   expect(await button.evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+  }
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ }
+ await page.locator('#shop-grid').screenshot({path:test.info().outputPath('compact-outfits.png')});
+});

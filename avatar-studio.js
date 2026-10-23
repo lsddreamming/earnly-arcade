@@ -149,6 +149,7 @@
       card.classList.toggle("is-equipped", !!equipped);
       card.classList.toggle("is-owned", !!owned);
       art.dataset.slot = item.slot;
+      card.dataset.slot = item.slot;
       const detail=state.gearDetail && ['outfit','jewelry','shoes','backpack','face','beard','head','weapon'].includes(item.slot);
       art.dataset.detail=String(detail);
       let artwork;
@@ -189,13 +190,13 @@
       preview.dataset.previewItemId = item.id;
       preview.setAttribute("aria-label", "Preview " + item.name);
       preview.addEventListener("click", () => { state.preview[item.slot] = item; state.previewFocus = item.slot; renderUser(); showPreview(item.id); });
+      const actions = el("div", "item-actions");
+      actions.append(preview, button);
       card.append(
         art,
         el("h3", "", item.name),
         el("p", "item-category", prettySlot[item.slot]),
-        el("p", "item-ownership", equipped ? "✓ Equipped" : owned ? "✓ Owned · equip anytime" : item.coinPrice === 0 ? "Free essential" : "◈ " + fmt(item.coinPrice) + " coins"),
-        preview,
-        button,
+        actions,
       );
       $("shop-grid").append(card);
     }
