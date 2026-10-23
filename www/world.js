@@ -240,7 +240,11 @@
    if(saved&&saved.definitionId!==d.id)throw new Error('Reopen your previous item to confirm its purchase first.');
    const purchase={definitionId:d.id,requestId,color:selectedColor,expectedPrice:retry?saved?.expectedPrice??Number(d.price):Number(d.price)};localStorage.setItem(purchaseKey,JSON.stringify(purchase));saved=purchase;
    for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=true;
-   try{await action('buy',purchase);}catch(error){if(error.definite){localStorage.removeItem(purchaseKey);saved=null;for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=false;}throw error;}
+   try{await action('buy',purchase);}catch(error){
+    if(error.definite){localStorage.removeItem(purchaseKey);saved=null;for(const b of root.querySelectorAll('.furniture-swatch'))b.disabled=false;
+     if(error.message.startsWith('Price changed.')){await refresh();const current=bootstrap.catalog.find(item=>item.id===d.id);if(current){showBuy(current,selectedColor,back);toast('Price updated. Review the new price before buying.');return;}}
+    }throw error;
+   }
    localStorage.removeItem(purchaseKey);await refresh();toast(d.name+' added to your Backpack');back();
   },'primary');root.append(buy,button('Back to catalog',back));
  }
