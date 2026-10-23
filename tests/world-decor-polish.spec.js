@@ -73,3 +73,40 @@ test('A changed price refreshes the confirmation and waits for another explicit 
  await page.getByRole('button',{name:'Buy for ◇ 200',exact:true}).click();await expect(page.locator('#coinBalance')).toHaveText('◇ 800');
  const attempts=await page.evaluate(()=>window.priceAttempts);expect(attempts.map(p=>p.expectedPrice)).toEqual([65,200]);expect(attempts[0].requestId).not.toBe(attempts[1].requestId);
 });
+
+test('Budget shopping filters unavailable pieces and preserves the filter after preview and purchase',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.budgetBuys=[];
+  window.WebSocket=class{
+   static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}close(){}
+   send(raw){const p=JSON.parse(raw),emit=data=>this.onmessage?.({data:JSON.stringify(data)});this.bootstrap??={balance:200,rooms:[],catalog:[
+    {id:'affordable',name:'Budget Hamper',price:200}, {id:'expensive',name:'Luxury Hamper',price:850},
+    {id:'gift',name:'VIP Hamper',price:0,vip_only:true},{id:'sold',name:'Sold Hamper',price:125,supply_limit:1,minted:1}
+   ].map(d=>({...d,category:'Bathroom',sprite_id:'bath-hamper',color:'#80c9b5',width:1,length:1})),items:[],friends:[]};
+    if(p.type==='JOIN')emit({type:'WELCOME',userId:'budget-owner',scene:{roomId:'home',ownerId:'budget-owner',name:'Home',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:this.bootstrap});
+    if(p.type==='ACTION'){
+     if(p.action==='buy'){if(!window.budgetBuys.some(b=>b.requestId===p.data.requestId)){this.bootstrap.balance-=200;this.bootstrap.items.push({id:'owned-budget',definition_id:'affordable',serial:1});}window.budgetBuys.push(p.data);}
+     emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?this.bootstrap:{}});
+    }
+   }
+  };
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.locator('[data-panel="catalog"]').click();await page.locator('.catalog-refine summary').click();
+ await page.getByRole('button',{name:'Within my budget',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(1);
+ await page.getByRole('button',{name:'Preview Budget Hamper',exact:true}).click();await page.getByRole('button',{name:'Back to catalog',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Within my budget',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'◇ 200 · Buy',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('After purchase: 0 Arcade Coins');
+ await page.getByRole('button',{name:'Buy for ◇ 200',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(0);await expect(page.locator('#panelContent')).toContainText('No available pieces match your budget');
+ await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(page.locator('.item-card')).toHaveCount(4);
+ await page.getByRole('button',{name:'◇ 850 · Buy',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('You need 850 more Arcade Coins.');await expect(page.getByRole('button',{name:'Buy for ◇ 850',exact:true})).toBeDisabled();
+ expect(await page.evaluate(()=>window.budgetBuys.length)).toBe(1);
+ await page.getByRole('button',{name:'Back to catalog',exact:true}).click();
+ await page.evaluate(()=>localStorage.setItem('earnlyWorldPendingPurchase:budget-owner',JSON.stringify(window.budgetBuys[0])));
+ await page.getByRole('button',{name:'◇ 200 · Buy another',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Buy for ◇ 200',exact:true})).toBeEnabled();
+ await expect(page.locator('#panelContent')).not.toContainText('You need');
+ await page.getByRole('button',{name:'Buy for ◇ 200',exact:true}).click();await expect(page.locator('#coinBalance')).toHaveText('◇ 0');
+ expect(await page.evaluate(()=>window.budgetBuys.length)).toBe(2);
+});
