@@ -12,16 +12,16 @@
     <path d="M103 173Q122 163 150 166Q178 164 198 173L209 211L217 266Q216 288 207 300Q152 317 93 300Q83 287 83 265L91 211Z" fill="url(#cloth)"/>
     </g>
     <path d="M104 175Q110 202 97 232L92 279M197 175Q188 202 204 232L209 279" fill="none" stroke="#668096" stroke-width="1.4"/>
-    <path d="M105 180L133 189L150 180L168 189L196 180L193 194L168 206L150 192L133 206L108 194Z" fill="#142b41" stroke="#98c998" stroke-width="2"/>
+    <path d="M105 180Q120 179 133 186Q150 194 168 186Q182 178 196 180L193 194Q176 210 150 199Q126 210 108 194Z" fill="#142b41" stroke="#98c998" stroke-width="2"/>
     <path d="M103 199Q91 210 92 230M198 199Q210 214 208 230M72 219l15 6m131-6-12 6" fill="none" stroke="#a4bdd0" opacity=".28" stroke-width="2"/>
     <path d="M103 283Q151 300 207 283L205 298Q151 314 94 297L94 282Z" fill="#15273c"/>
     <path d="M96 296Q152 311 207 296" fill="none" stroke="#98c998" stroke-width="2.5"/>
     <path d="M151 203V298" stroke="#081a2a" stroke-width="6"/><path d="M150 203V297" stroke="#adc1cd" stroke-width="1.6"/>
-    <path d="M108 254L135 256L132 283L108 279ZM165 256L196 254L194 279L169 283Z" fill="#172a3d" stroke="#607e94" stroke-width="1.5"/>
+    <path d="M111 254Q123 254 135 257L133 278Q131 284 124 282L111 280Q107 278 108 272ZM165 257Q181 254 193 254Q197 255 196 261L194 275Q194 279 189 280L173 283Q168 283 168 278Z" fill="#172a3d" stroke="#607e94" stroke-width="1.5"/>
     <path d="M108 255l27 2m31 0 29-2" stroke="#98c998" stroke-width="1"/>
     <path d="M114 260l16 1m42 0 17-1" stroke="#b7c6cf" opacity=".35" stroke-dasharray="1 2"/>
     <rect x="147" y="217" width="7" height="11" rx="2" fill="url(#metal)" stroke="#1c3347"/>
-    <path d="M113 216L134 218L132 240L117 241Z" fill="#123c50" stroke="#98c998" stroke-width="1.2"/><path d="M118 222l10 1m-9 5 7 1" stroke="#98c998" stroke-width="2"/>
+    <path d="M118 216L130 218Q135 218 134 223L132 236Q132 241 127 241L120 240Q116 240 116 235L113 221Q113 216 118 216Z" fill="#123c50" stroke="#98c998" stroke-width="1.2"/><path d="M118 222l10 1m-9 5 7 1" stroke="#98c998" stroke-width="2"/>
     <circle cx="121" cy="236" r="1.5" fill="#d8f5ff"/>
     <path d="M58 247L89 256L87 265L56 256ZM209 256L239 247L242 256L211 265Z" fill="#182b3e" stroke="#354c63" stroke-width="1.4"/>
     <path d="M59 252L86 260M212 260L238 252" stroke="#98c998" stroke-width="2.5"/>

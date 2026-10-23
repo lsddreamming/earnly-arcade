@@ -18,6 +18,11 @@ def svg(name, art, a='#eac086', b='#93603e', accent='#58e4f5'):
         # Warm, continuous skin shading; retain the shared equipment silhouette.
         art = art.replace('fill="#59392d" opacity=".3"', 'fill="#59392d" opacity=".18"')
         art = art.replace(f'stroke="{a}" opacity=".5"', f'stroke="{a}" opacity=".24"')
+    # Rounded tuber cheeks and soft studio lighting retain eye/hat anchors.
+    if is_body:
+        art = art.replace('M85 101Q76 59 106 39Q137 19 176 33Q203 33 215 63Q232 90 212 130Q214 151 189 171Q158 190 119 171Q84 155 85 101Z',
+            'M85 101C79 76 83 51 106 39C127 25 151 27 176 33C202 32 216 52 218 75C220 91 216 101 220 119C226 147 203 173 177 181C149 190 115 180 96 161C80 145 79 122 85 101Z')
+        art = art.replace('stroke="#493039" stroke-width="2"', 'stroke="#694a40" stroke-width="1.6"')
     skin_shadow = '#'+''.join(f'{round(int(b[i:i+2],16)*.72):02x}' for i in (1,3,5)) if is_body else '#544052'
     if name == 'round-glasses':
         art = '<g fill="#bce9ed" fill-opacity=".07" stroke="#775438" stroke-width="5"><circle cx="125" cy="104" r="22"/><circle cx="176" cy="104" r="22"/></g>'+art
@@ -28,7 +33,8 @@ def svg(name, art, a='#eac086', b='#93603e', accent='#58e4f5'):
         art += '<path d="M87 75Q150 62 215 75" fill="none" stroke="#342b38" stroke-width="3" opacity=".55"/><path d="M93 59Q151 45 210 59" fill="none" stroke="#efc9a6" stroke-width="1.5" opacity=".4"/>'
 
     defs = f'''<defs>
-    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".68" stop-color="{b}"/><stop offset="1" stop-color="{skin_shadow}"/></radialGradient>
+    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".52" stop-color="{a}"/><stop offset=".88" stop-color="{b}"/><stop offset="1" stop-color="{skin_shadow}"/></radialGradient>
+    <radialGradient id="cheek"><stop stop-color="#eeaa89" stop-opacity=".42"/><stop offset="1" stop-color="#eeaa89" stop-opacity="0"/></radialGradient>
     <linearGradient id="cloth" x2=".8" y2="1"><stop stop-color="#3d5b75"/><stop offset=".5" stop-color="#253648"/><stop offset="1" stop-color="#101b2d"/></linearGradient>
     <linearGradient id="fabric" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="{accent}"/><stop offset=".3" stop-color="#46647a"/><stop offset="1" stop-color="#18283d"/></linearGradient>
     <linearGradient id="hood" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="{accent}"/><stop offset=".55" stop-color="#675877"/><stop offset="1" stop-color="#283549"/></linearGradient>
@@ -39,10 +45,10 @@ def svg(name, art, a='#eac086', b='#93603e', accent='#58e4f5'):
     <radialGradient id="lens" cx=".3" cy=".15"><stop stop-color="#84d9ef"/><stop offset=".6" stop-color="#153e64"/><stop offset="1" stop-color="#09182b"/></radialGradient>
     </defs>'''
     # Keep unused material gradients out of unrelated assets.
-    for material in ('fabric', 'hood'):
+    for material in ('fabric', 'hood', 'cheek'):
         if f'url(#{material})' not in art:
             import re
-            defs = re.sub(r'    <linearGradient id="'+material+r'".*?</linearGradient>\n', '', defs)
+            defs = re.sub(r'    <(?:linear|radial)Gradient id="'+material+r'".*?</(?:linear|radial)Gradient>\n', '', defs)
     (ROOT / ('cosmetic-'+name+'.svg')).write_text(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">{defs}{art}</svg>\n')
 
 # Broad silhouette, asymmetry, skin dimples, catchlights and articulated hands.
@@ -57,11 +63,11 @@ def mascot(a,b,accent,armor=False):
     <path d="M85 101Q76 59 106 39Q137 19 176 33Q203 33 215 63Q232 90 212 130Q214 151 189 171Q158 190 119 171Q84 155 85 101Z" fill="url(#skin)"/>
     </g>'''
     r=Random(21)
-    for _ in range(72):
+    for _ in range(32):
         x=r.randint(92,207); y=r.randint(43,158)
         if (x-150)**2/66**2+(y-103)**2/75**2 > .88 or (110<x<190 and 77<y<143): continue
         art+=f'<ellipse cx="{x}" cy="{y}" rx="{r.uniform(1,2.5):.1f}" ry="{r.uniform(1,2):.1f}" fill="#59392d" opacity=".3"/><path d="M{x-2} {y+2}l3 0" stroke="{a}" opacity=".5"/>'
-    art+='''<path d="M100 70Q99 52 121 45" stroke="#fff6d9" opacity=".38" stroke-width="7" stroke-linecap="round" fill="none"/>
+    art+='''<ellipse cx="108" cy="133" rx="17" ry="12" fill="url(#cheek)"/><ellipse cx="195" cy="133" rx="17" ry="12" fill="url(#cheek)"/><path d="M100 70Q99 52 121 45" stroke="#fff6d9" opacity=".38" stroke-width="7" stroke-linecap="round" fill="none"/>
     <path d="M91 101Q85 64 110 46" fill="none" stroke="#fff4ce" stroke-width="3" stroke-linecap="round" opacity=".45"/><path d="M211 86Q222 115 204 143Q196 158 183 165" fill="none" stroke="#82ecff" stroke-width="2.5" stroke-linecap="round" opacity=".4"/><path d="M126 165Q149 178 174 167" fill="none" stroke="#ffdfb1" stroke-width="2" stroke-linecap="round" opacity=".3"/><ellipse cx="111" cy="126" rx="12" ry="6" fill="#dc785e" opacity=".35"/><ellipse cx="192" cy="126" rx="12" ry="6" fill="#dc785e" opacity=".3"/>
     <path d="M113 79Q125 73 136 80M165 80Q177 73 188 79" fill="none" stroke="#59352c" stroke-width="5" stroke-linecap="round"/>
     <g><ellipse cx="125" cy="102" rx="17" ry="21" fill="#fff4d9"/><ellipse cx="176" cy="102" rx="17" ry="21" fill="#fff4d9"/>
@@ -90,16 +96,16 @@ def jacket(color='#58e4f5', hoodie=False, armored=False):
     <path d="M103 173Q122 163 150 166Q178 164 198 173L209 211L217 266Q216 288 207 300Q152 317 93 300Q83 287 83 265L91 211Z" fill="url(#cloth)"/>
     </g>
     <path d="M104 175Q110 202 97 232L92 279M197 175Q188 202 204 232L209 279" fill="none" stroke="#668096" stroke-width="1.4"/>
-    <path d="M105 180L133 189L150 180L168 189L196 180L193 194L168 206L150 192L133 206L108 194Z" fill="#142b41" stroke="{color}" stroke-width="2"/>
+    <path d="M105 180Q120 179 133 186Q150 194 168 186Q182 178 196 180L193 194Q176 210 150 199Q126 210 108 194Z" fill="#142b41" stroke="{color}" stroke-width="2"/>
     <path d="M103 199Q91 210 92 230M198 199Q210 214 208 230M72 219l15 6m131-6-12 6" fill="none" stroke="#a4bdd0" opacity=".28" stroke-width="2"/>
     <path d="M103 283Q151 300 207 283L205 298Q151 314 94 297L94 282Z" fill="#15273c"/>
     <path d="M96 296Q152 311 207 296" fill="none" stroke="{color}" stroke-width="2.5"/>
     <path d="M151 203V298" stroke="#081a2a" stroke-width="6"/><path d="M150 203V297" stroke="#adc1cd" stroke-width="1.6"/>
-    <path d="M108 254L135 256L132 283L108 279ZM165 256L196 254L194 279L169 283Z" fill="#172a3d" stroke="#607e94" stroke-width="1.5"/>
+    <path d="M111 254Q123 254 135 257L133 278Q131 284 124 282L111 280Q107 278 108 272ZM165 257Q181 254 193 254Q197 255 196 261L194 275Q194 279 189 280L173 283Q168 283 168 278Z" fill="#172a3d" stroke="#607e94" stroke-width="1.5"/>
     <path d="M108 255l27 2m31 0 29-2" stroke="{color}" stroke-width="1"/>
     <path d="M114 260l16 1m42 0 17-1" stroke="#b7c6cf" opacity=".35" stroke-dasharray="1 2"/>
     <rect x="147" y="217" width="7" height="11" rx="2" fill="url(#metal)" stroke="#1c3347"/>
-    <path d="M113 216L134 218L132 240L117 241Z" fill="#123c50" stroke="{color}" stroke-width="1.2"/><path d="M118 222l10 1m-9 5 7 1" stroke="{color}" stroke-width="2"/>
+    <path d="M118 216L130 218Q135 218 134 223L132 236Q132 241 127 241L120 240Q116 240 116 235L113 221Q113 216 118 216Z" fill="#123c50" stroke="{color}" stroke-width="1.2"/><path d="M118 222l10 1m-9 5 7 1" stroke="{color}" stroke-width="2"/>
     <circle cx="121" cy="236" r="1.5" fill="#d8f5ff"/>
     <path d="M58 247L89 256L87 265L56 256ZM209 256L239 247L242 256L211 265Z" fill="#182b3e" stroke="#354c63" stroke-width="1.4"/>
     <path d="M59 252L86 260M212 260L238 252" stroke="{color}" stroke-width="2.5"/>
