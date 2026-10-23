@@ -11,7 +11,10 @@ for(const path of pages){
    const stats=await page.locator('.game-meta .meta-pill').evaluateAll(ns=>ns.map(n=>({font:parseFloat(getComputedStyle(n).fontSize),width:n.clientWidth,scroll:n.scrollWidth})));
    expect(stats.length).toBeGreaterThan(0);
    for(const stat of stats){expect(stat.font).toBeGreaterThanOrEqual(11);expect(stat.scroll).toBeLessThanOrEqual(stat.width+1);}
-   const start=page.locator('#startButton');await expect(start).toBeVisible();
+   // Touch devices start by tapping the board; the separate button is intentionally hidden.
+   const button=page.locator('#startButton');
+   const start=await button.isVisible()?button:page.locator('#surface,.game-guide-surface').first();
+   await expect(start).toBeVisible();
    expect((await start.boundingBox()).height).toBeGreaterThanOrEqual(44);
    expect((await start.boundingBox()).y).toBeLessThan(340);
    await expect(page.locator('.game-guide-strip')).toBeHidden();

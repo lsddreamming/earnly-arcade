@@ -34,7 +34,7 @@ test('Merge Rush displays its objective, swipe budget and distinct tile colors o
  for(const dir of ['ArrowDown','ArrowRight','ArrowUp','ArrowLeft','ArrowDown','ArrowLeft','ArrowUp','ArrowLeft','ArrowDown','ArrowLeft'])await page.keyboard.press(dir);
  const tiles=await page.locator('.merge-tile[data-value]').evaluateAll(els=>els.map(e=>({value:e.dataset.value,background:getComputedStyle(e).backgroundImage})));
  for(const tile of tiles)expect(tile.background).toContain('linear-gradient');
- if(test.info().project.name==='mobile-webkit'){const goal=await page.locator('.merge-goal').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();expect(goal.y+goal.height).toBeLessThan(pause.y);}
+ for(const [width,height] of [[320,568],[390,664],[390,844],[440,956]]){await page.setViewportSize({width,height});const goal=await page.locator('.merge-goal').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();expect(goal.y+goal.height,width+'x'+height+' goal stays above Pause').toBeLessThan(pause.y);}
  const pair=tiles.find(t=>t.value!==tiles[0].value);if(pair)expect(pair.background).not.toBe(tiles[0].background);
  expect(Number(await page.locator('#score').textContent())).toBe(0);
  await page.screenshot({path:'test-results/merge-rush-'+test.info().project.name+'.png'});

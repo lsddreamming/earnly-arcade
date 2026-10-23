@@ -66,3 +66,15 @@
 @media(max-width:359px){
  html body.classic-game-ui.towerstack-page .game-meta {grid-template-columns:repeat(3,minmax(0,1fr))!important;}
 }
+
+/* The objective and move counter remain visible on short phone screens. */
+@media(max-width:699px) and (max-height:650px){
+ html body.classic-game-ui.mini-mergeRush.game-active .merge-goal span{display:none;}
+}
+
+@media(max-width:699px){
+ html body.classic-game-ui.mini-mergeRush.game-active .page-header{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;padding:6px!important;}
+ html body.classic-game-ui.mini-mergeRush.game-active .page-header > h1{grid-column:1;grid-row:1;font-size:20px!important;}
+ html body.classic-game-ui.mini-mergeRush.game-active #gameStatus{grid-column:2;grid-row:1;}
+ html body.classic-game-ui.mini-mergeRush.game-active .game-meta{grid-column:1 / -1;grid-row:2;}
+}
