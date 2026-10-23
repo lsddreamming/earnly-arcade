@@ -1,0 +1,6 @@
+/* Saved cosmetics on results. Rendering only, with no popups during a run. */
+(()=>{let user=null,stamp=0;const slots=['backpack','avatar','outfit','jewelry','shoes','eyes','brows','nose','mouth','marks','hair','face','beard','head','weapon','pet','frame','pose','effect'];
+ async function refresh(){const turn=++stamp;user=null;try{const session=await window.EarnlyCloud?.session?.();if(!session)return;const response=await fetch('https://zdwziebtbpuolusztede.supabase.co/functions/v1/avatars/api/me',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});if(response.ok){const data=await response.json();if(turn===stamp)user=data.user;}}catch{}}
+ window.EarnlyShopAppearance={decorate(root){if(!user)return;const rig=document.createElement('span');rig.className='result-shop-look';rig.setAttribute('aria-label','Your equipped victory look');const parts=user.equipped||{};for(const slot of slots){const item=parts[slot];if(!item||!/^cosmetic-[a-z0-9-]+\.svg$/.test(item.imageUrl))continue;const image=document.createElement('img');image.src=slot==='avatar'&&parts.eyes?'cosmetic-'+item.id+'-body.svg':item.imageUrl;image.alt='';rig.append(image);}root.prepend(rig);}};
+ window.addEventListener('earnly-cloud-ready',refresh);window.addEventListener('earnly-cloud-auth-change',refresh);if(window.EarnlyCloud)refresh();
+})();
