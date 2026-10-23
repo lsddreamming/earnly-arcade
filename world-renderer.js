@@ -51,7 +51,45 @@
   const cylinder=(u,v,r,z,h,tint,n=12)=>{const top=[];for(let j=0;j<n;j++){const a=j*Math.PI*2/n,b=(j+1)*Math.PI*2/n,p=[u+Math.cos(a)*r,v+Math.sin(a)*r],q=[u+Math.cos(b)*r,v+Math.sin(b)*r];top.push([...p,z+h]);face([[...p,z],[...q,z],[...q,z+h],[...p,z+h]],tint);}face(top,tint);};
   const gem=(u,v,z,r,h,tint)=>{for(let j=0;j<6;j++){const a=j*Math.PI/3,b=(j+1)*Math.PI/3,p=[u+Math.cos(a)*r,v+Math.sin(a)*r,z+h*.4],q=[u+Math.cos(b)*r,v+Math.sin(b)*r,z+h*.4];face([[u,v,z+h],p,q],shade(tint,j%2?18:-8),true);face([[u,v,z],q,p],shade(tint,-24),true);}};
   const ring=(u,v,r,z,tint)=>{for(let j=0;j<24;j++){const a=j*Math.PI/12,b=(j+1)*Math.PI/12;ribbon([u+Math.cos(a)*r,v+Math.sin(a)*r,z],[u+Math.cos(b)*r,v+Math.sin(b)*r,z],tint,.015);}};
-  if(s==='premium-beacon'){
+  // Bathroom fixtures use the same rotated volumes as all other room furniture.
+  if(s.startsWith('bath-')){
+   const white='#eef3ee',chrome='#99b7c1',dark='#46616a',wood='#b59470';
+   const faucet=(u,v,z)=>{block(u,v,.055,.055,7,z,chrome);block(u,v,.055,.25,2,z+6,chrome);};
+   const rim=(u,v,a,d,z,h,tint)=>{block(u,v,a,.1,h,z,tint);block(u,v+d-.1,a,.1,h,z,tint);block(u,v,.1,d,h,z,tint);block(u+a-.1,v,.1,d,h,z,tint);};
+   switch(s){
+    case 'bath-toilet':
+     block(.3,.3,.4,.55,8,0,white);block(.16,.08,.68,.25,22,0,white);block(.13,.05,.74,.31,2,22,color);
+     cylinder(.5,.62,.34,8,7,white,20);cylinder(.5,.62,.29,15,1,chrome,20);cylinder(.5,.62,.21,16,.3,dark,20);cylinder(.5,.62,.15,16.4,.2,'#b7e4e1',20);
+     block(.61,.02,.13,.04,2,19,chrome);break;
+    case 'bath-sink':
+     block(.08,.08,.84,.84,22,2,color);for(const u of [.12,.8])block(u,.12,.08,.7,2,0,wood);
+     block(.04,.04,.92,.92,2,24,white);rim(.14,.2,.72,.64,26,2,white);block(.24,.3,.52,.44,.5,26,'#91aaa9');cylinder(.5,.52,.04,26.6,.2,chrome);faucet(.48,.09,27);
+     for(const u of [.19,.55]){block(u,.925,.26,.02,15,5,shade(color,12));block(u+.08,.96,.1,.035,1.3,16,chrome);}break;
+    case 'bath-shower':
+     block(.03,.03,.94,.94,2,0,white);rim(.03,.03,.94,.94,2,2,color);cylinder(.68,.68,.07,2.2,.2,chrome);
+     block(.04,.04,.92,.07,47,4,color);for(const u of [.05,.91])for(const v of [.1,.91])block(u,v,.04,.04,47,4,chrome);
+     for(const u of [.07,.93])detail([[u,.15,5],[u,.91,5],[u,.91,50],[u,.15,50]],'#a6e5de45');
+     detail([[.09,.93,5],[.91,.93,5],[.91,.93,50],[.09,.93,50]],'#b8eee52c');
+     block(.46,.14,.04,.04,33,12,chrome);block(.46,.14,.04,.32,2,44,chrome);block(.34,.35,.28,.22,1.5,43,chrome);block(.82,.95,.035,.035,7,23,chrome);break;
+    case 'bath-tub':
+     for(const u of [.18,.72])for(const v of [.22,1.68])block(u,v,.1,.1,4,0,chrome);
+     block(.08,.08,.84,1.84,10,4,color);rim(.04,.04,.92,1.92,14,4,white);block(.14,.14,.72,1.72,.5,14,'#a9d8d5');
+     for(const v of [.6,1,1.4])ribbon([.26,v,14.6],[.7,v+.08,14.6],'#d3efea',.012);faucet(.2,.12,18);break;
+    case 'bath-mirror':
+     block(.12,.18,.76,.65,3,0,wood);block(.45,.38,.1,.12,12,3,chrome);block(.12,.33,.76,.12,35,14,color);
+     for(const v of [.325,.455]){detail([[.19,v,18],[.81,v,18],[.81,v,45],[.19,v,45]],'#a7cad4');ribbon([.28,v,20],[.62,v,43],'#e3f5ef',.025);}break;
+    case 'bath-towels':
+     for(const u of [.15,.8]){block(u,.12,.07,.78,2,0,chrome);block(u,.38,.05,.05,35,0,chrome);}block(.15,.38,.72,.06,2,34,chrome);
+     block(.26,.36,.45,.12,17,18,color);block(.29,.49,.39,.03,1,20,white);block(.29,.49,.39,.03,1,22,white);break;
+    case 'bath-cabinet':
+     block(.08,.12,.84,.76,42,2,color);block(.05,.09,.9,.82,2,44,white);for(const z of [5,25]){block(.14,.89,.72,.03,16,z,shade(color,12));block(.45,.94,.12,.04,1.5,z+11,chrome);}break;
+    case 'bath-hamper':
+     block(.12,.12,.76,.76,24,0,wood);for(const z of [4,8,12,16,20])rim(.115,.115,.77,.77,z,.7,'#d1b896');
+     block(.09,.09,.82,.82,2,24,color);block(.39,.42,.22,.08,2,26,chrome);break;
+    case 'bath-mat':
+     block(.06,.1,.88,1.8,1,0,color);fabric(.06,.1,.88,1.8,1.05,color);for(let v=.25;v<1.8;v+=.18)ribbon([.17,v,1.1],[.83,v,1.1],shade(color,15),.025);break;
+   }
+  }else if(s==='premium-beacon'){
    block(.08,.08,1.84,1.84,4,0,'#24354e');block(.16,.16,1.68,1.68,2,4,'#d8bf7d');
    cylinder(1,1,.62,6,8,'#44506c');ring(1,1,.58,14,'#afffee');
    for(let j=0;j<6;j++){const a=j*Math.PI/3;gem(1+Math.cos(a)*.43,1+Math.sin(a)*.43,14,.13,15,shade(color,j%2?25:-12));}
