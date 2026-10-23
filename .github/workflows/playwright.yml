@@ -40,7 +40,8 @@ jobs:
   smoke:
     name: smoke (${{ matrix.project }}, shard ${{ matrix.shard }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # Include browser installation and the full growing regression suite.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
