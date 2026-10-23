@@ -502,7 +502,7 @@ test('Afterglow furniture previews have distinct original art and transparent pr
  await page.goto('/world.html');await page.evaluate(()=>document.getElementById('worldConnected').hidden=false);await page.locator('[data-panel="catalog"]').click();await page.getByRole('button',{name:'Afterglow District',exact:true}).click();
  await expect(page.locator('.item-card')).toHaveCount(5);
  for(const name of ['Afterglow Diner Booth','Orbit Soda Display','Starlight Hologram Table','Moonrise Pod Bed','Desert Bloom Cactus'])await expect(page.getByRole('heading',{name,exact:true})).toBeVisible();
- for(const price of [200,260,180,280,75])await expect(page.getByRole('button',{name:'◇ '+price+' · Buy',exact:true})).toBeVisible();
+ for(const price of [600,800,550,850,225])await expect(page.getByRole('button',{name:'◇ '+price+' · Buy',exact:true})).toBeVisible();
  const art=await page.locator('.item-card canvas').evaluateAll(nodes=>nodes.map(c=>c.toDataURL()));expect(new Set(art).size).toBe(5);
  for(const width of [320,390,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/afterglow-catalog.png',fullPage:true});
@@ -779,7 +779,7 @@ test('Showcase furniture is searchable with distinct art and VIP models render i
  expect(result).toHaveLength(11);expect(new Set(result.map(d=>d.art[0].data)).size).toBe(11);
  for(const d of result)for(const a of d.art)expect(a.pixels,d.id).toBeGreaterThan(350);
  for(const category of ['Arcade','Collectors']){await page.getByRole('button',{name:category,exact:true}).click();await expect(page.locator('.catalog-grid .item-card')).toHaveCount(5);}
- await page.getByRole('searchbox',{name:'Search decor'}).fill('Tidal Glass');await expect(page.locator('.catalog-grid .item-card')).toHaveCount(1);await expect(page.locator('.catalog-grid')).toContainText('340');
+ await page.getByRole('searchbox',{name:'Search decor'}).fill('Tidal Glass');await expect(page.locator('.catalog-grid .item-card')).toHaveCount(1);await expect(page.locator('.catalog-grid')).toContainText('1,375');
  await page.screenshot({path:testInfo.outputPath('showcase-aquarium.png')});expect(errors).toEqual([]);
 });
 

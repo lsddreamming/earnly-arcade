@@ -7,7 +7,7 @@ test('Polished screenshot collection has unique, unclipped, recolorable four-way
   const render=(i,r,color)=>{const canvas=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...i,rotation:r,color});const p=canvas.getContext('2d').getImageData(0,0,160,128).data;let pixels=0;for(let y=0;y<128;y++)for(let x=0;x<160;x++)if(p[(y*160+x)*4+3]){pixels++;if(!x||!y||x===159||y===127)errors.push(i.id+' clipped '+r);}if(pixels<100)errors.push(i.id+' empty');return canvas.toDataURL();};
   for(const i of items){const views=[0,2,4,6].map(r=>render(i,r,i.color));unique.add(views.join('|'));if(views.every((v,k)=>v===render(i,k*2,'#d88fb8')))errors.push(i.id+' ignores color');}
   return {count:items.length,unique:unique.size,errors};
- });expect(report.errors).toEqual([]);expect(report.count).toBe(68);expect(report.unique).toBe(68);
+ });expect(report.errors).toEqual([]);expect(report.count).toBe(85);expect(report.unique).toBe(85);
 });
 test('Selected effects change over time in all four rotations without changing item data',async({page})=>{
  const result=await page.evaluate(()=>{
@@ -39,4 +39,12 @@ test('Room effects reuse cached geometry and keep a bounded per-frame budget',as
   try{for(let j=0;j<10;j++)EarnlyWorldRenderer.roomThumbnail(canvas,map,items);}finally{document.createElement=create;EarnlyDecorPolish.effects=effect;}
   return {canvases,calls};
  });expect(result.canvases).toBe(0);expect(result.calls).toBe(240);
+});
+test('Guest furniture previews show the rebalanced prices before sign-in',async({page})=>{
+ await page.goto('/world.html?catalog=Bathroom');
+ const hamper=page.locator('.item-card').filter({hasText:'Woven Laundry Hamper'});
+ await expect(hamper).toContainText('200');
+ await expect(page.locator('.item-card').filter({hasText:'Soaking Bathtub'})).toContainText('850');
+ const result=await page.evaluate(()=>({hamper:EarnlyFurniturePrices['bath-hamper'],waterfall:EarnlyFurniturePrices.waterfall,pavilion:EarnlyFurniturePrices['aurora-pavilion']}));
+ expect(result).toEqual({hamper:200,waterfall:1375,pavilion:10000});
 });
