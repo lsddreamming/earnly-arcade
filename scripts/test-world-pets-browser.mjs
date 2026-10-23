@@ -30,10 +30,10 @@ try{
   await p.goto(origin+'/world.html?room='+home);await expect(p.locator('#connectionStatus')).toContainText('Live');
  }
  const [owner,guest]=pages;
- await owner.locator('[data-panel="backpack"]').click();await owner.getByRole('button',{name:'Pets',exact:true}).click();await owner.getByRole('button',{name:'Visit Pet Shop',exact:true}).click();
+ await owner.locator('[data-panel="backpack"]').click();await owner.getByRole('button',{name:'Pets',exact:true}).click();await owner.getByRole('button',{name:'Pet Shop',exact:true}).click();
  for(const [name,price] of [['Cloud Pup',500],['Moon Cat',500],['Meadow Bunny',350]]){
   await owner.getByRole('button',{name:'Adopt '+name,exact:true}).click();await owner.getByRole('button',{name:'Adopt for '+price+' Coins',exact:true}).click();await expect(owner.locator('#panelTitle')).toHaveText('Your Pets');
-  if(name!=='Meadow Bunny'){await owner.waitForTimeout(1100);await owner.getByRole('button',{name:'Visit Pet Shop',exact:true}).click();}
+  if(name!=='Meadow Bunny'){await owner.waitForTimeout(1100);await owner.getByRole('button',{name:'Pet Shop',exact:true}).click();}
  }
  await expect(owner.locator('#coinBalance')).toHaveText('◇ 1,650');await expect(owner.locator('.pet-card')).toHaveCount(3);
  await owner.waitForTimeout(1100);await owner.locator('.pet-card').filter({hasText:'Cloud Pup'}).getByRole('button',{name:'Rename',exact:true}).click();await owner.getByRole('textbox',{name:'Pet name',exact:true}).fill('Biscuit');await owner.getByRole('button',{name:'Save name',exact:true}).click();await expect(owner.locator('.pet-card').filter({hasText:'Biscuit'})).toHaveCount(1);
