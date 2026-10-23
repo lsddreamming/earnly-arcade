@@ -83,13 +83,13 @@ test('Buying one preview item updates remaining look cost and preserves other pr
 });
 test('Search spans categories, sorting is deterministic and empty filters can reset',async({page})=>{
  await setup(page);await page.getByLabel('Find your next piece').fill('jacket');await expect(page.locator('.item-card')).toHaveCount(2);
- await expect(page.locator('#shop-result-count')).toContainText('across all categories');await page.locator('#shop-sort').selectOption('price');
+ await expect(page.locator('#shop-result-count')).toContainText('across all categories');await page.locator('.shop-refine').evaluate(el => { el.open = true; });await page.locator('#shop-sort').selectOption('price');
  await expect(page.locator('.item-card h3')).toHaveText(['Neon Jacket','Solar Jacket']);
  await page.getByLabel('Find your next piece').fill('not-an-item');await page.getByRole('button',{name:'Clear search & filters',exact:true}).click();
  await expect(page.locator('.item-card')).toHaveCount(3);await expect(page.locator('#shop-search')).toBeFocused();
 });
 test('Within my balance uses server funds and retains owned items',async({page})=>{
- const f=await setup(page,{coins:'100'});await page.getByLabel('Within my balance').check();await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter']);
+ const f=await setup(page,{coins:'100'});await page.locator('.shop-refine summary').click();await page.getByLabel('Within my balance').check();await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter']);
  f.user.inventory.push('astra-prime');await page.locator('.shop-leaderboard > summary').click();await page.locator('#refresh-button').click();await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter','Astra Prime']);
  expect(f.writes).toHaveLength(0);
 });
@@ -159,7 +159,7 @@ test('Continue browsing returns to a searched item without changing the preview 
  await page.emulateMedia({reducedMotion:'reduce'});
  const f=await setup(page);
  await page.locator('#shop-search').fill('Neon');
- await page.locator('#shop-sort').selectOption('price');
+ await page.locator('.shop-refine').evaluate(el => { el.open = true; });await page.locator('#shop-sort').selectOption('price');
  const preview=page.getByRole('button',{name:'Preview Neon Jacket',exact:true});
  await preview.click();
  await expect(page.locator('#character-stage img[alt="Neon Jacket"]')).toHaveCount(1);
@@ -296,3 +296,17 @@ test('Compact shop cards keep readable controls and one price at phone widths',a
  }
  await page.locator('#shop-grid').screenshot({path:test.info().outputPath('compact-outfits.png')});
 });
+
+ test('shop artwork opens a free try-on and filters stay optional', async ({page}) => {
+ const {writes}=await setup(page);
+ await expect(page.locator('.shop-refine')).not.toHaveAttribute('open','');
+ await page.getByRole('button',{name:'Try on Neon Phantom',exact:true}).click();
+ await expect(page.locator('#shop-grid .is-trying-on .tryon-state')).toHaveText('Trying on');
+ await expect(page.locator('#preview-actions')).toContainText('Neon Phantom');
+ expect(writes).toHaveLength(0);
+ await page.locator('#back-to-collection').click();
+ await expect(page.locator('[data-preview-item-id="neon-phantom"]')).toBeFocused();
+ await page.locator('.shop-refine summary').click();
+ await page.locator('#owned-only').check();
+ await expect(page.locator('[data-preview-item-id="neon-phantom"]')).toHaveCount(0);
+ });
