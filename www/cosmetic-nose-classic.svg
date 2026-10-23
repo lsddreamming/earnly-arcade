@@ -6,4 +6,4 @@
     <linearGradient id="leather" x2=".8" y2="1"><stop stop-color="#c59269"/><stop offset=".5" stop-color="#855339"/><stop offset="1" stop-color="#392722"/></linearGradient>
     <linearGradient id="hair" x2=".3" y2="1"><stop stop-color="#8f5a36"/><stop offset=".6" stop-color="#492b25"/><stop offset="1" stop-color="#241b22"/></linearGradient>
     <radialGradient id="lens" cx=".3" cy=".15"><stop stop-color="#84d9ef"/><stop offset=".6" stop-color="#153e64"/><stop offset="1" stop-color="#09182b"/></radialGradient>
-    </defs><path d="M148 111Q137 127 151 130Q160 130 157 121" fill="#bd8b62" stroke="#85573b" stroke-width="1.5"/></svg>
+    </defs><path d="M148 111Q137 127 151 130Q160 130 157 121" fill="#bd8b62" stroke="#85573b" stroke-width="1.5"/><g data-face-finish="1"><path d="M147 120q3-4 6-1" fill="none" stroke="#fff0cc" stroke-width="2.3" opacity=".65" stroke-linecap="round"/><path d="M146 132q6 3 12-1" fill="none" stroke="#69463e" stroke-width="1.4" opacity=".35" stroke-linecap="round"/></g></svg>

@@ -18,6 +18,9 @@ for id,a,b,c,armor in palettes:
     blank=re.sub(r'<g><ellipse cx="125".*?</g>','',blank,flags=re.S)
     for prefix in ('M148 111','M129 139','M134 141'):
         blank=re.sub(r'<path d="'+prefix+r'.*?/>','',blank)
+    # Sprouts are a separate hair layer, so hats do not grow leaves through their brim.
+    for prefix in ('M139 39', 'M143 33'):
+        blank=re.sub(r'<path d="'+prefix+r'.*?/>','',blank)
     svg(id+'-body',blank,a,b,c)
     if id.endswith('-potato'):
         svg(id,art,a,b,c)
@@ -49,7 +52,7 @@ for id,name,art in [
 add('mouth-vampire','Tiny Fangs','mouth','<path d="M129 139Q150 151 174 137Q162 163 143 156Z" fill="#452d2c"/><path d="M136 143l6 13 5-11m10-1 5 11 6-14" fill="#fff9e9"/>',250)
 for id,name,art in [('nose-classic','Button Nose','<path d="M148 111Q137 127 151 130Q160 130 157 121" fill="#bd8b62" stroke="#85573b" stroke-width="1.5"/>'),('nose-round','Round Nose','<ellipse cx="151" cy="124" rx="10" ry="8" fill="#c89572" stroke="#805b43" stroke-width="1.5"/><path d="M146 121q4-4 8-1" fill="none" stroke="#f3cfaa" stroke-width="2"/>'),('nose-tiny','Tiny Nose','<path d="M147 124q4 5 9 0" fill="none" stroke="#85573b" stroke-width="2.5" stroke-linecap="round"/>'),('nose-freckle','Freckled Nose','<path d="M146 115Q139 129 152 130Q162 128 156 118" fill="#c89572"/><g fill="#835c43"><circle cx="148" cy="122" r="1.3"/><circle cx="154" cy="124" r="1.3"/></g>')]:
     add(id,name,'nose',art,starter=id=='nose-classic')
-add('hair-sprout','Just a Sprout','hair','',starter=True)
+add('hair-sprout','Just a Sprout','hair','<path d="M139 39Q143 22 154 20Q152 31 145 40" fill="#66a784" stroke="#315e58" stroke-width="2"/><path d="M143 33Q126 20 121 25Q128 36 142 40" fill="#a1c99a" stroke="#315e58" stroke-width="2"/>',starter=True)
 hair_shapes=[('hair-bob','Chestnut Bob','M83 110Q65 54 105 30Q155 8 198 35Q232 58 218 140L199 155L205 77Q168 76 139 48Q120 76 93 82L99 151L79 140Z','#624034'),('hair-sweep','Side Sweep','M85 81Q72 37 118 25Q174 8 206 46L213 81Q175 66 161 46Q130 85 85 81Z','#46343b'),('hair-ponytail','Golden Ponytail','M207 58Q250 30 252 69Q265 100 239 137L225 118Q240 84 213 82Z M84 79Q75 31 121 27Q180 8 209 55L211 76Q174 73 148 45Q116 74 84 79Z','#be8950'),('hair-curls','Cocoa Curls','M84 87Q65 78 76 60Q66 36 91 33Q96 12 118 22Q141 6 154 21Q178 9 191 29Q217 24 223 47Q242 65 218 85L201 75Q177 81 161 58Q139 76 119 65Q101 91 84 87Z','#3f3030'),('hair-waves','Rose Waves','M89 87Q69 47 105 30Q153 9 195 36Q226 55 216 91L224 133L213 162L201 145L205 77Q170 69 151 47Q128 77 96 88L101 147L85 163L75 141Z','#a85e70')]
 for id,name,path,color in hair_shapes:
     add(id,name,'hair',f'<path d="{path}" fill="{color}" stroke="#382c35" stroke-width="2.5"/><path d="M99 52Q127 26 155 32" fill="none" stroke="#ffe0bc" opacity=".25" stroke-width="4" stroke-linecap="round"/>')
@@ -71,3 +74,17 @@ for item in items:
 for id,*_ in palettes:
     shutil.copy2(ROOT/f'cosmetic-{id}-body.svg',ROOT/'www'/f'cosmetic-{id}-body.svg')
 print(f'Personality collection: {len(items)} items, {sum(i["coinPrice"]==0 for i in items)} free.')
+
+# Nose geometry stays shared; each skin gets matching color instead of a brown patch.
+for body,light,shade,accent,_ in palettes:
+    for nose in ('nose-classic','nose-round','nose-tiny','nose-freckle'):
+        art=(ROOT/f'cosmetic-{nose}.svg').read_text()
+        for color in ('#bd8b62','#c89572'):
+            art=art.replace(color,'url(#nose-skin)')
+        for color in ('#85573b','#805b43','#835c43'):
+            art=art.replace(color,shade)
+        gradient=f'<defs><radialGradient id="nose-skin" cx=".35" cy=".25" r=".9"><stop stop-color="{light}"/><stop offset="1" stop-color="{shade}"/></radialGradient></defs>'
+        art=art.replace('</svg>',gradient+'</svg>')
+        name=f'cosmetic-{nose}-{body}.svg'
+        (ROOT/name).write_text(art)
+        shutil.copy2(ROOT/name,ROOT/'www'/name)

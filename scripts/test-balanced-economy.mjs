@@ -16,6 +16,14 @@ await db.exec(await read('tests/kart-reward-baseline.sql'));
 await db.exec(await read('supabase/migrations/20261015210446_crystal_command_coin_rewards.sql'));
 const migration=await read('supabase/migrations/20261021154706_balanced_arcade_economy.sql');
 await db.exec(migration);await db.exec(migration);
+const pacing=await read('supabase/migrations/20261023182050_jungle_hopper_reward_pacing.sql');
+await db.query("select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false)");
+const historical=(await db.query("select claim_coin_reward('before-pacing','game','jungleHopper',30,0) r")).rows[0].r;
+assert.equal(historical.amount,100);
+await db.exec(pacing);await db.exec(pacing);
+const oldRetry=(await db.query("select claim_coin_reward('before-pacing','game','jungleHopper',30,0) r")).rows[0].r;
+assert.equal(oldRetry.amount,100);assert(oldRetry.duplicate);assert.equal(oldRetry.wallet.balance,historical.wallet.balance);
+
 const src=await read('arcade.js'),fn=src.slice(src.indexOf('  function gameReward('),src.indexOf('  // END BALANCED GAME REWARDS'));
 const reward=vm.runInNewContext('('+fn.trim()+')');
 const games=[...fn.matchAll(/case '([^']+)'/g)].map(m=>m[1]);
@@ -32,7 +40,7 @@ for(const game of games){
   assert(duplicate.duplicate);assert.equal(duplicate.wallet.balance,r.wallet.balance);
  }
 }
-for(const [game,m,a,want] of [['snake',25,0,39],['blockDrop',10,0,45],['starDefender',1200,0,60],['coinCatch',75,0,28],['crystalCommand',45,120,100]])assert.equal(reward(game,m,a),want);
+for(const [game,m,a,want] of [['jungleHopper',30,0,25],['jungleHopper',30,10,35],['jungleHopper',100,99,50],['snake',25,0,39],['blockDrop',10,0,45],['starDefender',1200,0,60],['coinCatch',75,0,28],['crystalCommand',45,120,100]])assert.equal(reward(game,m,a),want);
 for(const item of catalog.premiumItems){const row=(await db.query('select * from earnly_world.item_definitions where id=$1',[item.id])).rows[0];for(const k of ['price','sprite_id','width','length','category'])assert.equal(row[k],item[k]);}
 assert.equal((await db.query("select price from earnly_world.item_definitions where id='starter-chair'")).rows[0].price,60);
 const daily=(await db.query("select claim_coin_reward('daily-balance-check','daily_bonus') r")).rows[0].r;assert.equal(daily.amount,10);

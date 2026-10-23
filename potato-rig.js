@@ -5,11 +5,14 @@
   const bodies=new Set(['cyber-starter','neon-phantom','vortex-mech','astra-prime','russet-potato','cream-potato','rose-potato']);
   function compose(equipped={}) {
     const parts={...equipped};
-    // Old clients and saved looks retain their original art. New facial choices switch
-    // to the matching blank potato, never paint a second face over the old one.
-    if(bodies.has(parts.avatar?.id)&&Object.keys(defaults).some(slot=>parts[slot])) {
+    // Legacy bare looks keep their baked-in face. Facial choices or headwear use
+    // separate layers so features do not double up and sprouts can fit under hats.
+    if(bodies.has(parts.avatar?.id)&&(Object.keys(defaults).some(slot=>parts[slot]) || (parts.head && parts.head.id !== 'no-headwear'))) {
       for(const [slot,[id,name]] of Object.entries(defaults))
         parts[slot] ||= {id,name,slot,imageUrl:'cosmetic-'+id+'.svg'};
+      if (['arcade-cap','ribbed-beanie','sun-crown'].includes(parts.head?.id) && parts.hair?.id === 'hair-sprout') delete parts.hair;
+      if (['nose-classic','nose-round','nose-tiny','nose-freckle'].includes(parts.nose?.id))
+        parts.nose={...parts.nose,imageUrl:'cosmetic-'+parts.nose.id+'-'+parts.avatar.id+'.svg'};
       parts.avatar={...parts.avatar,imageUrl:'cosmetic-'+parts.avatar.id+'-body.svg'};
     }
     return layers.map(slot=>parts[slot]).filter(Boolean);

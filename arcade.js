@@ -1529,7 +1529,7 @@ const Arcade = (() => {
       case 'tapRush':return min(60,(floor(m/5)+b(20,2)+b(35,3)+b(50,5)+min(a,m))*3);
       case 'memory':return min(60,(8+(m<=16?7:m<=20?5:m<=24?3:m<=30?1:0))*4);
       case 'dodger':return min(80,(floor(m/6)+floor(a/12)+b(20,1)+b(40,2)+b(60,3))*4);
-      case 'jungleHopper':return min(100,(floor(m/2)+b(10,2)+b(20,3)+b(30,5)+min(a,floor((m+1)/2)+floor((m+1)/6),25))*4);
+      case 'jungleHopper':return min(50,floor(m/2)+b(10,2)+b(20,3)+b(30,5)+min(a,floor((m+1)/2)+floor((m+1)/6),10));
       case 'towerStack':return min(100,(floor(m/3)+floor(min(a,m)/3)+b(10,2)+b(20,3)+b(30,5))*4);
       case 'coinCatch':return min(100,((m>=6?1+floor((m-6)/12):0)+b(75,1)+b(150,1)+b(225,1))*4);
       case 'colorMatch':return min(88,(floor(m/4)+b(15,2)+b(25,3)+b(35,4))*4);

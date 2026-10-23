@@ -202,3 +202,21 @@ for(const prefix of ['', '/www'])test('Profile showcases equipped gear with comp
  for(const width of [320,390,440]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);}
  expect(JSON.stringify(f.user())).toBe(before);expect(f.keys).toHaveLength(0);
 });
+
+test('Potato hats hide sprouts and noses match each skin without changing equipped items',async({page})=>{
+ await setup(page,{personality:true,signedIn:false});await page.goto('/avatars.html');
+ const looks=await page.evaluate(()=>['russet-potato','cream-potato','rose-potato','neon-phantom'].map(id=>{
+  const equipped={avatar:{id,slot:'avatar',imageUrl:'cosmetic-'+id+'.svg'},head:{id:'arcade-cap',slot:'head',imageUrl:'cosmetic-arcade-cap.svg'},hair:{id:'hair-sprout',slot:'hair',imageUrl:'cosmetic-hair-sprout.svg'}};
+  const before=JSON.stringify(equipped),parts=EarnlyPotatoRig.compose(equipped);
+  return {id,parts,unchanged:before===JSON.stringify(equipped),bare:EarnlyPotatoRig.compose({...equipped,head:{id:'no-headwear',slot:'head'}}),headset:EarnlyPotatoRig.compose({...equipped,head:{id:'comms-headset',slot:'head'}})};
+ }));
+ const fs=require('fs');
+ for(const look of looks){
+  expect(look.unchanged).toBe(true);
+  expect(look.parts.some(i=>i.id==='hair-sprout')).toBe(false);
+  expect(look.bare.some(i=>i.id==='hair-sprout')).toBe(true);
+  expect(look.headset.some(i=>i.id==='hair-sprout')).toBe(true);
+  expect(look.parts.find(i=>i.slot==='nose').imageUrl).toBe('cosmetic-nose-classic-'+look.id+'.svg');
+  for(const part of look.parts){expect(fs.readFileSync(part.imageUrl,'utf8')).toBe(fs.readFileSync('www/'+part.imageUrl,'utf8'));}
+ }
+});

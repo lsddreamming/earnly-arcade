@@ -7,14 +7,28 @@ from pathlib import Path
 from random import Random
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from potato_face_finish import finish_face
+from potato_face_finish import finish_face, BODIES
 
 ROOT = Path(__file__).resolve().parents[1]
 
 def svg(name, art, a='#eac086', b='#93603e', accent='#58e4f5'):
     art = finish_face(name, art)
+    is_body = name.removesuffix('-body') in BODIES
+    if is_body:
+        # Warm, continuous skin shading; retain the shared equipment silhouette.
+        art = art.replace('fill="#59392d" opacity=".3"', 'fill="#59392d" opacity=".18"')
+        art = art.replace(f'stroke="{a}" opacity=".5"', f'stroke="{a}" opacity=".24"')
+    skin_shadow = '#'+''.join(f'{round(int(b[i:i+2],16)*.72):02x}' for i in (1,3,5)) if is_body else '#544052'
+    if name == 'round-glasses':
+        art = '<g fill="#bce9ed" fill-opacity=".07" stroke="#775438" stroke-width="5"><circle cx="125" cy="104" r="22"/><circle cx="176" cy="104" r="22"/></g>'+art
+        art = art.replace('stroke="#dbb984" stroke-width="4"','stroke="#e6c68e" stroke-width="2.5"')
+    if name == 'arcade-cap':
+        art += '<path d="M88 77Q151 64 214 77" fill="none" stroke="#0b1829" stroke-width="3" opacity=".65"/><path d="M105 42Q119 29 138 29" fill="none" stroke="#b2d8d3" stroke-width="2" opacity=".3" stroke-linecap="round"/>'
+    if name == 'ribbed-beanie':
+        art += '<path d="M87 75Q150 62 215 75" fill="none" stroke="#342b38" stroke-width="3" opacity=".55"/><path d="M93 59Q151 45 210 59" fill="none" stroke="#efc9a6" stroke-width="1.5" opacity=".4"/>'
+
     defs = f'''<defs>
-    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".68" stop-color="{b}"/><stop offset="1" stop-color="#544052"/></radialGradient>
+    <radialGradient id="skin" cx=".32" cy=".2" r=".85"><stop stop-color="{a}"/><stop offset=".68" stop-color="{b}"/><stop offset="1" stop-color="{skin_shadow}"/></radialGradient>
     <linearGradient id="cloth" x2=".8" y2="1"><stop stop-color="#3d5b75"/><stop offset=".5" stop-color="#253648"/><stop offset="1" stop-color="#101b2d"/></linearGradient>
     <linearGradient id="fabric" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="{accent}"/><stop offset=".3" stop-color="#46647a"/><stop offset="1" stop-color="#18283d"/></linearGradient>
     <linearGradient id="hood" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="{accent}"/><stop offset=".55" stop-color="#675877"/><stop offset="1" stop-color="#283549"/></linearGradient>
