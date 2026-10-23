@@ -654,20 +654,12 @@
       ctx.fillStyle=bg;
       ctx.fillRect(0,0,360,430);
 
-      // Teach the control briefly, then get the tutorial completely out of the
-      // way once the player has demonstrated they understand it.
+      // A single short cue leaves the upcoming opening easy to see.
       ctx.textAlign='center';
-      if(score<5){
-        ctx.fillStyle='rgba(15,23,42,.9)';
-        ctx.fillRect(18,14,324,42);
-        ctx.strokeStyle='#334155';
-        ctx.strokeRect(18,14,324,42);
-        ctx.fillStyle='#dbeafe';
-        ctx.font='800 11px Arial';
-        ctx.fillText('◀ DRAG OR ARROW KEYS ▶',180,30);
-        ctx.fillStyle='#94a3b8';
-        ctx.font='700 9px Arial';
-        ctx.fillText(score===0?'First opening starts centered for you':'Drag the ball through each opening',180,45);
+      if(score<2){
+        ctx.fillStyle='#c4dcf5';
+        ctx.font='700 12px Arial';
+        ctx.fillText(matchMedia('(pointer:coarse)').matches ? 'Slide toward the gap' : 'Drag or use ← →',180,34);
       }
 
       rows.forEach(r=>{
@@ -676,54 +668,25 @@
         ctx.fillStyle=color;
         ctx.shadowColor=safe?'rgba(59,130,246,.55)':color;
         ctx.shadowBlur=safe?10:4;
-        ctx.fillRect(15,r.y,Math.max(0,r.gap-r.w/2-15),14);
-        ctx.fillRect(r.gap+r.w/2,r.y,Math.max(0,345-(r.gap+r.w/2)),14);
+        for(const [x,width] of [[15,Math.max(0,r.gap-r.w/2-15)],[r.gap+r.w/2,Math.max(0,345-(r.gap+r.w/2))]]){
+          if(width<=0)continue;
+          ctx.fillStyle=color;
+          ctx.beginPath();ctx.roundRect(x,r.y,width,14,4);ctx.fill();
+          ctx.shadowBlur=0;
+          ctx.fillStyle='rgba(255,255,255,.3)';
+          ctx.fillRect(x+3,r.y+2,Math.max(0,width-6),2);
+        }
 
         if(safe){
           ctx.shadowBlur=0;
           ctx.fillStyle='#93c5fd';
           ctx.font='800 9px Arial';
-          ctx.fillText('FIRST GAP',r.gap,r.y-7);
+          ctx.fillText('↓',r.gap,r.y-9);
         }
       });
       ctx.shadowBlur=0;
 
-      // Once the tutorial is gone, promote progression into larger HUD
-      // badges at the top of the freed-up space. Keep the tutorial version
-      // compact so nothing competes with the instructions.
-      if(score<5){
-        ctx.textAlign='left';
-        ctx.fillStyle='#93c5fd';
-        ctx.font='800 10px Arial';
-        ctx.fillText('LEVEL '+level()+' · '+stageName().toUpperCase(),22,76);
-        ctx.textAlign='right';
-        ctx.fillStyle='#cbd5e1';
-        ctx.fillText(score+' ROWS',338,76);
-      }else{
-        ctx.shadowBlur=0;
-        ctx.fillStyle='rgba(15,23,42,.88)';
-        ctx.beginPath();ctx.roundRect(18,15,112,40,12);ctx.fill();
-        ctx.strokeStyle='#3b82f6';ctx.lineWidth=1.5;ctx.stroke();
-        ctx.fillStyle='rgba(15,23,42,.88)';
-        ctx.beginPath();ctx.roundRect(230,15,112,40,12);ctx.fill();
-        ctx.strokeStyle='#475569';ctx.stroke();
-
-        ctx.textAlign='center';
-        ctx.fillStyle='#93c5fd';
-        ctx.font='900 9px Arial';
-        ctx.fillText('LEVEL',74,29);
-        ctx.fillStyle='#ffffff';
-        ctx.font='900 16px Arial';
-        ctx.fillText(String(level()),74,44);
-        ctx.fillStyle='#94a3b8';ctx.font='700 7px Arial';ctx.fillText(stageName().toUpperCase(),74,52);
-
-        ctx.fillStyle='#94a3b8';
-        ctx.font='900 9px Arial';
-        ctx.fillText('ROWS',286,29);
-        ctx.fillStyle='#ffffff';
-        ctx.font='900 16px Arial';
-        ctx.fillText(String(score),286,47);
-      }
+      // Score and level already live in the page HUD.
       ctx.textAlign='center';
 
       if(levelFlashFrames>0){
@@ -828,10 +791,8 @@
               score,
               level(),
               [
-                '🌀 Rows passed: '+score,
                 '🎯 Level reached: '+level(),
-                '⚡ Stage: '+stageName(),
-                'Drag the ball toward the opening before it reaches you.'
+                '⚡ Stage: '+stageName()
               ],
               'Spiral Drop'
             );
@@ -895,7 +856,7 @@
 
     const spiralZone=document.createElement('div');
     spiralZone.className='spiral-control-zone';
-    spiralZone.innerHTML='<span>↔️ Slide anywhere here to steer</span>';
+    spiralZone.innerHTML='<span>↔ Slide to steer</span>';
     c.insertAdjacentElement('afterend',spiralZone);
 
     c.style.touchAction='none';

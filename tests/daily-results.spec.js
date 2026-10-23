@@ -75,3 +75,28 @@ test('results connect earned coins to the furniture catalog without spending the
   await expect(page.locator('#worldPanel')).toContainText('Decor Catalog');
   expect(await page.evaluate(() => localStorage.getItem('arcadeCoins'))).toBe(before);
 });
+
+for (const width of [320, 390, 440]) {
+  test('Spiral results keep replay above optional details at '+width, async ({page}) => {
+    await page.setViewportSize({width,height:740});
+    await page.goto('/mini.html?game=spiralDrop');
+    await page.evaluate(() => {
+      window.EarnlyCloud={leaderboard:async()=>({entries:[]})};
+      Arcade.gameResult({game:'spiralDrop',title:'Spiral Drop',scoreLabel:'Rows',score:19,best:'97 rows',coins:12,result:{xpAward:35},extra:['Level reached: 4','Stage: Fast Fall'],onReplay:()=>window.spiralReplayed=true});
+    });
+    const dialog=page.locator('.spiral-result');
+    await expect(dialog.locator('.result-main')).toContainText('19');
+    await expect(dialog.locator('.result-stats')).toContainText('+12');
+    await expect(dialog.locator('.result-notes')).not.toBeVisible();
+    await expect(dialog.locator('.result-leaderboard')).not.toBeVisible();
+    await expect(dialog.locator('.result-room-link')).not.toBeVisible();
+    const play=dialog.locator('.result-actions button').first();
+    const bounds=await play.boundingBox();
+    expect(bounds.y+bounds.height).toBeLessThan(740);
+    await dialog.getByText('Run details',{exact:true}).click();
+    await expect(dialog.locator('.result-notes')).toContainText('Stage: Fast Fall');
+    await expect(dialog.locator('.result-level-progress')).toBeVisible();
+    await play.click();
+    await expect.poll(()=>page.evaluate(()=>window.spiralReplayed)).toBe(true);
+  });
+}
