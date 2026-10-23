@@ -99,3 +99,25 @@ test('Jungle edge gold has a survivable tap route on both sides at every speed',
   });
   expect(routes.filter(r=>!r.possible)).toEqual([]);
 });
+
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:440,height:956}]){
+  test('Jungle screen fills available space with balanced controls '+viewport.width,async({page})=>{
+    await page.setViewportSize(viewport);await ready(page);
+    const board=await page.locator('canvas').boundingBox();
+    const pause=await page.locator('#earnlyPauseButton').boundingBox();
+    const quit=await page.locator('#earnlyQuitButton').boundingBox();
+    expect(Math.abs(pause.width-quit.width)).toBeLessThan(2);
+    expect(pause.height).toBeGreaterThanOrEqual(44);
+    expect(quit.height).toBeGreaterThanOrEqual(44);
+    expect(Math.max(pause.y+pause.height,quit.y+quit.height)).toBeLessThanOrEqual(viewport.height);
+    expect(board.width/board.height).toBeCloseTo(360/560,1);
+    if(viewport.width>=390)expect(board.width).toBeGreaterThan(320);
+    await page.evaluate(()=>finishGame());
+    const result=page.locator('.spiral-result');
+    await expect(result.locator('.result-notes')).not.toBeVisible();
+    await expect(result.locator('.result-leaderboard')).not.toBeVisible();
+    await expect(result.locator('.result-actions button').first()).toBeVisible();
+    await result.getByText('Run details',{exact:true}).click();
+    await expect(result.locator('.result-notes')).toBeVisible();
+  });
+}

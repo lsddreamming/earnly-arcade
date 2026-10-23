@@ -90,7 +90,7 @@
       body.junglehopper-page.game-active #startButton{display:none!important}
       body.junglehopper-page.game-active .page-header{margin-bottom:3px!important}
       body.junglehopper-page.game-active .jungle-board{
-        width:min(82vw,320px,calc((100svh - 250px) * .642857))!important;
+        width:min(94vw,420px,calc((100svh - 250px) * .642857))!important;
         max-height:none!important;
         margin-top:3px!important;
         border-color:rgba(74,222,128,.50)!important;
@@ -100,6 +100,13 @@
           0 0 22px rgba(74,222,128,.08)!important
       }
       body.junglehopper-page.game-active .container>a.button.wide.secondary{display:none!important}
+    }
+    @media(max-width:699px){
+      body.junglehopper-page.game-active .earnly-session-dock{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+      html body.junglehopper-page.game-active .earnly-session-dock :is(#earnlyPauseButton,#earnlyQuitButton){max-width:none!important;font-size:15px!important;width:100%!important;min-width:0!important;min-height:48px!important;flex:none!important;margin:0!important}
+    }
+    @media(max-width:699px){
+      body.junglehopper-page.game-active .game-guide-surface-wrap{width:min(94vw,420px,calc((100svh - 250px) * .642857))!important}
     }
     /* Jewel-bright cabinet lighting, with a calm reduced-motion mode. */
     body.junglehopper-page{background:radial-gradient(ellipse at 15% 30%,#16645466,transparent 55%),radial-gradient(ellipse at 95% 55%,#59359855,transparent 60%),#09162a}

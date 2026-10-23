@@ -1729,8 +1729,8 @@ const Arcade = (() => {
 
     if (modal.open) modal.close();
     modal.replaceChildren();
-    modal.className = 'game-result-dialog' + (game === 'spiralDrop' ? ' spiral-result' : '');
-    const compactResult = game === 'neonDrift' || game === 'spiralDrop';
+    modal.className = 'game-result-dialog' + (['spiralDrop','jungleHopper'].includes(game) ? ' spiral-result' : '');
+    const compactResult = ['neonDrift','spiralDrop','jungleHopper'].includes(game);
 
     const hero = document.createElement('div');
     hero.className = 'result-hero';
@@ -2176,13 +2176,13 @@ const Arcade = (() => {
     modal.append(hero, main);
     if (game && !rankDetails) modal.append(leaderboardBox);
     modal.append(statsBox, levelProgress);
-    if (rankDetails) { rankDetails.append(leaderboardBox); if (game !== 'spiralDrop') modal.append(rankDetails); }
+    if (rankDetails) { rankDetails.append(leaderboardBox); if (!['spiralDrop','jungleHopper'].includes(game)) modal.append(rankDetails); }
     if (compactResult) {
       const details=document.createElement('details');details.className='result-run-details';
       const summary=document.createElement('summary');summary.textContent='Run details';details.append(summary,notes);
       const explore=document.createElement('details');explore.className='result-run-details';
       const exploreLabel=document.createElement('summary');exploreLabel.textContent='Use your coins';explore.append(exploreLabel,roomLink,shopLink);
-      if (game === 'spiralDrop') {
+      if (['spiralDrop','jungleHopper'].includes(game)) {
         details.append(levelProgress);
         const buy = actions.querySelector('button:last-child');
         if (buy && buy !== back && buy !== primary) explore.append(buy);
