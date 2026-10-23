@@ -7,7 +7,7 @@ test('Polished screenshot collection has unique, unclipped, recolorable four-way
   const render=(i,r,color)=>{const canvas=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...i,rotation:r,color});const p=canvas.getContext('2d').getImageData(0,0,160,128).data;let pixels=0;for(let y=0;y<128;y++)for(let x=0;x<160;x++)if(p[(y*160+x)*4+3]){pixels++;if(!x||!y||x===159||y===127)errors.push(i.id+' clipped '+r);}if(pixels<100)errors.push(i.id+' empty');return canvas.toDataURL();};
   for(const i of items){const views=[0,2,4,6].map(r=>render(i,r,i.color));unique.add(views.join('|'));if(views.every((v,k)=>v===render(i,k*2,'#d88fb8')))errors.push(i.id+' ignores color');}
   return {count:items.length,unique:unique.size,errors};
- });expect(report.errors).toEqual([]);expect(report.count).toBe(68);expect(report.unique).toBe(68);
+ });expect(report.errors).toEqual([]);expect(report.count).toBe(85);expect(report.unique).toBe(85);
 });
 test('Selected effects change over time in all four rotations without changing item data',async({page})=>{
  const result=await page.evaluate(()=>{
@@ -39,4 +39,37 @@ test('Room effects reuse cached geometry and keep a bounded per-frame budget',as
   try{for(let j=0;j<10;j++)EarnlyWorldRenderer.roomThumbnail(canvas,map,items);}finally{document.createElement=create;EarnlyDecorPolish.effects=effect;}
   return {canvases,calls};
  });expect(result.canvases).toBe(0);expect(result.calls).toBe(240);
+});
+test('Guest furniture previews show the rebalanced prices before sign-in',async({page})=>{
+ await page.goto('/world.html?catalog=Bathroom');
+ const hamper=page.locator('.item-card').filter({hasText:'Woven Laundry Hamper'});
+ await expect(hamper).toContainText('200');
+ await expect(page.locator('.item-card').filter({hasText:'Soaking Bathtub'})).toContainText('850');
+ const result=await page.evaluate(()=>({hamper:EarnlyFurniturePrices['bath-hamper'],waterfall:EarnlyFurniturePrices.waterfall,pavilion:EarnlyFurniturePrices['aurora-pavilion']}));
+ expect(result).toEqual({hamper:200,waterfall:1375,pavilion:10000});
+});
+test('A changed price refreshes the confirmation and waits for another explicit Buy',async({page})=>{
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
+ await page.addInitScript(()=>{
+  window.priceAttempts=[];
+  window.WebSocket=class{
+   static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}close(){}
+   send(raw){const p=JSON.parse(raw),emit=data=>this.onmessage?.({data:JSON.stringify(data)});this.bootstrap??={balance:1000,rooms:[],catalog:[{id:'bath-hamper',name:'Woven Laundry Hamper',sprite_id:'bath-hamper',price:65,color:'#80c9b5',width:1,length:1}],items:[],friends:[]};
+    if(p.type==='JOIN')emit({type:'WELCOME',userId:'price-owner',scene:{roomId:'home',ownerId:'price-owner',name:'Home',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:this.bootstrap});
+    if(p.type==='ACTION'){
+     if(p.action==='buy'){
+      window.priceAttempts.push(p.data);if(window.priceAttempts.length===1){this.bootstrap.catalog[0].price=200;emit({type:'RESULT',requestId:p.requestId,error:'Price changed. Reopen the catalog to confirm the current price.',definite:true});return;}
+      this.bootstrap.balance-=200;this.bootstrap.items.push({id:'owned-hamper',definition_id:'bath-hamper',serial:1});
+     }
+     emit({type:'RESULT',requestId:p.requestId,data:p.action==='bootstrap'?this.bootstrap:{}});
+    }
+   }
+  };
+ });
+ await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.locator('[data-panel="catalog"]').click();await page.getByRole('button',{name:'◇ 65 · Buy',exact:true}).click();await page.getByRole('button',{name:'Buy for ◇ 65',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Buy for ◇ 200',exact:true})).toBeVisible();await expect(page.locator('#coinBalance')).toHaveText('◇ 1,000');
+ expect(await page.evaluate(()=>window.priceAttempts.length)).toBe(1);
+ await page.getByRole('button',{name:'Buy for ◇ 200',exact:true}).click();await expect(page.locator('#coinBalance')).toHaveText('◇ 800');
+ const attempts=await page.evaluate(()=>window.priceAttempts);expect(attempts.map(p=>p.expectedPrice)).toEqual([65,200]);expect(attempts[0].requestId).not.toBe(attempts[1].requestId);
 });

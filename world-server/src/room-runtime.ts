@@ -40,11 +40,32 @@ export class RoomRuntime {
     for(const pet of pets){
       const old=previous.get(pet.id);let position=old?.definition.path[0];
       if(!position||!this.grid.tile(position)?.walkable||this.#occupied().has(tileKey(position))){
-        try{position=this.availableSpawn();}catch{continue;}
+        position=this.#petSpawn();if(!position)continue;
       }
       const definition:Staff={id:'pet-'+pet.id,petId:pet.id,ownerId:pet.ownerId,name:pet.name,species:pet.species,color:pet.color,role:'Pet '+pet.species,path:[position],greeting:pet.species==='dog'?'A happy tail wag just for you.':pet.species==='cat'?'A soft purr and a curious glance.':'A little nose wiggle to say hello.',tip:'This pet belongs to the room owner. Its owner can rename it or return it to Backpack.'};
       this.#staff.push({...this.#petClock(),...old,definition,index:0});
     }
+  }
+  #petSpawn():XY|undefined {
+    // Pick only floor connected to the entrance, never a sealed pocket or solid furniture.
+    let entrance:XY|undefined;
+    for(let y=0;y<this.grid.length&&!entrance;y++)for(let x=0;x<this.grid.width;x++)if(this.grid.tile({x,y})?.walkable){entrance={x,y};break;}
+    if(!entrance)return;
+    const occupied=this.#occupied(),seen=new Set([tileKey(entrance)]),queue=[entrance],free:XY[]=[];
+    for(let i=0;i<queue.length;i++){
+      const p=queue[i],tile=this.grid.tile(p)!;
+      if(!occupied.has(tileKey(p))&&!tile.canSit&&!tile.canLay&&!tile.roller&&!tile.petBed&&!tile.petToy)free.push(p);
+      for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const q={x:p.x+dx,y:p.y+dy};
+        if(!seen.has(tileKey(q))&&canStep(this.grid,p,q,{diagonal:false})){seen.add(tileKey(q));queue.push(q);}
+      }
+    }
+    // Keep the entrance clear; prefer separation from residents when space permits.
+    const away=free.filter(p=>Math.abs(p.x-entrance!.x)+Math.abs(p.y-entrance!.y)>=3);
+    const candidates=away.length?away:free.filter(p=>tileKey(p)!==tileKey(entrance!));
+    const spaced=candidates.filter(p=>this.staff().every(s=>Math.abs(p.x-s.position.x)+Math.abs(p.y-s.position.y)>=3));
+    const pool=spaced.length?spaced:candidates;
+    return pool.length?pool[this.#random(0,pool.length-1)]:undefined;
   }
   #random(min:number,max:number){this.#petRandom=(Math.imul(this.#petRandom,1664525)+1013904223)>>>0;return min+this.#petRandom%(max-min+1);}
   #petClock(){return {nextWalk:this.#ticks+this.#random(80,240),nextVoice:this.#ticks+this.#random(1080,1320),route:[] as XY[]};}

@@ -1,4 +1,6 @@
-import {test} from 'node:test';
+import {test,mock,beforeEach,afterEach} from 'node:test';
+beforeEach(()=>mock.method(Math,'random',()=>0.314159));
+afterEach(()=>mock.restoreAll());
 import assert from 'node:assert/strict';
 import {HANGOUTS,HANGOUT_FLOOR,hangoutAnimals} from '../src/public-hangouts.ts';
 import {RoomGrid,parseHeightmap,tileKey} from '../src/grid.ts';
@@ -48,12 +50,13 @@ test('personal pets rest 20–60 seconds, take long walks, and share sparse spec
 
 test('only an owner can call a pet; it walks beside them and rests before roaming',()=>{
  const grid=new RoomGrid(parseHeightmap(Array(12).fill('000000000000').join('\n')),[]),room=new RoomRuntime(grid,25,[],[{id:'p',ownerId:'a',name:'Pup',species:'dog',color:'#cc965c'}]);
- const a:Record<string,unknown>[]=[],b:Record<string,unknown>[]=[];room.join({userId:'a',username:'A'},{x:8,y:8},p=>a.push(p));room.join({userId:'b',username:'B'},{x:8,y:7},p=>b.push(p));
+ const start=room.staff()[0].position,owner={x:start.x<6?11:0,y:start.y<6?11:0};
+ const a:Record<string,unknown>[]=[],b:Record<string,unknown>[]=[];room.join({userId:'a',username:'A'},owner,p=>a.push(p));room.join({userId:'b',username:'B'},room.availableSpawn(),p=>b.push(p));
  assert.throws(()=>room.petInteract('b','pet-p','call'),/owner/);assert.throws(()=>room.petInteract('outsider','pet-p','pet'),/unavailable/);assert.throws(()=>room.petInteract('a','pet-p','pet'),/beside/);
  assert.match(room.petInteract('a','pet-p','call').message,/coming/);assert.throws(()=>room.petInteract('a','pet-p','call'),/moment/);
  let last=room.staff()[0].position,steps=0;
  for(let n=0;n<90;n++){room.tick();const p=room.staff()[0].position;assert(Math.abs(p.x-last.x)+Math.abs(p.y-last.y)<=1);if(tileKey(p)!==tileKey(last))steps++;assert(!room.members().some(m=>tileKey(m.position)===tileKey(p)));last=p;if(room.talkToStaff('a','pet-p').canPet)break;}
- assert(steps>=10);assert(room.talkToStaff('a','pet-p').canPet);room.petInteract('a','pet-p','pet');assert.throws(()=>room.petInteract('a','pet-p','pet'),/moment/);
+ assert(steps>=Math.abs(start.x-owner.x)+Math.abs(start.y-owner.y)-2);assert(room.talkToStaff('a','pet-p').canPet);room.petInteract('a','pet-p','pet');assert.throws(()=>room.petInteract('a','pet-p','pet'),/moment/);
  assert.deepEqual(a.filter(p=>p.type==='PET_REACTION'),b.filter(p=>p.type==='PET_REACTION'));assert.equal(a.filter(p=>p.type==='PET_REACTION').length,1);
  const parked=room.staff()[0].position;for(let n=0;n<79;n++)room.tick();assert.deepEqual(room.staff()[0].position,parked);
 });
@@ -62,7 +65,7 @@ test('calls respect obstacles and cancel when the owner leaves',()=>{
  const room=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n')),[]),25,[],[{id:'p',ownerId:'a',name:'Cat',species:'cat',color:'#999999'}]);room.join({userId:'a',username:'A'},{x:7,y:7},()=>{});room.petInteract('a','pet-p','call');room.leave('a');const before=room.staff()[0].position;for(let n=0;n<40;n++)room.tick();assert.deepEqual(room.staff()[0].position,before);
 });
 test('visitors can pet a nearby companion but cannot spam reactions',()=>{
- const room=new RoomRuntime(new RoomGrid(parseHeightmap('0000\n0000\n0000'),[]),25,[],[{id:'p',ownerId:'a',name:'Bunny',species:'rabbit',color:'#eeeeee'}]);room.join({userId:'guest',username:'Guest'},{x:1,y:0},()=>{});assert.equal(room.talkToStaff('guest','pet-p').canCall,false);assert.equal(room.talkToStaff('guest','pet-p').canPet,true);assert.match(room.petInteract('guest','pet-p','pet').message,/attention/);assert.throws(()=>room.petInteract('guest','pet-p','pet'),/moment/);
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap('0000\n0000\n0000'),[]),25,[],[{id:'p',ownerId:'a',name:'Bunny',species:'rabbit',color:'#eeeeee'}]);const p=room.staff()[0].position;room.join({userId:'guest',username:'Guest'},{x:p.x===0?1:p.x-1,y:p.y},()=>{});assert.equal(room.talkToStaff('guest','pet-p').canCall,false);assert.equal(room.talkToStaff('guest','pet-p').canPet,true);assert.match(room.petInteract('guest','pet-p','pet').message,/attention/);assert.throws(()=>room.petInteract('guest','pet-p','pet'),/moment/);
 });
 test('matching beds synchronize sleep, reserve occupancy and wake on owner call',()=>{
  const bed={id:'bed',x:6,y:6,z:0,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'dog'};
@@ -112,4 +115,35 @@ test('removed toys cancel play and two pets cannot reserve the same toy',()=>{
  const room=new RoomRuntime(new RoomGrid(floor,[toy]),25,[],[1,2].map(i=>({id:String(i),ownerId:'o',name:'Cat',species:'cat' as const,color:'#aaa'})));
  let played=false;for(let i=0;i<20000;i++){room.tick();assert(room.staff().filter(s=>s.state==='play').length<=1);if(room.staff().some(s=>s.state==='play')){played=true;break;}}assert(played);
  room.replaceGrid(new RoomGrid(floor,[{...toy,petToy:undefined}],1));room.tick();assert(room.staff().every(s=>s.state==='std'));
+});
+
+test('new pets vary across reachable floor, keep entry clear and preserve positions on refresh',()=>{
+ const positions=new Set<string>(),floor=parseHeightmap(Array(10).fill('0000000000').join('\n'));
+ const pets=[1,2,3].map(i=>({id:String(i),ownerId:'o',name:'Pet '+i,species:'cat' as const,color:'#aaa'}));
+ for(let seed=1;seed<=100;seed++){
+  mock.restoreAll();mock.method(Math,'random',()=>seed/101);
+  const grid=new RoomGrid(floor,[{id:'sofa',x:3,y:3,z:0,width:2,length:1,rotation:0,itemHeight:1,walkable:false,canStack:false}]),room=new RoomRuntime(grid);
+  room.join({userId:'o',username:'Owner'},{x:5,y:5},()=>{});room.setPets(pets);
+  const before=room.staff();assert.equal(before.length,3);assert.equal(new Set(before.map(p=>tileKey(p.position))).size,3);
+  for(const p of before){assert(p.position.x+p.position.y>=3);assert(grid.tile(p.position)?.walkable);assert(!grid.tile(p.position)?.itemId);assert.notEqual(tileKey(p.position),'5,5');positions.add(tileKey(p.position));}
+  room.setPets(pets.map(p=>({...p,name:p.name+' renamed'})));assert.deepEqual(room.staff().map(p=>p.position),before.map(p=>p.position));
+  assert.deepEqual(room.availableSpawn(),{x:0,y:0});
+ }
+ assert(positions.size>50,'starts are distributed through the room');
+});
+test('pet starts exclude sealed floor islands, occupied tiles and the last entrance tile',()=>{
+ const pet={id:'p',ownerId:'o',name:'Pet',species:'cat' as const,color:'#aaa'};
+ for(let seed=1;seed<=20;seed++){
+  mock.restoreAll();mock.method(Math,'random',()=>seed/21);
+  const room=new RoomRuntime(new RoomGrid(parseHeightmap('00x000\n00x000\n00x000'),[]),25,[],[pet]);assert(room.staff()[0].position.x<2);
+ }
+ const tiny=new RoomRuntime(new RoomGrid(parseHeightmap('00'),[]),25,[],[pet]);assert.deepEqual(tiny.staff()[0].position,{x:1,y:0,z:0});assert.deepEqual(tiny.availableSpawn(),{x:0,y:0});
+ const full=new RoomRuntime(new RoomGrid(parseHeightmap('0'),[]),25,[],[pet]);assert.equal(full.staff().length,0);assert.deepEqual(full.availableSpawn(),{x:0,y:0});
+});
+
+test('pets can start on rugs covering the floor without occupying rollers or beds',()=>{
+ const rug={id:'rug',x:0,y:0,z:0,width:5,length:5,rotation:0 as const,itemHeight:.25,walkable:true,canStack:true};
+ const bed={id:'bed',x:3,y:3,z:.25,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'cat'};
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap(Array(5).fill('00000').join('\n')),[rug,bed]),25,[],[{id:'p',ownerId:'o',name:'Cat',species:'cat',color:'#aaa'}]);
+ assert.equal(room.staff().length,1);const p=room.staff()[0].position;assert.equal(p.z,.25);assert.notEqual(tileKey(p),'3,3');assert(p.x+p.y>=3);
 });

@@ -39,6 +39,7 @@ jobs:
       - run: node scripts/test-world-bathroom.mjs
       - run: node scripts/test-world-playroom.mjs
       - run: node scripts/test-world-halloween.mjs
+      - run: node scripts/test-world-furniture-prices.mjs
       - run: node scripts/test-world-colors.mjs
       - run: node scripts/test-world-centered-tables.mjs
       - run: node scripts/test-world-boardwalk.mjs
