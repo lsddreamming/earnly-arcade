@@ -184,7 +184,7 @@
         'Gold coins near gap edges add bonus Coins. Chasing them leaves less room to recover.',
         'Touching a vine, the top, or the ground ends the run.'
       ],
-      reward:'Vines + collected gold earn up to 100 Arcade Coins per run.'
+      reward:'Vines + collected gold earn up to 50 Arcade Coins per run. Collected gold adds up to 10 bonus Coins.'
     });
 
     const frog = { x: 82, y: 270, r: 15, vy: 0 };
@@ -202,7 +202,8 @@
       const gapSize = Math.max(MIN_GAP_SIZE, BASE_GAP_SIZE - value * 0.42);
       return { speed, gapSize };
     }
-    const MAX_COINS = 100;
+    const MAX_COINS = 50;
+    const MAX_GOLD_BONUS = 10;
 
     let obstacles = [];
     let score = 0;
@@ -339,7 +340,7 @@
     }
 
     function drawGold(o) {
-      if(!o.gold||o.gold.taken)return;
+      if(!o.gold||o.gold.taken||bonusCoins>=MAX_GOLD_BONUS||rewardFor(score)>=MAX_COINS)return;
       const x=o.x+obstacleWidth/2,y=o.gold.y;
       const pulse=reducedMotion?1:1+Math.sin(frame*.075)*.12;
       ctx.save();
@@ -357,12 +358,12 @@
     }
 
     function collectGold(o) {
-      if(!o.gold||o.gold.taken||rewardFor(score)>=MAX_COINS)return;
+      if(!o.gold||o.gold.taken||bonusCoins>=MAX_GOLD_BONUS||rewardFor(score)>=MAX_COINS)return;
       const x=o.x+obstacleWidth/2,y=o.gold.y;
       // A deliberate line is required; the safe middle misses the gold.
       if(Math.hypot(frog.x-x,frog.y-y)>frog.r+5)return;
       o.gold.taken=true;coinsCollected++;
-      const gained=Math.min(o.gold.value,MAX_COINS-rewardFor(score));
+      const gained=Math.min(o.gold.value,MAX_GOLD_BONUS-bonusCoins,MAX_COINS-rewardFor(score));
       bonusCoins+=gained;
       rewardPreviewEl.textContent=rewardFor(score);
       document.getElementById('goldPreview').textContent='Gold +'+bonusCoins;
