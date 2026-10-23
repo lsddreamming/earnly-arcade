@@ -171,7 +171,9 @@
       ctx.closePath();ctx.fill();
 
       ctx.fillStyle='#0b1220';ctx.beginPath();ctx.roundRect(-14,-5,28,9,3);ctx.fill();
-      ctx.fillStyle=body;ctx.fillRect(-11,-4,22,7);
+      ctx.fillStyle='#8fc7df';ctx.beginPath();ctx.roundRect(-11,-6,22,7,2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(-9,-5,8,1);
+      ctx.fillStyle=trim;ctx.fillRect(-10,3,20,2);
 
       if(variant===2&&!isPlayer){
         ctx.fillStyle='#111827';ctx.beginPath();ctx.roundRect(-9,-18,18,4,2);ctx.fill();
@@ -200,19 +202,20 @@
       // sense of speed while the road remains easy on the eyes.
       ctx.fillStyle='#091525';ctx.fillRect(0,0,24,canvas.height);ctx.fillRect(336,0,24,canvas.height);
       const road=ctx.createLinearGradient(24,0,336,0);
-      road.addColorStop(0,'#111c2b');road.addColorStop(.16,'#152131');road.addColorStop(.5,'#172434');road.addColorStop(.84,'#152131');road.addColorStop(1,'#111c2b');
+      road.addColorStop(0,'#242b34');road.addColorStop(.16,'#343b44');road.addColorStop(.5,'#3d444d');road.addColorStop(.84,'#343b44');road.addColorStop(1,'#242b34');
       ctx.fillStyle=road;ctx.fillRect(24,0,312,canvas.height);
 
       // Soft shoulder glow replaces the harsh white edge lines.
-      ctx.fillStyle='rgba(34,211,238,.18)';ctx.fillRect(27,0,2,canvas.height);ctx.fillRect(331,0,2,canvas.height);
+      ctx.fillStyle='#d6b75c';ctx.fillRect(27,0,2,canvas.height);ctx.fillRect(331,0,2,canvas.height);
       ctx.fillStyle='rgba(59,130,246,.08)';ctx.fillRect(29,0,5,canvas.height);ctx.fillRect(326,0,5,canvas.height);
 
       // Fixed, low-contrast lane guides avoid flicker while keeping lanes clear.
       ctx.save();
-      ctx.strokeStyle='rgba(125,211,252,.16)';
+      ctx.strokeStyle='rgba(246,222,135,.65)';
+      ctx.setLineDash([20,24]);
       ctx.lineWidth=2;
       ctx.shadowColor='rgba(34,211,238,.12)';
-      ctx.shadowBlur=5;
+      ctx.shadowBlur=0;
       [126,234].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});
       ctx.restore();
 
