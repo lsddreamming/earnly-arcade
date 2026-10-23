@@ -87,6 +87,7 @@ test('Trying on paid shoes does not change saved equipment or wallet; free filte
   await page.getByRole('button',{name:'Shoes',exact:true}).click();await page.getByRole('button',{name:'Preview Neon Kicks',exact:true}).click();
   await expect(page.locator('#character-stage img[alt="Neon Kicks"]')).toBeVisible();await expect(page.locator('#preview-note')).toContainText('Preview only');expect(f.user().equipped.shoes.id).toBe('trail-boots');expect(f.keys).toHaveLength(0);
   await page.getByRole('button',{name:'Reset preview'}).click();await expect(page.locator('#character-stage img[alt="Trail Boots"]')).toBeVisible();
+  await page.locator('.shop-refine summary').click();
   await page.getByLabel('Free options only').check();await expect(page.getByRole('button',{name:'Buy Neon Kicks',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Equip Canvas Sneakers',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
 });
@@ -113,7 +114,7 @@ test('Headwear, search, ownership filters and fit inspection work without spendi
   await page.getByRole('button',{name:'Headwear',exact:true}).click();await page.getByRole('button',{name:'Preview Comms Headset',exact:true}).click();
   await expect(page.locator('#character-stage img[alt="Comms Headset"]')).toBeVisible();await expect(page.locator('#nav-avatar img[alt="No Headwear"]')).toHaveCount(1);
   await page.getByLabel('Find your next piece').fill('beanie');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Ribbed Beanie');
-  await page.getByLabel('Find your next piece').fill('');await page.getByLabel('My collection').check();await expect(page.locator('.item-card')).toHaveCount(3);
+  await page.getByLabel('Find your next piece').fill('');await page.locator('.shop-refine summary').click();await page.getByLabel('My collection').check();await expect(page.locator('.item-card')).toHaveCount(3);
   await page.getByRole('button',{name:'Footwear',exact:true}).click();await expect(page.locator('#character-stage')).toHaveAttribute('data-focus','shoes');
   await page.getByRole('button',{name:'Full look',exact:true}).click();await expect(page.locator('#character-stage')).toHaveAttribute('data-focus','full');expect(f.keys).toHaveLength(0);
 });
@@ -181,6 +182,7 @@ test('Personality assets keep legacy looks intact and new features render withou
   return {old:EarnlyPotatoRig.compose({avatar}),fresh:EarnlyPotatoRig.compose({avatar,eyes:{id:'eyes-happy',slot:'eyes',imageUrl:'cosmetic-eyes-happy.svg'}})};
  });
  expect(result.old).toHaveLength(1);expect(result.old[0].imageUrl).toBe('cosmetic-cyber-starter.svg');expect(result.fresh[0].imageUrl).toBe('cosmetic-cyber-starter-body.svg');expect(result.fresh.filter(i=>i.slot==='eyes')).toHaveLength(1);
+ await page.locator('.shop-refine summary').click();
  for(const tab of ['Eyes','Eyebrows','Noses','Mouths','Hair','Face details']){await page.getByRole('button',{name:tab,exact:true}).click();await page.getByLabel('Free options only').check();expect(await page.locator('#shop-grid .item-card').count()).toBeGreaterThan(2);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
 });
 
