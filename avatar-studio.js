@@ -24,8 +24,8 @@
   };
   const apiBase = window.EARNLY_AVATAR_API || "";
   const fmt = (value) => BigInt(value ?? 0).toLocaleString();
-  const slots = ["avatar", "eyes", "brows", "nose", "mouth", "hair", "marks", "outfit", "shoes", "backpack", "face", "beard", "head", "weapon", "pet", "frame", "pose", "effect", "army", "commander", "building", "battlefx"];
-  const prettySlot = { avatar: "Potato", eyes: "Eyes", brows: "Eyebrows", nose: "Nose", mouth: "Mouth", hair: "Hair", marks: "Face details", outfit: "Outfit", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon", pet:"Pet", frame:"Profile frame", pose:"Victory pose", effect:"Effect", army:"Army skin", commander:"Commander", building:"Building skin", battlefx:"Battle effects" };
+  const slots = ["avatar", "eyes", "brows", "nose", "mouth", "hair", "marks", "outfit", "jewelry", "shoes", "backpack", "face", "beard", "head", "weapon", "pet", "frame", "pose", "effect", "army", "commander", "building", "battlefx"];
+  const prettySlot = { avatar: "Potato", eyes: "Eyes", brows: "Eyebrows", nose: "Nose", mouth: "Mouth", hair: "Hair", marks: "Face details", outfit: "Outfit", jewelry: "Jewelry", shoes: "Shoes", backpack: "Backpack", face: "Facewear", beard: "Beard", head: "Headwear", weapon: "Weapon", pet:"Pet", frame:"Profile frame", pose:"Victory pose", effect:"Effect", army:"Army skin", commander:"Commander", building:"Building skin", battlefx:"Battle effects" };
   function el(tag, classes, text) {
     const node = document.createElement(tag);
     if (classes) node.className = classes;
@@ -149,7 +149,7 @@
       card.classList.toggle("is-equipped", !!equipped);
       card.classList.toggle("is-owned", !!owned);
       art.dataset.slot = item.slot;
-      const detail=state.gearDetail && ['outfit','shoes','backpack','face','beard','head','weapon'].includes(item.slot);
+      const detail=state.gearDetail && ['outfit','jewelry','shoes','backpack','face','beard','head','weapon'].includes(item.slot);
       art.dataset.detail=String(detail);
       let artwork;
       if(detail){

@@ -220,3 +220,20 @@ test('Potato hats hide sprouts and noses match each skin without changing equipp
   for(const part of look.parts){expect(fs.readFileSync(part.imageUrl,'utf8')).toBe(fs.readFileSync('www/'+part.imageUrl,'utf8'));}
  }
 });
+
+test('Jewelry layers independently over outfits and below faces',async({page})=>{
+ await setup(page);
+ await page.goto('/avatars.html');
+ await expect(page.locator('#studio-category option[value="jewelry"]')).toHaveText('Jewelry');
+ const parts=await page.evaluate(()=>{
+   const equipment={avatar:{id:'cream-potato',imageUrl:'cosmetic-cream-potato.svg'},outfit:{id:'starter-suit'},jewelry:{id:'gold-chain'},face:{id:'round-glasses'},head:{id:'nova-crown'}};
+   const result=window.EarnlyPotatoRig.compose(equipment);
+   return {ids:result.map(x=>x.id),unchanged:equipment.jewelry.id==='gold-chain'};
+ });
+ expect(parts.ids).toContain('gold-chain');
+ expect(parts.ids).toContain('round-glasses');
+ expect(parts.ids.indexOf('gold-chain')).toBeGreaterThan(parts.ids.indexOf('starter-suit'));
+ expect(parts.ids.indexOf('gold-chain')).toBeLessThan(parts.ids.indexOf('round-glasses'));
+ expect(parts.ids).not.toContain('hair-sprout');
+ expect(parts.unchanged).toBe(true);
+});
