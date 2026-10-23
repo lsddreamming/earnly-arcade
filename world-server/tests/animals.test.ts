@@ -140,3 +140,10 @@ test('pet starts exclude sealed floor islands, occupied tiles and the last entra
  const tiny=new RoomRuntime(new RoomGrid(parseHeightmap('00'),[]),25,[],[pet]);assert.deepEqual(tiny.staff()[0].position,{x:1,y:0,z:0});assert.deepEqual(tiny.availableSpawn(),{x:0,y:0});
  const full=new RoomRuntime(new RoomGrid(parseHeightmap('0'),[]),25,[],[pet]);assert.equal(full.staff().length,0);assert.deepEqual(full.availableSpawn(),{x:0,y:0});
 });
+
+test('pets can start on rugs covering the floor without occupying rollers or beds',()=>{
+ const rug={id:'rug',x:0,y:0,z:0,width:5,length:5,rotation:0 as const,itemHeight:.25,walkable:true,canStack:true};
+ const bed={id:'bed',x:3,y:3,z:.25,width:1,length:1,rotation:0 as const,itemHeight:.25,walkable:true,canStack:false,petBed:'cat'};
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap(Array(5).fill('00000').join('\n')),[rug,bed]),25,[],[{id:'p',ownerId:'o',name:'Cat',species:'cat',color:'#aaa'}]);
+ assert.equal(room.staff().length,1);const p=room.staff()[0].position;assert.equal(p.z,.25);assert.notEqual(tileKey(p),'3,3');assert(p.x+p.y>=3);
+});

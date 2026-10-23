@@ -47,14 +47,14 @@ export class RoomRuntime {
     }
   }
   #petSpawn():XY|undefined {
-    // Pick only floor connected to the entrance, never a sealed pocket or furniture top.
+    // Pick only floor connected to the entrance, never a sealed pocket or solid furniture.
     let entrance:XY|undefined;
     for(let y=0;y<this.grid.length&&!entrance;y++)for(let x=0;x<this.grid.width;x++)if(this.grid.tile({x,y})?.walkable){entrance={x,y};break;}
     if(!entrance)return;
     const occupied=this.#occupied(),seen=new Set([tileKey(entrance)]),queue=[entrance],free:XY[]=[];
     for(let i=0;i<queue.length;i++){
       const p=queue[i],tile=this.grid.tile(p)!;
-      if(!occupied.has(tileKey(p))&&!tile.itemId)free.push(p);
+      if(!occupied.has(tileKey(p))&&!tile.canSit&&!tile.canLay&&!tile.roller&&!tile.petBed&&!tile.petToy)free.push(p);
       for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){
         const q={x:p.x+dx,y:p.y+dy};
         if(!seen.has(tileKey(q))&&canStep(this.grid,p,q,{diagonal:false})){seen.add(tileKey(q));queue.push(q);}
