@@ -52,7 +52,7 @@
   const gem=(u,v,z,r,h,tint)=>{for(let j=0;j<6;j++){const a=j*Math.PI/3,b=(j+1)*Math.PI/3,p=[u+Math.cos(a)*r,v+Math.sin(a)*r,z+h*.4],q=[u+Math.cos(b)*r,v+Math.sin(b)*r,z+h*.4];face([[u,v,z+h],p,q],shade(tint,j%2?18:-8),true);face([[u,v,z],q,p],shade(tint,-24),true);}};
   const ring=(u,v,r,z,tint)=>{for(let j=0;j<24;j++){const a=j*Math.PI/12,b=(j+1)*Math.PI/12;ribbon([u+Math.cos(a)*r,v+Math.sin(a)*r,z],[u+Math.cos(b)*r,v+Math.sin(b)*r,z],tint,.015);}};
   // Bathroom fixtures use the same rotated volumes as all other room furniture.
-  if(window.EarnlyDecorPolish?.build(s,{block,detail,ribbon,foliage,cylinder,ring,shade,color,fabric,mattress})){
+  if(window.EarnlyDecorPolish?.build(s,{block,detail,ribbon,foliage,cylinder,ring,shade,color,fabric,mattress,gem,width:w})){
    // Sculpted collection geometry shares the normal rotation, depth and cache path.
   }else if(s.startsWith('season-')||s.startsWith('home-')){
    const dark='#283043',ivory='#f4ead2',mint='#99f1cb',violet='#ad80e9';
