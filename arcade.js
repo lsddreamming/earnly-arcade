@@ -1729,8 +1729,7 @@ const Arcade = (() => {
 
     if (modal.open) modal.close();
     modal.replaceChildren();
-    modal.className = 'game-result-dialog' + (['spiralDrop','jungleHopper'].includes(game) ? ' spiral-result' : '');
-    const compactResult = ['neonDrift','spiralDrop','jungleHopper'].includes(game);
+    modal.className = 'game-result-dialog compact-result' + (['spiralDrop','jungleHopper'].includes(game) ? ' spiral-result' : '');
 
     const hero = document.createElement('div');
     hero.className = 'result-hero';
@@ -1797,7 +1796,7 @@ const Arcade = (() => {
       main.append(bestTarget);
     }
 
-    const rankDetails = compactResult ? document.createElement('details') : null;
+    const rankDetails = game ? document.createElement('details') : null;
     const rankSummary = rankDetails ? document.createElement('summary') : null;
     if (rankDetails) {
       rankDetails.className = 'result-run-details';
@@ -2168,30 +2167,30 @@ const Arcade = (() => {
     roomLink.append(roomHint);
     actions.append(roomLink);
     const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Customize your avatar';shopLink.className='result-shop-link';actions.append(shopLink);
+    let buy;
     if(game&&window.EarnlyPaidPlays){
-      const buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 25 coins';
+      buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 25 coins';
       buy.onclick=async()=>{buy.disabled=true;try{await window.EarnlyPaidPlays.buy(game);buy.textContent='Extra plays ready · return to Games to play';}catch(error){toast(error.message);buy.disabled=false;}};
       actions.append(buy);
     }
-    modal.append(hero, main);
-    if (game && !rankDetails) modal.append(leaderboardBox);
-    modal.append(statsBox, levelProgress);
-    if (rankDetails) { rankDetails.append(leaderboardBox); if (!['spiralDrop','jungleHopper'].includes(game)) modal.append(rankDetails); }
-    if (compactResult) {
-      const details=document.createElement('details');details.className='result-run-details';
-      const summary=document.createElement('summary');summary.textContent='Run details';details.append(summary,notes);
-      const explore=document.createElement('details');explore.className='result-run-details';
-      const exploreLabel=document.createElement('summary');exploreLabel.textContent='Use your coins';explore.append(exploreLabel,roomLink,shopLink);
-      if (['spiralDrop','jungleHopper'].includes(game)) {
-        details.append(levelProgress);
-        const buy = actions.querySelector('button:last-child');
-        if (buy && buy !== back && buy !== primary) explore.append(buy);
-        modal.append(actions,rankDetails,details,explore);
-      } else modal.append(actions,details,explore);
-    } else {
-      if (notes.childElementCount) modal.append(notes);
-      modal.append(actions);
+    // Keep the result and next action visible; secondary information stays available on demand.
+    modal.append(hero, main, statsBox, actions);
+    if (rankDetails) {
+      rankDetails.append(leaderboardBox);
+      modal.append(rankDetails);
     }
+    const details = document.createElement('details');
+    details.className = 'result-run-details';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Run details';
+    details.append(summary, notes, levelProgress);
+    const explore = document.createElement('details');
+    explore.className = 'result-run-details';
+    const exploreLabel = document.createElement('summary');
+    exploreLabel.textContent = 'Use your coins';
+    explore.append(exploreLabel, roomLink, shopLink);
+    if (buy) explore.append(buy);
+    modal.append(details, explore);
     window.EarnlyShopAppearance?.decorate(hero);
     modal.showModal();
   }

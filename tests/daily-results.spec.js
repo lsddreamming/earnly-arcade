@@ -69,6 +69,7 @@ test('results connect earned coins to the furniture catalog without spending the
   await expect(link).toContainText('Play to earn coins. Decorate your room.');
   await expect(link).toHaveAttribute('href', 'world.html?catalog=All');
   const before = await page.evaluate(() => localStorage.getItem('arcadeCoins'));
+  await page.getByText('Use your coins', {exact:true}).click();
   await link.click();
   await expect(page).toHaveURL(/world\.html\?catalog=All/);
   await expect(page.locator('#worldPanel')).toBeVisible();
@@ -98,5 +99,39 @@ for (const width of [320, 390, 440]) {
     await expect(dialog.locator('.result-level-progress')).toBeVisible();
     await play.click();
     await expect.poll(()=>page.evaluate(()=>window.spiralReplayed)).toBe(true);
+  });
+}
+
+for (const game of ['snake', 'memory', 'tapRush', 'neonBreach', 'neonDrift', 'brickBreaker']) {
+  test(game + ' uses compact results with working optional actions', async ({page}) => {
+    await page.setViewportSize({width:320,height:568});
+    await page.goto('/index.html');
+    await page.evaluate(game => {
+      window.EarnlyCloud = {leaderboard:async()=>({entries:[]})};
+      window.EarnlyPaidPlays = {remaining:()=>0,buy:async()=>{window.boughtPlays=true;}};
+      Arcade.gameResult({game,title:'A completed arcade adventure',score:19,coins:12,
+        result:{xpAward:35},extra:['Run detail preserved'],onReplay:()=>window.compactReplayed=true});
+    },game);
+    const dialog=page.locator('.compact-result');
+    await expect(dialog.locator('.result-main > strong')).toContainText('19');
+    await expect(dialog.locator('.result-stats')).toContainText('+12');
+    await expect(dialog.locator('.result-notes')).toBeHidden();
+    await expect(dialog.locator('.result-level-progress')).toBeHidden();
+    await expect(dialog.locator('.result-leaderboard')).toBeHidden();
+    await expect(dialog.locator('.result-room-link')).toBeHidden();
+    const play=dialog.getByRole('button',{name:/Play Again/});
+    const bounds=await play.boundingBox();
+    expect(bounds.y+bounds.height).toBeLessThanOrEqual(568);
+    expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+    await dialog.getByText('Run details',{exact:true}).click();
+    await expect(dialog.locator('.result-notes')).toBeVisible();
+    await expect(dialog.locator('.result-notes')).toContainText('Run detail preserved');
+    await expect(dialog.locator('.result-level-progress')).toBeVisible();
+    await dialog.getByText('Use your coins',{exact:true}).click();
+    await expect(dialog.locator('.result-room-link')).toBeVisible();
+    await dialog.getByRole('button',{name:'3 extra plays · 25 coins'}).click();
+    await expect.poll(()=>page.evaluate(()=>window.boughtPlays)).toBe(true);
+    await play.click();
+    await expect.poll(()=>page.evaluate(()=>window.compactReplayed)).toBe(true);
   });
 }
