@@ -1,5 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const extras=[['marble-column','column','#e3d8bc'],['woven-divider','divider','#b89b69',2],['low-table','table','#e1b786'],['walnut-table','walnut-nesting','#aa8069'],['oak-bookshelf','bookshelf','#b88c66'],['sage-chair','sage-slatted','#91bb96'],['flower-pot','flowers','#eab2ed'],['cloud-bed','bed','#8cbbf4',1,2],['star-trophy','trophy','#f8d46a']].map(([id,sprite_id,color,width=1,length=1])=>({id,name:id,sprite_id,color,width,length}));
+extras.push(...['dog','cat','rabbit'].map(species=>({id:'bed-'+species,name:species+' bed',sprite_id:'pet-bed-'+species,width:1,length:1,color:'#a493c4'})));
 test.beforeEach(async({page})=>{await page.addInitScript(items=>window.decorReviewExtras=items,extras);await page.route('https://**',r=>r.abort());await page.goto('/world.html?catalog=Halloween');});
 test('Polished screenshot collection has unique, unclipped, recolorable four-way artwork',async({page})=>{
  const report=await page.evaluate(()=>{
@@ -7,7 +8,7 @@ test('Polished screenshot collection has unique, unclipped, recolorable four-way
   const render=(i,r,color)=>{const canvas=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...i,rotation:r,color});const p=canvas.getContext('2d').getImageData(0,0,160,128).data;let pixels=0;for(let y=0;y<128;y++)for(let x=0;x<160;x++)if(p[(y*160+x)*4+3]){pixels++;if(!x||!y||x===159||y===127)errors.push(i.id+' clipped '+r);}if(pixels<100)errors.push(i.id+' empty');return canvas.toDataURL();};
   for(const i of items){const views=[0,2,4,6].map(r=>render(i,r,i.color));unique.add(views.join('|'));if(views.every((v,k)=>v===render(i,k*2,'#d88fb8')))errors.push(i.id+' ignores color');}
   return {count:items.length,unique:unique.size,errors};
- });expect(report.errors).toEqual([]);expect(report.count).toBe(85);expect(report.unique).toBe(85);
+ });expect(report.errors).toEqual([]);expect(report.count).toBe(104);expect(report.unique).toBe(104);
 });
 test('Selected effects change over time in all four rotations without changing item data',async({page})=>{
  const result=await page.evaluate(()=>{
@@ -109,4 +110,23 @@ test('Budget shopping filters unavailable pieces and preserves the filter after 
  await expect(page.locator('#panelContent')).not.toContainText('You need');
  await page.getByRole('button',{name:'Buy for ◇ 200',exact:true}).click();await expect(page.locator('#coinBalance')).toHaveText('◇ 0');
  expect(await page.evaluate(()=>window.budgetBuys.length)).toBe(2);
+});
+
+test('Cafe catalog keeps controls compact and card actions reachable on narrow phones',async({page},info)=>{
+ for(const width of [320,430]){
+  await page.setViewportSize({width,height:932});await page.goto('/world.html?catalog='+encodeURIComponent('Roast & Gather'));
+  await expect(page.locator('.item-card')).toHaveCount(16);
+  await page.locator('.catalog-refine summary').click();
+  expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+  const card=page.locator('.item-card').first();await card.scrollIntoViewIfNeeded();
+  const save=card.locator('.wishlist-save');const box=await save.boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);
+  await save.click();await expect(save).toHaveAttribute('aria-pressed','true');await save.click();
+  expect((await card.boundingBox()).height).toBeLessThan(270);
+  await page.screenshot({path:info.outputPath('cafe-catalog-'+width+'.png')});
+ }
+});
+test('Review the sculpted cafe collection and distinct pet beds at preview scale',async({page},info)=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.evaluate(()=>{document.body.replaceChildren();document.body.style.cssText='margin:0;background:#142b3d;color:#e7eee8;font:13px system-ui;display:grid;grid-template-columns:repeat(4,190px);gap:8px;padding:12px;overflow:auto;height:auto';for(const item of [...EarnlyWorldCollections.allItems.filter(i=>i.category==='Roast & Gather'),...window.decorReviewExtras.filter(i=>i.sprite_id.startsWith('pet-bed-'))]){const card=document.createElement('div');card.style.cssText='background:#203d4d;padding:8px;border-radius:12px;text-align:center';const c=document.createElement('canvas');EarnlyWorldRenderer.thumbnail(c,item);card.append(c,document.createTextNode(item.name));document.body.append(card);}});
+ await page.setViewportSize({width:820,height:900});await page.screenshot({path:info.outputPath('cafe-beds-review.png'),fullPage:true});
 });

@@ -1219,7 +1219,7 @@
   const pixels=stage.getImageData(0,0,256,256).data;let left=256,top=256,right=-1,bottom=-1;
   for(let y=0;y<256;y++)for(let x=0;x<256;x++)if(pixels[(y*256+x)*4+3]){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
   if(right<left)return;
-  const width=right-left+1,height=bottom-top+1,scale=Math.min(1.25,148/width,116/height),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
+  const width=right-left+1,height=bottom-top+1,scale=Math.min((item.sprite||item.sprite_id||'').startsWith('pet-bed-')?2.4:1.25,148/width,116/height),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
   c.drawImage(thumbnailStage,left,top,width,height,(160-width*scale)/2,(128-height*scale)/2,width*scale,height*scale);
   watchDecor(canvas,item,{x:(160-width*scale)/2+(128-left)*scale,y:(128-height*scale)/2+(152-top)*scale,scale:1.5*scale});
  }

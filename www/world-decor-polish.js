@@ -6,6 +6,7 @@
  const animated=new Set(['theme-terrarium','theme-cauldron','theme-potions','crescent-light','listening-console','season-lantern','season-ghost','season-cauldron','season-flame','season-mirror','season-tub']);
  ['theme-fire','theme-waterfall','lily-basin','plant-house','capsule-bed','show-meteor','show-orrery','show-aquarium','trophy'].forEach(s=>animated.add(s));
  ["bath-toilet", "bath-sink", "bath-shower", "bath-tub", "bath-mirror", "bath-towels", "bath-cabinet", "bath-hamper", "bath-mat", "play-rose-vase", "play-sunflower-vase", "play-yucca-planter", "play-cactus-planter", "bentwood-chair", "bistro-table", "coffee-station", "pastry-counter"].forEach(s=>models.add(s));
+ ['theme-wirechair', 'theme-papers', 'theme-sacks', 'theme-cups', 'theme-roundtable', 'theme-menu', 'theme-basket', 'theme-grinder', 'theme-pourover', 'theme-trolley', 'theme-awning', 'theme-cake', 'theme-bottlefridge', 'theme-banquette', 'theme-espresso', 'theme-roaster', 'pet-bed-dog', 'pet-bed-cat', 'pet-bed-rabbit'].forEach(s=>models.add(s));
  function build(s,g){
   if(!models.has(s))return false;
   const {block:b,detail:d,ribbon:line,foliage:leaf,cylinder:cy,ring,shade,color:c}=g;
@@ -44,7 +45,75 @@
   const oval=(u,v,z,rx,ry,t)=>d(Array.from({length:24},(_,j)=>{const a=j*Math.PI/12;return [u+Math.cos(a)*rx,v+Math.sin(a)*ry,z];}),t);
   const ovalRim=(u,v,z,rx,ry,t,w=.018)=>line3(Array.from({length:25},(_,j)=>{const a=j*Math.PI/12;return [u+Math.cos(a)*rx,v+Math.sin(a)*ry,z];}),t,w);
   const tap=(u,v,z)=>{line3([[u,v,z],[u,v,z+8],[u,v+.14,z+10],[u,v+.28,z+10],[u,v+.28,z+8]],metal,.035);cy(u,v,.08,z,.7,gold);};
+  const mug=(u,v,z,t)=>{cy(u,v,.12,z,.6,cream);shape(u,v,z+.6,.075,.075,4,[[.7,0],[1,1]],t);oval(u,v,z+4.7,.057,.057,'#69503b');line3([[u+.07,v,z+4],[u+.12,v,z+3.5],[u+.12,v,z+2],[u+.07,v,z+1.5]],t,.014);};
+  const stand=()=>{feet(1,1,21);b(.04,.06,.92,.88,3,21,c);b(.14,.16,.72,.68,1.5,7,wood);};
   switch(s){
+   case 'theme-wirechair':{
+    for(const u of [.18,.82])for(const v of [.2,.8])line([u,v,0],[u*.85+.075,v*.85+.075,16],metal,.03);
+    ovalRim(.5,.5,7,.31,.29,metal,.014);shape(.5,.54,15,.4,.35,3,[[.9,0],[1,.5],[.92,1]],wood);cushion(.2,.28,.6,.5,18,c);
+    for(const inset of [0,.12])line3([[.14+inset,.2,16],[.14+inset,.2,31],[.23+inset*.7,.2,37-inset*16],[.5,.2,40-inset*16],[.77-inset*.7,.2,37-inset*16],[.86-inset,.2,31],[.86-inset,.2,16]],metal,.025);break;
+   }
+   case 'theme-papers':{
+    feet(1,1,5);for(const u of [.09,.83])b(u,.1,.08,.8,30,5,c);
+    for(const z of [7,18,29]){b(.16,.15,.68,.62,1.5,z,wood);for(let j=0;j<3;j++){const u=.2+j*.19;b(u,.3,.17,.38,6,z+1.5,cream);panel(u+.02,.69,.13,z+3,3,'#c8c7b5');line([u+.025,.7,z+7],[u+.14,.7,z+7],ink,.012);for(let k=0;k<3;k++)line([u+.03,.7,z+3+k],[u+.13,.7,z+3+k],metal,.006);}line([.13,.78,z+3],[.87,.78,z+3],gold,.022);}
+    line3([[.12,.2,35],[.12,.2,39],[.88,.2,39],[.88,.2,35]],wood,.03);break;
+   }
+   case 'theme-sacks':{
+    b(.08,.08,.84,.84,2,0,wood);for(const [u,v,h,r]of [[.34,.34,26,.24],[.65,.64,18,.26]]){shape(u,v,2,r,r,h,[[.65,0],[1,.2],[.96,.65],[.7,.9],[.8,1]],c);oval(u,v,h+2,r*.66,r*.66,'#684b37');ovalRim(u,v,h+2.2,r*.77,r*.77,cream,.024);for(let j=0;j<7;j++)ovalRim(u,v,5+j*(h-4)/8,r*.95,r*.95,shade(c,-12),.006);for(let j=0;j<5;j++){const a=j*1.9;puff(u+Math.cos(a)*r*.4,v+Math.sin(a)*r*.4,h+2,.045,.035,1.5,wood);}panel(u-.1,v+r*.97,.2,8,7,cream);line([u-.055,v+r,11],[u+.055,v+r,13],wood,.026);}break;
+   }
+   case 'theme-cups':{
+    shape(.5,.5,0,.35,.31,3,[[.9,0],[1,.4],[.9,1]],wood);cy(.5,.5,.04,3,36,gold);
+    for(let j=0;j<5;j++){const u=j%2?.75:.25,z=11+j*5;line3([[.5,.5,z],[u,.5,z+2],[u,.5,z+4]],gold,.023);mug(u,.5,z-3,j%2?cream:c);}cy(.5,.5,.065,39,2,gold);break;
+   }
+   case 'theme-roundtable':{
+    cy(.5,.5,.34,0,3,ink);cy(.5,.5,.075,3,20,metal);shape(.5,.5,23,.48,.48,3,[[.92,0],[1,.4],[.94,1]],c);ovalRim(.5,.5,26.2,.43,.43,gold,.014);mug(.35,.57,26.3,cream);b(.6,.35,.19,.23,.5,26.3,cream);line([.63,.4,26.9],[.75,.5,26.9],metal,.008);break;
+   }
+   case 'theme-menu':{
+    for(const u of [.13,.82]){line([u,.12,0],[u,.25,43],wood,.035);line([u,.89,0],[u,.25,41],wood,.03);}b(.09,.19,.82,.13,32,9,c);panel(.16,.33,.68,12,26,'#26433d');trim(.13,.34,.74,10,30,gold);
+    for(let j=0;j<5;j++){const z=33-j*4;line([.24,.35,z],[.57+(j%2)*.1,.35,z],cream,.014);panel(.72,.35,.05,z-.5,1,gold);}line([.3,.35,36],[.7,.35,36],cream,.018);line([.14,.68,8],[.86,.68,8],metal,.018);break;
+   }
+   case 'theme-basket':{
+    stand();shape(.5,.5,24,.4,.32,8,[[.75,0],[1,.85],[1,1]],c);for(let j=0;j<5;j++)ovalRim(.5,.5,25+j*1.3,.32+j*.017,.25+j*.013,cream,.012);
+    for(const [u,v]of [[.32,.38],[.65,.4],[.49,.66]]){for(let j=0;j<5;j++)puff(u+(j-2)*.047,v+Math.abs(j-2)*.035,31,.07,.09,4-Math.abs(j-2)*.7,'#dba566');line([u-.06,v+.08,33],[u+.06,v+.08,34],cream,.009);}break;
+   }
+   case 'theme-grinder':{
+    stand();shape(.5,.48,24,.23,.22,14,[[.95,0],[1,.5],[.7,1]],ink);b(.4,.68,.2,.12,6,27,metal);cy(.5,.48,.17,38,4,c);shape(.5,.48,42,.24,.23,9,[[.55,0],[1,.75],[1,1]],'#b7cdd0');oval(.5,.48,50.3,.2,.19,wood);cy(.5,.48,.25,51,1.5,c);mug(.5,.75,24,cream);panel(.39,.69,.06,32,2,gold);break;
+   }
+   case 'theme-pourover':{
+    stand();line3([[.2,.3,24],[.2,.3,49],[.7,.3,49],[.7,.58,49]],c,.035);shape(.62,.58,25,.16,.15,11,[[.8,0],[1,.4],[.5,.85],[.6,1]],'#94c6cb');oval(.62,.58,27,.12,.12,'#8d6245');shape(.62,.58,39,.23,.22,7,[[.3,0],[1,1]],cream);oval(.62,.58,46.2,.18,.17,'#8d6245');ovalRim(.62,.58,46.5,.23,.22,gold,.012);line3([[.48,.58,34],[.38,.58,34],[.38,.58,29],[.48,.58,29]],metal,.018);break;
+   }
+   case 'theme-trolley':{
+    for(const u of [.15,1.8])for(const v of [.16,.82]){puff(u,v,0,.08,.07,4,ink);line([u,v,3],[u,v,27],gold,.025);}for(const z of [7,23]){b(.05,.07,1.9,.86,2,z,c);line3([[.08,.1,z+3],[1.92,.1,z+3],[1.92,.9,z+3]],gold,.018);}line3([[.15,.16,26],[.15,.16,33],[.15,.82,33],[.15,.82,26]],metal,.028);
+    shape(.7,.5,25,.21,.2,9,[[.6,0],[1,.4],[.8,.8],[.4,1]],cream);cy(.7,.5,.12,34,1,gold);line3([[.88,.5,29],[1.03,.5,32],[1.08,.5,33]],cream,.035);mug(1.35,.46,25,cream);mug(1.67,.65,25,cream);for(let j=0;j<3;j++)b(.45+j*.27,.3,.21,.44,4,9,shade(c,j*12));break;
+   }
+   case 'theme-awning':{
+    for(const u of [.1,1.9])for(const v of [.12,.88]){cy(u,v,.035,0,43,wood);cy(u,v,.06,0,1.5,gold);}for(let j=0;j<10;j++){const u=.03+j*.194,t=j%2?cream:c;d([[u,.03,49],[u+.194,.03,49],[u+.194,.97,41],[u,.97,41]],t);d([[u,.97,41],[u+.194,.97,41],[u+.194,.97,37],[u+.15,.97,35.5],[u+.04,.97,35.5],[u,.97,37]],t);}line([.03,.03,49],[1.97,.03,49],gold,.021);line([.1,.88,34],[.1,.4,43],wood,.02);line([1.9,.88,34],[1.9,.4,43],wood,.02);break;
+   }
+   case 'theme-cake':{
+    b(.06,.07,.88,.86,8,0,c);for(const z of [10,24,38]){b(.1,.1,.8,.8,1.5,z,gold);cy(.5,.5,.26,z+1.6,.6,cream);shape(.5,.5,z+2.2,.22,.22,8,[[1,0],[1,.85],[.9,1]],z===24?'#b47b66':cream);ovalRim(.5,.5,z+9.5,.22,.22,c,.022);for(let j=0;j<5;j++){const a=j*Math.PI*.4;puff(.5+Math.cos(a)*.14,.5+Math.sin(a)*.14,z+10,.035,.035,1.5,'#d58b9b');}}
+    for(const u of [.08,.92])for(const v of [.08,.92])line([u,v,8],[u,v,52],metal,.018);d([[.08,.92,8],[.92,.92,8],[.92,.92,52],[.08,.92,52]],'#c3e9e51c');b(.04,.04,.92,.92,2,52,c);line([.2,.935,27],[.4,.935,46],cream,.012);break;
+   }
+   case 'theme-bottlefridge':{
+    feet(1,1,4);b(.07,.1,.86,.1,45,4,ink);for(const u of [.07,.85])b(u,.1,.08,.8,45,4,ink);b(.07,.1,.86,.8,3,4,ink);b(.07,.1,.86,.8,3,46,ink);panel(.15,.21,.7,8,36,'#426370');for(const z of [10,22,34]){for(let j=0;j<3;j++)bottle(.28+j*.23,.78,z,j%2?c:'#85b5a1');line([.16,.93,z],[.84,.93,z],metal,.018);}d([[.14,.95,7],[.86,.95,7],[.86,.95,46],[.14,.95,46]],'#bde5e529');trim(.12,.96,.76,6,41,c);line([.8,.98,20],[.8,.98,33],gold,.025);line([.22,.97,29],[.39,.97,43],cream,.012);for(let j=0;j<4;j++)panel(.21+j*.15,.92,.09,4,.8,metal);break;
+   }
+   case 'theme-banquette':{
+    for(const [u,v]of [[.12,.12],[1.78,.12],[1.78,.65],[.65,.65],[.12,1.78],[.65,1.78]])b(u,v,.1,.1,5,0,wood);b(.06,.06,1.88,.75,9,5,wood);b(.06,.8,.75,1.14,9,5,wood);b(.06,.06,1.88,.16,24,10,c);b(.06,.2,.16,1.74,24,10,c);
+    for(let j=0;j<4;j++){const u=.25+j*.41;cushion(u,.24,.39,.55,14,cream);panel(u+.05,.23,.29,23,6,shade(c,15));}for(let j=0;j<2;j++){const v=.86+j*.51;cushion(.25,v,.55,.49,14,cream);line([.23,v+.08,23],[.23,v+.4,23],gold,.015);}line([.1,.83,10],[1.9,.83,10],gold,.014);cushion(.36,.34,.32,.3,20,c);break;
+   }
+   case 'theme-espresso':{
+    feet(2,1,4);b(.05,.08,1.9,.84,19,4,c);for(let j=0;j<9;j++)panel(.15+j*.2,.93,.07,6,14,shade(c,-17));b(.01,.03,1.98,.94,3,23,cream);b(.2,.12,1.6,.48,19,26,c);b(.18,.1,1.64,.53,2,45,gold);panel(.27,.61,1.46,31,10,ink);b(.22,.5,1.56,.34,1,27,metal);
+    for(const u of [.5,1,1.5]){line([u,.64,38],[u,.7,35],metal,.032);mug(u,.71,28,cream);cy(u,.34,.1,47,3,cream);panel(u-.025,.62,.05,42,1.5,gold);}line3([[1.77,.5,38],[1.86,.7,35],[1.86,.7,30]],metal,.02);break;
+   }
+   case 'theme-roaster':{
+    b(.06,.1,1.88,.8,5,0,ink);for(const u of [.25,1.2])b(u,.24,.15,.5,14,5,metal);shape(.83,.5,15,.58,.36,20,[[.7,0],[1,.2],[1,.8],[.7,1]],c);ovalRim(.83,.5,35,.4,.26,gold,.024);b(.55,.28,.56,.44,4,35,ink);shape(.83,.5,39,.35,.29,10,[[.4,0],[1,1]],gold);oval(.83,.5,49.1,.29,.23,'#76513a');b(1.48,.15,.23,.28,30,5,metal);line3([[1.6,.28,35],[1.6,.28,45],[1.4,.28,45]],ink,.055);cy(.83,.65,.28,7,2,metal);oval(.83,.65,9.2,.23,.23,wood);line([.83,.65,9.5],[1.03,.65,9.5],gold,.025);panel(.45,.87,.12,22,5,ink);break;
+   }
+   case 'pet-bed-dog':case 'pet-bed-cat':case 'pet-bed-rabbit':{
+    const cat=s==='pet-bed-cat',rabbit=s==='pet-bed-rabbit';shape(.5,.5,0,.47,.44,4,[[.8,0],[1,.5],[.95,1]],wood);
+    if(rabbit){for(let j=0;j<4;j++)ovalRim(.5,.5,3+j*1.4,.45,.42,shade(c,j*6),.03);for(let j=0;j<14;j++){const a=j*Math.PI/7;line([.5+Math.cos(a)*.43,.5+Math.sin(a)*.4,2],[.5+Math.cos(a)*.46,.5+Math.sin(a)*.43,9],cream,.012);}cushion(.2,.23,.6,.54,4,'#e5d7a5');}
+    else{puff(.5,.5,3,.45,.42,8,c);oval(.5,.53,9,.32,.29,shade(c,-15));cushion(.21,.29,.58,.51,6,cat?'#d9c9e9':'#ecd6b7');ovalRim(.5,.5,7,.42,.39,shade(c,35),.013);}
+    if(cat){puff(.32,.28,10,.1,.09,3,cream);puff(.7,.65,10,.055,.055,3,gold);line3([[.73,.67,10],[.8,.7,10],[.78,.77,10]],cream,.008);}else if(!rabbit){puff(.5,.52,11,.06,.06,1,c);for(const u of [.4,.5,.6])puff(u,.4,11,.026,.03,1,c);}break;
+   }
+
    case 'bath-hamper':{
     shape(.5,.5,1,.35,.32,22,[[.8,0],[1,.94],[.94,1]],wood);for(let j=0;j<10;j++)ovalRim(.5,.5,3+j*2,.29+j*.006,.27+j*.005,j%2?cream:'#bd976e',.012);
     for(let j=0;j<12;j++){const a=j*Math.PI/6;line([.5+Math.cos(a)*.29,.5+Math.sin(a)*.27,3],[.5+Math.cos(a)*.35,.5+Math.sin(a)*.32,22],shade(wood,20),.011);}

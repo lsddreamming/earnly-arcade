@@ -235,3 +235,18 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
  .is-guided-placing #placementInstructions{font-size:11px}.is-guided-placing #placementStatus{font-size:12px}
  .is-guided-placing #placementHint button{min-height:48px;padding:9px}
 }
+
+/* Focus the shop on the pieces, with compact controls and steady tap targets. */
+.shop-panel{max-height:92dvh}.shop-panel>header{padding:10px 14px}.shop-panel>header button{min-height:44px;min-width:44px}.shop-panel #panelContent{padding:12px}
+.catalog-refinements .catalog-sort{grid-column:1/-1}.catalog-refinements .budget-filter[aria-pressed="true"],.catalog-refinements .wishlist-filter[aria-pressed="true"]{background:var(--mint);border-color:var(--mint);color:#103a38}
+.catalog-results{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px}.catalog-results .catalog-count{margin:0;line-height:1.4}.catalog-results .catalog-reset{margin:0;background:transparent;border-color:transparent;white-space:nowrap;padding:6px;min-height:44px}
+.catalog-content .catalog-grid .item-card{position:relative;padding:8px;gap:5px;border-radius:14px}.catalog-content .catalog-grid .item-card .furniture-inspect{min-height:126px;padding:19px 3px 4px;border:0;border-radius:10px;background:radial-gradient(ellipse at center,#478b812b,#14293c)}
+.catalog-content .catalog-grid .item-card .furniture-inspect canvas{height:106px;max-height:106px}.catalog-content .catalog-grid .item-card h3{margin:2px 2px 4px;min-height:2.7em;font-size:12px;line-height:1.35}
+.catalog-content .catalog-grid .item-card>.wishlist-save{position:absolute;top:9px;right:9px;width:44px;height:44px;min-height:44px;padding:0;font-size:0;border-radius:10px;background:#152d3ce8;z-index:1}.catalog-content .catalog-grid .item-card>.wishlist-save::after{content:'♡';font-size:23px}.catalog-content .catalog-grid .item-card>.wishlist-save[aria-pressed="true"]::after{content:'♥';color:var(--mint)}
+.catalog-content .catalog-grid .item-card .catalog-owned-badge{left:4px;top:7px;font-size:9px;max-width:calc(100% - 46px);padding:3px 4px}.catalog-content .catalog-grid .item-card>button:last-child{font-size:12px}.catalog-content .catalog-collections{margin-bottom:6px}
+.pet-accessories{display:flex;gap:8px;margin:0 0 8px}.pet-accessories button{flex:1;min-height:44px;font-size:12px;background:transparent}.pet-content>.muted{margin:8px 0 12px;font-size:12px}
+.pet-grid .pet-card{grid-template-columns:112px minmax(0,1fr);gap:4px 10px;padding:10px}.pet-grid .pet-card>canvas{width:112px;height:112px;grid-row:1/5}.pet-grid .pet-card h3{font-size:15px}.pet-grid .pet-card button{min-height:44px}.pet-content .shop-nav{margin-bottom:8px}
+@media(max-width:600px){.shop-panel{width:calc(100% - 16px);border-radius:18px}.shop-panel h2{font-size:18px}.catalog-content .shop-nav button,.pet-content .shop-nav button{min-height:44px;padding:7px 5px;font-size:12px}}
+
+.catalog-refinements .budget-filter[hidden]+.wishlist-filter{grid-column:1/-1}
+@media(max-width:350px){.pet-grid .pet-card{grid-template-columns:82px minmax(0,1fr)}.pet-grid .pet-card>canvas{width:82px}}

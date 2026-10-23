@@ -40,7 +40,7 @@ test('pet purchases remain hidden until the connected server supports them',asyn
 
 test('pet shop fits three clear choices on a phone without oversized cards',async({page},info)=>{
  await page.setViewportSize({width:390,height:844});await fixture(page);await page.locator('[data-panel="catalog"]').click();await expect(page.locator('.catalog-refine')).not.toHaveAttribute('open','');await page.getByRole('button',{name:'Pet Shop',exact:true}).click();
- await expect(page.locator('.pet-card')).toHaveCount(3);await expect(page.locator('.pet-card').last().getByRole('button')).toBeInViewport();await page.screenshot({path:info.outputPath('calm-pet-shop.png')});
+ await expect(page.locator('.pet-card')).toHaveCount(3);await expect(page.getByRole('button',{name:'Pet Shop',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByRole('button',{name:'My pets',exact:true})).toHaveAttribute('aria-pressed','false');await expect(page.locator('.pet-card').last().getByRole('button')).toBeInViewport();await page.screenshot({path:info.outputPath('calm-pet-shop.png')});
  expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
 });
 
