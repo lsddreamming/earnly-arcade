@@ -331,5 +331,28 @@ test('battle reward retry reuses its event and shows the confirmed wallet balanc
  await page.evaluate(()=>{window.rewardCalls=[];CrystalNetwork.claimReward=async(id,result)=>{rewardCalls.push({id,result});if(rewardCalls.length===1)throw Error('offline');return {amount:13,wallet:{balance:113}};};const s=CrystalGame.state;s.time=120;s.players[0].kills=9;s.ended=true;s.winner=0;s.reason='All enemy structures destroyed';});
  await expect(page.locator('#rewardRetry')).toBeVisible();await page.locator('#rewardRetry').click();await expect(page.locator('#battleReward')).toHaveText('+13 Arcade Coins · Balance 113');
  const calls=await page.evaluate(()=>rewardCalls);expect(calls).toHaveLength(2);expect(calls[0]).toEqual(calls[1]);await expect(page.locator('#rewardRetry')).toBeHidden();
+ await page.locator('#results').getByText('Use your coins',{exact:true}).click();
  await expect(page.locator('#results a[href="avatars.html"]')).toBeVisible();await expect(page.locator('#results a[href="world.html?multiplayer=1"]')).toBeVisible();
+});
+
+
+test('battle results keep replay and rewards ahead of optional details', async ({page}) => {
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/crystal-command.html');
+ await page.getByRole('button',{name:'▶ Practice melee'}).click();
+ await page.locator('#quit').click();
+ await page.getByRole('button',{name:'Quit battle',exact:true}).click();
+ const result=page.locator('#results');
+ await expect(result).toBeVisible();
+ await expect(page.locator('#battleReward')).toBeVisible();
+ await expect(page.locator('#again')).toBeVisible();
+ await expect(page.locator('#resultStats')).toBeHidden();
+ await expect(result.getByRole('link',{name:'Avatar shop',exact:true})).toBeHidden();
+ await result.getByText('Battle details',{exact:true}).click();
+ await expect(page.locator('#resultStats')).toBeVisible();
+ await page.locator('#again').click();
+ await page.getByRole('button',{name:'▶ Practice melee'}).click();
+ await page.locator('#quit').click();
+ await page.getByRole('button',{name:'Quit battle',exact:true}).click();
+ await expect(page.locator('#resultStats')).toBeHidden();
 });
