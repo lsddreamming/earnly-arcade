@@ -72,3 +72,5 @@ test('web and packaged iOS copies carry the audited player-facing wording', asyn
 require('./settings-polish.cases');
 
 require("./public-info.cases");
+
+require('./classic-game-ui.cases');

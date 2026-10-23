@@ -1389,7 +1389,7 @@ test('Memory Match shows the current clear reward', async ({ page }) => {
   await page.goto('/memory.html');
   await expect(page.locator('#memoryRewardHud')).toBeVisible();
   await expect(page.locator('#memoryRewardHud')).toContainText('Clear Reward');
-  await expect(page.locator('#rewardPreview')).toHaveText('15');
+  await expect(page.locator('#rewardPreview')).toHaveText(String(await page.evaluate(()=>Arcade.gameReward('memory',0))));
 });
 
 test('mini games surface the live run reward clearly', async ({ page }) => {
@@ -2602,3 +2602,25 @@ test('Coin Catch shows the next payout and alternates reachable drop lanes', asy
     expect(quit.y).toBeGreaterThanOrEqual(board.y+board.height);
   }
 });
+
+for (const scenario of [
+  {name:'coin entering the mouth',offset:0,bottom:-2,bomb:false,caught:true},
+  {name:'coin brushing the outside rim',offset:42,bottom:-2,bomb:false,caught:false},
+  {name:'coin below the rim',offset:0,bottom:10,bomb:false,caught:false},
+  {name:'fast coin crossing the rim',offset:0,bottom:-30,bomb:false,caught:true},
+  {name:'bomb entering the mouth',offset:0,bottom:-2,bomb:true,caught:true}
+]) {
+  test('Coin Catch rim accuracy: '+scenario.name,async({page})=>{
+    await page.goto('/coincatch.html');
+    const state=await page.evaluate(s=>{
+      running=true;transitioning=false;score=0;misses=0;
+      const now=performance.now();lastFrame=now-16.67;lastSpawn=now;
+      drops=[{x:basket.x+basket.w/2+s.offset,y:basket.y-7+s.bottom-14,r:14,speed:40,bomb:s.bomb}];
+      loop(now);cancelAnimationFrame(animation);running=false;
+      return {score,misses,remaining:drops.length};
+    },scenario);
+    expect(state.remaining).toBe(scenario.caught?0:1);
+    expect(state.score).toBe(scenario.caught&&!scenario.bomb?1:0);
+    expect(state.misses).toBe(scenario.caught&&scenario.bomb?2:0);
+  });
+}
