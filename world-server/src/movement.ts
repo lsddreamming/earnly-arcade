@@ -22,6 +22,22 @@ export class MovementController {
   tick(grid:RoomGrid,occupied:ReadonlySet<string>=new Set()):{position:XYZ;state:'std'|'wlk';stopped:boolean}{
     const here=grid.tile(this.#position);
     if(!here?.walkable||here.z!==this.#position.z||grid.revision!==this.#revision){this.#path=[];this.#credit=0;return {position:this.position,state:'std',stopped:true};}
+    // A requested sideways step lets players leave a belt. Otherwise the server
+    // carries at most two tiles per tick, checking every intermediate tile.
+    if(here.roller!==undefined){
+      const directions={0:[0,-1],2:[1,0],4:[0,1],6:[-1,0]} as const;
+      const [dx,dy]=directions[here.roller],wanted=this.#path[0];
+      if(!wanted||(wanted.x===this.#position.x+dx&&wanted.y===this.#position.y+dy)){
+        this.#path=[];this.#credit=0;let moved=false;
+        for(let step=0;step<2;step++){
+          const tile=grid.tile(this.#position);if(tile?.roller===undefined)break;
+          const [x,y]=directions[tile.roller],next={x:this.#position.x+x,y:this.#position.y+y};
+          if(!canStep(grid,this.#position,next,{occupied,diagonal:false}))break;
+          this.#position={...next,z:grid.tile(next)!.z};moved=true;
+        }
+        return {position:this.position,state:moved?'wlk':'std',stopped:!moved};
+      }
+    }
     if(!this.#path.length){this.#credit=0;return {position:this.position,state:'std',stopped:false};}
     this.#credit+=1;
     const next=this.#path[0];
