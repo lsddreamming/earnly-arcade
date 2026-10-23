@@ -33,7 +33,7 @@
   const beds=['cabin-bed','velvet-bed','bunk-bed','poster-bed','round-bed','capsule-bed','racer-bed','platform-bed'];
 
   const defaults={sofa:[2,1],bed:[1,2],rug:[2,2],divider:[2,1],'diner-booth':[2,1],'pod-bed':[1,2]};
-  const w=item.width||defaults[s]?.[0]||1,l=item.length||defaults[s]?.[1]||1,r=((item.rotation||0)+(s.startsWith('season-')||s.startsWith('home-')?4:0)+8)%8,faces=[];
+  const w=item.width||defaults[s]?.[0]||1,l=item.length||defaults[s]?.[1]||1,r=((item.rotation||0)+((s.startsWith('season-')||s.startsWith('home-'))&&!window.EarnlyDecorPolish?.has(s)?4:0)+8)%8,faces=[];
   const turn=(u,v,z)=>r===2?[l-v,u,z]:r===4?[w-u,l-v,z]:r===6?[v,w-u,z]:[u,v,z];
   const face=(vertices,tint,doubleSided=false)=>{const p=vertices.map(q=>turn(...q));const a=p[0],b=p[1],d=p[2];const normal=[(b[1]-a[1])*(d[2]-a[2])-(b[2]-a[2])*(d[1]-a[1]),(b[2]-a[2])*(d[0]-a[0])-(b[0]-a[0])*(d[2]-a[2]),(b[0]-a[0])*(d[1]-a[1])-(b[1]-a[1])*(d[0]-a[0])];
    if(!doubleSided&&normal[0]+normal[1]+normal[2]*18<=0)return;
@@ -52,7 +52,9 @@
   const gem=(u,v,z,r,h,tint)=>{for(let j=0;j<6;j++){const a=j*Math.PI/3,b=(j+1)*Math.PI/3,p=[u+Math.cos(a)*r,v+Math.sin(a)*r,z+h*.4],q=[u+Math.cos(b)*r,v+Math.sin(b)*r,z+h*.4];face([[u,v,z+h],p,q],shade(tint,j%2?18:-8),true);face([[u,v,z],q,p],shade(tint,-24),true);}};
   const ring=(u,v,r,z,tint)=>{for(let j=0;j<24;j++){const a=j*Math.PI/12,b=(j+1)*Math.PI/12;ribbon([u+Math.cos(a)*r,v+Math.sin(a)*r,z],[u+Math.cos(b)*r,v+Math.sin(b)*r,z],tint,.015);}};
   // Bathroom fixtures use the same rotated volumes as all other room furniture.
-  if(s.startsWith('season-')||s.startsWith('home-')){
+  if(window.EarnlyDecorPolish?.build(s,{block,detail,ribbon,foliage,cylinder,ring,shade,color,fabric,mattress})){
+   // Sculpted collection geometry shares the normal rotation, depth and cache path.
+  }else if(s.startsWith('season-')||s.startsWith('home-')){
    const dark='#283043',ivory='#f4ead2',mint='#99f1cb',violet='#ad80e9';
    const rounded=(u,v,r,z,h,tint)=>{const start=faces.length;const profile=[[.24,0],[.78,.12],[1,.42],[.86,.78],[.3,1]];for(let k=0;k<profile.length-1;k++)for(let j=0;j<16;j++){const a=j*Math.PI/8,b=(j+1)*Math.PI/8,[ra,za]=profile[k],[rb,zb]=profile[k+1];face([[u+Math.cos(a)*r*ra,v+Math.sin(a)*r*ra,z+h*za],[u+Math.cos(b)*r*ra,v+Math.sin(b)*r*ra,z+h*za],[u+Math.cos(b)*r*rb,v+Math.sin(b)*r*rb,z+h*zb],[u+Math.cos(a)*r*rb,v+Math.sin(a)*r*rb,z+h*zb]],shade(tint,j%2?4:-4));}cylinder(u,v,r*.3,z+h-.1,.1,tint);for(let i=start;i<faces.length;i++)faces[i].detail=true;};
    const pumpkin=(u,v,r,z,h,carved=false)=>{rounded(u,v,r,z,h,color);for(let j=0;j<8;j++){const a=j*Math.PI/4;ribbon([u+Math.cos(a)*r*.5,v+Math.sin(a)*r*.5,z+h*.87],[u+Math.cos(a)*r*.95,v+Math.sin(a)*r*.95,z+h*.4],'#e4a33e',.008);}block(u-.025,v-.025,.05,.05,3,z+h,'#667a49');if(carved){detail([[u-r*.55,v-r*.99,z+h*.58],[u-r*.12,v-r*.99,z+h*.58],[u-r*.33,v-r*.99,z+h*.8]],dark);detail([[u+r*.12,v-r*.99,z+h*.58],[u+r*.55,v-r*.99,z+h*.58],[u+r*.33,v-r*.99,z+h*.8]],dark);ribbon([u-r*.3,v-r*.99,z+h*.32],[u+r*.3,v-r*.99,z+h*.32],dark,.035);}};
@@ -392,7 +394,7 @@
 
   }
   // Hand-finished surfaces preserve silhouettes, palettes and existing light effects.
-  if(themeModel){
+  if(themeModel&&!window.EarnlyDecorPolish?.has(s)){
    if(['seat','arch','trunk','bridge','daybed','fruit','fan'].includes(themeModel)){
     const grain=(u,v,a,z,h)=>{for(let j=0;j<3;j++){const x=u+a*(.2+j*.28);ribbon([x,v,z],[x+.02,v,z+h*.45],'#b58960',.008);ribbon([x+.02,v,z+h*.45],[x-.015,v,z+h],'#73543e',.007);}};
     if(themeModel==='seat'){grain(.1,.265,.8,18,14);fabric(.15,.28,.65,.65,18.04,color);for(const u of [.05,.8])grain(u,.935,.15,2,17);for(let j=0;j<5;j++)foliage(.15+j*.16,.13,33,.1,.15,5);}
@@ -427,7 +429,7 @@
 
  function decor(c,item,x,y){
   if(item.centered&&!c.__capture)y+=9;
-  if(!c.__capture&&solidDecor(c,item,x,y))return;
+  if(!c.__capture&&solidDecor(c,item,x,y)){if(item.decorTime!==undefined)window.EarnlyDecorPolish?.effects(c,item,x,y,item.decorTime);return;}
   const color=item.color||'#67d1cc',s=item.sprite||item.sprite_id||'table';
   const dims={'diner-booth':[2,1],'pod-bed':[1,2],sofa:[2,1],bed:[1,2],rug:[2,2],divider:[2,1]},[w,l]=dims[s]||[item.width||1,item.length||1];
   c.save();c.translate(x,y);
@@ -1163,11 +1165,12 @@
     }
     const playingToys=new Set([...this.staff.values()].filter(u=>u.state==='play'&&u.species!=='rabbit').map(u=>u.toyId));const nodes=(this.scene.items||[]).filter(i=>i.id!==preview?.item.id&&!playingToys.has(i.id)).map(item=>({depth:furnitureDepth(item)-.3,item}));for(const u of [...this.users.values(),...this.staff.values()]){let depth=(u.visual||u.position).x+(u.visual||u.position).y+1;if(u.state==='sit'||u.state==='lay'){const seat=nodes.find(n=>{const i=n.item;if(!i)return false;const turned=i.rotation===2||i.rotation===6;return u.position.x>=i.x&&u.position.y>=i.y&&u.position.x<i.x+(turned?i.length:i.width)&&u.position.y<i.y+(turned?i.width:i.length);});if(seat)depth=Math.max(depth,seat.depth+.1);}nodes.push({depth,user:u});}nodes.sort((a,b)=>a.depth-b.depth);this.hit=[];
     const local=nodes.find(n=>n.user&&n.user.userId===this.localUserId),localPos=local?.user?.visual;
+    let decorBudget=24;
     for(const node of nodes){if(node.item){const i=node.item,ix=(i.x-i.y)*18,iy=(i.x+i.y)*9-i.z*12;
      // Fade foreground foliage only while it overlaps your avatar; collision and picking stay intact.
      const foliage=['palm','tree','plant','vine-screen'].includes(i.sprite||i.sprite_id),lx=localPos?(localPos.x-localPos.y)*18:0,ly=localPos?(localPos.x+localPos.y)*9+9-localPos.z*12:0;
      const obscures=foliage&&local&&node.depth>local.depth&&Math.abs(ix-lx)<29&&ly>iy-82&&ly-38<iy+18;
-     c.save();if(obscures)c.globalAlpha=.28;decor(c,i,ix,iy);if(i.diceRollingUntil>performance.now()&&!reducedMotion.matches){c.strokeStyle='#b5fff0';c.lineWidth=2;c.beginPath();c.ellipse(ix,iy-25,15,7,0,performance.now()/150,performance.now()/150+4);c.stroke();}c.restore();
+     c.save();if(obscures)c.globalAlpha=.28;const visible=ix*this.scale+this.cx>-100&&ix*this.scale+this.cx<w+100&&iy*this.scale+this.cy>-100&&iy*this.scale+this.cy<h+150;const animateDecor=visible&&decorBudget>0&&window.EarnlyDecorPolish?.isAnimated(i.sprite||i.sprite_id);if(animateDecor)decorBudget--;decor(c,animateDecor?{...i,decorTime:reducedMotion.matches||document.hidden?0:performance.now()}:i,ix,iy);if(i.diceRollingUntil>performance.now()&&!reducedMotion.matches){c.strokeStyle='#b5fff0';c.lineWidth=2;c.beginPath();c.ellipse(ix,iy-25,15,7,0,performance.now()/150,performance.now()/150+4);c.stroke();}c.restore();
     }else{const u=node.user,{x:px,y:py,z}=u.visual;const x=(px-py)*18,y=(px+py)*9+9-z*12;if(u.userId===this.localUserId){c.strokeStyle='#93ffe1';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y,13,5,0,0,Math.PI*2);c.stroke();}avatar(c,u,x,y);this.hit.push({x,y,user:u});}}
     if(preview){c.save();c.globalAlpha=.65;decor(c,{...preview.item,x:preview.x,y:preview.y,z:preview.z,rotation:preview.rotation},(preview.x-preview.y)*18,(preview.x+preview.y)*9-preview.z*12-5);c.restore();}
     this.drawRoomShell(true);
@@ -1194,6 +1197,19 @@
 
   }
  }
+ // One 12fps scheduler for visible previews, capped at six animated canvases.
+ const decorPreviews=new Map();let decorFrame=0,decorLast=0;
+ const decorObserver=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{for(const e of entries){const p=decorPreviews.get(e.target);if(p)p.visible=e.isIntersecting;}startDecorFrames();}):null;
+ const decorCleanup=new MutationObserver(()=>{for(const [canvas] of decorPreviews)if(!canvas.isConnected){decorObserver?.unobserve(canvas);decorPreviews.delete(canvas);}if(!decorPreviews.size)decorCleanup.disconnect();});
+ function startDecorFrames(){if(decorFrame||document.hidden||reducedMotion.matches||![...decorPreviews.values()].some(p=>p.visible))return;decorFrame=requestAnimationFrame(drawDecorFrames);}
+ function drawDecorFrames(now){decorFrame=0;if(document.hidden||reducedMotion.matches)return;if(now-decorLast>=1000/12){decorLast=now;let count=0;for(const [canvas,p]of decorPreviews){if(!canvas.isConnected){decorObserver?.unobserve(canvas);decorPreviews.delete(canvas);continue;}if(!p.visible||count++>=6)continue;const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);c.drawImage(p.base,0,0);c.save();c.translate(p.x,p.y);c.scale(p.scale,p.scale);window.EarnlyDecorPolish.effects(c,p.item,0,0,now);c.restore();}}startDecorFrames();}
+ function watchDecor(canvas,item,layout){
+  if(!window.EarnlyDecorPolish?.isAnimated(item.sprite||item.sprite_id)){decorObserver?.unobserve(canvas);decorPreviews.delete(canvas);return;}
+  const base=document.createElement('canvas');base.width=canvas.width;base.height=canvas.height;base.getContext('2d').drawImage(canvas,0,0);
+  decorPreviews.set(canvas,{...layout,item:{...item},base,visible:!decorObserver});decorObserver?.observe(canvas);decorCleanup.observe(document.body,{childList:true,subtree:true});startDecorFrames();
+ }
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(decorFrame);decorFrame=0;}else startDecorFrames();});
+ reducedMotion.addEventListener?.('change',()=>{cancelAnimationFrame(decorFrame);decorFrame=0;for(const [canvas,p]of decorPreviews){const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);c.drawImage(p.base,0,0);}startDecorFrames();});
  // Fit the complete rendered silhouette, including backs and tall details.
  const thumbnailStage=document.createElement('canvas');thumbnailStage.width=256;thumbnailStage.height=256;
  function thumbnail(canvas,item){
@@ -1203,15 +1219,16 @@
   const pixels=stage.getImageData(0,0,256,256).data;let left=256,top=256,right=-1,bottom=-1;
   for(let y=0;y<256;y++)for(let x=0;x<256;x++)if(pixels[(y*256+x)*4+3]){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
   if(right<left)return;
-  const width=right-left+1,height=bottom-top+1,scale=Math.min(1,148/width,116/height),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
+  const width=right-left+1,height=bottom-top+1,scale=Math.min(1.25,148/width,116/height),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
   c.drawImage(thumbnailStage,left,top,width,height,(160-width*scale)/2,(128-height*scale)/2,width*scale,height*scale);
+  watchDecor(canvas,item,{x:(160-width*scale)/2+(128-left)*scale,y:(128-height*scale)/2+(152-top)*scale,scale:1.5*scale});
  }
  function roomThumbnail(canvas,heightmap,items=[],theme){
   canvas.width=300;canvas.height=210;
   const preview=Object.create(WorldRenderer.prototype);
   Object.assign(preview,{canvas,c:canvas.getContext('2d'),scene:{heightmap,items,theme},users:new Map(),staff:new Map(),bubbles:new Map(),offset:{x:0,y:0},zoom:1,hit:[]});preview.draw();
  }
- function decorPreview(canvas,item,options={}){canvas.width=360;canvas.height=220;const c=canvas.getContext('2d');c.fillStyle='#12243b';c.fillRect(0,0,360,220);c.save();c.translate(180,70);c.scale(1.5,1.5);for(let y=0;y<4;y++)for(let x=0;x<4;x++){const px=(x-y)*18,py=(x+y)*9;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],(options.tone==='warm'?['#bda989','#d5c6a6']:options.tone==='garden'?['#739887','#91b39c']:['#78999d','#89abad'])[(x+y)%2],'#517780');}decor(c,{...item,x:1,y:1,z:0,rotation:item.rotation||0},0,18);c.restore();}
+ function decorPreview(canvas,item,options={}){canvas.width=360;canvas.height=220;const c=canvas.getContext('2d');c.fillStyle='#12243b';c.fillRect(0,0,360,220);c.save();c.translate(180,70);c.scale(1.5,1.5);for(let y=0;y<4;y++)for(let x=0;x<4;x++){const px=(x-y)*18,py=(x+y)*9;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],(options.tone==='warm'?['#bda989','#d5c6a6']:options.tone==='garden'?['#739887','#91b39c']:['#78999d','#89abad'])[(x+y)%2],'#517780');}decor(c,{...item,x:1,y:1,z:0,rotation:item.rotation||0},0,18);c.restore();watchDecor(canvas,item,{x:180,y:97,scale:1.5});}
  function petPreview(canvas,pet){canvas.width=180;canvas.height=140;const c=canvas.getContext('2d');c.clearRect(0,0,180,140);c.save();c.translate(90,112);c.scale(2.8,2.8);animal(c,{...pet,facing:'right',gait:0},0,0);c.restore();}
  window.EarnlyWorldRenderer={WorldRenderer,thumbnail,roomThumbnail,decorPreview,petPreview};
 })();
