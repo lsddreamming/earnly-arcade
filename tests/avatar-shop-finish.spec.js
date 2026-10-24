@@ -16,13 +16,14 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await page.getByRole('button',{name:'Style studio',exact:true}).click();
  for(const width of [320,375,390]){
   await page.setViewportSize({width,height:780});
-  await expect(page.locator('#studio-category')).toBeVisible();
+  await expect(page.getByRole('group',{name:'Shop category',exact:true})).toBeVisible();
   await expect(page.locator('#character-stage')).toBeVisible();
   await expect(page.locator('#shop-grid')).toBeVisible();
   const result=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:innerWidth,columns:getComputedStyle(document.getElementById('shop-grid')).gridTemplateColumns.split(' ').length}));
   expect(result.scroll).toBeLessThanOrEqual(result.view);
   expect(result.columns).toBe(2);
  }
- await page.locator('#studio-category').selectOption('jewelry');
+ await page.getByRole('button',{name:'Jewelry',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Jewelry',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('#studio-category')).toHaveValue('jewelry');
 });

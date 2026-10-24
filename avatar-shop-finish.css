@@ -64,7 +64,7 @@
 @media(max-width:680px){
  .studio-dashboard main,.studio-dashboard .room-collections,.studio-dashboard .room-editions,
  .studio-dashboard .room-editions>*{min-width:0;max-width:100%;box-sizing:border-box}
- .studio-dashboard .room-editions{width:100%;grid-template-columns:minmax(0,1fr)!important}
+ .studio-dashboard .room-editions{width:100%}
  .studio-dashboard .room-editions img,.studio-dashboard .room-editions canvas{max-width:100%;height:auto}
  .studio-dashboard .shop-collections,.studio-dashboard .studio-shortcuts,.studio-dashboard .studio-layout,
  .studio-dashboard .collection-looks,.studio-dashboard .coin-shop{min-width:0;max-width:100%;box-sizing:border-box}
