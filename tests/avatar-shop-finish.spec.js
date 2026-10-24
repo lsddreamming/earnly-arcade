@@ -1,3 +1,4 @@
+const {selectShopSlot}=require('./shop-category-helper');
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 test('avatar store polish is mirrored and preserves purchase bindings',()=>{
@@ -6,9 +7,9 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
  const css=fs.readFileSync(path.join(__dirname,'../avatar-shop-finish.css'),'utf8');
  expect(mirror).toBe(root);
  expect(fs.readFileSync(path.join(__dirname,'../www/avatar-shop-finish.css'),'utf8')).toBe(css);
- expect(root).toContain('avatar-shop-finish.css?v=1');
+ expect(root).toContain('avatar-shop-finish.css?v=2');
  for(const selector of ['coin-balance','shop-grid','studio-category','free-only','owned-only','shop-sort','affordable-only','character-stage'])expect(root).toContain('id="'+selector+'"');
- expect(css).not.toMatch(/display:\s*none\s*!important/);
+ expect(css).toContain('.shop-tabs[hidden]{display:none!important}');
 });
 test('avatar shop remains two-column, navigable and free of horizontal overflow on iPhone',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={ready:false,session:async()=>null};'}));
@@ -23,7 +24,7 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
   expect(result.scroll).toBeLessThanOrEqual(result.view);
   expect(result.columns).toBe(2);
  }
- await page.getByRole('button',{name:'Jewelry',exact:true}).click();
- await expect(page.getByRole('button',{name:'Jewelry',exact:true})).toHaveAttribute('aria-pressed','true');
+ await selectShopSlot(page,'jewelry');
+ await expect(page.getByLabel('Gear category',{exact:true})).toHaveValue('jewelry');
  await expect(page.locator('#studio-category')).toHaveValue('jewelry');
 });

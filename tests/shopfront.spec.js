@@ -1,3 +1,4 @@
+const {selectShopSlot}=require('./shop-category-helper');
 const { test, expect } = require('@playwright/test');
 // Deterministic test-only catalog and wallet. No calls reach real purchase APIs.
 const data = [
@@ -119,7 +120,7 @@ test('Lookbook stays contained at seven phone, tablet and desktop widths with mo
  for(const width of [320,390,440,680,768,1024,1280]){
   await page.setViewportSize({width,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page overflow at ${width}px`).toBeTruthy();
-  const targets=await page.locator('.shop-tabs button:visible,.look-card button:visible').evaluateAll(bs=>bs.map(b=>b.getBoundingClientRect().height));for(const height of targets)expect(height).toBeGreaterThanOrEqual(44);
+  const targets=await page.locator('.shop-category-group select,.look-card button:visible').evaluateAll(bs=>bs.map(b=>b.getBoundingClientRect().height));for(const height of targets)expect(height).toBeGreaterThanOrEqual(44);
  }
  await page.getByRole('button',{name:'Coin packs',exact:true}).click();
  await expect(page.locator('#coin-packs button')).toHaveCount(3);for(const button of await page.locator('#coin-packs button').all())await expect(button).toBeDisabled();
@@ -136,9 +137,9 @@ test('Shop styling preserves hidden extra-play controls for guests and after sig
 test('Narrow category rail reaches the last category and returns without spending coins',async({page})=>{
  await page.setViewportSize({width:320,height:844});
  const f=await setup(page);
- await page.getByRole('button',{name:'Weapons',exact:true}).click();
+ await selectShopSlot(page,'weapon');
  await expect(page.locator('.item-card h3')).toHaveText(['Training Blaster','Orb Scepter','Solar Cannon']);
- await page.getByRole('button',{name:'Avatars',exact:true}).click();
+ await selectShopSlot(page,'avatar');
  await expect(page.locator('.item-card h3')).toHaveText(['Cyber Starter','Neon Phantom','Astra Prime']);
  await expect(page.locator('#coin-balance')).toHaveText('1,250');
  expect(f.writes).toHaveLength(0);
@@ -256,11 +257,11 @@ test('Shop departments survive reload and browser history, with World furniture 
 test('Gear detail isolates pieces, preserves try-on and never changes ownership',async({page})=>{
  if(test.info().project.name==='desktop-chromium')await page.setViewportSize({width:390,height:844});
  const f=await setup(page);const saved=JSON.stringify(f.user.equipped);
- await page.locator('.shop-tabs [data-slot="outfit"]').click();
+ await selectShopSlot(page,'outfit');
  await page.getByRole('button',{name:'Gear detail',exact:true}).click();
  await expect(page.getByRole('button',{name:'Gear detail',exact:true})).toHaveAttribute('aria-pressed','true');
  for(const slot of ['outfit','shoes','backpack','face','head']){
-  await page.locator(`.shop-tabs [data-slot="${slot}"]`).click();
+  await selectShopSlot(page,slot);
   const cards=page.locator('.item-art[data-detail="true"]');await expect(cards).not.toHaveCount(0);
   for(const card of await cards.all()){
    const images=card.locator('img');expect(await images.count()).toBeLessThanOrEqual(1);
@@ -269,12 +270,12 @@ test('Gear detail isolates pieces, preserves try-on and never changes ownership'
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-'+slot+'.png')});
  }
- await page.locator('.shop-tabs [data-slot="outfit"]').click();await page.getByRole('button',{name:'Preview Aurora Armor',exact:true}).click();
+ await selectShopSlot(page,'outfit');await page.getByRole('button',{name:'Preview Aurora Armor',exact:true}).click();
  await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();expect(await page.locator('#character-stage img').count()).toBeGreaterThan(1);
  await page.getByRole('button',{name:'On avatar',exact:true}).click();await expect(page.locator('.item-art[data-detail="true"]')).toHaveCount(0);
  expect(await page.locator('.item-art').first().locator('img').count()).toBeGreaterThan(1);
  await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-outfits-on-avatar.png')});
- await page.locator('.shop-tabs [data-slot="avatar"]').click();await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-skins.png')});
+ await selectShopSlot(page,'avatar');await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-skins.png')});
  for(const button of await page.locator('.item-card button').all())expect(await button.evaluate(b=>{const box=b.getBoundingClientRect(),card=b.closest('.item-card').getBoundingClientRect();return box.left>=card.left&&box.right<=card.right&&b.scrollWidth<=b.clientWidth;})).toBe(true);
  expect(JSON.stringify(f.user.equipped)).toBe(saved);expect(f.writes).toHaveLength(0);await expect(page.locator('#coin-balance')).toHaveText('1,250');
 });
@@ -283,7 +284,7 @@ test('Compact shop cards keep readable controls and one price at phone widths',a
  await setup(page);
  for(const width of [320,390]){
   await page.setViewportSize({width,height:844});
-  await page.locator('.shop-tabs [data-slot="outfit"]').click();
+  await selectShopSlot(page,'outfit');
   await expect(page.locator('#shop-grid .item-ownership')).toHaveCount(0);
   const card=page.locator('.item-card').filter({has:page.getByRole('heading',{name:'Neon Jacket',exact:true})});
   await expect(card).toContainText('300 · Buy');
@@ -310,3 +311,30 @@ test('Compact shop cards keep readable controls and one price at phone widths',a
  await page.locator('#owned-only').check();
  await expect(page.locator('[data-preview-item-id="neon-phantom"]')).toHaveCount(0);
  });
+
+test('Six category dropdowns expose every slot without horizontal scrolling or purchases',async({page})=>{
+ const f=await setup(page);
+ await page.getByRole('button',{name:'Style studio',exact:true}).click();
+ const groups=page.locator('[data-shop-group]');
+ await expect(groups).toHaveCount(6);
+ await expect(page.locator('.shop-tabs')).toBeHidden();
+ const slots=await groups.locator('option').evaluateAll(options=>options.map(o=>o.value).filter(Boolean));
+ expect(new Set(slots).size).toBe(23);
+ for(const width of [320,390,440]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  for(const select of await groups.all()){
+   await expect(select).toBeVisible();
+   expect((await select.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  }
+ }
+ for(const slot of slots){
+  await selectShopSlot(page,slot);
+  await expect(page.locator('#studio-category')).toHaveValue(slot);
+  await expect(page.locator('.shop-category-group.is-active')).toHaveCount(1);
+ }
+ expect(f.writes).toHaveLength(0);
+ await selectShopSlot(page,'eyes');
+ await page.locator('#collection').scrollIntoViewIfNeeded();
+ await page.screenshot({path:test.info().outputPath('grouped-shop-phone.png')});
+});
