@@ -300,7 +300,9 @@ test('Neon Breach keeps moving and aiming when pointer capture fails',async({pag
 test('Neon Breach native rewarded play restarts the same game once',async({page})=>{
  await page.goto('/neonbreach.html');
  await page.evaluate(()=>{
-  while(Arcade.remaining('neonBreach')>0)Arcade.consume('neonBreach');
+  // Seed an exhausted daily allowance; consume() locks until the next frame.
+  Arcade.remaining('neonBreach');
+  localStorage.setItem('neonBreachGamesPlayed',String(Arcade.FREE_PLAYS));
   window.adCalls=0;
   window.EarnlyNativeAds={isNative:true,testMode:true,showRewarded:async()=>{window.adCalls++;return {earned:true}}};
  });
