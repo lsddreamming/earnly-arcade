@@ -69,3 +69,12 @@
  .studio-dashboard .shop-collections,.studio-dashboard .studio-shortcuts,.studio-dashboard .studio-layout,
  .studio-dashboard .collection-looks,.studio-dashboard .coin-shop{min-width:0;max-width:100%;box-sizing:border-box}
 }
+
+/* The featured department must not add a fractional pixel to 320px viewport. */
+@media(max-width:680px){
+ .studio-dashboard #room-collections{width:100%;min-width:0;max-width:100%;overflow-x:clip;box-sizing:border-box}
+ .studio-dashboard #room-collections .room-editions{width:100%;min-width:0;max-width:100%;gap:8px;box-sizing:border-box}
+ .studio-dashboard #room-collections .room-editions>a{min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}
+ .studio-dashboard #room-collections .room-edition-copy{min-width:0;overflow-wrap:anywhere}
+ .studio-dashboard #room-collections .room-scene{min-width:0;max-width:100%}
+}
