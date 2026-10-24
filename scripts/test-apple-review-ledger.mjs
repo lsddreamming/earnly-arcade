@@ -34,6 +34,32 @@ await assert.rejects(db.query("select coin_order_create($1,'starter','22222222-2
 await assert.rejects(db.query("select arcade_pass_reserve($1,'22222222-2222-4222-8222-222222222222')",[test]),/TEST_ACCOUNT_USE_APPLE_SANDBOX/);
 await db.query("insert into leaderboard_scores(user_id,game,score) values($1,'snake',999999)",[test]);
 assert.equal((await db.query('select count(*)::int as count from leaderboard_scores where user_id=$1',[test])).rows[0].count,0);
+// Purchase-test membership used to silently discard real scores. Recover only
+// server-recorded runs and allow future submissions through the normal endpoint.
+await db.exec(`ALTER TABLE coin_ledger ADD COLUMN metric integer, ADD COLUMN created_at timestamptz DEFAULT now();
+ ALTER TABLE leaderboard_scores ADD COLUMN verified boolean DEFAULT false, ADD COLUMN updated_at timestamptz DEFAULT now();`);
+for(const [game,metric] of [['jungleHopper',38],['snake',9],['snake',10],['memory',40],['memory',25],['unknown',999],['snake',2000000]]){
+ await db.query("insert into coin_ledger(user_id,source_type,game,metric) values($1,'game',$2,$3)",[test,game,metric]);
+}
+await db.query("insert into coin_ledger(user_id,source_type,game,metric) values($1,'purchase','snake',900)",[test]);
+const rankingMigration=await readFile('supabase/migrations/20261023211615_testflight_gameplay_rankings.sql','utf8');
+// Banned accounts remain excluded from recovery.
+await db.query('insert into leaderboard_bans(user_id) values($1)',[test]);
+await db.exec(rankingMigration);
+assert.equal((await db.query('select count(*)::int as n from leaderboard_scores where user_id=$1',[test])).rows[0].n,0);
+await db.query('delete from leaderboard_bans where user_id=$1',[test]);
+await db.exec(rankingMigration);
+const recovered=(await db.query('select game,score,verified from leaderboard_scores where user_id=$1 order by game',[test])).rows;
+assert.deepEqual(recovered,[{game:'jungleHopper',score:38,verified:true},{game:'memory',score:25,verified:true},{game:'snake',score:10,verified:true}]);
+await db.query("update leaderboard_scores set score=50 where user_id=$1 and game='jungleHopper'",[test]);
+await db.exec(rankingMigration);
+assert.equal((await db.query("select score from leaderboard_scores where user_id=$1 and game='jungleHopper'",[test])).rows[0].score,50);
+assert.equal((await db.query("select score from leaderboard_scores where user_id=$1 and game='snake'",[real])).rows[0].score,120);
+await db.query("insert into leaderboard_scores(user_id,game,score) values($1,'spiralDrop',19)",[test]);
+assert.equal((await db.query("select score from leaderboard_scores where user_id=$1 and game='spiralDrop'",[test])).rows[0].score,19);
+await assert.rejects(db.query("select apple_coin_fulfill($1,'901','com.earnly.arcade.coins.starter','Production',false)",[test]),/PRODUCTION_ACCOUNT_REQUIRED/);
+await assert.rejects(db.query("select coin_order_create($1,'starter','33333333-3333-4333-8333-333333333333')",[test]),/TEST_ACCOUNT_USE_APPLE_SANDBOX/);
+console.log('PASS: TestFlight score recovery, score bounds, banned exclusion, lower-is-better, replay, new submissions and purchase isolation.');
 for(const role of ['anon','authenticated']){
  await db.exec('SET ROLE '+role);
  await assert.rejects(db.query('insert into apple_sandbox_accounts values($1,now())',[real]),/permission denied/);
