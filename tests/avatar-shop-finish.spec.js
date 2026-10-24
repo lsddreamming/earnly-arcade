@@ -13,6 +13,7 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
 test('avatar shop remains two-column, navigable and free of horizontal overflow on iPhone',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={ready:false,session:async()=>null};'}));
  await page.goto('/avatars.html',{waitUntil:'domcontentloaded'});
+ await page.getByRole('button',{name:'Style studio',exact:true}).click();
  for(const width of [320,375,390]){
   await page.setViewportSize({width,height:780});
   await expect(page.locator('#studio-category')).toBeVisible();
