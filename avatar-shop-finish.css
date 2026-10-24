@@ -78,3 +78,11 @@
  .studio-dashboard #room-collections .room-edition-copy{min-width:0;overflow-wrap:anywhere}
  .studio-dashboard #room-collections .room-scene{min-width:0;max-width:100%}
 }
+
+/* Bound the entire active shop department, not only its nested room cards.
+   320px WebKit/Chromium can round a child border 1px beyond its container. */
+@media(max-width:680px){
+ body.studio-dashboard{max-width:100%;overflow-x:clip}
+ body.studio-dashboard>main{width:100%;max-width:100%;min-width:0;box-sizing:border-box;overflow-x:clip}
+ body.studio-dashboard #room-collections{contain:layout;max-width:100%}
+}
