@@ -146,6 +146,13 @@
         equipped = state.user?.equipped[item.slot]?.id === item.id;
       const card = el("article", "item-card " + item.rarity),
         art = el("div", "item-art");
+      const artTrigger = el("button", "item-art-trigger");
+      artTrigger.type = "button";
+      artTrigger.setAttribute("aria-label", "Try on " + item.name);
+      const tryingOn = state.preview[item.slot]?.id === item.id;
+      artTrigger.setAttribute("aria-pressed", String(tryingOn));
+      card.classList.toggle("is-trying-on", tryingOn);
+      artTrigger.addEventListener("click", () => { state.preview[item.slot] = item; state.previewFocus = item.slot; renderUser(); showPreview(item.id); });
       card.classList.toggle("is-equipped", !!equipped);
       card.classList.toggle("is-owned", !!owned);
       art.dataset.slot = item.slot;
@@ -163,6 +170,8 @@
         el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
       );
       if(owned)art.append(el("span","item-state",equipped?"✓ Equipped":"✓ Owned"));
+      if(tryingOn)art.append(el("span","tryon-state","Trying on"));
+      art.append(artTrigger);
       const button = el(
         "button",
         equipped ? "equipped" : owned ? "" : "buy",
@@ -185,7 +194,7 @@
         (equipped ? "Equipped" : owned ? "Equip" : "Buy") + " " + item.name,
       );
       button.addEventListener("click", () => item.vipOnly ? equip(item) : chooseItem(item));
-      const preview = el("button", "preview-item", "Try on");
+      const preview = el("button", "preview-item", tryingOn ? "View try-on" : "Try on");
       preview.type = "button";
       preview.dataset.previewItemId = item.id;
       preview.setAttribute("aria-label", "Preview " + item.name);

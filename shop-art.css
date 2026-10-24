@@ -31,3 +31,14 @@ body.studio-dashboard #shop-grid .item-art[data-slot=jewelry]:not([data-detail=t
  body.studio-dashboard #shop-grid .item-actions{grid-template-columns:1fr}
  body.studio-dashboard #shop-grid .item-art{height:165px}
 }
+
+/* Keep the collection ahead of optional controls on smaller screens. */
+.shop-refine{margin:10px 0;border:1px solid #3e536c;border-radius:12px;background:#101e32}
+.shop-refine>summary{min-height:44px;padding:12px 14px;box-sizing:border-box;cursor:pointer;color:#c5d9e9;font-size:13px;font-weight:650}
+.shop-refine[open]{padding-bottom:12px}
+.shop-refine .shop-filters,.shop-refine .shop-toolbar{margin:10px 12px}
+body.studio-dashboard #shop-grid .item-art-trigger{grid-column:auto;grid-row:auto;position:absolute;inset:0;z-index:3;width:100%!important;height:100%;margin:0!important;padding:0!important;border:0!important;border-radius:14px 14px 10px 10px!important;background:transparent!important;box-shadow:none!important;cursor:pointer}
+body.studio-dashboard #shop-grid .is-trying-on{border-color:#69dbe6!important}
+.tryon-state{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);padding:4px 9px;border:1px solid #71dfe4;border-radius:20px;background:#102a3def;color:#c1ffff;font-size:10px;font-weight:700;white-space:nowrap}
+body.studio-dashboard #shop-grid button:focus-visible,.shop-refine>summary:focus-visible{outline:3px solid #91eaff;outline-offset:-3px}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){body.studio-dashboard #shop-grid .item-art .character{transition:filter .18s ease}body.studio-dashboard #shop-grid .item-art:hover .character{filter:drop-shadow(0 7px 9px #62dfea55)}}
