@@ -32,13 +32,44 @@ function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1
 function finish(){if(!running)return;running=false;audio.stop();if(state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML='RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const result=Arcade.recordResult(game,state.score);chrome();Arcade.gameResult({game,icon:'🤖',title:state.time>=180?'Breach Complete':'Neon Breach Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🤖 Robots defeated: ${state.kills}`,`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
 function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=E.create();message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
 els.startButton.addEventListener('click',start);
-// Pointer capture can be unavailable/interrupted in an embedded web view.
-// Keep input working through document move/release listeners in that case.
-function capture(el,e){e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch{}}
-pad.addEventListener('pointerdown',e=>{if(!running||paused||moveId!==null)return;moveId=e.pointerId;capture(pad,e);steer(e)});function steer(e){const r=pad.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/32,dy=(e.clientY-r.top-r.height/2)/32,n=Math.max(1,Math.hypot(dx,dy));joy={strafe:dx/n,forward:-dy/n};knob.style.transform=`translate(${joy.strafe*28}px,${-joy.forward*28}px)`}document.addEventListener('pointermove',e=>{if(e.pointerId===moveId){e.preventDefault();steer(e)}});
-canvas.addEventListener('pointerdown',e=>{if(!running||paused||aimId!==null)return;aimId=e.pointerId;aimX=e.clientX;capture(canvas,e)});document.addEventListener('pointermove',e=>{if(e.pointerId===aimId&&running&&!paused){e.preventDefault();state.player.a=E.angle(state.player.a+(e.clientX-aimX)*.008);aimX=e.clientX}});
-fireButton.addEventListener('pointerdown',e=>{if(!running||paused||fireId!==null)return;audio.unlock();fireId=e.pointerId;capture(fireButton,e)});
-function release(e){if(e.pointerId===moveId){moveId=null;joy={forward:0,strafe:0};knob.style.transform=''}if(e.pointerId===aimId)aimId=null;if(e.pointerId===fireId)fireId=null}for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,release);
+// Touch Events own fingers; Pointer Events own mouse/pen. Do not depend on
+// WKWebView delivering a complete pointer stream or retaining pointer capture.
+function steer(e){const r=pad.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/32,dy=(e.clientY-r.top-r.height/2)/32,n=Math.max(1,Math.hypot(dx,dy));joy={strafe:dx/n,forward:-dy/n};knob.style.transform=`translate(${joy.strafe*28}px,${-joy.forward*28}px)`}
+function beginInput(role,id,point){
+ if(!running||paused)return;
+ if(role==='move'&&moveId===null){moveId=id;steer(point)}
+ if(role==='aim'&&aimId===null){aimId=id;aimX=point.clientX}
+ if(role==='fire'&&fireId===null){fireId=id;audio.unlock()}
+}
+function moveInput(id,point){
+ if(!running||paused)return;
+ if(id===moveId)steer(point);
+ if(id===aimId){state.player.a=E.angle(state.player.a+(point.clientX-aimX)*.008);aimX=point.clientX}
+}
+function releaseInput(id){if(id===moveId){moveId=null;joy={forward:0,strafe:0};knob.style.transform=''}if(id===aimId)aimId=null;if(id===fireId)fireId=null}
+const touchId=t=>'touch:'+t.identifier,pointerId=e=>'pointer:'+e.pointerId;
+for(const [el,role] of [[pad,'move'],[canvas,'aim'],[fireButton,'fire']]){
+ el.addEventListener('touchstart',e=>{
+  if(!running||paused)return;
+  e.preventDefault();
+  for(const touch of e.changedTouches)beginInput(role,touchId(touch),touch);
+ },{passive:false});
+ el.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'||!running||paused||e.button>0)return;
+  e.preventDefault();beginInput(role,pointerId(e),e);
+  try{el.setPointerCapture(e.pointerId)}catch{}
+ });
+}
+document.addEventListener('touchmove',e=>{
+ let handled=false;
+ for(const touch of e.changedTouches){const id=touchId(touch);if(id===moveId||id===aimId||id===fireId){handled=true;moveInput(id,touch)}}
+ if(handled)e.preventDefault();
+},{passive:false});
+for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{
+ for(const touch of e.changedTouches)releaseInput(touchId(touch));
+});
+document.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
+for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>{if(e.pointerType!=='touch')releaseInput(pointerId(e))});
 document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,a,.modal-backdrop,#soundButton,#voiceButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d',' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault();if(running&&!paused)keys.add(key)}if(e.key==='Enter'&&!running&&!starting)start()});document.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
 pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
 // Shared mobile dock is initially inserted after the canvas; move it below the thumb controls.

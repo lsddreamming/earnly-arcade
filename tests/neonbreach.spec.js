@@ -313,3 +313,44 @@ test('Neon Breach native rewarded play restarts the same game once',async({page}
  await expect(page.locator('#plays')).toHaveText('0');
  expect(await page.evaluate(()=>window.adCalls)).toBe(1);
 });
+
+test('Touch-only controls move the player, aim and fire together without pointer events',async({page})=>{
+ await page.goto('/neonbreach.html');
+ await page.evaluate(()=>{
+  const tick=NeonBreachEngine.tick;
+  NeonBreachEngine.tick=(s,dt,input)=>{tick(s,dt,input);window.touchObserved={input:{...input},x:s.player.x,y:s.player.y,angle:s.player.a,fired:s.fired}};
+  // Some embedded views cancel the pointer stream while retaining touches.
+  for(const type of ['pointerdown','pointermove','pointerup'])window.addEventListener(type,e=>{if(e.pointerType==='touch')e.stopImmediatePropagation()},{capture:true});
+  window.sendBreachTouch=(selector,type,identifier,x,y)=>{
+   const target=document.querySelector(selector),r=target.getBoundingClientRect();
+   const point={identifier,target,clientX:r.left+r.width/2+x,clientY:r.top+r.height/2+y};
+   const event=new Event(type,{bubbles:true,cancelable:true});
+   Object.defineProperty(event,'changedTouches',{value:[point]});target.dispatchEvent(event);
+  };
+ });
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ const start=await page.evaluate(()=>window.touchObserved);
+ await page.evaluate(()=>{
+  sendBreachTouch('#movePad','touchstart',7,0,-28);
+  sendBreachTouch('#fireButton','touchstart',8,0,0);
+  sendBreachTouch('#game','touchstart',9,0,0);
+ });
+ await expect.poll(()=>page.evaluate(()=>touchObserved.y)).toBeLessThan(start.y-.1);
+ await expect.poll(()=>page.evaluate(()=>touchObserved.fired)).toBeGreaterThan(0);
+ await page.evaluate(()=>sendBreachTouch('#game','touchmove',9,30,0));
+ await expect.poll(()=>page.evaluate(()=>touchObserved.angle)).not.toBe(start.angle);
+ // Ending aim must not stop either of the other fingers.
+ await page.evaluate(()=>sendBreachTouch('#game','touchend',9,30,0));
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:.875,fire:true});
+ await page.evaluate(()=>sendBreachTouch('#movePad','touchcancel',7,0,-28));
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:0,strafe:0,fire:true});
+ await page.evaluate(()=>sendBreachTouch('#fireButton','touchend',8,0,0));
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input.fire)).toBe(false);
+ await expect(page.locator('#moveKnob')).toHaveAttribute('style','');
+ // Reusing a touch identifier after cancellation must work, and pause clears it.
+ await page.evaluate(()=>sendBreachTouch('#movePad','touchstart',7,25,0));
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input.strafe)).toBeGreaterThan(.5);
+ await page.locator('#earnlyPauseButton').click();await expect(page.locator('#moveKnob')).toHaveAttribute('style','');
+ await page.locator('#earnlyPauseButton').click();
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:0,strafe:0,fire:false});
+});
