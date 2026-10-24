@@ -272,3 +272,42 @@ test('Materializing robots stay harmless and extend warning time when the player
  expect(robot.spawn).toBeGreaterThan(0);expect(s.shots).toHaveLength(0);expect(s.player.hp).toBe(100);
  s.player.y=15.5;for(let i=0;i<30;i++)E.tick(s,.05);expect(robot.spawn).toBe(0);expect(s.events.some(e=>e.type==='robot-fire')).toBe(true);
 });
+
+test('Neon Breach keeps moving and aiming when pointer capture fails',async({page})=>{
+ await page.goto('/neonbreach.html');
+ await page.evaluate(()=>{
+  Element.prototype.setPointerCapture=()=>{throw new DOMException('Pointer is no longer active','NotFoundError')};
+  const tick=NeonBreachEngine.tick;
+  NeonBreachEngine.tick=(s,dt,input)=>{window.breachObserved={input:{...input},angle:s.player.a};return tick(s,dt,input)};
+ });
+ await page.locator('#startButton').click();
+ await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const pad=await page.locator('#movePad').boundingBox();
+ await page.locator('#movePad').dispatchEvent('pointerdown',{pointerId:42,clientX:pad.x+pad.width/2+20,clientY:pad.y+pad.height/2});
+ await expect.poll(()=>page.evaluate(()=>window.breachObserved.input.strafe)).toBeGreaterThan(.5);
+ await page.locator('body').dispatchEvent('pointermove',{pointerId:42,clientX:pad.x,clientY:pad.y+pad.height/2});
+ await expect.poll(()=>page.evaluate(()=>window.breachObserved.input.strafe)).toBeLessThan(-.5);
+ await page.locator('#game').dispatchEvent('pointerdown',{pointerId:43,clientX:100});
+ const before=await page.evaluate(()=>window.breachObserved.angle);
+ await page.locator('body').dispatchEvent('pointermove',{pointerId:43,clientX:130});
+ await expect.poll(()=>page.evaluate(()=>window.breachObserved.angle)).not.toBe(before);
+ await page.locator('body').dispatchEvent('pointercancel',{pointerId:42});
+ await expect.poll(()=>page.evaluate(()=>window.breachObserved.input.strafe)).toBe(0);
+ expect(errors).toEqual([]);
+});
+
+test('Neon Breach native rewarded play restarts the same game once',async({page})=>{
+ await page.goto('/neonbreach.html');
+ await page.evaluate(()=>{
+  while(Arcade.remaining('neonBreach')>0)Arcade.consume('neonBreach');
+  window.adCalls=0;
+  window.EarnlyNativeAds={isNative:true,testMode:true,showRewarded:async()=>{window.adCalls++;return {earned:true}}};
+ });
+ await page.locator('#startButton').click();
+ await page.getByRole('button',{name:/Watch test ad.*Play Again/}).click();
+ await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect(page).toHaveURL(/neonbreach.html$/);
+ await expect(page.locator('#plays')).toHaveText('0');
+ expect(await page.evaluate(()=>window.adCalls)).toBe(1);
+});
