@@ -502,14 +502,26 @@
     (target || $("shop-search")).focus({preventScroll: true});
   });
   $("reset-preview").addEventListener("click", () => { state.preview = {}; state.previewFocus = null; renderUser(); });
-  for (const button of document.querySelectorAll("[data-slot]"))
+  for (const button of document.querySelectorAll(".shop-tabs button[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
       $("studio-category").value = state.slot;
-      for (const tab of document.querySelectorAll("[data-slot]"))
+      for (const select of document.querySelectorAll('[data-shop-group]')) {
+        const active = Array.from(select.options).some(option => option.value === state.slot);
+        select.value = active ? state.slot : '';
+        select.closest('label').classList.toggle('is-active', active);
+      }
+      for (const tab of document.querySelectorAll(".shop-tabs button[data-slot]"))
         tab.setAttribute("aria-pressed", String(tab === button));
       renderShop();
     });
+  for (const select of document.querySelectorAll('[data-shop-group]')) {
+    select.closest('label').classList.toggle('is-active', select.value === state.slot);
+    select.addEventListener('change', () => {
+      const button = document.querySelector('.shop-tabs button[data-slot="' + select.value + '"]');
+      if (button) button.click();
+    });
+  }
   $("studio-category").addEventListener("change", event => {
     const selected = document.querySelector('.shop-tabs [data-slot="' + event.target.value + '"]');
     if (selected) selected.click();

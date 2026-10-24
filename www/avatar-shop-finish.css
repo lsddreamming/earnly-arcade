@@ -86,3 +86,18 @@
  body.studio-dashboard>main{width:100%;max-width:100%;min-width:0;box-sizing:border-box;overflow-x:clip}
  body.studio-dashboard #room-collections{contain:layout;max-width:100%}
 }
+
+/* Six visible groups replace the long horizontal category rail. */
+.studio-dashboard .shop-tabs[hidden]{display:none!important}
+.studio-dashboard .shop-category-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.studio-dashboard .shop-category-group{min-width:0;padding:8px;background:#102237;border:1px solid #426078;border-radius:12px}
+.studio-dashboard .shop-category-group>span{display:block;font-size:12px;font-weight:750;color:#a7cadb;margin-bottom:4px}
+.studio-dashboard .shop-category-group select{appearance:none;-webkit-appearance:none;display:block;box-sizing:border-box;width:100%;min-width:0;height:44px;min-height:44px;padding:8px 22px 8px 4px;background:#102237;color:#f0faff;border:0;font-size:16px;border-radius:6px;text-overflow:ellipsis}
+.studio-dashboard .shop-category-group.is-active{border-color:#73eadb;background:#163a47}
+.studio-dashboard .shop-category-group.is-active select{background:#163a47}
+.studio-dashboard .shop-category-group select:focus-visible{outline:2px solid #84f3df;outline-offset:2px}
+@media(max-width:360px){.studio-dashboard .shop-category-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Draw a chevron without restoring WebKit native compact menu sizing. */
+.studio-dashboard .shop-category-group{position:relative}
+.studio-dashboard .shop-category-group::after{content:"";position:absolute;right:16px;bottom:27px;width:6px;height:6px;border-right:2px solid #9ed8e2;border-bottom:2px solid #9ed8e2;transform:rotate(45deg);pointer-events:none}
