@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-for (const workflowName of ['ios-v1-1-testflight.yml', 'ios-v1-3-testflight.yml', 'ios-v1-4-testflight.yml', 'ios-v1-5-testflight.yml', 'ios-v1-6-testflight.yml']) {
+for (const workflowName of ['ios-v1-1-testflight.yml', 'ios-v1-3-testflight.yml', 'ios-v1-4-testflight.yml', 'ios-v1-5-testflight.yml', 'ios-v1-6-testflight.yml', 'ios-v1-7-testflight.yml']) {
 const workflow = readFileSync(new URL('../.github/workflows/' + workflowName, import.meta.url), 'utf8');
 const script = workflow.match(/          script: \|\n([\s\S]*?)\n\n  archive:/)[1].split('\n').map(line => line.slice(12)).join('\n');
 const execute = new (Object.getPrototypeOf(async function(){}).constructor)('github', 'context', 'core', 'setTimeout', script);
@@ -48,7 +48,7 @@ test('PR-only QA cannot substitute for main push QA',async()=>{
 
 }
 
-for(const name of ['ios-v1-1-testflight.yml','ios-v1-3-testflight.yml', 'ios-v1-4-testflight.yml', 'ios-v1-5-testflight.yml', 'ios-v1-6-testflight.yml','upload-ios-review.yml']){
+for(const name of ['ios-v1-1-testflight.yml','ios-v1-3-testflight.yml', 'ios-v1-4-testflight.yml', 'ios-v1-5-testflight.yml', 'ios-v1-6-testflight.yml', 'ios-v1-7-testflight.yml','upload-ios-review.yml']){
  test(name+' requires explicit manual Apple upload confirmation',()=>{
   const source=readFileSync(new URL('../.github/workflows/'+name,import.meta.url),'utf8');
   const triggers=source.slice(source.indexOf('\non:'),source.indexOf('\npermissions:'));
