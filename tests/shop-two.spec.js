@@ -48,12 +48,12 @@ async function setup(page,{coins='1250',signedIn=true,native=false}={}) {
 test('Collections preview without spending and future seasonal items cannot be purchased',async({page})=>{
  const f=await setup(page);await page.getByRole('button',{name:'❄ Christmas',exact:true}).click();
  await expect(page.locator('.item-card h3')).toHaveText(['Snow Sprite']);await expect(page.getByRole('button',{name:'Buy Snow Sprite',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'Preview Snow Sprite',exact:true}).click();await expect(page.locator('#character-stage img[alt="Snow Sprite"]')).toBeVisible();expect(f.writes).toHaveLength(0);
+ await page.getByRole('button',{name:'Try on Snow Sprite',exact:true}).click();await expect(page.locator('#character-stage img[alt="Snow Sprite"]')).toBeVisible();expect(f.writes).toHaveLength(0);
 });
 test('Pet purchases retain confirmation and equipped states; Crystal art previews correctly',async({page})=>{
  const f=await setup(page);await page.getByRole('button',{name:'✦ Neon nights',exact:true}).click();await page.getByRole('button',{name:'Buy Orbit Bot',exact:true}).click();
  await expect(page.locator('#purchase-modal')).toBeVisible();expect(f.writes).toHaveLength(0);await page.locator('#confirm-purchase').click();await expect(page.getByRole('button',{name:'Equipped Orbit Bot',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'◆ Crystal Command',exact:true}).click();await expect(page.locator('.item-card img[alt="Ion Legion"]')).toBeVisible();await page.getByRole('button',{name:'Preview Ion Legion',exact:true}).click();await expect(page.locator('#character-stage img')).toHaveCount(1);expect(f.writes).toHaveLength(1);
+ await page.getByRole('button',{name:'◆ Crystal Command',exact:true}).click();await expect(page.locator('.item-card img[alt="Ion Legion"]')).toBeVisible();await page.getByRole('button',{name:'Try on Ion Legion',exact:true}).click();await expect(page.locator('#character-stage img')).toHaveCount(1);expect(f.writes).toHaveLength(1);
 });
 test('VIP stays disabled before configuration and narrow layouts retain readable wallet and controls',async({page})=>{
  await page.setViewportSize({width:390,height:844});await setup(page);await expect(page.locator('#pass-buy')).toBeDisabled();await page.getByRole('button',{name:'VIP Pass',exact:true}).click();await expect(page.locator('#pass-disclosure')).toContainText('auto-renewing');await page.getByRole('button',{name:'Style studio',exact:true}).click();await page.getByRole('button',{name:'♛ VIP',exact:true}).click();await expect(page.getByRole('button',{name:'Buy VIP Marquee',exact:true})).toBeDisabled();
