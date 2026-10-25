@@ -18,6 +18,13 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
   expect(art).toContain('id="edge-shine"');
  }
  expect(fs.readFileSync(path.join(__dirname,'../cosmetic-spud-pendant.svg'),'utf8')).toContain('id="gem-face"');
+ for(const name of ['neon-jacket','aurora-armor','storm-coat','boardwalk-jacket']){
+  const art=fs.readFileSync(path.join(__dirname,'../cosmetic-'+name+'.svg'),'utf8');
+  const packed=fs.readFileSync(path.join(__dirname,'../www/cosmetic-'+name+'.svg'),'utf8');
+  expect(packed).toBe(art);
+  expect(art).toContain('id="outfit-polish"');
+  expect(art).toContain('id="outfit-polish-sheen"');
+ }
 });
 test('avatar shop remains two-column, navigable and free of horizontal overflow on iPhone',async({page})=>{
  // Isolate the layout check from live authentication and catalog responses.
