@@ -1950,10 +1950,18 @@ const Arcade = (() => {
       ['🎟️', String(resultPlaysLeft), resultPlaysLeft === 1 ? 'Play Left' : 'Plays Left']
     ];
 
-    statData.forEach(([statIcon, statValue, statLabel]) => {
+    statData.forEach(([statIcon, statValue, statLabel], index) => {
       const stat = document.createElement('div');
       stat.className = 'result-stat';
-      stat.innerHTML = '<span>' + statIcon + '</span><strong>' + statValue + '</strong><small>' + statLabel + '</small>';
+      const icon = document.createElement('span');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = index === 0 ? 'E' : index === 1 ? '' : statIcon;
+      if (index < 2) icon.className = index === 0 ? 'result-coin-icon' : 'result-xp-icon';
+      const value = document.createElement('strong');
+      value.textContent = statValue;
+      const label = document.createElement('small');
+      label.textContent = statLabel;
+      stat.append(icon, value, label);
       statsBox.append(stat);
     });
 

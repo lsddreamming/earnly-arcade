@@ -261,17 +261,21 @@
         c.beginPath();c.moveTo(x,y-2.5);c.lineTo(x+2.5,y);c.lineTo(x,y+2.5);c.lineTo(x-2.5,y);c.closePath();c.stroke();c.globalAlpha=1;
       }
       const incoming=s.enemies.filter(e=>e.spawn>0);
+      // A shared vertical stack keeps the wave subtitle and spawn warning apart.
+      // Short landscape arenas still leave room below the fixed top HUD.
+      const bannerY=Math.max(78,Math.min(horizon*.55,95));
+      const noticeY=banner>0?bannerY+38:115;
       if(running&&incoming.length){
-        text(`${incoming.length} INCOMING / ROBOTS MATERIALIZING`,w/2,115,8,'#ffdc9a','center');
+        text(`${incoming.length} ${incoming.length===1?'ROBOT':'ROBOTS'} INCOMING`,w/2,noticeY,9,'#ffdc9a','center');
         // Edge arrows reveal warnings even when a portal is outside the camera view.
         for(const e of incoming){const bearing=E.angle(Math.atan2(e.y-p.y,e.x-p.x)-p.a);if(Math.abs(bearing)<.55)continue;const right=bearing>0,ax=right?w-13:13,ay=horizon;c.save();c.translate(ax,ay);c.rotate(right?0:Math.PI);polygon([[5,0],[-4,-5],[-4,5]],'#ffdc9a');c.restore();}
-      }else if(running&&s.spawnBlocked)text('TURN TOWARD THE ARENA TO CONTINUE',w/2,115,8,'#ffdc9a','center');
+      }else if(running&&s.spawnBlocked)text('TURN TOWARD THE ARENA',w/2,noticeY,9,'#ffdc9a','center');
       const zone=NeonBreachArt.zones[NeonBreachArt.zoneAt(p.x)];
       text(zone.name+(s.wave>=6?(s.wave>=10?' / EXTREME':' / HIGH'):''),18,62,8,zone.color);
       const healthColor=p.hp<=25?'#ff7b92':s.shield>0?'#76cfff':'#78f4ce';text(s.shield>0?'SHIELD':'HULL',16,h-39,9,healthColor);text(`${p.hp}`,16,h-20,17,healthColor);c.fillStyle='#162e40';c.fillRect(16,h-12,85,3);c.fillStyle=healthColor;c.fillRect(16,h-12,85*p.hp/100,3);
       let by=h-39;for(const key of ['shield','overdrive'])if(s[key]>0){text(`${key==='shield'?'SHIELD':'RAPID FIRE'} ${Math.ceil(s[key])}s`,w-16,by,9,colors[key],'right');c.fillStyle='#263142';c.fillRect(w-91,by+6,75,3);c.fillStyle=colors[key];c.fillRect(w-91,by+6,75*s[key]/8,3);by-=29}
       if(pickupNotice&&running){c.save();c.globalAlpha=Math.min(1,pickupNotice.life*3);text(pickupNotice.label,16,h-60,9,colors[pickupNotice.kind]);c.restore()}
-      if(banner>0&&running){c.globalAlpha=Math.min(1,banner*2);text(bannerText,w/2,Math.min(horizon*.55,95),24,'#c5f9ff','center');text(s.wave===1?'BREACH THE PERIMETER':'REINFORCEMENTS DETECTED',w/2,Math.min(horizon*.55,95)+18,9,'#70cddd','center');c.globalAlpha=1}
+      if(banner>0&&running){c.globalAlpha=Math.min(1,banner*2);text(bannerText,w/2,bannerY,24,'#c5f9ff','center');text(s.wave===1?'BREACH THE PERIMETER':'REINFORCEMENTS DETECTED',w/2,bannerY+18,10,'#70cddd','center');c.globalAlpha=1}
       if(streakBanner>0&&banner===0&&running){c.globalAlpha=Math.min(1,streakBanner*3);text(streak===2?'DOUBLE TAKEDOWN':streak===3?'TRIPLE TAKEDOWN':`${streak} / SYSTEM WIPE`,w/2,78,12,'#ffdc9a','center');c.globalAlpha=1}
       if(!s.enemies.length&&running&&banner===0&&streakBanner===0){
         text(s.wave?`NEXT WAVE / ${Math.max(0,s.nextWave).toFixed(1)}s`:'SCANNING FOR HOSTILES',w/2,82,10,'#88f8d7','center');

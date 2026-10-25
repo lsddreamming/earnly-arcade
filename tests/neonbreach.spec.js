@@ -525,3 +525,31 @@ test('Finger coordinates route retargeted MOVE and FIRE independently',async({pa
  });
  await expect.poll(()=>page.evaluate(()=>hitObserved.forward)).toBe(0);
 });
+
+test('Wave introductions and incoming warnings stay on separate lines in short and tall arenas',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const frames=await page.evaluate(()=>{
+  const frames=[];
+  for(const height of [240,440,600])for(const wave of [1,7]){
+   const canvas=document.createElement('canvas');canvas.width=400;canvas.height=height;
+   const renderer=NeonBreachRenderer.create(canvas),ctx=canvas.getContext('2d'),s=NeonBreachEngine.create(()=>.37);
+   s.wave=wave-1;NeonBreachEngine.spawn(s);renderer.event({type:'wave',wave});
+   const calls=[],fill=ctx.fillText.bind(ctx);
+   ctx.fillText=(value,x,y,...rest)=>{const size=Number(ctx.font.match(/([\d.]+)px/)[1]);calls.push({value,x,y,size,width:ctx.measureText(value).width});fill(value,x,y,...rest)};
+   const before=JSON.stringify(s);renderer.render(s,{running:true});
+   const title=calls.find(c=>c.value.startsWith('WAVE ')&&c.size>=20);
+   const subtitle=calls.find(c=>/PERIMETER|REINFORCEMENTS/.test(c.value));
+   const incoming=calls.find(c=>c.value.includes('ROBOTS INCOMING'));
+   frames.push({height,title,subtitle,incoming,unchanged:before===JSON.stringify(s)});
+  }
+  return frames;
+ });
+ for(const {height,title,subtitle,incoming,unchanged} of frames){
+  expect(unchanged).toBe(true);
+  expect(title).toBeTruthy();expect(subtitle).toBeTruthy();expect(incoming).toBeTruthy();
+  expect(subtitle.y-subtitle.size).toBeGreaterThan(title.y+3);
+  expect(incoming.y-incoming.size).toBeGreaterThan(subtitle.y+3);
+  expect(incoming.y).toBeLessThan(height-60);
+  expect(incoming.width).toBeLessThan(230);
+ }
+});
