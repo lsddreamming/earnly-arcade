@@ -7,7 +7,7 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
  const css=fs.readFileSync(path.join(__dirname,'../avatar-shop-finish.css'),'utf8');
  expect(mirror).toBe(root);
  expect(fs.readFileSync(path.join(__dirname,'../www/avatar-shop-finish.css'),'utf8')).toBe(css);
- expect(root).toContain('avatar-shop-finish.css?v=2');
+ expect(root).toContain('avatar-shop-finish.css?v=3');
  for(const selector of ['coin-balance','shop-grid','studio-category','free-only','owned-only','shop-sort','affordable-only','character-stage'])expect(root).toContain('id="'+selector+'"');
  expect(css).toContain('.shop-tabs[hidden]{display:none!important}');
 });
@@ -27,4 +27,9 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await selectShopSlot(page,'jewelry');
  await expect(page.getByLabel('Gear category',{exact:true})).toHaveValue('jewelry');
  await expect(page.locator('#studio-category')).toHaveValue('jewelry');
+ await expect(page.locator('[data-gear-view="detail"]')).toHaveAttribute('aria-pressed','true');
+ const firstCard=page.locator('#shop-grid .item-card').first();
+ await expect(firstCard).toBeVisible();
+ await expect(firstCard.locator('.preview-item')).toBeHidden();
+ await expect(firstCard.locator('.item-art-trigger')).toBeVisible();
 });
