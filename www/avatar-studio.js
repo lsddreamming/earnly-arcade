@@ -473,9 +473,12 @@
   });
   window.addEventListener('earnly-pass-change',()=>{ $('refresh-button').click(); });
   $("affordable-only").addEventListener("change", e => { state.affordableOnly = e.target.checked; renderShop(); });
+  function setGearDetail(detail){
+    state.gearDetail=!!detail;
+    for(const button of document.querySelectorAll('[data-gear-view]'))button.setAttribute('aria-pressed',String((button.dataset.gearView==='detail')===state.gearDetail));
+  }
   for(const option of document.querySelectorAll('[data-gear-view]'))option.addEventListener('click',()=>{
-    state.gearDetail=option.dataset.gearView==='detail';
-    for(const button of document.querySelectorAll('[data-gear-view]'))button.setAttribute('aria-pressed',String(button===option));
+    setGearDetail(option.dataset.gearView==='detail');
     renderShop();
   });
   $("shop-sort").addEventListener("change", e => { state.sort = e.target.value; renderShop(); });
@@ -505,6 +508,7 @@
   for (const button of document.querySelectorAll(".shop-tabs button[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
+      setGearDetail(state.slot === "jewelry");
       $("studio-category").value = state.slot;
       for (const select of document.querySelectorAll('[data-shop-group]')) {
         const active = Array.from(select.options).some(option => option.value === state.slot);
