@@ -10,6 +10,14 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
  expect(root).toContain('avatar-shop-finish.css?v=4');
  for(const selector of ['coin-balance','shop-grid','studio-category','free-only','owned-only','shop-sort','affordable-only','character-stage'])expect(root).toContain('id="'+selector+'"');
  expect(css).toContain('.shop-tabs[hidden]{display:none!important}');
+ for(const name of ['silver-chain','gold-chain','spud-pendant']){
+  const art=fs.readFileSync(path.join(__dirname,'../cosmetic-'+name+'.svg'),'utf8');
+  const packed=fs.readFileSync(path.join(__dirname,'../www/cosmetic-'+name+'.svg'),'utf8');
+  expect(packed).toBe(art);
+  expect(art).toContain('id="jewel-shadow"');
+  expect(art).toContain('id="edge-shine"');
+ }
+ expect(fs.readFileSync(path.join(__dirname,'../cosmetic-spud-pendant.svg'),'utf8')).toContain('id="gem-face"');
 });
 test('avatar shop remains two-column, navigable and free of horizontal overflow on iPhone',async({page})=>{
  // Isolate the layout check from live authentication and catalog responses.
