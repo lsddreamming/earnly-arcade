@@ -120,3 +120,41 @@
  .studio-dashboard #shop-result-count{margin:6px 0 8px}
  .studio-dashboard .shop-reassurance{margin:6px 0 10px}
 }
+
+/* Keep the Spud and its details in focus, with less chrome before the collection. */
+.studio-dashboard .store-heading{display:none}
+.studio-dashboard .showcase .stage{border-radius:18px!important}
+.studio-dashboard .browse-styles{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #79e9e166;border-radius:12px;background:#173f50;color:#d8fffa;font-size:13px;font-weight:750;text-decoration:none}
+.studio-dashboard .browse-styles:focus-visible{outline:3px solid #9bf4f0;outline-offset:2px}
+.studio-dashboard #collection{scroll-margin-top:12px}
+/* Magnify the entire composed rig together so facial layers stay registered.
+   Reset the old container zoom first to avoid multiplying the two scales. */
+.studio-dashboard #shop-grid .item-art:is([data-slot=eyes],[data-slot=brows],[data-slot=nose],[data-slot=mouth],[data-slot=marks],[data-slot=hair]) .character{transform:none}
+.studio-dashboard #shop-grid .item-art:is([data-slot=eyes],[data-slot=brows],[data-slot=nose],[data-slot=mouth],[data-slot=marks],[data-slot=hair]) .character img{
+ transform-origin:50% 25%;transform:scale(1.85) translateY(16%);
+}
+@media(max-width:680px){
+ .studio-dashboard .page-title{min-height:0;padding:8px 0 3px}
+ .studio-dashboard .page-title .eyebrow{display:none}
+ .studio-dashboard .store-sections{margin:8px 0 10px}
+ .studio-dashboard .earn-coins-shop{min-height:44px;padding:7px 10px}
+ .studio-dashboard .earn-coins-shop small{display:none}
+ .studio-dashboard .shop-collections{margin:8px 0}
+ .studio-dashboard .showcase.panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 12px;padding:12px}
+ .studio-dashboard .showcase .panel-top{grid-column:1/-1;margin:0}
+ .studio-dashboard .showcase .stage{grid-column:1;grid-row:2/4;height:190px!important;margin:0}
+ .studio-dashboard .showcase .character-caption{grid-column:2;grid-row:2;margin:0;text-align:left;align-self:center}
+ .studio-dashboard .showcase .character-caption h3{font-size:16px;line-height:1.25;margin:0 0 4px}
+ .studio-dashboard .showcase .character-caption p{font-size:11px;margin:0;overflow-wrap:anywhere}
+ .studio-dashboard .showcase .focus-controls{grid-column:2;grid-row:3;display:flex;flex-direction:column;gap:4px;margin:0}
+ .studio-dashboard .showcase .focus-controls button{min-height:44px;margin:0;padding:6px}
+ .studio-dashboard .showcase .preview-note{grid-column:1/-1;grid-row:4;margin:0;text-align:center}
+ .studio-dashboard .showcase>.browse-styles{grid-column:1/-1}
+ .studio-dashboard .showcase>:is(.tryon-summary,.preview-actions,.back-to-collection,.compare-look,.loadout-details,#reset-preview,#view-profile,.fine-print){grid-column:1/-1}
+ .studio-dashboard .showcase .fine-print{margin:0;font-size:10px}
+ .studio-dashboard .showcase .loadout-details{margin:0}
+ .studio-dashboard .shop .personality-note{display:none}
+ .studio-dashboard .shop-reassurance{display:none}
+ .studio-dashboard #shop-grid .item-card h3{padding:0;font-size:13px;margin:9px 9px 4px}
+ .studio-dashboard #shop-grid .item-category{padding:0;margin:0 9px 9px}
+}

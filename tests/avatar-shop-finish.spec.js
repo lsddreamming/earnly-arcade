@@ -7,7 +7,7 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
  const css=fs.readFileSync(path.join(__dirname,'../avatar-shop-finish.css'),'utf8');
  expect(mirror).toBe(root);
  expect(fs.readFileSync(path.join(__dirname,'../www/avatar-shop-finish.css'),'utf8')).toBe(css);
- expect(root).toContain('avatar-shop-finish.css?v=4');
+ expect(root).toContain('avatar-shop-finish.css?v=5');
  for(const selector of ['coin-balance','shop-grid','studio-category','free-only','owned-only','shop-sort','affordable-only','character-stage'])expect(root).toContain('id="'+selector+'"');
  expect(css).toContain('.shop-tabs[hidden]{display:none!important}');
  for(const name of ['silver-chain','gold-chain','spud-pendant']){
