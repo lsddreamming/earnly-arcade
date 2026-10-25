@@ -37,3 +37,10 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 .breach-arena,.breach-arena *,#breachControls,#breachControls *{touch-action:none;-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
 
 .aim-tip .breach-control-check{display:block;width:100%;min-height:44px;margin:3px 0 0;padding:3px 5px;font-size:10px;border:1px solid #48758a;border-radius:8px;background:#102b3d;color:#d3f4ff;touch-action:manipulation}
+
+/* Give the joystick an explicit interactive hit area; its decoration never
+   becomes a separate target. Keep shared button styles out of its geometry. */
+.breach-page #movePad{appearance:none;-webkit-appearance:none;padding:0;margin:0;min-height:90px;line-height:1;cursor:pointer;transform:none;text-shadow:none}
+.breach-page #movePad>*{pointer-events:none}
+.breach-page #movePad>span{position:absolute;bottom:9px;font-size:9px;letter-spacing:1px}
+.breach-page #movePad:before,.breach-page #movePad:after{pointer-events:none}

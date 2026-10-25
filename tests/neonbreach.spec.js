@@ -282,6 +282,7 @@ test('Neon Breach keeps moving and aiming when pointer capture fails',async({pag
  });
  await page.locator('#startButton').click();
  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect.poll(()=>page.evaluate(()=>!!window.breachObserved)).toBe(true);
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  const pad=await page.locator('#movePad').boundingBox();
  await page.locator('#movePad').dispatchEvent('pointerdown',{pointerId:42,clientX:pad.x+pad.width/2+20,clientY:pad.y+pad.height/2});
@@ -412,7 +413,7 @@ test('Opt-in control check shows input acceptance and real movement without cove
  const panel=page.locator('#breachControlReadout');
  await expect(panel).toBeHidden();
  await page.locator('#breachControlCheck').click();
- await expect(panel).toContainText('CONTROL CHECK v1');
+ await expect(panel).toContainText('CONTROL CHECK v2');
  await expect(panel).toHaveCSS('pointer-events','none');
  await page.locator('#startButton').click();
  await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
@@ -484,4 +485,43 @@ test('Control check stays reachable beside MOVE on short phones during a round',
  const b=await page.locator('#breachControlCheck').boundingBox();
  expect(b.y).toBeGreaterThan(0);expect(b.y+b.height).toBeLessThan(667);
  await page.locator('#breachControlCheck').click();await expect(page.locator('#breachControlReadout')).toBeVisible();
+});
+
+// Model an embedded view delivering a finger event to a neighbouring element.
+// Hit testing must use each finger's position, not the event's shared target.
+test('Finger coordinates route retargeted MOVE and FIRE independently',async({page})=>{
+ await page.goto('/neonbreach.html');
+ await page.evaluate(()=>{
+  const tick=NeonBreachEngine.tick;
+  NeonBreachEngine.tick=(s,dt,input)=>{tick(s,dt,input);window.hitObserved={...input,x:s.player.x,y:s.player.y,fired:s.fired}};
+  window.hitTouch=(type,points,target='#game')=>{
+   const e=new Event(type,{bubbles:true,cancelable:true});
+   Object.defineProperty(e,'changedTouches',{value:points.map(([selector,identifier,dx=0,dy=0])=>{
+    const el=document.querySelector(selector),r=el.getBoundingClientRect();
+    return {identifier,target:document.querySelector(target),clientX:r.left+r.width/2+dx,clientY:r.top+r.height/2+dy};
+   })});
+   document.querySelector(target).dispatchEvent(e);
+  };
+ });
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect.poll(()=>page.evaluate(()=>!!window.hitObserved)).toBe(true);
+ const origin=await page.evaluate(()=>hitObserved.y);
+ await page.evaluate(()=>hitTouch('touchstart',[['#movePad',71,0,-28],['#fireButton',72]]));
+ await expect.poll(()=>page.evaluate(()=>hitObserved.forward)).toBeGreaterThan(.5);
+ await expect.poll(()=>page.evaluate(()=>hitObserved.y)).toBeLessThan(origin-.1);
+ await expect.poll(()=>page.evaluate(()=>hitObserved.fired)).toBeGreaterThan(0);
+ // Leaving the pad must keep the same finger active until it ends.
+ await page.evaluate(()=>hitTouch('touchmove',[['#movePad',71,0,-100]]));
+ await expect.poll(()=>page.evaluate(()=>hitObserved.forward)).toBe(1);
+ await page.evaluate(()=>hitTouch('touchend',[['#fireButton',72]]));
+ await expect.poll(()=>page.evaluate(()=>hitObserved.fire)).toBe(false);
+ await expect.poll(()=>page.evaluate(()=>hitObserved.forward)).toBe(1);
+ await page.evaluate(()=>hitTouch('touchcancel',[['#movePad',71]]));
+ await expect.poll(()=>page.evaluate(()=>hitObserved.forward)).toBe(0);
+ // An overlay at the same coordinates must not drive the game underneath.
+ await page.evaluate(()=>{
+  const overlay=document.createElement('div');overlay.id='testTouchOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:999999;background:#0008';document.body.append(overlay);
+  hitTouch('touchstart',[['#movePad',73,0,-28]],'#testTouchOverlay');
+ });
+ await expect.poll(()=>page.evaluate(()=>hitObserved.forward)).toBe(0);
 });
