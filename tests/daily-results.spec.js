@@ -87,7 +87,8 @@ for (const width of [320, 390, 440]) {
     });
     const dialog=page.locator('.spiral-result');
     await expect(dialog.locator('.result-main')).toContainText('19');
-    await expect(dialog.locator('.result-stats')).toContainText('+12');
+    await expect(dialog.locator('.result-stat').nth(0).locator('strong')).toHaveText('+12');
+    await expect(dialog.locator('.result-stat').nth(1).locator('strong')).toHaveText('+35');
     await expect(dialog.locator('.result-notes')).not.toBeVisible();
     await expect(dialog.locator('.result-leaderboard')).not.toBeVisible();
     await expect(dialog.locator('.result-room-link')).not.toBeVisible();
@@ -114,7 +115,8 @@ for (const game of ['snake', 'memory', 'tapRush', 'neonBreach', 'neonDrift', 'br
     },game);
     const dialog=page.locator('.compact-result');
     await expect(dialog.locator('.result-main > strong')).toContainText('19');
-    await expect(dialog.locator('.result-stats')).toContainText('+12');
+    await expect(dialog.locator('.result-stat').nth(0).locator('strong')).toHaveText('+12');
+    await expect(dialog.locator('.result-stat').nth(1).locator('strong')).toHaveText('+35');
     await expect(dialog.locator('.result-notes')).toBeHidden();
     await expect(dialog.locator('.result-level-progress')).toBeHidden();
     await expect(dialog.locator('.result-leaderboard')).toBeHidden();
