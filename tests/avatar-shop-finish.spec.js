@@ -12,7 +12,15 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
  expect(css).toContain('.shop-tabs[hidden]{display:none!important}');
 });
 test('avatar shop remains two-column, navigable and free of horizontal overflow on iPhone',async({page})=>{
- await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={ready:false,session:async()=>null};'}));
+ // Isolate the layout check from live authentication and catalog responses.
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={client:{auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({})}},session:async()=>null};'}));
+ await page.route('**/avatars/api/**',r=>{
+  const endpoint=new URL(r.request().url()).pathname.split('/api/')[1];
+  if(endpoint==='config')return r.fulfill({json:{supabaseUrl:'https://zdwziebtbpuolusztede.supabase.co',publishableKey:'fixture',game:'snake'}});
+  if(endpoint==='shop')return r.fulfill({json:{items:[{id:'silver-chain',name:'Silver Chain',slot:'jewelry',coinPrice:200,rarity:'rare',imageUrl:'cosmetic-silver-chain.svg'}]}});
+  if(endpoint==='leaderboard')return r.fulfill({json:{game:'snake',players:[]}});
+  return r.fulfill({status:404,json:{error:{message:'Unexpected QA request'}}});
+ });
  await page.goto('/avatars.html',{waitUntil:'domcontentloaded'});
  await page.getByRole('button',{name:'Style studio',exact:true}).click();
  for(const width of [320,375,390]){
