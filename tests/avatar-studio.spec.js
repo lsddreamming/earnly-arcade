@@ -240,3 +240,34 @@ test('Jewelry layers independently over outfits and below faces',async({page})=>
  expect(parts.ids).not.toContain('hair-sprout');
  expect(parts.unchanged).toBe(true);
 });
+
+test('Spud browsing shortcut and face previews stay usable on small phones',async({page})=>{
+ await setup(page,{personality:true});
+ await page.goto('/avatars.html');
+ await expect(page.locator('#nav-name')).toHaveText('@PlayerOne');
+ for(const width of [320,390]){
+  await page.setViewportSize({width,height:844});
+  const boxes=await page.locator('.showcase').evaluate(root=>{
+   const box=s=>{const r=root.querySelector(s).getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right};};
+   return {stage:box('.stage'),focus:box('.focus-controls'),note:box('.preview-note')};
+  });
+  expect(boxes.note.top).toBeGreaterThanOrEqual(Math.max(boxes.stage.bottom,boxes.focus.bottom));
+  await page.locator('.browse-styles').click();
+  await expect(page.locator('#shop-title')).toBeInViewport();
+  await selectShopSlot(page,'eyes');
+  const face=page.locator('#shop-grid .item-art').first();
+  const transforms=await face.locator('.character img').evaluateAll(imgs=>imgs.map(i=>getComputedStyle(i).transform));
+  expect(transforms.length).toBeGreaterThan(2);
+  expect(new Set(transforms).size).toBe(1); // Face, body and worn accessories zoom as one rig.
+  expect(transforms[0]).not.toBe('none');
+  const actionWidth=await face.locator('..').locator('.item-actions').evaluate(actions=>{
+   const button=actions.querySelector('button:not(.preview-item)');
+   return {available:actions.getBoundingClientRect().width,button:button.getBoundingClientRect().width};
+  });
+  expect(actionWidth.button).toBeGreaterThanOrEqual(actionWidth.available-1);
+  await face.locator('.item-art-trigger').click();
+  await expect(page.locator('#preview-note')).toContainText('Preview only');
+  await expect(page.locator('#coin-balance')).toHaveText('1,250');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+ }
+});
