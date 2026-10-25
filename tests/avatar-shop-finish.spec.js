@@ -7,7 +7,7 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
  const css=fs.readFileSync(path.join(__dirname,'../avatar-shop-finish.css'),'utf8');
  expect(mirror).toBe(root);
  expect(fs.readFileSync(path.join(__dirname,'../www/avatar-shop-finish.css'),'utf8')).toBe(css);
- expect(root).toContain('avatar-shop-finish.css?v=3');
+ expect(root).toContain('avatar-shop-finish.css?v=4');
  for(const selector of ['coin-balance','shop-grid','studio-category','free-only','owned-only','shop-sort','affordable-only','character-stage'])expect(root).toContain('id="'+selector+'"');
  expect(css).toContain('.shop-tabs[hidden]{display:none!important}');
 });
@@ -42,4 +42,8 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await expect(firstCard).toBeVisible();
  await expect(firstCard.locator('.preview-item')).toBeHidden();
  await expect(firstCard.locator('.item-art-trigger')).toBeVisible();
+ await selectShopSlot(page,'building');
+ await expect(page.locator('.gear-view')).toBeHidden();
+ await expect(page.locator('.public-footer nav a:visible')).toHaveCount(3);
+ await expect(page.locator('.public-footer nav a:visible')).toHaveText(['Help & Contact','Privacy','Terms']);
 });
