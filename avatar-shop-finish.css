@@ -102,3 +102,21 @@
 /* Draw a chevron without restoring WebKit native compact menu sizing. */
 .studio-dashboard .shop-category-group{position:relative}
 .studio-dashboard .shop-category-group::after{content:"";position:absolute;right:16px;bottom:27px;width:6px;height:6px;border-right:2px solid #9ed8e2;border-bottom:2px solid #9ed8e2;transform:rotate(45deg);pointer-events:none}
+
+
+/* Screenshot-driven mobile rhythm cleanup: preserve touch targets, remove redundant chrome. */
+@media(max-width:680px){
+ .studio-dashboard .shop-category-groups{gap:6px;margin:8px 0 10px}
+ .studio-dashboard .shop-category-group{padding:5px 6px;border-radius:11px}
+ .studio-dashboard .shop-category-group>span{font-size:10px;line-height:1.15;margin-bottom:1px;letter-spacing:.01em}
+ .studio-dashboard .shop-category-group select{height:44px;min-height:44px;padding:6px 20px 6px 2px;font-size:15px}
+ .studio-dashboard .shop-category-group::after{right:12px;bottom:23px}
+ .studio-dashboard .gear-view[hidden]{display:none!important}
+ .studio-dashboard .public-footer nav a:nth-child(-n+4){display:none}
+ .studio-dashboard .public-footer nav{display:flex;justify-content:center;gap:5px;flex-wrap:wrap}
+ .studio-dashboard .public-footer{margin-top:12px!important;padding-top:8px}
+ .studio-dashboard .shop-refine{margin:8px 0}
+ .studio-dashboard .gear-view{margin:8px 0 2px}
+ .studio-dashboard #shop-result-count{margin:6px 0 8px}
+ .studio-dashboard .shop-reassurance{margin:6px 0 10px}
+}

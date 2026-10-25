@@ -128,6 +128,8 @@
   }
   function renderShop() {
     renderPreviewActions();
+    const battlePreview=['army','commander','building','battlefx'].includes(state.slot);
+    document.querySelector('.gear-view').hidden=battlePreview;
     $("shop-grid").replaceChildren();
     const filtered = state.items.filter(i =>
       (state.search || state.collection !== "all" || i.slot === state.slot) &&
