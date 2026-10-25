@@ -85,7 +85,7 @@ test('Free beards, shoes, backpacks and glasses save independently without spend
 });
 test('Trying on paid shoes does not change saved equipment or wallet; free filter hides paid choices',async({page})=>{
   const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
-  await selectShopSlot(page,'shoes');await page.getByRole('button',{name:'Preview Neon Kicks',exact:true}).click();
+  await selectShopSlot(page,'shoes');await page.getByRole('button',{name:'Try on Neon Kicks',exact:true}).click();
   await expect(page.locator('#character-stage img[alt="Neon Kicks"]')).toBeVisible();await expect(page.locator('#preview-note')).toContainText('Preview only');expect(f.user().equipped.shoes.id).toBe('trail-boots');expect(f.keys).toHaveLength(0);
   await page.getByRole('button',{name:'Reset preview'}).click();await expect(page.locator('#character-stage img[alt="Trail Boots"]')).toBeVisible();
   await page.locator('.shop-refine summary').click();
@@ -94,7 +94,7 @@ test('Trying on paid shoes does not change saved equipment or wallet; free filte
 });
 test('Guests can try on accessories without signing in or buying',async({page})=>{
   await setup(page,{signedIn:false});await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('Guest');
-  await selectShopSlot(page,'beard');await page.getByRole('button',{name:'Preview Short Beard',exact:true}).click();await expect(page.locator('#character-stage img[alt="Short Beard"]')).toBeVisible();await expect(page.locator('#auth-modal')).not.toBeVisible();
+  await selectShopSlot(page,'beard');await page.getByRole('button',{name:'Try on Short Beard',exact:true}).click();await expect(page.locator('#character-stage img[alt="Short Beard"]')).toBeVisible();await expect(page.locator('#auth-modal')).not.toBeVisible();
 });
 
 // Blank accessory layers must remain transparent, and the full rig must fit cards.
@@ -112,7 +112,7 @@ test('Layered leaderboard portraits stay visible and shop cards contain the whol
 
 test('Headwear, search, ownership filters and fit inspection work without spending',async({page})=>{
   const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#nav-name')).toHaveText('@PlayerOne');
-  await selectShopSlot(page,'head');await page.getByRole('button',{name:'Preview Comms Headset',exact:true}).click();
+  await selectShopSlot(page,'head');await page.getByRole('button',{name:'Try on Comms Headset',exact:true}).click();
   await expect(page.locator('#character-stage img[alt="Comms Headset"]')).toBeVisible();await expect(page.locator('#nav-avatar img[alt="No Headwear"]')).toHaveCount(1);
   await page.getByLabel('Find your next piece').fill('beanie');await expect(page.locator('.item-card')).toHaveCount(1);await expect(page.locator('.item-card')).toContainText('Ribbed Beanie');
   await page.getByLabel('Find your next piece').fill('');await page.locator('.shop-refine summary').click();await page.getByLabel('My collection').check();await expect(page.locator('.item-card')).toHaveCount(3);
@@ -127,9 +127,9 @@ test('Coin packs show approved prices and fail closed before merchant setup',asy
 
 test('Preview actions unlock one piece, keep other previews, and survive a fresh sign-in',async({page})=>{
   const f=await setup(page);await page.goto('/avatars.html');await expect(page.locator('#coin-balance')).toHaveText('1,250');
-  await page.getByRole('button',{name:'Preview Neon Phantom',exact:true}).click();
+  await page.getByRole('button',{name:'Try on Neon Phantom',exact:true}).click();
   await selectShopSlot(page,'outfit');
-  await page.getByRole('button',{name:'Preview Neon Jacket',exact:true}).click();
+  await page.getByRole('button',{name:'Try on Neon Jacket',exact:true}).click();
   await page.getByRole('button',{name:'Unlock preview Neon Phantom',exact:true}).click();
   await expect(page.locator('#purchase-remaining')).toContainText('1,000 coins');
   await expect(page.locator('#purchase-preview img[alt="Pilot Suit"]')).toHaveCount(1);
@@ -171,7 +171,7 @@ test('Potato facial parts save independently, retain free choices and share the 
  await expect(page.locator('#coin-balance')).toHaveText('1,250');expect(f.keys).toHaveLength(0);
  await expect(page.locator('#character-stage img[alt="Cyber Starter"]')).toHaveAttribute('src',/cyber-starter-body.svg$/);
  await page.reload();await expect(page.locator('#character-stage img[alt="Golden Ponytail"]')).toBeVisible();
- await selectShopSlot(page,'eyes');await page.getByRole('button',{name:'Preview Galaxy Eyes',exact:true}).click();expect(f.user().equipped.eyes.id).toBe('eyes-lashes');expect(f.keys).toHaveLength(0);
+ await selectShopSlot(page,'eyes');await page.getByRole('button',{name:'Try on Galaxy Eyes',exact:true}).click();expect(f.user().equipped.eyes.id).toBe('eyes-lashes');expect(f.keys).toHaveLength(0);
  await page.getByRole('button',{name:'Buy Galaxy Eyes',exact:true}).click();await page.getByRole('button',{name:'Buy & equip',exact:true}).click();await expect(page.locator('#coin-balance')).toHaveText('750');expect(f.user().equipped.hair.id).toBe('hair-ponytail');expect(f.user().equipped.brows.id).toBe('brows-curious');
  await page.goto('/profile.html');await expect(page.locator('#profileAvatar img[alt="Galaxy Eyes"]')).toBeAttached();await expect(page.locator('#profileAvatar img[alt="Cyber Starter"]')).toHaveAttribute('src',/cyber-starter-body.svg$/);
 });
