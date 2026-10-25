@@ -6,14 +6,14 @@ let state=E.create(),running=false,starting=false,paused=false,last=0,raf=0,move
 // Opt-in, on-device control evidence. Nothing is stored or uploaded.
 const controlCheck={enabled:false,raw:0,last:'none',accepted:0,role:'none',frames:0,origin:null,distance:0};
 const checkButton=document.createElement('button');checkButton.id='breachControlCheck';checkButton.type='button';checkButton.textContent='Control check';checkButton.setAttribute('aria-pressed','false');
-const checkRow=document.createElement('div');checkRow.className='breach-settings';checkRow.append(checkButton);document.querySelector('.breach-settings').insertAdjacentElement('afterend',checkRow);
+checkButton.className='breach-control-check';document.querySelector('.aim-tip').append(checkButton);
 const checkPanel=document.createElement('pre');checkPanel.id='breachControlReadout';checkPanel.hidden=true;
 checkPanel.style.cssText='position:absolute;top:4px;left:4px;right:4px;margin:0;padding:8px;background:#06101fee;color:#fff;font:11px/1.4 monospace;white-space:pre-wrap;pointer-events:none;z-index:3';
 document.querySelector('.breach-arena').append(checkPanel);
 function showControlCheck(){
  if(!controlCheck.enabled)return;
  const p=state.player,c=controlCheck;
- checkPanel.textContent=`CONTROL CHECK v1 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
+ checkPanel.textContent=`CONTROL CHECK v1 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nPage zoom ${(window.visualViewport?.scale||1).toFixed(2)}x\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
 }
 checkButton.addEventListener('click',()=>{
  controlCheck.enabled=!controlCheck.enabled;checkPanel.hidden=!controlCheck.enabled;
@@ -58,11 +58,13 @@ function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1
 function finish(){if(!running)return;running=false;audio.stop();if(state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML='RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const result=Arcade.recordResult(game,state.score);chrome();Arcade.gameResult({game,icon:'🤖',title:state.time>=180?'Breach Complete':'Neon Breach Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🤖 Robots defeated: ${state.kills}`,`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
 function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=E.create();if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
 els.startButton.addEventListener('click',start);
-// Touch Events own fingers; Pointer Events own mouse/pen. Do not depend on
-// WKWebView delivering a complete pointer stream or retaining pointer capture.
+// Accept either finger stream. A real Touch Event takes over its role from
+// the provisional touch pointer, so compatibility events cannot double input.
 function steer(e){const r=pad.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/32,dy=(e.clientY-r.top-r.height/2)/32,n=Math.max(1,Math.hypot(dx,dy));joy={strafe:dx/n,forward:-dy/n};knob.style.transform=`translate(${joy.strafe*28}px,${-joy.forward*28}px)`}
 function beginInput(role,id,point){
  if(!running||paused)return;
+ const current=role==='move'?moveId:role==='aim'?aimId:fireId;
+ if(id.startsWith('touch:')&&current?.startsWith('touch-pointer:'))releaseInput(current);
  if(controlCheck.enabled&&((role==='move'&&moveId===null)||(role==='aim'&&aimId===null)||(role==='fire'&&fireId===null))){controlCheck.accepted++;controlCheck.role=role}
  if(role==='move'&&moveId===null){moveId=id;steer(point)}
  if(role==='aim'&&aimId===null){aimId=id;aimX=point.clientX}
@@ -74,7 +76,18 @@ function moveInput(id,point){
  if(id===aimId){state.player.a=E.angle(state.player.a+(point.clientX-aimX)*.008);aimX=point.clientX}
 }
 function releaseInput(id){if(id===moveId){moveId=null;joy={forward:0,strafe:0};knob.style.transform=''}if(id===aimId)aimId=null;if(id===fireId)fireId=null}
-const touchId=t=>'touch:'+t.identifier,pointerId=e=>'pointer:'+e.pointerId;
+const touchId=t=>'touch:'+t.identifier,pointerId=e=>(e.pointerType==='touch'?'touch-pointer:':'pointer:')+e.pointerId;
+// WKWebView can recognize a native page gesture across the arena and thumb
+// controls. Cancel its default action without consuming either gameplay finger.
+function preventControlGesture(e){
+ const onSurface=e.target instanceof Element&&e.target.closest('.breach-arena,#breachControls');
+ const heldTouch=[moveId,aimId,fireId].some(id=>typeof id==='string'&&(id.startsWith('touch:')||id.startsWith('touch-pointer:')));
+ if(onSurface||(running&&!paused&&heldTouch))e.preventDefault();
+}
+for(const name of ['gesturestart','gesturechange','gestureend','dblclick','dragstart','contextmenu']){
+ document.addEventListener(name,preventControlGesture,{capture:true,passive:false});
+}
+
 for(const [el,role] of [[pad,'move'],[canvas,'aim'],[fireButton,'fire']]){
  el.addEventListener('touchstart',e=>{
   if(!running||paused)return;
@@ -82,9 +95,9 @@ for(const [el,role] of [[pad,'move'],[canvas,'aim'],[fireButton,'fire']]){
   for(const touch of e.changedTouches)beginInput(role,touchId(touch),touch);
  },{passive:false});
  el.addEventListener('pointerdown',e=>{
-  if(e.pointerType==='touch'||!running||paused||e.button>0)return;
+  if(!running||paused||e.button>0)return;
   e.preventDefault();beginInput(role,pointerId(e),e);
-  try{el.setPointerCapture(e.pointerId)}catch{}
+  if(e.pointerType!=='touch')try{el.setPointerCapture(e.pointerId)}catch{}
  });
 }
 document.addEventListener('touchmove',e=>{
@@ -93,12 +106,14 @@ document.addEventListener('touchmove',e=>{
  if(handled)e.preventDefault();
 },{passive:false});
 for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{
- for(const touch of e.changedTouches)releaseInput(touchId(touch));
-});
-document.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
-for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>{if(e.pointerType!=='touch')releaseInput(pointerId(e))});
+ let handled=false;
+ for(const touch of e.changedTouches){const id=touchId(touch);if(id===moveId||id===aimId||id===fireId)handled=true;releaseInput(id)}
+ if(handled)e.preventDefault();
+},{passive:false});
+document.addEventListener('pointermove',e=>{const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
+for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>releaseInput(pointerId(e)));
 document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,a,.modal-backdrop,#soundButton,#voiceButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d',' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault();if(running&&!paused)keys.add(key)}if(e.key==='Enter'&&!running&&!starting)start()});document.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
-pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
+pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachControlCheck'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
 // Shared mobile dock is initially inserted after the canvas; move it below the thumb controls.
 let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pauseControl.button,document.getElementById('earnlyQuitButton'))}document.getElementById('breachControls').insertAdjacentElement('afterend',dock);
 function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',()=>{running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput()});

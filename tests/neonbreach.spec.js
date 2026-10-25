@@ -329,6 +329,7 @@ test('Touch-only controls move the player, aim and fire together without pointer
   };
  });
  await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect.poll(()=>page.evaluate(()=>!!window.touchObserved)).toBe(true);
  const start=await page.evaluate(()=>window.touchObserved);
  await page.evaluate(()=>{
   sendBreachTouch('#movePad','touchstart',7,0,-28);
@@ -337,6 +338,12 @@ test('Touch-only controls move the player, aim and fire together without pointer
  });
  await expect.poll(()=>page.evaluate(()=>touchObserved.y)).toBeLessThan(start.y-.1);
  await expect.poll(()=>page.evaluate(()=>touchObserved.fired)).toBeGreaterThan(0);
+ // Cross-control WebKit gestures may target the common ancestor, not the pad.
+ expect(await page.evaluate(()=>['gesturestart','gesturechange','gestureend'].map(type=>{
+  const event=new Event(type,{bubbles:true,cancelable:true});document.body.dispatchEvent(event);return event.defaultPrevented;
+ }))).toEqual([true,true,true]);
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:.875,fire:true});
+
  await page.evaluate(()=>sendBreachTouch('#game','touchmove',9,30,0));
  await expect.poll(()=>page.evaluate(()=>touchObserved.angle)).not.toBe(start.angle);
  // Ending aim must not stop either of the other fingers.
@@ -426,4 +433,55 @@ test('Opt-in control check shows input acceptance and real movement without cove
  await expect(panel).toContainText('Accepted 1 · move');
  await page.locator('#breachControlCheck').click();await expect(panel).toBeHidden();
  await page.locator('#breachControlCheck').click();await expect(panel).toContainText('Accepted 0 · none');
+});
+
+test('Gameplay surfaces suppress browser zoom and drag gestures without blocking settings',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const cancelled=await page.evaluate(()=>{
+  const out={};
+  for(const id of ['game','movePad','fireButton','breachControls','soundButton']){
+   out[id]=['gesturestart','gesturechange','gestureend','dblclick','dragstart','contextmenu'].map(type=>{
+    const e=new Event(type,{bubbles:true,cancelable:true});document.getElementById(id).dispatchEvent(e);return e.defaultPrevented;
+   });
+  }
+  return out;
+ });
+ for(const id of ['game','movePad','fireButton','breachControls'])expect(cancelled[id]).toEqual([true,true,true,true,true,true]);
+ expect(cancelled.soundButton).toEqual([false,false,false,false,false,false]);
+});
+
+
+test('Touch pointer fallback hands off to touch events without losing movement',async({page})=>{
+ await ready(page);
+ await page.evaluate(()=>{
+  const tick=NeonBreachEngine.tick;
+  NeonBreachEngine.tick=(s,dt,input)=>{tick(s,dt,input);window.hybrid={...input,x:s.player.x,y:s.player.y}};
+ });
+ const pad=page.locator('#movePad'),box=await pad.boundingBox();
+ await pad.dispatchEvent('pointerdown',{pointerType:'touch',pointerId:31,button:0,clientX:box.x+box.width/2,clientY:box.y+box.height/2-28});
+ await expect.poll(()=>page.evaluate(()=>window.hybrid?.forward)).toBeGreaterThan(.8);
+ const y=await page.evaluate(()=>hybrid.y);
+ await expect.poll(()=>page.evaluate(()=>hybrid.y)).toBeLessThan(y-.1);
+ await page.evaluate(()=>{
+  const target=document.getElementById('movePad'),r=target.getBoundingClientRect();
+  const event=new Event('touchstart',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'changedTouches',{value:[{identifier:41,target,clientX:r.left+r.width/2+28,clientY:r.top+r.height/2}]});target.dispatchEvent(event);
+ });
+ await pad.dispatchEvent('pointercancel',{pointerType:'touch',pointerId:31});
+ await expect.poll(()=>page.evaluate(()=>hybrid.strafe)).toBeGreaterThan(.8);
+ await page.evaluate(()=>{
+  const e=new Event('touchend',{bubbles:true,cancelable:true});Object.defineProperty(e,'changedTouches',{value:[{identifier:41}]});document.dispatchEvent(e);
+ });
+ await expect.poll(()=>page.evaluate(()=>hybrid.strafe)).toBe(0);
+ await pad.dispatchEvent('pointerdown',{pointerType:'touch',pointerId:32,button:0,clientX:box.x+box.width/2,clientY:box.y+box.height/2+28});
+ await expect.poll(()=>page.evaluate(()=>hybrid.forward)).toBeLessThan(-.8);
+ await pad.dispatchEvent('pointerup',{pointerType:'touch',pointerId:32});
+ await expect.poll(()=>page.evaluate(()=>hybrid.forward)).toBe(0);
+});
+
+test('Control check stays reachable beside MOVE on short phones during a round',async({page})=>{
+ await page.setViewportSize({width:375,height:667});await ready(page);
+ const b=await page.locator('#breachControlCheck').boundingBox();
+ expect(b.y).toBeGreaterThan(0);expect(b.y+b.height).toBeLessThan(667);
+ await page.locator('#breachControlCheck').click();await expect(page.locator('#breachControlReadout')).toBeVisible();
 });
