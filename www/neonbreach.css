@@ -32,3 +32,6 @@ html body.breach-page.game-active .breach-arena canvas{height:clamp(185px,calc(1
 html body.breach-page .earnly-session-dock{min-height:0!important;z-index:1!important}
 html body.breach-page .earnly-session-dock:has(> #earnlyPauseButton[hidden]){display:none!important}
 html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html body.breach-page.game-active .earnly-session-dock #earnlyQuitButton{z-index:1!important}
+
+/* Keep native page gestures and drag previews out of the two-thumb controls. */
+.breach-arena,.breach-arena *,#breachControls,#breachControls *{touch-action:none;-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none}

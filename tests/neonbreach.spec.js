@@ -329,6 +329,7 @@ test('Touch-only controls move the player, aim and fire together without pointer
   };
  });
  await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect.poll(()=>page.evaluate(()=>!!window.touchObserved)).toBe(true);
  const start=await page.evaluate(()=>window.touchObserved);
  await page.evaluate(()=>{
   sendBreachTouch('#movePad','touchstart',7,0,-28);
@@ -337,6 +338,12 @@ test('Touch-only controls move the player, aim and fire together without pointer
  });
  await expect.poll(()=>page.evaluate(()=>touchObserved.y)).toBeLessThan(start.y-.1);
  await expect.poll(()=>page.evaluate(()=>touchObserved.fired)).toBeGreaterThan(0);
+ // Cross-control WebKit gestures may target the common ancestor, not the pad.
+ expect(await page.evaluate(()=>['gesturestart','gesturechange','gestureend'].map(type=>{
+  const event=new Event(type,{bubbles:true,cancelable:true});document.body.dispatchEvent(event);return event.defaultPrevented;
+ }))).toEqual([true,true,true]);
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:.875,fire:true});
+
  await page.evaluate(()=>sendBreachTouch('#game','touchmove',9,30,0));
  await expect.poll(()=>page.evaluate(()=>touchObserved.angle)).not.toBe(start.angle);
  // Ending aim must not stop either of the other fingers.
@@ -426,4 +433,19 @@ test('Opt-in control check shows input acceptance and real movement without cove
  await expect(panel).toContainText('Accepted 1 · move');
  await page.locator('#breachControlCheck').click();await expect(panel).toBeHidden();
  await page.locator('#breachControlCheck').click();await expect(panel).toContainText('Accepted 0 · none');
+});
+
+test('Gameplay surfaces suppress browser zoom and drag gestures without blocking settings',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const cancelled=await page.evaluate(()=>{
+  const out={};
+  for(const id of ['game','movePad','fireButton','breachControls','soundButton']){
+   out[id]=['gesturestart','gesturechange','gestureend','dblclick','dragstart','contextmenu'].map(type=>{
+    const e=new Event(type,{bubbles:true,cancelable:true});document.getElementById(id).dispatchEvent(e);return e.defaultPrevented;
+   });
+  }
+  return out;
+ });
+ for(const id of ['game','movePad','fireButton','breachControls'])expect(cancelled[id]).toEqual([true,true,true,true,true,true]);
+ expect(cancelled.soundButton).toEqual([false,false,false,false,false,false]);
 });

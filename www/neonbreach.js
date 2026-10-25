@@ -13,7 +13,7 @@ document.querySelector('.breach-arena').append(checkPanel);
 function showControlCheck(){
  if(!controlCheck.enabled)return;
  const p=state.player,c=controlCheck;
- checkPanel.textContent=`CONTROL CHECK v1 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
+ checkPanel.textContent=`CONTROL CHECK v1 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nPage zoom ${(window.visualViewport?.scale||1).toFixed(2)}x\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
 }
 checkButton.addEventListener('click',()=>{
  controlCheck.enabled=!controlCheck.enabled;checkPanel.hidden=!controlCheck.enabled;
@@ -75,6 +75,17 @@ function moveInput(id,point){
 }
 function releaseInput(id){if(id===moveId){moveId=null;joy={forward:0,strafe:0};knob.style.transform=''}if(id===aimId)aimId=null;if(id===fireId)fireId=null}
 const touchId=t=>'touch:'+t.identifier,pointerId=e=>'pointer:'+e.pointerId;
+// WKWebView can recognize a native page gesture across the arena and thumb
+// controls. Cancel its default action without consuming either gameplay finger.
+function preventControlGesture(e){
+ const onSurface=e.target instanceof Element&&e.target.closest('.breach-arena,#breachControls');
+ const heldTouch=[moveId,aimId,fireId].some(id=>typeof id==='string'&&id.startsWith('touch:'));
+ if(onSurface||(running&&!paused&&heldTouch))e.preventDefault();
+}
+for(const name of ['gesturestart','gesturechange','gestureend','dblclick','dragstart','contextmenu']){
+ document.addEventListener(name,preventControlGesture,{capture:true,passive:false});
+}
+
 for(const [el,role] of [[pad,'move'],[canvas,'aim'],[fireButton,'fire']]){
  el.addEventListener('touchstart',e=>{
   if(!running||paused)return;
@@ -93,8 +104,10 @@ document.addEventListener('touchmove',e=>{
  if(handled)e.preventDefault();
 },{passive:false});
 for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{
- for(const touch of e.changedTouches)releaseInput(touchId(touch));
-});
+ let handled=false;
+ for(const touch of e.changedTouches){const id=touchId(touch);if(id===moveId||id===aimId||id===fireId)handled=true;releaseInput(id)}
+ if(handled)e.preventDefault();
+},{passive:false});
 document.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>{if(e.pointerType!=='touch')releaseInput(pointerId(e))});
 document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,a,.modal-backdrop,#soundButton,#voiceButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d',' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault();if(running&&!paused)keys.add(key)}if(e.key==='Enter'&&!running&&!starting)start()});document.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
