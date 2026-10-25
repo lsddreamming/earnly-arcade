@@ -498,9 +498,10 @@
   });
   $("free-only").addEventListener("change", (event) => { state.freeOnly = event.target.checked; renderShop(); });
   $("back-to-collection").addEventListener("click", () => {
-    const target = Array.from(document.querySelectorAll("[data-preview-item-id]"))
-      .find(button => button.dataset.previewItemId === previewSourceId);
-    const destination = target?.closest(".item-card") || $("collection");
+    const card = Array.from(document.querySelectorAll(".item-card"))
+      .find(node => node.querySelector("[data-preview-item-id=\"" + CSS.escape(previewSourceId || "") + "\"]"));
+    const target = card?.querySelector(".item-art-trigger");
+    const destination = card || $("collection");
     destination.scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
     (target || $("shop-search")).focus({preventScroll: true});
   });
