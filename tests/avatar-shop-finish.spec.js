@@ -27,6 +27,8 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await selectShopSlot(page,'jewelry');
  await expect(page.getByLabel('Gear category',{exact:true})).toHaveValue('jewelry');
  await expect(page.locator('#studio-category')).toHaveValue('jewelry');
+ await expect(page.locator('#studio-category')).toBeHidden();
+ await expect(page.locator('.studio-category-label')).toBeHidden();
  await expect(page.locator('[data-gear-view="detail"]')).toHaveAttribute('aria-pressed','true');
  const firstCard=page.locator('#shop-grid .item-card').first();
  await expect(firstCard).toBeVisible();
