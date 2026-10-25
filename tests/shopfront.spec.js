@@ -254,14 +254,14 @@ test('Shop departments survive reload and browser history, with World furniture 
  expect(f.writes).toHaveLength(0);
 });
 
-test('Gear detail isolates pieces, preserves try-on and never changes ownership',async({page})=>{
+test('Close-up isolates pieces, resets by category and never changes ownership',async({page})=>{
  if(test.info().project.name==='desktop-chromium')await page.setViewportSize({width:390,height:844});
  const f=await setup(page);const saved=JSON.stringify(f.user.equipped);
- await selectShopSlot(page,'outfit');
- await page.getByRole('button',{name:'Close-up',exact:true}).click();
- await expect(page.getByRole('button',{name:'Close-up',exact:true})).toHaveAttribute('aria-pressed','true');
  for(const slot of ['outfit','shoes','backpack','face','head']){
   await selectShopSlot(page,slot);
+  await expect(page.getByRole('button',{name:'On avatar',exact:true})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'Close-up',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Close-up',exact:true})).toHaveAttribute('aria-pressed','true');
   const cards=page.locator('.item-art[data-detail="true"]');await expect(cards).not.toHaveCount(0);
   for(const card of await cards.all()){
    const images=card.locator('img');expect(await images.count()).toBeLessThanOrEqual(1);
@@ -270,13 +270,17 @@ test('Gear detail isolates pieces, preserves try-on and never changes ownership'
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-'+slot+'.png')});
  }
- await selectShopSlot(page,'outfit');await page.getByRole('button',{name:'Try on Aurora Armor',exact:true}).click();
+ await selectShopSlot(page,'jewelry');
+ await expect(page.getByRole('button',{name:'Close-up',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.item-art[data-detail="true"]')).not.toHaveCount(0);
+ await selectShopSlot(page,'outfit');
+ await expect(page.getByRole('button',{name:'On avatar',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'Try on Aurora Armor',exact:true}).click();
  await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();expect(await page.locator('#character-stage img').count()).toBeGreaterThan(1);
- await page.getByRole('button',{name:'On avatar',exact:true}).click();await expect(page.locator('.item-art[data-detail="true"]')).toHaveCount(0);
  expect(await page.locator('.item-art').first().locator('img').count()).toBeGreaterThan(1);
  await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-outfits-on-avatar.png')});
  await selectShopSlot(page,'avatar');await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-skins.png')});
- for(const button of await page.locator('.item-card button').all())expect(await button.evaluate(b=>{const box=b.getBoundingClientRect(),card=b.closest('.item-card').getBoundingClientRect();return box.left>=card.left&&box.right<=card.right&&b.scrollWidth<=b.clientWidth;})).toBe(true);
+ for(const button of await page.locator('.item-card button:visible').all())expect(await button.evaluate(b=>{const box=b.getBoundingClientRect(),card=b.closest('.item-card').getBoundingClientRect();return box.left>=card.left&&box.right<=card.right&&b.scrollWidth<=b.clientWidth;})).toBe(true);
  expect(JSON.stringify(f.user.equipped)).toBe(saved);expect(f.writes).toHaveLength(0);await expect(page.locator('#coin-balance')).toHaveText('1,250');
 });
 
@@ -289,7 +293,7 @@ test('Compact shop cards keep readable controls and one price at phone widths',a
   const card=page.locator('.item-card').filter({has:page.getByRole('heading',{name:'Neon Jacket',exact:true})});
   await expect(card).toContainText('300 · Buy');
   expect((await card.boundingBox()).height).toBeLessThan(width===320?340:310);
-  for(const button of await card.locator('button').all()){
+  for(const button of await card.locator('button:visible').all()){
    const b=await button.boundingBox();expect(b.height).toBeGreaterThanOrEqual(44);
    expect(await button.evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
   }
@@ -306,10 +310,10 @@ test('Compact shop cards keep readable controls and one price at phone widths',a
  await expect(page.locator('#preview-actions')).toContainText('Neon Phantom');
  expect(writes).toHaveLength(0);
  await page.locator('#back-to-collection').click();
- await expect(page.locator('[data-preview-item-id="neon-phantom"]')).toBeFocused();
+ await expect(page.getByRole('button',{name:'Try on Neon Phantom',exact:true})).toBeFocused();
  await page.locator('.shop-refine summary').click();
  await page.locator('#owned-only').check();
- await expect(page.locator('[data-preview-item-id="neon-phantom"]')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Try on Neon Phantom',exact:true})).toHaveCount(0);
  });
 
 test('Six category dropdowns expose every slot without horizontal scrolling or purchases',async({page})=>{
