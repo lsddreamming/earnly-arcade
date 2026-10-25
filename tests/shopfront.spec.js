@@ -258,8 +258,8 @@ test('Gear detail isolates pieces, preserves try-on and never changes ownership'
  if(test.info().project.name==='desktop-chromium')await page.setViewportSize({width:390,height:844});
  const f=await setup(page);const saved=JSON.stringify(f.user.equipped);
  await selectShopSlot(page,'outfit');
- await page.getByRole('button',{name:'Gear detail',exact:true}).click();
- await expect(page.getByRole('button',{name:'Gear detail',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'Close-up',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Close-up',exact:true})).toHaveAttribute('aria-pressed','true');
  for(const slot of ['outfit','shoes','backpack','face','head']){
   await selectShopSlot(page,slot);
   const cards=page.locator('.item-art[data-detail="true"]');await expect(cards).not.toHaveCount(0);
