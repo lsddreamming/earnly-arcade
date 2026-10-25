@@ -260,6 +260,11 @@ test('Spud browsing shortcut and face previews stay usable on small phones',asyn
   expect(transforms.length).toBeGreaterThan(2);
   expect(new Set(transforms).size).toBe(1); // Face, body and worn accessories zoom as one rig.
   expect(transforms[0]).not.toBe('none');
+  const actionWidth=await face.locator('..').locator('.item-actions').evaluate(actions=>{
+   const button=actions.querySelector('button:not(.preview-item)');
+   return {available:actions.getBoundingClientRect().width,button:button.getBoundingClientRect().width};
+  });
+  expect(actionWidth.button).toBeGreaterThanOrEqual(actionWidth.available-1);
   await face.locator('.item-art-trigger').click();
   await expect(page.locator('#preview-note')).toContainText('Preview only');
   await expect(page.locator('#coin-balance')).toHaveText('1,250');

@@ -158,3 +158,6 @@
  .studio-dashboard #shop-grid .item-card h3{padding:0;font-size:13px;margin:9px 9px 4px}
  .studio-dashboard #shop-grid .item-category{padding:0;margin:0 9px 9px}
 }
+
+/* Legacy button grid coordinates must not create an empty second action column. */
+body.studio-dashboard #shop-grid .item-actions button{grid-column:auto;grid-row:auto}
