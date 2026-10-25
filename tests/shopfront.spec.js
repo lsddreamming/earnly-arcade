@@ -95,7 +95,7 @@ test('Within my balance uses server funds and retains owned items',async({page})
  expect(f.writes).toHaveLength(0);
 });
 test('Insufficient funds offers next steps, never charges, and preserves the preview',async({page})=>{
- const f=await setup(page,{coins:'100'});await page.getByRole('button',{name:'Preview Neon Phantom',exact:true}).click();
+ const f=await setup(page,{coins:'100'});await page.getByRole('button',{name:'Try on Neon Phantom',exact:true}).click();
  await page.getByRole('button',{name:'Unlock preview Neon Phantom',exact:true}).click();await expect(page.locator('#confirm-purchase')).toBeDisabled();
  await expect(page.locator('#purchase-remaining')).toContainText('150 more coins');await page.getByRole('link',{name:'See coin options',exact:true}).click();
  await expect(page.locator('#purchase-modal')).not.toBeVisible();await expect(page.locator('#character-stage img[alt="Neon Phantom"]')).toHaveCount(1);
@@ -161,7 +161,7 @@ test('Continue browsing returns to a searched item without changing the preview 
  const f=await setup(page);
  await page.locator('#shop-search').fill('Neon');
  await page.locator('.shop-refine').evaluate(el => { el.open = true; });await page.locator('#shop-sort').selectOption('price');
- const preview=page.getByRole('button',{name:'Preview Neon Jacket',exact:true});
+ const preview=page.getByRole('button',{name:'Try on Neon Jacket',exact:true});
  await preview.click();
  await expect(page.locator('#character-stage img[alt="Neon Jacket"]')).toHaveCount(1);
  await page.getByRole('button',{name:'Continue browsing',exact:true}).click();
@@ -270,7 +270,7 @@ test('Gear detail isolates pieces, preserves try-on and never changes ownership'
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.locator('#shop-grid').screenshot({path:test.info().outputPath('atelier-'+slot+'.png')});
  }
- await selectShopSlot(page,'outfit');await page.getByRole('button',{name:'Preview Aurora Armor',exact:true}).click();
+ await selectShopSlot(page,'outfit');await page.getByRole('button',{name:'Try on Aurora Armor',exact:true}).click();
  await expect(page.locator('#character-stage img[alt="Aurora Armor"]')).toBeVisible();expect(await page.locator('#character-stage img').count()).toBeGreaterThan(1);
  await page.getByRole('button',{name:'On avatar',exact:true}).click();await expect(page.locator('.item-art[data-detail="true"]')).toHaveCount(0);
  expect(await page.locator('.item-art').first().locator('img').count()).toBeGreaterThan(1);
