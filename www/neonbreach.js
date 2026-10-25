@@ -4,7 +4,7 @@ const E=NeonBreachEngine,game='neonBreach',canvas=document.getElementById('game'
 let state=E.create(),running=false,starting=false,paused=false,last=0,raf=0,moveId=null,aimId=null,fireId=null,aimX=0,joy={forward:0,strafe:0},keys=new Set(),pauseControl;
 
 // Opt-in, on-device control evidence. Nothing is stored or uploaded.
-const controlCheck={enabled:false,raw:0,last:'none',accepted:0,role:'none',frames:0,origin:null,distance:0};
+const controlCheck={enabled:false,raw:0,last:'none',accepted:0,role:'none',frames:0,origin:null,distance:0,starts:{move:0,aim:0,fire:0},hit:'none'};
 const checkButton=document.createElement('button');checkButton.id='breachControlCheck';checkButton.type='button';checkButton.textContent='Control check';checkButton.setAttribute('aria-pressed','false');
 checkButton.className='breach-control-check';document.querySelector('.aim-tip').append(checkButton);
 const checkPanel=document.createElement('pre');checkPanel.id='breachControlReadout';checkPanel.hidden=true;
@@ -13,12 +13,12 @@ document.querySelector('.breach-arena').append(checkPanel);
 function showControlCheck(){
  if(!controlCheck.enabled)return;
  const p=state.player,c=controlCheck;
- checkPanel.textContent=`CONTROL CHECK v1 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nPage zoom ${(window.visualViewport?.scale||1).toFixed(2)}x\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
+ checkPanel.textContent=`CONTROL CHECK v2 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nPage zoom ${(window.visualViewport?.scale||1).toFixed(2)}x\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nStarts M ${c.starts.move} A ${c.starts.aim} F ${c.starts.fire} · hit ${c.hit}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
 }
 checkButton.addEventListener('click',()=>{
  controlCheck.enabled=!controlCheck.enabled;checkPanel.hidden=!controlCheck.enabled;
  checkButton.setAttribute('aria-pressed',String(controlCheck.enabled));
- if(controlCheck.enabled){Object.assign(controlCheck,{raw:0,last:'none',accepted:0,role:'none',frames:0,origin:{x:state.player.x,y:state.player.y},distance:0});showControlCheck()}
+ if(controlCheck.enabled){Object.assign(controlCheck,{raw:0,last:'none',accepted:0,role:'none',frames:0,origin:{x:state.player.x,y:state.player.y},distance:0,starts:{move:0,aim:0,fire:0},hit:'none'});showControlCheck()}
 });
 function observeControlTouch(e){
  if(!controlCheck.enabled||e.target===checkButton)return;
@@ -65,7 +65,7 @@ function beginInput(role,id,point){
  if(!running||paused)return;
  const current=role==='move'?moveId:role==='aim'?aimId:fireId;
  if(id.startsWith('touch:')&&current?.startsWith('touch-pointer:'))releaseInput(current);
- if(controlCheck.enabled&&((role==='move'&&moveId===null)||(role==='aim'&&aimId===null)||(role==='fire'&&fireId===null))){controlCheck.accepted++;controlCheck.role=role}
+ if(controlCheck.enabled&&((role==='move'&&moveId===null)||(role==='aim'&&aimId===null)||(role==='fire'&&fireId===null))){controlCheck.accepted++;controlCheck.role=role;controlCheck.starts[role]++}
  if(role==='move'&&moveId===null){moveId=id;steer(point)}
  if(role==='aim'&&aimId===null){aimId=id;aimX=point.clientX}
  if(role==='fire'&&fireId===null){fireId=id;audio.unlock()}
@@ -88,16 +88,34 @@ for(const name of ['gesturestart','gesturechange','gestureend','dblclick','drags
  document.addEventListener(name,preventControlGesture,{capture:true,passive:false});
 }
 
+// Resolve every finger against the visible page, independently of the event's
+// target. A multi-touch event can share one target; embedded touch adjustment
+// can also deliver it to a neighbour. Never route through a modal or overlay.
+function fingerSurface(point){
+ const hit=document.elementFromPoint(point.clientX,point.clientY);
+ if(controlCheck.enabled)controlCheck.hit=hit?.closest('[id]')?.id||hit?.tagName||'none';
+ const el=hit?.closest('#movePad,#game,#fireButton');
+ return el===pad?'move':el===canvas?'aim':el===fireButton?'fire':null;
+}
+document.addEventListener('touchstart',e=>{
+ if(!running||paused)return;
+ let handled=false;
+ for(const touch of e.changedTouches){
+  const role=fingerSurface(touch);
+  if(role){beginInput(role,touchId(touch),touch);handled=true}
+ }
+ if(handled)e.preventDefault();
+},{capture:true,passive:false});
+document.addEventListener('pointerdown',e=>{
+ if(e.pointerType!=='touch'||!running||paused||e.button>0)return;
+ const role=fingerSurface(e);
+ if(role){e.preventDefault();beginInput(role,pointerId(e),e)}
+},{capture:true,passive:false});
 for(const [el,role] of [[pad,'move'],[canvas,'aim'],[fireButton,'fire']]){
- el.addEventListener('touchstart',e=>{
-  if(!running||paused)return;
-  e.preventDefault();
-  for(const touch of e.changedTouches)beginInput(role,touchId(touch),touch);
- },{passive:false});
  el.addEventListener('pointerdown',e=>{
-  if(!running||paused||e.button>0)return;
+  if(e.pointerType==='touch'||!running||paused||e.button>0)return;
   e.preventDefault();beginInput(role,pointerId(e),e);
-  if(e.pointerType!=='touch')try{el.setPointerCapture(e.pointerId)}catch{}
+  try{el.setPointerCapture(e.pointerId)}catch{}
  });
 }
 document.addEventListener('touchmove',e=>{
