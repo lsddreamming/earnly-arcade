@@ -339,6 +339,8 @@ test('Six category dropdowns expose every slot without horizontal scrolling or p
   await expect(page.locator('.shop-category-group.is-active')).toHaveCount(1);
  }
  expect(f.writes).toHaveLength(0);
+ await selectShopSlot(page,'building');
+ await expect(page.locator('.gear-view')).toBeHidden();
  await selectShopSlot(page,'eyes');
  await page.locator('#collection').scrollIntoViewIfNeeded();
  await page.screenshot({path:test.info().outputPath('grouped-shop-phone.png')});
