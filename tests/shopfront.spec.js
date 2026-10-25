@@ -9,6 +9,7 @@ const data = [
  ['no-backpack','No Backpack','backpack',0],['adventure-pack','Adventure Pack','backpack',350],['aurora-pack','Aurora Pack','backpack',550],
  ['no-beard','Clean Shaven','beard',0],['explorer-beard','Explorer Beard','beard',0],['no-facewear','No Facewear','face',0],['round-glasses','Round Glasses','face',0],['star-goggles','Star Goggles','face',250],['amber-goggles','Amber Goggles','face',350],
  ['no-headwear','No Headwear','head',0],['ribbed-beanie','Ribbed Beanie','head',0],['comms-headset','Comms Headset','head',350],['sun-crown','Sun Crown','head',500],
+ ['silver-chain','Silver Chain','jewelry',200],
 ];
 const starters=['cyber-starter','starter-suit','starter-blaster','trail-boots','no-backpack','no-beard','no-facewear','no-headwear'];
 // Production also includes transparent strategy-game defaults. They must not hide full avatar previews.
