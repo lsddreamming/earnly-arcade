@@ -35,3 +35,5 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 
 /* Keep native page gestures and drag previews out of the two-thumb controls. */
 .breach-arena,.breach-arena *,#breachControls,#breachControls *{touch-action:none;-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+
+.aim-tip .breach-control-check{display:block;width:100%;min-height:44px;margin:3px 0 0;padding:3px 5px;font-size:10px;border:1px solid #48758a;border-radius:8px;background:#102b3d;color:#d3f4ff;touch-action:manipulation}
