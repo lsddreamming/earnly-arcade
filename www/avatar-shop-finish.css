@@ -88,6 +88,7 @@
 }
 
 /* Six visible groups replace the long horizontal category rail. */
+.studio-dashboard .studio-category-label,.studio-dashboard #studio-category{display:none!important}
 .studio-dashboard .shop-tabs[hidden]{display:none!important}
 .studio-dashboard .shop-category-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
 .studio-dashboard .shop-category-group{min-width:0;padding:8px;background:#102237;border:1px solid #426078;border-radius:12px}

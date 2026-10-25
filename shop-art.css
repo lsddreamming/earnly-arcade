@@ -42,3 +42,14 @@ body.studio-dashboard #shop-grid .is-trying-on{border-color:#69dbe6!important}
 .tryon-state{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);padding:4px 9px;border:1px solid #71dfe4;border-radius:20px;background:#102a3def;color:#c1ffff;font-size:10px;font-weight:700;white-space:nowrap}
 body.studio-dashboard #shop-grid button:focus-visible,.shop-refine>summary:focus-visible{outline:3px solid #91eaff;outline-offset:-3px}
 @media(hover:hover) and (prefers-reduced-motion:no-preference){body.studio-dashboard #shop-grid .item-art .character{transition:filter .18s ease}body.studio-dashboard #shop-grid .item-art:hover .character{filter:drop-shadow(0 7px 9px #62dfea55)}}
+
+/* Phone cards use the artwork itself for try-on, leaving one obvious action below. */
+@media(max-width:600px){
+ body.studio-dashboard #shop-grid .item-actions{grid-template-columns:1fr}
+ body.studio-dashboard #shop-grid .preview-item{display:none}
+ body.studio-dashboard #shop-grid .item-art-trigger::after{
+  content:"Try on";position:absolute;right:7px;bottom:7px;padding:4px 7px;border-radius:999px;
+  border:1px solid #70dbe1;background:#102a3de8;color:#c8ffff;font-size:9px;font-weight:800;letter-spacing:.02em;
+ }
+ body.studio-dashboard #shop-grid .is-trying-on .item-art-trigger::after{display:none}
+}

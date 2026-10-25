@@ -473,9 +473,12 @@
   });
   window.addEventListener('earnly-pass-change',()=>{ $('refresh-button').click(); });
   $("affordable-only").addEventListener("change", e => { state.affordableOnly = e.target.checked; renderShop(); });
+  function setGearDetail(detail){
+    state.gearDetail=!!detail;
+    for(const button of document.querySelectorAll('[data-gear-view]'))button.setAttribute('aria-pressed',String((button.dataset.gearView==='detail')===state.gearDetail));
+  }
   for(const option of document.querySelectorAll('[data-gear-view]'))option.addEventListener('click',()=>{
-    state.gearDetail=option.dataset.gearView==='detail';
-    for(const button of document.querySelectorAll('[data-gear-view]'))button.setAttribute('aria-pressed',String(button===option));
+    setGearDetail(option.dataset.gearView==='detail');
     renderShop();
   });
   $("shop-sort").addEventListener("change", e => { state.sort = e.target.value; renderShop(); });
@@ -495,9 +498,10 @@
   });
   $("free-only").addEventListener("change", (event) => { state.freeOnly = event.target.checked; renderShop(); });
   $("back-to-collection").addEventListener("click", () => {
-    const target = Array.from(document.querySelectorAll("[data-preview-item-id]"))
-      .find(button => button.dataset.previewItemId === previewSourceId);
-    const destination = target?.closest(".item-card") || $("collection");
+    const card = Array.from(document.querySelectorAll(".item-card"))
+      .find(node => node.querySelector("[data-preview-item-id=\"" + CSS.escape(previewSourceId || "") + "\"]"));
+    const target = card?.querySelector(".item-art-trigger");
+    const destination = card || $("collection");
     destination.scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
     (target || $("shop-search")).focus({preventScroll: true});
   });
@@ -505,6 +509,7 @@
   for (const button of document.querySelectorAll(".shop-tabs button[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
+      setGearDetail(state.slot === "jewelry");
       $("studio-category").value = state.slot;
       for (const select of document.querySelectorAll('[data-shop-group]')) {
         const active = Array.from(select.options).some(option => option.value === state.slot);
