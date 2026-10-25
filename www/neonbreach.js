@@ -3,6 +3,32 @@
 const E=NeonBreachEngine,game='neonBreach',canvas=document.getElementById('game'),message=document.getElementById('arenaMessage'),pad=document.getElementById('movePad'),knob=document.getElementById('moveKnob'),fireButton=document.getElementById('fireButton'),els=Object.fromEntries(['score','health','wave','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
 let state=E.create(),running=false,starting=false,paused=false,last=0,raf=0,moveId=null,aimId=null,fireId=null,aimX=0,joy={forward:0,strafe:0},keys=new Set(),pauseControl;
 
+// Opt-in, on-device control evidence. Nothing is stored or uploaded.
+const controlCheck={enabled:false,raw:0,last:'none',accepted:0,role:'none',frames:0,origin:null,distance:0};
+const checkButton=document.createElement('button');checkButton.id='breachControlCheck';checkButton.type='button';checkButton.textContent='Control check';checkButton.setAttribute('aria-pressed','false');
+const checkRow=document.createElement('div');checkRow.className='breach-settings';checkRow.append(checkButton);document.querySelector('.breach-settings').insertAdjacentElement('afterend',checkRow);
+const checkPanel=document.createElement('pre');checkPanel.id='breachControlReadout';checkPanel.hidden=true;
+checkPanel.style.cssText='position:absolute;top:4px;left:4px;right:4px;margin:0;padding:8px;background:#06101fee;color:#fff;font:11px/1.4 monospace;white-space:pre-wrap;pointer-events:none;z-index:3';
+document.querySelector('.breach-arena').append(checkPanel);
+function showControlCheck(){
+ if(!controlCheck.enabled)return;
+ const p=state.player,c=controlCheck;
+ checkPanel.textContent=`CONTROL CHECK v1 · ${window.Capacitor?.isNativePlatform?.()?'APP':'WEB'}\n${running?(paused?'Paused':'Running'):(starting?'Countdown':'Ready')} · frames ${c.frames}\nEvents ${c.raw} · last ${c.last}\nAccepted ${c.accepted} · ${c.role}\nMove ${joy.forward.toFixed(2)}, ${joy.strafe.toFixed(2)} · fire ${fireId!==null?'ON':'off'}\nPosition ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · moved ${c.distance.toFixed(2)}\nTry MOVE, drag the arena, then FIRE. Screenshot this.`;
+}
+checkButton.addEventListener('click',()=>{
+ controlCheck.enabled=!controlCheck.enabled;checkPanel.hidden=!controlCheck.enabled;
+ checkButton.setAttribute('aria-pressed',String(controlCheck.enabled));
+ if(controlCheck.enabled){Object.assign(controlCheck,{raw:0,last:'none',accepted:0,role:'none',frames:0,origin:{x:state.player.x,y:state.player.y},distance:0});showControlCheck()}
+});
+function observeControlTouch(e){
+ if(!controlCheck.enabled||e.target===checkButton)return;
+ controlCheck.raw++;const target=e.target instanceof Element?e.target.closest('[id]'):null;
+ controlCheck.last=e.type+':'+(target?.id||'page');
+}
+for(const name of ['touchstart','pointerdown'])window.addEventListener(name,observeControlTouch,{capture:true,passive:true});
+const checkTimer=setInterval(showControlCheck,200);
+window.addEventListener('pagehide',()=>{clearInterval(checkTimer);for(const name of ['touchstart','pointerdown'])window.removeEventListener(name,observeControlTouch,true)},{once:true});
+
 function resetInput(){moveId=aimId=fireId=null;joy={forward:0,strafe:0};keys.clear();knob.style.transform='';fireButton.classList.remove('firing')}
 function chrome(){const values={score:state.score,health:state.player.hp,wave:Math.max(1,state.wave),plays:Arcade.remaining(game),balance:Arcade.number('points').toLocaleString()};for(const [key,value] of Object.entries(values))if(els[key].textContent!==String(value))els[key].textContent=value;els.health.parentElement.classList.toggle('critical',state.player.hp<=25)}
 function status(text,active){els.gameStatus.textContent=text;els.gameStatus.classList.toggle('running',!!active);document.body.classList.toggle('game-active',!!active)}
@@ -28,15 +54,16 @@ function events(){
  if(state.time>captionUntil)comms.hidden=true;
 }
 
-function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000);last=now;const input={forward:joy.forward+(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0),strafe:joy.strafe+(keys.has('d')?1:0)-(keys.has('a')?1:0),turn:(keys.has('ArrowRight')?2:0)-(keys.has('ArrowLeft')?2:0),fire:fireId!==null||keys.has(' ')};E.tick(state,dt,input);events();chrome();render(dt,Math.hypot(input.forward,input.strafe)>.1);fireButton.classList.toggle('firing',input.fire);if(state.ended){finish();return}raf=requestAnimationFrame(loop)}
+function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000);last=now;const input={forward:joy.forward+(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0),strafe:joy.strafe+(keys.has('d')?1:0)-(keys.has('a')?1:0),turn:(keys.has('ArrowRight')?2:0)-(keys.has('ArrowLeft')?2:0),fire:fireId!==null||keys.has(' ')};E.tick(state,dt,input);if(controlCheck.enabled){controlCheck.frames++;const o=controlCheck.origin;if(o)controlCheck.distance=Math.max(controlCheck.distance,Math.hypot(state.player.x-o.x,state.player.y-o.y))}events();chrome();render(dt,Math.hypot(input.forward,input.strafe)>.1);fireButton.classList.toggle('firing',input.fire);if(state.ended){finish();return}raf=requestAnimationFrame(loop)}
 function finish(){if(!running)return;running=false;audio.stop();if(state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML='RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const result=Arcade.recordResult(game,state.score);chrome();Arcade.gameResult({game,icon:'🤖',title:state.time>=180?'Breach Complete':'Neon Breach Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🤖 Robots defeated: ${state.kills}`,`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
-function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=E.create();message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
+function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=E.create();if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
 els.startButton.addEventListener('click',start);
 // Touch Events own fingers; Pointer Events own mouse/pen. Do not depend on
 // WKWebView delivering a complete pointer stream or retaining pointer capture.
 function steer(e){const r=pad.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/32,dy=(e.clientY-r.top-r.height/2)/32,n=Math.max(1,Math.hypot(dx,dy));joy={strafe:dx/n,forward:-dy/n};knob.style.transform=`translate(${joy.strafe*28}px,${-joy.forward*28}px)`}
 function beginInput(role,id,point){
  if(!running||paused)return;
+ if(controlCheck.enabled&&((role==='move'&&moveId===null)||(role==='aim'&&aimId===null)||(role==='fire'&&fireId===null))){controlCheck.accepted++;controlCheck.role=role}
  if(role==='move'&&moveId===null){moveId=id;steer(point)}
  if(role==='aim'&&aimId===null){aimId=id;aimX=point.clientX}
  if(role==='fire'&&fireId===null){fireId=id;audio.unlock()}

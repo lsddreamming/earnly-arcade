@@ -354,3 +354,76 @@ test('Touch-only controls move the player, aim and fire together without pointer
  await page.locator('#earnlyPauseButton').click();
  await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:0,strafe:0,fire:false});
 });
+
+
+// Coordinate-based touches exercise hit testing, unlike dispatchEvent on a
+// selected element. Run the bundled app assets as well as the website assets.
+for (const root of ['', '/www']) {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 375, height: 667 }, { width: 844, height: 390 }]) {
+    test(`Neon Breach touch targets ${root || '/'} ${viewport.width}x${viewport.height}`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
+      const page = await context.newPage();
+      try {
+        await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+        await page.addInitScript(() => localStorage.setItem('arcadeSound', 'off'));
+        await page.goto(`http://127.0.0.1:4173${root}/neonbreach.html`);
+        await page.locator('#startButton').tap();
+        await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout: 10000 });
+        await page.evaluate(() => {
+          window.controlTouches = [];
+          document.addEventListener('touchstart', event => {
+            window.controlTouches.push({
+              target: event.target.closest('#movePad,#fireButton,#game')?.id || event.target.id || event.target.tagName,
+              knob: document.getElementById('moveKnob').style.transform
+            });
+          });
+        });
+        for (const id of ['movePad', 'fireButton', 'game']) {
+          const box = await page.locator('#' + id).boundingBox();
+          expect(box).not.toBeNull();
+          const x = box.x + box.width / 2, y = box.y + box.height / 4;
+          expect(x).toBeGreaterThan(0); expect(x).toBeLessThan(viewport.width);
+          expect(y).toBeGreaterThan(0); expect(y).toBeLessThan(viewport.height);
+          // Do not let Locator.tap scroll or retry around an overlay.
+          await page.touchscreen.tap(x, y);
+          await expect.poll(() => page.evaluate(() => controlTouches.at(-1)?.target)).toBe(id);
+          if (id === 'movePad') {
+            expect(await page.evaluate(() => controlTouches.at(-1).knob)).toMatch(/translate/);
+            await expect(page.locator('#moveKnob')).toHaveAttribute('style', '');
+          }
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}
+
+
+test('Opt-in control check shows input acceptance and real movement without covering controls',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const panel=page.locator('#breachControlReadout');
+ await expect(panel).toBeHidden();
+ await page.locator('#breachControlCheck').click();
+ await expect(panel).toContainText('CONTROL CHECK v1');
+ await expect(panel).toHaveCSS('pointer-events','none');
+ await page.locator('#startButton').click();
+ await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await page.evaluate(()=>{
+  const target=document.getElementById('movePad'),r=target.getBoundingClientRect();
+  const event=new Event('touchstart',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'changedTouches',{value:[{identifier:21,target,clientX:r.left+r.width/2,clientY:r.top+r.height/2-28}]});
+  target.dispatchEvent(event);
+ });
+ await expect(panel).toContainText('Accepted 1 · move');
+ await expect(panel).toContainText('touchstart:movePad');
+ await expect.poll(async()=>Number((await panel.textContent()).match(/moved ([\d.]+)/)[1])).toBeGreaterThan(.1);
+ await page.evaluate(()=>{
+  const event=new Event('touchend',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'changedTouches',{value:[{identifier:21}]});document.dispatchEvent(event);
+ });
+ await expect(panel).toContainText('Move 0.00, 0.00');
+ await expect(panel).toContainText('Accepted 1 · move');
+ await page.locator('#breachControlCheck').click();await expect(panel).toBeHidden();
+ await page.locator('#breachControlCheck').click();await expect(panel).toContainText('Accepted 0 · none');
+});
