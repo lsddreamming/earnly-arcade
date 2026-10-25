@@ -69,7 +69,7 @@
   $('assist').hidden=mode!=='lost'||Number(failures[game.state().level]||0)<3;modal=mode;returnFocus=document.activeElement;$('overlayTag').textContent=`LEVEL ${game.state().level+1} · ${game.state().name.toUpperCase()}`;$('resultTitle').textContent=title;$('resultText').textContent=text;$('play').textContent=button;$('overlayTip').textContent=extra;$('cancel').hidden=!['restart','quit'].includes(mode);$('overlay').hidden=false;
  }
  function end(){
-  started=false;paused=false;const s=game.state();if(s.score>best){best=s.score;save('earnlyBubblePopPreviewBest',best);}update();$('pause').disabled=true;$('restart').disabled=true;$('hint').disabled=true;
+  started=false;paused=false;document.body.classList.remove('is-playing');const s=game.state();if(s.score>best){best=s.score;save('earnlyBubblePopPreviewBest',best);}update();$('pause').disabled=true;$('restart').disabled=true;$('hint').disabled=true;
   if(s.status==='won'){
    failures[s.level]=0;save('earnlyBubblePopRetries',JSON.stringify(failures));unlocked=Math.max(unlocked,Math.min(999,s.level+1));save('earnlyBubblePopUnlocked',unlocked);tone('win');const last=s.level===s.levelCount-1;save('earnlyBubblePopLevel',last?0:s.level+1);
    overlay(last?'complete':'won',last?`All ${s.levelCount.toLocaleString()} cleared!`:'Level cleared!',`${s.assisted?'Assisted · ':''}${s.moves>=8?'★★★':s.moves>=3?'★★':'★'} · ${s.levelScore.toLocaleString()} points`,last?'Play from level 1 →':'Next level →',last?'Try building bigger power-up combos on your next run.':`Next: ${E.levelRules(s.level+1).name}`);
@@ -93,7 +93,7 @@
  function begin(kind){
   clearTimeout(timer);cancelAnimationFrame(raf);transition=null;swapMotion=null;waveQueue=[];anchor=null;hintPair=null;pointer=null;busy=false;paused=false;
   if(kind==='won')game.next();else if(kind==='complete')game.reset(0);else if(kind==='lost'||kind==='restart')game.restart();
-  started=true;modal=null;$('overlay').hidden=true;$('pause').disabled=false;$('restart').disabled=false;$('hint').disabled=false;$('pause').textContent='Pause';$('feedback').textContent='Swipe to match 3 · combine special bubbles';save('earnlyBubblePopLevel',game.state().level);update();draw();
+  started=true;document.body.classList.add('is-playing');modal=null;$('overlay').hidden=true;$('pause').disabled=false;$('restart').disabled=false;$('hint').disabled=false;$('pause').textContent='Pause';$('feedback').textContent='Swipe to match 3 · combine special bubbles';save('earnlyBubblePopLevel',game.state().level);update();draw();
  }
  function resume(){paused=false;modal=null;$('overlay').hidden=true;$('pause').textContent='Pause';if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});draw();}
  function pause(){
