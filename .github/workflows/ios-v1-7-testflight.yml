@@ -79,7 +79,9 @@ jobs:
         run: npm install
 
       - name: Run release contract tests
-        run: npx playwright test tests/quality-contract.spec.js --config=playwright.contract.config.js
+        run: |
+          node --test scripts/test-ios-export-compliance.mjs
+          npx playwright test tests/quality-contract.spec.js --config=playwright.contract.config.js
 
       - name: Build native web bundle
         run: npm run native:web
@@ -186,6 +188,7 @@ jobs:
       - name: Verify 1.7 archive version and icon
         run: |
           APP_PLIST="build/EarnlyArcade.xcarchive/Products/Applications/App.app/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP_PLIST")" = 'false'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PLIST")" = "1.7"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PLIST")" = "$EARNLY_IOS_BUILD_NUMBER"
           test -s build/EarnlyArcade.xcarchive/Products/Applications/App.app/Assets.car
@@ -255,6 +258,7 @@ jobs:
         run: |
           test -f ipa/App.ipa
           unzip -p ipa/App.ipa Payload/App.app/Info.plist > "$RUNNER_TEMP/upload-info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$RUNNER_TEMP/upload-info.plist")" = 'false'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/upload-info.plist")" = '1.7'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/upload-info.plist")" = "$((500 + GITHUB_RUN_NUMBER))"
           shasum -a 256 ipa/App.ipa
