@@ -398,3 +398,32 @@ for (const root of ['', '/www']) {
     });
   }
 }
+
+
+test('Opt-in control check shows input acceptance and real movement without covering controls',async({page})=>{
+ await page.goto('/neonbreach.html');
+ const panel=page.locator('#breachControlReadout');
+ await expect(panel).toBeHidden();
+ await page.locator('#breachControlCheck').click();
+ await expect(panel).toContainText('CONTROL CHECK v1');
+ await expect(panel).toHaveCSS('pointer-events','none');
+ await page.locator('#startButton').click();
+ await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await page.evaluate(()=>{
+  const target=document.getElementById('movePad'),r=target.getBoundingClientRect();
+  const event=new Event('touchstart',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'changedTouches',{value:[{identifier:21,target,clientX:r.left+r.width/2,clientY:r.top+r.height/2-28}]});
+  target.dispatchEvent(event);
+ });
+ await expect(panel).toContainText('Accepted 1 · move');
+ await expect(panel).toContainText('touchstart:movePad');
+ await expect.poll(async()=>Number((await panel.textContent()).match(/moved ([\d.]+)/)[1])).toBeGreaterThan(.1);
+ await page.evaluate(()=>{
+  const event=new Event('touchend',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'changedTouches',{value:[{identifier:21}]});document.dispatchEvent(event);
+ });
+ await expect(panel).toContainText('Move 0.00, 0.00');
+ await expect(panel).toContainText('Accepted 1 · move');
+ await page.locator('#breachControlCheck').click();await expect(panel).toBeHidden();
+ await page.locator('#breachControlCheck').click();await expect(panel).toContainText('Accepted 0 · none');
+});
