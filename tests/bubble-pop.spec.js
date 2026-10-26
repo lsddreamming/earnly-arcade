@@ -67,7 +67,7 @@ test('layout: phone sizes, packaged source and late levels remain usable',async(
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>localStorage.setItem('earnlyBubblePopLevel','999'));await page.goto('/www/bubble-pop.html');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');await page.locator('#play').click();await page.screenshot({path:'test-results/bubble-pop-'+info.project.name+'.png',fullPage:true});await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');
 });
 
-test('opening: free unlisted preview teaches a goal match and preserves progress on retry',async({page})=>{
+test('opening: free unlisted preview teaches a goal match and stays out of the catalog',async({page})=>{
  await setup(page);
  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex,nofollow');
  await expect(page.locator('#feedback')).toContainText('arrow direction');
@@ -75,11 +75,9 @@ test('opening: free unlisted preview teaches a goal match and preserves progress
  await expect(page.locator('#journey')).toBeHidden();
  // The suggested move is playable, and the live goal tracks the same engine outcome.
  await page.locator('#hint').click();
- const g=E.create(rng(3)),s=g.state();
- const pairs=g.legalMoves().map(pair=>{const board=s.board.map(c=>({...c}));[board[pair[0]],board[pair[1]]]=[board[pair[1]],board[pair[0]]];return {pair,target:E.matches(board).reduce((n,r)=>n+r.indices.filter(i=>board[i].color===s.goals.color).length,0)};}).sort((a,b)=>b.target-a.target);
- expect(pairs[0].target).toBeGreaterThan(0);
- const result=g.swap(...pairs[0].pair);await tapSwap(page,...pairs[0].pair);
- await expect(page.locator('#goals')).toContainText((result.goals.collect-result.goals.collected)+' left');
+ // Seed 3 has a green match when swapping row 1/2, column 4.
+ await tapSwap(page,3,10);
+ await expect(page.locator('#goals')).toContainText('15 left');
  await expect(page.locator('#moves')).toHaveText('21');
  await page.goto('/games.html');expect(await page.locator('a[href*="bubble-pop"]').count()).toBe(0);
 });
