@@ -13,7 +13,7 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Play Arcade Games Online | Earnly Arcade</title>
-  <meta name="description" content="Explore 23 Earnly Arcade games: action, strategy, driving, puzzles, and classics. Find a game, learn the controls, and start a run.">
+  <meta name="description" content="Explore 24 Earnly Arcade games: action, strategy, driving, puzzles, and classics. Find a game, learn the controls, and start a run.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=37">
   <style>
@@ -119,8 +119,8 @@
     </div>
     <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,#surpriseGame{display:none!important}</style></noscript>
     <div id="games" class="game-list compact-catalog-grid">
-      <section class="card game-card compact-game catalog-tile" data-game="bubblePop"><div class="game-title-row"><h2>🫧 Bubble Pop</h2></div><p class="reward-rule">1,000 levels · First clears earn 15–35 Coins + milestones</p><a class="wide game-play-button" href="bubble-pop.html">Play · Earn Coins</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><span class="game-new-bubble">NEW GAME</span><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Full battle wins · 10–25 Coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play · Free beta</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="bubblePop"><div class="game-title-row"><h2>🫧 Bubble Pop</h2></div><p class="reward-rule">1,000 levels · First clears earn 15–35 Coins + milestones</p><a class="wide game-play-button" href="bubble-pop.html">Play · Earn Coins</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonBreach"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Neon Breach</h2></div></div><p class="reward-rule">First-person blaster · survive robot waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonbreach.html" aria-label="Play Neon Breach">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="snake"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🐍</span><h2>Snake</h2></div></div><p class="reward-rule">Grow the snake · max 30 coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="snake.html" aria-label="Play Snake">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="blockDrop"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🧱</span><h2>Block Drop</h2></div></div><p class="reward-rule">Clear lines · speeds up · deep runs earn bonus XP</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="blockdrop.html" aria-label="Play Block Drop">Play</a></div></section>
@@ -168,7 +168,7 @@
   <script src="arcade.js"></script>
   <script>
     const gameInfo = [
-      { key:'bubblePop', icon:'🫧', name:'Bubble Pop', note:'Match 3 · 1,000 levels · First clears earn 15–35 Coins + milestone bonuses', href:'bubble-pop.html', freeBeta:true },
+      { key:'bubblePop', icon:'🫧', name:'Bubble Pop', note:'Match 3 · 1,000 levels · Earn 15–35 Coins + bonuses', href:'bubble-pop.html', freeBeta:true },
       { key:'crystalCommand', icon:'◈', name:'Crystal Command', note:'Build a base. Command an army. Full battle wins · 10–25 Coins', href:'crystal-command.html', freeBeta:true },
       { key:'neonBreach', icon:'🤖', name:'Neon Breach', note:'First-person blaster · survive robot waves', href:'neonbreach.html' },
       { key:'snake', icon:'🐍', name:'Snake', note:'Grow the snake · max 30 coins', href:'snake.html' },
@@ -309,7 +309,7 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['bubblePop','crystalCommand','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['crystalCommand','bubblePop','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
