@@ -66,3 +66,27 @@ test('layout: phone sizes, packaged source and late levels remain usable',async(
  for(const [width,height] of [[390,844],[390,664],[320,568],[844,390]]){await page.setViewportSize({width,height});await page.goto('/bubble-pop.html');await page.locator('#play').click();const m=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth,bottom:document.querySelector('.actions').getBoundingClientRect().bottom,height:innerHeight}));expect(m.scroll).toBeLessThanOrEqual(m.width);if(height>400)expect(m.bottom).toBeLessThanOrEqual(m.height);await page.screenshot({path:`test-results/bubble-pop-${info.project.name}-${width}x${height}.png`});}
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>localStorage.setItem('earnlyBubblePopLevel','999'));await page.goto('/www/bubble-pop.html');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');await page.locator('#play').click();await page.screenshot({path:'test-results/bubble-pop-'+info.project.name+'.png',fullPage:true});await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');
 });
+
+test('opening: free unlisted preview teaches a goal match and stays out of the catalog',async({page})=>{
+ await setup(page);
+ await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex,nofollow');
+ await expect(page.locator('#feedback')).toContainText('arrow direction');
+ await expect(page.locator('#goals')).toContainText('18 left');
+ await expect(page.locator('#journey')).toBeHidden();
+ // The suggested move is playable, and the live goal tracks the same engine outcome.
+ await page.locator('#hint').click();
+ // Seed 3 has a green match when swapping row 1/2, column 4.
+ await tapSwap(page,3,10);
+ await expect(page.locator('#goals')).toContainText('15 left');
+ await expect(page.locator('#moves')).toHaveText('21');
+ await page.goto('/games.html');expect(await page.locator('a[href*="bubble-pop"]').count()).toBe(0);
+});
+
+test('onboarding: collect, ice and star goals are introduced separately before mixed goals',()=>{
+ for(let level=0;level<3;level++){const r=E.levelRules(level);expect(r.collect).toBeGreaterThan(0);expect(r.ice+r.stars).toBe(0);}
+ expect(E.levelRules(3).ice).toBeGreaterThan(0);expect(E.levelRules(3).collect+E.levelRules(3).stars).toBe(0);
+ // Later procedural chapters retain their original goal order and balance.
+ expect(E.levelRules(7)).toMatchObject({collect:0,ice:10,stars:0,moves:26});
+ expect(E.levelRules(8)).toMatchObject({collect:0,ice:0,stars:2,moves:28});
+ expect(E.levelRules(4).stars).toBeGreaterThan(0);expect(E.levelRules(4).collect+E.levelRules(4).ice).toBe(0);
+});
