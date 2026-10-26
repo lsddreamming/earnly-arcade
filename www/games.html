@@ -120,6 +120,7 @@
     <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,#surpriseGame{display:none!important}</style></noscript>
     <div id="games" class="game-list compact-catalog-grid">
       <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><span class="game-new-bubble">NEW GAME</span><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Full battle wins · 10–25 Coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play · Free beta</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="neonSlice"><div class="game-title-row"><h2>🍔 Neon Slice</h2></div><p class="reward-rule">Cookout combos · Free score play, no Coins</p><a class="wide game-play-button" href="neon-slice.html">Play · Free</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="bubblePop"><div class="game-title-row"><h2>🫧 Bubble Pop</h2></div><p class="reward-rule">1,000 levels · First clears earn 15–35 Coins + milestones</p><a class="wide game-play-button" href="bubble-pop.html">Play · Earn Coins</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonBreach"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Neon Breach</h2></div></div><p class="reward-rule">First-person blaster · survive robot waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonbreach.html" aria-label="Play Neon Breach">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="snake"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🐍</span><h2>Snake</h2></div></div><p class="reward-rule">Grow the snake · max 30 coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="snake.html" aria-label="Play Snake">Play</a></div></section>
@@ -168,6 +169,7 @@
   <script src="arcade.js"></script>
   <script>
     const gameInfo = [
+      { key:'neonSlice', icon:'🍔', name:'Neon Slice', note:'Cookout combos · bonus burgers · Free score play, no Coins', href:'neon-slice.html', freeBeta:true },
       { key:'bubblePop', icon:'🫧', name:'Bubble Pop', note:'Match 3 · 1,000 levels · Earn 15–35 Coins + bonuses', href:'bubble-pop.html', freeBeta:true },
       { key:'crystalCommand', icon:'◈', name:'Crystal Command', note:'Build a base. Command an army. Full battle wins · 10–25 Coins', href:'crystal-command.html', freeBeta:true },
       { key:'neonBreach', icon:'🤖', name:'Neon Breach', note:'First-person blaster · survive robot waves', href:'neonbreach.html' },
@@ -197,6 +199,7 @@
     function catalogFavorite(info) { return info.freeBeta ? localStorage.getItem(info.key==='crystalCommand'?'crystalCatalogFavorite':info.key+'CatalogFavorite') === '1' : Arcade.isFavorite(info.key); }
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
     const gameTags = {
+      neonSlice:['new','action','quick'],
       bubblePop:['new','puzzle'],
       crystalCommand:['new','strategy'],
       neonBreach:['new','action'],
@@ -309,7 +312,7 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['crystalCommand','bubblePop','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['neonSlice','crystalCommand','bubblePop','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
@@ -330,7 +333,7 @@
         const card = document.createElement('section');
         card.className = 'card game-card compact-game catalog-tile';
         card.dataset.game = info.key;
-        if (info.key === 'crystalCommand' || info.key === 'bubblePop') {
+        if (info.key === 'neonSlice' || info.key === 'crystalCommand' || info.key === 'bubblePop') {
           const newBubble = document.createElement('span');
           newBubble.className = 'game-new-bubble';
           newBubble.textContent = 'NEW GAME';
@@ -373,7 +376,7 @@
 
         const playCount = document.createElement('span');
         playCount.className = 'play-pill';
-        playCount.textContent = info.freeBeta ? (info.key==='bubblePop'?'FREE PLAY':'FREE BETA') : remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
+        playCount.textContent = info.freeBeta ? (info.key==='bubblePop'||info.key==='neonSlice'?'FREE PLAY':'FREE BETA') : remaining + ' play' + (remaining === 1 ? '' : 's') + ' left';
 
         actions.append(favorite, playCount);
         heading.append(titleWrap, actions);
@@ -393,7 +396,7 @@
         play.className = 'wide game-play-button';
         if (remaining) play.href = info.href;
         else play.disabled = adStatus.remaining <= 0 && !privateSnakeTester;
-        play.textContent = info.freeBeta ? (info.key==='bubblePop'?'Play · Earn Coins':'Play · Free beta') : remaining
+        play.textContent = info.freeBeta ? (info.key==='bubblePop'?'Play · Earn Coins':info.key==='neonSlice'?'Play · Free':'Play · Free beta') : remaining
           ? 'Play · ' + remaining + ' left'
           : (privateSnakeTester
               ? '🧪 Private Test Run'
