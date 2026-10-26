@@ -375,6 +375,7 @@
         const signedIn = !!current?.user;
 
         if (recoveryMode) {
+          cloudRecovery.insertAdjacentElement('afterend', cloudMessage);
           document.getElementById('accountHeading').textContent = 'Reset your password';
           cloudSignedOut.hidden = true;
           cloudSignedIn.hidden = true;
@@ -404,6 +405,7 @@
           return;
         }
 
+        document.querySelector('.cloud-signed-status').insertAdjacentElement('afterend', cloudMessage);
         completePendingSignup('email_confirmed');
         cloudEmailDisplay.textContent = current.user.email || 'Earnly account';
         if (location.hash === '#delete-account') {
