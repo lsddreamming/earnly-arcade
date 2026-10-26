@@ -2,6 +2,8 @@ const {test,expect}=require('@playwright/test');
 const assert=require('node:assert/strict');
 const E=require('../bubble-pop-engine');
 const fs=require('node:fs');
+// Practice fixtures isolate the auth client so its own randomness cannot advance the seeded board RNG.
+test.beforeEach(async({page})=>{await page.route('**/crystal-command-vendor.js',route=>route.fulfill({contentType:'application/javascript',body:'window.CrystalSupabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}})}})};'}));});
 const rng=seed=>()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
 function solution(level,win=true){for(let seed=1;seed<=150;seed++){const g=E.create(rng(seed),level),steps=[],choose=rng(seed+9000);while(!g.state().done){const available=g.legalMoves(),move=available[Math.floor(choose()*available.length)];steps.push(move);g.swap(...move);}if((g.state().status==='won')===win)return {seed,steps};}throw Error('No fixture '+level);}
 function fixture(changes){const colors=Array.from({length:56},(_,i)=>(i%7+Math.floor(i/7)*2)%5);for(const [i,c] of Object.entries(changes))colors[i]=c;let n=0;const r=rng(9);return E.create(()=>n<56?(colors[n++]+.1)/5:r());}
