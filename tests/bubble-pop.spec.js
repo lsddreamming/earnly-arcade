@@ -2,6 +2,8 @@ const {test,expect}=require('@playwright/test');
 const assert=require('node:assert/strict');
 const E=require('../bubble-pop-engine');
 const fs=require('node:fs');
+// Practice fixtures isolate the auth client so its own randomness cannot advance the seeded board RNG.
+test.beforeEach(async({page})=>{await page.route('**/crystal-command-vendor.js',route=>route.fulfill({contentType:'application/javascript',body:'window.CrystalSupabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}})}})};'}));});
 const rng=seed=>()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
 function solution(level,win=true){for(let seed=1;seed<=150;seed++){const g=E.create(rng(seed),level),steps=[],choose=rng(seed+9000);while(!g.state().done){const available=g.legalMoves(),move=available[Math.floor(choose()*available.length)];steps.push(move);g.swap(...move);}if((g.state().status==='won')===win)return {seed,steps};}throw Error('No fixture '+level);}
 function fixture(changes){const colors=Array.from({length:56},(_,i)=>(i%7+Math.floor(i/7)*2)%5);for(const [i,c] of Object.entries(changes))colors[i]=c;let n=0;const r=rng(9);return E.create(()=>n<56?(colors[n++]+.1)/5:r());}
@@ -29,7 +31,7 @@ test('rules: final-move wins, terminal states, retry isolation and final campaig
  for(const level of [0,5,999]){const f=solution(level),g=E.create(rng(f.seed),level);assert.equal(g.next(),false);for(const move of f.steps)g.swap(...move);const end=g.state();assert.equal(end.status,'won');assert.equal(g.swap(0,1).valid,false);assert.equal(g.assist(),false);assert.deepEqual(g.state(),end);if(level===999)assert.equal(g.next(),false);else {assert.equal(g.next().level,level+1);const score=g.state().score;g.swap(...g.legalMoves()[0]);g.restart();assert.equal(g.state().score,score);}}
 });
 
-test('rules: root and packaged preview sources are identical',()=>{for(const file of ['bubble-pop-engine.js','bubble-pop.js','bubble-pop.css','bubble-pop.html'])assert.equal(fs.readFileSync(file,'utf8'),fs.readFileSync('www/'+file,'utf8'));});
+test('rules: root and packaged preview sources are identical',()=>{for(const file of ['bubble-pop-engine.js','bubble-pop.js','bubble-pop.css','bubble-pop.html','bubble-pop-rewards.js'])assert.equal(fs.readFileSync(file,'utf8'),fs.readFileSync('www/'+file,'utf8'));});
 
 async function setup(page,{level=0,seed=3,reduced=true,path='/bubble-pop.html'}={}){
  await page.emulateMedia({reducedMotion:reduced?'reduce':'no-preference'});
@@ -67,9 +69,9 @@ test('layout: phone sizes, packaged source and late levels remain usable',async(
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>localStorage.setItem('earnlyBubblePopLevel','999'));await page.goto('/www/bubble-pop.html');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');await page.locator('#play').click();await page.screenshot({path:'test-results/bubble-pop-'+info.project.name+'.png',fullPage:true});await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');
 });
 
-test('opening: free unlisted preview teaches a goal match and stays out of the catalog',async({page})=>{
+test('opening: public free game teaches a goal match and appears in the catalog',async({page})=>{
  await setup(page);
- await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex,nofollow');
+ await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
  await expect(page.locator('#feedback')).toContainText('arrow direction');
  await expect(page.locator('#goals')).toContainText('18 left');
  await expect(page.locator('#journey')).toBeHidden();
@@ -79,7 +81,7 @@ test('opening: free unlisted preview teaches a goal match and stays out of the c
  await tapSwap(page,3,10);
  await expect(page.locator('#goals')).toContainText('15 left');
  await expect(page.locator('#moves')).toHaveText('21');
- await page.goto('/games.html');expect(await page.locator('a[href*="bubble-pop"]').count()).toBe(0);
+ await page.goto('/games.html');await expect(page.locator('[data-game="bubblePop"] a[href="bubble-pop.html"]')).toHaveText('Play · Earn Coins');
 });
 
 test('onboarding: collect, ice and star goals are introduced separately before mixed goals',()=>{

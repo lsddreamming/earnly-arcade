@@ -24,9 +24,9 @@ jobs:
       - name: Verify Apple certificates on the deployed Deno generation
         run: npm exec --yes --package=deno@2.1.4 -- deno test --no-check --allow-read --allow-env scripts/test-apple-x509.ts
       - name: Validate payment ledger and API boundaries
-        run: node scripts/test-activity.mjs && node --experimental-strip-types --test scripts/test-activity-handler.ts && node --test scripts/test-native-ads.mjs && node --experimental-strip-types --test scripts/test-ad-bonus.ts && node scripts/test-ad-bonus-ledger.mjs && node scripts/test-progressive-ad-rewards.mjs && node scripts/test-balanced-economy.mjs && node scripts/test-arcade-chat.mjs && node scripts/test-jungle-rewards.mjs && node scripts/test-kart-rewards.mjs && node scripts/test-game-shop-loop.mjs && npm run test:commerce && node scripts/test-coin-staging.mjs && node scripts/test-avatar-staging.mjs && node --test scripts/test-native-environment.mjs && node --test scripts/test-ios-release-gates.mjs && node --test scripts/test-ios-export-compliance.mjs
+        run: node scripts/test-bubble-pop-rewards.mjs && node --experimental-strip-types --test scripts/test-bubble-pop-handler.ts && node scripts/test-activity.mjs && node --experimental-strip-types --test scripts/test-activity-handler.ts && node --test scripts/test-native-ads.mjs && node --experimental-strip-types --test scripts/test-ad-bonus.ts && node scripts/test-ad-bonus-ledger.mjs && node scripts/test-progressive-ad-rewards.mjs && node scripts/test-balanced-economy.mjs && node scripts/test-arcade-chat.mjs && node scripts/test-jungle-rewards.mjs && node scripts/test-kart-rewards.mjs && node scripts/test-game-shop-loop.mjs && npm run test:commerce && node scripts/test-coin-staging.mjs && node scripts/test-avatar-staging.mjs && node --test scripts/test-native-environment.mjs && node --test scripts/test-ios-release-gates.mjs && node --test scripts/test-ios-export-compliance.mjs
       - name: Run simulations and source contracts once
-        run: npx playwright test tests/game-stress.spec.js tests/spiral-drop.spec.js tests/quality-contract.spec.js --project=desktop-chromium
+        run: npx playwright test tests/game-stress.spec.js tests/bubble-pop-campaign.spec.js tests/spiral-drop.spec.js tests/quality-contract.spec.js --project=desktop-chromium
       - name: Upload simulation failure report
         if: failure()
         uses: actions/upload-artifact@v4
@@ -77,6 +77,8 @@ jobs:
       - name: Install WebKit on macOS
         if: matrix.project == 'mobile-webkit'
         run: npx playwright install webkit
+      - name: Verify Bubble Pop public release
+        run: npx playwright test tests/bubble-pop.spec.js tests/bubble-pop-rewards.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Verify rewarded continues
         run: npx playwright test tests/rewarded-continue.spec.js tests/daily-ad-bonus.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       # Turbo Kart is retired from the catalog. Its archived browser suite

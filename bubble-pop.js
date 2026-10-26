@@ -3,8 +3,13 @@
  const palette=['#ff729c','#73aaff','#ffcf63','#6ce5bf','#bf98ff'],symbols=['♥','◆','✿','●','✦'],names=['pink','blue','yellow','green','violet'];
  let savedLevel=0,best=0,unlocked=0,failures={};
  try{savedLevel=Number(localStorage.getItem('earnlyBubblePopLevel'))||0;best=Number(localStorage.getItem('earnlyBubblePopPreviewBest'))||0;unlocked=Math.max(E.normalizeLevel(savedLevel),E.normalizeLevel(localStorage.getItem('earnlyBubblePopUnlocked')));const data=JSON.parse(localStorage.getItem('earnlyBubblePopRetries')||'{}');if(data&&typeof data==='object')failures=data;}catch{}
- const game=E.create(Math.random,savedLevel),media=matchMedia('(prefers-reduced-motion: reduce)');
- let guided=false;
+ let game=E.create(Math.random,savedLevel);const media=matchMedia('(prefers-reduced-motion: reduce)');
+ let guided=false,round=null,steps=[],opening=false,rewardGeneration=0;
+ const rewardText=$('coinReward');
+ function rewardError(e){if(e.message==='LEVEL_LOCKED')return 'Complete earlier levels in your coin journey first. Your preview unlocks stay available for practice.';return e.message==='DAILY_REWARD_LIMIT'?'Daily coin limit reached. Rewards saved; retry tomorrow within 24 hours.':e.message==='SIGN_IN_REQUIRED'?'Sign in to the same account to collect these coins.':e.message==='ROUND_EXPIRED'?'Reward session expired. Replay this level to earn its first-clear coins.':'Coins pending. Tap Retry coins when connected.';}
+ async function collect(){const generation=++rewardGeneration;rewardText.textContent='Verifying coins…';$('retryCoins').hidden=true;try{const r=await BubblePopRewards.claim(round,steps.slice());if(generation!==rewardGeneration)return;rewardText.textContent=r.duplicate?'Coins already collected for this level.':`+${r.amount+r.bonus} Arcade Coins · ${r.amount} level${r.bonus?' + 100 milestone':''} · Balance ${Number(r.wallet.balance).toLocaleString()}`;}catch(e){if(generation!==rewardGeneration)return;rewardText.textContent=rewardError(e);$('retryCoins').hidden=e.message==='LEVEL_LOCKED';}}
+ $('retryCoins').addEventListener('click',collect);
+ $('coinJourney').addEventListener('click',()=>{if(!round||round.nextRewardLevel>=game.state().level)return;const target=round.nextRewardLevel;started=false;paused=false;document.body.classList.remove('is-playing');game.reset(target);round=null;showStart();update();draw();});
  let started=false,paused=false,busy=false,selected=0,sound=false,audio=null,raf=0,timer=0,w=420,h=480,transition=null,modal='start',returnFocus=null,anchor=null,pointer=null,waveQueue=[],hintPair=null,swapMotion=null;
  const save=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};
  function geometry(){const size=Math.min((w-12)/E.COLS,(h-12)/E.ROWS);return {size,x:(w-size*E.COLS)/2,y:(h-size*E.ROWS)/2};}
@@ -84,6 +89,8 @@
  }
  function renderJourney(s){const start=Math.max(0,Math.min(993,s.level-3));$('journey').replaceChildren(...Array.from({length:7},(_,k)=>{const level=start+k,b=document.createElement('button');b.textContent=level+1;b.className=level===s.level?'current':level<unlocked?'cleared':'';b.disabled=level>unlocked||started;b.setAttribute('aria-label',`Level ${level+1}${level>unlocked?' locked':level<unlocked?' cleared':''}`);if(level===s.level)b.setAttribute('aria-current','step');b.onclick=()=>{game.reset(level);save('earnlyBubblePopLevel',level);showStart();update();draw();};return b;}));}
  function overlay(mode,title,text,button,extra=''){
+  const earlier=round&&Number.isInteger(round.nextRewardLevel)&&round.nextRewardLevel<game.state().level;$('coinJourney').hidden=!(earlier&&['pause','won','complete','lost'].includes(mode));if(earlier)$('coinJourney').textContent='Earn from level '+(round.nextRewardLevel+1);
+  $('overlay').dataset.state=mode;rewardGeneration++;rewardText.textContent='';$('retryCoins').hidden=true;
   $('assist').hidden=mode!=='lost'||Number(failures[game.state().level]||0)<3;modal=mode;returnFocus=document.activeElement;$('overlayTag').textContent=`LEVEL ${game.state().level+1} · ${game.state().name.toUpperCase()}`;$('resultTitle').textContent=title;$('resultText').textContent=text;$('play').textContent=button;$('overlayTip').textContent=extra;$('cancel').hidden=!['restart','quit'].includes(mode);$('overlay').hidden=false;
  }
  function end(){
@@ -91,6 +98,7 @@
   if(s.status==='won'){
    failures[s.level]=0;save('earnlyBubblePopRetries',JSON.stringify(failures));unlocked=Math.max(unlocked,Math.min(999,s.level+1));save('earnlyBubblePopUnlocked',unlocked);tone('win');const last=s.level===s.levelCount-1;save('earnlyBubblePopLevel',last?0:s.level+1);
    overlay(last?'complete':'won',last?`All ${s.levelCount.toLocaleString()} cleared!`:'Level cleared!',`${s.assisted?'Assisted · ':''}${s.moves>=8?'★★★':s.moves>=3?'★★':'★'} · ${s.levelScore.toLocaleString()} points`,last?'Play from level 1 →':'Next level →',last?'Try building bigger power-up combos on your next run.':`Next: ${E.levelRules(s.level+1).name}`);
+  if(round)collect();else rewardText.textContent='Practice round · Sign in before playing to earn first-clear coins.';
   }else {failures[s.level]=Math.min(99,Number(failures[s.level]||0)+1);save('earnlyBubblePopRetries',JSON.stringify(failures));overlay('lost',s.progress>=.75?'Nearly there!':'Try a new approach',Math.round(s.progress*100)+'% of your goals complete.','Try again →',Number(failures[s.level])>=3?'Want a helping hand? Retry with 3 extra moves, free.':'Look for a match of 4, or combine two special bubbles.');}update();
   $('play').focus({preventScroll:true});
  }
@@ -101,7 +109,7 @@
  function act(a,b){
   if(!started||paused||busy)return;const before=game.state(),result=game.swap(a,b);anchor=null;
   if(!result.valid){$('feedback').textContent=before.board[a]?.star||before.board[b]?.star?'Match below stars to deliver them':'Swap neighbors to match 3 — no move used';if(!media.matches&&E.neighbors(a).includes(b)&&!before.board[a]?.star&&!before.board[b]?.star){busy=true;swapMotion={before,a,b,revert:true,start:performance.now(),duration:220};timer=setTimeout(settle,220);}draw();return;}
-  busy=true;guided=false;selected=b;hintPair=null;
+  steps.push([a,b]);busy=true;guided=false;selected=b;hintPair=null;
   const labels={'double-bomb':'SUPERNOVA!','double-rocket':'CROSS BLAST!','rocket-bomb':'ROCKET STORM!','double-prism':'FULL SPECTRUM!','prism-power':'PRISM PARTY!'};
   $('feedback').textContent=(labels[result.powerCombo]||(result.combo>=3?'Brilliant cascade!':result.combo>1?'Chain reaction!':result.createdPower==='prism'?'Prism ready!':result.createdPower==='bomb'?'Bomb ready!':result.createdPower?'Rocket ready!':'Nice match!'))+' +'+result.points.toLocaleString();
   if(result.rearranged)$('feedback').textContent+=' · Board refreshed';update();
@@ -111,9 +119,15 @@
  function openingHint(){
   const s=game.state();return game.legalMoves().map(pair=>{const board=s.board.map(c=>({...c}));[board[pair[0]],board[pair[1]]]=[board[pair[1]],board[pair[0]]];const target=E.matches(board).reduce((n,run)=>n+run.indices.filter(i=>board[i].color===s.goals.color).length,0);return {pair,target};}).sort((a,b)=>b.target-a.target)[0]?.pair;
  }
- function begin(kind){
+ async function begin(kind){
+  if(opening)return false;opening=true;$('play').disabled=true;
+  let target=game.state().level;if(kind==='won')target++;else if(kind==='complete')target=0;
+  round=null;steps=[];try{round=await window.BubblePopRewards?.start(target);}catch{}
+  opening=false;$('play').disabled=false;
   clearTimeout(timer);cancelAnimationFrame(raf);transition=null;swapMotion=null;waveQueue=[];anchor=null;hintPair=null;pointer=null;busy=false;paused=false;
   if(kind==='won')game.next();else if(kind==='complete')game.reset(0);else if(kind==='lost'||kind==='restart')game.restart();
+  if(round)game.reseed(round.seed);
+  document.querySelector('.note').textContent=round&&round.nextRewardLevel<target?`Practice level · Earn coins from level ${round.nextRewardLevel+1} (Pause → Earn from level). Your unlocks stay saved.`:round?'First-clear coins active · 15–35 + milestone bonus · 9 rewarded levels daily':'Practice · Sign in before playing to earn coins. If already signed in, check your connection.';
   started=true;document.body.classList.add('is-playing');modal=null;$('overlay').hidden=true;$('pause').disabled=false;$('restart').disabled=false;$('hint').disabled=false;$('pause').textContent='Pause';$('feedback').textContent='Swipe to match 3';guided=game.state().level===0&&game.state().moves===E.levelRules(0).moves;if(guided){hintPair=openingHint();$('feedback').textContent='Swipe the outlined bubbles in the arrow direction';}save('earnlyBubblePopLevel',game.state().level);update();draw();
  }
  function resume(){paused=false;modal=null;$('overlay').hidden=true;$('pause').textContent='Pause';if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});draw();}
@@ -122,7 +136,7 @@
   if(paused){resume();return;}paused=true;pointer=null;anchor=null;audio?.suspend();$('pause').textContent='Resume';overlay('pause','Take a breather.','Your goals, moves and score are saved for this round.','Resume →');$('play').focus({preventScroll:true});
  }
  $('hint').addEventListener('click',()=>{if(!started||paused||busy)return;guided=false;hintPair=openingHint();anchor=null;$('feedback').textContent='Try swapping the two outlined bubbles';draw();});
- $('assist').addEventListener('click',()=>{if(modal!=='lost'||Number(failures[game.state().level]||0)<3)return;begin('lost');game.assist();$('feedback').textContent='Helping hand: +3 moves · assisted round';update();draw();});
+ $('assist').addEventListener('click',async()=>{if(modal!=='lost'||Number(failures[game.state().level]||0)<3)return;await begin('lost');game.assist();steps.push('assist');$('feedback').textContent='Helping hand: +3 moves · assisted round';update();draw();});
  $('play').addEventListener('click',()=>{if(modal==='pause')resume();else if(modal==='quit')location.href='games.html';else begin(modal);});
  $('cancel').addEventListener('click',resume);$('pause').addEventListener('click',pause);
  $('restart').addEventListener('click',()=>{if(!started)return;if(busy)settle();if(!started)return;paused=true;audio?.suspend();$('pause').textContent='Resume';overlay('restart','Retry this level?','This level’s score will reset. Completed levels stay cleared.','Restart level →');$('play').focus({preventScroll:true});});
@@ -136,5 +150,6 @@
  canvas.addEventListener('focus',draw);canvas.addEventListener('blur',draw);
  document.addEventListener('visibilitychange',()=>{if(document.hidden){audio?.suspend();if(busy)settle();if(started&&!paused)pause();}});
  media.addEventListener('change',()=>{if(media.matches&&busy)settle();});
+ window.addEventListener('online',()=>BubblePopRewards?.retry().catch(()=>{}));
  function showStart(){const opening=game.state();overlay('start',opening.level?'Ready for level '+(opening.level+1)+'?':'Match. Pop. Smile.',goalText(opening)+` in ${opening.moves} moves.`,opening.level?'Continue level '+(opening.level+1)+' →':'Let’s play →',tip(opening));}showStart();new ResizeObserver(layout).observe(canvas);layout();update();
 })();

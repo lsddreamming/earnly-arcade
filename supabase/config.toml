@@ -12,3 +12,7 @@ verify_jwt = false
 [functions.ad-bonus]
 # GET authenticates Google signatures; POST validates the signed-in user.
 verify_jwt = false
+
+[functions.bubble-pop]
+# Each request validates the bearer with auth.getUser.
+verify_jwt = false
