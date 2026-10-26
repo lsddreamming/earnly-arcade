@@ -38,7 +38,7 @@ test('signed-in result applies only the server wallet and shows verified Coins',
  await page.goto('/neon-slice.html');
  await page.evaluate(()=>{window.__claims=[];window.NeonSliceRewards={retry:async()=>[],start:async()=>({id:'round',seed:17,userId:'user',remaining:3}),claim:async(round,events,ticks)=>{window.__claims.push({round,events,ticks});return {amount:24,remaining:2,wallet:{balance:'124'}};}};NeonSliceEngine.Game.prototype.step=function(){this.score=1200;this.sliced=81;this.burgers=4;this.end('Bomb hit');};});
  await page.locator('#sliceStart').click();await expect(page.locator('#sliceReward')).toHaveText('+24 Arcade Coins · 2 rewarded runs left today');
- expect(await page.evaluate(()=>window.__claims.length)).toBe(1);
+ await expect(page.locator('#sliceReward')).toBeInViewport();expect(await page.evaluate(()=>window.__claims.length)).toBe(1);
  await expect(page.locator('#sliceResultScore')).toHaveText('1200');
  await page.screenshot({path:'test-results/neon-slice-reward-result.png'});
 });
