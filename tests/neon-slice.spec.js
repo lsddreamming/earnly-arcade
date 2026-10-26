@@ -21,3 +21,9 @@ test('transient window blur does not pause swiping, but backgrounding does',asyn
   await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
   await expect(page.locator('#sliceHeading')).toHaveText('Paused');
 });
+test('rare burgers score 50 once; regular ingredients score 10 and bombs override bonuses',()=>{
+ const g=new Game(()=>.5);g.start();g.items=[{x:80,y:100,r:24,type:7},{x:160,y:100,r:24,type:5}];
+ g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(60);g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(60);
+ expect(g.endStroke()).toEqual({hits:2,bonus:5});g.items=[{x:80,y:100,r:24,type:7,bomb:true}];g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(65);expect(g.state).toBe('over');
+ let seed=12345;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};const sim=new Game(random);sim.start();let bonus=0,total=0;const kinds=new Set();for(let i=0;i<1000;i++){sim.items=[];sim.spawn();for(const item of sim.items){if(!item.bomb){total++;if(item.type===7)bonus++;else kinds.add(item.type);}}}expect(bonus/total).toBeGreaterThan(.03);expect(bonus/total).toBeLessThan(.09);expect(kinds.size).toBe(11);
+});
