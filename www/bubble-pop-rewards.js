@@ -14,9 +14,12 @@
  }
  async function start(level){const u=await user();if(!u)return null;return call({action:'start',level});}
  async function claim(round,steps){
+  // Persist the verified-session transcript before refreshing auth or making a network request.
+  const pending={id:round.id,userId:round.userId,steps};store([...load().filter(x=>x.id!==round.id),pending]);
   const u=await user();if(!u||u.id!==round.userId)throw Error('SIGN_IN_REQUIRED');
-  const pending={id:round.id,userId:u.id,steps};store([...load().filter(x=>x.id!==round.id),pending]);
-  const result=await call({action:'claim',id:round.id,steps});apply(result.wallet);store(load().filter(x=>x.id!==round.id));return result;
+  const result=await call({action:'claim',id:round.id,steps});store(load().filter(x=>x.id!==round.id));
+  if((await user())?.id!==u.id)throw Error('SIGN_IN_REQUIRED');
+  apply(result.wallet);return result;
  }
  async function retry(){const u=await user();if(!u)return [];const results=[];for(const q of load().filter(x=>x.userId===u.id)){try{results.push(await claim(q,q.steps));}catch(e){if(['ROUND_EXPIRED','ROUND_NOT_FOUND','INVALID_STEPS','LEVEL_NOT_WON'].includes(e.message))store(load().filter(x=>x.id!==q.id));else throw e;}}return results;}
  window.BubblePopRewards={start,claim,retry};
