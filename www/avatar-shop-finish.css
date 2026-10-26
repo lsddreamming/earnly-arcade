@@ -161,3 +161,20 @@
 
 /* Legacy button grid coordinates must not create an empty second action column. */
 body.studio-dashboard #shop-grid .item-actions button{grid-column:auto;grid-row:auto}
+
+/* Photo review: names follow the portrait without a reserved empty text row. */
+body.studio-dashboard #shop-grid .item-card h3{min-height:0;padding:0;margin:10px 10px 3px;font-size:14px;line-height:1.3}
+body.studio-dashboard #shop-grid .item-category{padding:0;margin:0 10px 8px;font-size:11px;line-height:1.3}
+body.studio-dashboard #shop-grid .item-state{left:8px;right:auto}
+body.studio-dashboard #shop-grid .item-art[data-slot=beard]:not([data-detail=true]) .character{transform:none}
+body.studio-dashboard #shop-grid .item-art[data-slot=beard]:not([data-detail=true]) .character img{transform-origin:50% 25%;transform:scale(1.85) translateY(16%)}
+@media(max-width:680px){
+ body.studio-dashboard #shop-grid{gap:10px}
+ body.studio-dashboard #shop-grid .item-card h3{font-size:13px;margin:8px 9px 3px}
+ body.studio-dashboard #shop-grid .item-category{margin:0 9px 7px}
+}
+/* Cover scrolled shop content under the native iPhone clock and camera area. */
+@supports(padding-top:env(safe-area-inset-top)){
+ body.studio-dashboard::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top);z-index:999;background:#080d19;pointer-events:none}
+ .studio-dashboard #collection,.studio-dashboard .item-card{scroll-margin-top:calc(env(safe-area-inset-top) + 12px)}
+}

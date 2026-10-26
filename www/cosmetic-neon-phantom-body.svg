@@ -24,4 +24,4 @@
 
     <path d="M64 271l-2 9m9-8-1 10m158-8 3 9m-12-11 3 13" stroke="#68433a" stroke-width="2" stroke-linecap="round"/>
 
-    </svg>
+    <g id="skin-signature"><path d="M92 95L96 109L91 123M208 95L204 109L209 123" fill="none" stroke="#d4c5ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><path d="M94 136l3 4m109-4-3 4" fill="none" stroke="#a9eff5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
