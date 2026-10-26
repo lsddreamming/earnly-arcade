@@ -384,7 +384,7 @@ test('Settings keeps diagnostics private and player actions compact', async ({ p
   await expect(page.locator('.settings-menu-row')).toHaveCount(3);
   await expect(page.getByText('Replay App Walkthrough')).toBeVisible();
   await expect(page.getByText('Help & Support', { exact:true })).toBeVisible();
-  await expect(page.getByText('Backup & Restore', { exact:true })).toBeVisible();
+  await expect(page.getByText('Account settings', { exact:true })).toBeVisible();
 
   const metrics = await page.evaluate(() => ({
     width:window.innerWidth,

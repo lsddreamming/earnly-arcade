@@ -20,7 +20,7 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
   expect(settings).toContain('refreshTesterAccess()');
   expect(settings).toContain('Replay App Walkthrough');
   expect(settings).toContain('Help & Account Data');
-  expect(settings).toContain('Backup & Restore');
+  expect(settings).toContain('Account settings');
   expect(settings).not.toContain('<span>Sync Queue</span>');
   expect(settings).not.toContain('🧪 Testing Tools');
 
@@ -47,7 +47,7 @@ test('owner diagnostics stay out of the ordinary settings flow', async ({ page }
   await expect(page.locator('.app-status-card')).toHaveCount(3);
   await expect(page.locator('.settings-menu-row')).toHaveCount(3);
   await expect(page.getByText('Replay App Walkthrough')).toBeVisible();
-  await expect(page.getByText('Backup & Restore', { exact:true })).toBeVisible();
+  await expect(page.getByText('Account settings', { exact:true })).toBeVisible();
 });
 
 test('web and packaged iOS copies carry the audited player-facing wording', async ({ page }) => {
@@ -56,7 +56,7 @@ test('web and packaged iOS copies carry the audited player-facing wording', asyn
     ['settings.html', 'id="ownerToolsCard"'],
     ['stats.html', 'id="differentGames">0/22'],
     ['leaderboards.html', 'Signed-in players with a leaderboard username'],
-    ['support.html', 'Some game features can spend Coins'],
+    ['support.html', 'They have no cash value and cannot be withdrawn or redeemed for money.'],
     ['privacy.html', 'account-signup stages'],
     ['terms.html', 'Some game features may use Arcade Coins']
   ];
