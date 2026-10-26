@@ -120,7 +120,7 @@
     <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,#surpriseGame{display:none!important}</style></noscript>
     <div id="games" class="game-list compact-catalog-grid">
       <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><span class="game-new-bubble">NEW GAME</span><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Full battle wins · 10–25 Coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play · Free beta</a></div></section>
-      <section class="card game-card compact-game catalog-tile" data-game="neonSlice"><div class="game-title-row"><h2>🍔 Neon Slice</h2></div><p class="reward-rule">Cookout combos · Free score play, no Coins</p><a class="wide game-play-button" href="neon-slice.html">Play · Free</a></section>
+      <section class="card game-card compact-game catalog-tile" data-game="neonSlice"><div class="game-title-row"><h2>🍔 Neon Slice</h2></div><p class="reward-rule">Cookout combos · Earn up to 30 Coins</p><a class="wide game-play-button" href="neon-slice.html">Play · Free</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="bubblePop"><div class="game-title-row"><h2>🫧 Bubble Pop</h2></div><p class="reward-rule">1,000 levels · First clears earn 15–35 Coins + milestones</p><a class="wide game-play-button" href="bubble-pop.html">Play · Earn Coins</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonBreach"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Neon Breach</h2></div></div><p class="reward-rule">First-person blaster · survive robot waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonbreach.html" aria-label="Play Neon Breach">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="snake"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🐍</span><h2>Snake</h2></div></div><p class="reward-rule">Grow the snake · max 30 coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="snake.html" aria-label="Play Snake">Play</a></div></section>
@@ -169,7 +169,7 @@
   <script src="arcade.js"></script>
   <script>
     const gameInfo = [
-      { key:'neonSlice', icon:'🍔', name:'Neon Slice', note:'Cookout combos · bonus burgers · Free score play, no Coins', href:'neon-slice.html', freeBeta:true },
+      { key:'neonSlice', icon:'🍔', name:'Neon Slice', note:'Cookout combos · bonus burgers · Earn up to 30 Coins', href:'neon-slice.html', freeBeta:true },
       { key:'bubblePop', icon:'🫧', name:'Bubble Pop', note:'Match 3 · 1,000 levels · Earn 15–35 Coins + bonuses', href:'bubble-pop.html', freeBeta:true },
       { key:'crystalCommand', icon:'◈', name:'Crystal Command', note:'Build a base. Command an army. Full battle wins · 10–25 Coins', href:'crystal-command.html', freeBeta:true },
       { key:'neonBreach', icon:'🤖', name:'Neon Breach', note:'First-person blaster · survive robot waves', href:'neonbreach.html' },
@@ -396,7 +396,7 @@
         play.className = 'wide game-play-button';
         if (remaining) play.href = info.href;
         else play.disabled = adStatus.remaining <= 0 && !privateSnakeTester;
-        play.textContent = info.freeBeta ? (info.key==='bubblePop'?'Play · Earn Coins':info.key==='neonSlice'?'Play · Free':'Play · Free beta') : remaining
+        play.textContent = info.freeBeta ? (info.key==='bubblePop'?'Play · Earn Coins':info.key==='neonSlice'?'Play · Earn Coins':'Play · Free beta') : remaining
           ? 'Play · ' + remaining + ' left'
           : (privateSnakeTester
               ? '🧪 Private Test Run'
