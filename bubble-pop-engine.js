@@ -92,7 +92,7 @@
    if(status==='playing')rearranged=ensure()||rearranged;
    return {valid:true,waves,count:total,points,createdPower,powerCombo,rearranged,...state()};
   }
-  reset(initialLevel);return {state,reset,restart,next,swap,assist,legalMoves:()=>legalMoves(board)};
+  reset(initialLevel);return {state,reset,restart,next,swap,assist,reseed:(seed)=>{random=seededRandom(seed);return reset(level,true);},legalMoves:()=>legalMoves(board)};
  }
  const seededRandom=seed=>()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
  const api={seededRandom,create,COLS,ROWS,COLORS,LEVELS,THEMES,neighbors,CAMPAIGN_LEVELS,levelRules,normalizeLevel,matches,legalMoves};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.BubblePopEngine=api;

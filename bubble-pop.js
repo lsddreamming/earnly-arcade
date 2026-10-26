@@ -124,7 +124,7 @@
   opening=false;$('play').disabled=false;
   clearTimeout(timer);cancelAnimationFrame(raf);transition=null;swapMotion=null;waveQueue=[];anchor=null;hintPair=null;pointer=null;busy=false;paused=false;
   if(kind==='won')game.next();else if(kind==='complete')game.reset(0);else if(kind==='lost'||kind==='restart')game.restart();
-  if(round)game=E.create(E.seededRandom(round.seed),target);
+  if(round)game.reseed(round.seed);
   document.querySelector('.note').textContent=round?'First-clear coins active · 15–35 + milestone bonus · 9 rewarded levels daily':'Practice · Sign in before playing to earn coins. If already signed in, check your connection.';
   started=true;document.body.classList.add('is-playing');modal=null;$('overlay').hidden=true;$('pause').disabled=false;$('restart').disabled=false;$('hint').disabled=false;$('pause').textContent='Pause';$('feedback').textContent='Swipe to match 3';guided=game.state().level===0&&game.state().moves===E.levelRules(0).moves;if(guided){hintPair=openingHint();$('feedback').textContent='Swipe the outlined bubbles in the arrow direction';}save('earnlyBubblePopLevel',game.state().level);update();draw();
  }
