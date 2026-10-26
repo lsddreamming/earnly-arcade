@@ -3204,9 +3204,9 @@ const Arcade = (() => {
       list.className = 'onboarding-list';
 
       [
-        ['🎟️','Plays','Each game starts with 3 free plays every day.'],
-        ['🪙','Coins + XP','Game runs can earn Arcade Coins and XP. Optional verified ad rewards are available in Rewards.'],
-        ['🔥','More plays','Up to 2 optional rewarded ads per game each day can unlock +1 play each.']
+        ['🎟️','Plays','Most games have 3 free plays a day. Bubble Pop does not use daily plays.'],
+        ['🪙','Coins + XP','Earn coins and XP by playing. Spend coins on avatar items and furniture.'],
+        ['🔥','More plays','When offered, an optional ad unlocks +1 play, up to twice per game each day.']
       ].forEach(([itemIcon,itemTitle,itemText]) => {
         const row = document.createElement('div');
         row.className = 'onboarding-row';

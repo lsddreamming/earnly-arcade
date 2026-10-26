@@ -173,3 +173,47 @@ test('Settings player layout and private gating are identical in the iOS web bun
   expect(native.ok()).toBe(true);
   expect(await native.text()).toBe(await web.text());
 });
+
+for (const width of [320, 390, 440]) {
+  test(`Utility pages and walkthrough stay clear of navigation at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height:844 });
+    await openSettings(page);
+    await page.locator('#walkthroughButton').click();
+    const dialog = page.locator('dialog.onboarding-info-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Bubble Pop does not use daily plays.');
+    const bounds = await dialog.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
+    await dialog.getByRole('button', { name:'Close', exact:true }).click();
+    await expect(dialog).not.toBeVisible();
+    for (const path of ['settings.html', 'support.html']) {
+      await page.goto('/' + path);
+      await expect(page.locator('.topbar')).toHaveCSS('position','static');
+      await expect(page.locator('.topbar .balance-chip')).toBeHidden();
+      await expect(page.locator('.public-footer')).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+    }
+    const question = page.getByText('How do free plays work?', { exact:true });
+    await question.click();
+    await expect(page.locator('details[open]')).toContainText('Bubble Pop does not use daily plays.');
+    await expect(page.getByRole('link', { name:'Email support', exact:true })).toHaveAttribute('href', /^mailto:Jusfreed92@yahoo.com/);
+    const terms = page.locator('.help-legal-links a[href="terms.html"]');
+    await terms.scrollIntoViewIfNeeded();
+    const box = await terms.boundingBox();
+    const nav = await page.locator('#arcadeBottomNav').boundingBox();
+    if (nav) expect(box.y + box.height).toBeLessThanOrEqual(nav.y);
+    if (width === 390) await page.screenshot({path:'test-results/support-polish-mobile.png',fullPage:true});
+  });
+}
+
+test('Support and utility styles retain root/www parity', async ({ request }) => {
+  for (const path of ['support.html','settings-support.css','arcade.js']) {
+    const web = await request.get('/' + path);
+    const native = await request.get('/www/' + path);
+    expect(web.ok()).toBe(true);
+    expect(await native.text()).toBe(await web.text());
+  }
+});

@@ -19,8 +19,8 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
   expect(settings).toContain('hidden>');
   expect(settings).toContain('refreshTesterAccess()');
   expect(settings).toContain('Replay App Walkthrough');
-  expect(settings).toContain('Help & Account Data');
-  expect(settings).toContain('Backup & Restore');
+  expect(settings).toContain('Help &amp; account');
+  expect(settings).toContain('Account settings');
   expect(settings).not.toContain('<span>Sync Queue</span>');
   expect(settings).not.toContain('🧪 Testing Tools');
 
@@ -47,7 +47,7 @@ test('owner diagnostics stay out of the ordinary settings flow', async ({ page }
   await expect(page.locator('.app-status-card')).toHaveCount(3);
   await expect(page.locator('.settings-menu-row')).toHaveCount(3);
   await expect(page.getByText('Replay App Walkthrough')).toBeVisible();
-  await expect(page.getByText('Backup & Restore', { exact:true })).toBeVisible();
+  await expect(page.getByText('Account settings', { exact:true })).toBeVisible();
 });
 
 test('web and packaged iOS copies carry the audited player-facing wording', async ({ page }) => {

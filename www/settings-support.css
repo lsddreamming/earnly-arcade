@@ -1,0 +1,63 @@
+/* Calm utility pages; all rules are scoped away from gameplay. */
+body:is(.settings-dashboard,.support-dashboard){background:#0b1624!important}
+body:is(.settings-dashboard,.support-dashboard) main.container{max-width:640px;padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
+body:is(.settings-dashboard,.support-dashboard) .topbar{position:static!important;inset:auto!important;transform:none!important;min-height:44px;padding:8px 0!important;margin-bottom:12px!important;background:none!important}
+body:is(.settings-dashboard,.support-dashboard) .topbar .balance-chip,
+body:is(.settings-dashboard,.support-dashboard) .public-footer,
+body:is(.settings-dashboard,.support-dashboard) #arcadeChatButton{display:none!important}
+body:is(.settings-dashboard,.support-dashboard) .page-header{padding:8px 0 20px!important;text-align:left}
+body:is(.settings-dashboard,.support-dashboard) .page-header h1{font-size:28px!important;letter-spacing:-.6px!important}
+body:is(.settings-dashboard,.support-dashboard) .page-header p{font-size:14px!important;line-height:1.5}
+body:is(.settings-dashboard,.support-dashboard) .card{padding:18px!important;margin:0 0 16px!important;border:1px solid #2b3d50!important;border-radius:16px!important;background:#111f2e!important;box-shadow:none!important}
+body:is(.settings-dashboard,.support-dashboard) .card h2{font-size:18px!important;letter-spacing:-.2px!important;margin:0 0 14px!important}
+body:is(.settings-dashboard,.support-dashboard) .card p{font-size:14px!important;line-height:1.55!important}
+body:is(.settings-dashboard,.support-dashboard) :is(button,.button){box-shadow:none!important;text-shadow:none!important;min-height:44px}
+body.settings-dashboard .setting-row{padding:12px 0!important;background:none!important;border:0!important;border-bottom:1px solid #2b3d50!important;border-radius:0!important}
+body.settings-dashboard .setting-row:last-child{border-bottom:0!important}
+body.settings-dashboard .setting-row strong{font-size:14px!important}
+body.settings-dashboard .setting-row span{font-size:12px!important}
+body.settings-dashboard .toggle-button{background:#263e4e!important;border:1px solid #4c6578!important;color:#d9e6ef!important;min-width:58px;font-size:12px!important}
+body.settings-dashboard .toggle-button[aria-pressed="true"]{background:#244540!important;border-color:#4d7c73!important}
+body.settings-dashboard .text-size-options{gap:8px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+body.settings-dashboard .text-size-options button{background:#142434!important;border:1px solid #3a5065!important;padding:10px!important}
+body.settings-dashboard .text-size-options button.active{border-color:#a1d8dd!important;background:#23404b!important}
+body.settings-dashboard .text-size-options strong{font-size:13px!important}
+body.settings-dashboard .text-size-preview{background:#172a3b!important;border:0!important;padding:12px!important}
+body.settings-dashboard .app-status-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+body.settings-dashboard .app-status-card{padding:8px 0!important;background:none!important;border:0!important;min-width:0}
+body.settings-dashboard .app-status-card strong{font-size:13px!important;overflow-wrap:anywhere}
+body.settings-dashboard .app-status-card span{font-size:11px!important}
+body.settings-dashboard .settings-install-button{font-size:13px!important;background:none!important;border:1px solid #3a5065!important;margin-top:12px!important}
+body.settings-dashboard .settings-menu{border:0!important;background:none!important;box-shadow:none!important}
+body.settings-dashboard .settings-menu-row{padding:12px 0!important;gap:10px!important;background:none!important}
+body.settings-dashboard .settings-menu-icon{width:30px!important;height:30px!important;font-size:18px!important;background:none!important;border:0!important;box-shadow:none!important}
+body.settings-dashboard .owner-tools-disclosure{border:1px solid #2b3d50!important;background:#111f2e!important;border-radius:16px!important;box-shadow:none!important;margin-top:16px!important}
+body.settings-dashboard .owner-tools-body{padding:0 16px 16px!important;text-align:left}
+body.settings-dashboard .owner-tools-body p{font-size:12px!important;line-height:1.5}
+body.settings-dashboard .owner-readiness>div{background:#142434!important;border:1px solid #2b3d50!important;box-shadow:none!important}
+body.settings-dashboard .owner-tool-actions button{background:#26394c!important;font-size:12px!important}
+body.support-dashboard .support-contact{align-items:flex-start;gap:16px!important}
+body.support-dashboard .support-contact-copy{flex-basis:100%}
+body.support-dashboard .support-contact-copy strong{font-size:16px}
+body.support-dashboard .support-contact-copy span{font-size:14px}
+body.support-dashboard .support-email{background:#a1d8dd!important;color:#102936!important;font-size:14px!important;min-width:144px}
+body.support-dashboard .support-faq{gap:0}
+body.support-dashboard .support-faq details{padding:0!important;border:0!important;border-bottom:1px solid #2b3d50!important;border-radius:0!important;background:none!important}
+body.support-dashboard .support-faq details:last-child{border-bottom:0!important}
+body.support-dashboard .support-faq summary{font-size:14px!important;line-height:1.5;padding:15px 0;color:#d7e5ef;min-height:48px}
+body.support-dashboard .support-faq p{margin:0 0 16px!important;color:#aebfd0}
+body.support-dashboard .button.secondary{background:#26394c!important;font-size:14px!important}
+body.support-dashboard .help-legal-links{display:grid;border-top:1px solid #2b3d50}
+body.support-dashboard .help-legal-links a{display:flex;justify-content:space-between;min-height:48px;padding:14px 4px;border-bottom:1px solid #2b3d50;color:#c4d6e4;font-size:14px;text-decoration:none}
+body.settings-dashboard .onboarding-info-dialog{width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow-y:auto;padding:20px;background:#111f2e;border:1px solid #3a5065;border-radius:18px;box-shadow:0 20px 60px #0006}
+body.settings-dashboard .onboarding-info-dialog .onboarding-app-icon{display:none}
+body.settings-dashboard .onboarding-info-dialog .onboarding-head h2{font-size:22px;letter-spacing:-.4px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-head p{font-size:13px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-row{padding:14px 0;background:none;border:0;border-bottom:1px solid #2b3d50;border-radius:0;gap:12px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-row-icon{background:none;font-size:21px;width:28px;min-width:28px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-row strong{font-size:15px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-row span:not(.onboarding-row-icon){font-size:13px;line-height:1.5}
+body.settings-dashboard .onboarding-info-dialog .onboarding-actions{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-actions button{font-size:13px;min-height:44px;padding:10px}
+body.settings-dashboard .onboarding-info-dialog .onboarding-primary{background:#a1d8dd;color:#102936}
+@media(max-width:360px){body:is(.settings-dashboard,.support-dashboard) .card{padding:14px!important}body.settings-dashboard .owner-tool-actions{grid-template-columns:1fr}}
