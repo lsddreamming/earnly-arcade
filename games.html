@@ -312,7 +312,7 @@
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
-      const browseOrder = ['neonSlice','crystalCommand','bubblePop','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
+      const browseOrder = ['crystalCommand','bubblePop','neonSlice','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
       const gamesToRender = activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
