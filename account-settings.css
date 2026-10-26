@@ -31,3 +31,5 @@ body.account-dashboard .account-help-links a{display:flex;justify-content:space-
 body.account-dashboard .public-footer{display:none!important}
 body.account-dashboard #arcadeChatButton{display:none!important}
 @media(max-width:380px){body.account-dashboard .cloud-account-card{padding:15px!important}body.account-dashboard .cloud-save-actions{grid-template-columns:1fr}}
+
+body.account-dashboard main.container{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}

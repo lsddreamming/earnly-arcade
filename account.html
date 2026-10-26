@@ -436,7 +436,7 @@
 
         render();
         if (conflict) {
-          cloudMessage.textContent = 'A newer save is available from another device. Automatic backup is paused. Use Cloud Save loads it here. Save This Device lets you review replacing it. Neither save changes until you confirm.';
+          cloudMessage.textContent = 'Another device has a newer save. Backup is paused to protect both copies. Choose a save below; you’ll confirm before replacing progress.';
         } else if (!navigator.onLine && offlinePending) {
           cloudMessage.textContent = '📴 You are offline. Your progress is safe on this device and will sync automatically when you reconnect.';
         } else if (!navigator.onLine) {
