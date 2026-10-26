@@ -26,6 +26,9 @@ test('reset deep link opens form without sending and validates email',async({pag
 });
 test('conflicted saves have consistent status and fit narrow screens',async({page})=>{
  await mock(page,{conflict:true});await page.goto('/account.html');await expect(page.locator('#cloudMessage')).toContainText('newer save');await expect(page.locator('#syncStatusDot')).not.toHaveClass(/ready/);
+ await expect(page.locator('#cloudBadge')).toHaveText('Signed in');await expect(page.locator('#cloudLiveStatus')).toHaveText('Choose which save to use');await expect(page.locator('#cloudAutoSyncToggle')).toHaveText('Paused');
+ const message=await page.locator('#cloudMessage').boundingBox();const save=await page.locator('#cloudSaveButton').boundingBox();expect(message.y+message.height).toBeLessThan(save.y);
  await page.locator('.account-sync-details summary').click();await expect(page.locator('#pendingEvents')).toContainText('Sync paused');await expect(page.locator('#delete-account > summary')).toBeVisible();await page.locator('#delete-account > summary').click();await expect(page.locator('#cloudDeleteButton')).toBeVisible();
- for(const width of [320,390,440,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
+ for(const width of [320,390,440,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();expect(await page.locator('.topbar').evaluate(e=>getComputedStyle(e).position)).toBe('static');}
+ await page.setViewportSize({width:390,height:844});await page.locator('#delete-account > summary').click();await page.screenshot({path:'test-results/account-settings-conflict.png',fullPage:true});
 });
