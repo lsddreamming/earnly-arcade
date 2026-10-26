@@ -24,7 +24,7 @@ BEGIN
  PERFORM 1 FROM public.coin_wallets WHERE user_id=p_user_id FOR UPDATE;
  IF (SELECT count(*) FROM public.bubble_pop_rounds WHERE user_id=p_user_id AND created_at>now()-interval '1 hour')>=120 THEN RAISE EXCEPTION 'ROUND_LIMIT'; END IF;
  INSERT INTO public.bubble_pop_rounds(user_id,level,seed) VALUES(p_user_id,p_level,p_seed) RETURNING * INTO r;
- RETURN jsonb_build_object('id',r.id,'level',r.level,'seed',r.seed,'userId',r.user_id);
+ RETURN jsonb_build_object('id',r.id,'level',r.level,'seed',r.seed,'userId',r.user_id,'nextRewardLevel',(SELECT coalesce(max(level)+1,0) FROM public.bubble_pop_rewards WHERE user_id=p_user_id));
 END $$;
 
 CREATE FUNCTION public.bubble_pop_claim(p_user_id uuid,p_round_id uuid,p_stars integer,p_turns integer) RETURNS jsonb
@@ -40,6 +40,7 @@ BEGIN
  SELECT * INTO receipt FROM public.bubble_pop_rewards WHERE user_id=p_user_id AND level=r.level;
  duplicate:=FOUND;
  IF NOT duplicate THEN
+  IF r.level>0 AND NOT EXISTS(SELECT 1 FROM public.bubble_pop_rewards WHERE user_id=p_user_id AND level=r.level-1) THEN RAISE EXCEPTION 'LEVEL_LOCKED'; END IF;
   IF r.created_at<now()-interval '24 hours' THEN RAISE EXCEPTION 'ROUND_EXPIRED'; END IF;
   IF now()<r.created_at+make_interval(secs=>p_turns*0.25) THEN RAISE EXCEPTION 'ROUND_TOO_FAST'; END IF;
   IF (SELECT count(*) FROM public.coin_ledger WHERE user_id=p_user_id AND game='bubblePop' AND source_type='game' AND client_event_id LIKE 'bubble-pop:level:%' AND created_at>=date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')>=9 THEN RAISE EXCEPTION 'DAILY_REWARD_LIMIT'; END IF;

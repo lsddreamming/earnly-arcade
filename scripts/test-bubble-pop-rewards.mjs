@@ -34,13 +34,14 @@ let round=await start();await assert.rejects(claim(round.id),/ROUND_TOO_FAST/);a
 let r=await claim(round.id);assert.equal(r.amount,35);assert.equal(r.bonus,0);assert.equal(r.wallet.balance,'1285');assert.equal(r.wallet.lifetime_earned,'35');
 const retry=await claim(round.id);assert(retry.duplicate);assert.equal(retry.amount,0);assert.equal(retry.wallet.balance,'1285');
 const replay=await start();await age(replay.id);assert((await claim(replay.id,1)).duplicate);
-for(const [level,stars,want] of [[1,1,15],[2,2,25],[9,3,35]]){round=await start(level);await age(round.id);r=await claim(round.id,stars);assert.equal(r.amount,want);assert.equal(r.bonus,level===9?100:0);}
-assert.equal((await db.query("select count(*)::int n from coin_ledger where client_event_id like 'bubble-pop:milestone:%'")).rows[0].n,1);
-for(let level=3;level<=7;level++){round=await start(level);await age(round.id);await claim(round.id);}
-round=await start(8);await age(round.id);await assert.rejects(claim(round.id),/DAILY_REWARD_LIMIT/);
+round=await start(9);await age(round.id);await assert.rejects(claim(round.id),/LEVEL_LOCKED/);
+for(const [level,stars,want] of [[1,1,15],[2,2,25]]){round=await start(level);await age(round.id);r=await claim(round.id,stars);assert.equal(r.amount,want);assert.equal(r.bonus,0);}
+for(let level=3;level<=8;level++){round=await start(level);await age(round.id);await claim(round.id);}
+round=await start(9);assert.equal(round.nextRewardLevel,9);await age(round.id);await assert.rejects(claim(round.id),/DAILY_REWARD_LIMIT/);
 assert.equal((await db.query('select count(*)::int n from bubble_pop_rewards')).rows[0].n,9);
 assert.equal((await db.query('select claimed_at from bubble_pop_rounds where id=$1',[round.id])).rows[0].claimed_at,null);
-await db.query("update coin_ledger set created_at=now()-interval '1 day'");assert.equal((await claim(round.id)).amount,35);
+await db.query("update coin_ledger set created_at=now()-interval '1 day'");r=await claim(round.id,2);assert.equal(r.amount,25);assert.equal(r.bonus,100);assert.equal((await claim(round.id)).amount,0);
+assert.equal((await db.query("select count(*)::int n from coin_ledger where client_event_id like 'bubble-pop:milestone:%'")).rows[0].n,1);
 round=await start(10);await db.query("update bubble_pop_rounds set created_at=now()-interval '25 hours' where id=$1",[round.id]);await assert.rejects(claim(round.id),/ROUND_EXPIRED/);
 for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(start(),/permission denied/);await assert.rejects(claim(round.id),/permission denied/);await assert.rejects(db.query('select * from bubble_pop_rounds'),/permission denied/);await assert.rejects(db.query('select * from bubble_pop_rewards'),/permission denied/);await db.exec('RESET ROLE');}
-await db.close();console.log('PASS: engine replay; 1/2/3 stars; milestone; first-clear/replay idempotency; wallet/lifetime totals; ownership; timing; expiry; 9-round daily cap with atomic bonus; denied client minting.');
+await db.close();console.log('PASS: engine replay; 1/2/3 stars; milestone; first-clear/replay idempotency; wallet/lifetime totals; ownership; sequential campaign eligibility; timing; expiry; 9-round daily cap with atomic bonus; denied client minting.');

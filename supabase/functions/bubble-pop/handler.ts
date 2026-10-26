@@ -25,7 +25,7 @@ export async function handleBubblePop(req:Request,db:any){
   if(claim.error)throw claim.error;return json(claim.data);
  }catch(error){
   const code=String((error as any)?.message||'SERVER_ERROR');
-  const known=['ROUND_LIMIT','ROUND_NOT_FOUND','ROUND_EXPIRED','ROUND_TOO_FAST','DAILY_REWARD_LIMIT','INVALID_STEPS','LEVEL_NOT_WON','WALLET_UNAVAILABLE'];
+  const known=['LEVEL_LOCKED','ROUND_LIMIT','ROUND_NOT_FOUND','ROUND_EXPIRED','ROUND_TOO_FAST','DAILY_REWARD_LIMIT','INVALID_STEPS','LEVEL_NOT_WON','WALLET_UNAVAILABLE'];
   return json({error:known.includes(code)?code:'SERVER_ERROR'},known.includes(code)?409:500);
  }
 }
