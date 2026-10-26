@@ -4,10 +4,10 @@
  const COLS=7,ROWS=8,COLORS=5,CAMPAIGN_LEVELS=1000;
  const LEVELS=[
   {name:'First splash',moves:22,color:3,collect:18,ice:0,stars:0},
-  {name:'Crystal shores',moves:24,color:1,collect:0,ice:10,stars:0},
-  {name:'Stardrop lagoon',moves:26,color:2,collect:0,ice:0,stars:2},
-  {name:'Blue bloom',moves:26,color:1,collect:22,ice:8,stars:0},
-  {name:'Frozen orbit',moves:28,color:0,collect:0,ice:10,stars:3},
+  {name:'Blue bloom',moves:24,color:1,collect:21,ice:0,stars:0},
+  {name:'Golden glow',moves:26,color:2,collect:24,ice:0,stars:0},
+  {name:'Crystal shores',moves:26,color:1,collect:0,ice:8,stars:0},
+  {name:'Stardrop lagoon',moves:28,color:0,collect:0,ice:0,stars:2},
   {name:'Prism party',moves:30,color:4,collect:24,ice:10,stars:2}
  ];
  const THEMES=['Coral Coast','Crystal Cavern','Starlight Station','Mint Garden'];
