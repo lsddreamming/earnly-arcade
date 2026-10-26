@@ -44,7 +44,7 @@ test('signed-in result applies only the server wallet and shows verified Coins',
 });
 test('failed claim remains pending and retry is explicit',async({page})=>{
  await page.goto('/neon-slice.html');await page.evaluate(()=>{window.NeonSliceRewards={retry:async()=>[],start:async()=>({id:'round',seed:17,userId:'user',remaining:3}),claim:async()=>{throw Error('CONNECTION');}};NeonSliceEngine.Game.prototype.step=function(){this.score=100;this.end('Bomb hit');};});
- await page.locator('#sliceStart').click();await expect(page.locator('#sliceReward')).toContainText('Reward pending');await expect(page.locator('#sliceRetry')).toBeVisible();await page.locator('#sliceRetry').click();await expect(page.locator('#sliceReward')).toContainText('wallet updated');
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceReward')).toContainText('Reward pending');await expect(page.locator('#sliceRetry')).toBeVisible();await page.locator('#sliceRetry').click();await expect(page.locator('#sliceReward')).toContainText('No pending rewards for this account');
 });
 test('recorded signed-in swipe and pause inputs replay to the exact displayed score',async({page})=>{
  await page.goto('/neon-slice.html');await page.evaluate(()=>{window.NeonSliceRewards={retry:async()=>[],start:async()=>({id:'round',seed:17,userId:'user',remaining:3}),claim:async(round,events,ticks)=>{const r=NeonSliceEngine.verify(round.seed,events,ticks);window.__verifiedRun=r;return {amount:r.coins,remaining:3-(r.coins>0?1:0)};}};});
