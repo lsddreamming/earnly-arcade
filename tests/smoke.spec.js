@@ -2383,7 +2383,7 @@ for (const prefix of ['', '/www']) {
     await expect(page.locator('dialog[open]')).toHaveCount(0);
     await page.goto(prefix + '/settings.html');
     await expect(page.locator('#installButton')).toBeHidden();
-    await expect(page.locator('#installStatus')).toHaveText('📱 iOS App');
+    await expect(page.locator('#installStatus')).toHaveText('iOS app');
   });
 }
 
@@ -2394,7 +2394,7 @@ test('ordinary browser keeps the option to install Earnly', async ({ page }) => 
   expect(await page.evaluate(() => Arcade.installStatus())).toMatchObject({ native:false, installed:false });
   await page.goto('/settings.html');
   await expect(page.locator('#installButton')).toBeVisible();
-  await expect(page.locator('#installStatus')).toHaveText('🌍 Browser');
+  await expect(page.locator('#installStatus')).toHaveText('Browser');
 });
 
 for (const rejects of [false, true]) {

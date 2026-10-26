@@ -19,7 +19,7 @@ test('player-facing pages match current Earnly behavior after full-page audit', 
   expect(settings).toContain('hidden>');
   expect(settings).toContain('refreshTesterAccess()');
   expect(settings).toContain('Replay App Walkthrough');
-  expect(settings).toContain('Help & Account Data');
+  expect(settings).toContain('Help &amp; account');
   expect(settings).toContain('Account settings');
   expect(settings).not.toContain('<span>Sync Queue</span>');
   expect(settings).not.toContain('🧪 Testing Tools');
