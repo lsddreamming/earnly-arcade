@@ -52,6 +52,7 @@
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="stylesheet" href="app-surfaces.css?v=1">
+  <link rel="stylesheet" href="account-settings.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
 <script src="world-links.js"></script></head>
 <body class="account-dashboard">
@@ -63,8 +64,8 @@
 
     <header class="page-header">
       <span class="account-wordmark">EARNLY<span>ARCADE</span></span>
-      <h1>Account &amp; backup</h1>
-      <p>Manage your sign-in and keep your game progress safe.</p>
+      <h1>Account settings</h1>
+      <p>Your sign-in, saved progress and account controls.</p>
     </header>
 
     <section class="card cloud-account-card" style="text-align:left">
@@ -151,10 +152,14 @@
           <div class="status-dot" id="syncStatusDot" aria-hidden="true"></div>
         </div>
 
+      <div class="data-note cloud-message" id="cloudMessage" aria-live="polite">
+        One Earnly account for your progress, character and leaderboards.
+      </div>
+
         <div class="cloud-auto-row">
           <div>
             <strong>Back up automatically</strong>
-            <span>Save your progress when connected.</span>
+            <span id="autoSyncDescription">Save your progress when connected.</span>
           </div>
           <button class="cloud-auto-toggle" id="cloudAutoSyncToggle" type="button" aria-pressed="true">On</button>
         </div>
@@ -174,9 +179,7 @@
         <button class="mini-button secondary cloud-signout" id="cloudSignOutButton" type="button">Sign Out</button>
       </div>
 
-      <div class="data-note cloud-message" id="cloudMessage" aria-live="polite">
-        One Earnly account for your progress, character and leaderboards.
-      </div>
+
 
       <details class="account-sync-details"><summary>Sync details</summary><div class="cloud-device-meta">
         <span>Device <strong class="device-id" id="deviceId">—</strong></span>
@@ -228,15 +231,11 @@
       </div>
     </details>
 
-    <section class="card cloud-safety-card" style="text-align:left">
-      <h2>Your progress, looked after.</h2>
-      <p class="muted small" style="margin-bottom:0">
-        Sign in to back up your progress across devices. Arcade Coins are in-app points and cannot be redeemed or withdrawn in this version. Need a hand? <a href="support.html">Contact Earnly support</a>.
-      </p>
-    </section>
-
-    <a class="button wide ghost" href="settings.html">App Settings</a>
-    <a class="button wide" href="profile.html">Back to Profile →</a>
+    <nav class="account-help-links" aria-label="Account help">
+      <a href="settings.html">App settings <span aria-hidden="true">→</span></a>
+      <a href="support.html">Help with your account <span aria-hidden="true">→</span></a>
+      <a href="privacy.html">Privacy policy <span aria-hidden="true">→</span></a>
+    </nav>
 
     <footer class="public-footer" aria-label="Earnly site information">
       <nav aria-label="Site information">
@@ -347,7 +346,9 @@
       const rewardError = localStorage.getItem('arcadeServerRewardError');
       const offlinePending = localStorage.getItem('arcadeCloudOfflinePending');
       const pendingCount = Arcade.syncStatus().pending;
-      if (conflict || syncError || rewardError) {
+      if (conflict) {
+        setCloudLiveStatus('warning', 'Choose which save to use');
+      } else if (syncError || rewardError) {
         setCloudLiveStatus('warning', '⚠️ Sync needs attention');
       } else if (offlinePending) {
         setCloudLiveStatus('working', '⏳ Reconnecting · saving offline progress…');
@@ -374,6 +375,7 @@
         const signedIn = !!current?.user;
 
         if (recoveryMode) {
+          cloudRecovery.insertAdjacentElement('afterend', cloudMessage);
           document.getElementById('accountHeading').textContent = 'Reset your password';
           cloudSignedOut.hidden = true;
           cloudSignedIn.hidden = true;
@@ -388,9 +390,9 @@
         cloudRecovery.hidden = true;
         cloudSignedOut.hidden = signedIn;
         cloudSignedIn.hidden = !signedIn;
-        cloudBadge.textContent = signedIn ? 'Connected' : 'Guest';
+        cloudBadge.textContent = signedIn ? 'Signed in' : 'Guest';
         document.body.classList.toggle('account-is-signed-in',signedIn);
-        document.getElementById('accountHeading').textContent = signedIn ? 'Account & progress' : (authMode==='create'?'Make yourself at home':'Welcome back');
+        document.getElementById('accountHeading').textContent = signedIn ? 'Saved progress' : (authMode==='create'?'Make yourself at home':'Welcome back');
         cloudBadge.classList.toggle('connected', signedIn);
 
         if (!signedIn) {
@@ -403,6 +405,7 @@
           return;
         }
 
+        document.querySelector('.cloud-signed-status').insertAdjacentElement('afterend', cloudMessage);
         completePendingSignup('email_confirmed');
         cloudEmailDisplay.textContent = current.user.email || 'Earnly account';
         if (location.hash === '#delete-account') {
@@ -430,20 +433,22 @@
         }
         refreshCloudLiveStatus();
         document.body.classList.toggle('account-has-conflict', !!conflict);
+        document.getElementById('autoSyncDescription').textContent = conflict ? 'Paused until you choose a save.' : 'Save your progress when connected.';
+        cloudAutoSyncToggle.textContent = autoOn ? (conflict ? 'Paused' : 'On') : 'Off';
 
         render();
         if (conflict) {
-          cloudMessage.textContent = 'Your account has a newer save (backup) from another device. We paused automatic saving so neither copy is overwritten. Choose Use Cloud Save to load that backup, or Save This Device to review replacing it.';
+          cloudMessage.textContent = 'Another device has a newer save. Backup is paused to protect both copies. Choose a save below; you’ll confirm before replacing progress.';
         } else if (!navigator.onLine && offlinePending) {
           cloudMessage.textContent = '📴 You are offline. Your progress is safe on this device and will sync automatically when you reconnect.';
         } else if (!navigator.onLine) {
           cloudMessage.textContent = '📴 You are offline. Earnly will check your cloud save when you reconnect.';
         } else if (localStorage.getItem('arcadeCloudSyncError')) {
-          cloudMessage.textContent = 'Your latest progress could not sync. It is saved on this device. Try Sync Now when your connection is available.';
+          cloudMessage.textContent = 'Your latest progress could not sync. It is saved on this device. Try Save This Device when your connection is available.';
         } else if (rewardError) {
           cloudMessage.textContent = 'Some reward updates still need to sync. Your progress is saved on this device.';
         } else if (autoOn) {
-          cloudMessage.textContent = '✅ Automatic backup is on. You do not need to press Sync Now.';
+          cloudMessage.textContent = 'Your progress backs up automatically.';
         } else {
           cloudMessage.textContent = 'Automatic backup is off. Turn it on to save progress automatically.';
         }
@@ -879,7 +884,7 @@
       const enabled = EarnlyCloud.setAutoSyncEnabled(!EarnlyCloud.autoSyncEnabled());
       cloudMessage.textContent = enabled
         ? 'Automatic sync is on.'
-        : 'Automatic sync is off. You can still use Sync Now manually.';
+        : 'Automatic sync is off. You can still use Save This Device manually.';
       await renderCloud();
     });
 

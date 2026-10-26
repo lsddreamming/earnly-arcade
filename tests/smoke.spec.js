@@ -2428,7 +2428,7 @@ for (const rejects of [false, true]) {
       await expect(page.locator('#cloudSignInButton')).toBeEnabled();
       await expect(page.locator('#cloudSignedOut')).toBeVisible();
     } else {
-      await expect(page.locator('#cloudBadge')).toHaveText('Connected');
+      await expect(page.locator('#cloudBadge')).toHaveText('Signed in');
       await expect(page).toHaveURL(/\/index.html$/);
       expect(await page.evaluate(() => localStorage.getItem('earnlyLocalProgressOwner'))).toBe('review@example.com');
     }

@@ -1,0 +1,35 @@
+/* Account settings: calm surfaces, clear save state and a non-overlapping header. */
+body.account-dashboard{background:#0b1624!important}
+body.account-dashboard .topbar{position:static!important;inset:auto!important;transform:none!important;min-height:48px;padding:8px 0!important;margin-bottom:16px!important}
+body.account-dashboard .topbar .balance-chip{display:none!important}
+body.account-dashboard .account-wordmark{display:none}
+body.account-dashboard .page-header{padding:8px 0 20px!important}
+body.account-dashboard .page-header h1{font-size:28px!important;letter-spacing:-.7px!important}
+body.account-dashboard .page-header p{font-size:14px!important;max-width:none}
+body.account-dashboard .cloud-account-card{padding:20px!important;border:1px solid #2b3d50!important;border-radius:16px!important;background:#111f2e!important;margin:0 0 16px!important}
+body.account-dashboard .cloud-account-head h2{font-size:18px!important;letter-spacing:-.2px}
+body.account-dashboard .cloud-badge.connected{background:#213a3b;color:#b7ded4;font-weight:600}
+body.account-dashboard .cloud-signed-status{padding:12px 0!important;margin-bottom:0!important}
+body.account-dashboard #cloudEmailDisplay{font-size:15px!important}
+body.account-dashboard #syncStatusDot{display:none}
+body.account-dashboard .cloud-live-status{font-size:12px!important;color:#b7cbdc}
+body.account-dashboard .cloud-live-status.warning{color:#e9d5a7}
+body.account-dashboard .cloud-message,body.account-dashboard.account-has-conflict .cloud-message{border:1px solid #3b4d60!important;border-radius:10px!important;background:#1b2b3c!important;color:#d3dfeb!important;padding:12px!important;margin:12px 0!important;font-size:13px!important;line-height:1.55!important}
+body.account-dashboard .cloud-auto-row{padding:12px 0!important;gap:12px}
+body.account-dashboard .cloud-auto-toggle{background:#263e4e!important;border:1px solid #4c6578!important;color:#d9e6ef!important;min-width:62px;min-height:40px;font-size:12px}
+body.account-dashboard .cloud-save-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px!important;margin:12px 0!important}
+body.account-dashboard .cloud-save-actions button{font-size:12px!important;min-height:46px!important}
+body.account-dashboard #cloudSaveButton{background:#a1d8dd!important;color:#102936!important}
+body.account-dashboard .account-danger-details{margin-top:12px;padding-top:8px}
+body.account-dashboard .account-danger-details>summary{color:#d5afb4;font-size:12px}
+body.account-dashboard .account-sync-details{margin:8px 0 0!important}
+body.account-dashboard .account-advanced{padding:16px 4px!important}
+body.account-dashboard .account-advanced>summary strong{font-size:15px}
+body.account-dashboard .account-advanced>summary span{font-size:12px}
+body.account-dashboard .account-help-links{display:grid;border-top:1px solid #2b3d50;margin-top:8px}
+body.account-dashboard .account-help-links a{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:12px 4px;color:#c4d6e4;font-size:14px;border-bottom:1px solid #243547;text-decoration:none}
+body.account-dashboard .public-footer{display:none!important}
+body.account-dashboard #arcadeChatButton{display:none!important}
+@media(max-width:380px){body.account-dashboard .cloud-account-card{padding:15px!important}body.account-dashboard .cloud-save-actions{grid-template-columns:1fr}}
+
+body.account-dashboard main.container{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}
