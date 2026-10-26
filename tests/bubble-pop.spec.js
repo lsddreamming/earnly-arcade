@@ -85,5 +85,8 @@ test('opening: free unlisted preview teaches a goal match and stays out of the c
 test('onboarding: collect, ice and star goals are introduced separately before mixed goals',()=>{
  for(let level=0;level<3;level++){const r=E.levelRules(level);expect(r.collect).toBeGreaterThan(0);expect(r.ice+r.stars).toBe(0);}
  expect(E.levelRules(3).ice).toBeGreaterThan(0);expect(E.levelRules(3).collect+E.levelRules(3).stars).toBe(0);
+ // Later procedural chapters retain their original goal order and balance.
+ expect(E.levelRules(7)).toMatchObject({collect:0,ice:10,stars:0,moves:26});
+ expect(E.levelRules(8)).toMatchObject({collect:0,ice:0,stars:2,moves:28});
  expect(E.levelRules(4).stars).toBeGreaterThan(0);expect(E.levelRules(4).collect+E.levelRules(4).ice).toBe(0);
 });

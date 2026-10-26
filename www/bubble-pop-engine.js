@@ -4,6 +4,14 @@
  const COLS=7,ROWS=8,COLORS=5,CAMPAIGN_LEVELS=1000;
  const LEVELS=[
   {name:'First splash',moves:22,color:3,collect:18,ice:0,stars:0},
+  {name:'Crystal shores',moves:24,color:1,collect:0,ice:10,stars:0},
+  {name:'Stardrop lagoon',moves:26,color:2,collect:0,ice:0,stars:2},
+  {name:'Blue bloom',moves:26,color:1,collect:22,ice:8,stars:0},
+  {name:'Frozen orbit',moves:28,color:0,collect:0,ice:10,stars:3},
+  {name:'Prism party',moves:30,color:4,collect:24,ice:10,stars:2}
+ ];
+ const INTRO_LEVELS=[
+  {name:'First splash',moves:22,color:3,collect:18,ice:0,stars:0},
   {name:'Blue bloom',moves:24,color:1,collect:21,ice:0,stars:0},
   {name:'Golden glow',moves:26,color:2,collect:24,ice:0,stars:0},
   {name:'Crystal shores',moves:26,color:1,collect:0,ice:8,stars:0},
@@ -12,7 +20,7 @@
  ];
  const THEMES=['Coral Coast','Crystal Cavern','Starlight Station','Mint Garden'];
  const normalizeLevel=v=>Number.isFinite(Number(v))?Math.max(0,Math.min(999,Math.floor(Number(v)))):0;
- function levelRules(v){const l=normalizeLevel(v);if(l<6)return {...LEVELS[l]};const chapter=Math.floor(l/10),step=l%10,tier=Math.min(3,Math.floor(l/50)),b=LEVELS[step%6];return {...b,name:THEMES[chapter%4]+' '+(chapter+1)+'–'+(step+1),moves:b.moves+2+tier,color:(b.color+chapter)%COLORS,collect:b.collect?b.collect+tier*2:0,ice:b.ice?b.ice+tier*2:0};}
+ function levelRules(v){const l=normalizeLevel(v);if(l<6)return {...INTRO_LEVELS[l]};const chapter=Math.floor(l/10),step=l%10,tier=Math.min(3,Math.floor(l/50)),b=LEVELS[step%6];return {...b,name:THEMES[chapter%4]+' '+(chapter+1)+'–'+(step+1),moves:b.moves+2+tier,color:(b.color+chapter)%COLORS,collect:b.collect?b.collect+tier*2:0,ice:b.ice?b.ice+tier*2:0};}
  function neighbors(i){const x=i%COLS,y=Math.floor(i/COLS);return [x?i-1:-1,x<COLS-1?i+1:-1,y?i-COLS:-1,y<ROWS-1?i+COLS:-1].filter(n=>n>=0);}
  const matchable=c=>c&&!c.star&&c.power!=='prism'&&c.color>=0;
  function matches(board){
