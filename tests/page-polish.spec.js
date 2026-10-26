@@ -56,7 +56,7 @@ test('web and packaged iOS copies carry the audited player-facing wording', asyn
     ['settings.html', 'id="ownerToolsCard"'],
     ['stats.html', 'id="differentGames">0/22'],
     ['leaderboards.html', 'Signed-in players with a leaderboard username'],
-    ['support.html', 'They have no cash value and cannot be withdrawn or redeemed for money.'],
+    ['support.html', 'Some game features can spend Coins'],
     ['privacy.html', 'account-signup stages'],
     ['terms.html', 'Some game features may use Arcade Coins']
   ];
