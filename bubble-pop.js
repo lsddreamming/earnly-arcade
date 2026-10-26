@@ -7,7 +7,7 @@
  let guided=false,round=null,steps=[],opening=false,rewardGeneration=0;
  const rewardText=$('coinReward');
  function rewardError(e){return e.message==='DAILY_REWARD_LIMIT'?'Daily coin limit reached. Rewards saved; retry tomorrow within 24 hours.':e.message==='SIGN_IN_REQUIRED'?'Sign in to the same account to collect these coins.':e.message==='ROUND_EXPIRED'?'Reward session expired. Replay this level to earn its first-clear coins.':'Coins pending. Tap Retry coins when connected.';}
- async function collect(){const generation=++rewardGeneration;rewardText.textContent='Verifying coins…';$('retryCoins').hidden=true;try{const r=await BubblePopRewards.claim(round,steps.slice());if(generation!==rewardGeneration)return;rewardText.textContent=r.duplicate?'Coins already collected for this level.':`🪙 +${r.amount+r.bonus} Arcade Coins · ${r.amount} level${r.bonus?' + 100 milestone':''} · Balance ${Number(r.wallet.balance).toLocaleString()}`;}catch(e){if(generation!==rewardGeneration)return;rewardText.textContent=rewardError(e);$('retryCoins').hidden=false;}}
+ async function collect(){const generation=++rewardGeneration;rewardText.textContent='Verifying coins…';$('retryCoins').hidden=true;try{const r=await BubblePopRewards.claim(round,steps.slice());if(generation!==rewardGeneration)return;rewardText.textContent=r.duplicate?'Coins already collected for this level.':`+${r.amount+r.bonus} Arcade Coins · ${r.amount} level${r.bonus?' + 100 milestone':''} · Balance ${Number(r.wallet.balance).toLocaleString()}`;}catch(e){if(generation!==rewardGeneration)return;rewardText.textContent=rewardError(e);$('retryCoins').hidden=false;}}
  $('retryCoins').addEventListener('click',collect);
  let started=false,paused=false,busy=false,selected=0,sound=false,audio=null,raf=0,timer=0,w=420,h=480,transition=null,modal='start',returnFocus=null,anchor=null,pointer=null,waveQueue=[],hintPair=null,swapMotion=null;
  const save=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};
@@ -88,7 +88,7 @@
  }
  function renderJourney(s){const start=Math.max(0,Math.min(993,s.level-3));$('journey').replaceChildren(...Array.from({length:7},(_,k)=>{const level=start+k,b=document.createElement('button');b.textContent=level+1;b.className=level===s.level?'current':level<unlocked?'cleared':'';b.disabled=level>unlocked||started;b.setAttribute('aria-label',`Level ${level+1}${level>unlocked?' locked':level<unlocked?' cleared':''}`);if(level===s.level)b.setAttribute('aria-current','step');b.onclick=()=>{game.reset(level);save('earnlyBubblePopLevel',level);showStart();update();draw();};return b;}));}
  function overlay(mode,title,text,button,extra=''){
-  rewardGeneration++;rewardText.textContent='';$('retryCoins').hidden=true;
+  $('overlay').dataset.state=mode;rewardGeneration++;rewardText.textContent='';$('retryCoins').hidden=true;
   $('assist').hidden=mode!=='lost'||Number(failures[game.state().level]||0)<3;modal=mode;returnFocus=document.activeElement;$('overlayTag').textContent=`LEVEL ${game.state().level+1} · ${game.state().name.toUpperCase()}`;$('resultTitle').textContent=title;$('resultText').textContent=text;$('play').textContent=button;$('overlayTip').textContent=extra;$('cancel').hidden=!['restart','quit'].includes(mode);$('overlay').hidden=false;
  }
  function end(){
