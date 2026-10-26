@@ -69,6 +69,14 @@ const skAdNetworkIds = [
 
 let plist = await readFile(plistPath, 'utf8');
 
+// Current app uses platform HTTPS/WebCrypto and StoreKit, with no custom
+// encryption. Keep the owner's exempt declaration through `cap add ios`.
+// A changed declaration requires review, not an automatic overwrite.
+plist = plist.replace(/\s*<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\s*\/>/g, '');
+if (plist.includes('<key>ITSAppUsesNonExemptEncryption</key>')) {
+  throw new Error('Review the changed iOS encryption declaration before building.');
+}
+
 const trackingUsageRegex = /\s*<key>NSUserTrackingUsageDescription<\/key>\s*<string>[^<]*<\/string>/g;
 plist = plist.replace(trackingUsageRegex, '');
 
@@ -79,6 +87,8 @@ plist = plist
   .replace(skAdNetworkRegex, '');
 
 const skAdNetworkBlock = [
+  '  <key>ITSAppUsesNonExemptEncryption</key>',
+  '  <false/>',
   '  <key>NSUserTrackingUsageDescription</key>',
   '  <string>Your permission lets our advertising partner use your device identifier to measure advertising across apps and websites.</string>',
   '  <key>GADApplicationIdentifier</key>',

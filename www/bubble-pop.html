@@ -3,20 +3,20 @@
 <head>
  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14132c">
  <title>Bubble Pop · Earnly Arcade Preview</title>
- <link rel="stylesheet" href="public-info.css"><link rel="stylesheet" href="bubble-pop.css?v=levels1">
+ <link rel="stylesheet" href="public-info.css"><link rel="stylesheet" href="bubble-pop.css?v=match3-1">
 </head>
 <body><main>
  <header><a href="games.html" class="leave" aria-label="Back to games">← Games</a><span>FREE PREVIEW</span><button id="sound" aria-label="Turn sound on" aria-pressed="false">Sound off</button></header>
  <div class="title"><h1>Bubble <span>Pop!</span></h1><span id="levelLabel">LEVEL 1 / 1000</span></div>
- <div class="scores"><div><small>SCORE</small><strong id="score">0</strong></div><div><small>MOVES</small><strong id="moves">20</strong></div><div><small>BEST</small><strong id="best">0</strong></div></div>
+ <div class="journey-heading"><span id="chapter">Coral Coast</span><span>YOUR JOURNEY</span></div><nav id="journey" aria-label="Level journey"></nav><div class="scores"><div><small>SCORE</small><strong id="score">0</strong></div><div><small>MOVES</small><strong id="moves">20</strong></div><div><small>BEST</small><strong id="best">0</strong></div></div>
  <section class="mission" aria-label="Level goals"><div class="mission-heading"><span id="levelName">Mint condition</span><span id="goalHint">Collect green bubbles</span></div><div id="goals" aria-live="polite"></div></section>
- <div class="meter"><span id="feedback" aria-live="polite">Tap 2+ matching bubbles</span><span id="combo">GO BIG</span></div>
+ <div class="progress-track" aria-label="Goal progress"><div id="progressFill"></div><span id="progressText">0%</span></div><div class="meter"><span id="feedback" aria-live="polite">Swipe to match 3</span><span id="combo">MATCH 3</span></div>
  <div class="stage">
-  <canvas id="board" width="420" height="480" role="application" tabindex="0" aria-label="Bubble Pop board. Arrow keys select a bubble. Enter pops a group or activates a power-up. Pop bubbles below gold stars to drop them."></canvas>
-  <div id="overlay"><div class="overlay-card"><span class="pill" id="overlayTag">LEVEL 1 · MINT CONDITION</span><h2 id="resultTitle">Make it pop.</h2><p id="resultText">Collect 18 green bubbles in 20 moves.</p><div class="overlay-tip" id="overlayTip">Match 5 for a rocket. Match 7 for a bomb.</div><button id="play">Let’s play →</button><button id="cancel" hidden>Keep playing</button></div></div>
+  <canvas id="board" width="420" height="480" role="application" tabindex="0" aria-label="Bubble Pop board. Swipe neighboring bubbles to match three. Or tap two neighbors. Keyboard: arrows move, Enter selects, Shift plus an arrow swaps. Match below gold stars to deliver them."></canvas>
+  <div id="overlay"><div class="overlay-card"><span class="pill" id="overlayTag">LEVEL 1 · MINT CONDITION</span><h2 id="resultTitle">Make it pop.</h2><p id="resultText">Collect 18 green bubbles in 22 moves.</p><div class="overlay-tip" id="overlayTip">Match 4 for a rocket · 5 for a prism.</div><button id="play">Let’s play →</button><button id="assist" hidden>Retry with +3 moves · Free</button><button id="cancel" hidden>Keep playing</button></div></div>
  </div>
- <div class="help"><span><b>5+</b> rocket ↔</span><span><b>7+</b> bomb ✹</span><span>Touching powers <b>combine</b></span></div>
- <div class="actions"><button id="pause" disabled>Pause</button><button id="restart" disabled>Restart</button><a class="leave" href="games.html">Quit</a></div>
+ <div class="help"><span><b>4</b> rocket ↔</span><span><b>T / L</b> bomb ✹</span><span><b>5</b> prism ✦</span></div>
+ <div class="actions"><button id="hint" disabled>Hint</button><button id="pause" disabled>Pause</button><button id="restart" disabled>Restart</button><a class="leave" href="games.html">Quit</a></div>
  <p class="note">Free practice · No plays or Arcade Coins used</p>
  <footer class="public-footer" aria-label="Site information"><nav aria-label="Site information"><a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav><p>Arcade Coins have no cash value. This preview awards score only.</p></footer>
-</main><script src="bubble-pop-engine.js?v=campaign1"></script><script src="bubble-pop.js?v=campaign1"></script></body></html>
+</main><script src="bubble-pop-engine.js?v=match3-1"></script><script src="bubble-pop.js?v=match3-1"></script></body></html>

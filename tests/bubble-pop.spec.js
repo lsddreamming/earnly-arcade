@@ -1,83 +1,68 @@
 const {test,expect}=require('@playwright/test');
-const E=require('../bubble-pop-engine');
 const assert=require('node:assert/strict');
-function rng(seed){let n=seed;return ()=>((n=Math.imul(n,1664525)+1013904223>>>0)/4294967296);}
-function fixture(colors,level=0){let n=0;const random=rng(71);return E.create(()=>n<colors.length?(colors[n++]+.1)/4:random(),level);}
-function pairFixture(first,second){
- const colors=Array.from({length:56},(_,i)=>(i%7+Math.floor(i/7))%2);
- for(let x=0;x<first;x++)colors[49+x]=3;
- for(let y=7-second;y<7;y++)colors[y*7+1]=2;
- return fixture(colors);
+const E=require('../bubble-pop-engine');
+const fs=require('node:fs');
+const rng=seed=>()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
+function solution(level,win=true){for(let seed=1;seed<=150;seed++){const g=E.create(rng(seed),level),steps=[],choose=rng(seed+9000);while(!g.state().done){const available=g.legalMoves(),move=available[Math.floor(choose()*available.length)];steps.push(move);g.swap(...move);}if((g.state().status==='won')===win)return {seed,steps};}throw Error('No fixture '+level);}
+function fixture(changes){const colors=Array.from({length:56},(_,i)=>(i%7+Math.floor(i/7)*2)%5);for(const [i,c] of Object.entries(changes))colors[i]=c;let n=0;const r=rng(9);return E.create(()=>n<56?(colors[n++]+.1)/5:r());}
+
+test('rules: invalid swaps are atomic; three, four, five and T matches create distinct outcomes',()=>{
+ const g=E.create(rng(3)),before=g.state();for(const pair of [[-1,0],[1.5,2],[0,55],[6,7]]){assert.equal(g.swap(...pair).valid,false);assert.deepEqual(g.state(),before);}
+ const legal=g.legalMoves();let rejected=false;for(let i=0;i<56&&!rejected;i++)for(const j of E.neighbors(i)){if(legal.some(p=>p.includes(i)&&p.includes(j)))continue;assert.equal(g.swap(i,j).valid,false);assert.deepEqual(g.state(),before);rejected=true;break;}assert(rejected);
+ for(const [changes,pair,power] of [
+  [{28:3,29:3,30:1,23:3},[23,30],null],
+  [{28:3,29:3,30:1,31:3,23:3},[23,30],'horizontal'],
+  [{28:3,29:3,30:1,31:3,32:3,23:3},[23,30],'prism'],
+  [{29:3,30:1,31:3,23:3,37:3,44:3},[23,30],'bomb']
+ ]){const f=fixture(changes);assert.equal(E.matches(f.state().board).length,0);const r=f.swap(...pair);assert(r.valid);const specials=r.waves[0].board.filter(c=>c.power);if(power)assert(specials.some(c=>c.power===power),JSON.stringify(specials));else assert.equal(specials.length,0);assert.equal(r.moves,21);}
+});
+
+test('rules: power combination chains once, cascades cost one move, assistance is explicit and bounded',()=>{
+ const g=E.create(rng(8),4),before=g.state(),r=g.swap(49,50);assert(r.valid);assert.equal(r.powerCombo,'rocket-bomb');assert.equal(r.moves,before.moves-1);assert(r.count>=21);assert(r.waves.length>=1);
+ for(const wave of r.waves){assert.equal(new Set(wave.cleared).size,wave.cleared.length);assert.equal(new Set(wave.blasts.map(b=>b.index)).size,wave.blasts.length);}
+ const a=E.create(rng(51)),b=E.create(rng(51));const original=a.state();assert(a.assist());assert.equal(a.state().moves,original.moves+3);assert.equal(a.assist(),false);assert.deepEqual(a.state().board,b.state().board);
+ const move=a.legalMoves()[0],x=a.swap(...move),y=b.swap(...move);assert.deepEqual(x.board,y.board);assert.equal(x.score,y.score);assert.equal(x.moves,y.moves+3);assert.equal(x.assisted,true);
+});
+
+test('rules: final-move wins, terminal states, retry isolation and final campaign boundary',()=>{
+ let finalWin=false;for(let seed=1;seed<=150&&!finalWin;seed++){const g=E.create(rng(seed));while(!g.state().done){const r=g.swap(...g.legalMoves()[0]);if(r.status==='won'&&r.moves===0)finalWin=true;}}assert(finalWin);
+ for(const level of [0,5,999]){const f=solution(level),g=E.create(rng(f.seed),level);assert.equal(g.next(),false);for(const move of f.steps)g.swap(...move);const end=g.state();assert.equal(end.status,'won');assert.equal(g.swap(0,1).valid,false);assert.equal(g.assist(),false);assert.deepEqual(g.state(),end);if(level===999)assert.equal(g.next(),false);else {assert.equal(g.next().level,level+1);const score=g.state().score;g.swap(...g.legalMoves()[0]);g.restart();assert.equal(g.state().score,score);}}
+});
+
+test('rules: root and packaged preview sources are identical',()=>{for(const file of ['bubble-pop-engine.js','bubble-pop.js','bubble-pop.css','bubble-pop.html'])assert.equal(fs.readFileSync(file,'utf8'),fs.readFileSync('www/'+file,'utf8'));});
+
+async function setup(page,{level=0,seed=3,reduced=true,path='/bubble-pop.html'}={}){
+ await page.emulateMedia({reducedMotion:reduced?'reduce':'no-preference'});
+ await page.addInitScript(({level,seed})=>{let n=seed;Math.random=()=>((n=Math.imul(n,1664525)+1013904223>>>0)/4294967296);if(localStorage.getItem('earnlyBubblePopLevel')===null)localStorage.setItem('earnlyBubblePopLevel',String(level));localStorage.setItem('points','123');localStorage.setItem('arcadePlays','untouched');window.framesRequested=0;const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>{window.framesRequested++;return raf(fn);};},{level,seed});
+ await page.goto(path);await page.locator('#play').click();return E.create(rng(seed),level);
 }
-test('6000 seeded levels conserve stars, valid boards, move limits and terminal state',()=>{
- let turns=0,wins=0,starWins=0;
- for(let level=0;level<E.LEVELS.length;level++)for(let seed=1;seed<=1000;seed++){
-  const random=rng(seed+level*1000),g=E.create(random,level);let previousScore=0;
-  while(!g.state().done){
-   const s=g.state(),choices=s.board.map((c,i)=>({i,size:c.power?10:g.group(i).length})).filter(c=>c.size>=2);assert(choices.length);
-   const r=g.pop(choices[Math.floor(random()*choices.length)].i);assert(r.valid);assert.equal(r.moves,s.moves-1);assert(r.score>previousScore);previousScore=r.score;turns++;
-   assert.equal(r.board.length,56);assert.equal(new Set(r.board.map(c=>c.id)).size,56);assert.equal(r.board.filter(c=>c.star).length+r.goals.delivered,E.LEVELS[level].stars);
-   assert(r.goals.iceLeft<=s.goals.iceLeft);assert(r.goals.collected>=s.goals.collected);
-   for(const c of r.board)assert(c.star||c.power||Number.isInteger(c.color)&&c.color>=0&&c.color<4);
-   for(const i of r.cleared)assert(i>=0&&i<56&&!r.old[i].star);
-   assert.equal(r.falls.length,56);
-  }
-  const end=g.state();assert.equal(g.pop(0).valid,false);assert.deepEqual(g.state(),end);
-  if(end.status==='won'){wins++;if(level===2)starWins++;assert(end.goals.collected>=end.goals.collect);assert.equal(end.goals.iceLeft,0);assert.equal(end.goals.delivered,end.goals.stars);}else assert.equal(end.moves,0);
-  g.restart();assert.equal(g.state().moves,E.LEVELS[level].moves);assert.equal(g.state().score,0);
- }
- assert(wins>0);assert(starWins>0);console.log(`Bubble Pop: 6000 seeded levels, ${turns} turns, ${wins} random-policy wins, ${starWins} star-level wins.`);
+async function cellPoint(page,i){const b=await page.locator('#board').boundingBox(),size=Math.min((b.width-12)/7,(b.height-12)/8);return {x:(b.width-size*7)/2+(i%7+.5)*size,y:(b.height-size*8)/2+(Math.floor(i/7)+.5)*size};}
+async function tapSwap(page,a,b){for(const i of [a,b]){const p=await cellPoint(page,i);if(await page.evaluate(()=>navigator.maxTouchPoints>0)){const box=await page.locator('#board').boundingBox();await page.touchscreen.tap(box.x+p.x,box.y+p.y);}else await page.locator('#board').click({position:p});}}
+async function gesture(page,a,b,cancel=false){const box=await page.locator('#board').boundingBox(),start=await cellPoint(page,a),end=await cellPoint(page,b);await page.locator('#board').dispatchEvent('pointerdown',{pointerId:7,clientX:box.x+start.x,clientY:box.y+start.y,pointerType:'touch'});await page.locator('#board').dispatchEvent(cancel?'pointercancel':'pointerup',{pointerId:7,clientX:box.x+end.x,clientY:box.y+end.y,pointerType:'touch'});}
+
+test('touch: tap neighbors and swipe each spend one move; cancellation, pause, restart and quit are safe',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));const g=await setup(page),first=g.legalMoves()[0];await page.locator('#hint').click();await expect(page.locator('#moves')).toHaveText('22');await expect(page.locator('#feedback')).toContainText('outlined');await gesture(page,...first,true);await expect(page.locator('#moves')).toHaveText('22');await tapSwap(page,...first);g.swap(...first);await expect(page.locator('#moves')).toHaveText('21');const second=g.legalMoves()[0];await gesture(page,...second);g.swap(...second);await expect(page.locator('#moves')).toHaveText('20');
+ await page.locator('#pause').click();await expect(page.locator('#resultTitle')).toHaveText('Take a breather.');await page.locator('#play').click();await page.locator('#restart').click();await page.locator('#cancel').click();await expect(page.locator('#moves')).toHaveText('20');await page.locator('#restart').click();await page.locator('#play').click();await expect(page.locator('#moves')).toHaveText('22');await expect(page.locator('#score')).toHaveText('0');
+ await page.getByRole('link',{name:'Quit',exact:true}).click();await page.locator('#cancel').click();await expect(page.locator('#overlay')).toBeHidden();expect(errors).toEqual([]);expect(await page.evaluate(()=>[localStorage.getItem('points'),localStorage.getItem('arcadePlays')])).toEqual(['123','untouched']);
 });
-test('adjacent powers combine, chain once and consume exactly one move',()=>{
- for(const [a,b,combo] of [[5,5,'double-rocket'],[7,5,'rocket-bomb'],[7,7,'double-bomb']]){
-  const g=pairFixture(a,b),first=g.pop(49);assert.equal(first.createdPower,a===7?'bomb':'vertical');
-  const second=g.pop(50);assert.equal(second.createdPower,b===7?'bomb':'horizontal');
-  const before=g.state(),r=g.pop(49);assert.equal(r.powerCombo,combo);assert.equal(r.moves,before.moves-1);assert(r.count>=10);assert(r.detonated>=2);assert.equal(new Set(r.cleared).size,r.cleared.length);
- }
+
+test('progress: wins wait for Next, migrate checkpoint, replay unlocked levels and preserve wallet',async({page})=>{
+ await page.setViewportSize({width:320,height:568});const f=solution(5);await setup(page,{level:5,seed:f.seed});await expect(page.locator('#journey')).toBeHidden();for(const move of f.steps)await tapSwap(page,...move);await expect(page.locator('#resultTitle')).toHaveText('Level cleared!');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 6 / 1000');await page.waitForTimeout(450);await expect(page.locator('#levelLabel')).toHaveText('LEVEL 6 / 1000');await page.locator('#play').click();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 7 / 1000');await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 7 / 1000');await expect(page.locator('#journey')).toBeVisible();await page.getByRole('button',{name:'Level 5 cleared',exact:true}).click();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 5 / 1000');expect(await page.evaluate(()=>localStorage.getItem('earnlyBubblePopUnlocked'))).toBe('6');expect(await page.evaluate(()=>localStorage.getItem('points'))).toBe('123');
 });
-test('normal pops create powers, single powers clear their whole row or column',()=>{
- const g=pairFixture(5,5);g.pop(49);const r=g.pop(49);assert.equal(r.powerCombo,null);assert.equal(r.detonated,1);assert.equal(r.count,8);assert(r.cleared.every(i=>i%7===0));
- const colors=Array(56).fill(0),all=fixture(colors);assert.equal(all.pop(10).createdPower,'bomb');assert.equal(all.state().board.filter(c=>c.power).length,1);
+
+test('help: three losses offer optional free +3 retry moves and honest remaining progress',async({page})=>{
+ const f=solution(0,false);await page.addInitScript(()=>localStorage.setItem('earnlyBubblePopRetries',JSON.stringify({0:2})));await setup(page,{seed:f.seed});for(const move of f.steps)await tapSwap(page,...move);await expect(page.locator('#assist')).toBeVisible();await expect(page.locator('#resultText')).toContainText('% of your goals complete');await page.locator('#assist').click();await expect(page.locator('#moves')).toHaveText('25');await expect(page.locator('#feedback')).toContainText('assisted round');await expect(page.locator('#overlay')).toBeHidden();
 });
-test('invalid taps do not spend moves; final-move wins and next-level/retry scoring are correct',()=>{
- const g=E.create(()=>.8);const before=g.state();assert.equal(g.pop(-1).valid,false);assert.equal(g.pop(1.5).valid,false);assert.deepEqual(g.state(),before);
- const win=g.pop(0);assert.equal(win.status,'won');assert.equal(g.pop(0).valid,false);const next=g.next();assert.equal(next.level,1);assert.equal(next.score,win.score);g.pop(0);g.restart();assert.equal(g.state().score,win.score);
- const stars=E.create(rng(5),2),i=stars.state().board.findIndex(c=>c.star),starState=stars.state();assert.equal(stars.pop(i).valid,false);assert.deepEqual(stars.state(),starState);
- // Search deterministic real rounds for a last-move win, not a synthetic status override.
- let found=false;
- for(let seed=1;seed<1000&&!found;seed++){const random=rng(seed),run=E.create(random);while(!run.state().done){const s=run.state(),choices=s.board.map((c,i)=>c.power||run.group(i).length>=2?i:-1).filter(i=>i>=0);const r=run.pop(choices[Math.floor(random()*choices.length)]);if(r.status==='won'&&r.moves===0)found=true;}}
- assert(found);
+
+test('render: keyboard, blocked storage, reduced motion and idle rendering',async({page})=>{
+ await page.addInitScript(()=>{Storage.prototype.getItem=()=>{throw Error('blocked')};Storage.prototype.setItem=()=>{throw Error('blocked')};let n=3;Math.random=()=>((n=Math.imul(n,1664525)+1013904223>>>0)/4294967296);window.framesRequested=0;const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>{window.framesRequested++;return raf(fn);};});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/bubble-pop.html');await page.locator('#play').click();const g=E.create(rng(3)),[a,b]=g.legalMoves()[0];await page.locator('#board').focus();for(let i=0;i<Math.floor(a/7);i++)await page.keyboard.press('ArrowDown');for(let i=0;i<a%7;i++)await page.keyboard.press('ArrowRight');await page.keyboard.press('Shift+'+(b-a===1?'ArrowRight':'ArrowDown'));await expect(page.locator('#moves')).toHaveText('21');const n=await page.evaluate(()=>framesRequested);await page.waitForTimeout(200);expect(await page.evaluate(()=>framesRequested)).toBe(n);
 });
-async function setup(page){await page.addInitScript(()=>{Math.random=()=>0;localStorage.setItem('points','123');localStorage.setItem('arcadePlays','untouched');});await page.goto('/bubble-pop.html');await page.getByRole('button',{name:'Let’s play'}).click();}
-async function firstCell(page){const b=await page.locator('#board').boundingBox(),size=Math.min((b.width-12)/7,(b.height-12)/8);return {x:(b.width-size*7)/2+size/2,y:(b.height-size*8)/2+size/2};}
-test('touch pops once, immediate pause settles animation, restart and quit can be cancelled',async({page})=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await setup(page);
- await page.locator('#board').click({position:await firstCell(page)});await expect(page.locator('#moves')).toHaveText('19');await expect(page.locator('#score')).not.toHaveText('0');
- await page.getByRole('button',{name:'Pause',exact:true}).click();await expect(page.locator('#resultTitle')).toHaveText('Take a breather.');await page.locator('#play').click();await expect(page.locator('#overlay')).toBeHidden();
- await page.getByRole('button',{name:'Restart',exact:true}).click();await page.locator('#cancel').click();await expect(page.locator('#moves')).toHaveText('19');
- await page.getByRole('button',{name:'Restart',exact:true}).click();await page.getByRole('button',{name:'Restart level'}).click();await expect(page.locator('#moves')).toHaveText('20');await expect(page.locator('#score')).toHaveText('0');
- await page.getByRole('link',{name:'Quit',exact:true}).click();await expect(page.locator('#resultTitle')).toHaveText('Leave this round?');await page.locator('#cancel').click();await expect(page.locator('#overlay')).toBeHidden();
- expect(await page.evaluate(()=>localStorage.getItem('points'))).toBe('123');expect(await page.evaluate(()=>localStorage.getItem('arcadePlays'))).toBe('untouched');expect(errors).toEqual([]);
+
+test('render: animated cascades lock input, settle on pause/background, and stop when idle',async({page})=>{
+ const g=await setup(page,{reduced:false});const move=g.legalMoves()[0];await gesture(page,...move);await gesture(page,...move);await expect(page.locator('#moves')).toHaveText('21');await page.locator('#pause').click();await expect(page.locator('#resultTitle')).toHaveText('Take a breather.');await page.locator('#play').click();await page.waitForTimeout(100);const n=await page.evaluate(()=>framesRequested);await page.waitForTimeout(200);expect(await page.evaluate(()=>framesRequested)).toBe(n);g.swap(...move);await gesture(page,...g.legalMoves()[0]);await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});await expect(page.locator('#resultTitle')).toHaveText('Take a breather.');await expect(page.locator('#moves')).toHaveText('20');
 });
-test('cleared level waits for Next, persists unlock and shows the ice objective',async({page})=>{
- await page.addInitScript(()=>{Math.random=()=>.8;});await page.goto('/bubble-pop.html');await page.locator('#play').click();await page.locator('#board').click({position:await firstCell(page)});
- await expect(page.locator('#resultTitle')).toHaveText('Level cleared!');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1 / 1000');await page.waitForTimeout(450);await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1 / 1000');await page.locator('#play').click();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 2 / 1000');await expect(page.locator('#goals')).toContainText('0/12');
- await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 2 / 1000');await expect(page.locator('#resultText')).toContainText('break 12 ice tiles');
-});
-test('board and controls fit phones, and goals, ice, stars and powers have review screenshots',async({page},info)=>{
- for(const [width,height] of [[390,844],[390,664],[320,568]]){
-  await page.setViewportSize({width,height});await page.goto('/bubble-pop.html');await page.locator('#play').click();const m=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth,bottom:document.querySelector('.actions').getBoundingClientRect().bottom,height:innerHeight}));expect(m.scroll).toBeLessThanOrEqual(m.width);expect(m.bottom).toBeLessThanOrEqual(m.height);
- }
- await page.setViewportSize({width:390,height:844});await page.evaluate(()=>localStorage.setItem('earnlyBubblePopLevel','4'));await page.reload();await page.locator('#play').click();await page.screenshot({path:'test-results/bubble-pop-'+info.project.name+'.png',fullPage:true});
- await page.addInitScript(()=>{Math.random=()=>0;});await page.evaluate(()=>localStorage.setItem('earnlyBubblePopLevel','0'));await page.reload();await page.locator('#play').click();await page.locator('#board').click({position:await firstCell(page)});await page.waitForTimeout(450);await page.screenshot({path:'test-results/bubble-pop-power-'+info.project.name+'.png',fullPage:true});
-});
-test('reduced motion, keyboard play, blocked storage and idle rendering remain safe',async({page})=>{
- await page.emulateMedia({reducedMotion:'reduce'});await page.addInitScript(()=>{Math.random=()=>0;Storage.prototype.setItem=()=>{throw Error('blocked')};Storage.prototype.getItem=()=>{throw Error('blocked')};window.framesRequested=0;const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>{window.framesRequested++;return raf(fn);};});await page.goto('/bubble-pop.html');await page.locator('#play').click();await page.locator('#board').focus();await page.keyboard.press('Enter');await expect(page.locator('#moves')).toHaveText('19');await expect(page.locator('#score')).not.toHaveText('0');await page.waitForTimeout(100);const n=await page.evaluate(()=>framesRequested);await page.waitForTimeout(150);expect(await page.evaluate(()=>framesRequested)).toBe(n);
-});
-test('animated turns ignore repeat taps, sleep when idle and pause when backgrounded',async({page})=>{
- await page.addInitScript(()=>{window.framesRequested=0;const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>{window.framesRequested++;return raf(fn);};});await setup(page);
- const p=await firstCell(page),b=await page.locator('#board').boundingBox();
- await page.locator('#board').dispatchEvent('pointerdown',{clientX:b.x+p.x,clientY:b.y+p.y});await page.locator('#board').dispatchEvent('pointerdown',{clientX:b.x+p.x,clientY:b.y+p.y});await expect(page.locator('#moves')).toHaveText('19');await page.waitForTimeout(500);
- const n=await page.evaluate(()=>framesRequested);expect(n).toBeGreaterThan(0);await page.waitForTimeout(150);expect(await page.evaluate(()=>framesRequested)).toBe(n);
- await page.locator('#board').dispatchEvent('pointerdown',{clientX:b.x+p.x,clientY:b.y+p.y});await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});await expect(page.locator('#resultTitle')).toHaveText('Take a breather.');await expect(page.locator('#moves')).toHaveText('18');
+
+test('layout: phone sizes, packaged source and late levels remain usable',async({page},info)=>{
+ for(const [width,height] of [[390,844],[390,664],[320,568],[844,390]]){await page.setViewportSize({width,height});await page.goto('/bubble-pop.html');await page.locator('#play').click();const m=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth,bottom:document.querySelector('.actions').getBoundingClientRect().bottom,height:innerHeight}));expect(m.scroll).toBeLessThanOrEqual(m.width);if(height>400)expect(m.bottom).toBeLessThanOrEqual(m.height);await page.screenshot({path:`test-results/bubble-pop-${info.project.name}-${width}x${height}.png`});}
+ await page.setViewportSize({width:390,height:844});await page.evaluate(()=>localStorage.setItem('earnlyBubblePopLevel','999'));await page.goto('/www/bubble-pop.html');await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');await page.locator('#play').click();await page.screenshot({path:'test-results/bubble-pop-'+info.project.name+'.png',fullPage:true});await page.reload();await expect(page.locator('#levelLabel')).toHaveText('LEVEL 1000 / 1000');
 });
