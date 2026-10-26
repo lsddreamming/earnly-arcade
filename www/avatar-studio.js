@@ -167,11 +167,10 @@
         if(item.id.startsWith('no-'))artwork=el('p','gear-empty','No accessory');
         else artwork.append(image(item));
       }else artwork=character({ ...(state.user?.equipped || starterLoadout()), [item.slot]: item },item.slot);
-      art.append(
-        artwork,
-        el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()),
-      );
-      if(owned)art.append(el("span","item-state",equipped?"✓ Equipped":"✓ Owned"));
+      art.append(artwork);
+      // One status per card. The saved state replaces the acquisition label.
+      if (owned) art.append(el("span", "item-state", equipped ? "✓ Equipped" : "✓ Owned"));
+      else art.append(el("span", "badge " + item.rarity, item.coinPrice === 0 ? "FREE" : item.rarity.toUpperCase()));
       if(tryingOn)art.append(el("span","tryon-state","Trying on"));
       art.append(artTrigger);
       const button = el(

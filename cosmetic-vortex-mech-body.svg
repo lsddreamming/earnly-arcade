@@ -24,4 +24,4 @@
 
     <path d="M64 271l-2 9m9-8-1 10m158-8 3 9m-12-11 3 13" stroke="#68433a" stroke-width="2" stroke-linecap="round"/>
 
-    <path d="M91 61Q108 30 142 31L151 44L162 31Q193 33 211 61L198 73L151 58L101 77Z" fill="url(#metal)" stroke="#233d52" stroke-width="2"/><path d="M109 53L135 42m31 0 27 11" stroke="#85acff" stroke-width="3"/><circle cx="151" cy="46" r="5" fill="#85acff"/></svg>
+    <path d="M91 61Q108 30 142 31L151 44L162 31Q193 33 211 61L198 73L151 58L101 77Z" fill="url(#metal)" stroke="#233d52" stroke-width="2"/><path d="M109 53L135 42m31 0 27 11" stroke="#85acff" stroke-width="3"/><circle cx="151" cy="46" r="5" fill="#85acff"/><g id="skin-signature"><path d="M92 89L96 103L92 119L99 131M210 89L206 103L210 119L203 131" fill="none" stroke="#59758e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="95" cy="106" r="2.5" fill="#a8eaff"/><circle cx="207" cy="106" r="2.5" fill="#a8eaff"/><path d="M122 164Q151 177 180 164" fill="none" stroke="#e1f3f4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/></g></svg>
