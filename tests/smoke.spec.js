@@ -302,7 +302,7 @@ test('games catalog keeps Play bright, disabled actions readable, and avoids dup
   else await expect(backHome).toBeVisible();
 });
 
-test('mobile catalog features Crystal Command above two-column arcade choices', async ({ page }) => {
+test('mobile catalog shows Crystal Command as a regular two-column game card', async ({ page }) => {
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
@@ -316,13 +316,13 @@ test('mobile catalog features Crystal Command above two-column arcade choices', 
   expect(feature).toBeTruthy();
   expect(first).toBeTruthy();
   expect(second).toBeTruthy();
-  expect(Math.abs(first.y - second.y)).toBeLessThan(2);
-  expect(second.x).toBeGreaterThan(first.x + first.width - 2);
+  expect(Math.abs(feature.y - first.y)).toBeLessThan(2);
+  expect(first.x).toBeGreaterThan(feature.x + feature.width - 2);
   expect(first.height).toBeLessThanOrEqual(150);
-  expect(Math.abs(feature.x - first.x)).toBeLessThan(2);
-  expect(Math.abs(feature.x + feature.width - second.x - second.width)).toBeLessThan(2);
-  expect(first.y).toBeGreaterThanOrEqual(feature.y + feature.height);
-  expect(feature.height).toBeGreaterThanOrEqual(170);
+  expect(Math.abs(feature.width - first.width)).toBeLessThan(2);
+  expect(Math.abs(feature.height - first.height)).toBeLessThan(2);
+  expect(Math.abs(second.x - feature.x)).toBeLessThan(2);
+  expect(second.y).toBeGreaterThanOrEqual(feature.y + feature.height);
   await expect(featured.locator('.game-play-button')).toContainText('Play · Free beta');
   const featurePlay = await featured.locator('.game-play-button').boundingBox();
   expect(featurePlay.height).toBeGreaterThanOrEqual(44);
