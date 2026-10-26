@@ -94,5 +94,6 @@
   }
   reset(initialLevel);return {state,reset,restart,next,swap,assist,legalMoves:()=>legalMoves(board)};
  }
- const api={create,COLS,ROWS,COLORS,LEVELS,THEMES,neighbors,CAMPAIGN_LEVELS,levelRules,normalizeLevel,matches,legalMoves};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.BubblePopEngine=api;
+ const seededRandom=seed=>()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296);
+ const api={seededRandom,create,COLS,ROWS,COLORS,LEVELS,THEMES,neighbors,CAMPAIGN_LEVELS,levelRules,normalizeLevel,matches,legalMoves};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.BubblePopEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

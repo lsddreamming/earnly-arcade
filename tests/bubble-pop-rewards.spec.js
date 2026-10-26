@@ -1,0 +1,20 @@
+const {test,expect}=require('@playwright/test');
+const E=require('../bubble-pop-engine');
+function fixture(level=0){for(let seed=1;seed<200;seed++){const g=E.create(E.seededRandom(seed),level),steps=[],random=E.seededRandom(seed+9000);while(!g.state().done){const moves=g.legalMoves(),m=moves[Math.floor(random()*moves.length)];steps.push(m);g.swap(...m);}if(g.state().status==='won')return {seed,steps,stars:g.state().moves>=8?3:g.state().moves>=3?2:1};}throw Error('no fixture');}
+async function setup(page,{level=0,fail=false,duplicate=false}={}){
+ const f=fixture(level);
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.addInitScript(({level,fail,duplicate})=>{localStorage.setItem('earnlyBubblePopLevel',String(level));localStorage.setItem('points','123');window.rewardCalls=[];window.failReward=fail;window.duplicateReward=duplicate;},{level,fail,duplicate});
+ await page.route('**/crystal-command-vendor.js',route=>route.fulfill({contentType:'application/javascript',body:`window.CrystalSupabase={createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'owner'}}}})},functions:{invoke:async(name,{body})=>{window.rewardCalls.push(body);if(body.action==='start')return {data:{id:'11111111-1111-4111-8111-111111111111',userId:'owner',level:body.level,seed:${f.seed}}};if(window.failReward)return {data:{error:'DAILY_REWARD_LIMIT'}};return {data:{ok:true,duplicate:window.duplicateReward,amount:window.duplicateReward?0:35,bonus:${level===9?100:0},wallet:{balance:'258',lifetime_earned:'135'}}};}}})};`}));
+ await page.goto('/bubble-pop.html');await page.locator('#play').click();await expect(page.locator('#overlay')).toBeHidden();return f;
+}
+async function win(page,f){for(const [a,b] of f.steps){for(const i of [a,b]){const box=await page.locator('#board').boundingBox();const size=Math.min((box.width-12)/7,(box.height-12)/8);await page.locator('#board').dispatchEvent('pointerdown',{pointerId:2,clientX:box.x+(box.width-size*7)/2+(i%7+.5)*size,clientY:box.y+(box.height-size*8)/2+(Math.floor(i/7)+.5)*size});await page.locator('#board').dispatchEvent('pointerup',{pointerId:2,clientX:box.x+(box.width-size*7)/2+(i%7+.5)*size,clientY:box.y+(box.height-size*8)/2+(Math.floor(i/7)+.5)*size});}}await expect(page.locator('#resultTitle')).toHaveText('Level cleared!');}
+test('verified milestone coins and balance appear; only moves go to the server',async({page})=>{
+ const f=await setup(page,{level:9});await win(page,f);await expect(page.locator('#coinReward')).toContainText('+135 Arcade Coins');await expect(page.locator('#coinReward')).toContainText('100 milestone');
+ const state=await page.evaluate(()=>({coins:localStorage.getItem('points'),pending:JSON.parse(localStorage.getItem('earnlyBubblePopPending')),calls:window.rewardCalls}));expect(state.coins).toBe('258');expect(state.pending).toEqual([]);const claim=state.calls.find(x=>x.action==='claim');expect(claim.steps).toEqual(f.steps);expect(claim.amount).toBeUndefined();expect(claim.stars).toBeUndefined();
+});
+test('daily cap preserves receipt; retry reconciles without speculative coins',async({page})=>{
+ const f=await setup(page,{fail:true});await win(page,f);await expect(page.locator('#coinReward')).toContainText('Daily coin limit');expect(await page.evaluate(()=>localStorage.getItem('points'))).toBe('123');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnlyBubblePopPending')).length)).toBe(1);
+ await page.evaluate(()=>window.failReward=false);await page.locator('#retryCoins').click();await expect(page.locator('#coinReward')).toContainText('+35 Arcade Coins');expect(await page.evaluate(()=>localStorage.getItem('earnlyBubblePopPending'))).toBe('[]');
+});
+test('replays explicitly show no new coins',async({page})=>{const f=await setup(page,{duplicate:true});await win(page,f);await expect(page.locator('#coinReward')).toHaveText('Coins already collected for this level.');});
