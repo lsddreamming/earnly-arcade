@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const {Game}=require('../neon-slice-engine');
-test('slicing scores each fruit once, combos once, and bombs end the run',()=>{const g=new Game(()=>.5);g.start();g.items=[{x:80,y:100,r:24,type:0},{x:160,y:100,r:24,type:1}];g.slice({x:10,y:100},{x:210,y:100});expect(g.score).toBe(20);expect(g.endStroke()).toEqual({hits:2,bonus:5});g.endStroke();g.slice({x:10,y:100},{x:210,y:100});expect(g.score).toBe(25);g.items=[{x:100,y:100,r:24,bomb:true}];g.slice({x:0,y:100},{x:200,y:100});expect(g.state).toBe('over');expect(g.continue()).toBe(true);expect(g.score).toBe(25);g.end('Bomb hit');expect(g.continue()).toBe(false);});
+test('slicing scores each fruit once, combos once, and bombs end the run',()=>{const g=new Game(()=>.5);g.start();g.items=[{x:80,y:100,r:24,type:0},{x:160,y:100,r:24,type:1}];g.slice({x:10,y:100},{x:210,y:100});expect(g.score).toBe(20);expect(g.endStroke()).toBeNull();g.endStroke();g.slice({x:10,y:100},{x:210,y:100});expect(g.score).toBe(20);g.items=[{x:100,y:100,r:24,bomb:true}];g.slice({x:0,y:100},{x:200,y:100});expect(g.state).toBe('over');expect(g.continue()).toBe(true);expect(g.score).toBe(20);g.end('Bomb hit');expect(g.continue()).toBe(false);});
 test('simulation ends after three misses, pauses safely, ramps and stays bounded',()=>{const g=new Game(()=>.5);g.start();g.pause();g.step(.04);expect(g.time).toBe(0);g.resume();for(let i=0;i<2000&&g.state==='running';i++)g.step(.04);expect(g.state).toBe('over');expect(g.misses).toBeGreaterThanOrEqual(3);expect(g.items.length).toBeLessThan(20);g.start();g.time=90;g.spawn();expect(g.items).toHaveLength(4);expect(g.items.every(x=>Number.isFinite(x.vy))).toBe(true);});
 test.beforeEach(async({page})=>{await page.route('https://**',r=>r.abort());await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));});
 test('free preview starts, pauses and resumes without economy changes',async({page})=>{await page.goto('/neon-slice.html');const before=await page.evaluate(()=>({coins:localStorage.getItem('points'),plays:localStorage.getItem('plays')}));await page.getByRole('button',{name:'Play free',exact:true}).click();await expect(page.locator('#sliceOverlay')).toBeHidden();await page.getByRole('button',{name:'Pause',exact:true}).click();await expect(page.locator('#sliceHeading')).toHaveText('Paused');await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceContinue')).toBeHidden();expect(await page.evaluate(()=>({coins:localStorage.getItem('points'),plays:localStorage.getItem('plays')}))).toEqual(before);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(()=>innerWidth));});
@@ -24,7 +24,7 @@ test('transient window blur does not pause swiping, but backgrounding does',asyn
 test('rare burgers score 50 once; regular ingredients score 10 and bombs override bonuses',()=>{
  const g=new Game(()=>.5);g.start();g.items=[{x:80,y:100,r:24,type:7},{x:160,y:100,r:24,type:5}];
  g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(60);g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(60);
- expect(g.endStroke()).toEqual({hits:2,bonus:5});g.items=[{x:80,y:100,r:24,type:7,bomb:true}];g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(65);expect(g.state).toBe('over');
+ expect(g.endStroke()).toBeNull();g.items=[{x:80,y:100,r:24,type:7,bomb:true}];g.slice({x:0,y:100},{x:220,y:100});expect(g.score).toBe(60);expect(g.state).toBe('over');
  let seed=12345;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};const sim=new Game(random);sim.start();let bonus=0,total=0;const kinds=new Set();for(let i=0;i<1000;i++){sim.items=[];sim.spawn();for(const item of sim.items){if(!item.bomb){total++;if(item.type===7)bonus++;else kinds.add(item.type);}}}expect(bonus/total).toBeGreaterThan(.03);expect(bonus/total).toBeLessThan(.09);expect(kinds.size).toBe(11);
 });
 test('public catalog supports discovery and favorites without spending plays',async({page})=>{
@@ -47,4 +47,38 @@ test('cookout sound is opt-in, persists, and the spatula draws during a real swi
  await page.locator('#sliceSound').click();await expect(page.locator('#sliceSound')).toHaveText('Sound off');
  expect(errors).toEqual([]);
  await page.screenshot({path:test.info().outputPath('cookout.png')});
+});
+
+test('short swipes reward groups once and expire without lifting a finger',()=>{
+ const g=new Game(()=>.5);g.start();g.nextWave=100;
+ const food=(x,y=100)=>({x,y,r:8,type:0,vx:0,vy:0,angle:0,spin:0});
+ g.items=[food(40),food(80),food(120)];g.slice({x:10,y:100},{x:150,y:100});
+ expect(g.score).toBe(30);for(let i=0;i<4;i++)g.step(.04);
+ expect(g.completedCombos).toEqual([{hits:3,bonus:10}]);expect(g.score).toBe(40);expect(g.endStroke()).toBeNull();
+ // New waves under the same held pointer never join the previous group.
+ for(let wave=0;wave<25;wave++){g.items=[food(200)];g.slice({x:160,y:100},{x:240,y:100});for(let i=0;i<5;i++)g.step(.04);}
+ expect(g.bestCombo).toBe(3);expect(g.score).toBe(290);
+});
+test('stationary holds, reversals and prolonged scribbles cannot build a mega combo',()=>{
+ const g=new Game(()=>.5);g.start();g.nextWave=100;
+ const food=x=>({x,y:100,r:3,type:0});
+ g.items=[food(40)];expect(g.slice({x:40,y:100},{x:40,y:100})).toEqual([]);expect(g.score).toBe(0);
+ g.items=[food(40),food(70)];g.slice({x:10,y:100},{x:90,y:100});
+ g.items=[food(40)];g.slice({x:90,y:100},{x:10,y:100});expect(g.endStroke()).toBeNull();expect(g.bestCombo).toBe(0);
+ // Continuously moving for longer than the half-second window splits the combo.
+ for(let i=0;i<30;i++){g.items=[food(20+i*5)];g.slice({x:16+i*5,y:100},{x:24+i*5,y:100});g.items=[];g.step(.04);}
+ g.endStroke();expect(g.bestCombo).toBeLessThanOrEqual(13);
+ // A bomb in the same cut still cancels that cut's combo bonus.
+ g.start();g.items=[food(40),food(70),food(100),{...food(130),bomb:true}];g.slice({x:10,y:100},{x:160,y:100});expect(g.score).toBe(30);expect(g.endStroke()).toBeNull();expect(g.state).toBe('over');
+});
+test('one held pointer across new food groups produces separate combos',async({page})=>{
+ await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;window.__comboGame=this;};});
+ await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
+ const place=()=>page.evaluate(()=>{window.__comboGame.items=[80,180,280].map(x=>({x,y:240,r:20,type:0,vx:0,vy:0,angle:0,spin:0}));});
+ await place();await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540);await page.mouse.down();await page.mouse.move(box.x+box.width*.9,box.y+box.height*240/540,{steps:8});
+ await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ // Keep the pointer down while another group arrives, then reverse the swipe.
+ await place();await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540,{steps:8});
+ await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
+ expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
