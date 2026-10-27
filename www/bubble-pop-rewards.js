@@ -22,6 +22,6 @@
   apply(result.wallet);return result;
  }
  async function retry(){const u=await user();if(!u)return [];const results=[];for(const q of load().filter(x=>x.userId===u.id).sort((a,b)=>(a.level||0)-(b.level||0))){try{results.push(await claim(q,q.steps));}catch(e){if(e.message==='LEVEL_LOCKED')continue;if(['ROUND_EXPIRED','ROUND_NOT_FOUND','INVALID_STEPS','LEVEL_NOT_WON'].includes(e.message))store(load().filter(x=>x.id!==q.id));else throw e;}}return results;}
- window.BubblePopRewards={start,claim,retry};
+ window.BubblePopRewards={start,claim,retry,isSignedIn:async()=>Boolean(await user())};
  retry().catch(()=>{});
 })();
