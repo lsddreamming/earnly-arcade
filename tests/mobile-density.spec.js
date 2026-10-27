@@ -129,3 +129,32 @@ test('Header coin balances consistently lead to coin packs without replacing the
   expect(await chip.evaluate(el=>el.tagName)).toBe('A');
  }
 });
+
+for (const width of [320, 390, 440]) {
+  for (const prefix of ['', 'www/']) {
+    test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 956 });
+      await page.goto('/' + prefix + 'games.html');
+      // Wait for the catalog's dynamic rebuild, including its favorite controls.
+      await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
+      await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
+      for (const game of ['crystalCommand', 'bubblePop', 'neonSlice']) {
+        const card = page.locator('#games > [data-game="' + game + '"]');
+        await card.scrollIntoViewIfNeeded();
+        const geometry = await card.evaluate(el => {
+          const box = node => { const r = node.getBoundingClientRect(); return {left:r.left, right:r.right, top:r.top, bottom:r.bottom}; };
+          return {card:box(el), badge:box(el.querySelector('.game-new-bubble')), controls:[...el.querySelectorAll('h2, .favorite-button, .game-play-button')].map(box)};
+        });
+        const {card:bounds, badge, controls} = geometry;
+        expect(badge.left).toBeGreaterThanOrEqual(bounds.left);
+        expect(badge.right).toBeLessThanOrEqual(bounds.right);
+        expect(badge.top).toBeGreaterThanOrEqual(bounds.top);
+        expect(badge.bottom).toBeLessThanOrEqual(bounds.bottom);
+        for (const control of controls) {
+          const overlaps = badge.left < control.right && badge.right > control.left && badge.top < control.bottom && badge.bottom > control.top;
+          expect(overlaps, game + ' badge overlaps title or control').toBe(false);
+        }
+      }
+    });
+  }
+}
