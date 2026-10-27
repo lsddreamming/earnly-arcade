@@ -92,3 +92,11 @@ test('onboarding: collect, ice and star goals are introduced separately before m
  expect(E.levelRules(8)).toMatchObject({collect:0,ice:0,stars:2,moves:28});
  expect(E.levelRules(4).stars).toBeGreaterThan(0);expect(E.levelRules(4).collect+E.levelRules(4).ice).toBe(0);
 });
+
+test('active Bubble Pop play stays anchored without page scrolling on iPhone-sized screens',async({page})=>{
+ for(const [width,height] of [[390,844],[390,664],[320,568]]){
+  await page.setViewportSize({width,height});await page.goto('/bubble-pop.html');await page.locator('#play').click();
+  const metrics=await page.evaluate(()=>({body:getComputedStyle(document.body).overflow,board:getComputedStyle(document.querySelector('#board')).touchAction,scrollHeight:document.documentElement.scrollHeight,viewport:innerHeight,actions:document.querySelector('.actions').getBoundingClientRect().bottom}));
+  expect(metrics.body).toBe('hidden');expect(metrics.board).toBe('none');expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.viewport+2);expect(metrics.actions).toBeLessThanOrEqual(metrics.viewport+2);
+ }
+});
