@@ -34,8 +34,8 @@
       if(this.strokeStart===null)this.strokeStart=this.time;
       this.lastMotion=this.time;this.strokeDirection=direction;this.strokeLength+=length;
       const hits=[];for(const item of this.items){if(item.gone||distance(item.x,item.y,a,b)>item.r)continue;if(item.bomb){item.gone=true;this.end('Bomb hit');hits.push(item);break;}item.gone=true;this.score+=item.type===7?50:10;this.sliced++;if(item.type===7)this.burgers++;this.strokeHits++;hits.push(item);const cutAngle=Math.atan2(dy,dx),nx=-dy/length,ny=dx/length;
-      for(let i=0;i<10;i++){const angle=i*Math.PI*2/10,speed=65+this.random()*100;this.effects.push({x:item.x,y:item.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-35,life:.48,type:item.type,size:2+this.random()*3});}
-      for(const side of [-1,1])this.effects.push({...item,x:item.x+nx*side*3,y:item.y+ny*side*3,vx:nx*side*95,vy:ny*side*95-65,life:.85,half:side,spin:side*2,localCutAngle:cutAngle-(item.angle||0)});
+      for(let i=0;i<10;i++){const angle=i*Math.PI*2/10,speed=65+this.random()*100;this.effects.push({x:item.x,y:item.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-35,life:.65,type:item.type,size:3+this.random()*3,stillX:item.x+Math.cos(angle)*20,stillY:item.y+Math.sin(angle)*20});}
+      for(const side of [-1,1])this.effects.push({...item,x:item.x+nx*side*3,y:item.y+ny*side*3,vx:nx*side*95,vy:ny*side*95-65,life:.95,half:side,stillX:item.x+nx*side*9,stillY:item.y+ny*side*9,stillAngle:item.angle||0,spin:side*2,localCutAngle:cutAngle-(item.angle||0)});
       this.effects=this.effects.slice(-180);}this.items=this.items.filter(x=>!x.gone);return hits;}
     endStroke(){const n=this.strokeHits;this.strokeHits=0;this.strokeStart=null;this.lastMotion=null;this.strokeDirection=null;this.strokeLength=0;if(this.state==='running'&&n>=3){const bonus=Math.min(100,(n-1)*5);this.score+=bonus;this.bestCombo=Math.max(n,this.bestCombo);return {hits:n,bonus};}return null;}
   }

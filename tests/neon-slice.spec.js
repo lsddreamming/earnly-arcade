@@ -100,3 +100,12 @@ test('bomb cue is visible without sound, warns once and hides while paused',asyn
  await page.reload();await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;this.items=[{id:1,x:270,y:200,r:25,bomb:true,vx:0,vy:0,angle:0,spin:0}];};window.__warnings=0;NeonSlicePresentation.warning=()=>window.__warnings++;});
  await page.locator('#sliceSound').click();await page.locator('#sliceStart').click();await expect.poll(()=>page.evaluate(()=>window.__warnings)).toBe(1);await page.waitForTimeout(150);expect(await page.evaluate(()=>window.__warnings)).toBe(1);
 });
+for(const motion of ['reduce','no-preference'])test('cut halves remain visible with motion '+motion,async({page})=>{
+ await page.emulateMedia({reducedMotion:motion});await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.items=[{id:1,x:180,y:240,r:28,type:1,angle:0,spin:0,vx:0,vy:0}];window.__cutGame=this;};NeonSliceEngine.Game.prototype.step=function(){};const clip=CanvasRenderingContext2D.prototype.clip;window.__halfClips=0;CanvasRenderingContext2D.prototype.clip=function(...args){window.__halfClips++;return clip.apply(this,args);};});
+ await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
+ await page.mouse.move(box.x+box.width*.2,box.y+box.height*240/540);await page.mouse.down();await page.mouse.move(box.x+box.width*.8,box.y+box.height*240/540,{steps:5});await page.mouse.up();
+ await expect(page.locator('#sliceScore')).toHaveText('10');await expect.poll(()=>page.evaluate(()=>window.__halfClips)).toBeGreaterThan(1);
+ const halves=await page.evaluate(()=>window.__cutGame.effects.filter(e=>e.half));expect(halves).toHaveLength(2);expect(Math.abs(halves[0].stillY-halves[1].stillY)).toBe(18);
+ await page.screenshot({path:test.info().outputPath('cut-'+motion+'.png')});
+});
