@@ -14,7 +14,11 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
   const art=fs.readFileSync(path.join(__dirname,'../cosmetic-'+name+'.svg'),'utf8');
   const packed=fs.readFileSync(path.join(__dirname,'../www/cosmetic-'+name+'.svg'),'utf8');
   expect(packed).toBe(art);
-  expect(art).toContain('id="jewel-shadow"');
+  // Keep enlarged jewelry vector-sharp without rasterizing the whole chain.
+  expect(art).not.toMatch(/<filter\b|\bfilter\s*=/);
+  expect(art).toContain('viewBox="0 0 300 400"');
+  expect(art).toContain('id="chain-metal"');
+  expect((art.match(/<ellipse\b/g)||[]).length).toBeGreaterThanOrEqual(44);
   expect(art).toContain('id="edge-shine"');
  }
  expect(fs.readFileSync(path.join(__dirname,'../cosmetic-spud-pendant.svg'),'utf8')).toContain('id="gem-face"');
