@@ -239,6 +239,12 @@
     const START_TIP_MS=6000;
     let liveTipTimer=null;
     let drops=[],score=0,misses=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
+    let catchEffects=[];
+    const calmCatch=()=>Arcade.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function catchFeedback(x,y,text,color){catchEffects.push({x,y,text,color,life:42});catchEffects=catchEffects.slice(-12);}
+    function drawCatchFeedback(){
+      for(const e of catchEffects){ctx.save();ctx.globalAlpha=Math.min(1,e.life/12);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 15px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#07131f';const y=e.y-(calmCatch()?0:(42-e.life)*.5);ctx.strokeText(e.text,e.x,y);ctx.fillStyle=e.color;ctx.fillText(e.text,e.x,y);ctx.restore();}
+    }
     function showLiveTip(text,duration=START_TIP_MS){
       clearTimeout(liveTipTimer);
       catchLiveTip.textContent=text;
@@ -287,7 +293,7 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){dropPattern=0;cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){catchEffects=[];dropPattern=0;cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
       const previous=drops[drops.length-1];
@@ -314,7 +320,7 @@
       glow.addColorStop(1,'#d97706');
       ctx.fillStyle=glow;
       ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.fill();
-      ctx.lineWidth=3;ctx.strokeStyle='#fde68a';ctx.stroke();
+      ctx.lineWidth=3;ctx.strokeStyle='#fde68a';ctx.stroke();ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.strokeStyle='#b77914';ctx.lineWidth=1;ctx.stroke();
       ctx.fillStyle='#92400e';ctx.font='900 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1);
       ctx.restore();
     }
@@ -323,7 +329,7 @@
       const grad=ctx.createRadialGradient(-4,-5,2,0,0,16);
       grad.addColorStop(0,'#64748b');grad.addColorStop(.45,'#1f2937');grad.addColorStop(1,'#05070b');
       ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,2,14,0,Math.PI*2);ctx.fill();
-      ctx.lineWidth=2;ctx.strokeStyle='#94a3b8';ctx.stroke();
+      ctx.lineWidth=2;ctx.strokeStyle='#fb7185';ctx.stroke();ctx.strokeStyle='#fecdd3';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-4,-2);ctx.lineTo(4,6);ctx.moveTo(4,-2);ctx.lineTo(-4,6);ctx.stroke();
       ctx.strokeStyle='#f59e0b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(7,-10);ctx.quadraticCurveTo(11,-18,17,-18);ctx.stroke();
       ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(18,-19,3,0,Math.PI*2);ctx.fill();
       ctx.restore();
@@ -338,7 +344,11 @@
       ctx.beginPath();
       ctx.moveTo(x+7,y);ctx.lineTo(x+w-7,y);ctx.lineTo(x+w-15,y+h+12);ctx.lineTo(x+15,y+h+12);ctx.closePath();ctx.fill();
       ctx.shadowBlur=0;
-      ctx.fillStyle='#bbf7d0';ctx.fillRect(x+5,y-7,w-10,8);
+      // The dark opening aligns with the actual catch mouth, not the basket sides.
+      ctx.fillStyle='#071c22';ctx.fillRect(x+5,y-7,w-10,8);
+      ctx.strokeStyle='#baf7df';ctx.lineWidth=2;ctx.strokeRect(x+5,y-7,w-10,8);
+      ctx.fillStyle='#dcfff0';ctx.fillRect(x+5,y-7,w-10,2);
+      ctx.fillStyle='#0c5a43';ctx.beginPath();ctx.roundRect(x+w/2-16,y+8,32,15,5);ctx.fill();ctx.fillStyle='#dbfff1';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',x+w/2,y+16);
       ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=2;
       for(let k=1;k<4;k++){const px=x+(w*k/4);ctx.beginPath();ctx.moveTo(px,y+4);ctx.lineTo(px-4,y+h+7);ctx.stroke()}
       ctx.restore();
@@ -347,14 +357,16 @@
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);
       bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');
       ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='rgba(56,189,248,.07)';
-      for(let y=30;y<canvas.height;y+=52){ctx.fillRect(0,y,canvas.width,1)}
-      for(let x=45;x<canvas.width;x+=90){ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(x,0,1,canvas.height)}
+      // Quiet vault panels frame the falling objects without obscuring them.
+      const halo=ctx.createRadialGradient(180,210,20,180,210,260);halo.addColorStop(0,'#24485e66');halo.addColorStop(1,'#10263d00');ctx.fillStyle=halo;ctx.fillRect(0,0,360,500);
+      ctx.strokeStyle='#35546a55';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(12,125,336,300,18);ctx.stroke();
+      for(const x of [20,340]){ctx.fillStyle='#56cbdc55';ctx.fillRect(x,145,2,255);}
+      ctx.fillStyle='#071722';ctx.fillRect(0,486,360,14);ctx.fillStyle='#375568';ctx.fillRect(0,486,360,1);
       ctx.fillStyle='rgba(255,255,255,.035)';
       ctx.font='900 82px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(String(level),canvas.width/2,canvas.height*.43);
       ctx.fillStyle='rgba(226,232,240,.42)';ctx.font='800 11px Arial';
-      ctx.fillText('LEVEL '+level,canvas.width/2,28);
+      // Level is already shown in the HUD; keep artwork clear below it.
       if(running&&!transitioning){
         const urgency=Math.max(0,Math.min(1,(5-timeLeft)/5));
         if(urgency>0){
@@ -365,7 +377,7 @@
         }
       }
       drops.forEach(d=>{if(d.bomb)drawBomb(d);else drawCoin(d)});
-      drawBasket();
+      drawBasket();drawCatchFeedback();
     }
     let levelBannerTimer=null;
     function showLevelBanner(){
@@ -459,11 +471,13 @@
         const overlapsBasket=previousBottom<=basketTop&&d.y+d.r>=basketTop&&d.x-d.r>=catchLeft&&d.x+d.r<=catchRight;
         if(overlapsBasket){
           drops.splice(i,1);
+          if(d.bomb)catchFeedback(d.x,basket.y-28,'+2 strikes','#fda4af');
           if(d.bomb){if(addMiss(2,'💣 Bomb caught'))return;continue}
-          score++;scoreEl.textContent=String(score);refreshReward();
+          score++;catchFeedback(d.x,basket.y-28,'+1 catch','#ffe58e');scoreEl.textContent=String(score);refreshReward();
           if(score===1 || score%5===0) Arcade.feedback('score');
         }else if(d.y-d.r>canvas.height){
           drops.splice(i,1);
+          if(!d.bomb)catchFeedback(Math.max(55,Math.min(305,d.x)),468,'Miss · +1 strike','#fda4af');
           if(!d.bomb && addMiss(1,'🪙 Missed coin'))return;
         }
       }
