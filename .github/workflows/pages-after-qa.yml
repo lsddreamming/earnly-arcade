@@ -93,3 +93,50 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  verify-catalog:
+    name: Verify published catalog on mobile WebKit
+    needs: publish
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install webkit
+      - name: Verify exact deployed root and www catalog assets
+        run: |
+          python3 - <<'PYTHON'
+          import pathlib, time, urllib.request
+          hosts = ['https://earnlyarcade.com', 'https://www.earnlyarcade.com']
+          files = ['games.html', 'games-showroom.css', 'www/games.html', 'www/games-showroom.css']
+          for host in hosts:
+              for file in files:
+                  expected = pathlib.Path(file).read_bytes()
+                  url = host + '/' + file
+                  for attempt in range(4):
+                      with urllib.request.urlopen(url, timeout=30) as response:
+                          actual = response.read()
+                      if actual == expected:
+                          print('Verified:', url)
+                          break
+                      if attempt == 3:
+                          raise SystemExit('Production content does not match tested commit: ' + url)
+                      time.sleep(15)
+          PYTHON
+      - name: Test live phone catalog including native mirror
+        run: npx playwright test tests/mobile-density.spec.js --project=mobile-webkit --grep 'catalog badges|catalog puts'
+        env:
+          EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-mobile-catalog
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

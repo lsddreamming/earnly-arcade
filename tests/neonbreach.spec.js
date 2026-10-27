@@ -412,7 +412,7 @@ test('Opt-in control check shows input acceptance and real movement without cove
  await page.goto('/neonbreach.html');
  const panel=page.locator('#breachControlReadout');
  await expect(panel).toBeHidden();
- await page.locator('#breachControlCheck').click();
+ await page.locator('#breachHelp').click();await page.locator('#breachControlCheck').click();
  await expect(panel).toContainText('CONTROL CHECK v2');
  await expect(panel).toHaveCSS('pointer-events','none');
  await page.locator('#startButton').click();
@@ -432,8 +432,8 @@ test('Opt-in control check shows input acceptance and real movement without cove
  });
  await expect(panel).toContainText('Move 0.00, 0.00');
  await expect(panel).toContainText('Accepted 1 · move');
- await page.locator('#breachControlCheck').click();await expect(panel).toBeHidden();
- await page.locator('#breachControlCheck').click();await expect(panel).toContainText('Accepted 0 · none');
+ await page.locator('#breachHelp').click();await page.locator('#breachControlCheck').click();await expect(panel).toBeHidden();
+ await page.locator('#breachHelp').click();await page.locator('#breachControlCheck').click();await expect(panel).toContainText('Accepted 0 · none');
 });
 
 test('Gameplay surfaces suppress browser zoom and drag gestures without blocking settings',async({page})=>{
@@ -480,11 +480,12 @@ test('Touch pointer fallback hands off to touch events without losing movement',
  await expect.poll(()=>page.evaluate(()=>hybrid.forward)).toBe(0);
 });
 
-test('Control check stays reachable beside MOVE on short phones during a round',async({page})=>{
+test('Help keeps optional control check reachable on short phones during a round',async({page})=>{
  await page.setViewportSize({width:375,height:667});await ready(page);
- const b=await page.locator('#breachControlCheck').boundingBox();
+ await expect(page.locator('#breachControlCheck')).toBeHidden();
+ const b=await page.locator('#breachHelp').boundingBox();
  expect(b.y).toBeGreaterThan(0);expect(b.y+b.height).toBeLessThan(667);
- await page.locator('#breachControlCheck').click();await expect(page.locator('#breachControlReadout')).toBeVisible();
+ await page.locator('#breachHelp').click();await page.locator('#breachControlCheck').click();await expect(page.locator('#breachControlReadout')).toBeVisible();
 });
 
 // Model an embedded view delivering a finger event to a neighbouring element.
@@ -552,4 +553,37 @@ test('Wave introductions and incoming warnings stay on separate lines in short a
   expect(incoming.y).toBeLessThan(height-60);
   expect(incoming.width).toBeLessThan(230);
  }
+});
+
+test('Help pauses an active round and hides technical diagnostics by default',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await ready(page);
+ await expect(page.locator('#breachControlCheck')).toBeHidden();
+ await page.locator('#breachHelp').click();
+ await expect(page.locator('#breachHelpDialog')).toBeVisible();
+ await expect(page.locator('body')).toHaveClass(/earnly-game-paused/);
+ await expect(page.locator('#breachHelpDialog')).toContainText('Drag MOVE to walk');
+ await page.getByRole('button',{name:'Back to game',exact:true}).click();
+ await expect(page.locator('#breachHelpDialog')).toBeHidden();
+ await expect(page.locator('body')).not.toHaveClass(/earnly-game-paused/);
+ await expect(page.locator('#breachControlReadout')).toBeHidden();
+});
+
+test('First movement hints follow real MOVE, AIM and FIRE touches',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await ready(page);
+ const hint=page.locator('.aim-tip small');
+ await expect(hint).toHaveText('First: drag MOVE to walk');
+ for(const [id,expected] of [['movePad','Next: drag the arena to aim'],['game','Now: hold FIRE to shoot'],['fireButton','Hold fire · keep moving']]){
+  await page.evaluate(id=>{
+   const target=document.getElementById(id),r=target.getBoundingClientRect();
+   const touch={identifier:77,target,clientX:r.left+r.width/2,clientY:r.top+r.height/2};
+   for(const name of ['touchstart','touchend']){
+    const event=new Event(name,{bubbles:true,cancelable:true});
+    Object.defineProperty(event,'changedTouches',{value:[touch]});target.dispatchEvent(event);
+   }
+  },id);
+  await expect(hint).toHaveText(expected);
+ }
+ expect(await page.evaluate(()=>localStorage.getItem('earnlyBreachControlsLearned'))).toBe('1');
+ await page.reload();
+ await expect(hint).toHaveText('Hold fire · keep moving');
 });

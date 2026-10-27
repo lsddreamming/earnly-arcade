@@ -137,3 +137,71 @@ for (const game of ['snake', 'memory', 'tapRush', 'neonBreach', 'neonDrift', 'br
     await expect.poll(()=>page.evaluate(()=>window.compactReplayed)).toBe(true);
   });
 }
+
+for (const surface of ['result', 'gate', 'used-demo-unlocks']) {
+  test('website empty-play ' + surface + ' offers unlimited free play without changing rewards', async ({page}) => {
+    await page.setViewportSize({width:390,height:844});
+    await page.goto('/snake.html');
+    const before = await page.evaluate(surface => {
+      window.EarnlyNativeAds = {isNative:false};
+      window.EarnlyWebAds = {enabled:false};
+      Arcade.remaining('snake');
+      localStorage.setItem('snakeGamesPlayed','3');
+      localStorage.setItem('snakeBonusPlays','0');
+      localStorage.setItem('snakePlayAdUnlocks',surface==='used-demo-unlocks'?'2':'0');
+      const snapshot = {coins:Arcade.number('points'),plays:Arcade.remaining('snake'),unlocks:Arcade.playAdStatus('snake').used};
+      if(surface==='result') Arcade.gameResult({game:'snake',score:0,coins:0,onReplay:()=>{window.unexpectedReplay=true;}});
+      else Arcade.out('snake');
+      return snapshot;
+    },surface);
+    const button=page.getByRole('button',{name:'▶ Neon Slice · Unlimited free play',exact:true});
+    await expect(button).toBeVisible();
+    const box=await button.boundingBox();
+    expect(box.y+box.height).toBeLessThanOrEqual(844);
+    if(surface!=='used-demo-unlocks') await expect(page.locator('dialog')).toContainText('Website video ads aren’t available yet');
+    expect(await page.evaluate(()=>({coins:Arcade.number('points'),plays:Arcade.remaining('snake'),unlocks:Arcade.playAdStatus('snake').used}))).toEqual(before);
+    await button.click();
+    await expect(page).toHaveURL(/neon-slice\.html$/);
+    expect(await page.evaluate(()=>({coins:Arcade.number('points'),plays:Arcade.remaining('snake'),unlocks:Arcade.playAdStatus('snake').used}))).toEqual(before);
+  });
+}
+
+test('native empty-play result keeps the real rewarded replay first', async ({page}) => {
+  await page.goto('/snake.html');
+  await page.evaluate(()=>{
+    Arcade.remaining('snake');
+    localStorage.setItem('snakeGamesPlayed','3');
+    window.EarnlyNativeAds={isNative:true,showRewarded:async()=>({earned:true})};
+    Arcade.gameResult({game:'snake',score:0,coins:0,onReplay:()=>{}});
+  });
+  await expect(page.locator('.result-actions button').first()).toHaveText('📺 Watch Ad · +1 Play & Replay');
+  await expect(page.locator('.result-free-game')).toHaveCount(0);
+});
+
+for (const reason of ['🧱 Hit the wall','🐍 Hit your tail']) {
+  test('Snake result explains '+reason+' before rewards',async({page})=>{
+    await page.setViewportSize({width:320,height:568});
+    await page.goto('/snake.html');
+    await page.evaluate(reason=>{gameOver(reason,true);},reason);
+    const dialog=page.locator('dialog.game-result-dialog');
+    await expect(dialog.locator('.result-outcome')).toHaveText(reason.includes('wall')?'You hit the wall.':'You hit your tail.');
+    await expect(dialog.locator('.result-tip')).toContainText('Tip:');
+    const play=dialog.getByRole('button',{name:/Play Again/});
+    const bounds=await play.boundingBox();
+    expect(bounds.y+bounds.height).toBeLessThan(568);
+    const order=await dialog.evaluate(el=>Boolean(el.querySelector('.result-actions').compareDocumentPosition(el.querySelector('.result-stats')) & Node.DOCUMENT_POSITION_FOLLOWING));
+    expect(order).toBe(true);
+  });
+}
+
+test('Neon Breach shows defeated robots and one tip beside the score',async({page})=>{
+  await page.goto('/neonbreach.html');
+  await page.evaluate(()=>{
+    Arcade.countdown=fn=>fn();
+    NeonBreachEngine.tick=state=>{state.kills=1;state.score=100;state.ended=true;};
+  });
+  await page.locator('#startButton').click();
+  await expect(page.locator('.result-outcome')).toHaveText('1 robot defeated');
+  await expect(page.locator('.result-tip')).toHaveText('Tip: keep moving sideways while you fire.');
+  await expect(page.getByRole('button',{name:/Play Again/})).toBeVisible();
+});

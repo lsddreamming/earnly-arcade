@@ -1749,7 +1749,8 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
   await startGame(page);
   const outDialog=page.locator('dialog');
   await expect(outDialog).toContainText('One more run?');
-  await expect(outDialog).toContainText('Watch one optional rewarded ad');
+  await expect(outDialog).toContainText('Website video ads aren’t available yet');
+  await expect(outDialog.getByRole('button', { name:'▶ Neon Slice · Unlimited free play' })).toBeVisible();
   await expect(outDialog.getByRole('button', { name:/Watch demo ad.*Play Again/i })).toBeVisible();
   await expect(outDialog.getByRole('button', { name:'Choose Another Game' })).toBeVisible();
   await expect(outDialog).not.toContainText(/spend .*coin/i);
