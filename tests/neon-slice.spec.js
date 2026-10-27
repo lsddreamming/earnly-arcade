@@ -89,7 +89,7 @@ test('formations stay separated near the apex and cut halves follow the swipe',(
  g.items=[{x:100,y:100,r:25,type:1,angle:0}];g.slice({x:100,y:40},{x:100,y:160});
  const halves=g.effects.filter(e=>e.half);expect(halves).toHaveLength(2);expect(halves[0].vx*halves[1].vx).toBeLessThan(0);expect(halves[0].localCutAngle).toBeCloseTo(Math.PI/2);
  expect(g.effects.filter(e=>!e.half)).toHaveLength(10);expect(g.effects.every(e=>e.type===1)).toBe(true);
- g.items=[];g.nextWave=100;for(let i=0;i<25;i++)g.step(.04);expect(g.effects).toHaveLength(0);
+ g.items=[];g.nextWave=100;for(let i=0;i<25;i++)g.step(.04);expect(g.effects).toHaveLength(2);expect(g.effects.every(e=>e.y>350&&e.stillY>350)).toBe(true);for(let i=0;i<10;i++)g.step(.04);expect(g.effects).toHaveLength(0);
 });
 test('bomb cue is visible without sound, warns once and hides while paused',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/neon-slice.html');
