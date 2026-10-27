@@ -6,7 +6,22 @@ let state=E.create(),running=false,starting=false,paused=false,last=0,raf=0,move
 // Opt-in, on-device control evidence. Nothing is stored or uploaded.
 const controlCheck={enabled:false,raw:0,last:'none',accepted:0,role:'none',frames:0,origin:null,distance:0,starts:{move:0,aim:0,fire:0},hit:'none'};
 const checkButton=document.createElement('button');checkButton.id='breachControlCheck';checkButton.type='button';checkButton.textContent='Control check';checkButton.setAttribute('aria-pressed','false');
-checkButton.className='breach-control-check';document.querySelector('.aim-tip').append(checkButton);
+checkButton.className='breach-control-check';
+const helpButton=document.createElement('button');helpButton.id='breachHelp';helpButton.type='button';helpButton.textContent='Help';helpButton.className='breach-control-check';
+document.querySelector('.aim-tip').append(helpButton);
+const helpDialog=document.createElement('dialog');helpDialog.id='breachHelpDialog';helpDialog.className='breach-help-dialog';
+helpDialog.innerHTML='<h2>Neon Breach controls</h2><p>1. Drag MOVE to walk.<br>2. Drag the arena to aim.<br>3. Hold FIRE to shoot. Keep moving as you aim.</p><p>Keyboard: WASD to move, arrows to aim, Space to fire.</p><p>Having trouble? Control check shows what your touches are doing.</p>';
+const helpBack=document.createElement('button');helpBack.type='button';helpBack.textContent='Back to game';helpBack.className='wide green';
+helpDialog.append(checkButton,helpBack);document.body.append(helpDialog);
+let resumeAfterHelp=false;
+helpButton.addEventListener('click',()=>{resumeAfterHelp=running&&!paused;if(resumeAfterHelp)pauseControl.button.click();helpDialog.showModal();});
+helpBack.addEventListener('click',()=>helpDialog.close());
+helpDialog.addEventListener('close',()=>{if(resumeAfterHelp)pauseControl.resume();resumeAfterHelp=false;});
+let learnStep=0;try{if(localStorage.getItem('earnlyBreachControlsLearned')==='1')learnStep=3;}catch{}
+const aimHint=document.querySelector('.aim-tip small');
+function updateLearnHint(){aimHint.textContent=['First: drag MOVE to walk','Next: drag the arena to aim','Now: hold FIRE to shoot','Hold fire · keep moving'][learnStep];}
+function learnControl(role){if(role===['move','aim','fire'][learnStep]){learnStep++;updateLearnHint();if(learnStep===3)try{localStorage.setItem('earnlyBreachControlsLearned','1');}catch{}}}
+updateLearnHint();
 const checkPanel=document.createElement('pre');checkPanel.id='breachControlReadout';checkPanel.hidden=true;
 checkPanel.style.cssText='position:absolute;top:4px;left:4px;right:4px;margin:0;padding:8px;background:#06101fee;color:#fff;font:11px/1.4 monospace;white-space:pre-wrap;pointer-events:none;z-index:3';
 document.querySelector('.breach-arena').append(checkPanel);
@@ -19,6 +34,7 @@ checkButton.addEventListener('click',()=>{
  controlCheck.enabled=!controlCheck.enabled;checkPanel.hidden=!controlCheck.enabled;
  checkButton.setAttribute('aria-pressed',String(controlCheck.enabled));
  if(controlCheck.enabled){Object.assign(controlCheck,{raw:0,last:'none',accepted:0,role:'none',frames:0,origin:{x:state.player.x,y:state.player.y},distance:0,starts:{move:0,aim:0,fire:0},hit:'none'});showControlCheck()}
+ helpDialog.close();
 });
 function observeControlTouch(e){
  if(!controlCheck.enabled||e.target===checkButton)return;
@@ -55,7 +71,7 @@ function events(){
 }
 
 function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000);last=now;const input={forward:joy.forward+(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0),strafe:joy.strafe+(keys.has('d')?1:0)-(keys.has('a')?1:0),turn:(keys.has('ArrowRight')?2:0)-(keys.has('ArrowLeft')?2:0),fire:fireId!==null||keys.has(' ')};E.tick(state,dt,input);if(controlCheck.enabled){controlCheck.frames++;const o=controlCheck.origin;if(o)controlCheck.distance=Math.max(controlCheck.distance,Math.hypot(state.player.x-o.x,state.player.y-o.y))}events();chrome();render(dt,Math.hypot(input.forward,input.strafe)>.1);fireButton.classList.toggle('firing',input.fire);if(state.ended){finish();return}raf=requestAnimationFrame(loop)}
-function finish(){if(!running)return;running=false;audio.stop();if(state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML='RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const result=Arcade.recordResult(game,state.score);chrome();Arcade.gameResult({game,icon:'🤖',title:state.time>=180?'Breach Complete':'Neon Breach Run Over',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🤖 Robots defeated: ${state.kills}`,`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
+function finish(){if(!running)return;running=false;audio.stop();if(state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML='RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const result=Arcade.recordResult(game,state.score);chrome();Arcade.gameResult({game,icon:'🤖',title:state.time>=180?'Breach Complete':'Neon Breach Run Over',outcome:state.kills+' robot'+(state.kills===1?'':'s')+' defeated',tip:state.kills===0?'Tip: hold FIRE while dragging the arena to aim.':'Tip: keep moving sideways while you fire.',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🤖 Robots defeated: ${state.kills}`,`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
 function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=E.create();if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
 els.startButton.addEventListener('click',start);
 // Accept either finger stream. A real Touch Event takes over its role from
@@ -69,6 +85,7 @@ function beginInput(role,id,point){
  if(role==='move'&&moveId===null){moveId=id;steer(point)}
  if(role==='aim'&&aimId===null){aimId=id;aimX=point.clientX}
  if(role==='fire'&&fireId===null){fireId=id;audio.unlock()}
+ if((role==='move'&&moveId===id)||(role==='aim'&&aimId===id)||(role==='fire'&&fireId===id))learnControl(role);
 }
 function moveInput(id,point){
  if(!running||paused)return;
@@ -131,7 +148,7 @@ for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{
 document.addEventListener('pointermove',e=>{const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>releaseInput(pointerId(e)));
 document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,a,.modal-backdrop,#soundButton,#voiceButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d',' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault();if(running&&!paused)keys.add(key)}if(e.key==='Enter'&&!running&&!starting)start()});document.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
-pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachControlCheck'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
+pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachHelp,.breach-help-dialog'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
 // Shared mobile dock is initially inserted after the canvas; move it below the thumb controls.
 let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pauseControl.button,document.getElementById('earnlyQuitButton'))}document.getElementById('breachControls').insertAdjacentElement('afterend',dock);
 function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',()=>{running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput()});

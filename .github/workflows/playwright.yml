@@ -77,6 +77,8 @@ jobs:
       - name: Install WebKit on macOS
         if: matrix.project == 'mobile-webkit'
         run: npx playwright install webkit
+      - name: Verify first-screen catalog, retries and controls
+        run: npx playwright test tests/mobile-density.spec.js tests/daily-results.spec.js tests/neonbreach.spec.js --project=${{ matrix.project }} --grep 'catalog badges|catalog puts|website empty-play|native empty-play|Snake result explains|Neon Breach shows|Help pauses|First movement hints'
       - name: Verify Bubble Pop public release
         run: npx playwright test tests/bubble-pop.spec.js tests/bubble-pop-rewards.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Verify rewarded continues

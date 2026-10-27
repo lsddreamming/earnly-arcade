@@ -159,3 +159,23 @@ for (const width of [320, 390, 440]) {
     });
   }
 }
+
+for (const [width,height] of [[320,568],[390,844],[440,956]]) {
+  test(`catalog puts a complete Play card on the first phone screen ${width}px`, async ({page,baseURL})=>{
+    await page.setViewportSize({width,height});
+    await page.goto(new URL('/games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
+    await expect(page.getByRole('button',{name:'Add Snake favorite',exact:true})).toBeVisible();
+    const firstPlay=page.locator('#games > .catalog-tile').first().locator('.game-play-button');
+    const bounds=await firstPlay.boundingBox();
+    expect(bounds.y).toBeGreaterThan(0);
+    expect(bounds.y+bounds.height).toBeLessThanOrEqual(height-64);
+    const order=await page.evaluate(()=>{
+      const games=document.getElementById('games');
+      return ['.games-simple-note','#quickSections','.rank-discovery'].every(selector=>Boolean(games.compareDocumentPosition(document.querySelector(selector)) & Node.DOCUMENT_POSITION_FOLLOWING));
+    });
+    expect(order).toBe(true);
+    await page.getByRole('searchbox',{name:'Search games'}).fill('Snake');
+    await expect(page.locator('#games > .catalog-tile:visible')).toHaveCount(1);
+    await expect(page.locator('#games > .catalog-tile:visible')).toContainText('100 Arcade Coins');
+  });
+}
