@@ -75,3 +75,8 @@ body.games-dashboard #games .game-new-bubble:after{content:"";position:absolute;
 /* Bright buttons need dark lettering, including nested labels and WebKit text fill. */
 body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled),
 body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled) *{color:#091928!important;-webkit-text-fill-color:#091928!important;text-shadow:none!important;font-weight:850!important}
+
+/* Keep NEW GAME labels inside clipped mobile cards and the scroll viewport. */
+body.games-dashboard #games .catalog-tile:has(>.game-new-bubble){padding-top:18px!important}
+body.games-dashboard #games .catalog-tile>.game-new-bubble{top:5px!important;left:12px!important;font-size:9px!important;line-height:14px!important;padding:3px 9px!important}
+body.games-dashboard #games .catalog-tile>.game-new-bubble:after{display:none!important}
