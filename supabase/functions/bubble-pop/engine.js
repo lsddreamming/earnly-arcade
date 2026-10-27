@@ -20,7 +20,7 @@
  ];
  const THEMES=['Coral Coast','Crystal Cavern','Starlight Station','Mint Garden'];
  const normalizeLevel=v=>Number.isFinite(Number(v))?Math.max(0,Math.min(999,Math.floor(Number(v)))):0;
- function levelRules(v){const l=normalizeLevel(v);if(l<6)return {...INTRO_LEVELS[l]};const chapter=Math.floor(l/10),step=l%10,tier=Math.min(6,Math.floor(l/25)),b=LEVELS[step%6];const pressure=Math.min(5,1+Math.floor(l/15));return {...b,name:THEMES[chapter%4]+' '+(chapter+1)+'–'+(step+1),moves:Math.max(17,b.moves-pressure),color:(b.color+chapter)%COLORS,collect:b.collect?b.collect+2+Math.min(12,tier*2):0,ice:b.ice?Math.min(18,b.ice+Math.min(8,tier*2)):0};}
+ function levelRules(v){const l=normalizeLevel(v);if(l<6)return {...INTRO_LEVELS[l]};const chapter=Math.floor(l/10),step=l%10,tier=Math.min(3,Math.floor(l/50)),b=LEVELS[step%6];const pressure=l<15?0:Math.min(4,Math.floor((l-15)/35)+1);return {...b,name:THEMES[chapter%4]+' '+(chapter+1)+'–'+(step+1),moves:Math.max(22,b.moves+2+tier-pressure),color:(b.color+chapter)%COLORS,collect:b.collect?Math.min(30,b.collect+tier*2+(l>=15?2:0)):0,ice:b.ice?Math.min(16,b.ice+tier*2):0};}
  function neighbors(i){const x=i%COLS,y=Math.floor(i/COLS);return [x?i-1:-1,x<COLS-1?i+1:-1,y?i-COLS:-1,y<ROWS-1?i+COLS:-1].filter(n=>n>=0);}
  const matchable=c=>c&&!c.star&&c.power!=='prism'&&c.color>=0;
  function matches(board){
