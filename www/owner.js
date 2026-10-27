@@ -9,6 +9,7 @@
    if(!r){$('status').textContent='Sign in to your owner account to view activity.';$('signIn').hidden=false;return;}
    cards('signups',[['Total accounts',r.signups.total],['Signed up today',r.signups.today],['Signed up · 7 days',r.signups.week]]);
    cards('world',[['Unique players',r.world.players],['Room entries',r.world.entries],['Returning players',r.world.returning],['Connect attempts',r.world.attempts],['Failed connections',r.world.failures],['Reconnect attempts',r.world.reconnects]]);
+   const f=r.firstSession;cards('firstSession',f?[['Joined',f.joined],['Walked',f.walked],['Decorated',f.decorated],['Visited another room',f.visited]]:[]);$('firstSessionNote').textContent=f?'Server-confirmed milestones in each player’s first observed 30 minutes since this feature launched. Reconnects share the same window. Includes existing players; milestones need not happen in order. '+number(f.stillInWindow)+' sessions are still in their measurement window.':'First-session tracking is becoming available.';
    cards('shop',[['Shop views',r.shop.views],['Shop visitors',r.shop.players],['Purchase attempts',r.shop.attempts],['Verified coin purchases',r.shop.purchases],['Unique buyers',r.shop.buyers]]);
    $('rooms').replaceChildren();for(const room of r.rooms){const row=document.createElement('tr');for(const value of [room.name,number(room.entries),number(room.players),number(room.peak)]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}$('rooms').append(row);}
    if(!r.rooms.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=4;cell.textContent='No recorded room entries in this period yet.';row.append(cell);$('rooms').append(row);}
@@ -19,6 +20,6 @@
   finally{if(current===sequence)$('refresh').disabled=false;}
  }
  $('filters').addEventListener('submit',e=>{e.preventDefault();refresh();});
- window.EarnlyCloud?.client?.auth?.onAuthStateChange?.((event)=>{if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;sequence++;$('report').hidden=true;$('refresh').disabled=false;for(const id of ['signups','world','shop','rooms'])$(id).replaceChildren();$('status').textContent='Account changed. Refresh to view activity.';});
+ window.EarnlyCloud?.client?.auth?.onAuthStateChange?.((event)=>{if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;sequence++;$('report').hidden=true;$('refresh').disabled=false;for(const id of ['signups','world','firstSession','shop','rooms'])$(id).replaceChildren();$('status').textContent='Account changed. Refresh to view activity.';});
  refresh();
 })();

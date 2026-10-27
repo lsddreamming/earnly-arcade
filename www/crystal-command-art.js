@@ -164,6 +164,9 @@ function create(ctx,point,box,line,poly,tile){
    const shell=large?'#78518d':o.type==='medic'?'#90aa65':'#477d6b';
    for(let j=0;j<(d.flying?4:6);j++){const a=angle+Math.PI/2+(j%2)*Math.PI+(Math.floor(j/2)-1)*.65,sway=o.moving?Math.sin(t*12+j)*.12:0,tip=point(o.x+Math.cos(a)*(r*2+sway),o.y+Math.sin(a)*(r*2+sway),d.flying?z+.15:.03),joint=point(o.x+Math.cos(a)*r*1.2,o.y+Math.sin(a)*r*1.2,z+.15);if(d.flying)poly([body,joint,tip,point(o.x+Math.cos(a+.6)*r,o.y+Math.sin(a+.6)*r,z-.1)],'#82bea766',c+'88');else{line(body,joint,'#9eac89',3);line(joint,tip,'#4b7766',2)}}
    sphere(body,scale*r*1.1,scale*r*.73,shell);for(let j=-1;j<=1;j++)ring({x:body.x+j*scale*r*.36,y:body.y},scale*r*.25,scale*r*.64,'#d0d89155');const head=point(o.x+Math.cos(angle)*r*.85,o.y+Math.sin(angle)*r*.85,z+.15);sphere(head,scale*r*.48,scale*r*.4,'#a4b891');light(head,c,2);
+   if(o.type==='laser'){for(const side of [-1,1]){const muzzle=point(o.x+Math.cos(angle+side*.32)*r*1.8,o.y+Math.sin(angle+side*.32)*r*1.8,z+.26);line(head,muzzle,'#b4f7c1',2.5);light(muzzle,'#7cf4bb',2)}}
+   if(o.type==='siege'){for(const side of [-1,1]){const tip=point(o.x+Math.cos(angle+side*.4)*r*1.7,o.y+Math.sin(angle+side*.4)*r*1.7,z+.55);sphere(tip,scale*r*.22,scale*r*.18,'#ff9862');light(tip,'#ffd08c',3)}}
+   if(o.type==='medic'){for(const side of [-1,1])ring(point(o.x+side*r*.6,o.y,z+.4),scale*r*.33,scale*r*.16,'#aaffb9',1.5)}
    if(o.type==='raider'){for(const j of [-1,1])poly([head,point(o.x+Math.cos(angle+j*.3)*r*2.4,o.y+Math.sin(angle+j*.3)*r*2.4,z),point(o.x+Math.cos(angle+j*.6)*r,o.y+Math.sin(angle+j*.6)*r,z+.12)],'#d4c798',c+'77')}
    if(o.type==='guardian'){for(let j=-1;j<=1;j++)shard(o.x+j*r*.6,o.y-r*.2,r*.15,.7,'#adbe96',z+.1)}
    if(o.type==='scout'){ring(body,scale*r*1.6,scale*r*.75,c+'99');light(point(o.x,o.y,z+.3),c,3)}
@@ -188,6 +191,50 @@ function create(ctx,point,box,line,poly,tile){
    for(let j=0;j<7;j++){const a=j*Math.PI*2/7,tip=point(o.x+Math.cos(a)*r*1.3,o.y+Math.sin(a)*r*1.3,.03);line(point(o.x,o.y,.15),tip,'#537968',4);sphere(tip,scale*.12,scale*.065,'#709879')}
    const q=point(o.x,o.y,.4);sphere(q,scale*r,scale*r*.57,'#3b6b60');
    const count=central?5:support?1:3;for(let j=0;j<count;j++){const a=j*Math.PI*2/count,xx=o.x+(count>1?Math.cos(a)*r*.48:0),yy=o.y+(count>1?Math.sin(a)*r*.48:0),h=defense?1.15:support?1.1:.65;const sac=point(xx,yy,h);line(point(xx,yy,.2),sac,'#5e8266',scale*.2);sphere(sac,scale*r*(count===1?.52:.32)*(1+phase*.025),scale*r*.4,defense?'#a76b64':support?'#8274a0':'#85a073');light(point(xx,yy,h+.15),c,2)}
+   // Distinct silhouettes: the home base is a crowned hive, while relay
+   // nodes use an unmistakable low circular dish instead of another tall pod.
+   if(central){
+    const crown=point(o.x,o.y,1.65);
+    for(let j=0;j<5;j++){const a=j*Math.PI*2/5;const edge=point(o.x+Math.cos(a)*r*.65,o.y+Math.sin(a)*r*.65,1.3);
+     line(crown,edge,'#baf7a4',2.5);sphere(edge,scale*r*.14,scale*r*.1,'#8fe6a4')}
+    sphere(crown,scale*r*.27,scale*r*.2,'#d5f6a0');
+    light(point(o.x,o.y,1.85),'#baff9d',3);
+   }
+   if(o.type==='relay'){
+    const dish=point(o.x,o.y,.62);
+    ring(dish,scale*r*.82,scale*r*.33,'#6cf3ce',3);
+    ring(dish,scale*r*.56,scale*r*.2,'#baffd9',1.5);
+    for(let j=0;j<4;j++){const a=j*Math.PI/2;
+     line(point(o.x,o.y,.35),point(o.x+Math.cos(a)*r*.85,o.y+Math.sin(a)*r*.85,.65),'#61ac8d',2)}
+    light(point(o.x,o.y,.8),'#d1ffb2',3);
+   }
+   if(defense){
+    for(const j of [-1,1]){const blade=point(o.x+j*r*.55,o.y-r*.28,1.48);
+     line(point(o.x+j*r*.2,o.y,.65),blade,'#e3a58d',4);
+     light(blade,'#ff987d',2)}
+   }
+   // Strong, role-specific profiles remain legible at mobile zoom.
+   if(o.type==='factory'){
+    for(const side of [-1,1]){const root=point(o.x+side*r*.5,o.y,.48),tip=point(o.x+side*r*.95,o.y-r*.35,1.85);line(root,tip,'#d0b76d',scale*.16);sphere(tip,scale*r*.15,scale*r*.12,'#ffb66d')}
+    ring(point(o.x,o.y,.85),scale*r*.52,scale*r*.22,'#f3cb79',2);
+   }
+   if(o.type==='barracks'){
+    for(let j=0;j<5;j++){const a=j*Math.PI*2/5,tip=point(o.x+Math.cos(a)*r*.83,o.y+Math.sin(a)*r*.83,1.35+(j%2)*.4);line(point(o.x,o.y,.35),tip,'#aa7a70',3);sphere(tip,scale*r*.17,scale*r*.2,'#df8d82')}
+    ring(point(o.x,o.y,.6),scale*r*.7,scale*r*.25,'#ff9e8c',2);
+   }
+   if(o.type==='lab'){
+    for(let j=0;j<3;j++){const a=j*Math.PI*2/3+t*.13,tip=point(o.x+Math.cos(a)*r*.72,o.y+Math.sin(a)*r*.72,1.55);line(point(o.x,o.y,.55),tip,'#a3a1d7',2);sphere(tip,scale*r*.19,scale*r*.18,'#b7a5ff');light(tip,'#d6c6ff',2)}
+    ring(point(o.x,o.y,1.1),scale*r*.7,scale*r*.23,'#c5a8ff',2);
+   }
+   if(o.type==='starport'){
+    for(const side of [-1,1]){const tip=point(o.x+side*r*1.3,o.y,1.25);poly([point(o.x,o.y,.45),tip,point(o.x+side*r*.55,o.y-r*.4,.35)],'#68c7b577','#9cf8ed');light(tip,'#90f4e9',3)}
+   }
+   if(o.type==='armory'){
+    for(let j=-1;j<=1;j++){const tip=point(o.x+j*r*.45,o.y-r*.1,1.55);line(point(o.x+j*r*.45,o.y,.4),tip,'#c8c18d',scale*.14);sphere(tip,scale*r*.14,scale*r*.13,'#f1df9b')}
+   }
+   if(o.type==='flak'){
+    for(let j=0;j<4;j++){const a=j*Math.PI/2,tip=point(o.x+Math.cos(a)*r*.7,o.y+Math.sin(a)*r*.7,1.65);line(point(o.x,o.y,.55),tip,'#a5d7ce',3);light(tip,'#a9faff',2)}
+   }
    if(o.type==='barracks'){for(let j=-1;j<=1;j++)sphere(point(o.x+j*r*.55,o.y+r*.5,.18),scale*r*.2,scale*r*.12,'#102b2a')}
    if(o.type==='factory'){for(let j=-1;j<=1;j++)shard(o.x+j*r*.55,o.y,r*.1,.9,'#bcd19b',.4)}
    if(o.type==='armory'){for(let j=-2;j<=2;j++)ring(point(o.x,o.y+j*.15,.7),scale*r*.6,scale*r*.35,'#bdbe91',2)}
