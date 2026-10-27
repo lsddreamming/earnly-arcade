@@ -204,3 +204,16 @@ body.studio-dashboard #shop-grid .tryon-state{z-index:4;pointer-events:none;max-
  body.studio-dashboard #shop-grid .item-actions{padding-bottom:8px}
  body.studio-dashboard #shop-grid .item-card h3{line-height:1.4;margin-top:10px}
 }
+
+/* Fine jewelry stays vector-sharp even in the enlarged detail view. */
+body.studio-dashboard #shop-grid .item-art[data-slot=jewelry][data-detail=true] .gear-piece{filter:none!important}
+@media(max-width:680px){
+ .studio-dashboard .showcase .tryon-summary{margin:0;padding:10px 12px}
+ .studio-dashboard .showcase .tryon-summary strong{font-size:16px}
+ .studio-dashboard .showcase .preview-actions{margin:0}
+ .studio-dashboard .showcase .preview-action{padding:8px 10px;gap:8px}
+ .studio-dashboard .showcase .preview-action>div{min-width:0;overflow-wrap:anywhere}
+ .studio-dashboard .showcase .compare-look{margin:0}
+ .studio-dashboard .showcase #reset-preview{min-height:44px;margin:0}
+ .studio-dashboard .showcase #back-to-collection{margin:0;min-height:44px}
+}

@@ -74,7 +74,18 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await expect(firstCard.locator('.tryon-state')).toHaveText('Trying on');
  await expect(page.locator('#preview-note')).toContainText('Preview only');
  expect(purchases).toEqual([]);
+ await expect(page.locator('#preview-note')).toHaveAttribute('role','status');
+ await expect(firstCard.locator('.gear-piece')).toHaveCSS('filter','none');
+ await page.locator('#compare-look').click();
+ await expect(page.locator('#preview-note')).toContainText('Showing your saved look');
+ await page.locator('#compare-look').click();
+ await expect(page.locator('#preview-note')).toContainText('Preview only');
  await page.screenshot({path:test.info().outputPath('studio-tryon.png'),fullPage:true});
+ await page.locator('#reset-preview').click();
+ await expect(page.locator('#preview-note')).toHaveText('Your saved look');
+ await expect(page.locator('.browse-styles')).toBeFocused();
+ await expect(page.locator('#shop-grid .is-trying-on')).toHaveCount(0);
+ expect(purchases).toEqual([]);
  await selectShopSlot(page,'building');
  await expect(page.locator('.gear-view')).toBeHidden();
  await expect(page.locator('.public-footer nav a:visible')).toHaveCount(3);
