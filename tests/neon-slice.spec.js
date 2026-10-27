@@ -102,10 +102,15 @@ test('bomb cue is visible without sound, warns once and hides while paused',asyn
 });
 for(const motion of ['reduce','no-preference'])test('cut halves remain visible with motion '+motion,async({page})=>{
  await page.emulateMedia({reducedMotion:motion});await page.goto('/neon-slice.html');
- await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.items=[{id:1,x:180,y:240,r:28,type:1,angle:0,spin:0,vx:0,vy:0}];window.__cutGame=this;};NeonSliceEngine.Game.prototype.step=function(){};const clip=CanvasRenderingContext2D.prototype.clip;window.__halfClips=0;CanvasRenderingContext2D.prototype.clip=function(...args){window.__halfClips++;return clip.apply(this,args);};});
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.items=[{id:1,x:180,y:240,r:28,type:1,angle:0,spin:0,vx:0,vy:0}];window.__cutGame=this;};window.__advanceCut=NeonSliceEngine.Game.prototype.step;NeonSliceEngine.Game.prototype.step=function(){};const clip=CanvasRenderingContext2D.prototype.clip;window.__halfClips=0;window.__halfYs=[];CanvasRenderingContext2D.prototype.clip=function(...args){window.__halfClips++;window.__halfYs.push(this.getTransform().f);return clip.apply(this,args);};});
  await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
  await page.mouse.move(box.x+box.width*.2,box.y+box.height*240/540);await page.mouse.down();await page.mouse.move(box.x+box.width*.8,box.y+box.height*240/540,{steps:5});await page.mouse.up();
  await expect(page.locator('#sliceScore')).toHaveText('10');await expect.poll(()=>page.evaluate(()=>window.__halfClips)).toBeGreaterThan(1);
  const halves=await page.evaluate(()=>window.__cutGame.effects.filter(e=>e.half));expect(halves).toHaveLength(2);expect(Math.abs(halves[0].stillY-halves[1].stillY)).toBe(18);
+ const before=await page.evaluate(()=>window.__halfYs.slice(-2));
+ await page.evaluate(()=>{for(let i=0;i<12;i++)window.__advanceCut.call(window.__cutGame,.04);window.__halfYs=[];});
+ await expect.poll(()=>page.evaluate(()=>window.__halfYs.length)).toBeGreaterThan(1);
+ const after=await page.evaluate(()=>window.__halfYs.slice(-2));for(let i=0;i<2;i++)expect(after[i]-before[i]).toBeGreaterThan(20);
+ const paused=await page.evaluate(()=>{const g=window.__cutGame;g.pause();const y=g.effects.map(e=>e.stillY);window.__advanceCut.call(g,.04);return JSON.stringify(y)===JSON.stringify(g.effects.map(e=>e.stillY));});expect(paused).toBe(true);
  await page.screenshot({path:test.info().outputPath('cut-'+motion+'.png')});
 });
