@@ -174,6 +174,14 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
       return ['.games-simple-note','#quickSections','.rank-discovery'].every(selector=>Boolean(games.compareDocumentPosition(document.querySelector(selector)) & Node.DOCUMENT_POSITION_FOLLOWING));
     });
     expect(order).toBe(true);
+    const titleCollisions=await page.locator('#games > .catalog-tile').evaluateAll(cards=>cards.flatMap(card=>{
+      const heading=card.querySelector('h2'),favorite=card.querySelector('.favorite-button');
+      if(!heading||!favorite)return [];
+      const range=document.createRange();range.selectNodeContents(heading);
+      const f=favorite.getBoundingClientRect();
+      return [...range.getClientRects()].some(r=>r.left<f.right&&r.right>f.left&&r.top<f.bottom&&r.bottom>f.top)?[heading.textContent]:[];
+    }));
+    expect(titleCollisions).toEqual([]);
     await page.getByRole('searchbox',{name:'Search games'}).fill('Snake');
     await expect(page.locator('#games > .catalog-tile:visible')).toHaveCount(1);
     await expect(page.locator('#games > .catalog-tile:visible')).toContainText('100 Arcade Coins');

@@ -59,7 +59,9 @@ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-card-footer
  body.games-dashboard #games .catalog-tile .game-title-actions{position:static!important;width:28px!important;min-width:0!important}
 }
 @media(max-width:699px){
- body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-title-row>.game-name-wrap{grid-column:1!important;grid-row:1!important;justify-content:flex-start!important;width:auto!important;max-width:100%!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-title-row>.game-name-wrap{grid-column:1!important;grid-row:1!important;justify-content:flex-start!important;width:auto!important;max-width:100%!important;padding:0!important;gap:3px!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-icon-bubble{width:24px!important;min-width:24px!important;flex:0 0 24px!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .favorite-button{width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-title-row>.game-title-actions{grid-column:2!important;grid-row:1!important;justify-self:end!important;align-self:start!important;margin:0!important;padding:0!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-name-wrap h2{text-align:left!important}
  body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.no-best a.game-play-button:not(:disabled),body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.has-best a.game-play-button:not(:disabled){color:#091928!important;text-shadow:none!important}
