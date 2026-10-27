@@ -36,7 +36,7 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await page.route('**/avatars/api/**',r=>{
   const endpoint=new URL(r.request().url()).pathname.split('/api/')[1];
   if(endpoint==='config')return r.fulfill({json:{supabaseUrl:'https://zdwziebtbpuolusztede.supabase.co',publishableKey:'fixture',game:'snake'}});
-  if(endpoint==='shop')return r.fulfill({json:{items:[{id:'silver-chain',name:'Silver Chain',slot:'jewelry',coinPrice:200,rarity:'rare',imageUrl:'cosmetic-silver-chain.svg'}]}});
+  if(endpoint==='shop')return r.fulfill({json:{items:[{id:'cyber-starter',name:'Cyber Starter',slot:'avatar',coinPrice:0,rarity:'common',isStarter:true,imageUrl:'cosmetic-cyber-starter.svg'},{id:'starter-suit',name:'Pilot Suit',slot:'outfit',coinPrice:0,rarity:'common',isStarter:true,imageUrl:'cosmetic-starter-suit.svg'},{id:'trail-boots',name:'Trail Boots',slot:'shoes',coinPrice:0,rarity:'common',isStarter:true,imageUrl:'cosmetic-trail-boots.svg'},{id:'silver-chain',name:'Silver Chain',slot:'jewelry',coinPrice:200,rarity:'rare',imageUrl:'cosmetic-silver-chain.svg'}]}});
   if(endpoint==='leaderboard')return r.fulfill({json:{game:'snake',players:[]}});
   return r.fulfill({status:404,json:{error:{message:'Unexpected QA request'}}});
  });
@@ -50,7 +50,12 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
   const result=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:innerWidth,columns:getComputedStyle(document.getElementById('shop-grid')).gridTemplateColumns.split(' ').length}));
   expect(result.scroll).toBeLessThanOrEqual(result.view);
   expect(result.columns).toBe(2);
+  const stage=await page.locator('#character-stage').boundingBox();
+  const collections=await page.locator('.shop-collections').boundingBox();
+  expect(stage.y+stage.height).toBeLessThan(collections.y);
+  await expect(page.locator('.showcase .earn-coins-shop')).toBeVisible();
  }
+ await page.screenshot({path:test.info().outputPath('studio-phone.png'),fullPage:true});
  await selectShopSlot(page,'jewelry');
  await expect(page.getByLabel('Gear category',{exact:true})).toHaveValue('jewelry');
  await expect(page.locator('#studio-category')).toHaveValue('jewelry');
