@@ -79,6 +79,15 @@ body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card
 body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled) *{color:#091928!important;-webkit-text-fill-color:#091928!important;text-shadow:none!important;font-weight:850!important}
 
 /* Keep NEW GAME labels inside clipped mobile cards and the scroll viewport. */
-body.games-dashboard #games .catalog-tile:has(>.game-new-bubble){padding-top:34px!important}
+body.games-dashboard #games .catalog-tile:has(>.game-new-bubble){padding-top:28px!important}
 body.games-dashboard #games .catalog-tile>.game-new-bubble{top:5px!important;left:12px!important;font-size:9px!important;line-height:14px!important;padding:3px 9px!important}
 body.games-dashboard #games .catalog-tile>.game-new-bubble:after{display:none!important}
+
+/* Keep the badge, heading and 44px Play target within a compact phone card. */
+@media(max-width:699px){
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble){padding-bottom:8px!important;gap:4px!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-title-row{min-height:28px!important;position:static!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-name-wrap{min-height:28px!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-icon-bubble{height:24px!important}
+ body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-title-row>.game-title-actions{position:absolute!important;top:10px!important;right:10px!important}
+}
