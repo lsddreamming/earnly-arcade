@@ -506,7 +506,7 @@
     destination.scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
     (target || $("shop-search")).focus({preventScroll: true});
   });
-  $("reset-preview").addEventListener("click", () => { state.preview = {}; state.previewFocus = null; renderUser(); });
+  $("reset-preview").addEventListener("click", () => { state.preview = {}; state.previewFocus = null; renderUser(); document.querySelector(".browse-styles").focus({preventScroll:true}); });
   for (const button of document.querySelectorAll(".shop-tabs button[data-slot]"))
     button.addEventListener("click", () => {
       state.slot = button.dataset.slot;
