@@ -132,9 +132,9 @@ test('Header coin balances consistently lead to coin packs without replacing the
 
 for (const width of [320, 390, 440]) {
   for (const prefix of ['', 'www/']) {
-    test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page }) => {
+    test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
-      await page.goto('/' + prefix + 'games.html');
+      await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
       // Wait for the catalog's dynamic rebuild, including its favorite controls.
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
       await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
@@ -155,6 +155,7 @@ for (const width of [320, 390, 440]) {
           expect(overlaps, game + ' badge overlaps title or control').toBe(false);
         }
       }
+      await page.screenshot({ path: testInfo.outputPath('catalog.png'), fullPage: true });
     });
   }
 }
