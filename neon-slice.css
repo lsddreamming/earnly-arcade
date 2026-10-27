@@ -16,3 +16,4 @@ body.neon-slice-page{background:radial-gradient(ellipse at top,#203b42 0,#0b1b24
 .slice-overlay button{background:linear-gradient(120deg,#ffe1a0,#ffc067);color:#332519}
 .slice-controls button[aria-pressed=true]{border-color:#ffd080;color:#ffe1a0;background:#3b352c}
 #sliceCombo{font-size:clamp(17px,5vw,24px);padding-inline:8px;color:#ffe1a0}
+#sliceWarning{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 16px);padding:6px 10px;border:1px solid #e9ae65;border-radius:20px;background:#241a10ed;color:#ffe2b3;font-size:11px;font-weight:700;text-align:center;pointer-events:none}#sliceWarning[hidden]{display:none}

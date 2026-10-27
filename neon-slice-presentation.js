@@ -39,5 +39,12 @@
       ring.onended=()=>{ring.disconnect();volume.disconnect();};
     }
   }
-  window.NeonSlicePresentation={background,spatula,unlock,sound};
+  let lastWarning=-Infinity;
+  function warning(){
+    if(!audio||audio.state!=='running'||audio.currentTime-lastWarning<.8)return;
+    const t=lastWarning=audio.currentTime;
+    // A brief low double tick stands apart from the high steel slicing sound.
+    for(const offset of [0,.11]){const tone=audio.createOscillator(),gain=audio.createGain();tone.type='triangle';tone.frequency.setValueAtTime(440,t+offset);tone.frequency.exponentialRampToValueAtTime(220,t+offset+.065);gain.gain.setValueAtTime(.0001,t+offset);gain.gain.exponentialRampToValueAtTime(.045,t+offset+.005);gain.gain.exponentialRampToValueAtTime(.0001,t+offset+.075);tone.connect(gain).connect(audio.destination);tone.start(t+offset);tone.stop(t+offset+.08);tone.onended=()=>{tone.disconnect();gain.disconnect();};}
+  }
+  window.NeonSlicePresentation={background,spatula,unlock,sound,warning};
 })();

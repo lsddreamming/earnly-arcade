@@ -82,3 +82,21 @@ test('one held pointer across new food groups produces separate combos',async({p
  await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
  expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
+test('formations stay separated near the apex and cut halves follow the swipe',()=>{
+ const g=new Game(()=>.5);g.start();g.time=60;
+ const shapes=[];for(let wave=0;wave<3;wave++){g.items=[];g.spawn();expect(g.items).toHaveLength(4);shapes.push(g.items.map(o=>o.vy));const apex=g.items.map(o=>({x:o.x+o.vx,y:o.y+o.vy+265,r:o.r}));for(let i=1;i<apex.length;i++)expect(Math.hypot(apex[i].x-apex[i-1].x,apex[i].y-apex[i-1].y)).toBeGreaterThan(apex[i].r+apex[i-1].r);}
+ expect(new Set(shapes.map(s=>JSON.stringify(s))).size).toBe(3);
+ g.items=[{x:100,y:100,r:25,type:1,angle:0}];g.slice({x:100,y:40},{x:100,y:160});
+ const halves=g.effects.filter(e=>e.half);expect(halves).toHaveLength(2);expect(halves[0].vx*halves[1].vx).toBeLessThan(0);expect(halves[0].localCutAngle).toBeCloseTo(Math.PI/2);
+ expect(g.effects.filter(e=>!e.half)).toHaveLength(10);expect(g.effects.every(e=>e.type===1)).toBe(true);
+ g.items=[];g.nextWave=100;for(let i=0;i<25;i++)g.step(.04);expect(g.effects).toHaveLength(0);
+});
+test('bomb cue is visible without sound, warns once and hides while paused',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;this.items=[{id:99,x:270,y:230,r:25,bomb:true,vx:0,vy:0,angle:0,spin:0},{id:100,x:70,y:220,r:25,type:1,vx:0,vy:0,angle:0,spin:0},{id:101,x:135,y:220,r:25,type:7,vx:0,vy:0,angle:0,spin:0}];};window.__warnings=0;NeonSlicePresentation.warning=()=>window.__warnings++;});
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceWarning')).toBeVisible();expect(await page.evaluate(()=>window.__warnings)).toBe(0);
+ await page.screenshot({path:test.info().outputPath('bomb-cue.png')});
+ await page.locator('#slicePause').click();await expect(page.locator('#sliceWarning')).toBeHidden();
+ await page.reload();await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;this.items=[{id:1,x:270,y:200,r:25,bomb:true,vx:0,vy:0,angle:0,spin:0}];};window.__warnings=0;NeonSlicePresentation.warning=()=>window.__warnings++;});
+ await page.locator('#sliceSound').click();await page.locator('#sliceStart').click();await expect.poll(()=>page.evaluate(()=>window.__warnings)).toBe(1);await page.waitForTimeout(150);expect(await page.evaluate(()=>window.__warnings)).toBe(1);
+});
