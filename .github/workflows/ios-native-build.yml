@@ -6,7 +6,7 @@ on:
   pull_request:
     paths:
       - 'bubble-pop*'
-      - 'www/bubble-pop*'
+      - 'www/**'
       - 'native-ads-entry.js'
       - 'privacy-ads.js'
       - 'scripts/build-native-web.mjs'
