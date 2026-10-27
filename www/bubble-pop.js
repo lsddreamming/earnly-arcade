@@ -151,5 +151,5 @@
  document.addEventListener('visibilitychange',()=>{if(document.hidden){audio?.suspend();if(busy)settle();if(started&&!paused)pause();}});
  media.addEventListener('change',()=>{if(media.matches&&busy)settle();});
  window.addEventListener('online',()=>BubblePopRewards?.retry().catch(()=>{}));
- function showStart(){const opening=game.state();overlay('start',opening.level?'Ready for level '+(opening.level+1)+'?':'Match. Pop. Smile.',goalText(opening)+` in ${opening.moves} moves.`,opening.level?'Continue level '+(opening.level+1)+' →':'Let’s play →',tip(opening));}showStart();new ResizeObserver(layout).observe(canvas);layout();update();
+ function showStart(){const opening=game.state();overlay('start',opening.level?'Ready for level '+(opening.level+1)+'?':'Match. Pop. Smile.',goalText(opening)+` in ${opening.moves} moves.`,opening.level?'Continue level '+(opening.level+1)+' →':'Let’s play →',tip(opening));const tag=$('overlayTag');tag.textContent='Practice · sign in to earn';window.BubblePopRewards?.isSignedIn?.().then(signedIn=>{if(modal==='start'&&started===false)tag.textContent=signedIn?'Signed in · first-clear coins available':'Practice · sign in to earn';}).catch(()=>{});}showStart();new ResizeObserver(layout).observe(canvas);layout();update();
 })();
