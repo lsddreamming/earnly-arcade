@@ -194,3 +194,13 @@ body.studio-dashboard #shop-grid .item-art[data-slot=beard]:not([data-detail=tru
  .studio-dashboard #collection .shop-collections{margin:6px 0}
  .studio-dashboard #collection .shop-collections button{min-height:44px;font-size:12px;padding:8px 12px}
 }
+
+/* Give the artwork room to breathe; keep one purchase/equip action per phone card. */
+.studio-dashboard .shop-tryon-hint{font-size:12px;line-height:1.5;color:#b9dbe8;margin:8px 0 12px}
+body.studio-dashboard #shop-grid .tryon-state{z-index:4;pointer-events:none;max-width:calc(100% - 20px);box-sizing:border-box}
+@media(max-width:600px){
+ body.studio-dashboard #shop-grid .item-card .item-art{height:clamp(150px,44vw,180px)!important}
+ body.studio-dashboard #shop-grid .item-art-trigger::after{content:none}
+ body.studio-dashboard #shop-grid .item-actions{padding-bottom:8px}
+ body.studio-dashboard #shop-grid .item-card h3{line-height:1.4;margin-top:10px}
+}

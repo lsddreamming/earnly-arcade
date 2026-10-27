@@ -66,6 +66,15 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await expect(firstCard).toBeVisible();
  await expect(firstCard.locator('.preview-item')).toBeHidden();
  await expect(firstCard.locator('.item-art-trigger')).toBeVisible();
+ await expect(page.locator('.shop-tryon-hint')).toBeVisible();
+ const purchases=[];
+ page.on('request',r=>{if(r.method()==='POST'&&/avatars\/api\/(purchase|equip)/.test(r.url()))purchases.push(r.url());});
+ await firstCard.locator('.item-art-trigger').click();
+ await expect(firstCard).toHaveClass(/is-trying-on/);
+ await expect(firstCard.locator('.tryon-state')).toHaveText('Trying on');
+ await expect(page.locator('#preview-note')).toContainText('Preview only');
+ expect(purchases).toEqual([]);
+ await page.screenshot({path:test.info().outputPath('studio-tryon.png'),fullPage:true});
  await selectShopSlot(page,'building');
  await expect(page.locator('.gear-view')).toBeHidden();
  await expect(page.locator('.public-footer nav a:visible')).toHaveCount(3);
