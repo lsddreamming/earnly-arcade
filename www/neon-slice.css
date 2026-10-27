@@ -7,3 +7,12 @@ body.neon-slice-page.slice-running .public-footer{display:none}.neon-slice-page 
 /* Compact public-game results and touch-friendly feedback. */
 .slice-results{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;text-align:left}.slice-results[hidden]{display:none}.slice-results div{padding:8px 12px;border:1px solid #315363;border-radius:10px;background:#102839}.slice-results span{display:block;color:#b1c7d5;font-size:11px}.slice-results strong{font-size:21px;color:#f6fff9}.slice-results div:first-child strong{color:#9bf0d4}.slice-overlay>div{max-height:100%;overflow:auto;width:min(100%,300px)}.slice-pop{animation:slice-pop .28s ease-out}@keyframes slice-pop{from{transform:scale(.8);opacity:.4}to{transform:scale(1);opacity:1}}@media(prefers-reduced-motion:reduce){.slice-pop{animation:none}}@media(max-height:650px){.slice-overlay{padding:10px}.slice-overlay .slice-mark{font-size:23px}.slice-overlay h2{font-size:20px;margin:4px 0}.slice-overlay p{margin:6px 0}.slice-results{gap:5px;margin:7px 0}.slice-results div{padding:5px 9px}.slice-results strong{font-size:18px}}
 .slice-hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.slice-hud>span:nth-child(2){text-align:center}.slice-hud>span:last-child{text-align:right}.slice-hud strong{font-variant-numeric:tabular-nums;font-size:clamp(15px,4.5vw,19px);overflow-wrap:anywhere}
+/* Warm patio accents; keep the arena and touch targets at their tested size. */
+body.neon-slice-page{background:radial-gradient(ellipse at top,#203b42 0,#0b1b24 65%)}
+.slice-title h1{color:#fff2d8;text-shadow:0 2px 18px #ffc77518}
+.slice-hud{background:linear-gradient(115deg,#263e45,#1a3039);border-top:1px solid #637b7166}
+.slice-stage{border-color:#627368;box-shadow:0 12px 32px #0004}
+.slice-overlay{background:#0a1c24d9}.slice-mark{color:#ffd080}
+.slice-overlay button{background:linear-gradient(120deg,#ffe1a0,#ffc067);color:#332519}
+.slice-controls button[aria-pressed=true]{border-color:#ffd080;color:#ffe1a0;background:#3b352c}
+#sliceCombo{font-size:clamp(17px,5vw,24px);padding-inline:8px;color:#ffe1a0}
