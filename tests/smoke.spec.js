@@ -2626,3 +2626,18 @@ for (const scenario of [
     expect(state.misses).toBe(scenario.caught&&scenario.bomb?2:0);
   });
 }
+test('Coin Catch feedback distinguishes catches and strikes without changing rewards',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/coincatch.html');
+ const result=await page.evaluate(()=>{
+  const samples=[];for(const kind of ['coin','bomb','miss']){
+   reset();running=true;transitioning=false;const now=performance.now();lastFrame=now-16.67;lastSpawn=now;
+   drops=[{x:basket.x+basket.w/2,y:kind==='miss'?530:basket.y-7-16,r:14,speed:4,bomb:kind==='bomb'}];
+   loop(now);cancelAnimationFrame(animation);running=false;
+   samples.push({kind,score,misses,text:catchEffects[0]?.text,reward:rewardFor(score)});
+  }
+  reset();for(let i=0;i<30;i++)catchFeedback(180,350,'+1 catch','#ffe58e');const bounded=catchEffects.length;reset();return {samples,bounded,remaining:catchEffects.length};
+ });
+ expect(result.samples).toEqual([{kind:'coin',score:1,misses:0,text:'+1 catch',reward:0},{kind:'bomb',score:0,misses:2,text:'+2 strikes',reward:0},{kind:'miss',score:0,misses:1,text:'Miss · +1 strike',reward:0}]);expect(result.bounded).toBe(12);expect(result.remaining).toBe(0);
+ await page.evaluate(()=>{running=true;setStatus('Running','running');drops=[{x:100,y:200,bomb:false},{x:255,y:270,bomb:true}];catchFeedback(180,410,'+1 catch','#ffe58e');draw();});
+ await page.screenshot({path:test.info().outputPath('coin-catch-polish.png')});
+});
