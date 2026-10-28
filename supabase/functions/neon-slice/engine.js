@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();root.NeonSliceEngine=api;if(typeof module==='object'&&module.exports)module.exports=api;})(typeof globalThis!=='undefined'?globalThis:this,()=>{
   function distance(x,y,a,b){const dx=b.x-a.x,dy=b.y-a.y;const t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-a.x-t*dx,y-a.y-t*dy);}
   class Game{
-    constructor(random=Math.random){this.random=random;this.reset();}
+    constructor(random=Math.random,version=2){this.version=version;this.random=random;this.reset();}
     reset(){this.state='ready';this.score=0;this.misses=0;this.time=0;this.wave=0;this.nextWave=.4;this.items=[];this.effects=[];this.id=0;this.strokeHits=0;this.strokeStart=null;this.lastMotion=null;this.strokeDirection=null;this.strokeLength=0;this.completedCombos=[];this.bestCombo=0;this.continued=false;this.reason='';this.sliced=0;this.burgers=0;}
     start(){this.reset();this.state='running';}
     pause(){if(this.state==='running'){this.endStroke();this.state='paused';}}
@@ -20,6 +20,9 @@
         const lane=i-(count-1)/2,x=center+lane*spacing;
         wave.push({id:++this.id,x,y:580,vx:drift,vy:launch+(pattern===1?lane*18:pattern===2?Math.abs(lane)*14:0),gravity,r:23+this.random()*5,angle:this.random()*6,spin:(this.random()-.5)*3,type:this.random()<.06?7:[0,1,2,3,4,5,6,8,9,10,11][Math.floor(this.random()*11)],bomb:this.time>=12&&this.wave>4&&i===count-1&&this.random()<.16+.29*pressure});
       }
+      // Version 1 remains replayable for old clients and pending rewards.
+      // Swap the hazard into a random formation lane before spacing checks.
+      if(this.version>=2){const bomb=wave.find(item=>item.bomb);if(bomb){const target=wave[Math.floor(this.random()*wave.length)];[bomb.x,target.x]=[target.x,bomb.x];[bomb.vy,target.vy]=[target.vy,bomb.vy];}}
       // Keep a clear slicing window around each food apex, including earlier waves.
       const overlaps=(a,b)=>{for(let t=0;t<=3;t+=.04){const ay=a.y+a.vy*t+.5*(a.gravity||530)*t*t,by=b.y+b.vy*t+.5*(b.gravity||530)*t*t;if(Math.abs(b.vy+(b.gravity||530)*t)>110)continue;if(ay< -a.r||ay>540+a.r||by< -b.r||by>540+b.r)continue;if(Math.hypot(a.x+a.vx*t-b.x-b.vx*t,ay-by)<a.r+b.r+16)return true;}return false;};
       for(const item of wave){if(item.bomb){const food=[...this.items,...wave].filter(other=>other!==item&&!other.bomb);let safe=!food.some(other=>overlaps(item,other));
@@ -51,9 +54,10 @@
   }
   function seededRandom(seed){let s=seed>>>0;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
   // Replay only bounded, integer-tick input. Never trust a client-supplied score.
-  function verify(seed,events,ticks){
+  function verify(seed,events,ticks,version=2){
+    if(![1,2].includes(version))throw Error('INVALID_RUN');
     if(!Number.isInteger(seed)||seed<1||seed>4294967295||!Number.isInteger(ticks)||ticks<1||ticks>10800||!Array.isArray(events)||events.length>18000)throw Error('INVALID_RUN');
-    const g=new Game(seededRandom(seed));g.start();let tick=0,previous=0;
+    const g=new Game(seededRandom(seed),version);g.start();let tick=0,previous=0;
     for(const e of events){
       if(!Array.isArray(e)||![1,5].includes(e.length)||!Number.isInteger(e[0])||e[0]<previous||e[0]>ticks)throw Error('INVALID_RUN');
       while(tick<e[0]){if(g.state!=='running')throw Error('INVALID_RUN');g.step(1/60);tick++;}
