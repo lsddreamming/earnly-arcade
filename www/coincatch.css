@@ -1,0 +1,115 @@
+/* Coin Catch owns its layout: HUD, playfield and controls never share a layer. */
+html body.coincatch-page { background:#081721; }
+html body.coincatch-page main.container { max-width:560px; }
+html body.coincatch-page .page-header {
+  padding:10px 0!important;margin:0 0 8px!important;border:0!important;
+  background:none!important;box-shadow:none!important;
+}
+html body.coincatch-page .page-header h1 { font-size:26px!important;letter-spacing:-.035em; }
+html body.coincatch-page .game-title-status-row { justify-content:space-between; }
+html body.coincatch-page .game-meta { display:flex!important;gap:6px!important; }
+html body.coincatch-page .game-meta .meta-pill { flex:1; }
+html body.coincatch-page #startButton { background:#94f4cf;color:#07291f;border:0; }
+html body.coincatch-page .catch-board-wrap {
+  position:relative;display:flex;flex-direction:column;width:100%;max-width:440px;
+  margin:8px auto;overflow:hidden;border:1px solid #31535c;border-radius:22px;
+  background:linear-gradient(150deg,#15313c,#0a1c28);box-shadow:0 16px 40px #0003;
+}
+.catch-scoreboard { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:12px 12px 8px; }
+.catch-hud { min-width:0;display:flex;flex-direction:column;gap:3px;text-align:center;line-height:1.15; }
+.catch-hud + .catch-hud { border-left:1px solid #36505b; }
+.catch-hud small { color:#b1c7d0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em; }
+.catch-hud strong { font-size:24px;font-weight:850;font-variant-numeric:tabular-nums;color:#f4fafc; }
+.catch-hud-left strong { color:#ffdf83; }
+.catch-hud-right strong { color:#95f4d2; }
+.catch-hud strong span + span { font-size:12px;margin-left:2px;color:#b1c7d0; }
+.catch-run-details { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;border-top:1px solid #29434e;border-bottom:1px solid #29434e;font-size:11px;line-height:1.35; }
+.catch-earned-hud { color:#d9e5e9;min-width:0; }
+.catch-earned-hud strong { color:#ffdf83;font-variant-numeric:tabular-nums; }
+.catch-miss-hud { flex:none;color:#c6d5dc;font-variant-numeric:tabular-nums; }
+.catch-miss-hud strong { color:#f7a9b6; }
+.catch-miss-hud.danger { color:#fff;background:#7b2e40;border-radius:6px;padding:2px 6px; }
+.catch-earned-hud.bump strong { animation:catchRewardPulse .36s ease; }
+@keyframes catchRewardPulse { 50%{color:#fff;text-shadow:0 0 12px #ffdf83} }
+html body.coincatch-page .catch-board-wrap .game-guide-strip { display:none!important; }
+html body.coincatch-page .catch-board-wrap .game-guide-surface-wrap {
+  display:flex;align-items:center;justify-content:center;flex:none;
+  width:100%!important;max-width:none!important;aspect-ratio:360/500;
+  margin:0!important;border-radius:0!important;background:#091c26;overflow:hidden;
+}
+html body.coincatch-page canvas.catch-board {
+  display:block;flex:none;width:var(--catch-board-width,100%)!important;
+  height:var(--catch-board-height,auto)!important;max-height:none!important;
+  max-width:100%!important;margin:0!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;touch-action:none;user-select:none;-webkit-user-select:none;
+}
+.catch-control-zone { display:none; }
+html body.coincatch-page.game-active .catch-control-zone {
+  display:flex;flex-direction:column;justify-content:center;gap:5px;flex:none;
+  padding:8px 12px;border-top:1px solid #31535c;background:#132c36;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
+.catch-control-label { display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.3;color:#c3d9e2;font-size:12px; }
+.catch-control-label > span { color:#f4fafc;font-weight:750;white-space:nowrap; }
+#nextCoinReward { font-size:11px;text-align:right;color:#ffdf83; }
+.catch-live-tip { min-height:16px;font-size:10px;line-height:1.4;color:#a8c7cf;text-align:center;opacity:0;transition:opacity .18s;pointer-events:none; }
+.catch-live-tip.show { opacity:1; }
+.level-banner {
+  position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.96);
+  z-index:8;display:flex;flex-direction:column;align-items:center;gap:6px;
+  width:max-content;max-width:90%;padding:18px 24px;border-radius:18px;
+  background:#0b202bf2;border:1px solid #7ce5c3;box-shadow:0 12px 32px #0005;
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;
+}
+.level-banner.show { opacity:1;transform:translate(-50%,-50%) scale(1); }
+.level-banner strong { color:#a4f8d9;font-size:25px;letter-spacing:.05em; }
+.level-banner small { color:#c0d3df;font-size:11px; }
+html body.coincatch-page .catch-session-dock { display:none; }
+html body.coincatch-page.game-active .catch-session-dock {
+  display:flex;align-items:center;gap:8px;flex:none;position:relative;
+  width:100%;max-width:440px;min-height:48px;margin:8px auto 0;z-index:55;
+}
+html body.coincatch-page.game-active .catch-session-dock #earnlyPauseButton,
+html body.coincatch-page.game-active .catch-session-dock #coinCatchExit {
+  position:relative!important;inset:auto!important;transform:none!important;
+  display:flex!important;align-items:center;justify-content:center;
+  height:48px!important;min-height:48px!important;min-width:0!important;margin:0!important;
+  padding:10px 12px!important;border:1px solid #47717a!important;border-radius:14px!important;
+  box-shadow:none!important;line-height:1.2!important;z-index:55!important;
+}
+html body.coincatch-page.game-active .catch-session-dock #earnlyPauseButton { flex:1!important;width:auto!important;background:#214550!important;color:#edfff9!important;font-size:16px!important; }
+html body.coincatch-page.game-active .catch-session-dock #coinCatchExit { flex:0 0 80px!important;width:80px!important;max-width:80px!important;background:#142a35!important;color:#d8e6ec!important;font-size:12px!important;text-decoration:none; }
+html body.coincatch-page.earnly-game-paused .catch-session-dock #earnlyPauseButton { background:#19614e!important;border-color:#94f4cf!important; }
+html body.coincatch-page.game-active :is(.game-guide-strip,.game-guide-more,.game-guide-overlay,.game-start-summary,.game-meta,#startButton) { display:none!important; }
+
+@media(max-width:699px) {
+  html body.coincatch-page main.container { padding: max(10px,env(safe-area-inset-top)) 12px 90px!important; }
+  html body.coincatch-page .topbar { min-height:36px;margin-bottom:4px!important; }
+  html body.coincatch-page .page-header { padding:6px 0!important; }
+  html body.coincatch-page .page-header h1 { font-size:22px!important; }
+  html body.coincatch-page.game-active { top:0!important;height:100dvh!important;overflow:hidden!important; }
+  html body.coincatch-page.game-active main.container {
+    height:100dvh!important;min-height:0!important;box-sizing:border-box!important;
+    padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))!important;
+    display:flex!important;flex-direction:column!important;gap:0;overflow:hidden!important;
+  }
+  html body.coincatch-page.game-active .page-header { flex:none;margin:0 0 6px!important;padding:0 2px!important; }
+  html body.coincatch-page.game-active .game-title-status-row { margin:0!important;min-height:26px; }
+  html body.coincatch-page.game-active .page-header h1 { font-size:17px!important; }
+  html body.coincatch-page.game-active #gameStatus { padding:3px 8px!important;font-size:10px!important; }
+  html body.coincatch-page.game-active :is(.topbar,#arcadeBottomNav,#arcadeDesktopNav,#earnlyCompactLeaderboard,.game-goal-card) { display:none!important; }
+  html body.coincatch-page.game-active .catch-board-wrap { flex:1;min-height:0;width:100%;max-width:none;margin:0; }
+  html body.coincatch-page.game-active .catch-board-wrap .game-guide-surface-wrap { flex:0 1 auto;min-height:0;aspect-ratio:360/500; }
+  html body.coincatch-page.game-active .catch-control-zone { flex:1 0 auto; }
+  html body.coincatch-page.game-active .catch-session-dock { max-width:none; }
+}
+@media(max-width:699px) and (max-height:650px) {
+  html body.coincatch-page.game-active .page-header { display:none!important; }
+  html body.coincatch-page.game-active .catch-scoreboard { padding:7px 10px 6px; }
+  html body.coincatch-page.game-active .catch-hud strong { font-size:20px; }
+  html body.coincatch-page.game-active .catch-control-zone { padding:6px 10px;gap:3px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .catch-live-tip,.level-banner { transition:none; }
+  .catch-earned-hud.bump strong { animation:none; }
+}

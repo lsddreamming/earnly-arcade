@@ -2642,3 +2642,52 @@ test('Coin Catch feedback distinguishes catches and strikes without changing rew
  await page.evaluate(()=>{running=true;setStatus('Running','running');drops=[{x:100,y:200,bomb:false},{x:255,y:270,bomb:true}];catchFeedback(180,410,'+1 catch','#ffe58e');draw();});
  await page.screenshot({path:test.info().outputPath('coin-catch-polish.png')});
 });
+
+test('Coin Catch fits the phone without overlapping stats, instructions or session controls',async({page})=>{
+  await page.route('https://**',route=>route.abort());
+  await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));
+  await page.goto('/coincatch.html');
+  // Freeze a representative late run, including the longest reward label.
+  await page.evaluate(()=>{
+    running=true;score=300;level=24;misses=4;
+    scoreEl.textContent='300';levelEl.textContent='24';missesEl.textContent='4';
+    refreshReward();setStatus('Running','running');
+    showLiveTip('Swipe anywhere · Catch coins · Avoid bombs',60000);
+    drops=[{x:76,y:120,bomb:false},{x:265,y:195,bomb:true},{x:194,y:320,bomb:false}];draw();
+  });
+  for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,height:932},{width:601,height:740},{width:667,height:375}]){
+    await page.setViewportSize(viewport);
+    await expect(page.locator('#earnlyPauseButton')).toBeInViewport();
+    await expect(page.locator('#coinCatchExit')).toBeInViewport();
+    await expect.poll(()=>page.locator('#game').evaluate(c=>{
+      const b=c.getBoundingClientRect();return Math.abs(b.width/b.height-.72);
+    })).toBeLessThan(.005);
+    const layout=await page.evaluate(()=>{
+      const box=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height};};
+      return {
+        board:box('#game'),stats:box('.catch-scoreboard'),details:box('.catch-run-details'),
+        control:box('#catchControlZone'),tip:box('#catchLiveTip'),dock:box('.catch-session-dock'),
+        reward:box('#earnedHud'),strikes:box('#catchMissHud'),
+        overflow:document.documentElement.scrollWidth>innerWidth+1
+      };
+    });
+    expect(layout.overflow).toBe(false);
+    expect(layout.stats.y).toBeLessThan(50);
+    expect(layout.stats.bottom).toBeLessThanOrEqual(layout.details.y+1);
+    expect(layout.details.bottom).toBeLessThanOrEqual(layout.board.y+1);
+    expect(layout.reward.right+4).toBeLessThanOrEqual(layout.strikes.x);
+    expect(layout.board.bottom).toBeLessThanOrEqual(layout.control.y+1);
+    expect(layout.tip.bottom+6).toBeLessThanOrEqual(layout.dock.y);
+    expect(layout.dock.bottom).toBeLessThanOrEqual(viewport.height);
+    expect(viewport.height-layout.dock.bottom).toBeLessThan(18);
+    if(viewport.height>=800)expect(layout.board.width).toBeGreaterThan(viewport.width*.9);
+    if(viewport.width===390)await page.screenshot({path:test.info().outputPath('coin-catch-phone.png')});
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#earnlyPauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await page.locator('#coinCatchExit').click();
+  await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
+  await page.locator('[data-keep]').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+});
