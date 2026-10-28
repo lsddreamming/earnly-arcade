@@ -162,7 +162,7 @@ for(const reason of ['Bomb hit','Three ingredients missed'])test('results explai
  await expect(page.locator('#sliceStart')).toBeInViewport();await page.screenshot({path:test.info().outputPath('results.png')});
  await expect(page.locator('#sliceQuit')).toBeEnabled();
  page.on('dialog',()=>{throw new Error('Finished runs must quit without confirmation');});
- await page.locator('#sliceQuit').click();
+ await page.locator('#sliceQuit').click({noWaitAfter:true});
  await expect(page).toHaveURL(/games\.html$/);
  await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceBest')).toHaveText('1665');await expect(page.locator('#sliceScore')).toHaveText('0');
 });
