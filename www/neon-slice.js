@@ -2,6 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id),canvas=$('sliceCanvas'),ctx=canvas.getContext('2d'),game=new NeonSliceEngine.Game();
   const presentation=window.NeonSlicePresentation;
+  let lastDrawState=null;
   let soundOn=false,utensil=null,utensilAngle=0;const warnedBombs=new Set();
   try{soundOn=localStorage.getItem('neonSliceSound')==='1';}catch{}
   function soundLabel(){$('sliceSound').textContent=soundOn?'Sound on':'Sound off';$('sliceSound').setAttribute('aria-pressed',String(soundOn));}
@@ -14,25 +15,40 @@
   let best=0,pointer=null,lastPoint=null,trail=[],comboUntil=0,lastFrame=0,offered=false,keys=new Set(),blade={x:180,y:300};
   try{best=Math.max(0,Number(localStorage.getItem('neonSlicePreviewBest'))||0);}catch{}
   $('sliceBest').textContent=best;
-  const reduced=()=>window.Arcade?.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced=()=>window.Arcade?.reducedMotionEnabled?.()||motionQuery.matches;
   function hud(){const score=String(game.score),misses=Math.min(3,game.misses)+' / 3';if($('sliceScore').textContent!==score)$('sliceScore').textContent=score;if($('sliceMisses').textContent!==misses)$('sliceMisses').textContent=misses;}
   function overlay(title,message,label){$('sliceStats').hidden=true;$('sliceHeading').textContent=title;$('sliceMessage').textContent=message;$('sliceStart').textContent=label;$('sliceOverlay').hidden=false;}
   function resetInput(){pointer=null;lastPoint=null;keys.clear();trail=[];utensil=null;endStroke();}
+  async function showRank(serial){
+    const target=$('sliceRank');
+    target.hidden=false;target.textContent='Checking world rank…';
+    try{
+      const data=await window.EarnlyCloud?.leaderboard('neonSlice',50);
+      if(serial!==runSerial)return;
+      if(!data)throw Error('unavailable');
+      const username=(window.Arcade?.leaderboardUsername?.()||(typeof Arcade!=='undefined'&&Arcade.leaderboardUsername?.())||'').toLowerCase();
+      const entry=data.entries.find(e=>username&&e.username.toLowerCase()===username);
+      target.textContent=entry?`${entry.rank===1?'🏆 World #1!':'Your world rank: #'+entry.rank} · Verified best: ${entry.score.toLocaleString()} points`:username?'Your score is outside the world top 50':'Sign in and choose a username to join world rankings';
+      if(!ticket||game.continued)target.textContent+=' · This practice/continued score is device-only';
+    }catch{if(serial===runSerial)target.textContent='World rank unavailable · View leaderboard';}
+  }
   async function settle(){
     if(settled)return;settled=true;const serial=runSerial;
-    if(!ticket){rewardText(rewardMessage);return;}
+    if(!ticket){rewardText(rewardMessage);showRank(serial);return;}
     rewardText('Verifying your run…');
-    try{const r=await NeonSliceRewards.claim(ticket,events,ticks);if(serial!==runSerial)return;rewardMessage=r.duplicate?'Reward already saved to your wallet':r.amount>0?`+${r.amount} Arcade Coins · ${r.remaining} rewarded runs left today`:r.remaining===0?'Run verified · daily coin rewards complete':'Reach 50 points to earn your first Coin';rewardText(rewardMessage);}
-    catch{if(serial===runSerial){rewardMessage='Reward pending · reconnect and tap Retry';rewardText(rewardMessage);$('sliceRetry').hidden=false;}}
+    try{const r=await NeonSliceRewards.claim(ticket,events,ticks);if(serial!==runSerial)return;rewardMessage=r.duplicate?'Reward already saved to your wallet':r.amount>0?`+${r.amount} Arcade Coins · ${r.remaining} rewarded runs left today`:r.remaining===0?'Run verified · daily coin rewards complete':'Reach 50 points to earn your first Coin';rewardText(rewardMessage);showRank(serial);}
+    catch{if(serial===runSerial){$('sliceRank').hidden=false;$('sliceRank').textContent='World rank pending verification · Retry reward';rewardMessage='Reward pending · reconnect and tap Retry';rewardText(rewardMessage);$('sliceRetry').hidden=false;}}
   }
-  $('sliceRetry').onclick=async()=>{$('sliceRetry').disabled=true;try{const results=await NeonSliceRewards.retry();rewardText(results.length?'Pending rewards saved · wallet updated':'No pending rewards for this account');$('sliceRetry').hidden=true;}catch{rewardText('Still pending · please reconnect and retry');}finally{$('sliceRetry').disabled=false;}};
-  function result(){settle();document.body.classList.remove("slice-running");if(offered)return;offered=true;resetInput();game.items=[];game.effects=[];$('sliceCombo').textContent='';const newBest=game.score>best;if(newBest){best=game.score;try{localStorage.setItem('neonSlicePreviewBest',String(best));}catch{}}$('sliceBest').textContent=best;overlay(newBest?'New personal best!':game.reason,game.reason==='Bomb hit'?'You hit a bomb. Watch for the glowing fuse.':game.reason==='Cookout complete'?'Three-minute cookout complete. Ready for another round?':'You missed three ingredients. Aim for short, precise swipes.','Play again');$('sliceResultScore').textContent=game.score;$('sliceResultCombo').textContent=game.bestCombo+'×';$('sliceResultFood').textContent=game.sliced;$('sliceResultBurgers').textContent=game.burgers;$('sliceStats').hidden=false;$('slicePause').disabled=true;$('sliceQuit').disabled=false;$('sliceContinue').hidden=game.continued||!(window.EarnlyNativeAds?.isNative||window.EarnlyWebAds?.enabled);}
+  $('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();
+  $('sliceRetry').onclick=async()=>{$('sliceRetry').disabled=true;try{const results=await NeonSliceRewards.retry();rewardText(results.length?'Pending rewards saved · wallet updated':'No pending rewards for this account');$('sliceRetry').hidden=true;showRank(runSerial);}catch{rewardText('Still pending · please reconnect and retry');}finally{$('sliceRetry').disabled=false;}};
+  function result(){settle();document.body.classList.remove("slice-running");if(offered)return;offered=true;resetInput();game.items=[];game.effects=[];$('sliceCombo').textContent='';const newBest=game.score>best;if(newBest){best=game.score;try{localStorage.setItem('neonSlicePreviewBest',String(best));}catch{}}$('sliceBest').textContent=best;overlay(newBest?'New personal best!':game.reason,game.reason==='Bomb hit'?'You hit a bomb. Watch for the glowing fuse.':game.reason==='Cookout complete'?'Three-minute cookout complete. Ready for another round?':'You missed three ingredients. Aim for short, precise swipes.','Play again');$('sliceResultBest').textContent=(newBest?'New best · ':'')+best.toLocaleString();$('sliceResultScore').textContent=game.score;$('sliceResultCombo').textContent=game.bestCombo+'×';$('sliceResultFood').textContent=game.sliced;$('sliceResultBurgers').textContent=game.burgers;$('sliceStats').hidden=false;$('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();if(game.continued)showRank(runSerial);$('slicePause').disabled=true;$('sliceQuit').disabled=false;$('sliceContinue').hidden=game.continued||!(window.EarnlyNativeAds?.isNative||window.EarnlyWebAds?.enabled);}
   async function start(){
     if(starting)return;warnedBombs.clear();if(soundOn)presentation.unlock();starting=true;$('sliceStart').disabled=true;rewardText('Connecting rewards…');
-    try{await window.NeonSliceRewards?.retry();ticket=await window.NeonSliceRewards?.start();rewardMessage=ticket?.id?(ticket.remaining>0?`1 Coin per 50 points · up to 30 · ${ticket.remaining} rewarded runs left`:'Ranked play · daily coin rewards complete'):ticket?.practice?'Daily rewards complete · unlimited practice':'Sign in to earn · unlimited practice';if(!ticket?.id)ticket=null;}
+    try{ticket=await window.NeonSliceRewards?.start();rewardMessage=ticket?.id?(ticket.remaining>0?`1 Coin per 50 points · up to 30 · ${ticket.remaining} rewarded runs left`:'Ranked play · daily coin rewards complete'):ticket?.practice?'Daily rewards complete · unlimited practice':'Sign in to earn · unlimited practice';if(!ticket?.id)ticket=null;}
     catch{ticket=null;rewardMessage='Offline practice · reconnect before starting to earn';}
     finally{starting=false;$('sliceStart').disabled=false;}
-    runSerial++;resetInput();events=[];ticks=0;accumulator=0;settled=false;game.random=ticket?NeonSliceEngine.seededRandom(ticket.seed):Math.random;game.start();
+    runSerial++;$('sliceRank').hidden=true;lastFrame=performance.now();resetInput();events=[];ticks=0;accumulator=0;settled=false;game.random=ticket?NeonSliceEngine.seededRandom(ticket.seed):Math.random;game.start();
     document.body.classList.add('slice-running');offered=false;$('sliceRetry').hidden=true;rewardText(rewardMessage);$('sliceContinue').hidden=true;$('sliceOverlay').hidden=true;$('slicePause').disabled=false;$('slicePause').textContent='Pause';$('sliceQuit').disabled=false;$('sliceCombo').textContent='';hud();canvas.focus();
   }
   function pause(){if(game.state!=='running')return;resetInput();game.pause();overlay('Paused','Your ingredients and score are waiting.','Resume');$('sliceContinue').hidden=true;$('slicePause').textContent='Resume';}
@@ -143,7 +159,7 @@
     ctx.restore();
   }
   // Resize only when layout changes, not after HUD writes on every frame.
-  function resizeCanvas(){const r=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2,720/Math.max(1,r.width));const width=Math.max(1,Math.round(r.width*scale)),height=Math.max(1,Math.round(r.height*scale));if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;}
+  function resizeCanvas(){lastDrawState=null;const r=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2,540/Math.max(1,r.width));const width=Math.max(1,Math.round(r.width*scale)),height=Math.max(1,Math.round(r.height*scale));if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;}
   new ResizeObserver(resizeCanvas).observe(canvas);window.addEventListener('resize',resizeCanvas);resizeCanvas();
   function draw(dt,now){ctx.setTransform(canvas.width/360,0,0,canvas.height/540,0,0);presentation.background(ctx);const calm=reduced();for(const e of game.effects){
       // Reduced motion keeps essential hit feedback, with steady orientation as fragments fall.
@@ -154,5 +170,6 @@
     const hideWarning=bombs.length===0;if($('sliceWarning').hidden!==hideWarning)$('sliceWarning').hidden=hideWarning;
     for(const bomb of bombs)if(!warnedBombs.has(bomb.id)){warnedBombs.add(bomb.id);if(soundOn)presentation.warning();}
     if(now>comboUntil&&$('sliceCombo').textContent)$('sliceCombo').textContent='';}
-  function frame(now){const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;if(game.state==='running'){const before={...blade};blade.x=Math.max(0,Math.min(360,blade.x+((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*360*dt));blade.y=Math.max(0,Math.min(540,blade.y+((keys.has('ArrowDown')?1:0)-(keys.has('ArrowUp')?1:0))*360*dt));if(keys.has(' '))cut(before,blade);accumulator+=dt;while(accumulator>=1/60&&game.state==='running'){game.step(1/60);ticks++;accumulator-=1/60;if(ticks>=10800)game.end('Cookout complete');}for(const combo of game.completedCombos.splice(0))showCombo(combo);hud();if(game.state==='over')result();}draw(dt,now);requestAnimationFrame(frame);}requestAnimationFrame(frame);
+  
+  function frame(now){const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;if(game.state==='running'){const before={...blade};blade.x=Math.max(0,Math.min(360,blade.x+((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*360*dt));blade.y=Math.max(0,Math.min(540,blade.y+((keys.has('ArrowDown')?1:0)-(keys.has('ArrowUp')?1:0))*360*dt));if(keys.has(' '))cut(before,blade);accumulator+=dt;while(accumulator>=1/60&&game.state==='running'){game.step(1/60);ticks++;accumulator-=1/60;if(ticks>=10800)game.end('Cookout complete');}for(const combo of game.completedCombos.splice(0))showCombo(combo);hud();if(game.state==='over')result();}if(game.state==='running'||lastDrawState!==game.state){draw(dt,now);lastDrawState=game.state;}requestAnimationFrame(frame);}requestAnimationFrame(frame);
 })();
