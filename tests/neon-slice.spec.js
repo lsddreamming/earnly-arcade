@@ -161,7 +161,7 @@ for(const reason of ['Bomb hit','Three ingredients missed'])test('results explai
  expect(await page.evaluate(()=>({items:window.__resultGame.items.length,effects:window.__resultGame.effects.length,best:localStorage.getItem('neonSlicePreviewBest')}))).toEqual({items:0,effects:0,best:'1665'});
  await expect(page.locator('#sliceStart')).toBeInViewport();await page.screenshot({path:test.info().outputPath('results.png')});
  await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceBest')).toHaveText('1665');await expect(page.locator('#sliceScore')).toHaveText('0');
- await page.evaluate(()=>window.__resultGame.end('Bomb hit'));
+ await page.evaluate(()=>{const g=window.__resultGame;g.misses=2;g.nextWave=100;g.items=[{x:180,y:630,r:25,type:1,vx:0,vy:0,angle:0,spin:0}];});
  await expect(page.locator('#sliceOverlay')).toBeVisible();
  await expect(page.locator('#sliceQuit')).toBeEnabled();
  page.on('dialog',()=>{throw new Error('Finished runs must quit without confirmation');});
