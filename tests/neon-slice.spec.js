@@ -169,3 +169,31 @@ for(const reason of ['Bomb hit','Three ingredients missed'])test('results explai
  await expect(page).toHaveURL(/games\.html$/);
 
 });
+
+test('first gameplay frames reuse artwork and do not repeatedly relayout unchanged HUD',async({page})=>{
+ await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{
+  window.NeonSliceRewards={retry:async()=>[],start:async()=>null};
+  const start=NeonSliceEngine.Game.prototype.start;
+  NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.items=Array.from({length:13},(_,type)=>({id:type,x:50+(type%4)*85,y:100+Math.floor(type/4)*100,r:25,type,bomb:type===12,angle:.2}));};
+  NeonSliceEngine.Game.prototype.step=function(){};
+ });
+ await page.locator('#sliceStart').click();
+ const work=await page.evaluate(async()=>{
+  // Allow the one legitimate size notification from hiding the start overlay.
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const counts={frames:0,gradients:0,measurements:0,hudMutations:0,images:0};
+  const proto=CanvasRenderingContext2D.prototype;
+  for(const method of ['createLinearGradient','createRadialGradient']){const original=proto[method];proto[method]=function(...args){counts.gradients++;return original.apply(this,args);};}
+  const draw=proto.drawImage;proto.drawImage=function(...args){counts.images++;return draw.apply(this,args);};
+  const canvas=document.getElementById('sliceCanvas'),rect=canvas.getBoundingClientRect;
+  canvas.getBoundingClientRect=function(){counts.measurements++;return rect.call(this);};
+  const observer=new MutationObserver(records=>counts.hudMutations+=records.length);
+  observer.observe(document.querySelector('.slice-hud'),{subtree:true,childList:true,characterData:true});
+  await new Promise(resolve=>{function frame(){if(++counts.frames===60)resolve();else requestAnimationFrame(frame);}requestAnimationFrame(frame);});
+  observer.disconnect();return counts;
+ });
+ expect(work.frames).toBe(60);expect(work.images).toBeGreaterThan(600);
+ expect(work.gradients).toBe(0);expect(work.measurements).toBeLessThanOrEqual(1);expect(work.hudMutations).toBe(0);
+ await page.screenshot({path:test.info().outputPath('cached-food-artwork.png')});
+});
