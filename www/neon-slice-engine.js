@@ -11,18 +11,28 @@
     continue(){if(this.state!=='over'||this.continued)return false;this.continued=true;this.items=[];this.misses=0;this.nextWave=1.4;this.state='running';return true;}
     spawn(){
       this.wave++;const count=Math.min(4,1+Math.floor(this.time/14)+(this.wave%3===0?1:0));
-      // Wide, readable lanes converge gently near the apex. Each wave alternates
-      // a flat group, a diagonal and a shallow fan without increasing food count.
-      const pattern=this.wave%3,spacing=66,center=180+(this.random()-.5)*30,launch=-545-this.random()*30;
+      // Keep the opening gentle, then shorten airtime without lowering the apex.
+      const pressure=Math.min(1,Math.max(0,(this.time-12)/90)),gravity=530+190*pressure;
+      const pattern=this.wave%3,spacing=78,center=180+(this.random()-.5)*16;
+      const drift=(this.random()-.5)*16*pressure,launch=(-545-this.random()*(30+35*pressure))*Math.sqrt(gravity/530);
+      const wave=[];
       for(let i=0;i<count;i++){
         const lane=i-(count-1)/2,x=center+lane*spacing;
-        this.items.push({id:++this.id,x,y:580,vx:-lane*(pattern===2?5:9),vy:launch+(pattern===1?lane*18:pattern===2?Math.abs(lane)*14:0),r:23+this.random()*5,angle:this.random()*6,spin:(this.random()-.5)*3,type:this.random()<.06?7:[0,1,2,3,4,5,6,8,9,10,11][Math.floor(this.random()*11)],bomb:this.wave>4&&i===count-1&&this.random()<Math.min(.34,.1+this.time/220)});
+        wave.push({id:++this.id,x,y:580,vx:drift,vy:launch+(pattern===1?lane*18:pattern===2?Math.abs(lane)*14:0),gravity,r:23+this.random()*5,angle:this.random()*6,spin:(this.random()-.5)*3,type:this.random()<.06?7:[0,1,2,3,4,5,6,8,9,10,11][Math.floor(this.random()*11)],bomb:this.time>=12&&this.wave>4&&i===count-1&&this.random()<.16+.29*pressure});
       }
+      // Keep a clear slicing window around each food apex, including earlier waves.
+      const overlaps=(a,b)=>{for(let t=0;t<=3;t+=.04){const ay=a.y+a.vy*t+.5*(a.gravity||530)*t*t,by=b.y+b.vy*t+.5*(b.gravity||530)*t*t;if(Math.abs(b.vy+(b.gravity||530)*t)>110)continue;if(ay< -a.r||ay>540+a.r||by< -b.r||by>540+b.r)continue;if(Math.hypot(a.x+a.vx*t-b.x-b.vx*t,ay-by)<a.r+b.r+16)return true;}return false;};
+      for(const item of wave){if(item.bomb){const food=[...this.items,...wave].filter(other=>other!==item&&!other.bomb);let safe=!food.some(other=>overlaps(item,other));
+          for(let attempt=0;!safe&&attempt<10;attempt++){const candidate={...item,x:36+((attempt+this.wave)%5)*72,vx:0,vy:launch*(attempt<5?.8:1.05),r:22};if(!food.some(other=>overlaps(candidate,other))){Object.assign(item,candidate);safe=true;}}
+          if(!safe)item.bomb=false;}
+        if(!item.bomb&&this.items.some(other=>other.bomb&&overlaps(other,item)))continue;
+        this.items.push(item);}
     }
-    step(dt){if(this.state!=='running')return;dt=Math.min(.04,Math.max(0,dt));this.time+=dt;this.expireStroke();this.nextWave-=dt;if(this.nextWave<=0){this.spawn();this.nextWave=Math.max(.68,1.7-this.time*.007);}
-      for(const item of this.items){item.x+=item.vx*dt;item.y+=item.vy*dt;item.vy+=530*dt;item.angle+=item.spin*dt;if(item.y>620&&item.vy>0){item.gone=true;if(!item.bomb&&++this.misses>=3)this.end('Three ingredients missed');}}
+    step(dt){if(this.state!=='running')return;dt=Math.min(.04,Math.max(0,dt));this.time+=dt;this.expireStroke();this.nextWave-=dt;if(this.nextWave<=0){this.spawn();const pressure=Math.min(1,Math.max(0,(this.time-12)/90));this.nextWave=1.7-.85*pressure+(this.random()-.5)*.2*pressure;}
+      for(const item of this.items){item.x+=item.vx*dt;item.y+=item.vy*dt;item.vy+=(item.gravity||530)*dt;item.angle+=item.spin*dt;if(item.y>620&&item.vy>0){item.gone=true;if(!item.bomb&&++this.misses>=3)this.end('Three ingredients missed');}}
       this.items=this.items.filter(x=>!x.gone);for(const e of this.effects){e.life-=dt;e.x+=e.vx*dt;e.y+=e.vy*dt;e.vy+=(e.half?530:230)*dt;e.stillY+=(e.fallVy||40)*dt;e.fallVy=(e.fallVy||40)+530*dt;if(e.half)e.angle+=(e.spin||0)*dt;}this.effects=this.effects.filter(e=>e.life>0);
     }
+
     // Combo timing uses simulation time so pausing cannot extend an active cut.
     closeTimedStroke(){const combo=this.endStroke();if(combo)this.completedCombos.push(combo);}
     expireStroke(){if(this.strokeStart!==null&&(this.time-this.strokeStart>=.5||this.time-this.lastMotion>=.14))this.closeTimedStroke();}
