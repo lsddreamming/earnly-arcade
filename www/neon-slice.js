@@ -22,7 +22,7 @@
     if(settled)return;settled=true;const serial=runSerial;
     if(!ticket){rewardText(rewardMessage);return;}
     rewardText('Verifying your run…');
-    try{const r=await NeonSliceRewards.claim(ticket,events,ticks);if(serial!==runSerial)return;rewardMessage=r.duplicate?'Reward already saved to your wallet':r.amount>0?`+${r.amount} Arcade Coins · ${r.remaining} rewarded runs left today`:r.remaining===0?'Score saved to leaderboard · daily coin rewards complete':'Reach 50 points to earn your first Coin';rewardText(rewardMessage);}
+    try{const r=await NeonSliceRewards.claim(ticket,events,ticks);if(serial!==runSerial)return;rewardMessage=r.duplicate?'Reward already saved to your wallet':r.amount>0?`+${r.amount} Arcade Coins · ${r.remaining} rewarded runs left today`:r.remaining===0?'Run verified · daily coin rewards complete':'Reach 50 points to earn your first Coin';rewardText(rewardMessage);}
     catch{if(serial===runSerial){rewardMessage='Reward pending · reconnect and tap Retry';rewardText(rewardMessage);$('sliceRetry').hidden=false;}}
   }
   $('sliceRetry').onclick=async()=>{$('sliceRetry').disabled=true;try{const results=await NeonSliceRewards.retry();rewardText(results.length?'Pending rewards saved · wallet updated':'No pending rewards for this account');$('sliceRetry').hidden=true;}catch{rewardText('Still pending · please reconnect and retry');}finally{$('sliceRetry').disabled=false;}};
