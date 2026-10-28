@@ -114,3 +114,30 @@ for(const motion of ['reduce','no-preference'])test('cut halves remain visible w
  const paused=await page.evaluate(()=>{const g=window.__cutGame;g.pause();const y=g.effects.map(e=>e.stillY);window.__advanceCut.call(g,.04);return JSON.stringify(y)===JSON.stringify(g.effects.map(e=>e.stillY));});expect(paused).toBe(true);
  await page.screenshot({path:test.info().outputPath('cut-'+motion+'.png')});
 });
+
+test('difficulty ramps gradually with bounded trajectories and separated hazards',()=>{
+ const early=new Game(()=>.5);early.start();early.step(.04);early.nextWave=0;early.step(.04);
+ const late=new Game(()=>.5);late.start();late.time=110;late.nextWave=0;late.step(.04);
+ expect(early.nextWave).toBeGreaterThan(late.nextWave);expect(early.items.every(x=>!x.bomb&&x.gravity===530)).toBe(true);expect(late.items.every(x=>x.gravity===720)).toBe(true);
+ let hazards=0;const violations=[];
+ for(let seed=1;seed<=20;seed++){
+  let n=seed;const g=new Game(()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;});g.start();
+  for(let frame=0;frame<3000;frame++){
+   g.items=g.items.filter(o=>o.y<=540||o.vy<0);g.step(.04);
+   if(g.state!=='running'||g.items.length>=24)violations.push('unbounded wave');
+   const visible=g.items.filter(o=>o.y>0&&o.y<540);
+   for(const o of visible){if(o.x<=o.r||o.x>=360-o.r)violations.push('offscreen target');if(g.time<12&&o.bomb)violations.push('early bomb');}
+   for(const bomb of visible.filter(o=>o.bomb)){hazards++;for(const food of visible.filter(o=>!o.bomb&&Math.abs(o.vy)<80))if(Math.hypot(bomb.x-food.x,bomb.y-food.y)<=bomb.r+food.r)violations.push('blocked apex');}
+  }
+ }
+ expect(hazards).toBeGreaterThan(100);expect(violations).toEqual([]);
+});
+for(const reason of ['Bomb hit','Three ingredients missed'])test('results explain '+reason+' and clear the arena without losing the best',async({page})=>{
+ await page.setViewportSize({width:390,height:750});await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__resultGame=this;};});
+ await page.locator('#sliceStart').click();await page.evaluate(reason=>{const g=window.__resultGame;g.score=1665;g.sliced=105;g.items=[{x:180,y:240,r:25,type:1}];g.effects=[{x:180,y:240,life:1,type:1}];g.end(reason);},reason);
+ await expect(page.locator('#sliceHeading')).toHaveText('New personal best!');await expect(page.locator('#sliceMessage')).toHaveText(reason==='Bomb hit'?'You hit a bomb. Watch for the glowing fuse.':'You missed three ingredients. Aim for short, precise swipes.');
+ expect(await page.evaluate(()=>({items:window.__resultGame.items.length,effects:window.__resultGame.effects.length,best:localStorage.getItem('neonSlicePreviewBest')}))).toEqual({items:0,effects:0,best:'1665'});
+ await expect(page.locator('#sliceStart')).toBeInViewport();await page.screenshot({path:test.info().outputPath('results.png')});
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceBest')).toHaveText('1665');await expect(page.locator('#sliceScore')).toHaveText('0');
+});
