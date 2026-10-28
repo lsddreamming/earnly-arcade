@@ -134,4 +134,4 @@ body.home-dashboard .public-footer p{font-size:10px;line-height:1.6;max-width:45
 @media(prefers-reduced-motion:reduce){.home-game-card:active{transform:none}.home-rewards-disclosure>summary b{transition:none}}
 
 body.home-dashboard.has-app-nav{padding-bottom:0!important}
-body.home-dashboard.has-app-nav .home-container{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))!important}
+body.home-dashboard.has-app-nav .home-container{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}
