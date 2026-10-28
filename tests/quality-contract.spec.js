@@ -308,8 +308,9 @@ test('current release keeps unreleased rewards and account deletion clear', () =
 });
 
 
-test('active iOS upload account checks pass against the packaged web assets', () => {
-  const workflow = read('.github/workflows/ios-v1-7-testflight.yml');
+for (const release of ['1-7', '1-8']) {
+test(`iOS ${release} upload account checks pass against the packaged web assets`, () => {
+  const workflow = read(`.github/workflows/ios-v${release}-testflight.yml`);
   const step = workflow.match(/      - name: Verify account deletion is packaged for review\n        run: \|\n((?:          .+\n)+)/);
   expect(step, 'The packaged account verification step must remain present').not.toBeNull();
   const commands = step[1].replace(/^          /gm, '');
@@ -320,6 +321,8 @@ test('active iOS upload account checks pass against the packaged web assets', ()
     stdio: 'pipe'
   });
 });
+
+}
 
 test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage guarded', () => {
   const configure = read('scripts/configure-ios.mjs');
