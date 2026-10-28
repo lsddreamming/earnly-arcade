@@ -5,8 +5,12 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'games.html'
+      - 'games-showroom.css'
+      - 'www/games.html'
+      - 'www/games-showroom.css'
       - 'bubble-pop*'
-      - 'www/bubble-pop*'
+      - 'www/**'
       - 'native-ads-entry.js'
       - 'privacy-ads.js'
       - 'scripts/build-native-web.mjs'

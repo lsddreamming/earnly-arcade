@@ -7,10 +7,10 @@ assert.equal(await readFile('neon-slice-engine.js','utf8'),await readFile('supab
 for(let seed=1;seed<=25;seed++){
  const g=new E.Game(E.seededRandom(seed));g.start();const events=[];let ticks=0;
  while(g.state==='running'&&ticks<10800){
-  if(ticks<1800)for(const o of [...g.items])if(!o.bomb&&o.y<500&&o.y>40&&o.x>0&&o.x<360){const x=Math.round(o.x),y=Math.round(o.y);events.push([ticks,x,y,x,y]);g.slice({x,y},{x,y});if(g.state!=='running')break;events.push([ticks]);g.endStroke();}
+  if(ticks<1800)for(const o of [...g.items])if(!o.bomb&&o.y<500&&o.y>40&&o.x>0&&o.x<360){const x=Math.round(o.x),y=Math.round(o.y);events.push([ticks,Math.max(0,x-12),y,Math.min(360,x+12),y]);g.slice({x:Math.max(0,x-12),y},{x:Math.min(360,x+12),y});if(g.state!=='running')break;events.push([ticks]);g.endStroke();}
   if(g.state==='running'){g.step(1/60);ticks++;}
  }
- const r=E.verify(seed,events,ticks);assert.equal(r.score,g.score);assert(r.coins<=30);assert.throws(()=>E.verify(seed,events,ticks+1));assert.throws(()=>E.verify(seed,[[0,NaN,0,0,0]],ticks));assert.throws(()=>E.verify(seed,[[ticks+1]],ticks));
+ const r=E.verify(seed,events,ticks);assert.equal(r.score,g.score);assert(r.coins>0&&r.coins<=30);assert.throws(()=>E.verify(seed,events,ticks+1));assert.throws(()=>E.verify(seed,[[0,NaN,0,0,0]],ticks));assert.throws(()=>E.verify(seed,[[ticks+1]],ticks));
 }
 assert.throws(()=>E.verify(1,[],0));assert.throws(()=>E.verify(1,[],10801));assert.throws(()=>E.verify(1,[],1),/RUN_NOT_FINISHED/);
 const db=new PGlite();await db.exec(await readFile('tests/commerce-fixture.sql','utf8'));

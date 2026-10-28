@@ -706,6 +706,8 @@
       Arcade.gameResult({
         icon:'🐍',
         title:'Snake Run Over',
+        outcome:reason.includes('wall') ? 'You hit the wall.' : reason.includes('tail') ? 'You hit your tail.' : 'Run complete.',
+        tip:reason.includes('tail') ? 'Tip: leave a clear path before turning back.' : 'Tip: turn one square before the edge.',
         scoreLabel:'Apples',
         score,
         best:result.best.display + ' saved on this device',

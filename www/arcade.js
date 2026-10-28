@@ -1718,6 +1718,8 @@ const Arcade = (() => {
       score = 0,
       best: bestDisplay = '',
       extra = [],
+      outcome = '',
+      tip = '',
       coins = 0,
       result = null,
       playsLeft = 0,
@@ -1762,6 +1764,25 @@ const Arcade = (() => {
     value.textContent = String(score);
 
     main.append(label, value);
+    if (outcome || tip) {
+      const feedback = document.createElement('div');
+      feedback.className = 'result-run-feedback';
+      feedback.style.cssText = 'margin-top:8px;font-size:13px;line-height:1.4';
+      if (outcome) {
+        const summary = document.createElement('div');
+        summary.className = 'result-outcome';
+        summary.style.fontWeight = '750';
+        summary.textContent = outcome;
+        feedback.append(summary);
+      }
+      if (tip) {
+        const nextTip = document.createElement('div');
+        nextTip.className = 'result-tip';
+        nextTip.textContent = tip;
+        feedback.append(nextTip);
+      }
+      main.append(feedback);
+    }
 
     let bestLine = null;
     if (bestDisplay) {
@@ -2122,7 +2143,7 @@ const Arcade = (() => {
     if (resultPlaysLeft > 0) {
       primary.textContent = '▶ Play Again · ' + resultPlaysLeft + ' Left';
     } else if (resultAdStatus.remaining > 0) {
-      primary.textContent = '📺 Watch Ad · +1 Play & Replay';
+      primary.textContent = rewardedProvider() ? '📺 Watch Ad · +1 Play & Replay' : 'Try demo replay · +1 Play';
     } else {
       primary.textContent = '🎟️ Plays Refill Tomorrow';
       primary.disabled = true;
@@ -2164,6 +2185,20 @@ const Arcade = (() => {
       });
     });
 
+    if (resultPlaysLeft <= 0 && !rewardedProvider()) {
+      const freeGame = document.createElement('button');
+      freeGame.type = 'button';
+      freeGame.addEventListener('click', () => { location.href = 'neon-slice.html'; });
+      freeGame.className = 'wide green result-free-game';
+      freeGame.style.gridColumn = '1/-1';
+      freeGame.textContent = '▶ Neon Slice · Unlimited free play';
+      const availability = document.createElement('p');
+      availability.className = 'result-web-ad-note';
+      availability.style.cssText = 'grid-column:1/-1;margin:0;font-size:12px;line-height:1.4';
+      availability.textContent = 'Website video ads aren’t available yet. Keep playing free — no Coins or daily plays needed.';
+      primary.className = 'wide secondary';
+      actions.append(freeGame, availability);
+    }
     actions.append(primary, back);
     const roomLink = document.createElement('a');
     roomLink.href = 'world.html?catalog=All';
@@ -2182,7 +2217,7 @@ const Arcade = (() => {
       actions.append(buy);
     }
     // Keep the result and next action visible; secondary information stays available on demand.
-    modal.append(hero, main, statsBox, actions);
+    modal.append(hero, main, actions, statsBox);
     if (rankDetails) {
       rankDetails.append(leaderboardBox);
       modal.append(rankDetails);
@@ -2813,13 +2848,17 @@ const Arcade = (() => {
       panel(
         'Free plays refill tomorrow',
         'You’ve used both optional rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
-        [['Choose Another Game', () => location.href = 'games.html', 'secondary']]
+        [
+          ['▶ Neon Slice · Unlimited free play', () => location.href = 'neon-slice.html', 'green'],
+          ['Choose Another Game', () => location.href = 'games.html', 'secondary']
+        ]
       );
       return;
     }
 
-    const rewardedLabel = rewardedProvider()
-      ? (rewardedProvider().testMode ? 'Watch test ad' : 'Watch ad')
+    const provider = rewardedProvider();
+    const rewardedLabel = provider
+      ? (provider.testMode ? 'Watch test ad' : 'Watch ad')
       : 'Watch demo ad';
 
     queueEvent('one_more_run_shown', {
@@ -2830,10 +2869,13 @@ const Arcade = (() => {
 
     panel(
       'One more run?',
-      'You used today’s free plays for ' + gameName + '. Watch one optional rewarded ad to unlock +1 play and jump straight back in. ' +
-        status.remaining + ' of ' + status.limit + ' ad unlock' + (status.remaining === 1 ? '' : 's') + ' left today.',
+      provider
+        ? 'You used today’s free plays for ' + gameName + '. Watch one optional rewarded ad to unlock +1 play and jump straight back in. ' +
+          status.remaining + ' of ' + status.limit + ' ad unlock' + (status.remaining === 1 ? '' : 's') + ' left today.'
+        : 'Today’s free plays for ' + gameName + ' are used. Website video ads aren’t available yet. Play Neon Slice free with no daily limit and no Coins needed, or try the optional demo replay below.',
       [
-        [rewardedLabel + ' → Play Again', () => playAd(g, () => resumeGameAfterRewardedPlay(g, done)), 'green'],
+        ...(!provider ? [['▶ Neon Slice · Unlimited free play', () => location.href = 'neon-slice.html', 'green']] : []),
+        [rewardedLabel + ' → Play Again', () => playAd(g, () => resumeGameAfterRewardedPlay(g, done)), provider ? 'green' : 'secondary'],
         ['Choose Another Game', () => location.href = 'games.html', 'secondary']
       ]
     );

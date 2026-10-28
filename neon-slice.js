@@ -1,18 +1,23 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id),canvas=$('sliceCanvas'),ctx=canvas.getContext('2d'),game=new NeonSliceEngine.Game();
+  const presentation=window.NeonSlicePresentation;
+  let soundOn=false,utensil=null,utensilAngle=0;const warnedBombs=new Set();
+  try{soundOn=localStorage.getItem('neonSliceSound')==='1';}catch{}
+  function soundLabel(){$('sliceSound').textContent=soundOn?'Sound on':'Sound off';$('sliceSound').setAttribute('aria-pressed',String(soundOn));}
+  soundLabel();$('sliceSound').onclick=()=>{soundOn=!soundOn;if(soundOn)presentation.unlock();try{localStorage.setItem('neonSliceSound',soundOn?'1':'0');}catch{}soundLabel();};
   const colors=['#83dc65','#ff705b','#d9a3ff','#79bd59','#ffd45b','#ed6251','#ffd964','#ffc56c','#ef87b4','#e8b978','#f5cf59','#bf7041'];
   let ticket=null,events=[],ticks=0,accumulator=0,starting=false,settled=false,rewardMessage='Sign in to earn · unlimited practice',runSerial=0;
   const rewardText=text=>{$('sliceReward').textContent=text;};
   const record=e=>{if(ticket&&!settled){if(events.length>=18000){ticket=null;rewardMessage='Input limit reached · practice score saved';rewardText(rewardMessage);}else events.push(e);}};
-  function endStroke(){if(game.state==='running'&&game.strokeHits>0)record([ticks]);return game.endStroke();}
+  function endStroke(){if(game.state==='running'&&game.strokeStart!==null)record([ticks]);return game.endStroke();}
   let best=0,pointer=null,lastPoint=null,trail=[],comboUntil=0,lastFrame=0,offered=false,keys=new Set(),blade={x:180,y:300};
   try{best=Math.max(0,Number(localStorage.getItem('neonSlicePreviewBest'))||0);}catch{}
   $('sliceBest').textContent=best;
   const reduced=()=>window.Arcade?.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
   function hud(){$('sliceScore').textContent=game.score;$('sliceMisses').textContent=Math.min(3,game.misses)+' / 3';}
   function overlay(title,message,label){$('sliceStats').hidden=true;$('sliceHeading').textContent=title;$('sliceMessage').textContent=message;$('sliceStart').textContent=label;$('sliceOverlay').hidden=false;}
-  function resetInput(){pointer=null;lastPoint=null;keys.clear();trail=[];endStroke();}
+  function resetInput(){pointer=null;lastPoint=null;keys.clear();trail=[];utensil=null;endStroke();}
   async function settle(){
     if(settled)return;settled=true;const serial=runSerial;
     if(!ticket){rewardText(rewardMessage);return;}
@@ -21,9 +26,9 @@
     catch{if(serial===runSerial){rewardMessage='Reward pending · reconnect and tap Retry';rewardText(rewardMessage);$('sliceRetry').hidden=false;}}
   }
   $('sliceRetry').onclick=async()=>{$('sliceRetry').disabled=true;try{const results=await NeonSliceRewards.retry();rewardText(results.length?'Pending rewards saved · wallet updated':'No pending rewards for this account');$('sliceRetry').hidden=true;}catch{rewardText('Still pending · please reconnect and retry');}finally{$('sliceRetry').disabled=false;}};
-  function result(){settle();document.body.classList.remove("slice-running");if(offered)return;offered=true;resetInput();const newBest=game.score>best;if(newBest){best=game.score;try{localStorage.setItem('neonSlicePreviewBest',String(best));}catch{}}$('sliceBest').textContent=best;overlay(newBest?'New personal best!':game.reason,game.reason==='Bomb hit'?'Watch for the glowing fuse. Ready for another round?':'Swipe through a whole group to build a combo.','Play again');$('sliceResultScore').textContent=game.score;$('sliceResultCombo').textContent=game.bestCombo+'×';$('sliceResultFood').textContent=game.sliced;$('sliceResultBurgers').textContent=game.burgers;$('sliceStats').hidden=false;$('slicePause').disabled=true;$('sliceQuit').disabled=true;$('sliceContinue').hidden=game.continued||!(window.EarnlyNativeAds?.isNative||window.EarnlyWebAds?.enabled);}
+  function result(){settle();document.body.classList.remove("slice-running");if(offered)return;offered=true;resetInput();game.items=[];game.effects=[];$('sliceCombo').textContent='';const newBest=game.score>best;if(newBest){best=game.score;try{localStorage.setItem('neonSlicePreviewBest',String(best));}catch{}}$('sliceBest').textContent=best;overlay(newBest?'New personal best!':game.reason,game.reason==='Bomb hit'?'You hit a bomb. Watch for the glowing fuse.':game.reason==='Cookout complete'?'Three-minute cookout complete. Ready for another round?':'You missed three ingredients. Aim for short, precise swipes.','Play again');$('sliceResultScore').textContent=game.score;$('sliceResultCombo').textContent=game.bestCombo+'×';$('sliceResultFood').textContent=game.sliced;$('sliceResultBurgers').textContent=game.burgers;$('sliceStats').hidden=false;$('slicePause').disabled=true;$('sliceQuit').disabled=true;$('sliceContinue').hidden=game.continued||!(window.EarnlyNativeAds?.isNative||window.EarnlyWebAds?.enabled);}
   async function start(){
-    if(starting)return;starting=true;$('sliceStart').disabled=true;rewardText('Connecting rewards…');
+    if(starting)return;warnedBombs.clear();if(soundOn)presentation.unlock();starting=true;$('sliceStart').disabled=true;rewardText('Connecting rewards…');
     try{await window.NeonSliceRewards?.retry();ticket=await window.NeonSliceRewards?.start();rewardMessage=ticket?.id?`1 Coin per 50 points · up to 30 · ${ticket.remaining} rewarded runs left`:ticket?.practice?'Daily rewards complete · unlimited practice':'Sign in to earn · unlimited practice';if(!ticket?.id)ticket=null;}
     catch{ticket=null;rewardMessage='Offline practice · reconnect before starting to earn';}
     finally{starting=false;$('sliceStart').disabled=false;}
@@ -37,8 +42,9 @@
   $('sliceQuit').onclick=()=>{pause();if(confirm('Quit this run? Your current score will not be saved.')){game.reset();document.body.classList.remove("slice-running");resetInput();overlay('Make your first cut','Slice ingredients, catch bonus burgers, and avoid bombs.','Play free');$('slicePause').disabled=true;$('sliceQuit').disabled=true;hud();}};
   $('sliceContinue').onclick=()=>{if(game.state!=='over'||game.continued)return;$('sliceContinue').disabled=true;const finish=()=>{$('sliceContinue').disabled=false;};const opened=Arcade.offerAdContinue({message:'Keep your score and clear the arena. One bonus chance per run.',onFinish:finish,onContinue:()=>{if(game.continue()){ticks=0;accumulator=0;rewardText(rewardMessage+' · bonus chance is score-only');document.body.classList.add("slice-running");offered=false;$('sliceOverlay').hidden=true;$('sliceContinue').hidden=true;$('slicePause').disabled=false;$('sliceQuit').disabled=false;hud();canvas.focus();}finish();}});if(!opened){finish();$('sliceMessage').textContent='Ads are unavailable right now. You can start another free run.';}};
   function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*360/r.width,y:(e.clientY-r.top)*540/r.height};}
-  function cut(a,b){a={x:Math.round(Math.max(0,Math.min(360,a.x))),y:Math.round(Math.max(0,Math.min(540,a.y)))};b={x:Math.round(Math.max(0,Math.min(360,b.x))),y:Math.round(Math.max(0,Math.min(540,b.y)))};const hits=game.slice(a,b);if(hits.length)record([ticks,a.x,a.y,b.x,b.y]);trail.push({...b,life:.16});trail=trail.slice(-22);hud();if(hits.some(x=>x.type===7&&!x.bomb)){$('sliceCombo').textContent='Bonus burger! +50';comboUntil=performance.now()+1100;}if(hits.some(x=>x.bomb))result();}
-  function finishStroke(){const combo=endStroke();if(combo){$('sliceCombo').classList.remove('slice-pop');void $('sliceCombo').offsetWidth;$('sliceCombo').classList.add('slice-pop');$('sliceCombo').textContent=`${combo.hits} item combo! +${combo.bonus}`;comboUntil=performance.now()+900;hud();}pointer=null;lastPoint=null;}
+  function cut(a,b){a={x:Math.round(Math.max(0,Math.min(360,a.x))),y:Math.round(Math.max(0,Math.min(540,a.y)))};b={x:Math.round(Math.max(0,Math.min(360,b.x))),y:Math.round(Math.max(0,Math.min(540,b.y)))};const hits=game.slice(a,b);record([ticks,a.x,a.y,b.x,b.y]);utensil={...b};if(Math.hypot(b.x-a.x,b.y-a.y)>2)utensilAngle=Math.atan2(b.y-a.y,b.x-a.x);if(soundOn&&(hits.length||Math.hypot(b.x-a.x,b.y-a.y)>4))presentation.sound(hits.some(x=>!x.bomb));trail.push({...b,life:.16});trail=trail.slice(-22);hud();if(hits.some(x=>x.type===7&&!x.bomb)){$('sliceCombo').textContent='Bonus burger! +50';comboUntil=performance.now()+1100;}if(hits.some(x=>x.bomb))result();}
+  function showCombo(combo){if(combo){$('sliceCombo').classList.remove('slice-pop');void $('sliceCombo').offsetWidth;$('sliceCombo').classList.add('slice-pop');$('sliceCombo').textContent=`${combo.hits} item combo! +${combo.bonus}`;comboUntil=performance.now()+900;hud();}}
+  function finishStroke(){showCombo(endStroke());pointer=null;lastPoint=null;}
   canvas.addEventListener('pointerdown',e=>{if(game.state!=='running'||pointer!==null||e.button>0)return;e.preventDefault();pointer=e.pointerId;canvas.setPointerCapture(e.pointerId);lastPoint=point(e);cut(lastPoint,lastPoint);});
   canvas.addEventListener('pointermove',e=>{if(e.pointerId!==pointer||game.state!=='running')return;e.preventDefault();for(const sample of e.getCoalescedEvents?.()||[e]){const p=point(sample);cut(lastPoint,p);lastPoint=p;if(game.state!=='running')break;}});
   for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(e.pointerId===pointer)finishStroke();});
@@ -53,11 +59,15 @@
   // Original diner artwork, drawn in logical coordinates so split halves match whole snacks.
   function snack(o,half){
     ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.angle||0);const r=o.r||25;
-    if(half){ctx.beginPath();ctx.rect(half<0?-r:0,-r-5,r,2*r+10);ctx.clip();}
+    if(half){ctx.rotate(o.localCutAngle||0);ctx.beginPath();ctx.rect(-r*2,half<0?-r*2:0,r*4,r*2);ctx.clip();ctx.rotate(-(o.localCutAngle||0));}
     ctx.scale(r/25,r/25);
     const oval=(x,y,rx,ry,color)=>{let fill=color;if(typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color)&&rx>7){const g=ctx.createLinearGradient(x,y-ry,x,y+ry);g.addColorStop(0,color);const n=parseInt(color.slice(1),16);g.addColorStop(1,'rgb('+[(n>>16)&255,(n>>8)&255,n&255].map(v=>Math.round(v*.78)).join(',')+')');fill=g;}ctx.fillStyle=fill;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();};
     const bar=(x,y,w,h,color)=>{ctx.fillStyle=color;ctx.fillRect(x,y,w,h);};
     if(o.bomb){
+      ctx.strokeStyle='#ffb65d';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,29,0,Math.PI*2);ctx.stroke();
+      const spark=reduced()?0:Math.sin(game.time*8)*2;
+      ctx.strokeStyle='#ffe5a3';ctx.lineWidth=1.5;
+      for(let i=0;i<5;i++){const a=i*Math.PI*2/5;ctx.beginPath();ctx.moveTo(15+Math.cos(a)*5,-37+Math.sin(a)*5);ctx.lineTo(15+Math.cos(a)*(9+spark),-37+Math.sin(a)*(9+spark));ctx.stroke();}
       const g=ctx.createRadialGradient(-8,-10,2,0,0,25);g.addColorStop(0,'#738395');g.addColorStop(1,'#182638');
       oval(0,0,25,25,g);ctx.strokeStyle='#f58c80';ctx.lineWidth=2;ctx.stroke();
       ctx.strokeStyle='#ffc16e';ctx.beginPath();ctx.moveTo(0,-25);ctx.quadraticCurveTo(6,-42,15,-37);ctx.stroke();oval(15,-37,3,3,'#ffd38c');
@@ -116,9 +126,18 @@
       bar(-14,-12,4,27,'#ffffff30');bar(-11,-2,22,14,'#fff0ce');
       ctx.fillStyle=o.type===5?'#bd4034':'#ae7d21';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(o.type===5?'K':'M',0,9);
     }
-    if(!o.bomb){ctx.globalAlpha*=.18;ctx.strokeStyle='#fff6dc';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(-2,-2,18,3.5,4.8);ctx.stroke();}
+    if(half){ctx.save();ctx.rotate(o.localCutAngle||0);ctx.strokeStyle='#fff1c9';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-24,0);ctx.lineTo(24,0);ctx.stroke();ctx.restore();}
+    if(!o.bomb){ctx.globalAlpha*=.35;ctx.strokeStyle='#fff6dc';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(-2,-2,18,3.5,4.8);ctx.stroke();}
     ctx.restore();
   }
-  function draw(dt,now){const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();if(canvas.width!==Math.round(r.width*dpr)||canvas.height!==Math.round(r.height*dpr)){canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);}ctx.setTransform(canvas.width/360,0,0,canvas.height/540,0,0);ctx.fillStyle='#0c1d2c';ctx.fillRect(0,0,360,540);ctx.strokeStyle='#112634';ctx.lineWidth=1;for(let x=0;x<=360;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,540);ctx.stroke();}for(let y=0;y<=540;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(360,y);ctx.stroke();}if(!reduced())for(const e of game.effects){ctx.globalAlpha=Math.max(0,e.life/.7);if(e.half)snack(e,e.half);else{ctx.fillStyle=colors[e.type];ctx.beginPath();ctx.arc(e.x,e.y,3,0,7);ctx.fill();}}ctx.globalAlpha=1;for(const o of game.items)snack(o);trail=trail.filter(p=>(p.life-=dt)>0);if(trail.length){ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#94fff1';ctx.lineWidth=5;ctx.shadowColor='#58dccb';ctx.shadowBlur=reduced()?0:8;ctx.beginPath();trail.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.shadowBlur=0;}if(keys.size){ctx.strokeStyle='#ffffff';ctx.beginPath();ctx.arc(blade.x,blade.y,10,0,7);ctx.stroke();}if(now>comboUntil)$('sliceCombo').textContent='';}
-  function frame(now){const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;if(game.state==='running'){const before={...blade};blade.x=Math.max(0,Math.min(360,blade.x+((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*360*dt));blade.y=Math.max(0,Math.min(540,blade.y+((keys.has('ArrowDown')?1:0)-(keys.has('ArrowUp')?1:0))*360*dt));if(keys.has(' '))cut(before,blade);accumulator+=dt;while(accumulator>=1/60&&game.state==='running'){game.step(1/60);ticks++;accumulator-=1/60;if(ticks>=10800)game.end('Cookout complete');}hud();if(game.state==='over')result();}draw(dt,now);requestAnimationFrame(frame);}requestAnimationFrame(frame);
+  function draw(dt,now){const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();if(canvas.width!==Math.round(r.width*dpr)||canvas.height!==Math.round(r.height*dpr)){canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);}ctx.setTransform(canvas.width/360,0,0,canvas.height/540,0,0);presentation.background(ctx);const calm=reduced();for(const e of game.effects){
+      // Reduced motion keeps essential hit feedback, with steady orientation as fragments fall.
+      ctx.globalAlpha=Math.min(1,Math.max(0,e.life/.3));
+      if(e.half)snack(calm?{...e,x:e.stillX,y:e.stillY,angle:e.stillAngle}:e,e.half);
+      else{ctx.fillStyle=colors[e.type];ctx.beginPath();ctx.ellipse(calm?e.stillX:e.x,calm?e.stillY:e.y,e.size||3,(e.size||3)*.65,calm?0:Math.atan2(e.vy,e.vx),0,7);ctx.fill();}
+    }ctx.globalAlpha=1;for(const o of game.items){ctx.fillStyle='#00000035';ctx.beginPath();ctx.ellipse(o.x+4,o.y+o.r*.85,o.r*.7,5,0,0,7);ctx.fill();snack(o);}trail=trail.filter(p=>(p.life-=dt)>0);if(trail.length){ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#ffc975';ctx.lineWidth=7;ctx.shadowColor='#ffad52';ctx.shadowBlur=reduced()?0:8;ctx.beginPath();trail.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.strokeStyle='#fff8dc';ctx.lineWidth=2;ctx.stroke();ctx.shadowBlur=0;if(utensil)presentation.spatula(ctx,utensil,utensilAngle);}if(keys.size){ctx.strokeStyle='#ffffff';ctx.beginPath();ctx.arc(blade.x,blade.y,10,0,7);ctx.stroke();}const bombs=game.state==='running'?game.items.filter(o=>o.bomb&&o.y-o.r<540&&o.y+o.r>0):[];
+    $('sliceWarning').hidden=bombs.length===0;
+    for(const bomb of bombs)if(!warnedBombs.has(bomb.id)){warnedBombs.add(bomb.id);if(soundOn)presentation.warning();}
+    if(now>comboUntil)$('sliceCombo').textContent='';}
+  function frame(now){const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;if(game.state==='running'){const before={...blade};blade.x=Math.max(0,Math.min(360,blade.x+((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*360*dt));blade.y=Math.max(0,Math.min(540,blade.y+((keys.has('ArrowDown')?1:0)-(keys.has('ArrowUp')?1:0))*360*dt));if(keys.has(' '))cut(before,blade);accumulator+=dt;while(accumulator>=1/60&&game.state==='running'){game.step(1/60);ticks++;accumulator-=1/60;if(ticks>=10800)game.end('Cookout complete');}for(const combo of game.completedCombos.splice(0))showCombo(combo);hud();if(game.state==='over')result();}draw(dt,now);requestAnimationFrame(frame);}requestAnimationFrame(frame);
 })();

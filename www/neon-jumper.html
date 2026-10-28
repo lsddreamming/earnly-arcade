@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090e28"><title>Neon Jumper · Earnly Arcade Preview</title>
+<link rel="stylesheet" href="public-info.css">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:#edf6ff;background:radial-gradient(circle at top,#25205b,#090e28 65%);font-family:system-ui,-apple-system,sans-serif;text-align:center}main{max-width:550px;margin:auto;padding:12px}header{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px;font-size:12px;font-weight:800;letter-spacing:1.5px}a{color:#85eaff}h1{font-size:clamp(29px,8vw,42px);margin:8px 0 2px;letter-spacing:-1.5px;text-shadow:0 0 23px #11cffa}p{margin:6px 0 13px;color:#b6c7e9;font-size:14px}.hud{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.hud div{background:#17244b;border:1px solid #426ca4;border-radius:13px;padding:8px}.hud span{display:block;font-size:11px;color:#b8c9e3}.hud strong{display:block;font-size:22px}.arena{position:relative;max-width:400px;margin:auto;border:2px solid #23d9ff;border-radius:19px;overflow:hidden;box-shadow:0 0 25px #0d98d45b;background:#090d25}canvas{display:block;width:100%;height:auto;touch-action:none;outline-offset:-5px}.overlay{position:absolute;inset:0;background:#050a22cc;display:grid;place-items:center;padding:22px}.overlay[hidden]{display:none}.panel{background:#121f45;border:1px solid #49d8f6;border-radius:20px;padding:24px 17px;max-width:310px;box-shadow:0 0 30px #0acde74b}.panel h2{margin:0 0 10px;font-size:26px}.panel p{line-height:1.5}.btn,button{border:0;border-radius:13px;padding:13px 20px;background:linear-gradient(120deg,#2ce5f2,#73ffbf);color:#07142d;font-size:16px;font-weight:900;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.4}.actions{display:flex;justify-content:center;gap:9px;margin-top:12px}.actions button{background:#213a66;color:white;border:1px solid #6792c0}.help{font-size:13px;line-height:1.6;max-width:440px;margin:12px auto;color:#d6e2f8}.preview{font-size:12px;color:#9faee2;padding-bottom:15px}.public-footer{border-top:1px solid #425578;margin-top:15px;padding:15px 5px;font-size:12px}.public-footer nav{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.public-footer p{font-size:11px}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style></head><body><main><header><a href="games.html">← Games</a><span>UNLISTED · FREE PREVIEW</span></header><h1>⚡ Neon Jumper</h1><p>Jump higher. Chase your best run.</p><div class="hud"><div><span>HEIGHT</span><strong id="height">0</strong></div><div><span>BEST</span><strong id="best">0</strong></div><div><span>BOOSTS</span><strong id="boosts">0</strong></div></div><div class="arena"><canvas id="game" width="360" height="560" tabindex="0" aria-label="Neon Jumper game. Move using left and right arrow keys, A and D, or drag on the game screen. Automatically bounce on platforms."></canvas><div id="overlay" class="overlay"><div class="panel"><h2 id="headline">Ready to climb?</h2><p id="message">Move left and right. Your jumper bounces automatically. Land on platforms, grab boosts, and don't fall!</p><button id="start">Play free →</button></div></div></div><div class="actions"><button id="pause" disabled>Pause</button><button id="restart" disabled>Restart</button></div><div class="help">Drag anywhere on the playfield to steer · Keyboard: ← → or A D · Blue platforms move, pink platforms crumble · Green boosts launch you up.</div><div class="preview">Unlimited practice · No daily plays used · No Arcade Coins awarded · No ads</div><footer class="public-footer" aria-label="Site information"><nav aria-label="Site information"><a href="index.html">Home</a> <a href="games.html">Games</a> <a href="about.html">About</a> <a href="game-guides.html">Game Guides</a> <a href="support.html">Help &amp; Contact</a> <a href="privacy.html">Privacy</a> <a href="terms.html">Terms</a></nav><p>Free unlimited practice. Arcade Coins have no cash value. No rewards or purchases in this preview.</p></footer></main>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const W=360,H=560,player={x:180,y:445,vy:0,r:14};
+const hud={height:document.getElementById('height'),best:document.getElementById('best'),boosts:document.getElementById('boosts')};
+const overlay=document.getElementById('overlay'),start=document.getElementById('start'),pause=document.getElementById('pause'),restart=document.getElementById('restart');
+let state='ready',platforms=[],camera=0,highest=0,boosts=0,best=0,frame=0,last=0,accum=0,keys={left:false,right:false},target=null,seed=271828,nextY=0;
+try{best=Number(localStorage.getItem('earnly-neon-jumper-best')||0)||0}catch(_){}
+hud.best.textContent=best;
+function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
+function addPlatform(y,starter=false){const progress=Math.max(0,-y-440),difficulty=Math.min(1,progress/4500),width=starter?125:Math.round(86-32*difficulty),type=starter?'normal':rand()<.14+.18*difficulty?'moving':rand()<.13+.14*difficulty?'fragile':'normal';platforms.push({x:starter?117:14+rand()*(W-width-28),y,w:width,h:12,type,dx:(rand()<.5?-1:1)*(0.4+0.5*difficulty),bonus:!starter&&rand()<.085,used:false})}
+function reset(){seed=(Date.now()>>>0)||271828;platforms=[];player.x=180;player.y=445;player.vy=-8;camera=0;highest=0;boosts=0;frame=0;nextY=500;addPlatform(500,true);nextY=426;while(nextY>-300){addPlatform(nextY);nextY-=68+rand()*29}keys={left:false,right:false};target=null;state='playing';overlay.hidden=true;pause.disabled=false;restart.disabled=false;pause.textContent='Pause';hud.height.textContent='0';hud.boosts.textContent='0';last=0;accum=0;requestAnimationFrame(loop)}
+function finish(){state='over';pause.disabled=true;const score=Math.floor(highest);if(score>best){best=score;try{localStorage.setItem('earnly-neon-jumper-best',String(best))}catch(_){}}hud.best.textContent=best;show('Nice climb!', 'You reached '+score+' meters. Try again and beat your best!','Play again →')}
+function show(title,msg,label){document.getElementById('headline').textContent=title;document.getElementById('message').textContent=msg;start.textContent=label;overlay.hidden=false}
+function step(){
+frame++;
+const progress=Math.max(0,highest);
+const direction=(keys.right?1:0)-(keys.left?1:0);
+if(direction)player.x+=direction*4.8;
+else if(target!==null){const dx=target-player.x;player.x+=Math.max(-4.8,Math.min(4.8,dx))}
+player.x=(player.x+W)%W;
+const oldBottom=player.y+player.r;
+player.vy=Math.min(12,player.vy+0.32);player.y+=player.vy;
+for(const p of platforms){
+if(p.type==='moving'){p.x+=p.dx;if(p.x<8||p.x+p.w>W-8){p.dx*=-1;p.x=Math.max(8,Math.min(W-8-p.w,p.x))}}
+if(player.vy>0&&!p.used&&oldBottom<=p.y+4&&player.y+player.r>=p.y&&player.x+player.r>p.x&&player.x-player.r<p.x+p.w){
+player.y=p.y-player.r;player.vy=p.bonus?-15.4:-10.4;if(p.bonus){boosts++;hud.boosts.textContent=boosts;p.bonus=false}if(p.type==='fragile')p.used=true;
+}}
+if(player.y-camera<220)camera=player.y-220;
+highest=Math.max(highest,Math.max(0,Math.floor((445-player.y)/10)));hud.height.textContent=Math.floor(highest);
+while(nextY>camera-140){const gap=62+rand()*34+Math.min(14,progress/420);nextY-=gap;addPlatform(nextY)}
+platforms=platforms.filter(p=>p.y<camera+H+50&&!p.used);
+if(player.y-camera>H+30)finish();
+}
+function render(){
+ctx.clearRect(0,0,W,H);const grd=ctx.createLinearGradient(0,0,0,H);grd.addColorStop(0,'#080b25');grd.addColorStop(1,'#1a2150');ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+ctx.strokeStyle='#23d9ff12';ctx.lineWidth=1;for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=(((-camera/2)%30)+30)%30;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+for(const p of platforms){const y=p.y-camera;if(y<-25||y>H+25)continue;ctx.fillStyle=p.type==='fragile'?'#fa6ea8':p.type==='moving'?'#53c8ff':'#6bffc1';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=10;ctx.fillRect(p.x,y,p.w,p.h);ctx.shadowBlur=0;ctx.fillStyle='#ffffff88';ctx.fillRect(p.x+5,y+2,p.w-10,2);if(p.bonus){ctx.fillStyle='#ddff5e';ctx.beginPath();ctx.arc(p.x+p.w/2,y-14,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#263626';ctx.font='bold 12px system-ui';ctx.fillText('↑',p.x+p.w/2-5,y-10)}}
+const py=player.y-camera;ctx.save();ctx.translate(player.x,py);ctx.shadowColor='#3ef6fd';ctx.shadowBlur=19;ctx.fillStyle='#64ffcb';ctx.beginPath();ctx.arc(0,0,player.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#0b2340';ctx.beginPath();ctx.arc(-5,-3,2,0,Math.PI*2);ctx.arc(5,-3,2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#0b2340';ctx.beginPath();ctx.arc(0,1,5,0,Math.PI);ctx.stroke();ctx.restore();
+}
+function loop(now){if(state!=='playing')return;if(!last)last=now;accum+=Math.min(50,now-last);last=now;let n=0;while(accum>=16.666&&n++<4){step();accum-=16.666;if(state!=='playing')break}render();if(state==='playing')requestAnimationFrame(loop)}
+start.addEventListener('click',()=>{if(state==='paused'){state='playing';overlay.hidden=true;pause.textContent='Pause';last=0;requestAnimationFrame(loop)}else reset()});
+pause.addEventListener('click',()=>{if(state==='playing'){state='paused';pause.textContent='Resume';show('Paused','Your climb is safe.','Resume →')}else if(state==='paused'){state='playing';overlay.hidden=true;pause.textContent='Pause';last=0;requestAnimationFrame(loop)}});
+restart.addEventListener('click',()=>{if(state==='playing'||state==='paused'){reset()}});
+function pointer(e){const r=canvas.getBoundingClientRect();target=Math.max(0,Math.min(W,(e.clientX-r.left)*W/r.width))}
+canvas.addEventListener('pointerdown',e=>{pointer(e);canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(e.buttons)pointer(e)});canvas.addEventListener('pointerup',()=>{target=null});canvas.addEventListener('pointercancel',()=>{target=null});
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','a','d','A','D'].includes(e.key)){if(document.activeElement===start||document.activeElement===pause||document.activeElement===restart)return;e.preventDefault();keys.left=['ArrowLeft','a','A'].includes(e.key);keys.right=['ArrowRight','d','D'].includes(e.key);if(keys.left)keys.right=false;if(keys.right)keys.left=false}});
+window.addEventListener('keyup',e=>{if(['ArrowLeft','a','A'].includes(e.key))keys.left=false;if(['ArrowRight','d','D'].includes(e.key))keys.right=false});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing')pause.click()});
+render();
+})();
+</script></body></html>

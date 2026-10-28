@@ -179,3 +179,41 @@ body.studio-dashboard #shop-grid .item-art[data-slot=beard]:not([data-detail=tru
  body.studio-dashboard::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top);z-index:999;background:#080d19;pointer-events:none}
  .studio-dashboard #collection,.studio-dashboard .item-card{scroll-margin-top:calc(env(safe-area-inset-top) + 12px)}
 }
+
+/* Keep the saved avatar above discovery controls and make preview state readable. */
+.studio-dashboard .showcase>.earn-coins-shop{grid-column:1/-1;margin:0}
+.studio-dashboard #preview-note{padding:8px 12px;border:1px solid #63d8d633;border-radius:10px;background:#102d3c;white-space:normal;overflow-wrap:anywhere}
+.studio-dashboard .showcase .panel-top h2{font-size:20px;margin:0}
+.studio-dashboard #collection .collection-window{min-height:0;line-height:1.45;margin:4px 0 12px}
+.studio-dashboard #shop-grid .item-card.is-trying-on{outline:2px solid #8ddcf5;outline-offset:2px}
+@media(max-width:680px){
+ .studio-dashboard .showcase .stage{height:176px!important}
+ .studio-dashboard .showcase .focus-controls button{font-size:12px}
+ .studio-dashboard #shop-grid .item-art[data-detail=false][data-slot=avatar] .character,
+ .studio-dashboard #shop-grid .item-art[data-detail=false][data-slot=jewelry] .character{height:calc(100% - 16px);width:calc(100% - 16px);margin:8px auto;transform:none}
+ .studio-dashboard #collection .shop-collections{margin:6px 0}
+ .studio-dashboard #collection .shop-collections button{min-height:44px;font-size:12px;padding:8px 12px}
+}
+
+/* Give the artwork room to breathe; keep one purchase/equip action per phone card. */
+.studio-dashboard .shop-tryon-hint{font-size:12px;line-height:1.5;color:#b9dbe8;margin:8px 0 12px}
+body.studio-dashboard #shop-grid .tryon-state{z-index:4;pointer-events:none;max-width:calc(100% - 20px);box-sizing:border-box}
+@media(max-width:600px){
+ body.studio-dashboard #shop-grid .item-card .item-art{height:clamp(150px,44vw,180px)!important}
+ body.studio-dashboard #shop-grid .item-art-trigger::after{content:none}
+ body.studio-dashboard #shop-grid .item-actions{padding-bottom:8px}
+ body.studio-dashboard #shop-grid .item-card h3{line-height:1.4;margin-top:10px}
+}
+
+/* Fine jewelry stays vector-sharp even in the enlarged detail view. */
+body.studio-dashboard #shop-grid .item-art[data-slot=jewelry][data-detail=true] .gear-piece{filter:none!important}
+@media(max-width:680px){
+ .studio-dashboard .showcase .tryon-summary{margin:0;padding:10px 12px}
+ .studio-dashboard .showcase .tryon-summary strong{font-size:16px}
+ .studio-dashboard .showcase .preview-actions{margin:0}
+ .studio-dashboard .showcase .preview-action{padding:8px 10px;gap:8px}
+ .studio-dashboard .showcase .preview-action>div{min-width:0;overflow-wrap:anywhere}
+ .studio-dashboard .showcase .compare-look{margin:0}
+ .studio-dashboard .showcase #reset-preview{min-height:44px;margin:0}
+ .studio-dashboard .showcase #back-to-collection{margin:0;min-height:44px}
+}

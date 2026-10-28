@@ -14,7 +14,11 @@ test('avatar store polish is mirrored and preserves purchase bindings',()=>{
   const art=fs.readFileSync(path.join(__dirname,'../cosmetic-'+name+'.svg'),'utf8');
   const packed=fs.readFileSync(path.join(__dirname,'../www/cosmetic-'+name+'.svg'),'utf8');
   expect(packed).toBe(art);
-  expect(art).toContain('id="jewel-shadow"');
+  // Keep enlarged jewelry vector-sharp without rasterizing the whole chain.
+  expect(art).not.toMatch(/<filter\b|\bfilter\s*=/);
+  expect(art).toContain('viewBox="0 0 300 400"');
+  expect(art).toContain('id="chain-metal"');
+  expect((art.match(/<ellipse\b/g)||[]).length).toBeGreaterThanOrEqual(44);
   expect(art).toContain('id="edge-shine"');
  }
  expect(fs.readFileSync(path.join(__dirname,'../cosmetic-spud-pendant.svg'),'utf8')).toContain('id="gem-face"');
@@ -32,7 +36,7 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await page.route('**/avatars/api/**',r=>{
   const endpoint=new URL(r.request().url()).pathname.split('/api/')[1];
   if(endpoint==='config')return r.fulfill({json:{supabaseUrl:'https://zdwziebtbpuolusztede.supabase.co',publishableKey:'fixture',game:'snake'}});
-  if(endpoint==='shop')return r.fulfill({json:{items:[{id:'silver-chain',name:'Silver Chain',slot:'jewelry',coinPrice:200,rarity:'rare',imageUrl:'cosmetic-silver-chain.svg'}]}});
+  if(endpoint==='shop')return r.fulfill({json:{items:[{id:'cyber-starter',name:'Cyber Starter',slot:'avatar',coinPrice:0,rarity:'common',isStarter:true,imageUrl:'cosmetic-cyber-starter.svg'},{id:'starter-suit',name:'Pilot Suit',slot:'outfit',coinPrice:0,rarity:'common',isStarter:true,imageUrl:'cosmetic-starter-suit.svg'},{id:'trail-boots',name:'Trail Boots',slot:'shoes',coinPrice:0,rarity:'common',isStarter:true,imageUrl:'cosmetic-trail-boots.svg'},{id:'silver-chain',name:'Silver Chain',slot:'jewelry',coinPrice:200,rarity:'rare',imageUrl:'cosmetic-silver-chain.svg'}]}});
   if(endpoint==='leaderboard')return r.fulfill({json:{game:'snake',players:[]}});
   return r.fulfill({status:404,json:{error:{message:'Unexpected QA request'}}});
  });
@@ -46,7 +50,12 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
   const result=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:innerWidth,columns:getComputedStyle(document.getElementById('shop-grid')).gridTemplateColumns.split(' ').length}));
   expect(result.scroll).toBeLessThanOrEqual(result.view);
   expect(result.columns).toBe(2);
+  const stage=await page.locator('#character-stage').boundingBox();
+  const collections=await page.locator('.shop-collections').boundingBox();
+  expect(stage.y+stage.height).toBeLessThan(collections.y);
+  await expect(page.locator('.showcase .earn-coins-shop')).toBeVisible();
  }
+ await page.screenshot({path:test.info().outputPath('studio-phone.png'),fullPage:true});
  await selectShopSlot(page,'jewelry');
  await expect(page.getByLabel('Gear category',{exact:true})).toHaveValue('jewelry');
  await expect(page.locator('#studio-category')).toHaveValue('jewelry');
@@ -57,6 +66,26 @@ test('avatar shop remains two-column, navigable and free of horizontal overflow 
  await expect(firstCard).toBeVisible();
  await expect(firstCard.locator('.preview-item')).toBeHidden();
  await expect(firstCard.locator('.item-art-trigger')).toBeVisible();
+ await expect(page.locator('.shop-tryon-hint')).toBeVisible();
+ const purchases=[];
+ page.on('request',r=>{if(r.method()==='POST'&&/avatars\/api\/(purchase|equip)/.test(r.url()))purchases.push(r.url());});
+ await firstCard.locator('.item-art-trigger').click();
+ await expect(firstCard).toHaveClass(/is-trying-on/);
+ await expect(firstCard.locator('.tryon-state')).toHaveText('Trying on');
+ await expect(page.locator('#preview-note')).toContainText('Preview only');
+ expect(purchases).toEqual([]);
+ await expect(page.locator('#preview-note')).toHaveAttribute('role','status');
+ await expect(firstCard.locator('.gear-piece')).toHaveCSS('filter','none');
+ await page.locator('#compare-look').click();
+ await expect(page.locator('#preview-note')).toContainText('Showing your saved look');
+ await page.locator('#compare-look').click();
+ await expect(page.locator('#preview-note')).toContainText('Preview only');
+ await page.screenshot({path:test.info().outputPath('studio-tryon.png'),fullPage:true});
+ await page.locator('#reset-preview').click();
+ await expect(page.locator('#preview-note')).toHaveText('Your saved look');
+ await expect(page.locator('.browse-styles')).toBeFocused();
+ await expect(page.locator('#shop-grid .is-trying-on')).toHaveCount(0);
+ expect(purchases).toEqual([]);
  await selectShopSlot(page,'building');
  await expect(page.locator('.gear-view')).toBeHidden();
  await expect(page.locator('.public-footer nav a:visible')).toHaveCount(3);

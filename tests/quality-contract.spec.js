@@ -373,3 +373,15 @@ test('Character Studio visual polish keeps mobile shop rails compact and purchas
   expect(css).toContain('padding-bottom:calc(130px + env(safe-area-inset-bottom))');
   expect(css).not.toContain('position:fixed;bottom:0;left:0;right:0;z-index:9999');
 });
+
+
+test('root and native mirror share ordinary web assets', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  // The native purchase implementation and service worker are platform-specific.
+  const nativeOnly = new Set(['native-purchases.js', 'service-worker.js']);
+  for (const file of fs.readdirSync('www')) {
+    if (nativeOnly.has(file) || !fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
+    expect(fs.readFileSync(path.join('www', file)).equals(fs.readFileSync(file)), file + ' differs from its root source').toBe(true);
+  }
+});
