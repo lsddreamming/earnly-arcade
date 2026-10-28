@@ -91,7 +91,7 @@ jobs:
           grep -q 'id="cloudDeleteButton"' www/account.html
           grep -q 'Delete My Account' www/account.html
           grep -q "functions.invoke('delete-account'" www/cloud.js
-          grep -q 'cannot be redeemed or withdrawn in this version' www/account.html
+          grep -Fq 'Arcade Coins are in-app points. Cash-out and real-value redemption are not available.' www/account.html
 
       - name: Generate iOS project
         run: |

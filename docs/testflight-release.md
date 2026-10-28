@@ -5,7 +5,7 @@
 1. Require passing PR checks at the exact head before merge. Require passing main QA, native compilation, and an actual Pages publication at the exact candidate commit before upload.
 2. Review encryption changes, including linked SDKs. The current declaration follows the owner's approved **None of the algorithms mentioned above** response. App code uses platform HTTPS/WebCrypto for networking/authentication and StoreKit for purchases; it does not implement custom encryption. Reassess this classification when those capabilities or dependencies change.
 3. `scripts/configure-ios.mjs` inserts the Boolean `ITSAppUsesNonExemptEncryption = false` after every generated iOS project. A conflicting declaration stops configuration for review.
-4. The active 1.7 upload workflow checks the signed archive and exported IPA for this value. The native workflow also checks the generated plist. Do not bypass a failed check or set the value merely to silence Apple.
+4. The active 1.8 upload workflow checks the signed archive and exported IPA for this value. The native workflow also checks the generated plist. Do not bypass a failed check or set the value merely to silence Apple.
 
 ## After upload — required completion steps
 
