@@ -209,7 +209,7 @@ test('results show device best and saved world rank without waiting for old rewa
  });
  await page.locator('#sliceStart').click();
  await expect(page.locator('#sliceOverlay')).toBeHidden();
- await page.evaluate(()=>{window.__rankGame.score=250;window.__rankGame.end('Bomb hit');});
+ await page.evaluate(()=>{window.__rankGame.step=function(){this.score=250;this.end('Bomb hit');};});
  await expect(page.locator('#sliceResultBest')).toContainText('250');
  await expect(page.locator('#sliceRank')).toContainText('Your world rank: #2');
  await expect(page.locator('#sliceRank')).toContainText('1,705');
