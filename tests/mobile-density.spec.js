@@ -49,16 +49,17 @@ test('mobile density styles stay scoped away from active game controls', async (
   expect(css).not.toContain('body.brick-breaker-page .page-header');
 });
 
-test('Home starts with play and compact destinations; progress stays available on demand',async({page})=>{
+test('Home starts with direct game choices; extras and progress stay secondary',async({page})=>{
  await page.route('https://**',r=>r.abort());await page.setViewportSize({width:390,height:844});await page.goto('/index.html');
- await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-world-link')).toBeInViewport();
- await expect(page.locator('#home-coin-shop')).toBeInViewport();await expect(page.locator('dialog[open]')).toHaveCount(0);
- await expect(page.locator('#challengeButton')).not.toBeVisible();await page.locator('#dailyMissionsSection > summary').click();await expect(page.locator('#challengeButton')).toBeVisible();
+ await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-game-card')).toHaveCount(4);await expect(page.locator('.home-game-card').last()).toBeInViewport();
+ await expect(page.locator('#home-coin-shop')).toHaveAttribute('href','avatars.html');await expect(page.locator('dialog[open]')).toHaveCount(0);
+ await expect(page.locator('#challengeButton')).not.toBeVisible();await page.locator('.home-rewards-disclosure > summary').click();await page.locator('#dailyMissionsSection > summary').click();await expect(page.locator('#challengeButton')).toBeVisible();
  await page.locator('#dailyMissionsSection > summary').click();await page.locator('.home-more-progress > summary').click();await expect(page.locator('#streakRewardCard')).toBeVisible();
- await page.locator('.home-more-progress > summary').click();await page.screenshot({path:test.info().outputPath('home-iphone.png'),fullPage:true});
+ await page.locator('.home-more-progress > summary').click();await page.locator('.home-rewards-disclosure > summary').click();await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:test.info().outputPath('home-iphone.png'),fullPage:true});
  await page.setViewportSize({width:320,height:844});
  const overflow=await page.locator('body *').evaluateAll(nodes=>nodes.filter(n=>n.getBoundingClientRect().right>innerWidth+1&&n.getBoundingClientRect().width>0).map(n=>({tag:n.tagName,cls:n.className,width:n.getBoundingClientRect().width,right:n.getBoundingClientRect().right})));
  expect(overflow).toEqual([]);
+ await page.goto('/index.html#dailyBonusButton');await expect(page.locator('#dailyBonusButton')).toBeVisible();
 });
 
 for(const prefix of ['', 'www/']){

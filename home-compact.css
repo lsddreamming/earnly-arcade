@@ -54,3 +54,44 @@
 @media(max-width:600px){.home-dashboard .home-hero{margin-bottom:10px}.home-dashboard .home-primary-play{min-height:78px}.home-dashboard .home-destinations strong{font-size:13px}.home-dashboard .home-destinations>a{padding:11px 9px;min-height:88px}.home-dashboard .home-section{margin-top:12px}.home-dashboard .home-action-row{padding:9px}.home-dashboard .home-action-copy span{font-size:12px}.home-dashboard .home-section-heading{font-size:11px}.home-dashboard .home-account-shortcut-copy small{font-size:11px}.home-dashboard .home-install-copy span{font-size:11px}}
 
 body.home-dashboard .home-container{padding-bottom:90px!important}body.home-dashboard .home-destinations strong{max-width:100%;overflow-wrap:anywhere}
+
+/* Games are the first destination; account extras are secondary. */
+.home-dashboard .home-hero-icon{width:42px;height:42px}
+.home-dashboard .home-hero{gap:12px;padding-top:8px;margin-bottom:20px}
+.home-dashboard .home-eyebrow{font-size:10px;letter-spacing:2px}
+.home-dashboard .home-hero h1{font-size:clamp(19px,4.8vw,28px);margin-top:4px}
+.home-games-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.home-games-heading h2{font-size:21px;margin:0;color:#f1f7ff;letter-spacing:-.6px}
+.home-games-heading p{font-size:12px;color:#9bb1c7;margin:5px 0 0}
+.home-dashboard .home-primary-play{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;min-height:44px;padding:10px 13px;border:1px solid #47769b;border-radius:12px;background:#173550;color:#aee8ff;font-size:12px;font-weight:700;box-shadow:none;text-decoration:none}
+.home-game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.home-game-card{display:block;overflow:hidden;border:1px solid #35526e;border-radius:19px;background:#102338;color:#f2f6ff;text-decoration:none;transition:transform .15s,border-color .15s}
+.home-game-card:hover{transform:translateY(-2px);border-color:#9ce5ff}
+.home-game-art{display:flex;align-items:center;justify-content:center;position:relative;height:100px;overflow:hidden;font-size:52px;background:radial-gradient(ellipse at 50% 130%,#e9a35a77,transparent 70%),linear-gradient(135deg,#23434a,#17403d)}
+.home-game-art:before,.home-game-art:after{content:'';position:absolute;width:70px;height:70px;border:1px solid #ffffff18;border-radius:50%;left:-28px;top:-20px}
+.home-game-art:after{width:110px;height:110px;left:auto;top:auto;right:-50px;bottom:-65px}
+.home-game-art i{position:absolute;right:19px;top:16px;font-size:20px;color:#ffe5ad;font-style:normal}
+.home-game-bubbles .home-game-art{background:radial-gradient(circle at 65% 80%,#7560af,transparent 75%),linear-gradient(135deg,#173f70,#314786)}
+.home-game-jungle .home-game-art{background:radial-gradient(ellipse at 50% 120%,#669549,transparent 80%),linear-gradient(135deg,#123f37,#244c3d)}
+.home-game-crystal .home-game-art{background:radial-gradient(ellipse at 50% 120%,#5b74b1,transparent 80%),linear-gradient(135deg,#243b63,#293656)}
+.home-game-copy{display:block;padding:12px}
+.home-game-copy strong{display:block;font-size:15px;letter-spacing:-.3px;line-height:1.3}
+.home-game-copy small{display:block;margin-top:4px;font-size:10px;color:#adbed0;line-height:1.4}
+.home-game-copy b{display:flex;justify-content:space-between;align-items:center;margin-top:13px;font-size:12px;color:#b2eaff}
+.home-dashboard .continue-card{margin:18px 0;background:#102338;border:1px solid #35526e;border-radius:15px;overflow:hidden;box-shadow:none}
+.home-dashboard .continue-card .home-section-heading{padding:12px 14px 0;font-size:10px;margin-bottom:0}
+.home-explore{margin-top:24px;padding-top:20px;border-top:1px solid #294157}
+.home-explore h2{font-size:15px;color:#b7c8d9;margin:0 0 12px}
+.home-dashboard .home-explore .earn-coins-entry{min-height:0;padding:12px 14px;border:1px solid #35526e;border-radius:12px;background:#102338;box-shadow:none;margin:0 0 10px}
+.home-dashboard .home-explore .earn-coins-entry strong{font-size:14px}.home-dashboard .home-explore .earn-coins-entry small{font-size:11px}.home-dashboard .home-explore .earn-coins-icon{font-size:22px}
+.home-dashboard .home-destinations>a{min-height:74px;background:#102338;border-radius:12px}
+.home-rewards-disclosure{margin-top:16px;border:1px solid #35526e;border-radius:14px;padding:14px;background:#0d1e31}
+.home-rewards-disclosure>summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;min-height:40px;font-size:14px;font-weight:700}.home-rewards-disclosure>summary::-webkit-details-marker{display:none}
+.home-rewards-disclosure>summary small{display:block;margin-top:4px;font-size:11px;color:#9bb1c7;font-weight:400}.home-rewards-disclosure[open]>summary{margin-bottom:15px}
+.home-game-card:focus-visible,.home-primary-play:focus-visible,.home-rewards-disclosure>summary:focus-visible{outline:3px solid #8ee5ff;outline-offset:4px}
+@media(min-width:700px){.home-game-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.home-game-art{height:130px}}
+@media(max-width:350px){.home-games-heading h2{font-size:18px}.home-game-copy{padding:10px}.home-game-copy strong{font-size:13px}.home-game-art{height:88px}.home-game-grid{gap:9px}}
+@media(prefers-reduced-motion:reduce){.home-game-card{transition:none}}
+
+.home-game-art svg{display:block;width:145px;height:100px;max-width:90%;filter:drop-shadow(0 7px 8px #0003)}
+body.home-dashboard .home-games-heading .home-primary-play{min-height:44px!important;padding:10px 13px!important;border-radius:12px!important;background:#173550!important}

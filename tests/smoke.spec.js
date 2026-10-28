@@ -1923,6 +1923,7 @@ test('daily missions track games, variety, and coins', async ({ page }) => {
   });
   await page.reload();
 
+  await page.locator('.home-rewards-disclosure > summary').click();
   await expect(page.locator('#dailyMissionsSection')).toBeVisible();
   await expect(page.locator('#dailyMissionList .daily-mission-row')).toHaveCount(3);
 

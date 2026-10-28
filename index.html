@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="app-surfaces.css?v=1">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="rank-discovery.css">
-  <link rel="stylesheet" href="home-compact.css?v=1">
+  <link rel="stylesheet" href="home-compact.css?v=2">
   <link rel="stylesheet" href="earn-coins.css?v=1">
 </head>
 <body class="home-dashboard">
@@ -32,27 +32,20 @@
       <img class="home-hero-icon" src="earnly-icon.svg" alt="">
       <div class="home-hero-copy">
         <span class="home-eyebrow">EARNLY ARCADE</span>
-        <h1>Play. Earn. Level Up.</h1>
+        <h1>Find your next favorite.</h1>
       </div>
       <button class="home-info-button" id="howEarnlyWorks" type="button" aria-label="How Earnly works" title="How Earnly works">ⓘ</button>
     </header>
 
-    <a class="home-primary-play" href="games.html" aria-label="Browse Earnly games and start playing">
-      <span class="home-primary-play-icon">🎮</span>
-      <span class="home-primary-play-copy"><strong>Play Games</strong><small id="homePlayHint">Pick a game. Chase a high score.</small></span>
-      <b>Play →</b>
-    </a>
-
-
-
-    <a class="earn-coins-entry" href="rewards.html#earn-coins"><span class="earn-coins-icon" aria-hidden="true">🪙</span><span><strong>Earn Coins</strong><small>Daily bonuses &amp; available ad rewards</small></span><b aria-hidden="true">→</b></a>
-    <nav class="home-destinations" aria-label="Explore Earnly">
-      <a class="home-world-link" href="world.html"><span aria-hidden="true">🌐</span><strong>World</strong><small>Rooms & friends</small></a>
-    <a id="home-coin-shop" class="coin-shop-entry" href="avatars.html"><span class="coin-shop-entry-icon" aria-hidden="true">✦</span><span><strong>Arcade Shop</strong><small>Looks & decor</small></span><span aria-hidden="true">→</span></a>
-    <a class="rank-discovery" href="leaderboards.html"><span aria-hidden="true">🏆</span><span><strong>Ranks</strong><small>Top scores</small></span><b aria-hidden="true">→</b></a>
-    </nav>
-
-
+    <section class="home-game-picker" aria-labelledby="homeGamesHeading">
+      <div class="home-games-heading"><div><h2 id="homeGamesHeading">What will you play?</h2><p>Pick a game. Jump right in.</p></div><a class="home-primary-play" href="games.html">All games <span aria-hidden="true">→</span></a></div>
+      <div class="home-game-grid">
+        <a class="home-game-card home-game-slice" href="neon-slice.html"><span class="home-game-art" aria-hidden="true"><svg viewBox="0 0 160 100" focusable="false"><ellipse cx="80" cy="77" rx="48" ry="8" fill="#061b22" opacity=".4"/><path d="M35 40a45 29 0 0 1 90 0Z" fill="#ffc876"/><g stroke="#fff0c5" stroke-width="3" stroke-linecap="round"><path d="m58 24 3 2m18-7 3 2m18 5 3 2"/></g><rect x="33" y="43" width="94" height="9" rx="4" fill="#6dd79b"/><path d="m38 52 35 13 30-13" fill="#ffdb6d"/><rect x="35" y="55" width="90" height="11" rx="5" fill="#8b4e39"/><path d="M36 68h88q-2 13-17 13H53Q38 81 36 68" fill="#edaa5c"/></svg><i>✦</i></span><span class="home-game-copy"><strong>Neon Slice</strong><small>Slice a cookout combo</small><b>Play now <span aria-hidden="true">↗</span></b></span></a>
+        <a class="home-game-card home-game-bubbles" href="bubble-pop.html"><span class="home-game-art" aria-hidden="true"><svg viewBox="0 0 160 100" focusable="false"><g stroke="#ffffff60" stroke-width="2"><circle cx="62" cy="32" r="20" fill="#9b8dff"/><circle cx="103" cy="32" r="20" fill="#72d9f3"/><circle cx="42" cy="68" r="20" fill="#72d9f3"/><circle cx="82" cy="68" r="20" fill="#ff9ec8"/><circle cx="123" cy="68" r="20" fill="#9b8dff"/></g><g fill="#fff" opacity=".6"><circle cx="56" cy="25" r="4"/><circle cx="97" cy="25" r="4"/><circle cx="36" cy="61" r="4"/><circle cx="76" cy="61" r="4"/><circle cx="117" cy="61" r="4"/></g></svg><i>●</i></span><span class="home-game-copy"><strong>Bubble Pop</strong><small>Match, pop, clear the board</small><b>Play now <span aria-hidden="true">↗</span></b></span></a>
+        <a class="home-game-card home-game-jungle" href="junglehopper.html"><span class="home-game-art" aria-hidden="true"><svg viewBox="0 0 160 100" focusable="false"><ellipse cx="80" cy="81" rx="58" ry="10" fill="#193c2d"/><ellipse cx="80" cy="60" rx="39" ry="26" fill="#86d978"/><g fill="#a9ec8a"><circle cx="57" cy="36" r="16"/><circle cx="103" cy="36" r="16"/></g><g fill="#f4ffe9"><circle cx="57" cy="34" r="10"/><circle cx="103" cy="34" r="10"/></g><g fill="#133d32"><circle cx="59" cy="34" r="5"/><circle cx="101" cy="34" r="5"/></g><path d="M65 62q15 14 30 0" fill="none" stroke="#286747" stroke-width="3" stroke-linecap="round"/></svg><i>❋</i></span><span class="home-game-copy"><strong>Jungle Hopper</strong><small>One more vine. One more try.</small><b>Play now <span aria-hidden="true">↗</span></b></span></a>
+        <a class="home-game-card home-game-crystal" href="crystal-command.html"><span class="home-game-art" aria-hidden="true"><svg viewBox="0 0 160 100" focusable="false"><path d="m80 7 37 30-12 43-25 15-26-15-12-43Z" fill="#78d9ef"/><path d="m80 7 0 88-26-15-12-43Z" fill="#9da6ff"/><path d="m80 7 20 30-20 58-20-58Z" fill="#c1f4ff"/><path d="m42 37 38 58-20-58Zm75 0L80 95l20-58Z" fill="#657ccf"/><path d="M26 28v14m-7-7h14m99 25v12m-6-6h12" stroke="#d5f6ff" stroke-width="2"/></svg><i>✧</i></span><span class="home-game-copy"><strong>Crystal Command</strong><small>Build your strategy</small><b>Play now <span aria-hidden="true">↗</span></b></span></a>
+      </div>
+    </section>
 
     <section class="home-transfer-banner" id="transferCard" hidden>
       <div class="home-transfer-copy">
@@ -80,6 +73,15 @@
     </section>
 
 
+    <section class="home-explore" aria-labelledby="homeExploreHeading"><h2 id="homeExploreHeading">More to explore</h2>
+<a class="earn-coins-entry" href="rewards.html#earn-coins"><span class="earn-coins-icon" aria-hidden="true">🪙</span><span><strong>Earn Coins</strong><small>Daily bonuses &amp; available ad rewards</small></span><b aria-hidden="true">→</b></a>
+    <nav class="home-destinations" aria-label="Explore Earnly">
+      <a class="home-world-link" href="world.html"><span aria-hidden="true">🌐</span><strong>World</strong><small>Rooms & friends</small></a>
+    <a id="home-coin-shop" class="coin-shop-entry" href="avatars.html"><span class="coin-shop-entry-icon" aria-hidden="true">✦</span><span><strong>Arcade Shop</strong><small>Looks & decor</small></span><span aria-hidden="true">→</span></a>
+    <a class="rank-discovery" href="leaderboards.html"><span aria-hidden="true">🏆</span><span><strong>Ranks</strong><small>Top scores</small></span><b aria-hidden="true">→</b></a>
+    </nav>
+    </section>
+    <details class="home-rewards-disclosure"><summary><span>Your rewards &amp; progress<small>Coins, daily bonuses and challenges</small></span><b aria-hidden="true">⌄</b></summary>
     <section class="home-overview" aria-label="Earnly overview">
       <a class="home-metric" href="rewards.html" aria-label="View Arcade Coin rewards">
         <span class="home-metric-label">Arcade Coins</span>
@@ -181,6 +183,8 @@
         </a>
       </div>
     </section>
+
+    </details>
 
     </details>
 
@@ -369,9 +373,7 @@
       }
 
       points.textContent = Arcade.number('points').toLocaleString();
-      document.getElementById('homePlayHint').textContent = Arcade.number('gamesCompletedEver') > 0
-        ? 'Pick a game · earn XP + Arcade Coins'
-        : 'Pick a game. Chase a high score.';
+
 
       const xp = Arcade.xpStatus();
       profileName.textContent = Arcade.profileName();
@@ -716,5 +718,15 @@
   <script src="cloud.js"></script>
 <script src="potato-rig.js"></script>
 <script src="arcade-chat.js"></script>
+<script>
+// Keep links from Rewards able to reveal controls inside the progress section.
+function revealHomeTarget(){
+  let id;try{id=decodeURIComponent(location.hash.slice(1));}catch{return;}
+  const target=document.getElementById(id);if(!target)return;
+  for(let parent=target.parentElement;parent;parent=parent.parentElement){if(parent.tagName==='DETAILS')parent.open=true;}
+  if(id)target.scrollIntoView({block:'center'});
+}
+window.addEventListener('hashchange',revealHomeTarget);revealHomeTarget();
+</script>
 </body>
 </html>
