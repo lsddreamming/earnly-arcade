@@ -2638,7 +2638,7 @@ test('Coin Catch feedback distinguishes catches and strikes without changing rew
   }
   reset();for(let i=0;i<30;i++)catchFeedback(180,350,'+1 catch','#ffe58e');const bounded=catchEffects.length;reset();return {samples,bounded,remaining:catchEffects.length};
  });
- expect(result.samples).toEqual([{kind:'coin',score:1,misses:0,text:'+1 catch',reward:0},{kind:'bomb',score:0,misses:2,text:'+2 strikes',reward:0},{kind:'miss',score:0,misses:1,text:'Miss · +1 strike',reward:0}]);expect(result.bounded).toBe(12);expect(result.remaining).toBe(0);
+ expect(result.samples).toEqual([{kind:'coin',score:1,misses:0,text:'+1 catch',reward:0},{kind:'bomb',score:0,misses:2,text:'+2 strikes',reward:0},{kind:'miss',score:0,misses:1,text:'Miss · +1 strike',reward:0}]);expect(result.bounded).toBe(1);expect(result.remaining).toBe(0);
  await page.evaluate(()=>{running=true;setStatus('Running','running');drops=[{x:100,y:200,bomb:false},{x:255,y:270,bomb:true}];catchFeedback(180,410,'+1 catch','#ffe58e');draw();});
  await page.screenshot({path:test.info().outputPath('coin-catch-polish.png')});
 });
@@ -2690,4 +2690,19 @@ test('Coin Catch fits the phone without overlapping stats, instructions or sessi
   await expect(page.locator('.earnly-quit-dialog')).toBeVisible();
   await page.locator('[data-keep]').click();
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
+});
+
+for(const motion of ['reduce','no-preference'])test('Coin Catch rapid feedback clears without overlapping in '+motion,async({page})=>{
+ await page.emulateMedia({reducedMotion:motion});await page.goto('/coincatch.html');
+ await page.clock.install();
+ const burst=await page.evaluate(()=>{
+  reset();for(let i=0;i<20;i++)catchFeedback(i%2?355:5,468,i%2?'Miss · +1 strike':'+1 catch','#ffe58e');
+  draw();return catchEffects.map(e=>({text:e.text,x:e.x,y:e.y}));
+ });
+ expect(burst).toEqual([{text:'Miss · +1 strike',x:180,y:410}]);
+ await page.clock.runFor(701);
+ expect(await page.evaluate(()=>{draw();return catchEffects.length;})).toBe(0);
+ await page.evaluate(()=>{catchFeedback(5,468,'+1 catch','#ffe58e');draw();});
+ expect(await page.evaluate(()=>catchEffects.length)).toBe(1);
+ await page.evaluate(()=>reset());expect(await page.evaluate(()=>catchEffects.length)).toBe(0);
 });

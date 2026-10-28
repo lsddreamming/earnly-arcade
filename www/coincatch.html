@@ -113,9 +113,11 @@
     let drops=[],score=0,misses=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
     let catchEffects=[];
     const calmCatch=()=>Arcade.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
-    function catchFeedback(x,y,text,color){catchEffects.push({x,y,text,color,life:42});catchEffects=catchEffects.slice(-12);}
+    // One replaceable cue prevents rapid catches/misses from covering the basket.
+    function catchFeedback(x,y,text,color){catchEffects=[{x:180,y:410,text,color,expiresAt:performance.now()+700}];}
     function drawCatchFeedback(){
-      for(const e of catchEffects){ctx.save();ctx.globalAlpha=Math.min(1,e.life/12);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 15px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#07131f';const y=e.y-(calmCatch()?0:(42-e.life)*.5);ctx.strokeText(e.text,e.x,y);ctx.fillStyle=e.color;ctx.fillText(e.text,e.x,y);ctx.restore();}
+      const now=performance.now();catchEffects=catchEffects.filter(e=>e.expiresAt>now);
+      for(const e of catchEffects){const remaining=e.expiresAt-now;ctx.save();ctx.globalAlpha=Math.min(1,remaining/180);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 15px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#07131f';const y=e.y-(calmCatch()?0:(700-remaining)*.025);ctx.strokeText(e.text,e.x,y);ctx.fillStyle=e.color;ctx.fillText(e.text,e.x,y);ctx.restore();}
     }
     function showLiveTip(text,duration=START_TIP_MS){
       clearTimeout(liveTipTimer);
