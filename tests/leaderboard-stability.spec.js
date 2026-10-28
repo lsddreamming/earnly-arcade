@@ -111,3 +111,21 @@ test('signed-out result asks for sign-in rather than inventing a world rank',asy
  await page.locator('.result-run-details').first().locator('summary').click();
  await expect(page.locator('.result-leaderboard-head')).toContainText('Sign in to save your score');await expect(page.locator('.result-leaderboard').getByRole('link',{name:'Sign in',exact:true})).toBeVisible();
 });
+
+
+test('Neon Slice leaderboard is selectable and never submits a device-only best', async ({page}) => {
+  await page.goto('/leaderboards.html?game=neonSlice');
+  await expect(page.locator('#gameSelect')).toHaveValue('neonSlice');
+  await page.evaluate(async()=>{
+    window.__sliceSubmits=0;
+    Arcade.best=()=>({value:99999});
+    Arcade.leaderboardUsername=()=> 'qa_player';
+    window.EarnlyCloud={submitLeaderboardScore:async()=>{window.__sliceSubmits++},leaderboard:async()=>({label:'points',entries:[{rank:1,username:'qa_player',score:250,verified:true}]})};
+    await loadBoard();
+  });
+  await expect(page.locator('#leaderboardList')).toContainText('250');
+  await expect(page.locator('#rankPlay')).toHaveAttribute('href','neon-slice.html');
+  expect(await page.evaluate(()=>window.__sliceSubmits)).toBe(0);
+  await page.goto('/neon-slice.html');
+  await expect(page.getByRole('link',{name:'World leaderboard'})).toHaveAttribute('href','leaderboards.html?game=neonSlice');
+});

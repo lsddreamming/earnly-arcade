@@ -24,6 +24,10 @@ const file=(await readdir('supabase/migrations')).find(x=>x.endsWith('_neon_slic
 await db.exec(await readFile('supabase/migrations/'+file,'utf8'));
 const versionFile=(await readdir('supabase/migrations')).find(x=>x.endsWith('_neon_slice_engine_versions.sql'));
 await db.exec(await readFile('supabase/migrations/'+versionFile,'utf8'));
+await db.exec(`ALTER TABLE leaderboard_scores ADD COLUMN verified boolean, ADD COLUMN updated_at timestamptz,
+ADD CONSTRAINT leaderboard_scores_game_check CHECK(game IN ('snake','coinCatch'));`);
+const rankFile=(await readdir('supabase/migrations')).find(x=>x.endsWith('_neon_slice_leaderboard.sql'));
+await db.exec(await readFile('supabase/migrations/'+rankFile,'utf8'));
 const uid='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
 const data=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
 const start=()=>data('select neon_slice_start($1,17) r',[uid]);
@@ -38,10 +42,16 @@ let r=await claim(round.id);assert.equal(r.amount,30);assert.equal(r.wallet.bala
 r=await claim(round.id);assert(r.duplicate);assert.equal(r.amount,0);assert.equal(r.wallet.balance,'1280');
 const pending=await start();await age(pending.id);
 for(const [score,coins] of [[0,0],[49,0],[50,1],[10000,30]]){round=await start();await age(round.id);r=await claim(round.id,score);assert.equal(r.amount,coins);}
-assert((await start()).practice);r=await claim(pending.id);assert.equal(r.amount,0);assert.equal(r.remaining,0);
+const rankedAfterCap=await start();assert(rankedAfterCap.id);assert.equal(rankedAfterCap.remaining,0);await age(rankedAfterCap.id);const capped=await claim(rankedAfterCap.id,12000);assert.equal(capped.amount,0);assert.equal((await db.query("select score from leaderboard_scores where game='neonSlice'")).rows[0].score,12000);r=await claim(pending.id);assert.equal(r.amount,0);assert.equal(r.remaining,0);
 assert.equal((await db.query('select count(*)::int n from coin_ledger')).rows[0].n,3);
 assert.equal(r.wallet.balance,'1311');
 await db.exec("update neon_slice_rounds set claimed_at=now()-interval '1 day' where claimed_at is not null");
 round=await start();assert(round.id);await db.query("update neon_slice_rounds set created_at=now()-interval '25 hours' where id=$1",[round.id]);await assert.rejects(claim(round.id),/ROUND_EXPIRED/);
 for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(start(),/permission denied/);await assert.rejects(data('select neon_slice_start_v2($1,17) r',[uid]),/permission denied/);await assert.rejects(claim(round.id),/permission denied/);await assert.rejects(db.query('select * from neon_slice_rounds'),/permission denied/);await db.exec('RESET ROLE');}
+assert.equal((await db.query("select score,verified from leaderboard_scores where game='neonSlice'")).rows[0].score,12000);
+await db.query('insert into leaderboard_bans values($1)',[uid]);
+round=await start();await age(round.id);await claim(round.id,15000);
+assert.equal((await db.query("select score from leaderboard_scores where game='neonSlice'")).rows[0].score,12000);
+await db.exec(await readFile('supabase/migrations/'+rankFile,'utf8').then(s=>s.slice(s.indexOf('INSERT INTO public.leaderboard_scores(user_id,game,score,verified,achieved_at,updated_at)\nSELECT DISTINCT'),s.indexOf('-- Continue verifying'))));
+assert.equal((await db.query("select score from leaderboard_scores where game='neonSlice'")).rows[0].score,12000);
 await db.close();console.log('PASS: 50 deterministic replays across both engine versions, invalid inputs, unfinished runs, authoritative ledger, duplicate suppression, timing, ownership, daily cap including outstanding tickets, practice, rollover, expiry and client mint denial.');

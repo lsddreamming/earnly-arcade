@@ -30,6 +30,7 @@ const GAMES: Record<string, { label:string; lower?:boolean; max:number }> = {
   bounceRun:{label:"distance",max:1000000000},
   trafficEscape:{label:"cars",max:100000000},
   starDefender:{label:"points",max:1000000000},
+  neonSlice:{label:"points",max:100000},
   neonMaze:{label:"cells",max:1000000},
   turboKart:{label:"points",max:6000},
   neonDrift:{label:"points",max:1000000},
@@ -186,6 +187,8 @@ Deno.serve(async (req: Request) => {
     if (bannedAccount) return json({ error:"Leaderboard access is unavailable for this account." }, 403);
 
     const game = cleanGame(body.game);
+    // Neon Slice scores arrive atomically from replay settlement, never clients.
+    if (game === "neonSlice") return json({ error:"Neon Slice rankings are saved automatically from verified runs.", code:"VERIFIED_RUN_REQUIRED" }, 409);
     const score = cleanScore(game, body.score);
     if (!game || !score) return json({ error:"Invalid score" }, 400);
 

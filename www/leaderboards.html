@@ -104,7 +104,7 @@
       ['colorMatch','🎨','Color Match'],['paddleRally','🏓','Paddle Rally'],['laneRunner','🏎️','Lane Runner'],
       ['safeCracker','🔐','Safe Cracker'],['neonDrift','🏁','Neon Drift'],['mergeRush','🔢','Merge Rush'],
       ['perfectDrop','🎯','Perfect Drop'],['spiralDrop','🌀','Spiral Drop'],['shapeFit','🧠','Shape Fit'],
-      ['bounceRun','⚪','Bounce Run'],['trafficEscape','🚦','Traffic Escape'],['starDefender','👾','Star Defender'],['neonBreach','🤖','Neon Breach'],['neonMaze','🟡','Neon Maze']
+      ['bounceRun','⚪','Bounce Run'],['trafficEscape','🚦','Traffic Escape'],['starDefender','👾','Star Defender'],['neonBreach','🤖','Neon Breach'],['neonMaze','🟡','Neon Maze'],['neonSlice','🔪','Neon Slice']
     ];
     const byKey = Object.fromEntries(gameInfo.map(item => [item[0], item]));
     const select = document.getElementById('gameSelect');
@@ -177,7 +177,7 @@
       document.getElementById('boardTitle').textContent = info[1] + ' ' + info[2] + ' · World Top 25';
       document.getElementById('boardRule').textContent = game === 'memory' ? 'Fewest moves wins' : 'Highest score wins';
 
-      const directGames = {snake:'snake.html',blockDrop:'blockdrop.html',tapRush:'taprush.html',memory:'memory.html',brickBreaker:'brickbreaker.html',jungleHopper:'junglehopper.html',towerStack:'towerstack.html',coinCatch:'coincatch.html',colorMatch:'colormatch.html',paddleRally:'paddlerally.html',laneRunner:'lanerunner.html',safeCracker:'safecracker.html',neonDrift:'neondrift.html',starDefender:'stardefender.html',neonBreach:'neonbreach.html',neonMaze:'neonmaze.html'};
+      const directGames = {snake:'snake.html',blockDrop:'blockdrop.html',tapRush:'taprush.html',memory:'memory.html',brickBreaker:'brickbreaker.html',jungleHopper:'junglehopper.html',towerStack:'towerstack.html',coinCatch:'coincatch.html',colorMatch:'colormatch.html',paddleRally:'paddlerally.html',laneRunner:'lanerunner.html',safeCracker:'safecracker.html',neonDrift:'neondrift.html',starDefender:'stardefender.html',neonBreach:'neonbreach.html',neonMaze:'neonmaze.html',neonSlice:'neon-slice.html'};
       const play = document.getElementById('rankPlay');
       play.href = directGames[game] || 'mini.html?game=' + encodeURIComponent(game);
       play.textContent = 'Play ' + info[2] + ' →';
@@ -191,7 +191,7 @@
       try {
         if (!window.EarnlyCloud) throw new Error('Leaderboard connection is still loading.');
         const localBest = Arcade.best(game).value;
-        if (submitLocalBest && localBest > 0 && Arcade.leaderboardUsername()) {
+        if (game !== 'neonSlice' && submitLocalBest && localBest > 0 && Arcade.leaderboardUsername()) {
           localLeaderboardSubmitDepth += 1;
           try {
             await EarnlyCloud.submitLeaderboardScore(game, localBest);
