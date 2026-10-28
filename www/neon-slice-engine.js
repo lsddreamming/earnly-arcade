@@ -1,5 +1,5 @@
-/* Original Earnly arcade preview. Pure simulation: no wallet or play writes. */
-(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.NeonSliceEngine=factory();})(typeof globalThis!=='undefined'?globalThis:this,()=>{
+/* Original Earnly cookout simulation. Shared with the authoritative replay verifier. */
+(function(root,factory){const api=factory();root.NeonSliceEngine=api;if(typeof module==='object'&&module.exports)module.exports=api;})(typeof globalThis!=='undefined'?globalThis:this,()=>{
   function distance(x,y,a,b){const dx=b.x-a.x,dy=b.y-a.y;const t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-a.x-t*dx,y-a.y-t*dy);}
   class Game{
     constructor(random=Math.random){this.random=random;this.reset();}
@@ -49,5 +49,25 @@
       this.effects=this.effects.slice(-180);}this.items=this.items.filter(x=>!x.gone);return hits;}
     endStroke(){const n=this.strokeHits;this.strokeHits=0;this.strokeStart=null;this.lastMotion=null;this.strokeDirection=null;this.strokeLength=0;if(this.state==='running'&&n>=3){const bonus=Math.min(100,(n-1)*5);this.score+=bonus;this.bestCombo=Math.max(n,this.bestCombo);return {hits:n,bonus};}return null;}
   }
-  return {Game,distance};
+  function seededRandom(seed){let s=seed>>>0;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
+  // Replay only bounded, integer-tick input. Never trust a client-supplied score.
+  function verify(seed,events,ticks){
+    if(!Number.isInteger(seed)||seed<1||seed>4294967295||!Number.isInteger(ticks)||ticks<1||ticks>10800||!Array.isArray(events)||events.length>18000)throw Error('INVALID_RUN');
+    const g=new Game(seededRandom(seed));g.start();let tick=0,previous=0;
+    for(const e of events){
+      if(!Array.isArray(e)||![1,5].includes(e.length)||!Number.isInteger(e[0])||e[0]<previous||e[0]>ticks)throw Error('INVALID_RUN');
+      while(tick<e[0]){if(g.state!=='running')throw Error('INVALID_RUN');g.step(1/60);tick++;}
+      if(g.state!=='running')throw Error('INVALID_RUN');
+      if(e.length===1)g.endStroke();else{
+        if(e.slice(1).some((n,i)=>!Number.isInteger(n)||n<0||n>(i%2?540:360)))throw Error('INVALID_RUN');
+        g.slice({x:e[1],y:e[2]},{x:e[3],y:e[4]});
+      }previous=e[0];
+    }
+    while(tick<ticks){if(g.state!=='running')throw Error('INVALID_RUN');g.step(1/60);tick++;}
+    // A three-minute round ends cleanly; continues never create another reward.
+    if(ticks===10800&&g.state==='running')g.end('Cookout complete');
+    if(g.state!=='over')throw Error('RUN_NOT_FINISHED');
+    return {score:g.score,ticks,coins:Math.min(30,Math.floor(g.score/50))};
+  }
+  return {Game,distance,seededRandom,verify};
 });
