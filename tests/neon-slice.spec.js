@@ -197,3 +197,21 @@ test('first gameplay frames reuse artwork and do not repeatedly relayout unchang
  expect(work.gradients).toBe(0);expect(work.measurements).toBeLessThanOrEqual(1);expect(work.hudMutations).toBe(0);
  await page.screenshot({path:test.info().outputPath('cached-food-artwork.png')});
 });
+
+test('results show device best and saved world rank without waiting for old reward retries',async({page})=>{
+ await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{
+   window.NeonSliceRewards={retry:()=>new Promise(()=>{}),start:async()=>null};
+   window.EarnlyCloud={leaderboard:async()=>({entries:[{rank:2,username:'tester',score:1705}]})};
+   window.Arcade.leaderboardUsername=()=> 'tester';
+   const start=NeonSliceEngine.Game.prototype.start;
+   NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__rankGame=this;};
+ });
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
+ await page.evaluate(()=>{window.__rankGame.score=250;window.__rankGame.end('Bomb hit');});
+ await expect(page.locator('#sliceResultBest')).toContainText('250');
+ await expect(page.locator('#sliceRank')).toContainText('Your world rank: #2');
+ await expect(page.locator('#sliceRank')).toContainText('1,705');
+ await expect(page.locator('#sliceRank')).toContainText('device-only');
+});
