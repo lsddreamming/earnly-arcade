@@ -308,6 +308,19 @@ test('current release keeps unreleased rewards and account deletion clear', () =
 });
 
 
+test('active iOS upload account checks pass against the packaged web assets', () => {
+  const workflow = read('.github/workflows/ios-v1-7-testflight.yml');
+  const step = workflow.match(/      - name: Verify account deletion is packaged for review\n        run: \|\n((?:          .+\n)+)/);
+  expect(step, 'The packaged account verification step must remain present').not.toBeNull();
+  const commands = step[1].replace(/^          /gm, '');
+  // Execute the actual upload checks in CI so copy changes cannot pass QA
+  // and then fail only after an owner starts the Apple upload.
+  require('child_process').execFileSync('bash', ['-e', '-c', commands], {
+    cwd: ROOT,
+    stdio: 'pipe'
+  });
+});
+
 test('iOS release pipeline keeps AdMob mode explicit and SKAdNetwork coverage guarded', () => {
   const configure = read('scripts/configure-ios.mjs');
   const workflow = read('.github/workflows/ios-signed-build.yml');
