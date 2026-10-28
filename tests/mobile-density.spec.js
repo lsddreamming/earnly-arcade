@@ -53,6 +53,8 @@ test('Home starts with direct game choices; extras and progress stay secondary',
  await page.route('https://**',r=>r.abort());await page.setViewportSize({width:390,height:844});await page.goto('/index.html');
  await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-game-card')).toHaveCount(4);await expect(page.locator('.home-game-card').last()).toBeInViewport();
  await expect(page.locator('#home-coin-shop')).toHaveAttribute('href','avatars.html');await expect(page.locator('dialog[open]')).toHaveCount(0);
+ await expect(page.locator('#homeChatSlot #arcadeChatButton')).toBeVisible();
+ await page.locator('#arcadeChatButton').click();await expect(page.locator('#arcadeChat')).toBeVisible();await page.getByRole('button',{name:'Close chat',exact:true}).click();
  await expect(page.locator('#challengeButton')).not.toBeVisible();await page.locator('.home-rewards-disclosure > summary').click();await page.locator('#dailyMissionsSection > summary').click();await expect(page.locator('#challengeButton')).toBeVisible();
  await page.locator('#dailyMissionsSection > summary').click();await page.locator('.home-more-progress > summary').click();await expect(page.locator('#streakRewardCard')).toBeVisible();
  await page.locator('.home-more-progress > summary').click();await page.locator('.home-rewards-disclosure > summary').click();await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:test.info().outputPath('home-iphone.png'),fullPage:true});
