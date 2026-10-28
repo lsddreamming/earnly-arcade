@@ -203,7 +203,7 @@ test('results show device best and saved world rank without waiting for old rewa
  await page.evaluate(()=>{
    window.NeonSliceRewards={retry:()=>new Promise(()=>{}),start:async()=>null};
    window.EarnlyCloud={leaderboard:async()=>({entries:[{rank:2,username:'tester',score:1705}]})};
-   window.Arcade.leaderboardUsername=()=> 'tester';
+   window.Arcade={...window.Arcade,leaderboardUsername:()=> 'tester'};
    const start=NeonSliceEngine.Game.prototype.start;
    NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__rankGame=this;};
  });

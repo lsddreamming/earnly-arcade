@@ -21,5 +21,5 @@
   apply(result.wallet);return result;
  }
  async function retry(){const u=await user();if(!u)return [];const results=[];for(const q of load().filter(x=>x.userId===u.id)){try{results.push(await claim(q,q.events,q.ticks));}catch(e){if(['ROUND_EXPIRED','ROUND_NOT_FOUND','INVALID_RUN','RUN_NOT_FINISHED'].includes(e.message))store(load().filter(x=>x.id!==q.id));else throw e;}}return results;}
- window.NeonSliceRewards={start,claim,retry};
+ window.NeonSliceRewards={start,claim,retry,hasPending:()=>load().length>0};
 })();

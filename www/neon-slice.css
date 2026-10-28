@@ -26,4 +26,6 @@ body.neon-slice-page{background:radial-gradient(ellipse at top,#203b42 0,#0b1b24
 
 .slice-leaderboard{color:#a8eadc;font-weight:700;text-decoration:none}
 
-.slice-rank{display:block;font-size:13px;line-height:1.4;padding:8px;border:1px solid #a3854b;border-radius:10px;background:#263023;color:#ffe09b!important}.slice-rank[hidden]{display:none}.slice-results div:last-child{grid-column:1/-1}.slice-results div:last-child strong{font-size:17px}
+.slice-rank{display:block;font-size:13px;line-height:1.4;padding:8px;border:1px solid #a3854b;border-radius:10px;background:#263023;color:#ffe09b!important}.slice-rank[hidden]{display:none}
+.slice-results small{display:block;font-size:10px;color:#b1c7d5}.slice-results small span{display:inline;font-size:10px}.slice-overlay:has(#sliceStats:not([hidden])) .slice-mark{display:none}
+@media(max-height:650px){.slice-overlay:has(#sliceStats:not([hidden])) #sliceMessage{display:none}.slice-rank{font-size:11px;padding:5px}.slice-results{margin:6px 0}}
