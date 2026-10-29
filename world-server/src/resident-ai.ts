@@ -2,9 +2,10 @@ import {spudDefinition} from './spud-residents.ts';
 import type {SpudId} from './spud-residents.ts';
 import type {ResidentHomeFacts} from './resident-homes.ts';
 import {basicResidentReply} from './resident-basic.ts';
+import {residentAmbientReply} from './resident-ambient.ts';
 
 export type DialogueLine={speaker:string;text:string};
-export type DialogueRequest={residentId:SpudId;context:DialogueLine[];addressed:boolean;ambient:boolean;activity:string;companions:string[];home?:ResidentHomeFacts;inOwnHome?:boolean};
+export type DialogueRequest={residentId:SpudId;context:DialogueLine[];addressed:boolean;ambient:boolean;ambientTurn?:number;activity:string;companions:string[];home?:ResidentHomeFacts;inOwnHome?:boolean};
 export interface ResidentAI {reply(request:DialogueRequest):Promise<string|null>}
 export type BudgetReservation=(daily:number,monthly:number)=>Promise<boolean|'daily_limit'|'monthly_limit'>;
 const MODEL='gpt-6-luna';
@@ -33,7 +34,7 @@ export function repeatedReply(text:string,previous:string[]){
 export class OpenAIResidentDialogue implements ResidentAI{
  #key:string;#reserve:BudgetReservation;#fetch:typeof fetch;#log:(event:Record<string,unknown>)=>void;
  #enabled:boolean;#daily:number;#monthly:number;#busy=0;#times:number[]=[];#cooldown=0;
- #metrics={requests:0,completed:0,basicReplies:0,errors:0,moderated:0,limited:0,inputTokens:0,outputTokens:0};
+ #metrics={requests:0,completed:0,basicReplies:0,ambientReplies:0,errors:0,moderated:0,limited:0,inputTokens:0,outputTokens:0};
  constructor(env:NodeJS.ProcessEnv,reserve:BudgetReservation,options:{fetch?:typeof fetch;log?:(event:Record<string,unknown>)=>void}={}){
   this.#key=env.OPENAI_API_KEY?.trim()??'';this.#reserve=reserve;this.#fetch=options.fetch??fetch;this.#log=options.log??(()=>{});
   const cap=(v:string|undefined,defaultValue:number)=>{const n=Number(v??defaultValue);return Number.isFinite(n)&&n>=0?Math.min(n,defaultValue):0;};
@@ -49,10 +50,12 @@ export class OpenAIResidentDialogue implements ResidentAI{
  async #safe(text:string){const r=await this.#post('moderations',{model:'omni-moderation-latest',input:text});return Array.isArray(r.results)&&r.results.length>0&&r.results.every((v:any)=>v.flagged===false);}
  async reply(request:DialogueRequest):Promise<string|null>{
   if(!this.#enabled)return null;
+  // Resident-to-resident chatter is always local reviewed text, never a paid AI turn.
+  if(request.ambient){const text=residentAmbientReply(request);if(text)this.#metrics.ambientReplies++;return text;}
   const now=Date.now();this.#times=this.#times.filter(t=>now-t<60000);
   if(this.#busy>=2||this.#times.length>=12||now<this.#cooldown){this.#metrics.limited++;return null;}
   const input=dialogueInput(request);
-  // UTF-8 byte bound conservatively exceeds token count; reserve $0.002 before any call.
+  // UTF-8 byte bound conservatively exceeds token count; reserve $0.002 before any paid Responses call.
   // At verified Luna standard rates, <=13,024 input + 256 output tokens cost <$0.002.
   if(Buffer.byteLength(input+instructions,'utf8')>12000)return null;
   this.#times.push(now);this.#busy++;this.#metrics.requests++;
