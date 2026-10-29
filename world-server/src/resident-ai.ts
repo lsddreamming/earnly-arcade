@@ -1,11 +1,12 @@
 import {spudDefinition} from './spud-residents.ts';
 import type {SpudId} from './spud-residents.ts';
 import type {ResidentHomeFacts} from './resident-homes.ts';
+import {basicResidentReply} from './resident-basic.ts';
 
 export type DialogueLine={speaker:string;text:string};
 export type DialogueRequest={residentId:SpudId;context:DialogueLine[];addressed:boolean;ambient:boolean;activity:string;companions:string[];home?:ResidentHomeFacts;inOwnHome?:boolean};
 export interface ResidentAI {reply(request:DialogueRequest):Promise<string|null>}
-export type BudgetReservation=(daily:number,monthly:number)=>Promise<boolean>;
+export type BudgetReservation=(daily:number,monthly:number)=>Promise<boolean|'daily_limit'|'monthly_limit'>;
 const MODEL='gpt-6-luna';
 const instructions=`You are an AI Spud resident in Earnly World, a friendly all-ages arcade hangout. Speak only as the assigned resident, in one or two short natural sentences (maximum 240 characters). Answer the actual latest question first. Use the supplied recent public conversation to resolve follow-ups. Do not repeat greetings, catchphrases or earlier answers. Return exactly SKIP if joining would interrupt, the message is meant for another human, or you have nothing relevant to add. Direct greetings/questions addressed to you deserve a relevant answer. During ambient turns, start or continue a short conversation with the named nearby residents about an actual game or decorating; let others join. Avoid always asking a question.
 Personalities: Jax is playful and funny without forcing potato jokes; Blitz is a friendly competitive gamer; Mochi is shy, warm and thoughtful without excessive ellipses; Zippy is enthusiastic without shouting. Other residents use their supplied personality.
@@ -32,7 +33,7 @@ export function repeatedReply(text:string,previous:string[]){
 export class OpenAIResidentDialogue implements ResidentAI{
  #key:string;#reserve:BudgetReservation;#fetch:typeof fetch;#log:(event:Record<string,unknown>)=>void;
  #enabled:boolean;#daily:number;#monthly:number;#busy=0;#times:number[]=[];#cooldown=0;
- #metrics={requests:0,completed:0,errors:0,moderated:0,limited:0,inputTokens:0,outputTokens:0};
+ #metrics={requests:0,completed:0,basicReplies:0,errors:0,moderated:0,limited:0,inputTokens:0,outputTokens:0};
  constructor(env:NodeJS.ProcessEnv,reserve:BudgetReservation,options:{fetch?:typeof fetch;log?:(event:Record<string,unknown>)=>void}={}){
   this.#key=env.OPENAI_API_KEY?.trim()??'';this.#reserve=reserve;this.#fetch=options.fetch??fetch;this.#log=options.log??(()=>{});
   const cap=(v:string|undefined,defaultValue:number)=>{const n=Number(v??defaultValue);return Number.isFinite(n)&&n>=0?Math.min(n,defaultValue):0;};
@@ -56,7 +57,16 @@ export class OpenAIResidentDialogue implements ResidentAI{
   if(Buffer.byteLength(input+instructions,'utf8')>12000)return null;
   this.#times.push(now);this.#busy++;this.#metrics.requests++;
   try{
-   if(!await this.#reserve(this.#daily,this.#monthly)){this.#metrics.limited++;return null;}
+   const reservation=await this.#reserve(this.#daily,this.#monthly);
+   if(reservation!==true){
+    this.#metrics.limited++;
+    if(reservation!=='daily_limit'&&reservation!=='monthly_limit')return null;
+    const text=cleanReply(basicResidentReply(request));
+    if(!text)return null;
+    // Budget fallback never calls Responses; moderation still fails closed.
+    if(!await this.#safe(input)||!await this.#safe(text)){this.#metrics.moderated++;return null;}
+    this.#metrics.basicReplies++;return text;
+   }
    if(!await this.#safe(input)){this.#metrics.moderated++;return null;}
    const result=await this.#post('responses',{model:MODEL,instructions,input,store:false,max_output_tokens:256,reasoning:{effort:'none'},service_tier:'default'});
    this.#metrics.inputTokens+=Number(result.usage?.input_tokens)||0;this.#metrics.outputTokens+=Number(result.usage?.output_tokens)||0;

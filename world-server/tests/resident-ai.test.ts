@@ -49,3 +49,21 @@ test('verified room facts are projected without private extras and cannot descri
  const input=JSON.parse(dialogueInput({...request,home,inOwnHome:true}));assert.equal(input.verifiedHome.currentlyHere,true);assert.equal(input.verifiedHome.animatedFish,true);assert.ok(!JSON.stringify(input).includes('PRIVATE_SENTINEL'));
  assert.equal(JSON.parse(dialogueInput({...request,home:{...home,residentId:'jax'}})).verifiedHome,undefined);
 });
+
+test('budget-only scripted replies remain moderated, never call Responses, and resume AI automatically',async()=>{
+ let reservation:true|'daily_limit'|'monthly_limit'='daily_limit';const calls:string[]=[];
+ const ai=new OpenAIResidentDialogue(env,async()=>reservation,{fetch:async url=>{calls.push(String(url));return Response.json(String(url).endsWith('/moderations')?{results:[{flagged:false}]}:result());}});
+ assert.match((await ai.reply(request))!,/doing well/);
+ reservation='monthly_limit';assert.match((await ai.reply(request))!,/doing well/);
+ assert.equal(calls.length,4);assert.ok(calls.every(url=>url.endsWith('/moderations')));
+ assert.equal(ai.status().basicReplies,2);assert.equal(ai.status().completed,0);
+ reservation=true;assert.match((await ai.reply(request))!,/cozy spot/);assert.equal(ai.status().completed,1);
+});
+test('budget scripts do not bypass moderation, provider failure, disabled state or unsolicited ambient restraint',async()=>{
+ for(const scenario of ['flagged','outage','disabled','ambient']){
+  let calls=0;const ai=new OpenAIResidentDialogue(scenario==='disabled'?{...env,WORLD_AI_ENABLED:'false'}:env,async()=>'daily_limit',{fetch:async()=>{calls++;if(scenario==='outage')throw Error('unavailable');return Response.json({results:[{flagged:true}]});}});
+  assert.equal(await ai.reply({...request,ambient:scenario==='ambient'}),null);
+  assert.equal(ai.status().basicReplies,0);
+  if(scenario==='ambient'||scenario==='disabled')assert.equal(calls,0);
+ }
+});

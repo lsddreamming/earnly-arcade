@@ -35,7 +35,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     const parsed=new URL(url.trim());
     if(parsed.protocol!=='https:'||!serviceKey.trim())throw new Error('Secure Supabase configuration required');
     this.#url=parsed.origin;this.#key=serviceKey.trim();
-    this.#dialogue=new OpenAIResidentDialogue(env,async(daily,monthly)=>await this.#request('/rest/v1/rpc/world_ai_reserve',this.#key,{p_daily:daily,p_monthly:monthly})===true,{log:event=>console.log(JSON.stringify(event))});
+    this.#dialogue=new OpenAIResidentDialogue(env,async(daily,monthly)=>{const status=await this.#request('/rest/v1/rpc/world_ai_reserve_status',this.#key,{p_daily:daily,p_monthly:monthly});return status==='reserved'?true:status==='daily_limit'||status==='monthly_limit'?status:false;},{log:event=>console.log(JSON.stringify(event))});
   }
   async #request(path:string,token:string,body?:unknown):Promise<any>{
     const response=await fetch(this.#url+path,{method:body===undefined?'GET':'POST',headers:{apikey:this.#key,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(4000)});
