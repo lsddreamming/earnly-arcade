@@ -1,7 +1,9 @@
+import {cleanReply,repeatedReply} from './resident-ai.ts';
+import type {ResidentAI,DialogueLine} from './resident-ai.ts';
 import type {ResidentMemory} from './resident-social.ts';
-import {NaturalSocial,residentReply,residentGreeting,publicResidentTopic,publicResidentReply,residentExchange} from './resident-social.ts';
+import {NaturalSocial,residentReply} from './resident-social.ts';
 import type {SpudId} from './spud-residents.ts';
-import {spudDefinition} from './spud-residents.ts';
+import {spudDefinition,SPUDS} from './spud-residents.ts';
 import {SpudResidents} from './spud-residents.ts';
 import {randomInt} from 'node:crypto';
 import { RoomGrid, tileKey, validXY } from './grid.ts';
@@ -28,47 +30,110 @@ export class RoomRuntime {
   #social?:NaturalSocial;
   #roomKey='';
   #memories=new Map<string,Map<string,ResidentMemory>>();
-  #publicTurn=0;#nextPublicReply=0;#lastPublicSpeech=-Infinity;
+  #ai?:ResidentAI;
+  #onInteraction?:(uid:string,id:SpudId)=>Promise<void>;
+  onResidentInteraction(callback:(uid:string,id:SpudId)=>Promise<void>){this.#onInteraction=callback;}
+  #nextPublicReply=0;#lastPublicSpeech=-Infinity;#generation=0;#aiBusy=false;
   #conversation?:{id:SpudId;until:number};
-  #publicReply?:{id:SpudId;source:string;allowed:Set<string>;text:string;at:number};
-  #nextAmbient=240+Math.floor(Math.random()*240);#exchangeRound=0;
-  #exchange?:{first:SpudId;second:SpudId;text:string;at:number;release:number;replied:boolean};
+  #history:{line:DialogueLine;heard:Set<SpudId>;allowed:Set<string>;at:number;source?:string}[]=[];
+  #pending:{id:SpudId;source:string;allowed:Set<string>;addressed:boolean;at:number}[]=[];
+  #ready?:{id:SpudId;text:string;source?:string;allowed:Set<string>;at:number;generation:number;ambient:boolean};
+  #recentReplies:string[]=[];#ambientHistory:DialogueLine[]=[];
+  #nextAmbient=240+Math.floor(Math.random()*240);
+  #exchange?:{ids:SpudId[];turn:number;lines:DialogueLine[];at:number;generation:number};
+  enableDialogue(ai:ResidentAI){this.#ai=ai;}
+  invalidateDialogue(){this.#generation++;this.#history=[];this.#pending=[];this.#ready=undefined;this.#endExchange();}
+  #near(a:XYZ,b:XYZ){return Math.hypot(a.x-b.x,a.y-b.y)<=8&&Math.abs(a.z-b.z)<=1;}
   #residentAudience(id:SpudId,allowed?:Set<string>,source?:string,ambient=false){
     const spud=this.spuds.snapshots().find(s=>s.residentId===id);if(!spud)return [];
     const speaker=source?this.#members.get(source):undefined;if(source&&!speaker)return [];
-    const near=(p:XYZ)=>Math.hypot(p.x-spud.position.x,p.y-spud.position.y)<=8&&Math.abs(p.z-spud.position.z)<=1;
-    if(speaker&&!near(this.#position(speaker)))return [];
-    return [...this.#members].filter(([uid,m])=>(!allowed||allowed.has(uid))&&near(this.#position(m))&&(!speaker||Math.hypot(this.#position(m).x-this.#position(speaker).x,this.#position(m).y-this.#position(speaker).y)<=8)&&(!ambient||!this.#social?.quiet(uid,performance.now()))).map(([uid])=>uid);
+    if(speaker&&!this.#near(this.#position(speaker),spud.position))return [];
+    return [...this.#members].filter(([uid,m])=>(!allowed||allowed.has(uid))&&this.#near(this.#position(m),spud.position)&&(!speaker||this.#near(this.#position(m),this.#position(speaker)))&&(!ambient||!this.#social?.quiet(uid,performance.now()))).map(([uid])=>uid);
   }
-  #residentSpeech(id:SpudId,text:string,allowed?:Set<string>,source?:string,ambient=false){
+  #residentSpeech(id:SpudId,text:string,allowed:Set<string>,source?:string,ambient=false){
     const viewers=this.#residentAudience(id,allowed,source,ambient);if(!viewers.length)return false;
     const packet={type:'CHAT',userId:'ai-'+id,residentId:id,username:spudDefinition(id)!.name,isAI:true,text,mode:'normal',ambient};
-    for(const uid of viewers)this.#members.get(uid)?.send(packet);this.#lastPublicSpeech=this.#ticks;return true;
+    for(const uid of viewers)this.#members.get(uid)?.send(packet);
+    this.#lastPublicSpeech=this.#ticks;this.#recentReplies.push(text);this.#recentReplies=this.#recentReplies.slice(-12);
+    const spud=this.spuds.snapshots().find(s=>s.residentId===id)!;
+    this.#rememberPublic({speaker:spud.username,text},new Set(this.spuds.snapshots().filter(s=>this.#near(spud.position,s.position)).map(s=>s.residentId)),new Set(viewers),source);
+    return true;
   }
-  /** Called only after the normal public message passed server moderation and block filtering. */
+  #rememberPublic(line:DialogueLine,heard:Set<SpudId>,allowed:Set<string>,source?:string){
+    this.#history=this.#history.filter(h=>this.#ticks-h.at<480).slice(-23);
+    this.#history.push({line,heard,allowed,at:this.#ticks,source});
+  }
+  #endExchange(){if(this.#exchange)for(const id of this.#exchange.ids)this.spuds.release('ambient-'+id);this.#exchange=undefined;}
+  /** Only moderated normal public messages reach this method. Whispers and DMs never do. */
   queueResidentReply(uid:string,text:string,allowed:string[],requested?:unknown){
-    const member=this.#members.get(uid);if(!member||this.paused)return false;this.#lastPublicSpeech=this.#ticks;if(this.#ticks<this.#nextPublicReply||this.#publicReply)return false;
-    const from=this.#position(member),near=this.spuds.snapshots().filter(s=>Math.hypot(from.x-s.position.x,from.y-s.position.y)<=8&&Math.abs(from.z-s.position.z)<=1).sort((a,b)=>Math.hypot(from.x-a.position.x,from.y-a.position.y)-Math.hypot(from.x-b.position.x,from.y-b.position.y));
-    const named=near.find(s=>text.toLowerCase().split(/[^a-z]+/).includes(s.username.toLowerCase())),topic=publicResidentTopic(text);
-    const spud=requested!==undefined?near.find(s=>s.residentId===requested):named??(this.#conversation&&this.#conversation.until>this.#ticks?near.find(s=>s.residentId===this.#conversation!.id):undefined)??(topic!=='other'?near[0]:undefined);
+    const member=this.#members.get(uid);if(!member||this.paused||!this.#ai||typeof text!=='string'||!text.trim())return false;
+    this.#lastPublicSpeech=this.#ticks;
+    const from=this.#position(member),near=this.spuds.snapshots().filter(s=>this.#near(from,s.position)).sort((a,b)=>Math.hypot(from.x-a.position.x,from.y-a.position.y)-Math.hypot(from.x-b.position.x,from.y-b.position.y));
+    const audience=new Set(allowed.filter(id=>this.#members.has(id)));audience.add(uid);
+    this.#rememberPublic({speaker:member.identity.username,text:text.slice(0,280)},new Set(near.map(s=>s.residentId)),audience,uid);
+    // Human messages cancel unsent ambient turns, never spawn recursive AI calls.
+    if(this.#exchange){this.#generation++;this.#endExchange();if(this.#ready?.ambient)this.#ready=undefined;}
+    const words=text.toLowerCase().split(/[^a-z]+/),named=near.find(s=>words.includes(s.username.toLowerCase()));
+    if(requested===undefined&&!named&&SPUDS.some(s=>words.includes(s.name.toLowerCase())))return false;
+    const spud=requested!==undefined?near.find(s=>s.residentId===requested):named??(this.#conversation&&this.#conversation.until>this.#ticks?near.find(s=>s.residentId===this.#conversation!.id):undefined)??near[0];
     if(!spud)return false;
-    this.#nextPublicReply=this.#ticks+16;this.#conversation=topic==='bye'?undefined:{id:spud.residentId,until:this.#ticks+240};
-    this.spuds.focus(uid,spud.residentId);this.#publicReply={id:spud.residentId,source:uid,allowed:new Set(allowed),text:publicResidentReply(spud.residentId,topic,this.#publicTurn++),at:this.#ticks+4};return true;
+    const addressed=requested!==undefined||!!named;
+    if(this.#social?.quiet(uid,performance.now())&&!addressed)return false;
+    if(this.#social&&!this.#social.aiTurn(uid,performance.now()))return false;
+    const old=this.#pending.findIndex(p=>p.source===uid);if(old>=0)this.#pending.splice(old,1);
+    if(this.#pending.length>=8)return false;
+    this.#pending.push({id:spud.residentId,source:uid,allowed:audience,addressed,at:this.#ticks});
+    this.spuds.focus(uid,spud.residentId);return true;
+  }
+  #generate(id:SpudId,context:DialogueLine[],allowed:Set<string>,addressed:boolean,ambient:boolean,source?:string,companions:string[]=[]){
+    const spud=this.spuds.snapshots().find(s=>s.residentId===id);if(!spud||!this.#ai)return;
+    this.#aiBusy=true;const generation=this.#generation,started=this.#ticks;
+    void this.#ai.reply({residentId:id,context,addressed,ambient,activity:spud.activity,companions}).then(result=>{
+      const text=cleanReply(result);
+      if(!text||repeatedReply(text,this.#recentReplies)||generation!==this.#generation||this.paused||this.#ticks-started>120){if(!text&&addressed&&source&&generation===this.#generation)this.#members.get(source)?.send({type:'RESIDENT_STATUS',status:'unavailable'});return;}
+      this.#ready={id,text,source,allowed,at:this.#ticks+4,generation,ambient};
+    }).catch(()=>{}).finally(()=>{this.#aiBusy=false;if(ambient&&!this.#ready)this.#endExchange();});
   }
   #publicSocialTick(){
-    if(this.#publicReply&&this.#ticks>=this.#publicReply.at){const reply=this.#publicReply;this.#publicReply=undefined;this.#residentSpeech(reply.id,reply.text,reply.allowed,reply.source);}
-    if(this.#exchange){const e=this.#exchange;
-      if(!e.replied&&this.#ticks>=e.at){e.replied=true;if(!this.#conversation||this.#conversation.until<=this.#ticks)this.#residentSpeech(e.second,e.text,undefined,undefined,true);}
-      if(this.#ticks>=e.release){this.spuds.release('ambient-first');this.spuds.release('ambient-second');this.#exchange=undefined;}
+    if(!this.#ai||this.paused)return;
+    if(this.#ready&&this.#ticks>=this.#ready.at){
+      const r=this.#ready;this.#ready=undefined;
+      if(r.generation===this.#generation&&this.#residentSpeech(r.id,r.text,r.allowed,r.source,r.ambient)){
+        if(r.source&&this.#onInteraction)void this.#onInteraction(r.source,r.id).catch(()=>{});
+        this.#nextPublicReply=this.#ticks+12;
+        this.#conversation={id:r.id,until:this.#ticks+240};
+        if(r.ambient&&this.#exchange){this.#ambientHistory.push({speaker:spudDefinition(r.id)!.name,text:r.text});this.#ambientHistory=this.#ambientHistory.slice(-6);this.#exchange.lines.push({speaker:spudDefinition(r.id)!.name,text:r.text});this.#exchange.turn++;this.#exchange.at=this.#ticks+16;}
+      }else if(r.ambient)this.#endExchange();
     }
-    if(this.#ticks<this.#nextAmbient||this.#exchange)return;
-    this.#nextAmbient=this.#ticks+360+Math.floor(Math.random()*360);
-    if(this.#ticks-this.#lastPublicSpeech<240||this.#publicReply||this.#conversation&&this.#conversation.until>this.#ticks)return;
+    if(this.#aiBusy||this.#ready||this.#ticks<this.#nextPublicReply)return;
+    while(this.#pending.length){
+      const p=this.#pending.shift()!;
+      if(this.#ticks-p.at>120||!this.#residentAudience(p.id,p.allowed,p.source).length)continue;
+      const history=this.#history.filter(h=>h.heard.has(p.id)&&h.allowed.has(p.source)&&h.at<=p.at&&this.#ticks-h.at<480).slice(-10);
+      // A reply can paraphrase any supplied line: intersect its entire context audience.
+      const allowed=new Set([...p.allowed].filter(uid=>history.every(h=>h.allowed.has(uid))));
+      if(!allowed.has(p.source))continue;
+      this.#generate(p.id,history.map(h=>h.line),allowed,p.addressed,false,p.source);return;
+    }
+    if(this.#exchange){
+      const e=this.#exchange;if(e.turn>=e.ids.length||e.generation!==this.#generation){this.#endExchange();return;}
+      if(this.#ticks<e.at)return;
+      const id=e.ids[e.turn],positions=e.ids.map(id=>this.spuds.snapshots().find(s=>s.residentId===id)?.position);
+      if(positions.some(p=>!p)||positions.some(p=>!this.#near(p!,positions[0]!))){this.#endExchange();return;}
+      const allowed=new Set(this.#residentAudience(id,undefined,undefined,true).filter(uid=>e.ids.every(other=>this.#residentAudience(other,undefined,undefined,true).includes(uid))));
+      if(!allowed.size){this.#endExchange();return;}
+      this.#generate(id,e.lines,allowed,false,true,undefined,e.ids.filter(s=>s!==id).map(s=>spudDefinition(s)!.name));return;
+    }
+    if(this.#ticks<this.#nextAmbient)return;
+    this.#nextAmbient=this.#ticks+480+Math.floor(Math.random()*480);
+    if(this.#ticks-this.#lastPublicSpeech<240)return;
     const spuds=this.spuds.snapshots().filter(s=>s.activity!=='chatting');
-    for(let i=0;i<spuds.length;i++)for(let j=i+1;j<spuds.length;j++){
-      const a=spuds[i],b=spuds[j];if(Math.hypot(a.position.x-b.position.x,a.position.y-b.position.y)>5||Math.abs(a.position.z-b.position.z)>1||!this.#residentAudience(a.residentId,undefined,undefined,true).length||!this.#residentAudience(b.residentId,undefined,undefined,true).length)continue;
-      const [question,answer]=residentExchange(a.residentId,b.residentId,this.#exchangeRound++);
-      this.spuds.focus('ambient-first',a.residentId);this.spuds.focus('ambient-second',b.residentId);this.#residentSpeech(a.residentId,question,undefined,undefined,true);this.#exchange={first:a.residentId,second:b.residentId,text:answer,at:this.#ticks+12,release:this.#ticks+40,replied:false};return;
+    for(const a of spuds){
+      const group=[a];
+      for(const b of spuds)if(group.length<3&&!group.includes(b)&&group.every(other=>this.#near(other.position,b.position)))group.push(b);
+      if(group.length<2||!this.#residentAudience(a.residentId,undefined,undefined,true).some(uid=>group.every(s=>this.#residentAudience(s.residentId,undefined,undefined,true).includes(uid))))continue;
+      const ids=group.map(s=>s.residentId);for(const id of ids)this.spuds.focus('ambient-'+id,id);
+      this.#exchange={ids,turn:0,lines:[...this.#ambientHistory],at:this.#ticks+4,generation:this.#generation};return;
     }
   }
 
@@ -251,7 +316,7 @@ export class RoomRuntime {
     for(const [itemId,result] of this.#furnitureResults)if(result.value>0&&this.grid.tile(result)?.itemId===itemId)send({type:'FURNITURE_RESULT',itemId,value:result.value,kind:'dice',snapshot:true});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
-  leave(userId:string){this.spuds.release(userId);this.#memories.delete(userId);if(this.#members.delete(userId)){this.dismissResident(userId);this.#broadcast({type:'USER_LEFT',userId});}}
+  leave(userId:string){this.#pending=this.#pending.filter(p=>p.source!==userId);this.#history=this.#history.filter(h=>h.source!==userId);this.spuds.release(userId);this.#memories.delete(userId);if(this.#members.delete(userId)){this.dismissResident(userId);this.#broadcast({type:'USER_LEFT',userId});}}
   /** userId comes from the socket binding, never from a packet. now is server monotonic time. */
   receive(userId:string,packet:unknown,now:number){
     const m=this.#members.get(userId);
@@ -344,7 +409,7 @@ export class RoomRuntime {
     }
     const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...m.movement.plannedTiles().map(tileKey),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
     if(this.spuds.tick(this.grid,external,this.memberCount,this.#publicResidents))moved=true;
-    if(this.#social&&this.#ticks%4===0&&this.#ticks-this.#lastPublicSpeech>=120){const now=performance.now();for(const id of this.#members.keys()){if(!this.#social.ready(id,this.#roomKey,now))continue;for(const spud of this.spuds.snapshots()){if(this.residentNearby(id,spud.residentId)&&this.#social.greeting(id,this.#roomKey,spud.residentId,now)){this.#residentSpeech(spud.residentId,residentGreeting(spud.residentId),undefined,undefined,true);break;}}}}
+
     this.#publicSocialTick();
     if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
     const changes=[];

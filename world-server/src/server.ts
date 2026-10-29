@@ -9,12 +9,14 @@ if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY||!WORLD_ORIGINS)throw new Error('Wo
 const origins=worldOrigins(WORLD_ORIGINS);
 const port=Number(process.env.WORLD_PORT??8080);
 if(!Number.isInteger(port)||port<1024||port>65535)throw new Error('Invalid port');
+const access=new SupabaseWorldAccess(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,process.env);
+console.log(JSON.stringify({event:'resident_ai_configuration',...access.aiStatus()}));
 const server=createServer((request,response)=>{
  response.setHeader('Cache-Control','no-store');response.setHeader('Content-Type','application/json');
- if(request.url==='/health'){response.writeHead(200);response.end('{"status":"ok"}');}
+ if(request.url==='/health'){response.writeHead(200);response.end(JSON.stringify({status:'ok',ai:access.aiStatus()}));}
  else{response.writeHead(404);response.end('{"error":"not_found"}');}
 });
-const gateway=attachWorldGateway(server,new SupabaseWorldAccess(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY),origins,{
+const gateway=attachWorldGateway(server,access,origins,{
  // Fixed event/stage labels only: never log tokens, account IDs, packets or raw errors.
  diagnostic:event=>console.log(JSON.stringify(event))
 });

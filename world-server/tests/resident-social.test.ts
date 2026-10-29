@@ -60,33 +60,68 @@ function publicRoom(){
  const chats=(id:string)=>packets.get(id)!.filter(p=>p.type==='CHAT'&&p.isAI);const ticks=(n:number)=>{for(let i=0;i<n;i++)r.tick();};
  return {r,at,add,free,chats,ticks,packets};
 }
-test('public resident replies reach approved nearby listeners, allow another speaker, and never expose saved memories',()=>{
- const {r,chats,ticks,at}=publicRoom();
+const flush=()=>new Promise<void>(resolve=>setImmediate(resolve));
+test('contextual public replies preserve proximity, block audience, follow-ups and memory isolation',async()=>{
+ const {r,chats,ticks,at}=publicRoom();const requests:any[]=[];
+ r.enableDialogue({reply:async q=>{requests.push(q);return requests.length===1?'Feeling good! How is your day going?':'Saved memories stay private in Resident privacy.';}});
  r.setResidentMemory('speaker',{quiet:false,relations:[{residentId:'jax',friend:true,remember:true,visits:3,favoriteGame:'SECRET_PRIVATE_GAME'}]});
  assert.equal(r.queueResidentReply('outsider','hello',['speaker']),false);
  assert.equal(r.queueResidentReply('far','hello',['far'],'jax'),false);
- assert.equal(r.queueResidentReply('speaker','hello',['speaker','listener','far'],'forged'),false);
- assert.equal(r.queueResidentReply('speaker','Jax hello',['speaker','listener','far']),true);
- assert.equal(r.queueResidentReply('listener','hello',['speaker','listener']),false,'one reply at a time');ticks(3);assert.equal(chats('speaker').length,0);ticks(1);
+ assert.equal(r.queueResidentReply('speaker','Hey Mochi, how are you?',['speaker','listener']),false,'do not answer for an absent named resident');
+ assert.equal(r.queueResidentReply('speaker','Hey Jax, how are you?',['speaker','listener','far']),true);
+ ticks(1);await flush();ticks(4);
  assert.equal(chats('speaker').length,1);assert.deepEqual(chats('speaker'),chats('listener'));assert.equal(chats('blocked').length,0);assert.equal(chats('far').length,0);
- assert.equal(chats('speaker')[0].userId,'ai-jax');assert.deepEqual(r.spuds.snapshots()[0].position,at);
- ticks(12);assert.equal(r.queueResidentReply('listener','what do you remember about me',['speaker','listener']),true);ticks(4);
- assert.match(chats('listener').at(-1).text,/memories are private/);assert.ok(!JSON.stringify(chats('listener')).includes('SECRET_PRIVATE_GAME'));
- ticks(12);assert.equal(r.queueResidentReply('listener','something else',['speaker','listener']),true,'nearby players can join the ongoing group conversation');
+ assert.equal(chats('speaker')[0].text,'Feeling good! How is your day going?');assert.deepEqual(r.spuds.snapshots()[0].position,at);
+ ticks(12);r.queueResidentReply('listener','What do you remember about me?',['speaker','listener']);ticks(1);await flush();ticks(4);
+ assert.equal(requests[1].context.at(-1).text,'What do you remember about me?');assert.ok(requests[1].context.some((l:any)=>l.text.includes('How is your day')));
+ assert.ok(!JSON.stringify(requests).includes('SECRET_PRIVATE_GAME'));assert.match(chats('listener').at(-1).text,/private/);
 });
-test('a pending public reply is cancelled when its speaker leaves; public focus never changes movement',()=>{
- const {r,chats,ticks,free}=publicRoom();
+test('pending replies are cancelled after leaving or a new block, and public focus preserves movement',async t=>{
+ t.mock.method(Math,'random',()=>.2);
+ const {r,chats,ticks,free}=publicRoom();r.enableDialogue({reply:async()=> 'A fresh response.'});
  const goal=free(2,4);assert.equal(r.receive('speaker',{type:'MOVE_TO',...goal},1000),true);
- assert.equal(r.residentFocus('speaker','jax',true,1001,true).ready,true);ticks(24);
- assert.deepEqual(r.members().find(m=>m.userId==='speaker')!.position,{...goal,z:0});
- assert.equal(r.queueResidentReply('speaker','hello',['speaker','listener'],'jax'),true);r.leave('speaker');ticks(4);assert.equal(chats('listener').length,0);
+ r.residentFocus('speaker','jax',true,1001,true);ticks(24);assert.deepEqual(r.members().find(m=>m.userId==='speaker')!.position,{...goal,z:0});
+ r.queueResidentReply('speaker','hello',['speaker','listener'],'jax');ticks(1);await flush();r.invalidateDialogue();ticks(4);assert.equal(chats('listener').length,0);
+ r.queueResidentReply('speaker','hello',['speaker','listener'],'jax');ticks(1);await flush();r.leave('speaker');ticks(4);assert.equal(chats('listener').length,0);
 });
-test('ambient resident conversations use two public speakers, respect Quiet, and stay bounded',t=>{
+test('every nearby public message is eligible; single-flight and Quiet suppress unsolicited replies',async()=>{
+ const {r,ticks,chats}=publicRoom();let resolve!:(value:string)=>void;let calls=0;
+ r.enableDialogue({reply:async()=>{calls++;return new Promise<string>(r=>resolve=r);}});
+ r.residentQuiet('speaker',true,0);assert.equal(r.queueResidentReply('speaker','What a beautiful day',['speaker','listener']),false);
+ assert.equal(r.queueResidentReply('speaker','Jax what do you think?',['speaker','listener']),true);ticks(1);
+ r.queueResidentReply('listener','The blue one looks better',['speaker','listener']);ticks(10);assert.equal(calls,1);
+ resolve('The blue one would suit a cozy room.');await flush();ticks(4);assert.equal(chats('speaker').length,1);ticks(12);assert.equal(calls,2);
+ resolve('I like the open walking space too.');await flush();ticks(4);assert.equal(chats('speaker').length,2);
+});
+test('ambient AI turns stay bounded, honor Quiet, and yield to player interruption',async t=>{
  t.mock.method(Math,'random',()=>0.2);const r=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));r.enableSocial(new NaturalSocial(()=>0),'ambient');
  const events=new Map<string,any[]>();for(const [id,p]of [['host',{x:0,y:0}],['other',{x:1,y:0}],['quiet',{x:2,y:0}]] as const){events.set(id,[]);r.join({userId:id,username:id},p,v=>events.get(id)!.push(v));}
  r.inviteResident('host','jax');r.inviteResident('other','blitz');r.residentQuiet('quiet',true,performance.now());
- // Keep pair adjacent and within range without preventing their social participation.
- for(let i=0;i<4000;i++)r.tick();
- const audible=events.get('host')!.filter(p=>p.type==='CHAT'&&p.ambient);assert.ok(audible.length>=2,'occasional authored exchanges occur');assert.ok(audible.length<=24,'no constant chatter');assert.deepEqual(new Set(audible.map(p=>p.residentId)),new Set(['jax','blitz']));assert.equal(events.get('quiet')!.filter(p=>p.type==='CHAT'&&p.ambient).length,0);
- const empty=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));empty.enableResidents();for(let i=0;i<1000;i++)empty.tick();assert.ok(empty.spuds.snapshots().every(s=>s.activity!=='chatting'));
+ const requests:any[]=[];r.enableDialogue({reply:async q=>{requests.push(q);return q.residentId==='jax'?'Blitz, what is your strategy for Snake?':'I try to leave room for the next turn.';}});
+ for(let i=0;i<1000;i++){r.tick();await flush();}
+ const audible=events.get('host')!.filter(p=>p.type==='CHAT'&&p.ambient);assert.equal(audible.length,2);assert.deepEqual(new Set(audible.map(p=>p.residentId)),new Set(['jax','blitz']));assert.equal(events.get('quiet')!.filter(p=>p.type==='CHAT'&&p.ambient).length,0);
+ assert.ok(requests[1].context.length>0);assert.ok(requests.length<=4);
 });
+test('an empty room never calls the model and unavailable direct chat is honest',async()=>{
+ const empty=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));let calls=0;empty.enableResidents();empty.enableDialogue({reply:async()=>{calls++;return null;}});for(let i=0;i<2000;i++)empty.tick();assert.equal(calls,0);
+ const {r,ticks,packets,chats}=publicRoom();r.enableDialogue({reply:async()=>null});r.queueResidentReply('speaker','Jax hello',['speaker']);ticks(1);await flush();ticks(4);assert.equal(chats('speaker').length,0);assert.ok(packets.get('speaker')!.some(p=>p.type==='RESIDENT_STATUS'));
+});
+
+test('exactly eight tiles is eligible, beyond eight is excluded, and stale results cannot follow a player',async()=>{
+ const r=new RoomRuntime(new RoomGrid(parseHeightmap(Array(25).fill('0'.repeat(25)).join('\n'))));r.enableSocial(new NaturalSocial(),'boundary');
+ r.join({userId:'owner',username:'Owner'},{x:0,y:0},()=>{});r.inviteResident('owner','mochi');r.spuds.focus('hold','mochi');const pos=r.spuds.snapshots()[0].position;
+ const dx=pos.x<=12?1:-1;const packets:any[]=[];
+ r.join({userId:'edge',username:'Edge'},{x:pos.x+8*dx,y:pos.y},p=>packets.push(p));r.join({userId:'outside',username:'Outside'},{x:pos.x+9*dx,y:pos.y},()=>{});
+ let resolve!:(s:string)=>void;r.enableDialogue({reply:()=>new Promise<string>(r=>resolve=r)});
+ assert.equal(r.queueResidentReply('outside','Mochi hi',['outside']),false);
+ assert.equal(r.queueResidentReply('edge','Hey Mochi, how are you?',['edge']),true);r.tick();
+ r.leave('edge');resolve('I am doing well, thanks for asking.');await flush();for(let i=0;i<4;i++)r.tick();assert.equal(packets.filter(p=>p.type==='CHAT').length,0);
+});
+test('human messages interrupt an in-flight ambient generation without publishing the stale reply',async t=>{
+ t.mock.method(Math,'random',()=>.2);const r=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));r.enableSocial(new NaturalSocial(),'interrupt');
+ const events:any[]=[];r.join({userId:'a',username:'A'},{x:0,y:0},p=>events.push(p));r.join({userId:'b',username:'B'},{x:1,y:0},()=>{});r.inviteResident('a','jax');r.inviteResident('b','blitz');
+ let resolve!:(s:string)=>void;const requests:any[]=[];r.enableDialogue({reply:q=>{requests.push(q);return new Promise<string>(r=>resolve=r);}});
+ for(let i=0;i<600&&!requests.length;i++)r.tick();assert.equal(requests.length,1);assert.equal(requests[0].ambient,true);
+ assert.equal(r.queueResidentReply('a','Jax how are you?',['a','b']),true);resolve('STALE_AMBIENT');await flush();r.tick();assert.equal(requests.length,2);assert.equal(requests[1].ambient,false);resolve('Doing well! Thanks for asking.');await flush();for(let i=0;i<4;i++)r.tick();assert.ok(!events.some(p=>p.text==='STALE_AMBIENT'));assert.ok(events.some(p=>p.text==='Doing well! Thanks for asking.'));
+});
+test('per-player provider throttle persists across room changes',()=>{const s=new NaturalSocial();for(let i=0;i<6;i++)assert.equal(s.aiTurn('player',i),true);assert.equal(s.aiTurn('player',10),false);assert.equal(s.aiTurn('other',10),true);assert.equal(s.aiTurn('player',60000),true);});
