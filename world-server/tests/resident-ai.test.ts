@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {OpenAIResidentDialogue,dialogueInput,repeatedReply} from '../src/resident-ai.ts';
+import {OpenAIResidentDialogue,dialogueInput,repeatedReply,cleanReply} from '../src/resident-ai.ts';
 import type {DialogueRequest} from '../src/resident-ai.ts';
 const request:DialogueRequest={residentId:'mochi',context:[{speaker:'Player',text:'Mochi, how would you combine a beach theme with a cozy reading corner?'}],addressed:true,ambient:false,activity:'sitting',companions:[]};
 const env={OPENAI_API_KEY:'test-secret-not-real',WORLD_AI_ENABLED:'true'};
@@ -67,3 +67,5 @@ test('budget scripts do not bypass moderation, provider failure, disabled state 
   if(scenario==='ambient'||scenario==='disabled')assert.equal(calls,0);
  }
 });
+
+test('resident output uses furniture even if a provider returns the unwanted abbreviation',()=>{assert.equal(cleanReply('Your furni looks cozy.'),'Your furniture looks cozy.');});
