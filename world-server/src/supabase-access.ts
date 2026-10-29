@@ -17,6 +17,7 @@ export class SupabaseWorldAccess implements WorldAccess {
   #url:string;#key:string;
   #rooms=new Map<string,RoomRuntime>();
   #retired=new Set<string>();
+  #publicWarmups=new Map<string,Promise<void>>();
   #queues=new Map<string,Promise<unknown>>();
   constructor(url:string,serviceKey:string){
     const parsed=new URL(url.trim());
@@ -41,6 +42,27 @@ export class SupabaseWorldAccess implements WorldAccess {
   async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
   #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items.map(item=>({...item,roller:item.sprite==='play-neon-roller'?item.rotation:undefined,furnitureUse:['play-neon-dice','play-clockwork-dice'].includes(item.sprite)?'dice' as const:item.sprite==='play-soft-serve'?'serve' as const:undefined,petToy:({'pet-toy-dog':'dog','pet-toy-cat':'cat','pet-toy-rabbit':'rabbit'} as Record<string,string>)[item.sprite],petBed:({'pet-bed-dog':'dog','pet-bed-cat':'cat','pet-bed-rabbit':'rabbit'} as Record<string,string>)[item.sprite]})),s.revision);}
   #roomCounts(rooms:Record<string,any>[]){return rooms.filter(r=>!this.#retired.has(r.id)).map(r=>{const runtime=this.#rooms.get(r.id),occupancy=runtime?.memberCount??0,residentCount=runtime?.spuds.snapshots().length??0;return {...r,occupancy,residentCount,spudCount:occupancy+residentCount};});}
+  #runtime(snapshot:Snapshot){
+    const roomId=snapshot.roomId;let room=this.#rooms.get(roomId);
+    if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
+    if(!room){
+      if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}
+      room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);
+      if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);this.#rooms.set(roomId,room);
+      // Materialize the actual residents before publishing a room's count. No users join here.
+      if(snapshot.ownerId===null)for(let i=0;i<10;i++)room.tick();
+    }
+    return room;
+  }
+  async #warmPublicRooms(uid:string,rooms:Record<string,any>[]){
+    const publicRooms=rooms.filter(r=>r.ownerId===null&&typeof r.id==='string'&&!this.#retired.has(r.id)).slice(0,8);
+    await Promise.allSettled(publicRooms.map(r=>{
+      if(this.#rooms.has(r.id))return Promise.resolve();
+      const existing=this.#publicWarmups.get(r.id);if(existing)return existing;
+      const warm=(async()=>{const snapshot=await this.#snapshot(uid,r.id);if(snapshot.roomId!==r.id||snapshot.ownerId!==null||this.#retired.has(r.id))return;this.#runtime(snapshot);})().finally(()=>this.#publicWarmups.delete(r.id));
+      this.#publicWarmups.set(r.id,warm);return warm;
+    }));
+  }
   async enter(identity:Identity,roomId:string){
     let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
     if(roomId==='home'||roomId==='choose-home'||roomId.startsWith('starter-')){
@@ -60,9 +82,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     const snapshot=await this.#snapshot(identity.userId,roomId);
     if(this.#retired.has(roomId))throw new Error('Room unavailable');
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
-    let room=this.#rooms.get(roomId);
-    if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
-    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);this.#rooms.set(roomId,room);}
+    const room=this.#runtime(snapshot);
     let aiMemory;try{aiMemory=await this.#residentState(identity.userId,roomId,'read');room.setResidentMemory(identity.userId,aiMemory);if(this.#memoryReady.size>=2000)this.#memoryReady.delete(this.#memoryReady.values().next().value!);this.#memoryReady.add(identity.userId);}catch{aiMemory=undefined;this.#memoryReady.delete(identity.userId);}
     return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,rooms:this.#roomCounts(bootstrap.rooms),residentCatalog:SPUDS.map(({id,name,personality})=>({id,name,personality})),aiResidents:true,aiMemory:!!aiMemory,residentQuiet:this.#social.quiet(identity.userId,performance.now()),personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
   }
@@ -142,7 +162,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       const directory=await this.#request('/rest/v1/rpc/world_explore_rooms',this.#key,{p_actor:uid,p_query:query,p_offset:offset});
       result={...directory,rooms:this.#roomCounts(directory.rooms)};
     }else if(action==='room_directory'){
-      const directory=await this.#api(uid,'bootstrap');result=this.#roomCounts(directory.rooms);
+      const directory=await this.#api(uid,'bootstrap');await this.#warmPublicRooms(uid,directory.rooms);result=this.#roomCounts(directory.rooms);
     }else if(action==='pet_interact'){if(data.kind!=='pet'&&data.kind!=='call')throw new Error('Unknown pet interaction');result=room.petInteract(uid,data.staffId,data.kind);
     }else if(action==='staff_talk'){result=room.talkToStaff(uid,data.staffId);
     }else if(['pet_buy','pet_place','pet_pickup','pet_rename'].includes(action)){

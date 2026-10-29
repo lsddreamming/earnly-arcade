@@ -91,3 +91,36 @@ test('social actions bind actor and room on the server and notify only the invit
  await assert.rejects(access.perform(identity,'current-room','react',{reaction:'bad'}),/Invalid reaction/);
  await assert.rejects(access.perform(identity,'current-room','invite',{userId:'bad'}),/Player unavailable/);
 });
+
+test('public room cards count materialized residents before the first human visit, without inventing player occupancy',async t=>{
+ const actor='22222222-2222-4222-8222-222222222222',rooms=[{id:'home',name:'Home',ownerId:actor},{id:'lobby',name:'Hotel Lobby',ownerId:null},{id:'roof',name:'Rooftop Lounge',ownerId:null},{id:'tiny',name:'Tiny',ownerId:null}];
+ const loaded:string[]=[];
+ t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{
+  const body=JSON.parse(options.body);assert.equal(body.p_actor,actor);
+  if(String(url).endsWith('world_api'))return Response.json({rooms,catalog:[],items:[],friends:[]});
+  if(String(url).endsWith('world_residents'))return Response.json({quiet:false,remember:false,relations:[]});
+  loaded.push(body.p_room);return Response.json({roomId:body.p_room,username:'Player',name:rooms.find(r=>r.id===body.p_room)?.name,ownerId:body.p_room==='home'?actor:null,access:'open',heightmap:body.p_room==='tiny'?'00\n00':Array(12).fill('000000000000').join('\n'),revision:0,capacity:25,items:[],equipped:{}});
+ });
+ const access=new SupabaseWorldAccess('https://world-test.invalid','server-key'),identity={userId:actor,username:'Me'};
+ const home=await access.enter(identity,'home');home.room.join(identity,home.spawn,()=>{});
+ const directory=async()=>(await access.perform(identity,'home','room_directory',{})).data;
+ const results=await Promise.all([directory(),directory()]);
+ for(const result of results){for(const id of ['lobby','roof']){const card=result.find((r:any)=>r.id===id);assert.equal(card.occupancy,0);assert.ok(card.residentCount>=4&&card.residentCount<=5);assert.equal(card.spudCount,card.residentCount);}assert.equal(result.find((r:any)=>r.id==='tiny').spudCount,0);}
+ assert.equal(loaded.filter(id=>id==='lobby').length,1,'concurrent directory refreshes share one warmup');
+ const before=results[0].find((r:any)=>r.id==='lobby');
+ const lobby=await access.enter(identity,'lobby');assert.equal(lobby.room.memberCount,0);assert.equal(lobby.room.spuds.snapshots().length,before.residentCount);lobby.room.join(identity,lobby.spawn,()=>{});
+ const joined=(await directory()).find((r:any)=>r.id==='lobby');assert.equal(joined.occupancy,1);assert.equal(joined.spudCount,before.spudCount+1);
+ lobby.room.leave(actor);assert.equal((await directory()).find((r:any)=>r.id==='lobby').occupancy,0);
+});
+
+test('failed public room warmups do not invent occupants or initialize private player rooms',async t=>{
+ const rooms=[{id:'home',name:'Home',ownerId:'actor'},{id:'unavailable',name:'Unavailable',ownerId:null},{id:'other-home',name:'Other Home',ownerId:'other'}],loaded:string[]=[];
+ t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{
+  const body=JSON.parse(options.body);if(String(url).endsWith('world_api'))return Response.json({rooms,catalog:[],items:[],friends:[]});
+  if(String(url).endsWith('world_residents'))return Response.json({quiet:false,remember:false,relations:[]});
+  loaded.push(body.p_room);if(body.p_room==='unavailable')return Response.json({message:'Unavailable'},{status:400});
+  return Response.json({roomId:'home',username:'Player',name:'Home',ownerId:'actor',access:'open',heightmap:'0000\n0000\n0000\n0000',revision:0,capacity:25,items:[],equipped:{}});
+ });
+ const access=new SupabaseWorldAccess('https://world-test.invalid','server-key'),identity={userId:'actor',username:'Me'},home=await access.enter(identity,'home');home.room.join(identity,home.spawn,()=>{});
+ const result=(await access.perform(identity,'home','room_directory',{})).data;assert.equal(result.find((r:any)=>r.id==='unavailable').spudCount,0);assert.equal(loaded.includes('other-home'),false);
+});

@@ -50,7 +50,7 @@ try{
   const homeId=await p.evaluate(()=>window.testWorldRenderer.scene.roomId);await p.reload();await expect(p.locator('#worldConnected')).toBeHidden();await p.locator('#connectWorld').click();await expect(p.locator('#connectionStatus')).toContainText('Live');
   await expect.poll(()=>p.evaluate(()=>window.testWorldRenderer.scene.roomId)).toBe(homeId);
   await expect(p.locator('#worldPanel')).not.toBeVisible();
-  await p.locator('[data-panel="rooms"]').click();await p.getByRole('button',{name:'Public Hangouts',exact:true}).click();await p.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
+  await p.locator('[data-panel="rooms"]').click();await p.getByRole('button',{name:'Public Hangouts',exact:true}).click();for(const name of ['Hotel Lobby','Rooftop Lounge','Patio Hangout'])await expect(p.locator('.room-card').filter({hasText:name}).locator('.room-occupancy')).toHaveText(/^[45] Spuds here$/);await p.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
   await expect(p.locator('#roomName')).toHaveText('Earnly Plaza');
  }
  await expect(a.locator('#peopleCount')).toHaveAttribute('data-players','2');
