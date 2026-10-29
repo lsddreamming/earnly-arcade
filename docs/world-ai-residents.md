@@ -59,3 +59,10 @@ The server reads only actual public home names and furniture from `world_residen
 Apply `20261029191500_world_resident_homes.sql` before the matching server deployment. Generate it from `world-server/src/resident-homes.ts` using `node scripts/build-resident-homes.mjs`; CI checks that the migration matches the source. The migration fails if catalog prerequisites are absent or a reserved room ID belongs to a player. Reapplying it preserves existing rooms. Its metadata RPC is service-only. Database tests verify all ten layouts, connected floor, exact facts, host persistence, no charges/minting, ownership and role boundaries; browser tests verify explicit visits, phone layout, and noneditable scenery.
 
 Responses parsing selects the final assistant message rather than concatenating commentary/draft messages, preventing a repeated-draft edge case observed during the live rollout.
+
+
+## Conversation range in homes
+
+Player-owned rooms and the ten resident homes use room-wide public conversation: every admitted player and resident can hear and reply from every tile. Opening a resident profile in these rooms does not force the player to walk closer. Public hangouts retain their eight-tile range. The server derives this scope from trusted room ownership and resident-home identities and includes it in scene updates so chat labels and consent describe the correct audience.
+
+This changes normal public room chat only. Human DMs, adjacent whispers, reciprocal blocks, context audience intersections, private memories, Quiet mode, rate limits and bounded ambient turns retain their existing protections. Room-wide never means cross-room.

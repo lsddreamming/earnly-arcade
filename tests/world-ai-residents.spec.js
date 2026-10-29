@@ -1,8 +1,8 @@
 const {test,expect}=require('@playwright/test');
-async function fixture(page,{chatAccepted=true}={}){
+async function fixture(page,{chatAccepted=true,roomWide=false}={}){
  await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:'application/javascript',body:''}));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
- await page.addInitScript(({chatAccepted})=>{
+ await page.addInitScript(({chatAccepted,roomWide})=>{
   Object.defineProperty(window,'EarnlyWorldRenderer',{configurable:true,set(v){const Base=v.WorldRenderer;v.WorldRenderer=class extends Base{constructor(...args){super(...args);window.aiRenderer=this;}};Object.defineProperty(window,'EarnlyWorldRenderer',{value:v,writable:true,configurable:true});}});
   const room='00000000-0000-4000-8000-000000000001';window.aiActions=[];window.aiJoins=[];
   const residentHome={residentId:'jax',roomId:'ead10000-0000-4000-8000-000000000001',name:"Jax's Laugh Lounge",items:['Tidal Glass Aquarium','Sunset Sofa'],animatedFish:true};
@@ -10,7 +10,7 @@ async function fixture(page,{chatAccepted=true}={}){
   const ai={staffId:'ai-jax',residentId:'jax',username:'Jax',role:'comedian · AI resident',isAI:true,isStaff:true,position:{x:2,y:2,z:0},state:'dance',activity:'dancing',equipped:{avatar:{id:'russet-potato',imageUrl:'cosmetic-russet-potato.svg'},outfit:{imageUrl:'cosmetic-starter-suit.svg'},shoes:{imageUrl:'cosmetic-canvas-shoes.svg'}}};
   const staff={staffId:'staff-reception',username:'Pip',role:'Receptionist',isStaff:true,position:{x:4,y:4,z:0},state:'std'};
   const bootstrap={residentHomes:[residentHome],residentCatalog:[{id:'jax',name:'Jax'}],aiResidents:true,aiPublicChat:true,chatAccepted,aiMemory:true,residentQuiet:false,balance:2000,catalog:[],items:[],rooms:[{id:room,name:'Home',ownerId:'owner',occupancy:1,residentCount:1,spudCount:2},{id:'lobby',name:'Hotel Lobby',ownerId:null,occupancy:0,residentCount:5,spudCount:5}],friends:[]};
-  window.WebSocket=class{static OPEN=1;events={};addEventListener(n,f){(this.events[n]??=[]).push(f);}removeEventListener(n,f){this.events[n]=(this.events[n]||[]).filter(x=>x!==f);}close(){this.readyState=3;for(const f of this.events.close||[])f();}constructor(){this.readyState=1;window.aiSocket=this;setTimeout(()=>this.onopen?.(),10);}emit(p){const e={data:JSON.stringify(p)};this.onmessage?.(e);for(const f of this.events.message||[])f(e);}send(raw){const p=JSON.parse(raw);if(p.type==='LEAVE'){this.emit({type:'LEFT'});return;}if(p.type==='JOIN'){window.aiJoins.push(p.roomId);const visiting=p.roomId===residentHome.roomId;this.emit({type:'WELCOME',userId:'owner',scene:{roomId:visiting?residentHome.roomId:room,name:visiting?residentHome.name:'Home',ownerId:visiting?null:'owner',residentHost:visiting?'jax':undefined,heightmap:Array(8).fill('00000000').join('\n'),items:visiting?[{id:'tank',definitionId:'collector-aquarium',name:'Tidal Glass Aquarium',sprite:'show-aquarium',color:'#7faea7',x:5,y:1,z:0,width:2,length:1,itemHeight:1.5,rotation:0}]:[]},bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[{userId:'owner',username:'You',position:{x:1,y:2,z:0}}]});this.emit({type:'NPC_SNAPSHOT',staff:[staff,ai]});}
+  window.WebSocket=class{static OPEN=1;events={};addEventListener(n,f){(this.events[n]??=[]).push(f);}removeEventListener(n,f){this.events[n]=(this.events[n]||[]).filter(x=>x!==f);}close(){this.readyState=3;for(const f of this.events.close||[])f();}constructor(){this.readyState=1;window.aiSocket=this;setTimeout(()=>this.onopen?.(),10);}emit(p){const e={data:JSON.stringify(p)};this.onmessage?.(e);for(const f of this.events.message||[])f(e);}send(raw){const p=JSON.parse(raw);if(p.type==='LEAVE'){this.emit({type:'LEFT'});return;}if(p.type==='JOIN'){window.aiJoins.push(p.roomId);const visiting=p.roomId===residentHome.roomId;this.emit({type:'WELCOME',userId:'owner',scene:{roomId:visiting?residentHome.roomId:room,name:visiting?residentHome.name:'Home',ownerId:visiting?null:'owner',residentHost:visiting?'jax':undefined,chatRange:visiting||roomWide?'room':'nearby',heightmap:Array(8).fill('00000000').join('\n'),items:visiting?[{id:'tank',definitionId:'collector-aquarium',name:'Tidal Glass Aquarium',sprite:'show-aquarium',color:'#7faea7',x:5,y:1,z:0,width:2,length:1,itemHeight:1.5,rotation:0}]:[]},bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[{userId:'owner',username:'You',position:{x:1,y:2,z:0}}]});this.emit({type:'NPC_SNAPSHOT',staff:[staff,ai]});}
    if(p.type==='ACTION'){window.aiActions.push(p);let data=bootstrap;
     if(p.action==='say'){this.emit({type:'CHAT',userId:'ai-jax',residentId:'jax',username:'Jax',isAI:true,text:'Why did the Spud bring a ladder? To reach the next level.',mode:'normal'});data={};}
     if(p.action==='room_directory')data=bootstrap.rooms;
@@ -26,7 +26,7 @@ async function fixture(page,{chatAccepted=true}={}){
     this.emit({type:'RESULT',requestId:p.requestId,data});
    }
   }};
- },{chatAccepted});
+ },{chatAccepted,roomWide});
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
 }
 test('AI residents have distinct actions, shared public chat and Quiet mode with a Spud headcount and separate human occupancy',async({page},info)=>{
@@ -99,4 +99,18 @@ test('resident homes are optional, visit only on click, and fit on a phone',asyn
  await page.getByRole('button',{name:'Visit room',exact:true}).click();await expect(page.locator('#roomName')).toHaveText("Jax's Laugh Lounge");await expect(page.locator('#roomKind')).toHaveText('AI RESIDENT HOME');await expect(page.locator('#renameRoom')).toBeHidden();
  expect(await page.evaluate(()=>aiActions.some(a=>a.action==='buy'))).toBe(false);expect(await page.evaluate(()=>aiRenderer.canEditItem({id:'tank'}))).toBe(false);
  await page.screenshot({path:info.outputPath('resident-home-phone.png')});
+});
+
+
+test('personal room chat labels and consent explain all-tile conversation on phones',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await fixture(page,{chatAccepted:false,roomWide:true});
+ await expect(page.locator('#sayText')).toHaveAttribute('placeholder','Say hello to everyone in the room…');
+ await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
+ await expect(page.locator('#panelContent')).toContainText('Everyone in this room can join');
+ await page.getByRole('button',{name:'Talk in room chat',exact:true}).click();
+ await expect(page.locator('#panelTitle')).toHaveText('Room chat rules');await expect(page.locator('#panelContent')).toContainText('public throughout this room');
+ await expect(page.locator('#panelContent')).toContainText('private messages and saved memories are excluded');
+ await page.getByRole('button',{name:'I agree · Join room chat',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
+ await page.locator('[data-panel="chat"]').click();await expect(page.locator('#panelContent')).toContainText('Room chat · All tiles');
+ expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
 });
