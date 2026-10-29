@@ -54,6 +54,9 @@ export class SpudResidents{
   const p=this.#pick(this.#floor(grid,this.#occupied(external)));if(!p)return false;
   this.#actors.push({id,position:p,state:'std',activity:'resting',route:[],next:this.#ticks+4+this.#actors.length*7,invitedBy,expires:invitedBy?this.#ticks+2400:undefined});return true;
  }
+ prepareIdle(grid:RoomGrid,external:Set<string>){
+  for(const d of this.#roster){if(this.#actors.length>=this.#quietPopulation)break;this.#add(grid,external,d.id);}
+ }
  invite(grid:RoomGrid,external:Set<string>,id:SpudId,owner:string){
   if(this.#actors.some(a=>a.invitedBy===owner))throw new Error('Dismiss your current AI visitor first');
   if(!this.#add(grid,external,id,owner))throw new Error('Clear some floor space for this AI visitor');

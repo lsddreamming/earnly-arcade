@@ -49,3 +49,44 @@ test('opening a resident profile walks the player closer and holds the resident 
  assert.deepEqual(r.spuds.snapshots()[0].position,position);assert.equal(r.residentNearby('visitor','jax'),true);assert.equal(r.residentChat('visitor','jax','hello',3000).isAI,true);
  r.leave('visitor');assert.notEqual(r.spuds.snapshots()[0].activity,'chatting');
 });
+
+function publicRoom(){
+ const r=new RoomRuntime(new RoomGrid(parseHeightmap(Array(20).fill('0'.repeat(20)).join('\n'))));r.enableSocial(new NaturalSocial(()=>0),'public-test');
+ const packets=new Map<string,any[]>();const add=(id:string,p:{x:number;y:number})=>{const list:any[]=[];packets.set(id,list);r.join({userId:id,username:id},p,v=>list.push(v));};
+ add('owner',{x:0,y:0});r.inviteResident('owner','jax');r.spuds.focus('test-hold','jax');
+ const at=r.spuds.snapshots()[0].position;
+ const free=(min:number,max:number)=>{for(let y=0;y<20;y++)for(let x=0;x<20;x++){const d=Math.hypot(x-at.x,y-at.y);if(d>=min&&d<=max&&!r.members().some(m=>m.position.x===x&&m.position.y===y)&&!(at.x===x&&at.y===y))return {x,y};}throw new Error('No free test position');};
+ add('speaker',free(1,1.5));add('listener',free(1,2));add('blocked',free(1,2));add('far',free(10,20));
+ const chats=(id:string)=>packets.get(id)!.filter(p=>p.type==='CHAT'&&p.isAI);const ticks=(n:number)=>{for(let i=0;i<n;i++)r.tick();};
+ return {r,at,add,free,chats,ticks,packets};
+}
+test('public resident replies reach approved nearby listeners, allow another speaker, and never expose saved memories',()=>{
+ const {r,chats,ticks,at}=publicRoom();
+ r.setResidentMemory('speaker',{quiet:false,relations:[{residentId:'jax',friend:true,remember:true,visits:3,favoriteGame:'SECRET_PRIVATE_GAME'}]});
+ assert.equal(r.queueResidentReply('outsider','hello',['speaker']),false);
+ assert.equal(r.queueResidentReply('far','hello',['far'],'jax'),false);
+ assert.equal(r.queueResidentReply('speaker','hello',['speaker','listener','far'],'forged'),false);
+ assert.equal(r.queueResidentReply('speaker','Jax hello',['speaker','listener','far']),true);
+ assert.equal(r.queueResidentReply('listener','hello',['speaker','listener']),false,'one reply at a time');ticks(3);assert.equal(chats('speaker').length,0);ticks(1);
+ assert.equal(chats('speaker').length,1);assert.deepEqual(chats('speaker'),chats('listener'));assert.equal(chats('blocked').length,0);assert.equal(chats('far').length,0);
+ assert.equal(chats('speaker')[0].userId,'ai-jax');assert.deepEqual(r.spuds.snapshots()[0].position,at);
+ ticks(12);assert.equal(r.queueResidentReply('listener','what do you remember about me',['speaker','listener']),true);ticks(4);
+ assert.match(chats('listener').at(-1).text,/memories are private/);assert.ok(!JSON.stringify(chats('listener')).includes('SECRET_PRIVATE_GAME'));
+ ticks(12);assert.equal(r.queueResidentReply('listener','something else',['speaker','listener']),true,'nearby players can join the ongoing group conversation');
+});
+test('a pending public reply is cancelled when its speaker leaves; public focus never changes movement',()=>{
+ const {r,chats,ticks,free}=publicRoom();
+ const goal=free(2,4);assert.equal(r.receive('speaker',{type:'MOVE_TO',...goal},1000),true);
+ assert.equal(r.residentFocus('speaker','jax',true,1001,true).ready,true);ticks(24);
+ assert.deepEqual(r.members().find(m=>m.userId==='speaker')!.position,{...goal,z:0});
+ assert.equal(r.queueResidentReply('speaker','hello',['speaker','listener'],'jax'),true);r.leave('speaker');ticks(4);assert.equal(chats('listener').length,0);
+});
+test('ambient resident conversations use two public speakers, respect Quiet, and stay bounded',t=>{
+ t.mock.method(Math,'random',()=>0.2);const r=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));r.enableSocial(new NaturalSocial(()=>0),'ambient');
+ const events=new Map<string,any[]>();for(const [id,p]of [['host',{x:0,y:0}],['other',{x:1,y:0}],['quiet',{x:2,y:0}]] as const){events.set(id,[]);r.join({userId:id,username:id},p,v=>events.get(id)!.push(v));}
+ r.inviteResident('host','jax');r.inviteResident('other','blitz');r.residentQuiet('quiet',true,performance.now());
+ // Keep pair adjacent and within range without preventing their social participation.
+ for(let i=0;i<4000;i++)r.tick();
+ const audible=events.get('host')!.filter(p=>p.type==='CHAT'&&p.ambient);assert.ok(audible.length>=2,'occasional authored exchanges occur');assert.ok(audible.length<=24,'no constant chatter');assert.deepEqual(new Set(audible.map(p=>p.residentId)),new Set(['jax','blitz']));assert.equal(events.get('quiet')!.filter(p=>p.type==='CHAT'&&p.ambient).length,0);
+ const empty=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));empty.enableResidents();for(let i=0;i<1000;i++)empty.tick();assert.ok(empty.spuds.snapshots().every(s=>s.activity!=='chatting'));
+});

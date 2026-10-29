@@ -34,3 +34,34 @@ export class NaturalSocial{
  }
  chat(user:string,now:number){const s=this.#state(user,now);if(now-s.lastChat<2000)throw new Error('Give this AI resident a moment to reply');s.lastChat=now;}
 }
+
+/** Public replies never receive private memories or repeat a player's input. */
+export function publicResidentTopic(text:string){
+ const t=text.toLowerCase();
+ if(/\b(bye|goodbye|later)\b/.test(t))return 'bye';
+ if(/\b(remember|memory|forget)\b/.test(t))return 'memory';
+ if(/\b(joke|funny|laugh)\b/.test(t))return 'joke';
+ if(/\b(game|games|favorite|play|playing|score|snake|bubble|arcade|tap rush|neon slice)\b/.test(t))return 'games';
+ if(/\b(room|rooms|furniture|sofa|couch|chair|decorate|decorating)\b/.test(t))return 'room';
+ if(/\b(hi|hey|hello|how are you|what.s up)\b/.test(t))return 'hello';
+ return 'other';
+}
+export function publicResidentReply(id:SpudId,topic:string,turn:number){
+ if(topic==='memory')return 'Saved memories are private. You can inspect or change them from my profile.';
+ if(topic==='other')return ['I’m a scripted resident, so games, rooms and little jokes are my best topics.','Anyone nearby can join in. What have you been playing?'][turn%2];
+ if(turn%2===0||topic==='bye')return residentReply(id,topic);
+ const d=spudDefinition(id)!;
+ if(topic==='hello')return ({jax:'Hey, everyone! Is this a hangout or a very relaxed potato convention?',blitz:'Hey! Anyone chasing a personal best today?',mochi:'Hi… it’s nice having a little group to talk with.',zippy:'Hey, nearby Spuds! Game break or dance break?'} as Record<string,string>)[id]??`Hey, everyone! ${d.name} here. How’s your arcade day going?`;
+ if(topic==='games')return ({jax:'My best strategy is looking confident while pressing the wrong button.',blitz:'Pick one game and try to beat your own best. Anyone can join the challenge.',mochi:'A game feels more fun when there’s no rush… and someone to chat with after.',zippy:'One quick round, then everyone gets a victory dance!'} as Record<string,string>)[id]??'What’s more your style: a quick arcade round or decorating a cozy room?';
+ if(topic==='room')return 'A few cozy seats and clear walking space make a good place for a group chat.';
+ return 'Why are potatoes good at arcade games? They always bring their best mash-up of moves.';
+}
+export function residentExchange(first:SpudId,second:SpudId,round:number){
+ const b=spudDefinition(second)!;
+ const pairs=[
+  [`${b.name}, game break or dance break?`,'One quick game, then a little dance break. Anyone nearby can join!'],
+  [`${b.name}, what makes a hangout feel cozy?`,'A good seat, a little space, and some friendly conversation.'],
+  [`${b.name}, I’m taking a couch-potato break.`,'That sounds like a very professional potato activity.'],
+  [`${b.name}, ready for another arcade round?`,'Always happy to try a new personal best. What’s everyone playing?']
+ ];return pairs[round%pairs.length];
+}

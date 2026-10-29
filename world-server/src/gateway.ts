@@ -43,7 +43,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
     const send=(packet:Record<string,unknown>)=>{
       if(ws.readyState!==WebSocket.OPEN)return;
       if(ws.bufferedAmount>128*1024){ws.terminate();return;}
-      if(packet.type==='AI_GREETING'&&!active.get(ws)?.residents)return;
+      if((packet.type==='AI_GREETING'||packet.type==='CHAT'&&packet.isAI===true)&&!active.get(ws)?.residents)return;
       if((packet.type==='PET_CHAT'||packet.type==='PET_REACTION')&&!active.get(ws)?.animals)return;
       if(packet.type==='NPC_SNAPSHOT'&&Array.isArray(packet.staff))packet={...packet,staff:packet.staff.filter((s:any)=>(!s.species||active.get(ws)?.animals)&&(!s.isAI||active.get(ws)?.residents))};
       ws.send(JSON.stringify(packet),error=>{if(error)ws.terminate();});
@@ -126,7 +126,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           const result=await access.perform(session.identity,session.roomId,p.action,p.data as Record<string,unknown>);
           send({type:'RESULT',requestId:p.requestId,data:result.data});
           for(const delivery of result.deliveries??[])for(const [peer,binding] of active){
-            if((delivery.roomId&&binding.roomId!==delivery.roomId)||!delivery.userIds.includes(binding.identity.userId)||peer.readyState!==WebSocket.OPEN)continue;
+            if((delivery.roomId&&binding.roomId!==delivery.roomId)||!delivery.userIds.includes(binding.identity.userId)||peer.readyState!==WebSocket.OPEN||delivery.packet.type==='CHAT'&&delivery.packet.isAI===true&&!binding.residents)continue;
             if(peer.bufferedAmount>128*1024){peer.terminate();continue;}
             const packet=delivery.packet.type==='NPC_SNAPSHOT'&&Array.isArray(delivery.packet.staff)?{...delivery.packet,staff:delivery.packet.staff.filter((s:any)=>(!s.species||binding.animals)&&(!s.isAI||binding.residents))}:delivery.packet;
             peer.send(JSON.stringify(packet),error=>{if(error)peer.terminate();});
