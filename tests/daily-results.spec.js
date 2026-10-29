@@ -72,6 +72,8 @@ test('results connect earned coins to the furniture catalog without spending the
   await page.getByText('Use your coins', {exact:true}).click();
   await link.click();
   await expect(page).toHaveURL(/world\.html\?catalog=All/);
+  // A committed URL can precede execution of World's catalog scripts.
+  await page.waitForLoadState('load');
   await expect(page.locator('#worldPanel')).toBeVisible();
   await expect(page.locator('#worldPanel')).toContainText('Decor Catalog');
   expect(await page.evaluate(() => localStorage.getItem('arcadeCoins'))).toBe(before);
