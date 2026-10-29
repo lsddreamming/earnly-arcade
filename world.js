@@ -482,7 +482,7 @@
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
   root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
- function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
+ function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.isAI?'Meet AI resident':staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  const friendBrowser={query:'',filter:'all'};
  function showFriends(){
   currentPanel='friends';const root=openPanel('Friends'),version=panelVersion;
