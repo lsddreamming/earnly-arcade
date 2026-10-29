@@ -75,9 +75,15 @@ test('resident chat waits for approach and closing the panel releases the conver
 
 test('joining resident public chat requires explicit chat consent and keeps the conversation hold',async({page})=>{
  await fixture(page,{chatAccepted:false});await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
- await page.getByRole('button',{name:'Talk in nearby chat',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Nearby chat rules');
+ await page.getByRole('button',{name:'Talk in nearby chat',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Nearby chat rules');await expect(page.locator('#panelContent')).toContainText('sent to OpenAI');
  expect(await page.evaluate(()=>aiActions.some(a=>a.action==='accept_chat'))).toBe(false);
  await page.getByRole('button',{name:'I agree · Join nearby chat',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
  expect(await page.evaluate(()=>aiActions.some(a=>a.action==='accept_chat'))).toBe(true);expect(await page.evaluate(()=>aiActions.filter(a=>a.action==='resident_focus').at(-1).data.active)).toBe(true);
  await page.locator('#sayText').fill('Hello Jax');await page.locator('#sayForm button').click();await expect.poll(()=>page.evaluate(()=>aiActions.filter(a=>a.action==='say').length)).toBe(1);
+});
+
+test('AI outage status is an honest toast rather than a fabricated resident reply',async({page})=>{
+ await fixture(page);await page.evaluate(()=>aiSocket.emit({type:'RESIDENT_STATUS',status:'unavailable'}));
+ await expect(page.locator('#worldToast')).toContainText('AI chat is unavailable');
+ expect(await page.evaluate(()=>aiRenderer.bubbles.get('ai-jax')?.text)).toBeUndefined();
 });

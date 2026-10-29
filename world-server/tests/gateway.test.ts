@@ -158,6 +158,6 @@ test('AI residents require client capability and remain outside real users for o
   ws.send(JSON.stringify({type:'RESIDENT_VIEW',version:1}));await delay(60);
   const snapshot=events.filter(e=>e.type==='NPC_SNAPSHOT').at(-1);assert.equal(snapshot.staff.length,5);assert.ok(snapshot.staff.every((s:any)=>s.isAI));assert.equal(room.members().length,1);
   ws.send(JSON.stringify({type:'ACTION',requestId:'new-ai-chat',action:'test',data:{}}));await delay(60);assert.equal(events.filter(e=>e.type==='CHAT').length,1);
-  assert.equal(room.queueResidentReply('legacy-ios','hello',['legacy-ios']),true);for(let i=0;i<4;i++)room.tick();await delay(60);assert.equal(events.filter(e=>e.type==='CHAT').length,2);
+  room.enableDialogue({reply:async()=> 'A contextual public reply.'});assert.equal(room.queueResidentReply('legacy-ios','hello',['legacy-ios']),true);room.tick();await delay(10);for(let i=0;i<4;i++)room.tick();await delay(60);assert.equal(events.filter(e=>e.type==='CHAT').length,2);
  }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });

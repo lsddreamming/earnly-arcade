@@ -1,3 +1,4 @@
+import {OpenAIResidentDialogue} from './resident-ai.ts';
 import {spudDefinition,SPUDS} from './spud-residents.ts';
 import {NaturalSocial,residentReply} from './resident-social.ts';
 import {hangoutFor,hangoutAnimals} from './public-hangouts.ts';
@@ -12,6 +13,8 @@ type Bootstrap={rooms:{id:string;name:string;ownerId:string|null}[];catalog:Reco
 /** Server-only credentials; never import into the website bundle. */
 export class SupabaseWorldAccess implements WorldAccess {
   #social=new NaturalSocial();
+  #dialogue:OpenAIResidentDialogue;
+  aiStatus(){return this.#dialogue.status();}
   #memoryReady=new Set<string>();
   async #residentState(uid:string,roomId:string,action:string,data:unknown={}){return this.#request('/rest/v1/rpc/world_residents',this.#key,{p_actor:uid,p_room:roomId,p_action:action,p_data:data});}
   #url:string;#key:string;
@@ -19,10 +22,11 @@ export class SupabaseWorldAccess implements WorldAccess {
   #retired=new Set<string>();
   #publicWarmups=new Map<string,Promise<void>>();
   #queues=new Map<string,Promise<unknown>>();
-  constructor(url:string,serviceKey:string){
+  constructor(url:string,serviceKey:string,env:NodeJS.ProcessEnv={}){
     const parsed=new URL(url.trim());
     if(parsed.protocol!=='https:'||!serviceKey.trim())throw new Error('Secure Supabase configuration required');
     this.#url=parsed.origin;this.#key=serviceKey.trim();
+    this.#dialogue=new OpenAIResidentDialogue(env,async(daily,monthly)=>await this.#request('/rest/v1/rpc/world_ai_reserve',this.#key,{p_daily:daily,p_monthly:monthly})===true,{log:event=>console.log(JSON.stringify(event))});
   }
   async #request(path:string,token:string,body?:unknown):Promise<any>{
     const response=await fetch(this.#url+path,{method:body===undefined?'GET':'POST',headers:{apikey:this.#key,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(4000)});
@@ -48,7 +52,14 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(!room){
       if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}
       room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);
-      if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);this.#rooms.set(roomId,room);
+      if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);room.enableDialogue(this.#dialogue);
+      const currentRoom=room;
+      room.onResidentInteraction(async(uid,residentId)=>{
+        if(!this.#memoryReady.has(uid))return;
+        // Existing opt-in SQL owns consent/erasure. Store a visit, never raw conversation.
+        const state=await this.#residentState(uid,roomId,'touch',{residentId,topic:'hello'});
+        if(currentRoom.members().some(m=>m.userId===uid))currentRoom.setResidentMemory(uid,state);
+      });this.#rooms.set(roomId,room);
       // Materialize the actual residents before publishing a room's count. No users join here.
       room.prepareResidents();
     }
@@ -246,6 +257,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
+      if(action==='block')for(const runtime of this.#rooms.values())runtime.invalidateDialogue();
       if(action==='bootstrap'){result.aiResidents=true;result.aiPublicChat=true;result.residentCatalog=SPUDS.map(({id,name,personality})=>({id,name,personality}));result.aiMemory=this.#memoryReady.has(uid);result.personalPets=true;result.petInteractions=true;result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
