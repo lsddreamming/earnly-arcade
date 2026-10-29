@@ -146,7 +146,7 @@ const Arcade = (() => {
     { id:'variety', title:'🎮 Arcade Explorer', description:'Finish 2 different games today', goal:2, reward:8, type:'variety' },
     { id:'snake10', title:'🐍 Snake Run', description:'Eat 10 apples in one Snake run', goal:10, reward:10, type:'score', game:'snake' },
     { id:'block3', title:'🧱 Line Clearer', description:'Clear 3 lines in one Block Drop game', goal:3, reward:8, type:'score', game:'blockDrop' },
-    { id:'tap20', title:'🎯 Quick Fingers', description:'Get 20 taps in one Tap Rush game', goal:20, reward:8, type:'score', game:'tapRush' },
+    { id:'tap20', title:'🎯 Quick Fingers', description:'Hit 20 targets in one Tap Rush game', goal:20, reward:8, type:'score', game:'tapRush' },
     { id:'brick15', title:'💥 Brick Smasher', description:'Break 15 bricks in one Brick Breaker run', goal:15, reward:8, type:'score', game:'brickBreaker' },
     { id:'jungle8', title:'🐸 Vine Hopper', description:'Pass 8 vines in Jungle Hopper', goal:8, reward:10, type:'score', game:'jungleHopper' },
     { id:'tower10', title:'🏗️ High Rise', description:'Stack 10 floors in Tower Stack', goal:10, reward:10, type:'score', game:'towerStack' },
@@ -190,14 +190,15 @@ const Arcade = (() => {
     if (!wallet || typeof wallet !== 'object') return null;
 
     const balance = Math.max(0, Math.floor(Number(wallet.balance) || 0));
-    const lifetime = Math.max(
-      balance,
-      Math.max(0, Math.floor(Number(wallet.lifetime_earned) || 0))
-    );
     const before = {
       balance:number('points'),
       lifetime:number('lifetimePoints')
     };
+    // Purchased/granted Coins can make balance larger than lifetime earnings.
+    // Only an explicit cumulative-earned value may replace this counter.
+    const lifetime = wallet.lifetime_earned == null
+      ? before.lifetime
+      : Math.max(0, Math.floor(Number(wallet.lifetime_earned) || 0));
 
     setNumber('points', balance);
     setNumber('lifetimePoints', lifetime);
@@ -1004,17 +1005,8 @@ const Arcade = (() => {
   }
 
   function repairLifetimeCounters() {
-    // A lifetime-earned counter can never be lower than the current balance.
-    // Older prototype saves could drift out of sync while the reward system was evolving.
-    const currentCoins = number('points');
-    const lifetimeCoins = number('lifetimePoints');
-    if (lifetimeCoins < currentCoins) {
-      setNumber('lifetimePoints', currentCoins);
-      queueEvent('lifetime_coin_counter_repaired', {
-        previous:lifetimeCoins,
-        repaired:currentCoins
-      });
-    }
+    // Balance and lifetime earned are independent: purchases increase balance,
+    // and spending reduces it. Neither operation changes cumulative earnings.
 
     // Compatibility repair for saves/transfers created before gamesCompletedEver
     // was included in the transferable data set.
@@ -1293,7 +1285,7 @@ const Arcade = (() => {
       { id:'snake10', icon:'🐍', title:'Growing Fast', description:'Eat 10 apples in Snake', unlocked:number('snakeBest') >= 10 },
       { id:'snake25', icon:'🔥', title:'Snake Master', description:'Eat 25 apples in Snake', unlocked:number('snakeBest') >= 25 },
       { id:'block3', icon:'🧱', title:'Line Clearer', description:'Clear 3 lines in Block Drop', unlocked:number('blockDropBestLines') >= 3 },
-      { id:'tap20', icon:'🎯', title:'Quick Fingers', description:'Get 20 taps in Tap Rush', unlocked:number('tapRushBest') >= 20 },
+      { id:'tap20', icon:'🎯', title:'Quick Fingers', description:'Hit 20 targets in Tap Rush', unlocked:number('tapRushBest') >= 20 },
       { id:'memory24', icon:'🧠', title:'Sharp Memory', description:'Clear Memory Match in 24 moves or fewer', unlocked:memoryBest > 0 && memoryBest <= 24 },
       { id:'brick20', icon:'💥', title:'Brick Smasher', description:'Break 20 bricks in Brick Breaker', unlocked:number('brickBreakerBest') >= 20 },
       { id:'jungle10', icon:'🐸', title:'Jungle Pro', description:'Pass 10 vines in Jungle Hopper', unlocked:number('jungleHopperBest') >= 10 },
@@ -1493,7 +1485,7 @@ const Arcade = (() => {
   function dailyCoinStatus() {
     refreshCoinEarnDay();
     const balance = number('points');
-    const lifetime = Math.max(balance, number('lifetimePoints'));
+    const lifetime = number('lifetimePoints');
     let earned = number('arcadeCoinsEarnedToday');
 
     // Prototype/cloud migrations could leave the daily counter above the
@@ -1530,7 +1522,7 @@ const Arcade = (() => {
       case 'memory':return min(60,(8+(m<=16?7:m<=20?5:m<=24?3:m<=30?1:0))*4);
       case 'dodger':return min(80,(floor(m/6)+floor(a/12)+b(20,1)+b(40,2)+b(60,3))*4);
       case 'jungleHopper':return min(50,floor(m/2)+b(10,2)+b(20,3)+b(30,5)+min(a,floor((m+1)/2)+floor((m+1)/6),10));
-      case 'towerStack':return min(100,(floor(m/3)+floor(min(a,m)/3)+b(10,2)+b(20,3)+b(30,5))*4);
+      case 'towerStack':return min(100,floor(m/3)+floor(min(a,m)/10)+b(20,2)+b(50,3)+b(100,5));
       case 'coinCatch':return min(100,((m>=6?1+floor((m-6)/12):0)+b(75,1)+b(150,1)+b(225,1))*4);
       case 'colorMatch':return min(88,(floor(m/4)+b(15,2)+b(25,3)+b(35,4))*4);
       case 'paddleRally':return min(100,(floor(m/3)+b(10,2)+b(20,3)+b(35,5))*4);

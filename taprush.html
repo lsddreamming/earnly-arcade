@@ -12,8 +12,8 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
-  <title>Tap Rush - 20-Second Tapping Game | Earnly Arcade</title>
-  <meta name="description" content="Tap as fast as you can for 20 seconds. Every tap in the game area counts.">
+  <title>Tap Rush - Green Target Challenge | Earnly Arcade</title>
+  <meta name="description" content="Hit randomly placed green circles as fast as you can. Missing costs time.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
   <style>
@@ -91,12 +91,10 @@
     .rush-hud strong{color:#5eead4}
     .rush-meter{width:min(88vw,360px);height:5px;margin:0 auto 8px;border-radius:8px;background:#172b40;overflow:hidden}
     .rush-meter span{display:block;height:100%;width:100%;background:linear-gradient(90deg,#22d3ee,#a78bfa);transition:width .1s linear}
-    .target{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:24px;border:0;border-radius:inherit;background:radial-gradient(ellipse,rgba(34,197,94,.18),transparent 70%);color:#f0fdfa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer;font-weight:950}
+    .target{position:absolute;width:68px;height:68px;margin:0;padding:0;border:4px solid #dcfce7;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 30% 25%,#86efac,#22c55e 50%,#15803d);box-shadow:0 0 0 4px #22d3ee,0 0 24px #22c55e55;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
     .target[hidden]{display:none}
-    .target:active{background:radial-gradient(ellipse,rgba(34,197,94,.3),transparent 75%)}
-    .target:focus-visible{outline:3px solid #67e8f9;outline-offset:-6px}
-    #tapCount{font-size:clamp(72px,16vw,112px);line-height:1;letter-spacing:-.06em;font-variant-numeric:tabular-nums;text-shadow:0 0 28px #22c55e55}
-    .tap-prompt{font-size:22px;color:#5eead4;letter-spacing:.08em}
+    .target:focus-visible{outline:3px solid #fef08a;outline-offset:7px}
+    .tap-board.tap-miss{box-shadow:inset 0 0 36px #fb718555!important}
     .rush-note{position:absolute;bottom:14px;left:8px;right:8px;text-align:center;pointer-events:none;color:#93c5fd;font-size:12px;font-weight:800}
     .tap-board.urgent{border-color:#fb7185!important}
     body.taprush-page .earnly-session-dock{display:flex;gap:10px;width:min(88vw,360px);margin:12px auto;position:relative}
@@ -121,7 +119,7 @@
     <header class="page-header">
       <h1>🎯 Tap Rush</h1>
       <div class="game-meta">
-        <span class="meta-pill">Taps: <span id="hits">0</span></span>
+        <span class="meta-pill">Hits: <span id="hits">0</span></span>
         <span class="meta-pill">Time: <span id="time">20</span>s</span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
@@ -131,11 +129,11 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
 
-    <div class="rush-hud"><span>20-second sprint</span><strong id="tapRate">0.0 taps/sec</strong></div>
+    <div class="rush-hud"><span>20-second target rush</span><strong id="tapRate">0.0 taps/sec</strong></div>
     <div class="rush-meter" aria-hidden="true"><span id="rushMeter"></span></div>
     <div class="tap-board touch-surface" id="board" aria-label="Tap Rush game area">
-      <button class="target touch-surface" id="target" type="button" aria-label="Tap as fast as you can" hidden><span id="tapCount" aria-hidden="true">0</span><span class="tap-prompt" aria-hidden="true">TAP!</span></button>
-      <div class="rush-note" id="rushNote">Tap anywhere · every tap counts</div>
+      <button class="target touch-surface" id="target" type="button" aria-label="Tap green circle" hidden></button>
+      <div class="rush-note" id="rushNote">Hit green · background misses cost 0.75s</div>
     </div>
 
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -155,7 +153,7 @@
     const board = document.getElementById('board');
     const target = document.getElementById('target');
     const hitsEl = document.getElementById('hits');
-    const tapCount = document.getElementById('tapCount');
+    const rushNote = document.getElementById('rushNote');
     const tapRate = document.getElementById('tapRate');
     const timeEl = document.getElementById('time');
     const rewardPreviewEl = document.getElementById('rewardPreview');
@@ -169,22 +167,42 @@
       game:'tapRush', surface:board,
       steps:[
         {icon:'👆',title:'Start',text:'Tap the game area'},
-        {icon:'⚡',title:'Control',text:'Tap anywhere, as fast as you can'},
-        {icon:'⏱️',title:'Goal',text:'Most taps in 20 seconds'}
+        {icon:'⚡',title:'Control',text:'Hit the random green circle'},
+        {icon:'⏱️',title:'Goal',text:'Most hits · misses cost time'}
       ],
       overlayIcon:'👆',overlayTitle:'Tap to Start',
-      overlayText:'20 seconds · every tap counts',replayTitle:'Tap to Play Again',
+      overlayText:'Hit green · miss costs 0.75s',replayTitle:'Tap to Play Again',
       tips:[
-        'Tap anywhere inside the game area. Each press adds one tap. There are no moving targets or miss penalties.',
-        'Use one or more fingers, a mouse, or press Space or Enter. Holding a key does not add extra taps.'
+        'Hit the green circle to score. Each hit immediately moves it to a new random spot.',
+        'A tap on the dark background costs 0.75 seconds. Aim carefully: the circle stays until you hit it.'
       ],
       reward:'Earn Coins from taps and milestones. Max 60 Coins per run.'
     });
 
     const ROUND_SECONDS = 20;
+    const MISS_PENALTY_MS = 750;
+    let misses=0,missFeedbackToken=0;
     let hits=0,timeLeft=ROUND_SECONDS,timer=null,running=false,starting=false,paused=false;
     let roundEndsAt=0,earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
 
+    function moveTarget(){
+      const width=board.clientWidth,height=board.clientHeight;
+      const radius=target.offsetWidth/2,pad=radius+12;
+      const oldX=parseFloat(target.style.left)||width/2,oldY=parseFloat(target.style.top)||height/2;
+      const minDistance=Math.min(120,Math.max(78,width*.28));
+      let x,y;
+      for(let attempt=0;attempt<16;attempt++){
+        x=pad+Math.random()*Math.max(0,width-pad*2);
+        y=pad+Math.random()*Math.max(0,height-pad*2-24);
+        if(Math.hypot(x-oldX,y-oldY)>=minDistance)break;
+      }
+      // Even an unlucky series of rolls must move clear of the last finger.
+      if(Math.hypot(x-oldX,y-oldY)<minDistance){
+        x=oldX<width/2?width-pad:pad;
+        y=oldY<height/2?height-pad-24:pad;
+      }
+      target.style.left=x+'px';target.style.top=y+'px';
+    }
     function rewardForHits(value){return Arcade.gameReward('tapRush',value,0);}
     function refreshChrome(){
       playsEl.textContent=Arcade.remaining('tapRush');
@@ -214,7 +232,7 @@
       const played=elapsedSeconds();
       running=false;paused=false;starting=false;
       clearInterval(timer);timer=null;roundEndsAt=0;pauseStartedAt=0;
-      target.hidden=true;board.classList.remove('urgent');
+      target.hidden=true;missFeedbackToken++;board.classList.remove('urgent','tap-miss');
       const earned=rewardForHits(hits);
       Arcade.earn(earned,'Tap Rush',{kind:'game',game:'tapRush',metric:hits,aux:0});
       Arcade.feedback(hits>0?'success':'fail');
@@ -224,12 +242,12 @@
       localStorage.setItem('tapRushBest',String(best));
       refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Game Over','over');
       Arcade.gameResult({
-        icon:'🎯',title:'Time!',scoreLabel:'Taps',score:hits,best:best+' taps',coins:earned,result,
+        icon:'🎯',title:'Time!',scoreLabel:'Targets Hit',score:hits,best:best+' hits',coins:earned,result,
         playsLeft:Arcade.remaining('tapRush'),game:'tapRush',
         extra:[
           '⏱️ Time played: '+Math.round(played)+'s',
           '⚡ Pace: '+(hits/Math.max(1,played)).toFixed(1)+' taps/sec',
-          hits?'Every tap counted. Beat your pace next run.':'No taps yet. Tap anywhere in the game area next run.'
+          misses?'Misses: '+misses+' · −'+(misses*.75).toFixed(2)+'s total':hits?'Perfect accuracy · 0 misses':'No targets hit yet. Tap the green circle to score next run.'
         ],
         onReplay:startGame,onMorePlays:()=>Arcade.out('tapRush',refreshChrome)
       });
@@ -239,29 +257,45 @@
       if(!Arcade.consume('tapRush')){starting=false;Arcade.out('tapRush',refreshChrome);return;}
       clearInterval(timer);timer=null;roundEndsAt=0;
       hits=0;paused=false;earnlyRunStartedAt=0;totalPausedMs=0;pauseStartedAt=0;timeLeft=ROUND_SECONDS;
-      hitsEl.textContent='0';tapCount.textContent='0';tapRate.textContent='0.0 taps/sec';timeEl.textContent=String(timeLeft);rushMeter.style.width='100%';
+      misses=0;missFeedbackToken++;board.classList.remove('tap-miss');rushNote.textContent='Hit green · background misses cost 0.75s';
+      hitsEl.textContent='0';tapRate.textContent='0.0 taps/sec';timeEl.textContent=String(timeLeft);rushMeter.style.width='100%';
       board.classList.remove('urgent');refreshChrome();setStatus('Get Ready');
       startButton.disabled=true;startButton.textContent='Get Ready…';target.hidden=true;
       Arcade.countdown(()=>{
         starting=false;running=true;earnlyRunStartedAt=performance.now();
         roundEndsAt=earnlyRunStartedAt+ROUND_SECONDS*1000;
-        setStatus('Running','running');startButton.textContent='Game Running';target.hidden=false;startTimer();
+        setStatus('Running','running');startButton.textContent='Game Running';target.hidden=false;moveTarget();startTimer();
       });
     }
     function registerTap(){
       if(!running||starting||paused)return;
       // Check the exact deadline on input, independently of the display timer.
       if(performance.now()>=roundEndsAt){finishGame();return;}
-      hits+=1;hitsEl.textContent=String(hits);tapCount.textContent=String(hits);
+      hits+=1;hitsEl.textContent=String(hits);
+      missFeedbackToken++;board.classList.remove('tap-miss');rushNote.textContent='Hit green · background misses cost 0.75s';
+      moveTarget();
       rewardPreviewEl.textContent=rewardForHits(hits);refreshPace();
       Arcade.feedback('tap');
     }
-    // Only pointerdown scores physical presses. Synthesized clicks and releases
-    // cannot double-count, and distinct fingers/rapid taps need no frame lock.
+    function registerMiss(){
+      if(!running||starting||paused)return;
+      if(performance.now()>=roundEndsAt){finishGame();return;}
+      misses++;roundEndsAt-=MISS_PENALTY_MS;updateTimer();
+      if(!running)return;
+      Arcade.feedback('fail');board.classList.add('tap-miss');
+      rushNote.textContent='Miss · −0.75s';
+      const token=++missFeedbackToken;
+      setTimeout(()=>{if(token===missFeedbackToken){board.classList.remove('tap-miss');rushNote.textContent='Hit green · background misses cost 0.75s';}},450);
+    }
+    // Resolve each physical press against the visible circle. No frame lock,
+    // pointer-capture assumption or synthesized click can swallow/double a hit.
     board.addEventListener('pointerdown',event=>{
       if(event.pointerType==='mouse'&&event.button!==0)return;
       event.preventDefault();
-      if(!running&&!starting)startGame();else registerTap();
+      if(!running&&!starting){startGame();return;}
+      const rect=target.getBoundingClientRect();
+      const distance=Math.hypot(event.clientX-(rect.left+rect.width/2),event.clientY-(rect.top+rect.height/2));
+      if(!target.hidden&&distance<=rect.width/2)registerTap();else registerMiss();
     });
     target.addEventListener('click',event=>{
       if(event.detail===0){event.preventDefault();registerTap();}

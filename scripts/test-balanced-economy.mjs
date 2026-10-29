@@ -1,5 +1,5 @@
 import {PGlite} from '@electric-sql/pglite';
-import {readFile} from 'node:fs/promises';
+import {readFile,readdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import catalog from '../world-collections.js';
@@ -24,13 +24,20 @@ await db.exec(pacing);await db.exec(pacing);
 const oldRetry=(await db.query("select claim_coin_reward('before-pacing','game','jungleHopper',30,0) r")).rows[0].r;
 assert.equal(oldRetry.amount,100);assert(oldRetry.duplicate);assert.equal(oldRetry.wallet.balance,historical.wallet.balance);
 
+const towerBefore=(await db.query("select claim_coin_reward('tower-before-pacing','game','towerStack',33,33) r")).rows[0].r;
+assert.equal(towerBefore.amount,100);
+const towerMigration=(await readdir('supabase/migrations')).find(x=>x.endsWith('_tower_reward_pacing.sql'));
+const towerSql=await read('supabase/migrations/'+towerMigration);await db.exec(towerSql);await db.exec(towerSql);
+const towerRetry=(await db.query("select claim_coin_reward('tower-before-pacing','game','towerStack',33,33) r")).rows[0].r;
+assert(towerRetry.duplicate);assert.equal(towerRetry.amount,100);assert.deepEqual(towerRetry.wallet,towerBefore.wallet);
+
 const src=await read('arcade.js'),fn=src.slice(src.indexOf('  function gameReward('),src.indexOf('  // END BALANCED GAME REWARDS'));
 const reward=vm.runInNewContext('('+fn.trim()+')');
 const games=[...fn.matchAll(/case '([^']+)'/g)].map(m=>m[1]);
 const uid='00000000-0000-4000-8000-000000000001';await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);
 let count=0;
 for(const game of games){
- for(const [m,a] of [[0,0],[1,1],[5,2],[15,5],[30,12],[75,20],[250,60],[10000,10000]]){
+ for(const [m,a] of game==='towerStack'?[[0,0],[1,1],[3,0],[15,5],[33,33],[60,40],[100,100],[10000,10000]]:[[0,0],[1,1],[5,2],[15,5],[30,12],[75,20],[250,60],[10000,10000]]){
   if(game==='memory'&&m===0||game==='crystalCommand'&&(m<1||a<60))continue;
   const id='balance-test-'+(++count);
   const r=(await db.query("select claim_coin_reward($1,'game',$2,$3,$4,null,'balance test') r",[id,game,m,a])).rows[0].r;
@@ -41,6 +48,7 @@ for(const game of games){
  }
 }
 for(const [game,m,a,want] of [['jungleHopper',30,0,25],['jungleHopper',30,10,35],['jungleHopper',100,99,50],['snake',25,0,39],['blockDrop',10,0,45],['starDefender',1200,0,60],['coinCatch',75,0,28],['crystalCommand',45,120,100]])assert.equal(reward(game,m,a),want);
+for(const [m,a,want] of [[3,0,1],[33,0,13],[33,33,16],[36,33,17],[60,40,29],[100,100,53],[210,210,100]])assert.equal(reward('towerStack',m,a),want);
 for(const item of catalog.premiumItems){const row=(await db.query('select * from earnly_world.item_definitions where id=$1',[item.id])).rows[0];for(const k of ['price','sprite_id','width','length','category'])assert.equal(row[k],item[k]);}
 assert.equal((await db.query("select price from earnly_world.item_definitions where id='starter-chair'")).rows[0].price,60);
 const daily=(await db.query("select claim_coin_reward('daily-balance-check','daily_bonus') r")).rows[0].r;assert.equal(daily.amount,10);

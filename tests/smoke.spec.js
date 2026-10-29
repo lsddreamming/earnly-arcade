@@ -2302,21 +2302,22 @@ require('./compact-game-entry.cases.js');
 require('./snake-mobile.cases');
 
 
-test('Tap Rush counts every board press without shortening the clock', async ({ page }) => {
-  await page.goto('/taprush.html');
-  await startGame(page);
+test('Tap Rush scores aimed hits and subtracts time for background misses', async ({ page }) => {
+  await page.goto('/taprush.html');await startGame(page);
   await expect(page.locator('#gameStatus')).toHaveText('Running');
   const state=await page.evaluate(()=>{
     const deadline=roundEndsAt;
-    for(let i=0;i<12;i++)board.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',pointerId:i%2+1,isPrimary:i%2===0,bubbles:true,cancelable:true}));
-    return {hits,deadlineUnchanged:roundEndsAt===deadline};
+    for(let i=0;i<12;i++){
+      const r=target.getBoundingClientRect();
+      board.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.x+r.width/2,clientY:r.y+r.height/2,pointerType:'touch',bubbles:true,cancelable:true}));
+    }
+    const r=board.getBoundingClientRect();
+    board.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.x+8,clientY:r.y+r.height/2,pointerType:'touch',bubbles:true,cancelable:true}));
+    return {hits,misses,penalty:deadline-roundEndsAt};
   });
-  expect(state).toEqual({hits:12,deadlineUnchanged:true});
-  await expect(page.locator('#hits')).toHaveText('12');
+  expect(state).toEqual({hits:12,misses:1,penalty:750});
   const web=await (await page.request.get('/taprush.html')).text();
-  const ios=await (await page.request.get('/www/taprush.html')).text();
-  expect(ios).toBe(web);
-  expect(web).not.toContain('MISS_PENALTY_MS');
+  expect(await (await page.request.get('/www/taprush.html')).text()).toBe(web);
 });
 
 test('Tap Rush zero-tap result gives accurate first-run feedback', async ({ page }) => {
@@ -2325,7 +2326,7 @@ test('Tap Rush zero-tap result gives accurate first-run feedback', async ({ page
   await expect(page.locator('#gameStatus')).toHaveText('Running');
   await page.evaluate(() => finishGame());
   const result = page.locator('dialog.game-result-dialog');
-  await expect(result).toContainText('No taps yet. Tap anywhere in the game area next run.');
+  await expect(result).toContainText('No targets hit yet. Tap the green circle to score next run.');
   await expect(result).not.toContainText('Perfect accuracy');
 });
 
