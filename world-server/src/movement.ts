@@ -12,6 +12,7 @@ export class MovementController {
   #position:XYZ; #path:XYZ[]=[]; #credit=0; #revision=-1;
   constructor(grid:RoomGrid,spawn:XY){const tile=grid.tile(spawn);if(!tile?.walkable)throw new Error('Invalid spawn');this.#position={...spawn,z:tile.z};this.#revision=grid.revision;}
   get position():XYZ{return {...this.#position};}
+  plannedTiles():XYZ[]{return this.#path.map(p=>({...p}));}
   moveTo(grid:RoomGrid,packet:unknown,occupied:ReadonlySet<string>=new Set()){
     const goal=parseMoveIntent(packet);if(!goal)return {status:'invalid' as const};
     const result=findPath(grid,this.#position,goal,{occupied});

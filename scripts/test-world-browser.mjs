@@ -66,15 +66,15 @@ try{
    const r=window.testWorldRenderer;
    const blocked=(x,y)=>r.hit.some(h=>Math.abs(x-h.x)<Math.max(20,(h.nameWidth||0)/2)&&y>h.y-50&&y<h.y+(h.user.isAI?24:4));
    const seats=r.scene.items.filter(i=>i.canSit&&![...r.staff.values()].some(s=>s.isAI&&s.itemId===i.id)&&![...r.users.values(),...r.staff.values()].some(u=>u.position.x===i.x&&u.position.y===i.y));
-   const pick=(i,x,y)=>{if(blocked(x,y)||r.pickItem(x,y,[i])?.id!==i.id||r.pickItem(x,y)?.id!==i.id)return null;return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};};
+   const pick=(i,x,y)=>{if(blocked(x,y)||r.pickItem(x,y,[i])?.id!==i.id||r.pickItem(x,y)?.id!==i.id)return null;return {x:r.cx+x*r.scale,y:r.cy+y*r.scale,itemId:i.id};};
    // Prefer a handful of visible surface points across all seats before raster scanning.
    for(const i of seats){const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(const [dx,dy]of [[0,-12],[0,-20],[8,-12],[-8,-12],[0,-4],[8,4],[-8,4]]){const hit=pick(i,ox+dx,oy+dy);if(hit)return hit;}}
    for(const i of seats){const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y+=2)for(let x=ox-30;x<ox+40;x+=2){const hit=pick(i,x,y);if(hit)return hit;}}
    throw new Error('No unobscured seat sprite found');
   });
-  await a.locator('#worldCanvas').click({position:seatPoint});await expect(a.getByRole('button',{name:'Move',exact:true})).toHaveCount(0);
+  await a.locator('#worldCanvas').click({position:{x:seatPoint.x,y:seatPoint.y}});await expect(a.getByRole('button',{name:'Move',exact:true})).toHaveCount(0);
   await expect(a.locator('#worldPanel')).not.toBeVisible();
-  await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000});
+  await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000}).catch(async error=>{console.error('Seat interaction diagnostic',JSON.stringify({room:name,seat:seatPoint,scene:await a.evaluate(()=>({players:[...testWorldRenderer.users.values()].map(u=>({position:u.position,state:u.state})),staff:[...testWorldRenderer.staff.values()].map(s=>({name:s.username,position:s.position,activity:s.activity,itemId:s.itemId})),toast:document.getElementById('worldToast').textContent}))}));throw error;});
   await expect.poll(()=>a.evaluate(uid=>window.testWorldRenderer.users.get(uid)?.state,fixture.users[0])).toBe('sit');
   if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'-seated.png'});
   const floorPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,me=r.users.get(r.localUserId).position,tiles=[];for(let y=0;y<12;y++)for(let x=0;x<12;x++)tiles.push({x,y});tiles.sort((a,b)=>Math.abs(a.x-me.x)+Math.abs(a.y-me.y)-Math.abs(b.x-me.x)-Math.abs(b.y-me.y));for(const {x,y}of tiles){const px=(x-y)*18,py=(x+y)*9+9;if(r.pickItem(px,py)||r.hit.some(h=>Math.abs(px-h.x)<Math.max(20,(h.nameWidth||0)/2)&&py>h.y-50&&py<h.y+(h.user.isAI?24:4)))continue;return {tile:{x,y},point:{x:r.cx+px*r.scale,y:r.cy+py*r.scale}};}throw new Error('No clear floor pixel');});

@@ -298,7 +298,7 @@ export class RoomRuntime {
         if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}
       }
     }
-    const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
+    const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...m.movement.plannedTiles().map(tileKey),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
     if(this.spuds.tick(this.grid,external,this.memberCount,this.#publicResidents))moved=true;
     if(this.#social&&this.#ticks%4===0){const now=performance.now();for(const id of this.#members.keys()){if(!this.#social.ready(id,this.#roomKey,now))continue;for(const spud of this.spuds.snapshots()){if(this.residentNearby(id,spud.residentId)&&this.#social.greeting(id,this.#roomKey,spud.residentId,now)){this.#members.get(id)!.send({type:'AI_GREETING',residentId:spud.residentId,staffId:spud.staffId,isAI:true,text:this.#residentGreeting(id,spud.residentId)});break;}}}}
     if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
