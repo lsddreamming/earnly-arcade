@@ -36,8 +36,8 @@ test('AI residents have distinct actions, shared public chat and Quiet mode with
  await expect(page.locator('#peopleCount')).toHaveText('2 Spuds here');
  await page.locator('[data-panel="staff"]').click();await expect(page.getByRole('button',{name:'Say hello',exact:true})).toHaveCount(1);
  await page.getByRole('button',{name:'Meet resident',exact:true}).click();await expect(page.locator('#panelTitle')).toContainText('Jax');await expect(page.locator('#panelTitle .resident-ai-badge')).toHaveText('AI resident');await expect(page.locator('.resident-portrait')).toBeVisible();await expect(page.locator('#panelContent')).toContainText('Everyone within 8 tiles can join');
- await page.getByRole('button',{name:'Talk in nearby chat',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();await page.locator('#sayText').fill('Jax tell me a joke');await page.locator('#sayForm button').click();await expect.poll(()=>page.evaluate(()=>aiRenderer.bubbles.get('ai-jax')?.text)).toContain('To reach the next level');expect(await page.evaluate(()=>aiActions.filter(a=>a.action==='say').at(-1).data)).toMatchObject({text:'Jax tell me a joke',mode:'normal',residentId:'jax'});expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_chat'))).toBe(false);await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
- await page.getByRole('button',{name:'Social settings',exact:true}).click();expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_focus'&&a.data.active===false))).toBe(true);await page.getByRole('button',{name:'Switch to Quiet mode',exact:true}).click();await expect(page.getByRole('button',{name:'Switch to Natural mode',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Talk in nearby chat',exact:true})).toHaveCount(0);await page.locator('#closePanel').click();await expect(page.locator('#worldPanel')).not.toBeVisible();await page.locator('#sayText').fill('Jax tell me a joke');await page.locator('#sayForm button').click();await expect.poll(()=>page.evaluate(()=>aiRenderer.bubbles.get('ai-jax')?.text)).toContain('To reach the next level');expect(await page.evaluate(()=>aiActions.filter(a=>a.action==='say').at(-1).data)).toMatchObject({text:'Jax tell me a joke',mode:'normal'});expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_chat'))).toBe(false);await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
+ await page.getByRole('button',{name:'Social settings',exact:true}).click();expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_focus'))).toBe(false);await page.getByRole('button',{name:'Switch to Quiet mode',exact:true}).click();await expect(page.getByRole('button',{name:'Switch to Natural mode',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>aiActions.find(a=>a.action==='resident_mode').data.quiet)).toBe(true);
  await page.locator('#closePanel').click();
  await page.evaluate(()=>aiSocket.emit({type:'AI_GREETING',staffId:'ai-jax',residentId:'jax',text:'UNSOLICITED_TEST_GREETING'}));
@@ -68,21 +68,30 @@ test('Guest catalog survives the initial auth notification before connecting',as
  await expect(page.locator('#panelContent')).toContainText('Porcelain Toilet');
 });
 
-test('resident chat waits for approach and closing the panel releases the conversation',async({page})=>{
+test('resident profiles do not start approach or gate public chat',async({page})=>{
  await fixture(page);await page.evaluate(()=>window.aiFocusReady=false);
  await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
- await expect(page.locator('#panelContent')).toContainText('Walking over to Jax');await expect(page.getByRole('button',{name:'Talk in nearby chat',exact:true})).toBeDisabled();
- await page.evaluate(()=>window.aiFocusReady=true);await expect(page.getByRole('button',{name:'Talk in nearby chat',exact:true})).toBeEnabled();
- await page.locator('#closePanel').click();await expect.poll(()=>page.evaluate(()=>aiActions.filter(a=>a.action==='resident_focus').at(-1)?.data.active)).toBe(false);
+ await expect(page.locator('#panelContent')).toContainText('Say hello in public chat');
+ await expect(page.locator('[data-resident-topic]')).toHaveCount(0);
+ expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_focus'))).toBe(false);
+ await page.locator('#closePanel').click();
+ await page.locator('#sayText').fill("what's up");await page.locator('#sayForm button').click();
+ await expect.poll(()=>page.evaluate(()=>aiActions.filter(a=>a.action==='say').length)).toBe(1);
+ expect(await page.evaluate(()=>aiActions.find(a=>a.action==='say').data)).toMatchObject({text:"what's up",mode:'normal'});
+ expect(await page.evaluate(()=>aiActions.find(a=>a.action==='say').data.residentId)).toBeUndefined();
+ await expect.poll(()=>page.evaluate(()=>aiRenderer.bubbles.get('ai-jax')?.text)).toContain('To reach the next level');
 });
 
-test('joining resident public chat requires explicit chat consent and keeps the conversation hold',async({page})=>{
- await fixture(page,{chatAccepted:false});await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
- await page.getByRole('button',{name:'Talk in nearby chat',exact:true}).click();await expect(page.locator('#panelTitle')).toHaveText('Nearby chat rules');await expect(page.locator('#panelContent')).toContainText('sent to OpenAI');
- expect(await page.evaluate(()=>aiActions.some(a=>a.action==='accept_chat'))).toBe(false);
- await page.getByRole('button',{name:'I agree · Join nearby chat',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
- expect(await page.evaluate(()=>aiActions.some(a=>a.action==='accept_chat'))).toBe(true);expect(await page.evaluate(()=>aiActions.filter(a=>a.action==='resident_focus').at(-1).data.active)).toBe(true);
- await page.locator('#sayText').fill('Hello Jax');await page.locator('#sayForm button').click();await expect.poll(()=>page.evaluate(()=>aiActions.filter(a=>a.action==='say').length)).toBe(1);
+test('normal public chat requires consent without selecting a resident',async({page})=>{
+ await fixture(page,{chatAccepted:false});
+ await page.locator('#sayText').fill("what's up");await page.locator('#sayForm button').click();
+ await expect(page.locator('#panelTitle')).toHaveText('Room chat');
+ await expect(page.locator('#panelContent')).toContainText('private messages and saved memories are excluded');
+ expect(await page.evaluate(()=>aiActions.some(a=>a.action==='say'||a.action==='accept_chat'))).toBe(false);
+ await page.getByRole('button',{name:'I agree to the chat rules',exact:true}).click();
+ await page.locator('#closePanel').click();await page.locator('#sayForm button').click();
+ await expect.poll(()=>page.evaluate(()=>aiActions.filter(a=>a.action==='say').length)).toBe(1);
+ expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_focus'))).toBe(false);
 });
 
 test('AI outage status is an honest toast rather than a fabricated resident reply',async({page})=>{
@@ -109,10 +118,11 @@ test('personal room chat labels and consent explain all-tile conversation on pho
  await expect(page.locator('#sayText')).toHaveAttribute('placeholder','Say hello to everyone in the room…');
  await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
  await expect(page.locator('#panelContent')).toContainText('Everyone in this room can join');
- await page.getByRole('button',{name:'Talk in room chat',exact:true}).click();
- await expect(page.locator('#panelTitle')).toHaveText('Room chat rules');await expect(page.locator('#panelContent')).toContainText('public throughout this room');
+ await page.locator('#closePanel').click();
+ await page.locator('#sayText').fill('hello');await page.locator('#sayForm button').click();
+ await expect(page.locator('#panelTitle')).toHaveText('Room chat');
+ await expect(page.locator('#panelContent')).toContainText('Room chat · All tiles');
  await expect(page.locator('#panelContent')).toContainText('private messages and saved memories are excluded');
- await page.getByRole('button',{name:'I agree · Join room chat',exact:true}).click();await expect(page.locator('#worldPanel')).not.toBeVisible();
- await page.locator('[data-panel="chat"]').click();await expect(page.locator('#panelContent')).toContainText('Room chat · All tiles');
+ await page.getByRole('button',{name:'I agree to the chat rules',exact:true}).click();
  expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
 });
