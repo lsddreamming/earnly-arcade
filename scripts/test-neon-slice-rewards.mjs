@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
 const require=createRequire(import.meta.url),E=require('../neon-slice-engine.js');
 assert.equal(await readFile('neon-slice-engine.js','utf8'),await readFile('supabase/functions/neon-slice/engine.js','utf8'));
-for(const version of [1,2])for(let seed=1;seed<=25;seed++){
+for(const version of [1,2,3])for(let seed=1;seed<=25;seed++){
  const g=new E.Game(E.seededRandom(seed),version);g.start();const events=[];let ticks=0;
  while(g.state==='running'&&ticks<10800){
   if(ticks<1800)for(const o of [...g.items])if(!o.bomb&&o.y<500&&o.y>40&&o.x>0&&o.x<360){const x=Math.round(o.x),y=Math.round(o.y);events.push([ticks,Math.max(0,x-12),y,Math.min(360,x+12),y]);g.slice({x:Math.max(0,x-12),y},{x:Math.min(360,x+12),y});if(g.state!=='running')break;events.push([ticks]);g.endStroke();}
@@ -28,6 +28,8 @@ await db.exec(`ALTER TABLE leaderboard_scores ADD COLUMN verified boolean, ADD C
 ADD CONSTRAINT leaderboard_scores_game_check CHECK(game IN ('snake','coinCatch'));`);
 const rankFile=(await readdir('supabase/migrations')).find(x=>x.endsWith('_neon_slice_leaderboard.sql'));
 await db.exec(await readFile('supabase/migrations/'+rankFile,'utf8'));
+const wideFile=(await readdir('supabase/migrations')).find(x=>x.endsWith('_neon_slice_wide_launches_v3.sql'));
+await db.exec(await readFile('supabase/migrations/'+wideFile,'utf8'));
 const uid='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
 const data=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
 const start=()=>data('select neon_slice_start($1,17) r',[uid]);
@@ -37,6 +39,7 @@ await db.exec('SET ROLE service_role');
 const v2=await data('select neon_slice_start_v2($1,17) r',[uid]);assert.equal(v2.engineVersion,2);
 assert.equal((await db.query('select engine_version from neon_slice_rounds where id=$1',[v2.id])).rows[0].engine_version,2);
 await db.exec('RESET ROLE');
+const v3=await data('select neon_slice_start_v3($1,17) r',[uid]);assert.equal(v3.engineVersion,3);assert.equal((await db.query('select engine_version from neon_slice_rounds where id=$1',[v3.id])).rows[0].engine_version,3);await db.query('delete from neon_slice_rounds where id=$1',[v3.id]);
 let round=await start();assert.equal((await db.query('select engine_version from neon_slice_rounds where id=$1',[round.id])).rows[0].engine_version,1);await assert.rejects(claim(round.id),/ROUND_TOO_FAST/);await assert.rejects(claim(round.id,1500,other),/ROUND_NOT_FOUND/);await age(round.id);
 let r=await claim(round.id);assert.equal(r.amount,30);assert.equal(r.wallet.balance,'1280');assert.equal(r.remaining,2);
 r=await claim(round.id);assert(r.duplicate);assert.equal(r.amount,0);assert.equal(r.wallet.balance,'1280');
@@ -54,4 +57,4 @@ round=await start();await age(round.id);await claim(round.id,15000);
 assert.equal((await db.query("select score from leaderboard_scores where game='neonSlice'")).rows[0].score,12000);
 await db.exec(await readFile('supabase/migrations/'+rankFile,'utf8').then(s=>s.slice(s.indexOf('INSERT INTO public.leaderboard_scores(user_id,game,score,verified,achieved_at,updated_at)\nSELECT DISTINCT'),s.indexOf('-- Continue verifying'))));
 assert.equal((await db.query("select score from leaderboard_scores where game='neonSlice'")).rows[0].score,12000);
-await db.close();console.log('PASS: 50 deterministic replays across both engine versions, invalid inputs, unfinished runs, authoritative ledger, duplicate suppression, timing, ownership, daily cap including outstanding tickets, practice, rollover, expiry and client mint denial.');
+await db.close();console.log('PASS: 75 deterministic replays across three engine versions, invalid inputs, unfinished runs, authoritative ledger, duplicate suppression, timing, ownership, daily cap including outstanding tickets, practice, rollover, expiry and client mint denial.');

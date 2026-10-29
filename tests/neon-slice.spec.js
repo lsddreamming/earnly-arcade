@@ -47,7 +47,7 @@ test('failed claim remains pending and retry is explicit',async({page})=>{
  await page.locator('#sliceStart').click();await expect(page.locator('#sliceReward')).toContainText('Reward pending');await expect(page.locator('#sliceRetry')).toBeVisible();await page.locator('#sliceRetry').click();await expect(page.locator('#sliceReward')).toContainText('No pending rewards for this account');
 });
 test('recorded signed-in swipe and pause inputs replay to the exact displayed score',async({page})=>{
- await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__observedGame=this;};window.NeonSliceRewards={retry:async()=>[],start:async()=>({id:'round',seed:17,userId:'user',remaining:3}),claim:async(round,events,ticks)=>{const r=NeonSliceEngine.verify(round.seed,events,ticks);window.__verifiedRun={...r,events};return {amount:r.coins,remaining:3-(r.coins>0?1:0)};}};});
+ await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__observedGame=this;};window.NeonSliceRewards={retry:async()=>[],start:async()=>({id:'round',seed:17,userId:'user',remaining:3}),claim:async(round,events,ticks)=>{const r=NeonSliceEngine.verify(round.seed,events,ticks,3);window.__verifiedRun={...r,events};return {amount:r.coins,remaining:3-(r.coins>0?1:0)};}};});
  await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
  await page.waitForFunction(()=>window.__observedGame.items.some(o=>!o.bomb&&o.y<380&&o.y>300));await page.mouse.move(box.x+2,box.y+box.height*.64);await page.mouse.down();await page.mouse.move(box.x+box.width-2,box.y+box.height*.64,{steps:12});await page.mouse.up();expect(Number(await page.locator('#sliceScore').innerText())).toBeGreaterThan(0);
  await page.mouse.move(box.x+5,box.y+5);await page.mouse.down();await page.mouse.move(box.x+35,box.y+5,{steps:5});await page.mouse.up();
@@ -214,4 +214,10 @@ test('results show device best and saved world rank without waiting for old rewa
  await expect(page.locator('#sliceRank')).toContainText('Your world rank: #2');
  await expect(page.locator('#sliceRank')).toContainText('1,705');
  await expect(page.locator('#sliceRank')).toContainText('device-only');
+});
+
+test('v3 launches cover both edges with varied heights and stay on screen',()=>{
+ const bins=new Set(),heights=new Set();let left=360,right=0;
+ for(let seed=1;seed<=50;seed++){const g=new Game(require('../neon-slice-engine').seededRandom(seed),3);g.start();for(let wave=0;wave<15;wave++){g.time=wave*5;g.items=[];g.spawn();for(const item of g.items){if(item.bomb)continue;bins.add(Math.floor(item.x/60));heights.add(Math.round(item.vy/10));for(let t=0;t<2.5;t+=.04){const y=item.y+item.vy*t+.5*item.gravity*t*t;if(y>=0&&y<=540){const x=item.x+item.vx*t;left=Math.min(left,x-item.r);right=Math.max(right,x+item.r);}}}}}
+ expect(left).toBeGreaterThanOrEqual(0);expect(right).toBeLessThanOrEqual(360);expect(bins.has(0)).toBe(true);expect(bins.has(5)).toBe(true);expect(bins.size).toBeGreaterThanOrEqual(5);expect(heights.size).toBeGreaterThan(8);
 });

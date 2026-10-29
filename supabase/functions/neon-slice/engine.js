@@ -10,7 +10,7 @@
     end(reason){this.state='over';this.reason=reason;this.endStroke();this.completedCombos=[];}
     continue(){if(this.state!=='over'||this.continued)return false;this.continued=true;this.items=[];this.misses=0;this.nextWave=1.4;this.state='running';return true;}
     spawn(){
-      this.wave++;const count=Math.min(4,1+Math.floor(this.time/14)+(this.wave%3===0?1:0));
+      this.wave++;const count=this.version>=3?Math.min(4,1+Math.floor(this.time/10)+(this.random()<.4?1:0)):Math.min(4,1+Math.floor(this.time/14)+(this.wave%3===0?1:0));
       // Keep the opening gentle, then shorten airtime without lowering the apex.
       const pressure=Math.min(1,Math.max(0,(this.time-12)/90)),gravity=530+190*pressure;
       const pattern=this.wave%3,spacing=78,center=180+(this.random()-.5)*16;
@@ -20,9 +20,22 @@
         const lane=i-(count-1)/2,x=center+lane*spacing;
         wave.push({id:++this.id,x,y:580,vx:drift,vy:launch+(pattern===1?lane*18:pattern===2?Math.abs(lane)*14:0),gravity,r:23+this.random()*5,angle:this.random()*6,spin:(this.random()-.5)*3,type:this.random()<.06?7:[0,1,2,3,4,5,6,8,9,10,11][Math.floor(this.random()*11)],bomb:this.time>=12&&this.wave>4&&i===count-1&&this.random()<.16+.29*pressure});
       }
+      // V3 distributes each wave across shuffled full-width lanes, with varied
+      // heights and bounded sideways travel. Legacy ticket physics stay exact.
+      if(this.version>=3){
+        const lanes=[40,110,180,250,320];
+        for(let i=lanes.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[lanes[i],lanes[j]]=[lanes[j],lanes[i]];}
+        wave.forEach((item,i)=>{
+          item.x=lanes[i]+(this.random()-.5)*16;
+          item.vy=launch+(this.random()-.5)*70;
+          const flight=-2*item.vy/gravity;
+          item.vx=Math.max((30-item.x)/flight,Math.min((330-item.x)/flight,(this.random()-.5)*65));
+        });
+      }
       // Version 1 remains replayable for old clients and pending rewards.
       // Swap the hazard into a random formation lane before spacing checks.
       if(this.version>=2){const bomb=wave.find(item=>item.bomb);if(bomb){const target=wave[Math.floor(this.random()*wave.length)];[bomb.x,target.x]=[target.x,bomb.x];[bomb.vy,target.vy]=[target.vy,bomb.vy];}}
+      if(this.version>=3)for(const item of wave){const flight=-2*item.vy/gravity;item.vx=Math.max((30-item.x)/flight,Math.min((330-item.x)/flight,item.vx));}
       // Keep a clear slicing window around each food apex, including earlier waves.
       const overlaps=(a,b)=>{for(let t=0;t<=3;t+=.04){const ay=a.y+a.vy*t+.5*(a.gravity||530)*t*t,by=b.y+b.vy*t+.5*(b.gravity||530)*t*t;if(Math.abs(b.vy+(b.gravity||530)*t)>110)continue;if(ay< -a.r||ay>540+a.r||by< -b.r||by>540+b.r)continue;if(Math.hypot(a.x+a.vx*t-b.x-b.vx*t,ay-by)<a.r+b.r+16)return true;}return false;};
       for(const item of wave){if(item.bomb){const food=[...this.items,...wave].filter(other=>other!==item&&!other.bomb);let safe=!food.some(other=>overlaps(item,other));
@@ -55,7 +68,7 @@
   function seededRandom(seed){let s=seed>>>0;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
   // Replay only bounded, integer-tick input. Never trust a client-supplied score.
   function verify(seed,events,ticks,version=2){
-    if(![1,2].includes(version))throw Error('INVALID_RUN');
+    if(![1,2,3].includes(version))throw Error('INVALID_RUN');
     if(!Number.isInteger(seed)||seed<1||seed>4294967295||!Number.isInteger(ticks)||ticks<1||ticks>10800||!Array.isArray(events)||events.length>18000)throw Error('INVALID_RUN');
     const g=new Game(seededRandom(seed),version);g.start();let tick=0,previous=0;
     for(const e of events){

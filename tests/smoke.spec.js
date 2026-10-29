@@ -2609,7 +2609,10 @@ test('Coin Catch shows the next payout and alternates reachable drop lanes', asy
 
 for (const scenario of [
   {name:'coin entering the mouth',offset:0,bottom:-2,bomb:false,caught:true},
-  {name:'coin brushing the outside rim',offset:42,bottom:-2,bomb:false,caught:false},
+  {name:'coin overlapping the left rim',offset:-42,bottom:-2,bomb:false,caught:true},
+  {name:'coin overlapping the right rim',offset:42,bottom:-2,bomb:false,caught:true},
+  {name:'coin fully outside the rim',offset:60,bottom:-2,bomb:false,caught:false},
+  {name:'bomb overlapping the rim',offset:42,bottom:-2,bomb:true,caught:true},
   {name:'coin below the rim',offset:0,bottom:10,bomb:false,caught:false},
   {name:'fast coin crossing the rim',offset:0,bottom:-30,bomb:false,caught:true},
   {name:'bomb entering the mouth',offset:0,bottom:-2,bomb:true,caught:true}

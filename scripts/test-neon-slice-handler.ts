@@ -20,6 +20,7 @@ test('tickets select replay rules on the server, not from claim input',async()=>
  try {
   assert.equal((await handleNeonSlice(req({action:'start',engineVersion:2}),d)).status,200);
   assert(d.calls.some(c=>c[0]==='neon_slice_start_v2'));
+  assert.equal((await handleNeonSlice(req({action:'start',engineVersion:3}),d)).status,200);assert(d.calls.some(c=>c[0]==='neon_slice_start_v3'));
   assert.equal((await handleNeonSlice(req({action:'start',engineVersion:99}),d)).status,400);
   assert.equal((await handleNeonSlice(req({action:'claim',id,events:[],ticks,engineVersion:1}),d)).status,200);
   assert.equal(selected,2);

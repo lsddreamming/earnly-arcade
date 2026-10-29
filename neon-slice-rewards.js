@@ -12,7 +12,7 @@
   try{localStorage.setItem('points',String(wallet.balance));localStorage.setItem('lifetimePoints',String(Math.max(Number(wallet.balance),Number(wallet.lifetime_earned))));localStorage.setItem('arcadeShadowWallet',JSON.stringify({balance:Number(wallet.balance),lifetime:Number(wallet.lifetime_earned),checkedAt:new Date().toISOString()}));}catch{}
   window.dispatchEvent(new CustomEvent('earnly-wallet-change',{detail:{balance:Number(wallet.balance),lifetime:Number(wallet.lifetime_earned)}}));
  }
- async function start(){const u=await user();if(!u||u.is_anonymous)return null;const round=await call({action:'start',engineVersion:2});if(round?.id&&round.engineVersion!==2)throw Error('ENGINE_VERSION');return round;}
+ async function start(){const u=await user();if(!u||u.is_anonymous)return null;const round=await call({action:'start',engineVersion:3});if(round?.id&&round.engineVersion!==3)throw Error('ENGINE_VERSION');return round;}
  async function claim(round,events,ticks){
   const pending={id:round.id,userId:round.userId,events,ticks};store([...load().filter(x=>x.id!==round.id),pending]);
   const u=await user();if(!u||u.id!==round.userId)throw Error('SIGN_IN_REQUIRED');
