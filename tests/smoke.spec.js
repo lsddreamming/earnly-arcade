@@ -2585,18 +2585,21 @@ test('ad privacy choices are native-only and opening them never requests a rewar
   await expect(page.locator('#adPrivacyButton')).toBeEnabled();
 });
 
-test('Coin Catch shows the next payout and alternates reachable drop lanes', async ({page,isMobile}) => {
+test('Coin Catch shows the next payout and uses varied full-width random drops', async ({page,isMobile}) => {
   await page.goto('/coincatch.html');
   await expect(page.locator('#nextCoinReward')).toHaveText('6 catches to +4 Arcade Coins');
   const pattern=await page.evaluate(()=>{
-    const random=Math.random;Math.random=()=>.5;
-    try{level=2;drops=[];dropPattern=0;const xs=[];
-      for(let i=0;i<4;i++){drops=[];spawn(i+1);xs.push(drops[0].x);}
+    const random=Math.random;let seed=74;Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+    try{level=15;drops=[];const xs=[];
+      for(let i=0;i<200;i++){drops=[];spawn(i+1);xs.push(drops[0].x);}
       score=50;refreshReward();return {xs,width:canvas.width,seconds:LEVEL_SECONDS};
     }finally{Math.random=random;}
   });
   expect(pattern.seconds).toBe(15);
-  expect(pattern.xs).toEqual([.22,.5,.78,.5].map(x=>x*pattern.width));
+  expect(Math.min(...pattern.xs)).toBeLessThan(45);expect(Math.max(...pattern.xs)).toBeGreaterThan(315);
+  expect(pattern.xs.every(x=>x>=18&&x<=pattern.width-18)).toBe(true);
+  expect(new Set(pattern.xs.map(x=>Math.round(x))).size).toBeGreaterThan(80);
+  expect(pattern.xs.slice(4).some((x,i)=>Math.abs(x-pattern.xs[i])>70)).toBe(true);
   await expect(page.locator('#earnedCoins')).toHaveText('+16');
   await expect(page.locator('#nextCoinReward')).toHaveText('4 catches to +4 Arcade Coins');
   if(isMobile){

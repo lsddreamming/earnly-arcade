@@ -6,7 +6,7 @@ Status: implementation candidate, NOT approved for Apple upload or review submis
 
 Historical check before Shop 2.0 rollout: website `/coin-shop/config` reported `available: true`. The deployed Shop 2.0 configuration now reports `available: false`. This confirms configured availability, not an end-to-end card charge. Production has no redemption/withdrawal/cash-out RPC.
 
-Players see one Arcade Coins balance, earned in games or purchased. Coins buy avatar items and three additional plays for 25 coins. No coins, including rewards earned during paid plays, can be cashed out, transferred, converted to crypto, or redeemed for prizes. Purchased coins are tracked separately inside the existing wallet and do not increase lifetime earned totals. Any future redemption feature requires a new provenance design and review; do not enable it against this balance.
+Players see one Arcade Coins balance, earned in games or purchased. Coins buy avatar items and three additional plays for 5,000 Arcade Coins. No coins, including rewards earned during paid plays, can be cashed out, transferred, converted to crypto, or redeemed for prizes. Purchased coins are tracked separately inside the existing wallet and do not increase lifetime earned totals. Any future redemption feature requires a new provenance design and review; do not enable it against this balance.
 
 ## App Store Connect configuration
 

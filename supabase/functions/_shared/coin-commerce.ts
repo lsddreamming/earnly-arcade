@@ -74,7 +74,8 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
       let body;try{body=JSON.parse(raw);}catch{return fail('INVALID_JSON','Invalid request.');}
       if(path.startsWith('/plays/')) {
         if(typeof body?.game!=='string')return fail('INVALID_GAME','Choose a game.');
-        return json(unwrap(await db.rpc('coin_play_action',{p_user_id:user.id,p_game:body.game,p_request_id:key,p_action:path.endsWith('/buy')?'buy':'consume'})));
+        const buying=path.endsWith('/buy');
+        return json(unwrap(await db.rpc(buying?'coin_play_action_v2':'coin_play_action',{p_user_id:user.id,p_game:body.game,p_request_id:key,p_action:buying?'buy':'consume',...(buying?{p_expected_cost:Number.isInteger(body.cost)?body.cost:null}:{})})));
       }
       if(origin==='capacitor://localhost')return fail('APPLE_PURCHASE_REQUIRED','Use Apple in-app purchases on iPhone.',403);
       if(!checkoutEnabled||!stripe)return fail('CHECKOUT_UNAVAILABLE','Card purchases are coming soon. You can still earn coins by playing.',503);
@@ -105,6 +106,7 @@ export function commerceHandler({db,stripe,verifyUser,verifyEvent,checkoutEnable
       const message=String((error as any)?.message||'');
       const known:Record<string,[number,string]>={INSUFFICIENT_COINS:[409,'Not enough Arcade Coins.'],REQUEST_REUSED:[409,'This request belongs to another purchase.'],
         PACK_NOT_FOUND:[404,'This pack is unavailable.'],WALLET_UNAVAILABLE:[409,'Open Account & Data to set up your coin wallet first.'],
+        PRICE_CHANGED:[409,'3 extra plays now cost 5,000 Arcade Coins. Update the app or refresh this page before buying.'],
         NO_PLAYS:[409,'No extra plays left for this game.'],INVALID_GAME:[400,'Choose a supported game.'],RATE_LIMITED:[429,'Too many checkout attempts. Try again later.'],
         PAYMENT_REVIEW:[409,'This payment needs review. Contact support.']};
       const code=Object.keys(known).find(code=>message.includes(code));

@@ -30,7 +30,7 @@ Implemented packs: 500 coins / $0.99; 1,500 / $2.99; 4,000 / $4.99 USD. Purchase
 
 ## Extra plays
 
-Three extra plays cost 25 Arcade Coins for the selected game. Coins and play credits are updated together on the server; retrying a request does not debit twice. Credits do not reset daily and are separate from free/rewarded plays. Players use their daily free plays first.
+Three extra plays cost 5,000 Arcade Coins for the selected game. Coins and play credits are updated together on the server; retrying a request does not debit twice. Credits do not reset daily and are separate from free/rewarded plays. Players use their daily free plays first.
 
 When daily plays run out, the website prepares one server-backed extra play online. It says “Extra play ready! Tap Play again to start.” A lost response reuses the request ID. The prepared run is cached on that browser until started; clearing browser data can discard that prepared run. Unprepared credits remain on the account. Gameplay and its existing free-play limits are client-side, so this is not an anti-cheat or cash-prize system.
 

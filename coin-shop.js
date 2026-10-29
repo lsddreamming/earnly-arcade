@@ -112,7 +112,7 @@
     if(!playKey||playKey.game!==game)playKey={game,key:crypto.randomUUID()};
     try {
       await window.EarnlyCloud?.syncServerRewards?.();
-      const data=await api('/plays/buy',{body:{game},key:playKey.key,account:session.user.id});playKey=null;
+      const data=await api('/plays/buy',{body:{game,cost:5000},key:playKey.key,account:session.user.id});playKey=null;
       if((await window.EarnlyCloud?.session?.())?.user?.id!==session.user.id)throw new Error('Your account changed. Return to your account to check your extra plays.');
       arcade?.applyServerWallet?.(data.wallet);$('refresh-button').click();
       await window.EarnlyPaidPlays?.refresh();
