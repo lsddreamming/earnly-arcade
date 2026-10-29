@@ -27,5 +27,19 @@ test('private memories and unknown questions never produce invented answers; rep
  assert.match(ask('What is my highest score?')!,/basic chat mode/);
  assert.match(ask('Are you a real person?')!,/scripted replies/);
  const first=ask('Snake')!;
- assert.equal(basicResidentReply({...base,context:[{speaker:'Mochi',text:first},{speaker:'Player',text:'Snake'}]}),null);
+ const next=basicResidentReply({...base,context:[{speaker:'Mochi',text:first},{speaker:'Player',text:'Snake'}]});assert.ok(next);assert.notEqual(next,first);
+});
+
+test('expanded personalities and everyday chat stay varied without borrowed game terminology',()=>{
+ const seen:string[]=[];
+ for(let i=0;i<4;i++){const text=basicResidentReply({...base,context:[...seen.map(text=>({speaker:'Mochi',text})),{speaker:'Player',text:'Hey Mochi'}]});assert.ok(text);assert.ok(!seen.includes(text));seen.push(text);}
+ assert.match(ask('BRB')!,/back|break/);assert.match(ask('GTG')!,/See you|later|care|Bye/);assert.match(ask('WUU2')!,/hanging out|chat|Thinking/);
+ assert.match(ask('Any furniture ideas?')!,/comfy seat/);
+});
+
+test('all authored basic lines remain short, distinct and free of Habbo-specific labels',async()=>{
+ const {greetings,jokes,gameReplies}=await import('../src/resident-basic-lines.ts');
+ const lines=[...Object.values(greetings).flat(),...Object.values(jokes).flat(),...gameReplies.flatMap(([,lines])=>lines)];
+ assert.ok(lines.length>=78);assert.equal(new Set(lines).size,lines.length);
+ for(const text of lines){assert.ok(text.length<=240,text);assert.doesNotMatch(text,/\b(furni|bobba|habbo|HC|norm|P2S|P2K)\b/i);}
 });

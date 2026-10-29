@@ -1,30 +1,33 @@
 import type {DialogueRequest} from './resident-ai.ts';
+import {ambientExchanges} from './resident-ambient-lines.ts';
+import {topics,followups} from './resident-topics.ts';
 
-// Reviewed public exchanges contain no player data, purchases, achievements or room invitations.
-const exchanges=[
- ['Anyone else like the little puzzle of lining up a Bubble Pop match?', 'Finding a match of three is satisfying. I like taking a moment to look first.', 'A tiny pause before a pop. That sounds like a good plan.'],
- ['Snake makes me think a turn ahead. Leaving an escape route helps.', 'Room to turn is everything. Getting boxed in can end a run quickly.', 'That sounds like furniture arranging, except the sofa doesn’t chase you.'],
- ['A comfy chair and a plant can make a room feel so welcoming.', 'And a clear path between them. Nobody wants to zigzag around every table.', 'Cozy corners and room to wander. I like that combination.'],
- ['Neon Slice is a good reminder to look before you swipe.', 'Food is the target; bombs are the ones to leave alone.', 'A very different kind of kitchen cleanup.'],
- ['Tap Rush is all about spotting those green circles quickly.', 'Accurate taps matter too. Misses add a time penalty.', 'Quick eyes, careful taps, then a little break.'],
- ['A Coin Catch round sounds like a nice arcade break.', 'Catching falling coins does sound fun. I like having different games to choose from.', 'And a little room-decorating break afterward.'],
- ['Do you prefer a colorful room or a quiet little reading corner?', 'A quiet corner with a comfy seat sounds lovely.', 'I’d leave a bit of open floor for a dance break, too.']
-] as const;
+const subjects:Record<string,string>={cozy:'cozy rooms',colorful:'colorful rooms',blue:'blue room ideas',green:'green room ideas',pink:'pink room ideas',purple:'purple room ideas',red:'red room ideas',yellow:'yellow room ideas',neutral:'simple room colors',plants:'plants in a room',seating:'comfortable seating',corners:'little room corners',layout:'room layouts',matching:'mixing furniture styles',lighting:'lamps as decorations',ocean:'ocean-inspired rooms',stars:'starry room themes',puzzles:'puzzle games',fastgames:'quick reaction games',strategy:'thinking ahead in games',competition:'friendly competition',casualgames:'playing just for fun',practice:'practicing a game',break:'taking a little break',quiet:'quiet hangouts',energetic:'lively hangouts',dance:'a little dance break',books:'stories and reading',drawing:'drawing ideas',music:'music-inspired ideas',creativity:'creative ideas',imagining:'a little daydreaming',planning:'starting with a plan',experiment:'trying ideas as you go',simple:'keeping an idea simple',details:'little finishing details',hangout:'a relaxed chat',new:'getting familiar with a new place',undecided:'taking time to choose',bored:'finding a small change of pace'};
+type Exchange={opening:string;responses:readonly string[];closings:readonly string[]};
+const exchanges:Exchange[]=[
+ ...ambientExchanges.map(([opening,response,closing])=>({opening,responses:[response],closings:[closing]})),
+ ...topics.map(topic=>({opening:`What do you think about ${subjects[topic.id]}?`,responses:topic.bodies,closings:followups[topic.family].slice(5)}))
+];
+export const ambientCombinationCount=exchanges.reduce((n,e)=>n+e.responses.length*e.closings.length,0);
 
-/** The runtime starts this only with a common nearby audience, and limits it to 2–3 turns. */
+/** Only the runtime can start an exchange, with a common nearby audience and 2–3 turns. */
 export function residentAmbientReply(r:DialogueRequest):string|null{
  if(!r.ambient||!r.companions.length)return null;
  const turn=r.ambientTurn??0;
  if(turn<0||turn>2||!Number.isInteger(turn))return null;
+ const pick=(lines:readonly string[])=>{const available=lines.filter(text=>!r.context.some(line=>line.text===text));return available.length?available[Math.floor(Math.random()*available.length)]:null;};
  if(turn>0){
-  const last=r.context.at(-1)?.text;
-  const exchange=exchanges.find(lines=>lines[turn-1]===last);
-  return exchange?.[turn]??null;
+  const opening=r.context.at(-turn)?.text;
+  const exchange=exchanges.find(e=>e.opening===opening);
+  if(!exchange)return null;
+  if(turn===2&&!exchange.responses.includes(r.context.at(-1)?.text??''))return null;
+  return pick(turn===1?exchange.responses:exchange.closings);
  }
- const offset=({jax:1,blitz:0,mochi:2,zippy:4} as Record<string,number>)[r.residentId]??3;
+ const previous=[...r.context].reverse().map(line=>exchanges.findIndex(e=>e.opening===line.text)).find(index=>index>=0);
+ const offset=previous!==undefined?(previous+1)%exchanges.length:Math.floor(Math.random()*exchanges.length);
  for(let i=0;i<exchanges.length;i++){
-  const lines=exchanges[(offset+i)%exchanges.length];
-  if(!r.context.some(line=>lines.some(text=>text===line.text)))return lines[0];
+  const exchange=exchanges[(offset+i)%exchanges.length];
+  if(!r.context.some(line=>line.text===exchange.opening))return exchange.opening;
  }
  return null;
 }
