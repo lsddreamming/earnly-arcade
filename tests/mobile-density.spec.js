@@ -52,6 +52,9 @@ test('mobile density styles stay scoped away from active game controls', async (
 test('Home starts with direct game choices; extras and progress stay secondary',async({page})=>{
  await page.route('https://**',r=>r.abort());await page.setViewportSize({width:390,height:844});await page.goto('/index.html');
  await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-game-card')).toHaveCount(4);await expect(page.locator('.home-game-card').last()).toBeInViewport();
+ await expect(page.locator('.home-game-card strong')).toHaveText(['Neon Slice','Snake','Jungle Hopper','Neon Breach']);
+ await expect(page.locator('.home-game-snake')).toHaveAttribute('href','snake.html');
+ await expect(page.locator('.home-game-breach')).toHaveAttribute('href','neonbreach.html');
  await expect(page.locator('#home-coin-shop')).toHaveAttribute('href','avatars.html');await expect(page.locator('dialog[open]')).toHaveCount(0);
  await expect(page.locator('#homeChatSlot #arcadeChatButton')).toBeVisible();
  await page.locator('#arcadeChatButton').click();await expect(page.locator('#arcadeChat')).toBeVisible();await page.getByRole('button',{name:'Close chat',exact:true}).click();
@@ -141,23 +144,10 @@ for (const width of [320, 390, 440]) {
       // Wait for the catalog's dynamic rebuild, including its favorite controls.
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
       await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
-      for (const game of ['crystalCommand', 'bubblePop', 'neonSlice']) {
-        const card = page.locator('#games > [data-game="' + game + '"]');
-        await card.scrollIntoViewIfNeeded();
-        const geometry = await card.evaluate(el => {
-          const box = node => { const r = node.getBoundingClientRect(); return {left:r.left, right:r.right, top:r.top, bottom:r.bottom}; };
-          return {card:box(el), badge:box(el.querySelector('.game-new-bubble')), controls:[...el.querySelectorAll('h2, .favorite-button, .game-play-button')].map(box)};
-        });
-        const {card:bounds, badge, controls} = geometry;
-        expect(badge.left).toBeGreaterThanOrEqual(bounds.left);
-        expect(badge.right).toBeLessThanOrEqual(bounds.right);
-        expect(badge.top).toBeGreaterThanOrEqual(bounds.top);
-        expect(badge.bottom).toBeLessThanOrEqual(bounds.bottom);
-        for (const control of controls) {
-          const overlaps = badge.left < control.right && badge.right > control.left && badge.top < control.bottom && badge.bottom > control.top;
-          expect(overlaps, game + ' badge overlaps title or control').toBe(false);
-        }
-      }
+      await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
+      const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
+      expect(order.slice(-2)).toEqual(['crystalCommand', 'bubblePop']);
+      expect(order.slice(0, 2)).toEqual(['neonSlice', 'neonBreach']);
       await page.screenshot({ path: testInfo.outputPath('catalog.png'), fullPage: true });
     });
   }

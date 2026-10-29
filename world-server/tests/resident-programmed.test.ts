@@ -67,3 +67,13 @@ test('greetings vary after context expiry without sending the private deduplicat
  const first=ask('Hi Mochi')!;const second=ask('Hi Mochi',{avoidReplies:[first]});assert.ok(second);assert.notEqual(second,first);
  const {dialogueInput}=await import('../src/resident-ai.ts');assert.ok(!dialogueInput({...base,avoidReplies:['AUDIENCE_SENTINEL']}).includes('AUDIENCE_SENTINEL'));
 });
+
+test('unnamed public greetings reach programmed replies without a profile click or paid generation',async()=>{
+ for(const text of ["what's up",'What’s up?','whats up','sup','hey','hello everyone','Hi there!','how are you','what is up']){
+  let moderation=0;
+  const ai=new OpenAIResidentDialogue({OPENAI_API_KEY:'test-only',WORLD_AI_ENABLED:'true'},async()=>{throw new Error('must not reserve paid generation');},{fetch:async url=>{assert.ok(String(url).endsWith('/moderations'));moderation++;return Response.json({results:[{flagged:false}]});}});
+  assert.ok(await ai.reply({...base,addressed:false,context:[{speaker:'Player',text}]}),text);
+  assert.equal(moderation,2);assert.equal(ai.status().scriptedReplies,1);assert.equal(ai.status().completed,0);
+ }
+ for(const text of ["what's up Alex",'hey Shelby','I said hello to Alex'])assert.equal(ask(text,{addressed:false}),null,text);
+});

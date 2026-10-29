@@ -2,7 +2,7 @@ import {spudDefinition} from './spud-residents.ts';
 import type {SpudId} from './spud-residents.ts';
 import type {ResidentHomeFacts} from './resident-homes.ts';
 import {residentAmbientReply,ambientCombinationCount} from './resident-ambient.ts';
-import {programmedResidentReply,programmedCombinationCount} from './resident-programmed.ts';
+import {programmedResidentReply,programmedCombinationCount,publicConversationOpening} from './resident-programmed.ts';
 
 export type DialogueLine={speaker:string;text:string};
 export type DialogueRequest={residentId:SpudId;context:DialogueLine[];addressed:boolean;engaged?:boolean;avoidReplies?:string[];ambient:boolean;ambientTurn?:number;activity:string;companions:string[];home?:ResidentHomeFacts;inOwnHome?:boolean};
@@ -53,7 +53,7 @@ export class OpenAIResidentDialogue implements ResidentAI{
   // Resident-to-resident chatter is always local reviewed text, never a paid AI turn.
   if(request.ambient){const text=residentAmbientReply(request);if(text)this.#metrics.ambientReplies++;return text;}
   const latest=request.context.at(-1)?.text.toLowerCase().trim()??'';
-  const openQuestion=/^(?:does anyone know|anyone know|can anyone|hey everyone|hi everyone|hello everyone)\b/.test(latest);
+  const openQuestion=publicConversationOpening(latest);
   if(!request.addressed&&!request.engaged&&!openQuestion&&request.context.at(-2)?.speaker!==spudDefinition(request.residentId)!.name)return null;
   const now=Date.now();this.#times=this.#times.filter(t=>now-t<60000);
   if(this.#busy>=2||this.#times.length>=12||now<this.#cooldown){this.#metrics.limited++;return null;}
