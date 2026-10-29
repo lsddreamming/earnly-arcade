@@ -27,6 +27,9 @@ type Member = {identity:Identity; movement:MovementController; send:Send; lastIn
 export class RoomRuntime {
   readonly spuds=new SpudResidents();
   #publicResidents=false;
+  #roomWideChat=false;
+  enableRoomWideChat(){this.#roomWideChat=true;}
+  get roomWideChat(){return this.#roomWideChat;}
   #social?:NaturalSocial;
   #roomKey='';
   #memories=new Map<string,Map<string,ResidentMemory>>();
@@ -43,7 +46,7 @@ export class RoomRuntime {
   #exchange?:{ids:SpudId[];turn:number;lines:DialogueLine[];at:number;generation:number};
   enableDialogue(ai:ResidentAI){this.#ai=ai;}
   invalidateDialogue(){this.#generation++;this.#history=[];this.#pending=[];this.#ready=undefined;this.#endExchange();}
-  #near(a:XYZ,b:XYZ){return Math.hypot(a.x-b.x,a.y-b.y)<=8&&Math.abs(a.z-b.z)<=1;}
+  #near(a:XYZ,b:XYZ){return this.#roomWideChat||(Math.hypot(a.x-b.x,a.y-b.y)<=8&&Math.abs(a.z-b.z)<=1);}
   #residentAudience(id:SpudId,allowed?:Set<string>,source?:string,ambient=false){
     const spud=this.spuds.snapshots().find(s=>s.residentId===id);if(!spud)return [];
     const speaker=source?this.#members.get(source):undefined;if(source&&!speaker)return [];
@@ -149,7 +152,7 @@ export class RoomRuntime {
     const d=spudDefinition(id),m=this.#members.get(userId);if(!d||!m||typeof active!=='boolean')throw new Error('Choose a resident in this room');
     if(!active){this.spuds.release(userId,d.id);this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return {ready:false};}
     const spud=this.spuds.snapshots().find(s=>s.residentId===d.id);if(!spud||this.paused)throw new Error('This resident is not here now');
-    const from=this.#position(m);if(publicChat){if(Math.hypot(from.x-spud.position.x,from.y-spud.position.y)>8||Math.abs(from.z-spud.position.z)>1)throw new Error("Walk closer to this resident to chat");this.spuds.focus(userId,d.id);return {ready:true};}let ready=this.residentNearby(userId,id);
+    const from=this.#position(m);if(publicChat||this.#roomWideChat){if(!this.#near(from,spud.position))throw new Error("Walk closer to this resident to chat");this.spuds.focus(userId,d.id);return {ready:true};}let ready=this.residentNearby(userId,id);
     if(!ready){
       if(Math.hypot(from.x-spud.position.x,from.y-spud.position.y)>8)throw new Error('Walk closer to '+d.name+', then tap their name');
       const goals=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:spud.position.x+dx,y:spud.position.y+dy}));
@@ -167,7 +170,7 @@ export class RoomRuntime {
   dismissResident(userId:string,id?:SpudId){const changed=this.spuds.dismiss(userId,id);if(changed)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return changed;}
   residentQuiet(userId:string,quiet:boolean,now:number){this.#social?.setQuiet(userId,quiet,now);return {quiet};}
   enableResidents(){this.#publicResidents=true;}
-  enableResidentHome(id:SpudId){this.#publicResidents=true;this.spuds.setHome(id);}
+  enableResidentHome(id:SpudId){this.enableRoomWideChat();this.#publicResidents=true;this.spuds.setHome(id);}
   prepareResidents(){if(this.#publicResidents&&this.memberCount===0)this.spuds.prepareIdle(this.grid,this.#occupied());}
   #members = new Map<string,Member>();
   #sequence = 0;
@@ -291,7 +294,7 @@ export class RoomRuntime {
     const sender=this.#members.get(userId);if(!sender)throw new Error('Player unavailable');
     const from=this.#position(sender);
     if(!['normal','shout','whisper'].includes(mode))throw new Error('Invalid chat mode');
-    const nearby=[...this.#members.values()].filter(m=>Math.hypot(from.x-this.#position(m).x,from.y-this.#position(m).y)<=(mode==='whisper'?1:8));
+    const nearby=[...this.#members.values()].filter(m=>Math.hypot(from.x-this.#position(m).x,from.y-this.#position(m).y)<=(mode==='whisper'?1:this.#roomWideChat?Infinity:8));
     if(mode==='whisper'&&!nearby.some(m=>m.identity.userId===target))throw new Error('Move beside this player to whisper');
     return (mode==='shout'?[...this.#members.values()]:nearby).filter(m=>mode!=='whisper'||m.identity.userId===userId||m.identity.userId===target).map(m=>m.identity.userId);
   }
@@ -375,8 +378,8 @@ export class RoomRuntime {
       if(blocked(userId,id)||blocked(id,userId))continue;
       const d=distance(other);
       if(mode==='whisper'&&id!==userId&&id!==target)continue;
-      if(mode==='normal'&&d>8)continue;
-      other.send({type:'CHAT',userId,text:text.trim(),mode,opacity:mode==='normal'?Math.max(.25,1-d/10):1});
+      if(mode==='normal'&&!this.#roomWideChat&&d>8)continue;
+      other.send({type:'CHAT',userId,text:text.trim(),mode,opacity:mode==='normal'&&!this.#roomWideChat?Math.max(.25,1-d/10):1});
     }
     return true;
   }

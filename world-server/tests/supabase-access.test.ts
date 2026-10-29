@@ -52,7 +52,7 @@ test('room directories count connected humans, refresh after leave, and use the 
   return Response.json({roomId:body.p_room,username:'Player',name:'Room',ownerId:actor,access:'open',heightmap:'0000\n0000\n0000\n0000',revision:0,capacity:25,items:[],equipped:{}});
  });
  const access=new SupabaseWorldAccess('https://world-test.invalid','server-key'),identity={userId:actor,username:'Me'};
- const home=await access.enter(identity,'home');home.room.join(identity,home.spawn,()=>{});
+ const home=await access.enter(identity,'home');assert.equal(home.scene.chatRange,'room');assert.equal(home.room.roomWideChat,true);home.room.join(identity,home.spawn,()=>{});
  const garden=await access.enter({userId:friend,username:'Friend'},'garden');garden.room.join({userId:friend,username:'Friend'},garden.spawn,()=>{});
  const get=async()=> (await access.perform(identity,home.roomId,'friend_rooms',{userId:friend,p_actor:friend})).data;
  assert.deepEqual((await get()).map((r:any)=>r.occupancy),[1,0]);
@@ -102,13 +102,13 @@ test('public room cards count materialized residents before the first human visi
   loaded.push(body.p_room);return Response.json({roomId:body.p_room,username:'Player',name:rooms.find(r=>r.id===body.p_room)?.name,ownerId:body.p_room==='home'?actor:null,access:'open',heightmap:body.p_room==='tiny'?'00\n00':Array(12).fill('000000000000').join('\n'),revision:0,capacity:25,items:[],equipped:{}});
  });
  const access=new SupabaseWorldAccess('https://world-test.invalid','server-key'),identity={userId:actor,username:'Me'};
- const home=await access.enter(identity,'home');home.room.join(identity,home.spawn,()=>{});
+ const home=await access.enter(identity,'home');assert.equal(home.scene.chatRange,'room');assert.equal(home.room.roomWideChat,true);home.room.join(identity,home.spawn,()=>{});
  const directory=async()=>(await access.perform(identity,'home','room_directory',{})).data;
  const results=await Promise.all([directory(),directory()]);
  for(const result of results){for(const id of ['lobby','roof']){const card=result.find((r:any)=>r.id===id);assert.equal(card.occupancy,0);assert.ok(card.residentCount>=4&&card.residentCount<=5);assert.equal(card.spudCount,card.residentCount);}assert.equal(result.find((r:any)=>r.id==='tiny').spudCount,0);}
  assert.equal(loaded.filter(id=>id==='lobby').length,1,'concurrent directory refreshes share one warmup');
  const before=results[0].find((r:any)=>r.id==='lobby');
- const lobby=await access.enter(identity,'lobby');assert.equal(lobby.room.memberCount,0);assert.equal(lobby.room.spuds.snapshots().length,before.residentCount);
+ const lobby=await access.enter(identity,'lobby');assert.equal(lobby.scene.chatRange,'nearby');assert.equal(lobby.room.roomWideChat,false);assert.equal(lobby.room.memberCount,0);assert.equal(lobby.room.spuds.snapshots().length,before.residentCount);
  for(let i=0;i<500;i++)lobby.room.spuds.tick(lobby.room.grid,new Set(),25,true);assert.equal(lobby.room.spuds.snapshots().length,0);
  assert.equal((await directory()).find((r:any)=>r.id==='lobby').residentCount,before.residentCount,'an idle room repopulates after a real crowd has left');
  lobby.room.join(identity,lobby.room.availableSpawn(),()=>{});

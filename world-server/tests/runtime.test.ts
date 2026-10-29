@@ -59,3 +59,19 @@ for(const seats of [2,3])for(const rotation of [0,2,4,6] as const)test(`${seats}
  for(let tick=0;tick<30;tick++)room.tick();
  assert.equal(room.members().filter(m=>m.state==='sit').length,seats);
 });
+
+
+test('room-wide normal chat reaches all tiles while whispers and blocks remain isolated',()=>{
+ const room=new RoomRuntime(new RoomGrid(parseHeightmap('0'.repeat(24))));
+ const packets=new Map<string,any[]>();for(const [id,x] of [['a',0],['near',1],['far',23]] as const){packets.set(id,[]);room.join({userId:id,username:id},{x,y:0},p=>packets.get(id)!.push(p));}
+ assert.deepEqual(room.chatViewers('a','normal'),['a','near']);
+ room.enableRoomWideChat();assert.deepEqual(room.chatViewers('a','normal'),['a','near','far']);
+ assert.equal(room.chat('a','Hello across the room','normal',undefined,0,()=>false),true);
+ assert.equal(packets.get('far')!.find(p=>p.type==='CHAT').opacity,1);
+ assert.throws(()=>room.chatViewers('a','whisper','far'),/beside/);
+ assert.equal(room.chat('a','private','whisper','far',5000,()=>false),false);
+ assert.equal(room.chat('a','private','whisper','near',5000,()=>false),true);
+ assert.equal(packets.get('far')!.filter(p=>p.type==='CHAT').length,1);
+ assert.equal(room.chat('a','blocked','normal',undefined,10000,(a,b)=>a==='far'&&b==='a'),true);
+ assert.equal(packets.get('far')!.filter(p=>p.type==='CHAT').length,1);
+});

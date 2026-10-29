@@ -24,7 +24,7 @@ try{
  assert.equal((await f.db.query('select count(*)::int n from earnly_world.items')).rows[0].n,items,'no tradable items minted');
  const prior=globalThis.fetch;globalThis.fetch=async(url,options)=>String(url).endsWith('/world_resident_home_catalog')?Response.json((await f.db.query('select public.world_resident_home_catalog() r')).rows[0].r):prior(url,options);
  const access=new SupabaseWorldAccess('https://world-test.invalid','fixture-key');const home=RESIDENT_HOMES[2],identity={userId:f.users[0],username:'Player'};
- const entry=await access.enter(identity,home.roomId);assert.equal(entry.scene.residentHost,'mochi');assert.equal(entry.bootstrap.residentHomes.length,10);assert.deepEqual(entry.room.spuds.snapshots().map(s=>s.residentId),['mochi']);
+ const entry=await access.enter(identity,home.roomId);assert.equal(entry.scene.residentHost,'mochi');assert.equal(entry.scene.chatRange,'room');assert.equal(entry.room.roomWideChat,true);assert.equal(entry.bootstrap.residentHomes.length,10);assert.deepEqual(entry.room.spuds.snapshots().map(s=>s.residentId),['mochi']);
  entry.room.join(identity,entry.spawn,()=>{});for(let i=0;i<10;i++)entry.room.join({userId:'crowd'+i,username:'Visitor'},entry.room.availableSpawn(),()=>{});for(let i=0;i<200;i++)entry.room.tick();assert.deepEqual(entry.room.spuds.snapshots().map(s=>s.residentId),['mochi'],'host stays when busy');
  await assert.rejects(access.perform(identity,home.roomId,'resident_dismiss',{residentId:'mochi'}),/own room/);
  await assert.rejects(f.db.query("select public.world_api($1,'room_access',$2::jsonb)",[identity.userId,JSON.stringify({roomId:home.roomId,access:'closed'})]),/room|owner|Action/i);

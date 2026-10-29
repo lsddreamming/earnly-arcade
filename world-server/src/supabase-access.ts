@@ -61,7 +61,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(!room){
       if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}
       room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);
-      if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);room.enableDialogue({reply:request=>{const home=this.#homes.find(h=>h.residentId===request.residentId);return this.#dialogue.reply({...request,home,inOwnHome:home?.roomId===roomId});}});
+      if(typeof snapshot.ownerId==='string')room.enableRoomWideChat();if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);room.enableDialogue({reply:request=>{const home=this.#homes.find(h=>h.residentId===request.residentId);return this.#dialogue.reply({...request,home,inOwnHome:home?.roomId===roomId});}});
       const home=residentHome(roomId);if(snapshot.ownerId===null&&home)room.enableResidentHome(home.residentId);
       const currentRoom=room;
       room.onResidentInteraction(async(uid,residentId)=>{
@@ -105,7 +105,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     const room=this.#runtime(snapshot);
     let aiMemory;try{aiMemory=await this.#residentState(identity.userId,roomId,'read');room.setResidentMemory(identity.userId,aiMemory);if(this.#memoryReady.size>=2000)this.#memoryReady.delete(this.#memoryReady.values().next().value!);this.#memoryReady.add(identity.userId);}catch{aiMemory=undefined;this.#memoryReady.delete(identity.userId);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,residentHost:snapshot.ownerId===null?residentHome(roomId)?.residentId:undefined,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,rooms:this.#roomCounts(bootstrap.rooms),residentCatalog:SPUDS.map(({id,name,personality})=>({id,name,personality})),aiResidents:true,aiPublicChat:true,residentHomes:this.#homes.map(({residentId,roomId,name,items,animatedFish})=>({residentId,roomId,name,items,animatedFish})),aiMemory:!!aiMemory,residentQuiet:this.#social.quiet(identity.userId,performance.now()),personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,chatRange:room.roomWideChat?'room':'nearby',residentHost:snapshot.ownerId===null?residentHome(roomId)?.residentId:undefined,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,rooms:this.#roomCounts(bootstrap.rooms),residentCatalog:SPUDS.map(({id,name,personality})=>({id,name,personality})),aiResidents:true,aiPublicChat:true,residentHomes:this.#homes.map(({residentId,roomId,name,items,animatedFish})=>({residentId,roomId,name,items,animatedFish})),aiMemory:!!aiMemory,residentQuiet:this.#social.quiet(identity.userId,performance.now()),personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
   }
   async recordEntry(identity:Identity,roomId:string,occupancy:number){
     await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId}),this.#request('/rest/v1/rpc/world_track_step',this.#key,{p_actor:identity.userId,p_step:'join',p_room:roomId})]);
@@ -239,7 +239,7 @@ export class SupabaseWorldAccess implements WorldAccess {
           if(!room.canReplace(next))throw new Error('Move away from the item before placing it');
           await this.#api(uid,'place',{roomId,revision:snapshot.revision,itemId:item.id,x:placeX,y:placeY,z,rotation:data.rotation,centered,pickup:!!data.pickup});
           room.replaceGrid(next);
-          return {...snapshot,items,revision:next.revision};
+          return {...snapshot,items,revision:next.revision,chatRange:room.roomWideChat?'room':'nearby'};
         }catch(error){
           // Ambiguous DB failures require fresh admission, not continued stale movement.
           try{const fresh=await this.#snapshot(uid,roomId);if(fresh.revision!==room.grid.revision)room.replaceGrid(this.#grid(fresh));}catch{safe=false;throw error;}

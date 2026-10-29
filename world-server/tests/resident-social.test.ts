@@ -125,3 +125,18 @@ test('human messages interrupt an in-flight ambient generation without publishin
  assert.equal(r.queueResidentReply('a','Jax how are you?',['a','b']),true);resolve('STALE_AMBIENT');await flush();r.tick();assert.equal(requests.length,2);assert.equal(requests[1].ambient,false);resolve('Doing well! Thanks for asking.');await flush();for(let i=0;i<4;i++)r.tick();assert.ok(!events.some(p=>p.text==='STALE_AMBIENT'));assert.ok(events.some(p=>p.text==='Doing well! Thanks for asking.'));
 });
 test('per-player provider throttle persists across room changes',()=>{const s=new NaturalSocial();for(let i=0;i<6;i++)assert.equal(s.aiTurn('player',i),true);assert.equal(s.aiTurn('player',10),false);assert.equal(s.aiTurn('other',10),true);assert.equal(s.aiTurn('player',60000),true);});
+
+
+test('home conversations reach distant tiles, retain context and never expand the allowed audience',async()=>{
+ const {r,chats,ticks}=publicRoom();r.enableRoomWideChat();const requests:any[]=[];
+ r.enableDialogue({reply:async q=>{requests.push(q);return requests.length===1?'The aquarium has swimming fish.':'Yes, those fish move.';}});
+ const before={...r.members().find(m=>m.userId==='far')!.position};
+ assert.equal(r.residentFocus('far','jax',true,1000).ready,true);
+ assert.deepEqual(r.members().find(m=>m.userId==='far')!.position,before,'a room-wide conversation does not force walking');
+ assert.equal(r.queueResidentReply('far','Jax, tell me about the aquarium.',['far','speaker']),true);ticks(1);await flush();ticks(4);
+ assert.equal(chats('far').length,1);assert.equal(chats('speaker').length,1);assert.equal(chats('blocked').length,0);assert.equal(chats('listener').length,0);
+ ticks(12);assert.equal(r.queueResidentReply('far','Do they move?',['far','speaker','listener']),true);ticks(1);await flush();ticks(4);
+ assert.ok(requests[1].context.some((l:any)=>l.text==='The aquarium has swimming fish.'));
+ assert.equal(chats('far').length,2);assert.equal(chats('listener').length,0,'new listeners cannot hear paraphrases of previously excluded context');
+ assert.equal(r.queueResidentReply('outsider','Jax hi',['outsider']),false);
+});
