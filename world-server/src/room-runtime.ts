@@ -91,7 +91,7 @@ export class RoomRuntime {
   #generate(id:SpudId,context:DialogueLine[],allowed:Set<string>,addressed:boolean,ambient:boolean,source?:string,companions:string[]=[],ambientTurn=0,engaged=false){
     const spud=this.spuds.snapshots().find(s=>s.residentId===id);if(!spud||!this.#ai)return;
     this.#aiBusy=true;const generation=this.#generation,started=this.#ticks;
-    void this.#ai.reply({residentId:id,context,addressed,engaged,ambient,ambientTurn,activity:spud.activity,companions}).then(result=>{
+    void this.#ai.reply({residentId:id,context,addressed,engaged,avoidReplies:[...this.#recentReplies],ambient,ambientTurn,activity:spud.activity,companions}).then(result=>{
       const text=cleanReply(result);
       if(!text||repeatedReply(text,this.#recentReplies)||generation!==this.#generation||this.paused||this.#ticks-started>120){if(!text&&addressed&&source&&generation===this.#generation)this.#members.get(source)?.send({type:'RESIDENT_STATUS',status:'unavailable'});return;}
       this.#ready={id,text,source,allowed,at:this.#ticks+4,generation,ambient};

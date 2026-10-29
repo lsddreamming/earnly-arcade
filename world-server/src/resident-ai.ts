@@ -5,7 +5,7 @@ import {residentAmbientReply,ambientCombinationCount} from './resident-ambient.t
 import {programmedResidentReply,programmedCombinationCount} from './resident-programmed.ts';
 
 export type DialogueLine={speaker:string;text:string};
-export type DialogueRequest={residentId:SpudId;context:DialogueLine[];addressed:boolean;engaged?:boolean;ambient:boolean;ambientTurn?:number;activity:string;companions:string[];home?:ResidentHomeFacts;inOwnHome?:boolean};
+export type DialogueRequest={residentId:SpudId;context:DialogueLine[];addressed:boolean;engaged?:boolean;avoidReplies?:string[];ambient:boolean;ambientTurn?:number;activity:string;companions:string[];home?:ResidentHomeFacts;inOwnHome?:boolean};
 export interface ResidentAI {reply(request:DialogueRequest):Promise<string|null>}
 export type BudgetReservation=(daily:number,monthly:number)=>Promise<boolean|'daily_limit'|'monthly_limit'>;
 const MODEL='gpt-6-luna';

@@ -62,3 +62,8 @@ test('background human-to-human chat makes no provider calls, while active and o
  assert.ok(await ai.reply({...base,addressed:false,engaged:true,context}));assert.equal(reserves,1);
  assert.match((await ai.reply({...base,addressed:false,context:[{speaker:'Player',text:'Does anyone know how to play Snake?'}]}))!,/Snake/);assert.equal(reserves,1,'familiar room-wide questions use local replies');
 });
+
+test('greetings vary after context expiry without sending the private deduplication list to AI',async()=>{
+ const first=ask('Hi Mochi')!;const second=ask('Hi Mochi',{avoidReplies:[first]});assert.ok(second);assert.notEqual(second,first);
+ const {dialogueInput}=await import('../src/resident-ai.ts');assert.ok(!dialogueInput({...base,avoidReplies:['AUDIENCE_SENTINEL']}).includes('AUDIENCE_SENTINEL'));
+});

@@ -11,7 +11,7 @@ export function basicResidentReply(r:DialogueRequest):string|null{
  if(!latest||(!r.addressed&&previous?.speaker!==name))return null;
  const home=r.home?.residentId===r.residentId?r.home:undefined;
  const prior=previous?.speaker===name?previous.text.toLowerCase():'';
- const choose=(lines:string[])=>lines.find(text=>!r.context.some(line=>line.speaker===name&&line.text===text))??null;
+ const choose=(lines:string[])=>lines.find(text=>!r.context.some(line=>line.speaker===name&&line.text===text)&&!r.avoidReplies?.includes(text))??null;
  if(/\b(remember|memory|private|secret|dm|personal information)\b/.test(latest))return 'Private memories stay private. You can review or clear yours in Resident privacy.';
  if(/\b(ai|bot|robot|scripted|real person|human)\b/.test(latest))return 'I’m an AI resident. My AI chat allowance is used up, so I’m using basic scripted replies for now.';
  if(/\b(fish|aquarium|tank)\b/.test(latest)||(/\b(move|moving|animated|picture|swim)\b/.test(latest)&&/\b(fish|aquarium)\b/.test(prior))){

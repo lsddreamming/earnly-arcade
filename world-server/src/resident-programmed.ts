@@ -15,7 +15,7 @@ export function programmedResidentReply(r:DialogueRequest):string|null{
  text=text.replace(/^(hi|hey|hello) everyone$/, '$1').replace(/^(?:does anyone know|anyone know) how to play /,'how do i play ');
  if(text==='hru'||text==='how r u')text='how are you';
  if(text==='wyd')text='what are you doing';
- const recent=r.context.filter(l=>l.speaker===name).map(l=>l.text);
+ const recent=[...r.context.filter(l=>l.speaker===name).map(l=>l.text),...(r.avoidReplies??[]).slice(-12)];
  const pick=(lines:string[])=>lines.find(line=>!recent.includes(line))??null;
  const basic=()=>basicResidentReply({...r,addressed:true,context:[...r.context.slice(0,-1),{speaker:r.context.at(-1)?.speaker??'Player',text}]});
  if(/^(?:hi|hey|hello|hiya|yo|good morning|good evening)(?: there)?(?: how (?:are you|is it going|'s it going))?$/.test(text)||/^(?:how are you|how's it going|hows it going|how is it going)$/.test(text))return basic()??pick(['Hi! Nice to have a little company.','Hey there. I’m happy to chat for a bit.']);
