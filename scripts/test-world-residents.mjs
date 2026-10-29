@@ -25,6 +25,12 @@ try{
  const restarted=new SupabaseWorldAccess('https://world-test.invalid','server-only-test');
  const entry=await restarted.enter({userId:a,username:'A'},room);entry.room.join({userId:a,username:'A'},entry.spawn,()=>{});
  const state=await restarted.perform({userId:a,username:'A'},room,'resident_memory',{p_actor:b,userId:b});assert.equal(state.data.relations[0].favoriteGame,'Snake');
+ const invited=await restarted.perform({userId:a,username:'A'},room,'resident_invite',{residentId:'jax'});assert.equal(invited.data.visiting,true);assert.equal(entry.room.memberCount,1);assert.equal(entry.room.spuds.snapshots()[0].invitedBy,a);
+ await assert.rejects(restarted.perform({userId:a,username:'A'},room,'resident_invite',{residentId:'blitz'}),/friend first/);
+ await assert.rejects(restarted.perform({userId:b,username:'B'},room,'resident_dismiss',{residentId:'jax',ownerId:a}),/own room/);
+ await restarted.perform({userId:a,username:'A'},room,'resident_dismiss',{residentId:'jax'});assert.equal(entry.room.spuds.snapshots().length,0);
+ await restarted.perform({userId:a,username:'A'},room,'resident_invite',{residentId:'jax'});entry.room.leave(a);assert.equal(entry.room.spuds.snapshots().length,0,'AI visitor leaves with host');
+ entry.room.join({userId:a,username:'A'},entry.room.availableSpawn(),()=>{});
  await restarted.perform({userId:a,username:'A'},room,'resident_forget',{residentId:'jax'});assert.equal((await rpc(a,'read')).relations[0].favoriteGame,null);assert.equal((await rpc(a,'read')).relations[0].friend,true);
  await rpc(a,'touch',{residentId:'jax',topic:'games',favoriteGame:'Bubble Pop'});
  await rpc(a,'settings',{remember:false});const erased=(await rpc(a,'read')).relations[0];assert.equal(erased.friend,true);assert.deepEqual(erased.topics,[]);assert.deepEqual(erased.achievements,[]);assert.deepEqual(erased.roomVisits,[]);assert.equal(erased.visits,0);assert.equal(erased.favoriteGame,null);

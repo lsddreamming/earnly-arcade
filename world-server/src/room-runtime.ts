@@ -1,5 +1,6 @@
 import type {ResidentMemory} from './resident-social.ts';
 import {NaturalSocial,residentReply,residentGreeting} from './resident-social.ts';
+import type {SpudId} from './spud-residents.ts';
 import {spudDefinition} from './spud-residents.ts';
 import {SpudResidents} from './spud-residents.ts';
 import {randomInt} from 'node:crypto';
@@ -40,6 +41,8 @@ export class RoomRuntime {
     if(typeof topic!=='string'||!['hello','games','room','joke','bye','memory'].includes(topic))throw new Error('Choose a conversation topic');
     this.#social?.chat(userId,now);return {residentId:d.id,name:d.name,isAI:true,text:residentReply(d.id,topic)};
   }
+  inviteResident(userId:string,id:SpudId){if(this.paused||!this.#members.has(userId))throw new Error('Connect to your room first');this.spuds.invite(this.grid,this.#occupied(),id,userId);this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});}
+  dismissResident(userId:string,id?:SpudId){const changed=this.spuds.dismiss(userId,id);if(changed)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return changed;}
   residentQuiet(userId:string,quiet:boolean,now:number){this.#social?.setQuiet(userId,quiet,now);return {quiet};}
   enableResidents(){this.#publicResidents=true;}
   #members = new Map<string,Member>();
@@ -190,7 +193,7 @@ export class RoomRuntime {
     for(const [itemId,result] of this.#furnitureResults)if(result.value>0&&this.grid.tile(result)?.itemId===itemId)send({type:'FURNITURE_RESULT',itemId,value:result.value,kind:'dice',snapshot:true});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
-  leave(userId:string){this.#memories.delete(userId);if(this.#members.delete(userId))this.#broadcast({type:'USER_LEFT',userId});}
+  leave(userId:string){this.#memories.delete(userId);if(this.#members.delete(userId)){this.dismissResident(userId);this.#broadcast({type:'USER_LEFT',userId});}}
   /** userId comes from the socket binding, never from a packet. now is server monotonic time. */
   receive(userId:string,packet:unknown,now:number){
     const m=this.#members.get(userId);

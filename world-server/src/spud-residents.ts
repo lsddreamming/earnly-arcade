@@ -20,7 +20,7 @@ export type SpudId=typeof SPUDS[number]['id'];
 export const spudDefinition=(id:unknown)=>SPUDS.find(s=>s.id===id);
 function equipment(index:number){
  const part=(id:string)=>({id,imageUrl:'cosmetic-'+id+'.svg'});
- return {avatar:part(['russet-potato','cream-potato','rose-potato'][index%3]),outfit:part('starter-suit'),shoes:part('canvas-shoes'),eyes:part(['eyes-happy','eyes-green','eyes-lashes','eyes-amber'][index%4]),mouth:part(['mouth-grin','mouth-smirk','mouth-soft','mouth-smile'][index%4]),hair:part(['hair-curls','hair-sweep','hair-bob','hair-sprout'][index%4]),...(index%2===0?{head:part(index%4===0?'arcade-cap':'ribbed-beanie')}:{})};
+ return {avatar:part(['russet-potato','cream-potato','rose-potato'][index%3]),outfit:part(['cozy-hoodie','neon-jacket','boardwalk-jacket','pulse-outfit','solar-jacket'][index%5]),shoes:part(['canvas-shoes','comet-sneakers','boardwalk-sneakers'][index%3]),eyes:part(['eyes-happy','eyes-green','eyes-lashes','eyes-amber'][index%4]),mouth:part(['mouth-grin','mouth-smirk','mouth-soft','mouth-smile'][index%4]),hair:part(['hair-curls','hair-sweep','hair-bob','hair-sprout'][index%4]),...(index%2===0?{head:part(index%4===0?'arcade-cap':'ribbed-beanie')}:{})};
 }
 type Actor={id:SpudId;position:XYZ;state:'std'|'sit'|'dance';activity:'resting'|'wandering'|'sitting'|'dancing'|'admiring';next:number;route:XYZ[];plan?:InteractionPlan;itemId?:string;invitedBy?:string;expires?:number};
 /** One bounded, server-authoritative simulation; no timers, model calls or player targets.

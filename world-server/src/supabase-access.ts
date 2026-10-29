@@ -1,3 +1,4 @@
+import {spudDefinition} from './spud-residents.ts';
 import {NaturalSocial,residentReply} from './resident-social.ts';
 import {hangoutFor,hangoutAnimals} from './public-hangouts.ts';
 import {RoomGrid,parseHeightmap} from './grid.ts';
@@ -79,10 +80,16 @@ export class SupabaseWorldAccess implements WorldAccess {
   async perform(identity:Identity,roomId:string,action:string,data:Record<string,unknown>){
     const uid=identity.userId,room=this.#rooms.get(roomId);if(!room)throw new Error('Room unavailable');
     // Recheck current permissions and suspensions before every write/read operation.
-    await this.#snapshot(uid,roomId);
+    const currentSnapshot=await this.#snapshot(uid,roomId);
     let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
-    if(action==='resident_chat'){result=room.residentChat(uid,data.residentId,data.topic,performance.now());
-      if(this.#memoryReady.has(uid)){const state=await this.#residentState(uid,roomId,'touch',{residentId:result.residentId,topic:data.topic,...(data.favoriteGame!==undefined?{favoriteGame:data.favoriteGame}:{})});room.setResidentMemory(uid,state);const memory=state.relations.find((r:any)=>r.residentId===result.residentId);result.text=residentReply(result.residentId,data.topic as string,memory);}
+    if(action==='resident_invite'||action==='resident_dismiss'){
+      if(currentSnapshot.ownerId!==uid)throw new Error('Enter your own room to invite or dismiss an AI resident');
+      const d=spudDefinition(data.residentId);if(!d)throw new Error('Unknown AI resident');
+      if(action==='resident_invite'){if(!this.#memoryReady.has(uid))throw new Error('AI friendships are not available yet');const state=await this.#residentState(uid,roomId,'read');if(!state.relations.some((r:any)=>r.residentId===d.id&&r.friend))throw new Error('Add this AI resident as a friend first');room.inviteResident(uid,d.id);}
+      else if(!room.dismissResident(uid,d.id))throw new Error('This AI visitor is not in your room');
+      result={residentId:d.id,isAI:true,visiting:action==='resident_invite'};
+    }else if(action==='resident_chat'){result=room.residentChat(uid,data.residentId,data.topic,performance.now());
+      if(this.#memoryReady.has(uid)){const state=await this.#residentState(uid,roomId,'touch',{residentId:result.residentId,topic:data.topic,...(data.favoriteGame!==undefined?{favoriteGame:data.favoriteGame}:{})});room.setResidentMemory(uid,state);const memory=state.relations.find((r:any)=>r.residentId===result.residentId);const position=room.spuds.snapshots().find(s=>s.residentId===result.residentId)?.position;const nearby=position?currentSnapshot.items.find(item=>Math.hypot(item.x-position.x,item.y-position.y)<=4):undefined;result.text=residentReply(result.residentId,data.topic as string,memory,nearby?.name?.slice(0,64));}
     }else if(['resident_memory','resident_settings','resident_friend','resident_forget'].includes(action)){
       if(!this.#memoryReady.has(uid))throw new Error('AI memory is not available yet. Reconnect later.');
       const clean:Record<string,unknown>={};for(const k of ['residentId','quiet','remember','friend'])if(data[k]!==undefined)clean[k]=data[k];
