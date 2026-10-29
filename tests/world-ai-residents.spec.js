@@ -1,6 +1,8 @@
 const {test,expect}=require('@playwright/test');
+const liveWorldBase=process.env.EARNLY_WORLD_BASE_URL||'';
+const liveWorldOrigin=liveWorldBase?new URL(liveWorldBase).origin:'';
 async function fixture(page,{chatAccepted=true,roomWide=false}={}){
- await page.route(url=>url.protocol==='https:',r=>r.fulfill({status:200,contentType:'application/javascript',body:''}));
+ await page.route(url=>url.protocol==='https:'&&url.origin!==liveWorldOrigin,r=>r.fulfill({status:200,contentType:'application/javascript',body:''}));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.addInitScript(({chatAccepted,roomWide})=>{
   Object.defineProperty(window,'EarnlyWorldRenderer',{configurable:true,set(v){const Base=v.WorldRenderer;v.WorldRenderer=class extends Base{constructor(...args){super(...args);window.aiRenderer=this;}};Object.defineProperty(window,'EarnlyWorldRenderer',{value:v,writable:true,configurable:true});}});
@@ -27,7 +29,7 @@ async function fixture(page,{chatAccepted=true,roomWide=false}={}){
    }
   }};
  },{chatAccepted,roomWide});
- await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ await page.goto(liveWorldBase+'/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
 }
 test('AI residents have distinct actions, shared public chat and Quiet mode with a Spud headcount and separate human occupancy',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await fixture(page);

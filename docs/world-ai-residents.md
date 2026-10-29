@@ -66,3 +66,5 @@ Responses parsing selects the final assistant message rather than concatenating 
 Player-owned rooms and the ten resident homes use room-wide public conversation: every admitted player and resident can hear and reply from every tile. Opening a resident profile in these rooms does not force the player to walk closer. Public hangouts retain their eight-tile range. The server derives this scope from trusted room ownership and resident-home identities and includes it in scene updates so chat labels and consent describe the correct audience.
 
 This changes normal public room chat only. Human DMs, adjacent whispers, reciprocal blocks, context audience intersections, private memories, Quiet mode, rate limits and bounded ambient turns retain their existing protections. Room-wide never means cross-room.
+
+The Pages publication job compares the exact deployed root/www World assets with the release commit, then tests optional home visits and room-wide chat consent on live mobile WebKit with a mocked session. This client check never authenticates a real account; a separate manual live session verifies the production server and AI replies.
