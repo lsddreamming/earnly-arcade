@@ -108,7 +108,10 @@ test('public room cards count materialized residents before the first human visi
  for(const result of results){for(const id of ['lobby','roof']){const card=result.find((r:any)=>r.id===id);assert.equal(card.occupancy,0);assert.ok(card.residentCount>=4&&card.residentCount<=5);assert.equal(card.spudCount,card.residentCount);}assert.equal(result.find((r:any)=>r.id==='tiny').spudCount,0);}
  assert.equal(loaded.filter(id=>id==='lobby').length,1,'concurrent directory refreshes share one warmup');
  const before=results[0].find((r:any)=>r.id==='lobby');
- const lobby=await access.enter(identity,'lobby');assert.equal(lobby.room.memberCount,0);assert.equal(lobby.room.spuds.snapshots().length,before.residentCount);lobby.room.join(identity,lobby.spawn,()=>{});
+ const lobby=await access.enter(identity,'lobby');assert.equal(lobby.room.memberCount,0);assert.equal(lobby.room.spuds.snapshots().length,before.residentCount);
+ for(let i=0;i<500;i++)lobby.room.spuds.tick(lobby.room.grid,new Set(),25,true);assert.equal(lobby.room.spuds.snapshots().length,0);
+ assert.equal((await directory()).find((r:any)=>r.id==='lobby').residentCount,before.residentCount,'an idle room repopulates after a real crowd has left');
+ lobby.room.join(identity,lobby.room.availableSpawn(),()=>{});
  const joined=(await directory()).find((r:any)=>r.id==='lobby');assert.equal(joined.occupancy,1);assert.equal(joined.spudCount,before.spudCount+1);
  lobby.room.leave(actor);assert.equal((await directory()).find((r:any)=>r.id==='lobby').occupancy,0);
 });
@@ -123,4 +126,23 @@ test('failed public room warmups do not invent occupants or initialize private p
  });
  const access=new SupabaseWorldAccess('https://world-test.invalid','server-key'),identity={userId:'actor',username:'Me'},home=await access.enter(identity,'home');home.room.join(identity,home.spawn,()=>{});
  const result=(await access.perform(identity,'home','room_directory',{})).data;assert.equal(result.find((r:any)=>r.id==='unavailable').spudCount,0);assert.equal(loaded.includes('other-home'),false);
+});
+
+test('only accepted, nonduplicate normal chat can trigger a public resident reply',async t=>{
+ let duplicate=false,denied=false;const calls:any[]=[];
+ t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{
+  const p=JSON.parse(options.body);
+  if(String(url).endsWith('world_api')){
+   if(p.p_action==='say'){calls.push(p);if(denied)return Response.json({message:'Chat rules required'},{status:400});return Response.json({text:'hello',mode:p.p_data.mode,viewers:['actor'],duplicate});}
+   return Response.json({rooms:[],catalog:[],items:[],friends:[]});
+  }
+  return Response.json({roomId:p.p_room,username:'Player',name:'Room',ownerId:'actor',access:'open',heightmap:'0000\n0000\n0000\n0000',revision:0,capacity:25,items:[],equipped:{}});
+ });
+ const access=new SupabaseWorldAccess('https://world-test.invalid','key'),identity={userId:'actor',username:'Me'},entry=await access.enter(identity,'current');entry.room.join(identity,entry.spawn,()=>{});
+ const replies:any[]=[];t.mock.method(entry.room,'queueResidentReply',(...args:any[])=>{replies.push(args);return true;});
+ await access.perform(identity,'current','say',{text:'hello',mode:'normal',requestId:'one',residentId:'jax',viewers:['forged'],userId:'forged'});assert.deepEqual(replies,[['actor','hello',['actor'],'jax']]);assert.deepEqual(calls[0].p_data.viewers,['actor']);
+ duplicate=true;await access.perform(identity,'current','say',{text:'hello',mode:'normal',requestId:'one'});duplicate=false;
+ await access.perform(identity,'current','say',{text:'hello',mode:'whisper',userId:'actor',requestId:'two'});
+ await access.perform(identity,'current','say',{text:'hello',mode:'shout',requestId:'three'});
+ denied=true;await assert.rejects(access.perform(identity,'current','say',{text:'hello',mode:'normal',requestId:'four'}),/Action unavailable/);assert.equal(replies.length,1);
 });
