@@ -3,17 +3,24 @@ import {basicResidentReply} from './resident-basic.ts';
 import {topics,followups} from './resident-topics.ts';
 import type {DialogueRequest} from './resident-ai.ts';
 
+/** Standalone room greetings are invitations; names aimed at other humans are not. */
+export function publicConversationOpening(raw:string):boolean{
+ const text=raw.toLowerCase().replace(/[’‘]/g,"'").replace(/[!?.,]+$/g,'').replace(/\s+/g,' ').trim();
+ return /^(?:does anyone know|anyone know|can anyone)\b/.test(text)||/^(?:hi|hey|hello|hiya|yo|sup|what'?s up|what is up|how are you|how's it going|hows it going|how is it going|good morning|good evening)(?: everyone| everybody| all| there)?$/.test(text);
+}
+
 /** High-confidence whole-message rules only. Null means ask AI, never guess from one keyword. */
 export function programmedResidentReply(r:DialogueRequest):string|null{
  if(r.ambient)return null;
  const name=spudDefinition(r.residentId)!.name;
  const previous=r.context.at(-2);
- if(!r.addressed&&!r.engaged&&previous?.speaker!==name&&!/^(?:does anyone know|anyone know|can anyone|hey everyone|hi everyone|hello everyone)\b/i.test(r.context.at(-1)?.text??''))return null;
+ if(!r.addressed&&!r.engaged&&previous?.speaker!==name&&!publicConversationOpening(r.context.at(-1)?.text??''))return null;
  const raw=r.context.at(-1)?.text??'';
  if(raw.length>200)return null;
  let text=raw.toLowerCase().replace(/[’‘]/g,"'").replace(new RegExp('\\b'+name.toLowerCase()+'\\b','g'),'').replace(/[!?.,]+$/g,'').replace(/[,]/g,' ').replace(/\s+/g,' ').trim();
- text=text.replace(/^(hi|hey|hello) everyone$/, '$1').replace(/^(?:does anyone know|anyone know) how to play /,'how do i play ');
+ text=text.replace(/ (?:everyone|everybody|all)$/, '').replace(/^(hi|hey|hello) there$/, '$1').replace(/^(?:does anyone know|anyone know) how to play /,'how do i play ');
  if(text==='hru'||text==='how r u')text='how are you';
+ if(text==='sup'||text==='what is up')text="what's up";
  if(text==='wyd')text='what are you doing';
  const recent=[...r.context.filter(l=>l.speaker===name).map(l=>l.text),...(r.avoidReplies??[]).slice(-12)];
  const pick=(lines:string[])=>lines.find(line=>!recent.includes(line))??null;

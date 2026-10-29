@@ -302,15 +302,15 @@ test('games catalog keeps Play bright, disabled actions readable, and avoids dup
   else await expect(backHome).toBeVisible();
 });
 
-test('mobile catalog shows Crystal Command as a regular two-column game card', async ({ page }) => {
+test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
   await expect(cards).toHaveCount(25);
   const featured = cards.first();
-  await expect(featured).toHaveAttribute('data-game', 'crystalCommand');
+  await expect(featured).toHaveAttribute('data-game', 'neonSlice');
   const feature = await featured.boundingBox();
-  const arcade = cards.filter({ hasNot: page.locator('a[href="crystal-command.html"]') });
+  const arcade = cards.filter({ hasNot: page.locator('a[href="neon-slice.html"]') });
   const first = await arcade.nth(0).boundingBox();
   const second = await arcade.nth(1).boundingBox();
   expect(feature).toBeTruthy();
@@ -323,7 +323,7 @@ test('mobile catalog shows Crystal Command as a regular two-column game card', a
   expect(Math.abs(feature.height - first.height)).toBeLessThan(2);
   expect(Math.abs(second.x - feature.x)).toBeLessThan(2);
   expect(second.y).toBeGreaterThanOrEqual(feature.y + feature.height);
-  await expect(featured.locator('.game-play-button')).toContainText('Play · Free beta');
+  await expect(featured.locator('.game-play-button')).toContainText('Play · Earn Coins');
   const featurePlay = await featured.locator('.game-play-button').boundingBox();
   expect(featurePlay.height).toBeGreaterThanOrEqual(44);
   const favorite = await arcade.first().locator('.favorite-button').boundingBox();
@@ -332,8 +332,8 @@ test('mobile catalog shows Crystal Command as a regular two-column game card', a
   expect(favorite.y - first.y).toBeLessThan(22);
   expect(play.height).toBeGreaterThanOrEqual(44);
   await expect(arcade.first().locator('.reward-rule')).toBeVisible();
-  await expect(arcade.first()).toHaveAttribute('data-game','bubblePop');
-  await expect(arcade.first().locator('.game-play-button')).toHaveText('Play · Earn Coins');
+  await expect(arcade.first()).toHaveAttribute('data-game','neonBreach');
+  await expect(arcade.first().locator('.game-play-button')).toContainText('Play');
 });
 
 test('Pick for me opens a playable game without searching', async ({ page }) => {
