@@ -289,7 +289,9 @@
     (board.closest('.game-guide-surface-wrap')||board).insertAdjacentElement('afterend',sessionDock);
     sessionDock.append(document.getElementById('earnlyPauseButton'),document.getElementById('earnlyQuitButton'));
     const pauseForInterruption=()=>{if(running&&!paused)pauseControl.button.click();};
-    window.addEventListener('blur',pauseForInterruption);
+    // WKWebView can briefly blur while the app remains visible. Only an
+    // actual background/navigation interruption should pause the sprint.
+    window.addEventListener('pagehide',pauseForInterruption);
     document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseForInterruption();});
     board.addEventListener('contextmenu',event=>event.preventDefault());
     startButton.addEventListener('click',startGame);

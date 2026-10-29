@@ -76,12 +76,16 @@ test('Tap Rush pause and Quit cancel preserve taps and the remaining clock',asyn
  await expect(page.locator('#gameStatus')).toHaveText('Running');
  await page.locator('#target').click();await expect(page.locator('#hits')).toHaveText('2');
 });
-test('Tap Rush interruptions pause visibly and Resume restores scoring',async({page})=>{
+test('Tap Rush transient blur keeps scoring while backgrounding pauses visibly',async({page})=>{
  await start(page);
  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
- await expect(page.locator('#gameStatus')).toHaveText('Paused');
- await page.locator('#earnlyPauseButton').click();
+ await expect(page.locator('#gameStatus')).toHaveText('Running');
  await page.locator('#target').click();await expect(page.locator('#hits')).toHaveText('1');
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
+ await page.locator('#earnlyPauseButton').click();
+ await page.locator('#target').click();await expect(page.locator('#hits')).toHaveText('2');
 });
 test('Tap Rush keyboard presses count once and holding does not auto-score',async({page})=>{
  await start(page);await page.locator('#target').focus();
