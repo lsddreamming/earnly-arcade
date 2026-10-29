@@ -88,6 +88,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='resident_invite'){if(!this.#memoryReady.has(uid))throw new Error('AI friendships are not available yet');const state=await this.#residentState(uid,roomId,'read');if(!state.relations.some((r:any)=>r.residentId===d.id&&r.friend))throw new Error('Add this AI resident as a friend first');room.inviteResident(uid,d.id);}
       else if(!room.dismissResident(uid,d.id))throw new Error('This AI visitor is not in your room');
       result={residentId:d.id,isAI:true,visiting:action==='resident_invite'};
+    }else if(action==='resident_focus'){result=room.residentFocus(uid,data.residentId,data.active,performance.now());
     }else if(action==='resident_chat'){result=room.residentChat(uid,data.residentId,data.topic,performance.now());
       if(this.#memoryReady.has(uid)){const state=await this.#residentState(uid,roomId,'touch',{residentId:result.residentId,topic:data.topic,...(data.favoriteGame!==undefined?{favoriteGame:data.favoriteGame}:{})});room.setResidentMemory(uid,state);const memory=state.relations.find((r:any)=>r.residentId===result.residentId);const position=room.spuds.snapshots().find(s=>s.residentId===result.residentId)?.position;const nearby=position?currentSnapshot.items.find(item=>Math.hypot(item.x-position.x,item.y-position.y)<=4):undefined;result.text=residentReply(result.residentId,data.topic as string,memory,nearby?.name?.slice(0,64));}
     }else if(['resident_memory','resident_settings','resident_friend','resident_forget'].includes(action)){
