@@ -1,3 +1,4 @@
+import type {ResidentMemory} from './resident-social.ts';
 import {NaturalSocial,residentReply,residentGreeting} from './resident-social.ts';
 import {spudDefinition} from './spud-residents.ts';
 import {SpudResidents} from './spud-residents.ts';
@@ -24,7 +25,10 @@ export class RoomRuntime {
   #publicResidents=false;
   #social?:NaturalSocial;
   #roomKey='';
+  #memories=new Map<string,Map<string,ResidentMemory>>();
+  setResidentMemory(uid:string,state:{quiet:boolean;relations:(ResidentMemory&{residentId:string})[]}){this.#social?.setQuiet(uid,state.quiet,performance.now());if(this.#memories.size>=100&&!this.#memories.has(uid))this.#memories.delete(this.#memories.keys().next().value!);this.#memories.set(uid,new Map(state.relations.map(r=>[r.residentId,r])));}
   enableSocial(social:NaturalSocial,roomKey:string){this.#social=social;this.#roomKey=roomKey;}
+  #residentGreeting(userId:string,id:import('./spud-residents.ts').SpudId){const m=this.#memories.get(userId)?.get(id);return m?.friend&&m.remember&&m.visits>0?residentReply(id,'welcome',m):residentGreeting(id);}
   residentNearby(userId:string,id:unknown){
     const member=this.#members.get(userId),spud=this.spuds.snapshots().find(s=>s.residentId===id);
     if(!member||!spud)return false;const from=this.#position(member);
@@ -186,7 +190,7 @@ export class RoomRuntime {
     for(const [itemId,result] of this.#furnitureResults)if(result.value>0&&this.grid.tile(result)?.itemId===itemId)send({type:'FURNITURE_RESULT',itemId,value:result.value,kind:'dice',snapshot:true});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
-  leave(userId:string){if(this.#members.delete(userId))this.#broadcast({type:'USER_LEFT',userId});}
+  leave(userId:string){this.#memories.delete(userId);if(this.#members.delete(userId))this.#broadcast({type:'USER_LEFT',userId});}
   /** userId comes from the socket binding, never from a packet. now is server monotonic time. */
   receive(userId:string,packet:unknown,now:number){
     const m=this.#members.get(userId);
@@ -279,7 +283,7 @@ export class RoomRuntime {
     }
     const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
     if(this.spuds.tick(this.grid,external,this.memberCount,this.#publicResidents))moved=true;
-    if(this.#social&&this.#ticks%4===0){const now=performance.now();for(const id of this.#members.keys()){for(const spud of this.spuds.snapshots()){if(this.residentNearby(id,spud.residentId)&&this.#social.greeting(id,this.#roomKey,spud.residentId,now)){this.#members.get(id)!.send({type:'AI_GREETING',residentId:spud.residentId,staffId:spud.staffId,isAI:true,text:residentGreeting(spud.residentId)});break;}}}}
+    if(this.#social&&this.#ticks%4===0){const now=performance.now();for(const id of this.#members.keys()){if(!this.#social.ready(id,this.#roomKey,now))continue;for(const spud of this.spuds.snapshots()){if(this.residentNearby(id,spud.residentId)&&this.#social.greeting(id,this.#roomKey,spud.residentId,now)){this.#members.get(id)!.send({type:'AI_GREETING',residentId:spud.residentId,staffId:spud.staffId,isAI:true,text:this.#residentGreeting(id,spud.residentId)});break;}}}}
     if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
     const changes=[];
     // Stable join order plus fresh occupancy prevents two actors entering one tile.

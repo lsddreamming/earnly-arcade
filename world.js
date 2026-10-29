@@ -487,6 +487,7 @@
  function showResidents(){
   const root=openPanel('AI Spud residents');root.append(note('Automated characters · Contextual preset conversations. AI residents never count as online players. Tap one nearby to chat.'),note('Natural: occasional private greetings. Quiet: no unsolicited AI greetings.'));
   root.append(button(residentQuiet?'Switch to Natural mode':'Switch to Quiet mode',async()=>{const result=await action('resident_mode',{quiet:!residentQuiet});residentQuiet=result.quiet;if(residentQuiet)for(const [id,b] of renderer.bubbles)if(b.mode==='ai')renderer.bubbles.delete(id);showResidents();}));
+  if(bootstrap.aiMemory)root.append(button('AI friends & privacy',showResidentMemory));
   for(const s of renderer.staff.values())if(s.isAI)root.append(row(s.username+' · AI · '+s.activity,[button('Chat',()=>showResident(s.residentId))]));
  }
  async function showResident(id){
@@ -494,13 +495,28 @@
   const root=openPanel(s.username+' · AI resident');root.append(note(s.role),note('Private preset conversation · Only you see these replies.'));
   const response=el('p','staff-greeting');response.setAttribute('aria-live','polite');root.append(response);
   for(const [topic,label]of [['hello','Say hello'],['games','Talk games'],['room','Talk furniture'],['joke','Tell me a joke'],['bye','See you later']])root.append(button(label,async()=>{const room=scene.roomId,reply=await action('resident_chat',{residentId:id,topic});if(root.isConnected&&scene.roomId===room)response.textContent=reply.text;}));
+  if(bootstrap.aiMemory){const games=el('select');games.setAttribute('aria-label','Favorite game to remember');for(const name of ['Snake','Bubble Pop','Tap Rush','Neon Slice','Coin Catch']){const opt=el('option','',name);opt.value=name;games.append(opt);}root.append(games,button('Tell this AI my favorite game',async()=>{const reply=await action('resident_chat',{residentId:id,topic:'games',favoriteGame:games.value});if(root.isConnected)response.textContent=reply.text+' Saved only when memory is on.';}));}
+  if(bootstrap.aiMemory)root.append(button('Friendship & saved memories',()=>showResidentMemory(id)));
   root.append(button('AI social settings',showResidents),button('Back to room',()=>$('worldPanel').close()));
+ }
+ async function showResidentMemory(selected){
+  requireConnection();const state=await action('resident_memory'),root=openPanel('AI friends & privacy');residentQuiet=state.quiet;
+  root.append(note('AI friends are automated characters, separate from real players.'),note('Memory is '+(state.remember?'on':'off')+'. When on, residents save conversation topics, your selected favorite game, rooms you chat in and your own verified game scores. No raw conversation transcripts are saved or sent to an external AI service. Turning memory off erases saved facts and keeps friendships.'));
+  root.append(button(state.remember?'Turn memory off & erase saved facts':'Turn memory on',async()=>{await action('resident_settings',{remember:!state.remember});showResidentMemory(selected);}));
+  const known=new Map((state.relations||[]).map(r=>[r.residentId,r]));for(const s of renderer.staff.values())if(s.isAI&&!known.has(s.residentId))known.set(s.residentId,{residentId:s.residentId,friend:false});
+  for(const m of known.values()){if(typeof selected==='string'&&m.residentId!==selected)continue;const name=[...renderer.staff.values()].find(s=>s.residentId===m.residentId)?.username||m.residentId;const card=el('section','friend-card');card.append(el('h3','',name+' · AI'+(m.friend?' friend':'')),note('Topics: '+(m.topics?.join(', ')||'None')+' · Favorite game: '+(m.favoriteGame||'None')),note('Saved visits: '+(m.roomVisits?.length||0)+' · Remembered sessions: '+(m.visits||0)),note('Scores: '+(m.achievements?.map(a=>a.game+' '+a.score).join(', ')||'None')));
+   card.append(button(m.friend?'Remove AI friend':'Add AI friend',async()=>{await action('resident_friend',{residentId:m.residentId,friend:!m.friend});showResidentMemory(selected);}));
+   if(state.remember)card.append(button('Forget '+name+' memories',async()=>{await action('resident_forget',{residentId:m.residentId});showResidentMemory(selected);}));root.append(card);
+  }
+  if(state.remember)root.append(button('Forget all memories & turn memory off',async()=>{await action('resident_forget');showResidentMemory(selected);}));
+  root.append(button('Back to AI residents',showResidents));
  }
  function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(bootstrap.aiResidents)root.append(button('AI Spud residents & social mode',showResidents,'primary'));if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.isAI?'Meet AI resident':staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  const friendBrowser={query:'',filter:'all'};
  function showFriends(){
   currentPanel='friends';const root=openPanel('Friends'),version=panelVersion;
   if(!connected){root.append(note('Connect to World to visit friends and send messages.'),button('Connect to World',()=>connect(),'primary'));return;}
+  if(bootstrap.aiMemory)root.append(button('AI friends & privacy',showResidentMemory));
   const friends=bootstrap.friends||[],accepted=friends.filter(f=>f.accepted),requests=friends.filter(f=>!f.accepted);
   const summary=el('p','friends-summary',`${accepted.filter(f=>f.online).length} online · ${accepted.length} friends`);
   const search=el('input','friends-search');search.type='search';search.placeholder='Find a friend';search.setAttribute('aria-label','Find a friend');search.maxLength=18;search.value=friendBrowser.query;

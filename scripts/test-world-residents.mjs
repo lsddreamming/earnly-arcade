@@ -1,0 +1,39 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {worldFixture} from './world-test-fixture.mjs';
+import {SupabaseWorldAccess} from '../world-server/src/supabase-access.ts';
+const f=await worldFixture();
+try{
+ await f.db.exec('create table public.leaderboard_scores(user_id uuid,game text,score bigint,achieved_at timestamptz default now());');
+ await f.db.exec(await readFile(new URL('../supabase/migrations/20261029131420_world_ai_resident_memory.sql',import.meta.url),'utf8'));
+ const [a,b]=f.users;
+ const room=(await f.db.query("select public.world_api($1,'create_room','{\"name\":\"AI test\"}') r",[a])).rows[0].r.roomId;
+ const rpc=async(user,action,data={})=>(await f.db.query('select public.world_residents($1,$2,$3,$4::jsonb) r',[user,room,action,JSON.stringify(data)])).rows[0].r;
+ assert.deepEqual(await rpc(a,'read'),{quiet:false,remember:false,relations:[]});
+ await rpc(a,'touch',{residentId:'jax',topic:'hello'});assert.equal((await rpc(a,'read')).relations.length,0,'memory-off conversations must leave no record');
+ await rpc(a,'friend',{residentId:'jax',friend:true});
+ await rpc(a,'settings',{quiet:true,remember:true});
+ await f.db.query('insert into public.leaderboard_scores(user_id,game,score) values($1,$2,123),($3,$2,999)',[a,'snake',b]);
+ await rpc(a,'touch',{residentId:'jax',topic:'games',favoriteGame:'Snake'});
+ const known=await rpc(a,'read');assert.equal(known.quiet,true);assert.equal(known.remember,true);assert.equal(known.relations[0].friend,true);assert.equal(known.relations[0].favoriteGame,'Snake');assert.deepEqual(known.relations[0].achievements,[{game:'snake',score:'123'}]);assert.deepEqual(known.relations[0].roomVisits,[room]);
+ assert.equal((await rpc(b,'read')).relations.length,0,'other player cannot see these memories');
+ const migratedFetch=globalThis.fetch;
+ globalThis.fetch=async(url,options)=>{if(String(url).endsWith('/world_residents')){const p=JSON.parse(options.body);return Response.json((await f.db.query('select public.world_residents($1,$2,$3,$4::jsonb) r',[p.p_actor,p.p_room,p.p_action,JSON.stringify(p.p_data)])).rows[0].r);}return migratedFetch(url,options);};
+ const first=new SupabaseWorldAccess('https://world-test.invalid','server-only-test');
+ const firstEntry=await first.enter({userId:a,username:'A'},room);assert.equal(firstEntry.bootstrap.aiMemory,true);assert.equal(firstEntry.bootstrap.residentQuiet,true);
+ // New access/runtime simulates a process restart: memory still comes from Postgres.
+ const restarted=new SupabaseWorldAccess('https://world-test.invalid','server-only-test');
+ const entry=await restarted.enter({userId:a,username:'A'},room);entry.room.join({userId:a,username:'A'},entry.spawn,()=>{});
+ const state=await restarted.perform({userId:a,username:'A'},room,'resident_memory',{p_actor:b,userId:b});assert.equal(state.data.relations[0].favoriteGame,'Snake');
+ await restarted.perform({userId:a,username:'A'},room,'resident_forget',{residentId:'jax'});assert.equal((await rpc(a,'read')).relations[0].favoriteGame,null);assert.equal((await rpc(a,'read')).relations[0].friend,true);
+ await rpc(a,'touch',{residentId:'jax',topic:'games',favoriteGame:'Bubble Pop'});
+ await rpc(a,'settings',{remember:false});const erased=(await rpc(a,'read')).relations[0];assert.equal(erased.friend,true);assert.deepEqual(erased.topics,[]);assert.deepEqual(erased.achievements,[]);assert.deepEqual(erased.roomVisits,[]);assert.equal(erased.visits,0);assert.equal(erased.favoriteGame,null);
+ await assert.rejects(rpc(a,'friend',{residentId:'human-id',friend:true}),/Unknown AI/);
+ await assert.rejects(rpc(a,'settings',{remember:'yes'}),/setting/);
+ await assert.rejects(rpc(a,'touch',{residentId:'jax',topic:'games',favoriteGame:'forged'}),/Unknown game/);
+ await f.db.exec('set role authenticated');await assert.rejects(rpc(a,'read'),/permission denied/);await assert.rejects(f.db.query('select * from earnly_world.ai_memories'),/permission denied/);await f.db.exec('reset role');
+ const privileges=(await f.db.query("select has_function_privilege('anon','public.world_residents(uuid,uuid,text,jsonb)','EXECUTE') anon,has_function_privilege('authenticated','public.world_residents(uuid,uuid,text,jsonb)','EXECUTE') authenticated,has_function_privilege('service_role','public.world_residents(uuid,uuid,text,jsonb)','EXECUTE') service")).rows[0];assert.deepEqual(privileges,{anon:false,authenticated:false,service:true});
+ assert.equal((await f.db.query("select count(*)::int n from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='earnly_world' and c.relname in ('ai_preferences','ai_memories') and c.relrowsecurity")).rows[0].n,2);
+ await f.db.query('delete from auth.users where id=$1',[a]);assert.equal((await f.db.query('select count(*)::int n from earnly_world.ai_memories where user_id=$1',[a])).rows[0].n,0);
+ console.log('AI resident memory: consent, isolation, restart persistence, verified scores, erasure, role privileges and account cascade passed');
+}finally{await f.close();}
