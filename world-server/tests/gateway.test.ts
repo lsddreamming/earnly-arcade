@@ -146,3 +146,15 @@ test('older clients never render animals as people; capable clients opt in after
   assert(events[1].filter(p=>p.type==='NPC_SNAPSHOT').every(p=>p.staff.length===0));
  }finally{for(const ws of clients)ws.close();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
+
+test('AI residents require client capability and remain outside real users for older iOS clients',async()=>{
+ const server=createServer(),room=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));room.enableResidents();for(let i=0;i<10;i++)room.tick();
+ const gateway=attachWorldGateway(server,{authenticate:async token=>({userId:token,username:token}),enter:async()=>({room,spawn:room.availableSpawn(),scene:{roomId:'plaza'},bootstrap:{aiResidents:true}}),revalidate:async()=>true},new Set(['https://earnlyarcade.com']));
+ server.listen(0,'127.0.0.1');await once(server,'listening');const ws=new WebSocket(`ws://127.0.0.1:${(server.address() as {port:number}).port}/world`,{origin:'https://earnlyarcade.com'}),events:any[]=[];ws.on('message',data=>events.push(JSON.parse(data.toString())));
+ try{
+  await once(ws,'open');ws.send(JSON.stringify({type:'JOIN',version:1,token:'legacy-ios',roomId:'plaza'}));await delay(60);
+  assert.equal(events.find(e=>e.type==='ROOM_SNAPSHOT').users.length,1);assert.equal(events.find(e=>e.type==='NPC_SNAPSHOT').staff.length,0);assert.equal(room.memberCount,1);
+  ws.send(JSON.stringify({type:'RESIDENT_VIEW',version:1}));await delay(60);
+  const snapshot=events.filter(e=>e.type==='NPC_SNAPSHOT').at(-1);assert.equal(snapshot.staff.length,5);assert.ok(snapshot.staff.every((s:any)=>s.isAI));assert.equal(room.members().length,1);
+ }finally{ws.terminate();await gateway.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});

@@ -1,3 +1,8 @@
+import type {ResidentMemory} from './resident-social.ts';
+import {NaturalSocial,residentReply,residentGreeting} from './resident-social.ts';
+import type {SpudId} from './spud-residents.ts';
+import {spudDefinition} from './spud-residents.ts';
+import {SpudResidents} from './spud-residents.ts';
 import {randomInt} from 'node:crypto';
 import { RoomGrid, tileKey, validXY } from './grid.ts';
 import type { XY, XYZ } from './grid.ts';
@@ -9,6 +14,7 @@ import type {InteractionPlan} from './interactions.ts';
 
 export type RoomPet={id:string;ownerId:string;name:string;species:'dog'|'cat'|'rabbit';color:string};
 export type Identity = Readonly<{ userId:string; username:string; equipped?:Record<string,unknown> }>;
+type NPCSnapshot={staffId:string;username:string;role:string;position:XYZ;state:string;isStaff:boolean;color:string;isAI?:boolean;residentId?:SpudId;equipped?:Record<string,unknown>;invitedBy?:string;activity?:string;itemId?:string;petId?:string;ownerId?:string;species?:RoomPet['species'];toyId?:string;playElapsed?:number};
 export type Send = (packet:Record<string,unknown>)=>void;
 type Resident={definition:Staff;index:number;nextWalk?:number;nextVoice?:number;route?:XY[];callOwner?:string;callUntil?:number;lastPet?:number;lastCall?:number;bed?:XY;sleepUntil?:number;toy?:XY;toyId?:string;playUntil?:number;nextPlay?:number};
 type Member = {identity:Identity; movement:MovementController; send:Send; lastIntent:number; lastChat:number;lastFurnitureUse?:number;seat?:{position:XYZ;state:'sit'|'lay'};plan?:InteractionPlan;exit?:{next:XYZ;revision:number;goal:XY}};
@@ -17,6 +23,29 @@ type Member = {identity:Identity; movement:MovementController; send:Send; lastIn
  * Tick once per 250ms; client packets can never advance the simulation clock.
  */
 export class RoomRuntime {
+  readonly spuds=new SpudResidents();
+  #publicResidents=false;
+  #social?:NaturalSocial;
+  #roomKey='';
+  #memories=new Map<string,Map<string,ResidentMemory>>();
+  setResidentMemory(uid:string,state:{quiet:boolean;relations:(ResidentMemory&{residentId:string})[]}){this.#social?.setQuiet(uid,state.quiet,performance.now());if(this.#memories.size>=100&&!this.#memories.has(uid))this.#memories.delete(this.#memories.keys().next().value!);this.#memories.set(uid,new Map(state.relations.map(r=>[r.residentId,r])));}
+  enableSocial(social:NaturalSocial,roomKey:string){this.#social=social;this.#roomKey=roomKey;}
+  #residentGreeting(userId:string,id:import('./spud-residents.ts').SpudId){const m=this.#memories.get(userId)?.get(id);return m?.friend&&m.remember&&m.visits>0?residentReply(id,'welcome',m):residentGreeting(id);}
+  residentNearby(userId:string,id:unknown){
+    const member=this.#members.get(userId),spud=this.spuds.snapshots().find(s=>s.residentId===id);
+    if(!member||!spud)return false;const from=this.#position(member);
+    if(Math.hypot(from.x-spud.position.x,from.y-spud.position.y)>2.5||Math.abs(from.z-spud.position.z)>1)return false;
+    for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const route=findPath(this.grid,from,{x:spud.position.x+dx,y:spud.position.y+dy},{diagonal:false,maxExpanded:64});if(route.status==='ok'&&route.path.length<=2)return true;}return false;
+  }
+  residentChat(userId:string,id:unknown,topic:unknown,now:number){
+    const d=spudDefinition(id);if(!d||!this.residentNearby(userId,id))throw new Error('Walk near this AI resident to chat');
+    if(typeof topic!=='string'||!['hello','games','room','joke','bye','memory'].includes(topic))throw new Error('Choose a conversation topic');
+    this.#social?.chat(userId,now);return {residentId:d.id,name:d.name,isAI:true,text:residentReply(d.id,topic)};
+  }
+  inviteResident(userId:string,id:SpudId){if(this.paused||!this.#members.has(userId))throw new Error('Connect to your room first');this.spuds.invite(this.grid,this.#occupied(),id,userId);this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});}
+  dismissResident(userId:string,id?:SpudId){const changed=this.spuds.dismiss(userId,id);if(changed)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return changed;}
+  residentQuiet(userId:string,quiet:boolean,now:number){this.#social?.setQuiet(userId,quiet,now);return {quiet};}
+  enableResidents(){this.#publicResidents=true;}
   #members = new Map<string,Member>();
   #sequence = 0;
   #furnitureResults=new Map<string,{value:number;at:number;x:number;y:number}>();
@@ -32,7 +61,7 @@ export class RoomRuntime {
     this.#staff=staff.map(definition=>{if(!definition.path.length||definition.path.some((p,i)=>!grid.tile(p)?.walkable||(i>0&&Math.abs(p.x-definition.path[i-1].x)+Math.abs(p.y-definition.path[i-1].y)!==1)))throw new Error('Invalid staff route');return {definition,index:0,...(definition.species?this.#petClock():{})};});
     this.setPets(pets);
   }
-  staff(){return this.#staff.map(({definition:d,index,sleepUntil,playUntil,toyId})=>({staffId:d.id,username:d.name,role:d.role,petId:d.petId,ownerId:d.ownerId,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:sleepUntil?'sleep':playUntil?'play':'std',toyId:playUntil?toyId:undefined,playElapsed:playUntil?(32-playUntil+this.#ticks)*250:undefined}));}
+  staff():NPCSnapshot[]{return [...this.#staff.map(({definition:d,index,sleepUntil,playUntil,toyId})=>({staffId:d.id,username:d.name,role:d.role,petId:d.petId,ownerId:d.ownerId,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:sleepUntil?'sleep':playUntil?'play':'std',toyId:playUntil?toyId:undefined,playElapsed:playUntil?(32-playUntil+this.#ticks)*250:undefined})),...this.spuds.snapshots()];}
   setPets(pets:RoomPet[]){
     if(pets.length>3)throw new Error('Up to three pets can roam in a room');
     const previous=new Map(this.#staff.filter(s=>s.definition.petId).map(s=>[s.definition.petId!,s]));
@@ -143,7 +172,7 @@ export class RoomRuntime {
     if(mode==='whisper'&&!nearby.some(m=>m.identity.userId===target))throw new Error('Move beside this player to whisper');
     return (mode==='shout'?[...this.#members.values()]:nearby).filter(m=>mode!=='whisper'||m.identity.userId===userId||m.identity.userId===target).map(m=>m.identity.userId);
   }
-  canReplace(grid:RoomGrid){return this.staff().every(s=>{const t=grid.tile(s.position);return !!t?.walkable&&t.z===s.position.z;})&&this.members().every(m=>{const tile=grid.tile(m.position);return !!tile&&tile.z===m.position.z&&(tile.walkable||(m.state==='sit'&&tile.canSit)||(m.state==='lay'&&tile.canLay));});}
+  canReplace(grid:RoomGrid){return this.spuds.canReplace(grid)&&this.staff().filter(s=>!s.isAI).every(s=>{const t=grid.tile(s.position);return !!t?.walkable&&t.z===s.position.z;})&&this.members().every(m=>{const tile=grid.tile(m.position);return !!tile&&tile.z===m.position.z&&(tile.walkable||(m.state==='sit'&&tile.canSit)||(m.state==='lay'&&tile.canLay));});}
   replaceGrid(grid:RoomGrid){if(!this.canReplace(grid))throw new Error('A player is standing there');this.grid=grid;}
   get memberCount(){return this.#members.size;}
   availableSpawn():XY {
@@ -153,7 +182,7 @@ export class RoomRuntime {
     }
     throw new Error('No free spawn');
   }
-  #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(this.#position(m))).concat(this.staff().map(s=>tileKey(s.position))));}
+  #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(this.#position(m))).concat(this.staff().map(s=>tileKey(s.position)),[...this.spuds.occupied()]));}
   #broadcast(packet:Record<string,unknown>){for(const m of this.#members.values())m.send(packet);}
   join(identity:Identity,spawn:XY,send:Send){
     if(!identity.userId||!identity.username||this.#members.has(identity.userId))throw new Error('Duplicate or invalid member');
@@ -165,7 +194,7 @@ export class RoomRuntime {
     for(const [itemId,result] of this.#furnitureResults)if(result.value>0&&this.grid.tile(result)?.itemId===itemId)send({type:'FURNITURE_RESULT',itemId,value:result.value,kind:'dice',snapshot:true});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
-  leave(userId:string){if(this.#members.delete(userId))this.#broadcast({type:'USER_LEFT',userId});}
+  leave(userId:string){this.#memories.delete(userId);if(this.#members.delete(userId)){this.dismissResident(userId);this.#broadcast({type:'USER_LEFT',userId});}}
   /** userId comes from the socket binding, never from a packet. now is server monotonic time. */
   receive(userId:string,packet:unknown,now:number){
     const m=this.#members.get(userId);
@@ -256,6 +285,9 @@ export class RoomRuntime {
         if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}
       }
     }
+    const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
+    if(this.spuds.tick(this.grid,external,this.memberCount,this.#publicResidents))moved=true;
+    if(this.#social&&this.#ticks%4===0){const now=performance.now();for(const id of this.#members.keys()){if(!this.#social.ready(id,this.#roomKey,now))continue;for(const spud of this.spuds.snapshots()){if(this.residentNearby(id,spud.residentId)&&this.#social.greeting(id,this.#roomKey,spud.residentId,now)){this.#members.get(id)!.send({type:'AI_GREETING',residentId:spud.residentId,staffId:spud.staffId,isAI:true,text:this.#residentGreeting(id,spud.residentId)});break;}}}}
     if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
     const changes=[];
     // Stable join order plus fresh occupancy prevents two actors entering one tile.

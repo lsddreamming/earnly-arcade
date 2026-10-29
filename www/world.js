@@ -137,7 +137,7 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>{const before=renderer.users.get(u.userId);if(u.userId===userId&&before&&(before.position.x!==u.position.x||before.position.y!==u.position.y))completeGuideStep('walk');renderer.updateUser(u);});
-   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;waitingForNetwork=false;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
+   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;waitingForNetwork=false;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;residentQuiet=bootstrap.residentQuiet===true;setScene(p.scene);if(bootstrap.aiResidents)socket.send(JSON.stringify({type:'RESIDENT_VIEW',version:1}));if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='PET_REACTION')renderer.petReaction(p);
    else if(p.type==='FURNITURE_RESULT'){
@@ -146,6 +146,7 @@
     if(p.kind==='dice'&&Number.isInteger(p.value)&&p.value>=1&&p.value<=6){const result={diceValue:p.value,diceRollingUntil:p.snapshot?0:performance.now()+800};if(furnitureResults.size>=2048)furnitureResults.clear();furnitureResults.set(p.itemId,result);if(item){Object.assign(item,result);renderer.setScene(scene);}}
     if(!p.snapshot){const text=p.kind==='dice'?'Rolled '+p.value+' 🎲':'Ice cream served! 🍦';renderer.bubble({userId:p.userId,text,mode:'normal'});toast(text);}
    }
+   else if(p.type==='AI_GREETING'&&!residentQuiet){renderer.bubble({userId:p.staffId,text:p.text,mode:'ai'});}
    else if(p.type==='PET_CHAT')renderer.bubble({userId:p.staffId,text:p.text,mode:'pet'});
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='ROOM_NAME'){if(scene?.roomId===p.roomId){scene.name=p.name;$('roomName').textContent=p.name;}for(const r of bootstrap.rooms)if(r.id===p.roomId)r.name=p.name;}
@@ -153,7 +154,7 @@
    else if(p.type==='PRIVATE'&&p.userId!==userId){toast('New private message from '+p.username);if(privateTarget&&$('worldPanel').open)showPrivate(privateTarget);}
    else if(p.type==='TRADE'){trade=p.trade;if(trade.status==='complete')refresh().catch(()=>{});showTrade();}
    if(p.type==='WELCOME'){const category=new URLSearchParams(location.search).get('catalog');if(category)showCatalog(category);else if(missionEntry){const entry=missionEntry;missionEntry=null;if(entry==='daily')showDailyMissions();else if(entry==='weekly')showWeeklyChallenge();}}
-   if(connected){$('peopleCount').textContent=renderer.users.size+' in the room';const state=renderer.users.get(userId)?.state;$('connectionStatus').textContent=state==='sit'?'Live · Sitting · Tap clear floor to stand up':state==='lay'?'Live · Lying down · Tap clear floor to stand up':'Live · Tap seats to sit or a floor tile to walk';}
+   if(connected){const players=renderer.users.size,residents=[...renderer.staff.values()].filter(s=>s.isAI).length,total=players+residents;$('peopleCount').dataset.players=String(players);$('peopleCount').textContent=bootstrap.aiResidents?total+(total===1?' Spud here':' Spuds here'):players+' in the room';const state=renderer.users.get(userId)?.state;$('connectionStatus').textContent=state==='sit'?'Live · Sitting · Tap clear floor to stand up':state==='lay'?'Live · Lying down · Tap clear floor to stand up':'Live · Tap seats to sit or a floor tile to walk';}
   };
   ws.onclose=e=>{if(socket!==ws)return;if(e.code!==4004)trackFailure();connected=false;finishConnecting();placing=null;showPlacement();$('peopleCount').textContent='Room preview';$('worldNote').textContent='Your room is not connected. Enter your own room after connecting to move furniture.';if(e.code===4004){needsFirstRoom=true;entryState('Choose your first room — it is free.');$('connectionStatus').textContent='Choose your first room';showRoomCreator(true);return;}$('connectionStatus').textContent=e.code===1011&&e.reason==='World service configuration'?'World is temporarily unavailable · Server setup needs attention.':e.code===4001?'Your session expired · Sign in again to enter World.':e.code===4003?'Confirm your account email before entering World.':e.code===1013?'Room loading timed out · Tap Connect to retry.':e.code===1008?'Entry unavailable · Sign in again, close other World tabs, then reconnect.':'Disconnected · Reconnect to keep playing';if(roomId===sharedRoom&&e.code===1008){$('connectionStatus').textContent='This room is unavailable. It may be private, full, or removed.';openPanel('Room unavailable').append(note('A shared link does not bypass room permissions.'),button('Go to my room',()=>connect('choose-home'),'primary'));}entryState($('connectionStatus').textContent);if(e.code===4001||e.code===4003){$('worldSignIn').hidden=false;}if([1006,1012,1013].includes(e.code))retryEntry(roomId);for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Disconnected. Reconnect before retrying.'));}pending.clear();};
   ws.onerror=()=>{if(socket===ws)$('connectionStatus').textContent='Could not connect to World. Please try again.';};
@@ -460,6 +461,7 @@
   if(!first)root.append(button('Back to rooms',showRooms));
  }
  async function showStaff(staff){
+  if(staff.isAI)return showResident(staff.residentId);
   const roomId=scene.roomId,version=panelVersion,reply=await action('staff_talk',{staffId:staff.staffId});
   if(scene.roomId!==roomId||version!==panelVersion)return;
   currentPanel='staff';const root=openPanel(staff.species?reply.name:reply.name+' · '+reply.role),style=hangoutStyle(scene);
@@ -481,11 +483,43 @@
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
   root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
- function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
+ let residentQuiet=false;
+ function showResidents(){
+  const root=openPanel('Spud residents');root.append(note('Tap a resident nearby to chat. Natural: occasional private greetings. Quiet: greetings only when you start the conversation.'));
+  root.append(button(residentQuiet?'Switch to Natural mode':'Switch to Quiet mode',async()=>{const result=await action('resident_mode',{quiet:!residentQuiet});residentQuiet=result.quiet;if(residentQuiet)for(const [id,b] of renderer.bubbles)if(b.mode==='ai')renderer.bubbles.delete(id);showResidents();}));
+  if(bootstrap.aiMemory)root.append(button('Resident friends & privacy',showResidentMemory));
+  if(![...renderer.staff.values()].some(s=>s.isAI))root.append(note('Meet the residents in a public hangout.'),button('Visit a hangout',()=>showRooms('public'),'primary'));
+  for(const s of renderer.staff.values())if(s.isAI){const controls=[button('Chat',()=>showResident(s.residentId))];if(s.invitedBy===userId)controls.push(button('Dismiss',async()=>{await action('resident_dismiss',{residentId:s.residentId});showResidents();}));root.append(row(s.username+' · '+s.activity,controls));}
+ }
+ async function showResident(id){
+  requireConnection();const s=[...renderer.staff.values()].find(s=>s.residentId===id);if(!s)throw new Error('This AI resident is not here now');
+  const root=openPanel(s.username);$('panelTitle').append(el('span','resident-ai-badge','AI resident'));const portrait=el('canvas','resident-portrait');portrait.setAttribute('role','img');portrait.setAttribute('aria-label',s.username+' avatar');root.append(portrait,note(s.role.replace(' · AI resident','')),note('Private conversation · Preset replies'));EarnlyWorldRenderer.spudPreview(portrait,s);
+  const response=el('p','staff-greeting');response.setAttribute('aria-live','polite');root.append(response);
+  for(const [topic,label]of [['hello','Say hello'],['games','Talk games'],['room','Talk furniture'],['joke','Tell me a joke'],['bye','See you later']])root.append(button(label,async()=>{const room=scene.roomId,reply=await action('resident_chat',{residentId:id,topic});if(root.isConnected&&scene.roomId===room)response.textContent=reply.text;}));
+  if(bootstrap.aiMemory){const games=el('select');games.setAttribute('aria-label','Favorite game to remember');for(const name of ['Snake','Bubble Pop','Tap Rush','Neon Slice','Coin Catch']){const opt=el('option','',name);opt.value=name;games.append(opt);}root.append(games,button('Share my favorite game',async()=>{const reply=await action('resident_chat',{residentId:id,topic:'games',favoriteGame:games.value});if(root.isConnected)response.textContent=reply.text+' Saved only when memory is on.';}));}
+  if(bootstrap.aiMemory)root.append(button('Friendship & saved memories',()=>showResidentMemory(id)));
+  if(s.invitedBy===userId)root.append(button('Dismiss visitor',async()=>{await action('resident_dismiss',{residentId:id});$('worldPanel').close();toast(s.username+' headed back to the hangouts');}));
+  root.append(button('Social settings',showResidents),button('Back to room',()=>$('worldPanel').close()));
+ }
+ async function showResidentMemory(selected){
+  requireConnection();const version=panelVersion,room=scene.roomId,state=await action('resident_memory');if(version!==panelVersion||scene.roomId!==room)return;const root=openPanel('Resident friends & privacy');residentQuiet=state.quiet;
+  root.append(note('AI friends are automated characters, separate from real players.'),note('Memory is '+(state.remember?'on':'off')+'. When on, residents save conversation topics, your selected favorite game, rooms you chat in and your own verified game scores. No raw conversation transcripts are saved or sent to an external AI service. Invite one AI friend at a time into your own room for up to 10 minutes; they leave when you dismiss them or leave the room. Turning memory off erases saved facts and keeps friendships.'));
+  root.append(button(state.remember?'Turn memory off & erase saved facts':'Turn memory on',async()=>{await action('resident_settings',{remember:!state.remember});showResidentMemory(selected);}));
+  const known=new Map((state.relations||[]).map(r=>[r.residentId,r]));for(const s of renderer.staff.values())if(s.isAI&&!known.has(s.residentId))known.set(s.residentId,{residentId:s.residentId,friend:false});
+  for(const m of known.values()){if(typeof selected==='string'&&m.residentId!==selected)continue;const name=[...renderer.staff.values()].find(s=>s.residentId===m.residentId)?.username||bootstrap.residentCatalog?.find(s=>s.id===m.residentId)?.name||m.residentId;const card=el('section','friend-card');card.append(el('h3','',name+(m.friend?' · Friend':'')),el('span','resident-ai-badge','AI resident'),note('Topics: '+(m.topics?.join(', ')||'None')+' · Favorite game: '+(m.favoriteGame||'None')),note('Saved visits: '+(m.roomVisits?.length||0)+' · Remembered sessions: '+(m.visits||0)),note('Rooms: '+(m.roomVisits?.map(id=>bootstrap.rooms.find(r=>r.id===id)?.name||id).join(', ')||'None')),note('Scores: '+(m.achievements?.map(a=>a.game+' '+a.score).join(', ')||'None')));
+   card.append(button(m.friend?'Remove friend':'Add friend',async()=>{await action('resident_friend',{residentId:m.residentId,friend:!m.friend});showResidentMemory(selected);}));
+   if(m.friend&&scene.ownerId===userId){const visiting=[...renderer.staff.values()].find(s=>s.invitedBy===userId);card.append(button(visiting?.residentId===m.residentId?'Dismiss visitor':'Invite to this room',async()=>{await action(visiting?.residentId===m.residentId?'resident_dismiss':'resident_invite',{residentId:m.residentId});showResidentMemory(selected);}));}
+   if(state.remember)card.append(button('Forget '+name+' memories',async()=>{await action('resident_forget',{residentId:m.residentId});showResidentMemory(selected);}));root.append(card);
+  }
+  if(state.remember)root.append(button('Forget all memories & turn memory off',async()=>{await action('resident_forget');showResidentMemory(selected);}));
+  root.append(button('Back to residents',showResidents));
+ }
+ function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(bootstrap.aiResidents)root.append(button('Meet the residents',showResidents,'primary'));if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+(staff.isAI?staff.role.replace(' · AI resident',''):staff.role),[button(staff.isAI?'Meet resident':staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  const friendBrowser={query:'',filter:'all'};
  function showFriends(){
   currentPanel='friends';const root=openPanel('Friends'),version=panelVersion;
   if(!connected){root.append(note('Connect to World to visit friends and send messages.'),button('Connect to World',()=>connect(),'primary'));return;}
+  if(bootstrap.aiMemory)root.append(button('Resident friends & privacy',showResidentMemory));
   const friends=bootstrap.friends||[],accepted=friends.filter(f=>f.accepted),requests=friends.filter(f=>!f.accepted);
   const summary=el('p','friends-summary',`${accepted.filter(f=>f.online).length} online · ${accepted.length} friends`);
   const search=el('input','friends-search');search.type='search';search.placeholder='Find a friend';search.setAttribute('aria-label','Find a friend');search.maxLength=18;search.value=friendBrowser.query;
@@ -527,7 +561,7 @@
   root.append(note(`Remove ${friend.username} from your friends? You can send a new request later.`),button('Keep friend',showFriends,'primary'),button('Remove friend',async()=>{await action('friend_remove',{userId:friend.userId});await refresh();if(version===panelVersion&&$('worldPanel').open){showFriends();toast('Friend removed');}}));
  }
  function activeRoomsFirst(rooms){const count=r=>Number.isInteger(r.occupancy)&&r.occupancy>=0?r.occupancy:-1;return [...rooms].sort((a,b)=>count(b)-count(a));}
- function roomCount(room){const count=Number.isInteger(room.occupancy)&&room.occupancy>=0?room.occupancy:null;return el('p','room-occupancy',count===null?'Player count unavailable':`${count} ${count===1?'player':'players'} in room`);}
+ function roomCount(room){if(bootstrap.aiResidents){const total=Number.isInteger(room.spudCount)&&room.spudCount>=0?room.spudCount:Math.max(0,room.occupancy||0);return el('p','room-occupancy',total>0?total+(total===1?' Spud here':' Spuds here'):room.ownerId===null?'Resident hangout':'Open room');}const count=Number.isInteger(room.occupancy)&&room.occupancy>=0?room.occupancy:null;return el('p','room-occupancy',count===null?'Player count unavailable':`${count} ${count===1?'player':'players'} in room`);}
  async function showFriendRooms(friend){
   currentPanel='friend-rooms';const root=openPanel(friend.username+'’s rooms'),version=panelVersion;root.append(note('Loading rooms…'));
   try{const rooms=await action('friend_rooms',{userId:friend.userId});if(version!==panelVersion||!$('worldPanel').open)return;
@@ -574,7 +608,10 @@
  window.addEventListener('focus',()=>{if(connected)refresh().then(()=>{if(currentPanel==='coins'&&$('worldWalletBalance'))$('worldWalletBalance').textContent=BigInt(bootstrap.balance||0).toLocaleString();}).catch(()=>{});});
  const panels={staff:showStaffList,rooms:showRooms,catalog:showCatalog,backpack:showBackpack,friends:showFriends,chat:showChat};document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>panels[b.dataset.panel]());
  $('worldCanvas').onkeydown=e=>{const moves={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(!moves[e.key])return;e.preventDefault();const u=renderer.users.get(userId);if(!u)return;const [x,y]=moves[e.key],view=renderer.toView(u.position),target=renderer.fromView({x:view.x+x,y:view.y+y});if(connected)socket.send(JSON.stringify({type:'MOVE_TO',x:target.x,y:target.y}));};
- window.addEventListener('earnly-cloud-auth-change',()=>{guideResumed=false;guideDecorateOnArrival=false;$('placementSuccess').hidden=true;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;waitingForNetwork=false;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
+ window.addEventListener('earnly-cloud-auth-change',()=>{
+  // Initial auth notifications have no private World state to erase. Keep the guest catalog open.
+  if(userId==='preview'&&!connected&&!connecting)return;
+  $('worldPanel').close();$('panelContent').replaceChildren();panelVersion++;renderer.bubbles.clear();residentQuiet=false;guideResumed=false;guideDecorateOnArrival=false;$('placementSuccess').hidden=true;$('firstVisitHint').hidden=true;clearTimeout(retryTimer);retryCount=0;waitingForNetwork=false;const previous=socket;socket=null;previous?.close();connected=false;finishConnecting();session=null;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Your account changed. Connect again.'));}pending.clear();$('connectionStatus').textContent='Disconnected · Connect to enter your room';$('peopleCount').textContent='Room preview';entryState('Your account changed. Connect to enter your room.');});
 
  let guideResumed=false,guideDecorateOnArrival=false;
  const guideMemory=new Map();
