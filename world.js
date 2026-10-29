@@ -137,7 +137,7 @@
    else if(p.type==='USER_JOINED')renderer.updateUser(p);
    else if(p.type==='USER_LEFT')renderer.users.delete(p.userId);
    else if(p.type==='ROOM_DELTA')p.users.forEach(u=>{const before=renderer.users.get(u.userId);if(u.userId===userId&&before&&(before.position.x!==u.position.x||before.position.y!==u.position.y))completeGuideStep('walk');renderer.updateUser(u);});
-   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;waitingForNetwork=false;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
+   else if(p.type==='WELCOME'){admitted=true;connected=true;retryCount=0;waitingForNetwork=false;needsFirstRoom=false;finishConnecting();userId=p.userId;renderer.localUserId=userId;bootstrap=p.bootstrap;residentQuiet=bootstrap.residentQuiet===true;setScene(p.scene);if(bootstrap.personalPets)socket.send(JSON.stringify({type:'ANIMAL_VIEW',version:1}));chat=[];$('connectionStatus').textContent='Live · Tap a tile to walk';$('worldNote').textContent='Your saved avatar. Your own rooms. Arcade Coins and decor have no cash value.';$('coinBalance').textContent='◇ '+BigInt(bootstrap.balance||0).toLocaleString();$('worldPanel').close();showFirstVisitHint();if(!scene.ownerId)completeGuideStep('visit');if(guideDecorateOnArrival&&scene.ownerId===userId){guideDecorateOnArrival=false;showFirstPiece();}}
    else if(p.type==='SCENE')setScene(p.scene);
    else if(p.type==='PET_REACTION')renderer.petReaction(p);
    else if(p.type==='FURNITURE_RESULT'){
@@ -146,6 +146,7 @@
     if(p.kind==='dice'&&Number.isInteger(p.value)&&p.value>=1&&p.value<=6){const result={diceValue:p.value,diceRollingUntil:p.snapshot?0:performance.now()+800};if(furnitureResults.size>=2048)furnitureResults.clear();furnitureResults.set(p.itemId,result);if(item){Object.assign(item,result);renderer.setScene(scene);}}
     if(!p.snapshot){const text=p.kind==='dice'?'Rolled '+p.value+' 🎲':'Ice cream served! 🍦';renderer.bubble({userId:p.userId,text,mode:'normal'});toast(text);}
    }
+   else if(p.type==='AI_GREETING'&&!residentQuiet){renderer.bubble({userId:p.staffId,text:p.text,mode:'ai'});}
    else if(p.type==='PET_CHAT')renderer.bubble({userId:p.staffId,text:p.text,mode:'pet'});
    else if(p.type==='CHAT'){chat.push(p);chat=chat.slice(-80);renderer.bubble(p);if(currentPanel==='chat'&&$('worldPanel').open)showChat();}
    else if(p.type==='ROOM_NAME'){if(scene?.roomId===p.roomId){scene.name=p.name;$('roomName').textContent=p.name;}for(const r of bootstrap.rooms)if(r.id===p.roomId)r.name=p.name;}
@@ -460,7 +461,7 @@
   if(!first)root.append(button('Back to rooms',showRooms));
  }
  async function showStaff(staff){
-  if(staff.isAI){const root=openPanel(staff.username+' · AI resident');root.append(note(staff.role),note('An automated Spud resident exploring the room.'),button('Back to room',()=>$('worldPanel').close()));return;}
+  if(staff.isAI)return showResident(staff.residentId);
   const roomId=scene.roomId,version=panelVersion,reply=await action('staff_talk',{staffId:staff.staffId});
   if(scene.roomId!==roomId||version!==panelVersion)return;
   currentPanel='staff';const root=openPanel(staff.species?reply.name:reply.name+' · '+reply.role),style=hangoutStyle(scene);
@@ -482,7 +483,20 @@
   if(style)root.append(button('Browse '+style.collection,()=>showCatalog(style.collection)));
   root.append(button('Explore other rooms',()=>showRooms('explore')));
  }
- function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.isAI?'Meet AI resident':staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
+ let residentQuiet=false;
+ function showResidents(){
+  const root=openPanel('AI Spud residents');root.append(note('Automated characters · Contextual preset conversations. AI residents never count as online players. Tap one nearby to chat.'),note('Natural: occasional private greetings. Quiet: no unsolicited AI greetings.'));
+  root.append(button(residentQuiet?'Switch to Natural mode':'Switch to Quiet mode',async()=>{const result=await action('resident_mode',{quiet:!residentQuiet});residentQuiet=result.quiet;if(residentQuiet)for(const [id,b] of renderer.bubbles)if(b.mode==='ai')renderer.bubbles.delete(id);showResidents();}));
+  for(const s of renderer.staff.values())if(s.isAI)root.append(row(s.username+' · AI · '+s.activity,[button('Chat',()=>showResident(s.residentId))]));
+ }
+ async function showResident(id){
+  requireConnection();const s=[...renderer.staff.values()].find(s=>s.residentId===id);if(!s)throw new Error('This AI resident is not here now');
+  const root=openPanel(s.username+' · AI resident');root.append(note(s.role),note('Private preset conversation · Only you see these replies.'));
+  const response=el('p','staff-greeting');response.setAttribute('aria-live','polite');root.append(response);
+  for(const [topic,label]of [['hello','Say hello'],['games','Talk games'],['room','Talk furniture'],['joke','Tell me a joke'],['bye','See you later']])root.append(button(label,async()=>{const room=scene.roomId,reply=await action('resident_chat',{residentId:id,topic});if(root.isConnected&&scene.roomId===room)response.textContent=reply.text;}));
+  root.append(button('AI social settings',showResidents),button('Back to room',()=>$('worldPanel').close()));
+ }
+ function showStaffList(){currentPanel='staff';const root=openPanel('Staff & animals');if(bootstrap.aiResidents)root.append(button('AI Spud residents & social mode',showResidents,'primary'));if(!connected){root.append(note('Connect to World to meet the room staff.'));return;}for(const staff of renderer.staff.values())root.append(row(staff.username+' · '+staff.role,[button(staff.isAI?'Meet AI resident':staff.species?'Meet pet':'Say hello',()=>showStaff(staff))]));if(!renderer.staff.size)root.append(note('No staff in this room. Visit the Hotel Lobby, Rooftop Lounge or Patio Hangout.'));}
  const friendBrowser={query:'',filter:'all'};
  function showFriends(){
   currentPanel='friends';const root=openPanel('Friends'),version=panelVersion;

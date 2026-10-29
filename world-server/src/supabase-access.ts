@@ -1,3 +1,4 @@
+import {NaturalSocial} from './resident-social.ts';
 import {hangoutFor,hangoutAnimals} from './public-hangouts.ts';
 import {RoomGrid,parseHeightmap} from './grid.ts';
 import type {ItemPlacement} from './grid.ts';
@@ -9,6 +10,7 @@ type Snapshot={pets?:RoomPet[];roomId:string;username:string;name:string;ownerId
 type Bootstrap={rooms:{id:string;name:string;ownerId:string|null}[];catalog:Record<string,any>[];items:Record<string,any>[];friends:Record<string,any>[]};
 /** Server-only credentials; never import into the website bundle. */
 export class SupabaseWorldAccess implements WorldAccess {
+  #social=new NaturalSocial();
   #url:string;#key:string;
   #rooms=new Map<string,RoomRuntime>();
   #retired=new Set<string>();
@@ -57,8 +59,8 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
-    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);if(snapshot.ownerId===null)room.enableResidents();this.#rooms.set(roomId,room);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
+    if(!room){if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);this.#rooms.set(roomId,room);}
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,aiResidents:true,residentQuiet:this.#social.quiet(identity.userId,performance.now()),personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
   }
   async recordEntry(identity:Identity,roomId:string,occupancy:number){
     await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId}),this.#request('/rest/v1/rpc/world_track_step',this.#key,{p_actor:identity.userId,p_step:'join',p_room:roomId})]);
@@ -76,7 +78,9 @@ export class SupabaseWorldAccess implements WorldAccess {
     // Recheck current permissions and suspensions before every write/read operation.
     await this.#snapshot(uid,roomId);
     let result:any;let deliveries:{userIds:string[];roomId?:string;packet:Record<string,unknown>}[]=[];
-    if(['reactions','react','featured','invite','invites','dismiss_invite','weekly','weekly_enter'].includes(action)){
+    if(action==='resident_chat'){result=room.residentChat(uid,data.residentId,data.topic,performance.now());
+    }else if(action==='resident_mode'){if(typeof data.quiet!=='boolean')throw new Error('Choose Natural or Quiet mode');result=room.residentQuiet(uid,data.quiet,performance.now());
+    }else if(['reactions','react','featured','invite','invites','dismiss_invite','weekly','weekly_enter'].includes(action)){
       const clean:Record<string,unknown>={};
       if(action==='react'){if(data.reaction!==null&&!['heart','thumb'].includes(String(data.reaction)))throw new Error('Invalid reaction');clean.reaction=data.reaction;}
       if(action==='invite'||action==='dismiss_invite'){const key=action==='invite'?'userId':'id';if(typeof data[key]!=='string'||!/^[0-9a-f-]{36}$/i.test(String(data[key])))throw new Error('Player unavailable');clean[key]=data[key];}
@@ -206,7 +210,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(action==='room_access'&&data.roomId!==roomId)throw new Error('Enter your room first');
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
-      if(action==='bootstrap'){result.personalPets=true;result.petInteractions=true;result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
+      if(action==='bootstrap'){result.aiResidents=true;result.personalPets=true;result.petInteractions=true;result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
   }

@@ -1,3 +1,5 @@
+import {NaturalSocial,residentReply,residentGreeting} from './resident-social.ts';
+import {spudDefinition} from './spud-residents.ts';
 import {SpudResidents} from './spud-residents.ts';
 import {randomInt} from 'node:crypto';
 import { RoomGrid, tileKey, validXY } from './grid.ts';
@@ -20,6 +22,21 @@ type Member = {identity:Identity; movement:MovementController; send:Send; lastIn
 export class RoomRuntime {
   readonly spuds=new SpudResidents();
   #publicResidents=false;
+  #social?:NaturalSocial;
+  #roomKey='';
+  enableSocial(social:NaturalSocial,roomKey:string){this.#social=social;this.#roomKey=roomKey;}
+  residentNearby(userId:string,id:unknown){
+    const member=this.#members.get(userId),spud=this.spuds.snapshots().find(s=>s.residentId===id);
+    if(!member||!spud)return false;const from=this.#position(member);
+    if(Math.hypot(from.x-spud.position.x,from.y-spud.position.y)>2.5||Math.abs(from.z-spud.position.z)>1)return false;
+    for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const route=findPath(this.grid,from,{x:spud.position.x+dx,y:spud.position.y+dy},{diagonal:false,maxExpanded:64});if(route.status==='ok'&&route.path.length<=2)return true;}return false;
+  }
+  residentChat(userId:string,id:unknown,topic:unknown,now:number){
+    const d=spudDefinition(id);if(!d||!this.residentNearby(userId,id))throw new Error('Walk near this AI resident to chat');
+    if(typeof topic!=='string'||!['hello','games','room','joke','bye','memory'].includes(topic))throw new Error('Choose a conversation topic');
+    this.#social?.chat(userId,now);return {residentId:d.id,name:d.name,isAI:true,text:residentReply(d.id,topic)};
+  }
+  residentQuiet(userId:string,quiet:boolean,now:number){this.#social?.setQuiet(userId,quiet,now);return {quiet};}
   enableResidents(){this.#publicResidents=true;}
   #members = new Map<string,Member>();
   #sequence = 0;
@@ -262,6 +279,7 @@ export class RoomRuntime {
     }
     const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
     if(this.spuds.tick(this.grid,external,this.memberCount,this.#publicResidents))moved=true;
+    if(this.#social&&this.#ticks%4===0){const now=performance.now();for(const id of this.#members.keys()){for(const spud of this.spuds.snapshots()){if(this.residentNearby(id,spud.residentId)&&this.#social.greeting(id,this.#roomKey,spud.residentId,now)){this.#members.get(id)!.send({type:'AI_GREETING',residentId:spud.residentId,staffId:spud.staffId,isAI:true,text:residentGreeting(spud.residentId)});break;}}}}
     if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
     const changes=[];
     // Stable join order plus fresh occupancy prevents two actors entering one tile.
