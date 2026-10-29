@@ -99,10 +99,11 @@
     body.towerstack-page.game-active .topbar{min-height:40px!important;margin-bottom:4px!important}
     @media(max-width:699px){
       body.towerstack-page.game-active .tower-board{
-        width:min(90vw,350px,calc((100svh - 270px) * .642857))!important;
+        width:min(90vw,350px,calc((100svh - 294px) * .642857))!important;
         height:auto!important;max-height:none!important
       }
     }
+    .tower-reward-next{margin:4px auto 6px;text-align:center;color:#93c5fd;font-size:12px;line-height:1.4;min-height:17px}
   </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/towerstack.html">
@@ -129,6 +130,7 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Tower to Start</button>
 
+    <p class="tower-reward-next" id="rewardTarget">Next floor Coin at floor 3</p>
     <canvas class="tower-board touch-surface" id="game" width="360" height="560" aria-label="Tower Stack game board"></canvas>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
 
@@ -150,6 +152,7 @@
     const perfectsEl = document.getElementById('perfects');
     const speedPreviewEl = document.getElementById('speedPreview');
     const rewardPreviewEl = document.getElementById('rewardPreview');
+    const rewardTarget = document.getElementById('rewardTarget');
     const playsEl = document.getElementById('plays');
     const balanceEl = document.getElementById('balance');
     const statusEl = document.getElementById('gameStatus');
@@ -171,7 +174,7 @@
         'Any overhang is cut away, so every miss makes the next floor harder to place.',
         'If a floor completely misses the tower, the run ends. Centered drops count as perfects.'
       ],
-      reward:'Floors and perfect stacks can earn up to 100 Coins.'
+      reward:'1 Coin per 3 floors, +1 per 10 perfects, with bonuses at 20, 50 and 100 floors. Up to 100 Coins in a deep run.'
     });
 
     const blockHeight = 28;
@@ -194,10 +197,20 @@
 
     function rewardFor(floorCount, perfectCount) { return Arcade.gameReward('towerStack',floorCount,perfectCount); }
 
+    function refreshRewardProgress() {
+      const earned=rewardFor(floors,perfects);
+      rewardPreviewEl.textContent=earned;
+      if(earned>=MAX_COINS){rewardTarget.textContent='100-Coin run limit · keep climbing for your best';return;}
+      let next=floors+1;
+      while(next<=floors+3&&rewardFor(next,perfects)<=earned)next++;
+      rewardTarget.textContent='Next floor Coin at floor '+next;
+    }
+
+
     function refreshChrome() {
       playsEl.textContent = Arcade.remaining('towerStack');
       balanceEl.textContent = Arcade.number('points').toLocaleString();
-      rewardPreviewEl.textContent = rewardFor(floors, perfects);
+      refreshRewardProgress();
     }
 
     function setStatus(text, mode) {
@@ -371,7 +384,7 @@
 
       floors += 1;
       floorsEl.textContent = floors;
-      rewardPreviewEl.textContent = rewardFor(floors, perfects);
+      refreshRewardProgress();
 
       if (floors === 10) Arcade.milestone('🏗️ 10 floors · High Rise!');
       if (floors === 20) Arcade.milestone('🔥 20 floors · Skyline Builder!', 'perfect');

@@ -9,7 +9,7 @@
  function apply(wallet){
   if(!wallet)return;
   if(window.Arcade?.applyServerWallet){window.Arcade.applyServerWallet(wallet);return;}
-  try{localStorage.setItem('points',String(wallet.balance));localStorage.setItem('lifetimePoints',String(Math.max(Number(wallet.balance),Number(wallet.lifetime_earned))));localStorage.setItem('arcadeShadowWallet',JSON.stringify({balance:Number(wallet.balance),lifetime:Number(wallet.lifetime_earned),checkedAt:new Date().toISOString()}));}catch{}
+  try{localStorage.setItem('points',String(wallet.balance));localStorage.setItem('lifetimePoints',String(Math.max(0,Number(wallet.lifetime_earned??localStorage.getItem('lifetimePoints'))||0)));localStorage.setItem('arcadeShadowWallet',JSON.stringify({balance:Number(wallet.balance),lifetime:Number(wallet.lifetime_earned),checkedAt:new Date().toISOString()}));}catch{}
   window.dispatchEvent(new CustomEvent('earnly-wallet-change',{detail:{balance:Number(wallet.balance),lifetime:Number(wallet.lifetime_earned)}}));
  }
  async function start(level){const u=await user();if(!u)return null;return call({action:'start',level});}

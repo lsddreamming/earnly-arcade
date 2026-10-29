@@ -5,7 +5,7 @@ async function setup(page,{native=true,earned=true,enabled=true,watched=4,verifi
  window.adCalls=0;window.walletCalls=0;
  ${progressive?'Object.assign(bonusState,{coins:600,perAdCoins:100,completionBonus:100,earnedCoins:bonusState.watched*100});':''}
  ${unlimited?"sessionStorage.setItem('earnlyUnlimitedPlays','1');":''}
- window.EarnlyCloud={adBonus:async()=>({...bonusState}),walletInfo:async()=>{window.walletCalls++;return {balance:123+(bonusState.earnedCoins??(bonusState.awarded?bonusState.coins:0))};}};
+ window.EarnlyCloud={adBonus:async()=>({...bonusState}),walletInfo:async()=>{window.walletCalls++;const total=123+(bonusState.earnedCoins??(bonusState.awarded?bonusState.coins:0));return {balance:total,lifetime_earned:total};}};
  window.EarnlyNativeAds={isNative:${native},supportsDailyBonus:true,showRewarded:async()=>{window.adCalls++;${verified?"bonusState.watched++;bonusState.awarded=bonusState.watched===5;if(bonusState.perAdCoins)bonusState.earnedCoins=bonusState.watched*100+(bonusState.awarded?100:0);":''}return {earned:${earned},reason:'dismissed'};}};
  `}));
  await page.goto('/rewards.html');
