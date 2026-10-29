@@ -3,7 +3,7 @@ import type {ResidentAI,DialogueLine} from './resident-ai.ts';
 import type {ResidentMemory} from './resident-social.ts';
 import {NaturalSocial,residentReply} from './resident-social.ts';
 import type {SpudId} from './spud-residents.ts';
-import {spudDefinition} from './spud-residents.ts';
+import {spudDefinition,SPUDS} from './spud-residents.ts';
 import {SpudResidents} from './spud-residents.ts';
 import {randomInt} from 'node:crypto';
 import { RoomGrid, tileKey, validXY } from './grid.ts';
@@ -74,6 +74,7 @@ export class RoomRuntime {
     // Human messages cancel unsent ambient turns, never spawn recursive AI calls.
     if(this.#exchange){this.#generation++;this.#endExchange();if(this.#ready?.ambient)this.#ready=undefined;}
     const words=text.toLowerCase().split(/[^a-z]+/),named=near.find(s=>words.includes(s.username.toLowerCase()));
+    if(requested===undefined&&!named&&SPUDS.some(s=>words.includes(s.name.toLowerCase())))return false;
     const spud=requested!==undefined?near.find(s=>s.residentId===requested):named??(this.#conversation&&this.#conversation.until>this.#ticks?near.find(s=>s.residentId===this.#conversation!.id):undefined)??near[0];
     if(!spud)return false;
     const addressed=requested!==undefined||!!named;
@@ -128,7 +129,8 @@ export class RoomRuntime {
     if(this.#ticks-this.#lastPublicSpeech<240)return;
     const spuds=this.spuds.snapshots().filter(s=>s.activity!=='chatting');
     for(const a of spuds){
-      const group=[a,...spuds.filter(b=>b!==a&&this.#near(a.position,b.position))].slice(0,3);
+      const group=[a];
+      for(const b of spuds)if(group.length<3&&!group.includes(b)&&group.every(other=>this.#near(other.position,b.position)))group.push(b);
       if(group.length<2||!this.#residentAudience(a.residentId,undefined,undefined,true).some(uid=>group.every(s=>this.#residentAudience(s.residentId,undefined,undefined,true).includes(uid))))continue;
       const ids=group.map(s=>s.residentId);for(const id of ids)this.spuds.focus('ambient-'+id,id);
       this.#exchange={ids,turn:0,lines:[...this.#ambientHistory],at:this.#ticks+4,generation:this.#generation};return;

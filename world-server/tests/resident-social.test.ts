@@ -67,6 +67,7 @@ test('contextual public replies preserve proximity, block audience, follow-ups a
  r.setResidentMemory('speaker',{quiet:false,relations:[{residentId:'jax',friend:true,remember:true,visits:3,favoriteGame:'SECRET_PRIVATE_GAME'}]});
  assert.equal(r.queueResidentReply('outsider','hello',['speaker']),false);
  assert.equal(r.queueResidentReply('far','hello',['far'],'jax'),false);
+ assert.equal(r.queueResidentReply('speaker','Hey Mochi, how are you?',['speaker','listener']),false,'do not answer for an absent named resident');
  assert.equal(r.queueResidentReply('speaker','Hey Jax, how are you?',['speaker','listener','far']),true);
  ticks(1);await flush();ticks(4);
  assert.equal(chats('speaker').length,1);assert.deepEqual(chats('speaker'),chats('listener'));assert.equal(chats('blocked').length,0);assert.equal(chats('far').length,0);
