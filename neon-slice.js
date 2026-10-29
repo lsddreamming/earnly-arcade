@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const $=id=>document.getElementById(id),canvas=$('sliceCanvas'),ctx=canvas.getContext('2d'),game=new NeonSliceEngine.Game();
+  const $=id=>document.getElementById(id),canvas=$('sliceCanvas'),ctx=canvas.getContext('2d'),game=new NeonSliceEngine.Game(Math.random,3);
   const presentation=window.NeonSlicePresentation;
   let lastDrawState=null;
   let soundOn=false,utensil=null,utensilAngle=0;const warnedBombs=new Set();
@@ -24,7 +24,7 @@
     const target=$('sliceRank');
     target.hidden=false;target.textContent='Checking world rank…';
     try{
-      const data=await window.EarnlyCloud?.leaderboard('neonSlice',50);
+      let timeout;const data=await Promise.race([window.EarnlyCloud?.leaderboard('neonSlice',50),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('timeout')),8000);})]).finally(()=>clearTimeout(timeout));
       if(serial!==runSerial)return;
       if(!data)throw Error('unavailable');
       const username=(window.Arcade?.leaderboardUsername?.()||(typeof Arcade!=='undefined'&&Arcade.leaderboardUsername?.())||'').toLowerCase();
@@ -37,7 +37,7 @@
     if(settled)return;settled=true;const serial=runSerial;
     if(!ticket){rewardText(rewardMessage);showRank(serial);return;}
     rewardText('Verifying your run…');
-    try{const r=await NeonSliceRewards.claim(ticket,events,ticks);if(serial!==runSerial)return;rewardMessage=r.duplicate?'Reward already saved to your wallet':r.amount>0?`+${r.amount} Arcade Coins · ${r.remaining} rewarded runs left today`:r.remaining===0?'Run verified · daily coin rewards complete':'Reach 50 points to earn your first Coin';rewardText(rewardMessage);showRank(serial);}
+    try{const r=await NeonSliceRewards.claim(ticket,events,ticks);if(serial!==runSerial)return;rewardMessage=r.duplicate?'Reward already saved to your wallet':r.amount>0?`+${r.amount} Arcade Coins · ${r.remaining} rewarded runs left today`:r.remaining===0?'Run verified · daily coin rewards complete':'Reach 50 points to earn your first Coin';rewardText(rewardMessage);$('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();showRank(serial);}
     catch{if(serial===runSerial){$('sliceRank').hidden=false;$('sliceRank').textContent='World rank pending verification · Retry reward';rewardMessage='Reward pending · reconnect and tap Retry';rewardText(rewardMessage);$('sliceRetry').hidden=false;}}
   }
   $('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();

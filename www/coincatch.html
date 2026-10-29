@@ -320,10 +320,11 @@
         const d=drops[i];const previousBottom=d.y+d.r;d.y+=d.speed*dt;
         const basketTop=basket.y-7;
         // Catch only as a falling object enters the visible mouth from above.
+        // Rim overlap counts for coins and bombs; full containment is not required.
         // Once it passes the rim, moving the basket sideways cannot collect it.
         const catchLeft=basket.x+5;
         const catchRight=basket.x+basket.w-5;
-        const overlapsBasket=previousBottom<=basketTop&&d.y+d.r>=basketTop&&d.x-d.r>=catchLeft&&d.x+d.r<=catchRight;
+        const overlapsBasket=previousBottom<=basketTop&&d.y+d.r>=basketTop&&d.x+d.r*.65>=catchLeft&&d.x-d.r*.65<=catchRight;
         if(overlapsBasket){
           drops.splice(i,1);
           if(d.bomb)catchFeedback(d.x,basket.y-28,'+2 strikes','#fda4af');

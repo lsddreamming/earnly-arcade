@@ -10,7 +10,7 @@ user={id:'alice'};await window.NeonSliceRewards.retry();assert.equal(wallets.len
 switchAccount=true;await assert.rejects(window.NeonSliceRewards.claim({id:'round2',userId:'alice'},[],600));assert.equal(wallets.length,1);
 console.log('PASS: persisted offline retry, account-scoped queues, no speculative wallet changes, server wallet application, and sign-out race protection.');
 
-user={id:'alice'};switchAccount=false;startResult={id:'v2-round',engineVersion:2};
-assert.equal((await window.NeonSliceRewards.start()).id,'v2-round');assert.equal(calls.at(-1).engineVersion,2);
+user={id:'alice'};switchAccount=false;startResult={id:'v2-round',engineVersion:3};
+assert.equal((await window.NeonSliceRewards.start()).id,'v2-round');assert.equal(calls.at(-1).engineVersion,3);
 startResult={id:'old-round'};await assert.rejects(window.NeonSliceRewards.start(),/ENGINE_VERSION/);
-console.log('PASS: new rounds request v2 and reject incompatible server tickets.');
+console.log('PASS: new rounds request v3 and reject incompatible server tickets.');
