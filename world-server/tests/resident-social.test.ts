@@ -30,11 +30,22 @@ test('tap-to-chat rejects forged residents, remote users and invalid topics with
  const jax=r.spuds.snapshots()[0],near={x:jax.position.x+1,y:jax.position.y};if(near.x>=12)near.x-=2;
  if(!r.staff().some(s=>s.position.x===near.x&&s.position.y===near.y)){
   r.join({userId:'near',username:'Near'},near,()=>{});const before=packets.length;
-  assert.throws(()=>r.residentChat('near','jax','erase_all',0),/topic/);
-  assert.equal(r.residentChat('near','jax','joke',0).isAI,true);assert.equal(packets.length,before);
+  assert.throws(()=>r.residentChat('near',jax.residentId,'erase_all',0),/topic/);
+  assert.equal(r.residentChat('near',jax.residentId,'joke',0).isAI,true);assert.equal(packets.length,before);
  }
 });
 test('core personalities have distinct safe contextual dialogue',()=>{
  const replies=['jax','blitz','mochi','zippy'].map(id=>residentReply(id as any,'hello'));assert.equal(new Set(replies).size,4);
  assert.match(residentReply('jax','room',undefined,'Cloud Sofa'),/Cloud Sofa/);
+});
+
+test('opening a resident profile walks the player closer and holds the resident until leaving',()=>{
+ const r=new RoomRuntime(new RoomGrid(parseHeightmap(Array(12).fill('000000000000').join('\n'))));r.enableSocial(new NaturalSocial(),'test-room');
+ r.join({userId:'owner',username:'Owner'},{x:1,y:1},()=>{});r.inviteResident('owner','jax');
+ const spud=r.spuds.snapshots()[0],candidates=[];for(let y=0;y<12;y++)for(let x=0;x<12;x++)if(Math.hypot(x-spud.position.x,y-spud.position.y)>3&&Math.hypot(x-spud.position.x,y-spud.position.y)<7)candidates.push({x,y});
+ const start=candidates.find(p=>p.x!==1||p.y!==1)!;r.join({userId:'visitor',username:'Visitor'},start,()=>{});
+ assert.throws(()=>r.residentFocus('outsider','jax',true,0),/resident/);assert.throws(()=>r.residentFocus('visitor','forged',true,0),/resident/);
+ assert.equal(r.residentFocus('visitor','jax',true,1000).ready,false);const position={...spud.position};for(let i=0;i<20;i++)r.tick();
+ assert.deepEqual(r.spuds.snapshots()[0].position,position);assert.equal(r.residentNearby('visitor','jax'),true);assert.equal(r.residentChat('visitor','jax','hello',3000).isAI,true);
+ r.leave('visitor');assert.notEqual(r.spuds.snapshots()[0].activity,'chatting');
 });

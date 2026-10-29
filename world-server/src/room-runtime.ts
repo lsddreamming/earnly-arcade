@@ -29,7 +29,7 @@ export class RoomRuntime {
   #roomKey='';
   #memories=new Map<string,Map<string,ResidentMemory>>();
   setResidentMemory(uid:string,state:{quiet:boolean;relations:(ResidentMemory&{residentId:string})[]}){this.#social?.setQuiet(uid,state.quiet,performance.now());if(this.#memories.size>=100&&!this.#memories.has(uid))this.#memories.delete(this.#memories.keys().next().value!);this.#memories.set(uid,new Map(state.relations.map(r=>[r.residentId,r])));}
-  enableSocial(social:NaturalSocial,roomKey:string){this.#social=social;this.#roomKey=roomKey;}
+  enableSocial(social:NaturalSocial,roomKey:string){this.#social=social;this.#roomKey=roomKey;this.spuds.setRoomKey(roomKey);}
   #residentGreeting(userId:string,id:import('./spud-residents.ts').SpudId){const m=this.#memories.get(userId)?.get(id);return m?.friend&&m.remember&&m.visits>0?residentReply(id,'welcome',m):residentGreeting(id);}
   residentNearby(userId:string,id:unknown){
     const member=this.#members.get(userId),spud=this.spuds.snapshots().find(s=>s.residentId===id);
@@ -37,10 +37,23 @@ export class RoomRuntime {
     if(Math.hypot(from.x-spud.position.x,from.y-spud.position.y)>2.5||Math.abs(from.z-spud.position.z)>1)return false;
     for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const route=findPath(this.grid,from,{x:spud.position.x+dx,y:spud.position.y+dy},{diagonal:false,maxExpanded:64});if(route.status==='ok'&&route.path.length<=2)return true;}return false;
   }
+  residentFocus(userId:string,id:unknown,active:unknown,now:number){
+    const d=spudDefinition(id),m=this.#members.get(userId);if(!d||!m||typeof active!=='boolean')throw new Error('Choose a resident in this room');
+    if(!active){this.spuds.release(userId,d.id);this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return {ready:false};}
+    const spud=this.spuds.snapshots().find(s=>s.residentId===d.id);if(!spud||this.paused)throw new Error('This resident is not here now');
+    const from=this.#position(m);let ready=this.residentNearby(userId,id);
+    if(!ready){
+      if(Math.hypot(from.x-spud.position.x,from.y-spud.position.y)>8)throw new Error('Walk closer to '+d.name+', then tap their name');
+      const goals=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:spud.position.x+dx,y:spud.position.y+dy}));
+      const routes=goals.flatMap(goal=>{const path=m.seat?findInteractionExit(this.grid,from,goal,{occupied:this.#occupied(userId),diagonal:false,maxExpanded:256}):findPath(this.grid,from,goal,{occupied:this.#occupied(userId),diagonal:false,maxExpanded:256});return path.status==='ok'&&path.path.length<=12?[{goal,length:path.path.length}]:[];}).sort((a,b)=>a.length-b.length);
+      if(!routes.length||!this.receive(userId,{type:'MOVE_TO',...routes[0].goal},now))throw new Error('Clear a path to '+d.name+', then try again');
+    }else if(!m.seat)this.receive(userId,{type:'MOVE_TO',x:from.x,y:from.y},now);
+    this.spuds.focus(userId,d.id);this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return {ready};
+  }
   residentChat(userId:string,id:unknown,topic:unknown,now:number){
     const d=spudDefinition(id);if(!d||!this.residentNearby(userId,id))throw new Error('Walk near this AI resident to chat');
     if(typeof topic!=='string'||!['hello','games','room','joke','bye','memory'].includes(topic))throw new Error('Choose a conversation topic');
-    this.#social?.chat(userId,now);return {residentId:d.id,name:d.name,isAI:true,text:residentReply(d.id,topic)};
+    this.#social?.chat(userId,now);this.spuds.focus(userId,d.id);return {residentId:d.id,name:d.name,isAI:true,text:residentReply(d.id,topic)};
   }
   inviteResident(userId:string,id:SpudId){if(this.paused||!this.#members.has(userId))throw new Error('Connect to your room first');this.spuds.invite(this.grid,this.#occupied(),id,userId);this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});}
   dismissResident(userId:string,id?:SpudId){const changed=this.spuds.dismiss(userId,id);if(changed)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return changed;}
@@ -194,7 +207,7 @@ export class RoomRuntime {
     for(const [itemId,result] of this.#furnitureResults)if(result.value>0&&this.grid.tile(result)?.itemId===itemId)send({type:'FURNITURE_RESULT',itemId,value:result.value,kind:'dice',snapshot:true});
     this.#broadcast({type:'USER_JOINED',...member.identity,position:this.#position(member)});
   }
-  leave(userId:string){this.#memories.delete(userId);if(this.#members.delete(userId)){this.dismissResident(userId);this.#broadcast({type:'USER_LEFT',userId});}}
+  leave(userId:string){this.spuds.release(userId);this.#memories.delete(userId);if(this.#members.delete(userId)){this.dismissResident(userId);this.#broadcast({type:'USER_LEFT',userId});}}
   /** userId comes from the socket binding, never from a packet. now is server monotonic time. */
   receive(userId:string,packet:unknown,now:number){
     const m=this.#members.get(userId);

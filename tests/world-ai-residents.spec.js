@@ -12,6 +12,7 @@ async function fixture(page){
   window.WebSocket=class{static OPEN=1;close(){this.readyState=3;}constructor(){this.readyState=1;window.aiSocket=this;setTimeout(()=>this.onopen?.(),10);}emit(p){this.onmessage?.({data:JSON.stringify(p)});}send(raw){const p=JSON.parse(raw);if(p.type==='JOIN'){this.emit({type:'WELCOME',userId:'owner',scene:{roomId:room,name:'Home',ownerId:'owner',heightmap:Array(8).fill('00000000').join('\n'),items:[]},bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[{userId:'owner',username:'You',position:{x:1,y:2,z:0}}]});this.emit({type:'NPC_SNAPSHOT',staff:[staff,ai]});}
    if(p.type==='ACTION'){window.aiActions.push(p);let data=bootstrap;
     if(p.action==='room_directory')data=bootstrap.rooms;
+    if(p.action==='resident_focus')data={ready:window.aiFocusReady!==false};
     if(p.action==='resident_memory')data=state;
     if(p.action==='resident_mode'){state.quiet=p.data.quiet;data={quiet:state.quiet};}
     if(p.action==='resident_settings'){state.remember=p.data.remember;data=state;}
@@ -30,9 +31,9 @@ test('AI residents have distinct actions, private chat and Quiet mode with a Spu
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await fixture(page);
  await expect(page.locator('#peopleCount')).toHaveText('2 Spuds here');
  await page.locator('[data-panel="staff"]').click();await expect(page.getByRole('button',{name:'Say hello',exact:true})).toHaveCount(1);
- await page.getByRole('button',{name:'Meet resident',exact:true}).click();await expect(page.locator('#panelTitle')).toContainText('Jax');await expect(page.locator('#panelTitle .resident-ai-badge')).toHaveText('AI resident');await expect(page.locator('.resident-portrait')).toBeVisible();
+ await page.getByRole('button',{name:'Meet resident',exact:true}).click();await expect(page.locator('#panelTitle')).toContainText('Jax');await expect(page.locator('#panelTitle .resident-ai-badge')).toHaveText('AI resident');await expect(page.locator('.resident-portrait')).toBeVisible();await expect(page.locator('#panelContent')).toContainText('will stay here while you talk');
  await page.getByRole('button',{name:'Tell me a joke',exact:true}).click();await expect(page.locator('#worldPanel')).toContainText('To reach the next level');
- await page.getByRole('button',{name:'Social settings',exact:true}).click();await page.getByRole('button',{name:'Switch to Quiet mode',exact:true}).click();await expect(page.getByRole('button',{name:'Switch to Natural mode',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Social settings',exact:true}).click();expect(await page.evaluate(()=>aiActions.some(a=>a.action==='resident_focus'&&a.data.active===false))).toBe(true);await page.getByRole('button',{name:'Switch to Quiet mode',exact:true}).click();await expect(page.getByRole('button',{name:'Switch to Natural mode',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>aiActions.find(a=>a.action==='resident_mode').data.quiet)).toBe(true);
  await page.locator('#closePanel').click();
  await page.evaluate(()=>aiSocket.emit({type:'AI_GREETING',staffId:'ai-jax',residentId:'jax',text:'UNSOLICITED_TEST_GREETING'}));
@@ -61,4 +62,12 @@ test('Guest catalog survives the initial auth notification before connecting',as
  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('earnly-cloud-auth-change',{detail:{event:'INITIAL_SESSION',session:null}})));
  await expect(page.locator('#worldPanel')).toBeVisible();
  await expect(page.locator('#panelContent')).toContainText('Porcelain Toilet');
+});
+
+test('resident chat waits for approach and closing the panel releases the conversation',async({page})=>{
+ await fixture(page);await page.evaluate(()=>window.aiFocusReady=false);
+ await page.locator('[data-panel="staff"]').click();await page.getByRole('button',{name:'Meet resident',exact:true}).click();
+ await expect(page.locator('#panelContent')).toContainText('Walking over to Jax');await expect(page.getByRole('button',{name:'Say hello',exact:true})).toBeDisabled();
+ await page.evaluate(()=>window.aiFocusReady=true);await expect(page.getByRole('button',{name:'Say hello',exact:true})).toBeEnabled();
+ await page.locator('#closePanel').click();await expect.poll(()=>page.evaluate(()=>aiActions.filter(a=>a.action==='resident_focus').at(-1)?.data.active)).toBe(false);
 });

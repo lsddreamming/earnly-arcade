@@ -5,15 +5,15 @@ import {RoomGrid,parseHeightmap,tileKey} from '../src/grid.ts';
 import {RoomRuntime} from '../src/room-runtime.ts';
 const floor=()=>parseHeightmap(Array(12).fill('000000000000').join('\n'));
 function random(){let x=19;return ()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/2**32;};}
-test('5–10 distinct Spuds adapt to real occupancy; snapshots never count as players',()=>{
+test('At most five distinct Spuds adapt to real occupancy; snapshots never count as players',()=>{
  const room=new RoomRuntime(new RoomGrid(floor()));room.enableResidents();
  room.join({userId:'u',username:'Tester'},{x:0,y:0},()=>{});
  for(let i=0;i<10;i++)room.tick();
  assert.equal(room.spuds.snapshots().length,5);assert.equal(room.memberCount,1);assert.equal(room.members().length,1);
- assert.deepEqual(room.spuds.snapshots().slice(0,4).map(s=>s.username),['Jax','Blitz','Mochi','Zippy']);
+ assert.equal(new Set(room.spuds.snapshots().map(s=>s.residentId)).size,5);
  for(const s of room.spuds.snapshots()){assert.equal(s.isAI,true);assert.ok(s.equipped.avatar.imageUrl.startsWith('cosmetic-'));}
  const group=new SpudResidents(random()),grid=new RoomGrid(parseHeightmap(Array(20).fill('0'.repeat(20)).join('\n')));for(let i=0;i<10;i++)group.tick(grid,new Set(),1,true);
- assert.equal(group.snapshots().length,10);for(let i=0;i<80;i++)group.tick(grid,new Set(),25,true);assert.equal(group.snapshots().length,9,'crowds retire one resident at a time');for(let i=0;i<800;i++)group.tick(grid,new Set(),25,true);assert.equal(group.snapshots().length,0);for(let i=0;i<400;i++)group.tick(grid,new Set(),1,true);assert.equal(group.snapshots().length,5,'quiet rooms repopulate gradually');
+ assert.equal(group.snapshots().length,5);for(let i=0;i<80;i++)group.tick(grid,new Set(),25,true);assert.equal(group.snapshots().length,4,'crowds retire one resident at a time');for(let i=0;i<800;i++)group.tick(grid,new Set(),25,true);assert.equal(group.snapshots().length,0);for(let i=0;i<400;i++)group.tick(grid,new Set(),1,true);assert.equal(group.snapshots().length,5,'quiet rooms repopulate gradually');
 });
 test('bounded simulation wanders, sits, dances and admires without overlapping or entering solid furniture',()=>{
  const chair={id:'chair',x:5,y:5,z:0,width:1,length:1,rotation:0 as const,itemHeight:1,walkable:false,canStack:false,canSit:true};
@@ -34,4 +34,18 @@ test('private rooms stay empty; invitation expires and only its owner can dismis
 test('tiny and disconnected rooms fail safely instead of stacking residents',()=>{
  const group=new SpudResidents(random()),grid=new RoomGrid(parseHeightmap('00xx0000\n00xx0000'));
  for(let i=0;i<100;i++)group.tick(grid,new Set(),1,true);assert.equal(group.snapshots().length,0);
+});
+
+test('public rooms have different stable lineups with four or five residents even on large floors',()=>{
+ const grid=new RoomGrid(parseHeightmap(Array(20).fill('0'.repeat(20)).join('\n'))),lineups=[];
+ for(const key of ['hotel-lobby','rooftop-lounge','patio-hangout']){const group=new SpudResidents(random());group.setRoomKey(key);for(let i=0;i<10;i++)group.tick(grid,new Set(),1,true);const ids=group.snapshots().map(s=>s.residentId).sort();assert.ok(ids.length>=4&&ids.length<=5);const again=new SpudResidents(random());again.setRoomKey(key);for(let i=0;i<10;i++)again.tick(grid,new Set(),1,true);assert.deepEqual(again.snapshots().map(s=>s.residentId).sort(),ids);lineups.push(ids.join(','));}assert.equal(new Set(lineups).size,3);
+});
+test('conversation leases pause walking, survive crowd taper, support multiple speakers and expire safely',()=>{
+ const grid=new RoomGrid(floor()),group=new SpudResidents(random());for(let i=0;i<10;i++)group.tick(grid,new Set(),1,true);const id=group.snapshots()[0].residentId;
+ group.focus('one',id);group.focus('two',id);const position=group.snapshots().find(s=>s.residentId===id)!.position;
+ for(let i=0;i<100;i++)group.tick(grid,new Set(),25,true);assert.deepEqual(group.snapshots().find(s=>s.residentId===id)!.position,position);
+ group.release('one');assert.equal(group.snapshots().find(s=>s.residentId===id)!.activity,'chatting');
+ for(let i=0;i<79;i++)group.tick(grid,new Set(),25,true);assert.deepEqual(group.snapshots().find(s=>s.residentId===id)!.position,position);
+ group.tick(grid,new Set(),1,true);assert.notEqual(group.snapshots().find(s=>s.residentId===id)!.activity,'chatting');
+ for(let i=0;i<800;i++)group.tick(grid,new Set(),1,true);assert.notDeepEqual(group.snapshots().find(s=>s.residentId===id)!.position,position);
 });

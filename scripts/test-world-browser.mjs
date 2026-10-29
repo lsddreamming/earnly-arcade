@@ -83,7 +83,7 @@ try{
   if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'.png'});
  }
  await a.locator('[data-panel="rooms"]').click();await a.getByRole('button',{name:'Public Hangouts',exact:true}).click();await a.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
- await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await overview(a);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>!s.isAI).length)).toBe(0);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>s.isAI).length)).toBeGreaterThanOrEqual(5);await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBeLessThanOrEqual(10);
+ await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await overview(a);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>!s.isAI).length)).toBe(0);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>s.isAI).length)).toBeGreaterThanOrEqual(4);await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBeLessThanOrEqual(5);
  await expect(a.locator('#peopleCount')).toHaveAttribute('data-players','2');
 
  for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
