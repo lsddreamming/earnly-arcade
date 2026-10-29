@@ -62,7 +62,7 @@ try{
   await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a local tip'}).click();await expect(a.locator('.staff-reply')).toBeVisible();await expect(a.getByRole('button',{name:'Find me a seat'})).toBeVisible();
   await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
   // Tap actual seat sprite pixels, including the raised back, automatically walk over and sit without a dialog.
-  const seatPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.canSit);const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y++)for(let x=ox-30;x<ox+40;x++)if(r.pickItem(x,y)?.id===i.id)return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};throw new Error('Seat sprite not found');});
+  const seatPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,i=r.scene.items.find(i=>i.canSit&&![...r.staff.values()].some(s=>s.isAI&&s.itemId===i.id)&&![...r.users.values(),...r.staff.values()].some(u=>u.position.x===i.x&&u.position.y===i.y));const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y++)for(let x=ox-30;x<ox+40;x++)if(r.pickItem(x,y)?.id===i.id)return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};throw new Error('Seat sprite not found');});
   await a.locator('#worldCanvas').click({position:seatPoint});await expect(a.getByRole('button',{name:'Move',exact:true})).toHaveCount(0);
   await expect(a.locator('#worldPanel')).not.toBeVisible();
   await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000});
@@ -74,7 +74,7 @@ try{
   if(process.env.WORLD_TEST_SCREENSHOTS)await a.screenshot({path:process.env.WORLD_TEST_SCREENSHOTS+'/'+name.replaceAll(' ','-')+'.png'});
  }
  await a.locator('[data-panel="rooms"]').click();await a.getByRole('button',{name:'Public Hangouts',exact:true}).click();await a.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →'}).click();
- await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await overview(a);await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBe(0);
+ await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await overview(a);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>!s.isAI).length)).toBe(0);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>s.isAI).length)).toBeGreaterThanOrEqual(5);await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBeLessThanOrEqual(10);
  await a.locator('#peopleCount').filter({hasText:'2 in'}).waitFor();
 
  for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
