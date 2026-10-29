@@ -1,10 +1,10 @@
 name: Earnly world grid engine
 on:
   pull_request:
-    paths: ['tests/world*.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['tests/world*.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml', '.github/workflows/ios-v1-*-testflight.yml']
   push:
     branches: [main]
-    paths: ['tests/world*.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml']
+    paths: ['tests/world*.spec.js', 'world*.js', 'world.html', 'world.css', 'world-server/**', 'scripts/*world*.mjs', 'supabase/migrations/*world*.sql', '.github/workflows/world-engine.yml', '.github/workflows/ios-v1-*-testflight.yml']
 permissions:
   contents: read
 jobs:

@@ -18,6 +18,7 @@ on:
       - 'scripts/build-native-web.mjs'
       - 'scripts/configure-ios.mjs'
       - '.github/workflows/ios-native-build.yml'
+      - '.github/workflows/ios-v1-*-testflight.yml'
 
 concurrency:
   group: earnly-ios-native-${{ github.ref }}
