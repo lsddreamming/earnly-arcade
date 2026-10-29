@@ -53,3 +53,12 @@ test('AI friendship, consent, memory inspection and room invitations fit on a ph
  expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);await page.screenshot({path:info.outputPath('ai-spud-privacy.png')});
  expect(await page.evaluate(()=>aiActions.filter(a=>['resident_invite','resident_dismiss'].includes(a.action)).map(a=>a.action))).toEqual(['resident_invite','resident_dismiss']);
 });
+test('Guest catalog survives the initial auth notification before connecting',async({page})=>{
+ await page.route('https://**',r=>r.abort());
+ await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={};'}));
+ await page.goto('/world.html?catalog=Bathroom');
+ await expect(page.locator('#panelContent')).toContainText('Porcelain Toilet');
+ await page.evaluate(()=>window.dispatchEvent(new CustomEvent('earnly-cloud-auth-change',{detail:{event:'INITIAL_SESSION',session:null}})));
+ await expect(page.locator('#worldPanel')).toBeVisible();
+ await expect(page.locator('#panelContent')).toContainText('Porcelain Toilet');
+});
