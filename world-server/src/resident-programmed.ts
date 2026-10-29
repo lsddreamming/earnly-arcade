@@ -8,10 +8,11 @@ export function programmedResidentReply(r:DialogueRequest):string|null{
  if(r.ambient)return null;
  const name=spudDefinition(r.residentId)!.name;
  const previous=r.context.at(-2);
- if(!r.addressed&&previous?.speaker!==name)return null;
+ if(!r.addressed&&!r.engaged&&previous?.speaker!==name&&!/^(?:does anyone know|anyone know|can anyone|hey everyone|hi everyone|hello everyone)\b/i.test(r.context.at(-1)?.text??''))return null;
  const raw=r.context.at(-1)?.text??'';
  if(raw.length>200)return null;
  let text=raw.toLowerCase().replace(/[’‘]/g,"'").replace(new RegExp('\\b'+name.toLowerCase()+'\\b','g'),'').replace(/[!?.,]+$/g,'').replace(/[,]/g,' ').replace(/\s+/g,' ').trim();
+ text=text.replace(/^(hi|hey|hello) everyone$/, '$1').replace(/^(?:does anyone know|anyone know) how to play /,'how do i play ');
  if(text==='hru'||text==='how r u')text='how are you';
  if(text==='wyd')text='what are you doing';
  const recent=r.context.filter(l=>l.speaker===name).map(l=>l.text);

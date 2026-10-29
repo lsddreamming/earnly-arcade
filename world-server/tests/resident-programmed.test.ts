@@ -53,3 +53,12 @@ test('hearing questions never promote a home, and identity never fabricates huma
  assert.match(ask('Can you hear me from over here?')!,/can hear you/);assert.doesNotMatch(ask('Can you hear me from over here?')!,/visit/i);
  assert.match(ask('How old are you?')!,/AI resident/);assert.match(ask('Who are you?')!,/Mochi/);
 });
+
+test('background human-to-human chat makes no provider calls, while active and open-room conversations stay eligible',async()=>{
+ let calls=0,reserves=0;
+ const ai=new OpenAIResidentDialogue({OPENAI_API_KEY:'test-only',WORLD_AI_ENABLED:'true'},async()=>{reserves++;return true;},{fetch:async url=>{calls++;return Response.json(String(url).endsWith('/moderations')?{results:[{flagged:false}]}:{status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:'A soft blue seat could fit both room ideas.'}]}]});}});
+ const context=[{speaker:'Player A',text:'Which of these two layouts suits a beach theme?'},{speaker:'Player B',text:'I would put the chair in that corner.'}];
+ assert.equal(await ai.reply({...base,addressed:false,context}),null);assert.equal(calls,0);assert.equal(reserves,0);
+ assert.ok(await ai.reply({...base,addressed:false,engaged:true,context}));assert.equal(reserves,1);
+ assert.match((await ai.reply({...base,addressed:false,context:[{speaker:'Player',text:'Does anyone know how to play Snake?'}]}))!,/Snake/);assert.equal(reserves,1,'familiar room-wide questions use local replies');
+});
