@@ -100,7 +100,7 @@ test('ambient AI turns stay bounded, honor Quiet, and yield to player interrupti
  const requests:any[]=[];r.enableDialogue({reply:async q=>{requests.push(q);return q.residentId==='jax'?'Blitz, what is your strategy for Snake?':'I try to leave room for the next turn.';}});
  for(let i=0;i<1000;i++){r.tick();await flush();}
  const audible=events.get('host')!.filter(p=>p.type==='CHAT'&&p.ambient);assert.equal(audible.length,2);assert.deepEqual(new Set(audible.map(p=>p.residentId)),new Set(['jax','blitz']));assert.equal(events.get('quiet')!.filter(p=>p.type==='CHAT'&&p.ambient).length,0);
- assert.ok(requests[1].context.length>0);assert.ok(requests.length<=4);
+ assert.ok(requests[1].context.length>0);assert.deepEqual(requests.slice(0,2).map(q=>q.ambientTurn),[0,1]);assert.ok(requests.length<=4);
 });
 test('an empty room never calls the model and unavailable direct chat is honest',async()=>{
  const empty=new RoomRuntime(new RoomGrid(parseHeightmap(Array(8).fill('00000000').join('\n'))));let calls=0;empty.enableResidents();empty.enableDialogue({reply:async()=>{calls++;return null;}});for(let i=0;i<2000;i++)empty.tick();assert.equal(calls,0);

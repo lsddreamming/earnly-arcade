@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {OpenAIResidentDialogue,dialogueInput,repeatedReply} from '../src/resident-ai.ts';
+import {OpenAIResidentDialogue,dialogueInput,repeatedReply,cleanReply} from '../src/resident-ai.ts';
 import type {DialogueRequest} from '../src/resident-ai.ts';
-const request:DialogueRequest={residentId:'mochi',context:[{speaker:'Player',text:'Hey Mochi, how are you?'}],addressed:true,ambient:false,activity:'sitting',companions:[]};
+const request:DialogueRequest={residentId:'mochi',context:[{speaker:'Player',text:'Mochi, how would you combine a beach theme with a cozy reading corner?'}],addressed:true,ambient:false,activity:'sitting',companions:[]};
 const env={OPENAI_API_KEY:'test-secret-not-real',WORLD_AI_ENABLED:'true'};
 const result=(text='I’m doing well. This is a cozy spot to take a break.')=>({status:'completed',usage:{input_tokens:700,output_tokens:20},output:[{type:'message',role:'assistant',content:[{type:'output_text',text}]}]});
 test('Responses API uses public context, no storage/tools, bounded output and two-sided moderation',async()=>{
@@ -11,8 +11,8 @@ test('Responses API uses public context, no storage/tools, bounded output and tw
  assert.match((await ai.reply(request))!,/doing well/);assert.equal(calls.length,3);
  assert.ok(calls[0].url.endsWith('/moderations'));assert.ok(calls[2].url.endsWith('/moderations'));
  assert.equal(calls[1].body.model,'gpt-6-luna');assert.equal(calls[1].body.store,false);assert.equal(calls[1].body.max_output_tokens,256);assert.equal(calls[1].body.tools,undefined);
- assert.match(calls[1].body.input,/Hey Mochi/);assert.equal(ai.status().completed,1);
- assert.ok(!JSON.stringify(logs).includes('test-secret'));assert.ok(!JSON.stringify(logs).includes('Hey Mochi'));
+ assert.match(calls[1].body.input,/beach theme/);assert.equal(ai.status().completed,1);
+ assert.ok(!JSON.stringify(logs).includes('test-secret'));assert.ok(!JSON.stringify(logs).includes('beach theme'));
  assert.ok(!dialogueInput({...request,privateMemory:'PRIVATE_SENTINEL'} as any).includes('PRIVATE_SENTINEL'));
 });
 test('missing keys, kill switch, unknown model and exhausted durable budget fail closed',async()=>{
@@ -49,3 +49,23 @@ test('verified room facts are projected without private extras and cannot descri
  const input=JSON.parse(dialogueInput({...request,home,inOwnHome:true}));assert.equal(input.verifiedHome.currentlyHere,true);assert.equal(input.verifiedHome.animatedFish,true);assert.ok(!JSON.stringify(input).includes('PRIVATE_SENTINEL'));
  assert.equal(JSON.parse(dialogueInput({...request,home:{...home,residentId:'jax'}})).verifiedHome,undefined);
 });
+
+test('budget-only scripted replies remain moderated, never call Responses, and resume AI automatically',async()=>{
+ let reservation:true|'daily_limit'|'monthly_limit'='daily_limit';const calls:string[]=[];
+ const ai=new OpenAIResidentDialogue(env,async()=>reservation,{fetch:async url=>{calls.push(String(url));return Response.json(String(url).endsWith('/moderations')?{results:[{flagged:false}]}:result());}});
+ assert.match((await ai.reply(request))!,/allowance is used up/);
+ reservation='monthly_limit';assert.match((await ai.reply(request))!,/allowance is used up/);
+ assert.equal(calls.length,4);assert.ok(calls.every(url=>url.endsWith('/moderations')));
+ assert.equal(ai.status().basicReplies,2);assert.equal(ai.status().completed,0);
+ reservation=true;assert.match((await ai.reply(request))!,/cozy spot/);assert.equal(ai.status().completed,1);
+});
+test('budget scripts do not bypass moderation, provider failure, disabled state or unsolicited ambient restraint',async()=>{
+ for(const scenario of ['flagged','outage','disabled','ambient']){
+  let calls=0;const ai=new OpenAIResidentDialogue(scenario==='disabled'?{...env,WORLD_AI_ENABLED:'false'}:env,async()=>'daily_limit',{fetch:async()=>{calls++;if(scenario==='outage')throw Error('unavailable');return Response.json({results:[{flagged:true}]});}});
+  assert.equal(await ai.reply({...request,ambient:scenario==='ambient'}),null);
+  assert.equal(ai.status().basicReplies,0);
+  if(scenario==='ambient'||scenario==='disabled')assert.equal(calls,0);
+ }
+});
+
+test('resident output uses furniture even if a provider returns the unwanted abbreviation',()=>{assert.equal(cleanReply('Your furni looks cozy.'),'Your furniture looks cozy.');});

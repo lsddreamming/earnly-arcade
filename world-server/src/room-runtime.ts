@@ -39,7 +39,7 @@ export class RoomRuntime {
   #nextPublicReply=0;#lastPublicSpeech=-Infinity;#generation=0;#aiBusy=false;
   #conversation?:{id:SpudId;until:number};
   #history:{line:DialogueLine;heard:Set<SpudId>;allowed:Set<string>;at:number;source?:string}[]=[];
-  #pending:{id:SpudId;source:string;allowed:Set<string>;addressed:boolean;at:number}[]=[];
+  #pending:{id:SpudId;source:string;allowed:Set<string>;addressed:boolean;engaged:boolean;at:number}[]=[];
   #ready?:{id:SpudId;text:string;source?:string;allowed:Set<string>;at:number;generation:number;ambient:boolean};
   #recentReplies:string[]=[];#ambientHistory:DialogueLine[]=[];
   #nextAmbient=240+Math.floor(Math.random()*240);
@@ -85,13 +85,13 @@ export class RoomRuntime {
     if(this.#social&&!this.#social.aiTurn(uid,performance.now()))return false;
     const old=this.#pending.findIndex(p=>p.source===uid);if(old>=0)this.#pending.splice(old,1);
     if(this.#pending.length>=8)return false;
-    this.#pending.push({id:spud.residentId,source:uid,allowed:audience,addressed,at:this.#ticks});
+    this.#pending.push({id:spud.residentId,source:uid,allowed:audience,addressed,engaged:this.#conversation?.id===spud.residentId&&this.#conversation.until>this.#ticks,at:this.#ticks});
     this.spuds.focus(uid,spud.residentId);return true;
   }
-  #generate(id:SpudId,context:DialogueLine[],allowed:Set<string>,addressed:boolean,ambient:boolean,source?:string,companions:string[]=[]){
+  #generate(id:SpudId,context:DialogueLine[],allowed:Set<string>,addressed:boolean,ambient:boolean,source?:string,companions:string[]=[],ambientTurn=0,engaged=false){
     const spud=this.spuds.snapshots().find(s=>s.residentId===id);if(!spud||!this.#ai)return;
     this.#aiBusy=true;const generation=this.#generation,started=this.#ticks;
-    void this.#ai.reply({residentId:id,context,addressed,ambient,activity:spud.activity,companions}).then(result=>{
+    void this.#ai.reply({residentId:id,context,addressed,engaged,avoidReplies:[...this.#recentReplies],ambient,ambientTurn,activity:spud.activity,companions}).then(result=>{
       const text=cleanReply(result);
       if(!text||repeatedReply(text,this.#recentReplies)||generation!==this.#generation||this.paused||this.#ticks-started>120){if(!text&&addressed&&source&&generation===this.#generation)this.#members.get(source)?.send({type:'RESIDENT_STATUS',status:'unavailable'});return;}
       this.#ready={id,text,source,allowed,at:this.#ticks+4,generation,ambient};
@@ -105,7 +105,7 @@ export class RoomRuntime {
         if(r.source&&this.#onInteraction)void this.#onInteraction(r.source,r.id).catch(()=>{});
         this.#nextPublicReply=this.#ticks+12;
         this.#conversation={id:r.id,until:this.#ticks+240};
-        if(r.ambient&&this.#exchange){this.#ambientHistory.push({speaker:spudDefinition(r.id)!.name,text:r.text});this.#ambientHistory=this.#ambientHistory.slice(-6);this.#exchange.lines.push({speaker:spudDefinition(r.id)!.name,text:r.text});this.#exchange.turn++;this.#exchange.at=this.#ticks+16;}
+        if(r.ambient&&this.#exchange){this.#ambientHistory.push({speaker:spudDefinition(r.id)!.name,text:r.text});this.#ambientHistory=this.#ambientHistory.slice(-12);this.#exchange.lines.push({speaker:spudDefinition(r.id)!.name,text:r.text});this.#exchange.turn++;this.#exchange.at=this.#ticks+16;}
       }else if(r.ambient)this.#endExchange();
     }
     if(this.#aiBusy||this.#ready||this.#ticks<this.#nextPublicReply)return;
@@ -116,7 +116,7 @@ export class RoomRuntime {
       // A reply can paraphrase any supplied line: intersect its entire context audience.
       const allowed=new Set([...p.allowed].filter(uid=>history.every(h=>h.allowed.has(uid))));
       if(!allowed.has(p.source))continue;
-      this.#generate(p.id,history.map(h=>h.line),allowed,p.addressed,false,p.source);return;
+      this.#generate(p.id,history.map(h=>h.line),allowed,p.addressed,false,p.source,[],0,p.engaged);return;
     }
     if(this.#exchange){
       const e=this.#exchange;if(e.turn>=e.ids.length||e.generation!==this.#generation){this.#endExchange();return;}
@@ -125,7 +125,7 @@ export class RoomRuntime {
       if(positions.some(p=>!p)||positions.some(p=>!this.#near(p!,positions[0]!))){this.#endExchange();return;}
       const allowed=new Set(this.#residentAudience(id,undefined,undefined,true).filter(uid=>e.ids.every(other=>this.#residentAudience(other,undefined,undefined,true).includes(uid))));
       if(!allowed.size){this.#endExchange();return;}
-      this.#generate(id,e.lines,allowed,false,true,undefined,e.ids.filter(s=>s!==id).map(s=>spudDefinition(s)!.name));return;
+      this.#generate(id,e.lines,allowed,false,true,undefined,e.ids.filter(s=>s!==id).map(s=>spudDefinition(s)!.name),e.turn);return;
     }
     if(this.#ticks<this.#nextAmbient)return;
     this.#nextAmbient=this.#ticks+480+Math.floor(Math.random()*480);
