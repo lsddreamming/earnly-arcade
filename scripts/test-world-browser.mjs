@@ -62,7 +62,16 @@ try{
   await a.getByRole('button',{name:role==='Bartender'?'See the mocktail menu':'Ask for a local tip'}).click();await expect(a.locator('.staff-reply')).toBeVisible();await expect(a.getByRole('button',{name:'Find me a seat'})).toBeVisible();
   await expect(a.getByRole('button',{name:'Trade decor',exact:true})).toHaveCount(0);await a.getByRole('button',{name:'Close panel'}).click();
   // Tap actual seat sprite pixels, including the raised back, automatically walk over and sit without a dialog.
-  const seatPoint=await a.evaluate(()=>{const r=window.testWorldRenderer,blocked=(x,y)=>r.hit.some(h=>Math.abs(x-h.x)<Math.max(20,(h.nameWidth||0)/2)&&y>h.y-50&&y<h.y+(h.user.isAI?24:4));for(const i of r.scene.items.filter(i=>i.canSit&&![...r.staff.values()].some(s=>s.isAI&&s.itemId===i.id)&&![...r.users.values(),...r.staff.values()].some(u=>u.position.x===i.x&&u.position.y===i.y))){const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(const [dx,dy] of [[0,-12],[0,-20],[8,-12],[-8,-12],[0,-4],[8,4],[-8,4]])if(!blocked(ox+dx,oy+dy)&&r.pickItem(ox+dx,oy+dy)?.id===i.id)return {x:r.cx+(ox+dx)*r.scale,y:r.cy+(oy+dy)*r.scale};for(let y=oy-30;y<oy+18;y+=2)for(let x=ox-30;x<ox+40;x+=2)if(!blocked(x,y)&&r.pickItem(x,y)?.id===i.id)return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};}throw new Error('No unobscured seat sprite found');});
+  const seatPoint=await a.evaluate(()=>{
+   const r=window.testWorldRenderer;
+   const blocked=(x,y)=>r.hit.some(h=>Math.abs(x-h.x)<Math.max(20,(h.nameWidth||0)/2)&&y>h.y-50&&y<h.y+(h.user.isAI?24:4));
+   const seats=r.scene.items.filter(i=>i.canSit&&![...r.staff.values()].some(s=>s.isAI&&s.itemId===i.id)&&![...r.users.values(),...r.staff.values()].some(u=>u.position.x===i.x&&u.position.y===i.y));
+   const pick=(i,x,y)=>{if(blocked(x,y)||r.pickItem(x,y,[i])?.id!==i.id||r.pickItem(x,y)?.id!==i.id)return null;return {x:r.cx+x*r.scale,y:r.cy+y*r.scale};};
+   // Prefer a handful of visible surface points across all seats before raster scanning.
+   for(const i of seats){const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(const [dx,dy]of [[0,-12],[0,-20],[8,-12],[-8,-12],[0,-4],[8,4],[-8,4]]){const hit=pick(i,ox+dx,oy+dy);if(hit)return hit;}}
+   for(const i of seats){const ox=(i.x-i.y)*18,oy=(i.x+i.y)*9-i.z*12;for(let y=oy-30;y<oy+18;y+=2)for(let x=ox-30;x<ox+40;x+=2){const hit=pick(i,x,y);if(hit)return hit;}}
+   throw new Error('No unobscured seat sprite found');
+  });
   await a.locator('#worldCanvas').click({position:seatPoint});await expect(a.getByRole('button',{name:'Move',exact:true})).toHaveCount(0);
   await expect(a.locator('#worldPanel')).not.toBeVisible();
   await expect(a.locator('#connectionStatus')).toContainText('Sitting',{timeout:15000});
