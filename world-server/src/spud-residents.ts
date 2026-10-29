@@ -57,8 +57,9 @@ export class SpudResidents{
   ++this.#ticks;let changed=false;
   const remaining=this.#actors.filter(a=>!a.expires||a.expires>this.#ticks);if(remaining.length!==this.#actors.length){this.#actors=remaining;changed=true;}
   if(publicRoom&&(this.#ticks<=10||this.#ticks%80===0)){
-   const target=Math.min(10,5+Math.floor(players/3));
-   if(this.#actors.length>target){this.#actors.length=target;changed=true;}
+   const quietPopulation=Math.min(10,Math.max(5,Math.floor(grid.width*grid.length/28)));
+   const target=Math.max(0,quietPopulation-Math.floor(Math.max(0,players-2)/2));
+   if(this.#actors.length>target){this.#actors.pop();changed=true;}
    // At most one spawn per tick, all core personalities appear before optional residents.
    for(const d of SPUDS){if(this.#actors.length>=target)break;if(this.#add(grid,external,d.id)){changed=true;break;}}
   }

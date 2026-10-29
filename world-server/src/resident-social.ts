@@ -13,8 +13,8 @@ export function residentReply(id:SpudId,topic:string,memory?:ResidentMemory,furn
  if(topic==='welcome'&&memory?.remember&&memory.visits>0)return `Welcome back! ${memory.favoriteGame?'I remember you like '+memory.favoriteGame+'.':'Nice to see you again.'}`;
  if(topic==='room'&&furniture)return ({jax:`That ${furniture} has excellent couch-potato energy.`,blitz:`That ${furniture} looks like a good place for a post-game break.`,mochi:`I like your ${furniture}… it makes this space feel cozy.`,zippy:`Ooh, your ${furniture}! Great room-tour find!`} as Record<string,string>)[id]??`I noticed your ${furniture}. Nice detail!`;
  if(topic==='games'&&memory?.remember&&memory.achievements?.length){const a=memory.achievements[0];return `I remember your ${a.game} score of ${a.score}. ${memory.favoriteGame?'Your favorite is '+memory.favoriteGame+'.':'Which game is your favorite?'}`;}
- if(topic==='memory')return memory?.remember?`You can inspect and forget everything I remember in AI privacy. ${memory.favoriteGame?'Your saved favorite game is '+memory.favoriteGame+'.':'I haven’t saved a favorite game yet.'}`:'Memory is off. Our conversation stays in this session.';
- return lines[id]?.[topic]??(topic==='games'?`I’m ${d.name}, the ${d.personality} Spud. What game do you enjoy?`:topic==='bye'?'See you around Earnly World!':`I’m ${d.name}, an AI ${d.personality}. I like exploring the room at my own pace.`);
+ if(topic==='memory')return memory?.remember?`You can inspect and forget everything I remember in Resident privacy. ${memory.favoriteGame?'Your saved favorite game is '+memory.favoriteGame+'.':'I haven’t saved a favorite game yet.'}`:'Memory is off. Our conversation stays in this session.';
+ return lines[id]?.[topic]??(topic==='games'?`I’m ${d.name}, the ${d.personality} Spud. What game do you enjoy?`:topic==='bye'?'See you around Earnly World!':`I’m ${d.name}, a ${d.personality} Spud. I like exploring the room at my own pace.`);
 }
 type State={quiet:boolean;next:number;residents:Map<string,number>;lastChat:number;seen:number};
 /** Shared across runtimes: one greeting per player per 3 min AND one per room per

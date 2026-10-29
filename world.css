@@ -250,3 +250,5 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 
 .catalog-refinements .budget-filter[hidden]+.wishlist-filter{grid-column:1/-1}
 @media(max-width:350px){.pet-grid .pet-card{grid-template-columns:82px minmax(0,1fr)}.pet-grid .pet-card>canvas{width:82px}}
+
+.resident-ai-badge{display:inline-block;margin-left:8px;padding:3px 7px;border:1px solid #89aaa8;border-radius:6px;font:500 12px/1.3 system-ui;color:#d9ece8;vertical-align:middle;white-space:nowrap}.resident-portrait{display:block;width:96px;height:128px;margin:0 auto 12px;object-fit:contain}

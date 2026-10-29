@@ -939,6 +939,8 @@
       return;
      }
      if(this.doorHit&&Math.abs(p.x-this.doorHit.x)<22&&p.y>this.doorHit.y-52&&p.y<this.doorHit.y+8){resetTap();this.onTap({door:true});return;}
+     const namedResident=[...this.hit].reverse().find(h=>h.user.isAI&&Math.abs(p.x-h.x)<(h.nameWidth||40)/2&&p.y>h.y+5&&p.y<h.y+23);
+     if(namedResident){resetTap();this.onTap({staff:namedResident.user});return;}
      const item=this.pickItem(p.x,p.y);
      if(item&&this.canEditItem?.(item)){
       if(twice&&last.itemId===item.id){resetTap();this.onTap({x:p.tx,y:p.ty,item,doubleTap:true});}
@@ -1010,7 +1012,7 @@
    const result=EarnlyWorldPlacement.placementCheck(this.scene,p.item,{x:p.x,y:p.y,rotation:p.rotation},users);
    this.placementCache={scene:this.scene,item:p.item,key,result};return result;
   }
-  setStaff(staff){const old=this.staff,now=performance.now();this.staff=new Map(staff.map(s=>{const previous=old.get(s.staffId),changed=!previous||['x','y','z'].some(k=>s.position[k]!==previous.position[k]),from=previous?this.sample(previous,now):s.position,dx=s.position.x-from.x,dy=s.position.y-from.y;return [s.staffId,{...previous,...s,playAt:s.state==='play'?now-(s.playElapsed||0):undefined,old:changed?from:previous.old,at:changed?now:previous.at,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')}];}));}
+  setStaff(staff){const old=this.staff,now=performance.now();this.staff=new Map(staff.map(s=>{const previous=old.get(s.staffId),changed=!previous||['x','y','z'].some(k=>s.position[k]!==previous.position[k]),from=previous?this.sample(previous,now):s.position,dx=s.position.x-from.x,dy=s.position.y-from.y;return [s.staffId,{...previous,...s,invitedBy:s.invitedBy,itemId:s.itemId,activity:s.activity,playAt:s.state==='play'?now-(s.playElapsed||0):undefined,old:changed?from:previous.old,at:changed?now:previous.at,facing:Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')}];}));}
   setUsers(users){const present=new Set(users.map(u=>u.userId));for(const id of this.users.keys())if(!present.has(id))this.users.delete(id);users.forEach(u=>this.updateUser(u));}
   updateUser(u){const previous=this.users.get(u.userId),now=performance.now();
    // Chat, look and standing packets must not restart an in-flight step.
@@ -1181,8 +1183,8 @@
     for(const hit of this.hit){const x=this.cx+hit.x*this.scale,y=this.cy+hit.y*this.scale;
      if(x<-40||x>w+40||y<-10||y>h+65)continue;
      if(!hit.user.species){
-     const name=(hit.user.username||'You').slice(0,18)+(hit.user.species?' · '+hit.user.species:hit.user.isAI?' · AI':hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
-     c.fillStyle='#122c3ee6';c.fillRect(x-labelWidth/2,y+5,labelWidth,17);c.fillStyle=hit.user.isStaff?'#ffe0a0':hit.user.userId===this.localUserId?'#9bffe3':'#f2fff8';c.fillText(name,x,y+17);
+     const name=(hit.user.username||'You').slice(0,18)+(hit.user.species?' · '+hit.user.species:hit.user.isAI?'':hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
+     hit.nameWidth=labelWidth;c.fillStyle='#122c3ee6';c.fillRect(x-labelWidth/2,y+5,labelWidth,17);c.fillStyle=hit.user.isStaff?'#ffe0a0':hit.user.userId===this.localUserId?'#9bffe3':'#f2fff8';c.fillText(name,x,y+17);
      }
      const bubble=this.bubbles.get(hit.user.staffId||hit.user.userId);if(!bubble||bubble.until<=performance.now())continue;
      c.font=(bubble.mode==='shout'?'bold ':'')+'12px system-ui';const limit=Math.min(226,w-48);
@@ -1231,5 +1233,6 @@
  }
  function decorPreview(canvas,item,options={}){canvas.width=360;canvas.height=220;const c=canvas.getContext('2d');c.fillStyle='#12243b';c.fillRect(0,0,360,220);c.save();c.translate(180,70);c.scale(1.5,1.5);for(let y=0;y<4;y++)for(let x=0;x<4;x++){const px=(x-y)*18,py=(x+y)*9;poly(c,[[px,py],[px+18,py+9],[px,py+18],[px-18,py+9]],(options.tone==='warm'?['#bda989','#d5c6a6']:options.tone==='garden'?['#739887','#91b39c']:['#78999d','#89abad'])[(x+y)%2],'#517780');}decor(c,{...item,x:1,y:1,z:0,rotation:item.rotation||0},0,18);c.restore();watchDecor(canvas,item,{x:180,y:97,scale:1.5});}
  function petPreview(canvas,pet){canvas.width=180;canvas.height=140;const c=canvas.getContext('2d');c.clearRect(0,0,180,140);c.save();c.translate(90,112);c.scale(2.8,2.8);animal(c,{...pet,facing:'right',gait:0},0,0);c.restore();}
- window.EarnlyWorldRenderer={WorldRenderer,thumbnail,roomThumbnail,decorPreview,petPreview};
+ function spudPreview(canvas,user){canvas.width=192;canvas.height=256;const c=canvas.getContext('2d'),assets=(window.EarnlyPotatoRig?.compose(user.equipped)||[]).map(p=>image(p.imageUrl)).filter(Boolean);const draw=()=>{if(!canvas.isConnected)return;c.clearRect(0,0,192,256);for(const img of assets)if(img.complete&&img.naturalWidth)c.drawImage(img,0,0,192,256);};draw();for(const img of assets)if(!img.complete)img.addEventListener('load',draw,{once:true});}
+ window.EarnlyWorldRenderer={spudPreview,WorldRenderer,thumbnail,roomThumbnail,decorPreview,petPreview};
 })();

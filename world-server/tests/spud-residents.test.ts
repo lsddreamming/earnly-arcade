@@ -12,8 +12,8 @@ test('5–10 distinct Spuds adapt to real occupancy; snapshots never count as pl
  assert.equal(room.spuds.snapshots().length,5);assert.equal(room.memberCount,1);assert.equal(room.members().length,1);
  assert.deepEqual(room.spuds.snapshots().slice(0,4).map(s=>s.username),['Jax','Blitz','Mochi','Zippy']);
  for(const s of room.spuds.snapshots()){assert.equal(s.isAI,true);assert.ok(s.equipped.avatar.imageUrl.startsWith('cosmetic-'));}
- const group=new SpudResidents(random()),grid=new RoomGrid(floor());for(let i=0;i<10;i++)group.tick(grid,new Set(),15,true);
- assert.equal(group.snapshots().length,10);for(let i=0;i<80;i++)group.tick(grid,new Set(),1,true);assert.equal(group.snapshots().length,5);
+ const group=new SpudResidents(random()),grid=new RoomGrid(parseHeightmap(Array(20).fill('0'.repeat(20)).join('\n')));for(let i=0;i<10;i++)group.tick(grid,new Set(),1,true);
+ assert.equal(group.snapshots().length,10);for(let i=0;i<80;i++)group.tick(grid,new Set(),25,true);assert.equal(group.snapshots().length,9,'crowds retire one resident at a time');for(let i=0;i<800;i++)group.tick(grid,new Set(),25,true);assert.equal(group.snapshots().length,0);for(let i=0;i<400;i++)group.tick(grid,new Set(),1,true);assert.equal(group.snapshots().length,5,'quiet rooms repopulate gradually');
 });
 test('bounded simulation wanders, sits, dances and admires without overlapping or entering solid furniture',()=>{
  const chair={id:'chair',x:5,y:5,z:0,width:1,length:1,rotation:0 as const,itemHeight:1,walkable:false,canStack:false,canSit:true};

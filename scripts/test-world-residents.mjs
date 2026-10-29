@@ -25,7 +25,7 @@ try{
  const restarted=new SupabaseWorldAccess('https://world-test.invalid','server-only-test');
  const entry=await restarted.enter({userId:a,username:'A'},room);entry.room.join({userId:a,username:'A'},entry.spawn,()=>{});
  const state=await restarted.perform({userId:a,username:'A'},room,'resident_memory',{p_actor:b,userId:b});assert.equal(state.data.relations[0].favoriteGame,'Snake');
- const invited=await restarted.perform({userId:a,username:'A'},room,'resident_invite',{residentId:'jax'});assert.equal(invited.data.visiting,true);assert.equal(entry.room.memberCount,1);assert.equal(entry.room.spuds.snapshots()[0].invitedBy,a);
+ const invited=await restarted.perform({userId:a,username:'A'},room,'resident_invite',{residentId:'jax'});assert.equal(invited.data.visiting,true);assert.equal(entry.room.memberCount,1);assert.equal(entry.room.spuds.snapshots()[0].invitedBy,a);const directory=await restarted.perform({userId:a,username:'A'},room,'room_directory',{});const homeCount=directory.data.find(r=>r.id===room);assert.equal(homeCount.occupancy,1);assert.equal(homeCount.residentCount,1);assert.equal(homeCount.spudCount,2);
  await assert.rejects(restarted.perform({userId:a,username:'A'},room,'resident_invite',{residentId:'blitz'}),/friend first/);
  await assert.rejects(restarted.perform({userId:b,username:'B'},room,'resident_dismiss',{residentId:'jax',ownerId:a}),/own room/);
  await restarted.perform({userId:a,username:'A'},room,'resident_dismiss',{residentId:'jax'});assert.equal(entry.room.spuds.snapshots().length,0);
