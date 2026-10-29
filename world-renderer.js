@@ -841,9 +841,10 @@
   // The portrait has two pixels of transparent padding below the soles.
   c.translate(0,2);if(user.facing==='left')c.scale(-1,1);
   if(user.state==='lay'){c.translate(-12,-10);c.rotate(Math.PI/2);}
+  if(user.state==='dance'&&!reducedMotion.matches){c.translate(0,-Math.abs(Math.sin(performance.now()/200))*3);c.rotate(Math.sin(performance.now()/250)*.10);}
   const key=JSON.stringify(parts.map(p=>p.imageUrl));let sprite=sprites.get(key);
   if(!sprite){const loaded=parts.map(p=>image(p.imageUrl));if(loaded.length&&loaded.every(i=>i?.complete&&i.naturalWidth)){sprite=document.createElement('canvas');sprite.width=192;sprite.height=256;const sc=sprite.getContext('2d');for(const img of loaded)sc.drawImage(img,0,0,192,256);if(sprites.size>=64)sprites.delete(sprites.keys().next().value);sprites.set(key,sprite);}}
-  if(user.isStaff){
+  if(user.isStaff&&!user.isAI){
    const host=user.staffId==='staff-host'||user.role==='Patio host',bar=user.staffId==='staff-bartender'||user.role==='Bartender';
    const suit=user.color||'#427c88',skin=host?'#b67d59':bar?'#dbab83':'#efc79d',hair=host?'#553b30':bar?'#392e42':'#6c4736';
    // Rounded face, shaded uniform and distinct job accessories remain readable at room scale.
@@ -865,7 +866,7 @@
    if(host){c.fillStyle='#dfc690';c.fillRect(-11,-44,23,3);c.fillRect(-6,-50,13,6);c.fillStyle='#7d9b70';c.fillRect(-6,-45,13,2);}
    drew=true;
   }
-  if(sprite&&!user.isStaff){
+  if(sprite&&(!user.isStaff||user.isAI)){
    // Cache SVG equipment at 4x resolution; preserve the exact logical rig/feet.
    c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
    const slice=(sx,sy,sw,sh,...dest)=>c.drawImage(sprite,sx*4,sy*4,sw*4,sh*4,...dest);
@@ -1180,7 +1181,7 @@
     for(const hit of this.hit){const x=this.cx+hit.x*this.scale,y=this.cy+hit.y*this.scale;
      if(x<-40||x>w+40||y<-10||y>h+65)continue;
      if(!hit.user.species){
-     const name=(hit.user.username||'You').slice(0,18)+(hit.user.species?' · '+hit.user.species:hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
+     const name=(hit.user.username||'You').slice(0,18)+(hit.user.species?' · '+hit.user.species:hit.user.isAI?' · AI':hit.user.isStaff?' · NPC':'');c.font='600 11px system-ui';c.textAlign='center';const labelWidth=c.measureText(name).width+12;
      c.fillStyle='#122c3ee6';c.fillRect(x-labelWidth/2,y+5,labelWidth,17);c.fillStyle=hit.user.isStaff?'#ffe0a0':hit.user.userId===this.localUserId?'#9bffe3':'#f2fff8';c.fillText(name,x,y+17);
      }
      const bubble=this.bubbles.get(hit.user.staffId||hit.user.userId);if(!bubble||bubble.until<=performance.now())continue;

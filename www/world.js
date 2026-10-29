@@ -460,6 +460,7 @@
   if(!first)root.append(button('Back to rooms',showRooms));
  }
  async function showStaff(staff){
+  if(staff.isAI){const root=openPanel(staff.username+' · AI resident');root.append(note(staff.role),note('An automated Spud resident exploring the room.'),button('Back to room',()=>$('worldPanel').close()));return;}
   const roomId=scene.roomId,version=panelVersion,reply=await action('staff_talk',{staffId:staff.staffId});
   if(scene.roomId!==roomId||version!==panelVersion)return;
   currentPanel='staff';const root=openPanel(staff.species?reply.name:reply.name+' · '+reply.role),style=hangoutStyle(scene);

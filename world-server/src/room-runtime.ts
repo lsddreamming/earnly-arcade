@@ -1,3 +1,4 @@
+import {SpudResidents} from './spud-residents.ts';
 import {randomInt} from 'node:crypto';
 import { RoomGrid, tileKey, validXY } from './grid.ts';
 import type { XY, XYZ } from './grid.ts';
@@ -17,6 +18,9 @@ type Member = {identity:Identity; movement:MovementController; send:Send; lastIn
  * Tick once per 250ms; client packets can never advance the simulation clock.
  */
 export class RoomRuntime {
+  readonly spuds=new SpudResidents();
+  #publicResidents=false;
+  enableResidents(){this.#publicResidents=true;}
   #members = new Map<string,Member>();
   #sequence = 0;
   #furnitureResults=new Map<string,{value:number;at:number;x:number;y:number}>();
@@ -32,7 +36,7 @@ export class RoomRuntime {
     this.#staff=staff.map(definition=>{if(!definition.path.length||definition.path.some((p,i)=>!grid.tile(p)?.walkable||(i>0&&Math.abs(p.x-definition.path[i-1].x)+Math.abs(p.y-definition.path[i-1].y)!==1)))throw new Error('Invalid staff route');return {definition,index:0,...(definition.species?this.#petClock():{})};});
     this.setPets(pets);
   }
-  staff(){return this.#staff.map(({definition:d,index,sleepUntil,playUntil,toyId})=>({staffId:d.id,username:d.name,role:d.role,petId:d.petId,ownerId:d.ownerId,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:sleepUntil?'sleep':playUntil?'play':'std',toyId:playUntil?toyId:undefined,playElapsed:playUntil?(32-playUntil+this.#ticks)*250:undefined}));}
+  staff(){return this.#staff.map(({definition:d,index,sleepUntil,playUntil,toyId})=>({staffId:d.id,username:d.name,role:d.role,petId:d.petId,ownerId:d.ownerId,species:d.species,color:d.color,isStaff:true,position:{...d.path[index],z:this.grid.tile(d.path[index])!.z},state:sleepUntil?'sleep':playUntil?'play':'std',toyId:playUntil?toyId:undefined,playElapsed:playUntil?(32-playUntil+this.#ticks)*250:undefined})).concat(this.spuds.snapshots() as any);}
   setPets(pets:RoomPet[]){
     if(pets.length>3)throw new Error('Up to three pets can roam in a room');
     const previous=new Map(this.#staff.filter(s=>s.definition.petId).map(s=>[s.definition.petId!,s]));
@@ -143,7 +147,7 @@ export class RoomRuntime {
     if(mode==='whisper'&&!nearby.some(m=>m.identity.userId===target))throw new Error('Move beside this player to whisper');
     return (mode==='shout'?[...this.#members.values()]:nearby).filter(m=>mode!=='whisper'||m.identity.userId===userId||m.identity.userId===target).map(m=>m.identity.userId);
   }
-  canReplace(grid:RoomGrid){return this.staff().every(s=>{const t=grid.tile(s.position);return !!t?.walkable&&t.z===s.position.z;})&&this.members().every(m=>{const tile=grid.tile(m.position);return !!tile&&tile.z===m.position.z&&(tile.walkable||(m.state==='sit'&&tile.canSit)||(m.state==='lay'&&tile.canLay));});}
+  canReplace(grid:RoomGrid){return this.spuds.canReplace(grid)&&this.staff().filter(s=>!(s as any).isAI).every(s=>{const t=grid.tile(s.position);return !!t?.walkable&&t.z===s.position.z;})&&this.members().every(m=>{const tile=grid.tile(m.position);return !!tile&&tile.z===m.position.z&&(tile.walkable||(m.state==='sit'&&tile.canSit)||(m.state==='lay'&&tile.canLay));});}
   replaceGrid(grid:RoomGrid){if(!this.canReplace(grid))throw new Error('A player is standing there');this.grid=grid;}
   get memberCount(){return this.#members.size;}
   availableSpawn():XY {
@@ -153,7 +157,7 @@ export class RoomRuntime {
     }
     throw new Error('No free spawn');
   }
-  #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(this.#position(m))).concat(this.staff().map(s=>tileKey(s.position))));}
+  #occupied(except?:string){return new Set([...this.#members].filter(([id])=>id!==except).map(([,m])=>tileKey(this.#position(m))).concat(this.staff().map(s=>tileKey(s.position)),[...this.spuds.occupied()]));}
   #broadcast(packet:Record<string,unknown>){for(const m of this.#members.values())m.send(packet);}
   join(identity:Identity,spawn:XY,send:Send){
     if(!identity.userId||!identity.username||this.#members.has(identity.userId))throw new Error('Duplicate or invalid member');
@@ -256,6 +260,8 @@ export class RoomRuntime {
         if(next!==s.index&&Math.abs(p.x-from.x)+Math.abs(p.y-from.y)===1&&this.grid.tile(p)?.walkable&&!this.#occupied().has(tileKey(p))){s.index=next;moved=true;}
       }
     }
+    const external=new Set([...this.#members.values()].flatMap(m=>[tileKey(this.#position(m)),...(m.plan?[tileKey(m.plan.destination)]:[]) ]).concat(this.#staff.map(s=>tileKey(s.definition.path[s.index]))));
+    if(this.spuds.tick(this.grid,external,this.memberCount,this.#publicResidents))moved=true;
     if(moved)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});
     const changes=[];
     // Stable join order plus fresh occupancy prevents two actors entering one tile.
