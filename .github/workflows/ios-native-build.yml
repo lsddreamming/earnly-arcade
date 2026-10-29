@@ -11,6 +11,8 @@ on:
       - 'www/games-showroom.css'
       - 'bubble-pop*'
       - 'www/**'
+      - 'world-server/**'
+      - 'supabase/migrations/*world*.sql'
       - 'native-ads-entry.js'
       - 'privacy-ads.js'
       - 'scripts/build-native-web.mjs'
