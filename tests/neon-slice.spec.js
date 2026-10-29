@@ -49,7 +49,13 @@ test('failed claim remains pending and retry is explicit',async({page})=>{
 test('recorded signed-in swipe and pause inputs replay to the exact displayed score',async({page})=>{
  await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__observedGame=this;};window.NeonSliceRewards={retry:async()=>[],start:async()=>({id:'round',seed:17,userId:'user',remaining:3}),claim:async(round,events,ticks)=>{const r=NeonSliceEngine.verify(round.seed,events,ticks,3);window.__verifiedRun={...r,events};return {amount:r.coins,remaining:3-(r.coins>0?1:0)};}};});
  await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
- await page.waitForFunction(()=>window.__observedGame.items.some(o=>!o.bomb&&o.y<380&&o.y>300));await page.mouse.move(box.x+2,box.y+box.height*.64);await page.mouse.down();await page.mouse.move(box.x+box.width-2,box.y+box.height*.64,{steps:12});await page.mouse.up();expect(Number(await page.locator('#sliceScore').innerText())).toBeGreaterThan(0);
+ await page.waitForFunction(()=>window.__observedGame.items.some(o=>!o.bomb&&o.y<400&&o.y>200));
+ // Follow an actual full-width launch; a fixed-height horizontal swipe can
+ // pass above/below fast-moving food before reaching its random lane.
+ const foodX=await page.evaluate(()=>window.__observedGame.items.find(o=>!o.bomb&&o.y<400&&o.y>200).x);
+ const swipeX=box.x+foodX/360*box.width;
+ await page.mouse.move(swipeX,box.y+20);await page.mouse.down();await page.mouse.move(swipeX,box.y+box.height-10,{steps:8});await page.mouse.up();
+ expect(Number(await page.locator('#sliceScore').innerText())).toBeGreaterThan(0);
  await page.mouse.move(box.x+5,box.y+5);await page.mouse.down();await page.mouse.move(box.x+35,box.y+5,{steps:5});await page.mouse.up();
  await page.locator('#slicePause').click();await page.locator('#sliceStart').click();await expect(page.locator('#sliceStats')).toBeVisible({timeout:16000});
  await expect.poll(()=>page.evaluate(()=>window.__verifiedRun?.score)).toBe(Number(await page.locator('#sliceResultScore').innerText()));await expect(page.locator('#sliceRetry')).toBeHidden();expect(await page.evaluate(()=>window.__verifiedRun.events.some(e=>e.length===5&&e[2]<20&&e[4]<20))).toBe(true);
