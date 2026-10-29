@@ -43,3 +43,8 @@ test('completed but unpaid checkout stays pending so retries cannot start anothe
  assert.equal(response.status,409);assert.equal((await response.json()).error.code,'CHECKOUT_PENDING');
  assert.equal(f.calls.filter(c=>c.name==='coin_order_fulfill').length,0);
 });
+
+test('extra-play purchases pass the displayed quote and authenticated owner to the new pricing RPC',async()=>{
+ for(const cost of [5000,25,undefined]){const f=fixture();await f.handler(f.req('coin-shop/plays/buy',{method:'POST',body:{game:'coinCatch',cost,userId:'attacker'}}));assert.deepEqual(f.calls[0],{name:'coin_play_action_v2',args:{p_user_id:uid,p_game:'coinCatch',p_request_id:requestId,p_action:'buy',p_expected_cost:cost??null}});}
+ const f=fixture();await f.handler(f.req('coin-shop/plays/consume',{method:'POST',body:{game:'coinCatch'}}));assert.equal(f.calls[0].name,'coin_play_action');
+});

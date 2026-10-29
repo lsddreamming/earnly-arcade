@@ -2212,7 +2212,7 @@ const Arcade = (() => {
     const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Customize your avatar';shopLink.className='result-shop-link';actions.append(shopLink);
     let buy;
     if(game&&window.EarnlyPaidPlays){
-      buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 25 coins';
+      buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 5,000 Arcade Coins';
       buy.onclick=async()=>{buy.disabled=true;try{await window.EarnlyPaidPlays.buy(game);buy.textContent='Extra plays ready · return to Games to play';}catch(error){toast(error.message);buy.disabled=false;}};
       actions.append(buy);
     }
@@ -2232,7 +2232,7 @@ const Arcade = (() => {
     const exploreLabel = document.createElement('summary');
     exploreLabel.textContent = 'Use your coins';
     explore.append(exploreLabel, roomLink, shopLink);
-    if (buy) explore.append(buy);
+    if (buy && resultPlaysLeft > 0) explore.append(buy);
     modal.append(details, explore);
     window.EarnlyShopAppearance?.decorate(hero);
     modal.showModal();
@@ -2843,6 +2843,17 @@ const Arcade = (() => {
     }
     const status = playAdStatus(g);
     const gameName = names[g] || 'this game';
+    let buyingPlays=false;
+    const paidOption=window.EarnlyPaidPlays ? [['3 extra plays · 5,000 Arcade Coins',async()=>{
+      if(buyingPlays)return;buyingPlays=true;
+      try{
+        await window.EarnlyPaidPlays.buy(g);
+        panel('3 extra plays ready','Added to '+gameName+'. Your existing plays are preserved.',[
+          ['Return to game',()=>{if(typeof done==='function')done();},'green'],
+          ['Games',()=>location.href='games.html','secondary']
+        ]);
+      }catch(error){toast(error.message);out(g,done);}finally{buyingPlays=false;}
+    },'secondary']] : [];
 
     if (status.remaining <= 0) {
       panel(
@@ -2850,7 +2861,8 @@ const Arcade = (() => {
         'You’ve used both optional rewarded-play unlocks for ' + gameName + ' today. Your 3 free plays refill tomorrow.',
         [
           ['▶ Neon Slice · Unlimited free play', () => location.href = 'neon-slice.html', 'green'],
-          ['Choose Another Game', () => location.href = 'games.html', 'secondary']
+          ...paidOption,
+        ['Choose Another Game', () => location.href = 'games.html', 'secondary']
         ]
       );
       return;
@@ -2876,6 +2888,7 @@ const Arcade = (() => {
       [
         ...(!provider ? [['▶ Neon Slice · Unlimited free play', () => location.href = 'neon-slice.html', 'green']] : []),
         [rewardedLabel + ' → Play Again', () => playAd(g, () => resumeGameAfterRewardedPlay(g, done)), provider ? 'green' : 'secondary'],
+        ...paidOption,
         ['Choose Another Game', () => location.href = 'games.html', 'secondary']
       ]
     );

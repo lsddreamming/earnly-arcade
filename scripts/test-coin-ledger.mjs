@@ -1,5 +1,5 @@
 import {PGlite} from '@electric-sql/pglite';
-import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict';
+import {readFile,readdir} from 'node:fs/promises';import assert from 'node:assert/strict';
 const root=new URL('../',import.meta.url);
 const db=new PGlite();await db.exec(await readFile(new URL('tests/commerce-fixture.sql',root),'utf8'));
 await db.exec('CREATE ROLE service_role BYPASSRLS; CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,source_type text,game text);');
@@ -48,4 +48,27 @@ const unknownRefund=await apple('124',uid,'Production',true);assert.equal(unknow
 assert.equal((await apple('124')).wallet.balance,revoked.wallet.balance);
 for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(apple('999'),/permission denied/);await assert.rejects(db.query('select * from apple_coin_transactions'),/permission denied/);await db.exec('RESET ROLE');}
 console.log('PASS: Apple replay, ownership, sandbox exclusion, earned-total isolation, monotonic refunds and RLS.');
+// New pricing must preserve existing receipts/credits while rejecting stale offers.
+const pricing=(await readdir(new URL('supabase/migrations/',root))).find(x=>x.endsWith('_extra_play_price.sql'));
+await db.exec(await readFile(new URL('supabase/migrations/'+pricing,root),'utf8'));
+await db.query('update coin_wallets set balance=10010,purchased_balance=0 where user_id=$1',[uid]);
+assert.equal((await data('select coin_play_action($1,$2,$3,$4) as data',[uid,'snake',request,'buy'])).wallet.balance,'10010');
+await assert.rejects(data('select coin_play_action($1,$2,$3,$4) as data',[uid,'snake',key(),'buy']),/PRICE_CHANGED/);
+const pack=key();
+await assert.rejects(data('select coin_play_action_v2($1,$2,$3,$4,$5) as data',[uid,'snake',pack,'buy',25]),/PRICE_CHANGED/);
+let purchased=await data('select coin_play_action_v2($1,$2,$3,$4,$5) as data',[uid,'snake',pack,'buy',5000]);
+assert.equal(purchased.wallet.balance,'5010');assert.equal(purchased.remaining,3);
+assert.equal((await data('select coin_play_action_v2($1,$2,$3,$4,$5) as data',[uid,'snake',pack,'buy',5000])).wallet.balance,'5010');
+assert.equal((await data('select coin_play_action($1,$2,$3,$4) as data',[uid,'snake',key(),'consume'])).remaining,2);
+await db.query('update coin_wallets set balance=4999 where user_id=$1',[uid]);
+await assert.rejects(data('select coin_play_action_v2($1,$2,$3,$4,$5) as data',[uid,'snake',key(),'buy',5000]),/INSUFFICIENT_COINS/);
+assert.equal((await db.query('select remaining from coin_play_credits where user_id=$1 and game=$2',[uid,'snake'])).rows[0].remaining,2);
+for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(data('select coin_play_action_v2($1,$2,$3,$4,$5) as data',[uid,'snake',key(),'buy',5000]),/permission denied/);await db.exec('RESET ROLE');}
+// Spending purchased coins keeps their provenance and earned totals intact.
+await db.query('update coin_wallets set balance=6000,purchased_balance=5500 where user_id=$1',[uid]);
+const earnedBefore=(await db.query('select lifetime_earned from coin_wallets where user_id=$1',[uid])).rows[0].lifetime_earned;
+await data('select coin_play_action_v2($1,$2,$3,$4,$5) as data',[uid,'coinCatch',key(),'buy',5000]);
+const afterPack=(await db.query('select * from coin_wallets where user_id=$1',[uid])).rows[0];
+assert.equal(afterPack.balance,1000);assert.equal(afterPack.purchased_balance,500);assert.equal(afterPack.lifetime_earned,earnedBefore);
+console.log('PASS: 5,000-Coin pack, exactly three credits, duplicate recovery, stale-price rejection, insufficient-funds rollback and existing-credit preservation.');
 await db.close();

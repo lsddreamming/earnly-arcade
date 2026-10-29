@@ -131,7 +131,7 @@ for (const game of ['snake', 'memory', 'tapRush', 'neonBreach', 'neonDrift', 'br
     await expect(dialog.locator('.result-level-progress')).toBeVisible();
     await dialog.getByText('Use your coins',{exact:true}).click();
     await expect(dialog.locator('.result-room-link')).toBeVisible();
-    await dialog.getByRole('button',{name:'3 extra plays · 25 coins'}).click();
+    await dialog.getByRole('button',{name:'3 extra plays · 5,000 Arcade Coins'}).click();
     await expect.poll(()=>page.evaluate(()=>window.boughtPlays)).toBe(true);
     await play.click();
     await expect.poll(()=>page.evaluate(()=>window.compactReplayed)).toBe(true);
@@ -177,6 +177,27 @@ test('native empty-play result keeps the real rewarded replay first', async ({pa
   await expect(page.locator('.result-actions button').first()).toHaveText('📺 Watch Ad · +1 Play & Replay');
   await expect(page.locator('.result-free-game')).toHaveCount(0);
 });
+
+for(const surface of ['gate','result']){
+ test('native empty-play '+surface+' offers one priced pack beside the ad',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/coincatch.html');
+  await page.evaluate(surface=>{
+   Arcade.remaining('coinCatch');localStorage.setItem('coinCatchGamesPlayed','3');localStorage.setItem('coinCatchBonusPlays','0');
+   window.EarnlyNativeAds={isNative:true,showRewarded:async()=>({earned:true})};
+   window.EarnlyPaidPlays={remaining:()=>0,buy:async game=>{window.packPurchases=(window.packPurchases||0)+1;window.packGame=game;}};
+   if(surface==='gate')Arcade.out('coinCatch');else Arcade.gameResult({game:'coinCatch',score:165,coins:64,onReplay:()=>{}});
+  },surface);
+  const dialog=page.locator('dialog[open]');
+  const buy=dialog.getByRole('button',{name:'3 extra plays · 5,000 Arcade Coins',exact:true});
+  await expect(buy).toHaveCount(1);await expect(buy).toBeVisible();
+  await expect(dialog.getByRole('button',{name:/Watch.*[Aa]d/})).toBeVisible();
+  await buy.click();
+  await expect.poll(()=>page.evaluate(()=>window.packPurchases)).toBe(1);
+  expect(await page.evaluate(()=>window.packGame)).toBe('coinCatch');
+  expect(await page.evaluate(()=>localStorage.getItem('coinCatchGamesPlayed'))).toBe('3');
+ });
+}
 
 for (const reason of ['🧱 Hit the wall','🐍 Hit your tail']) {
   test('Snake result explains '+reason+' before rewards',async({page})=>{

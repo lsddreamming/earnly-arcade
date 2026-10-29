@@ -38,6 +38,26 @@ test('Native runtimes can consume server-owned extra plays',async({page})=>{
  await setup(page,{native:true});await page.goto('/snake.html');await expect.poll(()=>page.evaluate(()=>window.EarnlyPaidPlays?.remaining('snake'))).toBe(3);
 });
 
+test('Extra-play clients send the displayed 5,000-Coin quote',async({page})=>{
+ await setup(page);
+ const quotes=[];
+ await page.route(API+'/plays/buy',async route=>{
+  quotes.push(route.request().postDataJSON());
+  await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({remaining:3,wallet:{balance:'1000',lifetime_earned:'0'}})});
+ });
+ await page.goto('/snake.html');
+ await expect.poll(()=>page.evaluate(()=>Boolean(window.EarnlyPaidPlays))).toBe(true);
+ await page.evaluate(()=>window.EarnlyPaidPlays.buy('coinCatch'));
+ expect(quotes).toEqual([{game:'coinCatch',cost:5000}]);
+ await page.goto('/avatars.html');
+ await page.getByRole('button',{name:'Coin packs',exact:true}).click();
+ const buy=page.getByRole('button',{name:'3 plays · 5,000 Arcade Coins',exact:true});
+ await expect(buy).toBeVisible();
+ await buy.click();
+ await expect.poll(()=>quotes.length).toBe(2);
+ expect(quotes[1].cost).toBe(5000);
+});
+
 test('Switching accounts while checkout opens does not redirect the new player',async({page})=>{
  await setup(page);await page.route('**/avatar-studio.js',r=>r.fulfill({contentType:'text/javascript',body:''}));
  let release;const held=new Promise(resolve=>{release=resolve;});let requested=false;
