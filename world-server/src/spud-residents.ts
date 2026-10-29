@@ -28,10 +28,11 @@ type Actor={id:SpudId;position:XYZ;state:'std'|'sit'|'dance';activity:'resting'|
  */
 export class SpudResidents{
  #actors:Actor[]=[];#ticks=0;#random:()=>number;#cursor=0;
- #roster=[...SPUDS];#quietPopulation=5;#conversations=new Map<string,{id:SpudId;until:number}>();
+ #roster=[...SPUDS];#quietPopulation=5;#home=false;#conversations=new Map<string,{id:SpudId;until:number}>();
  constructor(random:()=>number=Math.random){this.#random=random;this.#shuffle(random);}
  #shuffle(random:()=>number){for(let i=this.#roster.length-1;i>0;i--){const j=Math.min(i,Math.floor(random()*(i+1)));[this.#roster[i],this.#roster[j]]=[this.#roster[j],this.#roster[i]];}}
  setRoomKey(key:string){let seed=2166136261;for(const c of key)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;this.#quietPopulation=4+(seed%2);this.#roster=[...SPUDS];this.#shuffle(()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/2**32;});}
+ setHome(id:SpudId){this.#home=true;this.#roster=[SPUDS.find(s=>s.id===id)!];this.#quietPopulation=1;}
  #held(a:Actor){return [...this.#conversations.values()].some(c=>c.id===a.id&&c.until>this.#ticks);}
  focus(user:string,id:SpudId){const a=this.#actors.find(a=>a.id===id);if(!a)return false;this.release(user);this.#conversations.set(user,{id,until:this.#ticks+180});a.route=[];if(a.state!=='sit'){a.plan=undefined;a.state='std';}a.activity='chatting';return true;}
  release(user:string,id?:SpudId){const c=this.#conversations.get(user);if(!c||(id!==undefined&&c.id!==id))return;this.#conversations.delete(user);const a=this.#actors.find(a=>a.id===c.id);if(a&&!this.#held(a)){a.activity=a.state==='sit'?'sitting':'resting';a.next=this.#ticks+8;}}
@@ -69,7 +70,7 @@ export class SpudResidents{
   const remaining=this.#actors.filter(a=>!a.expires||a.expires>this.#ticks);if(remaining.length!==this.#actors.length){this.#actors=remaining;changed=true;}
   if(publicRoom&&(this.#ticks<=10||this.#ticks%80===0)){
    const quietPopulation=this.#quietPopulation;
-   const target=Math.max(0,quietPopulation-Math.floor(Math.max(0,players-2)/2));
+   const target=this.#home?1:Math.max(0,quietPopulation-Math.floor(Math.max(0,players-2)/2));
    if(this.#actors.length>target){let retiring=this.#actors.length-1;while(retiring>=0&&this.#held(this.#actors[retiring]))retiring--;if(retiring>=0){this.#actors.splice(retiring,1);changed=true;}}
    // Each room has its own stable shuffled lineup; at most one spawn per tick.
    for(const d of this.#roster){if(this.#actors.length>=target)break;if(this.#add(grid,external,d.id)){changed=true;break;}}

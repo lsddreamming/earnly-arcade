@@ -167,6 +167,7 @@ export class RoomRuntime {
   dismissResident(userId:string,id?:SpudId){const changed=this.spuds.dismiss(userId,id);if(changed)this.#broadcast({type:'NPC_SNAPSHOT',staff:this.staff()});return changed;}
   residentQuiet(userId:string,quiet:boolean,now:number){this.#social?.setQuiet(userId,quiet,now);return {quiet};}
   enableResidents(){this.#publicResidents=true;}
+  enableResidentHome(id:SpudId){this.#publicResidents=true;this.spuds.setHome(id);}
   prepareResidents(){if(this.#publicResidents&&this.memberCount===0)this.spuds.prepareIdle(this.grid,this.#occupied());}
   #members = new Map<string,Member>();
   #sequence = 0;

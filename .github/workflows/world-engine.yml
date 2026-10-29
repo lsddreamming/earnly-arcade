@@ -46,6 +46,7 @@ jobs:
       - run: node scripts/test-world-account-permissions.mjs
       - run: node scripts/test-world-residents.mjs
       - run: node scripts/test-world-ai-budget.mjs
+      - run: node scripts/build-resident-homes.mjs --check && node scripts/test-world-resident-homes.mjs
       - run: node scripts/test-world-network.mjs
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/world.spec.js --project=desktop-chromium --grep "Owned furniture" --repeat-each=5 --workers=2
