@@ -24,7 +24,7 @@ test('private memories and unknown questions never produce invented answers; rep
  const r={...base,privateMemory:'PRIVATE_SENTINEL',context:[{speaker:'Player',text:'Tell me what you remember about another player'}]};
  assert.match(basicResidentReply(r)!,/Private memories stay private/);
  assert.ok(!basicResidentReply(r)!.includes('PRIVATE_SENTINEL'));
- assert.match(ask('What is my highest score?')!,/basic chat mode/);
+ assert.equal(ask('What is my highest score?'),null);
  assert.match(ask('Are you a real person?')!,/scripted replies/);
  const first=ask('Snake')!;
  const next=basicResidentReply({...base,context:[{speaker:'Mochi',text:first},{speaker:'Player',text:'Snake'}]});assert.ok(next);assert.notEqual(next,first);

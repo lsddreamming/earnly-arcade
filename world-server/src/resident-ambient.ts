@@ -6,7 +6,7 @@ const subjects:Record<string,string>={cozy:'cozy rooms',colorful:'colorful rooms
 type Exchange={opening:string;responses:readonly string[];closings:readonly string[]};
 const exchanges:Exchange[]=[
  ...ambientExchanges.map(([opening,response,closing])=>({opening,responses:[response],closings:[closing]})),
- ...topics.map(topic=>({opening:`What do you think about ${subjects[topic.id]}?`,responses:topic.bodies,closings:followups[topic.family].slice(5)}))
+ ...topics.map(topic=>({opening:`What do you think about ${topic.subject??subjects[topic.id]}?`,responses:topic.bodies,closings:followups[topic.family].slice(5)}))
 ];
 export const ambientCombinationCount=exchanges.reduce((n,e)=>n+e.responses.length*e.closings.length,0);
 

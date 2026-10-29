@@ -36,5 +36,5 @@ export function basicResidentReply(r:DialogueRequest):string|null{
  if(/\b(hi|hey|hello|how are you|how’s it going|hows it going|how is it going)\b/.test(latest)){
   return choose(greetings[r.residentId]);
  }
- return choose(['I’m in basic chat mode until my AI allowance resets. I can still chat a little about games and decorating!','My scripted replies are a little limited right now. Full AI conversation will return when my allowance resets.']);
+ return null;
 }

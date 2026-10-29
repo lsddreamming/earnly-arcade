@@ -9,7 +9,7 @@ const base:DialogueRequest={residentId:'mochi',context:[],addressed:true,ambient
 const ask=(text:string,extra:Partial<DialogueRequest>={})=>programmedResidentReply({...base,context:[{speaker:'Player',text}],...extra});
 test('whole-message routing handles ordinary conversation but sends ambiguous or unsupported questions to AI',()=>{
  assert.match(ask('Hey Mochi, how are you?')!,/doing well/);
- for(const text of ['I’m good thanks','I’m not good','I’m tired','I like blue','I like drawing','I’m bored','BRB','I’m new here','Can we chat','How do I play Snake?'])assert.ok(ask(text),text);
+ for(const text of ['I’m good thanks','I’m not good','I’m tired','I like blue','I like drawing','I’m bored','BRB','I’m new here','Can we chat','How do I play Snake?','I like pizza','Tell me about cats','What do you think about music','My favorite food is pizza','hru','wyd','What is your favorite game?','What is your favorite color?','What do you do for fun?'])assert.ok(ask(text),text);
  for(const text of ['Hey Mochi can you explain why my chair disappeared?','How do I get free money in Snake?','What was my score yesterday?','What does blue mean in my medical report?','Tell me my private password','Why is it like that?'])assert.equal(ask(text),null,text);
  assert.equal(ask('I like blue',{addressed:false}),null);
 });
@@ -20,7 +20,7 @@ test('follow-ups use only public conversation, and uncertain yes/no replies go t
  assert.ok(ask('blue',{addressed:false,context:[{speaker:'Mochi',text:'What color would you start with?'},{speaker:'Player',text:'blue'}]}));
 });
 test('thousands of topic-specific combinations and hundreds of ambient lines are bounded and avoid borrowed branding',()=>{
- assert.equal(programmedCombinationCount,2640);assert.equal(ambientExchanges.length,100);
+ assert.equal(programmedCombinationCount,5280);assert.equal(ambientExchanges.length,100);
  const lines=new Set<string>();
  for(const topic of topics)for(const body of topic.bodies)for(const tail of ['',...followups[topic.family]]){
   const text=tail?body+' '+tail:body;assert.ok(text.length<=240,text);assert.doesNotMatch(text,/\b(furni|bobba|habbo|HC|norm|P2S|P2K)\b/i);lines.add(text);
@@ -47,4 +47,9 @@ test('programmed-first routing spends no Responses allowance and escalates only 
 test('scripted-first replies still fail closed on moderation and never fall through to paid AI',async()=>{
  let reserves=0;const ai=new OpenAIResidentDialogue({OPENAI_API_KEY:'test-only',WORLD_AI_ENABLED:'true'},async()=>{reserves++;return true;},{fetch:async()=>Response.json({results:[{flagged:true}]})});
  assert.equal(await ai.reply({...base,context:[{speaker:'Player',text:'Hi Mochi'}]}),null);assert.equal(reserves,0);assert.equal(ai.status().scriptedReplies,0);
+});
+
+test('hearing questions never promote a home, and identity never fabricates human personal facts',()=>{
+ assert.match(ask('Can you hear me from over here?')!,/can hear you/);assert.doesNotMatch(ask('Can you hear me from over here?')!,/visit/i);
+ assert.match(ask('How old are you?')!,/AI resident/);assert.match(ask('Who are you?')!,/Mochi/);
 });
