@@ -40,3 +40,12 @@ test('near-identical replies are suppressed, different short answers are kept',(
  assert.equal(repeatedReply('I like the blue sofa by that window.', ['I like the blue sofa by that window!']),true);
  assert.equal(repeatedReply('The green rug.', ['The blue sofa.']),false);
 });
+test('only the final assistant message becomes speech, never concatenated drafts',async()=>{
+ const ai=new OpenAIResidentDialogue(env,async()=>true,{fetch:async url=>Response.json(String(url).endsWith('/moderations')?{results:[{flagged:false}]}:{...result(),output:[{type:'message',role:'assistant',phase:'commentary',content:[{type:'output_text',text:'Draft greeting.'}]},{type:'message',role:'assistant',phase:'final_answer',content:[{type:'output_text',text:'Good to see you.'}]}]})});
+ assert.equal(await ai.reply(request),'Good to see you.');
+});
+test('verified room facts are projected without private extras and cannot describe another resident home',()=>{
+ const home={residentId:'mochi',roomId:'home',name:"Mochi's Quiet Cove",items:['Tidal Glass Aquarium'],animatedFish:true,privateMemory:'PRIVATE_SENTINEL'} as any;
+ const input=JSON.parse(dialogueInput({...request,home,inOwnHome:true}));assert.equal(input.verifiedHome.currentlyHere,true);assert.equal(input.verifiedHome.animatedFish,true);assert.ok(!JSON.stringify(input).includes('PRIVATE_SENTINEL'));
+ assert.equal(JSON.parse(dialogueInput({...request,home:{...home,residentId:'jax'}})).verifiedHome,undefined);
+});

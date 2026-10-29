@@ -1,3 +1,5 @@
+import {residentHome,validatedHomeFacts} from './resident-homes.ts';
+import type {ResidentHomeFacts} from './resident-homes.ts';
 import {OpenAIResidentDialogue} from './resident-ai.ts';
 import {spudDefinition,SPUDS} from './spud-residents.ts';
 import {NaturalSocial,residentReply} from './resident-social.ts';
@@ -14,6 +16,13 @@ type Bootstrap={rooms:{id:string;name:string;ownerId:string|null}[];catalog:Reco
 export class SupabaseWorldAccess implements WorldAccess {
   #social=new NaturalSocial();
   #dialogue:OpenAIResidentDialogue;
+  #homes:ResidentHomeFacts[]=[];#homesUntil=0;#homesLoading?:Promise<void>;
+  async #loadHomes(){
+    if(Date.now()<this.#homesUntil)return;
+    if(this.#homesLoading)return this.#homesLoading;
+    this.#homesLoading=(async()=>{try{this.#homes=validatedHomeFacts(await this.#request('/rest/v1/rpc/world_resident_home_catalog',this.#key,{}));this.#homesUntil=Date.now()+60000;}catch{this.#homes=[];this.#homesUntil=Date.now()+10000;}})().finally(()=>{this.#homesLoading=undefined;});
+    return this.#homesLoading;
+  }
   aiStatus(){return this.#dialogue.status();}
   #memoryReady=new Set<string>();
   async #residentState(uid:string,roomId:string,action:string,data:unknown={}){return this.#request('/rest/v1/rpc/world_residents',this.#key,{p_actor:uid,p_room:roomId,p_action:action,p_data:data});}
@@ -45,14 +54,15 @@ export class SupabaseWorldAccess implements WorldAccess {
   async #api(userId:string,action:string,data:unknown={}):Promise<any>{return this.#request('/rest/v1/rpc/world_api',this.#key,{p_actor:userId,p_action:action,p_data:data});}
   async #snapshot(userId:string,roomId:string):Promise<Snapshot>{return this.#request('/rest/v1/rpc/world_room_snapshot',this.#key,{p_actor:userId,p_room:roomId});}
   #grid(s:Snapshot){return new RoomGrid(parseHeightmap(s.heightmap),s.items.map(item=>({...item,roller:item.sprite==='play-neon-roller'?item.rotation:undefined,furnitureUse:['play-neon-dice','play-clockwork-dice'].includes(item.sprite)?'dice' as const:item.sprite==='play-soft-serve'?'serve' as const:undefined,petToy:({'pet-toy-dog':'dog','pet-toy-cat':'cat','pet-toy-rabbit':'rabbit'} as Record<string,string>)[item.sprite],petBed:({'pet-bed-dog':'dog','pet-bed-cat':'cat','pet-bed-rabbit':'rabbit'} as Record<string,string>)[item.sprite]})),s.revision);}
-  #roomCounts(rooms:Record<string,any>[]){return rooms.filter(r=>!this.#retired.has(r.id)).map(r=>{const runtime=this.#rooms.get(r.id),occupancy=runtime?.memberCount??0,residentCount=runtime?.spuds.snapshots().length??0;return {...r,occupancy,residentCount,spudCount:occupancy+residentCount};});}
+  #roomCounts(rooms:Record<string,any>[]){return rooms.filter(r=>!this.#retired.has(r.id)).map(r=>{const runtime=this.#rooms.get(r.id),occupancy=runtime?.memberCount??0,residentCount=runtime?.spuds.snapshots().length??0;return {...r,residentHome:residentHome(r.id)?.residentId,occupancy,residentCount,spudCount:occupancy+residentCount};});}
   #runtime(snapshot:Snapshot){
     const roomId=snapshot.roomId;let room=this.#rooms.get(roomId);
     if(room&&room.grid.revision!==snapshot.revision){if(room.memberCount)throw new Error('Room changed; reconnect');this.#rooms.delete(roomId);room=undefined;}
     if(!room){
       if(this.#rooms.size>=100){const idle=[...this.#rooms].find(([,r])=>r.memberCount===0);if(idle)this.#rooms.delete(idle[0]);else throw new Error('World capacity reached');}
       room=new RoomRuntime(this.#grid(snapshot),snapshot.capacity,[...(hangoutFor(snapshot)?.staff||[]),...hangoutAnimals(snapshot)],snapshot.pets||[]);
-      if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);room.enableDialogue(this.#dialogue);
+      if(snapshot.ownerId===null)room.enableResidents();room.enableSocial(this.#social,roomId);room.enableDialogue({reply:request=>{const home=this.#homes.find(h=>h.residentId===request.residentId);return this.#dialogue.reply({...request,home,inOwnHome:home?.roomId===roomId});}});
+      const home=residentHome(roomId);if(snapshot.ownerId===null&&home)room.enableResidentHome(home.residentId);
       const currentRoom=room;
       room.onResidentInteraction(async(uid,residentId)=>{
         if(!this.#memoryReady.has(uid))return;
@@ -66,7 +76,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     return room;
   }
   async #warmPublicRooms(uid:string,rooms:Record<string,any>[]){
-    const publicRooms=rooms.filter(r=>r.ownerId===null&&typeof r.id==='string'&&!this.#retired.has(r.id)).slice(0,8);
+    const publicRooms=rooms.filter(r=>!residentHome(r.id)&&r.ownerId===null&&typeof r.id==='string'&&!this.#retired.has(r.id)).slice(0,8);
     await Promise.allSettled(publicRooms.map(r=>{
       const runtime=this.#rooms.get(r.id);if(runtime){runtime.prepareResidents();return Promise.resolve();}
       const existing=this.#publicWarmups.get(r.id);if(existing)return existing;
@@ -75,7 +85,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     }));
   }
   async enter(identity:Identity,roomId:string){
-    let bootstrap:Bootstrap=await this.#api(identity.userId,'bootstrap');
+    let [bootstrap]:[Bootstrap,void]=await Promise.all([this.#api(identity.userId,'bootstrap'),this.#loadHomes()]);
     if(roomId==='home'||roomId==='choose-home'||roomId.startsWith('starter-')){
       const home=bootstrap.rooms.find(r=>r.ownerId===identity.userId);
       if(home)roomId=home.id;
@@ -95,7 +105,7 @@ export class SupabaseWorldAccess implements WorldAccess {
     if(typeof snapshot.username!=='string'||snapshot.roomId!==roomId)throw new Error('Invalid room snapshot');
     const room=this.#runtime(snapshot);
     let aiMemory;try{aiMemory=await this.#residentState(identity.userId,roomId,'read');room.setResidentMemory(identity.userId,aiMemory);if(this.#memoryReady.size>=2000)this.#memoryReady.delete(this.#memoryReady.values().next().value!);this.#memoryReady.add(identity.userId);}catch{aiMemory=undefined;this.#memoryReady.delete(identity.userId);}
-    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,rooms:this.#roomCounts(bootstrap.rooms),residentCatalog:SPUDS.map(({id,name,personality})=>({id,name,personality})),aiResidents:true,aiPublicChat:true,aiMemory:!!aiMemory,residentQuiet:this.#social.quiet(identity.userId,performance.now()),personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
+    return {room,roomId,spawn:room.availableSpawn(),username:snapshot.username,equipped:snapshot.equipped,scene:{...snapshot,residentHost:snapshot.ownerId===null?residentHome(roomId)?.residentId:undefined,theme:hangoutFor(snapshot)?.theme},bootstrap:{...bootstrap,rooms:this.#roomCounts(bootstrap.rooms),residentCatalog:SPUDS.map(({id,name,personality})=>({id,name,personality})),aiResidents:true,aiPublicChat:true,residentHomes:this.#homes.map(({residentId,roomId,name,items,animatedFish})=>({residentId,roomId,name,items,animatedFish})),aiMemory:!!aiMemory,residentQuiet:this.#social.quiet(identity.userId,performance.now()),personalPets:true,petInteractions:true,dailyMissions:true,socialDiscovery:true}};
   }
   async recordEntry(identity:Identity,roomId:string,occupancy:number){
     await Promise.allSettled([this.#request('/rest/v1/rpc/activity_record',this.#key,{p_actor:identity.userId,p_id:crypto.randomUUID(),p_kind:'world_join',p_room:roomId,p_occupancy:occupancy}),this.#request('/rest/v1/rpc/world_daily_visit',this.#key,{p_actor:identity.userId,p_room:roomId}),this.#request('/rest/v1/rpc/world_track_step',this.#key,{p_actor:identity.userId,p_step:'join',p_room:roomId})]);
@@ -258,7 +268,7 @@ export class SupabaseWorldAccess implements WorldAccess {
       result=await this.#api(uid,action,data);
       if(action==='private_send'&&!result.duplicate)deliveries.push({userIds:result.viewers,packet:{type:'PRIVATE',...result,viewers:undefined,username:identity.username}});
       if(action==='block')for(const runtime of this.#rooms.values())runtime.invalidateDialogue();
-      if(action==='bootstrap'){result.aiResidents=true;result.aiPublicChat=true;result.residentCatalog=SPUDS.map(({id,name,personality})=>({id,name,personality}));result.aiMemory=this.#memoryReady.has(uid);result.personalPets=true;result.petInteractions=true;result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
+      if(action==='bootstrap'){result.residentHomes=this.#homes.map(h=>({...h,items:[...h.items]}));result.aiResidents=true;result.aiPublicChat=true;result.residentCatalog=SPUDS.map(({id,name,personality})=>({id,name,personality}));result.aiMemory=this.#memoryReady.has(uid);result.personalPets=true;result.petInteractions=true;result.dailyMissions=true;result.socialDiscovery=true;result.rooms=this.#roomCounts(result.rooms);result.friends=result.friends.map((f:any)=>({...f,online:[...this.#rooms.values()].some(r=>r.members().some(m=>m.userId===f.userId))}));}
     }else throw new Error('Unknown action');
     return {data:result,deliveries};
   }
