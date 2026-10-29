@@ -1005,7 +1005,7 @@
   clearPlacement(){clearTimeout(this.holdTimer);this.placement=null;this.drag=null;this.lastTap=null;clearTimeout(this.tapTimer);}
   placementResult(){
    const p=this.placement;if(!p)return null;
-   const users=[...this.users.values()],key=JSON.stringify([p.x,p.y,p.rotation,users.map(u=>[u.position.x,u.position.y,u.position.z])]);
+   const users=[...this.users.values(),...this.staff.values()],key=JSON.stringify([p.x,p.y,p.rotation,users.map(u=>[u.position.x,u.position.y,u.position.z])]);
    const cached=this.placementCache;if(cached?.scene===this.scene&&cached.item===p.item&&cached.key===key)return cached.result;
    const result=EarnlyWorldPlacement.placementCheck(this.scene,p.item,{x:p.x,y:p.y,rotation:p.rotation},users);
    this.placementCache={scene:this.scene,item:p.item,key,result};return result;

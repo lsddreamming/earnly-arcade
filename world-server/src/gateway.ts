@@ -27,7 +27,7 @@ type GatewayOptions={joinTimeoutMs?:number;admissionTimeoutMs?:number;diagnostic
 export function attachWorldGateway(server:Server,access:WorldAccess,origins:ReadonlySet<string>,options:GatewayOptions={}){
   if(!origins.size)throw new Error('An explicit origin allowlist is required');
   const wss=new WebSocketServer({noServer:true,maxPayload:8192,perMessageDeflate:false});
-  const active=new Map<WebSocket,{token:string;identity:Identity;roomId:string;room:RoomRuntime;checking:boolean;alive:boolean;animals:boolean}>();
+  const active=new Map<WebSocket,{token:string;identity:Identity;roomId:string;room:RoomRuntime;checking:boolean;alive:boolean;animals:boolean;residents:boolean}>();
   const reservations=new Set<string>();
   const upgrade=(request:IncomingMessage,socket:Duplex,head:Buffer)=>{
     if(request.url!=='/world'||!origins.has(request.headers.origin??'')||wss.clients.size>=200){socket.destroy();return;}
@@ -43,8 +43,9 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
     const send=(packet:Record<string,unknown>)=>{
       if(ws.readyState!==WebSocket.OPEN)return;
       if(ws.bufferedAmount>128*1024){ws.terminate();return;}
+      if(packet.type==='AI_GREETING'&&!active.get(ws)?.residents)return;
       if((packet.type==='PET_CHAT'||packet.type==='PET_REACTION')&&!active.get(ws)?.animals)return;
-      if(packet.type==='NPC_SNAPSHOT'&&!active.get(ws)?.animals&&Array.isArray(packet.staff))packet={...packet,staff:packet.staff.filter((s:any)=>!s.species)};
+      if(packet.type==='NPC_SNAPSHOT'&&Array.isArray(packet.staff))packet={...packet,staff:packet.staff.filter((s:any)=>(!s.species||active.get(ws)?.animals)&&(!s.isAI||active.get(ws)?.residents))};
       ws.send(JSON.stringify(packet),error=>{if(error)ws.terminate();});
       const binding=active.get(ws);
       if(!walked&&admittedAt&&binding&&packet.type==='ROOM_DELTA'&&Array.isArray(packet.users)){
@@ -86,7 +87,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           const resolvedIdentity={...identity,username:username??identity.username,equipped};
           if(ws.readyState!==WebSocket.OPEN){reservations.delete(reserved);return;}
           // Register before join so a close caused by backpressure releases membership.
-          active.set(ws,{token:p.token,identity:resolvedIdentity,roomId:roomId??p.roomId,room,checking:false,alive:true,animals:false});
+          active.set(ws,{token:p.token,identity:resolvedIdentity,roomId:roomId??p.roomId,room,checking:false,alive:true,animals:false,residents:false});
           admittedAt={...spawn};room.join(resolvedIdentity,spawn,send);joined=true;clearTimeout(deadline);
           if(scene)send({type:'WELCOME',userId:identity.userId,roomId:roomId??p.roomId,scene,bootstrap});
           stage='admitted';diagnose('world_entry_ready');
@@ -114,6 +115,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
         send({type:'LEFT'});ws.close(1000,'Left room');return;
       }
       if(session.checking)return;
+      if(p.type==='RESIDENT_VIEW'&&p.version===1){session.residents=true;send({type:'NPC_SNAPSHOT',staff:session.room.staff()});return;}
       if(p.type==='ANIMAL_VIEW'&&p.version===1){session.animals=true;send({type:'NPC_SNAPSHOT',staff:session.room.staff()});return;}
       if(p.type==='MOVE_TO'||p.type==='INTERACT')session.room.receive(session.identity.userId,p,now);
       else if(p.type==='ACTION'&&access.perform){
@@ -126,7 +128,7 @@ export function attachWorldGateway(server:Server,access:WorldAccess,origins:Read
           for(const delivery of result.deliveries??[])for(const [peer,binding] of active){
             if((delivery.roomId&&binding.roomId!==delivery.roomId)||!delivery.userIds.includes(binding.identity.userId)||peer.readyState!==WebSocket.OPEN)continue;
             if(peer.bufferedAmount>128*1024){peer.terminate();continue;}
-            const packet=delivery.packet.type==='NPC_SNAPSHOT'&&!binding.animals&&Array.isArray(delivery.packet.staff)?{...delivery.packet,staff:delivery.packet.staff.filter((s:any)=>!s.species)}:delivery.packet;
+            const packet=delivery.packet.type==='NPC_SNAPSHOT'&&Array.isArray(delivery.packet.staff)?{...delivery.packet,staff:delivery.packet.staff.filter((s:any)=>(!s.species||binding.animals)&&(!s.isAI||binding.residents))}:delivery.packet;
             peer.send(JSON.stringify(packet),error=>{if(error)peer.terminate();});
           }
         }catch(error){send({type:'RESULT',requestId:p.requestId,error:error instanceof Error?error.message:'Action unavailable',definite:!!(error&&typeof error==='object'&&'definite' in error&&error.definite===true)});}
