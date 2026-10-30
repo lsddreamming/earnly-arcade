@@ -1,3 +1,4 @@
+import {conversations,authoredConversationLines} from './resident-conversations.ts';
 import {spudDefinition} from './spud-residents.ts';
 import type {SpudId} from './spud-residents.ts';
 import type {ResidentHomeFacts} from './resident-homes.ts';
@@ -41,7 +42,7 @@ export class OpenAIResidentDialogue implements ResidentAI{
   this.#daily=cap(env.WORLD_AI_DAILY_USD,1);this.#monthly=cap(env.WORLD_AI_MONTHLY_USD,10);
   this.#enabled=env.WORLD_AI_ENABLED==='true'&&!!this.#key&&(env.WORLD_AI_MODEL??MODEL)===MODEL&&this.#daily>0&&this.#monthly>0;
  }
- status(){return {enabled:this.#enabled,keyConfigured:!!this.#key,model:MODEL,programmedCombinations:programmedCombinationCount,ambientCombinations:ambientCombinationCount,...this.#metrics};}
+ status(){return {enabled:this.#enabled,keyConfigured:!!this.#key,model:MODEL,programmedCombinations:programmedCombinationCount,conversationTopics:conversations.length,authoredConversationLines:authoredConversationLines.length,ambientCombinations:ambientCombinationCount,...this.#metrics};}
  async #post(path:string,body:unknown){
   const response=await this.#fetch('https://api.openai.com/v1/'+path,{method:'POST',redirect:'error',headers:{Authorization:'Bearer '+this.#key,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
   if(!response.ok)throw new Error('provider_unavailable');
