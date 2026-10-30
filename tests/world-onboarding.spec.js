@@ -145,5 +145,5 @@ test('New players can find company and use public chat before walking or buying'
  expect(await page.evaluate(()=>window.actions.filter(a=>a.action==='say').map(a=>a.data))).toEqual([expect.objectContaining({text:'What’s up?',mode:'normal'})]);
  expect(await page.evaluate(()=>window.actions.some(a=>['buy','place'].includes(a.action)))).toBe(false);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'test-results/world-first-visit-social.png',fullPage:true});
+ await page.screenshot({path:'test-results/world-collection-first-visit-social.png',fullPage:true});
 });
