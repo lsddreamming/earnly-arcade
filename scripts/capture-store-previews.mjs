@@ -22,8 +22,9 @@ try {
   const source=path==='avatars.html'?'https://earnlyarcade.com/'+path:'http://127.0.0.1:4173/'+path;
   await page.goto(source);
   await page.locator(ready).waitFor({state:'visible'});
-  if(path==='avatars.html')await page.locator('#character-stage svg').first().waitFor({state:'visible',timeout:45000});
+  if(path==='avatars.html')await page.locator('#character-stage img').first().waitFor({state:'visible',timeout:45000});
   if(path==='bubble-pop.html')await page.locator('#play').click();
+  if(path==='avatars.html')await page.waitForFunction(()=>[...document.querySelectorAll('#character-stage img')].every(i=>i.complete&&i.naturalWidth>0));
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForTimeout(1500);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),path+' overflows');
