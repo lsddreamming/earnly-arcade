@@ -93,6 +93,10 @@
     box.innerHTML = '<div><div style="font-size:50px;margin-bottom:12px">' + config.icon +
       '</div><strong style="display:block;font-size:24px;margin-bottom:8px">' + config.name +
       '</strong><span style="color:#94a3b8;font-size:13px">Tap here to start</span></div>';
+    if(key==='bounceRun'){
+      box.className='bounce-idle';
+      box.innerHTML='<div class="bounce-idle-sun" aria-hidden="true"></div><div class="bounce-idle-island" aria-hidden="true"></div><div class="bounce-idle-ball" aria-hidden="true"><i></i><i></i></div><div class="bounce-idle-copy"><span class="bounce-idle-tag">CLOUD GARDENS</span><strong>Bounce Run</strong><p>One tap. One jump.<br>How far can you roll?</p><span class="bounce-idle-start">Tap to roll →</span></div>';
+    }
     surface.append(box);
   }
 
@@ -1024,7 +1028,7 @@
     const [c,ctx]=canvasBase();
     const bounceZone=document.createElement('div');
     bounceZone.className='bounce-tap-zone';
-    bounceZone.textContent='👆 TAP ANYWHERE TO JUMP';
+    bounceZone.innerHTML='<span class="bounce-jump-icon" aria-hidden="true">↑</span><span>JUMP <small>Tap anywhere</small></span>';
     surface.insertAdjacentElement('afterend',bounceZone);
     // These controls are installed before the dynamically created canvas.
     // Keep them in normal flow instead of floating over the phone jump area.
@@ -1044,7 +1048,7 @@
     function runLevel(){return 1+Math.floor(cleared/5)}
     function stageName(){
       const l=runLevel();
-      return l<=1?'Warm-up':l<=3?'Bounce Zone':l<=6?'Fast Lane':'Expert Run';
+      return l<=3?'Cloud Gardens':l<=6?'Sunset Peaks':l<=9?'Moonlit Valley':'Aurora Heights';
     }
 
     const physics=BounceRunEngine.create();
@@ -1052,115 +1056,122 @@
     const calm=()=>Arcade.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function draw() {
-      const motion=calm()?0:distance;
-      const palettes=[['#10214b','#448ab0','#85e4cf'],['#29234f','#a6679b','#ffcf9c'],['#152e49','#3c7b91','#b1e4df']];
-      const colors=palettes[Math.floor((runLevel()-1)/3)%palettes.length];
-      const bg=ctx.createLinearGradient(0,0,0,360);
-      bg.addColorStop(0,colors[0]);bg.addColorStop(1,colors[1]);
-      ctx.fillStyle=bg;ctx.fillRect(0,0,360,430);
-      // Three bounded, deterministic scenery layers. No gameplay randomness.
-      ctx.fillStyle=colors[2];ctx.globalAlpha=.8;
-      ctx.beginPath();ctx.arc(280,93,30,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      for(let i=0;i<10;i++){
-        const x=((i*53-motion*.5)%410+410)%410-25;
-        ctx.fillStyle='#e2f6ff66';ctx.fillRect(x,60+(i*31)%115,2,2);
+      // Artwork is deterministic and bounded; the physics owns every hitbox.
+      const reduced=calm(),now=performance.now(),motion=reduced?0:distance;
+      const themes=[
+        {sky:'#2675bd',horizon:'#b5f2ed',sun:'#fff1b4',far:'#78bbcd',near:'#398caa',grass:'#80ebaf',rock:'#255675'},
+        {sky:'#63509e',horizon:'#ffd4b2',sun:'#fff0c3',far:'#b597c1',near:'#786b9d',grass:'#b8e8ac',rock:'#49496f'},
+        {sky:'#182f65',horizon:'#719dbb',sun:'#e1f7ff',far:'#537c9e',near:'#345e7f',grass:'#8ae8d4',rock:'#253f65'},
+        {sky:'#254b78',horizon:'#a7e5cf',sun:'#f1ffcb',far:'#65a5ac',near:'#347f90',grass:'#9cf3bc',rock:'#245a71'}
+      ];
+      const theme=themes[Math.min(3,Math.floor((runLevel()-1)/3))];
+      const fill=(color,x,yy,w,h,r=0)=>{ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,yy,w,h,r);ctx.fill();};
+      const ellipse=(color,x,yy,rx,ry)=>{ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,yy,rx,ry,0,0,Math.PI*2);ctx.fill();};
+      const sky=ctx.createLinearGradient(0,0,0,360);
+      sky.addColorStop(0,theme.sky);sky.addColorStop(1,theme.horizon);
+      ctx.fillStyle=sky;ctx.fillRect(0,0,360,430);
+      // A soft sun and slow clouds give the course depth without obscuring hazards.
+      ellipse(theme.sun+'18',278,112,62,62);ellipse(theme.sun+'25',278,112,47,47);
+      ellipse(theme.sun,278,112,30,30);
+      for(let i=0;i<5;i++){
+        const x=((i*101-motion*.18)%460+460)%460-60,cy=100+(i*47)%130;
+        ellipse('#ffffff33',x,cy,42,8);ellipse('#ffffff55',x-10,cy-5,19,12);ellipse('#ffffff55',x+12,cy-3,24,10);
       }
-      for(let layer=0;layer<2;layer++){
-        const offset=(motion*(layer?.7:.25))%150;
-        ctx.fillStyle=layer?'#173e58':'#285974';
-        ctx.beginPath();ctx.moveTo(-160,360);
-        for(let i=-1;i<5;i++){
-          const x=i*150-offset;
-          ctx.lineTo(x,285+layer*20);ctx.quadraticCurveTo(x+60,120+layer*80,x+150,285+layer*20);
-        }
-        ctx.lineTo(520,360);ctx.closePath();ctx.fill();
-      }
-      const scroll=(distance*5)%36;
-      ctx.fillStyle='#102a3d';ctx.fillRect(0,360,360,70);
-      ctx.fillStyle='#6ce3cb';ctx.fillRect(0,356,360,4);
-      ctx.fillStyle='#c8fff0';ctx.fillRect(0,356,360,1);
-      ctx.fillStyle='#285168';
-      for(let x=-(calm()?0:scroll);x<396;x+=36){ctx.fillRect(x,376,20,3);ctx.fillRect(x+10,389,4,2);}
-      // A compact course label replaces the large instruction panel.
-      ctx.textAlign='left';ctx.fillStyle='#ddf7ff';ctx.font='900 15px system-ui';
-      ctx.fillText(stageName().toUpperCase(),20,30);
-      ctx.font='700 10px system-ui';ctx.fillStyle='#c5dfef';
-      ctx.fillText('LEVEL '+runLevel()+'  ·  '+(5-cleared%5)+' to next level',20,48);
-      ctx.fillStyle='#16364e';ctx.beginPath();ctx.roundRect(20,58,110,4,2);ctx.fill();
-      ctx.fillStyle='#76f3cf';ctx.beginPath();ctx.roundRect(20,58,22*(cleared%5||.1),4,2);ctx.fill();
-      ctx.textAlign='center';
+      // Distant floating islands, then close ridges and tiny garden trees.
+      for(let i=0;i<4;i++){
+        const x=((i*139-motion*.3)%540+540)%540-90,yy=230+(i%2)*33;
+        ctx.fillStyle=theme.far;ctx.beginPath();ctx.moveTo(x,yy);ctx.lineTo(x+72,yy);ctx.lineTo(x+48,yy+42);ctx.lineTo(x+30,yy+57);ctx.closePath();ctx.fill();
+        ellipse('#c3f6d4',x+36,yy,36,7);
+        fill('#527b83',x+34,yy-23,4,23,2);
+        ellipse(theme.near,x+29,yy-27,11,12);ellipse(theme.near,x+42,yy-28,12,13);ellipse(theme.near,x+36,yy-38,12,13);
+        ellipse('#b0efd44d',x+33,yy-41,6,5);
+        fill('#ffffff38',x+36,yy+16,3,15,1);
+        ctx.strokeStyle='#d2f7ed55';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+17,yy+10);ctx.lineTo(x+30,yy+25);ctx.lineTo(x+26,yy+37);ctx.stroke();
+        for(let j=0;j<3;j++){fill('#7fcdb3',x+12+j*17,yy-5,2,6,1);ellipse(j%2?'#ffe4aa':'#ffe2de',x+13+j*17,yy-6,3,2);}
 
+      }
+      ctx.fillStyle=theme.near;ctx.beginPath();ctx.moveTo(0,340);
+      for(let i=-1;i<5;i++){const x=i*140-(motion*.65)%140;ctx.quadraticCurveTo(x+45,268,x+140,328);}
+      ctx.lineTo(360,370);ctx.lineTo(0,370);ctx.closePath();ctx.fill();
+      // A real illustrated track: turf edge, soil strata, stone inlays and vines.
+      fill(theme.rock,0,356,360,74);
+      fill('#153d5a',0,377,360,53);
+      fill(theme.grass,0,354,360,6);fill('#dcffe2',0,354,360,2);
+      const scroll=reduced?0:(distance*5)%48;
+      for(let x=-scroll-48;x<408;x+=48){
+        fill('#8bcaaf',x+4,361,31,6,3);fill('#e4b59044',x+11,374,21,5,2);
+        fill('#97b0b533',x+2,393,14,7,3);fill('#6b93a044',x+27,411,24,5,2);
+        ctx.strokeStyle='#60bba3';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+40,360);ctx.quadraticCurveTo(x+36,374,x+43,387);ctx.stroke();
+        ellipse('#88d5b3',x+39,374,4,2);ellipse('#88d5b3',x+43,383,4,2);
+      }
+      // Glass course card and five clear pips, readable over every sky palette.
+      fill('#123452dc',14,14,182,60,16);fill('#9ee6d833',24,26,3,34,2);
+      ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='900 15px system-ui';ctx.fillText(stageName(),35,36);
+      ctx.fillStyle='#bce2ef';ctx.font='800 9px system-ui';ctx.fillText('LEVEL '+runLevel()+'  ·  NEXT IN '+(5-cleared%5)+' CLEARS',35,51);
+      for(let i=0;i<5;i++)fill(i<cleared%5?'#9bffcd':'#ffffff30',35+i*28,60,22,4,2);
+      // Red crystal hazards share the exact existing obstacle footprint.
       obstacles.forEach(o=>{
-        const grd=ctx.createLinearGradient(o.x,330,o.x+o.w,360);
-        grd.addColorStop(0,'#ff897b');
-        grd.addColorStop(1,'#bc3759');
-        ctx.fillStyle=grd;
-        ctx.beginPath();ctx.roundRect(o.x,330,o.w,26,3);ctx.fill();
-        ctx.fillStyle='#ffd1b8';ctx.fillRect(o.x+3,333,Math.max(2,o.w-6),3);
-
-        ctx.fillStyle='#fca5a5';
-        for(let sx=o.x+5;sx<o.x+o.w-4;sx+=10){
-          ctx.beginPath();
-          ctx.moveTo(sx,330);
-          ctx.lineTo(sx+5,320);
-          ctx.lineTo(sx+10,330);
-          ctx.fill();
+        ellipse('#102a4e44',o.x+o.w/2,358,o.w/2+4,3);
+        const grd=ctx.createLinearGradient(o.x,320,o.x+o.w,356);
+        grd.addColorStop(0,'#ffb184');grd.addColorStop(.45,'#ff6678');grd.addColorStop(1,'#a93569');
+        ctx.fillStyle=grd;ctx.beginPath();ctx.roundRect(o.x,330,o.w,26,4);ctx.fill();
+        ctx.strokeStyle='#ffb59f';ctx.lineWidth=1;ctx.stroke();
+        for(let sx=o.x;sx<o.x+o.w;sx+=10){
+          const right=Math.min(sx+10,o.x+o.w),mid=(sx+right)/2;
+          ctx.fillStyle='#ff8d91';ctx.beginPath();ctx.moveTo(sx,331);ctx.lineTo(mid,320);ctx.lineTo(right,331);ctx.fill();
+          ctx.fillStyle='#ffdab7';ctx.beginPath();ctx.moveTo(sx,331);ctx.lineTo(mid,320);ctx.lineTo(mid,331);ctx.fill();
         }
+        fill('#ffceb088',o.x+3,335,Math.max(2,o.w-6),3,1);
+        ctx.strokeStyle='#812b5999';ctx.beginPath();ctx.moveTo(o.x+o.w*.55,340);ctx.lineTo(o.x+o.w*.35,348);ctx.lineTo(o.x+o.w*.7,354);ctx.stroke();
       });
-
       trail.forEach((p,index)=>{
-        const alpha=(index+1)/(trail.length+1)*.22;
-        ctx.beginPath();
-        ctx.fillStyle='rgba(96,165,250,'+alpha+')';
-        ctx.arc(p.x,p.y,Math.max(2,7-index*.45),0,Math.PI*2);
-        ctx.fill();
+        const alpha=(index+1)/(trail.length+1)*.3;
+        ellipse('rgba(210,255,242,'+alpha+')',p.x-(trail.length-index)*3,p.y,3+index*.4,3+index*.4);
       });
-
-      // Ground shadow, rotating seam, and short landing ripple bring the ball to life.
-      const height=349-y;
-      ctx.fillStyle='#030e2566';ctx.beginPath();ctx.ellipse(80,357,Math.max(6,14-height*.045),3,0,0,Math.PI*2);ctx.fill();
-      const landingAge=performance.now()-landAt;
-      if(landAt&&landingAge<250&&!calm()){
-        ctx.strokeStyle='rgba(129,255,220,'+(1-landingAge/250)+')';ctx.lineWidth=2;
-        ctx.beginPath();ctx.ellipse(80,356,12+landingAge*.08,3+landingAge*.015,0,0,Math.PI*2);ctx.stroke();
+      const height=349-y,landingAge=now-landAt;
+      ellipse('#112c4e55',80,357,Math.max(6,14-height*.045),3);
+      if(landAt&&landingAge<320&&!reduced){
+        const age=landingAge/320;
+        ctx.globalAlpha=1-age;
+        for(let i=0;i<6;i++){const side=i<3?-1:1,k=i%3;ellipse('#e3ffe0',80+side*(9+age*(18+k*9)),354-Math.sin(age*Math.PI)*(3+k*3),3-age*2,2-age);}
+        ctx.globalAlpha=1;
       }
+      // The ball stays the same size; expressive eyes and a seam add character.
       ctx.save();ctx.translate(80,y);
-      const squash=!calm()&&landAt&&landingAge<150?Math.sin(landingAge/150*Math.PI)*.18:0;
+      const squash=!reduced&&landAt&&landingAge<150?Math.sin(landingAge/150*Math.PI)*.18:0;
       ctx.scale(1+squash,1-squash);
-      const glow=ctx.createRadialGradient(-4,-5,1,0,0,12);
-      glow.addColorStop(0,'#fff');glow.addColorStop(.65,'#c4f1ff');glow.addColorStop(1,'#65a7ff');
-      ctx.beginPath();ctx.fillStyle=glow;ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#e0f7ff';ctx.lineWidth=1.5;ctx.stroke();
-      ctx.rotate(calm()?0:distance*.15);ctx.strokeStyle='#4587bd88';ctx.lineWidth=2;
-      ctx.beginPath();ctx.ellipse(0,0,5,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
-      ctx.fillStyle='#aacddd';ctx.font='700 10px system-ui';
-      ctx.fillText('TAP · SPACE · ↑  =  JUMP',180,406);
-      ctx.fillStyle='#92adbf';ctx.font='700 9px system-ui';
-      ctx.fillText('Close pair? One jump clears both.',180,421);
-      if(clearAt&&performance.now()-clearAt<650){
-        ctx.fillStyle='#abffe1';ctx.font='900 13px system-ui';
-        ctx.fillText('CLEAR!',80,calm()?290:290-(performance.now()-clearAt)*.025);
+      const ball=ctx.createRadialGradient(-4,-5,1,0,0,12);
+      ball.addColorStop(0,'#fffce9');ball.addColorStop(.55,'#ffdf76');ball.addColorStop(1,'#ed9c44');
+      ctx.beginPath();ctx.fillStyle=ball;ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff3bf';ctx.lineWidth=1;ctx.stroke();
+      ctx.save();ctx.rotate(reduced?0:distance*.15);ctx.strokeStyle='#b9773944';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,0,5,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ellipse('#33344f',2,-2,1.5,2.3);ellipse('#33344f',7,-2,1.5,2.3);ellipse('#ff957d',0,2,2,1);
+      ctx.strokeStyle='#68473b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(4,1,2,0,Math.PI);ctx.stroke();ctx.restore();
+      ctx.textAlign='center';
+      if(clearAt&&now-clearAt<650){
+        const age=(now-clearAt)/650;ctx.globalAlpha=1-age;
+        fill('#113e56e6',48,278-(reduced?0:age*15),64,24,12);
+        ctx.fillStyle='#baffd5';ctx.font='900 11px system-ui';ctx.fillText('NICE!',80,294-(reduced?0:age*15));ctx.globalAlpha=1;
       }
 
       if(combo>=2){
         ctx.fillStyle='#fef3c7';
         ctx.font='900 12px Arial';
-        ctx.fillText('🔥 '+combo+' CLEAR COMBO',180,78);
+        ctx.fillText(combo+' CLEAR STREAK',180,100);
       }
 
       if(performance.now()<levelFlashUntil){
         ctx.fillStyle='rgba(15,23,42,.82)';
         ctx.beginPath();
-        ctx.roundRect(76,92,208,52,14);
+        ctx.roundRect(76,122,208,52,14);
         ctx.fill();
         ctx.strokeStyle='#60a5fa';
         ctx.stroke();
         ctx.fillStyle='#dbeafe';
         ctx.font='900 16px Arial';
-        ctx.fillText(levelFlashText,180,114);
+        ctx.fillText(levelFlashText,180,144);
         ctx.fillStyle='#93c5fd';
         ctx.font='800 10px Arial';
-        ctx.fillText('SPEED UP!',180,132);
+        ctx.fillText('NEW STRETCH · KEEP ROLLING',180,162);
       }
 
       if(performance.now()<readyUntil){

@@ -15,3 +15,30 @@ html body.mini-bounceRun.game-active .bounce-session-controls [hidden]{display:n
   html body.mini-bounceRun.game-active .bounce-tap-zone{width:min(94vw,400px)!important;height:46px!important;margin:8px auto 0!important;font-size:12px!important;background:linear-gradient(120deg,#173e55,#102b43)!important;border-color:#4baca8!important;color:#c9fff0!important}
 }
 .bounce-session-controls:empty{display:none}
+
+/* Cloud Gardens: a bright illustrated course with warm gold jump controls. */
+body.mini-bounceRun{background:radial-gradient(ellipse at 25% 0%,#204d6b 0,transparent 65%),#0a1e32;--mini-accent:136,235,194}
+body.mini-bounceRun .mini-surface{border:1px solid #a5f5d46b!important;box-shadow:0 16px 40px #0005,0 0 0 5px #8ee6c308!important;overflow:hidden}
+body.mini-bounceRun .page-header h1{color:#f1fff7;letter-spacing:-.7px}
+body.mini-bounceRun .meta-pill{background:linear-gradient(145deg,#173a50,#102b40)!important;border-color:#7fcebc33!important}
+html body.mini-bounceRun.game-active .bounce-tap-zone{display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(115deg,#ffe7a1,#ffc86c)!important;color:#44351f!important;border:1px solid #fff1bf!important;box-shadow:0 4px 0 #9a6b34,0 8px 22px #0003;font-size:16px!important;letter-spacing:1.5px}
+.bounce-jump-icon{display:grid;place-items:center;width:28px;height:28px;border:1px solid #7d5a3f55;border-radius:50%;font-size:22px;line-height:1}
+.bounce-tap-zone small{font-size:10px;font-weight:700;letter-spacing:.2px;margin-left:8px;opacity:.75}
+html body.mini-bounceRun.game-active .bounce-tap-zone:active{transform:translateY(3px);box-shadow:0 1px 0 #9a6b34}
+html body.mini-bounceRun.game-active .bounce-session-controls #earnlyPauseButton{background:#183d50!important;border:1px solid #74c6b74d!important;color:#d1f9e7!important}
+html body.mini-bounceRun.game-active .bounce-session-controls #earnlyQuitButton{background:#122e42!important;border:1px solid #7daabd33!important;color:#b7ceda!important}
+@media(prefers-reduced-motion:reduce){html body.mini-bounceRun.game-active .bounce-tap-zone:active{transform:none}}
+body.mini-bounceRun .bounce-idle{position:relative;overflow:hidden;background:linear-gradient(#2675bd,#b5f2ed);isolation:isolate;height:390px!important;color:#fff}
+.bounce-idle::before{content:'';position:absolute;width:420px;height:160px;bottom:-60px;left:-30px;border-radius:50%;background:#398caa;z-index:-1;box-shadow:120px -20px 0 #78bbcd}
+.bounce-idle-sun{position:absolute;width:70px;height:70px;border-radius:50%;background:#fff1b4;right:27px;top:35px;box-shadow:0 0 0 15px #fff1b418;z-index:-1}
+.bounce-idle-island{position:absolute;width:120px;height:25px;border-radius:50%;background:#baffd4;left:-36px;top:128px;transform:rotate(-10deg);box-shadow:230px 60px 0 #baffd466;z-index:-1}
+.bounce-idle-island::after{content:'';position:absolute;top:15px;left:0;width:120px;height:80px;background:#65aab9;clip-path:polygon(0 0,100% 0,55% 100%,30% 70%);z-index:-1}
+.bounce-idle-copy{margin-top:90px;text-shadow:0 2px 16px #143c7866}
+.bounce-idle-copy strong{display:block;font-size:32px;letter-spacing:-1px;line-height:1.2;margin:10px 0}
+.bounce-idle-copy p{font-size:14px;line-height:1.55;color:#e8fffa;margin:10px 0 22px}
+.bounce-idle-tag{font-size:9px;font-weight:900;letter-spacing:2px;background:#153b6088;border:1px solid #c7fff233;border-radius:20px;padding:6px 13px}
+.bounce-idle-start{display:inline-block;background:#ffdc8a;color:#49351f;padding:12px 26px;border-radius:14px;font-size:13px;font-weight:900;text-shadow:none;box-shadow:0 4px 0 #ab7f43}
+.bounce-idle-ball{position:absolute;top:60px;left:calc(50% - 25px);width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fffce9,#ffdf76 55%,#ed9c44);border:2px solid #fff3bf;box-shadow:0 12px 24px #14476933;transform:rotate(-12deg)}
+.bounce-idle-ball i{position:absolute;top:20px;left:29px;width:4px;height:7px;border-radius:50%;background:#33344f}
+.bounce-idle-ball i+i{left:38px}
+.bounce-idle-ball::after{content:'';position:absolute;left:30px;top:29px;width:11px;height:5px;border-bottom:2px solid #68473b;border-radius:50%}
