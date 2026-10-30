@@ -2395,6 +2395,21 @@ const Arcade = (() => {
       tone(390, 0.075, 0.025, 'triangle', 0, 760);
       tone(780, 0.035, 0.012, 'sine', 0.045, 900);
       vibrate(8);
+    } else if (kind === 'catch-coin') {
+      tone(1160, 0.045, 0.014, 'sine', 0, 1460);
+      tone(1740, 0.06, 0.008, 'sine', 0.025);
+    } else if (kind === 'catch-streak') {
+      tone(880, 0.06, 0.017, 'sine');
+      tone(1175, 0.07, 0.015, 'sine', 0.045);
+      tone(1568, 0.1, 0.013, 'sine', 0.09);
+      vibrate(10);
+    } else if (kind === 'catch-miss') {
+      tone(260, 0.08, 0.014, 'triangle', 0, 180);
+      vibrate(12);
+    } else if (kind === 'catch-bomb') {
+      tone(140, 0.13, 0.022, 'triangle', 0, 55);
+      tone(70, 0.09, 0.012, 'sine', 0.035);
+      vibrate(24);
     } else if (kind === 'score') {
       tone(880, 0.07, 0.026, 'sine');
       tone(1320, 0.09, 0.024, 'sine', 0.045);

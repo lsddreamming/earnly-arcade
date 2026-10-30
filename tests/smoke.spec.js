@@ -2693,3 +2693,70 @@ for(const motion of ['reduce','no-preference'])test('Coin Catch rapid feedback c
  expect(await page.evaluate(()=>catchEffects.length)).toBe(1);
  await page.evaluate(()=>reset());expect(await page.evaluate(()=>catchEffects.length)).toBe(0);
 });
+
+test('Coin Catch streaks celebrate five catches, survive level changes, and reset on strikes',async({page})=>{
+ await page.route('https://**',route=>route.abort());
+ await page.goto('/coincatch.html');
+ const state=await page.evaluate(()=>{
+  Arcade.setBest('coinCatch',100);reset();running=true;const sounds=[];Arcade.feedback=kind=>sounds.push(kind);
+  function drop(bomb=false,miss=false){const now=performance.now();lastFrame=now-16.67;lastSpawn=now;drops=[{x:basket.x+basket.w/2,y:miss?530:basket.y-23,r:14,speed:4,bomb}];loop(now);cancelAnimationFrame(animation);}
+  for(let i=0;i<5;i++)drop();
+  const five={score,streak,bestStreak,cue:catchEffects[0].text,reward:rewardFor(score),basket:{...basket}};
+  nextLevel();clearTimeout(levelBannerTimer);levelBannerTimer=null;transitioning=false;
+  const carried=streak;
+  for(let i=5;i<40;i++)drop();
+  const burst={sparks:catchSparks.length,cues:catchEffects.length,streak};
+  drop(false,true);const missed={streak,bestStreak,misses};drop();drop(true);
+  const bombed={streak,bestStreak,misses,score};
+  reset();return {five,carried,burst,missed,bombed,sounds,cleared:catchSparks.length===0&&catchEffects.length===0&&basketPulse===null&&streak===0};
+ });
+ expect(state.five).toEqual({score:5,streak:5,bestStreak:5,cue:'5 IN A ROW!',reward:0,basket:{x:137,y:448,w:86,h:24}});
+ expect(state.carried).toBe(5);expect(state.burst.sparks).toBeLessThanOrEqual(40);expect(state.burst.cues).toBe(1);expect(state.burst.streak).toBe(40);
+ expect(state.missed).toEqual({streak:0,bestStreak:40,misses:1});expect(state.bombed).toEqual({streak:0,bestStreak:40,misses:3,score:41});
+ expect(state.sounds).toContain('catch-streak');expect(state.sounds).toContain('catch-miss');expect(state.sounds).toContain('catch-bomb');expect(state.cleared).toBe(true);
+});
+
+test('Coin Catch celebrates a saved personal best once and still awards the normal result',async({page})=>{
+ await page.route('https://**',route=>route.abort());await page.setViewportSize({width:390,height:844});await page.goto('/coincatch.html');
+ const live=await page.evaluate(()=>{
+  Arcade.setBest('coinCatch',4);reset();running=true;setStatus('Running','running');window.catchSounds=[];Arcade.feedback=kind=>window.catchSounds.push(kind);
+  for(let i=0;i<6;i++){const now=performance.now();lastFrame=now-16.67;lastSpawn=now;drops=[{x:180,y:basket.y-23,r:14,speed:4,bomb:false}];loop(now);cancelAnimationFrame(animation);}
+  drops=[{x:74,y:120,bomb:false},{x:265,y:230,bomb:true}];draw();
+  return {score,streak,cue:catchEffects[0].text,savedBest:Arcade.best('coinCatch').value,newBestSounds:window.catchSounds.filter(s=>s==='newBest').length};
+ });
+ expect(live).toEqual({score:6,streak:6,cue:'NEW BEST · 5 catches',savedBest:4,newBestSounds:1});
+ await page.screenshot({path:test.info().outputPath('coin-catch-new-best.png')});
+ const result=await page.evaluate(()=>{
+  let award,screen;Arcade.earn=(amount,label,evidence)=>{award={amount,evidence};};Arcade.gameResult=options=>{screen=options;};finish();
+  return {award,title:screen.title,extra:screen.extra,best:Arcade.best('coinCatch').value,score:screen.score,coins:screen.coins};
+ });
+ expect(result.award).toEqual({amount:4,evidence:{kind:'game',game:'coinCatch',metric:6}});expect(result.title).toBe('Coin Catch — New Best!');expect(result.extra).toContain('🔥 Best streak: 6 in a row');expect(result.best).toBe(6);expect(result.score).toBe(6);expect(result.coins).toBe(4);
+});
+
+for(const motion of ['reduce','no-preference'])test('Coin Catch rim effects respect '+motion+' without consuming spawn randomness',async({page})=>{
+ await page.route('https://**',route=>route.abort());await page.emulateMedia({reducedMotion:motion});await page.goto('/coincatch.html');await page.clock.install();
+ const state=await page.evaluate(()=>{
+  reset();let randomCalls=0;const random=Math.random;Math.random=()=>{randomCalls++;return .5;};
+  try{for(let i=0;i<100;i++)rimBurst(180);draw();return {sparks:catchSparks.length,randomCalls,basket:{...basket}};}finally{Math.random=random;}
+ });
+ expect(state.randomCalls).toBe(0);expect(state.sparks).toBe(motion==='reduce'?0:40);expect(state.basket).toEqual({x:137,y:448,w:86,h:24});
+ await page.clock.runFor(381);expect(await page.evaluate(()=>{draw();return catchSparks.length;})).toBe(0);
+});
+
+test('Coin Catch sounds share the sound toggle and advertisement mute',async({page})=>{
+ await page.route('https://**',route=>route.abort());
+ await page.addInitScript(()=>{
+  localStorage.setItem('arcadeSound','off');window.catchAudioNotes=[];
+  const param={setValueAtTime(){},exponentialRampToValueAtTime(){}};
+  window.AudioContext=class{state='running';currentTime=0;destination={};resume(){return Promise.resolve();}suspend(){this.state='suspended';return Promise.resolve();}createGain(){return {gain:param,connect(){}};}createOscillator(){return {frequency:param,detune:param,connect(){},start(){window.catchAudioNotes.push('start');},stop(){window.catchAudioNotes.push('stop');}};}};
+ });
+ await page.goto('/coincatch.html');
+ const sound=await page.evaluate(()=>{
+  const play=()=>{for(const kind of ['catch-coin','catch-streak','catch-miss','catch-bomb'])Arcade.feedback(kind);};
+  play();const off=window.catchAudioNotes.length;
+  localStorage.setItem('arcadeSound','on');window.dispatchEvent(new Event('earnly-web-ad-started'));play();const ad=window.catchAudioNotes.length;
+  window.dispatchEvent(new Event('earnly-web-ad-ended'));play();const enabled=window.catchAudioNotes.length;
+  localStorage.setItem('arcadeSound','off');play();return {off,ad,enabled,afterOff:window.catchAudioNotes.length};
+ });
+ expect(sound).toEqual({off:0,ad:0,enabled:16,afterOff:16});
+});
