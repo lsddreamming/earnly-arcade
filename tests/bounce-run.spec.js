@@ -64,3 +64,21 @@ for(const motion of ['reduce','no-preference'])test('Bounce Run landscape and re
  await page.screenshot({path:test.info().outputPath('bounce-run-'+motion+'.png')});
  expect(errors).toEqual([]);
 });
+
+for(const height of [640,740])test('Bounce Run phone controls stay below the jump area at '+height,async({page})=>{
+ await page.setViewportSize({width:390,height});
+ const errors=await open(page);
+ const jump=page.locator('.bounce-tap-zone');
+ const pause=page.locator('.bounce-session-controls #earnlyPauseButton');
+ const quit=page.locator('.bounce-session-controls #earnlyQuitButton');
+ await expect(jump).toBeVisible();await expect(pause).toBeVisible();await expect(quit).toBeVisible();
+ const j=await jump.boundingBox(),p=await pause.boundingBox(),q=await quit.boundingBox();
+ expect(p.y).toBeGreaterThanOrEqual(j.y+j.height+4);
+ expect(q.y).toBeGreaterThanOrEqual(j.y+j.height+4);
+ expect(p.y+p.height).toBeLessThanOrEqual(height);
+ expect(q.x).toBeGreaterThanOrEqual(p.x+p.width+4);
+ await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+ await pause.click();await page.getByRole('button',{name:/Resume/}).click();
+ await page.screenshot({path:test.info().outputPath('bounce-run-phone-'+height+'.png')});
+ expect(errors).toEqual([]);
+});

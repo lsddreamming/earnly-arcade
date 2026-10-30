@@ -1,0 +1,17 @@
+/* Bounce Run's compact play screen and in-flow session controls. */
+body.mini-bounceRun.game-active #earnlyCompactLeaderboard{display:none!important}
+body.mini-bounceRun.game-active .mini-surface{max-width:400px}
+.bounce-session-controls{display:flex;gap:10px;align-items:center;width:min(94vw,400px);margin:8px auto 4px;box-sizing:border-box}
+html body.mini-bounceRun.game-active .bounce-session-controls :is(#earnlyPauseButton,#earnlyQuitButton){position:static!important;inset:auto!important;transform:none!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;min-height:46px!important;height:46px!important;padding:8px 12px!important;border-radius:14px!important;box-sizing:border-box!important;text-decoration:none!important}
+html body.mini-bounceRun.game-active .bounce-session-controls #earnlyPauseButton{flex:1!important;width:auto!important;max-width:none!important;font-size:15px!important}
+html body.mini-bounceRun.game-active .bounce-session-controls #earnlyQuitButton{flex:0 0 84px!important;width:84px!important;font-size:12px!important}
+html body.mini-bounceRun.game-active .bounce-session-controls [hidden]{display:none!important}
+@media(max-width:600px){
+  html body.mini-bounceRun.game-active main.container{padding-bottom:max(12px,env(safe-area-inset-bottom))!important}
+  html body.mini-bounceRun.game-active .page-header{padding:0!important;gap:3px!important;margin:0 auto 7px!important}
+  html body.mini-bounceRun.game-active .game-meta{gap:5px!important}
+  html body.mini-bounceRun.game-active .meta-pill{min-height:34px!important;font-size:10px!important;padding:4px!important;border-radius:11px!important}
+  html body.mini-bounceRun.game-active .mini-surface{width:min(94vw,400px,calc((100svh - 238px)*.8372))!important;margin:0 auto!important}
+  html body.mini-bounceRun.game-active .bounce-tap-zone{width:min(94vw,400px)!important;height:46px!important;margin:8px auto 0!important;font-size:12px!important;background:linear-gradient(120deg,#173e55,#102b43)!important;border-color:#4baca8!important;color:#c9fff0!important}
+}
+.bounce-session-controls:empty{display:none}

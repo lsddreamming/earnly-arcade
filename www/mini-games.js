@@ -1026,6 +1026,19 @@
     bounceZone.className='bounce-tap-zone';
     bounceZone.textContent='👆 TAP ANYWHERE TO JUMP';
     surface.insertAdjacentElement('afterend',bounceZone);
+    // These controls are installed before the dynamically created canvas.
+    // Keep them in normal flow instead of floating over the phone jump area.
+    const controls=document.createElement('div');
+    controls.className='bounce-session-controls';
+    bounceZone.insertAdjacentElement('afterend',controls);
+    const parked=[];
+    if(matchMedia('(max-width:600px)').matches){
+      for(const id of ['earnlyPauseButton','earnlyQuitButton']){
+        const button=document.getElementById(id);
+        if(button){const marker=document.createComment('bounce control home');button.before(marker);parked.push({button,marker});controls.append(button);}
+      }
+    }
+
     let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,readyUntil=0,queuedJump=false,lastClearAt=0,combo=0,bestCombo=0,levelFlashUntil=0,levelFlashText='',trail=[];
 
     function runLevel(){return 1+Math.floor(cleared/5)}
@@ -1286,6 +1299,8 @@
         c.removeEventListener('pointerdown',onPointer);
         bounceZone.removeEventListener('pointerdown',jump);
         bounceZone.remove();
+        for(const {button,marker} of parked){marker.replaceWith(button);}
+        controls.remove();
         document.removeEventListener('pointerdown',onWideJump);
         c.removeEventListener('touchstart',blockGesture);
         c.removeEventListener('gesturestart',blockGesture);
