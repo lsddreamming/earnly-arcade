@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/coincatch.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
-  <link rel="stylesheet" href="coincatch.css?v=1">
+  <link rel="stylesheet" href="coincatch.css?v=2">
 </head>
 <body class="classic-game-ui coincatch-page">
   <main class="container">
@@ -110,13 +110,43 @@
     const START_TIP_MS=6000;
     let liveTipTimer=null;
     let drops=[],score=0,misses=0,timeLeft=LEVEL_SECONDS,level=1,running=false,starting=false,transitioning=false,animation=null,timer=null,lastSpawn=0,lastFrame=0;
-    let catchEffects=[];
+    let catchEffects=[],catchSparks=[],basketPulse=null,streak=0,bestStreak=0,runBest=0,bestAnnounced=false,celebrationUntil=0,lastCatchSoundAt=-Infinity;
     const calmCatch=()=>Arcade.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
     // One replaceable cue prevents rapid catches/misses from covering the basket.
-    function catchFeedback(x,y,text,color){catchEffects=[{x:180,y:410,text,color,expiresAt:performance.now()+700}];}
+    function catchFeedback(x,y,text,color,duration=700){catchEffects=[{x:180,y:410,text,color,duration,expiresAt:performance.now()+duration}];}
+    function catchSound(kind){const now=performance.now();if(kind==='catch-coin'&&now-lastCatchSoundAt<65)return;lastCatchSoundAt=now;Arcade.feedback(kind);}
+    // Presentation never samples the gameplay random stream or moves the catch mouth.
+    function rimBurst(x,bomb=false){
+      const now=performance.now();basketPulse={at:now,bomb};
+      if(calmCatch())return;
+      catchSparks=catchSparks.filter(p=>now-p.at<380).slice(-32);
+      for(let i=0;i<8;i++){
+        const angle=-Math.PI+(i+.5)*Math.PI/8;
+        catchSparks.push({x:Math.max(basket.x+5,Math.min(basket.x+basket.w-5,x)),y:basket.y-7,vx:Math.cos(angle)*(18+i%3*7),vy:Math.sin(angle)*(35+i%2*18),at:now,color:bomb?'#fda4af':i%2?'#fff8ca':'#ffd66b'});
+      }
+    }
+    function drawCatchSparks(){
+      const now=performance.now();catchSparks=catchSparks.filter(p=>now-p.at<380);
+      if(calmCatch()){catchSparks=[];return;}
+      ctx.save();
+      for(const p of catchSparks){const t=(now-p.at)/1000;ctx.globalAlpha=1-t/.38;ctx.fillStyle=p.color;ctx.fillRect(p.x+p.vx*t-1.5,p.y+p.vy*t+65*t*t-1.5,3,3);}
+      ctx.restore();
+    }
+    function celebrateCatch(x){
+      streak++;bestStreak=Math.max(bestStreak,streak);rimBurst(x);
+      const newBest=runBest>0&&!bestAnnounced&&score>runBest;
+      if(newBest){
+        bestAnnounced=true;celebrationUntil=performance.now()+1400;catchFeedback(x,410,'NEW BEST · '+score+' catches','#a4f8d9',1400);
+        showLiveTip('New personal best! Keep going.',2400);catchSound('newBest');
+      }else if(streak%5===0){
+        celebrationUntil=performance.now()+900;catchFeedback(x,410,streak+' IN A ROW!','#a4f8d9',900);
+        showLiveTip(streak+' catches without a strike!',1500);catchSound('catch-streak');
+      }else{if(performance.now()>=celebrationUntil)catchFeedback(x,410,'+1 catch','#ffe58e');catchSound('catch-coin');}
+      scoreEl.classList.toggle('catch-record',bestAnnounced);
+    }
     function drawCatchFeedback(){
       const now=performance.now();catchEffects=catchEffects.filter(e=>e.expiresAt>now);
-      for(const e of catchEffects){const remaining=e.expiresAt-now;ctx.save();ctx.globalAlpha=Math.min(1,remaining/180);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 15px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#07131f';const y=e.y-(calmCatch()?0:(700-remaining)*.025);ctx.strokeText(e.text,e.x,y);ctx.fillStyle=e.color;ctx.fillText(e.text,e.x,y);ctx.restore();}
+      for(const e of catchEffects){const remaining=e.expiresAt-now;ctx.save();ctx.globalAlpha=Math.min(1,remaining/180);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 15px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#07131f';const y=e.y-(calmCatch()?0:(e.duration-remaining)*.025);ctx.strokeText(e.text,e.x,y,328);ctx.fillStyle=e.color;ctx.fillText(e.text,e.x,y,328);ctx.restore();}
     }
     function showLiveTip(text,duration=START_TIP_MS){
       clearTimeout(liveTipTimer);
@@ -149,7 +179,7 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){catchEffects=[];cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){catchEffects=[];catchSparks=[];basketPulse=null;streak=0;bestStreak=0;runBest=Arcade.best('coinCatch').value;bestAnnounced=false;celebrationUntil=0;lastCatchSoundAt=-Infinity;scoreEl.classList.remove('catch-record');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
       const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
       const previous=drops[drops.length-1];
@@ -193,17 +223,20 @@
     }
     function drawBasket(){
       const x=basket.x,y=basket.y,w=basket.w,h=basket.h;
+      const age=basketPulse?performance.now()-basketPulse.at:1000;
+      const bounce=!calmCatch()&&age>=0&&age<190?Math.sin(age/190*Math.PI)*3:0;
+      const rimColor=age<190?(basketPulse.bomb?'#fda4af':'#fff3ae'):'#baf7df';
       ctx.save();
       ctx.shadowColor='rgba(111,245,202,.28)';ctx.shadowBlur=14;
       const grad=ctx.createLinearGradient(x,y,x,y+h+12);
       grad.addColorStop(0,'#74e8c3');grad.addColorStop(.2,'#2f9e8c');grad.addColorStop(1,'#174959');
       ctx.fillStyle=grad;
       ctx.beginPath();
-      ctx.moveTo(x+7,y);ctx.lineTo(x+w-7,y);ctx.lineTo(x+w-15,y+h+12);ctx.lineTo(x+15,y+h+12);ctx.closePath();ctx.fill();
+      ctx.moveTo(x+7,y);ctx.lineTo(x+w-7,y);ctx.lineTo(x+w-15,y+h+12+bounce);ctx.lineTo(x+15,y+h+12+bounce);ctx.closePath();ctx.fill();
       ctx.shadowBlur=0;
       // The dark opening aligns with the actual catch mouth, not the basket sides.
       ctx.fillStyle='#071c22';ctx.fillRect(x+5,y-7,w-10,8);
-      ctx.strokeStyle='#baf7df';ctx.lineWidth=2;ctx.strokeRect(x+5,y-7,w-10,8);
+      ctx.strokeStyle=rimColor;ctx.lineWidth=2;ctx.strokeRect(x+5,y-7,w-10,8);
       ctx.fillStyle='#dcfff0';ctx.fillRect(x+5,y-7,w-10,2);
       ctx.fillStyle='#102f3d';ctx.beginPath();ctx.roundRect(x+w/2-16,y+8,32,15,5);ctx.fill();
       ctx.fillStyle='#b4f9dd';ctx.beginPath();ctx.roundRect(x+w/2-9,y+14,18,3,1.5);ctx.fill();
@@ -232,7 +265,7 @@
         }
       }
       drops.forEach(d=>{if(d.bomb)drawBomb(d);else drawCoin(d)});
-      drawBasket();drawCatchFeedback();
+      drawBasket();drawCatchSparks();drawCatchFeedback();
     }
     let levelBannerTimer=null;
     function showLevelBanner(){
@@ -295,17 +328,18 @@
       scoreEl.textContent=String(score);levelEl.textContent=String(level);timeEl.textContent=String(Math.max(0,timeLeft));missesEl.textContent=String(misses);
       const earned=rewardFor(score);rewardPreviewEl.textContent=String(earned);
       Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
-      Arcade.feedback(reason?'fail':'success');const result=Arcade.recordResult('coinCatch',score);
+      const result=Arcade.recordResult('coinCatch',score);
+      Arcade.feedback(result.newBest?(bestAnnounced?'success':'newBest'):reason?'fail':'success');
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='Play Again';setStatus(reason?'5 Strikes':'Run Complete','over');draw();
-      Arcade.gameResult({icon:'💰',title:reason?'Coin Catch — Run Over':'Run Complete',badgeText:reason?'❌ 5 STRIKES':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
-        extra:['🏁 Level reached: '+level,'❌ Strikes: '+misses+'/'+MAX_MISSES,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=25?'🔥 Great catching run!':'Keep the basket moving.'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+      Arcade.gameResult({icon:'💰',title:result.newBest?'Coin Catch — New Best!':reason?'Coin Catch — Run Over':'Run Complete',badgeText:result.newBest?'🏆 NEW PERSONAL BEST':reason?'❌ 5 STRIKES':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
+        extra:['🏁 Level reached: '+level,'❌ Strikes: '+misses+'/'+MAX_MISSES,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🔥 Best streak: '+bestStreak+' in a row'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
     function addMiss(amount,reason){
       if(!running)return true;
       misses=Math.min(MAX_MISSES,misses+Math.max(1,amount||1));
       missesEl.textContent=String(misses);
       catchMissHud.classList.toggle('danger',misses>=MAX_MISSES-1);
-      Arcade.feedback('fail');
+      streak=0;celebrationUntil=0;Arcade.feedback(amount===2?'catch-bomb':'catch-miss');
       showLiveTip(reason+' · '+misses+'/'+MAX_MISSES+' strikes',1500);
       if(misses>=MAX_MISSES){finish('strikes');return true}
       return false;
@@ -327,10 +361,9 @@
         const overlapsBasket=previousBottom<=basketTop&&d.y+d.r>=basketTop&&d.x+d.r*.65>=catchLeft&&d.x-d.r*.65<=catchRight;
         if(overlapsBasket){
           drops.splice(i,1);
-          if(d.bomb)catchFeedback(d.x,basket.y-28,'+2 strikes','#fda4af');
+          if(d.bomb){rimBurst(d.x,true);catchFeedback(d.x,basket.y-28,'+2 strikes','#fda4af');}
           if(d.bomb){if(addMiss(2,'💣 Bomb caught'))return;continue}
-          score++;catchFeedback(d.x,basket.y-28,'+1 catch','#ffe58e');scoreEl.textContent=String(score);refreshReward();
-          if(score===1 || score%5===0) Arcade.feedback('score');
+          score++;celebrateCatch(d.x);scoreEl.textContent=String(score);refreshReward();
         }else if(d.y-d.r>canvas.height){
           drops.splice(i,1);
           if(!d.bomb)catchFeedback(Math.max(55,Math.min(305,d.x)),468,'Miss · +1 strike','#fda4af');
@@ -364,7 +397,7 @@
         showLiveTip('Swipe anywhere · Catch coins · Avoid bombs',START_TIP_MS);
         levelEndsAt=performance.now()+LEVEL_SECONDS*1000;timer=setInterval(tickTimer,250);animation=requestAnimationFrame(loop);});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{if(!running||!pauseStartedAt)return;const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;if(transitioning){
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;clearTouchControls();if(levelBannerTimer){clearTimeout(levelBannerTimer);levelBannerTimer=null;}},resume:()=>{if(!running||!pauseStartedAt)return;const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;for(const e of catchEffects)e.expiresAt+=d;for(const p of catchSparks)p.at+=d;if(basketPulse)basketPulse.at+=d;if(celebrationUntil)celebrationUntil+=d;lastCatchSoundAt+=d;if(lastSpawn)lastSpawn+=d;if(levelEndsAt)levelEndsAt+=d;lastFrame=0;clearInterval(timer);timer=null;cancelAnimationFrame(animation);animation=null;if(transitioning){
       showLevelBanner();
       clearTimeout(levelBannerTimer);
       levelBannerTimer=setTimeout(()=>{
