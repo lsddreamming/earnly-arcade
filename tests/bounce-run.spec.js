@@ -5,7 +5,14 @@ async function open(page,path='/mini.html?game=bounceRun'){
   await page.route('https://**',route=>route.abort());
   await page.route('**/bounce-run-engine.js',async route=>{
     const response=await route.fetch();
-    await route.fulfill({response,body:await response.text()+`;const originalBounceCreate=BounceRunEngine.create;BounceRunEngine.create=(...args)=>window.testBounce=originalBounceCreate(...args);`});
+    await route.fulfill({response,body:await response.text()+`;const originalBounceCreate=BounceRunEngine.create;BounceRunEngine.create=(...args)=>{
+      const engine=originalBounceCreate(...args);
+      // Isolate controls/rewards from random waves before the first frame.
+      // Actual generated-wave reachability is covered by test-bounce-run.cjs.
+      engine.state.wait=Number.MAX_SAFE_INTEGER;
+      window.testBounce=engine;
+      return engine;
+    };`});
   });
   await page.goto(path);
   await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
@@ -13,13 +20,13 @@ async function open(page,path='/mini.html?game=bounceRun'){
   if(await start.isVisible())await start.click();
   else await page.locator('#surface').tap({position:{x:120,y:120}});
   await expect(page.locator('#surface canvas')).toBeVisible();
-  await page.waitForTimeout(2000);
+  await expect.poll(()=>page.evaluate(()=>window.testBounce?.state.ticks||0)).toBeGreaterThan(0);
   return errors;
 }
 for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
  test('Bounce Run one tap jumps, pauses safely, and preserves result rewards '+path,async({page})=>{
   const errors=await open(page,path);
-  await page.evaluate(()=>{testBounce.state.wait=10000;});
+  expect(await page.evaluate(()=>testBounce.state.alive)).toBe(true);
   expect(await page.evaluate(()=>testBounce.state.jumps)).toBe(0);
   if(test.info().project.name==='mobile-webkit')await page.locator('#surface canvas').tap();
   else await page.locator('#surface canvas').click();
@@ -33,6 +40,8 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
   expect(await page.evaluate(()=>testBounce.state.ticks)).toBe(ticks);
   await page.getByRole('button',{name:/Resume/}).click();
   await expect.poll(()=>page.evaluate(()=>testBounce.state.ticks)).toBeGreaterThan(ticks);
+  await expect(page.locator('dialog.game-result-dialog')).toBeHidden();
+  expect(await page.evaluate(()=>testBounce.state.alive)).toBe(true);
   await page.evaluate(()=>{
     window.bounceAward=null;Arcade.earn=(amount,label,evidence)=>window.bounceAward={amount,label,evidence};
     Object.assign(testBounce.state,{y:349,vy:0,buffer:0,distance:430,obstacles:[{x:80,w:20,speed:1}]});
