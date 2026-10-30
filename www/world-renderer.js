@@ -1024,7 +1024,7 @@
     facing:changed&&Math.abs(dx-dy)>.001?(dx-dy<0?'left':'right'):(previous?.facing||'right')});}
 
   petReaction(packet){const pet=this.staff.get(packet.staffId);if(!pet||!pet.species||packet.reaction!=='happy')return;pet.happyUntil=performance.now()+4000;this.bubble({userId:packet.staffId,text:'♥',mode:'pet'});}
-  bubble(packet){this.bubbles.set(packet.userId,{text:packet.text,until:performance.now()+6000,mode:packet.mode});}
+  bubble(packet){const readingTime=Math.min(20000,Math.max(6000,2000+Array.from(packet.text).length*65));this.bubbles.set(packet.userId,{text:packet.text,until:performance.now()+readingTime,mode:packet.mode});}
   draw(){
    if(this.placement)this.onPlacementStatus?.(this.placementResult(),this.placement);
    if(!this.scene)return this.drawScene();
@@ -1187,14 +1187,20 @@
      hit.nameWidth=labelWidth;c.fillStyle='#122c3ee6';c.fillRect(x-labelWidth/2,y+5,labelWidth,17);c.fillStyle=hit.user.isStaff?'#ffe0a0':hit.user.userId===this.localUserId?'#9bffe3':'#f2fff8';c.fillText(name,x,y+17);
      }
      const bubble=this.bubbles.get(hit.user.staffId||hit.user.userId);if(!bubble||bubble.until<=performance.now())continue;
-     c.font=(bubble.mode==='shout'?'bold ':'')+'12px system-ui';const limit=Math.min(226,w-48);
+     c.font=(bubble.mode==='shout'?'bold ':'')+'12px system-ui';const limit=Math.max(40,Math.min(300,w-32));
      if(!bubble.layout||bubble.layout.limit!==limit){const lines=[];let line='';
       for(const word of bubble.text.split(/\s+/)){if(line&&c.measureText(line+' '+word).width>limit){lines.push(line);line='';}if(line)line+=' ';for(const char of word){if(c.measureText(line+char).width>limit){lines.push(line);line='';}line+=char;}}if(line)lines.push(line);
-      if(lines.length>3){lines.length=3;lines[2]=lines[2].slice(0,-2)+'…';}
+      // Keep every line: replies are already bounded by the server. The former
+      // three-line preview hid the end of normal resident conversations.
       bubble.layout={limit,lines,bw:Math.max(40,...lines.map(t=>c.measureText(t).width+16))};
      }
-     const {lines,bw}=bubble.layout,bh=lines.length*16+12,bx=Math.max(8,Math.min(w-bw-8,x-bw/2));let by=Math.max(62,y-(hit.user.species?38:52)*this.scale-bh-8);
-     for(const prior of bubbles){if(bx<prior.x+prior.w+4&&bx+bw>prior.x-4&&by<prior.y+prior.h+4&&by+bh>prior.y-4)by=Math.max(62,prior.y-bh-5);}
+     const {lines,bw}=bubble.layout,bh=lines.length*16+12,bx=Math.max(8,Math.min(w-bw-8,x-bw/2));
+     const bottom=Math.max(8,h-bh-24),top=Math.min(62,bottom);let by=Math.max(top,Math.min(bottom,y-(hit.user.species?38:52)*this.scale-bh-8));
+     const overlaps=cy=>bubbles.some(prior=>bx<prior.x+prior.w+4&&bx+bw>prior.x-4&&cy<prior.y+prior.h+4&&cy+bh>prior.y-4);
+     if(overlaps(by)){
+      const positions=bubbles.flatMap(prior=>[prior.y-bh-5,prior.y+prior.h+5]).filter(cy=>cy>=8&&cy<=bottom&&!overlaps(cy));
+      positions.sort((a,b)=>Math.abs(a-by)-Math.abs(b-by));if(positions.length)by=positions[0];
+     }
      bubbles.push({x:bx,y:by,w:bw,h:bh});c.fillStyle='#f8f0d9';c.fillRect(bx,by,bw,bh);c.strokeStyle='#364c55';c.lineWidth=1;c.strokeRect(bx+.5,by+.5,bw-1,bh-1);const tail=Math.max(bx+6,Math.min(bx+bw-12,x));poly(c,[[tail,by+bh],[tail+8,by+bh],[tail+3,by+bh+6]],'#f8f0d9');c.fillStyle='#203745';c.textAlign='left';lines.forEach((text,i)=>c.fillText(text,bx+8,by+19+i*16));
     }
 
