@@ -2,32 +2,6 @@ const { test, expect } = require('@playwright/test');
 
 function rng(seed){let s=seed>>>0;return()=>{s=(1664525*s+1013904223)>>>0;return s/4294967296}}
 
-function bounceSample(cleared, random){
-  const speed=cleared<5?1.35+cleared*.16:cleared<10?2.9+(cleared-5)*.24:cleared<20?4.1+(cleared-10)*.22:cleared<35?6.3+(cleared-20)*.10:Math.min(10,7.8+(cleared-35)*.045);
-  const r=random();
-  const delay=cleared<5?175+random()*35:cleared<10?(r<.20?48+random()*18:92+random()*58):cleared<20?(r<.34?34+random()*20:r<.48?135+random()*45:68+random()*55):cleared<35?(r<.42?28+random()*18:r<.58?125+random()*55:55+random()*58):(r<.48?24+random()*18:r<.65?118+random()*62:46+random()*60);
-  const width=cleared<5?16+random()*7:cleared<10?26+random()*15:cleared<20?32+random()*25:cleared<35?38+random()*35:44+random()*Math.min(52,24+(cleared-35)*1.2);
-  return {speed,delay,width};
-}
-
-test('Bounce Run: 100,000 obstacle samples stay inside safety bounds',()=>{
-  const random=rng(81); let minDelay=Infinity,maxSpeed=0,maxWidth=0,problem=null;
-  for(let i=0;i<100000;i++){
-    const cleared=i%101, sample=bounceSample(cleared,random);
-    minDelay=Math.min(minDelay,sample.delay);maxSpeed=Math.max(maxSpeed,sample.speed);maxWidth=Math.max(maxWidth,sample.width);
-    if(!problem && (sample.delay<24 || sample.speed>10 || sample.width>96)){
-      problem={i,cleared,...sample};
-    }
-  }
-  expect(problem,'first out-of-bounds obstacle sample').toBeNull();
-  expect({minDelay,maxSpeed,maxWidth}).toEqual(expect.objectContaining({
-    minDelay:expect.any(Number),maxSpeed:expect.any(Number),maxWidth:expect.any(Number)
-  }));
-  expect(minDelay).toBeGreaterThanOrEqual(24);
-  expect(maxSpeed).toBeLessThanOrEqual(10);
-  expect(maxWidth).toBeLessThanOrEqual(96);
-});
-
 const SHAPES=[
  {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},
  {name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},

@@ -1026,7 +1026,7 @@
     bounceZone.className='bounce-tap-zone';
     bounceZone.textContent='👆 TAP ANYWHERE TO JUMP';
     surface.insertAdjacentElement('afterend',bounceZone);
-    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,spawn=0,readyUntil=0,queuedJump=false,bestLevel=1,lastClearAt=0,combo=0,bestCombo=0,levelFlashUntil=0,levelFlashText='',trail=[];
+    let y=349,vy=0,obstacles=[],distance=0,cleared=0,alive=false,raf=null,last=0,readyUntil=0,queuedJump=false,lastClearAt=0,combo=0,bestCombo=0,levelFlashUntil=0,levelFlashText='',trail=[];
 
     function runLevel(){return 1+Math.floor(cleared/5)}
     function stageName(){
@@ -1034,70 +1034,56 @@
       return l<=1?'Warm-up':l<=3?'Bounce Zone':l<=6?'Fast Lane':'Expert Run';
     }
 
-    function obstacleSpeed(){
-      // Friendly tutorial opening, then a noticeable difficulty ramp every few clears.
-      if(cleared<5)return 1.35+cleared*.16;
-      if(cleared<10)return 2.9+(cleared-5)*.24;
-      if(cleared<20)return 4.1+(cleared-10)*.22;
-      if(cleared<35)return 6.3+(cleared-20)*.10;
-      return Math.min(10.0,7.8+(cleared-35)*.045);
-    }
-
-    function nextSpawnDelay(){
-      // Early levels teach the jump. Higher levels deliberately mix long gaps,
-      // quick follow-ups, and occasional clusters so there is no fixed rhythm.
-      if(cleared<5)return 175+Math.random()*35;
-      const r=Math.random();
-      if(cleared<10)return r<.20 ? 48+Math.random()*18 : 92+Math.random()*58;
-      if(cleared<20)return r<.34 ? 34+Math.random()*20 : r<.48 ? 135+Math.random()*45 : 68+Math.random()*55;
-      if(cleared<35)return r<.42 ? 28+Math.random()*18 : r<.58 ? 125+Math.random()*55 : 55+Math.random()*58;
-      return r<.48 ? 24+Math.random()*18 : r<.65 ? 118+Math.random()*62 : 46+Math.random()*60;
-    }
-
-    function obstacleWidth(){
-      // Vary obstacle size within each difficulty band so runs require timing,
-      // not memorizing one jump rhythm. Early obstacles remain forgiving.
-      if(cleared<5)return 16+Math.random()*7;
-      if(cleared<10)return 26+Math.random()*15;
-      if(cleared<20)return 32+Math.random()*25;
-      if(cleared<35)return 38+Math.random()*35;
-      return 44+Math.random()*Math.min(52,24+(cleared-35)*1.2);
-    }
+    const physics=BounceRunEngine.create();
+    let accum=0,landAt=0,clearAt=0;
+    const calm=()=>Arcade.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function draw() {
-      const bg=ctx.createLinearGradient(0,0,0,430);
-      bg.addColorStop(0,'#0d1728');
-      bg.addColorStop(1,'#13243a');
-      ctx.fillStyle=bg;
-      ctx.fillRect(0,0,360,430);
-
+      const motion=calm()?0:distance;
+      const palettes=[['#10214b','#448ab0','#85e4cf'],['#29234f','#a6679b','#ffcf9c'],['#152e49','#3c7b91','#b1e4df']];
+      const colors=palettes[Math.floor((runLevel()-1)/3)%palettes.length];
+      const bg=ctx.createLinearGradient(0,0,0,360);
+      bg.addColorStop(0,colors[0]);bg.addColorStop(1,colors[1]);
+      ctx.fillStyle=bg;ctx.fillRect(0,0,360,430);
+      // Three bounded, deterministic scenery layers. No gameplay randomness.
+      ctx.fillStyle=colors[2];ctx.globalAlpha=.8;
+      ctx.beginPath();ctx.arc(280,93,30,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      for(let i=0;i<10;i++){
+        const x=((i*53-motion*.5)%410+410)%410-25;
+        ctx.fillStyle='#e2f6ff66';ctx.fillRect(x,60+(i*31)%115,2,2);
+      }
+      for(let layer=0;layer<2;layer++){
+        const offset=(motion*(layer?.7:.25))%150;
+        ctx.fillStyle=layer?'#173e58':'#285974';
+        ctx.beginPath();ctx.moveTo(-160,360);
+        for(let i=-1;i<5;i++){
+          const x=i*150-offset;
+          ctx.lineTo(x,285+layer*20);ctx.quadraticCurveTo(x+60,120+layer*80,x+150,285+layer*20);
+        }
+        ctx.lineTo(520,360);ctx.closePath();ctx.fill();
+      }
       const scroll=(distance*5)%36;
-      ctx.fillStyle='rgba(148,163,184,.12)';
-      for(let x=-36+scroll;x<396;x+=36)ctx.fillRect(x,96,18,2);
-
-      ctx.fillStyle='#1f2937';
-      ctx.fillRect(0,360,360,70);
-      ctx.fillStyle='#334155';
-      ctx.fillRect(0,356,360,4);
-
-      ctx.fillStyle='rgba(15,23,42,.9)';
-      ctx.fillRect(18,14,324,42);
-      ctx.strokeStyle='#334155';
-      ctx.strokeRect(18,14,324,42);
+      ctx.fillStyle='#102a3d';ctx.fillRect(0,360,360,70);
+      ctx.fillStyle='#6ce3cb';ctx.fillRect(0,356,360,4);
+      ctx.fillStyle='#c8fff0';ctx.fillRect(0,356,360,1);
+      ctx.fillStyle='#285168';
+      for(let x=-(calm()?0:scroll);x<396;x+=36){ctx.fillRect(x,376,20,3);ctx.fillRect(x+10,389,4,2);}
+      // A compact course label replaces the large instruction panel.
+      ctx.textAlign='left';ctx.fillStyle='#ddf7ff';ctx.font='900 15px system-ui';
+      ctx.fillText(stageName().toUpperCase(),20,30);
+      ctx.font='700 10px system-ui';ctx.fillStyle='#c5dfef';
+      ctx.fillText('LEVEL '+runLevel()+'  ·  '+(5-cleared%5)+' to next level',20,48);
+      ctx.fillStyle='#16364e';ctx.beginPath();ctx.roundRect(20,58,110,4,2);ctx.fill();
+      ctx.fillStyle='#76f3cf';ctx.beginPath();ctx.roundRect(20,58,22*(cleared%5||.1),4,2);ctx.fill();
       ctx.textAlign='center';
-      ctx.fillStyle='#dbeafe';
-      ctx.font='800 11px Arial';
-      ctx.fillText('TAP · SPACE · ↑  =  JUMP',180,31);
-      ctx.fillStyle='#94a3b8';
-      ctx.font='700 9px Arial';
-      ctx.fillText('Jump obstacles · 5 clears = level up',180,46);
 
       obstacles.forEach(o=>{
         const grd=ctx.createLinearGradient(o.x,330,o.x+o.w,360);
-        grd.addColorStop(0,'#dc2626');
-        grd.addColorStop(1,'#7f1d1d');
+        grd.addColorStop(0,'#ff897b');
+        grd.addColorStop(1,'#bc3759');
         ctx.fillStyle=grd;
-        ctx.fillRect(o.x,330,o.w,30);
+        ctx.beginPath();ctx.roundRect(o.x,330,o.w,26,3);ctx.fill();
+        ctx.fillStyle='#ffd1b8';ctx.fillRect(o.x+3,333,Math.max(2,o.w-6),3);
 
         ctx.fillStyle='#fca5a5';
         for(let sx=o.x+5;sx<o.x+o.w-4;sx+=10){
@@ -1117,21 +1103,31 @@
         ctx.fill();
       });
 
-      const glow=ctx.createRadialGradient(76,y-4,2,80,y,18);
-      glow.addColorStop(0,'#fff');
-      glow.addColorStop(.6,'#dbeafe');
-      glow.addColorStop(1,'#60a5fa');
-      ctx.beginPath();
-      ctx.fillStyle=glow;
-      ctx.arc(80,y,11,0,Math.PI*2);
-      ctx.fill();
-      ctx.strokeStyle='#bfdbfe';
-      ctx.lineWidth=2;
-      ctx.stroke();
-
-      ctx.fillStyle='#94a3b8';
-      ctx.font='700 10px Arial';
-      ctx.fillText(stageName().toUpperCase()+' · LEVEL '+runLevel()+' · '+cleared+' cleared',180,405);
+      // Ground shadow, rotating seam, and short landing ripple bring the ball to life.
+      const height=349-y;
+      ctx.fillStyle='#030e2566';ctx.beginPath();ctx.ellipse(80,357,Math.max(6,14-height*.045),3,0,0,Math.PI*2);ctx.fill();
+      const landingAge=performance.now()-landAt;
+      if(landAt&&landingAge<250&&!calm()){
+        ctx.strokeStyle='rgba(129,255,220,'+(1-landingAge/250)+')';ctx.lineWidth=2;
+        ctx.beginPath();ctx.ellipse(80,356,12+landingAge*.08,3+landingAge*.015,0,0,Math.PI*2);ctx.stroke();
+      }
+      ctx.save();ctx.translate(80,y);
+      const squash=!calm()&&landAt&&landingAge<150?Math.sin(landingAge/150*Math.PI)*.18:0;
+      ctx.scale(1+squash,1-squash);
+      const glow=ctx.createRadialGradient(-4,-5,1,0,0,12);
+      glow.addColorStop(0,'#fff');glow.addColorStop(.65,'#c4f1ff');glow.addColorStop(1,'#65a7ff');
+      ctx.beginPath();ctx.fillStyle=glow;ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#e0f7ff';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.rotate(calm()?0:distance*.15);ctx.strokeStyle='#4587bd88';ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(0,0,5,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ctx.fillStyle='#aacddd';ctx.font='700 10px system-ui';
+      ctx.fillText('TAP · SPACE · ↑  =  JUMP',180,406);
+      ctx.fillStyle='#92adbf';ctx.font='700 9px system-ui';
+      ctx.fillText('Close pair? One jump clears both.',180,421);
+      if(clearAt&&performance.now()-clearAt<650){
+        ctx.fillStyle='#abffe1';ctx.font='900 13px system-ui';
+        ctx.fillText('CLEAR!',80,calm()?290:290-(performance.now()-clearAt)*.025);
+      }
 
       if(combo>=2){
         ctx.fillStyle='#fef3c7';
@@ -1169,7 +1165,7 @@
         ctx.fillStyle='#94a3b8';
         ctx.font='700 10px Arial';
         ctx.fillText('Tap anywhere on the game to jump',180,213);
-        ctx.fillText('Computer: Space or ↑ · 5 clears = level up',180,229);
+        ctx.fillText('Close pairs take one jump · 5 clears = level up',180,229);
 
         const countdown=Math.max(1,Math.ceil((readyUntil-performance.now())/650));
         ctx.fillStyle='#ffffff';
@@ -1181,90 +1177,37 @@
     function loop(t) {
       if(!alive)return;
       if(miniPaused){last=t;raf=requestAnimationFrame(loop);return;}
-      const dt=Math.min(32,t-(last||t))/16.67;
+      const elapsed=last?Math.min(100,t-last):0;
       last=t;
       const warming=t<readyUntil;
-
       if(!warming&&queuedJump){queuedJump=false;jump();}
-
       if(!warming){
-        distance+=.18*dt;
-        spawn-=dt;
-      }
-
-      // Softer gravity near the top creates a rounded arcade-style jump arc.
-      // Falling accelerates gradually instead of snapping straight back down.
-      const gravity=vy<0?.40:.46;
-      vy+=gravity*dt;
-      y+=vy*dt;
-
-      if(!warming&&spawn<=0){
-        // Width and spacing vary independently so later runs do not settle into
-        // a single repeated jump cadence.
-        const speed=obstacleSpeed();
-        const jitter=cleared<5?0:(Math.random()-.5)*Math.min(2.6,.55+cleared*.045);
-        obstacles.push({x:390,w:obstacleWidth(),speed:Math.max(1.2,speed+jitter)});
-
-        // At higher levels, some waves become doubles/triples. The extra
-        // obstacles are separated enough to remain jumpable, but force the
-        // player to react instead of repeating one perfectly timed hop.
-        if(cleared>=10){
-          // Keep clusters challenging but readable. Doubles arrive first;
-          // triples are reserved for deep runs and use wider spacing. Cluster
-          // members stay close in speed so they cannot collapse into an
-          // effectively impossible wall while approaching the player.
-          const clusterChance=cleared<20?.12:cleared<35?.20:.27;
-          if(Math.random()<clusterChance){
-            const triple=cleared>=40&&Math.random()<.18;
-            const count=triple?2:1;
-            const baseGap=triple ? 78+Math.random()*18 : 68+Math.random()*20;
-            for(let i=1;i<=count;i++){
-              const gap=baseGap*i;
-              const followSpeed=Math.max(1.2,speed+(Math.random()-.5)*.42);
-              obstacles.push({x:390+gap,w:Math.max(18,obstacleWidth()*.72),speed:followSpeed});
-            }
+        accum+=elapsed;
+        while(accum>=BounceRunEngine.STEP&&physics.state.alive){
+          const before=physics.state.cleared,jumps=physics.state.jumps,lands=physics.state.lands;
+          physics.step();accum-=BounceRunEngine.STEP;
+          if(physics.state.jumps>jumps){Arcade.feedback('hop');}
+          if(physics.state.lands>lands)landAt=t;
+          if(physics.state.cleared>before){
+            const now=performance.now();clearAt=now;
+            combo=lastClearAt&&now-lastClearAt<4000?combo+1:1;
+            bestCombo=Math.max(bestCombo,combo);lastClearAt=now;
+            const leveledUp=Math.floor(physics.state.cleared/5)>Math.floor(before/5);
+            Arcade.feedback(leveledUp?'perfect':'score');
+            if(leveledUp){levelFlashText='LEVEL '+(1+Math.floor(physics.state.cleared/5));levelFlashUntil=now+1250;}
           }
         }
-        spawn=nextSpawnDelay();
       }
-
-      obstacles.forEach(o=>o.x-=(o.speed||obstacleSpeed())*dt);
-      obstacles=obstacles.filter(o=>{
-        if(o.x+o.w<0){
-          cleared++;
-          const now=performance.now();
-          combo=lastClearAt&&now-lastClearAt<2200?combo+1:1;
-          bestCombo=Math.max(bestCombo,combo);
-          lastClearAt=now;
-          const leveledUp=cleared%5===0;
-          Arcade.feedback(leveledUp||combo>=3?'perfect':'score');
-          if(leveledUp){
-            bestLevel=Math.max(bestLevel,runLevel());
-            levelFlashText='LEVEL '+runLevel()+' · '+stageName().toUpperCase();
-            levelFlashUntil=performance.now()+1250;
-          }
-          return false;
-        }
-        return true;
-      });
-
-      const hit=obstacles.some(o=>o.x<90&&o.x+o.w>70&&y+6>327);
-      if(hit||y>430){
-        alive=false;
-        finish(
-          Math.floor(distance),
-          cleared,
-          ['⚪ Obstacles cleared: '+cleared,'🏁 Level reached: '+runLevel(),'🔥 Best clear combo: '+bestCombo,'⚡ Stage: '+stageName(),'Tap to jump over each obstacle.'],
-          'Bounce Run Over'
-        );
+      ({y,vy,obstacles,distance,cleared}=physics.state);
+      if(!physics.state.alive){
+        alive=false;draw();
+        finish(Math.floor(distance),cleared,
+          ['⚪ Obstacles cleared: '+cleared,'🏁 Level reached: '+runLevel(),'🔥 Best clear combo: '+bestCombo,'⚡ Stage: '+stageName(),'Tap once to clear a single obstacle or a close pair.'],
+          'Bounce Run Over');
         return;
       }
-
-      if(y+11>=360){y=349;vy=0}
-      if(y<70){y=70;vy=1}
-      if(combo>0&&lastClearAt&&t-lastClearAt>=2200)combo=0;
-      trail.push({x:80,y});
-      if(trail.length>7)trail.shift();
+      if(combo>0&&lastClearAt&&t-lastClearAt>=4000)combo=0;
+      if(!warming&&!calm()){trail.push({x:80,y});if(trail.length>7)trail.shift();}else trail=[];
 
       ui(Math.floor(distance),cleared);
       draw();
@@ -1278,14 +1221,11 @@
         queuedJump=true;
         return;
       }
-      if(y>=347){
-        vy=-9.6;
-        Arcade.feedback('hop');
-      }
+      if(physics.jump()){Arcade.feedback('hop');}
     }
 
     const onPointer=e=>{
-      if(!alive)return;
+      if(!alive||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
       const rect=c.getBoundingClientRect();
       if(e.clientX<rect.left || e.clientX>rect.right || e.clientY<rect.top || e.clientY>rect.bottom)return;
       jump(e);
@@ -1294,7 +1234,7 @@
       if(alive)e.preventDefault();
     };
     const onKey=e=>{
-      if(alive&&(e.code==='Space'||e.code==='Enter'||e.key==='ArrowUp'))jump(e);
+      if(alive&&!e.repeat&&(e.code==='Space'||e.code==='Enter'||e.key==='ArrowUp'))jump(e);
     };
     c.style.touchAction='none';
     c.style.userSelect='none';
@@ -1318,7 +1258,7 @@
 
     return {
       start(){
-        y=349;vy=0;obstacles=[];distance=0;cleared=0;bestLevel=1;lastClearAt=0;combo=0;bestCombo=0;levelFlashUntil=0;levelFlashText='';trail=[];queuedJump=false;spawn=205;last=0;alive=true;
+        y=349;vy=0;obstacles=[];distance=0;cleared=0;lastClearAt=0;combo=0;bestCombo=0;levelFlashUntil=0;levelFlashText='';trail=[];queuedJump=false;last=0;alive=true;accum=0;landAt=0;clearAt=0;
         readyUntil=performance.now()+1900;
         ui(0,0);
         draw();
@@ -1329,10 +1269,12 @@
         if(readyUntil) readyUntil+=pausedFor;
         if(levelFlashUntil) levelFlashUntil+=pausedFor;
         if(lastClearAt) lastClearAt+=pausedFor;
-        last=0;
+        last=0;accum=0;
+        if(landAt)landAt+=pausedFor;if(clearAt)clearAt+=pausedFor;
       },
       stop(){
         alive=false;
+        physics.state.alive=false;
         queuedJump=false;
         vy=0;
         obstacles=[];
@@ -1343,6 +1285,7 @@
         raf=null;
         c.removeEventListener('pointerdown',onPointer);
         bounceZone.removeEventListener('pointerdown',jump);
+        bounceZone.remove();
         document.removeEventListener('pointerdown',onWideJump);
         c.removeEventListener('touchstart',blockGesture);
         c.removeEventListener('gesturestart',blockGesture);
@@ -1814,7 +1757,11 @@
     // One physical primary tap should be the only thing that can launch a run.
     // This avoids multi-touch or a secondary mouse button consuming a play.
     if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
-    if(!running&&!starting&&!resultShowing)startGame();
+    if(!running&&!starting&&!resultShowing){
+      // The start tap must not reach the jump listener installed by startGame.
+      if(key==='bounceRun')e.stopPropagation();
+      startGame();
+    }
   },{capture:true});
 
   document.addEventListener('keydown',e=>{
