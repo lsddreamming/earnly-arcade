@@ -177,6 +177,13 @@ export class SupabaseWorldAccess implements WorldAccess {
       if(typeof data.userId!=='string'||!/^[0-9a-f-]{36}$/i.test(data.userId))throw new Error('Player unavailable');
       const rooms=await this.#request('/rest/v1/rpc/world_friend_rooms',this.#key,{p_actor:uid,p_friend:data.userId});
       result=this.#roomCounts(rooms);
+    }else if(action==='room_search'){
+      const query=typeof data.query==='string'?data.query.trim():'';
+      const offset=data.offset===undefined?0:data.offset;
+      if([...query].length<2||[...query].length>80||/[\x00-\x1f\x7f]/.test(query))throw new Error('Enter 2–80 characters for a room name or username');
+      if(!Number.isInteger(offset)||Number(offset)<0||Number(offset)>1200)throw new Error('Search page unavailable');
+      const found=await this.#request('/rest/v1/rpc/world_search_rooms',this.#key,{p_actor:uid,p_query:query,p_offset:offset});
+      result={rooms:this.#roomCounts(found.rooms),nextOffset:found.nextOffset};
     }else if(action==='room_explore'){
       // Older clients still send this action. Stop automatic personal-room discovery.
       result={rooms:[],nextOffset:null};

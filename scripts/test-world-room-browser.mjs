@@ -17,4 +17,27 @@ assert.equal(seen.size,137);assert.equal((await explore('Faraway')).rooms.length
 assert.equal((await db.query("select has_function_privilege('anon','public.world_explore_rooms(uuid,text,integer)','execute') or has_function_privilege('authenticated','public.world_explore_rooms(uuid,text,integer)','execute') exposed")).rows[0].exposed,false);
 await db.query('insert into earnly_world.blocks(user_id,blocked_id) values($1,$2)',[b,a]);assert.equal((await explore()).rooms.length,0);
 await assert.rejects(db.query('select public.world_explore_rooms($1)',[randomUUID()]));
+await db.exec(await readFile('supabase/migrations/20261030163332_world_room_search.sql','utf8'));
+const search=async(query,offset=0)=>(await db.query('select public.world_search_rooms($1,$2,$3) result',[a,query,offset])).rows[0].result;
+// Existing block applies in both directions and is checked by the new search.
+assert.equal((await search('Buddy')).rooms.length,0);
+await db.query('delete from earnly_world.blocks');
+assert.equal((await search('faraway')).rooms[0].name,'Faraway Garden');
+assert.equal((await search('BUDDY')).rooms.length,12);
+assert.equal((await search('@bUdDy')).rooms.length,12);
+assert.equal((await search('@Faraway')).rooms.length,0);
+assert.equal((await search('Secret')).rooms.length,0);
+assert.equal((await search('%_')).rooms.length,0);
+assert.equal((await search('never matching')).rooms.length,0);
+for(const term of ['', ' ', 'a', '@a', '@', 'x'.repeat(81)])await assert.rejects(search(term));
+await assert.rejects(search('Buddy',-1));await assert.rejects(search('Buddy',1201));
+let searchOffset=0,searchSeen=new Set();do{const page=await search('Buddy',searchOffset);for(const r of page.rooms){assert.ok(!searchSeen.has(r.id));searchSeen.add(r.id);}searchOffset=page.nextOffset;}while(searchOffset!==null);assert.equal(searchSeen.size,137);
+await db.query("insert into earnly_world.rooms(owner_id,name,heightmap,access_type) values($1,'Garden','00','open'),($1,'Garden Lights','00','open')",[b]);
+assert.equal((await search('Garden')).rooms[0].name,'Garden');assert.equal((await search('Garden')).rooms.length,3);
+await db.query("update public.profiles set username='' where user_id=$1",[b]);assert.equal((await search('Garden')).rooms.length,0);await db.query("update public.profiles set username='Buddy' where user_id=$1",[b]);
+await db.query('insert into public.leaderboard_bans values($1)',[b]);assert.equal((await search('Garden')).rooms.length,0);await db.query('delete from public.leaderboard_bans');
+await db.query("insert into earnly_world.social_members(user_id,suspended_until) values($1,now()+interval '1 day')",[b]);assert.equal((await search('Garden')).rooms.length,0);await db.query('delete from earnly_world.social_members');
+await db.query('update auth.users set email_confirmed_at=null where id=$1',[b]);assert.equal((await search('Garden')).rooms.length,0);
+assert.equal((await db.query("select has_function_privilege('anon','public.world_search_rooms(uuid,text,integer)','execute') or has_function_privilege('authenticated','public.world_search_rooms(uuid,text,integer)','execute') exposed")).rows[0].exposed,false);
+console.log('Room search: name/username matching, exact-first ranking, empty-query rejection, pagination, private/blocked/invalid-owner isolation passed');
 console.log('Room browser: 137 rooms paginated; name/owner search, private/own/blocked filtering and server-only permissions passed');await db.close();

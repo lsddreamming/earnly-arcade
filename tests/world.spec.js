@@ -435,6 +435,11 @@ test('Friends offer open room choices with player counts and entering uses the s
  await page.locator('[data-panel="rooms"]').click();
  await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeDisabled();
  await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'Search Rooms',exact:true}).click();
+ await expect(page.getByRole('searchbox',{name:'Room name or username',exact:true})).toBeEnabled();
+ await expect(page.getByRole('button',{name:'Search',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'My Rooms',exact:true}).click();
+ await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeDisabled();
  await page.evaluate(()=>window.finishRoomDirectory());
  await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeEnabled();
  await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeEnabled();
@@ -480,7 +485,10 @@ test('Shared room enters directly, sharing keeps connection, and first-visit hin
  await expect(page.locator('#roomName')).toHaveText('Friend Garden');
  expect(await page.evaluate(()=>window.joins)).toEqual([id]);
  await expect(page.locator('#firstVisitHint')).toBeVisible();await page.locator('#dismissWorldHint').click();
- await page.locator('#shareRoom').click();await page.getByRole('button',{name:'Copy link',exact:true}).click();
+ await page.evaluate(()=>{window.EarnlyRoomShare={available:()=>true,share:async options=>{window.nativeSharedRoom=options;}};});
+ await page.locator('#shareRoom').click();await page.getByRole('button',{name:'Share invitation',exact:true}).click();
+ expect(await page.evaluate(()=>window.nativeSharedRoom)).toEqual({title:'Friend Garden · Earnly World',text:'Come hang out in Friend Garden on Earnly Arcade!',url:'https://earnlyarcade.com/world.html?room='+id});
+ await page.getByRole('button',{name:'Copy link',exact:true}).click();
  expect(await page.evaluate(()=>window.copiedRoom)).toBe('https://earnlyarcade.com/world.html?room='+id);
  expect(await page.evaluate(()=>window.closes)).toBe(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
@@ -749,10 +757,10 @@ test('Outdoor scenery has no opaque horizon strip at wide or close zoom',async({
  expect(result.every(r=>r.opaque===0)).toBe(true);
 });
 
-test('Room browser shows only owned rooms and public hangouts, without automatic player listings',async({page})=>{
+test('Room browser keeps player search explicit and shares owned rooms',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.addInitScript(()=>{
-  const mine={id:'mine',name:'The Hangout',ownerId:'owner',occupancy:0};
+  const mine={id:'d814eae3-14d0-43ef-ae1a-6cbd48aad149',name:'The Hangout',ownerId:'owner',access:'open',occupancy:0};
   const others=Array.from({length:25},(_,i)=>({id:'other-'+i,name:i===24?'Garden':'My Room',ownerId:'friend',ownerUsername:'Buddy',occupancy:0}));
   const rooms=[...others,{id:'orphan-label',name:'My Room',ownerId:'unknown',ownerUsername:'Player',occupancy:0},{id:'resident-home',name:'Jax’s room',ownerId:null,residentHome:true,occupancy:0},{id:'plaza',name:'Earnly Plaza',ownerId:null,occupancy:2},mine];window.roomBrowserRooms=rooms;
   const bootstrap={rooms,balance:500,catalog:[],items:[],friends:[]};window.exploreRequests=[];
@@ -760,7 +768,7 @@ test('Room browser shows only owned rooms and public hangouts, without automatic
    if(p.type==='JOIN')emit({type:'WELCOME',userId:'owner',scene:{roomId:'mine',name:'The Hangout',ownerId:'owner',heightmap:'0000\n0000',items:[]},bootstrap});
    if(p.type==='ACTION'){let data=bootstrap;
     if(p.action==='room_directory')data=rooms;
-    if(p.action==='room_explore'){window.exploreRequests.push(p.data);const matches=others.filter(r=>(r.name+' '+r.ownerUsername).toLowerCase().includes(p.data.query.toLowerCase()));const start=p.data.offset;data={rooms:matches.slice(start,start+12),nextOffset:start+12<matches.length?start+12:null};}
+    if(p.action==='room_search'){window.exploreRequests.push(p.data);const matches=others.filter(r=>(r.name+' '+r.ownerUsername).toLowerCase().includes(p.data.query.toLowerCase()));const start=p.data.offset;data={rooms:matches.slice(start,start+12),nextOffset:start+12<matches.length?start+12:null};}
     emit({type:'RESULT',requestId:p.requestId,data});
    }
   }};
@@ -773,6 +781,24 @@ test('Room browser shows only owned rooms and public hangouts, without automatic
  await page.getByRole('button',{name:'Refresh rooms',exact:true}).click();
  await expect(page.locator('.room-card')).toHaveCount(1);
  expect(await page.evaluate(()=>window.exploreRequests)).toEqual([]);
+ await page.getByRole('button',{name:'Search Rooms',exact:true}).click();
+ const search=page.getByRole('searchbox',{name:'Room name or username',exact:true});
+ await expect(search).toBeVisible();await expect(page.locator('.room-card')).toHaveCount(0);
+ expect(await page.evaluate(()=>window.exploreRequests)).toEqual([]);
+ await page.getByRole('button',{name:'Search',exact:true}).click();expect(await page.evaluate(()=>window.exploreRequests)).toEqual([]);
+ await search.fill('Garden');await search.press('Enter');await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('Garden');await expect(page.locator('.room-card')).toContainText('By @Buddy');
+ await search.fill('Buddy');await page.getByRole('button',{name:'Search',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(12);
+ await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(24);await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(25);await expect(page.getByRole('button',{name:'Load more',exact:true})).toBeHidden();
+ await search.fill('NoSuchRoom');await page.getByRole('button',{name:'Search',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(0);await expect(page.locator('.room-browser-status')).toContainText('No open rooms match');
+ await search.fill('');await expect(page.locator('.room-card')).toHaveCount(0);
+ await page.getByRole('button',{name:'My Rooms',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(1);
+ await page.getByRole('button',{name:'Share my room',exact:true}).click();await expect(page.getByRole('textbox',{name:'Room link'})).toHaveValue('https://earnlyarcade.com/world.html?room=d814eae3-14d0-43ef-ae1a-6cbd48aad149');
+ await page.locator('#closePanel').click();await page.evaluate(()=>{window.roomBrowserRooms.find(r=>r.ownerId==='owner').access='closed';});await page.locator('[data-panel="rooms"]').click();
+ await page.getByRole('button',{name:'Share my room',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('This room is private');await expect(page.getByRole('textbox',{name:'Room link'})).toHaveCount(0);
+ await page.evaluate(()=>{window.roomBrowserRooms.find(r=>r.ownerId==='owner').access='open';});
+
+ await page.locator('#closePanel').click();await page.locator('[data-panel="rooms"]').click();
+
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.locator('#closePanel').click();await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('The Hangout');
  await page.evaluate(()=>{for(let i=0;i<13;i++)window.roomBrowserRooms.push({id:'my-'+i,name:'My saved room '+i,ownerId:'owner',occupancy:0});});

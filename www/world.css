@@ -259,3 +259,5 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 .first-visit-hint .guide-shortcuts{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%;grid-column:1/-1}
 .first-visit-hint .guide-shortcuts button{min-height:44px;flex:1 1 130px;white-space:normal}
 .public-chat-help{margin:10px 4px 6px;color:#b5cddd;font-size:12px;line-height:1.5}
+
+.room-search-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}.room-search-form[hidden]{display:none}.room-search-form label{grid-column:1/-1;font-size:13px;color:#c5dce7}.room-search-form .room-browser-search{margin:0;min-width:0;font-size:16px;min-height:44px}.room-search-form button{min-height:44px}.room-browser-status{font-size:13px;line-height:1.4}.room-browser-card .room-share{min-height:44px;font-size:13px}
