@@ -9,7 +9,10 @@ async function open(page,path='/mini.html?game=bounceRun'){
   });
   await page.goto(path);
   await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
-  await page.locator('#startButton').click();
+  const start=page.locator('#startButton');
+  if(await start.isVisible())await start.click();
+  else await page.locator('#surface').tap({position:{x:120,y:120}});
+  await expect(page.locator('#surface canvas')).toBeVisible();
   await page.waitForTimeout(2000);
   return errors;
 }
