@@ -749,12 +749,12 @@ test('Outdoor scenery has no opaque horizon strip at wide or close zoom',async({
  expect(result.every(r=>r.opaque===0)).toBe(true);
 });
 
-test('Room browser separates ownership, searches owners, pages Explore and resets to My Rooms',async({page})=>{
+test('Room browser shows only owned rooms and public hangouts, without automatic player listings',async({page})=>{
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
  await page.addInitScript(()=>{
   const mine={id:'mine',name:'The Hangout',ownerId:'owner',occupancy:0};
   const others=Array.from({length:25},(_,i)=>({id:'other-'+i,name:i===24?'Garden':'My Room',ownerId:'friend',ownerUsername:'Buddy',occupancy:0}));
-  const rooms=[...others,{id:'plaza',name:'Earnly Plaza',ownerId:null,occupancy:2},mine];
+  const rooms=[...others,{id:'orphan-label',name:'My Room',ownerId:'unknown',ownerUsername:'Player',occupancy:0},{id:'resident-home',name:'Jax’s room',ownerId:null,residentHome:true,occupancy:0},{id:'plaza',name:'Earnly Plaza',ownerId:null,occupancy:2},mine];window.roomBrowserRooms=rooms;
   const bootstrap={rooms,balance:500,catalog:[],items:[],friends:[]};window.exploreRequests=[];
   window.WebSocket=class{static OPEN=1;constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw),emit=data=>this.onmessage?.({data:JSON.stringify(data)});
    if(p.type==='JOIN')emit({type:'WELCOME',userId:'owner',scene:{roomId:'mine',name:'The Hangout',ownerId:'owner',heightmap:'0000\n0000',items:[]},bootstrap});
@@ -768,12 +768,17 @@ test('Room browser separates ownership, searches owners, pages Explore and reset
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
  await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('The Hangout');await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(1);
  await page.getByRole('button',{name:'Public Hangouts',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('Earnly Plaza');await expect(page.getByRole('img',{name:'Earnly Plaza room preview'})).toBeVisible();await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeHidden();await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
- await page.getByRole('button',{name:'Explore',exact:true}).click();await expect(page.locator('.room-browser-management')).toBeHidden();await expect(page.locator('.room-card')).toHaveCount(12);await expect(page.locator('.room-card').first()).toContainText('Owned by Buddy');
- await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(24);await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(25);await expect(page.getByRole('button',{name:'Load more',exact:true})).toBeHidden();
- await page.getByRole('searchbox',{name:'Search rooms by name or owner'}).fill('Garden');await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('Garden');
- await page.getByRole('searchbox',{name:'Search rooms by name or owner'}).fill('Buddy');await expect(page.locator('.room-card')).toHaveCount(12);await expect(page.getByRole('button',{name:'Delete room',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Explore',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('searchbox',{name:'Search rooms by name or owner'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Refresh rooms',exact:true}).click();
+ await expect(page.locator('.room-card')).toHaveCount(1);
+ expect(await page.evaluate(()=>window.exploreRequests)).toEqual([]);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.locator('#closePanel').click();await page.locator('[data-panel="rooms"]').click();await expect(page.locator('.room-card')).toHaveCount(1);await expect(page.locator('.room-card')).toContainText('The Hangout');
+ await page.evaluate(()=>{for(let i=0;i<13;i++)window.roomBrowserRooms.push({id:'my-'+i,name:'My saved room '+i,ownerId:'owner',occupancy:0});});
+ await page.getByRole('button',{name:'Refresh rooms',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(12);
+ await page.getByRole('button',{name:'Load more',exact:true}).click();await expect(page.locator('.room-card')).toHaveCount(14);
+ await expect(page.getByRole('button',{name:'Load more',exact:true})).toBeHidden();
 });
 
 test('Showcase furniture is searchable with distinct art and VIP models render in all orientations',async({page},testInfo)=>{
