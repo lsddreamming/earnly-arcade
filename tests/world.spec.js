@@ -249,13 +249,21 @@ test('Backpack search and room filters find stored and placed furniture without 
   window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);if(p.type==='ACTION')window.worldActions.push(p);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'owner',scene:{roomId:'home',name:'Home',ownerId:'owner',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:100,rooms:[{id:'other',name:'Garden',ownerId:'owner'}],catalog:[{id:'chair',name:'Arcade Chair',sprite_id:'chair',color:'#799ff5',width:1,length:1},{id:'fern',name:'Moon Fern',sprite_id:'plant',color:'#64c786',width:1,length:1}],items:[{id:'a',definition_id:'chair',serial:1,room_id:null},{id:'b',definition_id:'fern',serial:2,room_id:'home'},{id:'c',definition_id:'chair',serial:3,room_id:'other'}],friends:[]}})});}};
  });
  await page.goto('/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#worldEntry')).toBeHidden();await expect(page.locator('#connectionStatus')).toContainText('Live');await page.locator('[data-panel="backpack"]').click();
- const cards=page.locator('.item-card:visible');await expect(cards).toHaveCount(3);
+ await page.setViewportSize({width:320,height:740});
+ const cards=page.locator('.item-card:visible');await expect(cards).toHaveCount(2);
+ await expect(cards.filter({hasText:'Arcade Chair'})).toContainText('2 owned');
+ await page.getByRole('combobox',{name:'Choose copy of Arcade Chair'}).selectOption('1');
+ await expect(page.getByRole('button',{name:'Visit Garden'})).toBeVisible();
+ await page.getByRole('combobox',{name:'Choose copy of Arcade Chair'}).selectOption('0');
+ await expect(cards.filter({hasText:'Arcade Chair'}).getByRole('button',{name:'Place',exact:true})).toBeVisible();
+ expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+
  await page.getByRole('searchbox',{name:'Find your furniture'}).fill('fern');await expect(cards).toHaveCount(1);
  await page.getByRole('combobox',{name:'Furniture location'}).selectOption('stored');await expect(cards).toHaveCount(0);await expect(page.locator('#panelContent')).toContainText('No furniture matches');
  await page.getByRole('searchbox').fill('');await expect(cards).toHaveCount(1);
  await page.getByRole('combobox',{name:'Furniture location'}).selectOption('elsewhere');await expect(cards).toHaveCount(1);await expect(page.getByRole('button',{name:'Visit Garden'})).toBeVisible();
  await expect(page.locator('.backpack-room:visible')).toHaveText('Garden');await expect(page.locator('.backpack-results')).toHaveText('1 of 3 pieces');
- await page.getByRole('searchbox').fill('missing');await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(cards).toHaveCount(3);await expect(page.locator('.backpack-results')).toHaveText('3 of 3 pieces');
+ await page.getByRole('searchbox').fill('missing');await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(cards).toHaveCount(2);await expect(page.locator('.backpack-results')).toHaveText('3 of 3 pieces');
  expect(await page.evaluate(()=>window.worldActions)).toEqual([]);
 });
 
