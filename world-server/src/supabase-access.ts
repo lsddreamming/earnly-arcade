@@ -178,10 +178,8 @@ export class SupabaseWorldAccess implements WorldAccess {
       const rooms=await this.#request('/rest/v1/rpc/world_friend_rooms',this.#key,{p_actor:uid,p_friend:data.userId});
       result=this.#roomCounts(rooms);
     }else if(action==='room_explore'){
-      const query=typeof data.query==='string'?data.query.trim().slice(0,80):'';
-      const offset=typeof data.offset==='number'&&Number.isSafeInteger(data.offset)&&data.offset>=0?data.offset:0;
-      const directory=await this.#request('/rest/v1/rpc/world_explore_rooms',this.#key,{p_actor:uid,p_query:query,p_offset:offset});
-      result={...directory,rooms:this.#roomCounts(directory.rooms)};
+      // Older clients still send this action. Stop automatic personal-room discovery.
+      result={rooms:[],nextOffset:null};
     }else if(action==='room_directory'){
       const directory=await this.#api(uid,'bootstrap');await this.#warmPublicRooms(uid,directory.rooms);result=this.#roomCounts(directory.rooms);
     }else if(action==='pet_interact'){if(data.kind!=='pet'&&data.kind!=='call')throw new Error('Unknown pet interaction');result=room.petInteract(uid,data.staffId,data.kind);

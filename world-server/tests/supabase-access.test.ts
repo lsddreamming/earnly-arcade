@@ -46,7 +46,7 @@ test('room directories count connected humans, refresh after leave, and use the 
  let denied=false;
  t.mock.method(globalThis,'fetch',async(url:unknown,options:any)=>{
   const body=JSON.parse(options.body);
-  if(String(url).endsWith('world_explore_rooms')){assert.equal(body.p_actor,actor);assert.equal(body.p_query,'Buddy');assert.equal(body.p_offset,12);return Response.json({rooms:rooms.slice(1),nextOffset:24});}
+  if(String(url).endsWith('world_explore_rooms'))assert.fail('Retired Explore must not enumerate personal rooms');
   if(String(url).endsWith('world_friend_rooms')){assert.equal(body.p_actor,actor);assert.equal(body.p_friend,friend);return denied?Response.json({message:'Player unavailable',code:'P0001'},{status:400}):Response.json(rooms.slice(1));}
   if(String(url).endsWith('world_api'))return Response.json({rooms,catalog:[],items:[],friends:[]});
   return Response.json({roomId:body.p_room,username:'Player',name:'Room',ownerId:actor,access:'open',heightmap:'0000\n0000\n0000\n0000',revision:0,capacity:25,items:[],equipped:{}});
@@ -58,7 +58,7 @@ test('room directories count connected humans, refresh after leave, and use the 
  assert.deepEqual((await get()).map((r:any)=>r.occupancy),[1,0]);
  garden.room.leave(friend);assert.deepEqual((await get()).map((r:any)=>r.occupancy),[0,0]);
  const directory=await access.perform(identity,home.roomId,'room_directory',{});assert.equal(directory.data[0].occupancy,1);
- const explored=await access.perform(identity,home.roomId,'room_explore',{query:' Buddy ',offset:12,p_actor:friend});assert.equal(explored.data.nextOffset,24);assert.deepEqual(explored.data.rooms.map((r:any)=>r.occupancy),[0,0]);
+ const explored=await access.perform(identity,home.roomId,'room_explore',{query:' Buddy ',offset:12,p_actor:friend});assert.deepEqual(explored.data,{rooms:[],nextOffset:null});
  denied=true;await assert.rejects(get,/Player unavailable/);
  await assert.rejects(access.perform(identity,home.roomId,'friend_rooms',{userId:'invalid'}),/Player unavailable/);
 });
