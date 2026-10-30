@@ -435,6 +435,11 @@ test('Friends offer open room choices with player counts and entering uses the s
  await page.locator('[data-panel="rooms"]').click();
  await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeDisabled();
  await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'Search Rooms',exact:true}).click();
+ await expect(page.getByRole('searchbox',{name:'Room name or username',exact:true})).toBeEnabled();
+ await expect(page.getByRole('button',{name:'Search',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'My Rooms',exact:true}).click();
+ await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeDisabled();
  await page.evaluate(()=>window.finishRoomDirectory());
  await expect(page.getByRole('button',{name:'＋ Create room · Free',exact:true})).toBeEnabled();
  await expect(page.getByRole('button',{name:'My room →',exact:true})).toBeEnabled();

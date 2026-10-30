@@ -385,7 +385,7 @@
   if(!seats.length)throw new Error('All seats are taken. Stay a while or try another hangout.');useSeat(seats[0]);
  }
  function showRooms(initialTab='mine'){currentPanel='rooms';const root=openPanel('Rooms');if(needsFirstRoom){showRoomCreator(true);return;}if(!connected){root.append(note('Connect to find rooms and visit friends.'),button('Connect to World',()=>connect()));return;}
-  let selected=['public','search'].includes(initialTab)?initialTab:'mine',limit=12,found=[],nextOffset=null,submitted='',request=0;
+  let selected=['public','search'].includes(initialTab)?initialTab:'mine',limit=12,found=[],nextOffset=null,submitted='',request=0,directoryLoading=false;
   const version=panelVersion,tabs=el('div','room-browser-tabs'),tabButtons=[];
   tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Room categories');
   const intro=el('p','room-browser-intro'),management=el('div','room-browser-management'),list=el('div','room-directory');
@@ -394,6 +394,10 @@
   const status=el('p','room-browser-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   const submit=button('Search',()=>{} ,'primary');submit.type='submit';form.append(label,input,submit);
   const more=button('Load more',()=>{if(selected==='search')search(true);else{limit+=12;draw(bootstrap.rooms);}});
+  const syncDirectoryControls=()=>{
+   for(const b of management.querySelectorAll('button'))b.disabled=directoryLoading;
+   if(selected!=='search'){for(const b of list.querySelectorAll('button'))b.disabled=directoryLoading;more.disabled=directoryLoading;}
+  };
   const draw=rooms=>{
    form.hidden=selected!=='search';management.hidden=selected!=='mine';
    intro.textContent=selected==='mine'?'Your rooms to decorate and share with friends.':selected==='search'?'Enter a room name or player username. Only rooms open to visitors appear. Use @ to search usernames only.':'Shared places to hang out. See who’s here before joining.';
@@ -407,6 +411,7 @@
     if(style)card.append(note(style.description));
     if(r.ownerId===userId)card.append(button('Share my room',()=>showShareRoom(r),'room-share'),button('Rename room',()=>showRenameRoom(r),'room-rename'),button('Delete room',()=>showDeleteRoom(r),'room-delete'));list.append(card);
    }
+   syncDirectoryControls();
   };
   const search=async(append=false)=>{
    const query=input.value.trim();
@@ -425,7 +430,7 @@
   for(const [key,label] of [['mine','My Rooms'],['public','Public Hangouts'],['search','Search Rooms']]){const b=button(label,()=>{request++;selected=key;limit=12;submit.disabled=false;more.disabled=false;status.hidden=key!=='search';if(key==='search')status.textContent=found.length?'Results for '+submitted:'Enter a room name or username, then Search.';draw(bootstrap.rooms);});tabButtons.push([key,b]);tabs.append(b);}
   status.hidden=selected!=='search';if(selected==='search')status.textContent='Enter a room name or username, then Search.';
   root.append(tabs,intro,form,status,list,more);draw(bootstrap.rooms);
-  const update=async()=>{refreshRooms.disabled=true;try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}finally{if(version===panelVersion)refreshRooms.disabled=false;}};
+  const update=async()=>{directoryLoading=true;refreshRooms.disabled=true;syncDirectoryControls();try{const rooms=await action('room_directory');if(version===panelVersion&&$('worldPanel').open&&Array.isArray(rooms)){bootstrap.rooms=rooms;draw(rooms);}}catch(e){if(version===panelVersion)toast('Room counts unavailable. Try Refresh rooms.');}finally{if(version===panelVersion){directoryLoading=false;refreshRooms.disabled=false;syncDirectoryControls();}}};
   const refreshRooms=button('Refresh rooms',update,'room-refresh');root.append(refreshRooms,management);
   management.append(button('＋ Create room · Free',()=>showRoomCreator(false),'primary'),note('Share a room link or invite a friend. You can make your room private.'));
   if(scene.ownerId===userId)management.append(note('Visitors for '+scene.name+': '+(scene.access==='open'?'Allowed':'Private')),button(scene.access==='open'?'Make this room private':'Allow visitors',async()=>{const access=scene.access==='open'?'closed':'open';await action('room_access',{roomId:scene.roomId,access});scene.access=access;await refresh();showRooms();}));
