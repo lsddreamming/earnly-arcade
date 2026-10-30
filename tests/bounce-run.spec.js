@@ -20,6 +20,7 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
  test('Bounce Run one tap jumps, pauses safely, and preserves result rewards '+path,async({page})=>{
   const errors=await open(page,path);
   await page.evaluate(()=>{testBounce.state.wait=10000;});
+  expect(await page.evaluate(()=>testBounce.state.jumps)).toBe(0);
   if(test.info().project.name==='mobile-webkit')await page.locator('#surface canvas').tap();
   else await page.locator('#surface canvas').click();
   await expect.poll(()=>page.evaluate(()=>testBounce.state.jumps)).toBe(1);

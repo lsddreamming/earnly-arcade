@@ -1757,7 +1757,11 @@
     // One physical primary tap should be the only thing that can launch a run.
     // This avoids multi-touch or a secondary mouse button consuming a play.
     if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
-    if(!running&&!starting&&!resultShowing)startGame();
+    if(!running&&!starting&&!resultShowing){
+      // The start tap must not reach the jump listener installed by startGame.
+      if(key==='bounceRun')e.stopPropagation();
+      startGame();
+    }
   },{capture:true});
 
   document.addEventListener('keydown',e=>{
