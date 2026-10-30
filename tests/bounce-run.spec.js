@@ -40,7 +40,9 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
   await dialog.getByRole('button',{name:/Play Again/}).click();
   await expect.poll(()=>page.evaluate(()=>testBounce.state.alive)).toBe(true);
   expect(await page.evaluate(()=>testBounce.state.cleared)).toBe(0);
-  await page.locator('#miniGameExit').click();await expect(page).toHaveURL(/games.html/);
+  await page.locator('#earnlyQuitButton').click();
+  await page.locator('.earnly-quit-dialog [data-quit]').click();
+  await expect(page).toHaveURL(/games.html/);
   expect(errors).toEqual([]);
  });
 }
