@@ -16,6 +16,7 @@ const excluded = new Set([
   'native-ads-entry.js',
   'world-placement-entry.js',
   'native-purchases-entry.js',
+  'native-share-entry.js',
   'crystal-command-client-entry.js',
   'playwright.config.js',
   'playwright.contract.config.js',
@@ -51,5 +52,6 @@ await build({
 console.log('Prepared Earnly native web bundle in www/');
 
 await build({entryPoints:['native-purchases-entry.js'],outfile:'www/native-purchases.js',bundle:true,format:'iife',platform:'browser',target:['safari15']});
+await build({entryPoints:['native-share-entry.js'],outfile:'www/native-share.js',bundle:true,format:'iife',platform:'browser',target:['safari15'],minify:true});
 await configureNativeEnvironment(outDir, environment.name);
 console.log('Native backend: '+environment.name+' ('+environment.project+')');
