@@ -1,5 +1,6 @@
 import {spudDefinition} from './spud-residents.ts';
 import {basicResidentReply} from './resident-basic.ts';
+import {continuedResidentReply} from './resident-conversations.ts';
 import {topics,followups} from './resident-topics.ts';
 import type {DialogueRequest} from './resident-ai.ts';
 
@@ -44,6 +45,8 @@ export function programmedResidentReply(r:DialogueRequest):string|null{
   return `I enjoy ${interests[r.residentId]}. What do you like talking about?`;
  }
  if(/^(?:show|clear|forget|review|delete)(?: me)? (?:my |your )?(?:memory|memories)$/.test(text)||/^what do you remember(?: about me)?$/.test(text))return 'Your saved memories stay private. You can review or clear them in Resident privacy.';
+ const continued=continuedResidentReply(r,text);
+ if(continued)return continued;
  if(/^(?:i'?m|i am|i feel|feeling) (?:not good|not great|sad|down|upset|a bit sad|a little sad)$/.test(text))return pick(['Sorry it’s a rough moment. Would you prefer a light chat or a little space?','That sounds difficult. We can keep the conversation gentle.','You don’t have to put on a cheerful mood here. Would a quiet topic help?']);
  if(/^(?:i'?m|i am|i feel|feeling) (?:good|great|fine|happy|okay|ok|pretty good|really good)(?: thanks| thank you)?$/.test(text))return pick(['Glad to hear it. Are you in the mood for games or decorating?','Nice! What sounds fun to talk about?','Good to hear. A relaxed hangout sounds nice.','Glad you’re having a good moment. Want to talk about an Earnly game?']);
  if(/^(?:i'?m|i am|i feel|feeling) (?:tired|sleepy|a bit tired)$/.test(text))return pick(['A quiet break sounds reasonable. No need to rush the chat.','We can keep things easygoing. Would a calm room topic suit you?','There’s no pressure to keep up a conversation if you want a rest.']);
