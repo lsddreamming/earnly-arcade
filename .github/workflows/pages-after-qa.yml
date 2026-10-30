@@ -113,7 +113,7 @@ jobs:
           python3 - <<'PYTHON'
           import pathlib, time, urllib.request
           hosts = ['https://earnlyarcade.com', 'https://www.earnlyarcade.com']
-          files = ['games.html', 'games-showroom.css', 'www/games.html', 'www/games-showroom.css', 'world.html', 'world.js', 'www/world.html', 'www/world.js']
+          files = ['games.html', 'games-showroom.css', 'www/games.html', 'www/games-showroom.css', 'world.html', 'world.js', 'world-renderer.js', 'www/world.html', 'www/world.js', 'www/world-renderer.js']
           for host in hosts:
               for file in files:
                   expected = pathlib.Path(file).read_bytes()
@@ -133,7 +133,7 @@ jobs:
         env:
           EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
       - name: Test published World room controls on mobile WebKit
-        run: npx playwright test tests/world-ai-residents.spec.js --project=mobile-webkit --grep 'personal room chat labels|resident homes are optional'
+        run: npx playwright test tests/world-ai-residents.spec.js --project=mobile-webkit --grep 'personal room chat labels|resident homes are optional|complete resident replies|maximum-length public messages'
         env:
           EARNLY_WORLD_BASE_URL: https://earnlyarcade.com
       - uses: actions/upload-artifact@v4
