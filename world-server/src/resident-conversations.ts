@@ -1,3 +1,4 @@
+import {casualResidentReply,isCasualBridge} from './resident-casual.ts';
 import type {DialogueRequest} from './resident-ai.ts';
 import {spudDefinition} from './spud-residents.ts';
 
@@ -60,17 +61,27 @@ export function continuedResidentReply(r:DialogueRequest,text:string):string|nul
  const latest=r.context.at(-1),previous=r.context.at(-2),lastHuman=r.context.at(-3);
  // A branch belongs to the same human/resident exchange. Never borrow another player's answer.
  if(previous?.speaker===name&&lastHuman?.speaker===latest?.speaker&&latest?.speaker!==name){
-  const card=conversations.find(c=>allLines(c).includes(previous.text));
+  let anchor=previous;
+  // Preserve a short thread through reviewed acknowledgements, but never cross another speaker.
+  for(let offset=2;isCasualBridge(anchor.text)&&offset<=6;offset+=2){
+   const human=r.context.at(-offset-1),resident=r.context.at(-offset-2);
+   if(human?.speaker!==latest?.speaker||resident?.speaker!==name)break;
+   anchor=resident;
+  }
+  const card=conversations.find(c=>allLines(c).includes(anchor.text));
   if(card){
+   const casual=casualResidentReply(r,text,true);
+   if(casual)return casual;
    const response=card.answers.find(a=>a.pattern.test(text.replace(/^(?:i (?:prefer|like|choose)|i would (?:pick|choose)|i'd (?:pick|choose)) /,'')));
-   if(response&&previous.text.endsWith(card.question))return pick(response.lines);
-   if(/^(?:why|why is that|how come)$/.test(text)&&card.opinion.includes(previous.text))return pick([reasons[card.id]]);
+   if(response&&anchor.text.endsWith(card.question))return pick(response.lines);
+   if(/^(?:why|why is that|how come)$/.test(text)&&card.opinion.includes(anchor.text))return pick([reasons[card.id]]);
    if(/^(?:tell me more|go on|what else|anything else)$/.test(text))return pick(card.more);
    if(/^(?:you|and you|what about you|how about you|wbu|hbu|what would you (?:pick|choose))$/.test(text))return pick(card.opinion);
-   if(/^(?:both|a bit of both|either)$/.test(text)&&previous.text.endsWith(card.question))return pick(['Both works. No need to turn a preference into a permanent commitment.','A bit of each gives you more variety.']);
+   if(/^(?:both|a bit of both|either)$/.test(text)&&anchor.text.endsWith(card.question))return pick(['Both works. No need to turn a preference into a permanent commitment.','A bit of each gives you more variety.']);
   }
  }
- const card=starters.find(s=>s.pattern.test(text))?.card;
+ const topicText=text.replace(/^(?:anyway|by the way|btw|actually)[, ]+/, '').replace(/^(?:can we|could we) talk about /, 'let us talk about ').replace(/^let us talk about /, 'lets talk about ');
+ const card=starters.find(s=>s.pattern.test(topicText))?.card;
  if(!card)return null;
  // One complete authored response; no random tail that changes the subject.
  const voice=voices[card.id]?.[r.residentId];

@@ -1,3 +1,5 @@
+import {casualAuthoredLines,fallbackGap,fallbackGapNames} from './resident-casual.ts';
+import type {FallbackGap} from './resident-casual.ts';
 import {conversations,authoredConversationLines} from './resident-conversations.ts';
 import {spudDefinition} from './spud-residents.ts';
 import type {SpudId} from './spud-residents.ts';
@@ -35,6 +37,7 @@ export function repeatedReply(text:string,previous:string[]){
 export class OpenAIResidentDialogue implements ResidentAI{
  #key:string;#reserve:BudgetReservation;#fetch:typeof fetch;#log:(event:Record<string,unknown>)=>void;
  #enabled:boolean;#daily:number;#monthly:number;#busy=0;#times:number[]=[];#cooldown=0;
+ #fallbackGaps=Object.fromEntries(fallbackGapNames.map(name=>[name,0])) as Record<FallbackGap,number>;
  #metrics={requests:0,completed:0,scriptedReplies:0,basicReplies:0,ambientReplies:0,errors:0,moderated:0,limited:0,inputTokens:0,outputTokens:0};
  constructor(env:NodeJS.ProcessEnv,reserve:BudgetReservation,options:{fetch?:typeof fetch;log?:(event:Record<string,unknown>)=>void}={}){
   this.#key=env.OPENAI_API_KEY?.trim()??'';this.#reserve=reserve;this.#fetch=options.fetch??fetch;this.#log=options.log??(()=>{});
@@ -42,7 +45,7 @@ export class OpenAIResidentDialogue implements ResidentAI{
   this.#daily=cap(env.WORLD_AI_DAILY_USD,1);this.#monthly=cap(env.WORLD_AI_MONTHLY_USD,10);
   this.#enabled=env.WORLD_AI_ENABLED==='true'&&!!this.#key&&(env.WORLD_AI_MODEL??MODEL)===MODEL&&this.#daily>0&&this.#monthly>0;
  }
- status(){return {enabled:this.#enabled,keyConfigured:!!this.#key,model:MODEL,programmedCombinations:programmedCombinationCount,conversationTopics:conversations.length,authoredConversationLines:authoredConversationLines.length,ambientCombinations:ambientCombinationCount,...this.#metrics};}
+ status(){return {enabled:this.#enabled,keyConfigured:!!this.#key,model:MODEL,programmedCombinations:programmedCombinationCount,conversationTopics:conversations.length,authoredConversationLines:authoredConversationLines.length,casualAuthoredLines:casualAuthoredLines.length,fallbackGaps:{...this.#fallbackGaps},ambientCombinations:ambientCombinationCount,...this.#metrics};}
  async #post(path:string,body:unknown){
   const response=await this.#fetch('https://api.openai.com/v1/'+path,{method:'POST',redirect:'error',headers:{Authorization:'Bearer '+this.#key,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
   if(!response.ok)throw new Error('provider_unavailable');
@@ -80,6 +83,7 @@ export class OpenAIResidentDialogue implements ResidentAI{
     this.#metrics.basicReplies++;return text;
    }
    if(!await this.#safe(input)){this.#metrics.moderated++;return null;}
+   this.#fallbackGaps[fallbackGap(latest)]++;
    const result=await this.#post('responses',{model:MODEL,instructions,input,store:false,max_output_tokens:256,reasoning:{effort:'none'},service_tier:'default'});
    this.#metrics.inputTokens+=Number(result.usage?.input_tokens)||0;this.#metrics.outputTokens+=Number(result.usage?.output_tokens)||0;
    if(result.status!=='completed')return null;
@@ -91,6 +95,6 @@ export class OpenAIResidentDialogue implements ResidentAI{
    if(!await this.#safe(text)){this.#metrics.moderated++;return null;}
    this.#metrics.completed++;return text;
   }catch{this.#metrics.errors++;this.#cooldown=Date.now()+60000;return null;}
-  finally{this.#busy--;this.#log({event:'resident_ai_usage',...this.#metrics});}
+  finally{this.#busy--;this.#log({event:'resident_ai_usage',...this.#metrics,fallbackGaps:{...this.#fallbackGaps}});}
  }
 }
