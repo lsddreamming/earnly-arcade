@@ -258,4 +258,4 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 /* First visit: optional routes into social play, with touch-sized controls. */
 .first-visit-hint .guide-shortcuts{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%;grid-column:1/-1}
 .first-visit-hint .guide-shortcuts button{min-height:44px;flex:1 1 130px;white-space:normal}
-.public-chat-help{margin:10px 4px 6px;color:var(--muted);font-size:12px;line-height:1.5}
+.public-chat-help{margin:10px 4px 6px;color:#b5cddd;font-size:12px;line-height:1.5}
