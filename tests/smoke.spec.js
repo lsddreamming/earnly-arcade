@@ -2698,7 +2698,7 @@ test('Coin Catch streaks celebrate five catches, survive level changes, and rese
  await page.route('https://**',route=>route.abort());
  await page.goto('/coincatch.html');
  const state=await page.evaluate(()=>{
-  Arcade.setBest('coinCatch',100);reset();running=true;const sounds=[];Arcade.feedback=kind=>sounds.push(kind);
+  localStorage.setItem('coinCatchBest','100');reset();running=true;const sounds=[];Arcade.feedback=kind=>sounds.push(kind);
   function drop(bomb=false,miss=false){const now=performance.now();lastFrame=now-16.67;lastSpawn=now;drops=[{x:basket.x+basket.w/2,y:miss?530:basket.y-23,r:14,speed:4,bomb}];loop(now);cancelAnimationFrame(animation);}
   for(let i=0;i<5;i++)drop();
   const five={score,streak,bestStreak,cue:catchEffects[0].text,reward:rewardFor(score),basket:{...basket}};
@@ -2719,7 +2719,7 @@ test('Coin Catch streaks celebrate five catches, survive level changes, and rese
 test('Coin Catch celebrates a saved personal best once and still awards the normal result',async({page})=>{
  await page.route('https://**',route=>route.abort());await page.setViewportSize({width:390,height:844});await page.goto('/coincatch.html');
  const live=await page.evaluate(()=>{
-  Arcade.setBest('coinCatch',4);reset();running=true;setStatus('Running','running');window.catchSounds=[];Arcade.feedback=kind=>window.catchSounds.push(kind);
+  localStorage.setItem('coinCatchBest','4');reset();running=true;setStatus('Running','running');window.catchSounds=[];Arcade.feedback=kind=>window.catchSounds.push(kind);
   for(let i=0;i<6;i++){const now=performance.now();lastFrame=now-16.67;lastSpawn=now;drops=[{x:180,y:basket.y-23,r:14,speed:4,bomb:false}];loop(now);cancelAnimationFrame(animation);}
   drops=[{x:74,y:120,bomb:false},{x:265,y:230,bomb:true}];draw();
   return {score,streak,cue:catchEffects[0].text,savedBest:Arcade.best('coinCatch').value,newBestSounds:window.catchSounds.filter(s=>s==='newBest').length};
