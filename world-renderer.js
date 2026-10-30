@@ -129,17 +129,33 @@
   }else
   if(s.startsWith('bath-')){
    const white='#eef3ee',chrome='#99b7c1',dark='#46616a',wood='#b59470';
+   // Smooth lathed surfaces keep their real volume in every room orientation.
+   // Profile points are [radius scale, height]; reversed inner rings form a basin.
+   const ceramic=(u,v,rx,ry,profile,tint,power=1)=>{
+    const n=32,point=(j,scale,z)=>{const a=j*Math.PI*2/n,co=Math.cos(a),si=Math.sin(a);return [u+Math.sign(co)*Math.pow(Math.abs(co),power)*rx*scale,v+Math.sign(si)*Math.pow(Math.abs(si),power)*ry*scale,z];};
+    for(let k=0;k<profile.length-1;k++)for(let j=0;j<n;j++){
+     const [ra,za]=profile[k],[rb,zb]=profile[k+1],light=Math.round(Math.cos((j+.5)*Math.PI*2/n-2.4)*13)+(zb===za?12:0);
+     const start=faces.length,quad=[point(j,ra,za),point(j+1,ra,za),point(j+1,rb,zb),point(j,rb,zb)];face(ra===0?quad.slice(1):rb===0?quad.slice(0,3):quad,shade(tint,light),true);
+     for(let i=start;i<faces.length;i++)faces[i].detail=true;
+    }
+   };
    const faucet=(u,v,z)=>{block(u,v,.055,.055,7,z,chrome);block(u,v,.055,.25,2,z+6,chrome);};
    const rim=(u,v,a,d,z,h,tint)=>{block(u,v,a,.1,h,z,tint);block(u,v+d-.1,a,.1,h,z,tint);block(u,v,.1,d,h,z,tint);block(u+a-.1,v,.1,d,h,z,tint);};
    switch(s){
     case 'bath-toilet':
-     block(.3,.3,.4,.55,8,0,white);block(.16,.08,.68,.25,22,0,white);block(.13,.05,.74,.31,2,22,color);
-     cylinder(.5,.62,.34,8,7,white,20);cylinder(.5,.62,.29,15,1,chrome,20);cylinder(.5,.62,.21,16,.3,dark,20);cylinder(.5,.62,.15,16.4,.2,'#b7e4e1',20);
-     block(.61,.02,.13,.04,2,19,chrome);break;
+     ceramic(.5,.6,.24,.29,[[0,0],[.8,0],[1,2],[.65,7],[.8,10]],white);
+     ceramic(.5,.19,.34,.14,[[0,1],[.92,1],[1,3],[1,23],[.9,24],[0,24]],white,.35);
+     ceramic(.5,.19,.35,.15,[[0,24],[1,24],[1,25],[.92,25.5],[0,25.5]],color,.35);
+     ceramic(.5,.62,.35,.36,[[.55,8],[.85,10],[1,14],[1,16],[.92,17],[.7,17],[.65,15],[.3,11],[0,11]],white);
+     ceramic(.5,.62,.13,.15,[[0,11.4],[1,11.4]],'#b7e4e1');
+     cylinder(.67,.18,.045,25.7,.5,chrome,16);break;
     case 'bath-sink':
-     block(.08,.08,.84,.84,22,2,color);for(const u of [.12,.8])block(u,.12,.08,.7,2,0,wood);
-     block(.04,.04,.92,.92,2,24,white);rim(.14,.2,.72,.64,26,2,white);block(.24,.3,.52,.44,.5,26,'#91aaa9');cylinder(.5,.52,.04,26.6,.2,chrome);faucet(.48,.09,27);
-     for(const u of [.19,.55]){block(u,.925,.26,.02,15,5,shade(color,12));block(u+.08,.96,.1,.035,1.3,16,chrome);}break;
+     for(const u of [.18,.78])for(const v of [.18,.78])cylinder(u,v,.035,0,5,wood);
+     ceramic(.5,.5,.42,.42,[[0,4],[.95,4],[1,6],[1,23],[.95,24],[0,24]],color,.3);
+     ceramic(.5,.5,.46,.46,[[0,24],[.94,24],[1,25],[.94,26],[0,26]],white,.3);
+     ceramic(.5,.55,.32,.29,[[.65,26],[.9,27],[1,30],[.94,31],[.8,31],[.72,28],[0,27]],white);
+     cylinder(.5,.55,.04,27.2,.2,chrome);faucet(.48,.09,27);
+     for(const u of [.19,.55]){block(u,.925,.26,.02,15,6,shade(color,12));block(u+.08,.96,.1,.035,1.3,17,chrome);}break;
     case 'bath-shower':
      block(.03,.03,.94,.94,2,0,white);rim(.03,.03,.94,.94,2,2,color);cylinder(.68,.68,.07,2.2,.2,chrome);
      block(.04,.04,.92,.07,47,4,color);for(const u of [.05,.91])for(const v of [.1,.91])block(u,v,.04,.04,47,4,chrome);
@@ -147,22 +163,28 @@
      detail([[.09,.93,5],[.91,.93,5],[.91,.93,50],[.09,.93,50]],'#b8eee52c');
      block(.46,.14,.04,.04,33,12,chrome);block(.46,.14,.04,.32,2,44,chrome);block(.34,.35,.28,.22,1.5,43,chrome);block(.82,.95,.035,.035,7,23,chrome);break;
     case 'bath-tub':
-     for(const u of [.18,.72])for(const v of [.22,1.68])block(u,v,.1,.1,4,0,chrome);
-     block(.08,.08,.84,1.84,10,4,color);rim(.04,.04,.92,1.92,14,4,white);block(.14,.14,.72,1.72,.5,14,'#a9d8d5');
-     for(const v of [.6,1,1.4])ribbon([.26,v,14.6],[.7,v+.08,14.6],'#d3efea',.012);faucet(.2,.12,18);break;
+     for(const u of [.24,.76])for(const v of [.35,1.65])ceramic(u,v,.065,.075,[[0,0],[1,0],[.7,3],[.55,5]],chrome);
+     ceramic(.5,1,.45,.94,[[.6,4],[.76,6],[.9,10],[1,17],[.98,18],[.86,18],[.8,16],[.65,11],[0,11]],color);
+     ceramic(.5,1,.45,.94,[[.98,17.8],[1,18.5],[.98,19],[.86,19],[.84,18.4]],white);
+     ceramic(.5,1,.34,.73,[[0,14],[1,14]],'#a9d8d5');
+     for(const v of [.6,1,1.4])ribbon([.3,v,14.2],[.65,v+.06,14.2],'#e2f7f2',.012);faucet(.2,.18,19);break;
     case 'bath-mirror':
-     block(.12,.18,.76,.65,3,0,wood);block(.45,.38,.1,.12,12,3,chrome);block(.12,.33,.76,.12,35,14,color);
-     for(const v of [.325,.455]){detail([[.19,v,18],[.81,v,18],[.81,v,45],[.19,v,45]],'#a7cad4');ribbon([.28,v,20],[.62,v,43],'#e3f5ef',.025);}break;
+     ceramic(.5,.5,.36,.28,[[0,0],[1,0],[1,2],[.9,3],[0,3]],wood);cylinder(.5,.4,.035,3,15,chrome);
+     for(const v of [.35,.45]){
+      const disk=(rx,rz,tint)=>{const points=[];for(let j=0;j<40;j++){const a=j*Math.PI/20;points.push([.5+Math.cos(a)*rx,v,32+Math.sin(a)*rz]);}detail(points,tint);};
+      disk(.38,20,color);disk(.32,17,'#a7cad4');ribbon([.3,v-.002,24],[.57,v-.002,44],'#e3f5ef',.022);
+     }break;
     case 'bath-towels':
      for(const u of [.15,.8]){block(u,.12,.07,.78,2,0,chrome);block(u,.38,.05,.05,35,0,chrome);}block(.15,.38,.72,.06,2,34,chrome);
      block(.26,.36,.45,.12,17,18,color);block(.29,.49,.39,.03,1,20,white);block(.29,.49,.39,.03,1,22,white);break;
     case 'bath-cabinet':
-     block(.08,.12,.84,.76,42,2,color);block(.05,.09,.9,.82,2,44,white);for(const z of [5,25]){block(.14,.89,.72,.03,16,z,shade(color,12));block(.45,.94,.12,.04,1.5,z+11,chrome);}break;
+     ceramic(.5,.5,.42,.38,[[0,2],[.94,2],[1,4],[1,43],[.94,44],[0,44]],color,.3);ceramic(.5,.5,.45,.41,[[0,44],[1,44],[1,45],[.95,46],[0,46]],white,.3);for(const z of [5,25]){block(.14,.89,.72,.03,16,z,shade(color,12));block(.45,.94,.12,.04,1.5,z+11,chrome);}break;
     case 'bath-hamper':
-     block(.12,.12,.76,.76,24,0,wood);for(const z of [4,8,12,16,20])rim(.115,.115,.77,.77,z,.7,'#d1b896');
-     block(.09,.09,.82,.82,2,24,color);block(.39,.42,.22,.08,2,26,chrome);break;
+     ceramic(.5,.5,.38,.38,[[0,0],[.8,0],[.9,2],[1,23],[.94,24],[0,24]],wood);
+     for(const z of [4,7,10,13,16,19,22]){const scale=.9+z/240;ceramic(.5,.5,.38,.38,[[scale,z],[scale,z+.55]],'#d1b896');}
+     ceramic(.5,.5,.4,.4,[[0,24],[1,24],[1,25],[.9,26],[0,26]],color);cylinder(.5,.5,.06,26,1.5,chrome);break;
     case 'bath-mat':
-     block(.06,.1,.88,1.8,1,0,color);fabric(.06,.1,.88,1.8,1.05,color);for(let v=.25;v<1.8;v+=.18)ribbon([.17,v,1.1],[.83,v,1.1],shade(color,15),.025);break;
+     ceramic(.5,1,.44,.9,[[0,0],[.94,0],[1,.5],[.96,1],[0,1]],color,.35);fabric(.12,.2,.76,1.6,1.05,color);for(let v=.25;v<1.8;v+=.18)ribbon([.17,v,1.1],[.83,v,1.1],shade(color,15),.025);break;
    }
   }else if(s==='premium-beacon'){
    block(.08,.08,1.84,1.84,4,0,'#24354e');block(.16,.16,1.68,1.68,2,4,'#d8bf7d');

@@ -10,3 +10,10 @@ test('Bathroom collection has nine distinct, recolorable, unclipped models in fo
  });expect(result).toEqual({count:9,unique:9,problems:[]});
  await page.screenshot({path:'test-results/bathroom-catalog.png',fullPage:true});
 });
+
+ test('Bathroom catalog stays readable on narrow phones',async({page})=>{
+ await page.setViewportSize({width:320,height:740});await page.route('https://**',r=>r.abort());await page.goto('/world.html?catalog=Bathroom');
+ await expect(page.locator('#panelContent')).toContainText('Porcelain Toilet');
+ expect(await page.locator('#worldPanel').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+ await page.screenshot({path:'test-results/bathroom-rounded-phone.png',fullPage:true});
+ });
