@@ -284,19 +284,38 @@
    matches.sort((a,b)=>(sort.value==='stored'?Number(a.location!=='stored')-Number(b.location!=='stored'):0)||a.d.name.localeCompare(b.d.name)||Number(a.item.serial)-Number(b.item.serial));
    status.textContent=matches.length+' of '+entries.length+' pieces';reset.hidden=!search.value&&filter.value==='all';empty.hidden=matches.length>0;
    empty.textContent=entries.length?'No furniture matches. Try another name or location.':'Your Backpack is empty. Find your first piece in the Catalog.';
-   for(const {item,d,room,location,roomName,color}of matches){
+   const groups=new Map();
+   for(const entry of matches){
+    const key=JSON.stringify([entry.d.id,entry.item.color||entry.d.color]);
+    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(entry);
+   }
+   for(const copies of groups.values()){
+    const {item,d,location,color}=copies[0];
     const card=el('article','item-card backpack-card'),canvas=el('canvas');EarnlyWorldRenderer.thumbnail(canvas,{...d,color:item.color||d.color});canvas.setAttribute('role','img');canvas.setAttribute('aria-label',d.name+' · '+color+' color');
     card.append(el('p','backpack-location '+location,location==='stored'?'In Backpack':location==='here'?'In this room':'In another room'),canvas,el('h3','',d.name));
-    if(item.room_id)card.append(el('p','backpack-room',roomName));
-    card.append(el('p','backpack-detail','No. '+item.serial+' · '+d.width+' × '+d.length+' tiles'));
+    const owned=entries.filter(e=>e.d.id===d.id&&(e.item.color||d.color)===(item.color||d.color)).length;
+    card.append(el('p','owned-label',owned+' owned'));
     if(item.color)card.append(el('p','furniture-color-label',color+' color'));
-    if(location==='elsewhere'){
-     if(room?.ownerId===userId)card.append(button('Visit '+room.name,()=>{remember();return connect(room.id);},'primary'));
-     card.append(note('Pick it up in that room to use it elsewhere.'));
-    }else if(scene.ownerId===userId){
-     card.append(button(location==='here'?'Move':'Place',()=>{remember();beginPlacement(item,d.name);},'primary'));
-     if(location==='here')card.append(button('Pick up',async()=>{remember();await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));
-    }else card.append(button('Go home to place',()=>{remember();return connect('choose-home');},'primary'));
+    const controls=el('div','backpack-copy-controls');
+    const showCopy=entry=>{
+     const {item,room,location,roomName}=entry;controls.replaceChildren();
+     if(item.room_id)controls.append(el('p','backpack-room',roomName));
+     controls.append(el('p','backpack-detail','No. '+item.serial+' · '+d.width+' × '+d.length+' tiles'));
+     if(location==='elsewhere'){
+      if(room?.ownerId===userId)controls.append(button('Visit '+room.name,()=>{remember();return connect(room.id);},'primary'));
+      controls.append(note('Pick it up in that room to use it elsewhere.'));
+     }else if(scene.ownerId===userId){
+      controls.append(button(location==='here'?'Move':'Place',()=>{remember();beginPlacement(item,d.name);},'primary'));
+      if(location==='here')controls.append(button('Pick up',async()=>{remember();await action('place',{itemId:item.id,pickup:true});await refresh();showBackpack();}));
+     }else controls.append(button('Go home to place',()=>{remember();return connect('choose-home');},'primary'));
+    };
+    if(copies.length>1){
+     card.querySelector('.backpack-location').textContent=copies.filter(e=>e.location==='stored').length+' ready to place';
+     const picker=el('select');picker.setAttribute('aria-label','Choose copy of '+d.name);
+     copies.forEach((entry,index)=>{const option=el('option','','No. '+entry.item.serial+' · '+(entry.location==='stored'?'In Backpack':entry.roomName));option.value=String(index);picker.append(option);});
+     picker.onchange=()=>showCopy(copies[Number(picker.value)]);card.append(picker);
+    }
+    card.append(controls);showCopy(copies[0]);
     grid.append(card);
    }
   };
