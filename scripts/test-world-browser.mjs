@@ -86,8 +86,8 @@ try{
  await expect(a.locator('#roomName')).toHaveText('Earnly Plaza');await overview(a);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>!s.isAI).length)).toBe(0);await expect.poll(()=>a.evaluate(()=>[...window.testWorldRenderer.staff.values()].filter(s=>s.isAI).length)).toBeGreaterThanOrEqual(4);await expect.poll(()=>a.evaluate(()=>window.testWorldRenderer.staff.size)).toBeLessThanOrEqual(5);
  await expect(a.locator('#peopleCount')).toHaveAttribute('data-players','2');
 
- for(const p of pages){await p.getByRole('button',{name:'Chat',exact:false}).click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
- await a.locator('#sayText').fill('Hello from my potato');await a.locator('#sayForm button').click();await b.getByRole('button',{name:'Chat',exact:false}).click();await b.locator('.chat-message').filter({hasText:'Hello from my potato'}).waitFor();await b.getByRole('button',{name:'Close panel'}).click();
+ for(const p of pages){await p.locator('[data-panel="chat"]').click();await p.getByRole('button',{name:'I agree to the chat rules'}).click();await p.getByRole('button',{name:'Close panel'}).click();}
+ await a.locator('#sayText').fill('Hello from my potato');await a.locator('#sayForm button').click();await b.locator('[data-panel="chat"]').click();await b.locator('.chat-message').filter({hasText:'Hello from my potato'}).waitFor();await b.getByRole('button',{name:'Close panel'}).click();
  await a.getByRole('button',{name:'Catalog',exact:false}).click();
  await expect(a.locator('.item-card')).toHaveCount(35);
  await a.getByRole('button',{name:'Heritage',exact:true}).click();

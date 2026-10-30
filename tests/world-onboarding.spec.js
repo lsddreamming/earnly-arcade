@@ -7,13 +7,13 @@ async function fixture(page,{empty=false,guest=false,rug=false}={}){
   window.actions=[];window.joins=[];
   const catalog=[{id:'chair',name:'Mint Chair',sprite_id:'chair',price:60,item_height:1,walkable:false,can_stack:false,can_sit:true,can_lay:false,width:1,length:1,color:'#74c9ba',category:'Essentials',minted:0}];
   if(rug)Object.assign(catalog[0],{name:'Mint Tile Rug',sprite_id:'rug',width:2,length:2,item_height:0.25,walkable:true,can_stack:true,can_sit:false});
-  const bootstrap={balance:0,dailyMissions:true,catalog,items:empty?[]:[{id:'chair1',definition_id:'chair',room_id:null,serial:1}],rooms:[{id:'home',name:'My room',ownerId:'guide-owner'}],friends:[]};
+  const bootstrap={balance:0,chatAccepted:true,dailyMissions:true,catalog,items:empty?[]:[{id:'chair1',definition_id:'chair',room_id:null,serial:1}],rooms:[{id:'home',name:'My room',ownerId:'guide-owner'},{id:'plaza',name:'Earnly Plaza',ownerId:null,occupancy:2},{id:'quiet',name:'Quiet room',ownerId:null,occupancy:0}],friends:[]};
   window.WebSocket=class extends EventTarget{
    static OPEN=1;constructor(){super();this.readyState=1;window.guideSocket=this;setTimeout(()=>this.onopen?.(),10);}
    emit(p){const data=JSON.stringify(p);this.onmessage?.({data});this.dispatchEvent(new MessageEvent('message',{data}));}
    close(){this.readyState=3;this.dispatchEvent(new Event('close'));}
    send(raw){const p=JSON.parse(raw);if(p.type==='LEAVE'){this.emit({type:'LEFT'});return;}
-    if(p.type==='JOIN'){window.joins.push(p.roomId);this.scene={roomId:p.roomId==='plaza'?'plaza':'home',ownerId:p.roomId==='plaza'?null:guest&&window.joins.length===1?'friend':'guide-owner',name:'My room',access:'open',heightmap:rug?[...Array(8).fill('2222222222222222'),'1111111111111111',...Array(7).fill('00000000xxxxxxxx')].join('\n'):Array(8).fill('00000000').join('\n'),items:[]};this.emit({type:'WELCOME',userId:'guide-owner',scene:this.scene,bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[{userId:'guide-owner',position:{x:0,y:0,z:rug?2:0}}]});return;}
+    if(p.type==='JOIN'){window.joins.push(p.roomId);this.scene={roomId:p.roomId==='plaza'?'plaza':'home',ownerId:p.roomId==='plaza'?null:guest&&window.joins.length===1?'friend':'guide-owner',name:'My room',chatRange:p.roomId==='plaza'?'nearby':'room',access:'open',heightmap:rug?[...Array(8).fill('2222222222222222'),'1111111111111111',...Array(7).fill('00000000xxxxxxxx')].join('\n'):Array(8).fill('00000000').join('\n'),items:[]};this.emit({type:'WELCOME',userId:'guide-owner',scene:this.scene,bootstrap});this.emit({type:'ROOM_SNAPSHOT',users:[{userId:'guide-owner',position:{x:0,y:0,z:rug?2:0}}]});return;}
     if(p.type==='ACTION'){window.actions.push(p);if(p.action==='place'&&window.rejectPlacement){this.emit({type:'RESULT',requestId:p.requestId,error:'Tile blocked',definite:true});return;}
      if(p.action==='place'){bootstrap.items[0].room_id='home';this.scene.items=[{id:'chair1',name:'Mint Chair',sprite:'chair',width:1,length:1,x:p.data.x,y:p.data.y,z:0,rotation:0}];this.emit({type:'SCENE',scene:this.scene});}
      if(p.action==='rename_room')bootstrap.rooms[0].name=p.data.name;
@@ -30,7 +30,7 @@ test('First visit uses owned furniture, rejects failed placement, then celebrate
  await fixture(page);await walked(page);await page.locator('#guideAction').click();await expect(page.locator('#panelContent')).toContainText('Already yours · No coins needed');
  await page.getByRole('button',{name:'Place this piece',exact:true}).click();await page.locator('#cancelPlace').click();await expect(page.locator('#guideStep')).toContainText('2 / 3');
  await page.locator('#guideAction').click();await page.getByRole('button',{name:'Place this piece',exact:true}).click();await page.evaluate(()=>window.rejectPlacement=true);await place(page);await expect(page.locator('#worldToast')).toContainText('Tile blocked');await expect(page.locator('#guideStep')).toContainText('2 / 3');
- await page.evaluate(()=>window.rejectPlacement=false);await page.locator('#dropItem').click();await expect(page.locator('#placementSuccess')).toBeVisible();await page.screenshot({path:'test-results/world-onboarding-saved.png',fullPage:true});await page.locator('#placementMissions').click();await expect(page.getByRole('button',{name:'Claim 5 coins',exact:true})).toBeVisible();expect(await page.evaluate(()=>window.actions.some(a=>a.data.claim))).toBe(false);await page.locator('#closePanel').click();await expect(page.locator('#guideStep')).toContainText('3 / 3');await page.locator('#guideAction').click();await expect(page.locator('#guideStep')).toContainText('You’re ready');await expect(page.locator('#guideProgress')).toHaveText('3 of 3 complete');
+ await page.evaluate(()=>window.rejectPlacement=false);await page.locator('#dropItem').click();await expect(page.locator('#placementSuccess')).toBeVisible();await page.screenshot({path:'test-results/world-onboarding-saved.png',fullPage:true});await page.locator('#placementMissions').click();await expect(page.getByRole('button',{name:'Claim 5 coins',exact:true})).toBeVisible();expect(await page.evaluate(()=>window.actions.some(a=>a.data.claim))).toBe(false);await page.locator('#closePanel').click();await expect(page.locator('#guideStep')).toContainText('3 / 3');await page.locator('#guideAction').click();await page.locator('.room-card').filter({hasText:'Earnly Plaza'}).getByRole('button',{name:'Visit →',exact:true}).click();await expect(page.locator('#guideStep')).toContainText('You’re ready');await expect(page.locator('#guideProgress')).toHaveText('3 of 3 complete');
  expect(await page.evaluate(()=>window.actions.some(a=>a.action==='buy'))).toBe(false);
 });
 test('Empty Backpack offers priced options and earning without an automatic purchase',async({page})=>{
@@ -126,4 +126,24 @@ test('Owned rooms can be renamed repeatedly from the header and room list',async
  await page.getByLabel('Room name',{exact:true}).fill('   ');await page.getByRole('button',{name:'Save name',exact:true}).click();await expect(page.locator('#panelContent')).toContainText('Use 1–40');
  await page.getByLabel('Room name',{exact:true}).fill('New lounge');await page.getByRole('button',{name:'Save name',exact:true}).click();await expect(page.locator('#roomName')).toHaveText('New lounge');
  expect(await page.evaluate(()=>window.actions.filter(a=>a.action==='rename_room').length)).toBe(2);
+});
+
+test('New players can find company and use public chat before walking or buying',async({page})=>{
+ await page.setViewportSize({width:320,height:740});await fixture(page,{empty:true});
+ await expect(page.locator('#guideStep')).toContainText('1 / 3');
+ await expect(page.locator('#publicChatHelp')).toContainText('Everyone in this room');
+ await page.locator('#sayText').fill('Hey everyone');await page.locator('#guideHello').click();
+ await expect(page.locator('#sayText')).toBeFocused();await expect(page.locator('#sayText')).toHaveValue('Hey everyone');
+ expect(await page.evaluate(()=>window.actions.some(a=>a.action==='say'))).toBe(false);
+ await page.locator('#guideHangout').click();
+ await expect(page.getByRole('button',{name:'Public Hangouts',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.room-card').first()).toContainText('Earnly Plaza');
+ await expect(page.locator('.room-card').first()).toContainText('2 players in room');
+ await page.locator('.room-card').first().getByRole('button',{name:'Visit →',exact:true}).click();
+ await expect(page.locator('#publicChatHelp')).toContainText('within 8 tiles');
+ await page.locator('#guideHello').click();await page.locator('#sayText').fill('What’s up?');await page.locator('#sayForm button').click();
+ expect(await page.evaluate(()=>window.actions.filter(a=>a.action==='say').map(a=>a.data))).toEqual([expect.objectContaining({text:'What’s up?',mode:'normal'})]);
+ expect(await page.evaluate(()=>window.actions.some(a=>['buy','place'].includes(a.action)))).toBe(false);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'test-results/world-collection-first-visit-social.png',fullPage:true});
 });
