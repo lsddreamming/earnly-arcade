@@ -31,6 +31,38 @@ async function fixture(page,{chatAccepted=true,roomWide=false}={}){
  },{chatAccepted,roomWide});
  await page.goto(liveWorldBase+'/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
 }
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){
+ test(`complete resident replies stay readable above their heads at ${viewport.width}px`,async({page},info)=>{
+  await page.setViewportSize(viewport);await fixture(page);
+  const reply='I like making this room feel calm, with soft lighting, a comfy seat, and the aquarium beside the plants. The fish move around while we chat! You can try a cozy corner in your own room too, then leave a clear path so everyone can walk around easily.';
+  const result=await page.evaluate(text=>{
+   const r=aiRenderer,drawn=[],fill=r.c.fillText.bind(r.c);
+   r.c.fillText=(value,x,y,...rest)=>{drawn.push({text:value,x,y,width:r.c.measureText(value).width});fill(value,x,y,...rest);};
+   aiSocket.emit({type:'CHAT',userId:'ai-jax',username:'Jax',isAI:true,text,mode:'normal'});
+   r.draw();r.c.fillText=fill;
+   const bubble=r.bubbles.get('ai-jax');return {lines:bubble.layout.lines,drawn,remaining:bubble.until-performance.now(),width:r.width,height:r.height};
+  },reply);
+  expect(result.lines.length).toBeGreaterThan(3);
+  expect(result.lines.join(' ')).toBe(reply);
+  expect(result.remaining).toBeGreaterThan(14000);
+  for(const line of result.lines){
+   const painted=result.drawn.find(d=>d.text===line);expect(painted).toBeTruthy();
+   expect(painted.x).toBeGreaterThanOrEqual(8);expect(painted.x+painted.width).toBeLessThanOrEqual(result.width-8);
+   expect(painted.y).toBeGreaterThan(8);expect(painted.y+4).toBeLessThanOrEqual(result.height-8);
+  }
+  await page.screenshot({path:info.outputPath('complete-resident-reply.png')});
+  await page.locator('[data-panel="chat"]').click();await expect(page.locator('.chat-message')).toContainText(reply);
+ });
+}
+test('maximum-length public messages wrap without losing characters after a resize',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await fixture(page);
+ const text='W'.repeat(260)+' 👋 End of reply!';
+ await page.evaluate(text=>aiSocket.emit({type:'CHAT',userId:'ai-jax',username:'Jax',isAI:true,text,mode:'normal'}),text);
+ await page.setViewportSize({width:320,height:568});
+ const result=await page.evaluate(()=>{const r=aiRenderer;r.resize();r.draw();return r.bubbles.get('ai-jax').layout;});
+ expect(result.lines.join('').replace(/\s/g,'')).toBe(text.replace(/\s/g,''));
+ expect(result.bw).toBeLessThanOrEqual(296);
+});
 test('AI residents have distinct actions, shared public chat and Quiet mode with a Spud headcount and separate human occupancy',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await fixture(page);
  await expect(page.locator('#peopleCount')).toHaveText('2 Spuds here');
