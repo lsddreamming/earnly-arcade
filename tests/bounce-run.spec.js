@@ -76,8 +76,9 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
   expect(await page.evaluate(()=>{
     const o=testBounce.state.obstacles[0];
     if(!o?.passed)return false;
-    const [r,g,b]=document.querySelector('#surface canvas').getContext('2d').getImageData(Math.floor(o.x+o.w/2),340,1,1).data;
-    return o.x+o.w<70&&r>g*1.5&&r>b;
+    const pixels=document.querySelector('#surface canvas').getContext('2d').getImageData(0,340,150,1).data;
+    let red=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]>pixels[i+1]*1.5&&pixels[i]>pixels[i+2])red++;
+    return o.x+o.w<70&&red>=o.w*.6;
   })).toBe(true);
   await page.screenshot({path:test.info().outputPath('bounce-run-passed-crystal.png')});
   expect(errors).toEqual([]);
@@ -98,6 +99,31 @@ for(const motion of ['reduce','no-preference'])test('Bounce Run rolling and trac
  if(motion==='reduce')expect(after).toEqual(before);
  else{expect(after.track).not.toEqual(before.track);expect(after.ball).not.toEqual(before.ball);}
  await page.screenshot({path:test.info().outputPath('bounce-run-rolling-'+motion+'.png')});
+ expect(errors).toEqual([]);
+});
+for(const motion of ['reduce','no-preference'])test('Bounce Run leap travels forward while course HUD stays steady '+motion,async({page})=>{
+ await page.emulateMedia({reducedMotion:motion});
+ const errors=await open(page);
+ await page.evaluate(()=>{testBounce.step=()=>{};Object.assign(testBounce.state,{travel:0,y:349,vy:0,obstacles:[]});});
+ await page.waitForTimeout(100);
+ const sample=()=>page.evaluate(()=>{
+   const ctx=document.querySelector('#surface canvas').getContext('2d'),pixels=ctx.getImageData(40,190,120,165).data;
+   let total=0,x=0,y=0;
+   for(let i=0;i<pixels.length;i+=4){
+     const [r,g,b]=pixels.slice(i,i+3);
+     if(r>210&&g>100&&g<200&&b<120){total++;x+=40+(i/4)%120;y+=190+Math.floor(i/4/120);}
+   }
+   return {x:x/total,y:y/total,total,hud:Array.from(ctx.getImageData(14,14,182,60).data)};
+ });
+ const grounded=await sample();expect(grounded.total).toBeGreaterThan(15);
+ await page.screenshot({path:test.info().outputPath('bounce-run-camera-ground-'+motion+'.png')});
+ await page.evaluate(()=>{testBounce.state.y=259;});await page.waitForTimeout(100);
+ const airborne=await sample();expect(airborne.total).toBeGreaterThan(15);
+ expect(grounded.y-airborne.y).toBeGreaterThan(80);
+ if(motion==='reduce')expect(Math.abs(airborne.x-grounded.x)).toBeLessThan(2);
+ else expect(airborne.x-grounded.x).toBeGreaterThan(15);
+ expect(airborne.hud).toEqual(grounded.hud);
+ await page.screenshot({path:test.info().outputPath('bounce-run-camera-leap-'+motion+'.png')});
  expect(errors).toEqual([]);
 });
 for(const motion of ['reduce','no-preference'])test('Bounce Run landscape and reachable double preview '+motion,async({page})=>{
@@ -122,6 +148,11 @@ for(const height of [640,740])test('Bounce Run phone controls stay below the jum
  const pause=page.locator('.bounce-session-controls #earnlyPauseButton');
  const quit=page.locator('.bounce-session-controls #earnlyQuitButton');
  await expect(jump).toBeVisible();await expect(pause).toBeVisible();await expect(quit).toBeVisible();
+ expect(await jump.evaluate(el=>getComputedStyle(el).webkitUserSelect||getComputedStyle(el).userSelect)).toBe('none');
+ if(test.info().project.name==='mobile-webkit')expect(await jump.locator('small').evaluate(el=>getComputedStyle(el).webkitTouchCallout)).toBe('none');
+ expect(await jump.evaluate(el=>{
+   const menu=new Event('contextmenu',{bubbles:true,cancelable:true});el.dispatchEvent(menu);return menu.defaultPrevented;
+ })).toBe(true);
  const j=await jump.boundingBox(),p=await pause.boundingBox(),q=await quit.boundingBox();
  expect(p.y).toBeGreaterThanOrEqual(j.y+j.height+4);
  expect(q.y).toBeGreaterThanOrEqual(j.y+j.height+4);

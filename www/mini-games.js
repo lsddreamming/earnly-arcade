@@ -1060,6 +1060,10 @@
     function draw() {
       // Artwork is deterministic and bounded; the physics owns every hitbox.
       const reduced=calm(),now=performance.now(),travel=physics.state.travel,motion=reduced?0:travel;
+      // The camera eases into the run and leads each leap. Apply the same
+      // offset to the ball, track and hazards so jump timing stays exact.
+      const height=Math.max(0,349-y);
+      const cameraX=reduced?0:16*(1-Math.exp(-travel/65))+Math.min(22,height*.22);
       bounceZone.classList.toggle('bounce-jumping',!reduced&&jumpAt>0&&now-jumpAt<180);
       const themes=[
         {sky:'#2675bd',horizon:'#b5f2ed',sun:'#fff1b4',far:'#78bbcd',near:'#398caa',grass:'#80ebaf',rock:'#255675'},
@@ -1077,12 +1081,12 @@
       ellipse(theme.sun+'18',278,112,62,62);ellipse(theme.sun+'25',278,112,47,47);
       ellipse(theme.sun,278,112,30,30);
       for(let i=0;i<5;i++){
-        const x=((i*101-motion*.18)%460+460)%460-60,cy=100+(i*47)%130;
+        const x=((i*101-motion*.18)%460+460)%460-60+cameraX*.18,cy=100+(i*47)%130;
         ellipse('#ffffff33',x,cy,42,8);ellipse('#ffffff55',x-10,cy-5,19,12);ellipse('#ffffff55',x+12,cy-3,24,10);
       }
       // Distant floating islands, then close ridges and tiny garden trees.
       for(let i=0;i<4;i++){
-        const x=((i*139-motion*.3)%540+540)%540-90,yy=230+(i%2)*33;
+        const x=((i*139-motion*.3)%540+540)%540-90+cameraX*.3,yy=230+(i%2)*33;
         ctx.fillStyle=theme.far;ctx.beginPath();ctx.moveTo(x,yy);ctx.lineTo(x+72,yy);ctx.lineTo(x+48,yy+42);ctx.lineTo(x+30,yy+57);ctx.closePath();ctx.fill();
         ellipse('#c3f6d4',x+36,yy,36,7);
         fill('#527b83',x+34,yy-23,4,23,2);
@@ -1096,19 +1100,19 @@
         for(let j=0;j<3;j++){fill('#7fcdb3',x+12+j*17,yy-5,2,6,1);ellipse(j%2?'#ffe4aa':'#ffe2de',x+13+j*17,yy-6,3,2);}
 
       }
-      ctx.fillStyle=theme.near;ctx.beginPath();ctx.moveTo(0,340);
-      for(let i=-1;i<5;i++){const x=i*140-(motion*.65)%140;ctx.quadraticCurveTo(x+45,268,x+140,328);}
+      ctx.fillStyle=theme.near;ctx.beginPath();ctx.moveTo(-60,340);
+      for(let i=-1;i<5;i++){const x=i*140-(motion*.65)%140+cameraX*.65;ctx.quadraticCurveTo(x+45,268,x+140,328);}
       ctx.lineTo(360,370);ctx.lineTo(0,370);ctx.closePath();ctx.fill();
       // Small garden details form a quiet middle layer, clear of the jump arc.
       for(let i=0;i<6;i++){
-        const x=((i*83-motion*.85)%470+470)%470-50,base=337+(i%2)*5;
+        const x=((i*83-motion*.85)%470+470)%470-50+cameraX*.85,base=337+(i%2)*5;
         ctx.strokeStyle='#245e70';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,base);ctx.quadraticCurveTo(x-3,base-9,x+2,base-18);ctx.stroke();
         ellipse('#9ee4c1',x-4,base-8,5,2);ellipse('#9ee4c1',x+5,base-12,5,2);
         ellipse(i%2?'#ffe0a2':'#ffc7c4',x+2,base-19,4,3);
       }
       for(let i=0;i<3;i++){
-        const x=((i*137-motion*.4)%440+440)%440-40,yy=153+i*37+(reduced?0:Math.sin(motion*.035+i)*6);
-        const wing=reduced?4:2+Math.abs(Math.sin(motion*.15+i))*3;
+        const x=((i*137-motion*.4)%440+440)%440-40+cameraX*.4,yy=153+i*37+(reduced?0:Math.sin(physics.state.ticks*.025+i)*6);
+        const wing=reduced?4:2+Math.abs(Math.sin(physics.state.ticks*.08+i))*3;
         ellipse('#ffe4a7bb',x-3,yy,3,wing);ellipse('#fff0c7cc',x+3,yy,3,wing);
         fill('#547d82',x-.5,yy-2,1,5,1);
       }
@@ -1116,7 +1120,7 @@
       fill(theme.rock,0,356,360,74);
       fill('#153d5a',0,377,360,53);
       fill(theme.grass,0,354,360,6);fill('#dcffe2',0,354,360,2);
-      const scroll=motion%48;
+      const scroll=((motion-cameraX)%48+48)%48;
       for(let x=-scroll-48;x<408;x+=48){
         fill('#8bcaaf',x+4,361,31,6,3);fill('#e4b59044',x+11,374,21,5,2);
         fill('#97b0b533',x+2,393,14,7,3);fill('#6b93a044',x+27,411,24,5,2);
@@ -1125,7 +1129,7 @@
       }
       // Turf markers move at the same speed as incoming hazards. The ball
       // remains near the left edge while the course travels underneath it.
-      for(let x=-(motion%24);x<384;x+=24){
+      for(let x=-(((motion-cameraX)%24+24)%24);x<384;x+=24){
         fill('#efffcb',x,354,7,2,1);
         fill('#438c78',x+12,358,4,2,1);
       }
@@ -1134,6 +1138,7 @@
       ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='900 15px system-ui';ctx.fillText(stageName(),35,36);
       ctx.fillStyle='#bce2ef';ctx.font='800 9px system-ui';ctx.fillText('LEVEL '+runLevel()+'  ·  NEXT IN '+(5-cleared%5)+' CLEARS',35,51);
       for(let i=0;i<5;i++)fill(i<cleared%5?'#9bffcd':'#ffffff30',35+i*28,60,22,4,2);
+      ctx.save();ctx.translate(cameraX,0);
       // Red crystal hazards share the exact existing obstacle footprint.
       obstacles.forEach(o=>{
         ellipse('#102a4e44',o.x+o.w/2,358,o.w/2+4,3);
@@ -1154,7 +1159,7 @@
         const px=p.x-(travel-p.travel);
         ellipse('rgba(210,255,242,'+alpha+')',px,p.y,3+index*.4,3+index*.4);
       });
-      const height=349-y,landingAge=now-landAt;
+      const landingAge=now-landAt;
       if(!reduced&&height<2&&physics.state.alive&&physics.state.ticks>0){
         // A fixed number of short dust puffs makes ground contact readable.
         for(let i=0;i<4;i++){
@@ -1176,26 +1181,28 @@
         for(let i=0;i<6;i++){const side=i<3?-1:1,k=i%3;ellipse('#e3ffe0',80+side*(9+age*(18+k*9)),354-Math.sin(age*Math.PI)*(3+k*3),3-age*2,2-age);}
         ctx.globalAlpha=1;
       }
-      // Bold rotating panels show a rolling sphere; the face stays readable.
-      ctx.save();ctx.translate(80,y-6);
+      // A larger sphere rolls as a whole, including its face and bright band.
+      // The highlight stays lit from above while all surface details rotate.
+      ctx.save();ctx.translate(80,y-9);
       const squash=!reduced&&landAt&&landingAge<150?Math.sin(landingAge/150*Math.PI)*.18:0;
       const stretch=!reduced&&vy<0?Math.min(.11,-vy*.012):0;
       ctx.scale(1+squash-stretch*.5,1-squash+stretch);
-      const ball=ctx.createRadialGradient(-4,-5,1,0,0,12);
+      const ball=ctx.createRadialGradient(-5,-6,1,0,0,15);
       ball.addColorStop(0,'#fffce9');ball.addColorStop(.55,'#ffdf76');ball.addColorStop(1,'#ed9c44');
-      ctx.beginPath();ctx.fillStyle=ball;ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff3bf';ctx.lineWidth=1;ctx.stroke();
-      ctx.save();ctx.rotate(reduced?0:travel/11);
+      ctx.beginPath();ctx.fillStyle=ball;ctx.arc(0,0,14,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff3bf';ctx.lineWidth=1;ctx.stroke();
+      ctx.rotate(reduced?0:travel/14);
+      ctx.strokeStyle='#fff8d9';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(-2,0,5,12,0,0,Math.PI*2);ctx.stroke();
       for(let i=0;i<3;i++){
         const angle=i*Math.PI*2/3;
-        ctx.fillStyle='#c67b32';ctx.beginPath();ctx.arc(Math.cos(angle)*7,Math.sin(angle)*7,2.3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#c67b32';ctx.beginPath();ctx.arc(Math.cos(angle)*10,Math.sin(angle)*10,2.3,0,Math.PI*2);ctx.fill();
       }
-      ctx.strokeStyle='#b97739aa';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,0,5,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
       const blink=!reduced&&Math.floor(now%4100)>3940;
       ellipse('#33344f',2,-2,1.5,blink?.5:2.3);ellipse('#33344f',7,-2,1.5,blink?.5:2.3);ellipse('#ff957d',0,2,2,1);
       if(!physics.state.alive){
         ctx.strokeStyle='#68473b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(4,5,2,Math.PI,Math.PI*2);ctx.stroke();
       }else if(vy<-2){ellipse('#68473b',4,3,1.7,2);}
       else{ctx.strokeStyle='#68473b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(4,1,2,0,Math.PI);ctx.stroke();}
+      ctx.restore();
       ctx.restore();
       ctx.textAlign='center';
       if(clearAt&&now-clearAt<650){
@@ -1287,7 +1294,7 @@
         return;
       }
       if(combo>0&&lastClearAt&&t-lastClearAt>=4000)combo=0;
-      if(!warming&&!calm()&&y<347){trail.push({x:80,y:y-6,travel:physics.state.travel});if(trail.length>7)trail.shift();}else trail=[];
+      if(!warming&&!calm()&&y<347){trail.push({x:80,y:y-9,travel:physics.state.travel});if(trail.length>7)trail.shift();}else trail=[];
 
       ui(Math.floor(distance),cleared);
       draw();
@@ -1331,6 +1338,9 @@
     };
     c.addEventListener('pointerdown',onPointer,{passive:false});
     bounceZone.addEventListener('pointerdown',jump,{passive:false});
+    bounceZone.addEventListener('contextmenu',blockGesture);
+    bounceZone.addEventListener('selectstart',blockGesture);
+    bounceZone.addEventListener('touchstart',blockGesture,{passive:false});
     document.addEventListener('pointerdown',onWideJump,{passive:false});
     c.addEventListener('touchstart',blockGesture,{passive:false});
     c.addEventListener('gesturestart',blockGesture,{passive:false});
@@ -1366,6 +1376,9 @@
         raf=null;
         c.removeEventListener('pointerdown',onPointer);
         bounceZone.removeEventListener('pointerdown',jump);
+        bounceZone.removeEventListener('contextmenu',blockGesture);
+        bounceZone.removeEventListener('selectstart',blockGesture);
+        bounceZone.removeEventListener('touchstart',blockGesture);
         bounceZone.remove();
         for(const {button,marker} of parked){marker.replaceWith(button);}
         controls.remove();
