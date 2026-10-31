@@ -47,6 +47,8 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
     Object.assign(testBounce.state,{y:349,vy:0,buffer:0,distance:430,obstacles:[{x:80,w:20,speed:1}]});
   });
   const dialog=page.locator('dialog.game-result-dialog');await expect(dialog).toBeVisible();
+  await expect(dialog.locator('.result-tip')).toContainText('A close pair takes one jump');
+  await expect(dialog.locator('.result-outcome')).not.toBeEmpty();
   expect(await page.evaluate(()=>bounceAward)).toEqual({amount:20,label:'Bounce Run',evidence:{kind:'game',game:'bounceRun',metric:430}});
   const stopped=await page.evaluate(()=>testBounce.state.ticks);await page.waitForTimeout(150);
   expect(await page.evaluate(()=>testBounce.state.ticks)).toBe(stopped);
@@ -91,3 +93,4 @@ for(const height of [640,740])test('Bounce Run phone controls stay below the jum
  await page.screenshot({path:test.info().outputPath('bounce-run-phone-'+height+'.png')});
  expect(errors).toEqual([]);
 });
+

@@ -1622,7 +1622,7 @@ test('Bounce Run exposes progressive run feedback', async ({ page }) => {
   const response = await page.request.get('/mini-games.js');
   expect(response.ok()).toBeTruthy();
   const source = await response.text();
-  expect(source).toContain("CLEAR COMBO");
+  expect(source).toContain("CLEAR STREAK");
   expect(source).toContain("Best clear combo:");
   expect(source).toContain("5 clears = level up");
   expect(source).toContain("Math.ceil((readyUntil-performance.now())/650)");
@@ -1634,9 +1634,9 @@ test('Bounce Run shows motion and level-up feedback', async ({ page }) => {
   expect(response.ok()).toBeTruthy();
   const source = await response.text();
   expect(source).toContain("levelFlashText='LEVEL '");
-  expect(source).toContain("ctx.fillText('SPEED UP!'");
+  expect(source).toContain("ctx.fillText('NEW STRETCH · KEEP ROLLING'");
   expect(source).toContain("trail.push({x:80,y})");
-  expect(source).toContain("const scroll=(distance*5)%36");
+  expect(source).toContain("const scroll=reduced?0:(distance*5)%48");
 });
 
 
@@ -2760,3 +2760,4 @@ test('Coin Catch sounds share the sound toggle and advertisement mute',async({pa
  });
  expect(sound).toEqual({off:0,ad:0,enabled:16,afterOff:16});
 });
+

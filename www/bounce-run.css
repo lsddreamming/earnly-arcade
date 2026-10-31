@@ -42,3 +42,23 @@ body.mini-bounceRun .bounce-idle{position:relative;overflow:hidden;background:li
 .bounce-idle-ball i{position:absolute;top:20px;left:29px;width:4px;height:7px;border-radius:50%;background:#33344f}
 .bounce-idle-ball i+i{left:38px}
 .bounce-idle-ball::after{content:'';position:absolute;left:30px;top:29px;width:11px;height:5px;border-bottom:2px solid #68473b;border-radius:50%}
+
+/* Warm garden details carry through the start, jump feedback and results. */
+.bounce-idle-ball{animation:bounceWelcome 2.8s ease-in-out infinite}
+.bounce-idle-island{animation:bounceIsland 7s ease-in-out infinite}
+@keyframes bounceWelcome{0%,100%{transform:translateY(0) rotate(-12deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+@keyframes bounceIsland{0%,100%{translate:0 0}50%{translate:0 -7px}}
+html body.mini-bounceRun.game-active .bounce-tap-zone.bounce-jumping{background:linear-gradient(115deg,#fff1bd,#ffdc8a)!important;box-shadow:0 2px 0 #9a6b34,0 0 18px #ffe3a144;transform:translateY(2px)}
+.bounce-tap-zone.bounce-jumping .bounce-jump-icon{transform:translateY(-3px)}
+body.mini-bounceRun .game-result-dialog{background:radial-gradient(ellipse at 85% 0%,#36716a55,transparent 65%),#102d42;border:1px solid #92e7c56b;border-radius:24px;box-shadow:0 24px 70px #0008;color:#f1fff7}
+body.mini-bounceRun .game-result-dialog .result-icon{display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,#fffce9,#ffdf76 55%,#ed9c44);color:#79552c;border:2px solid #fff3bf;border-radius:50%;box-shadow:0 5px 18px #ffcf7622}
+body.mini-bounceRun .game-result-dialog .result-main{background:linear-gradient(145deg,#20495c,#17394c);border-color:#8ae5c333;border-radius:18px}
+body.mini-bounceRun .game-result-dialog .result-main>strong{color:#ffe3a1}
+body.mini-bounceRun .game-result-dialog .result-outcome{color:#c9f7df}
+body.mini-bounceRun .game-result-dialog .result-tip{color:#b9d7e2;font-size:12px;margin-top:5px}
+body.mini-bounceRun .game-result-dialog .result-badge{color:#baffd5;border-color:#82ddb84d}
+@media(prefers-reduced-motion:reduce){
+  .bounce-idle-ball,.bounce-idle-island{animation:none}
+  html body.mini-bounceRun.game-active .bounce-tap-zone.bounce-jumping,.bounce-tap-zone.bounce-jumping .bounce-jump-icon{transform:none}
+}
+
