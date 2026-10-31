@@ -1,0 +1,13 @@
+body.star-page{background:radial-gradient(ellipse at 20% 0%,#20375c,transparent 65%),#070f22}
+.star-hangar{width:min(94vw,390px);margin:12px auto;background:linear-gradient(145deg,#142b45,#10192e);border:1px solid #688eb455;border-radius:20px;padding:16px;box-sizing:border-box;color:#e7f5ff}
+.star-hangar h2{font-size:20px;margin:3px 0 6px;letter-spacing:-.6px}.star-hangar p{font-size:12px;line-height:1.45;color:#acc5dc;margin:5px 0 12px}.star-eyebrow{font-size:9px;letter-spacing:1.6px;font-weight:900;color:#82eaff}
+.star-goals{display:grid;gap:9px;margin:12px 0}.star-goal{display:grid;grid-template-columns:1fr auto;gap:4px;font-size:11px;color:#c9dcec}.star-goal b{color:#a8f7d5}.star-goal progress{grid-column:1/-1;width:100%;height:5px;accent-color:#6ee7cb;border:0;border-radius:8px;overflow:hidden}
+.star-liveries{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0}.star-liveries button{padding:9px 3px!important;min-height:48px;border:1px solid #567294;border-radius:11px;background:#0d2138;font-size:10px;color:#d7eaff;cursor:pointer}.star-liveries button[aria-pressed=true]{border-color:#86f7e1;box-shadow:inset 0 0 0 1px #86f7e1}.star-liveries button:disabled{opacity:.6;cursor:default}.star-liveries i{display:block;color:var(--ship-color);font-size:19px;font-style:normal;line-height:1.2}.star-hangar small{display:block;color:#8eabc4;font-size:10px;line-height:1.5}
+.star-page.game-active .star-hangar{display:none}
+.star-page.game-active #earnlyCompactLeaderboard{display:none!important}
+html body.star-page.game-active .star-board{width:min(94vw,390px,calc((100svh - 210px)*.6875))!important;margin:7px auto!important;border-color:#638db4;box-shadow:0 10px 32px #0006,0 0 0 4px #4b9aa710}
+html body.star-page.game-active .page-header{width:min(96vw,410px);box-sizing:border-box;margin:0 auto!important;padding:5px!important}
+html body.star-page.game-active .game-meta .meta-pill{min-height:32px!important;padding:4px!important}
+html body.star-page.game-active .earnly-session-dock{width:min(94vw,390px)!important;margin:8px auto!important}
+.star-page #game,.star-page #game *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:none}
+@media(max-height:650px){html body.star-page.game-active .star-board{width:min(94vw,390px,calc((100svh - 190px)*.6875))!important}}
