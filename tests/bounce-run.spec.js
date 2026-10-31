@@ -149,7 +149,10 @@ for(const height of [640,740])test('Bounce Run phone controls stay below the jum
  const quit=page.locator('.bounce-session-controls #earnlyQuitButton');
  await expect(jump).toBeVisible();await expect(pause).toBeVisible();await expect(quit).toBeVisible();
  expect(await jump.evaluate(el=>getComputedStyle(el).webkitUserSelect||getComputedStyle(el).userSelect)).toBe('none');
- if(test.info().project.name==='mobile-webkit')expect(await jump.locator('small').evaluate(el=>getComputedStyle(el).webkitTouchCallout)).toBe('none');
+ // macOS WebKit emulates an iPhone viewport but has no iOS callout API.
+ if(await page.evaluate(()=>CSS.supports('-webkit-touch-callout','none'))){
+   expect(await jump.locator('small').evaluate(el=>getComputedStyle(el).getPropertyValue('-webkit-touch-callout'))).toBe('none');
+ }
  expect(await jump.evaluate(el=>{
    const menu=new Event('contextmenu',{bubbles:true,cancelable:true});el.dispatchEvent(menu);return menu.defaultPrevented;
  })).toBe(true);
