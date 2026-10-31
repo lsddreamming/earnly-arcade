@@ -31,7 +31,10 @@ for(const path of ['/stardefender.html','/www/stardefender.html'])test('Star Def
  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
  await expect(page.locator('.result-outcome')).toContainText('Solar');
  expect(await page.evaluate(()=>starAwards)).toEqual([[16,'Star Defender',{kind:'game',game:'starDefender',metric:320,aux:20}]]);
- await page.reload();await expect(page.locator('#starGoalHeading')).toContainText('3/3 complete');
+ await page.screenshot({path:test.info().outputPath('star-defender-flight-result.png')});
+ await page.getByRole('button',{name:'Ship colors & flight log',exact:true}).click();
+ await expect(page.locator('dialog.game-result-dialog')).toBeHidden();
+ await expect(page.locator('#starHangar')).toBeVisible();await expect(page.locator('#starGoalHeading')).toContainText('3/3 complete');
  const solar=page.getByRole('button',{name:'Solar ship',exact:true});await expect(solar).toBeEnabled();await solar.click();await expect(solar).toHaveAttribute('aria-pressed','true');
  await page.reload();await expect(page.getByRole('button',{name:'Solar ship',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.evaluate(()=>localStorage.setItem('earnlyLocalProgressOwner','different-test-player'));
