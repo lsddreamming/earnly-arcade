@@ -36,8 +36,10 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
   await expect.poll(()=>page.evaluate(()=>testBounce.state.jumps)).toBe(2);
   await page.locator('#earnlyPauseButton').click();
   const ticks=await page.evaluate(()=>testBounce.state.ticks);
+  const travel=await page.evaluate(()=>testBounce.state.travel);
   await page.waitForTimeout(300);
   expect(await page.evaluate(()=>testBounce.state.ticks)).toBe(ticks);
+  expect(await page.evaluate(()=>testBounce.state.travel)).toBe(travel);
   await page.getByRole('button',{name:/Resume/}).click();
   await expect.poll(()=>page.evaluate(()=>testBounce.state.ticks)).toBeGreaterThan(ticks);
   await expect(page.locator('dialog.game-result-dialog')).toBeHidden();
@@ -55,12 +57,49 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
   await dialog.getByRole('button',{name:/Play Again/}).click();
   await expect.poll(()=>page.evaluate(()=>testBounce.state.alive)).toBe(true);
   expect(await page.evaluate(()=>testBounce.state.cleared)).toBe(0);
+  expect(await page.evaluate(()=>testBounce.state.travel)).toBeLessThan(10);
   await page.locator('#earnlyQuitButton').click();
   await page.locator('.earnly-quit-dialog [data-quit]').click();
   await expect(page).toHaveURL(/games.html/);
   expect(errors).toEqual([]);
  });
 }
+for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
+ test('Bounce Run cleared crystal remains drawn behind the ball '+path,async({page})=>{
+  const errors=await open(page,path);
+  await page.evaluate(()=>{
+    Object.assign(testBounce.state,{y:250,vy:0,obstacles:[{x:51,w:20,speed:2}],wait:10000});
+    const step=testBounce.step;let cleared=false;
+    testBounce.step=()=>{if(!cleared){step();cleared=testBounce.state.cleared===1;}};
+  });
+  await expect.poll(()=>page.evaluate(()=>testBounce.state.cleared)).toBe(1);
+  expect(await page.evaluate(()=>{
+    const o=testBounce.state.obstacles[0];
+    if(!o?.passed)return false;
+    const [r,g,b]=document.querySelector('#surface canvas').getContext('2d').getImageData(Math.floor(o.x+o.w/2),340,1,1).data;
+    return o.x+o.w<70&&r>g*1.5&&r>b;
+  })).toBe(true);
+  await page.screenshot({path:test.info().outputPath('bounce-run-passed-crystal.png')});
+  expect(errors).toEqual([]);
+ });
+}
+for(const motion of ['reduce','no-preference'])test('Bounce Run rolling and track follow course travel '+motion,async({page})=>{
+ await page.emulateMedia({reducedMotion:motion});
+ const errors=await open(page);
+ await page.evaluate(()=>{testBounce.step=()=>{};Object.assign(testBounce.state,{travel:0,y:349,vy:0});});
+ await page.waitForTimeout(100);
+ const sample=()=>page.evaluate(()=>{
+   const ctx=document.querySelector('#surface canvas').getContext('2d');
+   return {track:Array.from(ctx.getImageData(0,360,360,16).data),ball:Array.from(ctx.getImageData(70,335,8,8).data)};
+ });
+ const before=await sample();
+ await page.evaluate(()=>{testBounce.state.travel=11;});await page.waitForTimeout(100);
+ const after=await sample();
+ if(motion==='reduce')expect(after).toEqual(before);
+ else{expect(after.track).not.toEqual(before.track);expect(after.ball).not.toEqual(before.ball);}
+ await page.screenshot({path:test.info().outputPath('bounce-run-rolling-'+motion+'.png')});
+ expect(errors).toEqual([]);
+});
 for(const motion of ['reduce','no-preference'])test('Bounce Run landscape and reachable double preview '+motion,async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:motion});
  const errors=await open(page);

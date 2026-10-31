@@ -1059,7 +1059,7 @@
 
     function draw() {
       // Artwork is deterministic and bounded; the physics owns every hitbox.
-      const reduced=calm(),now=performance.now(),motion=reduced?0:distance;
+      const reduced=calm(),now=performance.now(),travel=physics.state.travel,motion=reduced?0:travel;
       bounceZone.classList.toggle('bounce-jumping',!reduced&&jumpAt>0&&now-jumpAt<180);
       const themes=[
         {sky:'#2675bd',horizon:'#b5f2ed',sun:'#fff1b4',far:'#78bbcd',near:'#398caa',grass:'#80ebaf',rock:'#255675'},
@@ -1116,12 +1116,18 @@
       fill(theme.rock,0,356,360,74);
       fill('#153d5a',0,377,360,53);
       fill(theme.grass,0,354,360,6);fill('#dcffe2',0,354,360,2);
-      const scroll=reduced?0:(distance*5)%48;
+      const scroll=motion%48;
       for(let x=-scroll-48;x<408;x+=48){
         fill('#8bcaaf',x+4,361,31,6,3);fill('#e4b59044',x+11,374,21,5,2);
         fill('#97b0b533',x+2,393,14,7,3);fill('#6b93a044',x+27,411,24,5,2);
         ctx.strokeStyle='#60bba3';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+40,360);ctx.quadraticCurveTo(x+36,374,x+43,387);ctx.stroke();
         ellipse('#88d5b3',x+39,374,4,2);ellipse('#88d5b3',x+43,383,4,2);
+      }
+      // Turf markers move at the same speed as incoming hazards. The ball
+      // remains near the left edge while the course travels underneath it.
+      for(let x=-(motion%24);x<384;x+=24){
+        fill('#efffcb',x,354,7,2,1);
+        fill('#438c78',x+12,358,4,2,1);
       }
       // Glass course card and five clear pips, readable over every sky palette.
       fill('#123452dc',14,14,182,60,16);fill('#9ee6d833',24,26,3,34,2);
@@ -1145,10 +1151,20 @@
       });
       trail.forEach((p,index)=>{
         const alpha=(index+1)/(trail.length+1)*.3;
-        ellipse('rgba(210,255,242,'+alpha+')',p.x-(trail.length-index)*3,p.y,3+index*.4,3+index*.4);
+        const px=p.x-(travel-p.travel);
+        ellipse('rgba(210,255,242,'+alpha+')',px,p.y,3+index*.4,3+index*.4);
       });
       const height=349-y,landingAge=now-landAt;
-      ellipse('#112c4e55',80,357,Math.max(6,14-height*.045),3);
+      if(!reduced&&height<2&&physics.state.alive&&physics.state.ticks>0){
+        // A fixed number of short dust puffs makes ground contact readable.
+        for(let i=0;i<4;i++){
+          const age=((travel+i*11)%44)/44;
+          ctx.globalAlpha=(1-age)*.45;
+          ellipse('#e8ffdb',68-age*35,354-Math.sin(age*Math.PI)*5,1+age*3,1+age);
+        }
+        ctx.globalAlpha=1;
+      }
+      ellipse('#112c4e55',80,355,Math.max(6,14-height*.045),3);
       if(jumpAt&&now-jumpAt<260&&!reduced){
         const age=(now-jumpAt)/260;
         ctx.globalAlpha=1-age;ctx.strokeStyle='#fff0bb';ctx.lineWidth=2;
@@ -1160,15 +1176,20 @@
         for(let i=0;i<6;i++){const side=i<3?-1:1,k=i%3;ellipse('#e3ffe0',80+side*(9+age*(18+k*9)),354-Math.sin(age*Math.PI)*(3+k*3),3-age*2,2-age);}
         ctx.globalAlpha=1;
       }
-      // The ball stays the same size; expressive eyes and a seam add character.
-      ctx.save();ctx.translate(80,y);
+      // Bold rotating panels show a rolling sphere; the face stays readable.
+      ctx.save();ctx.translate(80,y-6);
       const squash=!reduced&&landAt&&landingAge<150?Math.sin(landingAge/150*Math.PI)*.18:0;
       const stretch=!reduced&&vy<0?Math.min(.11,-vy*.012):0;
       ctx.scale(1+squash-stretch*.5,1-squash+stretch);
       const ball=ctx.createRadialGradient(-4,-5,1,0,0,12);
       ball.addColorStop(0,'#fffce9');ball.addColorStop(.55,'#ffdf76');ball.addColorStop(1,'#ed9c44');
       ctx.beginPath();ctx.fillStyle=ball;ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff3bf';ctx.lineWidth=1;ctx.stroke();
-      ctx.save();ctx.rotate(reduced?0:distance*.15);ctx.strokeStyle='#b9773944';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,0,5,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ctx.save();ctx.rotate(reduced?0:travel/11);
+      for(let i=0;i<3;i++){
+        const angle=i*Math.PI*2/3;
+        ctx.fillStyle='#c67b32';ctx.beginPath();ctx.arc(Math.cos(angle)*7,Math.sin(angle)*7,2.3,0,Math.PI*2);ctx.fill();
+      }
+      ctx.strokeStyle='#b97739aa';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,0,5,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
       const blink=!reduced&&Math.floor(now%4100)>3940;
       ellipse('#33344f',2,-2,1.5,blink?.5:2.3);ellipse('#33344f',7,-2,1.5,blink?.5:2.3);ellipse('#ff957d',0,2,2,1);
       if(!physics.state.alive){
@@ -1266,7 +1287,7 @@
         return;
       }
       if(combo>0&&lastClearAt&&t-lastClearAt>=4000)combo=0;
-      if(!warming&&!calm()){trail.push({x:80,y});if(trail.length>7)trail.shift();}else trail=[];
+      if(!warming&&!calm()&&y<347){trail.push({x:80,y:y-6,travel:physics.state.travel});if(trail.length>7)trail.shift();}else trail=[];
 
       ui(Math.floor(distance),cleared);
       draw();

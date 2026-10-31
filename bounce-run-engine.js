@@ -34,7 +34,7 @@
       delay:Math.max(12,arc.land+14-300/speed)+random()*22};
   }
   function create(random=Math.random){
-    const s={y:GROUND,vy:0,obstacles:[],distance:0,cleared:0,alive:true,buffer:0,wait:60,ticks:0,jumps:0,lands:0};
+    const s={y:GROUND,vy:0,obstacles:[],distance:0,travel:0,speed:speedFor(0),cleared:0,alive:true,buffer:0,wait:60,ticks:0,jumps:0,lands:0};
     function jump(){if(!s.alive)return false;s.buffer=7;if(s.y>=GROUND){s.vy=JUMP;s.buffer=0;s.jumps++;return true;}return false;}
     function step(){
       if(!s.alive)return;
@@ -43,13 +43,17 @@
       const falling=s.vy!==0||s.y<GROUND;
       s.vy+=s.vy<0?.40:.46;s.y+=s.vy;
       if(s.y>=GROUND){s.y=GROUND;s.vy=0;if(falling)s.lands++;}
-      if(!s.obstacles.length){
-        if(--s.wait<=0){const w=wave(s.cleared,random);s.obstacles=w.obstacles;s.wait=w.delay;}
+      // Passed hazards stay visible until offscreen, but must not postpone
+      // the next wave. Keep the original clear-to-spawn timing.
+      if(!s.obstacles.some(o=>!o.passed)){
+        if(--s.wait<=0){const w=wave(s.cleared,random);s.obstacles.push(...w.obstacles);s.speed=w.speed;s.wait=w.delay;}
       }
+      s.travel+=s.speed;
       for(const o of s.obstacles){o.x-=o.speed;}
       // Match visible spike tips, using a forgiving ball collision box.
       if(s.obstacles.some(o=>o.x<90&&o.x+o.w>70&&s.y+6>320)){s.alive=false;return;}
-      s.obstacles=s.obstacles.filter(o=>{if(o.x+o.w<70){s.cleared++;return false;}return true;});
+      for(const o of s.obstacles){if(!o.passed&&o.x+o.w<70){o.passed=true;s.cleared++;}}
+      s.obstacles=s.obstacles.filter(o=>o.x+o.w>=-8);
     }
     return {state:s,jump,step};
   }
