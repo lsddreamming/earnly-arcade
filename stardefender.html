@@ -110,14 +110,14 @@
       </div>
     </header>
     <section class="star-hangar" id="starHangar" aria-label="Flight goals and ship colors">
-      <span class="star-eyebrow">ORBITAL DEFENSE • 45 SECOND SORTIES</span>
-      <h2>Your next great run starts here.</h2>
+      <span class="star-eyebrow">ORBITAL DEFENSE • 45 SECOND MISSIONS</span>
+      <h2>Your next mission</h2>
       <p>Blast formations, earn rapid fire and shields, then face the wave 4 commander.</p>
       <strong id="starGoalHeading">Daily flight log</strong>
       <div class="star-goals" id="starGoals"></div>
       <div class="star-liveries" id="starLiveries" aria-label="Choose ship color"></div>
       <small id="starUnlock"></small>
-      <small>Flight goals and ship colors are saved here for this player on this device. Cosmetic progress does not award extra coins.</small>
+      <small>Flight goals and ship colors save on this device. Unlocks are cosmetic.</small>
     </section>
     <button class="green wide" id="startButton" type="button" aria-label="Tap to start Star Defender">▶ TAP TO START</button>
     <canvas id="game" class="star-board touch-surface" width="330" height="480" aria-label="Star Defender alien shooter game board"></canvas>
@@ -140,6 +140,7 @@
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
     const els=Object.fromEntries(['score','lives','coins','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
     const W=330,H=480,shipY=426,stars=Array.from({length:52},(_,i)=>({x:(i*97+23)%W,y:(i*173+41)%H,r:i%7===0?1.5:.7}));
+    const skyLayers=[['#1b2254','#111b38','#071528'],['#352047','#171b36','#071528']].map(colors=>{const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,colors[0]);g.addColorStop(.6,colors[1]);g.addColorStop(1,colors[2]);return g;});
     let running=false,starting=false,paused=false,frame=0,last=0,elapsed=0,score=0,kills=0,lives=3,wave=0,shipX=W/2,invincible=0,fireClock=0,enemyClock=0,shotClock=0,bullets=[],enemyShots=[],aliens=[],particles=[],raf=0,startedAt=0,pausedAt=0,pauseTotal=0,keys=new Set(),pointer=null;
     const Flight=StarDefenderFlight,motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
     let rapid=0,shield=0,bosses=0,chain=0,bestChain=0,nextWaveIn=0,warningAlien=null,notice='',noticeUntil=0,settled=false,runOwner='',progress=null,livery=Flight.liveries[0],bestBefore=0,bestCelebrated=false,bank=0,previousX=shipX;
@@ -151,7 +152,7 @@
       document.getElementById('starGoalHeading').textContent='Daily flight log · '+goals.filter(g=>g.done).length+'/3 complete';
       for(const g of goals){const row=document.createElement('div');row.className='star-goal';const text=document.createElement('span');text.textContent=g.label;const value=document.createElement('b');value.textContent=g.done?'✓ Complete':g.value+'/'+g.target;const bar=document.createElement('progress');bar.max=g.target;bar.value=g.value;bar.setAttribute('aria-label',g.label);row.append(text,value,bar);list.append(row);}
       const colors=document.getElementById('starLiveries');colors.replaceChildren();
-      for(const item of Flight.liveries){const button=document.createElement('button');button.type='button';button.disabled=item.at>progress.totalKills;button.setAttribute('aria-pressed',String(item.id===progress.selected));button.setAttribute('aria-label',item.name+' ship'+(button.disabled?' · unlock at '+item.at+' total aliens':''));button.style.setProperty('--ship-color',item.color);const icon=document.createElement('i');icon.textContent='▲';const label=document.createElement('span');label.textContent=item.name;button.append(icon,label);button.addEventListener('click',()=>{if(running||starting)return;progress.selected=item.id;Flight.save(localStorage,owner(),progress);hangar();draw();});colors.append(button);}
+      for(const item of Flight.liveries){const button=document.createElement('button');button.type='button';button.disabled=item.at>progress.totalKills;button.setAttribute('aria-pressed',String(item.id===progress.selected));button.setAttribute('aria-label',item.name+' ship'+(button.disabled?' · unlock at '+item.at+' total aliens':''));button.style.setProperty('--ship-color',item.color);const icon=document.createElement('i');icon.textContent='▲';const label=document.createElement('span');label.textContent=item.name;button.append(icon,label);button.addEventListener('click',()=>{if(running||starting)return;const currentOwner=owner(),current=Flight.load(localStorage,currentOwner);if(item.at<=current.totalKills){current.selected=item.id;Flight.save(localStorage,currentOwner,current);}hangar();draw();});colors.append(button);}
       const next=Flight.liveries.find(l=>l.at>progress.totalKills);
       document.getElementById('starUnlock').textContent=next?'Next color: '+next.name+' · '+progress.totalKills+'/'+next.at+' total aliens':'All four ship colors unlocked · '+progress.totalKills+' total aliens';
     }
@@ -174,8 +175,8 @@
     function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active);if(starStartOverlay)starStartOverlay.hidden=active}
     function alien(x,y,color){ctx.save();ctx.translate(x,y);ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=color;ctx.fillRect(-12,-7,24,13);ctx.fillRect(-16,-2,5,7);ctx.fillRect(11,-2,5,7);ctx.fillRect(-8,6,4,5);ctx.fillRect(4,6,4,5);ctx.shadowBlur=0;ctx.fillStyle='#081126';ctx.fillRect(-7,-2,4,4);ctx.fillRect(3,-2,4,4);ctx.restore()}
     function draw(){
-      const scene=wave>=4?'#251639':'#101e3a',motion=reduced?0:elapsed;
-      ctx.fillStyle='#071324';ctx.fillRect(0,0,W,H);ctx.fillStyle=scene;ctx.fillRect(0,0,W,245);
+      const motion=reduced?0:elapsed;
+      ctx.fillStyle=skyLayers[wave>=4?1:0];ctx.fillRect(0,0,W,H);
       ctx.fillStyle='#4766ac18';ctx.beginPath();ctx.ellipse(272,130,130,210,-.5,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#a1b8d012';ctx.beginPath();ctx.arc(280,170,62,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#819ed222';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(280,170,90,18,-.4,0,Math.PI*2);ctx.stroke();
@@ -184,7 +185,7 @@
       for(const a of aliens){
         if(a.boss){
           ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='#fc90c9';ctx.beginPath();ctx.moveTo(-38,4);ctx.lineTo(-22,-13);ctx.lineTo(22,-13);ctx.lineTo(38,4);ctx.lineTo(24,16);ctx.lineTo(-24,16);ctx.closePath();ctx.fill();ctx.fillStyle='#512b60';ctx.fillRect(-24,-6,48,13);ctx.fillStyle='#ffe8b5';ctx.fillRect(-16,-3,8,5);ctx.fillRect(8,-3,8,5);ctx.restore();
-          ctx.fillStyle='#130f29';ctx.fillRect(a.x-32,a.y-26,64,4);ctx.fillStyle='#ffc17d';ctx.fillRect(a.x-32,a.y-26,64*a.hp/a.maxHp,4);
+          ctx.fillStyle='#130f29';ctx.fillRect(a.x-32,a.y+32,64,4);ctx.fillStyle='#ffc17d';ctx.fillRect(a.x-32,a.y+32,64*a.hp/a.maxHp,4);
         }else{alien(a.x,a.y,a.color);if(a.maxHp>1){ctx.strokeStyle='#ffdc98';ctx.lineWidth=2;ctx.strokeRect(a.x-18,a.y-12,36,25);}}
         if(a.flash>0&&!reduced){ctx.globalAlpha=.65;ctx.fillStyle='#fff';ctx.fillRect(a.x-10,a.y-6,20,12);ctx.globalAlpha=1;}
         if(a===warningAlien){ctx.fillStyle='#ffc7d8';ctx.beginPath();ctx.moveTo(a.x-4,a.y+22);ctx.lineTo(a.x,a.y+28);ctx.lineTo(a.x+4,a.y+22);ctx.fill();}
