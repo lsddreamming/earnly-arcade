@@ -45,3 +45,22 @@ test('early taps buffer briefly, holding is not an automatic double jump, death 
   g.state.obstacles=[{x:80,w:20,speed:1}];g.step();assert.equal(g.state.alive,false);
   const frozen=JSON.stringify(g.state);g.step();g.jump();assert.equal(JSON.stringify(g.state),frozen);
 });
+test('cleared hazards travel offscreen without rescoring or delaying the next wave',()=>{
+  const g=create(()=>0),s=g.state;
+  Object.assign(s,{wait:2,obstacles:[{x:51,w:20,speed:2}]});
+  g.step();
+  assert.equal(s.cleared,1);
+  assert.equal(s.obstacles[0].x,49);
+  assert.equal(s.obstacles[0].passed,true,'The visible hazard remains after clearing');
+  g.step();
+  assert.equal(s.cleared,1,'A passed hazard cannot award a second clear');
+  assert.equal(s.wait,1,'The spawn countdown runs while a cleared hazard is visible');
+  g.step();
+  assert.equal(s.obstacles.length,2,'The next wave arrives on the original schedule');
+  assert.equal(s.travel,1.35*2+s.speed);
+  // Remove only the incoming wave so the retained hazard can exit in isolation.
+  s.obstacles=s.obstacles.filter(o=>o.passed);s.wait=10000;
+  for(let i=0;i<50;i++)g.step();
+  assert.equal(s.obstacles.length,0,'Cleanup happens after the full hazard exits left');
+  assert.equal(s.cleared,1);assert.equal(s.alive,true);
+});
