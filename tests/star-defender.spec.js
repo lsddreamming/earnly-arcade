@@ -20,6 +20,8 @@ async function open(page,path='/stardefender.html',motion='no-preference'){
    await route.fulfill({response,body:html});
  });
  await page.goto(path);await expect(page.locator('#starHangar')).toBeVisible();
+ await expect(page.locator('#startButton')).toBeVisible();
+ expect((await page.locator('#startButton').boundingBox()).y).toBeLessThan(340);
  await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
  await page.locator('#startButton').click();
  await expect(page.locator('#gameStatus')).toHaveText('Running');
