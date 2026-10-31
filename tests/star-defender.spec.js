@@ -6,7 +6,7 @@ async function open(page,path='/stardefender.html',motion='no-preference'){
  await page.route('https://**',r=>r.abort());
  await page.route('**/stardefender.html*',async route=>{
    const response=await route.fetch(),html=(await response.text()).replace('    function finish(finalize=false)',`    window.starTest={
-     state:()=>({elapsed,score,kills,lives,wave,shipX,rapid,shield,bosses,paused,running,particles:particles.length,bullets:bullets.length,shots:enemyShots.length,aliens:aliens.map(a=>({...a}))}),
+     state:()=>({elapsed,score,kills,lives,wave,shipX,rapid,shield,bosses,paused,running,particles:particles.length,rings:rings.length,scorePops:scorePops.length,bullets:bullets.length,shots:enemyShots.length,aliens:aliens.map(a=>({...a}))}),
      freeze:()=>{cancelAnimationFrame(raf);raf=0;},
      tick:n=>{for(let i=0;i<n&&running;i++)move(1/60);draw();},
      boss:()=>{wave=3;aliens=[];nextWaveIn=0;move(1/60);draw();},
@@ -32,6 +32,8 @@ for(const path of ['/stardefender.html','/www/stardefender.html'])test('Star Def
  await page.evaluate(()=>{starTest.freeze();window.starAwards=[];Arcade.earn=(...args)=>starAwards.push(args);starTest.end();starTest.finalize();});
  await expect(page.locator('dialog.game-result-dialog')).toBeVisible();
  await expect(page.locator('.result-outcome')).toContainText('Solar');
+ await expect(page.locator('.star-flight-report')).toContainText('20Defeated4Wave');
+ await expect(page.locator('.star-result-unlock')).toContainText('Nova color · 55 more defeats');
  expect(await page.evaluate(()=>starAwards)).toEqual([[16,'Star Defender',{kind:'game',game:'starDefender',metric:320,aux:20}]]);
  await page.screenshot({path:test.info().outputPath('star-defender-flight-result.png')});
  await page.getByRole('button',{name:'Ship colors & flight log',exact:true}).click();
@@ -74,9 +76,14 @@ for(const motion of ['reduce','no-preference'])test('Star Defender phone combat 
  const quit=await page.locator('#earnlyQuitButton').boundingBox();expect(quit.y+quit.height).toBeLessThanOrEqual(741);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
- if(motion==='reduce')expect((await page.evaluate(()=>starTest.state())).particles).toBe(0);
+ const effects=await page.evaluate(()=>starTest.state());
+ expect(effects.rings).toBeLessThanOrEqual(12);expect(effects.scorePops).toBeLessThanOrEqual(8);
+ if(motion==='reduce'){expect(effects.particles).toBe(0);expect(effects.rings).toBe(0);expect(effects.scorePops).toBe(0);}else{expect(effects.rings).toBeGreaterThan(0);expect(effects.scorePops).toBeGreaterThan(0);}
  await page.screenshot({path:test.info().outputPath('star-defender-phone-'+motion+'.png')});
  await page.evaluate(()=>starTest.end());await page.reload();
+ const hangar=await page.locator('#starHangar').boundingBox();expect(hangar.height).toBeLessThan(350);
+ await expect(page.locator('#starFlightDetails')).not.toHaveAttribute('open','');
+ await page.locator('#starGoalHeading').click();await expect(page.locator('#starGoals')).toBeVisible();
  await page.screenshot({path:test.info().outputPath('star-defender-hangar-'+motion+'.png')});
  expect(errors).toEqual([]);
 });
