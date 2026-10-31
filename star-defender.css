@@ -12,3 +12,24 @@ html body.star-page.game-active .earnly-session-dock{width:min(94vw,390px)!impor
 .star-page #game,.star-page #game *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:none}
 .star-flight-action{grid-column:1/-1;min-height:42px;font-size:13px;border-color:#5fc7b76b;color:#bbf7e4}
 @media(max-height:650px){html body.star-page.game-active .star-board{width:min(94vw,390px,calc((100svh - 190px)*.6875))!important}}
+/* Flight deck: keep the launch action first and the loadout compact. */
+.star-hangar{text-align:left;padding:12px 16px;background:radial-gradient(ellipse at 0 0,#25536666,transparent 65%),linear-gradient(145deg,#142b45,#10192e)}
+.star-launch{display:flex;align-items:center;gap:14px}.star-launch p{margin:0;font-size:11px}.star-launch h2{margin:3px 0 4px;font-size:21px}
+#starShipPreview{width:50px;height:56px;flex:none;display:grid;place-items:center;background:radial-gradient(ellipse,#64e8ff29,transparent 70%)}
+#starShipPreview svg{width:43px;height:52px;filter:drop-shadow(0 0 8px #7ae6ff44)}
+#starFlightDetails summary{min-height:36px;cursor:pointer;display:list-item;list-style-position:inside;color:#d4f6ee;font-size:12px;font-weight:800;padding:9px 0;box-sizing:border-box}
+#starFlightDetails[open] summary{color:#88ecd5}.star-goals{margin:5px 0 12px}.star-goal{font-size:10px}
+.star-liveries{margin:6px 0 10px}.star-liveries button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:64px;padding:7px 3px!important;font-size:10px;transition:border-color .15s,background .15s}
+.star-liveries button[aria-pressed=true]{background:linear-gradient(145deg,#204958,#10283e)}.star-liveries button:disabled{opacity:.65}.star-liveries i{width:23px;height:27px}.star-liveries svg{display:block;width:100%;height:100%}.star-liveries .ship-flame{display:none}.star-liveries small{font-size:8px;line-height:1.4;color:#a2bdd1}.star-liveries button[aria-pressed=true] small{color:#a5f4d5}
+.star-hangar .star-local-note{font-size:9px;margin-top:8px;color:#819fb9}
+.star-page progress{appearance:none;-webkit-appearance:none;display:block;width:100%;height:5px;border:0;border-radius:6px;overflow:hidden;background:#29415a;color:#7ae6cb;accent-color:#7ae6cb}
+.star-page progress::-webkit-progress-bar{background:#29415a;border-radius:6px}.star-page progress::-webkit-progress-value{background:linear-gradient(90deg,#36b8c3,#8ff0cd);border-radius:6px}.star-page progress::-moz-progress-bar{background:linear-gradient(90deg,#36b8c3,#8ff0cd);border-radius:6px}
+#starUnlockProgress{margin-top:5px;height:4px}
+.star-page .star-result .result-icon{background:radial-gradient(ellipse,#326376,#142b47);border:1px solid #79e1da55;border-radius:16px}.star-result .result-icon svg{width:38px;height:47px}
+.star-page .star-result .result-main{padding:12px 14px;background:radial-gradient(ellipse at 50% 0,#27596b44,transparent 75%),#0b1d31;border-color:#638aab55}
+.star-page .star-result .result-main>strong{color:#e9fcff;font-size:clamp(38px,11vw,54px);line-height:1.1}
+.star-page .star-result .result-outcome{color:#b0f3dc;font-size:12px}.star-page .star-result .result-tip{color:#a8c4d7;font-size:11px;margin:4px auto;max-width:270px}.star-page .star-result .result-best{font-size:10px}
+.star-flight-report{display:grid;grid-template-columns:repeat(3,1fr);margin:12px 0 0;padding-top:10px;border-top:1px solid #6b8aa438;gap:6px}.star-flight-report>div{display:grid;gap:2px}.star-flight-report strong{font-size:20px;color:#e0f8ff}.star-flight-report span{font-size:9px;color:#9dbcd0}
+.star-result-unlock{display:grid;gap:6px;text-align:left;margin:12px 0 0;color:#ecdcae;font-size:10px}.star-result-unlock progress{height:4px}
+.star-page .star-result .star-flight-action{min-height:44px;font-size:12px}
+@media(prefers-reduced-motion:reduce){.star-liveries button{transition:none}}
