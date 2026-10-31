@@ -69,10 +69,12 @@
   let lastRewardPreview = 0;
   function ui(score = 0, secondary = 0) {
     score = Math.max(0, Math.floor(Number(score) || 0));
-    scoreEl.textContent = String(score);
-    secondaryEl.textContent = String(secondary);
+    const scoreText=String(score),secondaryText=String(secondary);
+    if(scoreEl.textContent!==scoreText)scoreEl.textContent=scoreText;
+    if(secondaryEl.textContent!==secondaryText)secondaryEl.textContent=secondaryText;
     const reward = config.reward(score);
-    rewardEl.textContent = String(reward);
+    const rewardText=String(reward);
+    if(rewardEl.textContent!==rewardText)rewardEl.textContent=rewardText;
     if (running && reward > lastRewardPreview && runRewardPill) {
       runRewardPill.classList.remove('reward-bump');
       void runRewardPill.offsetWidth;
@@ -1055,7 +1057,18 @@
 
     const physics=BounceRunEngine.create();
     let accum=0,landAt=0,clearAt=0,jumpAt=0;
-    const calm=()=>Arcade.reducedMotionEnabled?.()||matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
+    let motionCheckAt=-Infinity,motionReduced=false;
+    const calm=()=>{
+      const now=performance.now();
+      if(now>=motionCheckAt){
+        // Arcade resolves the player's explicit on/off setting before the
+        // system preference. Do not OR the system setting back in afterward.
+        motionReduced=typeof Arcade.reducedMotionEnabled==='function'?Arcade.reducedMotionEnabled():motionQuery.matches;
+        motionCheckAt=now+250;
+      }
+      return motionReduced;
+    };
 
     function draw() {
       // Artwork is deterministic and bounded; the physics owns every hitbox.
@@ -1268,11 +1281,13 @@
       last=t;
       const warming=t<readyUntil;
       if(!warming&&queuedJump){queuedJump=false;jump();}
+      let advanced=false;
       if(!warming){
         accum+=elapsed;
         while(accum>=BounceRunEngine.STEP&&physics.state.alive){
           const before=physics.state.cleared,jumps=physics.state.jumps,lands=physics.state.lands;
           physics.step();accum-=BounceRunEngine.STEP;
+          advanced=true;
           if(physics.state.jumps>jumps){jumpAt=t;Arcade.feedback('hop');}
           if(physics.state.lands>lands)landAt=t;
           if(physics.state.cleared>before){
@@ -1294,10 +1309,13 @@
         return;
       }
       if(combo>0&&lastClearAt&&t-lastClearAt>=4000)combo=0;
-      if(!warming&&!calm()&&y<347){trail.push({x:80,y:y-9,travel:physics.state.travel});if(trail.length>7)trail.shift();}else trail=[];
+      if(advanced){
+        if(!calm()&&y<347){trail.push({x:80,y:y-9,travel:physics.state.travel});if(trail.length>7)trail.shift();}else trail=[];
+      }
 
-      ui(Math.floor(distance),cleared);
-      draw();
+      // On 120 Hz displays physics still advances at 60 Hz. Repainting an
+      // identical state in between wastes canvas work and duplicates trails.
+      if(warming||advanced){ui(Math.floor(distance),cleared);draw();}
       raf=requestAnimationFrame(loop);
     }
 
