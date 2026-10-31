@@ -30,6 +30,10 @@ async function fixture(page,{chatAccepted=true,roomWide=false}={}){
   }};
  },{chatAccepted,roomWide});
  await page.goto(liveWorldBase+'/world.html');await page.locator('#connectWorld').click();await expect(page.locator('#connectionStatus')).toContainText('Live');
+ // WELCOME can arrive before WebKit's first ResizeObserver delivery. These
+ // tests paint synchronously, so wait for the same sized surface a player sees.
+ await page.locator('#worldCanvas').scrollIntoViewIfNeeded();
+ await expect.poll(()=>page.evaluate(()=>aiRenderer.width>250&&aiRenderer.height>100)).toBe(true);
 }
 for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}]){
  test(`complete resident replies stay readable above their heads at ${viewport.width}px`,async({page},info)=>{
