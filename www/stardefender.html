@@ -95,6 +95,7 @@
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/stardefender.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
+  <link rel="stylesheet" href="star-defender.css?v=1">
 </head>
 <body class="classic-game-ui star-page">
   <main class="container">
@@ -109,6 +110,16 @@
       </div>
     </header>
     <button class="green wide" id="startButton" type="button" aria-label="Tap to start Star Defender">▶ TAP TO START</button>
+    <section class="star-hangar" id="starHangar" aria-label="Flight goals and ship colors">
+      <span class="star-eyebrow">ORBITAL DEFENSE • 45 SECOND MISSIONS</span>
+      <h2>Your next mission</h2>
+      <p>Blast formations, earn rapid fire and shields, then face the wave 4 commander.</p>
+      <strong id="starGoalHeading">Daily flight log</strong>
+      <div class="star-goals" id="starGoals"></div>
+      <div class="star-liveries" id="starLiveries" aria-label="Choose ship color"></div>
+      <small id="starUnlock"></small>
+      <small>Flight goals and ship colors save on this device. Unlocks are cosmetic.</small>
+    </section>
     <canvas id="game" class="star-board touch-surface" width="330" height="480" aria-label="Star Defender alien shooter game board"></canvas>
     <p class="star-tip">Drag anywhere to steer · your ship fires automatically · dodge alien shots</p>
     <a class="button wide secondary back-games" href="games.html">← Back to Games</a>
@@ -123,19 +134,43 @@
     </footer>
 </main>
   <script src="arcade.js"></script>
+  <script src="star-defender-flight.js?v=1"></script>
   <script>
   (()=>{
     const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
     const els=Object.fromEntries(['score','lives','coins','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
     const W=330,H=480,shipY=426,stars=Array.from({length:52},(_,i)=>({x:(i*97+23)%W,y:(i*173+41)%H,r:i%7===0?1.5:.7}));
+    const skyLayers=[['#1b2254','#111b38','#071528'],['#352047','#171b36','#071528']].map(colors=>{const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,colors[0]);g.addColorStop(.6,colors[1]);g.addColorStop(1,colors[2]);return g;});
     let running=false,starting=false,paused=false,frame=0,last=0,elapsed=0,score=0,kills=0,lives=3,wave=0,shipX=W/2,invincible=0,fireClock=0,enemyClock=0,shotClock=0,bullets=[],enemyShots=[],aliens=[],particles=[],raf=0,startedAt=0,pausedAt=0,pauseTotal=0,keys=new Set(),pointer=null;
+    const Flight=StarDefenderFlight,motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
+    let rapid=0,shield=0,bosses=0,chain=0,bestChain=0,nextWaveIn=0,warningAlien=null,notice='',noticeUntil=0,settled=false,runOwner='',progress=null,livery=Flight.liveries[0],bestBefore=0,bestCelebrated=false,bank=0,previousX=shipX;
+    let reduced=false,motionPollAt=0,accumulator=0;
+    const owner=()=>localStorage.getItem('earnlyLocalProgressOwner')||'';
+    function hangar(){
+      progress=Flight.load(localStorage,owner());livery=Flight.liveries.find(l=>l.id===progress.selected)||Flight.liveries[0];
+      const goals=Flight.goals(progress),list=document.getElementById('starGoals');list.replaceChildren();
+      document.getElementById('starGoalHeading').textContent='Daily flight log · '+goals.filter(g=>g.done).length+'/3 complete';
+      for(const g of goals){const row=document.createElement('div');row.className='star-goal';const text=document.createElement('span');text.textContent=g.label;const value=document.createElement('b');value.textContent=g.done?'✓ Complete':g.value+'/'+g.target;const bar=document.createElement('progress');bar.max=g.target;bar.value=g.value;bar.setAttribute('aria-label',g.label);row.append(text,value,bar);list.append(row);}
+      const colors=document.getElementById('starLiveries');colors.replaceChildren();
+      for(const item of Flight.liveries){const button=document.createElement('button');button.type='button';button.disabled=item.at>progress.totalKills;button.setAttribute('aria-pressed',String(item.id===progress.selected));button.setAttribute('aria-label',item.name+' ship'+(button.disabled?' · unlock at '+item.at+' total aliens':''));button.style.setProperty('--ship-color',item.color);const icon=document.createElement('i');icon.textContent='▲';const label=document.createElement('span');label.textContent=item.name;button.append(icon,label);button.addEventListener('click',()=>{if(running||starting)return;const currentOwner=owner(),current=Flight.load(localStorage,currentOwner);if(item.at<=current.totalKills){current.selected=item.id;Flight.save(localStorage,currentOwner,current);}hangar();draw();});colors.append(button);}
+      const next=Flight.liveries.find(l=>l.at>progress.totalKills);
+      document.getElementById('starUnlock').textContent=next?'Next color: '+next.name+' · '+progress.totalKills+'/'+next.at+' total aliens':'All four ship colors unlocked · '+progress.totalKills+' total aliens';
+    }
+    function announce(text,seconds=1.35){notice=text;noticeUntil=elapsed+seconds;}
+    function flightLogAction(){
+      const dialog=document.querySelector('dialog.game-result-dialog'),actions=dialog?.querySelector('.result-actions');
+      if(!actions)return;
+      const button=document.createElement('button');button.type='button';button.className='wide secondary star-flight-action';button.textContent='Ship colors & flight log';
+      button.addEventListener('click',()=>{dialog.close();hangar();window.scrollTo({top:0,left:0,behavior:'auto'});document.querySelector('#starLiveries button[aria-pressed="true"]')?.focus({preventScroll:true});});
+      actions.insertBefore(button,actions.children[2]||null);
+    }
     // Bind the real DOM start button before any guide/overlay setup. This keeps
     // Star Defender startable on iPhone even if shared guide initialization fails.
     const startFromStaticButton=event=>{event?.preventDefault?.();event?.stopPropagation?.();start()};
     els.startButton.addEventListener('pointerup',startFromStaticButton);
     els.startButton.addEventListener('touchend',startFromStaticButton,{passive:false});
     els.startButton.addEventListener('click',startFromStaticButton);
-    const starGuide=Arcade.gameGuide({game:'starDefender',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Drag to steer'},{icon:'👾',title:'Goal',text:'Defeat alien waves'}],overlayIcon:'👾',overlayTitle:'Star Defender',overlayText:'Drag anywhere to steer. Your ship fires automatically.',replayTitle:'Play Again',tips:['Dodge the pink alien shots. Three hits end your run.','Clear waves for bonus points. A run lasts at most 45 seconds.','Use ← → or A / D on a keyboard. Enter or Space starts.'],reward:'Earn up to 60 Arcade Coins per run.'});
+    const starGuide=Arcade.gameGuide({game:'starDefender',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap Play'},{icon:'↔️',title:'Control',text:'Drag to steer'},{icon:'👾',title:'Goal',text:'Defeat alien waves'}],overlayIcon:'👾',overlayTitle:'Star Defender',overlayText:'Drag anywhere to steer. Your ship fires automatically.',replayTitle:'Play Again',tips:['Every five defeats gives rapid fire or a one-hit shield.','Face a commander every fourth wave. Runs last at most 45 seconds.','Complete daily flight goals and unlock cosmetic ship colors on this device. Use ← → or A / D to steer.'],reward:'Earn up to 60 Arcade Coins per run.'});
     const starStartOverlay=document.createElement('button');
     starStartOverlay.id='starStartOverlay';
     starStartOverlay.type='button';
@@ -143,62 +178,98 @@
     starStartOverlay.setAttribute('aria-label','Start Star Defender');
     starStartOverlay.innerHTML='<strong>👾 Star Defender</strong><span>Drag anywhere to steer · auto-fire enabled</span><b>▶ TAP TO START</b>';
     starGuide?.wrapper?.insertAdjacentElement('beforebegin',starStartOverlay);
-    function chrome(){els.score.textContent=score;els.lives.textContent=lives;els.coins.textContent=Arcade.gameReward('starDefender',score);els.plays.textContent=running&&!Arcade.remaining('starDefender')?'Last':Arcade.remaining('starDefender');els.balance.textContent=Arcade.number('points').toLocaleString()}
+    function chrome(){const remaining=Arcade.remaining('starDefender');const values={score,lives,coins:Arcade.gameReward('starDefender',score),plays:running&&!remaining?'Last':remaining,balance:Arcade.number('points').toLocaleString()};for(const [key,value]of Object.entries(values))if(els[key].textContent!==String(value))els[key].textContent=String(value);}
     function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active);if(starStartOverlay)starStartOverlay.hidden=active}
     function alien(x,y,color){ctx.save();ctx.translate(x,y);ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=color;ctx.fillRect(-12,-7,24,13);ctx.fillRect(-16,-2,5,7);ctx.fillRect(11,-2,5,7);ctx.fillRect(-8,6,4,5);ctx.fillRect(4,6,4,5);ctx.shadowBlur=0;ctx.fillStyle='#081126';ctx.fillRect(-7,-2,4,4);ctx.fillRect(3,-2,4,4);ctx.restore()}
     function draw(){
-      ctx.fillStyle='#070d20';ctx.fillRect(0,0,W,H);
-      const gradient=ctx.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#15143b');gradient.addColorStop(1,'#071528');ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
-      for(const star of stars){ctx.globalAlpha=.25+star.r*.24;ctx.fillStyle='#a5eaff';ctx.fillRect(star.x,(star.y+elapsed*12*(star.r+.4))%H,star.r,star.r)}ctx.globalAlpha=1;
-      ctx.strokeStyle='#1c366280';ctx.lineWidth=1;for(let y=280;y<H;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
-      aliens.forEach(a=>alien(a.x,a.y,a.color));
+      const motion=reduced?0:elapsed;
+      ctx.fillStyle=skyLayers[wave>=4?1:0];ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#4766ac18';ctx.beginPath();ctx.ellipse(272,130,130,210,-.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#a1b8d012';ctx.beginPath();ctx.arc(280,170,62,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#819ed222';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(280,170,90,18,-.4,0,Math.PI*2);ctx.stroke();
+      for(const star of stars){ctx.globalAlpha=.25+star.r*.24;ctx.fillStyle='#a5eaff';ctx.fillRect(star.x,(star.y+motion*24*(star.r+.4))%H,star.r,star.r+(reduced?0:star.r*1.4))}ctx.globalAlpha=1;
+      ctx.strokeStyle='#24406a44';for(let y=310;y<H;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      for(const a of aliens){
+        if(a.boss){
+          ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='#fc90c9';ctx.beginPath();ctx.moveTo(-38,4);ctx.lineTo(-22,-13);ctx.lineTo(22,-13);ctx.lineTo(38,4);ctx.lineTo(24,16);ctx.lineTo(-24,16);ctx.closePath();ctx.fill();ctx.fillStyle='#512b60';ctx.fillRect(-24,-6,48,13);ctx.fillStyle='#ffe8b5';ctx.fillRect(-16,-3,8,5);ctx.fillRect(8,-3,8,5);ctx.restore();
+          ctx.fillStyle='#130f29';ctx.fillRect(a.x-32,a.y+32,64,4);ctx.fillStyle='#ffc17d';ctx.fillRect(a.x-32,a.y+32,64*a.hp/a.maxHp,4);
+        }else{alien(a.x,a.y,a.color);if(a.maxHp>1){ctx.strokeStyle='#ffdc98';ctx.lineWidth=2;ctx.strokeRect(a.x-18,a.y-12,36,25);}}
+        if(a.flash>0&&!reduced){ctx.globalAlpha=.65;ctx.fillStyle='#fff';ctx.fillRect(a.x-10,a.y-6,20,12);ctx.globalAlpha=1;}
+        if(a===warningAlien){ctx.fillStyle='#ffc7d8';ctx.beginPath();ctx.moveTo(a.x-4,a.y+22);ctx.lineTo(a.x,a.y+28);ctx.lineTo(a.x+4,a.y+22);ctx.fill();}
+      }
       ctx.save();ctx.shadowColor='#45dbff';ctx.shadowBlur=15;ctx.fillStyle='#72e9ff';for(const b of bullets)ctx.fillRect(b.x-2,b.y-9,4,12);ctx.restore();
       ctx.save();ctx.shadowColor='#ff5fa8';ctx.shadowBlur=13;ctx.fillStyle='#ff7ebc';for(const b of enemyShots){ctx.beginPath();ctx.arc(b.x,b.y,4,0,Math.PI*2);ctx.fill()}ctx.restore();
       particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,3,3)});ctx.globalAlpha=1;
-      if(invincible<=0||Math.floor(invincible*10)%2===0){ctx.save();ctx.translate(shipX,shipY);ctx.shadowColor='#2ee9ff';ctx.shadowBlur=20;ctx.fillStyle='#56e5ff';ctx.beginPath();ctx.moveTo(0,-21);ctx.lineTo(18,12);ctx.lineTo(8,8);ctx.lineTo(0,14);ctx.lineTo(-8,8);ctx.lineTo(-18,12);ctx.closePath();ctx.fill();ctx.fillStyle='#f7d75c';ctx.fillRect(-3,11,6,9);ctx.restore()}
-      if(running){ctx.font='bold 12px system-ui';ctx.fillStyle='#d2e7ff';ctx.fillText('WAVE '+wave,12,23);ctx.textAlign='right';ctx.fillText(Math.max(0,45-Math.floor(elapsed))+'s',W-12,23);ctx.textAlign='left'}
-      else if(!starting){ctx.textAlign='center';ctx.font='bold 23px system-ui';ctx.fillStyle='#f8faff';ctx.shadowColor='#e857e9';ctx.shadowBlur=14;ctx.fillText('STAR DEFENDER',W/2,230);ctx.shadowBlur=0;ctx.font='13px system-ui';ctx.fillStyle='#a8c7ed';ctx.fillText('MOVE • DODGE • BLAST',W/2,253);ctx.textAlign='left'}
+      if(shield){ctx.strokeStyle='#8bf4e1';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(shipX,shipY-2,25,28,0,0,Math.PI*2);ctx.stroke();}
+      ctx.save();ctx.translate(shipX,shipY);ctx.rotate(reduced?0:bank);ctx.globalAlpha=invincible>0?.55:1;
+      ctx.fillStyle='#f7ce70';ctx.beginPath();ctx.moveTo(-5,12);ctx.lineTo(0,25+(reduced?0:Math.sin(elapsed*35)*4));ctx.lineTo(5,12);ctx.fill();
+      ctx.fillStyle=livery.color;ctx.beginPath();ctx.moveTo(0,-23);ctx.lineTo(20,13);ctx.lineTo(8,8);ctx.lineTo(0,15);ctx.lineTo(-8,8);ctx.lineTo(-20,13);ctx.closePath();ctx.fill();
+      ctx.fillStyle=livery.accent;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(5,7);ctx.lineTo(0,11);ctx.lineTo(-5,7);ctx.closePath();ctx.fill();ctx.fillStyle='#193951';ctx.beginPath();ctx.ellipse(0,-5,3,7,0,0,Math.PI*2);ctx.fill();ctx.restore();
+      if(running){
+        ctx.fillStyle='#08172be6';ctx.fillRect(0,0,W,39);ctx.font='800 11px system-ui';ctx.fillStyle='#d2e7ff';ctx.fillText('WAVE '+wave+(wave%4===0?' · COMMANDER':''),12,17);ctx.textAlign='right';ctx.fillText(Math.max(0,45-Math.floor(elapsed))+'s',W-12,17);ctx.textAlign='left';
+        ctx.fillStyle='#253c58';ctx.fillRect(12,26,W-24,3);ctx.fillStyle='#79e2d6';ctx.fillRect(12,26,(W-24)*Math.max(0,1-elapsed/45),3);
+        if(rapid>0||shield){ctx.textAlign='center';ctx.fillStyle='#9ef7df';ctx.font='800 10px system-ui';ctx.fillText((rapid>0?'RAPID FIRE '+Math.ceil(rapid)+'s':'')+(rapid>0&&shield?'  ·  ':'')+(shield?'SHIELD READY':''),W/2,H-12);ctx.textAlign='left';}
+        if(noticeUntil>elapsed){ctx.fillStyle='#0b203ae8';ctx.beginPath();ctx.roundRect(35,37,260,23,8);ctx.fill();ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.fillStyle='#e4fbff';ctx.fillText(notice,W/2,52);ctx.textAlign='left';}
+      }else if(!starting){ctx.textAlign='center';ctx.font='900 23px system-ui';ctx.fillStyle='#f8faff';ctx.fillText('STAR DEFENDER',W/2,210);ctx.font='12px system-ui';ctx.fillStyle='#9ef7df';ctx.fillText('FORMATIONS • POWER-UPS • COMMANDERS',W/2,235);ctx.fillStyle='#afc4df';ctx.fillText('Drag to steer. Your ship handles the blasting.',W/2,257);ctx.textAlign='left';}
     }
-    function burst(x,y,color){for(let i=0;i<9;i++){const angle=i*Math.PI*2/9;particles.push({x,y,vx:Math.cos(angle)*75,vy:Math.sin(angle)*75,life:.45,color})}}
-    function spawnWave(){wave++;const count=Math.min(8,3+wave);for(let i=0;i<count;i++)aliens.push({x:33+i*(264/Math.max(1,count-1)),y:54-(i%2)*22,hp:wave>=3&&i%3===0?2:1,phase:i*.7,color:i%2?'#ff69c8':'#9a81ff'});score+=wave>1?25:0;chrome()}
+    function burst(x,y,color){if(reduced)return;for(let i=0;i<9&&particles.length<90;i++){const angle=i*Math.PI*2/9;particles.push({x,y,vx:Math.cos(angle)*75,vy:Math.sin(angle)*75,life:.45,color})}}
+    function spawnWave(){
+      wave++;warningAlien=null;shotClock=0;nextWaveIn=.55;
+      if(wave%4===0){aliens.push({x:W/2,anchor:W/2,y:75,hp:12,maxHp:12,phase:0,color:'#ff8ebf',boss:true,flash:0});announce('COMMANDER INBOUND',1.8);}
+      else{const count=Math.min(8,3+wave);for(let i=0;i<count;i++){const hp=wave>=3&&i%3===0?2:1;aliens.push({x:35+i*(260/Math.max(1,count-1)),anchor:35+i*(260/Math.max(1,count-1)),y:70+(wave%3===1?(i%2)*23:wave%3===2?Math.abs(i-(count-1)/2)*16:Math.sin(i)*16),hp,maxHp:hp,phase:i*.7,color:i%2?'#ff69c8':'#9a81ff',flash:0});}announce(wave===3?'WAVE 3 · COMMANDER NEXT':'WAVE '+wave+' · CLEAR THE SECTOR');}
+      score+=wave>1?25:0;chrome();
+    }
+    function damage(){
+      if(invincible>0)return;
+      if(shield){shield=0;invincible=.45;announce('SHIELD ABSORBED THE HIT');burst(shipX,shipY,'#8bf4e1');Arcade.feedback('hit');return;}
+      lives--;chain=0;invincible=1.15;burst(shipX,shipY,'#ffca68');chrome();Arcade.feedback('fail');if(!lives)finish();
+    }
     function move(dt){
-      elapsed+=dt;invincible=Math.max(0,invincible-dt);fireClock+=dt;enemyClock+=dt;shotClock+=dt;
+      elapsed+=dt;invincible=Math.max(0,invincible-dt);rapid=Math.max(0,rapid-dt);fireClock+=dt;enemyClock+=dt;shotClock+=dt;
+      if(elapsed>=motionPollAt){reduced=Arcade.reducedMotionEnabled?Arcade.reducedMotionEnabled():motionQuery.matches;motionPollAt=elapsed+.25;}
       if(keys.has('ArrowLeft')||keys.has('a'))shipX-=230*dt;if(keys.has('ArrowRight')||keys.has('d'))shipX+=230*dt;shipX=Math.max(19,Math.min(W-19,shipX));
-      if(fireClock>=.18){fireClock=0;bullets.push({x:shipX,y:shipY-20})}
-      if(!aliens.length)spawnWave();
-      const speed=Math.min(61,20+wave*5+elapsed*.4);
-      for(const a of aliens){a.phase+=dt*1.8;a.x+=Math.sin(a.phase)*speed*dt;a.y+=dt*(2+wave*.45)}
-      if(shotClock>Math.max(.45,1.25-wave*.09)){shotClock=0;const a=aliens[Math.floor(Math.random()*aliens.length)];if(a)enemyShots.push({x:a.x,y:a.y+11})}
-      for(const b of bullets)b.y-=330*dt;for(const b of enemyShots)b.y+=(120+wave*7)*dt;
-      for(const b of bullets){if(b.y<0)continue;for(const a of aliens){if(Math.abs(b.x-a.x)<16&&Math.abs(b.y-a.y)<14){b.y=-50;a.hp--;if(a.hp<=0){a.dead=true;score+=10; kills++;burst(a.x,a.y,a.color);chrome()}break}}}
+      bank+=(Math.max(-.24,Math.min(.24,(shipX-previousX)*.025))-bank)*.25;previousX=shipX;
+      if(fireClock>=(rapid>0?.105:.18)){fireClock=0;if(bullets.length<80)bullets.push({x:shipX,y:shipY-20});}
+      if(!aliens.length){nextWaveIn-=dt;if(nextWaveIn<=0)spawnWave();}
+      for(const a of aliens){a.phase+=dt*(a.boss?1.25:1.8);a.x=Math.max(a.boss?42:20,Math.min(W-(a.boss?42:20),(a.anchor??a.x)+Math.sin(a.phase)*(a.boss?82:12+wave*2)));a.y+=dt*(a.boss?.5:2+wave*.45);a.flash=Math.max(0,(a.flash||0)-dt);}
+      const interval=wave%4===0?.75:Math.max(.55,1.25-wave*.08);
+      if(!warningAlien&&shotClock>interval-.25)warningAlien=aliens[Math.floor(Math.random()*aliens.length)]||null;
+      if(shotClock>interval){shotClock=0;const a=warningAlien;warningAlien=null;if(a&&!a.dead&&enemyShots.length<54){const vx=wave>=2?Math.max(-60,Math.min(60,(shipX-a.x)*.3)):0;for(const extra of a.boss?[-35,0,35]:[0])enemyShots.push({x:a.x,y:a.y+18,vx:vx+extra});}}
+      for(const b of bullets)b.y-=330*dt;for(const b of enemyShots){b.y+=(120+wave*7)*dt;b.x+=(b.vx||0)*dt;}
+      for(const b of bullets){if(b.y<0)continue;for(const a of aliens){if(!a.dead&&Math.abs(b.x-a.x)<(a.boss?36:16)&&Math.abs(b.y-a.y)<(a.boss?18:14)){b.y=-50;a.hp--;a.flash=.08;if(a.hp<=0){a.dead=true;score+=10;kills++;chain++;bestChain=Math.max(bestChain,chain);if(a.boss){bosses++;announce('COMMANDER DEFEATED');Arcade.feedback('perfect');}else Arcade.feedback('hit');burst(a.x,a.y,a.color);if(kills%5===0){if(kills%10===0){shield=1;announce('SHIELD ONLINE');}else{rapid=5;announce('RAPID FIRE · 5 SECONDS');}}if(!bestCelebrated&&bestBefore>0&&score>bestBefore){bestCelebrated=true;announce('NEW PERSONAL BEST');}chrome();}break;}}}
       aliens=aliens.filter(a=>!a.dead&&a.y<shipY+14);bullets=bullets.filter(b=>b.y>-12);enemyShots=enemyShots.filter(b=>b.y<H+5);
-      for(const b of enemyShots){if(invincible<=0&&Math.abs(b.x-shipX)<17&&Math.abs(b.y-shipY)<17){b.y=H+30;lives--;invincible=1.15;burst(shipX,shipY,'#ffca68');chrome();Arcade.feedback('fail');if(!lives){finish();return}}}
-      for(const a of aliens){if(invincible<=0&&Math.abs(a.x-shipX)<22&&Math.abs(a.y-shipY)<23){a.dead=true;lives--;invincible=1.15;burst(shipX,shipY,'#ffca68');chrome();if(!lives){finish();return}}}
+      for(const b of enemyShots){if(invincible<=0&&Math.abs(b.x-shipX)<17&&Math.abs(b.y-shipY)<17){b.y=H+30;damage();if(!running)return;}}
+      for(const a of aliens){if(invincible<=0&&Math.abs(a.x-shipX)<(a.boss?44:22)&&Math.abs(a.y-shipY)<23){a.dead=true;damage();if(!running)return;}}
       aliens=aliens.filter(a=>!a.dead);particles=particles.filter(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;return p.life>0});
       if(elapsed>=45)finish();
     }
-    function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;move(dt);draw();if(running)raf=requestAnimationFrame(loop)}
+    function loop(now){if(!running||paused)return;accumulator+=Math.min(.1,(now-last)/1000||0);last=now;let advanced=false;while(accumulator>=1/60&&running){move(1/60);accumulator-=1/60;advanced=true;}if(advanced&&running)draw();if(running)raf=requestAnimationFrame(loop)}
     let bonusLifeUsed=false;
-    function finish(finalize=false){if(!running&&!finalize)return;running=false;if(starStartOverlay)starStartOverlay.hidden=false;cancelAnimationFrame(raf);raf=0;pointer=null;keys.clear();score=Math.max(0,score);
+    function finish(finalize=false){if(settled||(!running&&!finalize))return;running=false;if(starStartOverlay)starStartOverlay.hidden=false;cancelAnimationFrame(raf);raf=0;pointer=null;keys.clear();score=Math.max(0,score);
       if(!finalize&&!bonusLifeUsed&&lives<=0&&elapsed<45){
         starting=true;els.startButton.disabled=true;starStartOverlay.hidden=true;
         const stoppedAt=performance.now();
         if(Arcade.offerAdContinue({
           message:'Keep '+score+' points and wave '+wave+'. Return with one life and a 3-second shield. One bonus life per run.',
-          onContinue:()=>{bonusLifeUsed=true;lives=1;enemyShots=[];invincible=3;chrome();status('Get Ready',true);Arcade.countdown(()=>{pauseTotal+=performance.now()-stoppedAt;starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);last=performance.now();raf=requestAnimationFrame(loop)})},
+          onContinue:()=>{bonusLifeUsed=true;lives=1;enemyShots=[];invincible=3;chrome();status('Get Ready',true);Arcade.countdown(()=>{pauseTotal+=performance.now()-stoppedAt;starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);last=performance.now();accumulator=0;raf=requestAnimationFrame(loop)})},
           onFinish:()=>{pauseTotal+=performance.now()-stoppedAt;finish(true)}
         }))return;
       }
-      starting=false;els.startButton.disabled=false;
-      const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000));const earned=Arcade.gameReward('starDefender',score);Arcade.earn(earned,'Star Defender',{kind:'game',game:'starDefender',metric:score,aux:kills});const result=Arcade.recordResult('starDefender',score);chrome();status('Run Over');els.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'👾',title:'Star Defender Run Over',scoreLabel:'POINTS',score, best:Arcade.best('starDefender').display,coins:earned,result,playsLeft:Arcade.remaining('starDefender'),game:'starDefender',extra:['⏱️ Time played: '+seconds+'s','👾 Aliens defeated: '+kills,'🌌 Wave reached: '+wave],onReplay:start,onMorePlays:()=>Arcade.out('starDefender',chrome)});draw()}
-    function start(){if(running||starting)return;starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ TAP TO START';Arcade.out('starDefender',chrome);return}bonusLifeUsed=false;elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);chrome();raf=requestAnimationFrame(loop)})}
+      starting=false;settled=true;els.startButton.disabled=false;
+      let log=null;
+      if(owner()===runOwner){log=Flight.record(Flight.load(localStorage,runOwner),{kills,wave,score,bosses});Flight.save(localStorage,runOwner,log.progress);}
+      hangar();const goals=Flight.goals(progress),next=goals.find(g=>!g.done);
+      const outcome=log?.unlocked.length?'New ship color: '+log.unlocked.map(l=>l.name).join(', '):'Daily flight log · '+goals.filter(g=>g.done).length+'/3 complete';
+      const tip=next?'Next flight: '+next.label+' · '+next.value+'/'+next.target:'Daily flight log complete. Beat your best or work toward the next ship color.';
+      const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000));const earned=Arcade.gameReward('starDefender',score);Arcade.earn(earned,'Star Defender',{kind:'game',game:'starDefender',metric:score,aux:kills});const result=Arcade.recordResult('starDefender',score);chrome();status('Run Over');els.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'🚀',title:'Star Defender · Flight Complete',scoreLabel:'POINTS',score,best:Arcade.best('starDefender').display,coins:earned,result,outcome,tip,playsLeft:Arcade.remaining('starDefender'),game:'starDefender',extra:['⏱️ Time played: '+seconds+'s','👾 Aliens defeated: '+kills,'🌌 Wave reached: '+wave,'🛸 Commanders defeated: '+bosses,'🎯 Best clean streak: '+bestChain],onReplay:start,onMorePlays:()=>Arcade.out('starDefender',chrome)});flightLogAction();draw()}
+    function start(){if(running||starting)return;hangar();runOwner=owner();starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ TAP TO START';Arcade.out('starDefender',chrome);return}bonusLifeUsed=false;settled=false;elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();rapid=shield=bosses=chain=bestChain=nextWaveIn=bank=accumulator=motionPollAt=0;previousX=shipX;warningAlien=null;notice='';noticeUntil=0;bestBefore=Number(Arcade.best('starDefender').value)||0;bestCelebrated=false;reduced=Arcade.reducedMotionEnabled?Arcade.reducedMotionEnabled():motionQuery.matches;chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);window.scrollTo({top:0,left:0,behavior:'auto'});chrome();raf=requestAnimationFrame(loop)})}
     function steer(clientX){const r=canvas.getBoundingClientRect();shipX=Math.max(19,Math.min(W-19,(clientX-r.left)*W/r.width))}
-    document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target))return;pointer=e.pointerId;steer(e.clientX);e.preventDefault()},{passive:false});
-    document.addEventListener('pointermove',e=>{if(!running||pointer!==e.pointerId)return;steer(e.clientX);e.preventDefault()},{passive:false});
+    document.addEventListener('pointerdown',e=>{if(!running||paused||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0)||Arcade.isProtectedGameControlTarget(e.target))return;pointer=e.pointerId;steer(e.clientX);e.preventDefault()},{passive:false});
+    document.addEventListener('pointermove',e=>{if(!running||paused||pointer!==e.pointerId)return;steer(e.clientX);e.preventDefault()},{passive:false});
     document.addEventListener('pointerup',e=>{if(pointer===e.pointerId)pointer=null});document.addEventListener('pointercancel',()=>pointer=null);
-    document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;const k=e.key.toLowerCase();if(e.key==='ArrowLeft'||e.key==='ArrowRight'||k==='a'||k==='d'){if(running){e.preventDefault();keys.add(e.key.startsWith('Arrow')?e.key:k)}}else if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();start()}});
+    document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;const k=e.key.toLowerCase();if(e.key==='ArrowLeft'||e.key==='ArrowRight'||k==='a'||k==='d'){if(running&&!paused){e.preventDefault();keys.add(e.key.startsWith('Arrow')?e.key:k)}}else if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();start()}});
     document.addEventListener('keyup',e=>keys.delete(e.key.startsWith('Arrow')?e.key:e.key.toLowerCase()));window.addEventListener('blur',()=>keys.clear());
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);keys.clear();pointer=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();raf=requestAnimationFrame(loop)}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);keys.clear();pointer=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();accumulator=0;raf=requestAnimationFrame(loop)}});
     // The shared guide overlay sits above the canvas before a run. Treat a
     // tap anywhere on the board/guide surface as Start so mobile players are
     // never left tapping a non-responsive intro screen.
@@ -230,7 +301,7 @@
         start();
       }
     }, {capture:true,passive:false});
-    chrome();draw();
+    hangar();chrome();draw();
   })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
