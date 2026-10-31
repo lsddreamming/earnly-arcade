@@ -612,7 +612,7 @@ test('Star Defender collapses nonessential chrome during live mobile play', asyn
   if (testInfo.project.use.hasTouch) await start.tap();
   else await start.click();
   await expect(page.locator('#gameStatus')).toHaveText('Running', { timeout:5000 });
-  await expect(page.locator('#earnlyCompactLeaderboard')).toBeVisible();
+  await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
   await expect(page.locator('.game-guide-strip')).toBeHidden();
   const layout = await page.evaluate(() => {
     const board = document.querySelector('#game').getBoundingClientRect();
