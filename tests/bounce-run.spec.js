@@ -23,6 +23,36 @@ async function open(page,path='/mini.html?game=bounceRun'){
   await expect.poll(()=>page.evaluate(()=>window.testBounce?.state.ticks||0)).toBeGreaterThan(0);
   return errors;
 }
+test('Bounce Run HUD and motion preferences avoid frame-by-frame DOM and storage work',async({page})=>{
+ const errors=await open(page);
+ await page.evaluate(()=>{
+   window.hudMutations=0;window.motionReads=0;
+   const observer=new MutationObserver(records=>window.hudMutations+=records.length);
+   for(const id of ['score','secondary','rewardPreview'])observer.observe(document.getElementById(id),{childList:true,characterData:true,subtree:true});
+   const read=Arcade.reducedMotionEnabled;
+   Arcade.reducedMotionEnabled=()=>{motionReads++;return read();};
+ });
+ const before=await page.evaluate(()=>testBounce.state.distance);
+ await page.waitForTimeout(1000);
+ const result=await page.evaluate(()=>({mutations:hudMutations,reads:motionReads,distance:testBounce.state.distance}));
+ expect(result.distance).toBeGreaterThan(before);
+ expect(result.mutations).toBeGreaterThan(0);expect(result.mutations).toBeLessThan(35);
+ expect(result.reads).toBeGreaterThan(0);expect(result.reads).toBeLessThanOrEqual(6);
+ expect(errors).toEqual([]);
+});
+for(const setting of ['off','on'])test('Bounce Run honors explicit motion setting '+setting+' over the system preference',async({page})=>{
+ await page.emulateMedia({reducedMotion:setting==='off'?'reduce':'no-preference'});
+ await page.addInitScript(value=>localStorage.setItem('arcadeReducedMotion',value),setting);
+ const errors=await open(page);
+ await page.evaluate(()=>{testBounce.step=()=>{};Object.assign(testBounce.state,{travel:0,y:349,vy:0});});
+ await page.waitForTimeout(100);
+ const sample=()=>page.evaluate(()=>Array.from(document.querySelector('#surface canvas').getContext('2d').getImageData(60,320,80,35).data));
+ const before=await sample();
+ await page.evaluate(()=>{testBounce.state.travel=20;});await page.waitForTimeout(100);
+ if(setting==='off')expect(await sample()).not.toEqual(before);
+ else expect(await sample()).toEqual(before);
+ expect(errors).toEqual([]);
+});
 for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
  test('Bounce Run one tap jumps, pauses safely, and preserves result rewards '+path,async({page})=>{
   const errors=await open(page,path);
