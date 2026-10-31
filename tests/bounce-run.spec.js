@@ -5,7 +5,14 @@ async function open(page,path='/mini.html?game=bounceRun'){
   await page.route('https://**',route=>route.abort());
   await page.route('**/bounce-run-engine.js',async route=>{
     const response=await route.fetch();
-    await route.fulfill({response,body:await response.text()+`;const originalBounceCreate=BounceRunEngine.create;BounceRunEngine.create=(...args)=>window.testBounce=originalBounceCreate(...args);`});
+    await route.fulfill({response,body:await response.text()+`;const originalBounceCreate=BounceRunEngine.create;BounceRunEngine.create=(...args)=>{
+      const engine=originalBounceCreate(...args);
+      // Isolate controls/rewards from random waves before the first frame.
+      // Actual generated-wave reachability is covered by test-bounce-run.cjs.
+      engine.state.wait=Number.MAX_SAFE_INTEGER;
+      window.testBounce=engine;
+      return engine;
+    };`});
   });
   await page.goto(path);
   await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
@@ -13,13 +20,13 @@ async function open(page,path='/mini.html?game=bounceRun'){
   if(await start.isVisible())await start.click();
   else await page.locator('#surface').tap({position:{x:120,y:120}});
   await expect(page.locator('#surface canvas')).toBeVisible();
-  await page.waitForTimeout(2000);
+  await expect.poll(()=>page.evaluate(()=>window.testBounce?.state.ticks||0)).toBeGreaterThan(0);
   return errors;
 }
 for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
  test('Bounce Run one tap jumps, pauses safely, and preserves result rewards '+path,async({page})=>{
   const errors=await open(page,path);
-  await page.evaluate(()=>{testBounce.state.wait=10000;});
+  expect(await page.evaluate(()=>testBounce.state.alive)).toBe(true);
   expect(await page.evaluate(()=>testBounce.state.jumps)).toBe(0);
   if(test.info().project.name==='mobile-webkit')await page.locator('#surface canvas').tap();
   else await page.locator('#surface canvas').click();
@@ -33,11 +40,15 @@ for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun'])
   expect(await page.evaluate(()=>testBounce.state.ticks)).toBe(ticks);
   await page.getByRole('button',{name:/Resume/}).click();
   await expect.poll(()=>page.evaluate(()=>testBounce.state.ticks)).toBeGreaterThan(ticks);
+  await expect(page.locator('dialog.game-result-dialog')).toBeHidden();
+  expect(await page.evaluate(()=>testBounce.state.alive)).toBe(true);
   await page.evaluate(()=>{
     window.bounceAward=null;Arcade.earn=(amount,label,evidence)=>window.bounceAward={amount,label,evidence};
     Object.assign(testBounce.state,{y:349,vy:0,buffer:0,distance:430,obstacles:[{x:80,w:20,speed:1}]});
   });
   const dialog=page.locator('dialog.game-result-dialog');await expect(dialog).toBeVisible();
+  await expect(dialog.locator('.result-tip')).toContainText('A close pair takes one jump');
+  await expect(dialog.locator('.result-outcome')).not.toBeEmpty();
   expect(await page.evaluate(()=>bounceAward)).toEqual({amount:20,label:'Bounce Run',evidence:{kind:'game',game:'bounceRun',metric:430}});
   const stopped=await page.evaluate(()=>testBounce.state.ticks);await page.waitForTimeout(150);
   expect(await page.evaluate(()=>testBounce.state.ticks)).toBe(stopped);
@@ -64,3 +75,22 @@ for(const motion of ['reduce','no-preference'])test('Bounce Run landscape and re
  await page.screenshot({path:test.info().outputPath('bounce-run-'+motion+'.png')});
  expect(errors).toEqual([]);
 });
+
+for(const height of [640,740])test('Bounce Run phone controls stay below the jump area at '+height,async({page})=>{
+ await page.setViewportSize({width:390,height});
+ const errors=await open(page);
+ const jump=page.locator('.bounce-tap-zone');
+ const pause=page.locator('.bounce-session-controls #earnlyPauseButton');
+ const quit=page.locator('.bounce-session-controls #earnlyQuitButton');
+ await expect(jump).toBeVisible();await expect(pause).toBeVisible();await expect(quit).toBeVisible();
+ const j=await jump.boundingBox(),p=await pause.boundingBox(),q=await quit.boundingBox();
+ expect(p.y).toBeGreaterThanOrEqual(j.y+j.height+4);
+ expect(q.y).toBeGreaterThanOrEqual(j.y+j.height+4);
+ expect(p.y+p.height).toBeLessThanOrEqual(height);
+ expect(q.x).toBeGreaterThanOrEqual(p.x+p.width+4);
+ await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+ await pause.click();await page.getByRole('button',{name:/Resume/}).click();
+ await page.screenshot({path:test.info().outputPath('bounce-run-phone-'+height+'.png')});
+ expect(errors).toEqual([]);
+});
+
