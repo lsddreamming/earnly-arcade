@@ -1629,14 +1629,14 @@ test('Bounce Run exposes progressive run feedback', async ({ page }) => {
 });
 
 
-test('Bounce Run shows motion and level-up feedback', async ({ page }) => {
-  const response = await page.request.get('/mini-games.js');
+test('Bounce Run keeps level-up feedback', async ({ request }) => {
+  const response = await request.get('/mini-games.js');
   expect(response.ok()).toBeTruthy();
   const source = await response.text();
   expect(source).toContain("levelFlashText='LEVEL '");
   expect(source).toContain("ctx.fillText('NEW STRETCH · KEEP ROLLING'");
-  expect(source).toContain("trail.push({x:80,y})");
-  expect(source).toContain("const scroll=reduced?0:(distance*5)%48");
+  // Actual rolling, track motion and reduced motion are exercised in
+  // bounce-run.spec.js rather than locking this copy check to old math.
 });
 
 
