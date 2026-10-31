@@ -20,8 +20,8 @@ html body.star-page.game-active .earnly-session-dock{width:min(94vw,390px)!impor
 #starFlightDetails summary{min-height:36px;cursor:pointer;display:list-item;list-style-position:inside;color:#d4f6ee;font-size:12px;font-weight:800;padding:9px 0;box-sizing:border-box}
 #starFlightDetails[open] summary{color:#88ecd5}.star-goals{margin:5px 0 12px}.star-goal{font-size:10px}
 .star-liveries{margin:6px 0 10px}.star-liveries button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:64px;padding:7px 3px!important;font-size:10px;transition:border-color .15s,background .15s}
-.star-liveries button[aria-pressed=true]{background:linear-gradient(145deg,#204958,#10283e)}.star-liveries button:disabled{opacity:.65}.star-liveries i{width:23px;height:27px}.star-liveries svg{display:block;width:100%;height:100%}.star-liveries .ship-flame{display:none}.star-liveries small{font-size:8px;line-height:1.4;color:#a2bdd1}.star-liveries button[aria-pressed=true] small{color:#a5f4d5}
-.star-hangar .star-local-note{font-size:9px;margin-top:8px;color:#819fb9}
+.star-liveries button[aria-pressed=true]{background:linear-gradient(145deg,#204958,#10283e)}.star-liveries button:disabled{opacity:.65}.star-liveries i{width:20px;height:22px}.star-liveries svg{display:block;width:100%;height:100%}.star-liveries .ship-flame{display:none}.star-liveries small{font-size:8px;line-height:1.4;color:#a2bdd1}.star-liveries button[aria-pressed=true] small{color:#a5f4d5}
+.star-hangar .star-local-note{font-size:9px;margin-top:6px;color:#819fb9}
 .star-page progress{appearance:none;-webkit-appearance:none;display:block;width:100%;height:5px;border:0;border-radius:6px;overflow:hidden;background:#29415a;color:#7ae6cb;accent-color:#7ae6cb}
 .star-page progress::-webkit-progress-bar{background:#29415a;border-radius:6px}.star-page progress::-webkit-progress-value{background:linear-gradient(90deg,#36b8c3,#8ff0cd);border-radius:6px}.star-page progress::-moz-progress-bar{background:linear-gradient(90deg,#36b8c3,#8ff0cd);border-radius:6px}
 #starUnlockProgress{margin-top:5px;height:4px}
