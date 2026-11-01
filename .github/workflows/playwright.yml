@@ -26,7 +26,7 @@ jobs:
       - name: Validate payment ledger and API boundaries
         run: node scripts/test-neon-slice-client.mjs && node scripts/test-neon-slice-rewards.mjs && node --experimental-strip-types --test scripts/test-neon-slice-handler.ts && node scripts/test-bubble-pop-rewards.mjs && node --experimental-strip-types --test scripts/test-bubble-pop-handler.ts && node scripts/test-activity.mjs && node --experimental-strip-types --test scripts/test-activity-handler.ts && node --test scripts/test-native-ads.mjs && node --experimental-strip-types --test scripts/test-ad-bonus.ts && node scripts/test-ad-bonus-ledger.mjs && node scripts/test-progressive-ad-rewards.mjs && node scripts/test-balanced-economy.mjs && node scripts/test-arcade-chat.mjs && node scripts/test-jungle-rewards.mjs && node scripts/test-kart-rewards.mjs && node scripts/test-game-shop-loop.mjs && npm run test:commerce && node scripts/test-coin-staging.mjs && node scripts/test-avatar-staging.mjs && node --test scripts/test-native-environment.mjs && node --test scripts/test-ios-release-gates.mjs && node --test scripts/test-ios-export-compliance.mjs
       - name: Verify reachable Bounce Run waves
-        run: node --test scripts/test-bounce-run.cjs scripts/test-star-defender-flight.cjs scripts/test-coin-catch-rules.cjs scripts/test-safe-cracker-engine.cjs scripts/test-spiral-drop-engine.cjs
+        run: node --test scripts/test-bounce-run.cjs scripts/test-star-defender-flight.cjs scripts/test-coin-catch-rules.cjs scripts/test-safe-cracker-engine.cjs scripts/test-spiral-drop-engine.cjs scripts/test-perfect-drop-engine.cjs
       - name: Run simulations and source contracts once
         run: npx playwright test tests/game-stress.spec.js tests/bubble-pop-campaign.spec.js tests/quality-contract.spec.js --project=desktop-chromium
       - name: Upload simulation failure report
@@ -135,6 +135,16 @@ jobs:
         with:
           name: spiral-drop-previews-${{ matrix.project }}${{ matrix.artifact_suffix }}
           path: test-results/**/spiral-drop*.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Verify Perfect Drop timing, input and rewards
+        run: npx playwright test tests/perfect-drop.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+      - name: Upload Perfect Drop previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perfect-drop-previews-${{ matrix.project }}${{ matrix.artifact_suffix }}
+          path: test-results/**/perfect-drop*.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Verify World controls
