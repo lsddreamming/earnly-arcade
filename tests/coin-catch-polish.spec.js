@@ -49,3 +49,20 @@ for(const path of ['/coincatch.html','/www/coincatch.html']){
   await page.screenshot({path:test.info().outputPath('coin-catch-sky-vault-live.png')});
  });
 }
+
+test('Coin Catch desktop keeps Pause and Quit visible and resumes a locked session',async({page})=>{
+ await page.route('https://**',r=>r.abort());
+ await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));
+ await page.goto('/coincatch.html');
+ for(const viewport of [{width:1363,height:936},{width:1280,height:720},{width:1024,height:600}]){
+  await page.setViewportSize(viewport);
+  await page.evaluate(()=>{reset();running=true;setStatus('Running','running');pauseStartedAt=0;});
+  await expect(page.locator('#earnlyPauseButton')).toBeInViewport();
+  await expect(page.locator('#coinCatchExit')).toBeInViewport();
+  const board=await page.locator('#game').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();
+  expect(board.height).toBeGreaterThan(200);expect(board.y+board.height).toBeLessThan(pause.y);
+  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+  await page.evaluate(()=>{cancelAnimationFrame(animation);clearInterval(timer);running=false;});
+ }
+});
