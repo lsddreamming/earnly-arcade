@@ -31,6 +31,14 @@ const towerSql=await read('supabase/migrations/'+towerMigration);await db.exec(t
 const towerRetry=(await db.query("select claim_coin_reward('tower-before-pacing','game','towerStack',33,33) r")).rows[0].r;
 assert(towerRetry.duplicate);assert.equal(towerRetry.amount,100);assert.deepEqual(towerRetry.wallet,towerBefore.wallet);
 
+// Old receipts remain authoritative; only fresh Safe Cracker claims use the slower curve.
+const safeBefore=(await db.query("select claim_coin_reward('safe-before-pacing','game','safeCracker',33,0) r")).rows[0].r;
+assert.equal(safeBefore.amount,100);
+const safeMigration=(await readdir('supabase/migrations')).find(x=>x.endsWith('_safe_cracker_reward_pacing.sql'));
+const safeSql=await read('supabase/migrations/'+safeMigration);await db.exec(safeSql);await db.exec(safeSql);
+const safeRetry=(await db.query("select claim_coin_reward('safe-before-pacing','game','safeCracker',33,0) r")).rows[0].r;
+assert(safeRetry.duplicate);assert.equal(safeRetry.amount,100);assert.deepEqual(safeRetry.wallet,safeBefore.wallet);
+
 const src=await read('arcade.js'),fn=src.slice(src.indexOf('  function gameReward('),src.indexOf('  // END BALANCED GAME REWARDS'));
 const reward=vm.runInNewContext('('+fn.trim()+')');
 const games=[...fn.matchAll(/case '([^']+)'/g)].map(m=>m[1]);
@@ -49,6 +57,16 @@ for(const game of games){
 }
 for(const [game,m,a,want] of [['jungleHopper',30,0,25],['jungleHopper',30,10,35],['jungleHopper',100,99,50],['snake',25,0,39],['blockDrop',10,0,45],['starDefender',1200,0,60],['coinCatch',75,0,28],['crystalCommand',45,120,100]])assert.equal(reward(game,m,a),want);
 for(const [m,a,want] of [[3,0,1],[33,0,13],[33,33,16],[36,33,17],[60,40,29],[100,100,53],[210,210,100]])assert.equal(reward('towerStack',m,a),want);
+for(const [m,want] of [[0,0],[4,0],[5,2],[10,4],[25,12],[33,14],[50,26],[75,42],[100,60],[150,80],[199,98],[200,100]])assert.equal(reward('safeCracker',m),want);
+await assert.rejects(db.query("select claim_coin_reward('safe-over-limit','game','safeCracker',33,0)"),/Daily server reward limit/);
+await db.query("select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false)");
+for(const [metric,amount] of [[33,14],[199,98],[200,100]]){
+ const id='safe-new-'+metric;
+ const fresh=(await db.query("select claim_coin_reward($1,'game','safeCracker',$2,0) r",[id,metric])).rows[0].r;
+ assert.equal(fresh.amount,amount);const retry=(await db.query("select claim_coin_reward($1,'game','safeCracker',$2,0) r",[id,metric])).rows[0].r;
+ assert(retry.duplicate);assert.deepEqual(retry.wallet,fresh.wallet);
+}
+await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);
 for(const item of catalog.premiumItems){const row=(await db.query('select * from earnly_world.item_definitions where id=$1',[item.id])).rows[0];for(const k of ['price','sprite_id','width','length','category'])assert.equal(row[k],item[k]);}
 assert.equal((await db.query("select price from earnly_world.item_definitions where id='starter-chair'")).rows[0].price,60);
 const daily=(await db.query("select claim_coin_reward('daily-balance-check','daily_bonus') r")).rows[0].r;assert.equal(daily.amount,10);
