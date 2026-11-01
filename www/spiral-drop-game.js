@@ -9,7 +9,7 @@
     const ctx=canvas.getContext('2d');
     const progress=document.createElement('div');progress.className='spiral-route';progress.innerHTML='<div><strong class="spiral-zone">Prism Well</strong><span class="spiral-goal"></span></div><progress max="10" value="0" aria-label="Depth goal progress"></progress><div><span class="spiral-feedback" role="status">Slide toward the first gap</span><span class="spiral-best"></span></div>';
     surface.replaceChildren(canvas,progress);
-    const pad=document.createElement('div');pad.className='spiral-control-zone';pad.innerHTML='<strong>↔ DRAG TO STEER</strong><small>Touch anywhere here · no jump on touch</small>';surface.after(pad);
+    const pad=document.createElement('div');pad.className='spiral-control-zone';pad.innerHTML='<strong>↔ DRAG TO STEER</strong><small>Slide here or across the shaft</small>';surface.after(pad);
     const dock=document.createElement('div');dock.className='spiral-session-controls';pad.after(dock);
     const parked=[];
     for(const id of ['earnlyPauseButton','earnlyQuitButton']){const button=document.getElementById(id);if(button){const marker=document.createComment('spiral control home');button.before(marker);parked.push({button,marker});dock.append(button);}}
