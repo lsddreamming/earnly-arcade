@@ -97,7 +97,9 @@
     }
     function draw(){
       const now=performance.now(),quiet=calm(),chapter=Engine.chapter(completedLocks),vaultOpened=roundLocked&&feedbackText==='VAULT BREACHED!';
-      const bg=ctx.createLinearGradient(0,0,360,360);bg.addColorStop(0,chapter.dark);bg.addColorStop(1,'#071525');ctx.fillStyle=bg;ctx.fillRect(0,0,360,360);
+      const bg=ctx.createLinearGradient(0,0,360,canvas.height);bg.addColorStop(0,chapter.dark);bg.addColorStop(1,'#071525');ctx.fillStyle=bg;ctx.fillRect(0,0,360,canvas.height);
+      ctx.fillStyle=chapter.color+'14';ctx.fillRect(8,0,1,canvas.height);ctx.fillRect(351,0,1,canvas.height);
+      const artScale=Math.min(1,canvas.height/360);ctx.save();ctx.translate((360-360*artScale)/2,(canvas.height-360*artScale)/2);ctx.scale(artScale,artScale);
       const metal=ctx.createRadialGradient(140,115,12,180,170,145);metal.addColorStop(0,'#315174');metal.addColorStop(.65,'#162f49');metal.addColorStop(1,'#071426');
       ctx.fillStyle=metal;ctx.beginPath();ctx.arc(180,171,143,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#789cba';ctx.lineWidth=2;ctx.stroke();
       for(const r of [132,119,97]){ctx.strokeStyle=r===132?chapter.color+'77':'#83a9cb28';ctx.lineWidth=r===132?3:1;ctx.beginPath();ctx.arc(180,171,r,0,Math.PI*2);ctx.stroke();}
@@ -119,6 +121,7 @@
       const target=score>bestBefore?Math.max(10,(Math.floor(score/10)+1)*10):Math.max(10,bestBefore+1);
       ctx.fillStyle='#93b5d3';ctx.font='700 10px system-ui';ctx.fillText((bestBefore>0&&score<=bestBefore?'BEAT YOUR BEST · ':'NEXT MILESTONE · ')+target+' LOCKS',180,326);
       particles=particles.filter(p=>now-p.at<450);if(!quiet){ctx.save();for(const p of particles){const t=(now-p.at)/1000;ctx.globalAlpha=1-t/.45;ctx.fillStyle=p.color;ctx.fillRect(p.x+p.vx*t-1.5,p.y+p.vy*t+45*t*t-1.5,3,3);}ctx.restore();}
+      ctx.restore();
       // Keep motion decorative; pin speed comes only from the deterministic clock.
     }
     function finish(){
@@ -138,7 +141,7 @@
       const bonus=hitStreak%4===0;if(bonus)score++;
       let message=bonus?'🔥 '+hitStreak+' HIT STREAK · +1 BONUS LOCK':'✓ '+hitStreak+' clean locks · '+(4-hitStreak%4)+' to bonus';
       if(bestBefore>0&&!bestAnnounced&&score>bestBefore){bestAnnounced=true;message='NEW PERSONAL BEST · '+score+' locks'+(bonus?' · +1 BONUS LOCK':'');Arcade.feedback('newBest');}
-      else Arcade.feedback(completedLocks%10===0?'success':grade==='perfect'?'perfect':'score');
+      else Arcade.feedback(completedLocks%10===0?'success':bonus||grade==='perfect'?'perfect':'score');
       safeComboLine.className='safe-combo-line'+(bonus||bestAnnounced?' hot':'');safeComboLine.textContent=message;
       feedback(completedLocks%10===0?'VAULT BREACHED!':grade==='perfect'?'PERFECT CRACK':'LOCK OPEN',grade);scoreEl.textContent=String(score);refreshReward();
     }
@@ -167,7 +170,7 @@
     Arcade.installPauseControl({isRunning:()=>running,pause:()=>{pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;},resume:()=>{if(!running||!pauseStartedAt)return;const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;if(roundStartedAt)roundStartedAt+=pausedFor;if(holdUntil)holdUntil+=pausedFor;if(feedbackUntil)feedbackUntil+=pausedFor;for(const p of particles)p.at+=pausedFor;pauseStartedAt=0;cancelAnimationFrame(animation);animation=requestAnimationFrame(loop);}});
     const dock=document.querySelector('.earnly-session-dock')||document.createElement('div');dock.classList.add('earnly-session-dock','safe-session-dock');document.querySelector('.safe-console').after(dock);dock.append(document.getElementById('earnlyPauseButton'),document.getElementById('safeCrackerExit'));
     const stage=canvas.closest('.game-guide-surface-wrap');
-    function fitSafeBoard(){const bounds=stage.getBoundingClientRect(),size=Math.max(0,Math.min(bounds.width,bounds.height));if(size>0){canvas.style.setProperty('--safe-width',size+'px');canvas.style.setProperty('--safe-height',size+'px');}}
+    function fitSafeBoard(){const bounds=stage.getBoundingClientRect();if(bounds.width<=0||bounds.height<=0)return;const height=Math.max(1,Math.round(360*bounds.height/bounds.width));canvas.style.setProperty('--safe-width',bounds.width+'px');canvas.style.setProperty('--safe-height',bounds.height+'px');if(canvas.height!==height){canvas.height=height;draw();}}
     new ResizeObserver(fitSafeBoard).observe(stage);fitSafeBoard();
     startButton.addEventListener('click',startGame);reset();refreshChrome();
   </script>

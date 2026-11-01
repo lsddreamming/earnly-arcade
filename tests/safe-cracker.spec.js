@@ -34,7 +34,8 @@ for(const path of ['/safecracker.html','/www/safecracker.html']){
  });
 }
 test('Safe Cracker countdown starts a fresh round and pause freezes the pin clock',async({page})=>{
- await page.goto('/safecracker.html');await page.clock.install();
+ await page.clock.install({time:new Date('2026-11-01T10:00:00Z')});
+ await page.goto('/safecracker.html');await page.clock.pauseAt(new Date('2026-11-01T10:02:00Z'));
  await page.locator('#startButton').click();await page.clock.runFor(2300);
  await expect(page.locator('#gameStatus')).toHaveText('Running');
  expect(await page.evaluate(()=>performance.now()-roundStartedAt)).toBeLessThan(100);
@@ -63,7 +64,7 @@ test('Safe Cracker controls and vault artwork fit phones, landscape and desktop'
   await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');
   await page.evaluate(()=>{cancelAnimationFrame(animation);animation=null;running=false;setStatus('Ready');});
  }
- await page.setViewportSize({width:390,height:844});await page.screenshot({path:test.info().outputPath('safe-cracker-launch.png')});
+ await page.setViewportSize({width:390,height:844});await page.evaluate(()=>reset());await page.screenshot({path:test.info().outputPath('safe-cracker-launch.png')});
  await page.evaluate(()=>{reset();running=true;completedLocks=19;score=23;pinStep=1;newTarget(performance.now());marker=targetX+targetW/2;scoreEl.textContent=score;refreshReward();setStatus('Running','running');draw();});
  await page.screenshot({path:test.info().outputPath('safe-cracker-phone-vault.png')});
 });
