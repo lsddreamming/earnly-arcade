@@ -1527,7 +1527,7 @@ const Arcade = (() => {
       case 'colorMatch':return min(88,(floor(m/4)+b(15,2)+b(25,3)+b(35,4))*4);
       case 'paddleRally':return min(100,(floor(m/3)+b(10,2)+b(20,3)+b(35,5))*4);
       case 'laneRunner':return min(100,(floor(m/8)+floor(a/14)+b(30,2)+b(60,3)+b(90,4))*3);
-      case 'safeCracker':return min(100,(floor(m/2)+b(8,2)+b(15,4)+b(25,5))*4);
+      case 'safeCracker':return min(100,floor(m/5)*2+b(25,2)+b(50,4)+b(75,6)+b(100,8));
       case 'blockGrid':return min(100,(floor(m/40)+b(250,3)+b(500,5))*4);
       case 'mergeRush':return min(100,((m>=50?max(1,floor(m/100)):0)+b(500,2)+b(1000,3)+b(2500,5))*4);
       case 'perfectDrop':return min(100,(ceil(m/3)+b(5,1)+b(10,2)+b(15,3)+b(20,5))*4);
@@ -4048,7 +4048,7 @@ const Arcade = (() => {
     button.textContent = '⏸ Pause';
     button.hidden = true;
     // Pages with a tailored exit already place it beside their own controls.
-    const hasGameExit = ['snakeQuit','blockDropExit','brickQuit','coinCatchExit']
+    const hasGameExit = ['snakeQuit','blockDropExit','brickQuit','coinCatchExit','safeCrackerExit']
       .some(id => document.getElementById(id));
     const quit = hasGameExit ? null : document.createElement('a');
     if (quit) {
@@ -4080,7 +4080,7 @@ const Arcade = (() => {
       if (board) {
         const dock = document.createElement('div');
         dock.className = 'earnly-session-dock';
-        const tailoredQuit = ['brickQuit','coinCatchExit'].map(id => document.getElementById(id)).find(Boolean);
+        const tailoredQuit = ['brickQuit','coinCatchExit','safeCrackerExit'].map(id => document.getElementById(id)).find(Boolean);
         const surface = board.closest('.game-guide-surface-wrap') || board;
         surface.insertAdjacentElement('afterend', dock);
         dock.append(button);
