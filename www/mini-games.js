@@ -6,7 +6,7 @@
 
   const configs = {
     mergeRush:{icon:'🔢',name:'Merge Rush',scoreLabel:'Score',secondaryLabel:'High Tile',help:'Make 64 in 48 swipes. Equal numbers merge. Clear targets to score.',reward:v=>Arcade.gameReward('mergeRush',v)},
-    perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'🎯 Tap to drop. Land inside green. Reach Level 5 at 20 hits. Three misses ends the run. 🪙 Run Reward is paid when the game ends.',reward:v=>Arcade.gameReward('perfectDrop',v)},
+    perfectDrop:{icon:'🎯',name:'Perfect Drop',scoreLabel:'Hits',secondaryLabel:'Level',help:'Tap to release the orb into green. Gold is a perfect landing. Three perfects charge Skyfire. Three misses end the run. Reach Level 5 at 20 hits.',reward:v=>Arcade.gameReward('perfectDrop',v)},
     spiralDrop:{icon:'🌀',name:'Spiral Drop',scoreLabel:'Rows',secondaryLabel:'Level',help:'Drag to steer the falling orb through each gap. Center three drops in a row for Flow. Use arrow keys on desktop.',reward:v=>Arcade.gameReward('spiralDrop',v)},
     shapeFit:{icon:'🧠',name:'Shape Fit',scoreLabel:'Correct',secondaryLabel:'Streak',help:'The target can rotate. Find the same shape in a different direction before time runs out. Three mistakes ends the run.',reward:v=>Arcade.gameReward('shapeFit',v)},
     bounceRun:{icon:'⚪',name:'Bounce Run',scoreLabel:'Distance',secondaryLabel:'Cleared',help:'Tap anywhere to jump. Time each jump to clear the red obstacles.',reward:v=>Arcade.gameReward('bounceRun',v)},
@@ -100,6 +100,7 @@
       box.innerHTML='<div class="bounce-idle-sun" aria-hidden="true"></div><div class="bounce-idle-island" aria-hidden="true"></div><div class="bounce-idle-ball" aria-hidden="true"><i></i><i></i></div><div class="bounce-idle-copy"><span class="bounce-idle-tag">CLOUD GARDENS</span><strong>Bounce Run</strong><p>One tap. One jump.<br>How far can you roll?</p><span class="bounce-idle-start">Tap to roll →</span></div>';
     }
     if(key==='spiralDrop'){box.className='spiral-idle-host';box.style.cssText='';box.innerHTML=SpiralDropGame.idle();}
+    if(key==='perfectDrop'){box.className='perfect-idle-host';box.style.cssText='';box.innerHTML=PerfectDropGame.idle();}
     surface.append(box);
   }
 
@@ -144,7 +145,7 @@
 
     Arcade.gameResult({
       icon:key==='bounceRun'?'✦':config.icon,
-      title:key==='spiralDrop'&&result.newBest?'Spiral Drop — New Best!':title || (badgeText ? config.name + ' — Run Over' : config.name + ' Complete'),
+      title:key==='perfectDrop'&&result.newBest?'Perfect Drop — New Best!':key==='spiralDrop'&&result.newBest?'Spiral Drop — New Best!':title || (badgeText ? config.name + ' — Run Over' : config.name + ' Complete'),
       scoreLabel:config.scoreLabel,
       score:clean,
       best:result?.best?.display || String(clean),
@@ -153,8 +154,8 @@
       playsLeft,
       game:key,
       badgeText,
-      outcome:key==='spiralDrop'?(result.newBest?'New best depth! ':'')+'Next dive goal: '+SpiralDropGame.nextGoal(clean,Number(result.best?.value)||0).n+' rows. Center three gaps in a row for Flow.':key==='bounceRun'?(secondary>0?'You cleared '+secondary+' obstacle'+(secondary===1?'':'s')+'. Keep that rhythm!':'Every great run starts with one jump.'):'',
-      tip:key==='spiralDrop'?'Watch the next opening. Start your slide before the orb reaches the platform.':key==='bounceRun'?'Tap a little before the crystals. A close pair takes one jump.':'',
+      outcome:key==='perfectDrop'?'Next goal: '+PerfectDropGame.goal(clean,Number(result.best?.value)||0)+' hits.':key==='spiralDrop'?(result.newBest?'New best depth! ':'')+'Next dive goal: '+SpiralDropGame.nextGoal(clean,Number(result.best?.value)||0).n+' rows. Center three gaps in a row for Flow.':key==='bounceRun'?(secondary>0?'You cleared '+secondary+' obstacle'+(secondary===1?'':'s')+'. Keep that rhythm!':'Every great run starts with one jump.'):'',
+      tip:key==='perfectDrop'?'Gold center = perfect. Three in a row = Skyfire.':key==='spiralDrop'?'Watch the next opening. Start your slide before the orb reaches the platform.':key==='bounceRun'?'Tap a little before the crystals. A close pair takes one jump.':'',
       extra:resultExtra,
       onReplay:()=>{ resultShowing=false; startGame(); },
       onMorePlays:()=>{ resultShowing=false; Arcade.out(key, refreshChrome); }
@@ -280,269 +281,7 @@
   }
 
   function makePerfectDrop() {
-    const [c,ctx]=canvasBase();
-    let x=40,dir=1,speed=3,targetX=110,targetW=150,hits=0,streak=0,lives=3,drop=null,alive=false,raf=null;
-    let flashText='',flashFrames=0,goalCelebrated=false,roundDeadline=0,roundLimit=0,bestStreak=0,perfects=0,perfectPauseAt=0;
-
-    function level(){
-      return Math.min(9,1+Math.floor(hits/5));
-    }
-
-    function stageName(){
-      const lv=level();
-      return lv<=1?'Warm-up':lv<=3?'Timing Zone':lv<=5?'Fast Drop':'Precision Master';
-    }
-
-    function next() {
-      const lv=level();
-      targetW=Math.max(44,150-(lv-1)*16-hits*1.2);
-      targetX=20+Math.random()*(320-targetW);
-      speed=Math.min(9.2,3+(lv-1)*.65+hits*.08);
-      x=dir>0?30:330;
-      drop=null;
-      // Give the player a few rail passes to line up a drop, but never let
-      // them wait forever. Later levels tighten the decision window.
-      roundLimit=Math.max(3200,6200-(lv-1)*350);
-      roundDeadline=performance.now()+roundLimit;
-    }
-
-    function roundedRect(x,y,w,h,r,fill,stroke) {
-      ctx.beginPath();
-      ctx.roundRect(x,y,w,h,r);
-      if(fill){ctx.fillStyle=fill;ctx.fill()}
-      if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}
-    }
-
-    function draw() {
-      const lv=level();
-      const progress=hits%5;
-      const bg=ctx.createLinearGradient(0,0,0,430);
-      bg.addColorStop(0,'#0d1728');
-      bg.addColorStop(1,'#142640');
-      ctx.fillStyle=bg;ctx.fillRect(0,0,360,430);
-
-      // Rule strip.
-      roundedRect(14,14,332,48,12,'#0b1524','#334155');
-      ctx.textAlign='left';ctx.textBaseline='middle';
-      ctx.fillStyle='#dbeafe';ctx.font='700 12px Arial';
-      ctx.fillText('👆 TAP TO DROP',28,31);
-      ctx.fillStyle='#94a3b8';ctx.font='700 10px Arial';
-      ctx.fillText('Land inside green before time runs out · 3 misses ends run',28,48);
-
-      // Level + lives row.
-      ctx.textAlign='center';
-      roundedRect(22,77,112,36,12,'#111c2d','#334155');
-      ctx.fillStyle='#93c5fd';ctx.font='800 13px Arial';ctx.fillText('LEVEL '+lv,78,91);ctx.fillStyle='#94a3b8';ctx.font='700 8px Arial';ctx.fillText(stageName().toUpperCase(),78,104);
-      roundedRect(226,77,112,36,12,'#111c2d','#334155');
-      ctx.fillStyle='#fca5a5';ctx.font='800 13px Arial';
-      ctx.fillText('❤'.repeat(lives)+'♡'.repeat(3-lives),282,95);
-
-      // Progress toward next level.
-      ctx.fillStyle='#243244';ctx.fillRect(98,128,164,9);
-      const progWidth=164*Math.min(1,progress/5);
-      ctx.fillStyle='#3b82f6';ctx.fillRect(98,128,progWidth,9);
-      ctx.fillStyle='#94a3b8';ctx.font='700 10px Arial';
-      ctx.fillText(progress+'/5 to Level '+Math.min(9,lv+1),180,151);
-
-      // Per-drop pressure timer. It pauses once the player commits to a drop.
-      const timeLeft=drop?Math.max(0,roundDeadline-performance.now()):Math.max(0,roundDeadline-performance.now());
-      const timerRatio=roundLimit?Math.max(0,Math.min(1,timeLeft/roundLimit)):1;
-      // Give the pressure timer its own clear lane so the moving ball never
-      // covers the countdown text on small phone screens.
-      ctx.fillStyle='#243244';ctx.fillRect(98,158,164,7);
-      ctx.fillStyle=timeLeft<=1500?'#ef4444':timeLeft<=2800?'#f59e0b':'#22c55e';
-      ctx.fillRect(98,158,164*timerRatio,7);
-      ctx.fillStyle=timeLeft<=1500?'#fca5a5':'#cbd5e1';ctx.font='800 10px Arial';
-      ctx.fillText('⏱ DROP IN '+(timeLeft/1000).toFixed(1)+'s',180,177);
-
-      // Ball rail sits lower than the timer lane.
-      ctx.strokeStyle='#475569';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(20,207);ctx.lineTo(340,207);ctx.stroke();
-      ctx.fillStyle='rgba(148,163,184,.18)';
-      ctx.fillRect(20,198,320,18);
-
-      const ballX=drop?drop.x:x;
-      const ballY=drop?drop.y:195;
-      const ballGlow=ctx.createRadialGradient(ballX-4,ballY-5,2,ballX,ballY,18);
-      ballGlow.addColorStop(0,'#ffffff');
-      ballGlow.addColorStop(.55,'#dbeafe');
-      ballGlow.addColorStop(1,'#60a5fa');
-      ctx.beginPath();ctx.fillStyle=ballGlow;ctx.arc(ballX,ballY,12,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#bfdbfe';ctx.lineWidth=2;ctx.stroke();
-
-      // Target + perfect center.
-      const targetY=344;
-      roundedRect(targetX,targetY,targetW,42,10,'#14532d','#22c55e');
-      const perfectW=Math.max(18,targetW*.34);
-      const perfectX=targetX+(targetW-perfectW)/2;
-      roundedRect(perfectX,targetY+5,perfectW,32,8,'#22c55e','#86efac');
-      ctx.fillStyle='#dcfce7';ctx.font='800 9px Arial';
-      ctx.fillText('PERFECT',targetX+targetW/2,targetY+21);
-
-      // Guide line while ball is falling.
-      if(drop){
-        ctx.setLineDash([5,5]);
-        ctx.strokeStyle='rgba(147,197,253,.38)';
-        ctx.beginPath();ctx.moveTo(drop.x,203);ctx.lineTo(drop.x,targetY);ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // Hit streak.
-      ctx.fillStyle='#aab6c8';ctx.font='700 11px Arial';
-      ctx.fillText('🔥 Streak '+streak,180,408);
-
-      if(flashFrames>0){
-        ctx.save();
-        ctx.globalAlpha=Math.min(1,flashFrames/10);
-        roundedRect(92,244,176,54,14,'rgba(15,23,42,.92)',flashText==='PERFECT!'?'#fbbf24':'#22c55e');
-        ctx.fillStyle=flashText==='PERFECT!'?'#fde68a':'#bbf7d0';
-        ctx.font='900 22px Arial';ctx.fillText(flashText,180,271);
-        ctx.restore();
-        flashFrames--;
-      }
-    }
-
-    function act() {
-      if(!alive||drop||miniPaused)return;
-      drop={x,y:195};
-      Arcade.feedback('move');
-    }
-
-    function handleLanding() {
-      const landedX=drop.x;
-      const hit=landedX>=targetX&&landedX<=targetX+targetW;
-      const perfectW=Math.max(18,targetW*.34);
-      const perfectX=targetX+(targetW-perfectW)/2;
-      const perfect=landedX>=perfectX&&landedX<=perfectX+perfectW;
-
-      if(hit){
-        hits++;
-        streak++;
-        bestStreak=Math.max(bestStreak,streak);
-        if(perfect)perfects++;
-        flashText=perfect?'PERFECT!':'NICE!';
-        flashFrames=26;
-        Arcade.feedback(perfect?'perfect':'score');
-
-        // The landing itself already gives perfect feedback. Avoid firing
-        // a second identical effect on every third perfect streak.
-        if(hits>=20&&!goalCelebrated){
-          // The landing already gives perfect feedback. Mark the Level 5 goal
-          // without stacking another effect on that same successful drop.
-          goalCelebrated=true;
-        }
-      }else{
-        lives--;
-        streak=0;
-        flashText='MISS';
-        flashFrames=24;
-        Arcade.feedback('fail');
-      }
-
-      ui(hits,level());
-
-      if(lives<=0){
-        alive=false;
-        finish(
-          hits,
-          level(),
-          [
-            '🎯 Level reached: '+level(),
-            '✨ Perfect drops: '+perfects,
-            '🔥 Best streak: '+bestStreak,
-            hits>=20?'🏆 You reached the Level 5 goal!':'Reach 20 hits to conquer Level 5.'
-          ],
-          'Perfect Drop Run Over'
-        );
-        return;
-      }
-
-      next();
-    }
-
-    function loop() {
-      if(!alive)return;
-      if(miniPaused){
-        if(!perfectPauseAt) perfectPauseAt=performance.now();
-        raf=requestAnimationFrame(loop);
-        return;
-      }
-      if(perfectPauseAt){
-        roundDeadline+=performance.now()-perfectPauseAt;
-        perfectPauseAt=0;
-      }
-
-      if(drop){
-        drop.y+=9.2;
-        if(drop.y>=333) handleLanding();
-      }else{
-        if(performance.now()>=roundDeadline){
-          lives--;
-          streak=0;
-          flashText='TOO SLOW!';
-          flashFrames=28;
-          Arcade.feedback('fail');
-          ui(hits,level());
-          if(lives<=0){
-            alive=false;
-            finish(hits,level(),['🎯 Level reached: '+level(),'✨ Perfect drops: '+perfects,'🔥 Best streak: '+bestStreak,'⏱️ Keep an eye on the drop timer.'],'Perfect Drop Run Over');
-            return;
-          }
-          next();
-        }
-        x+=speed*dir;
-        if(x>=330){x=330;dir=-1}
-        else if(x<=30){x=30;dir=1}
-      }
-
-      draw();
-      raf=requestAnimationFrame(loop);
-    }
-
-    let dropPointer=null;
-    const triggerDrop=e=>{
-      if(!alive || miniPaused || dropPointer!==null)return;
-      if(e.isPrimary===false || (e.pointerType==='mouse' && e.button!==0))return;
-      e.preventDefault();
-      dropPointer=e.pointerId;
-      act();
-      requestAnimationFrame(()=>{ if(dropPointer===e.pointerId) dropPointer=null; });
-    };
-    c.addEventListener('pointerdown',triggerDrop,{passive:false});
-
-    const onWidePointer=e=>{
-      if(!alive || miniPaused || dropPointer!==null || e.target===c || !Arcade.inExpandedGameZone(e,c,140))return;
-      triggerDrop(e);
-    };
-    document.addEventListener('pointerdown',onWidePointer,{passive:false});
-
-    const onKey=e=>{
-      if(alive&&(e.code==='Space'||e.key==='Enter')){
-        e.preventDefault();
-        act();
-      }
-    };
-    document.addEventListener('keydown',onKey);
-
-    return {
-      start(){
-        hits=0;streak=0;bestStreak=0;perfects=0;perfectPauseAt=0;lives=3;alive=true;goalCelebrated=false;flashText='';flashFrames=0;
-        next();ui(0,1);draw();raf=requestAnimationFrame(loop);
-      },
-      adjustPauseTime(){ dropPointer=null; },
-      stop(){
-        alive=false;
-        dropPointer=null;
-        drop=null;
-        roundDeadline=0;
-        perfectPauseAt=0;
-        flashFrames=0;
-        cancelAnimationFrame(raf);
-        raf=null;
-        document.removeEventListener('keydown',onKey);
-        document.removeEventListener('pointerdown',onWidePointer);
-      }
-    };
+    return PerfectDropGame.create({surface,ui,finish,isPaused:()=>miniPaused});
   }
 
   function makeSpiralDrop() {
@@ -1429,6 +1168,9 @@
 
   Arcade.installPauseControl({
     isRunning:()=>running,
+    allowWhilePaused:event=>key==='perfectDrop'&&event.type==='keydown'&&
+      !!event.target?.closest?.('#earnlyPauseButton')&&
+      (event.key==='Enter'||event.code==='Space'),
     pause:()=>{
       miniPaused=true;
       pauseStartedAt=performance.now();
