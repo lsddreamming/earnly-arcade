@@ -73,9 +73,12 @@
   function up(e){if(pointer===e.pointerId)pointer=null;}
   for(const el of [canvas,action])el.addEventListener('pointerdown',down,{passive:false});
   for(const name of ['pointerup','pointercancel'])document.addEventListener(name,up);
-  function key(e){if(!alive||!(e.code==='Space'||e.code==='Enter'||e.key===' '||e.key==='Enter')||/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName))return;e.preventDefault();if(!e.repeat)act();}
-  function accessibleClick(e){if(e.detail===0)act();}action.addEventListener('click',accessibleClick);document.addEventListener('keydown',key);
-  return {start(){alive=true;resize();update();draw();raf=requestAnimationFrame(loop);},adjustPauseTime(){pointer=null;last=0;},stop(){alive=false;cancelAnimationFrame(raf);observer.disconnect();pointer=null;document.removeEventListener('keydown',key);for(const name of ['pointerup','pointercancel'])document.removeEventListener(name,up);for(const {button,marker} of parked)marker.replaceWith(button);action.remove();dock.remove();}};
+  const activation=e=>e.code==='Space'||e.code==='Enter'||e.key===' '||e.key==='Enter';
+  const otherControl=e=>e.target!==action&&e.target?.closest?.('a,button,input,textarea,select,dialog');
+  function key(e){if(!alive||!activation(e)||otherControl(e))return;e.preventDefault();if(!e.repeat)act();}
+  function keyUp(e){if(alive&&activation(e)&&!otherControl(e))e.preventDefault();}
+  function accessibleClick(e){if(e.detail===0)act();}action.addEventListener('click',accessibleClick);document.addEventListener('keydown',key);document.addEventListener('keyup',keyUp);
+  return {start(){alive=true;resize();update();draw();raf=requestAnimationFrame(loop);},adjustPauseTime(){pointer=null;last=0;},stop(){alive=false;cancelAnimationFrame(raf);observer.disconnect();pointer=null;document.removeEventListener('keydown',key);document.removeEventListener('keyup',keyUp);for(const name of ['pointerup','pointercancel'])document.removeEventListener(name,up);for(const {button,marker} of parked)marker.replaceWith(button);action.remove();dock.remove();}};
  }
  window.PerfectDropGame={create,idle,goal};
 })();
