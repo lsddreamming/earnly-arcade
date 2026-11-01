@@ -32,6 +32,12 @@ for(const path of ['/coincatch.html','/www/coincatch.html']){
  test('Coin Catch Sky Vault launch and live phone preview '+path,async({page})=>{
   await page.route('https://**',r=>r.abort());await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));await page.goto(path);
+  for(const width of [320,390,440]){
+   await page.setViewportSize({width,height:844});
+   await expect(page.locator('#startButton')).toBeVisible();
+   expect((await page.locator('#startButton').boundingBox()).y).toBeLessThan(340);
+  }
+  await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:test.info().outputPath('coin-catch-sky-vault-launch.png')});
   await page.evaluate(()=>{
    reset();running=true;score=28;streak=12;bestStreak=12;level=3;misses=1;

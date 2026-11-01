@@ -150,3 +150,5 @@ html body.coincatch-page.game-active .catch-session-dock #coinCatchExit { backgr
   .catch-chase { padding:3px 10px;font-size:9px; }
   html body.coincatch-page.game-active .catch-control-zone { min-height:44px; }
 }
+/* Coin Catch has a dedicated launch button on touch screens as well. */
+html body.coincatch-page:not(.game-active) #startButton { display:block!important; }
