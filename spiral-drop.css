@@ -14,7 +14,7 @@ body.mini-spiralDrop .mini-surface{padding:0!important;border:1px solid #78ddf36
 @keyframes spiralHover{50%{translate:0 10px;rotate:20deg}}
 html body.mini-spiralDrop.game-active{height:100dvh;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html body.mini-spiralDrop.game-active main.container{height:100dvh!important;min-height:0!important;width:min(100%,600px)!important;max-width:600px!important;margin:0 auto!important;padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))!important;box-sizing:border-box;display:flex!important;flex-direction:column!important;gap:7px!important;overflow:hidden}
-html body.mini-spiralDrop.game-active :is(.topbar,#startButton,.mini-help,#miniGameExit,.game-guide-link,.public-footer,#earnlyCompactLeaderboard,.game-guide-strip,.game-guide-more,.game-guide-overlay,.game-overlay,.earnly-desktop-nav){display:none!important}
+html body.mini-spiralDrop.game-active :is(.topbar,#startButton,.mini-help,#miniGameExit,.game-guide-link,.public-footer,#earnlyCompactLeaderboard,.game-guide-strip,.game-guide-more,.game-guide-overlay,.game-overlay,.earnly-desktop-nav,.desktop-nav,.game-start-summary){display:none!important}
 html body.mini-spiralDrop.game-active .page-header{display:grid!important;grid-template-columns:1fr auto!important;gap:4px 8px!important;margin:0!important;padding:0!important;flex:none!important;text-align:left!important;align-items:center}
 html body.mini-spiralDrop.game-active .page-header h1{font-size:22px!important;line-height:1.1!important;margin:0!important;grid-column:1;grid-row:1}
 html body.mini-spiralDrop.game-active #gameIcon{display:none}
@@ -41,3 +41,8 @@ body.mini-spiralDrop .game-result-dialog .result-main{background:linear-gradient
 body.mini-spiralDrop:not(.game-active) #startButton{display:block!important;width:100%;max-width:440px;margin:9px auto!important;min-height:48px;font-size:16px}
 
 @media(min-width:600px) and (max-height:520px){html body.mini-spiralDrop.game-active .mini-surface{max-width:calc((100dvh - 140px)*.85)!important;justify-self:center}}
+
+html body.mini-spiralDrop.game-active .game-title-status-row{grid-column:1/-1!important;grid-row:1!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:8px!important;width:100%!important;margin:0!important;min-width:0}
+html body.mini-spiralDrop.game-active .game-meta{grid-row:2!important}
+.spiral-zone{white-space:nowrap;font-size:12px}.spiral-goal{font-size:8px}
+@media(min-width:600px) and (max-height:520px){html body.mini-spiralDrop.game-active .page-header{grid-row:1!important}}

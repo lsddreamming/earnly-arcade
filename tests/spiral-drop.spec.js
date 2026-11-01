@@ -41,14 +41,15 @@ for(const path of ['/mini.html?game=spiralDrop','/www/mini.html?game=spiralDrop'
   expect(await page.evaluate(()=>spiralAwards)).toEqual([{amount:12,evidence:{kind:'game',game:'spiralDrop',metric:19}}]);expect(await page.evaluate(()=>Arcade.best('spiralDrop').value)).toBe(97);
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('spiralDropMedals')))).toContain('Flow navigator');
   const ticks=await page.evaluate(()=>testSpiral.state.ticks);await page.clock.runFor(1000);await page.keyboard.press('ArrowRight');expect(await page.evaluate(()=>testSpiral.state.ticks)).toBe(ticks);
-  await dialog.getByRole('button',{name:/Play Again/}).click();await page.clock.runFor(50);expect(await page.evaluate(()=>({score:testSpiral.state.score,centered:testSpiral.state.centered,alive:testSpiral.state.alive}))).toEqual({score:0,centered:0,alive:true});
+  await dialog.getByRole('button',{name:/Play Again/}).click();await expect.poll(async()=>{await page.clock.runFor(50);return page.evaluate(()=>({score:testSpiral.state.score,centered:testSpiral.state.centered,alive:testSpiral.state.alive}));}).toEqual({score:0,centered:0,alive:true});
   expect(errors).toEqual([]);
  });
 }
 test('Spiral Drop fills phone and desktop screens with visible controls and readable lookahead',async({page})=>{
  const errors=await open(page);
  for(const size of [{width:320,height:568},{width:390,height:844},{width:440,height:956},{width:667,height:375},{width:1363,height:936},{width:1024,height:600}]){
-  await page.setViewportSize(size);await page.clock.runFor(50);
+  await page.setViewportSize(size);await page.clock.runFor(50);await page.screenshot({path:test.info().outputPath('spiral-drop-'+size.width+'x'+size.height+'.png')});
+  await expect(page.locator('.desktop-nav')).toBeHidden();expect((await page.locator('.page-header').boundingBox()).y).toBeLessThan(60);
   for(const selector of ['#surface canvas','.spiral-control-zone','#earnlyPauseButton','#earnlyQuitButton'])await expect(page.locator(selector)).toBeInViewport();
   expect(await page.locator('#earnlyQuitButton').count()).toBe(1);await expect(page.locator('#miniGameExit')).toBeHidden();
   const boxes=await page.evaluate(()=>{const selectors=['#surface canvas','.spiral-route','.spiral-control-zone','.spiral-session-controls'];return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,items:selectors.map(q=>{const r=document.querySelector(q).getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};})};});
