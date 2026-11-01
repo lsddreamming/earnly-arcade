@@ -56,7 +56,7 @@ test('Coin Catch desktop keeps Pause and Quit visible and resumes a locked sessi
  await page.goto('/coincatch.html');
  for(const viewport of [{width:1363,height:936},{width:1280,height:720},{width:1024,height:600}]){
   await page.setViewportSize(viewport);
-  await page.evaluate(()=>{reset();running=true;setStatus('Running','running');pauseStartedAt=0;});
+  await page.evaluate(()=>{reset();running=true;levelEndsAt=performance.now()+LEVEL_SECONDS*1000;setStatus('Running','running');pauseStartedAt=0;});
   await expect(page.locator('#earnlyPauseButton')).toBeInViewport();
   await expect(page.locator('#coinCatchExit')).toBeInViewport();
   const board=await page.locator('#game').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();
