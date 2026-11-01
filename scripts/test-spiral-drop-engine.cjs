@@ -49,3 +49,8 @@ test('center streak adds presentation only, without bonus score or currency stat
  for(let i=0;i<3;i++){const y=200+i*E.SPACING;s.x=180;s.y=y-13;s.rows=[{id:i,y,gap:180,w:100,passed:false}];const events=g.advance(.5);assert.ok(events.some(e=>e.type==='clear'&&e.centered));}
  assert.equal(s.score,3);assert.equal(s.centered,3);assert.equal(s.bestStreak,3);assert.ok(s.flowUntil>s.time);assert.equal(s.coins,undefined);
 });
+
+test('standing still at any opening position cannot reach a paying milestone',()=>{
+ for(let seed=1;seed<=100;seed++)for(let x=125;x<=235;x+=10){const g=E.create({random:rng(seed)});g.moveTo(x);g.advance(20);assert.equal(g.state.alive,false);assert.ok(g.state.score<=2,JSON.stringify({seed,x,score:g.state.score}));}
+ for(const random of [()=>0,()=>.5,()=>.999999]){const g=E.create({random});g.advance(20);assert.equal(g.state.alive,false);assert.ok(g.state.score<=2);}
+});

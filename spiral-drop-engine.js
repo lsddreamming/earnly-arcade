@@ -10,15 +10,27 @@
     if(!index)return 180;
     const w=width(index),lo=28+w/2,hi=WIDTH-lo,prev=recent.at(-1);
     const candidates=[];
+    const valid=(v,strict=true)=>{
+      const distance=Math.abs(v-prev);
+      if(distance<(index===1?w/2+8:34)||distance>130)return false;
+      // No fixed horizontal position may fit through three consecutive gaps.
+      // The opening is generous, but standing still must never earn Coins.
+      if(recent.length>1){
+        const a=recent.at(-2),sa=width(index-2)/2-RADIUS,sb=width(index-1)/2-RADIUS;
+        const loCommon=Math.max(a-sa,prev-sb),hiCommon=Math.min(a+sa,prev+sb),safe=w/2-RADIUS;
+        if(loCommon<=hiCommon&&v-safe<=hiCommon&&v+safe>=loCommon)return false;
+      }
+      if(strict&&recent.length>1&&Math.abs(v-recent.at(-2))<22)return false;
+      if(strict&&recent.length>2&&Math.abs(v-recent.at(-3))<18)return false;
+      return true;
+    };
     for(let i=0;i<48;i++){
-      const v=lo+random()*(hi-lo),distance=Math.abs(v-prev);
-      if(distance<34||distance>130)continue;
-      if(recent.length>1&&Math.abs(v-recent.at(-2))<22)continue;
-      if(recent.length>2&&Math.abs(v-recent.at(-3))<18)continue;
-      candidates.push(v);
+      const v=lo+random()*(hi-lo);if(valid(v))candidates.push(v);
     }
     if(candidates.length)return candidates[Math.min(candidates.length-1,Math.floor(random()*candidates.length))];
-    // Bounded fallback remains reachable, even with a pathological random source.
+    // Use a bounded search if a random source repeatedly returns one value.
+    for(let i=0;i<=64;i++){const v=lo+(hi-lo)*i/64;if(valid(v,false))candidates.push(v);}
+    if(candidates.length)return candidates[Math.floor(candidates.length/2)];
     return clamp(prev+(prev<(lo+hi)/2?1:-1)*Math.min(80,(hi-lo)*.55),lo,hi);
   }
   function create({random=Math.random}={}){
