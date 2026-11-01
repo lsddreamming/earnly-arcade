@@ -114,3 +114,39 @@ html body.coincatch-page.game-active :is(.game-guide-strip,.game-guide-more,.gam
   .catch-live-tip,.level-banner { transition:none; }
   .catch-earned-hud.bump strong { animation:none; }
 }
+
+/* Sky Vault: blue glass, warm gold and a clear, full-width landing zone. */
+html body.coincatch-page { background:radial-gradient(ellipse at 20% 0,#1c3261 0,transparent 65%),#081426; }
+html body.coincatch-page .page-header h1 { color:#f2f6ff; }
+html body.coincatch-page #startButton { background:linear-gradient(120deg,#ffe4a0,#ffca63);color:#30220b;box-shadow:0 6px 24px #e9af3029;border-radius:16px; }
+.catch-journey { margin:8px 0 12px;padding:16px 18px;border:1px solid #4c6995;border-radius:20px;background:linear-gradient(130deg,#243760,#142846); }
+.catch-journey h2 { margin:3px 0 8px;font-size:24px;letter-spacing:-.035em;color:#ffe4a0; }
+.catch-eyebrow { color:#a8c9f5;font-size:10px;font-weight:800;letter-spacing:.18em; }
+.catch-journey p { margin:4px 0 10px;font-size:12px;color:#e0eaff;line-height:1.6; }
+.catch-journey small { display:block;font-size:10px;color:#a8bddb;margin-top:6px; }
+.catch-journey progress { display:block;width:100%;height:6px;border:0;border-radius:10px;overflow:hidden;background:#07182f;accent-color:#ffda85; }
+.catch-journey progress::-webkit-progress-bar { background:#07182f; }
+.catch-journey progress::-webkit-progress-value { background:#ffda85; }
+html body.coincatch-page .catch-board-wrap { border-color:#506b99;background:linear-gradient(150deg,#223963,#142740);box-shadow:0 18px 50px #0005; }
+.catch-hud + .catch-hud { border-color:#4d6691; }
+.catch-scoreboard { padding:10px 12px 7px; }
+.catch-hud small { color:#aec5e5; }
+.catch-chase { display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none;padding:5px 12px;color:#b4cdef;font-size:10px;line-height:1.4;background:#102440; }
+.catch-chase span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.catch-chase strong { color:#c7d7ef;white-space:nowrap;font-size:10px; }
+.catch-chase.charged strong { color:#ffe4a0; }
+.catch-run-details { border-color:#3b5579; }
+html body.coincatch-page.game-active .catch-control-zone { background:#122841;border-color:#3d5a81; }
+html body.coincatch-page.game-active .catch-journey { display:none; }
+html body.coincatch-page.game-active .catch-session-dock #earnlyPauseButton { background:#233e63!important;border-color:#526e95!important; }
+html body.coincatch-page.game-active .catch-session-dock #coinCatchExit { background:#142741!important; }
+@media(max-width:699px) {
+  html body.coincatch-page.game-active .catch-board-wrap .game-guide-surface-wrap { flex:1 1 auto;aspect-ratio:auto; }
+  html body.coincatch-page.game-active .catch-control-zone { flex:0 0 auto;min-height:54px; }
+  html body.coincatch-page.game-active .catch-scoreboard { flex:none; }
+  html body.coincatch-page.game-active .catch-run-details { flex:none; }
+}
+@media(max-width:699px) and (max-height:650px) {
+  .catch-chase { padding:3px 10px;font-size:9px; }
+  html body.coincatch-page.game-active .catch-control-zone { min-height:44px; }
+}

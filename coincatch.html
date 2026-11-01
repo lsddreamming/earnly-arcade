@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/coincatch.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
-  <link rel="stylesheet" href="coincatch.css?v=2">
+  <link rel="stylesheet" href="coincatch.css?v=3">
 </head>
 <body class="classic-game-ui coincatch-page">
   <main class="container">
@@ -36,6 +36,12 @@
       </div>
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
+    <section class="catch-journey" aria-label="Collector medals">
+      <div><span class="catch-eyebrow">THE SKY VAULT</span><h2 id="catchGoalName">First Spark</h2></div>
+      <p id="catchGoalText">Catch 10 coins · build a 5-catch streak</p>
+      <progress id="catchGoalProgress" max="100" value="0" aria-label="Next collector medal progress"></progress>
+      <small>Collector medals stay on this device · no bonus currency</small>
+    </section>
     <button class="green wide" id="startButton" type="button">Start Coin Catch</button>
     <div class="catch-board-wrap">
       <div class="level-banner" id="levelBanner" aria-live="polite"><strong id="levelBannerTitle">LEVEL 2</strong><small id="levelBannerText">Get ready</small></div>
@@ -44,6 +50,7 @@
         <div class="catch-hud catch-hud-center"><small>Level</small><strong id="level">1</strong></div>
         <div class="catch-hud catch-hud-right"><small>Next level</small><strong><span id="time">15</span><span>s</span></strong></div>
       </div>
+      <div class="catch-chase" aria-label="Run challenge"><span id="catchChase">Next target · 10 catches</span><strong id="catchCombo">Streak 0 / 5</strong></div>
       <div class="catch-run-details">
         <div class="catch-earned-hud" id="earnedHud">Arcade Coins <strong id="earnedCoins">+0</strong></div>
         <div class="catch-miss-hud" id="catchMissHud">Strikes <strong id="misses">0</strong> / 5</div>
@@ -66,6 +73,7 @@
     </footer>
 </main>
   <script src="arcade.js"></script>
+  <script src="coin-catch-rules.js?v=1"></script>
   <script>
     const playsEl=document.getElementById('plays');
     const balanceEl=document.getElementById('balance');
@@ -103,6 +111,25 @@
       tips:['Move with your finger/mouse, or use ← → / A D on a keyboard.','Strikes carry across levels: missed coin = 1, caught bomb = 2, 5 strikes ends the run.'],
       reward:'Keep advancing through harder levels. The 100-Coin max now takes a deep run, and high scores also earn bonus XP.'
     });
+    const Rules=CoinCatchRules;
+    const medalOwner=()=>localStorage.getItem('earnlyLocalProgressOwner')||'';
+    let runOwner='',medalProgress=null,runGoal=null;
+    function refreshJourney(){
+      medalProgress=Rules.load(localStorage,medalOwner());
+      const g=Rules.goal(medalProgress);
+      document.getElementById('catchGoalName').textContent=g?g.name:'Vault Legend · Complete';
+      document.getElementById('catchGoalText').textContent=g
+        ? 'Catch '+g.score+' coins ('+Math.min(g.score,medalProgress.score)+'/'+g.score+') · '+g.streak+' streak ('+Math.min(g.streak,medalProgress.streak)+'/'+g.streak+')'
+        : 'All five medals earned. Chase your personal best!';
+      document.getElementById('catchGoalProgress').value=g?50*(Math.min(1,medalProgress.score/g.score)+Math.min(1,medalProgress.streak/g.streak)):100;
+    }
+    function refreshChase(){
+      const target=runBest>=10?runBest+1:10;
+      const done=runGoal&&Math.max(score,medalProgress?.score||0)>=runGoal.score&&Math.max(bestStreak,medalProgress?.streak||0)>=runGoal.streak;
+      document.getElementById('catchChase').textContent=done?runGoal.name+' ✓':score>=target?'Personal best pace!':(runBest>=10?'Beat best · ':'Next target · ')+target+' catches';
+      document.getElementById('catchCombo').textContent='Streak '+streak+' / '+(Math.floor(streak/5)+1)*5;
+      document.querySelector('.catch-chase').classList.toggle('charged',streak>=5);
+    }
     const basket={x:137,y:448,w:86,h:24};
     const LEVEL_SECONDS=15;
     const MAX_MISSES=5;
@@ -142,7 +169,7 @@
         celebrationUntil=performance.now()+900;catchFeedback(x,410,streak+' IN A ROW!','#a4f8d9',900);
         showLiveTip(streak+' catches without a strike!',1500);catchSound('catch-streak');
       }else{if(performance.now()>=celebrationUntil)catchFeedback(x,410,'+1 catch','#ffe58e');catchSound('catch-coin');}
-      scoreEl.classList.toggle('catch-record',bestAnnounced);
+      scoreEl.classList.toggle('catch-record',bestAnnounced);refreshChase();
     }
     function drawCatchFeedback(){
       const now=performance.now();catchEffects=catchEffects.filter(e=>e.expiresAt>now);
@@ -179,27 +206,17 @@
       }
       lastRewardShown=Math.max(lastRewardShown,reward);
     }
-    function reset(){catchEffects=[];catchSparks=[];basketPulse=null;streak=0;bestStreak=0;runBest=Arcade.best('coinCatch').value;bestAnnounced=false;celebrationUntil=0;lastCatchSoundAt=-Infinity;scoreEl.classList.remove('catch-record');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
+    function reset(){catchEffects=[];catchSparks=[];basketPulse=null;streak=0;bestStreak=0;runBest=Arcade.best('coinCatch').value;bestAnnounced=false;celebrationUntil=0;lastCatchSoundAt=-Infinity;scoreEl.classList.remove('catch-record');cancelAnimationFrame(animation);animation=null;clearInterval(timer);timer=null;clearTimeout(levelBannerTimer);levelBannerTimer=null;clearTimeout(liveTipTimer);liveTipTimer=null;catchLiveTip.classList.remove('show');clearTouchControls();drops=[];score=0;misses=0;level=1;timeLeft=LEVEL_SECONDS;levelEndsAt=0;lastSpawn=0;lastFrame=0;transitioning=false;basket.x=137;refreshJourney();runGoal=Rules.goal(medalProgress);refreshChase();lastRewardShown=0;scoreEl.textContent='0';missesEl.textContent='0';catchMissHud.classList.remove('danger');levelEl.textContent='1';timeEl.textContent=String(LEVEL_SECONDS);refreshReward();draw()}
     function spawn(now){
-      const bomb=Math.random()<Math.min(.46,.10+(level-1)*.05);
-      const previous=drops[drops.length-1];
-      // Every drop samples the full width independently, at every level.
-      let x=18+Math.random()*(canvas.width-36);
-      for(let retry=0;previous&&previous.y<90&&Math.abs(x-previous.x)<44&&retry<6;retry++){
-        x=18+Math.random()*(canvas.width-36);
-      }
-      if(previous && previous.y<90 && Math.abs(x-previous.x)<44){
-        x=previous.x<canvas.width/2
-          ? Math.min(canvas.width-18,previous.x+58+Math.random()*42)
-          : Math.max(18,previous.x-58-Math.random()*42);
-      }
-      drops.push({x,y:-20,r:bomb?13:12,bomb,speed:3.2+Math.min(6,(level-1)*.65)+Math.random()*.7});
+      const drop=Rules.plan(drops,basket,level);
+      if(drop)drops.push(drop);
       lastSpawn=now;
     }
     function drawCoin(d){
       const spin=.45+.55*Math.abs(Math.sin((d.y+d.x)*.045));
       ctx.save();
       ctx.translate(d.x,d.y);
+      if(!calmCatch()){const tail=ctx.createLinearGradient(0,-32,0,0);tail.addColorStop(0,'#ffdd7000');tail.addColorStop(1,'#ffdd7055');ctx.fillStyle=tail;ctx.fillRect(-2,-32,4,28);}
       ctx.scale(spin,1);
       const glow=ctx.createRadialGradient(0,0,2,0,0,18);
       glow.addColorStop(0,'#fff7b2');
@@ -241,13 +258,26 @@
       ctx.fillStyle='#102f3d';ctx.beginPath();ctx.roundRect(x+w/2-16,y+8,32,15,5);ctx.fill();
       ctx.fillStyle='#b4f9dd';ctx.beginPath();ctx.roundRect(x+w/2-9,y+14,18,3,1.5);ctx.fill();
       ctx.strokeStyle='#73d4bd';ctx.lineWidth=1;
+      for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(x+22+i*14,y+7);ctx.lineTo(x+25+i*12,y+h+3);ctx.stroke();}
+      ctx.fillStyle='#ffe197';ctx.beginPath();ctx.arc(x+w/2,y+15,5,0,Math.PI*2);ctx.fill();
       ctx.beginPath();ctx.moveTo(x+17,y+h+6);ctx.lineTo(x+w-17,y+h+6);ctx.stroke();
       ctx.restore();
     }
     function draw(){
+      const now=performance.now();
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);
-      bg.addColorStop(0,'#091c26');bg.addColorStop(.6,'#102b37');bg.addColorStop(1,'#10232e');
+      bg.addColorStop(0,'#111c47');bg.addColorStop(.6,'#102b48');bg.addColorStop(1,'#091d31');
       ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+      // Deterministic scenery uses no gameplay randomness. Calm mode freezes it.
+      const drift=running&&!transitioning&&!calmCatch()?now*.012:0;
+      for(let i=0;i<28;i++){
+        const x=(i*137+23)%360,y=((i*79+drift)%440);
+        ctx.fillStyle=i%4===0?'#c4e8ff66':'#83afdb33';ctx.fillRect(x,y,i%4===0?2:1,i%4===0?5:2);
+      }
+      ctx.save();ctx.strokeStyle='#75a9ed22';ctx.lineWidth=1;
+      for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(180,-40,80+i*54,90+i*54,0,0,Math.PI);ctx.stroke();}
+      ctx.restore();
+      if(streak>=5){ctx.fillStyle='#ffd66b';ctx.globalAlpha=.7;ctx.fillRect(0,0,360*Math.min(1,(streak%5)/5),3);ctx.globalAlpha=1;}
       // Subtle rails and a landing glow keep falling objects easy to read.
       const halo=ctx.createRadialGradient(180,380,12,180,380,270);halo.addColorStop(0,'#37766b22');halo.addColorStop(1,'#10263d00');ctx.fillStyle=halo;ctx.fillRect(0,0,360,500);
       ctx.strokeStyle='#3c66731c';ctx.lineWidth=1;
@@ -330,16 +360,23 @@
       Arcade.earn(earned,'Coin Catch',{kind:'game',game:'coinCatch',metric:score});
       const result=Arcade.recordResult('coinCatch',score);
       Arcade.feedback(result.newBest?(bestAnnounced?'success':'newBest'):reason?'fail':'success');
+      let medalLine='';
+      if(medalOwner()===runOwner){
+        const previous=Rules.load(localStorage,runOwner),before=Rules.goal(previous);
+        const progress=Rules.record(previous,score,bestStreak);Rules.save(localStorage,runOwner,progress);
+        medalLine=before&&progress.score>=before.score&&progress.streak>=before.streak?'🏅 Medal earned: '+before.name:'🎯 '+(Rules.goal(progress)?.name||'All medals complete');
+      }
+      refreshJourney();
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='Play Again';setStatus(reason?'5 Strikes':'Run Complete','over');draw();
       Arcade.gameResult({icon:'💰',title:result.newBest?'Coin Catch — New Best!':reason?'Coin Catch — Run Over':'Run Complete',badgeText:result.newBest?'🏆 NEW PERSONAL BEST':reason?'❌ 5 STRIKES':'',scoreLabel:'Coins Caught',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('coinCatch'),game:'coinCatch',
-        extra:['🏁 Level reached: '+level,'❌ Strikes: '+misses+'/'+MAX_MISSES,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🔥 Best streak: '+bestStreak+' in a row'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
+        extra:[...(medalLine?[medalLine]:[]),score>runBest?'✨ '+(score-runBest)+' above your previous best':'🎯 '+(runBest-score+1)+' more catches to beat your best','🏁 Level reached: '+level,'❌ Strikes: '+misses+'/'+MAX_MISSES,'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🔥 Best streak: '+bestStreak+' in a row'],onReplay:startGame,onMorePlays:()=>Arcade.out('coinCatch',refreshChrome)});
     }
     function addMiss(amount,reason){
       if(!running)return true;
       misses=Math.min(MAX_MISSES,misses+Math.max(1,amount||1));
       missesEl.textContent=String(misses);
       catchMissHud.classList.toggle('danger',misses>=MAX_MISSES-1);
-      streak=0;celebrationUntil=0;Arcade.feedback(amount===2?'catch-bomb':'catch-miss');
+      streak=0;celebrationUntil=0;refreshChase();Arcade.feedback(amount===2?'catch-bomb':'catch-miss');
       showLiveTip(reason+' · '+misses+'/'+MAX_MISSES+' strikes',1500);
       if(misses>=MAX_MISSES){finish('strikes');return true}
       return false;
@@ -390,7 +427,7 @@
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
       if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
+      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;runOwner=medalOwner();
       reset();transitioning=false;clearTimeout(levelBannerTimer);levelBannerTimer=null;levelBanner.classList.remove('show');clearTouchControls();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
       Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();lastSpawn=0;lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');
         document.querySelectorAll('.game-preflight,.game-guide-strip,.game-guide-more').forEach(el=>{el.hidden=true;el.style.display='none'});
@@ -436,6 +473,7 @@
     const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;controlPointer=null;dragLastClientX=null};
     canvas.addEventListener('pointerup',stopControl);
     canvas.addEventListener('pointercancel',stopControl);
+    canvas.addEventListener('lostpointercapture',stopControl);
 
     function canStartGlobalBasketDrag(e){
       if(!running || transitioning || controlPointer!==null || e.isPrimary===false || (e.pointerType==='mouse'&&e.button!==0))return false;
@@ -455,7 +493,7 @@
       beginBasketDrag(e.clientX);
     },{passive:false});
     document.addEventListener('pointermove',e=>{
-      if(!running||controlPointer!==e.pointerId)return;
+      if(!running||document.body.classList.contains('earnly-game-paused')||controlPointer!==e.pointerId)return;
       e.preventDefault();
       dragBasket(e.clientX);
     },{passive:false});
@@ -477,7 +515,7 @@
       try{catchControlZone.setPointerCapture?.(e.pointerId)}catch{}
     },{passive:false});
     catchControlZone.addEventListener('pointermove',e=>{
-      if(!running||zonePointer!==e.pointerId)return;
+      if(!running||document.body.classList.contains('earnly-game-paused')||zonePointer!==e.pointerId)return;
       e.preventDefault();
       moveBy(e.clientX-zoneLastX);
       zoneLastX=e.clientX;
@@ -485,11 +523,12 @@
     const stopZone=e=>{if(e&&zonePointer!==e.pointerId)return;zonePointer=null};
     catchControlZone.addEventListener('pointerup',stopZone);
     catchControlZone.addEventListener('pointercancel',stopZone);
+    catchControlZone.addEventListener('lostpointercapture',stopZone);
     window.addEventListener('blur',clearTouchControls);
     document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTouchControls()});
     document.addEventListener('contextmenu',e=>{if(running&&Arcade.inExpandedGameZone(e,canvas,130))e.preventDefault()});
 
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running||document.body.classList.contains('earnly-game-paused'))return;if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();basket.x=Math.max(0,basket.x-28)}if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();basket.x=Math.min(canvas.width-basket.w,basket.x+28)}});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
 
   </script>
