@@ -15,7 +15,7 @@
   let H=480,alive=false,raf=null,last=0,pointer=null,cueUntil=0,lastHud='',lastTick=-1,lastZone='',pbShown=false,ended=false,particles=[],trail=[],lastImpact=-10;
   const rail=()=>Math.max(35,H*.19),pad=()=>Math.min(H*.78,H-38);
   function cue(text,duration=1){cueEl.textContent=text;cueUntil=s.time+duration;}
-  function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);H=Math.max(1,360*r.height/Math.max(1,r.width));canvas.width=Math.round(360*d);canvas.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0);draw();}
+  function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);H=Math.max(1,360*r.height/Math.max(1,r.width));trail=[];particles=[];canvas.width=Math.round(360*d);canvas.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0);draw();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);
   function update(){
    const hud=s.hits+':'+s.lives+':'+s.phase+':'+s.perfectChain;

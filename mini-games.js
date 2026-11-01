@@ -1168,6 +1168,9 @@
 
   Arcade.installPauseControl({
     isRunning:()=>running,
+    allowWhilePaused:event=>key==='perfectDrop'&&event.type==='keydown'&&
+      !!event.target?.closest?.('#earnlyPauseButton')&&
+      (event.key==='Enter'||event.code==='Space'),
     pause:()=>{
       miniPaused=true;
       pauseStartedAt=performance.now();
