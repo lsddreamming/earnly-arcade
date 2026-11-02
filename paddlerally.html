@@ -87,6 +87,7 @@
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/paddlerally.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
+<link rel="stylesheet" href="arcade-trio-polish.css?v=1">
 </head>
 <body class="classic-game-ui paddlerally-page">
   <main class="container">
@@ -104,6 +105,7 @@
       <button class="secondary" id="pauseButton" type="button" hidden>⏸ Pause</button>
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <div class="arcade-pulse" id="rallyPulse" aria-live="polite">ION COURT · Find your rhythm</div>
     <canvas class="rally-board touch-surface" id="game" width="360" height="500" aria-label="Paddle Rally game board"></canvas>
     <div class="rally-control-zone" id="rallyControlZone" aria-label="Swipe left or right to move paddle">↔️ Swipe here to move paddle</div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -118,7 +120,7 @@
     </footer>
 </main>
   <a id="earnlyQuitButton" class="earnly-quit-button" href="games.html" aria-label="Quit game and return to Games" hidden>× Quit</a>
-  <script src="arcade.js"></script>
+  <script src="arcade.js"></script><script src="arcade-polish-engine.js"></script>
   <script>
     const playsEl=document.getElementById('plays');
     const balanceEl=document.getElementById('balance');
@@ -139,14 +141,19 @@
       tips:['Mouse/finger movement controls the paddle. Arrow keys also work.','The run ends when the ball gets past your paddle.'],reward:'Long rallies earn up to 100 Coins.'});
     const paddle={x:136,y:458,w:88,h:14},ball={x:180,y:300,r:7,dx:4.0,dy:-5.3};
     let score=0,running=false,starting=false,paused=false,animation=null,last=0,pauseStartedAt=0,totalPausedMs=0,lastFrame=0;
+    let trail=[],impact=0,cleanReturns=0;
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     function rewardFor(v){ return Arcade.gameReward('paddleRally',v); }
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){cancelAnimationFrame(animation);animation=null;clearRallyControl();score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;lastFrame=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
+    function reset(){trail=[];impact=0;cleanReturns=0;document.getElementById("rallyPulse").textContent="ION COURT · Find your rhythm";cancelAnimationFrame(animation);animation=null;clearRallyControl();score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;lastFrame=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
     function draw(){
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.strokeStyle='rgba(56,189,248,.12)';ctx.lineWidth=1;for(let y=55;y<canvas.height;y+=55){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}
       ctx.strokeStyle='rgba(148,163,184,.25)';ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(canvas.width,250);ctx.stroke();ctx.setLineDash([]);
-      ctx.save();ctx.shadowColor='rgba(59,130,246,.55)';ctx.shadowBlur=14;const pg=ctx.createLinearGradient(paddle.x,paddle.y,paddle.x,paddle.y+paddle.h);pg.addColorStop(0,'#60a5fa');pg.addColorStop(1,'#2563eb');ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(paddle.x,paddle.y,paddle.w,paddle.h,7);ctx.fill();ctx.restore();
+      ctx.save();ctx.globalAlpha=.12;ctx.font='900 110px system-ui';ctx.textAlign='center';ctx.fillStyle='#9ebdff';ctx.fillText(String(score).padStart(2,'0'),180,230);ctx.restore();
+      trail.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,ball.r*(i+1)/trail.length,0,Math.PI*2);ctx.fillStyle='rgba(104,225,255,'+(.35*(i+1)/trail.length)+')';ctx.fill()});
+      if(impact>0){ctx.save();ctx.strokeStyle='#90fff0';ctx.lineWidth=3;ctx.globalAlpha=impact/.25;ctx.beginPath();ctx.ellipse(ball.x,paddle.y,25+(1-impact/.25)*25,9,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
+      ctx.save();ctx.shadowColor='rgba(59,130,246,.55)' ;ctx.shadowBlur=14;const pg=ctx.createLinearGradient(paddle.x,paddle.y,paddle.x,paddle.y+paddle.h);pg.addColorStop(0,'#60a5fa');pg.addColorStop(1,'#2563eb');ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(paddle.x,paddle.y,paddle.w,paddle.h,7);ctx.fill();ctx.restore();
       ctx.save();ctx.shadowColor='rgba(255,255,255,.8)';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.restore();
     }
     function clearRallyControl(){controlPointer=null;controlLastX=null}
@@ -155,13 +162,15 @@
       const earned=rewardFor(score);Arcade.earn(earned,'Paddle Rally',{kind:'game',game:'paddleRally',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('paddleRally',score);
       starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Missed','over');draw();
       Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🎯 Center returns: '+cleanReturns,score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
     }
     function loop(now){
       if(!running||paused)return;
       if(!lastFrame)lastFrame=now;
       const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;
       lastFrame=now;
+      impact=Math.max(0,impact-dt/60);
+      if(!reducedMotion&&dt>0){trail.push({x:ball.x,y:ball.y});if(trail.length>10)trail.shift()}
       const prevY=ball.y;
       ball.x+=ball.dx*dt;ball.y+=ball.dy*dt;
       if(ball.x-ball.r<=0&&ball.dx<0){ball.x=ball.r;ball.dx*=-1}
@@ -173,8 +182,11 @@
         const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
         // Keep accelerating throughout long rallies instead of capping near 2x.
         const currentMag=Math.hypot(ball.dx,ball.dy);
-        const mag=currentMag*1.045;
+        const mag=ArcadePolish.rallySpeed(currentMag);
         ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();
+        impact=reducedMotion?0:.25;
+        if(Math.abs(hit)<.25)cleanReturns++;
+        document.getElementById('rallyPulse').textContent=(score<8?'ION COURT':score<18?'NEON DRIVE':score<30?'OVERDRIVE':'HYPER COURT')+' · '+(Math.abs(hit)<.25?'Center return!':score+' returns')+' · '+cleanReturns+' precise';
         // Keep normal returns quiet enough that long rallies do not become a wall of feedback.
         if(score===1||score%5===0)Arcade.feedback('hit');
         if(score===8){
