@@ -1668,19 +1668,14 @@ test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
 
 
 test('Traffic Escape keeps fast-road feedback without revealing the safe car', async ({ page }) => {
-  const jsResponse = await page.request.get('/mini-games.js');
-  const source = await jsResponse.text();
-  expect(source).toContain("if(quick)fastClears++");
-  expect(source).toContain("'⚡ Fast clear · '+roadTime.toFixed(1)+'s! · '");
-  expect(source).toContain("'⚡ Fast roads: '+fastClears");
+  const source = await (await page.request.get('/traffic-escape-game.js')).text();
+  expect(source).toContain('Fast road');
+  expect(source).toContain("'⚡ Fast roads: '+s.fastClears");
   expect(source).toContain("'🏁 Best road: '");
-  expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
-  expect(source).toContain("if(!alive||miniPaused){lastTickAt=performance.now();return;}");
-  expect(source).not.toContain("' clear-path':'')");
-
-  const htmlResponse = await page.request.get('/mini.html');
-  const html = await htmlResponse.text();
-  expect(html).not.toContain('.traffic-car.clear-path');
+  expect(source).not.toContain('clear-path');
+  const engine = await (await page.request.get('/traffic-escape-engine.js')).text();
+  expect(engine).toContain('LIMITS=[16,14,12,10,9,8,7]');
+  expect(engine).toContain('free<1||free>2||!solution(board)');
 });
 
 
