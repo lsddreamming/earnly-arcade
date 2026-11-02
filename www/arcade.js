@@ -1718,11 +1718,16 @@ const Arcade = (() => {
       game = '',
       badgeText = '',
       onReplay = null,
-      onMorePlays = null
+      onMorePlays = null,
+      pendingRun = false,
+      onFinalize = null,
+      render = null
     } = options;
 
     if (modal.open) modal.close();
     modal.replaceChildren();
+    modal.oncancel = pendingRun ? event => event.preventDefault() : null;
+    const finalize = () => { if (typeof onFinalize === 'function') onFinalize(); };
     modal.className = 'game-result-dialog compact-result' + (['spiralDrop','jungleHopper'].includes(game) ? ' spiral-result' : '');
 
     const hero = document.createElement('div');
@@ -1936,7 +1941,7 @@ const Arcade = (() => {
 
     let autoMissionClaims = [];
     let autoMissionXP = 0;
-    if (game) {
+    if (game && !pendingRun) {
       const readyDailyMissions = dailyMissionStatus().missions.filter(mission =>
         (mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins') &&
         mission.complete && !mission.claimed
@@ -1958,8 +1963,8 @@ const Arcade = (() => {
     // Always display the same live balance the replay action will use.
     const resultPlaysLeft = game ? remaining(game) : Math.max(0, Number(playsLeft) || 0);
     const statData = [
-      ['🪙', '+' + coins, 'Coins Earned'],
-      ['⭐', '+' + ((result?.xpAward || 0) + autoMissionXP), 'XP Earned'],
+      ['🪙', '+' + coins, pendingRun ? 'Coins this run' : 'Coins Earned'],
+      ...(!pendingRun ? [['⭐', '+' + ((result?.xpAward || 0) + autoMissionXP), 'XP Earned']] : []),
       ['🎟️', String(resultPlaysLeft), resultPlaysLeft === 1 ? 'Play Left' : 'Plays Left']
     ];
 
@@ -1968,8 +1973,9 @@ const Arcade = (() => {
       stat.className = 'result-stat';
       const icon = document.createElement('span');
       icon.setAttribute('aria-hidden', 'true');
-      icon.textContent = index === 0 ? 'E' : index === 1 ? '' : statIcon;
-      if (index < 2) icon.className = index === 0 ? 'result-coin-icon' : 'result-xp-icon';
+      const isCoin = index === 0, isXP = !pendingRun && index === 1;
+      icon.textContent = isCoin ? 'E' : isXP ? '' : statIcon;
+      if (isCoin || isXP) icon.className = isCoin ? 'result-coin-icon' : 'result-xp-icon';
       const value = document.createElement('strong');
       value.textContent = statValue;
       const label = document.createElement('small');
@@ -2151,6 +2157,7 @@ const Arcade = (() => {
       const livePlays = game ? remaining(game) : resultPlaysLeft;
       resultActionBusy = true;
       primary.disabled = true;
+      finalize();
 
       closeModalThen(() => {
         modal.className = '';
@@ -2170,6 +2177,9 @@ const Arcade = (() => {
     back.className = 'wide secondary' + (goalReturn ? ' goal-return-button' : '');
     back.textContent = goalReturn ? goalReturn.label : '← Games';
     back.addEventListener('click', () => {
+      if (resultActionBusy) return;
+      resultActionBusy = true;
+      finalize();
       closeModalThen(() => {
         modal.className = '';
         if (goalReturn) sessionStorage.removeItem('earnlyActiveGoal');
@@ -2180,7 +2190,7 @@ const Arcade = (() => {
     if (resultPlaysLeft <= 0 && !rewardedProvider()) {
       const freeGame = document.createElement('button');
       freeGame.type = 'button';
-      freeGame.addEventListener('click', () => { location.href = 'neon-slice.html'; });
+      freeGame.addEventListener('click', () => { finalize(); location.href = 'neon-slice.html'; });
       freeGame.className = 'wide green result-free-game';
       freeGame.style.gridColumn = '1/-1';
       freeGame.textContent = '▶ Neon Slice · Unlimited free play';
@@ -2203,7 +2213,7 @@ const Arcade = (() => {
     actions.append(roomLink);
     const shopLink=document.createElement('a');shopLink.href='avatars.html';shopLink.textContent='✦ Customize your avatar';shopLink.className='result-shop-link';actions.append(shopLink);
     let buy;
-    if(game&&window.EarnlyPaidPlays){
+    if(game&&window.EarnlyPaidPlays&&!pendingRun){
       buy=document.createElement('button');buy.className='wide secondary';buy.textContent='3 extra plays · 5,000 Arcade Coins';
       buy.onclick=async()=>{buy.disabled=true;try{await window.EarnlyPaidPlays.buy(game);buy.textContent='Extra plays ready · return to Games to play';}catch(error){toast(error.message);buy.disabled=false;}};
       actions.append(buy);
@@ -2227,6 +2237,15 @@ const Arcade = (() => {
     if (buy && resultPlaysLeft > 0) explore.append(buy);
     modal.append(details, explore);
     window.EarnlyShopAppearance?.decorate(hero);
+    if (typeof render === 'function') render(modal);
+    // Links also finish a deferred run before leaving the result screen.
+    if (pendingRun) modal.addEventListener('click', event => {
+      if (event.target.closest('a[href]')) finalize();
+    }, { signal: (() => {
+      const controller = new AbortController();
+      modal.addEventListener('close', () => controller.abort(), { once:true });
+      return controller.signal;
+    })() });
     modal.showModal();
   }
 

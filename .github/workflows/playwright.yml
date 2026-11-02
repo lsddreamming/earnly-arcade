@@ -165,7 +165,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: brickbreaker-previews-${{ matrix.project }}${{ matrix.artifact_suffix }}
-          path: test-results/**/brickbreaker-neon-arena.png
+          path: test-results/**/brickbreaker-*.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Verify World controls
