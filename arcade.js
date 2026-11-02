@@ -1727,7 +1727,13 @@ const Arcade = (() => {
     if (modal.open) modal.close();
     modal.replaceChildren();
     modal.oncancel = pendingRun ? event => event.preventDefault() : null;
-    const finalize = () => { if (typeof onFinalize === 'function') onFinalize(); };
+    let finalized = false;
+    const finalize = () => {
+      if (finalized) return;
+      finalized = true;
+      if (typeof onFinalize === 'function') onFinalize();
+      if (pendingRun && game) claimResultMissions();
+    };
     modal.className = 'game-result-dialog compact-result' + (['spiralDrop','jungleHopper'].includes(game) ? ' spiral-result' : '');
 
     const hero = document.createElement('div');
@@ -1939,21 +1945,16 @@ const Arcade = (() => {
       loadResultLeaderboard();
     }
 
-    let autoMissionClaims = [];
-    let autoMissionXP = 0;
-    if (game && !pendingRun) {
-      const readyDailyMissions = dailyMissionStatus().missions.filter(mission =>
+    function claimResultMissions() {
+      const claims = dailyMissionStatus().missions.filter(mission =>
         (mission.type === 'games' || mission.type === 'variety' || mission.type === 'coins') &&
         mission.complete && !mission.claimed
-      );
-      autoMissionClaims = readyDailyMissions
-        .map(mission => claimDailyMission(mission.id, { silent:true }))
-        .filter(Boolean);
-      autoMissionXP = autoMissionClaims.reduce((sum, claim) => sum + Math.max(0, Number(claim.xp) || 0), 0);
-      if (autoMissionClaims.length) {
-        feedback(autoMissionClaims.some(claim => claim.leveledUp) ? 'level' : 'success');
-      }
+      ).map(mission => claimDailyMission(mission.id, { silent:true })).filter(Boolean);
+      if (claims.length) feedback(claims.some(claim => claim.leveledUp) ? 'level' : 'success');
+      return claims;
     }
+    const autoMissionClaims = game && !pendingRun ? claimResultMissions() : [];
+    const autoMissionXP = autoMissionClaims.reduce((sum, claim) => sum + Math.max(0, Number(claim.xp) || 0), 0);
 
     const statsBox = document.createElement('div');
     statsBox.className = 'result-stats';
