@@ -1,6 +1,6 @@
 .arcade-pulse{box-sizing:border-box;width:min(94%,430px);margin:8px auto;padding:9px 12px;text-align:center;border:1px solid #4d6a91;border-radius:12px;background:linear-gradient(110deg,#15354c,#191b3b);font-size:11px;letter-spacing:.04em;color:#a9ebf2;font-weight:800;min-height:34px}
-.blockdrop-page,.rally-page,.maze-page{background:radial-gradient(ellipse at 40% 0,#1d3356,transparent 60%),#060c18}
-.blockdrop-page .page-header,.rally-page .page-header,.maze-page .page-header{background:linear-gradient(130deg,#1b2e4c,#101c31)!important;border-color:#436388!important;box-shadow:inset 0 1px #ffffff12,0 16px 40px #0003!important}
+.blockdrop-page,.paddlerally-page,.maze-page{background:radial-gradient(ellipse at 40% 0,#1d3356,transparent 60%),#060c18}
+.blockdrop-page .page-header,.paddlerally-page .page-header,.maze-page .page-header{background:linear-gradient(130deg,#1b2e4c,#101c31)!important;border-color:#436388!important;box-shadow:inset 0 1px #ffffff12,0 16px 40px #0003!important}
 .blockdrop-preview{background:linear-gradient(140deg,#1e3552,#111e32)!important;border-color:#4c6995!important;border-radius:14px!important;color:#b4dff5!important;letter-spacing:.08em;text-transform:uppercase}
 .blockdrop-board,.rally-board,.maze-board{border-color:#577bae!important;box-shadow:0 0 30px #5488dd22,0 20px 45px #0005!important}
 .blockdrop-controls .game-control,.maze-controls button{background:linear-gradient(#274666,#14283f)!important;border:1px solid #4a6d95!important;box-shadow:inset 0 1px #ffffff20,0 3px 0 #07101e!important}
