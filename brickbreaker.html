@@ -881,7 +881,7 @@
         badgeText:canContinue?'BALL LOST · CONTINUE OR REPLAY':'RUN COMPLETE',
         pendingRun:canContinue,
         onFinalize:()=>{settleRun();resultOpen=false},
-        extra:['Level '+level+' · '+levelsCleared+' sectors cleared','Best streak: '+bestCombo+' bricks · '+paddleHits+' paddle saves'],
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','Level '+level+' · '+levelsCleared+' sectors cleared','Best streak: '+bestCombo+' bricks · '+paddleHits+' paddle saves'],
         onReplay:startGame,onMorePlays:()=>Arcade.out('brickBreaker',refreshChrome),
         render:dialog=>{
           dialog.classList.add('brick-result-dialog');
@@ -902,6 +902,7 @@
           button.addEventListener('click',async()=>{
             if(continuePending)return;
             continuePending=true;
+            setStatus('Running · Confirming Continue…','running');
             const controls=[...dialog.querySelectorAll('button')];
             const disabled=controls.map(control=>control.disabled);
             controls.forEach(control=>control.disabled=true);
@@ -917,6 +918,7 @@
               refreshChrome();readyContinue();
             }catch(error){
               continuePending=false;dialog.removeAttribute('aria-busy');
+              setStatus('Ball Lost · Level '+level,'over');
               status.setAttribute('role','alert');status.textContent=error?.message || 'Could not spend Coins. Try again.';
               controls.forEach((control,index)=>control.disabled=disabled[index]);
             }

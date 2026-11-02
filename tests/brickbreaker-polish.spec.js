@@ -139,7 +139,7 @@ for(const path of ['/brickbreaker.html','/www/brickbreaker.html']){
     await result.press('Escape');await expect(result).toBeVisible();
     await page.getByRole('button',{name:/Play Again/}).click();
     await expect(result).toHaveCount(0);
-    expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves,running,totalBroken})))
+    await expect.poll(()=>page.evaluate(()=>({results:resultSaves,coins:coinSaves,running,totalBroken})))
       .toEqual({results:1,coins:1,running:true,totalBroken:0});
   });
 }
