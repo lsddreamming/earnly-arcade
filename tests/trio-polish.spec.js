@@ -1,5 +1,6 @@
 const {test,expect}=require('@playwright/test');
-for(const name of ['blockdrop','paddlerally','neonmaze'])test(name+' polished board renders and fits mobile width',async({page},info)=>{
+for(const viewport of [{width:390,height:844},{width:320,height:568},{width:844,height:390}])for(const name of ['blockdrop','paddlerally','neonmaze'])test(name+' polished board '+viewport.width,async({page},info)=>{
+ await page.setViewportSize(viewport);
  await page.goto('/'+name+'.html');
  await page.evaluate(()=>{Arcade.countdown=callback=>callback()});
  if(name==='blockdrop')await page.locator('#blockDropBoardStart').click();else await page.locator('#startButton').click();

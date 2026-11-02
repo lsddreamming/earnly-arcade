@@ -12,3 +12,7 @@
 html body:is(.blockdrop-page,.paddlerally-page).game-active :is(.topbar,#arcadeBottomNav,#startButton,#blockDropBoardStart,.blockdrop-quick-tip,.game-start-summary,.game-guide-more,.game-guide-link,.public-footer){display:none!important}
 html body.blockdrop-page.game-active .blockdrop-board{max-height:calc(100dvh - 270px)!important;width:auto!important;max-width:66vw!important}
 html body.paddlerally-page.game-active .rally-board{max-height:calc(100dvh - 300px)!important;width:auto!important;max-width:90vw!important}
+
+.clear-flash{animation:clearFlash .5s ease-out}@keyframes clearFlash{0%{background:#266c79;box-shadow:0 0 24px #59e7e780;transform:scale(1.025)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.clear-flash{animation:none}}
+.earnly-game-paused .clear-flash{animation-play-state:paused}

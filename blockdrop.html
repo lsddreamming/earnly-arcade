@@ -690,6 +690,7 @@
           y += 1;
         }
       }
+      const pulse=document.getElementById('blockPulse');pulse.classList.remove('clear-flash');if(clearedNow){void pulse.offsetWidth;pulse.classList.add('clear-flash')}
       clearChain=clearedNow?clearChain+1:0;bestClearChain=Math.max(bestClearChain,clearChain);
       document.getElementById('blockPulse').textContent=clearedNow ? ['','SINGLE','DOUBLE','TRIPLE','FOUR-LINE CLEAR'][Math.min(4,clearedNow)]+(clearChain>1?' · '+clearChain+' clear chain':' · Beautiful placement!') : 'LEVEL '+(1+Math.floor(lines/2))+' · '+(2-lines%2)+' lines to next speed';
       if (clearedNow && game && game !== 'paused') restartDropTimer();
