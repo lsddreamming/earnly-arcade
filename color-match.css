@@ -46,3 +46,6 @@ html body.colormatch-page.game-active #earnlyPauseButton{position:fixed!importan
 @media(orientation:landscape) and (max-height:360px){.game-active .prism-prompt{min-height:60px}.game-active .prism-prompt small{display:none}.game-active .color-word{font-size:32px}html body.colormatch-page.game-active .color-choice{min-height:45px}}
 
 body.colormatch-page.game-active #earnlyCompactLeaderboard{display:none!important}
+body.colormatch-page.game-active #arcadeDesktopNav{display:none!important}
+body.colormatch-page .game-guide-surface-wrap{width:min(100%,440px)!important}
+@media(orientation:landscape) and (max-height:550px){html body.colormatch-page.game-active main.container{width:100%!important;box-sizing:border-box}body.colormatch-page.game-active .game-guide-surface-wrap{width:min(100%,850px)!important}body.colormatch-page.game-active .color-board{width:100%!important;max-width:none!important}}

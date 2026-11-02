@@ -56,8 +56,8 @@ test('ready, live and paused layouts fit phone and landscape controls',async({pa
  for(const [width,height] of [[320,568],[390,664],[390,844],[440,956],[667,375],[844,390]]){
   await page.evaluate(()=>localStorage.clear());await page.setViewportSize({width,height});await page.goto('/colormatch.html');await start(page);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-  const choices=await page.locator('#choices').boundingBox(),quit=await page.locator('#colorMatchExit').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();
-  expect(choices.y).toBeGreaterThanOrEqual(0);expect(choices.y+choices.height).toBeLessThan(Math.min(quit.y,pause.y));
+  const board=await page.locator('#board').boundingBox(),choices=await page.locator('#choices').boundingBox(),quit=await page.locator('#colorMatchExit').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();
+  expect(choices.y).toBeGreaterThanOrEqual(0);expect(choices.y+choices.height).toBeLessThan(Math.min(quit.y,pause.y));expect(board.y+board.height).toBeLessThan(Math.min(quit.y,pause.y));
   await expect(page.locator('#earnlyQuitButton')).toHaveCount(0);
   await page.screenshot({path:testInfo.outputPath('color-match-'+width+'x'+height+'.png')});
   await page.locator('#earnlyPauseButton').click();await expect(page.locator('#colorMatchExit')).toBeVisible();
