@@ -31,3 +31,5 @@ html body.memory-page.game-active .game-guide-surface-wrap{width:100%!important;
 html body.memory-page.game-active #grid{width:100%!important;margin:4px auto!important}
 @media(max-height:700px) and (orientation:portrait){html body.memory-page.game-active .game-guide-surface-wrap{max-width:min(100%,calc(100dvh - 240px))!important}}
 @media(max-height:500px) and (orientation:landscape){html body.memory-page.game-active main.container{width:100%!important;max-width:760px!important;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr)!important;grid-template-rows:auto 1fr!important;align-items:start!important}html body.memory-page.game-active .page-header{grid-column:1!important;grid-row:1!important;align-self:start!important}html body.memory-page.game-active .memory-progress{grid-column:1!important;grid-row:2!important}html body.memory-page.game-active .game-guide-surface-wrap{max-width:calc(100dvh - 75px)!important;grid-column:2!important;grid-row:1 / span 2!important}}
+
+html body.memory-page.game-active #arcadeDesktopNav{display:none!important}

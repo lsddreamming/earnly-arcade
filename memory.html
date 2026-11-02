@@ -151,10 +151,10 @@
 
     function rewardForMoves(value){ return Arcade.gameReward('memory',value); }
 
-    let lastRewardPreview = rewardForMoves(0);
+    let lastRewardPreview = rewardForMoves(8);
     rewardPreviewEl.textContent = String(lastRewardPreview);
     function refreshRewardPreview(){
-      const reward = rewardForMoves(moves);
+      const reward = rewardForMoves(Math.max(8,moves));
       rewardPreviewEl.textContent = String(reward);
       if(running && reward !== lastRewardPreview){
         memoryRewardHud.classList.remove('reward-change');
@@ -347,7 +347,7 @@
       document.getElementById('memoryFeedback').textContent='Find the constellation · 8 hidden pairs';
       movesEl.textContent='0';
       pairsEl.textContent='0';
-      lastRewardPreview=rewardForMoves(0);
+      lastRewardPreview=rewardForMoves(8);
       rewardPreviewEl.textContent=String(lastRewardPreview);
       startButton.disabled=true;
       startButton.textContent='Get Ready…';

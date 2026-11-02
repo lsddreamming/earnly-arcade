@@ -1398,7 +1398,7 @@ test('Memory Match shows the current clear reward', async ({ page }) => {
   await page.goto('/memory.html');
   await expect(page.locator('#memoryRewardHud')).toBeVisible();
   await expect(page.locator('#memoryRewardHud')).toContainText('Clear Reward');
-  await expect(page.locator('#rewardPreview')).toHaveText(String(await page.evaluate(()=>Arcade.gameReward('memory',0))));
+  await expect(page.locator('#rewardPreview')).toHaveText(String(await page.evaluate(()=>Arcade.gameReward('memory',8))));
 });
 
 test('mini games surface the live run reward clearly', async ({ page }) => {
