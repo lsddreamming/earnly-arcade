@@ -32,3 +32,11 @@ test('memory mismatch blocks a third flip and keeps the coin rules',async({page}
   expect(state.reward).toBe(state.expected);expect(state.disabled).toBe(true);
   await expect.poll(()=>page.evaluate(()=>lock)).toBe(false);
 });
+
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:844,height:390}])test('memory layout '+viewport.width,async({page},info)=>{
+ await page.setViewportSize(viewport);await page.goto('/memory.html');
+ await page.evaluate(()=>{Arcade.countdown=cb=>cb();startGame()});
+ await expect(page.locator('body')).toHaveClass(/game-active/);
+ const box=await page.locator('#grid').boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(viewport.width+1);
+ await page.screenshot({path:info.outputPath('memory-'+viewport.width+'.png'),fullPage:true});
+});
