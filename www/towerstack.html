@@ -125,6 +125,11 @@
     }
     function draw(){
       drawBackground();const top=blocks.at(-1),zone=TowerStackEngine.district(floors);
+      ctx.font='bold 10px system-ui';ctx.textAlign='left';
+      const firstTick=Math.max(0,Math.ceil((baseY+camera-560)/(blockHeight*5))*5);
+      for(let floor=firstTick;floor<=floors+16;floor+=5){const y=baseY-floor*blockHeight+camera;if(y<125||y>540)continue;ctx.fillStyle='#a4c8e844';ctx.fillRect(10,y,8,1);ctx.fillText(floor+'F',12,y-5)}
+      const nextZone=TowerStackEngine.districts.find(d=>d.at===zone.next);
+      if(nextZone){const y=baseY-nextZone.at*blockHeight+camera;if(y>125&&y<450){ctx.save();ctx.strokeStyle=zone.accent+'38';ctx.setLineDash([3,7]);ctx.beginPath();ctx.moveTo(42,y);ctx.lineTo(340,y);ctx.stroke();ctx.setLineDash([]);ctx.textAlign='right';ctx.fillStyle=zone.accent+'aa';ctx.font='bold 10px system-ui';ctx.fillText(nextZone.name.toUpperCase()+' / '+nextZone.at+'F',338,y-8);ctx.restore()}}
       const best=Arcade.number('towerStackBest'),bestY=baseY-best*blockHeight+camera;
       if(best>floors&&bestY>80&&bestY<450){ctx.save();ctx.strokeStyle='#ffdc8b88';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(18,bestY);ctx.lineTo(342,bestY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ffe2a4';ctx.font='bold 11px system-ui';ctx.textAlign='right';ctx.fillText('BEST / '+best,338,bestY-7);ctx.restore()}
       blocks.forEach(b=>drawBlock(b,landing?.floor===b.floor?landing.offset:0));
