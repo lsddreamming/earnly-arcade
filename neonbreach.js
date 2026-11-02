@@ -14,7 +14,7 @@ helpDialog.innerHTML='<h2>Neon Breach controls</h2><p>1. Drag MOVE to walk.<br>2
 const helpBack=document.createElement('button');helpBack.type='button';helpBack.textContent='Back to game';helpBack.className='wide green';
 helpDialog.append(checkButton,helpBack);document.body.append(helpDialog);
 let resumeAfterHelp=false;
-helpButton.addEventListener('click',()=>{resumeAfterHelp=running&&!paused;if(resumeAfterHelp)pauseControl.button.click();helpDialog.showModal();});
+helpButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();resumeAfterHelp=running&&!paused;if(resumeAfterHelp)pauseControl.button.click();if(!helpDialog.open)helpDialog.showModal();});
 helpBack.addEventListener('click',()=>helpDialog.close());
 helpDialog.addEventListener('close',()=>{if(resumeAfterHelp)pauseControl.resume();resumeAfterHelp=false;});
 let learnStep=0;try{if(localStorage.getItem('earnlyBreachControlsLearned')==='1')learnStep=3;}catch{}
