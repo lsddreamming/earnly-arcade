@@ -34,11 +34,11 @@ test('Tower Stack rewards continue through and beyond the reported 33-floor run'
  await page.evaluate(()=>{localStorage.setItem('towerStackBest','46');Arcade.countdown=fn=>fn();});
  if(await page.locator('#startButton').isVisible())await page.locator('#startButton').click();else await page.locator('#game').click();
  await expect(page.locator('#gameStatus')).toHaveText('Running');
- await page.evaluate(async()=>{for(let i=0;i<33;i++){moving.x=blocks[blocks.length-1].x;canvas.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',isPrimary:true,bubbles:true,cancelable:true}));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}});
+ await page.evaluate(async()=>{for(let i=0;i<33;i++){moving.x=blocks[blocks.length-1].x;canvas.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',isPrimary:true,bubbles:true,cancelable:true}));await new Promise(resolve=>{const ready=()=>placementLocked?requestAnimationFrame(ready):resolve();requestAnimationFrame(ready)});}});
  await expect(page.locator('#floors')).toHaveText('33');
  await expect(page.locator('#rewardPreview')).toHaveText('16');
  await expect(page.locator('#rewardTarget')).toHaveText('Next floor Coin at floor 36');
- await page.evaluate(async()=>{for(let i=0;i<3;i++){moving.x=blocks[blocks.length-1].x;canvas.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',isPrimary:true,bubbles:true,cancelable:true}));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}});
+ await page.evaluate(async()=>{for(let i=0;i<3;i++){moving.x=blocks[blocks.length-1].x;canvas.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',isPrimary:true,bubbles:true,cancelable:true}));await new Promise(resolve=>{const ready=()=>placementLocked?requestAnimationFrame(ready):resolve();requestAnimationFrame(ready)});}});
  await expect(page.locator('#rewardPreview')).toHaveText('17');
  const control=await page.locator('#earnlyPauseButton').boundingBox();expect(control.y+control.height).toBeLessThanOrEqual(568);
  await page.evaluate(()=>finishGame());

@@ -16,98 +16,11 @@
   <meta name="description" content="Build a tower by dropping each moving floor onto the stack below it.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
-  <style>
-    .tower-board{
-      width:min(88vw,360px);
-      height:auto;
-      touch-action:none;
-      -webkit-user-select:none;
-      user-select:none;
-      -webkit-touch-callout:none;
-    }
-    @media(max-width:699px){
-      body.towerstack-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important}
-      body.towerstack-page .topbar{margin-bottom:6px!important;min-height:38px!important}
-      body.towerstack-page .page-header{
-        margin:2px 0 7px!important;
-        padding:11px!important;
-        gap:6px!important;
-        border:1px solid rgba(96,165,250,.30)!important;
-        border-radius:18px!important;
-        background:
-          radial-gradient(circle at 88% 0%,rgba(96,165,250,.10),transparent 38%),
-          radial-gradient(circle at 12% 100%,rgba(168,85,247,.06),transparent 34%),
-          linear-gradient(145deg,rgba(18,38,61,.97),rgba(8,22,37,.97))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
-      }
-      body.towerstack-page .page-header h1{font-size:22px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
-      body.towerstack-page .game-meta{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;margin:0!important;width:100%!important}
-      body.towerstack-page .meta-pill{
-        min-height:36px!important;
-        padding:4px 2px!important;
-        display:flex!important;
-        align-items:center!important;
-        justify-content:center!important;
-        text-align:center!important;
-        font-size:8px!important;
-        font-weight:850!important;
-        border:1px solid rgba(67,119,164,.34)!important;
-        border-radius:10px!important;
-        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
-      }
-      body.towerstack-page .meta-pill:nth-child(4){
-        border-color:rgba(255,193,77,.30)!important;
-        background:
-          radial-gradient(circle at 80% 0%,rgba(255,193,77,.10),transparent 42%),
-          linear-gradient(145deg,rgba(29,39,51,.97),rgba(10,23,37,.96))!important;
-        color:#ffd86b!important
-      }
-      body.towerstack-page #startButton{min-height:38px!important;margin:3px 0!important;padding:8px 12px!important}
-      body.towerstack-page .tower-board{
-        width:min(78vw,315px)!important;
-        max-height:59vh!important;
-        margin:7px auto 9px!important;
-        display:block!important;
-        border:2px solid rgba(96,165,250,.34)!important;
-        background:#07111f!important;
-        box-shadow:
-          inset 0 0 38px rgba(0,0,0,.24),
-          0 18px 38px rgba(0,0,0,.26),
-          0 0 0 1px rgba(96,165,250,.05)!important
-      }
-      body.towerstack-page.game-active .game-guide-strip,
-      body.towerstack-page.game-active .game-preflight,
-      body.towerstack-page.game-active .game-guide-more,
-      body.towerstack-page.game-active #startButton{display:none!important}
-      body.towerstack-page.game-active .tower-board{
-        width:min(86vw,340px)!important;
-        max-height:69vh!important;
-        margin-top:3px!important;
-        border-color:rgba(96,165,250,.50)!important;
-        box-shadow:
-          inset 0 0 44px rgba(0,0,0,.22),
-          0 18px 38px rgba(0,0,0,.28),
-          0 0 22px rgba(96,165,250,.08)!important
-      }
-      body.towerstack-page.game-active .container>a.button.wide.secondary{display:none!important}
-    }
-    .tower-board{border:1px solid rgba(96,165,250,.32);border-radius:20px;box-shadow:0 18px 46px rgba(0,0,0,.34),0 0 0 1px rgba(255,255,255,.04)}
-    body.towerstack-page .game-status{font-weight:800;letter-spacing:.02em}
-    body.towerstack-page.game-active .page-header h1{font-size:22px!important}
-    body.towerstack-page.game-active .page-header{gap:5px!important;margin-bottom:4px!important}
-    body.towerstack-page.game-active .topbar{min-height:40px!important;margin-bottom:4px!important}
-    @media(max-width:699px){
-      body.towerstack-page.game-active .tower-board{
-        width:min(90vw,350px,calc((100svh - 294px) * .642857))!important;
-        height:auto!important;max-height:none!important
-      }
-    }
-    .tower-reward-next{margin:4px auto 6px;text-align:center;color:#93c5fd;font-size:12px;line-height:1.4;min-height:17px}
-  </style>
+
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/towerstack.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
+  <link rel="stylesheet" href="tower-stack.css">
 </head>
 <body class="classic-game-ui towerstack-page">
   <main class="container">
@@ -121,7 +34,6 @@
       <div class="game-meta">
         <span class="meta-pill">Floors: <span id="floors">0</span></span>
         <span class="meta-pill">Perfects: <span id="perfects">0</span></span>
-        <span class="meta-pill">Speed: <span id="speedPreview">1.0</span>x</span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
         <span class="meta-pill"><span id="plays">0</span> plays left</span>
       </div>
@@ -130,8 +42,10 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Tower to Start</button>
 
+    <div class="tower-info" id="towerInfo"><div><strong id="towerDistrict">Harbor Lights</strong><small><span id="heightPreview">0</span> m · Speed <span id="speedPreview">1.0</span>x</small></div><div class="tower-next"><span id="towerGoal">Next skyline at 10 floors</span><small>Platform: <span id="widthPreview">100</span>%</small></div></div>
     <p class="tower-reward-next" id="rewardTarget">Next floor Coin at floor 3</p>
     <canvas class="tower-board touch-surface" id="game" width="360" height="560" aria-label="Tower Stack game board"></canvas>
+    <div id="towerControls" aria-label="Tower Stack session controls"></div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
 
     <a class="game-guide-link" href="game-guides.html#towerStack">How to play Tower Stack · guide &amp; tips</a>
@@ -145,389 +59,139 @@
 </main>
 
   <script src="arcade.js"></script>
+  <script src="tower-stack-engine.js"></script>
   <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    const floorsEl = document.getElementById('floors');
-    const perfectsEl = document.getElementById('perfects');
-    const speedPreviewEl = document.getElementById('speedPreview');
-    const rewardPreviewEl = document.getElementById('rewardPreview');
-    const rewardTarget = document.getElementById('rewardTarget');
-    const playsEl = document.getElementById('plays');
-    const balanceEl = document.getElementById('balance');
-    const statusEl = document.getElementById('gameStatus');
-    const startButton = document.getElementById('startButton');
-
-    Arcade.gameGuide({
-      game:'towerStack',
-      surface:canvas,
-      steps:[
-        { icon:'👆', title:'Start', text:'Tap the tower' },
-        { icon:'⬇️', title:'Control', text:'Tap to drop a floor' },
-        { icon:'🏗️', title:'Goal', text:'Stack as high as possible' }
-      ],
-      overlayIcon:'👆',
-      overlayTitle:'Tap to Start',
-      overlayText:'Tap when the moving floor lines up with the tower',
-      replayTitle:'Tap to Play Again',
-      tips:[
-        'Any overhang is cut away, so every miss makes the next floor harder to place.',
-        'If a floor completely misses the tower, the run ends. Centered drops count as perfects.'
-      ],
-      reward:'1 Coin per 3 floors, +1 per 10 perfects, with bonuses at 20, 50 and 100 floors. Up to 100 Coins in a deep run.'
-    });
-
-    const blockHeight = 28;
-    const startWidth = 190;
-    const baseY = 500;
-    const MAX_COINS = 100;
-
-    let blocks = [];
-    let moving = null;
-    let direction = 1;
-    let speed = 2.6;
-    let floors = 0;
-    let perfects = 0;
-    let running = false;
-    let starting = false;
-    let animation = null;
-    let placementLocked = false;
-
-    const palette = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6'];
-
-    function rewardFor(floorCount, perfectCount) { return Arcade.gameReward('towerStack',floorCount,perfectCount); }
-
-    function refreshRewardProgress() {
-      const earned=rewardFor(floors,perfects);
-      rewardPreviewEl.textContent=earned;
-      if(earned>=MAX_COINS){rewardTarget.textContent='100-Coin run limit · keep climbing for your best';return;}
-      let next=floors+1;
-      while(next<=floors+3&&rewardFor(next,perfects)<=earned)next++;
-      rewardTarget.textContent='Next floor Coin at floor '+next;
-    }
-
-
-    function refreshChrome() {
-      playsEl.textContent = Arcade.remaining('towerStack');
-      balanceEl.textContent = Arcade.number('points').toLocaleString();
-      refreshRewardProgress();
-    }
-
-    function setStatus(text, mode) {
-      document.body.classList.toggle('game-active', mode === 'running');
-      statusEl.textContent = text;
-      statusEl.className = 'game-status' + (mode ? ' ' + mode : '');
-    }
-
-    function colorFor(level) {
-      return palette[level % palette.length];
-    }
-
-    function resetGame() {
-      cancelAnimationFrame(animation);
-      animation = null;
-      floors = 0;
-      perfects = 0;
-      speed = 2.6;
-      direction = 1;
-      speedPreviewEl.textContent = '1.0';
-      floorsEl.textContent = '0';
-      perfectsEl.textContent = '0';
-      rewardPreviewEl.textContent = '0';
-
-      blocks = [{
-        x: (canvas.width - startWidth) / 2,
-        y: baseY,
-        w: startWidth,
-        h: blockHeight,
-        color: '#64748b'
-      }];
-
-      spawnMoving();
-    }
-
-    function spawnMoving() {
-      const previous = blocks[blocks.length - 1];
-      const nextY = previous.y - blockHeight;
-
-      moving = {
-        x: direction > 0 ? -previous.w : canvas.width,
-        y: nextY,
-        w: previous.w,
-        h: blockHeight,
-        color: colorFor(floors)
-      };
-
-      direction *= -1;
-      speed = Math.min(6.3, 2.6 + floors * 0.09);
-      speedPreviewEl.textContent = (speed / 2.6).toFixed(1);
-      requestAnimationFrame(()=>{ placementLocked = false; });
-    }
-
-    function shiftTowerIfNeeded() {
-      const top = blocks[blocks.length - 1];
-      if (top.y >= 178) return;
-
-      blocks.forEach(block => {
-        block.y += blockHeight;
-      });
-
-      if (moving) moving.y += blockHeight;
-    }
-
-    function roundedRect(x,y,w,h,r){
-      const radius=Math.min(r,w/2,h/2);
-      ctx.beginPath();
-      ctx.moveTo(x+radius,y);
-      ctx.arcTo(x+w,y,x+w,y+h,radius);
-      ctx.arcTo(x+w,y+h,x,y+h,radius);
-      ctx.arcTo(x,y+h,x,y,radius);
-      ctx.arcTo(x,y,x+w,y,radius);
-      ctx.closePath();
-    }
-
-    function drawBackground() {
-      const gradient = ctx.createLinearGradient(0,0,0,canvas.height);
-      gradient.addColorStop(0,'#172554');
-      gradient.addColorStop(.55,'#0f172a');
-      gradient.addColorStop(1,'#020617');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      ctx.fillStyle = 'rgba(255,255,255,.10)';
-      for (let i = 0; i < 30; i++) {
-        const x = (i * 73) % canvas.width;
-        const y = (i * 47) % 285;
-        ctx.beginPath();ctx.arc(x,y,i%5===0?1.5:1,0,Math.PI*2);ctx.fill();
-      }
-      const glow=ctx.createRadialGradient(285,110,8,285,110,105);
-      glow.addColorStop(0,'rgba(96,165,250,.18)');glow.addColorStop(1,'rgba(96,165,250,0)');
-      ctx.fillStyle=glow;ctx.fillRect(180,0,180,220);
-
-      ctx.fillStyle = '#0b1120';
-      ctx.fillRect(0,baseY + blockHeight,canvas.width,canvas.height - baseY);
-    }
-
-    function drawBlock(block) {
-      ctx.save();
-      ctx.shadowColor='rgba(0,0,0,.32)';
-      ctx.shadowBlur=8;ctx.shadowOffsetY=4;
-      roundedRect(block.x,block.y,block.w,block.h,6);
-      ctx.fillStyle=block.color;ctx.fill();
-      ctx.shadowColor='transparent';
-      const shine=ctx.createLinearGradient(block.x,block.y,block.x,block.y+block.h);
-      shine.addColorStop(0,'rgba(255,255,255,.28)');
-      shine.addColorStop(.38,'rgba(255,255,255,.06)');
-      shine.addColorStop(1,'rgba(0,0,0,.22)');
-      roundedRect(block.x,block.y,block.w,block.h,6);ctx.fillStyle=shine;ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;
-      roundedRect(block.x+.5,block.y+.5,Math.max(1,block.w-1),block.h-1,6);ctx.stroke();
-      ctx.restore();
-    }
-
-    function draw() {
-      drawBackground();
-      blocks.forEach(drawBlock);
-      if (moving) drawBlock(moving);
-
-      if (!running) {
-        ctx.fillStyle = 'rgba(2,6,23,.30)';
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.fillStyle = '#fff';
-        ctx.font = '700 21px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Tap to stack the moving floor', canvas.width / 2, canvas.height / 2);
-      }
-    }
-
-    function placeBlock() {
-      if (!running || starting || !moving || placementLocked || document.body.classList.contains('earnly-game-paused')) return;
-      placementLocked = true;
-
-      const previous = blocks[blocks.length - 1];
-      const previousRight = previous.x + previous.w;
-      const movingRight = moving.x + moving.w;
-
-      const left = Math.max(previous.x, moving.x);
-      const right = Math.min(previousRight, movingRight);
-      let overlap = right - left;
-
-      if (overlap <= 0) {
-        placementLocked = false;
-        finishGame();
-        return;
-      }
-
-      const perfect = Math.abs(moving.x - previous.x) <= 5;
-
-      if (perfect) {
-        Arcade.feedback('perfect');
-        moving.x = previous.x;
-        moving.w = previous.w;
-        overlap = previous.w;
-        perfects += 1;
-        perfectsEl.textContent = perfects;
-        // Keep perfect-drop feedback subtle; avoid screen-covering milestone flashes.
-      } else {
-        Arcade.feedback('stack');
-        moving.x = left;
-        moving.w = overlap;
-      }
-
-      blocks.push({
-        x: moving.x,
-        y: moving.y,
-        w: moving.w,
-        h: blockHeight,
-        color: moving.color
-      });
-
-      floors += 1;
-      floorsEl.textContent = floors;
-      refreshRewardProgress();
-
-      if (floors === 10) Arcade.milestone('🏗️ 10 floors · High Rise!');
-      if (floors === 20) Arcade.milestone('🔥 20 floors · Skyline Builder!', 'perfect');
-      if (floors === 30) Arcade.milestone('🏆 30 floors · Tower legend!', 'perfect');
-
-      moving = null;
-      shiftTowerIfNeeded();
-      spawnMoving();
-    }
-
-    function loop() {
-      if (!running || !moving) return;
-
-      moving.x += speed * direction;
-
-      if (direction > 0 && moving.x > canvas.width) {
-        moving.x = -moving.w;
-      } else if (direction < 0 && moving.x + moving.w < 0) {
-        moving.x = canvas.width;
-      }
-
-      draw();
-      animation = requestAnimationFrame(loop);
-    }
-
-    function finishGame() {
-      if (!running) return;
-
-      running = false;
-      pauseStartedAt = 0;
-      cancelAnimationFrame(animation);
-      animation = null;
-      moving = null;
-      placementLocked = false;
-
-      const earned = rewardFor(floors, perfects);
-      Arcade.earn(earned, 'Tower Stack', { kind:'game', game:'towerStack', metric:floors, aux:perfects });
-      Arcade.feedback('fail');
-      const result = Arcade.recordResult('towerStack', floors);
-
-      const best = Math.max(floors, Arcade.number('towerStackBest'));
-      localStorage.setItem('towerStackBest', String(best));
-
-      starting = false;
-      refreshChrome();
-      setStatus('Game Over', 'over');
-      startButton.disabled = false;
-      startButton.textContent = '👆 Tap Tower to Play Again';
-      draw();
-
-      Arcade.gameResult({
-        icon:'🏗️',
-        title:'Tower Finished',
-        scoreLabel:'Floors Stacked',
-        score:floors,
-        best:best + ' floors',
-        coins:earned,
-        result,
-        playsLeft:Arcade.remaining('towerStack'),
-        game:'towerStack',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','✨ Perfect stacks: ' + perfects, floors>=20?'🏙️ Skyline Builder run!':'Center the next floor for a perfect.'],
-        onReplay:startGame,
-        onMorePlays:()=>Arcade.out('towerStack',refreshChrome)
-      });
-    }
-
+    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+    const floorsEl=document.getElementById('floors'),perfectsEl=document.getElementById('perfects'),speedPreviewEl=document.getElementById('speedPreview'),rewardPreviewEl=document.getElementById('rewardPreview'),rewardTarget=document.getElementById('rewardTarget'),playsEl=document.getElementById('plays'),balanceEl=document.getElementById('balance'),statusEl=document.getElementById('gameStatus'),startButton=document.getElementById('startButton');
+    Arcade.gameGuide({game:'towerStack',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap the tower'},{icon:'⬇️',title:'Control',text:'Tap to drop a floor'},{icon:'🏙️',title:'Goal',text:'Build beyond the skyline'}],overlayIcon:'🏗️',overlayTitle:'Build Your Skyline',overlayText:'Tap when the moving floor lines up. Overhangs fall away; centered drops keep your full width.',replayTitle:'Tap to Play Again',tips:['Overhangs are cut away. A complete miss ends the run.','Perfect chains and skyline districts are extra goals; Coin rewards remain unchanged.'],reward:'1 Coin per 3 floors, +1 per 10 perfects, with bonuses at 20, 50 and 100 floors. Up to 100 Coins in a deep run.'});
+    const blockHeight=28,startWidth=190,baseY=500,MAX_COINS=100;
+    const palette=['#53a7ff','#59d6ba','#ffd075','#b69bff','#ef91cd','#78d9ef'];
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let blocks=[],moving=null,direction=1,speed=2.6,floors=0,perfects=0,running=false,starting=false,ending=false,animation=null,placementLocked=false;
+    let camera=0,cameraTarget=0,falling=[],sparks=[],rings=[],landing=null,perfectChain=0,bestChain=0,lastFrame=0,settled=false,runToken=0,endTimer=null;
+    let toast={text:'',life:0,perfect:false};
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
-    function startGame() {
-      if (running || starting) return;
-      starting = true;
-
-      if (!Arcade.consume('towerStack')) {
-        starting = false;
-        Arcade.out('towerStack', refreshChrome);
-        return;
-      }
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
-
-      resetGame();
-      running = false;
-      startButton.disabled = true;
-      startButton.textContent = 'Get Ready…';
-      setStatus('Get Ready');
-      refreshChrome();
-      draw();
-
-      Arcade.countdown(() => {
-        starting = false;
-        running = true;
-        earnlyRunStartedAt = performance.now();
-        startButton.textContent = 'Game Running';
-        setStatus('Running', 'running');
-        animation = requestAnimationFrame(loop);
-      });
+    function rewardFor(floorCount,perfectCount){return Arcade.gameReward('towerStack',floorCount,perfectCount)}
+    function refreshRewardProgress(){const earned=rewardFor(floors,perfects);rewardPreviewEl.textContent=earned;if(earned>=MAX_COINS){rewardTarget.textContent='100-Coin run limit · keep climbing for your best';return}let next=floors+1;while(next<=floors+3&&rewardFor(next,perfects)<=earned)next++;rewardTarget.textContent='Next floor Coin at floor '+next}
+    function refreshChrome(){playsEl.textContent=Arcade.remaining('towerStack');balanceEl.textContent=Arcade.number('points').toLocaleString();refreshRewardProgress()}
+    function setStatus(text,mode){document.body.classList.toggle('game-active',mode==='running');statusEl.textContent=text;statusEl.className='game-status'+(mode?' '+mode:'')}
+    function colorFor(level){return palette[level%palette.length]}
+    function refreshSkyline(){
+      const zone=TowerStackEngine.district(floors),best=Arcade.number('towerStackBest');
+      document.getElementById('towerDistrict').textContent=zone.name;
+      document.getElementById('heightPreview').textContent=floors*3;
+      document.getElementById('widthPreview').textContent=Math.round(blocks.at(-1).w/startWidth*100);
+      document.getElementById('towerGoal').textContent=best>=floors&&best-floors<10?'New best at '+(best+1)+' floors':zone.next?'Next skyline at '+zone.next+' floors':'Orbit reached · Keep climbing';
     }
-
-    canvas.addEventListener('pointerdown', event => {
-      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
-      event.preventDefault();
-
-      if (!running) {
-        if (!starting) startGame();
-        return;
+    function resetGame(){
+      cancelAnimationFrame(animation);clearTimeout(endTimer);animation=null;endTimer=null;ending=false;settled=false;
+      floors=0;perfects=0;speed=2.6;direction=1;camera=0;cameraTarget=0;falling=[];sparks=[];rings=[];landing=null;perfectChain=0;bestChain=0;lastFrame=0;placementLocked=false;toast={text:'',life:0,perfect:false};
+      floorsEl.textContent='0';perfectsEl.textContent='0';speedPreviewEl.textContent='1.0';rewardPreviewEl.textContent='0';
+      blocks=[{x:(canvas.width-startWidth)/2,y:baseY,w:startWidth,h:blockHeight,color:'#69809b',floor:0}];spawnMoving();refreshSkyline();
+    }
+    function spawnMoving(){
+      const previous=blocks.at(-1);
+      moving={x:direction>0?-previous.w:canvas.width,y:previous.y-blockHeight,w:previous.w,h:blockHeight,color:colorFor(floors),floor:floors+1};
+      speed=TowerStackEngine.speedFor(floors);speedPreviewEl.textContent=(speed/2.6).toFixed(1);
+    }
+    function shiftTowerIfNeeded(){cameraTarget=Math.max(0,178-blocks.at(-1).y);if(reducedMotion)camera=cameraTarget;blocks=blocks.filter(b=>b.y+cameraTarget<canvas.height+90)}
+    function roundedRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,Math.max(.01,w),h,Math.min(r,w/2,h/2))}
+    function drawBackground(){
+      const zone=TowerStackEngine.district(floors),gradient=ctx.createLinearGradient(0,0,0,560);gradient.addColorStop(0,zone.sky);gradient.addColorStop(.75,'#0b1c33');gradient.addColorStop(1,'#071323');ctx.fillStyle=gradient;ctx.fillRect(0,0,360,560);
+      ctx.fillStyle='#d6ecff55';for(let i=0;i<28;i++){const y=(i*59)%360+Math.min(110,camera*.035);ctx.fillRect((i*83+19)%360,y,1.3,1.3)}
+      const glow=ctx.createRadialGradient(292,90,5,292,90,100);glow.addColorStop(0,zone.accent+'32');glow.addColorStop(1,zone.accent+'00');ctx.fillStyle=glow;ctx.fillRect(185,0,175,200);
+      ctx.fillStyle='#d9ecffcc';ctx.beginPath();ctx.arc(298,73,15,0,Math.PI*2);ctx.fill();ctx.fillStyle=zone.sky;ctx.beginPath();ctx.arc(304,68,14,0,Math.PI*2);ctx.fill();
+      for(let layer=0;layer<2;layer++){
+        const horizon=515+Math.min(200,camera*(layer?.16:.08));
+        for(let i=0;i<11;i++){
+          const x=i*38-15+layer*12,h=48+(i*47+layer*31)%120,y=horizon-h;
+          if(y>560)continue;
+          ctx.fillStyle=layer?'#102840':'#183650';ctx.fillRect(x,y,31,h+45);
+          ctx.fillStyle=layer?'#77cde53d':'#7fabe82c';
+          for(let row=0;row<7;row++)for(let col=0;col<3;col++)if((row+col+i)%3&&y+10+row*16<horizon)ctx.fillRect(x+5+col*9,y+10+row*16,3,5);
+        }
       }
-
-      placeBlock();
-    });
-
-    document.addEventListener('pointerdown', event => {
-      if (event.target === canvas || !Arcade.inExpandedGameZone(event, canvas, 135)) return;
-      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
-      event.preventDefault();
-
-      if (!running) {
-        if (!starting) startGame();
-        return;
+      ctx.fillStyle='#ffffff08';ctx.fillRect(18,22,324,1);
+    }
+    function drawBlock(block,offset=0){
+      const y=block.y+camera+offset;if(y>580||y+blockHeight<0)return;
+      const x=block.x,w=block.w,depth=Math.min(7,w/3);
+      ctx.fillStyle='#02091677';ctx.fillRect(x+3,y+blockHeight-1,w,5);
+      ctx.fillStyle=block.color;ctx.beginPath();ctx.moveTo(x,y+8);ctx.lineTo(x+depth,y);ctx.lineTo(x+w-depth,y);ctx.lineTo(x+w,y+8);ctx.closePath();ctx.fill();
+      const face=ctx.createLinearGradient(x,y+8,x,y+28);face.addColorStop(0,block.color);face.addColorStop(1,'#19324b');ctx.fillStyle=face;ctx.fillRect(x,y+8,w,20);
+      ctx.fillStyle='#ffffff3d';ctx.fillRect(x+depth,y+2,Math.max(0,w-depth*2),2);ctx.fillStyle='#040c2645';ctx.fillRect(x+w-depth,y+8,depth,20);
+      if(w>35){ctx.fillStyle='#e5f5ff94';const count=Math.min(8,Math.floor(w/23));for(let i=0;i<count;i++)ctx.fillRect(x+10+i*(w-20)/Math.max(1,count),y+15,Math.min(7,w/10),3)}
+      if(w>75&&block.floor>0){ctx.fillStyle='#0a183caa';ctx.fillRect(x+w/2-10,y+11,20,13);ctx.fillStyle='#f0faff';ctx.font='bold 8px system-ui';ctx.textAlign='center';ctx.fillText(String(block.floor).padStart(2,'0'),x+w/2,y+21)}
+    }
+    function draw(){
+      drawBackground();const top=blocks.at(-1),zone=TowerStackEngine.district(floors);
+      const best=Arcade.number('towerStackBest'),bestY=baseY-best*blockHeight+camera;
+      if(best>floors&&bestY>80&&bestY<450){ctx.save();ctx.strokeStyle='#ffdc8b88';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(18,bestY);ctx.lineTo(342,bestY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ffe2a4';ctx.font='bold 11px system-ui';ctx.textAlign='right';ctx.fillText('BEST / '+best,338,bestY-7);ctx.restore()}
+      blocks.forEach(b=>drawBlock(b,landing?.floor===b.floor?landing.offset:0));
+      if(moving){
+        ctx.save();ctx.strokeStyle=zone.accent+'50';ctx.setLineDash([4,5]);ctx.strokeRect(top.x,moving.y+camera+9,top.w,18);ctx.setLineDash([]);ctx.restore();
+        drawBlock(moving,-18);
       }
-
-      placeBlock();
-    }, { passive:false });
-
-    canvas.addEventListener('contextmenu', event => event.preventDefault());
-
-    document.addEventListener('keydown', event => {
-      if (event.code === 'Space' || event.key === 'ArrowDown') {
-        event.preventDefault();
-        placeBlock();
-      }
-    });
-
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
-      if(!running||pauseStartedAt)return;
-      pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null;
-    },resume:()=>{
-      if(!running||!pauseStartedAt)return;
-      totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;
-      cancelAnimationFrame(animation);animation=null;
-      animation=requestAnimationFrame(loop);
-    }});
-    startButton.addEventListener('click', startGame);
-    resetGame();
-    refreshChrome();
-    draw();
+      falling.forEach(b=>{ctx.save();ctx.translate(b.x+b.w/2,b.y+camera+14);ctx.rotate(b.angle);ctx.fillStyle=b.color;ctx.fillRect(-b.w/2,-14,b.w,28);ctx.fillStyle='#ffffff3b';ctx.fillRect(-b.w/2,-14,b.w,4);ctx.restore()});
+      rings.forEach(r=>{ctx.save();ctx.globalAlpha=Math.max(0,r.life/300);ctx.strokeStyle=r.color;ctx.lineWidth=2;ctx.strokeRect(r.x-(300-r.life)*.04,r.y+camera-3,r.w+(300-r.life)*.08,32);ctx.restore()});
+      sparks.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/360);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y+camera,3,3)});ctx.globalAlpha=1;
+      ctx.textAlign='left';ctx.font='bold 11px system-ui';ctx.fillStyle=zone.accent;ctx.fillText(zone.name.toUpperCase(),18,44);
+      ctx.textAlign='right';ctx.fillStyle='#9fb9d7';ctx.fillText(floors*3+' m',342,44);
+      if(toast.life>0){ctx.save();ctx.globalAlpha=Math.min(1,toast.life/180);ctx.textAlign='center';ctx.font='900 '+(toast.perfect?25:16)+'px system-ui';ctx.fillStyle=toast.perfect?'#aff8e3':'#d4e6ff';ctx.fillText(toast.text,180,87);ctx.font='11px system-ui';ctx.fillStyle='#a7c4dc';ctx.fillText(toast.perfect?'FULL WIDTH KEPT':'LINE UP THE NEXT FLOOR',180,107);ctx.restore()}
+      if(!running&&!ending){ctx.fillStyle='#06132955';ctx.fillRect(0,0,360,560);ctx.textAlign='center';ctx.fillStyle='#e9f4ff';ctx.font='900 25px system-ui';ctx.fillText(floors?'SKYLINE COMPLETE':'BUILD YOUR SKYLINE',180,215);ctx.font='13px system-ui';ctx.fillStyle='#b5cce7';ctx.fillText('Tap when the moving floor lines up',180,241)}
+    }
+    function addCut(cut,color,y){if(reducedMotion||!cut||cut.w<=0)return;falling.push({...cut,y:y-18,color,vx:(cut.x<180?-1:1)*.085,vy:-.06,angle:0,spin:cut.x<180?-.003:.003,life:1100});if(falling.length>12)falling.shift()}
+    function placeBlock(){
+      if(!running||starting||!moving||placementLocked||document.body.classList.contains('earnly-game-paused'))return;
+      placementLocked=true;const previous=blocks.at(-1),placed=TowerStackEngine.placement(previous,moving);
+      if(placed.miss){addCut({x:moving.x,w:moving.w},moving.color,moving.y);finishGame();return}
+      if(placed.perfect){perfects++;perfectChain++;bestChain=Math.max(bestChain,perfectChain);Arcade.feedback('perfect')}else{perfectChain=0;addCut(placed.cut,moving.color,moving.y);Arcade.feedback('stack')}
+      floors++;blocks.push({x:placed.x,y:moving.y,w:placed.w,h:blockHeight,color:moving.color,floor:floors});
+      landing={floor:floors,remaining:140,offset:reducedMotion?0:-18};
+      toast={text:placed.perfect?'PERFECT'+(perfectChain>1?' ×'+perfectChain:''):'CLEAN CUT · '+Math.round(placed.w/startWidth*100)+'%',life:750,perfect:placed.perfect};
+      if(!reducedMotion){rings.push({x:placed.x,y:moving.y,w:placed.w,life:300,color:placed.perfect?'#a0f2d4':moving.color});if(rings.length>4)rings.shift();for(let i=0;i<8;i++)sparks.push({x:placed.x+placed.w/2,y:moving.y+8,vx:(i-3.5)*.055,vy:-.12-Math.random()*.08,life:360,color:moving.color});if(sparks.length>32)sparks.splice(0,sparks.length-32)}
+      floorsEl.textContent=floors;perfectsEl.textContent=perfects;refreshRewardProgress();shiftTowerIfNeeded();refreshSkyline();direction*=-1;spawnMoving();
+    }
+    function updateVisuals(dt){
+      if(!reducedMotion)camera+=(cameraTarget-camera)*(1-Math.exp(-dt/95));
+      if(landing){landing.remaining-=dt;const t=1-Math.max(0,landing.remaining)/140;landing.offset=reducedMotion?0:-18*(1-t)*(1-t);if(landing.remaining<=0){landing=null;placementLocked=false}}
+      falling.forEach(b=>{b.vy+=.0006*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.angle+=b.spin*dt;b.life-=dt});falling=falling.filter(b=>b.life>0&&b.y+camera<700);
+      sparks.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.00045*dt;p.life-=dt});sparks=sparks.filter(p=>p.life>0);
+      rings.forEach(r=>r.life-=dt);rings=rings.filter(r=>r.life>0);toast.life=Math.max(0,toast.life-dt);
+    }
+    function loop(now){
+      if((!running&&!ending)||pauseStartedAt)return;
+      const dt=lastFrame?Math.min(50,Math.max(0,now-lastFrame)):0;lastFrame=now;
+      if(running&&moving&&!placementLocked)moving.x=TowerStackEngine.advance(moving.x,moving.w,canvas.width,direction,speed,dt);
+      updateVisuals(dt);draw();animation=requestAnimationFrame(loop);
+    }
+    function finishGame(){
+      if(!running||settled)return;running=false;ending=true;settled=true;placementLocked=true;moving=null;pauseStartedAt=0;
+      const earned=rewardFor(floors,perfects);Arcade.earn(earned,'Tower Stack',{kind:'game',game:'towerStack',metric:floors,aux:perfects});const result=Arcade.recordResult('towerStack',floors);Arcade.feedback('fail');
+      const best=Math.max(floors,Arcade.number('towerStackBest'));localStorage.setItem('towerStackBest',String(best));
+      refreshChrome();startButton.disabled=true;
+      endTimer=setTimeout(()=>{
+        ending=false;starting=false;cancelAnimationFrame(animation);animation=null;endTimer=null;startButton.disabled=false;startButton.textContent='👆 Tap Tower to Play Again';setStatus('Game Over','over');draw();
+        const precision=floors?Math.round(perfects/floors*100):0;
+        Arcade.gameResult({icon:'🏙️',title:result.newBest?'New Skyline Record!':'Tower Finished',scoreLabel:'Floors Stacked',score:floors,best:best+' floors',coins:earned,result,playsLeft:Arcade.remaining('towerStack'),game:'towerStack',outcome:TowerStackEngine.district(floors).name+' · '+floors*3+' m',tip:'Next goal: '+(best>=floors?best+1:floors+1)+' floors',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','Perfect stacks: '+perfects+' · '+precision+'% precision','Best perfect chain: '+bestChain+' · Platform remaining: '+Math.round(blocks.at(-1).w/startWidth*100)+'%','Districts, height and perfect chains add no extra score or Coins.'],onReplay:startGame,onMorePlays:()=>Arcade.out('towerStack',refreshChrome)});
+      },reducedMotion?80:320);
+    }
+    function startGame(){
+      if(running||starting||ending||document.querySelector('dialog[open]'))return;starting=true;
+      if(!Arcade.consume('towerStack')){starting=false;Arcade.out('towerStack',refreshChrome);return}
+      const token=++runToken;earnlyRunStartedAt=0;totalPausedMs=0;pauseStartedAt=0;resetGame();running=false;startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');refreshChrome();draw();
+      Arcade.countdown(()=>{if(token!==runToken||!starting)return;starting=false;running=true;earnlyRunStartedAt=performance.now();lastFrame=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)});
+    }
+    canvas.addEventListener('pointerdown',event=>{if(event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;event.preventDefault();if(!running){if(!starting&&!ending)startGame();return}placeBlock()});
+    document.addEventListener('pointerdown',event=>{if(event.target===canvas||!Arcade.inExpandedGameZone(event,canvas,135))return;if(event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;event.preventDefault();if(!running){if(!starting&&!ending)startGame();return}placeBlock()},{passive:false});
+    canvas.addEventListener('contextmenu',event=>event.preventDefault());
+    document.addEventListener('keydown',event=>{if(event.repeat||Arcade.isProtectedGameControlTarget(event.target))return;if(event.code==='Space'||event.key==='ArrowDown'){event.preventDefault();placeBlock()}});
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{if(!running||pauseStartedAt)return;pauseStartedAt=performance.now();cancelAnimationFrame(animation);animation=null},resume:()=>{if(!running||!pauseStartedAt)return;totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=requestAnimationFrame(loop)}});
+    const controls=document.getElementById('towerControls');controls.append(document.getElementById('earnlyPauseButton'),document.getElementById('earnlyQuitButton'));
+    document.querySelectorAll('.earnly-session-dock:empty').forEach(dock=>dock.remove());
+    function quitTower(){runToken++;running=false;starting=false;ending=false;cancelAnimationFrame(animation);clearTimeout(endTimer);animation=null;endTimer=null;lastFrame=0}
+    document.getElementById('earnlyQuitButton').addEventListener('click',quitTower);window.addEventListener('pagehide',quitTower);
+    startButton.addEventListener('click',startGame);resetGame();refreshChrome();draw();
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
