@@ -3,7 +3,12 @@ for(const viewport of [{width:390,height:844},{width:320,height:568},{width:844,
  await page.setViewportSize(viewport);
  await page.goto('/'+name+'.html');
  await page.evaluate(()=>{Arcade.countdown=callback=>callback()});
- if(name==='blockdrop')await page.locator('#blockDropBoardStart').click();else await page.locator('#startButton').click();
+ if(name==='blockdrop')await page.locator('#blockDropBoardStart').click();
+ else if(name==='paddlerally'){
+  // Mobile entry uses the board's real pointer handler; the legacy button is hidden.
+  const board=page.locator('canvas#game');
+  if(info.project.use.hasTouch)await board.tap({position:{x:100,y:100}});else await board.click({position:{x:100,y:100}});
+ }else await page.locator('#startButton').click();
  await expect(page.locator('body')).toHaveClass(/game-active/);
  await expect(page.locator('.arcade-pulse')).toBeVisible();
  await expect(page.locator('canvas#game')).toBeVisible();
