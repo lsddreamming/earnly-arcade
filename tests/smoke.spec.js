@@ -1071,6 +1071,7 @@ test('Color Match teaches the rule and scores the actual ink color', async ({ pa
   await expect(page.locator('#score')).toHaveText('1');
   await expect(page.locator('#colorFeedback')).toContainText('Correct');
 
+  await page.waitForFunction(()=>!answerLocked);
   const nextAnswer = await page.evaluate(() => answer);
   const wrongChoice = await page.locator('.color-choice').evaluateAll((buttons, expected) => {
     const match = buttons.find(button => button.dataset.color !== expected);

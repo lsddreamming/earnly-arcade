@@ -16,131 +16,11 @@
   <meta name="description" content="A quick decision game where the written word tries to distract you from its ink color.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
-  <style>
-    html,body,.container{touch-action:manipulation}
-    .color-board{max-width:390px;margin:12px auto;padding:18px;border:1px solid #475569;border-radius:20px;background:#152236;touch-action:manipulation}
-    .color-rule{color:#cbd5e1;font-size:12px;margin-bottom:7px;font-weight:800}.color-word{font-size:44px;font-weight:900;letter-spacing:.02em;margin:14px 0 12px}
-    .color-example{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto 8px;padding:7px 9px;border:1px solid rgba(59,130,246,.28);border-radius:11px;background:rgba(15,23,42,.55);color:#cbd5e1;font-size:10px;font-weight:750}
-    .color-example-word{color:#3b82f6;font-size:15px;font-weight:950;letter-spacing:.04em}
-    body.colormatch-page.game-active .color-example{display:none!important}
-    .color-feedback{min-height:24px;margin:0 0 8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:850}
-    .color-feedback.good{color:#86efac}.color-feedback.bad{color:#fca5a5}
-    .color-choice{position:relative;overflow:hidden}
-    .color-choice::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 55%)}
-    .color-choice.correct-flash{transform:scale(.98);box-shadow:0 0 0 2px rgba(134,239,172,.55),0 0 20px rgba(34,197,94,.18)!important}
-    .color-choice.wrong-flash{transform:scale(.98);box-shadow:0 0 0 2px rgba(252,165,165,.55),0 0 20px rgba(239,68,68,.16)!important}
-    .color-reward-hud{width:max-content;max-width:100%;margin:0 auto 4px;padding:6px 11px;border:1px solid rgba(250,204,21,.46);border-radius:999px;background:rgba(120,84,8,.16);color:#fde68a;font-size:11px;font-weight:900;box-sizing:border-box}
-    .color-reward-hud strong{font-size:15px;color:#fff7b2}.color-reward-hud.reward-bump{animation:colorRewardBump .34s ease}
-    @keyframes colorRewardBump{0%{transform:scale(1)}45%{transform:scale(1.08);box-shadow:0 0 18px rgba(250,204,21,.22)}100%{transform:scale(1)}}
-    .color-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.color-choice{min-height:58px;margin:0;font-size:15px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
-    @media(max-width:600px){
-      body.colormatch-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;padding-bottom:92px!important}
-      body.colormatch-page .topbar{margin-bottom:6px!important}
-      body.colormatch-page .page-header{
-        margin:2px 0 7px!important;
-        padding:11px!important;
-        gap:6px!important;
-        border:1px solid rgba(245,158,11,.30)!important;
-        border-radius:18px!important;
-        background:
-          radial-gradient(circle at 88% 0%,rgba(245,158,11,.10),transparent 38%),
-          radial-gradient(circle at 12% 100%,rgba(236,72,153,.07),transparent 34%),
-          linear-gradient(145deg,rgba(27,38,60,.97),rgba(10,22,38,.97))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
-      }
-      body.colormatch-page .page-header h1{font-size:22px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
-      body.colormatch-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;width:100%!important}
-      body.colormatch-page .meta-pill{
-        min-height:37px!important;
-        padding:4px 3px!important;
-        display:flex!important;
-        align-items:center!important;
-        justify-content:center!important;
-        text-align:center!important;
-        font-size:9px!important;
-        font-weight:850!important;
-        border:1px solid rgba(67,119,164,.34)!important;
-        border-radius:11px!important;
-        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
-      }
-      body.colormatch-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
-      body.colormatch-page .color-board{
-        width:min(92vw,390px)!important;
-        box-sizing:border-box!important;
-        margin:7px auto!important;
-        padding:15px!important;
-        border:2px solid rgba(245,158,11,.26)!important;
-        border-radius:20px!important;
-        background:
-          radial-gradient(circle at 50% 0%,rgba(245,158,11,.05),transparent 40%),
-          linear-gradient(180deg,#15253b,#0d1a2c)!important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.025),
-          0 18px 38px rgba(0,0,0,.24)!important
-      }
-      body.colormatch-page .color-rule{font-size:11px!important;margin-bottom:5px!important}
-      body.colormatch-page .color-example{margin-bottom:6px!important;padding:6px 7px!important;font-size:9.5px!important}
-      body.colormatch-page .color-word{font-size:42px!important;margin:10px 0 10px!important}
-      body.colormatch-page .color-feedback{min-height:22px!important;margin-bottom:7px!important;font-size:10px!important}
-      body.colormatch-page .color-choice{
-        min-height:62px!important;
-        font-size:16px!important;
-        font-weight:850!important;
-        border-radius:14px!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 18px rgba(0,0,0,.12)!important
-      }
-      body.colormatch-page.game-active .topbar,
-      body.colormatch-page.game-active .game-guide-strip,
-      body.colormatch-page.game-active .game-guide-more,
-      body.colormatch-page.game-active #startButton,
-      body.colormatch-page.game-active .color-example{display:none!important}
-      body.colormatch-page.game-active main.container{padding-top:8px!important}
-      body.colormatch-page.game-active .page-header{margin-bottom:4px!important}
-      body.colormatch-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
-      body.colormatch-page.game-active .game-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-      body.colormatch-page.game-active .color-board{width:min(94vw,400px)!important;margin:4px auto!important;padding:16px!important}
-      body.colormatch-page.game-active .color-word{font-size:50px!important;margin:14px 0 10px!important}
-      body.colormatch-page.game-active .color-choice{min-height:72px!important;font-size:17px!important}
-      body.colormatch-page.game-active .colormatch-exit{
-        position:fixed!important;
-        top:max(8px,env(safe-area-inset-top))!important;
-        left:9px!important;
-        z-index:1200!important;
-        width:auto!important;
-        min-height:38px!important;
-        margin:0!important;
-        padding:8px 11px!important;
-        border:1px solid rgba(248,113,113,.55)!important;
-        border-radius:12px!important;
-        background:rgba(69,10,10,.92)!important;
-        color:#fecaca!important;
-        font-size:12px!important;
-        font-weight:900!important;
-        box-shadow:0 8px 24px rgba(0,0,0,.35)!important;
-        backdrop-filter:blur(8px)
-      }
-      body.colormatch-page.game-active #earnlyPauseButton{
-        position:fixed!important;
-        top:max(8px,env(safe-area-inset-top))!important;
-        right:9px!important;
-        z-index:1200!important;
-        width:auto!important;
-        min-width:86px!important;
-        min-height:38px!important;
-        margin:0!important;
-        padding:8px 11px!important;
-        border-radius:12px!important;
-        font-size:12px!important;
-        font-weight:900!important;
-        backdrop-filter:blur(8px)
-      }
-      body.colormatch-page.game-active main.container{padding-top:max(54px,calc(env(safe-area-inset-top) + 48px))!important}
-    }
-  </style>
+
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/colormatch.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
+  <link rel="stylesheet" href="color-match.css">
 </head>
 <body class="classic-game-ui colormatch-page">
   <main class="container">
@@ -158,12 +38,16 @@
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <div class="color-board touch-surface" id="board" aria-label="Color Match game area">
-      <div class="color-rule">Choose the <strong>COLOR YOU SEE</strong> — ignore what the word says.</div>
+      <div class="prism-top"><span id="colorStage">Focus / 01</span><span id="roundLabel">25 seconds · 4 colors</span></div>
+      <div class="prism-clock" id="colorClock" role="progressbar" aria-label="Seconds remaining" aria-valuemin="0" aria-valuemax="25" aria-valuenow="25"><span></span></div>
+      <div class="color-rule">Choose the <strong>COLOR YOU SEE</strong> — ignore the word.</div>
       <div class="color-example"><span class="color-example-word">RED</span><span>painted blue → tap <strong>BLUE</strong></span></div>
-      <div class="color-reward-hud" id="runRewardPill" aria-live="polite">🪙 Run Reward <strong id="rewardPreview">0</strong></div>
-      <div class="color-word" id="word">READY</div>
+      <div class="prism-prompt"><small>READ THE INK</small><div class="color-word" id="word">READY</div><small>TRUST YOUR EYES</small></div>
       <div class="color-feedback" id="colorFeedback" aria-live="polite">Look at the ink color, not the word.</div>
       <div class="color-choices" id="choices"></div>
+      <div class="prism-progress"><div><span id="streakLabel">STREAK / 0</span><div class="prism-streak" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><span id="colorGoal">Next: 8 matches</span></div>
+      <div class="prism-stage-track" aria-hidden="true"><span id="stageTrack"></span></div>
+      <div class="color-reward-hud" id="runRewardPill"><span>🪙 Run Reward <strong id="rewardPreview">0</strong></span><span id="nextReward">Next Coins at 4 matches</span></div>
     </div>
     <a class="button wide secondary colormatch-exit" id="colorMatchExit" href="games.html">✕ Quit Game</a>
 
@@ -177,91 +61,106 @@
     </footer>
 </main>
   <script src="arcade.js"></script>
+  <script src="color-match-engine.js"></script>
   <script>
-    const playsEl=document.getElementById('plays');
-    const balanceEl=document.getElementById('balance');
-    const statusEl=document.getElementById('gameStatus');
-    const startButton=document.getElementById('startButton');
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'); }
-    function refreshChrome(){ playsEl.textContent=Arcade.remaining('colorMatch'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
-    function beginPlay(){
-      if(!Arcade.consume('colorMatch')){ Arcade.out('colorMatch',refreshChrome); return false; }
-      refreshChrome(); return true;
-    }
-
+    const playsEl=document.getElementById('plays'),balanceEl=document.getElementById('balance'),statusEl=document.getElementById('gameStatus'),startButton=document.getElementById('startButton');
+    function setStatus(text,mode){statusEl.textContent=text;statusEl.className='game-status'+(mode?' '+mode:'');document.body.classList.toggle('game-active',mode==='running')}
+    function refreshChrome(){playsEl.textContent=Arcade.remaining('colorMatch');balanceEl.textContent=Arcade.number('points').toLocaleString();refreshReward()}
+    function beginPlay(){if(!Arcade.consume('colorMatch')){Arcade.out('colorMatch',refreshChrome);return false}refreshChrome();return true}
     const board=document.getElementById('board'),wordEl=document.getElementById('word'),choices=document.getElementById('choices');
     const scoreEl=document.getElementById('score'),streakEl=document.getElementById('streak'),timeEl=document.getElementById('time'),rewardPreviewEl=document.getElementById('rewardPreview'),runRewardPill=document.getElementById('runRewardPill'),feedbackEl=document.getElementById('colorFeedback');
-    const colors=[['RED','#ef4444'],['BLUE','#3b82f6'],['GREEN','#22c55e'],['YELLOW','#facc15']];
-    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,feedbackTimer=null,answer='',answerLocked=false,roundEndsAt=0;
-    Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Rule',text:'Pick the COLOR YOU SEE'},{icon:'🚫',title:'Ignore',text:'Do not follow the word'}],
-      overlayIcon:'🎨',overlayTitle:'Pick the Color You See',overlayText:'If RED is painted blue, tap BLUE. The word is the trick.',replayTitle:'Tap to Play Again',
-      tips:['Look only at the ink color. Example: RED painted blue = tap BLUE.','Keyboard players can press 1, 2, 3, or 4 for the four buttons.'],reward:'Fast correct matches can earn up to 88 Coins.'});
-    function rewardFor(v){ return Arcade.gameReward('colorMatch',v); }
-    let lastRewardShown=0;
+    const stageEl=document.getElementById('colorStage'),goalEl=document.getElementById('colorGoal'),clockEl=document.getElementById('colorClock'),stageTrack=document.getElementById('stageTrack'),roundLabel=document.getElementById('roundLabel');
+    const colors=ColorMatchEngine.colors;
+    let score=0,streak=0,timeLeft=25,running=false,starting=false,timer=null,answer='',answerLocked=false,roundEndsAt=0;
+    let lastRound=null,nextRoundAt=0,promptShownAt=0,attempts=0,bestStreak=0,reactionTotal=0,fastest=Infinity,runToken=0,bestCelebrated=false,lastRewardShown=0;
+    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
+    Arcade.gameGuide({game:'colorMatch',surface:board,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'🎨',title:'Rule',text:'Pick the COLOR YOU SEE'},{icon:'🚫',title:'Ignore',text:'Do not follow the word'}],overlayIcon:'🎨',overlayTitle:'Pick the Color You See',overlayText:'If RED is painted blue, tap BLUE. The word is the trick.',replayTitle:'Tap to Play Again',tips:['Choose the ink color, not the word. Four named buttons stay easy to find.','Keyboard: 1–4 follow the button numbers. Streaks and stages are extra goals, not Coin multipliers.'],reward:'25 seconds · Existing rewards, up to 88 Coins.'});
+    function rewardFor(v){return Arcade.gameReward('colorMatch',v)}
     function refreshReward(){
-      const reward=rewardFor(score);
-      rewardPreviewEl.textContent=String(reward);
-      if(running&&reward>lastRewardShown){
-        runRewardPill.classList.remove('reward-bump');
-        void runRewardPill.offsetWidth;
-        runRewardPill.classList.add('reward-bump');
-      }
+      const reward=rewardFor(score);rewardPreviewEl.textContent=String(reward);
+      if(running&&reward>lastRewardShown){runRewardPill.classList.remove('reward-bump');void runRewardPill.offsetWidth;runRewardPill.classList.add('reward-bump')}
       lastRewardShown=reward;
+      let target=score+1;while(target<=100&&rewardFor(target)<=reward)target++;
+      document.getElementById('nextReward').textContent=reward>=88?'88-Coin run cap':target<=100?'Next Coins at '+target+' matches':'Keep chasing your best';
     }
-    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    function refreshProgress(){
+      const stage=ColorMatchEngine.stage(score);stageEl.textContent=stage.name+' / '+(ColorMatchEngine.stages.indexOf(stage)+1).toString().padStart(2,'0');
+      board.style.setProperty('--prism',['#87baff','#78e8cb','#c5a0ff','#ffcf5c'][ColorMatchEngine.stages.indexOf(stage)]);
+      const best=Arcade.number('colorMatchBest');
+      goalEl.textContent=stage.next?'Next: '+stage.next+' matches · '+(stage.next-score)+' to go':best>score?'Personal best: '+best:'Prism reached · Keep going';
+      stageTrack.style.width=(stage.next?Math.min(100,(score-stage.at)/(stage.next-stage.at)*100):100)+'%';
+      const lit=streak?((streak-1)%5)+1:0;
+      document.querySelectorAll('.prism-streak i').forEach((pip,i)=>pip.classList.toggle('lit',i<lit));
+      document.getElementById('streakLabel').textContent=streak>=5?streak+' IN A ROW':'STREAK / '+streak;
+      roundLabel.textContent=attempts?Math.round(score/attempts*100)+'% accuracy':'25 seconds · 4 colors';
+    }
     function nextRound(){
-      answerLocked=false;
-      const ink=colors[Math.floor(Math.random()*colors.length)],word=colors[Math.floor(Math.random()*colors.length)];
-      answer=ink[0];wordEl.textContent=word[0];wordEl.style.color=ink[1];choices.replaceChildren();
-      shuffle([...colors]).forEach(([name,color],idx)=>{const b=document.createElement('button');b.type='button';b.className='color-choice';b.dataset.color=name;b.textContent=(idx+1)+' · '+name;b.style.border='2px solid '+color;b.style.background=color+'20';b.style.color='#f8fafc';b.addEventListener('click',()=>choose(name,b));choices.append(b)});
+      if(!running)return;
+      lastRound=ColorMatchEngine.nextRound(lastRound,score);answer=lastRound.ink;
+      wordEl.textContent=lastRound.word;wordEl.style.color=lastRound.hex;
+      answerLocked=false;nextRoundAt=0;promptShownAt=performance.now();choices.replaceChildren();
+      lastRound.choices.forEach(([name,color],idx)=>{
+        const b=document.createElement('button');b.type='button';b.className='color-choice';b.dataset.color=name;b.style.setProperty('--ink',color);
+        b.setAttribute('aria-label',(idx+1)+' · '+name);
+        const label=document.createElement('span');label.textContent=name;
+        const shortcut=document.createElement('small');shortcut.textContent=idx+1;shortcut.setAttribute('aria-hidden','true');b.append(label,shortcut);
+        b.addEventListener('click',()=>choose(name,b));choices.append(b);
+      });
+      refreshProgress();
     }
     function choose(name,button=null){
-      if(!running||answerLocked||document.body.classList.contains('earnly-game-paused'))return;
-      if(roundEndsAt && performance.now()>=roundEndsAt){finish();return}
-      answerLocked=true;
-      const expected=answer;
-      const correct=name===expected;
-      if(correct){score++;streak++;Arcade.feedback('score')}
+      if(!running||answerLocked||document.body.classList.contains('earnly-game-paused')||!colors.some(c=>c[0]===name))return;
+      const now=performance.now();if(now>=roundEndsAt){finish();return}
+      answerLocked=true;attempts++;
+      const expected=answer,correct=name===expected;
+      if(correct){score++;streak++;bestStreak=Math.max(bestStreak,streak);const reaction=Math.max(0,now-promptShownAt);reactionTotal+=reaction;fastest=Math.min(fastest,reaction);Arcade.feedback(streak>=5?'catch-streak':'score')}
       else{streak=0;Arcade.feedback('fail')}
-      if(button)button.classList.add(correct?'correct-flash':'wrong-flash');
+      const target=button||choices.querySelector('[data-color="'+name+'"]');target?.classList.add(correct?'correct-flash':'wrong-flash');
+      if(!correct)choices.querySelector('[data-color="'+expected+'"]')?.classList.add('correct-flash');
+      board.classList.remove('correct','wrong');void board.offsetWidth;board.classList.add(correct?'correct':'wrong');
       feedbackEl.className='color-feedback '+(correct?'good':'bad');
-      feedbackEl.textContent=correct?'✓ Correct · '+expected:'✕ Ink was '+expected;
-      clearTimeout(feedbackTimer);
-      feedbackTimer=setTimeout(()=>{
-        if(!running)return;
-        feedbackEl.className='color-feedback';
-        feedbackEl.textContent='Look at the ink color, not the word.';
-      },650);
-      scoreEl.textContent=String(score);streakEl.textContent=String(streak);refreshReward();nextRound();
+      feedbackEl.textContent=correct?'✓ Correct · '+expected+(streak>=5?' · '+streak+' streak!':''):'✕ Ink was '+expected;
+      scoreEl.textContent=String(score);streakEl.textContent=String(streak);refreshReward();refreshProgress();
+      if(!bestCelebrated&&Arcade.number('colorMatchBest')>0&&score>Arcade.number('colorMatchBest')){bestCelebrated=true;feedbackEl.textContent+=' · New best!'}
+      // Briefly hold the answer so its feedback remains visible and one input
+      // cannot answer two prompts. The run clock continues through this beat.
+      nextRoundAt=now+(correct?120:260);
+    }
+    function tick(){
+      if(!running||pauseStartedAt)return;
+      const now=performance.now(),remaining=Math.max(0,roundEndsAt-now);
+      timeLeft=Math.ceil(remaining/1000);timeEl.textContent=String(timeLeft);
+      clockEl.style.setProperty('--time',remaining/25000);clockEl.setAttribute('aria-valuenow',(remaining/1000).toFixed(1));
+      board.classList.toggle('urgent',remaining<=5000);
+      if(!remaining){finish();return}
+      if(nextRoundAt&&now>=nextRoundAt)nextRound();
     }
     function finish(){
-      if(!running)return;running=false;answerLocked=true;clearInterval(timer);timer=null;clearTimeout(feedbackTimer);feedbackTimer=null;roundEndsAt=0;pauseStartedAt=0;answer='';
+      if(!running)return;running=false;starting=false;answerLocked=true;clearInterval(timer);timer=null;nextRoundAt=0;roundEndsAt=0;pauseStartedAt=0;answer='';
       const earned=rewardFor(score);Arcade.earn(earned,'Color Match',{kind:'game',game:'colorMatch',metric:score});const result=Arcade.recordResult('colorMatch',score);Arcade.feedback('success');
-      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#fff';feedbackEl.className='color-feedback';feedbackEl.textContent='Round complete';choices.replaceChildren();
-      Arcade.gameResult({icon:'🎨',title:'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',score>=25?'🔥 Your brain ignored the trick.':'Focus on the ink, not the word.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
+      refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Time!','over');wordEl.textContent='DONE';wordEl.style.color='#e7f1ff';feedbackEl.className='color-feedback';feedbackEl.textContent='Round complete';choices.replaceChildren();board.classList.remove('correct','wrong','urgent');
+      const accuracy=attempts?Math.round(score/attempts*100):0;
+      const medal=score>=30&&accuracy>=90?'Prism Master':score>=18?'Color Specialist':score>=8?'Focus Finder':'Ink Apprentice';
+      Arcade.gameResult({icon:'🎨',title:result.newBest?'New Color Match Best!':'Color Round Complete',scoreLabel:'Correct Matches',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('colorMatch'),game:'colorMatch',outcome:medal+' · '+accuracy+'% accuracy',tip:score>=30?'Chase a cleaner, faster run.':'Next goal: '+(score<8?8:score<18?18:30)+' matches',extra:['Best streak: '+bestStreak+' · '+attempts+' answers',score?'Average correct reaction: '+Math.round(reactionTotal/score)+' ms · Fastest: '+Math.round(fastest)+' ms':'Look at the ink color, not the word.','Streaks and medals add no extra score or Coins.'],onReplay:startGame,onMorePlays:()=>Arcade.out('colorMatch',refreshChrome)});
     }
-    let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
     function startGame(){
-      if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return}
-      earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
-      clearInterval(timer);timer=null;clearTimeout(feedbackTimer);feedbackTimer=null;answerLocked=true;answer='';roundEndsAt=0;choices.replaceChildren();score=0;streak=0;timeLeft=25;lastRewardShown=0;feedbackEl.className='color-feedback';feedbackEl.textContent='Look at the ink color, not the word.';scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';refreshReward();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100)});
+      if(running||starting||document.querySelector('dialog[open]'))return;
+      starting=true;if(!beginPlay()){starting=false;return}const token=++runToken;
+      earnlyRunStartedAt=0;totalPausedMs=0;pauseStartedAt=0;clearInterval(timer);timer=null;
+      answerLocked=true;answer='';roundEndsAt=0;nextRoundAt=0;lastRound=null;attempts=0;bestStreak=0;reactionTotal=0;fastest=Infinity;bestCelebrated=false;
+      choices.replaceChildren();score=0;streak=0;timeLeft=25;lastRewardShown=0;feedbackEl.className='color-feedback';feedbackEl.textContent='Look at the ink color, not the word.';scoreEl.textContent='0';streakEl.textContent='0';timeEl.textContent='25';clockEl.style.setProperty('--time',1);clockEl.setAttribute('aria-valuenow','25');board.classList.remove('correct','wrong','urgent');wordEl.textContent='READY';wordEl.style.color='#e7f1ff';refreshReward();refreshProgress();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{if(token!==runToken||!starting)return;starting=false;running=true;earnlyRunStartedAt=performance.now();roundEndsAt=performance.now()+25000;startButton.textContent='Game Running';setStatus('Running','running');nextRound();timer=setInterval(tick,50)});
     }
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
-      if(!running||pauseStartedAt)return;
-      pauseStartedAt=performance.now();clearInterval(timer);timer=null;
-    },resume:()=>{
-      if(!running||!pauseStartedAt)return;
-      const pausedFor=Math.max(0,performance.now()-pauseStartedAt);
-      totalPausedMs+=pausedFor;if(roundEndsAt)roundEndsAt+=pausedFor;pauseStartedAt=0;
-      clearInterval(timer);timer=null;
-      timer=setInterval(()=>{timeLeft=Math.max(0,Math.ceil((roundEndsAt-performance.now())/1000));timeEl.textContent=String(timeLeft);if(timeLeft<=0)finish()},100);
+    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{if(!running||pauseStartedAt)return;pauseStartedAt=performance.now();clearInterval(timer);timer=null},resume:()=>{
+      if(!running||!pauseStartedAt)return;const pausedFor=Math.max(0,performance.now()-pauseStartedAt);totalPausedMs+=pausedFor;roundEndsAt+=pausedFor;if(nextRoundAt)nextRoundAt+=pausedFor;promptShownAt+=pausedFor;pauseStartedAt=0;clearInterval(timer);timer=setInterval(tick,50);tick();
     }});
+    // This page has its own Quit control beside Pause.
+    document.getElementById('earnlyQuitButton')?.remove();
+    function quitColorRun(){runToken++;running=false;starting=false;answerLocked=true;clearInterval(timer);timer=null;nextRoundAt=0;roundEndsAt=0}
+    document.getElementById('colorMatchExit').addEventListener('click',quitColorRun);window.addEventListener('pagehide',quitColorRun);
     board.addEventListener('pointerdown',e=>{if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;if(e.target.closest('button'))return;if(!running&&!starting){e.preventDefault();startGame()}});
-    document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
-    startButton.addEventListener('click',startGame);refreshChrome();
-
+    document.addEventListener('keydown',e=>{if(e.repeat||Arcade.isProtectedGameControlTarget(e.target))return;if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}if(!running)return;const n=Number(e.key);if(n>=1&&n<=4){e.preventDefault();const b=choices.children[n-1];if(b)b.click()}});
+    startButton.addEventListener('click',startGame);refreshChrome();refreshProgress();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>

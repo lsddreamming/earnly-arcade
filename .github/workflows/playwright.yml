@@ -80,6 +80,16 @@ jobs:
       - name: Install WebKit on macOS
         if: matrix.project == 'mobile-webkit'
         run: npx playwright install webkit
+      - name: Verify Color Match Prism feedback and phone controls
+        run: node --test scripts/test-color-match-engine.cjs && npx playwright test tests/color-match-polish.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+      - name: Upload Color Match previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: color-match-previews-${{ matrix.project }}${{ matrix.artifact_suffix }}
+          path: test-results/**/color-match-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify first-screen catalog, retries and controls
         run: npx playwright test tests/mobile-density.spec.js tests/daily-results.spec.js tests/neonbreach.spec.js tests/smoke.spec.js --project=${{ matrix.project }} --grep 'mobile catalog shows Crystal Command|catalog badges|catalog puts|website empty-play|native empty-play|Snake result explains|Neon Breach shows|Help pauses|First movement hints'
       - name: Verify Bubble Pop public release
