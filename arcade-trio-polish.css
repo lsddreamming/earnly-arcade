@@ -9,3 +9,6 @@
 .maze-page.game-active .game-guide-link,.maze-page.game-active .public-footer{display:none!important}
 @media(max-height:700px){.game-active .arcade-pulse{margin:3px auto;padding:5px 8px;min-height:26px;font-size:10px}.maze-page.game-active .maze-board{width:min(90vw,390px,calc((100dvh - 190px)*.79))!important}}
 @media(prefers-reduced-motion:reduce){.game-control,.maze-controls button{transition:none!important}}
+html body:is(.blockdrop-page,.paddlerally-page).game-active :is(.topbar,#arcadeBottomNav,#startButton,#blockDropBoardStart,.blockdrop-quick-tip,.game-start-summary,.game-guide-more,.game-guide-link,.public-footer){display:none!important}
+html body.blockdrop-page.game-active .blockdrop-board{max-height:calc(100dvh - 270px)!important;width:auto!important;max-width:66vw!important}
+html body.paddlerally-page.game-active .rally-board{max-height:calc(100dvh - 300px)!important;width:auto!important;max-width:90vw!important}
