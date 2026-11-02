@@ -158,6 +158,16 @@ jobs:
           path: test-results/**/traffic-escape*.png
           if-no-files-found: ignore
           retention-days: 7
+      - name: Verify Brick Breaker arena, collisions and paddle controls
+        run: npx playwright test tests/brickbreaker-polish.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+      - name: Upload Brick Breaker arena previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brickbreaker-previews-${{ matrix.project }}${{ matrix.artifact_suffix }}
+          path: test-results/**/brickbreaker-neon-arena.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify World controls
         run: npx playwright test tests/world.spec.js tests/world-social.spec.js tests/world-onboarding.spec.js tests/world-animals.spec.js tests/world-ai-residents.spec.js tests/world-pets.spec.js tests/world-bathroom.spec.js tests/world-playroom.spec.js tests/world-halloween.spec.js tests/world-decor-polish.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload World collection previews

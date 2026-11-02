@@ -34,6 +34,10 @@
     .continue-result-dialog .modal-actions .green{background:linear-gradient(135deg,#12ca70,#039b50);box-shadow:0 6px 22px #00bd6324}
     .continue-result-dialog button:focus-visible{outline:2px solid #67e8f9;outline-offset:3px}
 
+    body.brick-breaker-page{background:radial-gradient(ellipse at 50% 15%,#12344a,transparent 60%),#060d1c}
+    body.brick-breaker-page .page-header h1{color:#a5f3fc;text-shadow:0 0 24px #22d3ee33}
+    body.brick-breaker-page.game-active #startButton{display:none!important}
+    body.brick-breaker-page.game-active.awaiting-next-level #startButton{display:block!important}
     .brick-board{width:min(86vw,360px);height:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
     /* While a run is active, turn the whole safe gameplay area into a fixed touch surface.
        This stops iPhone from scrolling/bouncing the page when the player drags the paddle. */
@@ -191,7 +195,7 @@
     <div class="power-legend" aria-label="Brick Breaker power-ups">
       <span>🔵 3 Ball</span><span>↔️ Wide</span><span>🔥 Fire</span><span>⚡ Break for a power-up</span><span>◆ Armored</span>
     </div>
-    <p class="brick-live-tip">Drag below Pause to steer · Keep the ball in play · ◆ bricks take two hits</p>
+    <p class="brick-live-tip">Drag below Pause to steer · Aim with the paddle edges · Catch ⚡ drops</p>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
 
     <a class="game-guide-link" href="game-guides.html#brickBreaker">How to play Brick Breaker · guide &amp; tips</a>
@@ -260,8 +264,12 @@
     let animation=null;
     let levelTimer=null;
     let particles=[];
+    let impacts=[];
     let combo=0;
     let comboUntil=0;
+    let bestCombo=0, paddleHits=0, bestCelebrated=false;
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let lastHitSound=0;
     let levelGoal=35;
     let layoutName='Classic Wall';
     let lastFrame=0;
@@ -286,7 +294,7 @@
     function saveContinue(eventId){
       const elapsedMs=earnlyRunStartedAt ? Math.max(0,performance.now()-earnlyRunStartedAt-totalPausedMs) : 0;
       localStorage.setItem(continueKey,JSON.stringify({version:1,eventId,level,levelBroken,totalBroken,
-        levelsCleared,levelGoal,layoutName,paddleX:paddle.x,bricks,elapsedMs}));
+        levelsCleared,levelGoal,layoutName,paddleX:paddle.x,bricks,elapsedMs,bestCombo,paddleHits}));
     }
     function readyContinue(){
       continueUsed=true;
@@ -319,7 +327,8 @@
           ['Restore board',()=>{
             level=saved.level;levelBroken=saved.levelBroken;totalBroken=saved.totalBroken;
             levelsCleared=saved.levelsCleared;levelGoal=saved.levelGoal;layoutName=saved.layoutName;
-            bricks=saved.bricks;paddle.w=levelPaddleWidth();
+            bestCombo=Math.max(0,Number(saved.bestCombo)||0);paddleHits=Math.max(0,Number(saved.paddleHits)||0);
+            bricks=saved.bricks;paddle.baseW=levelPaddleWidth();paddle.w=paddle.baseW;
             paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,saved.paddleX));
             earnlyRunStartedAt=performance.now()-Math.max(0,saved.elapsedMs||0);
             totalPausedMs=0;pauseStartedAt=0;
@@ -365,7 +374,7 @@
       const speed=levelSpeed();
       const horizontal=speed*(0.48+Math.random()*0.12)*(Math.random()>.5?1:-1)+angleShift;
       const dx=Math.max(-speed*.82,Math.min(speed*.82,horizontal));
-      return {x,y,r:7,dx,dy:-Math.sqrt(Math.max(1,speed*speed-dx*dx))};
+      return {x,y,r:7,dx,dy:-Math.sqrt(Math.max(1,speed*speed-dx*dx)),trail:[]};
     }
 
     function launchBall(){
@@ -440,7 +449,11 @@
         )},
         {name:'Earnly E', on:(r,c)=>r<7 && (c<=1||r===0||r===3||r===6)},
         {name:'Checker Rush', on:(r,c)=>r<7 && (r+c)%2===0},
-        {name:'Crown', on:(r,c)=>r<6 && (r>=3||c===0||c===4||c===8|| (r===2&&[1,3,5,7].includes(c)))}
+        {name:'Crown', on:(r,c)=>r<6 && (r>=3||c===0||c===4||c===8|| (r===2&&[1,3,5,7].includes(c)))},
+        {name:'Orbit', on:(r,c)=>{const d=Math.abs(c-4)+Math.abs(r-3);return d>=2&&d<=4}},
+        {name:'Lightning Run', on:(r,c)=>r<7&&(c===6-r||c===7-r||r===3)},
+        {name:'Crossfire', on:(r,c)=>r===3||c===4||c===r+1||c===7-r},
+        {name:'Final Gate', on:(r,c)=>r<6&&(r<2||c<2||c>6)}
       ];
       const layout=layouts[(level-1)%layouts.length];
       layoutName=layout.name;
@@ -462,8 +475,8 @@
           });
         }
       }
-      // One visible bonus brick per board from level 3 onward.
-      if(level>=3 && bricks.length) bricks[Math.floor(bricks.length*.55)].special=true;
+      // Every board teaches the catch mechanic with one visible, guaranteed bonus.
+      if(bricks.length) bricks[Math.floor(bricks.length*.55)].special=true;
       randomDropsThisLevel=0;
       lastDropBroken=totalBroken;
       levelGoal=bricks.length;
@@ -494,21 +507,47 @@
     function draw(){
       updatePowerTimers();
       ctx.clearRect(0,0,canvas.width,canvas.height);
+      const now=performance.now();
+      const accent=['#38e8ff','#ba9cff','#ff8bd1','#ffc46b'][(level-1)%4];
       const bg=ctx.createLinearGradient(0,0,0,canvas.height);
-      bg.addColorStop(0,'#17243a'); bg.addColorStop(1,'#0d1625');
-      ctx.fillStyle=bg;
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.strokeStyle='rgba(96,165,250,.08)';
-      ctx.lineWidth=1;
-      for(let y=170;y<canvas.height;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+      bg.addColorStop(0,'#102839'); bg.addColorStop(.6,'#091426'); bg.addColorStop(1,'#102d40');
+      ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='#77dfff0c';ctx.lineWidth=1;
+      for(let y=196;y<canvas.height;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+      for(let x=12;x<canvas.width;x+=28){ctx.beginPath();ctx.moveTo(x,196);ctx.lineTo(x,canvas.height);ctx.stroke();}
+      ctx.fillStyle=accent;ctx.fillRect(0,0,3,canvas.height);ctx.fillRect(canvas.width-3,0,3,canvas.height);
+      ctx.font='bold 10px system-ui';ctx.textBaseline='middle';ctx.textAlign='left';
+      ctx.fillText('SECTOR '+String(level).padStart(2,'0')+' / '+layoutName.toUpperCase(),12,17);
+      ctx.textAlign='right';ctx.fillStyle='#a5c8dd';ctx.fillText((levelGoal-levelBroken)+' LEFT',348,17);
+      ctx.fillStyle='#ffffff12';ctx.fillRect(12,29,336,3);
+      ctx.fillStyle=accent;ctx.fillRect(12,29,336*Math.min(1,levelBroken/Math.max(1,levelGoal)),3);
+      ctx.save();ctx.textAlign='center';
+      ctx.font='900 64px system-ui';ctx.fillStyle='#b8e8ff06';ctx.fillText(String(level).padStart(2,'0'),180,300);
+      if(combo>=2 && now<comboUntil){
+        ctx.fillStyle=accent;ctx.font='900 27px system-ui';ctx.fillText(combo+' HIT STREAK',180,244);
+        ctx.fillStyle='#9bbcd1';ctx.font='10px system-ui';ctx.fillText('KEEP THE RALLY GOING',180,265);
+        ctx.fillStyle=accent;ctx.fillRect(130,278,100*Math.max(0,(comboUntil-now)/2200),2);
+      }else if(!running){
+        ctx.fillStyle='#9bbcd1';ctx.font='bold 12px system-ui';
+        ctx.fillText(awaitingNextLevel?'NEXT SECTOR READY':'AIM. BREAK. REPEAT.',180,242);
+        ctx.font='11px system-ui';ctx.fillText('Catch the lightning brick power-up',180,264);
+      }
+      ctx.restore();
+      ctx.strokeStyle='#71d8ff25';ctx.setLineDash([3,6]);ctx.beginPath();ctx.moveTo(12,449);ctx.lineTo(348,449);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#8ec3d3';ctx.textAlign='center';ctx.font='9px system-ui';ctx.fillText('DRAG TO STEER',180,489);
 
       bricks.forEach(b=>{
         if(!b.alive) return;
         ctx.fillStyle=b.color;
-        ctx.fillRect(b.x,b.y,b.w,b.h);
+        ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,4);ctx.fill();
         const grad=ctx.createLinearGradient(b.x,b.y,b.x,b.y+b.h);
         grad.addColorStop(0,b.color); grad.addColorStop(1,'rgba(15,23,42,.78)');
-        ctx.fillStyle=grad;ctx.fillRect(b.x,b.y,b.w,b.h);
+        ctx.fillStyle=grad;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,4);ctx.fill();
+        ctx.fillStyle='#ffffff55';ctx.fillRect(b.x+4,b.y+2,b.w-8,2);
+        if(b.hp<b.maxHp){
+          ctx.strokeStyle='#081324';ctx.lineWidth=2;ctx.beginPath();
+          ctx.moveTo(b.x+b.w*.6,b.y);ctx.lineTo(b.x+b.w*.4,b.y+b.h*.45);ctx.lineTo(b.x+b.w*.65,b.y+b.h*.6);ctx.lineTo(b.x+b.w*.35,b.y+b.h);ctx.stroke();
+        }
         ctx.strokeStyle=b.hp>1?'#fff':'rgba(255,255,255,.28)';
         ctx.lineWidth=b.hp>1?2:1;
         ctx.strokeRect(b.x+1,b.y+1,b.w-2,b.h-2);
@@ -524,6 +563,8 @@
       });
 
       powerUps.forEach(p=>{
+        ctx.save();ctx.shadowColor=p.type==='fire'?'#fb923c':p.type==='wide'?'#22c55e':'#60a5fa';ctx.shadowBlur=12;
+        ctx.strokeStyle='#ffffff55';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,p.r+5,0,Math.PI*2);ctx.stroke();
         ctx.beginPath();
         ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
         ctx.fillStyle=p.type==='fire'?'#fb923c':p.type==='wide'?'#22c55e':'#60a5fa';
@@ -531,7 +572,7 @@
         ctx.font='14px system-ui';
         ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillStyle='#fff';
-        ctx.fillText(p.type==='fire'?'🔥':p.type==='wide'?'↔':'3',p.x,p.y+1);
+        ctx.fillText(p.type==='fire'?'🔥':p.type==='wide'?'↔':'3',p.x,p.y+1);ctx.restore();
       });
 
       ctx.save();
@@ -552,8 +593,18 @@
         ctx.fillRect(p.x,p.y,3,3);
       });
       ctx.globalAlpha=1;
+      impacts.forEach(p=>{
+        ctx.globalAlpha=Math.max(0,p.life/16);ctx.strokeStyle=p.color;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(p.x,p.y,5+(16-p.life)*1.5,0,Math.PI*2);ctx.stroke();
+      });ctx.globalAlpha=1;
 
       balls.forEach(ball=>{
+        if(!reducedMotion){
+          (ball.trail||[]).forEach((t,i,trail)=>{
+            ctx.globalAlpha=(i+1)/trail.length*.32;ctx.fillStyle=now<fireUntil?'#ffad55':accent;
+            ctx.beginPath();ctx.arc(t.x,t.y,ball.r*(i+1)/trail.length,0,Math.PI*2);ctx.fill();
+          });ctx.globalAlpha=1;
+        }
         ctx.save();
         ctx.beginPath();
         ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
@@ -571,15 +622,17 @@
     }
 
     function burst(b){
-      for(let i=0;i<7;i++) particles.push({
+      for(let i=0;i<(reducedMotion?3:12);i++) particles.push({
         x:b.x+b.w/2,y:b.y+b.h/2,
         dx:(Math.random()-.5)*3.2,dy:(Math.random()-.5)*3.2,
         life:18+Math.random()*8,color:b.color
       });
+      if(particles.length>180)particles.splice(0,particles.length-180);
     }
 
     function hitBrick(ball,b){
       const fire=performance.now()<fireUntil;
+      if(!reducedMotion){impacts.push({x:b.x+b.w/2,y:b.y+b.h/2,color:b.color,life:16});if(impacts.length>20)impacts.shift();}
       b.hp=fire?0:b.hp-1;
       if(b.hp<=0){
         b.alive=false;
@@ -587,7 +640,11 @@
         levelBroken+=1;
         totalBroken+=1;
         combo = performance.now()<comboUntil ? combo+1 : 1;
-        comboUntil=performance.now()+1400;
+        comboUntil=performance.now()+2200;
+        bestCombo=Math.max(bestCombo,combo);
+        if(!bestCelebrated && Arcade.number('brickBreakerBest')>0 && totalBroken>Arcade.number('brickBreakerBest')){
+          bestCelebrated=true;Arcade.milestone('🏆 NEW PERSONAL BEST!','perfect');
+        }
         if(b.special){
           // Lightning bricks guarantee a bonus. If one is already falling,
           // replace it here rather than silently losing this guaranteed reward.
@@ -599,8 +656,8 @@
         }else{
           maybeDropPowerUp(b);
         }
-        // Keep normal brick hits quiet; reserve feedback for meaningful streaks/milestones.
-        if(totalBroken===1 || (totalBroken%10===0 && totalBroken!==10 && totalBroken!==20)) Arcade.feedback('brick');
+        // Throttle impact audio when multiball breaks several bricks together.
+        if(performance.now()-lastHitSound>65){Arcade.feedback(combo>=5?'catch-streak':'hit');lastHitSound=performance.now();}
         if(totalBroken===10) Arcade.milestone('💥 10 bricks smashed!');
         if(totalBroken===20) Arcade.milestone('🔥 20 bricks · Brick Smasher!', 'perfect');
         bricksEl.textContent=levelBroken;
@@ -608,28 +665,33 @@
       }else{
         Arcade.feedback('move');
       }
-      if(!fire) ball.dy*=-1;
     }
 
     function collideBrick(ball,prevX=ball.x,prevY=ball.y){
+      // Sweep against expanded brick boxes, resolving the first impact only.
+      // Stationary axes must overlap; they cannot imply an infinite hit range.
+      const vx=ball.x-prevX,vy=ball.y-prevY;
+      let nearest=null;
       for(const b of bricks){
-        if(!b.alive) continue;
-        // A normal overlap check is enough at our capped frame delta. The previous
-        // swept-box math treated horizontal/vertical zero movement as an infinite
-        // intersection range, which could falsely hit distant bricks across a row.
-        const overlaps=ball.x+ball.r>b.x && ball.x-ball.r<b.x+b.w && ball.y+ball.r>b.y && ball.y-ball.r<b.y+b.h;
-        if(overlaps){
-          hitBrick(ball,b);
-          const speed=Math.hypot(ball.dx,ball.dy);
-          if(Math.abs(ball.dx)<speed*0.34){
-            const direction=ball.dx===0?(Math.random()<.5?-1:1):Math.sign(ball.dx);
-            ball.dx=direction*speed*0.34;
-            ball.dy=Math.sign(ball.dy||1)*Math.sqrt(Math.max(1,speed*speed-ball.dx*ball.dx));
-          }
-          return true;
-        }
+        if(!b.alive)continue;
+        const minX=b.x-ball.r,maxX=b.x+b.w+ball.r,minY=b.y-ball.r,maxY=b.y+b.h+ball.r;
+        if((vx===0&&(prevX<minX||prevX>maxX))||(vy===0&&(prevY<minY||prevY>maxY)))continue;
+        const tx1=vx?(minX-prevX)/vx:-Infinity,tx2=vx?(maxX-prevX)/vx:Infinity;
+        const ty1=vy?(minY-prevY)/vy:-Infinity,ty2=vy?(maxY-prevY)/vy:Infinity;
+        const enterX=Math.min(tx1,tx2),enterY=Math.min(ty1,ty2);
+        const enter=Math.max(enterX,enterY),exit=Math.min(Math.max(tx1,tx2),Math.max(ty1,ty2));
+        if(enter>exit||exit<0||enter>1||enter<0)continue;
+        if(!nearest||enter<nearest.time)nearest={b,time:enter,side:enterX>enterY};
       }
-      return false;
+      if(!nearest)return false;
+      const fire=performance.now()<fireUntil;
+      hitBrick(ball,nearest.b);
+      if(!fire){
+        ball.x=prevX+vx*nearest.time;ball.y=prevY+vy*nearest.time;
+        if(nearest.side){ball.dx*=-1;ball.x+=Math.sign(ball.dx)*.1;}
+        else{ball.dy*=-1;ball.y+=Math.sign(ball.dy)*.1;}
+      }
+      return true;
     }
 
     function updatePowerUps(dt=1){
@@ -649,6 +711,7 @@
 
     function updateBall(ball,stepScale=1){
       const prevX=ball.x,prevY=ball.y;
+      if(!reducedMotion){ball.trail ||= [];ball.trail.push({x:ball.x,y:ball.y});if(ball.trail.length>9)ball.trail.shift();}
       ball.x+=ball.dx*stepScale;
       ball.y+=ball.dy*stepScale;
 
@@ -671,15 +734,16 @@
 
       // Swept paddle collision: fast balls cannot jump from above to below the paddle between frames.
       const crossedPaddle=ball.dy>0 && prevY+ball.r<=paddle.y && ball.y+ball.r>=paddle.y;
-      if(crossedPaddle && ball.x+ball.r>=paddle.x && ball.x-ball.r<=paddle.x+paddle.w){
-        const travelY=Math.max(1,ball.y-prevY);
-        const t=Math.max(0,Math.min(1,(paddle.y-ball.r-prevY)/travelY));
-        const impactX=prevX+(ball.x-prevX)*t;
+      const paddleTime=crossedPaddle?(paddle.y-ball.r-prevY)/Math.max(1,ball.y-prevY):0;
+      const impactX=prevX+(ball.x-prevX)*paddleTime;
+      if(crossedPaddle && impactX+ball.r>=paddle.x && impactX-ball.r<=paddle.x+paddle.w){
         const hit=Math.max(-1,Math.min(1,(impactX-(paddle.x+paddle.w/2))/(paddle.w/2)));
         const targetSpeed=levelSpeed();
         ball.dx=targetSpeed*0.82*hit;
         ball.dy=-Math.sqrt(Math.max((targetSpeed*0.55)*(targetSpeed*0.55),targetSpeed*targetSpeed-ball.dx*ball.dx));
         ball.y=paddle.y-ball.r-1;
+        paddleHits++;
+        if(performance.now()-lastHitSound>65){Arcade.feedback('move');lastHitSound=performance.now();}
       }
       collideBrick(ball,prevX,prevY);
     }
@@ -698,15 +762,13 @@
         Arcade.milestone('↔️ Wide Paddle ended');
       }
 
-      // Brick Breaker already uses swept collision checks for the paddle and bricks.
-      // Keep one authoritative movement step per frame so a collision can only be
-      // resolved once; repeated substeps were able to re-hit the same brick and
-      // launch the ball through the wall on iPhone.
+      // One authoritative swept step prevents repeat hits on the same frame.
       balls.forEach(ball=>updateBall(ball,dt));
       balls=balls.filter(ball=>ball.y-ball.r<=canvas.height);
       updatePowerUps(dt);
       particles.forEach(p=>{p.x+=p.dx*dt;p.y+=p.dy*dt;p.dy+=.04*dt;p.life-=dt;});
       particles=particles.filter(p=>p.life>0);
+      impacts.forEach(p=>p.life-=dt);impacts=impacts.filter(p=>p.life>0);
       if(performance.now()>comboUntil) combo=0;
 
       if(levelBroken===levelGoal){
@@ -748,11 +810,12 @@
       resetBricks();
       powerUps=[];
       particles=[];
+      impacts=[];
       combo=0;
       comboUntil=0;
       fireUntil=0;
       wideUntil=0;
-      paddle.w=levelPaddleWidth();
+      paddle.baseW=levelPaddleWidth();paddle.w=paddle.baseW;
       paddle.x=(canvas.width-paddle.w)/2;
       launchBall();
       draw();
@@ -801,6 +864,7 @@
       balls=[];
       powerUps=[];
       particles=[];
+      impacts=[];
       combo=0;
       comboUntil=0;
       fireUntil=0;
@@ -911,9 +975,9 @@
         levelReached:level
       });
       Arcade.feedback(levelsCleared>0?'success':'fail');
+      const previousBest=Arcade.number('brickBreakerBest');
       const result=Arcade.recordResult('brickBreaker', totalBroken);
-
-      const best=Math.max(totalBroken,Arcade.number('brickBreakerBest'));
+      const best=Math.max(totalBroken,previousBest);
       localStorage.setItem('brickBreakerBest',String(best));
 
       refreshChrome();
@@ -927,7 +991,7 @@
 
       Arcade.gameResult({
         icon:levelsCleared>0?'🏆':'💥',
-        title:levelsCleared>0?'Level '+level+' Run Complete':'Brick Run Over',
+        title:totalBroken>previousBest?'New Personal Best!':levelsCleared>0?'Level '+level+' Run Complete':'Brick Run Over',
         scoreLabel:'Bricks Broken',
         score:totalBroken,
         best:best+' bricks',
@@ -935,7 +999,7 @@
         result,
         playsLeft:Arcade.remaining('brickBreaker'),
         game:'brickBreaker',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',levelText,'⚡ Next levels move faster and can pay more Coins.'],
+        extra:['⚡ Best streak: '+bestCombo+' bricks · '+paddleHits+' paddle saves','🏅 '+(levelsCleared>=5?'Arena Master':levelsCleared>=3?'Wall Breaker':levelsCleared>=1?'Sector Clear':'Rookie')+' · Next goal: '+(levelsCleared<1?'clear your first sector':levelsCleared<3?'clear 3 sectors':levelsCleared<5?'clear 5 sectors':'beat your best brick count'),'⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s',levelText,'⚡ Next levels move faster and can pay more Coins.'],
         onReplay:startGame,
         onMorePlays:()=>Arcade.out('brickBreaker',refreshChrome)
       });
@@ -954,7 +1018,7 @@
 
     canvas.addEventListener('pointerdown',event=>{
       event.preventDefault();
-      if(continuePending) return;
+      if(continuePending || document.body.classList.contains('earnly-game-paused')) return;
 
       if(!running){
         if(awaitingNextLevel) playNextLevel();
@@ -962,23 +1026,15 @@
         return;
       }
 
+      if(event.isPrimary===false || (event.pointerType==='mouse'&&event.button!==0))return;
       dragging = true;
       dragPointer = event.pointerId;
       dragLastClientX = event.clientX;
-      canvas.setPointerCapture?.(event.pointerId);
-    });
-
-    canvas.addEventListener('pointermove',event=>{
-      if(!dragging || dragPointer !== event.pointerId) return;
-      event.preventDefault();
-      const rect=canvas.getBoundingClientRect();
-      const scale=canvas.width/rect.width;
-      paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x+(event.clientX-dragLastClientX)*scale));
-      dragLastClientX=event.clientX;
+      if(canvas.hasPointerCapture && event.isTrusted)canvas.setPointerCapture?.(event.pointerId);
     });
 
     function canStartGlobalPaddleDrag(event){
-      if(!running || event.target===canvas || event.isPrimary===false || (event.pointerType==='mouse'&&event.button!==0)) return false;
+      if(document.body.classList.contains('earnly-game-paused') || !running || event.target===canvas || event.isPrimary===false || (event.pointerType==='mouse'&&event.button!==0)) return false;
       const target=event.target instanceof Element?event.target:null;
       if(target?.closest('button,a,input,select,textarea,dialog,[role="dialog"],.modal-backdrop,.game-result-dialog')) return false;
       const pauseButton=document.querySelector('.earnly-pause-button');
@@ -997,7 +1053,7 @@
     },{passive:false});
 
     document.addEventListener('pointermove',event=>{
-      if(!dragging || dragPointer !== event.pointerId || dragLastClientX===null) return;
+      if(document.body.classList.contains('earnly-game-paused') || !dragging || dragPointer !== event.pointerId || dragLastClientX===null) return;
       event.preventDefault();
       // Horizontal paddle control only: vertical finger movement must never move the page.
       const rect=canvas.getBoundingClientRect();
@@ -1022,7 +1078,7 @@
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
 
     document.addEventListener('keydown',event=>{
-      if(continuePending) return;
+      if(continuePending || document.body.classList.contains('earnly-game-paused')) return;
       if((event.key==='Enter'||event.key===' ')&&awaitingNextLevel){event.preventDefault();playNextLevel();return}
       if((event.key==='Enter'||event.key===' ')&&!running&&!starting){event.preventDefault();startGame();return}
       if(!running) return;
@@ -1044,6 +1100,7 @@
       }
       earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;
       continueUsed=false;continueEventId='';
+      bestCombo=0;paddleHits=0;bestCelebrated=false;lastHitSound=0;
       awaitingNextLevel=false;levelWaitStartedAt=0;
       document.body.classList.remove('awaiting-next-level');
 
@@ -1056,6 +1113,7 @@
       balls=[];
       powerUps=[];
       particles=[];
+      impacts=[];
       combo=0;
       comboUntil=0;
       fireUntil=0;
@@ -1067,7 +1125,7 @@
       // A replay is always a brand-new run. Reset level before rebuilding the board
       // because resetBricks() chooses its layout/difficulty from the current level.
       level=1;
-      paddle.w=levelPaddleWidth();
+      paddle.baseW=levelPaddleWidth();paddle.w=paddle.baseW;
       resetBricks();
       levelBroken=0;
       totalBroken=0;
