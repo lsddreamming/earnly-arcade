@@ -4,6 +4,13 @@ test.beforeEach(async({page})=>{
 });
 async function start(page){await page.evaluate(()=>{Arcade.countdown=fn=>fn();startGame()});await expect(page.locator('#gameStatus')).toHaveText('Running')}
 async function place(page,offset=0){await page.evaluate(offset=>{moving.x=blocks.at(-1).x+offset;placeBlock()},offset);await expect.poll(()=>page.evaluate(()=>placementLocked)).toBe(false)}
+test('retina artwork retains logical placement and travel bounds',async({page})=>{
+ await start(page);
+ const state=await page.evaluate(()=>({width:canvas.width,height:canvas.height,scale:renderScale,world:WORLD_WIDTH,base:blocks[0].x,transform:ctx.getTransform().a}));
+ expect(state.width).toBe(360*state.scale);expect(state.height).toBe(560*state.scale);expect(state.transform).toBe(state.scale);
+ expect(state.world).toBe(360);expect(state.base).toBe(85);
+ await place(page);expect(await page.evaluate(()=>blocks.at(-1).w)).toBe(190);
+});
 for(const path of ['/towerstack.html','/www/towerstack.html']){
  test('Skyline keeps five-pixel perfect snaps and visible falling offcuts '+path,async({page})=>{
   await page.goto(path);await start(page);await place(page,5);
