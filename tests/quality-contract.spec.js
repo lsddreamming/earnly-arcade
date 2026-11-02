@@ -141,21 +141,17 @@ test('all mobile game screens hide the fixed app nav during live play', () => {
   expect(css).toContain('padding-bottom:max(18px,calc(env(safe-area-inset-bottom) + 10px))!important');
 });
 
-test('Traffic Escape hides safe answers and keeps late roads difficult', () => {
-  const source = read('mini-games.js');
-  const html = read('mini.html');
-
-  expect(source).toContain("const roundSeconds=()=>[0,16,14,12,10,9,8,7]");
-  expect(source).toContain('const boardsNeeded=()=>1;');
-  expect(source).toContain("const targetCars=[0,6,7,8,9,9,10,10]");
-  expect(source).toContain("const minBlocked=Math.min(targetCars-1,[0,4,5,6,7,7,8,8]");
-  expect(source).toContain("const maxInitiallyFree=2");
-  expect(source).toContain("for(let attempt=0;attempt<400;attempt++)");
-  expect(source).toContain("const fallback=level>=4?[");
-  expect(source).toContain("if(!alive||miniPaused){lastTickAt=performance.now();return;}");
-  expect(source).toContain("b.className='traffic-car';");
-  expect(source).not.toContain("' clear-path':'')");
-  expect(html).not.toContain('.traffic-car.clear-path');
+test('Traffic Escape hides safe answers and uses the tested city engine', () => {
+  const source = read('traffic-escape-engine.js');
+  const game = read('traffic-escape-game.js');
+  expect(source).toContain('COUNTS=[6,7,8,9,9,10,10],LIMITS=[16,14,12,10,9,8,7]');
+  expect(source).toContain('free<1||free>2||!solution(board)');
+  expect(source).toContain("if(s.strikes>=3)end('crashes')");
+  expect(source).toContain("if(s.level===7)end('complete')");
+  expect(game).toContain("b.className='traffic-car'");
+  expect(game).not.toContain('clear-path');
+  expect(read('traffic-escape.css')).not.toContain('.traffic-car.clear-path');
+  expect(read('mini-games.js')).toContain('TrafficEscapeGame.create({surface,ui,finish,isPaused:()=>miniPaused})');
 });
 
 
