@@ -44,3 +44,5 @@ html body.colormatch-page.game-active #earnlyPauseButton{position:fixed!importan
 .color-reward-hud.reward-bump strong{animation:prismReward .3s ease-out}@keyframes prismReward{50%{color:#fff;text-shadow:0 0 12px #ffcf5c}}
 @media(max-height:610px) and (orientation:portrait){body.colormatch-page.game-active .color-board{padding:10px}.game-active .prism-prompt{min-height:62px!important}.game-active .prism-prompt small{display:none}.game-active .prism-stage-track{display:none}.game-active .prism-clock{margin:3px 0 5px}.game-active .color-rule{font-size:10px;margin-bottom:4px}.game-active .color-feedback{min-height:20px;margin:4px 0}html body.colormatch-page.game-active .color-choice{min-height:44px!important}.game-active .prism-progress{margin-top:6px}.game-active .color-reward-hud{margin-top:8px}}
 @media(orientation:landscape) and (max-height:360px){.game-active .prism-prompt{min-height:60px}.game-active .prism-prompt small{display:none}.game-active .color-word{font-size:32px}html body.colormatch-page.game-active .color-choice{min-height:45px}}
+
+body.colormatch-page.game-active #earnlyCompactLeaderboard{display:none!important}

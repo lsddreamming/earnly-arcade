@@ -43,8 +43,8 @@ test('deadline settles exactly once; replay resets accuracy, score, stages and s
  await page.clock.runFor(25000);await expect(page.locator('dialog[open]')).toContainText('Correct Matches');
  expect(await page.evaluate(()=>saves)).toBe(1);await page.evaluate(()=>{choose('RED');finish();finish()});expect(await page.evaluate(()=>saves)).toBe(1);
  await expect(page.locator('dialog[open]')).toContainText('100% accuracy');
- await page.locator('dialog[open]').getByRole('button',{name:/Play Again/}).click();await page.clock.runFor(100);
- expect(await page.evaluate(()=>({score,streak,attempts,bestStreak,stage:lastRound.stage.name,timeLeft}))).toEqual({score:0,streak:0,attempts:0,bestStreak:0,stage:'Focus',timeLeft:25});
+ await page.clock.resume();await page.locator('dialog[open]').getByRole('button',{name:/Play Again/}).click();
+ await expect.poll(()=>page.evaluate(()=>({score,streak,attempts,bestStreak,stage:lastRound.stage.name,timeLeft}))).toEqual({score:0,streak:0,attempts:0,bestStreak:0,stage:'Focus',timeLeft:25});
 });
 test('keyboard shortcuts answer the displayed position and ignore held-key repeats',async({page})=>{
  await start(page);const key=String(await page.evaluate(()=>lastRound.position+1));
@@ -66,5 +66,5 @@ test('ready, live and paused layouts fit phone and landscape controls',async({pa
 test('Quit returns directly to Games and invalidates a pending countdown',async({page})=>{
  await page.evaluate(()=>{window.launch=null;Arcade.countdown=done=>{window.launch=done};startGame();quitColorRun();launch()});
  expect(await page.evaluate(()=>({running,starting}))).toEqual({running:false,starting:false});
- await page.reload();await start(page);await page.locator('#colorMatchExit').click();await expect(page).toHaveURL(/\/games.html$/);
+ await page.reload();await start(page);await page.locator('#colorMatchExit').click();await page.locator('.earnly-quit-dialog [data-quit]').click();await expect(page).toHaveURL(/\/games.html$/);
 });
