@@ -9,6 +9,7 @@ for(const viewport of [{width:390,height:844},{width:320,height:568},{width:844,
  await expect(page.locator('canvas#game')).toBeVisible();
  const bounds=await page.locator('canvas#game').boundingBox();const width=await page.evaluate(()=>innerWidth);
  expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1);
+ if(viewport.width<viewport.height){const controls=page.locator(name==='blockdrop'?'#blockDropSessionActions':name==='paddlerally'?'#rallyControlZone':'.maze-controls');const rect=await controls.boundingBox();expect(rect.y+rect.height).toBeLessThanOrEqual(viewport.height+1)}
  await page.screenshot({path:info.outputPath(name+'-active.png'),fullPage:true});
 });
 test('Block Drop successive seven-piece bags are balanced',async({page})=>{

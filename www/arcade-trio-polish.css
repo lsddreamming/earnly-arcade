@@ -29,3 +29,5 @@ html body:is(.blockdrop-page,.paddlerally-page).game-active #arcadeDesktopNav{di
  html body.blockdrop-page.game-active .blockdrop-controls,html body.paddlerally-page.game-active .rally-control-zone,html body.maze-page.game-active .maze-controls{grid-column:1!important;grid-row:3!important;width:100%!important;position:static!important;margin:6px 0!important}
  html body.blockdrop-page.game-active .blockdrop-session-actions{grid-column:1!important;grid-row:4!important}
 }
+@media(orientation:portrait){html body.blockdrop-page.game-active .blockdrop-board{max-height:calc(100dvh - 365px)!important}html body.paddlerally-page.game-active .rally-board{max-height:calc(100dvh - 325px)!important}}
+@media(max-height:700px) and (orientation:portrait){html body.blockdrop-page.game-active .blockdrop-board{max-height:calc(100dvh - 320px)!important}}
