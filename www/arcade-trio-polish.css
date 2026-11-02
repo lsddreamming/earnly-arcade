@@ -16,3 +16,16 @@ html body.paddlerally-page.game-active .rally-board{max-height:calc(100dvh - 300
 .clear-flash{animation:clearFlash .5s ease-out}@keyframes clearFlash{0%{background:#266c79;box-shadow:0 0 24px #59e7e780;transform:scale(1.025)}100%{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.clear-flash{animation:none}}
 .earnly-game-paused .clear-flash{animation-play-state:paused}
+html body:is(.blockdrop-page,.paddlerally-page).game-active #arcadeDesktopNav{display:none!important}
+@media(max-height:500px) and (orientation:landscape){
+ html body:is(.blockdrop-page,.paddlerally-page,.maze-page).game-active main.container{display:grid!important;grid-template-columns:minmax(190px,1fr) minmax(220px,1fr)!important;grid-template-rows:auto auto 1fr auto!important;gap:6px 18px!important;width:100%!important;max-width:800px!important;padding:8px 16px!important;align-items:start!important}
+ html body:is(.blockdrop-page,.paddlerally-page,.maze-page).game-active .page-header{grid-column:1!important;grid-row:1!important;margin:0!important}
+ html body:is(.blockdrop-page,.paddlerally-page,.maze-page).game-active .arcade-pulse{grid-column:1!important;grid-row:2!important;width:100%!important;margin:0!important}
+ html body:is(.blockdrop-page,.paddlerally-page,.maze-page).game-active :is(#earnlyCompactLeaderboard,#arcadeDesktopNav,.entry-quick-tip){display:none!important}
+ html body.blockdrop-page.game-active .blockdrop-playfield,html body:is(.paddlerally-page,.maze-page).game-active .game-guide-surface-wrap{grid-column:2!important;grid-row:1 / span 4!important;width:100%!important;max-width:100%!important;margin:0!important;justify-content:center!important}
+ html body.blockdrop-page.game-active .blockdrop-board{max-height:calc(100dvh - 25px)!important;width:auto!important;margin:0!important}
+ html body.paddlerally-page.game-active .rally-board{max-height:calc(100dvh - 25px)!important;width:auto!important;margin:0 auto!important}
+ html body.maze-page.game-active .maze-board{width:auto!important;height:calc(100dvh - 25px)!important;max-width:100%!important;margin:0 auto!important}
+ html body.blockdrop-page.game-active .blockdrop-controls,html body.paddlerally-page.game-active .rally-control-zone,html body.maze-page.game-active .maze-controls{grid-column:1!important;grid-row:3!important;width:100%!important;position:static!important;margin:6px 0!important}
+ html body.blockdrop-page.game-active .blockdrop-session-actions{grid-column:1!important;grid-row:4!important}
+}
