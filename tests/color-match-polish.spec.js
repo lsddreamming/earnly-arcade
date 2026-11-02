@@ -43,7 +43,7 @@ test('deadline settles exactly once; replay resets accuracy, score, stages and s
  await page.clock.runFor(25000);await expect(page.locator('dialog[open]')).toContainText('Correct Matches');
  expect(await page.evaluate(()=>saves)).toBe(1);await page.evaluate(()=>{choose('RED');finish();finish()});expect(await page.evaluate(()=>saves)).toBe(1);
  await expect(page.locator('dialog[open]')).toContainText('100% accuracy');
- await page.getByRole('button',{name:/Play Again/}).click();await page.clock.runFor(100);
+ await page.locator('dialog[open]').getByRole('button',{name:/Play Again/}).click();await page.clock.runFor(100);
  expect(await page.evaluate(()=>({score,streak,attempts,bestStreak,stage:lastRound.stage.name,timeLeft}))).toEqual({score:0,streak:0,attempts:0,bestStreak:0,stage:'Focus',timeLeft:25});
 });
 test('keyboard shortcuts answer the displayed position and ignore held-key repeats',async({page})=>{
@@ -54,7 +54,7 @@ test('keyboard shortcuts answer the displayed position and ignore held-key repea
 });
 test('ready, live and paused layouts fit phone and landscape controls',async({page},testInfo)=>{
  for(const [width,height] of [[320,568],[390,664],[390,844],[440,956],[667,375],[844,390]]){
-  await page.setViewportSize({width,height});await page.goto('/colormatch.html');await start(page);
+  await page.evaluate(()=>localStorage.clear());await page.setViewportSize({width,height});await page.goto('/colormatch.html');await start(page);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   const choices=await page.locator('#choices').boundingBox(),quit=await page.locator('#colorMatchExit').boundingBox(),pause=await page.locator('#earnlyPauseButton').boundingBox();
   expect(choices.y).toBeGreaterThanOrEqual(0);expect(choices.y+choices.height).toBeLessThan(Math.min(quit.y,pause.y));
@@ -66,5 +66,5 @@ test('ready, live and paused layouts fit phone and landscape controls',async({pa
 test('Quit returns directly to Games and invalidates a pending countdown',async({page})=>{
  await page.evaluate(()=>{window.launch=null;Arcade.countdown=done=>{window.launch=done};startGame();quitColorRun();launch()});
  expect(await page.evaluate(()=>({running,starting}))).toEqual({running:false,starting:false});
- await start(page);await page.locator('#colorMatchExit').click();await expect(page).toHaveURL(/\/games.html$/);
+ await page.reload();await start(page);await page.locator('#colorMatchExit').click();await expect(page).toHaveURL(/\/games.html$/);
 });
