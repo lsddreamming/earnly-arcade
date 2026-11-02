@@ -45,3 +45,11 @@ test('Traffic Escape board and single Pause Quit dock fit phones, short desktops
  }
  expect(errors).toEqual([]);
 });
+
+test('Traffic Escape keyboard decisions, clear transition pause and timeout all use active play time',async({page})=>{
+ const errors=await open(page);await page.evaluate(()=>{window.trafficAwards=[];Arcade.earn=(amount,label,evidence)=>trafficAwards.push({amount,evidence});});
+ const blocked=await car(page,false),button=page.locator('[data-car="'+blocked+'"]');await button.focus();await page.keyboard.down('Enter');await page.clock.runFor(1200);await page.keyboard.up('Enter');expect(await page.evaluate(()=>testTraffic.state.strikes)).toBe(1);
+ for(let i=0;i<6;i++){const id=await car(page);await page.locator('[data-car="'+id+'"]').focus();await page.keyboard.press('Space');await page.clock.runFor(220);}
+ expect(await page.evaluate(()=>testTraffic.state.phase)).toBe('transition');await page.locator('#earnlyPauseButton').click();const before=await page.evaluate(()=>JSON.stringify(testTraffic.state));await page.clock.runFor(20000);expect(await page.evaluate(()=>JSON.stringify(testTraffic.state))).toBe(before);await page.getByRole('button',{name:/Resume/}).click();await page.clock.runFor(800);expect(await page.evaluate(()=>testTraffic.state.level)).toBe(2);expect(await page.evaluate(()=>testTraffic.state.remaining)).toBeGreaterThan(13.8);
+ await page.clock.runFor(14500);await expect(page.locator('dialog.game-result-dialog')).toBeVisible();await expect(page.locator('dialog.game-result-dialog')).toContainText('TIME EXPIRED');expect(await page.evaluate(()=>trafficAwards)).toEqual([{amount:0,evidence:{kind:'game',game:'trafficEscape',metric:6}}]);await page.clock.runFor(2000);expect(await page.evaluate(()=>trafficAwards.length)).toBe(1);expect(errors).toEqual([]);
+});
