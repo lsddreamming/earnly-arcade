@@ -810,8 +810,10 @@ test('Brick Breaker end state clears pending level transition', async ({ page })
   await page.waitForTimeout(180);
   await expect(page.locator('body')).not.toHaveAttribute('data-late-level-restart','yes');
   await expect(page.locator('dialog[open]')).toContainText('Continue · 25 Coins');
-  await page.getByRole('button', { name:/End Run/ }).click();
-  await expect(page.locator('dialog.game-result-dialog')).toHaveCount(1);
+  await expect(page.locator('dialog[open]')).toHaveClass(/brick-result-dialog/);
+  await expect(page.getByRole('button',{name:/Play Again/})).toBeVisible();
+  await expect(page.getByRole('button',{name:'← Games',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:/End Run/})).toHaveCount(0);
 });
 
 test('Brick Breaker Continue keeps the wall and score and waits for Play', async ({ page }) => {
