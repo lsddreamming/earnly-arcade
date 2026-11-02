@@ -112,3 +112,92 @@ test('phone sizes keep the active board above the controls',async({page})=>{
     expect(box.width).toBeGreaterThan(200);
   }
 });
+
+async function loseRun(page,{continued=false}={}){
+  await page.evaluate(({continued})=>{
+    window.resultSaves=0;window.coinSaves=0;
+    const record=Arcade.recordResult,earn=Arcade.earn;
+    Arcade.recordResult=(...args)=>{window.resultSaves++;sessionStorage.setItem('brickResultSaves',String(window.resultSaves));return record(...args)};
+    Arcade.earn=(...args)=>{window.coinSaves++;return earn(...args)};
+    Arcade.countdown=callback=>callback();
+    level=1;resetBricks();levelBroken=20;totalBroken=20;continueUsed=continued;
+    running=true;finishGame();window.firstResult=document.querySelector('dialog[open]');
+  },{continued});
+}
+
+for(const path of ['/brickbreaker.html','/www/brickbreaker.html']){
+  test('one result screen offers Continue, replay and Games and saves once on replay '+path,async({page})=>{
+    await page.goto(path);await loseRun(page);
+    const result=page.locator('dialog[open]');
+    await expect(result).toHaveClass(/game-result-dialog/);
+    await expect(result).toContainText('20');await expect(result).toContainText('Coins this run');
+    await expect(page.getByRole('button',{name:'🪙 Continue · 25 Coins',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:/Play Again/})).toBeVisible();
+    await expect(page.getByRole('button',{name:'← Games',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:/End Run/})).toHaveCount(0);
+    expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves}))).toEqual({results:0,coins:0});
+    await result.press('Escape');await expect(result).toBeVisible();
+    await page.getByRole('button',{name:/Play Again/}).click();
+    await expect(result).toHaveCount(0);
+    await expect.poll(()=>page.evaluate(()=>({results:resultSaves,coins:coinSaves,running,totalBroken})))
+      .toEqual({results:1,coins:1,running:true,totalBroken:0});
+  });
+}
+
+test('Continue confirms inline, blocks other exits, and saves the combined run only after the next loss',async({page})=>{
+  await loseRun(page);
+  await page.evaluate(()=>{window.EarnlyCloud={spendContinue:()=>new Promise(resolve=>window.payContinue=resolve)}});
+  await page.getByRole('button',{name:'🪙 Continue · 25 Coins',exact:true}).click();
+  await expect(page.locator('dialog[open]')).toContainText('Confirming Continue');
+  expect(await page.evaluate(()=>document.querySelector('dialog[open]')===firstResult)).toBe(true);
+  await expect(page.getByRole('button',{name:'← Games',exact:true})).toBeDisabled();
+  await page.locator('dialog[open]').press('Escape');
+  expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves}))).toEqual({results:0,coins:0});
+  await page.evaluate(()=>payContinue({charged:true,amount:25}));
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  expect(await page.evaluate(()=>({score:totalBroken,waiting:awaitingNextLevel,used:continueUsed})))
+    .toEqual({score:20,waiting:true,used:true});
+  await page.locator('#startButton').click();
+  await page.evaluate(()=>{cancelAnimationFrame(animation);totalBroken=30;finishGame()});
+  await expect(page.locator('dialog[open]')).toHaveClass(/game-result-dialog/);
+  await expect(page.getByRole('button',{name:/Continue · 25 Coins/})).toHaveCount(0);
+  await expect(page.locator('dialog[open]')).toContainText('Coins Earned');
+  expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves}))).toEqual({results:1,coins:1});
+  await page.evaluate(()=>{settleRun();settleRun()});
+  expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves}))).toEqual({results:1,coins:1});
+});
+
+test('failed Continue stays on the same results screen and retries the same payment ID',async({page})=>{
+  await loseRun(page);
+  await page.evaluate(()=>{window.paymentIds=[];window.EarnlyCloud={spendContinue:async id=>{paymentIds.push(id);throw new Error('Wallet unavailable')}}});
+  const button=page.getByRole('button',{name:'🪙 Continue · 25 Coins',exact:true});
+  await button.click();await expect(page.getByRole('alert')).toHaveText('Wallet unavailable');
+  expect(await page.evaluate(()=>document.querySelector('dialog[open]')===firstResult)).toBe(true);
+  await button.click();await expect.poll(()=>page.evaluate(()=>paymentIds.length)).toBe(2);
+  expect(await page.evaluate(()=>new Set(paymentIds).size)).toBe(1);
+  expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves}))).toEqual({results:0,coins:0});
+  await page.getByRole('button',{name:/Play Again/}).click();
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  expect(await page.evaluate(()=>({results:resultSaves,coins:coinSaves}))).toEqual({results:1,coins:1});
+});
+
+test('Games saves once and navigates directly without a second result page',async({page})=>{
+  await loseRun(page);await page.getByRole('button',{name:'← Games',exact:true}).click();
+  await expect(page).toHaveURL(/\/games.html$/);
+  expect(await page.evaluate(()=>sessionStorage.getItem('brickResultSaves'))).toBe('1');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+});
+
+test('combined results keep all three choices visible on phone screens',async({page},testInfo)=>{
+  for(const [width,height] of [[320,568],[390,664],[440,956]]){
+    await page.setViewportSize({width,height});await loseRun(page);
+    const result=page.locator('dialog[open]');
+    await expect(result).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    const games=page.getByRole('button',{name:'← Games',exact:true});
+    await games.scrollIntoViewIfNeeded();
+    const box=await games.boundingBox();expect(box.y).toBeGreaterThanOrEqual(0);expect(box.y+box.height).toBeLessThanOrEqual(height);
+    await page.screenshot({path:testInfo.outputPath('brickbreaker-combined-results-'+width+'.png')});
+    await page.evaluate(()=>{document.querySelector('dialog[open]').close();resultOpen=false;runSettled=false});
+  }
+});
