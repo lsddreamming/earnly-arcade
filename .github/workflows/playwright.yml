@@ -88,6 +88,16 @@ jobs:
         run: npx playwright test tests/rewarded-continue.spec.js tests/daily-ad-bonus.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       # Turbo Kart is retired from the catalog. Its archived browser suite
       # remains in tests/turbo-kart.spec.js for explicit maintenance runs.
+      - name: Verify Tower Stack skyline, timing and landing controls
+        run: node --test scripts/test-tower-stack-engine.cjs && npx playwright test tests/tower-stack-polish.spec.js tests/tower-lifetime.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+      - name: Upload Tower Stack skyline previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tower-stack-previews-${{ matrix.project }}${{ matrix.artifact_suffix }}
+          path: test-results/**/tower-stack-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify Bounce Run physics and phone controls
         run: npx playwright test tests/bounce-run.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Verify Star Defender combat and flight goals
