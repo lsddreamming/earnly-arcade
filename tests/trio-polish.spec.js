@@ -5,9 +5,7 @@ for(const viewport of [{width:390,height:844},{width:320,height:568},{width:844,
  await page.evaluate(()=>{Arcade.countdown=callback=>callback()});
  if(name==='blockdrop')await page.locator('#blockDropBoardStart').click();
  else if(name==='paddlerally'){
-  // Mobile entry uses the board's real pointer handler; the legacy button is hidden.
-  const board=page.locator('canvas#game');
-  if(info.project.use.hasTouch)await board.tap({position:{x:100,y:100}});else await board.click({position:{x:100,y:100}});
+  await page.locator('#startButton').click();
  }else await page.locator('#startButton').click();
  await expect(page.locator('body')).toHaveClass(/game-active/);
  await expect(page.locator('.arcade-pulse')).toBeVisible();
@@ -24,6 +22,6 @@ test('Block Drop successive seven-piece bags are balanced',async({page})=>{
 });
 test('Paddle Rally caps speed while tracking center returns',async({page})=>{
  await page.goto('/paddlerally.html');
- const state=await page.evaluate(()=>{running=true;ball.x=paddle.x+paddle.w/2;ball.y=paddle.y-ball.r-1;ball.dx=0;ball.dy=18;lastFrame=100;loop(116.67);cancelAnimationFrame(animation);return {score,cleanReturns,speed:Math.hypot(ball.dx,ball.dy)}});
- expect(state.score).toBe(1);expect(state.cleanReturns).toBe(1);expect(state.speed).toBeCloseTo(18);
+ const state=await page.evaluate(()=>{running=true;score=300;ball.x=paddle.x+paddle.w/2;ball.y=paddle.y-ball.r-1;ball.dx=0;ball.dy=780;lastFrame=100;loop(116.67);cancelAnimationFrame(animation);return {score,cleanReturns,speed:Math.hypot(ball.dx,ball.dy)}});
+ expect(state.score).toBe(301);expect(state.cleanReturns).toBe(1);expect(state.speed).toBeLessThanOrEqual(780);expect(state.speed).toBeGreaterThan(779);
 });
