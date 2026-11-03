@@ -17,7 +17,7 @@
   $('sliceBest').textContent=best;
   const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
   const reduced=()=>window.Arcade?.reducedMotionEnabled?.()||motionQuery.matches;
-  function hud(){const score=String(game.score),misses=Math.min(3,game.misses)+' / 3';if($('sliceScore').textContent!==score)$('sliceScore').textContent=score;if($('sliceMisses').textContent!==misses)$('sliceMisses').textContent=misses;}
+  function hud(){const score=String(game.score),misses=Math.min(3,game.misses)+' / 3';if($('sliceScore').textContent!==score){$('sliceScore').textContent=score;const target=(Math.floor(game.score/250)+1)*250;$('sliceGoal').textContent='Next score milestone · '+target.toLocaleString();}if($('sliceMisses').textContent!==misses)$('sliceMisses').textContent=misses;}
   function overlay(title,message,label){$('sliceStats').hidden=true;$('sliceHeading').textContent=title;$('sliceMessage').textContent=message;$('sliceStart').textContent=label;$('sliceOverlay').hidden=false;}
   function resetInput(){pointer=null;lastPoint=null;keys.clear();trail=[];utensil=null;endStroke();}
   async function showRank(serial){
@@ -159,14 +159,14 @@
     ctx.restore();
   }
   // Resize only when layout changes, not after HUD writes on every frame.
-  function resizeCanvas(){lastDrawState=null;const r=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2,540/Math.max(1,r.width));const width=Math.max(1,Math.round(r.width*scale)),height=Math.max(1,Math.round(r.height*scale));if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;}
+  function resizeCanvas(){lastDrawState=null;const r=canvas.getBoundingClientRect(),scale=Math.min(devicePixelRatio||1,2,720/Math.max(1,r.width));const width=Math.max(1,Math.round(r.width*scale)),height=Math.max(1,Math.round(r.height*scale));if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;}
   new ResizeObserver(resizeCanvas).observe(canvas);window.addEventListener('resize',resizeCanvas);resizeCanvas();
   function draw(dt,now){ctx.setTransform(canvas.width/360,0,0,canvas.height/540,0,0);presentation.background(ctx);const calm=reduced();for(const e of game.effects){
       // Reduced motion keeps essential hit feedback, with steady orientation as fragments fall.
       ctx.globalAlpha=Math.min(1,Math.max(0,e.life/.3));
       if(e.half)snack(calm?{...e,x:e.stillX,y:e.stillY,angle:e.stillAngle}:e,e.half);
       else{ctx.fillStyle=colors[e.type];ctx.beginPath();ctx.ellipse(calm?e.stillX:e.x,calm?e.stillY:e.y,e.size||3,(e.size||3)*.65,calm?0:Math.atan2(e.vy,e.vx),0,7);ctx.fill();}
-    }ctx.globalAlpha=1;for(const o of game.items){ctx.fillStyle='#00000035';ctx.beginPath();ctx.ellipse(o.x+4,o.y+o.r*.85,o.r*.7,5,0,0,7);ctx.fill();snack(o);}trail=trail.filter(p=>(p.life-=dt)>0);if(trail.length){ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#ffc975';ctx.lineWidth=7;ctx.shadowBlur=0;ctx.beginPath();trail.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.strokeStyle='#fff8dc';ctx.lineWidth=2;ctx.stroke();ctx.shadowBlur=0;if(utensil)presentation.spatula(ctx,utensil,utensilAngle);}if(keys.size){ctx.strokeStyle='#ffffff';ctx.beginPath();ctx.arc(blade.x,blade.y,10,0,7);ctx.stroke();}const bombs=game.state==='running'?game.items.filter(o=>o.bomb&&o.y-o.r<540&&o.y+o.r>0):[];
+    }ctx.globalAlpha=1;for(const o of game.items){ctx.fillStyle='#00000035';ctx.beginPath();ctx.ellipse(o.x+4,o.y+o.r*.85,o.r*.7,5,0,0,7);ctx.fill();snack(o);}trail=trail.filter(p=>(p.life-=dt)>0);if(trail.length){ctx.lineCap='round';ctx.lineJoin='round';for(let i=1;i<trail.length;i++){const p=trail[i],a=trail[i-1],fade=Math.max(0,p.life/.16);ctx.globalAlpha=fade;ctx.strokeStyle='#53e7ed';ctx.lineWidth=2+7*fade;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.strokeStyle='#efffff';ctx.lineWidth=1+2*fade;ctx.stroke();}ctx.globalAlpha=1;if(utensil)presentation.spatula(ctx,utensil,utensilAngle);}if(keys.size){ctx.strokeStyle='#ffffff';ctx.beginPath();ctx.arc(blade.x,blade.y,10,0,7);ctx.stroke();}const bombs=game.state==='running'?game.items.filter(o=>o.bomb&&o.y-o.r<540&&o.y+o.r>0):[];
     const hideWarning=bombs.length===0;if($('sliceWarning').hidden!==hideWarning)$('sliceWarning').hidden=hideWarning;
     for(const bomb of bombs)if(!warnedBombs.has(bomb.id)){warnedBombs.add(bomb.id);if(soundOn)presentation.warning();}
     if(now>comboUntil&&$('sliceCombo').textContent)$('sliceCombo').textContent='';}

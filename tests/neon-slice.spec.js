@@ -227,3 +227,15 @@ test('v3 launches cover both edges with varied heights and stay on screen',()=>{
  for(let seed=1;seed<=50;seed++){const g=new Game(require('../neon-slice-engine').seededRandom(seed),3);g.start();for(let wave=0;wave<15;wave++){g.time=wave*5;g.items=[];g.spawn();for(const item of g.items){if(item.bomb)continue;bins.add(Math.floor(item.x/60));heights.add(Math.round(item.vy/10));for(let t=0;t<2.5;t+=.04){const y=item.y+item.vy*t+.5*item.gravity*t*t;if(y>=0&&y<=540){const x=item.x+item.vx*t;left=Math.min(left,x-item.r);right=Math.max(right,x+item.r);}}}}}
  expect(left).toBeGreaterThanOrEqual(0);expect(right).toBeLessThanOrEqual(360);expect(bins.has(0)).toBe(true);expect(bins.has(5)).toBe(true);expect(bins.size).toBeGreaterThanOrEqual(5);expect(heights.size).toBeGreaterThan(8);
 });
+
+for(const [width,height] of [[320,568],[390,844],[667,375]])test(`night market fits ${width}x${height}`,async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width,height});await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__market=this;this.items=Array.from({length:8},(_,type)=>({id:type,x:65+(type%3)*115,y:180+Math.floor(type/3)*100,r:25,type,angle:.15}));};NeonSliceEngine.Game.prototype.step=function(){};});
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();
+ const box=await page.locator('#sliceCanvas').boundingBox();expect(box.width/box.height).toBeCloseTo(2/3,2);expect(box.y+box.height).toBeLessThanOrEqual(height);
+ for(const id of ['slicePause','sliceQuit','sliceSound'])await expect(page.locator('#'+id)).toBeInViewport();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ await page.evaluate(()=>window.__market.score=260);await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
+ await page.screenshot({path:test.info().outputPath(`market-${width}.png`)});expect(errors).toEqual([]);
+});
