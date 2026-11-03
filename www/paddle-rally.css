@@ -17,7 +17,7 @@ html body.paddlerally-page .meta-pill:last-child b{color:#ffe1a0}
 html body.paddlerally-page .game-guide-surface-wrap{width:fit-content!important;max-width:100%!important;margin:0 auto!important;display:block!important;border-radius:20px;overflow:hidden}
 html body.paddlerally-page canvas.rally-board{display:block!important;width:min(100%,360px)!important;height:auto!important;max-width:100%!important;max-height:none!important;margin:0!important;border:1px solid #4e7e8b!important;border-radius:20px!important;box-sizing:border-box;box-shadow:0 15px 45px #0005!important;filter:none!important;opacity:1!important;touch-action:none;user-select:none;-webkit-user-select:none}
 html body.paddlerally-page .game-guide-surface-wrap{width:min(100%,360px,calc((100dvh - 290px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .72))!important;min-width:190px}
-.rally-entry{position:absolute;z-index:2;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;background:linear-gradient(transparent,#071622b3 25%,#071622ed 50%,#071622b3 75%,transparent)}
+.rally-entry{position:absolute;z-index:2;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:18px;background:linear-gradient(#071622bb,#071622e8 35%,#07162288 65%,transparent)}
 .rally-entry .rally-kicker{font-size:10px;font-weight:800;letter-spacing:.18em;color:#8ff2d7}
 .rally-entry h2{font-size:clamp(22px,6vw,30px);line-height:1.12;letter-spacing:-.04em;margin:10px 0}
 .rally-entry p{font-size:13px;line-height:1.5;color:#c3d8e4;margin:0 0 16px;max-width:230px}
@@ -28,8 +28,10 @@ html body.paddlerally-page .arcade-pulse{width:100%;box-sizing:border-box;displa
 html body.paddlerally-page .rally-control-zone{display:flex;position:relative;box-sizing:border-box;align-items:center;justify-content:center;width:100%;height:54px;margin:10px auto 0;border:1px solid #3c6676;border-radius:16px;background:linear-gradient(100deg,#163b4b,#142a3d);color:#a7d7db;font-size:12px;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow:hidden}
 .rally-control-zone::before{content:'';position:absolute;width:44px;height:3px;background:#96f8db;border-radius:3px;bottom:7px;left:calc(var(--paddle-position,50%) - 22px);pointer-events:none}
 .rally-actions{display:flex;justify-content:center;gap:8px;margin:10px 0 0}
-html body.paddlerally-page .rally-actions :is(button,a){position:static!important;display:inline-flex!important;justify-content:center;align-items:center;flex:1;min-width:0!important;width:auto!important;min-height:44px!important;padding:8px!important;margin:0!important;border:1px solid #3c596d!important;border-radius:13px!important;background:#12283a!important;box-shadow:none!important;color:#d4e7ef!important;font-size:12px!important;line-height:1.2!important;font-weight:700;text-decoration:none;transform:none!important}
-html body.paddlerally-page .rally-actions [hidden]{display:none!important}
+html body.paddlerally-page #rallyActions :is(#pauseButton,#earnlyQuitButton,#rallySound){position:static!important;display:inline-flex!important;justify-content:center;align-items:center;flex:1;min-width:0!important;width:auto!important;min-height:44px!important;padding:8px!important;margin:0!important;border:1px solid #3c596d!important;border-radius:13px!important;background:#12283a!important;box-shadow:none!important;color:#d4e7ef!important;font-size:12px!important;line-height:1.2!important;font-weight:700;text-decoration:none;transform:none!important}
+html body.paddlerally-page #rallyActions :is(#pauseButton,#earnlyQuitButton,#rallySound)[hidden]{display:none!important}
+html body.paddlerally-page:not(.game-active) .rally-control-zone{display:none}
+html body.paddlerally-page .rally-actions #pauseButton{flex:1.2}
 html body.paddlerally-page.earnly-game-paused .rally-actions #pauseButton{background:#25574f!important;border-color:#91f7de!important}
 .rally-paused{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:#07121f88;pointer-events:none;color:white}
 .rally-paused strong{font-size:30px}.rally-paused span{font-size:12px;margin-top:8px;color:#c3d8e4}

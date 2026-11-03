@@ -151,7 +151,7 @@
         if(event.center){cleanReturns++;centerStreak++;bestStreak=Math.max(bestStreak,centerStreak)}else centerStreak=0;
         flash=reducedMotion?0:1;burst(event.x,paddle.y,event.center);feedbackTime=.8;feedbackText=event.center?(centerStreak>1?'CENTER ×'+centerStreak:'CENTER!'):'+1 RETURN';
         const next=score<10?10:score<25?25:score<50?50:(Math.floor(score/25)+1)*25;
-        pulse.textContent=score+' returns · Next goal '+next;
+        pulse.textContent=score+(score===1?' return':' returns')+' · Next goal '+next;
         if([10,25,50,75,100].includes(score)){feedbackText=score+' RETURNS!';feedbackTime=1.4;pulse.textContent=score+' returns · Great rhythm!';Arcade.feedback('score')}
         else Arcade.feedback(event.center&&centerStreak%3===0?'score':'hit');
       }
