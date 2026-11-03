@@ -86,6 +86,9 @@ jobs:
       - name: Verify exact room pixels after camera rotation
         if: matrix.project == 'mobile-webkit' && matrix.shard == '3/3'
         run: npx playwright test tests/world.spec.js --project=mobile-webkit --grep 'An empty room rotates'
+      - name: Verify furniture touch gesture timing
+        if: matrix.project == 'mobile-webkit' && matrix.shard == '2/3'
+        run: npx playwright test tests/world.spec.js --project=mobile-webkit --grep 'Owned furniture double-taps'
       - name: Verify Color Match Prism feedback and phone controls
         run: node --test scripts/test-color-match-engine.cjs && npx playwright test tests/color-match-polish.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload Color Match previews

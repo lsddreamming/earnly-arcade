@@ -72,6 +72,7 @@ test('World reports server configuration failure without asking players to sign 
 });
 
 test('Owned furniture double-taps lift and drop while invalid tiles and cancellation preserve it',async({page,isMobile})=>{
+ await page.clock.install();
  const fs=require('node:fs');
  await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
@@ -99,7 +100,14 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.width)).toBeGreaterThan(0);
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
- const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.waitForTimeout(80);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
+ const double=async p=>{
+  if(!isMobile)return page.mouse.dblclick(p.x,p.y);
+  // Keep real touch input, but control its 80ms interval so a loaded CI host
+  // cannot turn a double-tap into two single taps or a 500ms long press.
+  await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
+  try{await page.touchscreen.tap(p.x,p.y);await page.clock.runFor(80);await page.touchscreen.tap(p.x,p.y);}
+  finally{await page.clock.resume();}
+ };
  const distance=await page.evaluate(()=>144*window.testRenderer.scale);
  let p=await point();
  if(isMobile)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
