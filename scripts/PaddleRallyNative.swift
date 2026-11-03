@@ -65,9 +65,17 @@ final class PaddleRallyNative: XCTestCase {
         resume.tap()
         strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .press(forDuration: 0.05, thenDragTo: strip.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)))
+        // A drag moves the paddle away from the ball. Let the unattended
+        // rally end instead of racing its result dialog with a Pause tap.
+        let replay = app.buttons.matching(NSPredicate(format: "label BEGINSWITH '▶ Play Again'")).firstMatch
+        XCTAssertTrue(replay.waitForExistence(timeout: 60), app.debugDescription)
+        capture("Paddle-Rally-After-Touch-Result")
+        replay.tap()
+        Thread.sleep(forTimeInterval: 3)
+        XCTAssertTrue(pause.waitForExistence(timeout: 120), app.debugDescription)
         pause.tap()
-        XCTAssertTrue(resume.waitForExistence(timeout: 5), app.debugDescription)
-        capture("Paddle-Rally-After-Touch")
+        XCTAssertTrue(resume.waitForExistence(timeout: 10), app.debugDescription)
+        capture("Paddle-Rally-Replay-Paused")
 
         let quit = app.links["Quit game and return to Games"]
         XCTAssertTrue(quit.isHittable, app.debugDescription)
