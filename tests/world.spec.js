@@ -871,13 +871,18 @@ test('An empty room rotates its walls and doorway, not just its furniture',async
   const r=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype);
   Object.assign(r,{canvas,c:canvas.getContext('2d'),width:640,height:560,dpr:1,zoom:1,offset:{x:0,y:0},viewMode:'room',viewRotation:0,users:new Map(),staff:new Map(),bubbles:new Map(),pointers:new Map(),scene:{roomId:'empty',heightmap:Array(8).fill('00000000').join('\n'),items:[]}});
   const original=JSON.stringify(r.scene),images=[],doors=[],edges=[];
-  for(let i=0;i<4;i++){r.draw();images.push(canvas.toDataURL());doors.push({...r.doorHit});edges.push([-1,1].map(side=>r.roomEdge(side).front));r.rotateView(1);}
-  r.draw();return {unique:new Set(images).size,doors,edges,restored:canvas.toDataURL()===images[0],unchanged:JSON.stringify(r.scene)===original};
+  // Compare rendered RGBA pixels, not browser-specific PNG serialization.
+  const pixels=()=>r.c.getImageData(0,0,canvas.width,canvas.height).data;
+  let initial;
+  for(let i=0;i<4;i++){r.draw();if(i===0)initial=pixels();images.push(canvas.toDataURL());doors.push({...r.doorHit});edges.push([-1,1].map(side=>r.roomEdge(side).front));r.rotateView(1);}
+  r.draw();const restored=pixels();let changedChannels=0,maxDelta=0;
+  for(let i=0;i<initial.length;i++){const delta=Math.abs(restored[i]-initial[i]);if(delta)changedChannels++;maxDelta=Math.max(maxDelta,delta);}
+  return {unique:new Set(images).size,doors,edges,changedChannels,maxDelta,unchanged:JSON.stringify(r.scene)===original};
  });
  expect(result.unique).toBe(4);
  expect(new Set(result.doors.map(p=>JSON.stringify(p))).size).toBe(4);
  expect(result.edges).toEqual([[false,false],[false,true],[true,true],[true,false]]);
- expect(result.restored).toBe(true);expect(result.unchanged).toBe(true);
+ expect({changedChannels:result.changedChannels,maxDelta:result.maxDelta}).toEqual({changedChannels:0,maxDelta:0});expect(result.unchanged).toBe(true);
 });
 
 test('Reset restores the default camera without changing furniture or another viewer',async({page})=>{
