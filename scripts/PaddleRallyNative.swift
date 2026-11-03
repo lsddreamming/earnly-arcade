@@ -41,8 +41,16 @@ final class PaddleRallyNative: XCTestCase {
         play.tap()
         let pause = app.buttons["Pause"]
         XCTAssertTrue(pause.waitForExistence(timeout: 10), app.debugDescription)
-        pause.tap()
+        // Check suspension early in a fresh rally. The former sequence waited
+        // until after several unattended returns and could lose before Home.
+        XCUIDevice.shared.press(.home)
+        app.activate()
         let resume = app.buttons["Resume"]
+        XCTAssertTrue(resume.waitForExistence(timeout: 10), "Backgrounding must pause the rally. " + app.debugDescription)
+        capture("Paddle-Rally-After-Background")
+
+        resume.tap()
+        pause.tap()
         XCTAssertTrue(resume.waitForExistence(timeout: 5), app.debugDescription)
         capture("Paddle-Rally-Paused")
 
@@ -56,12 +64,6 @@ final class PaddleRallyNative: XCTestCase {
         pause.tap()
         XCTAssertTrue(resume.waitForExistence(timeout: 5), app.debugDescription)
         capture("Paddle-Rally-After-Touch")
-
-        resume.tap()
-        XCUIDevice.shared.press(.home)
-        app.activate()
-        XCTAssertTrue(resume.waitForExistence(timeout: 10), "Backgrounding must pause the rally. " + app.debugDescription)
-        capture("Paddle-Rally-After-Background")
 
         let quit = app.links["Quit game and return to Games"]
         XCTAssertTrue(quit.isHittable, app.debugDescription)
