@@ -459,6 +459,7 @@
       }
     }
 
+    .blockdrop-board.is-positioning { border-color:#67e8f9 !important; box-shadow:0 0 22px #22d3ee30; }
   </style>
   <link rel="stylesheet" href="compact-game-entry.css?v=1">
   <link rel="stylesheet" href="public-info.css">
@@ -485,7 +486,7 @@
 
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
     <button class="blockdrop-board-start" id="blockDropBoardStart" type="button" aria-label="Start Block Drop">▶ Tap to Start Block Drop</button>
-    <p class="blockdrop-quick-tip">↔️ Drag to move · tap to rotate · ↓ drag to drop</p>
+    <p class="blockdrop-quick-tip">Hold & slide ↔ to aim · Tap to rotate · Swipe ↓ to lower</p>
 
     <div class="arcade-pulse" id="blockPulse" aria-live="polite">NEON FOUNDRY · Build your first clear</div>
     <div class="blockdrop-playfield">
@@ -617,6 +618,7 @@
     }
 
     function newPiece() {
+      endBlockDrag();
       pieceSerial += 1;
       const index = upcomingPieces.shift();
       upcomingPieces.push(nextPieceIndex());
@@ -775,8 +777,12 @@
 
     function drawGhostBlock(x, y) {
       ctx.save();
-      ctx.globalAlpha = .22;
-      ctx.strokeStyle = '#dbeafe';
+      ctx.globalAlpha = .65;
+      ctx.fillStyle = currentColor;
+      ctx.globalAlpha = .18;
+      ctx.fillRect(x * blockSize + 3, y * blockSize + 3, blockSize - 6, blockSize - 6);
+      ctx.globalAlpha = .85;
+      ctx.strokeStyle = currentColor;
       ctx.lineWidth = 2;
       ctx.strokeRect(x * blockSize + 4, y * blockSize + 4, blockSize - 8, blockSize - 8);
       ctx.restore();
@@ -813,6 +819,7 @@
     }
 
     function gameOver() {
+      endBlockDrag();
       if (game === null || ending) return;
       ending = true;
 
@@ -964,86 +971,93 @@
     let blockDragY = 0;
     let blockDragTotalX = 0;
     let blockDragTotalY = 0;
-    const blockStep = 26;
-    const tapSlop = 12;
+    const tapSlop = 10;
+    let dragAxis = null, dragStartedAt = 0, dragLastX = 0, dragLastY = 0;
+    let dragCellSize = 26;
+
+    function endBlockDrag() {
+      const pointer = blockDragPointer;
+      blockDragPointer = null;
+      blockDragPieceSerial = 0;
+      dragAxis = null;
+      canvas.classList.remove('is-positioning');
+      if (pointer !== null) {
+        try { canvas.releasePointerCapture?.(pointer); } catch {}
+      }
+    }
 
     canvas.addEventListener('pointerdown', event => {
       event.preventDefault();
-
+      if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
       if (!game) {
         if (!starting) startGame();
         return;
       }
-      if (game === 'paused' || starting || blockDragPointer !== null || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
-
+      if (game === 'paused' || starting || blockDragPointer !== null) return;
       blockDragPointer = event.pointerId;
       blockDragPieceSerial = pieceSerial;
-      blockDragX = event.clientX;
-      blockDragY = event.clientY;
-      blockDragTotalX = 0;
-      blockDragTotalY = 0;
-      canvas.setPointerCapture?.(event.pointerId);
+      blockDragX = dragLastX = event.clientX;
+      blockDragY = dragLastY = event.clientY;
+      blockDragTotalX = blockDragTotalY = 0;
+      dragAxis = null;
+      dragStartedAt = performance.now();
+      dragCellSize = Math.max(1, canvas.getBoundingClientRect().width / cols);
+      canvas.classList.add('is-positioning');
+      try { canvas.setPointerCapture?.(event.pointerId); } catch {}
     });
 
     canvas.addEventListener('pointermove', event => {
-      if (blockDragPointer !== event.pointerId || !game || game === 'paused' || starting) return;
+      if (blockDragPointer !== event.pointerId) return;
       event.preventDefault();
-
+      // A falling piece may lock while the finger is still held down.
+      if (!game || game === 'paused' || starting || pieceSerial !== blockDragPieceSerial) {
+        endBlockDrag();
+        return;
+      }
+      blockDragTotalX += Math.abs(event.clientX - dragLastX);
+      blockDragTotalY += Math.abs(event.clientY - dragLastY);
+      dragLastX = event.clientX;
+      dragLastY = event.clientY;
       const dx = event.clientX - blockDragX;
       const dy = event.clientY - blockDragY;
-      blockDragTotalX += Math.abs(dx);
-      blockDragTotalY += Math.abs(dy);
-
-      if (Math.abs(dx) >= blockStep) {
-        const moves = Math.max(1, Math.floor(Math.abs(dx) / blockStep));
-        for (let i = 0; i < moves; i++) {
-          dx > 0 ? moveRight() : moveLeft();
-        }
-        blockDragX = event.clientX;
+      if (!dragAxis && Math.max(Math.abs(dx), Math.abs(dy)) >= tapSlop) {
+        dragAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
       }
-
-      if (dy >= blockStep) {
-        const moves = Math.max(1, Math.floor(dy / blockStep));
-        for (let i = 0; i < moves; i++) {
-          const beforePiece = pieceSerial;
-          moveDown();
-          // If this swipe locked the current piece and spawned a new one,
-          // end ownership of the gesture immediately. The same finger movement
-          // must never continue dropping or rotating the next piece.
-          if (pieceSerial !== beforePiece) {
-            blockDragPointer = null;
-            blockDragPieceSerial = 0;
-            blockDragTotalX = 0;
-            blockDragTotalY = 0;
-            try { canvas.releasePointerCapture?.(event.pointerId); } catch {}
-            return;
-          }
+      if (dragAxis === 'x') {
+        // Preserve fractional movement: one displayed cell equals one column.
+        const moves = Math.trunc(dx / dragCellSize);
+        for (let i = 0; i < Math.abs(moves); i++) {
+          const before = pieceX;
+          moves > 0 ? moveRight() : moveLeft();
+          if (pieceX === before) { blockDragX = event.clientX; return; }
+          blockDragX += Math.sign(moves) * dragCellSize;
         }
-        blockDragY = event.clientY;
+      } else if (dragAxis === 'y' && dy >= dragCellSize) {
+        const moves = Math.floor(dy / dragCellSize);
+        for (let i = 0; i < moves; i++) {
+          moveDown();
+          blockDragY += dragCellSize;
+          if (pieceSerial !== blockDragPieceSerial || !game) { endBlockDrag(); return; }
+        }
       }
     });
 
     canvas.addEventListener('pointerup', event => {
       if (blockDragPointer !== event.pointerId) return;
       event.preventDefault();
-      const startedOnSamePiece = blockDragPieceSerial === pieceSerial;
-
-      const wasTap =
-        blockDragTotalX < tapSlop &&
-        blockDragTotalY < tapSlop &&
+      const wasTap = !dragAxis && performance.now() - dragStartedAt < 300 &&
+        blockDragTotalX < tapSlop && blockDragTotalY < tapSlop &&
         Math.abs(event.clientX - blockDragX) < tapSlop &&
         Math.abs(event.clientY - blockDragY) < tapSlop;
-
-      blockDragPointer = null;
-      blockDragPieceSerial = 0;
-      if (wasTap && game && game !== 'paused' && !starting && startedOnSamePiece) rotatePiece();
+      const samePiece = blockDragPieceSerial === pieceSerial;
+      endBlockDrag();
+      if (wasTap && samePiece && game && game !== 'paused' && !starting) rotatePiece();
     });
-
-    canvas.addEventListener('pointercancel', () => {
-      blockDragPointer = null;
-      blockDragPieceSerial = 0;
-      blockDragTotalX = 0;
-      blockDragTotalY = 0;
+    canvas.addEventListener('pointercancel', event => {
+      if (event.pointerId === blockDragPointer) endBlockDrag();
+    });
+    canvas.addEventListener('lostpointercapture', event => {
+      if (event.pointerId === blockDragPointer) endBlockDrag();
     });
 
     canvas.addEventListener('contextmenu', event => event.preventDefault());
