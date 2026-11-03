@@ -41,6 +41,8 @@ jobs:
 
   smoke:
     name: smoke (${{ matrix.project }}, shard ${{ matrix.shard }})
+    # Use the Intel Mac pool: ARM hosted runners repeatedly failed acquisition.
+    # WebKit and all three mobile shards remain required.
     runs-on: ${{ matrix.os }}
     # Include browser installation and the growing regression suite, including
     # the dedicated game checks on slower WebKit hosts. The 35-minute cap
@@ -56,17 +58,17 @@ jobs:
             shard: 1/1
           - project: mobile-webkit
             browser: webkit
-            os: macos-latest
+            os: macos-15-intel
             shard: 1/3
             artifact_suffix: -1
           - project: mobile-webkit
             browser: webkit
-            os: macos-latest
+            os: macos-15-intel
             shard: 2/3
             artifact_suffix: -2
           - project: mobile-webkit
             browser: webkit
-            os: macos-latest
+            os: macos-15-intel
             shard: 3/3
             artifact_suffix: -3
     steps:
