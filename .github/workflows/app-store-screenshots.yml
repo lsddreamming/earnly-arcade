@@ -40,7 +40,7 @@ jobs:
           python3 - <<'PY'
           import json
           devices = [d for group in json.load(open('build/devices.json'))['devices'].values() for d in group if d.get('isAvailable')]
-          choices = [('iphone', ['iPhone 17 Pro Max', 'iPhone 16 Pro Max']), ('ipad', ['iPad Pro 13-inch (M5)', 'iPad Pro 13-inch (M4)'])]
+          choices = [('iphone-medium', ['iPhone 17 Pro', 'iPhone 16 Pro']), ('iphone-large', ['iPhone 17 Pro Max', 'iPhone 16 Pro Max']), ('ipad', ['iPad Pro 13-inch (M5)', 'iPad Pro 13-inch (M4)'])]
           with open('build/capture-devices.tsv', 'w') as out:
               for kind, names in choices:
                   chosen = next((d for name in names for d in devices if d['name'] == name), None)
