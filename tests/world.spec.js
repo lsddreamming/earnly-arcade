@@ -877,12 +877,17 @@ test('An empty room rotates its walls and doorway, not just its furniture',async
   for(let i=0;i<4;i++){r.draw();if(i===0)initial=pixels();images.push(canvas.toDataURL());doors.push({...r.doorHit});edges.push([-1,1].map(side=>r.roomEdge(side).front));r.rotateView(1);}
   r.draw();const restored=pixels();let changedChannels=0,maxDelta=0;
   for(let i=0;i<initial.length;i++){const delta=Math.abs(restored[i]-initial[i]);if(delta)changedChannels++;maxDelta=Math.max(maxDelta,delta);}
-  return {unique:new Set(images).size,doors,edges,changedChannels,maxDelta,unchanged:JSON.stringify(r.scene)===original};
+  return {unique:new Set(images).size,doors,edges,changedChannels,maxDelta,rotation:r.viewRotation,restoredDoor:{...r.doorHit},unchanged:JSON.stringify(r.scene)===original};
  });
  expect(result.unique).toBe(4);
  expect(new Set(result.doors.map(p=>JSON.stringify(p))).size).toBe(4);
  expect(result.edges).toEqual([[false,false],[false,true],[true,true],[true,false]]);
- expect({changedChannels:result.changedChannels,maxDelta:result.maxDelta}).toEqual({changedChannels:0,maxDelta:0});expect(result.unchanged).toBe(true);
+ // Intel WebKit redraws can round 17 RGBA channels by one byte out of 1,433,600.
+ // Bound that rasterization noise tightly; camera, doorway and scene stay exact.
+ expect(result.maxDelta).toBeLessThanOrEqual(1);
+ expect(result.changedChannels).toBeLessThanOrEqual(64);
+ expect(result.rotation).toBe(0);expect(result.restoredDoor).toEqual(result.doors[0]);
+ expect(result.unchanged).toBe(true);
 });
 
 test('Reset restores the default camera without changing furniture or another viewer',async({page})=>{
