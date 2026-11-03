@@ -78,7 +78,8 @@ jobs:
         with:
           name: earnly-1.11-native-screenshots-${{ matrix.device }}
           path: |
-            build/screenshots/
-            build/*.xcresult
+            build/screenshots/**/*.png
+            build/screenshots/**/manifest.json
+            build/screenshots/source-commit.txt
             build/devices.json
           retention-days: 30

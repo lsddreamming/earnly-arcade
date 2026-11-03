@@ -46,6 +46,19 @@ final class StoreScreenshots: XCTestCase {
         button.tap()
     }
 
+    func tapSurface(_ label: String) {
+        let surface = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", label)).firstMatch
+        XCTAssertTrue(surface.waitForExistence(timeout: 20), app.debugDescription)
+        surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+    }
+
+    func captureFrames(_ name: String, count: Int = 8) {
+        for frame in 1...count {
+            capture(name + "-Frame-" + String(format: "%02d", frame))
+            Thread.sleep(forTimeInterval: 0.35)
+        }
+    }
+
     func test04Catalog() {
         games()
         capture("04-Arcade-Games")
@@ -54,26 +67,22 @@ final class StoreScreenshots: XCTestCase {
     func test01NeonSlice() {
         openGame("Neon Slice")
         start("Play")
-        // Wait for the first natural food wave, then make a normal swipe.
-        Thread.sleep(forTimeInterval: 1.2)
-        let a = app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: 0.62))
-        let b = app.coordinate(withNormalizedOffset: CGVector(dx: 0.78, dy: 0.48))
+        // Capture several real frames so the chosen image shows food in flight.
+        captureFrames("01-Neon-Slice", count: 5)
+        let a = app.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.72))
+        let b = app.coordinate(withNormalizedOffset: CGVector(dx: 0.82, dy: 0.52))
         a.press(forDuration: 0.05, thenDragTo: b)
-        capture("01-Neon-Slice")
-        Thread.sleep(forTimeInterval: 0.4)
-        capture("01-Neon-Slice-Alternate")
+        captureFrames("01-Neon-Slice-After-Swipe", count: 5)
     }
 
     func test02BounceRun() {
         openGame("Bounce Run")
-        start("👆 Tap Game to Start")
+        tapSurface("Bounce Run play area")
         // Allow both countdowns and the first crystal obstacle to enter view.
         Thread.sleep(forTimeInterval: 7.0)
         // Bounce Run accepts a tap anywhere in its live play area.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        capture("02-Bounce-Run")
-        Thread.sleep(forTimeInterval: 0.3)
-        capture("02-Bounce-Run-Alternate")
+        captureFrames("02-Bounce-Run")
     }
 
     func test03NeonBreach() {
@@ -85,12 +94,12 @@ final class StoreScreenshots: XCTestCase {
         let fire = app.buttons["Hold to fire blaster"]
         XCTAssertTrue(fire.waitForExistence(timeout: 10), app.debugDescription)
         fire.press(forDuration: 0.5)
-        capture("03-Neon-Breach-Alternate")
+        captureFrames("03-Neon-Breach-Action", count: 5)
     }
 
     func test05MemoryMatch() {
         openGame("Memory Match")
-        start("👆 Tap the Cards to Start")
+        tapSurface("Memory Match cards")
         let card = app.buttons["Hidden card 1"]
         XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: card)
@@ -101,14 +110,14 @@ final class StoreScreenshots: XCTestCase {
 
     func test06TowerStack() {
         openGame("Tower Stack")
-        start("👆 Tap the Tower to Start")
+        tapSurface("Tower Stack game board")
         Thread.sleep(forTimeInterval: 3.5)
         capture("06-Tower-Stack")
     }
 
     func test07ColorMatch() {
         openGame("Color Match")
-        start("👆 Tap the Game to Start")
+        tapSurface("Color Match game area")
         Thread.sleep(forTimeInterval: 3.5)
         capture("07-Color-Match")
     }
