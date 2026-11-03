@@ -14,9 +14,15 @@ permissions:
 
 jobs:
   screenshots:
+    name: screenshots (${{ matrix.device }})
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iphone-medium, iphone-large, ipad]
     runs-on: macos-26
-    timeout-minutes: 35
+    timeout-minutes: 30
     env:
+      EARNLY_CAPTURE_DEVICE: ${{ matrix.device }}
       EARNLY_ADMOB_TEST_MODE: '0'
       EARNLY_IOS_MARKETING_VERSION: '1.11'
       EARNLY_IOS_BUILD_NUMBER: '901'
@@ -40,11 +46,12 @@ jobs:
           git rev-parse HEAD > build/screenshots/source-commit.txt
           xcrun simctl list devices available -j > build/devices.json
           python3 - <<'PY'
-          import json
+          import json, os
           devices = [d for group in json.load(open('build/devices.json'))['devices'].values() for d in group if d.get('isAvailable')]
           choices = [('iphone-medium', ['iPhone 17 Pro', 'iPhone 16 Pro']), ('iphone-large', ['iPhone 17 Pro Max', 'iPhone 16 Pro Max']), ('ipad', ['iPad Pro 13-inch (M5)', 'iPad Pro 13-inch (M4)'])]
           with open('build/capture-devices.tsv', 'w') as out:
               for kind, names in choices:
+                  if kind != os.environ['EARNLY_CAPTURE_DEVICE']: continue
                   chosen = next((d for name in names for d in devices if d['name'] == name), None)
                   if not chosen: raise SystemExit('Required screenshot simulator unavailable: ' + str(names))
                   out.write(kind + '\t' + chosen['udid'] + '\n')
@@ -69,7 +76,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: earnly-1.11-native-screenshots
+          name: earnly-1.11-native-screenshots-${{ matrix.device }}
           path: |
             build/screenshots/
             build/*.xcresult

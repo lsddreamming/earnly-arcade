@@ -24,7 +24,7 @@ final class StoreScreenshots: XCTestCase {
         let search = app.searchFields["Search games"]
         if search.exists { return }
         let link = app.links.matching(NSPredicate(format: "label == 'Games' OR label == '← Games'")).firstMatch
-        XCTAssertTrue(link.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(link.waitForExistence(timeout: 40), app.debugDescription)
         link.tap()
         XCTAssertTrue(search.waitForExistence(timeout: 15), app.debugDescription)
     }
@@ -34,7 +34,8 @@ final class StoreScreenshots: XCTestCase {
         let search = app.searchFields["Search games"]
         search.tap()
         search.typeText(name)
-        let link = app.links["Play " + name]
+        // The accessible card and its visible Play link share the same label.
+        let link = app.links.matching(identifier: "Play " + name).firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 10), app.debugDescription)
         link.tap()
     }
