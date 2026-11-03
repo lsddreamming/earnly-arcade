@@ -117,17 +117,17 @@ test('launch gate exposes account deletion clearly on web and iOS', async ({ pag
   await expect(accountLink).toBeVisible();
   await expect(accountLink).toContainText('Cloud, backup & delete');
 
+  // Exercise signed-in rendering instead of manually revealing one DOM section.
+  await page.route('**/cloud.js', route => route.fulfill({
+    contentType:'text/javascript',
+    body:`window.EarnlyCloud={ready:true,session:async()=>({user:{email:'player@example.com'}}),
+      autoSyncEnabled:()=>true,checkSaveConflict:async()=>null,cloudConflict:()=>null,
+      cloudSaveInfo:async()=>null};`
+  }));
   await page.goto('/account.html#delete-account');
-  await page.evaluate(() => {
-    document.getElementById('cloudSignedOut').hidden = true;
-    document.getElementById('cloudSignedIn').hidden = false;
-  });
   await expect(page.locator('#delete-account')).toBeVisible();
-  // Deletion stays discoverable but no longer dominates the signed-in page.
-  // The direct deletion route must allow the player to reveal the action.
-  if (!(await page.locator('#delete-account').evaluate(el => el.open))) {
-    await page.locator('#delete-account > summary').click();
-  }
+  await expect(page.locator('#delete-account')).toHaveAttribute('open', '');
+  expect(await page.locator('#delete-account').evaluate(el => !!el.closest('.cloud-account-card'))).toBe(false);
   await expect(page.locator('#cloudDeleteButton')).toBeVisible();
 });
 

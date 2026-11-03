@@ -72,6 +72,7 @@ test('World reports server configuration failure without asking players to sign 
 });
 
 test('Owned furniture double-taps lift and drop while invalid tiles and cancellation preserve it',async({page,isMobile})=>{
+ await page.clock.install();
  const fs=require('node:fs');
  await page.route('**/world-renderer.js*',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync('world-renderer.js','utf8')+';{const Base=EarnlyWorldRenderer.WorldRenderer;EarnlyWorldRenderer.WorldRenderer=class extends Base{constructor(...a){super(...a);window.testRenderer=this;}};}'}));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>({access_token:"fixture"})};'}));
@@ -99,7 +100,14 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  await expect.poll(()=>page.evaluate(()=>window.testRenderer.width)).toBeGreaterThan(0);
  const point=()=>page.evaluate(()=>{const r=window.testRenderer,i=r.scene.items[0],b=r.canvas.getBoundingClientRect();return {x:b.left+r.cx+(i.x-i.y)*18*r.scale,y:b.top+r.cy+((i.x+i.y)*9-6)*r.scale};});
- const double=async p=>{if(isMobile){await page.touchscreen.tap(p.x,p.y);await page.waitForTimeout(80);await page.touchscreen.tap(p.x,p.y);}else await page.mouse.dblclick(p.x,p.y);};
+ const double=async p=>{
+  if(!isMobile)return page.mouse.dblclick(p.x,p.y);
+  // Keep real touch input, but control its 80ms interval so a loaded CI host
+  // cannot turn a double-tap into two single taps or a 500ms long press.
+  await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
+  try{await page.touchscreen.tap(p.x,p.y);await page.clock.runFor(80);await page.touchscreen.tap(p.x,p.y);}
+  finally{await page.clock.resume();}
+ };
  const distance=await page.evaluate(()=>144*window.testRenderer.scale);
  let p=await point();
  if(isMobile)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
@@ -871,13 +879,23 @@ test('An empty room rotates its walls and doorway, not just its furniture',async
   const r=Object.create(EarnlyWorldRenderer.WorldRenderer.prototype);
   Object.assign(r,{canvas,c:canvas.getContext('2d'),width:640,height:560,dpr:1,zoom:1,offset:{x:0,y:0},viewMode:'room',viewRotation:0,users:new Map(),staff:new Map(),bubbles:new Map(),pointers:new Map(),scene:{roomId:'empty',heightmap:Array(8).fill('00000000').join('\n'),items:[]}});
   const original=JSON.stringify(r.scene),images=[],doors=[],edges=[];
-  for(let i=0;i<4;i++){r.draw();images.push(canvas.toDataURL());doors.push({...r.doorHit});edges.push([-1,1].map(side=>r.roomEdge(side).front));r.rotateView(1);}
-  r.draw();return {unique:new Set(images).size,doors,edges,restored:canvas.toDataURL()===images[0],unchanged:JSON.stringify(r.scene)===original};
+  // Compare rendered RGBA pixels, not browser-specific PNG serialization.
+  const pixels=()=>r.c.getImageData(0,0,canvas.width,canvas.height).data;
+  let initial;
+  for(let i=0;i<4;i++){r.draw();if(i===0)initial=pixels();images.push(canvas.toDataURL());doors.push({...r.doorHit});edges.push([-1,1].map(side=>r.roomEdge(side).front));r.rotateView(1);}
+  r.draw();const restored=pixels();let changedChannels=0,maxDelta=0;
+  for(let i=0;i<initial.length;i++){const delta=Math.abs(restored[i]-initial[i]);if(delta)changedChannels++;maxDelta=Math.max(maxDelta,delta);}
+  return {unique:new Set(images).size,doors,edges,changedChannels,maxDelta,rotation:r.viewRotation,restoredDoor:{...r.doorHit},unchanged:JSON.stringify(r.scene)===original};
  });
  expect(result.unique).toBe(4);
  expect(new Set(result.doors.map(p=>JSON.stringify(p))).size).toBe(4);
  expect(result.edges).toEqual([[false,false],[false,true],[true,true],[true,false]]);
- expect(result.restored).toBe(true);expect(result.unchanged).toBe(true);
+ // Intel WebKit redraws can round 17 RGBA channels by one byte out of 1,433,600.
+ // Bound that rasterization noise tightly; camera, doorway and scene stay exact.
+ expect(result.maxDelta).toBeLessThanOrEqual(1);
+ expect(result.changedChannels).toBeLessThanOrEqual(64);
+ expect(result.rotation).toBe(0);expect(result.restoredDoor).toEqual(result.doors[0]);
+ expect(result.unchanged).toBe(true);
 });
 
 test('Reset restores the default camera without changing furniture or another viewer',async({page})=>{
