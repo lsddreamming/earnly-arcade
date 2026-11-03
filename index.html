@@ -337,18 +337,18 @@
         signedIn ? 'Open your connected Earnly account' : 'Create an Earnly account or sign in'
       );
       homeAccountTitle.textContent = needsAttention
-        ? 'Earnly backup needs attention'
+        ? 'Progress saved in this browser'
         : (signedIn ? 'Earnly account connected' : 'Create or Sign In');
       homeAccountText.textContent = !signedIn
         ? 'Save your progress across devices.'
         : (needsAttention
-            ? 'Open Account to protect your latest progress.'
+            ? 'Backup paused. You can keep playing or review your saves.'
             : (rewardError
                 ? 'Progress backed up · reward updates are retrying automatically.'
                 : (sync.pending
                     ? 'Saving ' + sync.pending + ' update' + (sync.pending === 1 ? '' : 's') + ' automatically…'
                     : savedTimeLabel(localStorage.getItem('arcadeLastCloudSave')))));
-      homeAccountAction.textContent = needsAttention ? 'Fix →' : (signedIn ? 'Account ✓' : 'Account →');
+      homeAccountAction.textContent = needsAttention ? 'Review →' : (signedIn ? 'Account ✓' : 'Account →');
     }
 
     function render() {
@@ -666,6 +666,7 @@
     window.addEventListener('earnly-cloud-auth-change', refreshHomeAccountShortcut);
     window.addEventListener('earnly-cloud-synced', refreshHomeAccountShortcut);
     window.addEventListener('earnly-cloud-conflict', refreshHomeAccountShortcut);
+    window.addEventListener('earnly-cloud-conflict-cleared', refreshHomeAccountShortcut);
     window.addEventListener('earnly-server-rewards-synced', refreshHomeAccountShortcut);
     window.addEventListener('earnly-server-reward-error', refreshHomeAccountShortcut);
     window.addEventListener('earnly-data-change', refreshHomeAccountShortcut);

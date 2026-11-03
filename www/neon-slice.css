@@ -53,3 +53,8 @@ body.neon-slice-page #sliceCanvas{position:absolute;inset:0;width:100%;height:10
  .slice-controls{margin-top:7px}.slice-controls button{padding:6px 4px;min-height:44px;font-size:12px;white-space:nowrap}
  .slice-help{font-size:10px;margin:5px 0}
 }
+
+/* Show only actions that make sense before the first round. */
+.slice-idle #slicePause,.slice-idle #sliceQuit,.slice-idle .slice-help{display:none}
+.slice-idle .slice-controls{justify-content:center}.slice-idle #sliceSound{flex:0 1 150px}
+.slice-idle .slice-reward{background:none;border:0;color:#afc5d6;font-size:11px!important;padding:4px!important}
