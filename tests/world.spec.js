@@ -544,6 +544,8 @@ test('Afterglow furniture previews have distinct original art and transparent pr
 });
 
 test('Original World collections can be explored before connecting and searched without spending',async({page},testInfo)=>{
+ // Exercise the complete catalog deterministically while Halloween is on sale.
+ await page.clock.setFixedTime(new Date('2026-11-02T23:59:59Z'));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
  await page.setViewportSize({width:390,height:844});await page.goto('/world.html');
  await expect(page.locator('#worldInspiration')).toBeVisible();await page.locator('#browseDecor').click();
@@ -952,3 +954,16 @@ test('Backpack visitor can find their furniture without moving it in another pla
  await page.addInitScript(()=>{window.backpackActions=[];window.WebSocket=class{constructor(){this.readyState=1;setTimeout(()=>this.onopen?.(),10);}send(raw){const p=JSON.parse(raw);if(p.type==='ACTION')window.backpackActions.push(p);if(p.type==='JOIN')this.onmessage?.({data:JSON.stringify({type:'WELCOME',userId:'guest',scene:{roomId:'friend-room',name:'Friend Room',ownerId:'friend',heightmap:'0000\n0000\n0000\n0000',items:[]},bootstrap:{balance:100,rooms:[],friends:[],catalog:[{id:'chair',name:'Arcade Chair',sprite_id:'chair',color:'#799ff5',width:1,length:1}],items:[{id:'a',definition_id:'chair',serial:1,room_id:null}]}})});}};});
  await page.goto('/world.html');await page.locator('#connectWorld').click();await page.locator('[data-panel="backpack"]').click();await expect(page.getByRole('button',{name:'Go home to place'})).toBeVisible();await expect(page.getByRole('button',{name:'Place',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Pick up',exact:true})).toHaveCount(0);expect(await page.evaluate(()=>window.backpackActions)).toEqual([]);
 });
+
+for(const [date,halloweenVisible] of [['2026-11-02T23:59:59Z',true],['2026-11-03T00:00:00Z',false]]){
+ test('Guest collection catalog respects Halloween UTC cutoff '+date,async({page})=>{
+  await page.clock.setFixedTime(new Date(date));
+  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:'window.EarnlyCloud={session:async()=>null};'}));
+  await page.goto('/world.html');await page.locator('#browseDecor').click();
+  await page.locator('.catalog-collections summary').click();
+  const total=await page.evaluate(()=>EarnlyWorldCollections.collections.length);
+  await expect(page.locator('.collection-card')).toHaveCount(total-(halloweenVisible?0:1));
+  await expect(page.getByRole('button',{name:'Explore Halloween',exact:true})).toHaveCount(halloweenVisible?1:0);
+  await expect(page.getByRole('button',{name:'Explore Bramble Cafe',exact:true})).toBeVisible();
+ });
+}
