@@ -66,7 +66,8 @@ final class StoreScreenshots: XCTestCase {
     func test02BounceRun() {
         openGame("Bounce Run")
         start("👆 Tap Game to Start")
-        Thread.sleep(forTimeInterval: 3.0)
+        // Allow both countdowns and the first crystal obstacle to enter view.
+        Thread.sleep(forTimeInterval: 7.0)
         // Bounce Run accepts a tap anywhere in its live play area.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         capture("02-Bounce-Run")
@@ -77,7 +78,8 @@ final class StoreScreenshots: XCTestCase {
     func test03NeonBreach() {
         openGame("Neon Breach")
         start("▶ TAP TO START")
-        Thread.sleep(forTimeInterval: 3.2)
+        // Let the first robot wave materialize through normal gameplay.
+        Thread.sleep(forTimeInterval: 5.0)
         capture("03-Neon-Breach")
         let fire = app.buttons["Hold to fire blaster"]
         XCTAssertTrue(fire.waitForExistence(timeout: 10), app.debugDescription)
