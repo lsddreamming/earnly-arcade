@@ -39,11 +39,15 @@ final class PaddleRallyNative: XCTestCase {
         capture("Paddle-Rally-Ready")
 
         play.tap()
+        // Give WKWebView's countdown a chance to render before requesting
+        // accessibility snapshots on heavily loaded hosted simulators.
+        Thread.sleep(forTimeInterval: 3)
         let pause = app.buttons["Pause"]
-        XCTAssertTrue(pause.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(pause.waitForExistence(timeout: 120), app.debugDescription)
         // Check suspension early in a fresh rally. The former sequence waited
         // until after several unattended returns and could lose before Home.
         XCUIDevice.shared.press(.home)
+        Thread.sleep(forTimeInterval: 2)
         app.activate()
         let resume = app.buttons["Resume"]
         XCTAssertTrue(resume.waitForExistence(timeout: 10), "Backgrounding must pause the rally. " + app.debugDescription)
