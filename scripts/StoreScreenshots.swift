@@ -66,6 +66,8 @@ final class StoreScreenshots: XCTestCase {
         start("👆 Tap the Cards to Start")
         let card = app.buttons["Hidden card 1"]
         XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: card)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 10), .completed)
         card.tap()
         capture("03-Memory-Match")
     }

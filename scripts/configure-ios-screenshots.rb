@@ -13,6 +13,7 @@ FileUtils.cp('scripts/StoreScreenshots.swift', 'ios/App/StoreScreenshots/StoreSc
 group = project.main_group.new_group('StoreScreenshots', 'StoreScreenshots')
 target.source_build_phase.add_file_reference(group.new_file('StoreScreenshots.swift'))
 target.build_configurations.each do |config|
+  config.build_settings['PRODUCT_NAME'] = '$(TARGET_NAME)'
   config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.earnly.arcade.StoreScreenshots'
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   config.build_settings['SWIFT_VERSION'] = '5.0'
