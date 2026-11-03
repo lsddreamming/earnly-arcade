@@ -90,8 +90,9 @@
     function syncSound(){soundButton.textContent=Arcade.soundEnabled()?'Sound on':'Sound off';soundButton.setAttribute('aria-pressed',String(Arcade.soundEnabled()))}
     soundButton.addEventListener('click',()=>{Arcade.setSoundEnabled(!Arcade.soundEnabled());syncSound()});syncSound();
     function clearRallyControl(){
-      if(controlSurface&&controlPointer!==null){try{controlSurface.releasePointerCapture(controlPointer)}catch{}}
+      const surface=controlSurface,pointer=controlPointer;
       controlPointer=null;controlSurface=null;keys.clear();
+      if(surface&&pointer!==null){try{surface.releasePointerCapture(pointer)}catch{}}
     }
     function reset(){
       cancelAnimationFrame(animation);animation=null;clearRallyControl();score=0;paused=false;lastFrame=0;pauseStartedAt=0;totalPausedMs=0;
@@ -113,7 +114,7 @@
       for(let x=36;x<W;x+=36){ctx.beginPath();ctx.moveTo(x,14);ctx.lineTo(x,H-14);ctx.stroke()}
       ctx.strokeStyle='#82c7d332';ctx.strokeRect(22,22,W-44,H-70);ctx.beginPath();ctx.arc(W/2,233,62,0,Math.PI*2);ctx.stroke();
       ctx.setLineDash([3,8]);ctx.beginPath();ctx.moveTo(23,233);ctx.lineTo(W-23,233);ctx.stroke();ctx.setLineDash([]);
-      ctx.font='800 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#87c6c9';ctx.fillText('I O N   C O U R T',W/2,46);
+      ctx.font='800 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#87c6c9';if(running)ctx.fillText('I O N   C O U R T',W/2,46);
       ctx.globalAlpha=.11;ctx.font='900 112px system-ui';ctx.fillStyle='#aaf5ed';ctx.fillText(String(score).padStart(2,'0'),W/2,273);ctx.globalAlpha=1;
       // Lit rails frame the ball without distracting from its path.
       for(const x of [5,W-8]){ctx.fillStyle='#263f55';ctx.fillRect(x,20,3,H-67);const rail=ctx.createLinearGradient(0,20,0,H-47);rail.addColorStop(0,'#71d4db');rail.addColorStop(.65,'#5285cb');rail.addColorStop(1,'#edb28c');ctx.fillStyle=rail;ctx.fillRect(x,20,3,H-67)}
@@ -162,7 +163,7 @@
       if(running||starting)return;starting=true;
       if(!Arcade.consume('paddleRally')){starting=false;Arcade.out('paddleRally',refreshChrome);return}
       refreshChrome();reset();window.scrollTo(0,0);startButton.disabled=true;setStatus('Get Ready','starting');
-      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();paused=false;pauseButton.hidden=false;pauseButton.textContent='Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)});
+      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();paused=false;pauseButton.hidden=false;pauseButton.textContent='Pause';setStatus('Running','running');if(document.hidden)togglePause();else animation=requestAnimationFrame(loop)});
     }
     function togglePause(){
       if(!running)return;

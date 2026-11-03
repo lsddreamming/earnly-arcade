@@ -31,8 +31,9 @@ html body.paddlerally-page .rally-control-zone{display:flex;position:relative;bo
 html body.paddlerally-page #rallyActions :is(#pauseButton,#earnlyQuitButton,#rallySound){position:static!important;display:inline-flex!important;justify-content:center;align-items:center;flex:1;min-width:0!important;width:auto!important;min-height:44px!important;padding:8px!important;margin:0!important;border:1px solid #3c596d!important;border-radius:13px!important;background:#12283a!important;box-shadow:none!important;color:#d4e7ef!important;font-size:12px!important;line-height:1.2!important;font-weight:700;text-decoration:none;transform:none!important}
 html body.paddlerally-page #rallyActions :is(#pauseButton,#earnlyQuitButton,#rallySound)[hidden]{display:none!important}
 html body.paddlerally-page:not(.game-active) .rally-control-zone{display:none}
-html body.paddlerally-page .rally-actions #pauseButton{flex:1.2}
-html body.paddlerally-page.earnly-game-paused .rally-actions #pauseButton{background:#25574f!important;border-color:#91f7de!important}
+html body.paddlerally-page #rallyActions #earnlyQuitButton{flex:0 0 64px!important;min-width:64px!important}
+html body.paddlerally-page #rallyActions #pauseButton{flex:1.2}
+html body.paddlerally-page.earnly-game-paused #rallyActions #pauseButton{background:#25574f!important;border-color:#91f7de!important}
 .rally-paused{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:#07121f88;pointer-events:none;color:white}
 .rally-paused strong{font-size:30px}.rally-paused span{font-size:12px;margin-top:8px;color:#c3d8e4}
 .earnly-game-paused .rally-paused{display:flex}

@@ -62,7 +62,7 @@ for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,
   await page.screenshot({path:info.outputPath('paddle-ready-'+viewport.width+'.png'),fullPage:true});
   await page.evaluate(()=>{Arcade.countdown=fn=>fn()});await start(page);
   await page.evaluate(()=>{ball.x=paddle.x+paddle.w/2;ball.y=paddle.y-ball.r-1;ball.dx=0;ball.dy=400;lastFrame=100;loop(116.67);cancelAnimationFrame(animation);draw()});
-  for(const id of ['game','rallyControlZone','rallyActions','pauseButton','earnlyQuitButton','rallySound']){const b=await page.locator('#'+id).boundingBox();expect(b.x).toBeGreaterThanOrEqual(0);expect(b.y).toBeGreaterThanOrEqual(0);expect(b.x+b.width).toBeLessThanOrEqual(viewport.width+1);expect(b.y+b.height).toBeLessThanOrEqual(viewport.height+1)}
+  for(const id of ['game','rallyControlZone','rallyActions','pauseButton','earnlyQuitButton','rallySound']){const b=await page.locator('#'+id).boundingBox();expect(b.x).toBeGreaterThanOrEqual(0);expect(b.y).toBeGreaterThanOrEqual(0);expect(b.x+b.width).toBeLessThanOrEqual(viewport.width+1);expect(b.y+b.height).toBeLessThanOrEqual(viewport.height+1);expect(b.width).toBeGreaterThanOrEqual(44)}
   const board=await page.locator('#game').boundingBox(),controls=await page.locator('#rallyControlZone').boundingBox();
   if(viewport.width<viewport.height){expect(board.y+board.height).toBeLessThanOrEqual(controls.y);const pause=await page.locator('#pauseButton').boundingBox();expect(pause.y).toBeGreaterThanOrEqual(controls.y+controls.height);expect(pause.height).toBeGreaterThanOrEqual(44)}
   await page.screenshot({path:info.outputPath('paddle-active-'+viewport.width+'.png'),fullPage:true});
