@@ -45,12 +45,12 @@ final class StoreScreenshots: XCTestCase {
         button.tap()
     }
 
-    func test01Catalog() {
+    func test04Catalog() {
         games()
-        capture("01-Arcade-Games")
+        capture("04-Arcade-Games")
     }
 
-    func test02NeonSlice() {
+    func test01NeonSlice() {
         openGame("Neon Slice")
         start("Play")
         // Wait for the first natural food wave, then make a normal swipe.
@@ -58,10 +58,34 @@ final class StoreScreenshots: XCTestCase {
         let a = app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: 0.62))
         let b = app.coordinate(withNormalizedOffset: CGVector(dx: 0.78, dy: 0.48))
         a.press(forDuration: 0.05, thenDragTo: b)
-        capture("02-Neon-Slice")
+        capture("01-Neon-Slice")
+        Thread.sleep(forTimeInterval: 0.4)
+        capture("01-Neon-Slice-Alternate")
     }
 
-    func test03MemoryMatch() {
+    func test02BounceRun() {
+        openGame("Bounce Run")
+        start("👆 Tap Game to Start")
+        Thread.sleep(forTimeInterval: 3.0)
+        // Bounce Run accepts a tap anywhere in its live play area.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        capture("02-Bounce-Run")
+        Thread.sleep(forTimeInterval: 0.3)
+        capture("02-Bounce-Run-Alternate")
+    }
+
+    func test03NeonBreach() {
+        openGame("Neon Breach")
+        start("▶ TAP TO START")
+        Thread.sleep(forTimeInterval: 3.2)
+        capture("03-Neon-Breach")
+        let fire = app.buttons["Hold to fire blaster"]
+        XCTAssertTrue(fire.waitForExistence(timeout: 10), app.debugDescription)
+        fire.press(forDuration: 0.5)
+        capture("03-Neon-Breach-Alternate")
+    }
+
+    func test05MemoryMatch() {
         openGame("Memory Match")
         start("👆 Tap the Cards to Start")
         let card = app.buttons["Hidden card 1"]
@@ -69,27 +93,27 @@ final class StoreScreenshots: XCTestCase {
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: card)
         XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 10), .completed)
         card.tap()
-        capture("03-Memory-Match")
+        capture("05-Memory-Match")
     }
 
-    func test04TowerStack() {
+    func test06TowerStack() {
         openGame("Tower Stack")
         start("👆 Tap the Tower to Start")
         Thread.sleep(forTimeInterval: 3.5)
-        capture("04-Tower-Stack")
+        capture("06-Tower-Stack")
     }
 
-    func test05ColorMatch() {
+    func test07ColorMatch() {
         openGame("Color Match")
         start("👆 Tap the Game to Start")
         Thread.sleep(forTimeInterval: 3.5)
-        capture("05-Color-Match")
+        capture("07-Color-Match")
     }
 
-    func test06BlockDrop() {
+    func test08BlockDrop() {
         openGame("Block Drop")
         start("Start Block Drop")
         Thread.sleep(forTimeInterval: 3.5)
-        capture("06-Block-Drop")
+        capture("08-Block-Drop")
     }
 }
