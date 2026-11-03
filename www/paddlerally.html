@@ -13,81 +13,12 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="earnly-icon.svg">
   <title>Paddle Rally - Solo Pong Game | Earnly Arcade</title>
-  <meta name="description" content="Keep a solo rally alive as each successful return makes the ball faster.">
+  <meta name="description" content="Find your rhythm on the Ion Court. Move your paddle, aim for center returns, and build your best rally.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
-  <style>html,body,.container{touch-action:manipulation}.rally-board{width:min(88vw,360px);height:auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:18px}
-    .rally-control-zone{display:none}
-    @media(max-width:600px){
-      body.paddlerally-page main.container{padding-top:max(14px,calc(env(safe-area-inset-top) + 8px))!important;padding-bottom:92px!important}
-      body.paddlerally-page .topbar{margin-bottom:6px!important}
-      body.paddlerally-page .page-header{
-        margin:2px 0 7px!important;
-        padding:11px!important;
-        gap:6px!important;
-        border:1px solid rgba(59,130,246,.30)!important;
-        border-radius:18px!important;
-        background:
-          radial-gradient(circle at 88% 0%,rgba(59,130,246,.10),transparent 38%),
-          radial-gradient(circle at 12% 100%,rgba(34,211,238,.06),transparent 34%),
-          linear-gradient(145deg,rgba(18,38,61,.97),rgba(8,22,37,.97))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 30px rgba(0,0,0,.18)!important
-      }
-      body.paddlerally-page .page-header h1{font-size:22px!important;line-height:1.05!important;margin:0!important;letter-spacing:-.035em!important}
-      body.paddlerally-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;width:100%!important}
-      body.paddlerally-page .meta-pill{
-        min-height:37px!important;
-        padding:4px 3px!important;
-        display:flex!important;
-        align-items:center!important;
-        justify-content:center!important;
-        text-align:center!important;
-        font-size:9px!important;
-        font-weight:850!important;
-        border:1px solid rgba(67,119,164,.34)!important;
-        border-radius:11px!important;
-        background:linear-gradient(145deg,rgba(16,34,55,.96),rgba(8,21,36,.96))!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
-      }
-      body.paddlerally-page .meta-pill:nth-child(3){
-        border-color:rgba(255,193,77,.30)!important;
-        color:#ffd86b!important
-      }
-      body.paddlerally-page #startButton{margin:4px auto 6px!important;min-height:42px!important}
-      body.paddlerally-page .rally-board{
-        width:min(88vw,350px)!important;
-        margin:6px auto!important;
-        display:block!important;
-        border:2px solid rgba(59,130,246,.34)!important;
-        background:#081522!important;
-        box-shadow:
-          inset 0 0 38px rgba(0,0,0,.22),
-          0 18px 38px rgba(0,0,0,.26),
-          0 0 18px rgba(59,130,246,.06)!important
-      }
-      body.paddlerally-page.game-active .game-guide-strip,body.paddlerally-page.game-active .game-guide-more,body.paddlerally-page.game-active a.button.secondary{display:none!important}
-      body.paddlerally-page.game-active .topbar,body.paddlerally-page.game-active #startButton{display:none!important}
-      body.paddlerally-page.game-active .earnly-pause-button,body.paddlerally-page.game-active #pauseButton{width:auto!important;min-width:112px!important;min-height:40px!important;margin:2px auto 0!important;padding:8px 14px!important;font-size:12px!important;border-radius:12px!important}
-      body.paddlerally-page.game-active main.container{padding-top:8px!important}
-      body.paddlerally-page.game-active .page-header{margin-bottom:3px!important}
-      body.paddlerally-page.game-active .page-header h1{font-size:18px!important;margin:0 0 4px!important}
-      body.paddlerally-page.game-active .rally-board{
-        width:min(90vw,358px)!important;
-        margin:3px auto!important;
-        border-color:rgba(59,130,246,.50)!important;
-        box-shadow:
-          inset 0 0 44px rgba(0,0,0,.20),
-          0 18px 38px rgba(0,0,0,.28),
-          0 0 22px rgba(59,130,246,.08)!important
-      }
-      body.paddlerally-page.game-active .rally-control-zone{display:flex;width:min(90vw,358px);height:52px;margin:4px auto 0;border:1px solid rgba(59,130,246,.36);border-radius:14px;background:linear-gradient(180deg,#1a3049,#101d31);box-shadow:inset 0 1px 0 rgba(255,255,255,.03);align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:850;color:#dbeafe;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-      body.paddlerally-page.game-active .game-status{font-size:9px!important;padding:3px 7px!important}
-    }
-  </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/paddlerally.html">
-  <link rel="stylesheet" href="classic-game-ui.css?v=1">
-<link rel="stylesheet" href="arcade-trio-polish.css?v=1">
+  <link rel="stylesheet" href="paddle-rally.css?v=1">
 </head>
 <body class="classic-game-ui paddlerally-page">
   <main class="container">
@@ -96,19 +27,29 @@
       <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
     </div>
     <header class="page-header">
-      <h1>🏓 Paddle Rally</h1>
-      <div class="game-meta"><span class="meta-pill">Rallies: <span id="score">0</span></span>
-        <span class="meta-pill">Speed: <span id="speed">1.0</span>x</span>
-        <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
-        <span class="meta-pill"><span id="plays">0</span> plays left</span></div>
+      <h1>Paddle Rally</h1>
+      <div class="game-meta">
+        <span class="meta-pill">Returns <b id="score">0</b></span>
+        <span class="meta-pill">Best <b id="bestScore">0</b></span>
+        <span class="meta-pill">Coins <b id="rewardPreview">0</b></span>
+      </div>
       <span class="game-status" id="gameStatus">Ready</span>
-      <button class="secondary" id="pauseButton" type="button" hidden>⏸ Pause</button>
     </header>
-    <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
-    <div class="arcade-pulse" id="rallyPulse" aria-live="polite">ION COURT · Find your rhythm</div>
-    <canvas class="rally-board touch-surface" id="game" width="360" height="500" aria-label="Paddle Rally game board"></canvas>
-    <div class="rally-control-zone" id="rallyControlZone" aria-label="Swipe left or right to move paddle">↔️ Swipe here to move paddle</div>
-    <a class="button wide secondary" href="games.html">← Back to Games</a>
+    <div class="arcade-pulse"><span id="rallyPulse" aria-live="polite">ION COURT · Find your rhythm</span><span class="rally-pace"><span id="speed">1.0</span>× pace</span></div>
+    <canvas class="rally-board touch-surface" id="game" width="360" height="500" aria-label="Paddle Rally court. Drag left or right, or use the arrow keys."></canvas>
+    <div class="rally-entry" id="rallyEntry">
+      <span class="rally-kicker">ONE BALL. YOUR REFLEXES.</span>
+      <h2>Find your rhythm</h2>
+      <p>Drag below the court.<br>Keep the ball in play.</p>
+      <button id="startButton" type="button">Play</button>
+      <small><span id="plays">0</span> plays left · Up to 100 Coins</small>
+    </div>
+    <div class="rally-control-zone" id="rallyControlZone" aria-label="Drag left or right here to move the paddle">↔ Drag here to move</div>
+    <div class="rally-actions" id="rallyActions">
+      <a id="earnlyQuitButton" class="earnly-quit-button" href="games.html" aria-label="Quit game and return to Games" hidden>Quit</a>
+      <button id="pauseButton" type="button" hidden>Pause</button>
+      <button id="rallySound" type="button">Sound on</button>
+    </div>
 
     <a class="game-guide-link" href="game-guides.html#paddleRally">How to play Paddle Rally · guide &amp; tips</a>
 
@@ -119,157 +60,145 @@
       <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
     </footer>
 </main>
-  <a id="earnlyQuitButton" class="earnly-quit-button" href="games.html" aria-label="Quit game and return to Games" hidden>× Quit</a>
-  <script src="arcade.js"></script><script src="arcade-polish-engine.js"></script>
+  <script src="arcade.js"></script>
+  <script src="paddle-rally-engine.js?v=1"></script>
   <script>
-    const playsEl=document.getElementById('plays');
-    const balanceEl=document.getElementById('balance');
-    const statusEl=document.getElementById('gameStatus');
-    const startButton=document.getElementById('startButton');
-    const pauseButton=document.getElementById('pauseButton');
+    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+    const W=PaddleRally.width,H=PaddleRally.height;
+    const playsEl=document.getElementById('plays'),balanceEl=document.getElementById('balance');
+    const statusEl=document.getElementById('gameStatus'),startButton=document.getElementById('startButton'),pauseButton=document.getElementById('pauseButton');
+    const scoreEl=document.getElementById('score'),speedEl=document.getElementById('speed'),rewardPreviewEl=document.getElementById('rewardPreview');
+    const pulse=document.getElementById('rallyPulse'),rallyControlZone=document.getElementById('rallyControlZone'),soundButton=document.getElementById('rallySound');
+    // Retain the shared mobile pause contract, then place both actions together.
     if(window.matchMedia('(max-width:600px)').matches)document.body.append(pauseButton);
-    function setStatus(text,mode){ statusEl.textContent=text; statusEl.className='game-status'+(mode?' '+mode:''); document.body.classList.toggle('game-active',mode==='running'||mode==='paused'); document.getElementById('earnlyQuitButton').hidden=mode!=='running'&&mode!=='paused'; }
-    function refreshChrome(){ playsEl.textContent=Arcade.remaining('paddleRally'); balanceEl.textContent=Arcade.number('points').toLocaleString(); if(typeof refreshReward==='function') refreshReward(); }
-    function beginPlay(){
-      if(!Arcade.consume('paddleRally')){ Arcade.out('paddleRally',refreshChrome); return false; }
-      refreshChrome(); return true;
-    }
-
-    const canvas=document.getElementById('game'),rallyControlZone=document.getElementById('rallyControlZone'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),speedEl=document.getElementById('speed'),rewardPreviewEl=document.getElementById('rewardPreview');
-    Arcade.gameGuide({game:'paddleRally',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Move the paddle'},{icon:'🏓',title:'Goal',text:'Keep the rally alive'}],
-      overlayIcon:'🏓',overlayTitle:'Keep the Ball Alive',overlayText:'Move the paddle under the ball. Each return makes it faster.',replayTitle:'Tap to Play Again',
-      tips:['Mouse/finger movement controls the paddle. Arrow keys also work.','The run ends when the ball gets past your paddle.'],reward:'Long rallies earn up to 100 Coins.'});
-    const paddle={x:136,y:458,w:88,h:14},ball={x:180,y:300,r:7,dx:4.0,dy:-5.3};
-    let score=0,running=false,starting=false,paused=false,animation=null,last=0,pauseStartedAt=0,totalPausedMs=0,lastFrame=0;
-    let trail=[],impact=0,cleanReturns=0;
-    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
-    function rewardFor(v){ return Arcade.gameReward('paddleRally',v); }
+    document.getElementById('rallyActions').insertBefore(pauseButton,soundButton);
+    const guide=Arcade.gameGuide({game:'paddleRally',surface:canvas,steps:[],
+      tips:['Drag the strip below the court or touch the court itself. The paddle follows your finger.','On a computer, move the mouse over the court or hold the arrow keys. Press P or Space to pause.','Center returns build your precision streak. Paddle edges angle the ball. The pace rises gradually.'],
+      reward:'Long rallies earn up to 100 Coins.',detailsAfter:'#rallyActions'});
+    guide.wrapper.append(document.getElementById('rallyEntry'));
+    const pauseOverlay=document.createElement('div');pauseOverlay.className='rally-paused';pauseOverlay.innerHTML='<strong>Paused</strong><span>Tap Resume when you’re ready</span>';guide.wrapper.append(pauseOverlay);
+    const paddle={x:132,y:458,w:96,h:14},ball={x:180,y:370,r:7,dx:150,dy:-327};
+    let score=0,running=false,starting=false,paused=false,animation=null,lastFrame=0,earnlyRunStartedAt=0,pauseStartedAt=0,totalPausedMs=0;
+    let trail=[],sparks=[],rings=[],cleanReturns=0,centerStreak=0,bestStreak=0,flash=0,feedbackText='',feedbackTime=0;
+    let controlPointer=null,controlSurface=null,keys=new Set();
+    const reducedMotion=Arcade.reducedMotionEnabled();
+    const ratio=Math.min(2,window.devicePixelRatio||1);canvas.width=W*ratio;canvas.height=H*ratio;ctx.scale(ratio,ratio);
+    const rewardFor=value=>Arcade.gameReward('paddleRally',value);
+    function refreshChrome(){playsEl.textContent=Arcade.remaining('paddleRally');balanceEl.textContent=Arcade.number('points').toLocaleString();document.getElementById('bestScore').textContent=Arcade.best('paddleRally').value||0;refreshReward()}
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(score)}
-    function reset(){trail=[];impact=0;cleanReturns=0;document.getElementById("rallyPulse").textContent="ION COURT · Find your rhythm";cancelAnimationFrame(animation);animation=null;clearRallyControl();score=0;paused=false;pauseStartedAt=0;totalPausedMs=0;lastFrame=0;paddle.w=88;paddle.x=(canvas.width-paddle.w)/2;ball.x=180;ball.y=350;ball.dx=(Math.random()>.5?1:-1)*4.0;ball.dy=-5.3;scoreEl.textContent='0';speedEl.textContent='1.0';refreshReward();draw()}
-    function draw(){
-      const bg=ctx.createLinearGradient(0,0,0,canvas.height);bg.addColorStop(0,'#0b1729');bg.addColorStop(1,'#10263d');ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.strokeStyle='rgba(56,189,248,.12)';ctx.lineWidth=1;for(let y=55;y<canvas.height;y+=55){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}
-      ctx.strokeStyle='rgba(148,163,184,.25)';ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(canvas.width,250);ctx.stroke();ctx.setLineDash([]);
-      ctx.save();ctx.globalAlpha=.12;ctx.font='900 110px system-ui';ctx.textAlign='center';ctx.fillStyle='#9ebdff';ctx.fillText(String(score).padStart(2,'0'),180,230);ctx.restore();
-      trail.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,ball.r*(i+1)/trail.length,0,Math.PI*2);ctx.fillStyle='rgba(104,225,255,'+(.35*(i+1)/trail.length)+')';ctx.fill()});
-      if(impact>0){ctx.save();ctx.strokeStyle='#90fff0';ctx.lineWidth=3;ctx.globalAlpha=impact/.25;ctx.beginPath();ctx.ellipse(ball.x,paddle.y,25+(1-impact/.25)*25,9,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
-      ctx.save();ctx.shadowColor='rgba(59,130,246,.55)' ;ctx.shadowBlur=14;const pg=ctx.createLinearGradient(paddle.x,paddle.y,paddle.x,paddle.y+paddle.h);pg.addColorStop(0,'#60a5fa');pg.addColorStop(1,'#2563eb');ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(paddle.x,paddle.y,paddle.w,paddle.h,7);ctx.fill();ctx.restore();
-      ctx.save();ctx.shadowColor='rgba(255,255,255,.8)';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.restore();
+    function setStatus(text,mode){statusEl.textContent=text;statusEl.className='game-status'+(mode?' '+mode:'');document.body.classList.toggle('game-active',mode==='running'||mode==='paused'||mode==='starting');document.getElementById('earnlyQuitButton').hidden=mode!=='running'&&mode!=='paused'}
+    function syncSound(){soundButton.textContent=Arcade.soundEnabled()?'Sound on':'Sound off';soundButton.setAttribute('aria-pressed',String(Arcade.soundEnabled()))}
+    soundButton.addEventListener('click',()=>{Arcade.setSoundEnabled(!Arcade.soundEnabled());syncSound()});syncSound();
+    function clearRallyControl(){
+      if(controlSurface&&controlPointer!==null){try{controlSurface.releasePointerCapture(controlPointer)}catch{}}
+      controlPointer=null;controlSurface=null;keys.clear();
     }
-    function clearRallyControl(){controlPointer=null;controlLastX=null}
+    function reset(){
+      cancelAnimationFrame(animation);animation=null;clearRallyControl();score=0;paused=false;lastFrame=0;pauseStartedAt=0;totalPausedMs=0;
+      trail=[];sparks=[];rings=[];cleanReturns=0;centerStreak=0;bestStreak=0;flash=0;feedbackTime=0;
+      paddle.w=PaddleRally.widthFor(0);PaddleRally.placePaddle(paddle,W/2);
+      ball.x=W/2;ball.y=370;ball.dx=(Math.random()>.5?1:-1)*150;ball.dy=-Math.sqrt(PaddleRally.baseSpeed**2-ball.dx**2);
+      scoreEl.textContent='0';speedEl.textContent='1.0';pulse.textContent='ION COURT · Find your rhythm';refreshReward();draw();
+    }
+    function burst(x,y,center,wall=false){
+      if(reducedMotion)return;
+      const color=wall?'#64b9f1':center?'#fff0b0':'#92ffe1';
+      rings.push({x,y,life:wall?.18:.35,max:wall?.18:.35,color});
+      for(let i=0;i<(wall?4:12);i++){const angle=Math.random()*Math.PI*2,speed=35+Math.random()*120;sparks.push({x,y,dx:Math.cos(angle)*speed,dy:Math.sin(angle)*speed,life:.25+Math.random()*.2,color})}
+    }
+    function draw(){
+      const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#12323e');bg.addColorStop(.55,'#0a1d30');bg.addColorStop(1,'#172b40');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      ctx.save();ctx.strokeStyle='#79d2d912';ctx.lineWidth=1;
+      for(let y=36;y<H;y+=36){ctx.beginPath();ctx.moveTo(14,y);ctx.lineTo(W-14,y);ctx.stroke()}
+      for(let x=36;x<W;x+=36){ctx.beginPath();ctx.moveTo(x,14);ctx.lineTo(x,H-14);ctx.stroke()}
+      ctx.strokeStyle='#82c7d332';ctx.strokeRect(22,22,W-44,H-70);ctx.beginPath();ctx.arc(W/2,233,62,0,Math.PI*2);ctx.stroke();
+      ctx.setLineDash([3,8]);ctx.beginPath();ctx.moveTo(23,233);ctx.lineTo(W-23,233);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='800 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#87c6c9';ctx.fillText('I O N   C O U R T',W/2,46);
+      ctx.globalAlpha=.11;ctx.font='900 112px system-ui';ctx.fillStyle='#aaf5ed';ctx.fillText(String(score).padStart(2,'0'),W/2,273);ctx.globalAlpha=1;
+      // Lit rails frame the ball without distracting from its path.
+      for(const x of [5,W-8]){ctx.fillStyle='#263f55';ctx.fillRect(x,20,3,H-67);const rail=ctx.createLinearGradient(0,20,0,H-47);rail.addColorStop(0,'#71d4db');rail.addColorStop(.65,'#5285cb');rail.addColorStop(1,'#edb28c');ctx.fillStyle=rail;ctx.fillRect(x,20,3,H-67)}
+      ctx.fillStyle='#a3eee6';ctx.fillRect(26,5,W-52,3);ctx.fillStyle='#e4ac8155';ctx.fillRect(22,H-19,W-44,1);
+      trail.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,ball.r*(i+1)/(trail.length+1),0,Math.PI*2);ctx.fillStyle='rgba(125,229,255,'+(.35*(i+1)/trail.length)+')';ctx.fill()});
+      for(const ring of rings){ctx.globalAlpha=ring.life/ring.max;ctx.strokeStyle=ring.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(ring.x,ring.y,5+(1-ring.life/ring.max)*27,0,Math.PI*2);ctx.stroke()}
+      for(const p of sparks){ctx.globalAlpha=Math.min(1,p.life*3);ctx.fillStyle=p.color;ctx.fillRect(p.x-1.5,p.y-1.5,3,3)}ctx.globalAlpha=1;
+      // The bright center band teaches where to aim for a precision return.
+      ctx.shadowColor='#67f5d5';ctx.shadowBlur=reducedMotion?0:14+flash*20;
+      const pg=ctx.createLinearGradient(0,paddle.y,0,paddle.y+paddle.h);pg.addColorStop(0,'#c1ffe9');pg.addColorStop(1,'#38bba8');ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(paddle.x,paddle.y,paddle.w,paddle.h,7);ctx.fill();ctx.shadowBlur=0;
+      ctx.fillStyle='#f1fff2';ctx.fillRect(paddle.x+paddle.w*.375,paddle.y+2,paddle.w*.25,3);
+      ctx.shadowColor='#9aeaff';ctx.shadowBlur=reducedMotion?0:16;ctx.fillStyle='#f8ffff';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      if(feedbackTime>0){ctx.globalAlpha=Math.min(1,feedbackTime*3);ctx.fillStyle=centerStreak?'#ffe9a5':'#b7f9ea';ctx.font='800 16px system-ui';ctx.fillText(feedbackText,W/2,327);ctx.globalAlpha=1}
+      ctx.restore();rallyControlZone.style.setProperty('--paddle-position',((paddle.x+paddle.w/2)/W*100)+'%');
+    }
     function finish(){
-      if(!running)return;running=false;paused=false;document.body.classList.remove('earnly-game-paused');clearRallyControl();pauseButton.hidden=true;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;
+      if(!running)return;running=false;paused=false;document.body.classList.remove('earnly-game-paused');clearRallyControl();pauseButton.hidden=true;lastFrame=0;cancelAnimationFrame(animation);animation=null;
       const earned=rewardFor(score);Arcade.earn(earned,'Paddle Rally',{kind:'game',game:'paddleRally',metric:score});Arcade.feedback('fail');const result=Arcade.recordResult('paddleRally',score);
-      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Missed','over');draw();
+      starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='Play again';setStatus('Rally over','over');draw();
       Arcade.gameResult({icon:'🏓',title:'Rally Over',scoreLabel:'Returns',score,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('paddleRally'),game:'paddleRally',
-        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🎯 Center returns: '+cleanReturns,score>=20?'🔥 Serious rally!':'Stay centered under the ball.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
+        extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🎯 Center returns: '+cleanReturns+' · Best streak: '+bestStreak,score>=20?'Great rhythm. Can you beat it?':'Aim for the bright center of your paddle.'],onReplay:startGame,onMorePlays:()=>Arcade.out('paddleRally',refreshChrome)});
     }
     function loop(now){
       if(!running||paused)return;
-      if(!lastFrame)lastFrame=now;
-      const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;
-      lastFrame=now;
-      impact=Math.max(0,impact-dt/60);
-      if(!reducedMotion&&dt>0){trail.push({x:ball.x,y:ball.y});if(trail.length>10)trail.shift()}
-      const prevY=ball.y;
-      ball.x+=ball.dx*dt;ball.y+=ball.dy*dt;
-      if(ball.x-ball.r<=0&&ball.dx<0){ball.x=ball.r;ball.dx*=-1}
-      if(ball.x+ball.r>=canvas.width&&ball.dx>0){ball.x=canvas.width-ball.r;ball.dx*=-1}
-      if(ball.y-ball.r<=0&&ball.dy<0){ball.y=ball.r;ball.dy*=-1}
-      // Swept paddle check keeps very fast rallies from skipping through the paddle between frames.
-      const crossedPaddle=ball.dy>0&&prevY+ball.r<=paddle.y&&ball.y+ball.r>=paddle.y;
-      if(crossedPaddle&&ball.x+ball.r>=paddle.x&&ball.x-ball.r<=paddle.x+paddle.w){
-        const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
-        // Keep accelerating throughout long rallies instead of capping near 2x.
-        const currentMag=Math.hypot(ball.dx,ball.dy);
-        const mag=ArcadePolish.rallySpeed(currentMag);
-        ball.dx=mag*.72*hit;ball.dy=-Math.sqrt(Math.max(10,mag*mag-ball.dx*ball.dx));ball.y=paddle.y-ball.r-1;score++;scoreEl.textContent=String(score);speedEl.textContent=(mag/5.8).toFixed(1);refreshReward();
-        impact=reducedMotion?0:.25;
-        if(Math.abs(hit)<.25)cleanReturns++;
-        document.getElementById('rallyPulse').textContent=(score<8?'ION COURT':score<18?'NEON DRIVE':score<30?'OVERDRIVE':'HYPER COURT')+' · '+(Math.abs(hit)<.25?'Center return!':score+' returns')+' · '+cleanReturns+' precise';
-        // Keep normal returns quiet enough that long rallies do not become a wall of feedback.
-        if(score===1||score%5===0)Arcade.feedback('hit');
-        if(score===8){
-          paddle.w=78;
-          Arcade.milestone('🏓 8 returns · Paddle shrinking to 78px');
-        }
-        if(score===18){
-          paddle.w=68;
-          Arcade.milestone('⚠️ 18 returns · Paddle shrinking to 68px');
-        }
-        if(score===30){
-          paddle.w=60;
-          Arcade.milestone('🔥 30 returns · Expert paddle: 60px','perfect');
-        }
+      const dt=lastFrame?Math.min(.05,Math.max(0,now-lastFrame)/1000):0;lastFrame=now;
+      const direction=Number(keys.has('right'))-Number(keys.has('left'));
+      if(direction)PaddleRally.placePaddle(paddle,paddle.x+paddle.w/2+direction*440*dt);
+      flash=Math.max(0,flash-dt*5);feedbackTime=Math.max(0,feedbackTime-dt);
+      rings=rings.filter(p=>(p.life-=dt)>0);sparks=sparks.filter(p=>{p.x+=p.dx*dt;p.y+=p.dy*dt;return(p.life-=dt)>0});
+      if(!reducedMotion&&dt){trail.push({x:ball.x,y:ball.y});if(trail.length>11)trail.shift()}
+      for(const event of PaddleRally.step(ball,paddle,dt,score)){
+        if(event.kind==='miss'){finish();return}
+        if(event.kind!=='paddle'){burst(event.x,event.y,false,true);Arcade.feedback('move');continue}
+        score=event.score;scoreEl.textContent=score;speedEl.textContent=(PaddleRally.speedFor(score)/PaddleRally.baseSpeed).toFixed(1);refreshReward();
+        if(event.center){cleanReturns++;centerStreak++;bestStreak=Math.max(bestStreak,centerStreak)}else centerStreak=0;
+        flash=reducedMotion?0:1;burst(event.x,paddle.y,event.center);feedbackTime=.8;feedbackText=event.center?(centerStreak>1?'CENTER ×'+centerStreak:'CENTER!'):'+1 RETURN';
+        const next=score<10?10:score<25?25:score<50?50:(Math.floor(score/25)+1)*25;
+        pulse.textContent=score+' returns · Next goal '+next;
+        if([10,25,50,75,100].includes(score)){feedbackText=score+' RETURNS!';feedbackTime=1.4;pulse.textContent=score+' returns · Great rhythm!';Arcade.feedback('score')}
+        else Arcade.feedback(event.center&&centerStreak%3===0?'score':'hit');
       }
-      if(ball.y-ball.r>canvas.height){finish();return}draw();animation=requestAnimationFrame(loop);
+      draw();animation=requestAnimationFrame(loop);
     }
-    function moveTo(clientX){const r=canvas.getBoundingClientRect();const x=(clientX-r.left)*(canvas.width/r.width);paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,x-paddle.w/2))}
-    let earnlyRunStartedAt=0;
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0;clearRallyControl();cancelAnimationFrame(animation);animation=null;lastFrame=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();paused=false;pauseButton.hidden=false;pauseButton.textContent='⏸ Pause';startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    function togglePause(){if(!running)return;if(!paused){paused=true;document.body.classList.add('earnly-game-paused');clearRallyControl();pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='▶ Resume';setStatus('Paused','paused');}else{if(!pauseStartedAt)return;paused=false;document.body.classList.remove('earnly-game-paused');totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='⏸ Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}}
+    function moveTo(clientX,surface=canvas){const rect=surface.getBoundingClientRect();if(rect.width)PaddleRally.placePaddle(paddle,(clientX-rect.left)*W/rect.width)}
+    function startGame(){
+      if(running||starting)return;starting=true;
+      if(!Arcade.consume('paddleRally')){starting=false;Arcade.out('paddleRally',refreshChrome);return}
+      refreshChrome();reset();window.scrollTo(0,0);startButton.disabled=true;setStatus('Get Ready','starting');
+      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();paused=false;pauseButton.hidden=false;pauseButton.textContent='Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)});
+    }
+    function togglePause(){
+      if(!running)return;
+      if(!paused){paused=true;document.body.classList.add('earnly-game-paused');clearRallyControl();pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;pauseButton.textContent='Resume';setStatus('Paused','paused');draw()}
+      else{paused=false;document.body.classList.remove('earnly-game-paused');totalPausedMs+=performance.now()-pauseStartedAt;pauseStartedAt=0;lastFrame=0;pauseButton.textContent='Pause';setStatus('Running','running');animation=requestAnimationFrame(loop)}
+    }
     pauseButton.addEventListener('click',togglePause);
-    let controlPointer=null,controlLastX=null;
-    function beginRelativeControl(e,target){
-      if(!running||paused||controlPointer!==null)return;
-      if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
-      controlPointer=e.pointerId;controlLastX=e.clientX;
-      try{target?.setPointerCapture?.(e.pointerId)}catch{}
+    for(const surface of [canvas,rallyControlZone]){
+      surface.addEventListener('pointerdown',e=>{
+        if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0)||paused||starting)return;
+        if(!running){if(surface===canvas)startGame();return}
+        if(controlPointer!==null)return;
+        e.preventDefault();controlPointer=e.pointerId;controlSurface=surface;keys.clear();moveTo(e.clientX,surface);draw();
+        try{surface.setPointerCapture(e.pointerId)}catch{}
+      });
+      surface.addEventListener('pointermove',e=>{
+        if(!running||paused)return;
+        if(controlPointer===e.pointerId){e.preventDefault();moveTo(e.clientX,controlSurface)}
+        else if(e.pointerType==='mouse'&&controlPointer===null){moveTo(e.clientX,surface)}
+      },{passive:false});
+      surface.addEventListener('lostpointercapture',e=>{if(controlPointer===e.pointerId)clearRallyControl()});
     }
-    function moveRelative(clientX){
-      if(controlLastX===null){controlLastX=clientX;return}
-      const delta=clientX-controlLastX;controlLastX=clientX;
-      const r=canvas.getBoundingClientRect();
-      paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x+delta*(canvas.width/r.width)));
-    }
-    canvas.addEventListener('pointerdown',e=>{
-      if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
-      e.preventDefault();
-      if(!running){if(!starting)startGame();return}
-      beginRelativeControl(e,canvas)
-    });
-    canvas.addEventListener('pointermove',e=>{
-      if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveRelative(e.clientX)}
-    },{passive:false});
-    const stopControl=e=>{if(e&&controlPointer!==e.pointerId)return;clearRallyControl()};
-    canvas.addEventListener('pointerup',stopControl);
-    canvas.addEventListener('pointercancel',stopControl);
-    rallyControlZone.addEventListener('pointerdown',e=>{if(!running||paused||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();beginRelativeControl(e,rallyControlZone)});
-    rallyControlZone.addEventListener('pointermove',e=>{if(running&&!paused&&controlPointer===e.pointerId){e.preventDefault();moveRelative(e.clientX)}},{passive:false});
-    rallyControlZone.addEventListener('pointerup',stopControl);rallyControlZone.addEventListener('pointercancel',stopControl);
-
-    document.addEventListener('pointerdown',e=>{
-      const bottomControl=running&&!paused&&e.clientY>=window.innerHeight-150;
-      if(Arcade.isProtectedGameControlTarget(e.target)||e.target===canvas||rallyControlZone.contains(e.target))return;
-      if(!bottomControl&&!Arcade.inExpandedGameZone(e,canvas,130))return;
-      if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
-      e.preventDefault();
-      if(!running){if(!starting)startGame();return}
-      beginRelativeControl(e,e.target);
-    },{passive:false});
-    document.addEventListener('pointermove',e=>{
-      if(!running||paused||controlPointer!==e.pointerId)return;
-      e.preventDefault();
-      moveRelative(e.clientX);
-    },{passive:false});
-    document.addEventListener('touchmove',e=>{
-      if(!running||paused||controlPointer===null)return;
-      e.preventDefault();
-    },{passive:false});
-    document.addEventListener('pointerup',stopControl);
-    document.addEventListener('pointercancel',stopControl);
-    window.addEventListener('blur',clearRallyControl);
-    document.addEventListener('visibilitychange',()=>{if(document.hidden)clearRallyControl()});
+    const stopControl=e=>{if(controlPointer===e.pointerId)clearRallyControl()};
+    document.addEventListener('pointerup',stopControl);document.addEventListener('pointercancel',stopControl);
+    window.addEventListener('blur',()=>{clearRallyControl();if(running&&!paused)togglePause()});
+    document.addEventListener('visibilitychange',()=>{if(document.hidden){clearRallyControl();if(running&&!paused)togglePause()}});
     document.addEventListener('keydown',e=>{
+      if(e.target.closest('input,select,textarea,dialog'))return;
+      if((e.key==='Enter'||e.key===' ')&&e.target.closest('button,a'))return;
       if(e.key==='Enter'&&!running&&!starting){e.preventDefault();startGame();return}
-      if((e.key===' '||e.key==='p'||e.key==='P')&&running){e.preventDefault();togglePause();return}
+      if((e.key===' '||e.key.toLowerCase()==='p')&&running){e.preventDefault();if(!e.repeat)togglePause();return}
       if(!running||paused)return;
-      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();paddle.x=Math.max(0,paddle.x-28)}
-      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();paddle.x=Math.min(canvas.width-paddle.w,paddle.x+28)}
+      if(['ArrowLeft','a','A','ArrowRight','d','D'].includes(e.key)){e.preventDefault();keys.add(['ArrowLeft','a','A'].includes(e.key)?'left':'right')}
     });
+    document.addEventListener('keyup',e=>{if(['ArrowLeft','a','A'].includes(e.key))keys.delete('left');if(['ArrowRight','d','D'].includes(e.key))keys.delete('right')});
     startButton.addEventListener('click',startGame);reset();refreshChrome();
-
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
