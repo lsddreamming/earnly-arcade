@@ -234,7 +234,7 @@ for(const [width,height] of [[320,568],[390,844],[667,375]])test(`night market f
  await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__market=this;this.items=Array.from({length:8},(_,type)=>({id:type,x:65+(type%3)*115,y:180+Math.floor(type/3)*100,r:25,type,angle:.15}));};NeonSliceEngine.Game.prototype.step=function(){};});
  await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();
  const box=await page.locator('#sliceCanvas').boundingBox();expect(box.width/box.height).toBeCloseTo(2/3,2);expect(box.y+box.height).toBeLessThanOrEqual(height);
- for(const id of ['slicePause','sliceQuit','sliceSound'])await expect(page.locator('#'+id)).toBeInViewport();
+ for(const id of ['slicePause','sliceQuit','sliceSound']){await expect(page.locator('#'+id)).toBeInViewport({ratio:1});const control=await page.locator('#'+id).boundingBox();expect(control.y+control.height).toBeLessThanOrEqual(height);}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
  await page.evaluate(()=>window.__market.score=260);await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
  await page.screenshot({path:test.info().outputPath(`market-${width}.png`)});expect(errors).toEqual([]);

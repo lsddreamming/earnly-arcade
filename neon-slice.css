@@ -44,3 +44,12 @@ body.neon-slice-page{background:radial-gradient(ellipse at 15% 0,#223657,#0a1223
    Resizing the retina backing store must never resize the game arena. */
 body.neon-slice-page #sliceCanvas{position:absolute;inset:0;width:100%;height:100%}
 .slice-stage{align-self:start}
+
+@media(max-height:700px) and (orientation:portrait){
+ .slice-shell{padding-top:8px;padding-bottom:8px}
+ .slice-title{padding:2px 0}.slice-title h1{font-size:24px;margin:4px 0 2px}.slice-title p{font-size:11px;margin-bottom:6px}
+ .slice-stage,.slice-hud{width:min(100%,calc((100svh - 250px)*.666667))}
+ .slice-hud{padding:7px 10px;gap:6px}
+ .slice-controls{margin-top:7px}.slice-controls button{padding:6px 4px;min-height:44px;font-size:12px;white-space:nowrap}
+ .slice-help{font-size:10px;margin:5px 0}
+}
