@@ -53,6 +53,8 @@ test('keyboard shortcuts answer the displayed position and ignore held-key repea
  await expect(page.locator('#score')).toHaveText('1');
 });
 test('ready, live and paused layouts fit phone and landscape controls',async({page},testInfo)=>{
+ // Six navigations and screenshots share this test's budget on hosted WebKit.
+ test.setTimeout(90000);
  for(const [width,height] of [[320,568],[390,664],[390,844],[440,956],[667,375],[844,390]]){
   await page.evaluate(()=>localStorage.clear());await page.setViewportSize({width,height});await page.goto('/colormatch.html');await start(page);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
