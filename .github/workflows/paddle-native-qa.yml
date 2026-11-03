@@ -40,6 +40,7 @@ jobs:
         run: |
           cp ../qa/scripts/PaddleRallyNative.swift scripts/
           cp ../qa/scripts/configure-paddle-native-qa.rb scripts/
+          rm -rf ios
           npm run native:ios:generate
           gem install xcodeproj -v 1.27.0 --user-install --no-document
           ruby scripts/configure-paddle-native-qa.rb
