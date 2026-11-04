@@ -46,3 +46,18 @@ html body.mini-spiralDrop.game-active .game-title-status-row{grid-column:1/-1!im
 html body.mini-spiralDrop.game-active .game-meta{grid-row:2!important}
 .spiral-zone{white-space:nowrap;font-size:12px}.spiral-goal{font-size:8px}
 @media(min-width:600px) and (max-height:520px){html body.mini-spiralDrop.game-active .page-header{grid-row:1!important}}
+
+/* Compact Flow meter and a live steering marker keep feedback near the thumb. */
+.spiral-route .spiral-flow{display:grid;grid-template-columns:1fr auto 32px;gap:8px;border-top:1px solid #91d5ee22;padding-top:5px;min-height:15px;color:#a8cbdc}
+.spiral-flow-label{font-size:8px;font-weight:800;letter-spacing:.7px}
+.spiral-flow strong{font-size:10px;text-align:right;font-variant-numeric:tabular-nums}
+.spiral-flow-pips{display:flex;gap:4px}
+.spiral-flow-pips i{display:block;width:19px;height:5px;border-radius:3px;background:#06192c;border:1px solid #78c7dd44}
+.spiral-flow-pips i.lit{background:#9df4e9;border-color:#c9fff5;box-shadow:0 0 7px #6ce9dc44}
+.spiral-flow[data-active="true"]{color:#ffe1a0}
+.spiral-flow[data-active="true"] .lit{background:#ffda89;border-color:#fff0bc;box-shadow:0 0 7px #ffd48655}
+html body.mini-spiralDrop.game-active .spiral-control-zone{position:relative;overflow:hidden;padding-bottom:6px!important}
+.spiral-steering-track{position:absolute;bottom:4px;left:14px;right:14px;height:3px;border-radius:5px;background:#164b652a;pointer-events:none}
+.spiral-steering-track i{position:absolute;left:var(--steering,50%);top:-2px;transform:translateX(-50%);width:22px;height:7px;border-radius:5px;background:#145371;border:1px solid #d4ffff}
+html body.mini-spiralDrop.game-active .spiral-control-zone.steering{box-shadow:inset 0 0 0 2px #e0ffff,0 0 20px #71e2ed22}
+@media(max-height:650px){.spiral-route .spiral-flow{padding-top:3px;min-height:12px}.spiral-flow-label{font-size:7px}}
