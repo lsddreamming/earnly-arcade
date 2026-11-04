@@ -19,7 +19,8 @@ async function open(page,path='/stardefender.html',motion='no-preference'){
     function finish(finalize=false)`);
    await route.fulfill({response,body:html});
  });
- await page.goto(path);await expect(page.locator('#starHangar')).toBeVisible();
+ // Game readiness is the parsed DOM plus visible controls; optional resources can delay load in WebKit.
+ await page.goto(path,{waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();
  await expect(page.locator('#startButton')).toBeVisible();
  expect((await page.locator('#startButton').boundingBox()).y).toBeLessThan(340);
  await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
@@ -40,10 +41,10 @@ for(const path of ['/stardefender.html','/www/stardefender.html'])test('Star Def
  await expect(page.locator('dialog.game-result-dialog')).toBeHidden();
  await expect(page.locator('#starHangar')).toBeVisible();await expect(page.locator('#starGoalHeading')).toContainText('3/3 complete');
  const solar=page.getByRole('button',{name:'Solar ship',exact:true});await expect(solar).toBeEnabled();await solar.click();await expect(solar).toHaveAttribute('aria-pressed','true');
- await page.reload();await expect(page.getByRole('button',{name:'Solar ship',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();await expect(page.getByRole('button',{name:'Solar ship',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.evaluate(()=>localStorage.setItem('earnlyLocalProgressOwner','different-test-player'));
  await page.getByRole('button',{name:'Solar ship',exact:true}).click();
- await expect(page.locator('#starUnlock')).toContainText('0/20');await page.reload();
+ await expect(page.locator('#starUnlock')).toContainText('0/20');await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();
  await expect(page.locator('#starGoalHeading')).toContainText('0/3 complete');await expect(page.locator('#starUnlock')).toContainText('0/20');
  expect(errors).toEqual([]);
 });
@@ -80,7 +81,7 @@ for(const motion of ['reduce','no-preference'])test('Star Defender phone combat 
  expect(effects.rings).toBeLessThanOrEqual(12);expect(effects.scorePops).toBeLessThanOrEqual(8);
  if(motion==='reduce'){expect(effects.particles).toBe(0);expect(effects.rings).toBe(0);expect(effects.scorePops).toBe(0);}else{expect(effects.rings).toBeGreaterThan(0);expect(effects.scorePops).toBeGreaterThan(0);}
  await page.screenshot({path:test.info().outputPath('star-defender-phone-'+motion+'.png')});
- await page.evaluate(()=>starTest.end());await page.reload();
+ await page.evaluate(()=>starTest.end());await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();
  const hangar=await page.locator('#starHangar').boundingBox();expect(hangar.height).toBeLessThan(350);
  await expect(page.locator('#starFlightDetails')).not.toHaveAttribute('open','');
  await page.locator('#starGoalHeading').click();await expect(page.locator('#starGoals')).toBeVisible();
