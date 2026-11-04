@@ -224,7 +224,7 @@
   root.append(el('p','item-footprint',d.width+' × '+d.length+' tiles · '+(d.sprite_id?.startsWith('pet-bed-')?'For your '+d.sprite_id.slice(8):d.can_sit?'Take a seat':d.can_lay?'Lie down':d.walkable?'Floor decor':'Room decor')),note('Sample floor for inspiration. Furniture is sold separately.'));
   const owned=bootstrap.items.filter(i=>i.definition_id===d.id).length;if(owned)root.append(el('p','owned-label',owned+' owned'),el('p','owned-location',furnitureOwnership(d)));
   const ownedAction=ownedFurnitureAction(d);if(ownedAction)root.append(ownedAction);
-  if(d.challenge_only){root.append(note('Complete all three Daily Arcade goals on any four days in a week. Your earned trophy stays yours.'),button('View today’s challenge',()=>{location.href='index.html#daily-arcade';}));}
+  if(d.challenge_only){root.append(note('Complete all three Daily Arcade goals on any four days in a week. Your earned collectible stays yours.'),button('View today’s challenge',()=>{location.href='index.html#daily-arcade';}));}
   else if(d.vip_only){root.append(note('VIP monthly gift · Not available for individual purchase.'));appendVipLink(root);}
   else if(!shopAvailable(d))root.append(note('This seasonal piece returns October 1. Owned pieces stay in your Backpack.'));
   else if(d.supply_limit&&d.minted>=d.supply_limit)root.append(note('This piece is sold out.'));

@@ -5,15 +5,19 @@ import {randomUUID} from 'node:crypto';
 const {db,users:[uid,other],close}=await worldFixture({personalPets:process.env.CHALLENGE_TEST_PERSONAL_PETS==='1'});
 try{
  await db.exec(`alter table earnly_world.items add column gift_revoked boolean not null default false;
- create table public.coin_ledger(user_id uuid,client_event_id text,source_type text,game text,metric integer,amount integer,unique(user_id,client_event_id));
+ alter table public.coin_wallets add column lifetime_earned bigint not null default 0;
+ create table public.coin_ledger(id bigserial primary key,user_id uuid,client_event_id text,source_type text constraint coin_ledger_source_type_check check(source_type in ('game','daily_bonus')),source_label text,game text,metric integer,aux integer,amount integer,unique(user_id,client_event_id));
+ grant select on public.coin_ledger to service_role;
  grant select,update on public.coin_wallets to service_role;
  grant usage on schema auth to service_role;grant select on auth.users,public.leaderboard_bans to service_role;
  create function public.challenge_test_now() returns timestamptz language sql as $$select current_setting('test.clock')::timestamptz$$;`);
  await db.query("select set_config('test.clock','2026-11-02T12:00:00Z',false)");
  const sql=await readFile(new URL('../supabase/migrations/20261104145627_daily_arcade_challenge.sql',import.meta.url),'utf8');
  await db.exec(sql.replaceAll('now()','public.challenge_test_now()'));
+ await db.exec((await readFile(new URL('../tests/kart-reward-baseline.sql',import.meta.url),'utf8')).split('CREATE OR REPLACE FUNCTION public.claim_coin_reward')[0]);
+ await db.exec((await readFile(new URL('../supabase/migrations/20261104223522_arcade_collectibles.sql',import.meta.url),'utf8')).replaceAll('now()','public.challenge_test_now()'));
  const status=async(id=uid)=>(await db.query('select public.arcade_challenge_status($1) result',[id])).rows[0].result;
- const result=async(game,metric,id=uid,event=randomUUID(),kind='game')=>db.query('insert into coin_ledger values($1,$2,$3,$4,$5,0) on conflict do nothing',[id,event,kind,game,metric]);
+ const result=async(game,metric,id=uid,event=randomUUID(),kind='game')=>db.query('insert into coin_ledger(user_id,client_event_id,source_type,game,metric,amount) values($1,$2,$3,$4,$5,0) on conflict do nothing',[id,event,kind,game,metric]);
  const clock=async(date)=>db.query("select set_config('test.clock',$1,false)",[date+'T12:00:00Z']);
  const complete=async()=>{for(const g of (await status()).goals)await result(g.game,g.goal);};
  let s=await status();assert.equal(s.goals.length,3);assert.equal(s.days.length,0);assert.equal(s.totalAwards,0);
@@ -22,6 +26,11 @@ try{
  await result(g.game,g.goal,uid,randomUUID(),'daily_bonus');assert.equal((await status()).goals[0].progress,g.goal-1,'bonuses do not count');
  await result(g.game,g.goal);await result(g.game,1);assert.equal((await status()).goals[0].progress,g.goal,'best result never decreases');
  await complete();await complete();assert.equal((await status()).days.length,1,'one stamp per day');
+ await Promise.all([status(),status(),complete()]);
+ assert.equal((await status()).dailyBonusPaid,true);
+ assert.equal((await db.query('select lifetime_earned from coin_wallets where user_id=$1',[uid])).rows[0].lifetime_earned,50,'daily bonus pays exactly once');
+ assert.equal((await db.query("select count(*)::int n from coin_ledger where source_type='arcade_daily' and user_id=$1",[uid])).rows[0].n,1);
+ assert.equal((await status()).nextReward,'Neon Champion Cabinet');
  assert.equal((await status(other)).days.length,0,'account isolation');
  await clock('2026-11-04');assert.equal((await status()).goals.filter(g=>g.progress).length,0);await complete();
  await clock('2026-11-06');await complete();assert.equal((await status()).totalAwards,0);
@@ -35,9 +44,14 @@ try{
  for(const day of ['2026-11-09','2026-11-10','2026-11-12','2026-11-14']){await clock(day);await complete();}
  s=await status();assert.equal(s.pending,true);assert.equal(s.totalAwards,1);
  await clock('2026-11-16');await db.query("delete from earnly_world.items where owner_id=$1 and serial=1001",[uid]);s=await status();assert.equal(s.pending,false);assert.equal(s.totalAwards,2);
+ assert.equal((await db.query("select count(*)::int n from earnly_world.items where owner_id=$1 and definition_id='arcade-prize-cabinet'",[uid])).rows[0].n,1,'delayed award retains earned week collectible');
+ assert.equal(s.reward,'Starlight Room Lamp');
+ assert.equal((await db.query("select earnly_world.arcade_weekly_reward(date '2026-11-23') reward")).rows[0].reward,'arcade-weekly-cup','three-week collection repeats predictably');
+ assert.equal((await db.query('select purchased_balance from coin_wallets where user_id=$1',[uid])).rows[0].purchased_balance,0,'earned daily bonus never becomes purchased coins');
+ for(const id of ['arcade-prize-cabinet','arcade-prize-lamp'])await assert.rejects(db.query("select public.world_api($1,'buy',$2::jsonb)",[uid,JSON.stringify({definitionId:id,requestId:randomUUID()})]),/CHALLENGE_REWARD_ONLY/);
  await db.query("delete from earnly_world.items where owner_id=$1 and serial<1000",[uid]);await status();assert.equal((await db.query("select count(*)::int n from earnly_world.items where owner_id=$1 and serial<1000",[uid])).rows[0].n,0,'deleted trophy cannot be reminted');
  for(const role of ['anon','authenticated']){
-  await db.exec('set role '+role);await assert.rejects(status(),/permission denied/);
+  await db.exec('set role '+role);await assert.rejects(status(),/permission denied/);await assert.rejects(db.query('select earnly_world.pay_arcade_daily_bonus($1)',[uid]),/permission denied/);
   await assert.rejects(db.query('select * from earnly_world.arcade_challenge_days'),/permission denied/);
   await assert.rejects(db.query('insert into earnly_world.arcade_challenge_days values($1,current_date)',[other]),/permission denied/);await db.exec('reset role');
  }
