@@ -68,10 +68,11 @@
       if(s.flowUntil>s.time){ctx.strokeStyle='#ffdb91';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,17+(reduced?0:Math.sin(s.time*8)*2),0,Math.PI*2);ctx.stroke();}
       const orb=ctx.createRadialGradient(-4,-5,1,0,0,13);orb.addColorStop(0,'#ffffff');orb.addColorStop(.4,'#bcf7ff');orb.addColorStop(1,'#347eb9');ctx.fillStyle=orb;ctx.beginPath();ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();ctx.save();ctx.beginPath();ctx.arc(0,0,10.5,0,Math.PI*2);ctx.clip();ctx.rotate(reduced?0:s.spin+s.y/50);ctx.strokeStyle='#126c9d';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,0,5,12,0,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#e6fbffbb';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(12,0);ctx.stroke();ctx.restore();ctx.fillStyle='#ffffffce';ctx.beginPath();ctx.ellipse(-3,-5,3.5,2,-.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ecfcff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,11,0,Math.PI*2);ctx.stroke();ctx.restore();
       if(!s.alive){ctx.fillStyle='#ff8c8133';ctx.fillRect(0,0,360,H);}
-      if(announcement&&s.time-announcement.at<1.6){
+      const showingAnnouncement=announcement&&s.time-announcement.at<1.6;
+      if(showingAnnouncement){
         const age=s.time-announcement.at;ctx.save();ctx.globalAlpha=reduced?1:Math.min(1,age/.12,(1.6-age)/.3);ctx.fillStyle='#06182eea';ctx.beginPath();ctx.roundRect(65,8,230,42,12);ctx.fill();ctx.strokeStyle=color+'88';ctx.lineWidth=1;ctx.stroke();ctx.textAlign='center';ctx.fillStyle='#efffff';ctx.font='900 13px system-ui';ctx.fillText(announcement.title,180,26);ctx.fillStyle=color;ctx.font='600 9px system-ui';ctx.fillText(announcement.detail,180,41);ctx.restore();
       }
-      ctx.fillStyle='#a4cce1';ctx.font='700 8px system-ui';ctx.textAlign='right';ctx.fillText('DEPTH '+String(Math.floor(s.y/10)).padStart(4,'0'),336,22);
+      if(!showingAnnouncement){ctx.fillStyle='#a4cce1';ctx.font='700 8px system-ui';ctx.textAlign='right';ctx.fillText('DEPTH '+String(Math.floor(s.y/10)).padStart(4,'0'),336,22);}
     }
     function complete(){
       if(finalized)return;finalized=true;
