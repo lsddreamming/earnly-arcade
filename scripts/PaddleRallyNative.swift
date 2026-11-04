@@ -45,6 +45,22 @@ final class PaddleRallyNative: XCTestCase {
         Thread.sleep(forTimeInterval: 3)
         let pause = app.buttons["Pause"]
         XCTAssertTrue(pause.waitForExistence(timeout: 120), app.debugDescription)
+        let strip = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Drag left or right here to move the paddle'")).firstMatch
+        XCTAssertTrue(strip.exists, app.debugDescription)
+        XCTAssertTrue(strip.isHittable)
+        XCTAssertLessThanOrEqual(strip.frame.maxY, app.frame.maxY)
+        strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1, thenDragTo: strip.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.2)
+        let moved = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Paddle probe moved=yes'")).firstMatch
+        XCTAssertTrue(moved.waitForExistence(timeout: 10), "A real drag must move the paddle. " + app.debugDescription)
+        // A drag moves the paddle away from the ball. Let the unattended
+        // rally end instead of racing its result dialog with a Pause tap.
+        let replay = app.buttons.matching(NSPredicate(format: "label BEGINSWITH '▶ Play Again'")).firstMatch
+        XCTAssertTrue(replay.waitForExistence(timeout: 60), app.debugDescription)
+        capture("Paddle-Rally-After-Touch-Result")
+        replay.tap()
+        Thread.sleep(forTimeInterval: 3)
+        XCTAssertTrue(pause.waitForExistence(timeout: 120), app.debugDescription)
         // Check suspension early in a fresh rally. The former sequence waited
         // until after several unattended returns and could lose before Home.
         XCUIDevice.shared.press(.home)
@@ -58,28 +74,6 @@ final class PaddleRallyNative: XCTestCase {
         pause.tap()
         XCTAssertTrue(resume.waitForExistence(timeout: 5), app.debugDescription)
         capture("Paddle-Rally-Paused")
-
-        let strip = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Drag left or right here to move the paddle'")).firstMatch
-        XCTAssertTrue(strip.exists, app.debugDescription)
-        XCTAssertTrue(strip.isHittable)
-        XCTAssertLessThanOrEqual(strip.frame.maxY, app.frame.maxY)
-        resume.tap()
-        XCTAssertTrue(pause.waitForExistence(timeout: 10), "Resume must reach the game before the drag. " + app.debugDescription)
-        strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            .press(forDuration: 0.1, thenDragTo: strip.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.2)
-        let moved = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Paddle probe moved=yes'")).firstMatch
-        XCTAssertTrue(moved.waitForExistence(timeout: 10), "A real drag must move the paddle. " + app.debugDescription)
-        // A drag moves the paddle away from the ball. Let the unattended
-        // rally end instead of racing its result dialog with a Pause tap.
-        let replay = app.buttons.matching(NSPredicate(format: "label BEGINSWITH '▶ Play Again'")).firstMatch
-        XCTAssertTrue(replay.waitForExistence(timeout: 60), app.debugDescription)
-        capture("Paddle-Rally-After-Touch-Result")
-        replay.tap()
-        Thread.sleep(forTimeInterval: 3)
-        XCTAssertTrue(pause.waitForExistence(timeout: 120), app.debugDescription)
-        pause.tap()
-        XCTAssertTrue(resume.waitForExistence(timeout: 10), app.debugDescription)
-        capture("Paddle-Rally-Replay-Paused")
 
         let quit = app.links["Quit game and return to Games"]
         XCTAssertTrue(quit.isHittable, app.debugDescription)

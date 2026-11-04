@@ -15,15 +15,16 @@ const script=`<script>
     const parent=document.querySelector('dialog[open]')||document.body;
     if(probe.parentNode!==parent)parent.append(probe);
   }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
-  let moved=false,events=0,history=[];
+  let moved=false,events=0,history=[],firstControlInput=null;
   const report=(event) => {
-    const state={event:event?.type||'ready',target:event?.target?.id||'',x:event?.clientX??event?.changedTouches?.[0]?.clientX,paddle:paddle.x,running,starting,paused};
+    const state={event:event?.type||'ready',target:event?.target?.id||event?.target?.tagName||'',x:event?.clientX??event?.changedTouches?.[0]?.clientX,y:event?.clientY??event?.changedTouches?.[0]?.clientY,pointer:event?.pointerId,primary:event?.isPrimary,kind:event?.pointerType,owner:controlPointer,paddle:paddle.x,running,starting,paused};
+    if(!firstControlInput && /^(pointerdown|touchstart)$/.test(state.event) && ['game','rallyControlZone'].includes(state.target))firstControlInput=state;
     if(event && /^(pointer|touch)/.test(event.type)) {
       events++;
       if(running && !paused && Math.abs(paddle.x-132)>30)moved=true;
     }
-    history.push(state);if(history.length>18)history.shift();
-    probe.textContent='Paddle probe moved='+(moved?'yes':'no')+' events='+events+' '+JSON.stringify(history);
+    history.push(state);if(history.length>6)history.shift();
+    probe.textContent='Paddle probe moved='+(moved?'yes':'no')+' events='+events+' '+JSON.stringify({firstControlInput,recent:history});
     console.log('PADDLE_NATIVE_PROBE '+JSON.stringify(state));
   };
   for(const type of ['pointerdown','pointermove','pointerup','pointercancel','touchstart','touchmove','touchend','pause','resume','visibilitychange']) {
