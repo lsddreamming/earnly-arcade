@@ -40,8 +40,19 @@ test('failure is retryable and full Backpack keeps the earned reward visible',as
  await expect(page.locator('[data-message]')).toContainText('Could not check');
  await page.evaluate(()=>{window.challengeError=false;window.challengeResponse.pending=true;});
  await page.getByRole('button',{name:'Check progress again'}).click();
- await expect(page.locator('[data-reward-status]')).toContainText('Trophy earned');
+ await expect(page.locator('[data-reward-status]')).toContainText('Collectible earned');
  await page.evaluate(()=>{window.challengeResponse.pending=false;window.challengeResponse.delivered=true;window.dispatchEvent(new Event('earnly-server-rewards-synced'));});
  await expect(page.locator('[data-reward-status]')).toContainText('Yours!');
  await expect(page.locator('[data-world]')).toBeVisible();
+});
+
+test('daily bonus and room collectible preview reflect server confirmation',async({page})=>{
+ await setup(page,{...state,dailyBonus:50,dailyBonusPaid:false,reward:'Neon Champion Cabinet',rewardPreview:{name:'Neon Champion Cabinet',sprite:'arcade',color:'#b28aff'},nextReward:'Starlight Room Lamp'});
+ await expect(page.locator('[data-daily-bonus]')).toContainText('+50 Arcade Coins');
+ await expect(page.locator('[data-prize-name]')).toHaveText('Neon Champion Cabinet');
+ await page.getByText('Preview in a room',{exact:true}).click();
+ await expect(page.locator('[data-room-preview]')).toBeVisible();
+ await expect(page.locator('[data-next-reward]')).toContainText('Starlight Room Lamp');
+ await page.evaluate(()=>{window.challengeResponse.dailyBonusPaid=true;window.dispatchEvent(new Event('earnly-server-rewards-synced'));});
+ await expect(page.locator('[data-daily-bonus]')).toContainText('50 Arcade Coins added');
 });

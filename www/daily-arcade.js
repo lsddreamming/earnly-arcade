@@ -10,7 +10,7 @@
     snake:{name:'Snake',goal:5,unit:'apples',icon:'🐍',href:'snake.html'},
     coinCatch:{name:'Coin Catch',goal:20,unit:'catches',icon:'🪙',href:'coincatch.html'}
   };
-  let state=null,epoch=0,request=null,failed=false;
+  let state=null,epoch=0,request=null,failed=false,previewKey='';
   const list=root.querySelector('[data-goals]'),message=root.querySelector('[data-message]'),retry=root.querySelector('[data-retry]');
   const make=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
   function preview(){
@@ -31,12 +31,28 @@
       const link=make('a',done?'Done ✓':'Play →');link.href=game.href;link.setAttribute('aria-label',(done?'Play again: ':'Play ')+game.name);
       row.append(icon,copy,link);list.append(row);
     }
+    const prize=state?.rewardPreview||{name:'Arcade All-Star Cup',sprite:'trophy',color:'#70dcff'};
+    root.querySelector('[data-prize-name]').textContent=state?.reward||prize.name;
+    const bonus=root.querySelector('[data-daily-bonus]');bonus.hidden=!state?.dailyBonus;
+    bonus.textContent=state?.dailyBonusPaid?`✓ ${state.dailyBonus} Arcade Coins added for today’s challenge!`:`Finish all three today: +${state?.dailyBonus||0} Arcade Coins and one stamp.`;
+    const next=root.querySelector('[data-next-reward]');next.hidden=!state?.nextReward;
+    next.textContent=state?.nextReward?`Next week: ${state.nextReward} · Collect a new room item each week.`:'';
+    const canvas=root.querySelector('[data-room-preview]');
+    const key=JSON.stringify(prize);
+    if(window.EarnlyWorldRenderer&&key!==previewKey){
+      previewKey=key;
+      const item={sprite:prize.sprite,color:prize.color,width:1,length:1,itemHeight:2};
+      window.EarnlyWorldRenderer.decorPreview(canvas,item);
+      const image=root.querySelector('.daily-arcade-prize img');
+      const thumb=document.createElement('canvas');window.EarnlyWorldRenderer.thumbnail(thumb,item);
+      image.src=thumb.toDataURL();image.alt=prize.name;
+    }
     const days=state?.days||[];
     root.querySelector('[data-week-count]').textContent=`${Math.min(4,days.length)} / 4 days`;
     const stamps=root.querySelector('[data-stamps]');stamps.replaceChildren();
     for(let i=0;i<4;i++){const stamp=make('span',i<days.length?'✓':String(i+1),i<days.length?'earned':'');stamp.setAttribute('aria-hidden','true');stamps.append(stamp);}
     const reward=root.querySelector('[data-reward-status]');
-    reward.textContent=state?.delivered?'Yours! Find your trophy in the World Backpack.':state?.pending?'Trophy earned! Make room in your Backpack, then check again.':'Complete all three goals on any four days this week. Missing a day never wipes your progress.';
+    reward.textContent=state?.delivered?'Yours! Find your collectible in the World Backpack.':state?.pending?'Collectible earned! Make room in your Backpack, then check again.':'Complete all three goals on any four days this week. Missing a day never wipes your progress.';
     root.querySelector('[data-world]').hidden=!(state?.delivered||state?.pending||state?.totalAwards>0);
     root.querySelector('[data-signin]').hidden=!!state||!!request||failed;
     retry.hidden=!(failed||state?.pending);retry.disabled=!!request;
