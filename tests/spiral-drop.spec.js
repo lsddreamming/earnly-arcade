@@ -32,9 +32,13 @@ for(const path of ['/mini.html?game=spiralDrop','/www/mini.html?game=spiralDrop'
   for(let i=0;i<3;i++){
    await page.evaluate(i=>{const s=testSpiral.state;s.wait=0;s.x=180;s.vy=88;const y=s.y+13;s.rows=[{id:i,y,gap:180,w:100,passed:false}];},i);
    await page.clock.runFor(600);
+   await expect(page.getByRole('meter',{name:'Centered drops toward Flow'})).toHaveAttribute('aria-valuenow',String(i+1));
   }
   expect(await page.evaluate(()=>({score:testSpiral.state.score,centered:testSpiral.state.centered,bestStreak:testSpiral.state.bestStreak}))).toEqual({score:3,centered:3,bestStreak:3});
   await expect(page.locator('.spiral-feedback')).toContainText('FLOW');
+  await expect(page.locator('.spiral-flow-label')).toHaveText('FLOW ACTIVE');
+  await expect(page.locator('.spiral-flow .lit')).toHaveCount(3);
+  await page.screenshot({path:test.info().outputPath('spiral-drop-flow.png')});
   await page.evaluate(()=>{window.spiralAwards=[];Arcade.earn=(amount,label,evidence)=>spiralAwards.push({amount,evidence});const s=testSpiral.state;s.score=19;s.x=30;s.wait=0;s.rows=[{id:20,y:s.y+13,gap:180,w:100,passed:false}];});
   await page.clock.runFor(500);
   const dialog=page.locator('dialog.game-result-dialog');await expect(dialog).toBeVisible();await expect(dialog.locator('.result-outcome')).toContainText('Next dive goal');
@@ -42,6 +46,7 @@ for(const path of ['/mini.html?game=spiralDrop','/www/mini.html?game=spiralDrop'
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('spiralDropMedals')))).toContain('Flow navigator');
   const ticks=await page.evaluate(()=>testSpiral.state.ticks);await page.clock.runFor(1000);await page.keyboard.press('ArrowRight');expect(await page.evaluate(()=>testSpiral.state.ticks)).toBe(ticks);
   await dialog.getByRole('button',{name:/Play Again/}).click();await expect.poll(async()=>{await page.clock.runFor(50);return page.evaluate(()=>({score:testSpiral.state.score,centered:testSpiral.state.centered,alive:testSpiral.state.alive}));}).toEqual({score:0,centered:0,alive:true});
+  await expect(page.getByRole('meter',{name:'Centered drops toward Flow'})).toHaveAttribute('aria-valuenow','0');
   expect(errors).toEqual([]);
  });
 }
@@ -65,4 +70,26 @@ test('Spiral Drop orb genuinely descends and lets the camera follow it',async({p
  await page.evaluate(()=>{testSpiral.state.wait=0;testSpiral.state.rows=[];});await page.clock.runFor(1000);
  const fallen=await page.evaluate(()=>({y:testSpiral.state.y,vy:testSpiral.state.vy}));expect(fallen.y).toBeGreaterThan(initial.y+50);expect(fallen.vy).toBeGreaterThan(initial.vy+70);
  await page.clock.runFor(1000);expect(await page.evaluate(()=>testSpiral.state.y)).toBeGreaterThan(fallen.y+80);
+});
+
+test('Spiral Drop reduced motion keeps alignment, streak reset and thumb feedback usable',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ const errors=await open(page);
+ await page.evaluate(()=>{
+  const c=document.querySelector('.spiral-control-zone');
+  c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:4,isPrimary:true,clientX:100,pointerType:'touch',bubbles:true,cancelable:true}));
+  c.dispatchEvent(new PointerEvent('pointermove',{pointerId:4,isPrimary:true,clientX:120,pointerType:'touch',bubbles:true,cancelable:true}));
+ });
+ await expect(page.locator('.spiral-control-zone')).toHaveClass(/steering/);
+ await page.clock.runFor(50);
+ expect(await page.locator('.spiral-control-zone').evaluate(el=>parseFloat(el.style.getPropertyValue('--steering')))).toBeGreaterThan(50);
+ await page.evaluate(()=>document.querySelector('.spiral-control-zone').dispatchEvent(new PointerEvent('pointercancel',{pointerId:4})));
+ await expect(page.locator('.spiral-control-zone')).not.toHaveClass(/steering/);
+ await page.evaluate(()=>{const s=testSpiral.state;s.streak=2;s.wait=0;s.x=150;s.vy=88;s.rows=[{id:0,y:s.y+13,gap:180,w:100,passed:false}];});
+ await page.clock.runFor(600);
+ expect(await page.evaluate(()=>({alive:testSpiral.state.alive,score:testSpiral.state.score,streak:testSpiral.state.streak}))).toEqual({alive:true,score:1,streak:0});
+ await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow','0');
+ await expect(page.locator('.spiral-flow .lit')).toHaveCount(0);
+ await page.screenshot({path:test.info().outputPath('spiral-drop-reduced-motion.png')});
+ expect(errors).toEqual([]);
 });
