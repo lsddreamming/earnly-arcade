@@ -1,0 +1,83 @@
+name: Paddle Rally packaged iPhone verification
+
+on:
+  push:
+    branches: [verify/paddle-native-interruption]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paddle-native-interruption
+  cancel-in-progress: true
+
+jobs:
+  installed-app:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      EARNLY_ADMOB_TEST_MODE: '0'
+      EARNLY_IOS_MARKETING_VERSION: '1.11'
+      EARNLY_IOS_BUILD_NUMBER: '902'
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: qa
+      - name: Check out the exact release source
+        uses: actions/checkout@v4
+        with:
+          ref: 818f0c1c65387cc9124f8b19d50bb046aac5c33f
+          path: app
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Generate the release app and isolated UI tests
+        run: |
+          cp ../qa/scripts/PaddleRallyNative.swift scripts/
+          cp ../qa/scripts/configure-paddle-native-qa.rb scripts/
+          cp ../qa/scripts/instrument-paddle-native-qa.mjs scripts/
+          node scripts/instrument-paddle-native-qa.mjs
+          rm -rf ios
+          npm run native:ios:generate
+          gem install xcodeproj -v 1.27.0 --user-install --no-document
+          ruby scripts/configure-paddle-native-qa.rb
+      - name: Install and exercise Paddle Rally on iPhone
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/evidence
+          git rev-parse HEAD > build/evidence/source-commit.txt
+          xcrun simctl list devices available -j > build/devices.json
+          SIMULATOR_UDID=$(python3 - <<'PY'
+          import json
+          devices = [d for group in json.load(open('build/devices.json'))['devices'].values() for d in group if d.get('isAvailable')]
+          device = next((d for name in ['iPhone 17 Pro', 'iPhone 16 Pro'] for d in devices if d['name'] == name), None)
+          if not device: raise SystemExit('Required iPhone simulator unavailable')
+          print(device['udid'])
+          PY
+          )
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          xcrun simctl status_bar "$SIMULATOR_UDID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+          test_status=0
+          xcodebuild test -project ios/App/App.xcodeproj -scheme PaddleRallyNative \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -derivedDataPath build/DerivedData -resultBundlePath build/PaddleRally.xcresult \
+            -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO || test_status=$?
+          xcrun xcresulttool export attachments --path build/PaddleRally.xcresult --output-path build/evidence
+          xcrun xcresulttool get test-results summary --path build/PaddleRally.xcresult > build/evidence/test-summary.json
+          xcrun simctl shutdown "$SIMULATOR_UDID"
+          test "$test_status" = 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paddle-native-interruption-probe
+          path: |
+            app/build/evidence/
+            app/build/devices.json
+          retention-days: 14
