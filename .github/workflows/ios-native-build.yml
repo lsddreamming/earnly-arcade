@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'capacitor.config.json'
       - 'games.html'
       - 'games-showroom.css'
       - 'www/games.html'
