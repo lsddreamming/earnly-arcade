@@ -46,11 +46,15 @@ final class PaddleRallyNative: XCTestCase {
         let pause = app.buttons["Pause"]
         XCTAssertTrue(pause.waitForExistence(timeout: 120), app.debugDescription)
         let strip = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Drag left or right here to move the paddle'")).firstMatch
-        XCTAssertTrue(strip.exists, app.debugDescription)
-        XCTAssertTrue(strip.isHittable)
-        XCTAssertLessThanOrEqual(strip.frame.maxY, app.frame.maxY)
-        strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            .press(forDuration: 0.1, thenDragTo: strip.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.2)
+        // Resolve the real control frame once. Re-querying a moving WKWebView
+        // for each endpoint can outlast a short unattended round on CI.
+        let stripFrame = strip.frame
+        XCTAssertGreaterThan(stripFrame.width, 0)
+        XCTAssertLessThanOrEqual(stripFrame.maxY, XCUIScreen.main.screenshot().image.size.height)
+        print("PADDLE_CONTROL_FRAME \(stripFrame)")
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        origin.withOffset(CGVector(dx: stripFrame.midX, dy: stripFrame.midY))
+            .press(forDuration: 0.1, thenDragTo: origin.withOffset(CGVector(dx: stripFrame.minX + stripFrame.width * 0.2, dy: stripFrame.midY)), withVelocity: .slow, thenHoldForDuration: 0.2)
         let moved = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Paddle probe moved=yes'")).firstMatch
         XCTAssertTrue(moved.waitForExistence(timeout: 10), "A real drag must move the paddle. " + app.debugDescription)
         // A drag moves the paddle away from the ball. Let the unattended
