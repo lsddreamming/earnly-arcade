@@ -1,0 +1,35 @@
+name: Daily Arcade challenge QA
+on:
+  pull_request:
+    paths: ['daily-arcade*', 'arcade-weekly-cup.svg', 'index.html', 'cloud.js', 'world.js', 'supabase/functions/activity/**', 'supabase/migrations/*daily_arcade*', 'scripts/test-daily-arcade.mjs', 'tests/daily-arcade.spec.js', '.github/workflows/daily-arcade.yml']
+  workflow_dispatch:
+jobs:
+  challenge:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: macos-15-intel
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/test-daily-arcade.mjs
+      - run: CHALLENGE_TEST_PERSONAL_PETS=1 node scripts/test-daily-arcade.mjs
+      - run: node --experimental-strip-types --test scripts/test-activity-handler.ts
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test tests/daily-arcade.spec.js tests/daily-results.spec.js --project=${{ matrix.project }} --workers=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daily-arcade-${{ matrix.project }}
+          path: test-results/
