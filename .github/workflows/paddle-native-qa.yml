@@ -1,15 +1,15 @@
-name: Paddle Rally packaged iPhone verification
+name: Paddle Rally packaged iPad verification
 
 on:
   push:
-    branches: [verify/paddle-native-interruption]
+    branches: [verify/paddle-native-ipad]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: paddle-native-interruption
+  group: paddle-native-ipad
   cancel-in-progress: true
 
 jobs:
@@ -46,7 +46,7 @@ jobs:
           npm run native:ios:generate
           gem install xcodeproj -v 1.27.0 --user-install --no-document
           ruby scripts/configure-paddle-native-qa.rb
-      - name: Install and exercise Paddle Rally on iPhone
+      - name: Install and exercise Paddle Rally on iPad
         shell: bash
         run: |
           set -euo pipefail
@@ -56,8 +56,8 @@ jobs:
           SIMULATOR_UDID=$(python3 - <<'PY'
           import json
           devices = [d for group in json.load(open('build/devices.json'))['devices'].values() for d in group if d.get('isAvailable')]
-          device = next((d for name in ['iPhone 17 Pro', 'iPhone 16 Pro'] for d in devices if d['name'] == name), None)
-          if not device: raise SystemExit('Required iPhone simulator unavailable')
+          device = next((d for name in ['iPad Pro 13-inch (M5)'] for d in devices if d['name'] == name), None)
+          if not device: raise SystemExit('Required iPad simulator unavailable')
           print(device['udid'])
           PY
           )
@@ -76,7 +76,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: paddle-native-interruption-probe
+          name: paddle-native-ipad-probe
           path: |
             app/build/evidence/
             app/build/devices.json
