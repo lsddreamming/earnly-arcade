@@ -64,6 +64,7 @@ final class PaddleRallyNative: XCTestCase {
         XCTAssertTrue(strip.isHittable)
         XCTAssertLessThanOrEqual(strip.frame.maxY, app.frame.maxY)
         resume.tap()
+        XCTAssertTrue(pause.waitForExistence(timeout: 10), "Resume must reach the game before the drag. " + app.debugDescription)
         strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .press(forDuration: 0.1, thenDragTo: strip.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)), withVelocity: .slow, thenHoldForDuration: 0.2)
         let moved = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Paddle probe moved=yes'")).firstMatch
