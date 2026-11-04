@@ -17,6 +17,10 @@ export async function handleActivity(req:Request,admin:any){
    if(r.error)return json({error:'Activity unavailable'},503);
    return json({ok:true,recorded:r.data===true});
   }
+  if(body.action==='arcade_challenge'){
+   const r=await admin.rpc('arcade_challenge_status',{p_actor:user.id});
+   return r.error?json({error:'Challenges unavailable'},503):json(r.data);
+  }
   const access=await admin.rpc('activity_owner_access',{p_actor:user.id});
   if(access.error)return json({error:'Activity unavailable'},503);
   if(access.data!==true)return json({error:'Owner access required'},403);

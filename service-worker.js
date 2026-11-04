@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-paddle-rally-20261103';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-daily-arcade-20261104';const CORE_ASSETS = [
  './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',
  './crystal-command-rewards.js','./turbo-kart-driver.js','./turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
  './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-room-layouts.js','./world-placement.js',
@@ -13,7 +13,7 @@ const CACHE_NAME = 'earnly-paddle-rally-20261103';const CORE_ASSETS = [
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
-  './index.html',
+  './index.html', './daily-arcade.js', './daily-arcade.css', './arcade-weekly-cup.svg',
   './about.html',
   './game-guides.html',
   './public-info.css',

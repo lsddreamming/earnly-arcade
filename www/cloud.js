@@ -350,6 +350,13 @@
     }
   }
 
+  async function arcadeChallenge(){
+    if (!await user()) return null;
+    const { data, error } = await requireClient().functions.invoke('activity', { body:{ action:'arcade_challenge' } });
+    if (error) throw error;
+    return data;
+  }
+
   async function adBonus(action='status', placement){
     const { data, error } = await requireClient().functions.invoke('ad-bonus', { body:{ action, placement } });
     if (error) throw error;
@@ -1174,6 +1181,7 @@
     cloudSaveInfo,
     walletInfo,
     adBonus,
+    arcadeChallenge,
     spendContinue,
     continueReceipt,
     syncServerRewards,
