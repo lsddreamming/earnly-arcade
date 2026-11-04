@@ -30,7 +30,7 @@ jobs:
       - name: Check out the exact release source
         uses: actions/checkout@v4
         with:
-          ref: 818f0c1c65387cc9124f8b19d50bb046aac5c33f
+          ref: 4262989791ebbe662a6f93cf9e62b6b277860840
           path: app
       - uses: actions/setup-node@v4
         with:

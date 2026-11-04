@@ -24,7 +24,8 @@ const script=`<script>
       if(running && !paused && Math.abs(paddle.x-132)>30)moved=true;
     }
     history.push(state);if(history.length>6)history.shift();
-    probe.textContent='Paddle probe moved='+(moved?'yes':'no')+' events='+events+' '+JSON.stringify({firstControlInput,recent:history});
+    const geometry={scrollY,viewportTop:visualViewport?.offsetTop,strip:document.getElementById('rallyControlZone')?.getBoundingClientRect().toJSON(),pause:document.getElementById('pauseButton')?.getBoundingClientRect().toJSON()};
+    probe.textContent='Paddle probe moved='+(moved?'yes':'no')+' events='+events+' '+JSON.stringify({firstControlInput,recent:history,geometry});
     console.log('PADDLE_NATIVE_PROBE '+JSON.stringify(state));
   };
   for(const type of ['pointerdown','pointermove','pointerup','pointercancel','touchstart','touchmove','touchend','pause','resume','visibilitychange']) {
