@@ -29,6 +29,36 @@ test('pause, tab hiding and resume freeze the run without consuming another play
   await expect(page.locator('#gameStatus')).toHaveText('Paused');
   expect(await page.evaluate(()=>Arcade.remaining('paddleRally'))).toBe(before.plays);
 });
+test('native background and foreground events leave a running rally paused',async({page})=>{
+  await start(page);
+  const before=await page.evaluate(()=>({x:ball.x,y:ball.y,plays:Arcade.remaining('paddleRally')}));
+  for(const event of ['pause','pause','resume']){
+    await page.evaluate(type=>{document.dispatchEvent(new Event(type));loop(performance.now()+1000)},event);
+    await expect(page.locator('#pauseButton')).toHaveText('Resume');
+    expect(await page.evaluate(()=>({x:ball.x,y:ball.y,plays:Arcade.remaining('paddleRally')}))).toEqual(before);
+  }
+  await page.locator('#pauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  // A foreground event must still protect the run if background delivery was lost.
+  await page.evaluate(()=>document.dispatchEvent(new Event('resume')));
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+});
+test('an interruption during countdown waits for an explicit Resume',async({page})=>{
+  await page.evaluate(()=>{Arcade.countdown=fn=>{window.completeCountdown=fn}});
+  await page.locator('#startButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
+  const plays=await page.evaluate(()=>Arcade.remaining('paddleRally'));
+  await page.evaluate(()=>{
+    document.dispatchEvent(new Event('pause'));
+    document.dispatchEvent(new Event('resume'));
+    window.completeCountdown();
+  });
+  await expect(page.locator('#gameStatus')).toHaveText('Paused');
+  expect(await page.evaluate(()=>({x:ball.x,y:ball.y,animation,plays:Arcade.remaining('paddleRally')}))).toEqual({x:180,y:370,animation:null,plays});
+  await page.locator('#pauseButton').click();
+  await expect(page.locator('#gameStatus')).toHaveText('Running');
+  expect(await page.evaluate(()=>Arcade.remaining('paddleRally'))).toBe(plays);
+});
 test('held keyboard input moves smoothly even after the Play button was focused',async({page})=>{
   await start(page);const x=await page.evaluate(()=>paddle.x);
   await page.keyboard.down('ArrowRight');
