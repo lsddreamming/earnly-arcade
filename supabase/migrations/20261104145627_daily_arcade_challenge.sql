@@ -86,8 +86,9 @@ revoke all on function public.arcade_challenge_status(uuid) from public,anon,aut
 grant execute on function public.arcade_challenge_status(uuid) to service_role;
 
 -- Reward-only furniture is never a free catalog purchase.
-do $$ declare source text;begin
- select pg_get_functiondef('public.world_api(uuid,text,jsonb)'::regprocedure) into source;
+do $$ declare source text; target regprocedure;begin
+ target:=coalesce(to_regprocedure('public.world_api_before_personal_pets(uuid,text,jsonb)'),to_regprocedure('public.world_api(uuid,text,jsonb)'));
+ select pg_get_functiondef(target) into source;
  if strpos(source,'if w.balance<d.price')=0 then raise exception 'Unexpected World purchase implementation';end if;
  source:=replace(source,'if w.balance<d.price','if d.challenge_only then raise exception ''CHALLENGE_REWARD_ONLY'';end if; if w.balance<d.price');
  execute source;

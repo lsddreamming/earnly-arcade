@@ -24,6 +24,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: node scripts/test-daily-arcade.mjs
+      - run: CHALLENGE_TEST_PERSONAL_PETS=1 node scripts/test-daily-arcade.mjs
       - run: node --experimental-strip-types --test scripts/test-activity-handler.ts
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npx playwright test tests/daily-arcade.spec.js tests/daily-results.spec.js --project=${{ matrix.project }} --workers=2

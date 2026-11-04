@@ -2,7 +2,7 @@ import {worldFixture} from './world-test-fixture.mjs';
 import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-const {db,users:[uid,other],close}=await worldFixture();
+const {db,users:[uid,other],close}=await worldFixture({personalPets:process.env.CHALLENGE_TEST_PERSONAL_PETS==='1'});
 try{
  await db.exec(`alter table earnly_world.items add column gift_revoked boolean not null default false;
  create table public.coin_ledger(user_id uuid,client_event_id text,source_type text,game text,metric integer,amount integer,unique(user_id,client_event_id));
