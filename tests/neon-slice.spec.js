@@ -98,13 +98,32 @@ test('stationary holds, reversals and prolonged scribbles cannot build a mega co
  g.start();g.items=[food(40),food(70),food(100),{...food(130),bomb:true}];g.slice({x:10,y:100},{x:160,y:100});expect(g.score).toBe(30);expect(g.endStroke()).toBeNull();expect(g.state).toBe('over');
 });
 test('one held pointer across new food groups produces separate combos',async({page})=>{
- await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;window.__comboGame=this;};});
- await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
+ // Drive simulation time explicitly: host delays between pointer commands must
+ // not turn this short swipe into a slow drag past falling ingredients.
+ await page.clock.install({time:new Date('2026-11-01T12:00:00Z')});
+ await page.goto('/neon-slice.html');
+ await page.clock.pauseAt(new Date('2026-11-01T12:02:00Z'));
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;window.__comboGame=this;};});
+ await page.locator('#sliceStart').click();await page.clock.runFor(50);
+ const box=await page.locator('#sliceCanvas').boundingBox();
  const place=()=>page.evaluate(()=>{window.__comboGame.items=[80,180,280].map(x=>({x,y:240,r:20,type:0,vx:0,vy:0,angle:0,spin:0}));});
- await place();await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540);await page.mouse.down();await page.mouse.move(box.x+box.width*.9,box.y+box.height*240/540,{steps:8});
+ const swipe=async(from,to)=>{
+  for(let step=1;step<=8;step++){
+   await page.mouse.move(box.x+box.width*(from+(to-from)*step/8),box.y+box.height*240/540);
+   await page.clock.runFor(10);
+  }
+ };
+ await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540);
+ await place();await page.mouse.down();await swipe(.1,.9);
+ await expect(page.locator('#sliceScore')).toHaveText('30');
+ await page.clock.runFor(200);
  await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceScore')).toHaveText('40');
  // Keep the pointer down while another group arrives, then reverse the swipe.
- await place();await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540,{steps:8});
+ await place();await swipe(.9,.1);
+ await expect(page.locator('#sliceScore')).toHaveText('70');
+ await page.clock.runFor(200);
+ await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
  await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
  expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
