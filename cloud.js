@@ -540,6 +540,7 @@
   }
 
   const GROWTH_EVENT_TYPES = new Set([
+    'promotion_clicked',
     'acquisition_attributed',
     'score_challenge_shared',
     'score_challenge_opened',

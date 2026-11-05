@@ -5,7 +5,7 @@
     if (location.protocol !== 'https:' || location.hostname !== 'earnlyarcade.com') return;
     if (window.Capacitor?.isNativePlatform?.()) return;
     if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true) return;
-    if (!/^\/(?:www\/)?(?:index\.html|games\.html|neon-slice\.html)?$/.test(location.pathname)) return;
+    if (!/^\/(?:www\/)?(?:index\.html|games\.html|neon-slice\.html|neon-breach\.html)?$/.test(location.pathname)) return;
     // Avoid forwarding authentication fragments or arbitrary query values to third parties.
     if (location.hash || [...new URLSearchParams(location.search).keys()].some(key => !/^utm_(source|medium|campaign|content|term)$/.test(key) && key !== 'challenge')) return;
     if (window.__earnlyMetricoolLoaded) return;

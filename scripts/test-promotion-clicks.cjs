@@ -1,0 +1,7 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');
+const code=fs.readFileSync('app-download.js','utf8');
+function run({native=false,blocked=false,broken=false}={}){const events=[];let handler;const card={hidden:false};const ctx={window:{Capacitor:{isNativePlatform:()=>native},Arcade:{trackEvent:(...a)=>{if(broken)throw Error('storage blocked');events.push(a)}},EarnlyCloud:{syncGrowthEvents:()=>Promise.resolve()}},navigator:{doNotTrack:blocked?'1':'0'},document:{querySelectorAll:()=>[card],addEventListener:(_,h)=>handler=h},location:{pathname:'/neon-breach.html'}};vm.runInNewContext(code,ctx);return {events,card,click:()=>handler?.({target:{closest:()=>({dataset:{growthAction:'app-store',growthPlacement:'hero',growthGame:'neonBreach'}})}})}}
+test('clicks record placement and game without preventing navigation',()=>{const r=run();r.click();assert.equal(r.events[0][0],'promotion_clicked');assert.equal(r.events[0][1].game,'neonBreach');assert.equal(r.events[0][1].stage,'app-store')});
+test('native apps hide invitation and do not track download prompts',()=>{const r=run({native:true});r.click();assert.equal(r.card.hidden,true);assert.equal(r.events.length,0)});
+test('privacy opt-out suppresses click tracking',()=>{const r=run({blocked:true});r.click();assert.equal(r.events.length,0)});
+test('storage failure cannot interrupt link click',()=>assert.doesNotThrow(()=>run({broken:true}).click()));
