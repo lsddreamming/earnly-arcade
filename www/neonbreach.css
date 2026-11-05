@@ -44,3 +44,12 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 .breach-page #movePad>*{pointer-events:none}
 .breach-page #movePad>span{position:absolute;bottom:9px;font-size:9px;letter-spacing:1px}
 .breach-page #movePad:before,.breach-page #movePad:after{pointer-events:none}
+
+/* Sector selector is outside the live two-thumb surfaces. */
+.breach-mode-label{display:flex;align-items:center;gap:12px;color:#b9d6e6;font-size:12px;margin:9px 0}
+.breach-mode-label select{flex:1;min-height:44px;min-width:0;padding:8px 12px;border:1px solid #3f677f;border-radius:10px;background:#102337;color:#ecfaff;font:inherit}
+.breach-page.game-active .breach-mode-label{display:none}
+.breach-settings #breachWeapon[hidden]{display:none!important}
+.breach-page.sector-run .breach-weapon-label{display:none}
+.breach-settings #breachWeapon{white-space:normal;max-width:155px;min-height:44px;color:#ffcf9f!important}
+@media(max-width:380px){.breach-settings #breachWeapon{font-size:9px!important;padding:5px!important;max-width:130px}}

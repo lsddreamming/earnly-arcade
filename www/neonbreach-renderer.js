@@ -2,7 +2,7 @@
 (()=>{
   'use strict';
   const E=NeonBreachEngine,FOV=1.25,TAU=Math.PI*2;
-  const colors={rusher:'#45e3ff',sentry:'#ff66bc',tank:'#b59aff',health:'#64ffc4',shield:'#69bcff',overdrive:'#ffdf78'};
+  const colors={rusher:'#45e3ff',sentry:'#ff66bc',tank:'#b59aff',health:'#64ffc4',shield:'#69bcff',overdrive:'#ffdf78',key:'#ffd16d',shotgun:'#ffa66b',ammo:'#f9bb91',exit:'#6effb3'};
   function create(canvas){
     const c=canvas.getContext('2d'),art=NeonBreachArt.create(),plane=document.createElement('canvas'),pc=plane.getContext('2d');
     let planeImage;let effects=[],hit=0,kill=0,banner=0,bannerText='',motion=0,laser=null,damageFrom=null,pickupNotice=null,streak=0,streakClock=0,streakBanner=0,sway=0,lastAngle=null;
@@ -13,7 +13,7 @@
       if(e.type==='wave'){banner=2;bannerText=`WAVE ${String(e.wave).padStart(2,'0')}`;streakClock=0}
       if(e.type==='fire')laser={x:e.x,y:e.y};
       if(e.type==='damage')damageFrom={x:e.x,y:e.y,shield:e.shield,life:.8};
-      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE'};
+      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:({key:'ACCESS KEY FOUND',shotgun:'SCATTERGUN / 8 SHELLS',ammo:'+6 SHELLS',door:'ACCESS GRANTED',locked:'GOLD KEY REQUIRED',exit:'SECTOR SECURED',carbine:'OUT OF SHELLS / CARBINE'})[e.kind]||(e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE')};
       if(e.type==='impact'){
         hit=.18;kill=e.killed?.7:kill;
         effects.push({...e,life:e.killed?.7:.22,total:e.killed?.7:.22});
@@ -25,13 +25,13 @@
     function polygon(points,fill,stroke){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.stroke()}}
     function text(value,x,y,size,color='#d6f6ff',align='left'){c.font=`${size>18?800:600} ${size}px system-ui`;c.fillStyle=color;c.textAlign=align;c.fillText(value,x,y)}
     // Exact grid intersections prevent wall textures swimming while the player turns.
-    function cast(px,py,dx,dy){
+    function cast(px,py,dx,dy,map=E.MAP){
       let mx=Math.floor(px),my=Math.floor(py),side=0;
       const ddx=Math.abs(1/dx),ddy=Math.abs(1/dy),stepX=dx<0?-1:1,stepY=dy<0?-1:1;
       let tx=(dx<0?px-mx:mx+1-px)*ddx,ty=(dy<0?py-my:my+1-py)*ddy;
       for(let i=0;i<64;i++){
         if(tx<ty){tx+=ddx;mx+=stepX;side=0}else{ty+=ddy;my+=stepY;side=1}
-        if(E.MAP[my]?.[mx]!=='0')break;
+        if(map[my]?.[mx]!=='0')break;
       }
       const distance=Math.max(.001,side?ty-ddy:tx-ddx),hit=side?px+distance*dx:py+distance*dy;
       let u=hit-Math.floor(hit);if((!side&&dx<0)||(side&&dy>0))u=1-u;
@@ -100,7 +100,7 @@
       if(s.elite){c.fillStyle=accent;c.beginPath();c.moveTo(x,y-size*.12);c.lineTo(x-3,y-size*.12-4);c.lineTo(x+3,y-size*.12-4);c.fill()}
     }
     function render(s,{running=false,dt=0,moving=false}={}){
-      const scale=canvas.width/400,w=400,h=canvas.height/scale,p=s.player,horizon=h*.46,projection=w/(2*Math.tan(FOV/2)),depth=[],stride=1;
+      const scale=canvas.width/400,w=400,h=canvas.height/scale,p=s.player,horizon=h*.46,projection=w/(2*Math.tan(FOV/2)),depth=[],stride=1,map=s.map||E.MAP;
       hit=Math.max(0,hit-dt);kill=Math.max(0,kill-dt);banner=Math.max(0,banner-dt);streakClock=Math.max(0,streakClock-dt);streakBanner=Math.max(0,streakBanner-dt);if(moving)motion+=dt*9;
       if(damageFrom){damageFrom.life-=dt;if(damageFrom.life<=0)damageFrom=null}
       if(pickupNotice){pickupNotice.life-=dt;if(pickupNotice.life<=0)pickupNotice=null}
@@ -112,17 +112,18 @@
       const ca=Math.cos(p.a),sa=Math.sin(p.a);
       const view=(x,y)=>({z:(x-p.x)*ca+(y-p.y)*sa,x:-(x-p.x)*sa+(y-p.y)*ca});
       for(let x=0;x<w;x+=stride){
-        const cameraX=(x+.5-w/2)/projection,ray=cast(p.x,p.y,ca-sa*cameraX,sa+ca*cameraX),d=ray.distance;
+        const cameraX=(x+.5-w/2)/projection,ray=cast(p.x,p.y,ca-sa*cameraX,sa+ca*cameraX,map),d=ray.distance;
         depth[x]=d;
         const height=projection/Math.max(.08,d),top=horizon-height/2;
         const material=[1,0,1,3,1,2][Math.abs(ray.mx*3+ray.my*5+ray.side)%6];
         const tx=Math.min(255,Math.floor(ray.u*256));
         c.drawImage(art.sectors[NeonBreachArt.zoneAt(ray.mx+.5)][material],tx,0,1,256,x,top,stride,height);
         c.fillStyle='#020a16';c.globalAlpha=Math.min(.8,.12+d*.035+(ray.side?.12:0));c.fillRect(x,top,stride,height);c.globalAlpha=1;
+        if(s.mode==='sector'&&!s.doorOpen&&ray.mx===8&&ray.my===13){c.fillStyle='#ffc64f';c.globalAlpha=.6;c.fillRect(x,top,stride,height);c.globalAlpha=1;}
         if(ray.mx<5||ray.mx>12){c.fillStyle=ray.mx<5?'#ef9c54':'#9a64ed';c.globalAlpha=.055;c.fillRect(x,top,stride,height);c.globalAlpha=1}
         if(s.flash>0&&d<4){c.fillStyle=`rgba(90,230,255,${s.flash*Math.max(0,1-d/4)})`;c.fillRect(x,top,stride,height)}
       }
-      const sprites=[...lamps.map(e=>({...e,kind:'lamp'})),...s.enemies.map(e=>({...e,kind:'robot'})),...s.shots.map(e=>({...e,kind:'shot'})),...s.pickups.map(e=>({...e,kind:'pickup'})),...effects.map(e=>({...e,kind:e.type==='wall-impact'?'wall-impact':'effect'}))].map(e=>({...e,...view(e.x,e.y)}));
+      const sprites=[...lamps.map(e=>({...e,kind:'lamp'})),...s.enemies.map(e=>({...e,kind:'robot'})),...s.shots.map(e=>({...e,kind:'shot'})),...s.pickups.map(e=>({...e,kind:'pickup'})),...(s.supplies||[]).filter(e=>!e.taken).map(e=>({...e,kind:'pickup'})),...(s.exit?[{...s.exit,type:'exit',kind:'pickup'}]:[]),...effects.map(e=>({...e,kind:e.type==='wall-impact'?'wall-impact':'effect'}))].map(e=>({...e,...view(e.x,e.y)}));
       // view() returns camera x; retain world data in the simulation, never mutate it.
       sprites.sort((a,b)=>b.z-a.z);
       for(const e of sprites){
@@ -178,11 +179,12 @@
             polygon([[sx,cy-size*.48],[right,cy-size*.27],[right,cy+size*.21],[sx,cy+size*.44],[left,cy+size*.21],[left,cy-size*.27]],'#0b2639',color);
             polygon([[sx,cy-size*.48],[right,cy-size*.27],[sx,cy-size*.08],[left,cy-size*.27]],color+'55',color);
             c.shadowColor=color;c.shadowBlur=7;c.fillStyle=color;
-            if(e.type==='health'){c.fillRect(sx-size*.055,cy-size*.14,size*.11,size*.36);c.fillRect(sx-size*.17,cy-size*.015,size*.34,size*.11)}
+            if(['key','shotgun','ammo','exit'].includes(e.type)){text(({key:'⚿',shotgun:'S',ammo:'AMMO',exit:'EXIT'})[e.type],sx,cy+size*.1,Math.max(8,size*.24),color,'center');}
+            else if(e.type==='health'){c.fillRect(sx-size*.055,cy-size*.14,size*.11,size*.36);c.fillRect(sx-size*.17,cy-size*.015,size*.34,size*.11)}
             else if(e.type==='shield')polygon([[sx,cy-size*.17],[sx+size*.15,cy-size*.12],[sx+size*.12,cy+size*.10],[sx,cy+size*.23],[sx-size*.12,cy+size*.10],[sx-size*.15,cy-size*.12]],color);
             else polygon([[sx+size*.04,cy-size*.20],[sx-size*.15,cy+size*.04],[sx-size*.015,cy+size*.04],[sx-size*.055,cy+size*.23],[sx+size*.17,cy-size*.02],[sx+size*.04,cy-size*.02]],color);
             c.shadowBlur=0;
-            if(e.z<2.8)text(e.type==='health'?'REPAIR':e.type==='shield'?'SHIELD':'OVERDRIVE',sx,ground+size*.38,Math.max(7,Math.min(10,size*.16)),color,'center');
+            if(e.z<2.8)text(({key:'ACCESS KEY',shotgun:'SCATTERGUN',ammo:'SHELLS',exit:'EXIT'})[e.type]||(e.type==='health'?'REPAIR':e.type==='shield'?'SHIELD':'OVERDRIVE'),sx,ground+size*.38,Math.max(7,Math.min(10,size*.16)),color,'center');
           }
         }c.restore();
       }
@@ -191,7 +193,7 @@
       const recoil=reduced()?0:s.flash/.1*8,bob=reduced()||!moving?0:Math.sin(motion)*2,gx=w*.53+bob+(reduced()?0:sway),gy=h-12+recoil;
       c.save();c.translate(gx,gy);c.lineWidth=1;
       const metal=c.createLinearGradient(-40,-100,42,5);metal.addColorStop(0,'#a2b8c4');metal.addColorStop(.32,'#57778d');metal.addColorStop(.48,'#263d54');metal.addColorStop(1,'#0c1b2d');
-      const energy=s.overdrive>0?'#ffcf65':'#64eaf7';
+      const energy=s.weapon==='shotgun'?'#ffb779':s.overdrive>0?'#ffcf65':'#64eaf7';
       // Armored gloves frame a beveled receiver, ribbed barrel, and illuminated coils.
       polygon([[-91,18],[-73,-13],[-57,-24],[-35,-17],[-24,17]],'#162838','#41586c');
       polygon([[89,18],[76,-12],[58,-23],[38,-12],[31,18]],'#162838','#41586c');
@@ -210,7 +212,8 @@
       c.fillStyle='#081522';for(const side of [-1,1])for(let i=0;i<4;i++)c.fillRect(side*34-3,-15+i*6,7,3);
       polygon([[-17,-26],[17,-26],[22,12],[-20,12]],'#627f91','#a3bcc6');
       polygon([[-12,-19],[12,-19],[14,5],[-13,5]],'#05131e',energy);
-      text(s.overdrive>0?'OVR':'P-07',0,-8,7,energy,'center');
+      if(s.weapon==='shotgun'){for(const side of [-1,1]){polygon([[side*4,-102],[side*18,-102],[side*23,-38],[side*4,-38]],metal,'#d9b194');c.fillStyle='#09131e';c.fillRect(side<0?-16:7,-99,9,9)}}
+      text(s.weapon==='shotgun'?'S-12':s.overdrive>0?'OVR':'P-07',0,-8,7,energy,'center');
       // Receiver cells refill with the actual firing cooldown.
       const ready=1-Math.max(0,Math.min(1,s.cooldown/(s.overdrive>0?.12:.24)));
       for(let i=0;i<5;i++){c.fillStyle=i<Math.ceil(ready*5)?energy:'#203341';c.fillRect(-8+i*4,-3,2,4)}
@@ -247,12 +250,13 @@
         polygon([[-8,7],[0,-5],[8,7],[0,3]],damageFrom.shield?'#7cdfff':'#ffb384');c.restore();
       }
       // Compact HUD remains legible in portrait and landscape.
-      c.fillStyle='#030c1bbd';c.fillRect(9,9,112,40);text(`WAVE ${String(Math.max(1,s.wave)).padStart(2,'0')}`,18,25,11,'#80e8fb');text(`${s.enemies.length} HOSTILES`,18,40,9,'#97b2c7');
-      const seconds=Math.max(0,Math.ceil(180-s.time));text(`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`,w-16,29,16,seconds<30?'#ffc997':'#d3edf5','right');
+      c.fillStyle='#030c1bbd';c.fillRect(9,9,112,40);text(s.mode==='sector'?'SECTOR RUN':`WAVE ${String(Math.max(1,s.wave)).padStart(2,'0')}`,18,25,11,'#80e8fb');text(`${s.enemies.length} HOSTILES`,18,40,9,'#97b2c7');
+      const seconds=Math.max(0,Math.ceil(s.mode==='sector'?s.time:180-s.time));text(`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`,w-16,29,16,seconds<30?'#ffc997':'#d3edf5','right');
       // North-up radar makes the expanded routes and nearby threats readable.
-      const radar=57,rx=w-radar-14,ry=43,cell=radar/E.MAP.length;
+      const radar=57,rx=w-radar-14,ry=43,cell=radar/map.length;
       c.fillStyle='#030d1cbb';c.fillRect(rx-3,ry-3,radar+6,radar+6);
-      for(let y=0;y<E.MAP.length;y++)for(let x=0;x<E.MAP[y].length;x++)if(E.MAP[y][x]==='1'){c.fillStyle='#38566f';c.fillRect(rx+x*cell,ry+y*cell,Math.max(1,cell-.5),Math.max(1,cell-.5))}
+      for(let y=0;y<map.length;y++)for(let x=0;x<map[y].length;x++)if(map[y][x]==='1'){c.fillStyle='#38566f';c.fillRect(rx+x*cell,ry+y*cell,Math.max(1,cell-.5),Math.max(1,cell-.5))}
+      if(s.mode==='sector'){for(const item of [...s.supplies.filter(i=>!i.taken),{...s.exit,type:'exit'}]){c.fillStyle=colors[item.type];c.fillRect(rx+item.x*cell-1.5,ry+item.y*cell-1.5,3,3)}if(!s.doorOpen){c.fillStyle=colors.key;c.fillRect(rx+8*cell,ry+13*cell,cell,cell)}}
       for(const enemy of s.enemies)if(enemy.spawn>0||Math.hypot(enemy.x-p.x,enemy.y-p.y)<6.5){c.fillStyle=enemy.elite?'#ffcf78':colors[enemy.type];c.fillRect(rx+enemy.x*cell-1,ry+enemy.y*cell-1,2,2)}
       c.save();c.translate(rx+p.x*cell,ry+p.y*cell);c.rotate(p.a);polygon([[3,0],[-2,-2],[-2,2]],'#e9ffff');c.restore();
       for(const item of s.pickups){
@@ -277,7 +281,8 @@
       if(pickupNotice&&running){c.save();c.globalAlpha=Math.min(1,pickupNotice.life*3);text(pickupNotice.label,16,h-60,9,colors[pickupNotice.kind]);c.restore()}
       if(banner>0&&running){c.globalAlpha=Math.min(1,banner*2);text(bannerText,w/2,bannerY,24,'#c5f9ff','center');text(s.wave===1?'BREACH THE PERIMETER':'REINFORCEMENTS DETECTED',w/2,bannerY+18,10,'#70cddd','center');c.globalAlpha=1}
       if(streakBanner>0&&banner===0&&running){c.globalAlpha=Math.min(1,streakBanner*3);text(streak===2?'DOUBLE TAKEDOWN':streak===3?'TRIPLE TAKEDOWN':`${streak} / SYSTEM WIPE`,w/2,78,12,'#ffdc9a','center');c.globalAlpha=1}
-      if(!s.enemies.length&&running&&banner===0&&streakBanner===0){
+      if(s.mode==='sector'&&running){text(E.sectorObjective(s).toUpperCase(),w/2,82,9,'#ffe0a0','center');}
+      if(s.mode!=='sector'&&!s.enemies.length&&running&&banner===0&&streakBanner===0){
         text(s.wave?`NEXT WAVE / ${Math.max(0,s.nextWave).toFixed(1)}s`:'SCANNING FOR HOSTILES',w/2,82,10,'#88f8d7','center');
         if(s.wave){const progress=Math.max(0,Math.min(1,1-s.nextWave/E.difficulty(s.wave).rest));c.fillStyle='#193e49';c.fillRect(w/2-42,89,84,2);c.fillStyle='#88f8d7';c.fillRect(w/2-42,89,84*progress,2)}
       }
