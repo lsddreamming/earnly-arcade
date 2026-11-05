@@ -26,7 +26,7 @@ test('reset deep link opens form without sending and validates email',async({pag
 });
 test('conflicted saves have consistent status and fit narrow screens',async({page})=>{
  await mock(page,{conflict:true});await page.goto('/account.html');await expect(page.locator('#cloudMessage')).toContainText('two different saves');await expect(page.locator('#syncStatusDot')).not.toHaveClass(/ready/);
- await expect(page.locator('#cloudSaveButton')).toHaveText('Review saves');await expect(page.locator('#cloudRestoreButton')).toBeHidden();expect(await page.locator('#delete-account').evaluate(e=>!!e.closest('.cloud-account-card'))).toBe(false);await expect(page.locator('#cloudBadge')).toHaveText('Signed in');await expect(page.locator('#cloudLiveStatus')).toHaveText('Your progress is saved in this browser');await expect(page.locator('#cloudAutoSyncToggle')).toHaveText('Paused');
+ await expect(page.locator('#cloudSaveButton')).toHaveText('Review saves');await expect(page.locator('#cloudRestoreButton')).toBeHidden();expect(await page.locator('#delete-account').evaluate(e=>!!e.closest('.cloud-account-card'))).toBe(false);await expect(page.locator('#cloudBadge')).toHaveText('Signed in');await expect(page.locator('#cloudLiveStatus')).toHaveText('Your progress is saved in this browser');await page.locator('.account-save-tools > summary').click();await expect(page.locator('#cloudAutoSyncToggle')).toHaveText('Paused');
  const message=await page.locator('#cloudMessage').boundingBox();const save=await page.locator('#cloudSaveButton').boundingBox();expect(message.y+message.height).toBeLessThan(save.y);
  await page.locator('.account-sync-details summary').click();await expect(page.locator('#pendingEvents')).toContainText('Sync paused');await expect(page.locator('#delete-account > summary')).toBeVisible();await page.locator('#delete-account > summary').click();await expect(page.locator('#cloudDeleteButton')).toBeVisible();
  for(const width of [320,390,440,1280]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();expect(await page.locator('.topbar').evaluate(e=>getComputedStyle(e).position)).toBe('static');}
@@ -77,4 +77,28 @@ test('known save from a different browser saves normally without a choice popup'
  await saveChoices(page,false);await page.getByRole('button',{name:'Save now',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>saved)).toBe(1);await expect(page.locator('dialog[open]')).toHaveCount(0);
  expect(await page.evaluate(()=>[loaded,deleted])).toEqual([0,0]);
+});
+
+test('saved account keeps advanced tools tucked away and clears completed syncing status',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await saveChoices(page,false);
+ await expect(page.locator('#cloudLiveStatus')).toHaveText('Progress backed up');
+ await expect(page.locator('#cloudAutoSyncToggle')).toBeHidden();
+ await expect(page.locator('#cloudRestoreButton')).toBeHidden();
+ await expect(page.locator('#copyTransferButton')).toBeHidden();
+ await expect(page.locator('#cloudDeleteButton')).toBeHidden();
+ await expect(page.locator('#cloudSignOutButton')).toBeVisible();
+ await page.evaluate(()=>window.dispatchEvent(new Event('earnly-cloud-syncing')));
+ await expect(page.locator('#cloudLiveStatus')).toContainText('Syncing');
+ await page.evaluate(()=>window.dispatchEvent(new Event('earnly-cloud-sync-idle')));
+ await expect(page.locator('#cloudLiveStatus')).toHaveText('Progress backed up');
+ for(const width of [320,390,440]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'test-results/account-simple.png',fullPage:true});
+ await page.locator('.account-save-tools > summary').click();
+ await expect(page.locator('#cloudAutoSyncToggle')).toBeVisible();
+ await page.locator('.account-save-options > summary').click();
+ await expect(page.locator('#cloudRestoreButton')).toBeVisible();
+ await page.locator('#transfer > summary').click();
+ await expect(page.locator('#copyTransferButton')).toBeVisible();
 });
