@@ -258,3 +258,38 @@ for(const [width,height] of [[320,568],[390,844],[667,375]])test(`night market f
  await page.evaluate(()=>window.__market.score=260);await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
  await page.screenshot({path:test.info().outputPath(`market-${width}.png`)});expect(errors).toEqual([]);
 });
+
+test('friend challenges stay separate from rewards and share the actual finished score',async({page})=>{
+ await page.goto('/neon-slice.html?challenge=250&utm_source=player');
+ await expect(page.locator('#sliceHeading')).toHaveText('Beat 250 points');
+ await expect(page.locator('#sliceShare')).toBeHidden();
+ const before=await page.evaluate(()=>({coins:localStorage.getItem('points'),best:localStorage.getItem('neonSlicePreviewBest')}));
+ expect(before.best).toBeNull();
+ await page.evaluate(()=>{
+  Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__share=data;}});
+  NeonSliceEngine.Game.prototype.step=function(){this.score=280;this.bestCombo=3;this.end('Bomb hit');};
+ });
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceChallengeResult')).toContainText('Challenge beaten!');
+ await page.locator('#sliceShareButton').click();
+ const shared=await page.evaluate(()=>window.__share);const url=new URL(shared.url);
+ expect(url.origin).toBe('https://earnlyarcade.com');expect(url.pathname).toBe('/neon-slice.html');
+ expect(url.searchParams.get('challenge')).toBe('280');expect(url.searchParams.get('utm_source')).toBe('player');
+ expect(await page.evaluate(()=>localStorage.getItem('points'))).toBe(before.coins);
+ const events=await page.evaluate(()=>Arcade.pendingSyncEvents().filter(e=>e.payload.game==='neonSlice'));
+ expect(events.map(e=>e.type)).toEqual(['score_challenge_opened','play_started','game_result','score_challenge_completed','score_challenge_shared']);
+ expect(events.find(e=>e.type==='game_result').payload).toMatchObject({metric:280,source:'player'});
+ expect(events.find(e=>e.type==='game_result').payload.newBest).toBeUndefined();
+ await expect(page.locator('#sliceSaveCard')).toHaveAttribute('href',/^blob:/);
+ await page.evaluate(()=>{NeonSliceEngine.Game.prototype.step=function(){};});
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceShare')).toBeHidden();
+});
+test('challenge sharing handles unavailable clipboard and canceled shares',async({page})=>{
+ await page.goto('/neon-slice.html?challenge=%3Cscript%3E');
+ await expect(page.locator('#sliceHeading')).toHaveText('Ready to slice?');
+ await page.evaluate(()=>{NeonSliceEngine.Game.prototype.step=function(){this.score=80;this.end('Bomb hit');};Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('Canceled','AbortError');}});});
+ await page.locator('#sliceStart').click();await page.locator('#sliceShareButton').click();
+ await expect(page.locator('#sliceCopyLabel')).toBeHidden();await expect(page.locator('#sliceShareButton')).toBeEnabled();
+ await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Denied');}}});});
+ await page.locator('#sliceShareButton').click();await expect(page.locator('#sliceCopyLabel')).toBeVisible();await expect(page.locator('#sliceCopyLink')).toHaveValue(/challenge=80&/);
+});
