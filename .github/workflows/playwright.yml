@@ -21,6 +21,8 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npx playwright install --with-deps chromium
+      - name: Verify promotion links and tracking behavior
+        run: node --test scripts/test-promotion-clicks.cjs
       - name: Verify Apple certificates on the deployed Deno generation
         run: npm exec --yes --package=deno@2.1.4 -- deno test --no-check --allow-read --allow-env scripts/test-apple-x509.ts
       - name: Validate payment ledger and API boundaries
