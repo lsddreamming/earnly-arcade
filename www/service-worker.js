@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-world-entry-20261016';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-neon-breach-sector-20261105';const CORE_ASSETS = [
+ './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',
  './crystal-command-rewards.js','./turbo-kart-driver.js','./turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
  './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-room-layouts.js','./world-placement.js',
  './shop-polish.css',
@@ -12,7 +13,7 @@ const CACHE_NAME = 'earnly-world-entry-20261016';const CORE_ASSETS = [
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
-  './index.html',
+  './index.html', './daily-arcade.js', './daily-arcade.css', './arcade-weekly-cup.svg',
   './about.html',
   './game-guides.html',
   './public-info.css',
@@ -44,6 +45,7 @@ const CACHE_NAME = 'earnly-world-entry-20261016';const CORE_ASSETS = [
   './stardefender.html',
   './neonmaze.html',
   './neondrift.html', './neondrift.css', './neondrift.js', './neondrift-engine.js', './neondrift-renderer.js', './neondrift-audio.js',
+  './neonbreach-sector.js?v=sector1', './neonbreach-engine.js?v=sector1', './neonbreach-renderer.js?v=sector1',
   './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-art.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',
   './mini-games.js', './mergerush-rules.js',
   './arcade.css',
