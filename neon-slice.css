@@ -58,3 +58,7 @@ body.neon-slice-page #sliceCanvas{position:absolute;inset:0;width:100%;height:10
 .slice-idle #slicePause,.slice-idle #sliceQuit,.slice-idle .slice-help{display:none}
 .slice-idle .slice-controls{justify-content:center}.slice-idle #sliceSound{flex:0 1 150px}
 .slice-idle .slice-reward{background:none;border:0;color:#afc5d6;font-size:11px!important;padding:4px!important}
+
+/* Sharing lives below the arena so replay and reward controls keep their space. */
+.slice-share{padding:16px;margin-top:16px;border:1px solid #466782;border-radius:16px;background:#14243d}
+.slice-share[hidden],.slice-share [hidden]{display:none}.slice-share h2{font-size:17px;margin:0 0 6px}.slice-share p{font-size:13px;line-height:1.5;color:#bdddec}.slice-share>div{display:flex;flex-wrap:wrap;gap:8px}.slice-share button,.slice-share a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid #5adbe4;border-radius:10px;font:700 13px system-ui;text-align:center}.slice-share button{background:#a8fbef;color:#082836}.slice-share a{color:#a8fbef}.slice-share button:disabled{opacity:.6}.slice-share input{display:block;width:100%;margin-top:6px;padding:10px;color:#fff;background:#081323;border:1px solid #5adbe4;border-radius:8px}.slice-share label{font-size:13px}.slice-share .slice-share-note{font-size:11px;margin-bottom:0}

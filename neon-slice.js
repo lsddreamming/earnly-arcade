@@ -2,6 +2,40 @@
   'use strict';
   const $=id=>document.getElementById(id),canvas=$('sliceCanvas'),ctx=canvas.getContext('2d'),game=new NeonSliceEngine.Game(Math.random,3);
   const presentation=window.NeonSlicePresentation;
+  const challenge=window.EarnlyScoreChallenge,targetScore=challenge.target(location.search);
+  if(targetScore!==null){$('sliceHeading').textContent='Beat '+targetScore.toLocaleString()+' points';$('sliceMessage').textContent='A friend sent you a personal score to beat. Swipe food, avoid bombs. Free play—no account needed.';}
+  let shareScore=0,cardUrl=null;
+  function trackGrowth(type,extra={}){
+    try{
+      if(typeof Arcade==='undefined')return;
+      const touch=Arcade.acquisitionContext?.().latest||{};
+      Arcade.trackEvent(type,{game:'neonSlice',source:touch.source,campaign:touch.campaign,content:touch.content,creator:touch.creator,challenge:targetScore===null?null:String(targetScore),...extra});
+    }catch{} // Optional analytics must never interrupt free play.
+  }
+  if(targetScore!==null)trackGrowth('score_challenge_opened');
+
+  function hideShare(){$('sliceShare').hidden=true;}
+  function showShare(){
+    shareScore=game.score;$('sliceShare').hidden=false;$('sliceShareStatus').textContent='';$('sliceCopyLabel').hidden=true;
+    $('sliceChallengeResult').textContent=targetScore===null?'Free browser play. No download needed.':game.score>targetScore?'Challenge beaten! Your friend’s target was '+targetScore.toLocaleString()+'.':game.score===targetScore?'A tie! Play again to beat '+targetScore.toLocaleString()+'.':'Your target: '+targetScore.toLocaleString()+' points. Try another round!';
+    $('sliceCopyLink').value=challenge.link(shareScore);
+    if(cardUrl){URL.revokeObjectURL(cardUrl);cardUrl=null;}
+    const save=$('sliceSaveCard');save.hidden=true;save.removeAttribute('href');
+    const serial=runSerial;
+    try{challenge.card(shareScore,game.bestCombo).toBlob(blob=>{if(!blob||serial!==runSerial||$('sliceShare').hidden)return;cardUrl=URL.createObjectURL(blob);save.href=cardUrl;save.hidden=false;},'image/png');}catch{}
+  }
+  $('sliceShareButton').onclick=async()=>{
+    const button=$('sliceShareButton'),url=challenge.link(shareScore),data={title:'Beat my Neon Slice score',text:'I scored '+shareScore.toLocaleString()+' in Neon Slice. Can you beat it? Play free:',url};
+    button.disabled=true;
+    try{
+      if(window.EarnlyRoomShare?.available()){await window.EarnlyRoomShare.share(data);trackGrowth('score_challenge_shared',{stage:'share_sheet',metric:shareScore});}
+      else if(navigator.share){await navigator.share(data);trackGrowth('score_challenge_shared',{stage:'share_sheet',metric:shareScore});}
+      else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);trackGrowth('score_challenge_shared',{stage:'copied',metric:shareScore});$('sliceShareStatus').textContent='Challenge link copied. Paste it to a friend.';}
+      else throw Error('Copy manually');
+    }catch(error){if(error?.name!=='AbortError'){$('sliceCopyLabel').hidden=false;$('sliceCopyLink').focus();$('sliceCopyLink').select();$('sliceShareStatus').textContent='Copy the link below to challenge a friend.';}}
+    finally{button.disabled=false;}
+  };
+
   let lastDrawState=null;
   let soundOn=false,utensil=null,utensilAngle=0;const warnedBombs=new Set();
   try{soundOn=localStorage.getItem('neonSliceSound')==='1';}catch{}
@@ -18,7 +52,7 @@
   const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
   const reduced=()=>window.Arcade?.reducedMotionEnabled?.()||motionQuery.matches;
   function hud(){const score=String(game.score),misses=Math.min(3,game.misses)+' / 3';if($('sliceScore').textContent!==score){$('sliceScore').textContent=score;const target=(Math.floor(game.score/250)+1)*250;$('sliceGoal').textContent='Next score milestone · '+target.toLocaleString();}if($('sliceMisses').textContent!==misses)$('sliceMisses').textContent=misses;}
-  function overlay(title,message,label){$('sliceStats').hidden=true;$('sliceHeading').textContent=title;$('sliceMessage').textContent=message;$('sliceStart').textContent=label;$('sliceOverlay').hidden=false;}
+  function overlay(title,message,label){hideShare();$('sliceStats').hidden=true;$('sliceHeading').textContent=title;$('sliceMessage').textContent=message;$('sliceStart').textContent=label;$('sliceOverlay').hidden=false;}
   function resetInput(){pointer=null;lastPoint=null;keys.clear();trail=[];utensil=null;endStroke();}
   async function showRank(serial){
     const target=$('sliceRank');
@@ -42,13 +76,13 @@
   }
   $('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();
   $('sliceRetry').onclick=async()=>{$('sliceRetry').disabled=true;try{const results=await NeonSliceRewards.retry();rewardText(results.length?'Pending rewards saved · wallet updated':'No pending rewards for this account');$('sliceRetry').hidden=true;showRank(runSerial);}catch{rewardText('Still pending · please reconnect and retry');}finally{$('sliceRetry').disabled=false;}};
-  function result(){settle();document.body.classList.remove("slice-running");if(offered)return;offered=true;resetInput();game.items=[];game.effects=[];$('sliceCombo').textContent='';const newBest=game.score>best;if(newBest){best=game.score;try{localStorage.setItem('neonSlicePreviewBest',String(best));}catch{}}$('sliceBest').textContent=best;overlay(newBest?'New personal best!':game.reason,game.reason==='Bomb hit'?'You hit a bomb. Watch for the glowing fuse.':game.reason==='Cookout complete'?'Three-minute cookout complete. Ready for another round?':'You missed three ingredients. Aim for short, precise swipes.','Play again');$('sliceResultBest').textContent=(newBest?'New best · ':'')+best.toLocaleString();$('sliceResultScore').textContent=game.score;$('sliceResultCombo').textContent=game.bestCombo+'×';$('sliceResultFood').textContent=game.sliced;$('sliceResultBurgers').textContent=game.burgers;$('sliceStats').hidden=false;$('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();if(game.continued)showRank(runSerial);$('slicePause').disabled=true;$('sliceQuit').disabled=false;$('sliceContinue').hidden=game.continued||!(window.EarnlyNativeAds?.isNative||window.EarnlyWebAds?.enabled);}
+  function result(){settle();document.body.classList.remove("slice-running");if(offered)return;offered=true;if(!game.continued){trackGrowth('game_result',{metric:game.score,reason:game.reason});if(targetScore!==null)trackGrowth('score_challenge_completed',{metric:game.score,stage:game.score>targetScore?'beaten':game.score===targetScore?'tied':'below'});}resetInput();game.items=[];game.effects=[];$('sliceCombo').textContent='';const newBest=game.score>best;if(newBest){best=game.score;try{localStorage.setItem('neonSlicePreviewBest',String(best));}catch{}}$('sliceBest').textContent=best;overlay(newBest?'New personal best!':game.reason,game.reason==='Bomb hit'?'You hit a bomb. Watch for the glowing fuse.':game.reason==='Cookout complete'?'Three-minute cookout complete. Ready for another round?':'You missed three ingredients. Aim for short, precise swipes.','Play again');$('sliceResultBest').textContent=(newBest?'New best · ':'')+best.toLocaleString();$('sliceResultScore').textContent=game.score;$('sliceResultCombo').textContent=game.bestCombo+'×';$('sliceResultFood').textContent=game.sliced;$('sliceResultBurgers').textContent=game.burgers;$('sliceStats').hidden=false;showShare();$('sliceRetry').hidden=!window.NeonSliceRewards?.hasPending?.();if(game.continued)showRank(runSerial);$('slicePause').disabled=true;$('sliceQuit').disabled=false;$('sliceContinue').hidden=game.continued||!(window.EarnlyNativeAds?.isNative||window.EarnlyWebAds?.enabled);}
   async function start(){
-    if(starting)return;warnedBombs.clear();if(soundOn)presentation.unlock();starting=true;$('sliceStart').disabled=true;rewardText('Connecting rewards…');
+    if(starting)return;hideShare();warnedBombs.clear();if(soundOn)presentation.unlock();starting=true;$('sliceStart').disabled=true;rewardText('Connecting rewards…');
     try{ticket=await window.NeonSliceRewards?.start();rewardMessage=ticket?.id?(ticket.remaining>0?`Earn up to 30 Arcade Coins per game · ${ticket.remaining} rewarded games left`:'Ranked play · daily coin rewards complete'):ticket?.practice?'Daily rewards complete · unlimited practice':'Sign in to earn · unlimited practice';if(!ticket?.id)ticket=null;}
     catch{ticket=null;rewardMessage='Offline practice · reconnect before starting to earn';}
     finally{starting=false;$('sliceStart').disabled=false;}
-    runSerial++;$('sliceRank').hidden=true;lastFrame=performance.now();resetInput();events=[];ticks=0;accumulator=0;settled=false;game.random=ticket?NeonSliceEngine.seededRandom(ticket.seed):Math.random;game.start();
+    runSerial++;$('sliceRank').hidden=true;lastFrame=performance.now();resetInput();events=[];ticks=0;accumulator=0;settled=false;game.random=ticket?NeonSliceEngine.seededRandom(ticket.seed):Math.random;game.start();trackGrowth('play_started');
     document.body.classList.remove('slice-idle');document.body.classList.add('slice-running');offered=false;$('sliceRetry').hidden=true;rewardText(rewardMessage);$('sliceContinue').hidden=true;$('sliceOverlay').hidden=true;$('slicePause').disabled=false;$('slicePause').textContent='Pause';$('sliceQuit').disabled=false;$('sliceCombo').textContent='';hud();canvas.focus();
   }
   function pause(){if(game.state!=='running')return;resetInput();game.pause();overlay('Paused','Your ingredients and score are waiting.','Resume');$('sliceContinue').hidden=true;$('slicePause').textContent='Resume';}
@@ -56,7 +90,7 @@
   $('sliceStart').onclick=()=>game.state==='paused'?resume():start();
   $('slicePause').onclick=()=>game.state==='paused'?resume():pause();
   $('sliceQuit').onclick=()=>{if(game.state==='over'){location.href='games.html';return;}pause();if(confirm('Quit this run? Your current score will not be saved.')){game.reset();document.body.classList.remove("slice-running");resetInput();document.body.classList.add('slice-idle');overlay('Ready to slice?','Swipe to slice food. Avoid bombs. Miss 3 ingredients and the round ends.','Play');rewardText('Earn up to 30 Arcade Coins per game. 3 rewarded games daily.');$('slicePause').textContent='Pause';$('slicePause').disabled=true;$('sliceQuit').disabled=true;hud();}};
-  $('sliceContinue').onclick=()=>{if(game.state!=='over'||game.continued)return;$('sliceContinue').disabled=true;const finish=()=>{$('sliceContinue').disabled=false;};const opened=Arcade.offerAdContinue({message:'Keep your score and clear the arena. One bonus chance per run.',onFinish:finish,onContinue:()=>{if(game.continue()){ticks=0;accumulator=0;rewardText(rewardMessage+' · bonus chance is score-only');document.body.classList.add("slice-running");offered=false;$('sliceOverlay').hidden=true;$('sliceContinue').hidden=true;$('slicePause').disabled=false;$('sliceQuit').disabled=false;hud();canvas.focus();}finish();}});if(!opened){finish();$('sliceMessage').textContent='Ads are unavailable right now. You can start another free run.';}};
+  $('sliceContinue').onclick=()=>{if(game.state!=='over'||game.continued)return;$('sliceContinue').disabled=true;const finish=()=>{$('sliceContinue').disabled=false;};const opened=Arcade.offerAdContinue({message:'Keep your score and clear the arena. One bonus chance per run.',onFinish:finish,onContinue:()=>{if(game.continue()){hideShare();ticks=0;accumulator=0;rewardText(rewardMessage+' · bonus chance is score-only');document.body.classList.add("slice-running");offered=false;$('sliceOverlay').hidden=true;$('sliceContinue').hidden=true;$('slicePause').disabled=false;$('sliceQuit').disabled=false;hud();canvas.focus();}finish();}});if(!opened){finish();$('sliceMessage').textContent='Ads are unavailable right now. You can start another free run.';}};
   function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*360/r.width,y:(e.clientY-r.top)*540/r.height};}
   function cut(a,b){a={x:Math.round(Math.max(0,Math.min(360,a.x))),y:Math.round(Math.max(0,Math.min(540,a.y)))};b={x:Math.round(Math.max(0,Math.min(360,b.x))),y:Math.round(Math.max(0,Math.min(540,b.y)))};const hits=game.slice(a,b);record([ticks,a.x,a.y,b.x,b.y]);utensil={...b};if(Math.hypot(b.x-a.x,b.y-a.y)>2)utensilAngle=Math.atan2(b.y-a.y,b.x-a.x);if(soundOn&&(hits.length||Math.hypot(b.x-a.x,b.y-a.y)>4))presentation.sound(hits.some(x=>!x.bomb));trail.push({...b,life:.16});trail=trail.slice(-22);hud();if(hits.some(x=>x.type===7&&!x.bomb)){$('sliceCombo').textContent='Bonus burger! +50';comboUntil=performance.now()+1100;}if(hits.some(x=>x.bomb))result();}
   function showCombo(combo){if(combo){$('sliceCombo').classList.remove('slice-pop');void $('sliceCombo').offsetWidth;$('sliceCombo').classList.add('slice-pop');$('sliceCombo').textContent=`${combo.hits} item combo! +${combo.bonus}`;comboUntil=performance.now()+900;hud();}}

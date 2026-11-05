@@ -541,6 +541,9 @@
 
   const GROWTH_EVENT_TYPES = new Set([
     'acquisition_attributed',
+    'score_challenge_shared',
+    'score_challenge_opened',
+    'score_challenge_completed',
     'onboarding_shown',
     'onboarding_completed',
     'onboarding_dismissed',

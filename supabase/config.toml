@@ -20,3 +20,7 @@ verify_jwt = false
 [functions.neon-slice]
 # Each request validates the bearer with auth.getUser before opening or claiming a round.
 verify_jwt = false
+
+[functions.track-growth]
+# Existing guest analytics validates the publishable key with withSupabase.
+verify_jwt = false
