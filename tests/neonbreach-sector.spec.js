@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 for(const prefix of ['', '/www']){
-test('Sector Run can be selected, completed, and replayed '+prefix,async({page})=>{
+test('Sector Run can be selected, completed, and replayed '+prefix,async({page,hasTouch})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  await page.goto(prefix+'/neonbreach.html');
@@ -11,7 +11,10 @@ test('Sector Run can be selected, completed, and replayed '+prefix,async({page})
  await expect(page.locator('#breachMode')).toBeDisabled();
  await page.evaluate(()=>{sectorTest.enemies=[];sectorTest.player.x=5.5;sectorTest.player.y=11.5});
  await expect(page.locator('#breachWeapon')).toHaveText('Scattergun · 8 shells');
- await page.locator('#breachWeapon').click();await expect(page.locator('#breachWeapon')).toContainText('Carbine');
+ const weapon=page.locator('#breachWeapon');
+ if(hasTouch)await weapon.tap();else await weapon.click();
+ await expect(weapon).toContainText('Carbine');
+ if(!hasTouch){await page.keyboard.press('e');await expect(weapon).toHaveText('Scattergun · 8 shells');}
  await page.evaluate(()=>{sectorTest.player.x=3.5;sectorTest.player.y=2.5});
  await expect.poll(()=>page.evaluate(()=>sectorTest.key)).toBe(true);
  await page.evaluate(()=>{sectorTest.player.x=7.4;sectorTest.player.y=13.5});
