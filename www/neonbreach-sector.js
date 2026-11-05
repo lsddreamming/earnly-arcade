@@ -2,10 +2,12 @@
 (function(root){
 'use strict';
 const E=root.NeonBreachEngine,baseTick=E.tick;
-const row=(openings=[])=>Array.from({length:18},(_,x)=>openings.includes(x)?'0':'1').join('');
 const MAP=Array.from({length:18},(_,y)=>y===0||y===17?'111111111111111111':'100000001000000001');
 MAP[8]='100000001111101111';
 MAP[4]='100110001000000001';
+MAP[6]='100010001010000001';
+MAP[10]='100100001000010001';
+MAP[11]='100100001000010001';
 MAP[12]='100000001001100001';
 function message(s,kind){s.events.push({type:'pickup',kind,amount:0})}
 E.createSector=function(random=Math.random){
@@ -21,6 +23,7 @@ E.createSector=function(random=Math.random){
  return s;
 };
 E.sectorObjective=function(s){
+ if(s.completed)return 'Exit reached';
  if(!s.key)return 'Find the gold access key';
  if(!s.doorOpen)return 'Open the gold door on your radar';
  return 'Reach the green exit beacon';

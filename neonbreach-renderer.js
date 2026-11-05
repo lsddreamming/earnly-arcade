@@ -281,7 +281,6 @@
       if(pickupNotice&&running){c.save();c.globalAlpha=Math.min(1,pickupNotice.life*3);text(pickupNotice.label,16,h-60,9,colors[pickupNotice.kind]);c.restore()}
       if(banner>0&&running){c.globalAlpha=Math.min(1,banner*2);text(bannerText,w/2,bannerY,24,'#c5f9ff','center');text(s.wave===1?'BREACH THE PERIMETER':'REINFORCEMENTS DETECTED',w/2,bannerY+18,10,'#70cddd','center');c.globalAlpha=1}
       if(streakBanner>0&&banner===0&&running){c.globalAlpha=Math.min(1,streakBanner*3);text(streak===2?'DOUBLE TAKEDOWN':streak===3?'TRIPLE TAKEDOWN':`${streak} / SYSTEM WIPE`,w/2,78,12,'#ffdc9a','center');c.globalAlpha=1}
-      if(s.mode==='sector'&&running){text(E.sectorObjective(s).toUpperCase(),w/2,82,9,'#ffe0a0','center');}
       if(s.mode!=='sector'&&!s.enemies.length&&running&&banner===0&&streakBanner===0){
         text(s.wave?`NEXT WAVE / ${Math.max(0,s.nextWave).toFixed(1)}s`:'SCANNING FOR HOSTILES',w/2,82,10,'#88f8d7','center');
         if(s.wave){const progress=Math.max(0,Math.min(1,1-s.nextWave/E.difficulty(s.wave).rest));c.fillStyle='#193e49';c.fillRect(w/2-42,89,84,2);c.fillStyle='#88f8d7';c.fillRect(w/2-42,89,84*progress,2)}
