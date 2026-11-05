@@ -927,6 +927,7 @@
       throw error;
     } finally {
       syncRunning = false;
+      window.dispatchEvent(new CustomEvent('earnly-cloud-sync-idle'));
       if (syncAgain) {
         syncAgain = false;
         scheduleAutoSync('queued-change', 500);
