@@ -85,17 +85,30 @@ function fire(s){
 
 function shotgun(s){
  s.shells--;s.cooldown=.8;s.flash=.18;s.fired++;
- const p=s.player;let hit=false;
- for(const e of [...s.enemies]){
-  const d=Math.hypot(e.x-p.x,e.y-p.y),a=Math.atan2(e.y-p.y,e.x-p.x);
-  if(d>6||Math.abs(angle(a-p.a))>.16+Math.atan2(.3,d)||ray(p.x,p.y,a,d,s.map)<d-.07)continue;
-  hit=true;e.hp-=d<2?4:2;e.hit=.18;
+ const p=s.player,impacts=new Map(),traces=[];
+ for(let pellet=-3;pellet<=3;pellet++){
+  const a=p.a+pellet*.065,dx=Math.cos(a),dy=Math.sin(a);
+  let distance=Math.min(6,ray(p.x,p.y,a,6,s.map)-.04),target;
+  for(const e of s.enemies){
+   const x=e.x-p.x,y=e.y-p.y,along=x*dx+y*dy;
+   if(along>0&&along<distance&&Math.abs(x*dy-y*dx)<.32){
+    target=e;distance=along;
+   }
+  }
+  traces.push({x:p.x+dx*distance,y:p.y+dy*distance});
+  if(target)impacts.set(target,(impacts.get(target)||0)+1);
+ }
+ for(const [e,pellets] of impacts){
+  const close=Math.hypot(e.x-p.x,e.y-p.y)<2.25;
+  e.hp-=Math.min(close?4:2,Math.ceil(pellets/2));
+  e.hit=.25;
+  if(pellets>=2){e.stagger=.24;e.railTime=0;e.attack=Math.max(e.attack||0,.38)}
   emit(s,{type:'impact',x:e.x,y:e.y,killed:e.hp<=0,robot:e.type,elite:!!e.elite,phase:e.phase||0,points:e.type==='tank'?150:e.type==='sentry'?100:75});
   if(e.hp<=0){s.enemies.splice(s.enemies.indexOf(e),1);s.kills++;s.score+=e.type==='tank'?150:e.type==='sentry'?100:75}
  }
+ const hit=impacts.size>0;
  if(hit)s.hits++;
- const d=Math.max(0,ray(p.x,p.y,p.a,32,s.map)-.06);
- emit(s,{type:'fire',hit,weapon:'shotgun',x:p.x+Math.cos(p.a)*d,y:p.y+Math.sin(p.a)*d});
+ emit(s,{type:'fire',hit,weapon:'shotgun',...traces[3],traces});
  if(!s.shells){s.weapon='carbine';emit(s,{type:'pickup',kind:'carbine',amount:0})}
  return hit;
 }
@@ -107,6 +120,26 @@ function damage(s,n,source){
  emit(s,{type:'damage',shield:s.shield>0,x:source?.x??s.player.x,y:source?.y??s.player.y});
  if(!s.player.hp)s.ended=true;
 }
+const RAIL_WINDUP=.85;
+function railSentry(s,e,dt,d,bearing,visible){
+ e.motion=0;
+ e.heading=bearing;
+ if(e.railTime>0){
+  e.railTime=Math.max(0,e.railTime-dt);
+  e.charge=1-e.railTime/RAIL_WINDUP;
+  if(e.railTime>0)return;
+  const offset=angle(bearing-e.railAngle);
+  if(visible&&d<=9&&Math.abs(Math.sin(offset)*d)<.28&&Math.cos(offset)>0&&ray(e.x,e.y,e.railAngle,d,s.map)>=d-.07)damage(s,20,e);
+  e.attack=2.45;
+  e.firing=.16;
+  e.charge=0;
+  emit(s,{type:'robot-fire',x:e.x,y:e.y});
+ }else if(e.attack<=0&&visible&&d<=9){
+  e.railAngle=bearing;
+  e.railTime=RAIL_WINDUP;
+  emit(s,{type:'rail-lock',x:e.x,y:e.y});
+ }
+}
 function tick(s,dt,input={}){if(s.ended)return;dt=Math.min(.05,Math.max(0,dt));s.time+=dt;for(const k of ['cooldown','flash','hurt','shield','overdrive'])s[k]=Math.max(0,s[k]-dt);const p=s.player;p.a=angle(p.a+(input.turn||0)*dt);let f=input.forward||0,st=input.strafe||0;const norm=Math.max(1,Math.hypot(f,st));f/=norm;st/=norm;move(p,(Math.cos(p.a)*f-Math.sin(p.a)*st)*2.4*dt,(Math.sin(p.a)*f+Math.cos(p.a)*st)*2.4*dt,.22,s.map);if(input.fire)fire(s);
 s.navTimer-=dt;if(!s.nav||s.navTimer<=0)navigation(s);const rules=difficulty(s.wave);
 for(const e of s.enemies){
@@ -116,20 +149,28 @@ for(const e of s.enemies){
  e.firing=Math.max(0,(e.firing||0)-dt);
  const d=Math.hypot(p.x-e.x,p.y-e.y),a=Math.atan2(p.y-e.y,p.x-e.x),oldX=e.x,oldY=e.y;
  e.attack-=dt;const visible=ray(e.x,e.y,a,d,s.map)>=d-.07;
- if(d>(e.type==='sentry'&&visible?3:.55)){
+ if(e.stagger>0){
+  e.stagger=Math.max(0,e.stagger-dt);e.motion=0;e.charge=0;continue;
+ }
+ if(e.role==='rail'){railSentry(s,e,dt,d,a,visible);continue}
+ if(d>(e.role==='plasma'&&visible?3.5:e.type==='sentry'&&visible?3:.55)){
   const speed=rules[e.type]*(e.elite?1.06:1),heading=steer(s,e,visible);
   move(e,Math.cos(heading)*speed*dt,Math.sin(heading)*speed*dt,.22,s.map);
  }
  const traveled=Math.hypot(e.x-oldX,e.y-oldY);
  e.motion=dt>0?Math.min(1,traveled/(dt*1.1)):0;e.stride=(e.stride||0)+traveled*9;
  e.heading=traveled>.0001?Math.atan2(e.y-oldY,e.x-oldX):a;
- e.charge=visible&&(e.type==='sentry'||d<1.1)?Math.max(0,Math.min(1,1-e.attack/(e.type==='sentry'?.65:.35))):0;
- if(e.type==='sentry'&&visible&&e.attack<=0){
+ e.charge=visible&&(e.type==='sentry'||e.role==='plasma'||d<1.1)?Math.max(0,Math.min(1,1-e.attack/(e.type==='sentry'||e.role==='plasma'?.65:.35))):0;
+ if(e.role==='plasma'&&visible&&d<=8&&e.attack<=0){
+  const speed=2.25;
+  s.shots.push({x:e.x,y:e.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,life:4,plasma:true});
+  e.attack=2.6;e.firing=.16;emit(s,{type:'robot-fire',x:e.x,y:e.y});
+ }else if(e.type==='sentry'&&visible&&e.attack<=0){
   s.shots.push({x:e.x,y:e.y,vx:Math.cos(a)*rules.bolt,vy:Math.sin(a)*rules.bolt,life:5});
   e.attack=rules.shotDelay;e.firing=.16;e.charge=0;emit(s,{type:'robot-fire',x:e.x,y:e.y});
  }else if(d<.65&&e.attack<=0){damage(s,e.type==='tank'?25:14,e);e.attack=rules.meleeDelay;e.firing=.18;e.charge=0}
 }
-for(const b of s.shots){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(wall(b.x,b.y,s.map))b.life=0;if(Math.hypot(b.x-p.x,b.y-p.y)<.26){damage(s,18,{x:b.x-b.vx*.2,y:b.y-b.vy*.2});b.life=0}}s.shots=s.shots.filter(b=>b.life>0);
+for(const b of s.shots){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(wall(b.x,b.y,s.map))b.life=0;if(b.life>0&&Math.hypot(b.x-p.x,b.y-p.y)<.26){damage(s,b.plasma?15:18,{x:b.x-b.vx*.2,y:b.y-b.vy*.2});b.life=0}}s.shots=s.shots.filter(b=>b.life>0);
 for(const item of s.pickups){item.life-=dt;if(Math.hypot(item.x-p.x,item.y-p.y)<.55){const before=p.hp;if(item.type==='health')p.hp=Math.min(100,p.hp+30);else s[item.type]=8;emit(s,{type:'pickup',kind:item.type,amount:item.type==='health'?p.hp-before:8});item.life=0}}s.pickups=s.pickups.filter(i=>i.life>0);if(!s.enemies.length){s.nextWave-=dt;if(s.nextWave<=0){spawn(s)}}if(s.time>=180&&s.mode!=='sector')s.ended=true;
 }
 const api={MAP,SPAWN_DELAY,SPAWN_DISTANCE,SPAWN_ARC,SPAWN_SEPARATION,SPAWN_PLAYER_BUFFER,difficulty,navigation,angle,wall,clear,ray,move,create,spawn,aim,fire,tick};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NeonBreachEngine=api;

@@ -19,7 +19,7 @@ E.createSector=function(random=Math.random){
  {x:11.5,y:14.5,type:'ammo'},{x:14.5,y:6.5,type:'ammo'}
  ];
  s.pickups=[{x:2.5,y:7.5,type:'health',life:Infinity},{x:11.5,y:11.5,type:'health',life:Infinity}];
- s.enemies=[[5.5,9.5,'rusher'],[6.5,3.5,'sentry'],[2.5,4.5,'rusher'],[11.5,13.5,'rusher'],[15.5,10.5,'sentry'],[11.5,5.5,'tank'],[15.5,3.5,'sentry']].map(([x,y,type],i)=>({x,y,type,hp:type==='tank'?4:type==='sentry'?2:1,maxHp:type==='tank'?4:type==='sentry'?2:1,attack:1.5,phase:i,stride:0,motion:0,spawn:2.5,firing:0,charge:0,heading:0}));
+ s.enemies=[[5.5,9.5,'rusher','plasma'],[6.5,3.5,'sentry'],[2.5,4.5,'rusher'],[11.5,13.5,'rusher','plasma'],[15.5,10.5,'sentry'],[11.5,5.5,'tank'],[15.5,3.5,'sentry']].map(([x,y,type,role],i)=>({x,y,type,role:role||(type==='sentry'?'rail':undefined),hp:type==='tank'?4:type==='sentry'?2:1,maxHp:type==='tank'?4:type==='sentry'?2:1,attack:1.5,phase:i,stride:0,motion:0,spawn:2.5,firing:0,charge:0,heading:0}));
  return s;
 };
 E.sectorObjective=function(s){
