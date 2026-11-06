@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-neon-breach-sector-combat-20261106';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-neon-breach-key-bay-20261106';const CORE_ASSETS = [
  './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',
  './crystal-command-rewards.js','./turbo-kart-driver.js','./turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
  './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-room-layouts.js','./world-placement.js',
@@ -45,8 +45,8 @@ const CACHE_NAME = 'earnly-neon-breach-sector-combat-20261106';const CORE_ASSETS
   './stardefender.html',
   './neonmaze.html',
   './neondrift.html', './neondrift.css', './neondrift.js', './neondrift-engine.js', './neondrift-renderer.js', './neondrift-audio.js',
-  './neonbreach-audio.js?v=sector3', './neonbreach-sector.js?v=sector3', './neonbreach-engine.js?v=sector3', './neonbreach-renderer.js?v=sector3',
-  './neonbreach.js?v=sector3', './neonbreach.css?v=sector3',
+  './neonbreach-audio.js?v=sector4', './neonbreach-sector.js?v=sector4', './neonbreach-engine.js?v=sector4', './neonbreach-renderer.js?v=sector4',
+  './neonbreach.js?v=sector4', './neonbreach.css?v=sector4',
   './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-art.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',
   './mini-games.js', './mergerush-rules.js',
   './arcade.css',

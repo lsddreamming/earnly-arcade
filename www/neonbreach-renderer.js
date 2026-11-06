@@ -2,7 +2,7 @@
 (()=>{
   'use strict';
   const E=NeonBreachEngine,FOV=1.25,TAU=Math.PI*2;
-  const colors={rusher:'#45e3ff',sentry:'#ff66bc',tank:'#b59aff',health:'#64ffc4',shield:'#69bcff',overdrive:'#ffdf78',key:'#ffd16d',shotgun:'#ffa66b',ammo:'#f9bb91',exit:'#6effb3'};
+  const colors={rusher:'#45e3ff',sentry:'#ff66bc',tank:'#b59aff',health:'#64ffc4',shield:'#69bcff',overdrive:'#ffdf78',key:'#ffd16d',shotgun:'#ffa66b',ammo:'#f9bb91',exit:'#6effb3',ambush:'#ffbb79'};
   function create(canvas){
     const c=canvas.getContext('2d'),art=NeonBreachArt.create(),plane=document.createElement('canvas'),pc=plane.getContext('2d');
     let planeImage;let effects=[],hit=0,kill=0,banner=0,bannerText='',motion=0,laser=null,damageFrom=null,pickupNotice=null,streak=0,streakClock=0,streakBanner=0,sway=0,lastAngle=null;
@@ -13,7 +13,7 @@
       if(e.type==='wave'){banner=2;bannerText=`WAVE ${String(e.wave).padStart(2,'0')}`;streakClock=0}
       if(e.type==='fire')laser=e;
       if(e.type==='damage')damageFrom={x:e.x,y:e.y,shield:e.shield,life:.8};
-      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:({key:'ACCESS KEY FOUND',shotgun:'SCATTERGUN / 8 SHELLS',ammo:'+6 SHELLS',door:'ACCESS GRANTED',locked:'GOLD KEY REQUIRED',exit:'SECTOR SECURED',carbine:'OUT OF SHELLS / CARBINE'})[e.kind]||(e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE')};
+      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:({key:'ACCESS KEY FOUND',ambush:'KEY SECURED / DRONES INBOUND',shotgun:'SCATTERGUN / 8 SHELLS',ammo:'+6 SHELLS',door:'ACCESS GRANTED',locked:'GOLD KEY REQUIRED',exit:'SECTOR SECURED',carbine:'OUT OF SHELLS / CARBINE'})[e.kind]||(e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE')};
       if(e.type==='impact'){
         hit=.18;kill=e.killed?.7:kill;
         effects.push({...e,life:e.killed?.7:.22,total:e.killed?.7:.22});
@@ -37,7 +37,7 @@
       let u=hit-Math.floor(hit);if((!side&&dx<0)||(side&&dy>0))u=1-u;
       return {distance,u,side,mx,my};
     }
-    function planes(p,w,h,horizon,projection,flash){
+    function planes(p,w,h,horizon,projection,flash,sector){
       // Bounded surfaces keep the texture cost fixed on high-density phones.
       const pw=320,ph=Math.ceil(h*.8);
       if(plane.width!==pw||plane.height!==ph){plane.width=pw;plane.height=ph;planeImage=pc.createImageData(pw,ph)}
@@ -56,9 +56,10 @@
           // Small embedded runway lamps follow world coordinates as the camera moves.
           const guide=!ceiling&&d<7&&u/ts<.02&&(Math.floor(wx)&3)===0&&v/ts>.3&&v/ts<.7;
           const warm=wx<5.5?.13:0,violet=wx>12?.12:0;
-          data[i]=texture[k]*shade*(1+warm+violet)+12*fog+muzzle*12+(guide?12:0);
-          data[i+1]=texture[k+1]*shade*(1-violet*.5)+25*fog+muzzle*46+(guide?76:0);
-          data[i+2]=texture[k+2]*shade*(1-warm*.7+violet)+39*fog+muzzle*60+(guide?89:0);data[i+3]=255;
+          const light=sector&&wx>0&&wx<8?(wy<4?1.38:wy<7?.68:1):1;
+          data[i]=texture[k]*shade*light*(1+warm+violet)+12*fog+muzzle*12+(guide?12:0);
+          data[i+1]=texture[k+1]*shade*light*(1-violet*.5)+25*fog+muzzle*46+(guide?76:0);
+          data[i+2]=texture[k+2]*shade*light*(1-warm*.7+violet)+39*fog+muzzle*60+(guide?89:0);data[i+3]=255;
         }
       }
       pc.putImageData(planeImage,0,0);c.drawImage(plane,0,0,w,h);
@@ -108,11 +109,19 @@
       effects.forEach(e=>e.life-=dt);effects=effects.filter(e=>e.life>0);
       c.save();
       c.scale(scale,scale);
-      planes(p,w,h,horizon,projection,s.flash);
+      planes(p,w,h,horizon,projection,s.flash,s.mode==='sector');
       const ca=Math.cos(p.a),sa=Math.sin(p.a);
       const view=(x,y)=>({z:(x-p.x)*ca+(y-p.y)*sa,x:-(x-p.x)*sa+(y-p.y)*ca});
+      const windows=[];
       for(let x=0;x<w;x+=stride){
-        const cameraX=(x+.5-w/2)/projection,ray=cast(p.x,p.y,ca-sa*cameraX,sa+ca*cameraX,map),d=ray.distance;
+        const cameraX=(x+.5-w/2)/projection,dx=ca-sa*cameraX,dy=sa+ca*cameraX;
+        let ray=cast(p.x,p.y,dx,dy,map);
+        if(s.viewMap&&map[ray.my]?.[ray.mx]==='2'&&ray.u>.09&&ray.u<.91){
+          const half=projection/Math.max(.08,ray.distance);
+          windows[x]={depth:ray.distance,top:horizon-half*.31,bottom:horizon+half*.42,half};
+          ray=cast(p.x,p.y,dx,dy,s.viewMap);
+        }
+        const d=ray.distance;
         depth[x]=d;
         const height=projection/Math.max(.08,d),top=horizon-height/2;
         const material=[1,0,1,3,1,2][Math.abs(ray.mx*3+ray.my*5+ray.side)%6];
@@ -122,6 +131,14 @@
         if(s.mode==='sector'&&!s.doorOpen&&ray.mx===8&&ray.my===13){c.fillStyle='#ffc64f';c.globalAlpha=.6;c.fillRect(x,top,stride,height);c.globalAlpha=1;}
         if(ray.mx<5||ray.mx>12){c.fillStyle=ray.mx<5?'#ef9c54':'#9a64ed';c.globalAlpha=.055;c.fillRect(x,top,stride,height);c.globalAlpha=1}
         if(s.flash>0&&d<4){c.fillStyle=`rgba(90,230,255,${s.flash*Math.max(0,1-d/4)})`;c.fillRect(x,top,stride,height)}
+        const pane=windows[x];
+        if(pane){
+          c.fillStyle='#1b3847';
+          c.fillRect(x,horizon-pane.half*.5,stride,pane.half*.19);
+          c.fillRect(x,pane.bottom,stride,pane.half*.08);
+          c.fillStyle='#71bec4';c.fillRect(x,pane.top,stride,1);c.fillRect(x,pane.bottom-1,stride,1);
+          c.fillStyle='#7de9ff18';c.fillRect(x,pane.top+1,stride,pane.bottom-pane.top-2);
+        }
       }
       for(const e of s.enemies){
         if(e.role!=='rail'||!(e.railTime>0||e.firing>0))continue;
@@ -152,6 +169,15 @@
         }
         if(open>=0)spans.push([open,right-open]);if(!spans.length)continue;
         c.save();c.beginPath();for(const [x,width] of spans)c.rect(x,0,width,h);c.clip();
+        if(windows.length&&windows.some(pane=>e.z>pane.depth)){
+          c.beginPath();
+          for(let x=left;x<right;x++){
+            const pane=windows[x];
+            if(pane&&e.z>pane.depth)c.rect(x,pane.top,1,pane.bottom-pane.top);
+            else c.rect(x,0,1,h);
+          }
+          c.clip();
+        }
         if(e.kind==='lamp'){
           const height=projection/e.z,ceiling=horizon-height*.5,light=art.lamp(e.color);
           c.drawImage(light,sx-height*192/260,ceiling-height*20/260,height*384/260,height*320/260);
@@ -277,7 +303,7 @@
       // North-up radar makes the expanded routes and nearby threats readable.
       const radar=57,rx=w-radar-14,ry=43,cell=radar/map.length;
       c.fillStyle='#030d1cbb';c.fillRect(rx-3,ry-3,radar+6,radar+6);
-      for(let y=0;y<map.length;y++)for(let x=0;x<map[y].length;x++)if(map[y][x]==='1'){c.fillStyle='#38566f';c.fillRect(rx+x*cell,ry+y*cell,Math.max(1,cell-.5),Math.max(1,cell-.5))}
+      for(let y=0;y<map.length;y++)for(let x=0;x<map[y].length;x++)if(map[y][x]!=='0'){c.fillStyle=map[y][x]==='2'?'#71bec4':'#38566f';c.fillRect(rx+x*cell,ry+y*cell,Math.max(1,cell-.5),Math.max(1,cell-.5))}
       if(s.mode==='sector'){for(const item of [...s.supplies.filter(i=>!i.taken),{...s.exit,type:'exit'}]){c.fillStyle=colors[item.type];c.fillRect(rx+item.x*cell-1.5,ry+item.y*cell-1.5,3,3)}if(!s.doorOpen){c.fillStyle=colors.key;c.fillRect(rx+8*cell,ry+13*cell,cell,cell)}}
       for(const enemy of s.enemies)if(enemy.spawn>0||Math.hypot(enemy.x-p.x,enemy.y-p.y)<6.5){c.fillStyle=enemy.elite?'#ffcf78':colors[enemy.type];c.fillRect(rx+enemy.x*cell-1,ry+enemy.y*cell-1,2,2)}
       c.save();c.translate(rx+p.x*cell,ry+p.y*cell);c.rotate(p.a);polygon([[3,0],[-2,-2],[-2,2]],'#e9ffff');c.restore();

@@ -16,8 +16,12 @@ test('Sector Run can be selected, completed, and replayed '+prefix,async({page,h
  if(hasTouch)await weapon.tap();else await weapon.click();
  await expect(weapon).toContainText('Carbine');
  if(!hasTouch){await page.keyboard.press('e');await expect(weapon).toHaveText('Scattergun · 8 shells');}
+ await page.evaluate(()=>Object.assign(sectorTest.player,{x:3.5,y:6.5,a:-Math.PI/2}));
+ await expect(page.locator('#sectorObjective')).toHaveText('Find the gold access key');
+ await page.locator('#game').screenshot({path:'test-results/neonbreach-key-window-'+(prefix?'native':'web')+'.png'});
  await page.evaluate(()=>{sectorTest.player.x=3.5;sectorTest.player.y=2.5});
  await expect.poll(()=>page.evaluate(()=>sectorTest.key)).toBe(true);
+ expect(await page.evaluate(()=>sectorTest.enemies.filter(enemy=>enemy.ambush).length)).toBe(2);
  await expect(page.locator('#sectorObjective')).toHaveText('Open the gold door on your radar');
  await page.evaluate(()=>{sectorTest.player.x=7.4;sectorTest.player.y=13.5});
  await expect.poll(()=>page.evaluate(()=>sectorTest.doorOpen)).toBe(true);

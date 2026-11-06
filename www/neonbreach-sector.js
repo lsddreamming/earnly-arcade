@@ -4,14 +4,27 @@
 const E=root.NeonBreachEngine,baseTick=E.tick;
 const MAP=Array.from({length:18},(_,y)=>y===0||y===17?'111111111111111111':'100000001000000001');
 MAP[8]='100000001111101111';
-MAP[4]='100110001000000001';
+MAP[4]='100210001000000001';
+for(const y of [1,2,3])MAP[y]='100001001000000001';
+const BAY={x:5,y:2};
+function replaceTile(map,x,y,tile){map[y]=map[y].slice(0,x)+tile+map[y].slice(x+1)}
+function openBay(s){
+ replaceTile(s.map,BAY.x,BAY.y,'0');
+ replaceTile(s.viewMap,BAY.x,BAY.y,'0');
+ s.nav=null;
+ // Two drones stage behind the bay door, away from the pickup tile.
+ for(const x of [5.6,6.6]){
+  s.enemies.push({x,y:2.5,type:'rusher',role:'plasma',ambush:true,hp:1,maxHp:1,attack:1,
+   phase:x,stride:0,motion:0,spawn:.65,firing:0,charge:0,heading:0});
+ }
+}
 MAP[6]='100010001010000001';
 MAP[10]='100100001000010001';
 MAP[11]='100100001000010001';
 MAP[12]='100000001001100001';
 function message(s,kind){s.events.push({type:'pickup',kind,amount:0})}
 E.createSector=function(random=Math.random){
- const s=E.create(random);s.mode='sector';s.map=MAP.slice();s.wave=1;s.nextWave=Infinity;
+ const s=E.create(random);s.mode='sector';s.map=MAP.slice();s.viewMap=MAP.map(row=>row.replace('2','0'));s.wave=1;s.nextWave=Infinity;
  Object.assign(s.player,{x:3.5,y:14.5,a:-Math.PI/2});
  s.key=false;s.doorOpen=false;s.weapon='carbine';s.hasShotgun=false;s.shells=0;s.completed=false;
  s.exit={x:14.5,y:3.5};s.supplies=[
@@ -36,13 +49,18 @@ E.tick=function(s,dt,input={}){
  for(const item of s.supplies){
   if(item.taken||Math.hypot(item.x-p.x,item.y-p.y)>.6)continue;
   item.taken=true;
-  if(item.type==='key')s.key=true;
+  if(item.type==='key'){
+   s.key=true;
+   openBay(s);
+   message(s,'ambush');
+   continue;
+  }
   if(item.type==='shotgun'){s.hasShotgun=true;s.shells+=8;s.weapon='shotgun'}
   if(item.type==='ammo')s.shells=Math.min(24,s.shells+6);
   message(s,item.type);
  }
  if(!s.doorOpen&&Math.hypot(p.x-8.5,p.y-13.5)<1.8){
-  if(s.key){s.doorOpen=true;s.map[13]=s.map[13].slice(0,8)+'0'+s.map[13].slice(9);s.nav=null;message(s,'door')}
+  if(s.key){s.doorOpen=true;replaceTile(s.map,8,13,'0');replaceTile(s.viewMap,8,13,'0');s.nav=null;message(s,'door')}
   else if(!s.lockNotice||s.time-s.lockNotice>4){s.lockNotice=s.time||.001;message(s,'locked')}
  }
  baseTick(s,dt,input);
