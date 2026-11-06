@@ -197,9 +197,19 @@ for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{
 document.addEventListener('pointermove',e=>{const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>releaseInput(pointerId(e)));
 document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,select,a,.modal-backdrop,#soundButton,#voiceButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d',' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault();if(running&&!paused)keys.add(key)}if(key==='e'&&running&&!paused){E.switchWeapon(state);chrome()}if(e.key==='Enter'&&!running&&!starting)start()});document.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
-pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachHelp,.breach-help-dialog'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
+pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachHelp,.breach-help-dialog'),preserveOnHistoryRestore:true,resumeOnInput:e=>{
+ if(e.type==='keydown')return true;
+ // Safari can retarget the first touch after returning to the page.
+ if(e.type==='touchstart')return Array.from(e.changedTouches).some(fingerSurface);
+ if(e.type==='pointerdown'&&e.pointerType==='touch')return Boolean(fingerSurface(e));
+ return (e.type==='pointerdown'||e.type==='click')&&!!e.target.closest?.('#breachControls,#game');
+}});
 // Shared mobile dock is initially inserted after the canvas; move it below the thumb controls.
 let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pauseControl.button,document.getElementById('earnlyQuitButton'))}document.getElementById('breachControls').insertAdjacentElement('afterend',dock);
-function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',()=>{running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput()});
+function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',event=>{
+ if(event.persisted){backgroundPause();return}
+ running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput();
+});
+window.addEventListener('pageshow',event=>{if(event.persisted){resetInput();pauseControl.sync();render()}});
 new ResizeObserver(()=>{const r=canvas.getBoundingClientRect(),width=Math.round(Math.min(800,Math.max(400,r.width*Math.min(2,window.devicePixelRatio||1))));canvas.width=width;canvas.height=Math.round(width*r.height/Math.max(1,r.width));render()}).observe(canvas);soundControls();chrome();render();
 })();

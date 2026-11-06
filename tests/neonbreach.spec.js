@@ -361,6 +361,23 @@ test('Touch-only controls move the player, aim and fire together without pointer
  await page.locator('#earnlyPauseButton').click();await expect(page.locator('#moveKnob')).toHaveAttribute('style','');
  await page.locator('#earnlyPauseButton').click();
  await expect.poll(()=>page.evaluate(()=>touchObserved.input)).toMatchObject({forward:0,strafe:0,fire:false});
+ // A Safari history restore keeps the round paused and its touch listeners alive.
+ await page.evaluate(()=>{
+  window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));
+  window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+ });
+ await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.evaluate(()=>{
+  const r=document.querySelector('#movePad').getBoundingClientRect();
+  const event=new Event('touchstart',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'changedTouches',{value:[{identifier:7,clientX:r.left+r.width/2,clientY:r.top+r.height/2-28}]});
+  document.body.dispatchEvent(event);
+ });
+ await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input.forward)).toBeGreaterThan(.5);
+ await page.evaluate(()=>sendBreachTouch('#movePad','touchend',7,0,-28));
+ await expect.poll(()=>page.evaluate(()=>touchObserved.input.forward)).toBe(0);
+
 });
 
 

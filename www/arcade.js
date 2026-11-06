@@ -4185,7 +4185,9 @@ const Arcade = (() => {
     const observer = new MutationObserver(sync);
     observer.observe(status, {attributes:true, childList:true, characterData:true, subtree:true});
     const syncTimer = setInterval(sync, 250);
-    window.addEventListener('pagehide', () => {
+    const cleanupPauseControl = event => {
+      if (event.persisted && options.preserveOnHistoryRestore) return;
+      window.removeEventListener('pagehide', cleanupPauseControl);
       if (paused) {
         paused = false;
         try { resume(); } catch {}
@@ -4196,7 +4198,8 @@ const Arcade = (() => {
       ['pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','click','keydown'].forEach(type => {
         window.removeEventListener(type, blockPausedGameInput, {capture:true});
       });
-    }, {once:true});
+    };
+    window.addEventListener('pagehide', cleanupPauseControl);
     sync();
     return { button, isPaused:() => paused, resume:resumePaused, sync };
   }
