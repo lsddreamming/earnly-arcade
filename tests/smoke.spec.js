@@ -1,5 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
+async function openGuestGamePage(page, path) {
+  // Guest UI checks exercise the local app and must not wait on the external SDK.
+  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
+  await page.goto(path);
+}
+
 async function startGame(page) {
   const boardStart = page.locator('#blockDropBoardStart');
   if (await boardStart.isVisible().catch(() => false)) {
@@ -253,7 +259,7 @@ for (const game of miniGames) {
   test('mini game ' + game + ' renders and can start', async ({ page }) => {
     const errors = [];
     page.on('pageerror', err => errors.push(err.message));
-    await page.goto('/mini.html?game=' + game);
+    await openGuestGamePage(page, '/mini.html?game=' + game);
     await expect(page.locator('#gameTitle')).toBeVisible();
     await expect(page.locator('#surface')).toBeVisible();
 
@@ -267,13 +273,13 @@ for (const game of miniGames) {
 }
 
 test('Spiral Drop uses Rows everywhere visible', async ({ page }) => {
-  await page.goto('/mini.html?game=spiralDrop');
+  await openGuestGamePage(page, '/mini.html?game=spiralDrop');
   await expect(page.locator('#scoreLabel')).toHaveText('Rows');
   await expect(page.locator('body')).not.toContainText('Rings:');
 });
 
 test('games page links into playable games', async ({ page }) => {
-  await page.goto('/games.html');
+  await openGuestGamePage(page, '/games.html');
   await expect(page.locator('body')).toBeVisible();
   const links = page.locator('a[href*=".html"]');
   expect(await links.count()).toBeGreaterThan(0);
@@ -411,7 +417,7 @@ test('Rewards balance and history update immediately after a local earning event
 
 
 test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
-  await page.goto('/mini.html?game=spiralDrop');
+  await openGuestGamePage(page, '/mini.html?game=spiralDrop');
   await startGame(page);
   await page.waitForTimeout(3400);
   await page.keyboard.press('ArrowLeft');
@@ -422,7 +428,7 @@ test('Spiral Drop supports desktop arrow-key controls', async ({ page }) => {
 
 
 test('run results stay visible even when zero plays remain', async ({ page }) => {
-  await page.goto('/mini.html?game=spiralDrop');
+  await openGuestGamePage(page, '/mini.html?game=spiralDrop');
   await page.evaluate(() => {
     Arcade.gameResult({
       icon:'🌀', title:'Spiral Drop', scoreLabel:'Rows', score:42,
@@ -625,7 +631,7 @@ test('Star Defender collapses nonessential chrome during live mobile play', asyn
 
 test('pause control appears and toggles on mini games', async ({ page }) => {
   for (const game of ['spiralDrop','bounceRun','perfectDrop','trafficEscape']) {
-    await page.goto('/mini.html?game=' + game);
+    await openGuestGamePage(page, '/mini.html?game=' + game);
     await startGame(page);
     await page.waitForTimeout(3300);
     const pause = page.locator('#earnlyPauseButton');
