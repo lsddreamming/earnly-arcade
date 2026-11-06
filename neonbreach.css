@@ -53,3 +53,20 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 .breach-page.sector-run .breach-weapon-label{display:none}
 .breach-settings #breachWeapon{white-space:normal;max-width:155px;min-height:44px;color:#ffcf9f!important}
 @media(max-width:380px){.breach-settings #breachWeapon{font-size:9px!important;padding:5px!important;max-width:130px}}
+
+/* The mission objective sits inside the arena without taking room from touch controls. */
+.sector-hud {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 20px);
+  padding: 5px 9px;
+  border: 1px solid #a98347;
+  border-radius: 6px;
+  background: #081120ed;
+  color: #fff0cc;
+  pointer-events: none;
+}
+.sector-hud[hidden] { display: none; }
+.sector-hud span { display: block; color: #f4bd68; font-size: 9px; }
+.sector-hud strong { display: block; font-size: 11px; }

@@ -9,6 +9,7 @@ test('Sector Run can be selected, completed, and replayed '+prefix,async({page,h
  await page.evaluate(()=>{const create=NeonBreachEngine.createSector;NeonBreachEngine.createSector=(...args)=>{const s=create(...args);window.sectorTest=s;return s}});
  await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
  await expect(page.locator('#breachMode')).toBeDisabled();
+ await expect(page.locator('#sectorObjective')).toHaveText('Find the gold access key');
  await page.evaluate(()=>{sectorTest.enemies=[];sectorTest.player.x=5.5;sectorTest.player.y=11.5});
  await expect(page.locator('#breachWeapon')).toHaveText('Scattergun · 8 shells');
  const weapon=page.locator('#breachWeapon');
@@ -17,8 +18,10 @@ test('Sector Run can be selected, completed, and replayed '+prefix,async({page,h
  if(!hasTouch){await page.keyboard.press('e');await expect(weapon).toHaveText('Scattergun · 8 shells');}
  await page.evaluate(()=>{sectorTest.player.x=3.5;sectorTest.player.y=2.5});
  await expect.poll(()=>page.evaluate(()=>sectorTest.key)).toBe(true);
+ await expect(page.locator('#sectorObjective')).toHaveText('Open the gold door on your radar');
  await page.evaluate(()=>{sectorTest.player.x=7.4;sectorTest.player.y=13.5});
  await expect.poll(()=>page.evaluate(()=>sectorTest.doorOpen)).toBe(true);
+ await expect(page.locator('#sectorObjective')).toHaveText('Reach the green exit beacon');
  await page.evaluate(()=>{sectorTest.player.x=sectorTest.exit.x;sectorTest.player.y=sectorTest.exit.y});
  await expect(page.getByText('Sector Secured',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:/Play Again/i}).last().click();
