@@ -28,7 +28,7 @@ checkButton.className='breach-control-check';
 const helpButton=document.createElement('button');helpButton.id='breachHelp';helpButton.type='button';helpButton.textContent='Help';helpButton.className='breach-control-check';
 document.querySelector('.aim-tip').append(helpButton);
 const helpDialog=document.createElement('dialog');helpDialog.id='breachHelpDialog';helpDialog.className='breach-help-dialog';
-helpDialog.innerHTML='<h2>Neon Breach controls</h2><p>1. Drag MOVE to walk.<br>2. Drag the arena to aim.<br>3. Hold FIRE to shoot. Keep moving as you aim.</p><p>Keyboard: WASD to move, arrows to aim, Space to fire. In Sector Run, press E or tap the weapon button to switch.</p><p>Sector Run: find the gold key, approach the gold door, and reach the green exit. Pick up the scattergun and shells along the way.</p><p>Having trouble? Control check shows what your touches are doing.</p>';
+helpDialog.innerHTML='<h2>Neon Breach controls</h2><p>1. Drag MOVE to walk.<br>2. Drag the arena to aim.<br>3. Hold FIRE to shoot. Keep moving as you aim.</p><p>Keyboard: WASD to move, arrows to aim, Space to fire. In Sector Run, press E or tap the weapon button to switch.</p><p>Sector Run: find the gold key, approach the gold door, and reach the green exit. Pick up the Scattergun and shells along the way. Sidestep blue plasma bolts and break line of sight when a sentry paints an amber targeting beam.</p><p>Having trouble? Control check shows what your touches are doing.</p>';
 const helpBack=document.createElement('button');helpBack.type='button';helpBack.textContent='Back to game';helpBack.className='wide green';
 helpDialog.append(checkButton,helpBack);document.body.append(helpDialog);
 let resumeAfterHelp=false;
@@ -76,8 +76,8 @@ soundButton.addEventListener('click',()=>{localStorage.setItem('arcadeSound',Arc
 voiceButton.addEventListener('click',()=>{localStorage.setItem('neonBreachVoice',audio.voicesEnabled()?'off':'on');audio.stop();if(Arcade.soundEnabled()&&!paused)audio.unlock();soundControls()});
 function events(){
  for(const event of state.events){renderer.event(event);
-  if(event.type==='fire')audio.effect('fire',state.overdrive>0);
-  else if(event.type==='wall-impact'||event.type==='robot-fire')audio.effect(event.type);
+  if(event.type==='fire')audio.effect(event.weapon==='shotgun'?'shotgun':'fire',state.overdrive>0);
+  else if(event.type==='wall-impact'||event.type==='robot-fire'||event.type==='rail-lock')audio.effect(event.type);
   else if(event.type==='impact'){audio.effect(event.killed?'kill':'hit')}
   else if(event.type==='damage')audio.effect(event.shield?'shield':'damage');
   else if(event.type==='pickup'){audio.effect('pickup');if(['shield','overdrive'].includes(event.kind))say(event.kind,true)}

@@ -50,6 +50,8 @@
     if(!ready())return;
     if(kind==='robot-fire'){if(context.currentTime-lastRobot<.12)return;lastRobot=context.currentTime;tone(480,1200,.12,.05,'triangle');tone(1700,470,.16,.035);return}
     if(kind==='wall-impact'){if(context.currentTime-lastWall<.09)return;lastWall=context.currentTime;tone(1900,600,.09,.035,'triangle');noise(.04,.06,2500);return}
+    if(kind==='rail-lock'){tone(370,1100,.28,.06,'triangle');return}
+    if(kind==='shotgun'){noise(.19,.38,1200);tone(155,43,.22,.22,'triangle');tone(840,180,.09,.09,'sawtooth');return}
     if(kind==='fire'){tone(rapid?1800:1450,160,.16,.11,'sawtooth');tone(2400,430,.1,.10);noise(.035,.12,3500)}
     else if(kind==='hit'){tone(760,190,.08,.075,'square');noise(.06,.2,1700)}
     else if(kind==='kill'){tone(240,42,.22,.15,'triangle');noise(.24,.35,950);tone(1250,430,.12,.07,'sine',.025)}

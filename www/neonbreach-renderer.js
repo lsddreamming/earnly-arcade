@@ -11,7 +11,7 @@
     function reset(){effects=[];hit=kill=banner=motion=streak=streakClock=streakBanner=sway=0;laser=damageFrom=pickupNotice=null;lastAngle=null}
     function event(e){
       if(e.type==='wave'){banner=2;bannerText=`WAVE ${String(e.wave).padStart(2,'0')}`;streakClock=0}
-      if(e.type==='fire')laser={x:e.x,y:e.y};
+      if(e.type==='fire')laser=e;
       if(e.type==='damage')damageFrom={x:e.x,y:e.y,shield:e.shield,life:.8};
       if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:({key:'ACCESS KEY FOUND',shotgun:'SCATTERGUN / 8 SHELLS',ammo:'+6 SHELLS',door:'ACCESS GRANTED',locked:'GOLD KEY REQUIRED',exit:'SECTOR SECURED',carbine:'OUT OF SHELLS / CARBINE'})[e.kind]||(e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE')};
       if(e.type==='impact'){
@@ -66,7 +66,7 @@
     function robot(s,x,y,size,time){
       const calm=reduced(),cycle=s.stride??time*(s.type==='tank'?5:9),frame=calm?0:Math.floor((cycle+(s.phase||0))/TAU*8)%8;
       const sprite=art.robot(s.type,s.elite,frame),accent=s.elite?'#ffcf78':colors[s.type],spawn=Math.min(1,(s.spawn||0)/E.SPAWN_DELAY),charge=s.charge||0;
-      const recoil=calm?0:(s.firing||0)*.18,lean=calm?0:Math.sin(cycle)*.012*(s.motion??1)+(s.hit?-.025:0);
+      const recoil=calm?0:(s.firing||0)*.18,lean=calm?0:Math.sin(cycle)*.012*(s.motion??1)-(s.stagger||0)*.6+(s.hit?-.025:0);
       c.fillStyle='#0008';c.beginPath();c.ellipse(x,y+size*1.018,size*(s.type==='tank'?.38:.29),size*.065,0,0,TAU);c.fill();
       c.save();c.translate(x,y+size);c.rotate(lean);c.translate(0,-size);c.scale(1,1-recoil);
       c.globalAlpha=1-spawn*.55;
@@ -123,6 +123,19 @@
         if(ray.mx<5||ray.mx>12){c.fillStyle=ray.mx<5?'#ef9c54':'#9a64ed';c.globalAlpha=.055;c.fillRect(x,top,stride,height);c.globalAlpha=1}
         if(s.flash>0&&d<4){c.fillStyle=`rgba(90,230,255,${s.flash*Math.max(0,1-d/4)})`;c.fillRect(x,top,stride,height)}
       }
+      for(const e of s.enemies){
+        if(e.role!=='rail'||!(e.railTime>0||e.firing>0))continue;
+        const limit=E.ray(e.x,e.y,e.railAngle,9,map);
+        const dx=Math.cos(e.railAngle),dy=Math.sin(e.railAngle);
+        c.fillStyle=e.firing>0?'#fff0bb':'#ffad61';
+        for(let d=.25;d<limit;d+=.22){
+          const point=view(e.x+dx*d,e.y+dy*d);
+          if(point.z<.16)continue;
+          const x=w/2+point.x/point.z*projection;
+          if(x<0||x>=w||point.z>=depth[Math.floor(x)])continue;
+          c.fillRect(x-1.5,horizon-1,3,e.firing>0?3:2);
+        }
+      }
       const sprites=[...lamps.map(e=>({...e,kind:'lamp'})),...s.enemies.map(e=>({...e,kind:'robot'})),...s.shots.map(e=>({...e,kind:'shot'})),...s.pickups.map(e=>({...e,kind:'pickup'})),...(s.supplies||[]).filter(e=>!e.taken).map(e=>({...e,kind:'pickup'})),...(s.exit?[{...s.exit,type:'exit',kind:'pickup'}]:[]),...effects.map(e=>({...e,kind:e.type==='wall-impact'?'wall-impact':'effect'}))].map(e=>({...e,...view(e.x,e.y)}));
       // view() returns camera x; retain world data in the simulation, never mutate it.
       sprites.sort((a,b)=>b.z-a.z);
@@ -166,12 +179,12 @@
           c.fillStyle='#eeffff';c.beginPath();c.arc(sx,top+size*.5,Math.max(0,size*.035*(1-age)),0,TAU);c.fill();
           if(e.killed)text('+'+e.points,sx,top-age*24,14,'#c4fff1','center');
         }else{
-          const color=e.kind==='shot'?'#ff63b7':colors[e.type],ground=horizon+projection*.5/e.z;
+          const color=e.kind==='shot'?(e.plasma?'#6af7ff':'#ff63b7'):colors[e.type],ground=horizon+projection*.5/e.z;
           const cy=e.kind==='shot'?horizon:ground-size*.85+(reduced()?0:Math.sin(s.time*3)*size*.04);
           if(e.kind==='shot'){
             const angle=Math.atan2(e.vy||0,e.vx||0)-p.a,tailX=sx-Math.sin(angle)*size*1.4;
-            c.strokeStyle='#ff6cbd88';c.lineWidth=Math.max(1,size*.12);c.beginPath();c.moveTo(tailX,cy+size*.12);c.lineTo(sx,cy);c.stroke();
-            c.shadowColor=color;c.shadowBlur=12;c.fillStyle=color;c.beginPath();c.arc(sx,cy,size*.24,0,TAU);c.fill();c.fillStyle='#fff1fa';c.beginPath();c.arc(sx,cy,size*.095,0,TAU);c.fill();
+            c.strokeStyle=color+'88';c.lineWidth=Math.max(1,size*.12);c.beginPath();c.moveTo(tailX,cy+size*.12);c.lineTo(sx,cy);c.stroke();
+            c.shadowColor=color;c.shadowBlur=12;c.fillStyle=color;c.beginPath();c.arc(sx,cy,size*(e.plasma?.34:.24),0,TAU);c.fill();c.fillStyle='#fff1fa';c.beginPath();c.arc(sx,cy,size*.095,0,TAU);c.fill();
           }else{
             c.strokeStyle=color+'66';c.lineWidth=1;c.beginPath();c.ellipse(sx,ground,size*.48,size*.13,0,0,TAU);c.stroke();
             c.fillStyle=color+'15';c.fill();c.beginPath();c.moveTo(sx,ground);c.lineTo(sx,cy-size*.65);c.stroke();
@@ -190,7 +203,8 @@
       }
       // Vignette frames action without a strobing full-screen hit flash.
       const vignette=c.createRadialGradient(w/2,h*.48,w*.3,w/2,h*.48,h*.9);vignette.addColorStop(0,'#0000');vignette.addColorStop(1,'#01041088');c.fillStyle=vignette;c.fillRect(0,0,w,h);
-      const recoil=reduced()?0:s.flash/.1*8,bob=reduced()||!moving?0:Math.sin(motion)*2,gx=w*.53+bob+(reduced()?0:sway),gy=h-12+recoil;
+      const scatterFlash=laser?.weapon==='shotgun',flashStrength=Math.min(1,s.flash/(scatterFlash?.18:.1));
+      const recoil=reduced()?0:flashStrength*(scatterFlash?22:8),bob=reduced()||!moving?0:Math.sin(motion)*2,gx=w*.53+bob+(reduced()?0:sway),gy=h-12+recoil;
       c.save();c.translate(gx,gy);c.lineWidth=1;
       const metal=c.createLinearGradient(-40,-100,42,5);metal.addColorStop(0,'#a2b8c4');metal.addColorStop(.32,'#57778d');metal.addColorStop(.48,'#263d54');metal.addColorStop(1,'#0c1b2d');
       const energy=s.weapon==='shotgun'?'#ffb779':s.overdrive>0?'#ffcf65':'#64eaf7';
@@ -215,7 +229,7 @@
       if(s.weapon==='shotgun'){for(const side of [-1,1]){polygon([[side*4,-102],[side*18,-102],[side*23,-38],[side*4,-38]],metal,'#d9b194');c.fillStyle='#09131e';c.fillRect(side<0?-16:7,-99,9,9)}}
       text(s.weapon==='shotgun'?'S-12':s.overdrive>0?'OVR':'P-07',0,-8,7,energy,'center');
       // Receiver cells refill with the actual firing cooldown.
-      const ready=1-Math.max(0,Math.min(1,s.cooldown/(s.overdrive>0?.12:.24)));
+      const ready=1-Math.max(0,Math.min(1,s.cooldown/(s.weapon==='shotgun'?.8:s.overdrive>0?.12:.24)));
       for(let i=0;i<5;i++){c.fillStyle=i<Math.ceil(ready*5)?energy:'#203341';c.fillRect(-8+i*4,-3,2,4)}
       if(s.overdrive>0){
         c.strokeStyle=energy;c.globalAlpha=.5;c.lineWidth=1;
@@ -224,11 +238,19 @@
       for(const side of [-1,1]){c.fillStyle='#adc2c9';c.beginPath();c.arc(side*27,-17,1.6,0,TAU);c.fill()}
       c.restore();
       if(s.flash>0){
-        const alpha=s.flash/.1,endpoint=laser?view(laser.x,laser.y):null,endX=endpoint&&endpoint.z>.08?w/2+endpoint.x/endpoint.z*projection:w/2;c.globalAlpha=alpha;c.strokeStyle=s.overdrive>0?'#fff0ac':'#9effff';c.lineWidth=3;c.beginPath();c.moveTo(gx,gy-92);c.lineTo(Math.max(0,Math.min(w,endX)),horizon);c.stroke();c.lineWidth=9;c.globalAlpha=alpha*.18;c.stroke();c.globalAlpha=alpha;
-        c.fillStyle='#ddffff';c.beginPath();c.arc(gx,gy-95,4+alpha*7,0,TAU);c.fill();c.globalAlpha=1;
+        const alpha=flashStrength;
+        c.strokeStyle=scatterFlash?'#ffca85':s.overdrive>0?'#fff0ac':'#9effff';
+        c.globalAlpha=alpha;c.lineWidth=scatterFlash?1.5:3;c.beginPath();
+        for(const trace of laser?.traces||[laser]){
+          const endpoint=trace?view(trace.x,trace.y):null;
+          const endX=endpoint&&endpoint.z>.08?w/2+endpoint.x/endpoint.z*projection:w/2;
+          c.moveTo(gx,gy-92);c.lineTo(Math.max(0,Math.min(w,endX)),horizon);
+        }
+        c.stroke();c.lineWidth=scatterFlash?4:9;c.globalAlpha=alpha*.18;c.stroke();c.globalAlpha=alpha;
+        c.fillStyle=scatterFlash?'#ffefc9':'#ddffff';c.beginPath();c.arc(gx,gy-95,4+alpha*(scatterFlash?12:7),0,TAU);c.fill();c.globalAlpha=1;
       }
       const target=running?E.aim(s):null,sightColor=target?(target.elite?'#ffcf78':colors[target.type]):'#bfe7ef';
-      const spread=(target?5:7)+(s.flash/.1)*3;c.strokeStyle=hit>0?'#fff0a9':sightColor;c.lineWidth=1.5;c.beginPath();for(let i=0;i<4;i++){const a=i*Math.PI/2;c.moveTo(w/2+Math.cos(a)*spread,horizon+Math.sin(a)*spread);c.lineTo(w/2+Math.cos(a)*(spread+5),horizon+Math.sin(a)*(spread+5))}c.stroke();c.fillStyle=target?sightColor:'#dfffff';c.fillRect(w/2-1,horizon-1,2,2);
+      const spread=(s.weapon==='shotgun'?15:target?5:7)+flashStrength*3;c.strokeStyle=hit>0?'#fff0a9':sightColor;c.lineWidth=1.5;c.beginPath();for(let i=0;i<4;i++){const a=i*Math.PI/2;c.moveTo(w/2+Math.cos(a)*spread,horizon+Math.sin(a)*spread);c.lineTo(w/2+Math.cos(a)*(spread+5),horizon+Math.sin(a)*(spread+5))}c.stroke();c.fillStyle=target?sightColor:'#dfffff';c.fillRect(w/2-1,horizon-1,2,2);
       if(target&&h>=300){
         const label=(target.elite?'ELITE / ':'')+target.type.toUpperCase();
         c.fillStyle='#05101edb';c.fillRect(w/2-53,horizon+20,106,18);text(label,w/2,horizon+32,8,sightColor,'center');
@@ -263,6 +285,10 @@
         const x=rx+item.x*cell,y=ry+item.y*cell;c.globalAlpha=Math.min(1,.35+item.life/4);c.strokeStyle=colors[item.type];c.lineWidth=1;
         // Hollow diamonds distinguish supplies from solid hostile contacts.
         c.beginPath();c.moveTo(x,y-2.5);c.lineTo(x+2.5,y);c.lineTo(x,y+2.5);c.lineTo(x-2.5,y);c.closePath();c.stroke();c.globalAlpha=1;
+      }
+      if(running&&s.enemies.some(e=>e.railTime>0&&
+        Math.abs(E.angle(Math.atan2(p.y-e.y,p.x-e.x)-e.railAngle))<.12)){
+        text('SENTRY LOCK / MOVE TO COVER',w/2,horizon+55,10,'#ffca85','center');
       }
       const incoming=s.enemies.filter(e=>e.spawn>0);
       // A shared vertical stack keeps the wave subtitle and spawn warning apart.
