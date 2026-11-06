@@ -3573,6 +3573,7 @@ const Arcade = (() => {
     if (gameFiles.has(file)) active = 'games';
     else if (file === 'world.html') active = 'world';
     else if (file === 'stats.html') active = 'missions';
+    else if (file === 'spuddys-vault.html') active = 'vault';
     else if (file === 'rewards.html') active = 'rewards';
     else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
 
@@ -3582,6 +3583,7 @@ const Arcade = (() => {
       ['world','🌐','World','world.html'],
       ['missions','📅','Missions','stats.html'],
       ['rewards','🎁','Rewards','rewards.html'],
+      ['vault','✦','Vault','spuddys-vault.html'],
       ['profile','👤','Profile','profile.html']
     ];
 
@@ -3618,6 +3620,7 @@ const Arcade = (() => {
     if (gameFiles.has(file)) active = 'games';
     else if (file === 'world.html') active = 'world';
     else if (file === 'stats.html') active = 'missions';
+    else if (file === 'spuddys-vault.html') active = 'vault';
     else if (file === 'rewards.html') active = 'rewards';
     else if (file === 'profile.html' || file === 'account.html' || file === 'settings.html') active = 'profile';
 
@@ -3627,6 +3630,7 @@ const Arcade = (() => {
       ['world','🌐','World','world.html'],
       ['missions','📅','Missions','stats.html'],
       ['rewards','🎁','Rewards','rewards.html'],
+      ['vault','✦','Vault','spuddys-vault.html'],
       ['profile','👤','Profile','profile.html']
     ];
 

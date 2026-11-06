@@ -55,4 +55,4 @@ body:is(.rewards-dashboard,.missions-dashboard) .public-footer p{font-size:10px;
 @media(max-width:360px){body.missions-dashboard .mission-card{padding:9px!important;gap:5px 8px}body.missions-dashboard .mission-title{font-size:12px}body.missions-dashboard .mission-card button.wide{max-width:135px;font-size:10px!important}body.rewards-dashboard .prototype-badge{font-size:8px;padding:6px}}
 body.rewards-dashboard .rewards-footnote>summary{display:block}
 body.missions-dashboard .game-title-actions>a:first-child{display:none!important}
-body:is(.rewards-dashboard,.missions-dashboard) .bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+body:is(.rewards-dashboard,.missions-dashboard) .bottom-nav{grid-template-columns:repeat(7,minmax(0,1fr))}

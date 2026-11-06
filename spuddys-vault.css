@@ -1,0 +1,28 @@
+.spuddy-vault{max-width:760px;margin:auto;padding:20px 14px 90px;color:#f5f1ff}
+.spuddy-vault [hidden]{display:none!important}
+.spuddy-vault section,.spuddy-hero{margin:12px 0;padding:clamp(14px,4vw,25px);border:1px solid #475271;border-radius:19px;background:#17233c}
+.spuddy-hero{background:radial-gradient(ellipse at 80% 0,#533785,#152139 68%)}
+.spuddy-hero h1{margin:2px 0;font-size:clamp(2rem,9vw,3.8rem);letter-spacing:-.06em}
+.spuddy-kicker{color:#cfbaff;font-weight:800;letter-spacing:.1em;text-transform:uppercase;font-size:.75rem}
+.spuddy-wallet,.spuddy-actions a{color:#a0ffdb;font-weight:750}
+.spuddy-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.spuddy-vault button{min-height:44px;border:1px solid #6b7899;border-radius:10px;background:#253552;color:white;padding:8px 13px;font:inherit;font-weight:750;cursor:pointer}
+.spuddy-vault button[aria-pressed=true],.spuddy-vault .spuddy-primary{color:#1a1333;background:#e4c8ff;border-color:#e4c8ff}
+.spuddy-vault button:disabled{opacity:.5;cursor:default}
+.spuddy-vault :focus-visible{outline:3px solid #7df6d2;outline-offset:3px}
+.spuddy-odds{display:grid;gap:5px;list-style:none;padding:0;margin:8px 0}
+.spuddy-odds li{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;background:#0f192e;border-radius:7px;font-size:.86rem}
+.spuddy-vault summary{cursor:pointer;padding:8px 0;font-weight:750}
+.spuddy-vault .spuddy-wrapper{width:150px;min-height:215px;display:grid;place-content:center;gap:7px;margin:12px auto;touch-action:pan-y;border-block:12px ridge #d5b0ff;background:repeating-linear-gradient(132deg,#ffffff14 0 3px,transparent 4px 17px),linear-gradient(120deg,#40225f,#945adb 48%,#3e2568);box-shadow:0 12px 40px #b467ff56}
+.spuddy-wrapper span{font-size:.7rem}.spuddy-wrapper b{font-size:3rem;color:#ffdd8b;text-shadow:0 0 20px #ffd478}
+.spuddy-wrapper.ripping{animation:spuddy-rip .48s ease-in both}
+@keyframes spuddy-rip{30%{transform:scale(1.12) rotate(-6deg);filter:brightness(1.7)}to{transform:translateY(48px) rotate(17deg) scale(.68);opacity:0}}
+.spuddy-binder{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,130px),1fr));gap:9px}
+.spuddy-card{margin:0;border:1px solid var(--card-edge,#8996bc);border-radius:11px;background:#0e1830;overflow:hidden}
+.spuddy-card svg{display:block;width:100%;height:auto;background:radial-gradient(ellipse at center,var(--card-edge),#16162e 85%)}
+.spuddy-card figcaption{padding:8px;display:grid;gap:3px;font-size:.83rem}.spuddy-card small,.spuddy-fine{color:#bec8dc}
+.spuddy-card[data-rarity=Uncommon]{--card-edge:#70f3c2}.spuddy-card[data-rarity=Rare]{--card-edge:#78bdff}.spuddy-card[data-rarity=Holo]{--card-edge:#d391ff}.spuddy-card[data-rarity="Chase Holo"]{--card-edge:#ffd876}
+.spuddy-card.missing svg{filter:grayscale(1);opacity:.32}
+#vault-pull .spuddy-card{max-width:205px;margin:12px auto;animation:spuddy-flip .48s ease-out both;box-shadow:0 0 24px var(--card-edge,#8996bc)}
+@keyframes spuddy-flip{from{transform:perspective(600px) rotateY(-155deg) scale(.85);opacity:.3}}
+@media(prefers-reduced-motion:reduce){.spuddy-wrapper.ripping,#vault-pull .spuddy-card{animation:none}}

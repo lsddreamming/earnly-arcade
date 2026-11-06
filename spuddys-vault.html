@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10182b">
+  <title>Spuddys Vault | Earnly Arcade</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="spuddys-vault.css">
+</head>
+<body>
+  <main class="container spuddy-vault">
+    <header class="spuddy-hero">
+      <p class="spuddy-kicker">Earnly Collectibles · Set 01</p>
+      <h1>Spuddys Vault</h1>
+      <p>Arcade Origins</p>
+      <a href="avatars.html#coin-shop" class="spuddy-wallet"><strong id="vault-balance">—</strong> Arcade Coins · Coin Shop ↗</a>
+    </header>
+    <p id="vault-status" role="status">Connecting to your Vault…</p>
+    <a id="vault-signin" href="account.html" hidden>Sign in to open packs</a>
+    <button type="button" id="vault-retry" hidden>Reconnect</button>
+    <section id="vault-shop" hidden aria-labelledby="vault-shop-title">
+      <h2 id="vault-shop-title">Choose a pack</h2>
+      <div class="spuddy-actions" role="group" aria-label="Pack tier">
+        <button type="button" data-pack="starter" aria-pressed="true">Starter · 50 coins</button>
+        <button type="button" data-pack="deluxe" aria-pressed="false">Deluxe · 300 coins</button>
+      </div>
+      <details open>
+        <summary>What’s inside · One card per pack</summary>
+        <ul id="vault-odds" class="spuddy-odds"></ul>
+      </details>
+      <div class="spuddy-actions">
+        <button class="spuddy-primary" type="button" id="vault-buy">Buy for 50 Arcade Coins</button>
+        <a href="avatars.html#coin-shop" id="vault-topup" hidden>Get Arcade Coins in the Coin Shop ↗</a>
+        <button type="button" id="vault-weekly" hidden>Claim free Starter pack</button>
+      </div>
+      <p>Finish the weekly <a href="index.html#daily-arcade">Arcade Challenge</a> for a free Starter pack with the same odds.</p>
+    </section>
+    <section id="vault-opening" hidden aria-labelledby="vault-opening-title">
+      <h2 id="vault-opening-title">Your pack</h2>
+      <button class="spuddy-wrapper" id="vault-rip" type="button"><span>Drag across the seam or tap</span><b>✦</b>Arcade Origins</button>
+      <div id="vault-pull"></div>
+      <div class="spuddy-actions" id="vault-resolve" hidden>
+        <button class="spuddy-primary" type="button" id="vault-keep">Keep in Binder</button>
+        <button type="button" id="vault-sell" hidden>Sell duplicate</button>
+      </div>
+    </section>
+    <section aria-labelledby="vault-binder-title">
+      <h2 id="vault-binder-title">Binder</h2>
+      <p id="vault-progress">Your collection syncs to your Earnly account.</p>
+      <div id="vault-binder" class="spuddy-binder"></div>
+    </section>
+    <p class="spuddy-fine">Digital collectibles for Earnly Arcade. Cards and Arcade Coins have no cash value.</p>
+  </main>
+  <script src="arcade.js"></script>
+  <script src="spuddys-vault.js"></script>
+</body>
+</html>
