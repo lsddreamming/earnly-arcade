@@ -1,11 +1,19 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#070b20"><title>Neon Breach - Robot Arena Shooter | Earnly Arcade</title>
-  <meta name="description" content="Battle robot waves or find the key, unlock the gold door and escape in Sector Run."><link rel="icon" href="earnly-icon.svg"><link rel="stylesheet" href="arcade.css"><link rel="stylesheet" href="premium.css?v=37"><link rel="stylesheet" href="neonbreach.css?v=sector3">  <link rel="stylesheet" href="public-info.css">
+  <meta name="description" content="Battle robot waves or find the key, unlock the gold door and escape in Sector Run."><link rel="icon" href="earnly-icon.svg"><link rel="stylesheet" href="arcade.css"><link rel="stylesheet" href="premium.css?v=37"><link rel="stylesheet" href="neonbreach.css?v=sector4">  <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/neonbreach.html">
 </head>
 <body class="breach-page"><main class="container"><div class="topbar"><a class="brand" href="games.html">← Games</a><span class="balance-chip">🪙 <span id="balance">0</span></span></div>
 <header class="page-header"><div class="game-title-status-row"><h1><span class="breach-mark" aria-hidden="true">⬡</span> Neon Breach</h1><span id="gameStatus" class="game-status title-status">Ready</span></div><div class="game-meta"><span class="meta-pill">Score <b id="score">0</b></span><span class="meta-pill">Health <b id="health">100</b></span><span class="meta-pill">Wave <b id="wave">1</b></span><span class="meta-pill">Plays <b id="plays">3</b></span></div></header>
-<label class="breach-mode-label">Mode <select id="breachMode"><option value="arena">Wave Arena</option><option value="sector">Sector Run · find the exit</option></select></label>
+<section class="breach-mode-choice" aria-label="Choose how to play">
+ <div class="breach-mode-heading"><strong>CHOOSE YOUR MISSION</strong><span>Two ways to play</span></div>
+ <div class="breach-mode-cards" role="group" aria-label="Game modes">
+ <button type="button" class="breach-mode-card is-selected" data-mode="arena" aria-pressed="true"><span class="breach-mode-icon">⚔️</span><strong>Wave Arena</strong><small>Survive waves of robots · 3-minute challenge</small><em id="arenaModeBest">Your best: —</em></button>
+ <button type="button" class="breach-mode-card" data-mode="sector" aria-pressed="false"><span class="breach-mode-icon">🗝️</span><strong>Sector Run</strong><small>Explore a larger map · collect the key · escape</small><em id="sectorModeBest">Your best: —</em></button>
+ </div>
+ <label class="breach-mode-label">Selected mode <select id="breachMode"><option value="arena">Wave Arena</option><option value="sector">Sector Run · find the exit</option></select></label>
+ <p class="breach-mode-note" id="breachModeNote">Wave Arena: survive escalating robot attacks. Rankings currently combine modes.</p>
+ </section>
 <button id="startButton" class="green wide" type="button">▶ TAP TO START</button>
 <div class="breach-arena"><canvas id="game" class="touch-surface" width="400" height="440" aria-label="First-person neon robot arena. Drag to aim; use movement pad and fire button."></canvas><div id="arenaMessage" class="arena-message"><small>SECTOR 07 · DEFENSE PROTOCOL</small>NEON BREACH<span>They found you. Make every shot count.</span></div><div id="sectorHud" class="sector-hud" hidden>
   <span id="sectorStage">Objective 1 of 3</span>
@@ -21,4 +29,4 @@
       </nav>
       <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
     </footer>
-</main><script src="arcade.js"></script><script src="neonbreach-engine.js?v=sector3"></script><script src="neonbreach-sector.js?v=sector3"></script><script src="neonbreach-voices.js"></script><script src="neonbreach-audio.js?v=sector3"></script><script src="neonbreach-art.js"></script><script src="neonbreach-renderer.js?v=sector3"></script><script src="neonbreach.js?v=sector3"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="cloud.js"></script></body></html>
+</main><script src="arcade.js"></script><script src="neonbreach-engine.js?v=sector3"></script><script src="neonbreach-sector.js?v=sector4"></script><script src="neonbreach-voices.js"></script><script src="neonbreach-audio.js?v=sector3"></script><script src="neonbreach-art.js"></script><script src="neonbreach-renderer.js?v=sector3"></script><script src="neonbreach.js?v=sector4"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="cloud.js"></script></body></html>
