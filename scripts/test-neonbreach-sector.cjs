@@ -58,4 +58,37 @@ test('Scattergun fires one visible spread and interrupts a surviving sentry',()=
  assert.equal(s.enemies[0].railTime,0);
  assert.ok(s.enemies[0].stagger>0);
 });
+test('The key is visible through the window while its divider blocks movement and fire',()=>{
+ const s=E.createSector();
+ const key=s.supplies.find(item=>item.type==='key');
+ Object.assign(s.player,{x:3.5,y:5.5,a:-Math.PI/2});
+ const distance=s.player.y-key.y;
+ assert.ok(E.ray(s.player.x,s.player.y,s.player.a,distance,s.viewMap)>=distance);
+ assert.ok(E.ray(s.player.x,s.player.y,s.player.a,distance,s.map)<distance);
+ s.enemies=[{...key,type:'sentry',hp:2}];
+ assert.equal(E.fire(s),false);
+ advance(s,12,{forward:1});
+ assert.ok(s.player.y>5);
+ assert.equal(s.key,false);
+ E.navigation(s);
+ assert.ok(s.nav[2*18+3]>=0,'the key must still be reachable around the window');
+});
+test('The key opens the drone bay once and leaves a route back to cover',()=>{
+ const s=E.createSector();
+ assert.ok(E.wall(5.5,2.5,s.map));
+ Object.assign(s.player,{x:3.5,y:2.5});
+ advance(s,2);
+ assert.equal(s.enemies.filter(e=>e.ambush).length,2);
+ assert.equal(s.events.filter(e=>e.kind==='ambush').length,1);
+ assert.equal(E.wall(5.5,2.5,s.map),false);
+ assert.equal(E.wall(5.5,2.5,s.viewMap),false);
+ assert.equal(s.player.hp,100);
+ advance(s,14);
+ assert.ok(s.enemies.filter(e=>e.ambush).every(e=>e.spawn===0));
+ E.navigation(s);
+ assert.ok(s.nav[5*18+3]>=0,'the approach remains reachable after the ambush');
+ const replay=E.createSector();
+ assert.ok(E.wall(5.5,2.5,replay.map));
+ assert.equal(replay.enemies.some(e=>e.ambush),false);
+});
 console.log(count+' Sector Run checks passed');

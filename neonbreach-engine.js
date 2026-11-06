@@ -145,7 +145,7 @@ s.navTimer-=dt;if(!s.nav||s.navTimer<=0)navigation(s);const rules=difficulty(s.w
 for(const e of s.enemies){
  e.hit=Math.max(0,(e.hit||0)-dt);
  // Materializing robots cannot move, charge, shoot or deal contact damage.
- if(e.spawn>0){e.spawn=Math.max(Math.hypot(p.x-e.x,p.y-e.y)<SPAWN_PLAYER_BUFFER?.3:0,e.spawn-dt);e.motion=0;e.charge=0;e.firing=0;continue}
+ if(e.spawn>0){e.spawn=Math.max(!e.ambush&&Math.hypot(p.x-e.x,p.y-e.y)<SPAWN_PLAYER_BUFFER?.3:0,e.spawn-dt);e.motion=0;e.charge=0;e.firing=0;continue}
  e.firing=Math.max(0,(e.firing||0)-dt);
  const d=Math.hypot(p.x-e.x,p.y-e.y),a=Math.atan2(p.y-e.y,p.x-e.x),oldX=e.x,oldY=e.y;
  e.attack-=dt;const visible=ray(e.x,e.y,a,d,s.map)>=d-.07;
