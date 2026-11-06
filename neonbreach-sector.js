@@ -49,7 +49,7 @@ function sectorEnemies(s,random){
 function message(s,kind){s.events.push({type:'pickup',kind,amount:0})}
 E.createSector=function(random=Math.random){
  const s=E.create(random);s.mode='sector';s.map=MAP.slice();s.wave=1;s.nextWave=Infinity;
- Object.assign(s.player,{x:3.5,y:24.5,a:-Math.PI/2});
+ Object.assign(s.player,{x:3.5,y:25.5,a:-Math.PI/2});
  s.key=false;s.doorOpen=false;s.weapon='carbine';s.hasShotgun=false;s.shells=0;s.completed=false;
  s.exit={x:14.5,y:3.5};s.supplies=[
  {x:3.5,y:2.5,type:'key'},{x:5.5,y:11.5,type:'shotgun'},
