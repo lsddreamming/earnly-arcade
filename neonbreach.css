@@ -70,3 +70,21 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 .sector-hud[hidden] { display: none; }
 .sector-hud span { display: block; color: #f4bd68; font-size: 9px; }
 .sector-hud strong { display: block; font-size: 11px; }
+
+
+/* Clear mission choices, without moving controls during an active run. */
+.breach-mode-choice{margin:12px 0 14px}
+.breach-mode-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:8px}
+.breach-mode-heading strong{font-size:12px;letter-spacing:1.4px;color:#d8efff}
+.breach-mode-heading span{font-size:11px;color:#8fb8cf}
+.breach-mode-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.breach-page .breach-mode-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;text-align:left;gap:5px;min-height:140px;padding:13px 12px;background:linear-gradient(155deg,#112c43,#0b1b30);border:2px solid #31546d;border-radius:16px;color:#d8e8f8;box-shadow:none;white-space:normal;touch-action:manipulation}
+.breach-page .breach-mode-card.is-selected{border-color:#56e9de;background:linear-gradient(155deg,#174758,#0d2a3d);box-shadow:inset 0 0 0 1px #56e9de4a}
+.breach-mode-card .breach-mode-icon{font-size:23px;line-height:1.1}
+.breach-mode-card strong{font-size:16px;line-height:1.2}
+.breach-mode-card small{font-size:11px;line-height:1.35;color:#a9cadc}
+.breach-mode-card em{font-size:11px;font-style:normal;color:#81f3d7;margin-top:auto}
+.breach-mode-choice .breach-mode-label{margin:10px 0 0;font-size:11px}
+.breach-mode-note{font-size:11px;color:#9dc8df;margin:8px 2px 0;line-height:1.4}
+.breach-page.game-active .breach-mode-choice{display:none}
+@media(max-width:360px){.breach-page .breach-mode-card{padding:10px 9px;min-height:152px}.breach-mode-card strong{font-size:14px}}
