@@ -731,16 +731,20 @@
       // Keep the input frame fixed while a gesture or key combination is held.
       footHeading ??= camera.angle;
       const directionAngle = (dragTouch?.heading ?? footHeading) + Math.atan2(horizontal, -vertical);
-      if (!look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = player.angle;
-      const direction = facing(directionAngle);
+
       const turn = directionAngle - player.angle;
       // Ease into the shortest turn, with a firm angular speed limit.
       const turnError = Math.atan2(Math.sin(turn), Math.cos(turn));
       player.angle += clamp(turnError * (1 - Math.exp(-5 * dt)), -3.2 * dt, 3.2 * dt);
+      const remainingTurn = Math.atan2(Math.sin(directionAngle-player.angle),Math.cos(directionAngle-player.angle));
+      // Pivot before reversing; translation always follows the body's facing.
+      const alignment = clamp((Math.cos(remainingTurn)-0.7)/0.3,0,1);
+      const direction = facing(player.angle);
+      if (alignment > 0.5 && !look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = player.angle;
       const oldX = player.x;
       const oldZ = player.z;
       const speed = dragTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
-      move(player, direction.x * speed * dt, direction.z * speed * dt, 0.45);
+      move(player, direction.x * speed * alignment * dt, direction.z * speed * alignment * dt, 0.45);
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
         if (distance(player, vehicle) > 3) continue;
