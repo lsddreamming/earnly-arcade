@@ -38,7 +38,7 @@
   const keys = new Set();
   const pointers = new Map();
   const bindings = {
-    ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
+    ShiftLeft: 'sprint', ShiftRight: 'sprint', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
     KeyQ: 'lookLeft', KeyR: 'lookRight', Space: 'brake',
   };
@@ -142,6 +142,7 @@
   let dragTouch = null;
   let walkCycle = 0;
   let walkBlend = 0;
+  let runEnabled = false;
 
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -488,6 +489,9 @@
     inCar = stolen = lost = false;
     elapsed = unseen = caught = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
+    runEnabled = false;
+    element('run-mode').textContent = 'Run';
+    element('run-mode').setAttribute('aria-pressed', 'false');
     cameraMode = false; manualLookUntil = 0; cameraLift = 0;
     element('camera-mode').textContent = 'Look around';
     element('camera-mode').setAttribute('aria-pressed', 'false');
@@ -609,6 +613,8 @@
     element('brake').hidden = !inCar;
     element('brake').disabled = phase !== 'playing';
     element('fire').hidden = inCar || phase !== 'playing';
+    element('run-mode').hidden = inCar;
+    element('run-mode').disabled = phase !== 'playing';
     element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : 'Fire';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
@@ -743,7 +749,8 @@
       if (alignment > 0.5 && !look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = player.angle;
       const oldX = player.x;
       const oldZ = player.z;
-      const speed = dragTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
+      const pace = runEnabled || held('sprint') ? 11 : 7;
+      const speed = dragTouch ? pace * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : pace;
       move(player, direction.x * speed * alignment * dt, direction.z * speed * alignment * dt, 0.45);
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
@@ -755,7 +762,7 @@
     } else footHeading = null;
     updateTraffic(dt);
     updateWorkers(dt);
-    if (walking) walkCycle += dt * 16;
+    if (walking) walkCycle += dt * (runEnabled || held('sprint') ? 22 : 16);
     walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
 
     const active = inCar ? car : player;
@@ -794,7 +801,7 @@
     const cameraTurnLimit = manualCamera ? 2.8 : inCar ? 1.8 : 1.35;
     camera.angle += clamp(angleStep, -cameraTurnLimit * dt, cameraTurnLimit * dt);
     const forward = facing(camera.angle);
-    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : 9.6;
+    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : (walking && (runEnabled || held('sprint')) ? 10.8 : 9.6);
     let clearance = targetDistance;
     for (let offset = 2; offset < targetDistance; offset += 0.5) {
       const x = camera.x - forward.x * offset;
@@ -1775,6 +1782,13 @@
     const active = document.body.classList.toggle('focus-game');
     element('focus-view').textContent = active ? 'Exit focus' : 'Focus view';
     element('focus-view').setAttribute('aria-pressed', String(active));
+  });
+  element('run-mode').addEventListener('click', () => {
+    if (phase !== 'playing' || inCar) return;
+    runEnabled = !runEnabled;
+    element('run-mode').textContent = runEnabled ? 'Walk' : 'Run';
+    element('run-mode').setAttribute('aria-pressed', String(runEnabled));
+    notify(runEnabled ? 'Running · drag to move' : 'Walking');
   });
   element('camera-mode').addEventListener('click', () => {
     clearControls();
