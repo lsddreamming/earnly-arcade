@@ -35,6 +35,17 @@
   const car = { x: 12, z: 32, angle: 0, speed: 0 };
   const patrol = { x: 40, z: 56, angle: 0 };
   const lastSeen = { x: car.x, z: car.z };
+  const traffic = [
+    { route: [[42.5, 42.5], [42.5, 65.5], [65.5, 65.5], [65.5, 42.5]], speed: 5.4, paint: ['#e0a269', '#a06153', '#744654'] },
+    { route: [[70.4, 37.6], [70.4, 70.4], [93.6, 70.4], [93.6, 37.6]], speed: 6.1, paint: ['#a0b8df', '#586f9f', '#404e7d'] },
+    { route: [[38, 65.5], [38, 42.5], [14.5, 42.5], [14.5, 65.5]], speed: 4.7, paint: ['#db95a4', '#9d5268', '#783a54'] },
+  ];
+  const workers = [
+    { x: 35, z: 47, dx: 0, dz: 15, pace: 0.18, jacket: ['#f7b973', '#c48152', '#a0644c'] },
+    { x: 46, z: 63, dx: 16, dz: 0, pace: 0.2, jacket: ['#a4d6ac', '#5c967c', '#40735f'] },
+    { x: 73, z: 73.15, dx: 14, dz: 0, pace: 0.17, jacket: ['#c0b3f4', '#8277b5', '#675988'] },
+    { x: 90.7, z: 72, dx: 0, dz: 13, pace: 0.23, jacket: ['#edd275', '#ad9356', '#8a7148'] },
+  ];
   const camera = { x: player.x, z: player.z, angle: 0, distance: 11 };
   let phase = 'ready';
   let inCar = false;
@@ -53,6 +64,8 @@
   let dragTouch = null;
   let walkCycle = 0;
   let walkBlend = 0;
+  let bestSeconds = 0;
+  try { bestSeconds = Number(window.localStorage?.getItem('harborGetawayBest')) || 0; } catch {}
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -125,6 +138,35 @@
     dragTouch = null;
   }
 
+  function resetTraffic() {
+    for (const vehicle of traffic) {
+      const [[x, z], [nextX, nextZ]] = vehicle.route;
+      Object.assign(vehicle, { x, z, next: 1, angle: Math.atan2(nextX - x, z - nextZ) });
+    }
+  }
+
+  function updateTraffic(dt) {
+    const active = inCar ? car : player;
+    for (const vehicle of traffic) {
+      const [x, z] = vehicle.route[vehicle.next];
+      const remaining = Math.hypot(x - vehicle.x, z - vehicle.z);
+      if (remaining < 0.001) {
+        vehicle.next = (vehicle.next + 1) % vehicle.route.length;
+        continue;
+      }
+      const dx = (x - vehicle.x) / remaining;
+      const dz = (z - vehicle.z) / remaining;
+      const turn = Math.atan2(dx, -dz) - vehicle.angle;
+      vehicle.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-12 * dt));
+      const ahead = (active.x - vehicle.x) * dx + (active.z - vehicle.z) * dz;
+      const beside = Math.abs((active.x - vehicle.x) * dz - (active.z - vehicle.z) * dx);
+      if (ahead > -0.5 && ahead < 5 && beside < 1.8) continue;
+      const travel = Math.min(remaining, vehicle.speed * dt);
+      vehicle.x += dx * travel;
+      vehicle.z += dz * travel;
+    }
+  }
+
   function reset() {
     Object.assign(player, { x: 12, z: 43, angle: 0 });
     Object.assign(car, { x: 12, z: 32, angle: 0, speed: 0 });
@@ -134,6 +176,7 @@
     elapsed = unseen = caught = rethink = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
     path = [];
+    resetTraffic();
     run();
   }
 
@@ -151,6 +194,8 @@
     element('title').textContent = title;
     element('description').textContent = description;
     element('start').textContent = action;
+    element('best').hidden = next !== 'finished' || bestSeconds <= 0;
+    element('best').textContent = 'Best getaway · ' + bestSeconds + ' seconds left';
     element('overlay').hidden = false;
     element('pause').disabled = true;
     element('interact').disabled = true;
@@ -248,7 +293,12 @@
       const steering = Math.min(1, Math.abs(car.speed) / 3);
       car.angle += steer * Math.sign(car.speed) * steering * (braking ? 3.15 : dragTouch ? 2.3 : 1.9) * dt;
       const direction = facing(car.angle);
+      const previous = { x: car.x, z: car.z };
       if (move(car, direction.x * car.speed * dt, direction.z * car.speed * dt, 1.22)) car.speed *= 0.35;
+      if (traffic.some(vehicle => distance(car, vehicle) < 2.25 && distance(car, vehicle) < distance(previous, vehicle))) {
+        Object.assign(car, previous);
+        car.speed *= 0.28;
+      }
     } else if (dragTouch ? Math.hypot(horizontal, vertical) > 5 : horizontal || vertical) {
       const directionAngle = camera.angle + Math.atan2(horizontal, -vertical);
       const direction = facing(directionAngle);
@@ -260,6 +310,7 @@
       move(player, direction.x * speed * dt, direction.z * speed * dt, 0.45);
       walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
     }
+    updateTraffic(dt);
     if (walking) walkCycle += dt * 16;
     walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
 
@@ -289,7 +340,14 @@
     }
 
     if (inCar && lost && distance(car, garage) < 4) {
-      overlay('finished', 'Clean getaway', 'You lost the patrol and delivered the coupe with ' + Math.max(0, Math.ceil(180 - elapsed)) + ' seconds left.', 'Play again');
+      const remaining = Math.max(0, Math.ceil(180 - elapsed));
+      const record = remaining > bestSeconds;
+      if (record) {
+        bestSeconds = remaining;
+        try { window.localStorage?.setItem('harborGetawayBest', String(remaining)); } catch {}
+      }
+      overlay('finished', 'Clean getaway', (record ? 'New personal best. ' : '') +
+        'You delivered the coupe with ' + remaining + ' seconds left.', 'Play again');
     } else if (caught >= 2 || elapsed >= 180) {
       overlay('finished', caught >= 2 ? 'Busted' : 'Time’s up', 'Try cutting through a different block to break line of sight.', 'Try again');
     }
@@ -411,7 +469,7 @@
   }
 
   function drawCar(actor, police) {
-    const paint = police ? ['#e3eaf7', '#536783', '#33465f'] : ['#8bf6cf', '#258d84', '#19665f'];
+    const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#8bf6cf', '#258d84', '#19665f']);
     const rubber = ['#263145', '#101723', '#161e2b'];
     const front = facing(actor.angle);
     const side = facing(actor.angle + Math.PI / 2);
@@ -445,6 +503,11 @@
     const z = b.z + b.d / 2;
     box(x, z, b.w, b.d, b.h, 0, [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
     if (Math.hypot(x - eye.x, z - eye.z) > 47) return;
+    if (b.shade % 2 === 0) {
+      const strip = b.shade === 0 ? ['#e9a6d4', '#b6609b', '#7b4b81'] : ['#94efee', '#489ab0', '#326d83'];
+      box(x, b.z + b.d + 0.06, b.w * 0.48, 0.15, 0.23, 0, strip, 1.55);
+      box(x, b.z - 0.06, b.w * 0.48, 0.15, 0.23, 0, strip, 1.55);
+    }
     box(x, z, b.w + 0.22, b.d + 0.22, 0.24, 0, ['#647184', '#4c5268', '#3a435b'], b.h - 0.08);
     box(x + 1.1, z - 0.55, 2.3, 1.7, 0.85, 0, ['#71849a', '#4d5b73', '#36465c'], b.h + 0.15);
     const frontZ = eye.z >= z ? b.z + b.d + 0.025 : b.z - 0.025;
@@ -534,6 +597,21 @@
     fill([[ax + direction.x * 6, ay + direction.z * 6],
       [ax - direction.x * 4 - direction.z * 3.5, ay - direction.z * 4 + direction.x * 3.5],
       [ax - direction.x * 4 + direction.z * 3.5, ay - direction.z * 4 - direction.x * 3.5]], '#f3fbff');
+  }
+
+  function drawPerson(player, stride, jacket) {
+    const forward = facing(player.angle);
+    const side = facing(player.angle + Math.PI / 2);
+    for (const sign of [-1, 1]) {
+      box(player.x + sign * (side.x * 0.16 + forward.x * stride),
+        player.z + sign * (side.z * 0.16 + forward.z * stride),
+        0.23, 0.31, 0.59, player.angle, ['#8396ad', '#4a617d', '#364b63']);
+      box(player.x + sign * (side.x * 0.39 - forward.x * stride * 0.75),
+        player.z + sign * (side.z * 0.39 - forward.z * stride * 0.75),
+        0.17, 0.23, 0.48, player.angle, ['#f2be92', '#c58764', '#aa6e56'], 0.69);
+    }
+    box(player.x, player.z, 0.61, 0.42, 0.61, player.angle, jacket, 0.59);
+    box(player.x, player.z, 0.43, 0.4, 0.4, player.angle, ['#ffe2b6', '#d99e76', '#aa6e56'], 1.2);
   }
 
   function render() {
@@ -627,21 +705,15 @@
     drawDocks();
     drawCar(car, false);
     drawCar(patrol, true);
-    if (!inCar) {
-      const forward = facing(player.angle);
-      const side = facing(player.angle + Math.PI / 2);
-      const stride = Math.sin(walkCycle) * 0.27 * walkBlend;
-      for (const sign of [-1, 1]) {
-        box(player.x + sign * (side.x * 0.16 + forward.x * stride),
-          player.z + sign * (side.z * 0.16 + forward.z * stride),
-          0.23, 0.31, 0.59, player.angle, ['#8396ad', '#4a617d', '#364b63']);
-        box(player.x + sign * (side.x * 0.39 - forward.x * stride * 0.75),
-          player.z + sign * (side.z * 0.39 - forward.z * stride * 0.75),
-          0.17, 0.23, 0.48, player.angle, ['#f2be92', '#c58764', '#aa6e56'], 0.69);
-      }
-      box(player.x, player.z, 0.61, 0.42, 0.61, player.angle, ['#f1bd71', '#ce694a', '#9d493f'], 0.59);
-      box(player.x, player.z, 0.43, 0.4, 0.4, player.angle, ['#ffe2b6', '#d99e76', '#aa6e56'], 1.2);
+    for (const vehicle of traffic) if (distance(vehicle, camera) < 48) drawCar(vehicle, false);
+    for (const worker of workers) {
+      const cycle = elapsed * worker.pace;
+      const progress = (1 - Math.cos(cycle)) / 2;
+      const walker = { x: worker.x + worker.dx * progress, z: worker.z + worker.dz * progress,
+        angle: Math.atan2(worker.dx, -worker.dz) + (Math.sin(cycle) < 0 ? Math.PI : 0) };
+      if (distance(walker, camera) < 36) drawPerson(walker, Math.sin(elapsed * 11) * 0.18, worker.jacket);
     }
+    if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#f1bd71', '#ce694a', '#9d493f']);
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) fill(face.points, face.color);
     if (!stolen || !inCar) pin(car, 3.8, '#79f1c6', 'GETAWAY CAR');
@@ -738,6 +810,7 @@
   element('interact').addEventListener('click', interact);
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;
+  resetTraffic();
   updateHud();
   requestAnimationFrame(frame);
 })();
