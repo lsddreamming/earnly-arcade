@@ -34,7 +34,7 @@
   const car = { x: 12, z: 32, angle: 0, speed: 0 };
   const patrol = { x: 40, z: 56, angle: 0 };
   const lastSeen = { x: car.x, z: car.z };
-  const camera = { x: player.x, z: player.z };
+  const camera = { x: player.x, z: player.z, angle: 0, distance: 11 };
   let phase = 'ready';
   let inCar = false;
   let stolen = false;
@@ -119,7 +119,7 @@
     Object.assign(player, { x: 12, z: 43, angle: 0 });
     Object.assign(car, { x: 12, z: 32, angle: 0, speed: 0 });
     Object.assign(patrol, { x: 40, z: 56, angle: 0 });
-    Object.assign(camera, { x: player.x, z: player.z });
+    Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
     inCar = stolen = lost = false;
     elapsed = unseen = caught = rethink = 0;
     path = [];
@@ -242,23 +242,44 @@
     const smoothing = 1 - Math.exp(-8 * dt);
     camera.x += (active.x - camera.x) * smoothing;
     camera.z += (active.z - camera.z) * smoothing;
+    const turn = (inCar ? car.angle : 0) - camera.angle;
+    camera.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * smoothing;
+    const forward = facing(camera.angle);
+    const targetDistance = inCar ? 11 + Math.abs(car.speed) * 0.16 : 11;
+    let clearance = targetDistance;
+    for (let offset = 2; offset < targetDistance; offset += 0.5) {
+      const x = camera.x - forward.x * offset;
+      const z = camera.z - forward.z * offset;
+      if (blocks.some(b => x > b.x - 0.4 && x < b.x + b.w + 0.4
+        && z > b.z - 0.4 && z < b.z + b.d + 0.4)) {
+        clearance = Math.max(1.5, offset - 0.75);
+        break;
+      }
+    }
+    camera.distance = Math.min(clearance, camera.distance + 12 * dt);
     updateHud();
   }
 
   const roofs = ['#997674', '#7097ab', '#957daf', '#64958a'];
   const walls = ['#594751', '#38546b', '#554669', '#365b58'];
   const darkWalls = ['#413642', '#283f53', '#403650', '#294743'];
-  const far = 0.79;
-  const rise = Math.sqrt(1 - far * far);
+  const lamps = roads.flatMap(x => roads.map(z => ({ x: x + 5.2, z: z + 5.2 })));
+  const eye = { x: 0, y: 0, z: 0, cosine: 1, sine: 0, pitchCosine: 1, pitchSine: 0 };
   let width = 0;
   let height = 0;
   let focal = 0;
   let faces = [];
 
   function cameraPoint([x, y, z]) {
-    const dy = y - 13;
-    const dz = z - camera.z - 17;
-    return [x - camera.x, dy * far - dz * rise, -dy * rise - dz * far];
+    const dx = x - eye.x;
+    const dy = y - eye.y;
+    const dz = z - eye.z;
+    const forward = dx * eye.sine - dz * eye.cosine;
+    return [
+      dx * eye.cosine + dz * eye.sine,
+      dy * eye.pitchCosine + forward * eye.pitchSine,
+      forward * eye.pitchCosine - dy * eye.pitchSine,
+    ];
   }
 
   function project([x, y, depth]) {
@@ -309,18 +330,30 @@
       const next = (i + 1) % 4;
       const a = bottom[i];
       const b = bottom[next];
-      const cameraZ = camera.z + 17;
-      if ((b[2] - a[2]) * (camera.x - a[0]) - (b[0] - a[0]) * (cameraZ - a[2]) > 0) {
+      if ((b[2] - a[2]) * (eye.x - a[0]) - (b[0] - a[0]) * (eye.z - a[2]) > 0) {
         polygon([a, b, top[next], top[i]], colors[1 + i % 2]);
       }
     }
     polygon(top, colors[0]);
   }
 
+  function groundGlow(x, z, radius, color) {
+    for (const scale of [1, 0.75, 0.5]) {
+      const ring = Array.from({ length: 12 }, (_, index) => {
+        const angle = index / 12 * Math.PI * 2;
+        return [x + Math.cos(angle) * radius * scale, 0, z + Math.sin(angle) * radius * scale];
+      });
+      polygon(ring, color, true);
+    }
+  }
+
   function drawCar(actor, police) {
     const colors = police ? ['#c9d7ec', '#34435b', '#263249'] : ['#79f1c6', '#218c7f', '#176052'];
     box(actor.x, actor.z, 2.15, 3.65, 0.75, actor.angle, colors, 0.24);
     box(actor.x, actor.z, 1.55, 1.85, 0.55, actor.angle, ['#263a50', '#1c2d42', '#1a2738'], 0.99);
+    const front = facing(actor.angle);
+    box(actor.x - front.x * 1.83, actor.z - front.z * 1.83, 1.8, 0.1, 0.14,
+      actor.angle, ['#ff7366', '#fd535b', '#cc4050'], 0.64);
     if (police) box(actor.x, actor.z, 1.32, 0.32, 0.16, actor.angle,
       elapsed % 0.55 < 0.275 ? ['#ff6179', '#a42541', '#a42541'] : ['#69baff', '#345fae', '#345fae'], 1.54);
   }
@@ -367,12 +400,20 @@
     }
     width = rect.width;
     height = rect.height;
-    focal = Math.min(width * 0.95, height * 1.15);
+    focal = Math.min(width * 0.88, height * 0.91);
+    eye.cosine = Math.cos(camera.angle);
+    eye.sine = Math.sin(camera.angle);
+    eye.x = camera.x - eye.sine * camera.distance;
+    eye.z = camera.z + eye.cosine * camera.distance;
+    eye.y = Math.min(5, 2.6 + camera.distance * 0.19);
+    const pitch = Math.atan2(eye.y - 1.5, camera.distance + 1);
+    eye.pitchCosine = Math.cos(pitch);
+    eye.pitchSine = Math.sin(pitch);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     const sky = context.createLinearGradient(0, 0, 0, height);
-    sky.addColorStop(0, '#21304d');
-    sky.addColorStop(0.5, '#79596e');
-    sky.addColorStop(1, '#263e53');
+    sky.addColorStop(0, '#0b1124');
+    sky.addColorStop(0.5, '#34415b');
+    sky.addColorStop(1, '#172e41');
     context.fillStyle = sky;
     context.fillRect(0, 0, width, height);
     flat(-110, -110, 320, 330, '#244656');
@@ -387,13 +428,22 @@
       }
     }
     flat(garage.x - 3.5, garage.z - 3.5, 7, 7, lost ? '#a78248' : '#455165');
+    const nearbyLamps = lamps.filter(lamp => distance(lamp, camera) < 52);
+    for (const lamp of nearbyLamps) groundGlow(lamp.x, lamp.z, 5.4, '#ffc4781c');
+    const front = facing(car.angle);
+    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.4, '#ff455827');
+    if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.2, '#a6e3ff20');
     faces = [];
+    for (const lamp of nearbyLamps) {
+      box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
+      box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
+    }
     for (const b of blocks) {
       box(b.x + b.w / 2, b.z + b.d / 2, b.w, b.d, b.h, 0,
         [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
       for (let x = b.x + 1.5; x < b.x + b.w - 1; x += 2) {
         const z = b.z + b.d + 0.015;
-        if (camera.z + 17 > z) {
+        if (eye.z > z) {
           polygon([[x, 2.1, z], [x + 0.65, 2.1, z], [x + 0.65, 3.1, z], [x, 3.1, z]], '#d5ab7f');
         }
       }
