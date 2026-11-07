@@ -27,6 +27,13 @@
     .panel { width:min(100%,360px); padding:20px; background:linear-gradient(155deg,#233852,#101a29 75%); border:1px solid #5e788f; border-radius:17px; box-shadow:0 12px 32px #0009; }
     .eyebrow { display:block; margin-bottom:8px; color:#9df3d3; font-size:11px; font-weight:800; letter-spacing:.16em; }
     h2 { margin:0; }
+    .board-fields { display:grid; gap:6px; margin:10px 0; font-size:13px; color:#c5d9e8; }
+    select { width:100%; min-height:44px; padding:5px 10px; border:1px solid #6b8a9e; border-radius:8px; background:#14263b; color:white; font:inherit; }
+    .panel-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    .panel-actions button { flex:1 1 auto; padding:0 8px; font-size:14px; }
+    .panel-actions #start { width:auto; }
+    .overlay { overflow:auto; }
+    .panel { margin:auto; }
     #best { padding:8px 10px; border:1px solid #527a85; border-radius:8px; color:#a6f3db; font-size:13px; }
     p { line-height:1.45; }
     button { min-height:44px; min-width:44px; border-radius:12px; border:1px solid #5a7891; background:#1b3046; color:#f6fbff; font:inherit; font-weight:700; touch-action:none; }
@@ -70,9 +77,17 @@
         <section class="panel">
           <span class="eyebrow">HARBOR DISTRICT / COASTAL RUN</span>
           <h2 id="title">Get out of the harbor</h2>
-          <p id="description">Grab the mint coupe, break the patrol’s line of sight, then drive it back to the garage. You have three minutes.</p>
+          <p id="description">Twelve jobs across the harbor, from quick deliveries to multi-stage escapes. Or take a car and explore at your own pace.</p>
           <p id="best" hidden></p>
-          <button type="button" id="start">Start mission</button>
+          <div class="board-fields" id="board-fields">
+            <label for="mission">Choose a job</label>
+            <select id="mission"></select><span id="progress"></span>
+          </div>
+          <div class="panel-actions">
+            <button type="button" id="start">Start selected job</button>
+            <button type="button" id="free-roam">Free roam</button>
+            <button type="button" id="open-board" hidden>Jobs board</button>
+          </div>
         </section>
       </div>
     </div>
@@ -86,12 +101,14 @@
       <div class="actions">
         <button type="button" id="interact">Enter car</button>
         <button type="button" data-key="brake" id="brake" hidden>Handbrake</button>
+        <button type="button" id="fire" hidden>Fire</button>
+        <button type="button" id="jobs" hidden>Jobs</button>
         <button type="button" id="pause">Pause</button>
       </div>
     </div>
-    <p class="hint touch-hint" id="run-hint">Drag the game screen to run. Lift to stop.</p>
+    <p class="hint touch-hint" id="run-hint">Drag to run. Lift to stop. For target jobs, face the marker and tap Fire.</p>
     <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast.</p>
-    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, Q/R or mouse drag to look, E to enter or exit, Space for handbrake, and Esc to pause.</p>
+    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
   </main>
   <footer class="public-footer" aria-label="Earnly site information">
     <nav aria-label="Site information">
@@ -100,6 +117,6 @@
       <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
-  <script src="harbor-getaway.js?v=coastal"></script>
+  <script src="harbor-getaway.js?v=campaign1"></script>
 </body>
 </html>

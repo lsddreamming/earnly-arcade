@@ -32,9 +32,35 @@
     KeyQ: 'lookLeft', KeyR: 'lookRight', Space: 'brake',
   };
   const player = { x: 12, z: 43, angle: 0 };
-  const car = { x: 12, z: 32, angle: 0, speed: 0 };
+  const models = {
+    coupe: { name: 'Coupe', top: 20, acceleration: 13 },
+    muscle: { name: 'Muscle', top: 23, acceleration: 16, paint: ['#9e5350', '#6e393d', '#542b32'] },
+    van: { name: 'Cargo van', top: 16.5, acceleration: 10, paint: ['#ad9b76', '#88775b', '#69604f'] },
+  };
+  const checkpoint = (x, z, label) => ({ kind: 'drive', x, z, label });
+  const stop = (x, z, label) => ({ kind: 'park', x, z, label });
+  const escape = { kind: 'escape', label: 'Break patrol line of sight' };
+  const drill = (x, z, label) => ({ kind: 'shoot', x, z, label });
+  const finish = stop(garage.x, garage.z, 'Park at the garage');
+  const jobs = [
+    { name: 'Coastal Run', time: 120, heat: 1, model: 'coupe', stages: [checkpoint(12,12,'Pass the west checkpoint'),checkpoint(68,12,'Cross the waterfront'),escape,finish] },
+    { name: 'Dock Dispatch', time: 95, heat: 0, model: 'van', stages: [stop(40,40,'Stop for the manifest'),stop(68,68,'Deliver the manifest')] },
+    { name: 'Signal Check', time: 130, heat: 1, model: 'coupe', stages: [drill(12,28,'Shoot the first signal target'),drill(12,19,'Shoot the second signal target'),escape,finish] },
+    { name: 'Industrial Mile', time: 115, heat: 2, model: 'muscle', stages: [checkpoint(40,40,'Pass the depot'),checkpoint(40,68,'Cross the loading yard'),checkpoint(68,68,'Reach the east junction'),escape,finish] },
+    { name: 'Parts Run', time: 100, heat: 0, model: 'van', stages: [stop(12,12,'Collect the spare parts'),stop(40,12,'Make the first delivery'),stop(96,40,'Make the final delivery')] },
+    { name: 'Under the Tracks', time: 140, heat: 2, model: 'muscle', stages: [checkpoint(12,68,'Head under the tracks'),checkpoint(12,96,'Pass the south crossing'),checkpoint(68,96,'Reach the dock road'),escape,finish] },
+    { name: 'Cut the Feed', time: 170, heat: 2, model: 'coupe', stages: [drill(12,28,'Take out the first relay'),checkpoint(40,40,'Reach the second relay'),drill(40,30,'Take out the depot relay'),escape,finish] },
+    { name: 'Breakwater Express', time: 95, heat: 2, model: 'muscle', stages: [checkpoint(12,12,'Reach the north road'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Reach the docks'),escape,finish] },
+    { name: 'Heavy Haul', time: 165, heat: 2, model: 'van', stages: [stop(40,40,'Load the first crate'),stop(68,40,'Load the second crate'),checkpoint(96,40,'Take the east road'),escape,finish] },
+    { name: 'Three Alarms', time: 180, heat: 3, model: 'muscle', stages: [drill(12,28,'Disable the west alarm'),checkpoint(40,40,'Reach the depot'),drill(40,30,'Disable the depot alarm'),checkpoint(68,40,'Reach the east gate'),drill(68,31,'Disable the gate alarm'),escape,finish] },
+    { name: 'Harbor Lockdown', time: 150, heat: 3, model: 'muscle', stages: [checkpoint(12,96,'Reach the south road'),checkpoint(40,96,'Pass the rail yard'),checkpoint(68,68,'Cross the depot'),checkpoint(68,12,'Take the north road'),escape,finish] },
+    { name: 'The Last Crossing', time: 185, heat: 3, model: 'coupe', stages: [stop(40,40,'Pick up the final cargo'),checkpoint(68,40,'Pass the east junction'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Return through the port'),escape,finish] },
+  ];
+  const spawn = (model, x, z, angle = 0) => ({ ...models[model], x, z, angle, speed: 0 });
+  let car = spawn('coupe', 12, 32);
+  let vehicles = [car];
   const patrol = { x: 40, z: 56, angle: 0 };
-  const lastSeen = { x: car.x, z: car.z };
+  const backup = { x: 68, z: 40, angle: 0 };
   const traffic = [
     { route: [[42.5, 42.5], [42.5, 65.5], [65.5, 65.5], [65.5, 42.5]], speed: 5.4, paint: ['#e0a269', '#a06153', '#744654'] },
     { route: [[70.4, 37.6], [70.4, 70.4], [93.6, 70.4], [93.6, 37.6]], speed: 6.1, paint: ['#a0b8df', '#586f9f', '#404e7d'] },
@@ -54,8 +80,22 @@
   let elapsed = 0;
   let unseen = 0;
   let caught = 0;
-  let path = [];
-  let rethink = 0;
+  let activeJob = jobs[0];
+  let selectedJob = 0;
+  let stageIndex = 0;
+  let heatLevel = 0;
+  let shotFlash = 0;
+  let shotTarget = null;
+  let won = false;
+  let records = {};
+  const storageKey = 'harborCampaignV1';
+  try {
+    const saved = JSON.parse(window.localStorage?.getItem(storageKey) || '{}');
+    for (const job of jobs) {
+      const time = saved?.[job.name];
+      if (Number.isInteger(time) && time > 0 && time <= job.time * 1000) records[job.name] = time;
+    }
+  } catch {}
   let lastTime = 0;
   let footView = 0;
   let driveLook = 0;
@@ -64,8 +104,7 @@
   let dragTouch = null;
   let walkCycle = 0;
   let walkBlend = 0;
-  let bestSeconds = 0;
-  try { bestSeconds = Number(window.localStorage?.getItem('harborGetawayBest')) || 0; } catch {}
+
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -167,15 +206,53 @@
     }
   }
 
-  function reset() {
+  function availableJobs() {
+    const unfinished = jobs.findIndex(job => !records[job.name]);
+    return unfinished === -1 ? jobs.length : unfinished + 1;
+  }
+
+  function jobBoard() {
+    const board = element('mission');
+    const unlocked = availableJobs();
+    board.replaceChildren();
+    jobs.forEach((job, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.disabled = index >= unlocked;
+      option.textContent = (index + 1) + '. ' + job.name + (records[job.name] ? ' ✓' : index >= unlocked ? ' · Locked' : '');
+      board.append(option);
+    });
+    selectedJob = Math.min(selectedJob, unlocked - 1);
+    board.value = selectedJob;
+    element('progress').textContent = Object.keys(records).length + ' / ' + jobs.length + ' jobs complete · saved on this device';
+  }
+
+  function wanted(level) {
+    heatLevel = Math.max(heatLevel, level);
+    lost = false;
+    unseen = caught = 0;
+    for (const unit of [patrol, backup]) {
+      unit.last = { x: inCar ? car.x : player.x, z: inCar ? car.z : player.z };
+      unit.path = [];
+      unit.rethink = 0;
+    }
+  }
+
+  function reset(free = false) {
+    selectedJob = clamp(Math.floor(Number(element('mission').value) || 0), 0, availableJobs() - 1);
+    activeJob = free ? null : jobs[selectedJob];
+    stageIndex = heatLevel = shotFlash = 0;
+    shotTarget = null;
+    won = false;
     Object.assign(player, { x: 12, z: 43, angle: 0 });
-    Object.assign(car, { x: 12, z: 32, angle: 0, speed: 0 });
+    car = spawn(activeJob?.model ?? 'coupe', 12, 32);
+    vehicles = activeJob ? [car] : [car, spawn('muscle', 12, 54), spawn('van', 40, 40, Math.PI / 2)];
     Object.assign(patrol, { x: 40, z: 56, angle: 0 });
+    Object.assign(backup, { x: 68, z: 40, angle: 0 });
     Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
     inCar = stolen = lost = false;
-    elapsed = unseen = caught = rethink = 0;
+    elapsed = unseen = caught = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
-    path = [];
     resetTraffic();
     run();
   }
@@ -194,8 +271,12 @@
     element('title').textContent = title;
     element('description').textContent = description;
     element('start').textContent = action;
-    element('best').hidden = next !== 'finished' || bestSeconds <= 0;
-    element('best').textContent = 'Best getaway · ' + bestSeconds + ' seconds left';
+    const best = activeJob && records[activeJob.name];
+    element('best').hidden = next !== 'finished' || !best;
+    element('best').textContent = best ? 'Best time · ' + (best / 1000).toFixed(1) + ' s' : '';
+    element('board-fields').hidden = next !== 'ready';
+    element('free-roam').hidden = next !== 'ready';
+    element('open-board').hidden = next === 'ready';
     element('overlay').hidden = false;
     element('pause').disabled = true;
     element('interact').disabled = true;
@@ -206,6 +287,10 @@
     if (phase === 'playing') {
       overlay('paused', 'Mission paused', 'Your timer is frozen. Ready to get back to the harbor?', 'Resume mission');
     } else if (phase === 'paused') run();
+  }
+
+  function nearestVehicle() {
+    return vehicles.find(vehicle => distance(player, vehicle) < 3.4);
   }
 
   function interact() {
@@ -224,41 +309,111 @@
         footView = camera.angle;
         break;
       }
-    } else if (distance(player, car) < 3.4) {
-      if (!stolen) Object.assign(lastSeen, { x: car.x, z: car.z });
+    } else {
+      const vehicle = nearestVehicle();
+      if (!vehicle) return;
+      car = vehicle;
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
       dragTouch = null;
       pointers.clear();
       inCar = true;
+      if (!stolen && activeJob?.heat && activeJob.stages[0].kind !== 'shoot') wanted(activeJob.heat);
       stolen = true;
     }
     updateHud();
   }
 
+  function objectiveTarget() {
+    const step = activeJob?.stages[stageIndex];
+    if (!step) return null;
+    if (step.kind === 'shoot') return step;
+    if (!inCar) return car;
+    return step.kind === 'escape' ? null : step;
+  }
+
   function updateHud() {
-    const seconds = Math.max(0, Math.ceil(180 - elapsed));
-    element('clock').textContent = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+    const seconds = activeJob ? Math.max(0, Math.ceil(activeJob.time - elapsed)) : 0;
+    element('clock').textContent = activeJob
+      ? Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') : 'FREE ROAM';
     const heat = element('heat');
-    heat.textContent = lost ? 'CLEAR' : !stolen ? 'ON FOOT'
-      : caught > 0 ? 'PATROL ON YOU' : unseen > 0 ? 'LOSING PATROL' : 'WANTED';
-    heat.classList.toggle('danger', stolen && !lost && unseen === 0);
+    heat.textContent = heatLevel ? '★'.repeat(heatLevel) + (caught > 0 ? ' CLOSING IN' : unseen > 0 ? ' EVADING' : ' WANTED')
+      : lost ? 'CLEAR' : inCar ? car.name.toUpperCase() : 'ON FOOT';
+    heat.classList.toggle('danger', heatLevel > 0 && unseen === 0);
     heat.classList.toggle('clear', lost || unseen > 0);
     const meter = element('escape-progress');
-    meter.hidden = !stolen || lost;
+    meter.hidden = heatLevel === 0;
+    meter.max = 4 + heatLevel * 2;
     meter.value = unseen;
     element('speed').hidden = !inCar;
     element('brake').hidden = !inCar;
+    element('brake').disabled = phase !== 'playing';
+    element('fire').hidden = inCar || phase !== 'playing';
+    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : 'Fire';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
-    const target = inCar && lost ? garage : !inCar ? car : null;
+    const step = activeJob?.stages[stageIndex];
+    const target = objectiveTarget();
     const range = target ? ' · ' + Math.ceil(distance(inCar ? car : player, target)) + ' m' : '';
-    const objective = (!stolen ? 'Find the marked getaway car' : !inCar ? 'Get back in the getaway car'
-      : lost ? 'Drive to the garage' : 'Use the alleys to lose the patrol') + range;
+    const label = !step ? 'Explore the harbor' : step.kind === 'shoot' && inCar ? 'Get out to use your pistol'
+      : !inCar && step.kind !== 'shoot' ? 'Get to your ' + car.name.toLowerCase() : step.label;
+    const objective = (step ? (stageIndex + 1) + '/' + activeJob.stages.length + ' · ' : '') + label + range;
     if (element('objective').textContent !== objective) element('objective').textContent = objective;
-    element('interact').disabled = phase !== 'playing'
-      || (inCar ? Math.abs(car.speed) > 2 : distance(player, car) >= 3.4);
-    element('interact').textContent = inCar ? 'Exit car' : 'Enter car';
+    const vehicle = inCar ? car : nearestVehicle();
+    element('interact').disabled = phase !== 'playing' || (inCar ? Math.abs(car.speed) > 2 : !vehicle);
+    element('interact').textContent = inCar ? 'Exit car' : vehicle ? 'Enter ' + vehicle.name.toLowerCase() : 'Enter car';
+    element('jobs').hidden = Boolean(activeJob) || phase !== 'playing';
+  }
+
+  function shoot() {
+    if (phase !== 'playing' || inCar || shotFlash > 0) return;
+    const step = activeJob?.stages[stageIndex];
+    const aim = facing(camera.angle);
+    const span = step ? distance(player, step) : Infinity;
+    const alignment = step && span > 0
+      ? ((step.x - player.x) * aim.x + (step.z - player.z) * aim.z) / span : -1;
+    const hit = step?.kind === 'shoot' && span < 22 && (span < 11 || alignment > 0.56) && visible(player, step);
+    shotTarget = hit ? step : { x: player.x + aim.x * 13, z: player.z + aim.z * 13 };
+    shotFlash = 0.22;
+    if (!heatLevel) wanted(activeJob?.heat || 1);
+    if (hit) {
+      player.angle = Math.atan2(step.x - player.x, player.z - step.z);
+      stageIndex += 1;
+    }
+    updateHud();
+  }
+
+  function pursue(unit, active, dt) {
+    const separation = distance(active, unit);
+    const seen = separation < 27 + heatLevel * 4 && visible(unit, active);
+    if (seen) Object.assign(unit.last, { x: active.x, z: active.z });
+    unit.rethink -= dt;
+    if (unit.rethink <= 0) {
+      unit.path = seen ? [] : route(unit, unit.last);
+      unit.rethink = 0.55;
+    }
+    if (unit.path.length && distance(unit, unit.path[0]) < 1) unit.path.shift();
+    const target = seen ? active : unit.path[0];
+    if (target) {
+      unit.angle = Math.atan2(target.x - unit.x, unit.z - target.z);
+      const direction = facing(unit.angle);
+      const speed = Math.min(separation, seen ? 12 + heatLevel * 1.55 : 8.5 + heatLevel * 1.45);
+      move(unit, direction.x * speed * dt, direction.z * speed * dt, 1.2);
+    }
+    return { seen, separation };
+  }
+
+  function completeJob() {
+    const time = Math.max(1, Math.ceil(elapsed * 1000));
+    const record = !records[activeJob.name] || time < records[activeJob.name];
+    if (record) {
+      records[activeJob.name] = time;
+      try { window.localStorage?.setItem(storageKey, JSON.stringify(records)); } catch {}
+    }
+    const next = jobs[selectedJob + 1];
+    won = true;
+    overlay('finished', 'Job complete', activeJob.name + ' · ' + (time / 1000).toFixed(1)
+      + ' seconds.' + (record ? ' New personal best.' : ''), next ? 'Next job' : 'Replay job');
   }
 
   function lookBy(radians) {
@@ -268,6 +423,7 @@
 
   function update(dt) {
     elapsed += dt;
+    shotFlash = Math.max(0, shotFlash - dt);
     const horizontal = dragTouch ? dragTouch.dx : Number(held('right')) - Number(held('left'));
     const vertical = dragTouch ? dragTouch.dy : Number(held('down')) - Number(held('up'));
     const look = Number(held('lookRight')) - Number(held('lookLeft'));
@@ -284,11 +440,11 @@
         : vertical;
       if (braking) car.speed *= Math.exp(-2.8 * dt);
       else if (throttle) {
-        const acceleration = throttle > 0 && car.speed > 0 ? 24 : 13;
-        const cornerSpeed = dragTouch ? 20 - 8 * Math.abs(steer) : 20;
+        const acceleration = throttle > 0 && car.speed > 0 ? 24 : car.acceleration;
+        const cornerSpeed = dragTouch ? car.top - 8 * Math.abs(steer) : car.top;
         car.speed = throttle < 0 && car.speed > cornerSpeed
           ? Math.max(cornerSpeed, car.speed - 12 * dt)
-          : clamp(car.speed - throttle * acceleration * dt, -7, throttle < 0 ? cornerSpeed : 20);
+          : clamp(car.speed - throttle * acceleration * dt, -7, throttle < 0 ? cornerSpeed : car.top);
       } else car.speed *= Math.exp(-2.3 * dt);
       const steering = Math.min(1, Math.abs(car.speed) / 3);
       car.angle += steer * Math.sign(car.speed) * steering * (braking ? 3.15 : dragTouch ? 2.3 : 1.9) * dt;
@@ -315,42 +471,28 @@
     walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
 
     const active = inCar ? car : player;
-    if (stolen && !lost) {
-      const separation = distance(active, patrol);
-      const seen = separation < 30 && visible(patrol, active);
-      if (seen) Object.assign(lastSeen, { x: active.x, z: active.z });
-      unseen = !seen && separation > 12 ? unseen + dt : 0;
-      caught = separation < 3 && Math.abs(car.speed) < 4 ? caught + dt : 0;
-      if (unseen >= 5) lost = true;
-      else {
-        rethink -= dt;
-        if (rethink <= 0) {
-          path = seen ? [] : route(patrol, lastSeen);
-          rethink = 0.55;
-        }
-        if (path.length && distance(patrol, path[0]) < 1) path.shift();
-        const target = seen ? active : path[0];
-        if (target) {
-          patrol.angle = Math.atan2(target.x - patrol.x, patrol.z - target.z);
-          const direction = facing(patrol.angle);
-          const speed = Math.min(separation, seen ? 13.5 : 10);
-          move(patrol, direction.x * speed * dt, direction.z * speed * dt, 1.2);
-        }
+    if (heatLevel) {
+      const primary = pursue(patrol, active, dt);
+      const support = heatLevel > 1 ? pursue(backup, active, dt) : null;
+      const separation = Math.min(primary.separation, support?.separation ?? Infinity);
+      unseen = !primary.seen && !support?.seen && separation > 12 ? unseen + dt : 0;
+      caught = separation < 3.3 && (!inCar || Math.abs(car.speed) < 4) ? caught + dt : 0;
+      if (unseen >= 4 + heatLevel * 2) {
+        heatLevel = 0;
+        lost = true;
       }
     }
-
-    if (inCar && lost && distance(car, garage) < 4) {
-      const remaining = Math.max(0, Math.ceil(180 - elapsed));
-      const record = remaining > bestSeconds;
-      if (record) {
-        bestSeconds = remaining;
-        try { window.localStorage?.setItem('harborGetawayBest', String(remaining)); } catch {}
-      }
-      overlay('finished', 'Clean getaway', (record ? 'New personal best. ' : '') +
-        'You delivered the coupe with ' + remaining + ' seconds left.', 'Play again');
-    } else if (caught >= 2 || elapsed >= 180) {
-      overlay('finished', caught >= 2 ? 'Busted' : 'Time’s up', 'Try cutting through a different block to break line of sight.', 'Try again');
+    const step = activeJob?.stages[stageIndex];
+    if (step && ((step.kind === 'escape' && lost)
+      || (inCar && step.kind === 'drive' && distance(car, step) < 5)
+      || (inCar && step.kind === 'park' && distance(car, step) < 4.5 && Math.abs(car.speed) < 3))) {
+      stageIndex += 1;
+      if (step.kind === 'park' && activeJob.heat && !heatLevel && activeJob.stages[stageIndex]?.kind === 'escape') wanted(activeJob.heat);
     }
+    if (caught >= 2 || (activeJob && elapsed >= activeJob.time)) {
+      overlay('finished', caught >= 2 ? 'Busted' : 'Time’s up',
+        'Use side streets to break line of sight. Brake to a stop inside marked delivery zones.', activeJob ? 'Retry job' : 'Return to free roam');
+    } else if (activeJob && stageIndex === activeJob.stages.length) completeJob();
 
     const smoothing = 1 - Math.exp(-8 * dt);
     camera.x += (active.x - camera.x) * smoothing;
@@ -497,8 +639,17 @@
     }
     part(0, 0, 2.12, 3.64, 0.43, 0.27, paint);
     part(0, 0.09, 1.99, 3.34, 0.22, 0.70, paint);
-    part(0, 0.05, 1.76, 2.02, 0.48, 0.92, ['#77919b', '#4c6874', '#3a505a'], 0.73);
-    part(0, 0.05, 1.29, 1.47, 0.09, 1.40, paint, 0.92);
+    if (actor.name === 'Cargo van') {
+      part(0, -0.33, 1.91, 2.65, 0.92, 0.91, paint, 0.95);
+      part(0, 1.02, 1.72, 0.65, 0.68, 0.91, ['#7e9ca7', '#4d6b75', '#3c5159'], 0.82);
+      part(0, -1.67, 0.06, 0.04, 0.66, 1.01, ['#594f48', '#514c48', '#514c48']);
+    } else {
+      const muscle = actor.name === 'Muscle';
+      const roofHeight = muscle ? 0.4 : 0.48;
+      part(0, muscle ? -0.19 : 0.05, 1.76, 2.02, roofHeight, 0.92, ['#77919b', '#4c6874', '#3a505a'], 0.73);
+      part(0, muscle ? -0.19 : 0.05, 1.29, 1.47, 0.09, 0.92 + roofHeight, paint, 0.92);
+      if (muscle) part(0, -1.63, 1.73, 0.3, 0.12, 0.93, ['#555b63', '#363e48', '#293440']);
+    }
     if (!police && !actor.paint) part(0, -1.78, 1.94, 0.08, 0.065, 0.78, ['#a9e4ca', '#83bdab', '#618f87']);
     part(0, -1.81, 2.07, 0.16, 0.17, 0.28, ['#657489', '#344256', '#414e64']);
     part(0, -1.89, 0.39, 0.035, 0.14, 0.48, ['#ccdbe9', '#a9bed4', '#a9bed4']);
@@ -633,9 +784,11 @@
       context.fillRect(x, y + (road - 3) * scale, mapSize, 6 * scale);
     }
     const dots = [];
-    if (!inCar) dots.push([car, '#79f1c6']);
-    if (stolen && !lost) dots.push([patrol, '#ff6179']);
-    if (lost) dots.push([garage, '#ffd373']);
+    if (!inCar) for (const vehicle of vehicles) dots.push([vehicle, '#79f1c6']);
+    if (heatLevel) dots.push([patrol, '#ff6179']);
+    if (heatLevel > 1) dots.push([backup, '#ff6179']);
+    const target = objectiveTarget();
+    if (target && target !== car) dots.push([target, '#ffd373']);
     for (const [point, color] of dots) {
       context.beginPath();
       context.fillStyle = color;
@@ -761,12 +914,22 @@
       for (let i = -3; i <= 3; i += 1) flat(garage.x + i, garage.z - 3.45, 0.43, 0.63, '#ffe0a0');
       groundGlow(garage.x, garage.z, 5.3, '#ffc27270');
     }
+    const routeMarker = objectiveTarget();
+    if (routeMarker && routeMarker !== car) {
+      const { x, z } = routeMarker;
+      const radius = routeMarker.kind === 'shoot' ? 1.4 : 3.6;
+      groundGlow(x, z, radius + 1, '#f4be5573');
+      for (const sign of [-1, 1]) {
+        flat(x - radius, z + sign * radius, radius * 2, 0.16, '#ffe4a0');
+        flat(x + sign * radius, z - radius, 0.16, radius * 2, '#ffe4a0');
+      }
+    }
     const nearbyLamps = lamps.filter(lamp => distance(lamp, camera) < 52);
 
     const front = facing(car.angle);
     groundGlow(car.x, car.z, 1.7, '#0b112659');
     if (!inCar) groundGlow(player.x, player.z, 0.65, '#0b112650');
-    if (stolen && !lost) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
+    if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
     groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
     if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
     faces = [];
@@ -778,8 +941,18 @@
     drawViaduct();
     for (const tree of trees) if (distance(tree, camera) < 48) drawTree(tree);
     drawDocks();
-    drawCar(car, false);
+    for (const vehicle of vehicles) drawCar(vehicle, false);
     drawCar(patrol, true);
+    if (heatLevel > 1) drawCar(backup, true);
+    if (routeMarker?.kind === 'drive') {
+      for (const side of [-1, 1]) box(routeMarker.x + side * 4.25, routeMarker.z, 0.36, 0.36, 2, 0,
+        ['#fff0b1', '#d5a45f', '#aa7849']);
+    }
+    const step = activeJob?.stages[stageIndex];
+    if (step?.kind === 'shoot') {
+      box(step.x, step.z, 0.14, 0.14, 1.55, 0, ['#414b53', '#34434b', '#2b343d']);
+      box(step.x, step.z, 0.8, 0.19, 0.71, 0, ['#ffd99d', '#e58b58', '#af5d47'], 1.18);
+    }
     for (const vehicle of traffic) if (distance(vehicle, camera) < 48) drawCar(vehicle, false);
     for (const worker of workers) {
       const cycle = elapsed * worker.pace;
@@ -791,8 +964,21 @@
     if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#f1bd71', '#ce694a', '#9d493f']);
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) fill(face.points, face.color);
-    if (!stolen || !inCar) pin(car, 3.8, '#79f1c6', 'GETAWAY CAR');
-    if (lost) pin(garage, 4, '#ffd373', 'GARAGE');
+    const target = objectiveTarget();
+    if (target) pin(target, target === car ? 3.2 : 3, target === car ? '#79f1c6' : '#ffd373',
+      target === car ? 'GETAWAY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
+    if (shotFlash > 0.08 && shotTarget) {
+      const start = cameraPoint([player.x, 1.07, player.z]);
+      const end = cameraPoint([shotTarget.x, 1.42, shotTarget.z]);
+      if (start[2] > 1 && end[2] > 1) {
+        context.beginPath();
+        context.moveTo(...project(start));
+        context.lineTo(...project(end));
+        context.strokeStyle = '#ffe6a5';
+        context.lineWidth = 2;
+        context.stroke();
+      }
+    }
     minimap(inCar ? car : player);
   }
 
@@ -809,7 +995,8 @@
     if (action && phase === 'playing' && !(action === 'brake' && (!inCar || event.target?.closest?.('button, a')))) {
       event.preventDefault();
       keys.add(action);
-    } else if (event.code === 'KeyE' && !event.repeat) interact();
+    } else if (event.code === 'KeyF' && !event.repeat) shoot();
+    else if (event.code === 'KeyE' && !event.repeat) interact();
     else if (event.code === 'Escape' && !event.repeat) pause();
   });
   document.addEventListener('keyup', event => keys.delete(bindings[event.code]));
@@ -881,11 +1068,29 @@
       pointers.set(event.pointerId, button.dataset.key);
     });
   });
-  element('start').addEventListener('click', () => phase === 'paused' ? run() : reset());
+  function showBoard() {
+    jobBoard();
+    overlay('ready', 'Harbor jobs', 'Take a job or explore the district at your own pace.', 'Start selected job');
+    updateHud();
+  }
+
+  element('start').addEventListener('click', () => {
+    if (phase === 'paused') run();
+    else {
+      if (won && phase === 'finished' && selectedJob + 1 < jobs.length) element('mission').value = selectedJob + 1;
+      reset(phase === 'finished' && !activeJob);
+    }
+  });
+  element('free-roam').addEventListener('click', () => reset(true));
+  element('open-board').addEventListener('click', showBoard);
+  element('jobs').addEventListener('click', showBoard);
+  element('fire').addEventListener('click', shoot);
   element('interact').addEventListener('click', interact);
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;
   resetTraffic();
+  selectedJob = availableJobs() - 1;
+  jobBoard();
   updateHud();
   requestAnimationFrame(frame);
 })();
