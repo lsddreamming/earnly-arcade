@@ -88,3 +88,23 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 .breach-mode-note{font-size:11px;color:#9dc8df;margin:8px 2px 0;line-height:1.4}
 .breach-page.game-active .breach-mode-choice{display:none}
 @media(max-width:360px){.breach-page .breach-mode-card{padding:10px 9px;min-height:152px}.breach-mode-card strong{font-size:14px}}
+
+/* Mobile entry: keep the arena visible immediately; card taps replace redundant select. */
+@media (max-width:700px) and (orientation:portrait){
+ .breach-page:not(.game-active) .page-header{padding:2px 4px!important;margin:0 0 4px!important}
+ /* Rankings remain available in results, not above the playable arena. */
+ .breach-page:not(.game-active) #earnlyCompactLeaderboard,
+ .breach-page:not(.game-active) .compact-leaderboard-card,
+ .breach-page:not(.game-active) .compact-leaderboard-ticker{display:none!important}
+ .breach-page:not(.game-active) .breach-mode-choice{margin:5px 0 7px}
+ .breach-page:not(.game-active) .breach-mode-heading{margin-bottom:5px}
+ .breach-page:not(.game-active) .breach-mode-card{min-height:81px;padding:9px 10px;gap:3px;border-radius:12px}
+ .breach-page:not(.game-active) .breach-mode-icon{display:none}
+ .breach-page:not(.game-active) .breach-mode-card strong{font-size:15px}
+ .breach-page:not(.game-active) .breach-mode-card small{font-size:10px;line-height:1.15}
+ .breach-page:not(.game-active) .breach-mode-card em{font-size:10px}
+ .breach-page:not(.game-active) .breach-mode-choice .breach-mode-label,
+ .breach-page:not(.game-active) .breach-mode-note{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+ .breach-page:not(.game-active) #startButton{min-height:48px;margin:5px 0}
+ .breach-page:not(.game-active) .breach-arena{margin-top:4px}
+}
