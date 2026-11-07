@@ -15,6 +15,7 @@
     h1 { font-size: clamp(21px, 5vw, 32px); margin: 0; }
     .stage { position: relative; overflow: hidden; border: 1px solid #456077; border-radius: 16px; background: #14253a; }
     canvas { display: block; width: 100%; height: min(69svh, 590px); touch-action:none; }
+    .stage, .controls { -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }
     .hud { position: absolute; inset: 10px 10px auto; display:flex; flex-wrap:wrap; gap: 6px; pointer-events:none; }
     .hud span { border: 1px solid #526780; border-radius: 8px; padding: 6px 9px; background: #101a29ed; font-size: 13px; }
     #objective { flex: 1 1 100%; width: max-content; max-width: max-content; }
@@ -34,7 +35,14 @@
     .actions button { padding:0 10px; }
     .pad button:active, .actions button:active { background:#376277; }
     .hint { color:#bcd0df; font-size:13px; }
-    @media(pointer:coarse) { canvas { height:min(57svh,500px); } }
+    .touch-hint { display:none; }
+    @media(pointer:coarse) {
+      canvas { height:min(57svh,500px); }
+      .controls:not(.driving) .pad, .keyboard-hint { display:none; }
+      .touch-hint { display:block; }
+      .controls { justify-content:flex-end; }
+      .controls.driving { justify-content:space-between; }
+    }
     @media(max-height:490px) and (orientation:landscape) {
       canvas { height:58svh; }
       .pad { grid-template-columns:repeat(4,48px); }
@@ -61,7 +69,7 @@
         </section>
       </div>
     </div>
-    <div class="controls" aria-label="Game controls">
+    <div class="controls" id="controls" aria-label="Game controls">
       <div class="pad" role="group" aria-label="Movement and driving">
         <button type="button" data-key="up" aria-label="Move forward or accelerate">↑</button>
         <button type="button" data-key="left" aria-label="Move left or steer left">←</button>
@@ -74,7 +82,8 @@
         <button type="button" id="pause">Pause</button>
       </div>
     </div>
-    <p class="hint">Drag the view to look around. Use WASD or arrows to move and drive, Q/R to look, E to enter or exit, Space for handbrake, and Esc to pause. On touch, hold ↑ and a steering arrow together to turn while driving.</p>
+    <p class="hint touch-hint">Drag anywhere on the game screen to run in that direction. Lift your finger to stop. In the car, hold ↑ and a steering arrow to turn.</p>
+    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, Q/R or mouse drag to look, E to enter or exit, Space for handbrake, and Esc to pause.</p>
   </main>
   <footer class="public-footer" aria-label="Earnly site information">
     <nav aria-label="Site information">
@@ -83,6 +92,6 @@
       <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
-  <script src="harbor-getaway.js"></script>
+  <script src="harbor-getaway.js?v=touch1"></script>
 </body>
 </html>

@@ -50,6 +50,7 @@
   let driveLook = 0;
   let lookPointer = null;
   let lookX = 0;
+  let runTouch = null;
   let walkCycle = 0;
   let walkBlend = 0;
 
@@ -121,6 +122,7 @@
     keys.clear();
     pointers.clear();
     lookPointer = null;
+    runTouch = null;
   }
 
   function reset() {
@@ -179,6 +181,8 @@
     } else if (distance(player, car) < 3.4) {
       if (!stolen) Object.assign(lastSeen, { x: car.x, z: car.z });
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
+      runTouch = null;
+      pointers.clear();
       inCar = true;
       stolen = true;
     }
@@ -192,6 +196,7 @@
       : caught > 0 ? 'PATROL ON YOU' : unseen > 0 ? 'LOSING PATROL' : 'WANTED';
     element('speed').hidden = !inCar;
     element('brake').hidden = !inCar;
+    element('controls').classList.toggle('driving', inCar);
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
     const objective = !stolen ? 'Find the marked getaway car.' : !inCar ? 'Get back in the getaway car.'
       : lost ? 'Drive to the garage.' : 'Use the blocks and alleys to lose the patrol.';
@@ -208,8 +213,8 @@
 
   function update(dt) {
     elapsed += dt;
-    const horizontal = Number(held('right')) - Number(held('left'));
-    const vertical = Number(held('down')) - Number(held('up'));
+    const horizontal = runTouch ? runTouch.dx : Number(held('right')) - Number(held('left'));
+    const vertical = runTouch ? runTouch.dy : Number(held('down')) - Number(held('up'));
     const look = Number(held('lookRight')) - Number(held('lookLeft'));
     if (look) lookBy(look * 1.8 * dt);
     else if (inCar && lookPointer === null) driveLook *= Math.exp(-2.5 * dt);
@@ -225,14 +230,15 @@
       car.angle += horizontal * Math.sign(car.speed) * steering * (braking ? 3.15 : 1.9) * dt;
       const direction = facing(car.angle);
       if (move(car, direction.x * car.speed * dt, direction.z * car.speed * dt, 1.22)) car.speed *= 0.35;
-    } else if (horizontal || vertical) {
+    } else if (runTouch ? Math.hypot(horizontal, vertical) > 5 : horizontal || vertical) {
       const directionAngle = camera.angle + Math.atan2(horizontal, -vertical);
       const direction = facing(directionAngle);
       const turn = directionAngle - player.angle;
       player.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-18 * dt));
       const oldX = player.x;
       const oldZ = player.z;
-      move(player, direction.x * 7 * dt, direction.z * 7 * dt, 0.45);
+      const speed = runTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
+      move(player, direction.x * speed * dt, direction.z * speed * dt, 0.45);
       walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
     }
     if (walking) walkCycle += dt * 16;
@@ -529,9 +535,48 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) pauseOnExit();
   });
+  canvas.addEventListener('touchstart', event => {
+    if (phase !== 'playing' || inCar) return;
+    event.preventDefault();
+    if (runTouch) return;
+    const touch = event.changedTouches[0];
+    pointers.clear();
+    runTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0 };
+  }, { passive: false });
+  canvas.addEventListener('touchmove', event => {
+    if (!runTouch) return;
+    event.preventDefault();
+    const touch = Array.from(event.changedTouches).find(item => item.identifier === runTouch.id);
+    if (!touch) return;
+    runTouch.dx = touch.clientX - runTouch.x;
+    runTouch.dy = touch.clientY - runTouch.y;
+  }, { passive: false });
+  function endTouch(event) {
+    if (runTouch && Array.from(event.changedTouches).some(touch => touch.identifier === runTouch.id)) runTouch = null;
+    if (event.touches.length === 0) {
+      pointers.clear();
+      lookPointer = null;
+      runTouch = null;
+    }
+  }
+  for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, endTouch, true);
+
+  function clearPointer(event) {
+    pointers.delete(event.pointerId);
+    if (event.pointerId === lookPointer) lookPointer = null;
+  }
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    document.addEventListener(type, clearPointer, true);
+  }
+  document.addEventListener('contextmenu', event => {
+    if (!event.target.closest('.stage, .controls')) return;
+    event.preventDefault();
+    clearControls();
+  });
   canvas.addEventListener('pointerdown', event => {
-    if (phase !== 'playing' || lookPointer !== null || event.button !== 0) return;
-    canvas.setPointerCapture(event.pointerId);
+    if (phase !== 'playing' || lookPointer !== null || event.button !== 0
+      || (event.pointerType === 'touch' && !inCar)) return;
+    canvas.setPointerCapture?.(event.pointerId);
     lookPointer = event.pointerId;
     lookX = event.clientX;
   });
@@ -540,21 +585,13 @@
     lookBy((lookX - event.clientX) * 0.009);
     lookX = event.clientX;
   });
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    canvas.addEventListener(type, event => {
-      if (event.pointerId === lookPointer) lookPointer = null;
-    });
-  }
   document.querySelectorAll('[data-key]').forEach(button => {
     button.addEventListener('pointerdown', event => {
       if (phase !== 'playing' || event.button !== 0) return;
       event.preventDefault();
-      button.setPointerCapture(event.pointerId);
+      button.setPointerCapture?.(event.pointerId);
       pointers.set(event.pointerId, button.dataset.key);
     });
-    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-      button.addEventListener(type, event => pointers.delete(event.pointerId));
-    }
   });
   element('start').addEventListener('click', () => phase === 'paused' ? run() : reset());
   element('interact').addEventListener('click', interact);
