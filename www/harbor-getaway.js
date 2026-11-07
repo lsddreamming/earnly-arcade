@@ -145,6 +145,8 @@
   let runEnabled = false;
   let footSpeed = 0;
   let actualFootSpeed = 0;
+  let visualSpeed = 0;
+  let turnLean = 0;
 
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -309,7 +311,7 @@
   }
 
   function clearControls() {
-    footSpeed = actualFootSpeed = 0;
+    footSpeed = actualFootSpeed = visualSpeed = turnLean = 0;
     keys.clear();
     pointers.clear();
     lookPointer = null;
@@ -710,6 +712,7 @@
     else if (inCar && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) driveLook *= Math.exp(-1.8 * dt);
     let walking = false;
     let footTravel = 0;
+    let desiredLean = 0;
     if (inCar) {
       const braking = held('brake');
       const steer = dragTouch
@@ -749,6 +752,7 @@
       const remainingTurn = Math.atan2(Math.sin(directionAngle-player.angle),Math.cos(directionAngle-player.angle));
       // Pivot before reversing; translation always follows the body's facing.
       const alignment = clamp((Math.cos(remainingTurn)-0.7)/0.3,0,1);
+      desiredLean = clamp(remainingTurn,-0.7,0.7)*alignment;
       const direction = facing(player.angle);
       if (alignment > 0.5 && !look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = player.angle;
       const oldX = player.x;
@@ -774,6 +778,8 @@
     updateTraffic(dt);
     updateWorkers(dt);
     actualFootSpeed = dt > 0 ? footTravel/dt : 0;
+    visualSpeed += (actualFootSpeed-visualSpeed)*(1-Math.exp(-8*dt));
+    turnLean += (desiredLean*clamp(actualFootSpeed/11,0,1)-turnLean)*(1-Math.exp(-7*dt));
     walkCycle += footTravel * 2.05;
     walkBlend += (clamp(actualFootSpeed/7,0,1)-walkBlend)*(1-Math.exp(-12*dt));
 
@@ -813,7 +819,7 @@
     const cameraTurnLimit = manualCamera ? 2.8 : inCar ? 1.8 : 1.35;
     camera.angle += clamp(angleStep, -cameraTurnLimit * dt, cameraTurnLimit * dt);
     const forward = facing(camera.angle);
-    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : (walking && (runEnabled || held('sprint')) ? 10.8 : 9.6);
+    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : (9.6+1.2*clamp((visualSpeed-7)/4,0,1));
     let clearance = targetDistance;
     for (let offset = 2; offset < targetDistance; offset += 0.5) {
       const x = camera.x - forward.x * offset;
@@ -826,7 +832,9 @@
         break;
       }
     }
-    camera.distance = Math.min(clearance, camera.distance + 4 * dt);
+    // Ease pace-related zoom both ways; retain immediate wall clearance.
+    const easedDistance = camera.distance+(targetDistance-camera.distance)*(1-Math.exp(-3*dt));
+    camera.distance = Math.min(clearance, easedDistance);
     updateHud();
   }
 
@@ -1326,8 +1334,9 @@
     const denim = ['#405b77', '#304760', '#22364c'];
     const shoe = ['#40546a', '#293b50', '#1b2a3c'];
     const position = (x,y,z) => {
-      const lean = Math.max(0,y-0.6)*walkBlend*(0.045+clamp(actualFootSpeed/11,0,1)*0.045);
-      return [player.x+right.x*x+forward.x*(z+lean),y,player.z+right.z*x+forward.z*(z+lean)];
+      const lean = Math.max(0,y-0.6)*walkBlend*(0.045+clamp(visualSpeed/11,0,1)*0.045);
+      const bank = Math.max(0,y-0.55)*turnLean*0.16;
+      return [player.x+right.x*(x+bank)+forward.x*(z+lean),y,player.z+right.z*(x+bank)+forward.z*(z+lean)];
     };
     // Rounded ring meshes retain thickness at every heading. Front/back artwork
     // is wrapped onto the head and jacket rather than scaled as a billboard.
