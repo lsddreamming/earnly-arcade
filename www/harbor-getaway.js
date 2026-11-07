@@ -10,17 +10,28 @@
     return;
   }
 
-  const size = 108;
-  const roads = [12, 40, 68, 96];
+  const size = 340;
+  const roads = Array.from({ length: 12 }, (_, i) => 12 + i * 28);
   const garage = { x: 96, z: 91 };
   const blocks = [];
-  for (let row = 0; row < 3; row += 1) {
-    for (let column = 0; column < 3; column += 1) {
+  const sectors = new Map();
+  const parks = [];
+  for (let row = 0; row < roads.length - 1; row += 1) {
+    for (let column = 0; column < roads.length - 1; column += 1) {
       const x = roads[column];
       const z = roads[row];
+      const original = row < 3 && column < 3;
       const shade = (row * 3 + column) % 4;
-      blocks.push({ x: x + 9, z: z + 7, w: 11, d: 6, h: 6 + shade * 1.1, shade, storefront: row * 3 + column });
-      blocks.push({ x: x + 7, z: z + 17, w: 13, d: 5, h: 5 + shade, shade: (shade + 2) % 4 });
+      if (!original && (row * 7 + column * 3) % 8 === 0) {
+        parks.push({ x: x + 14, z: z + 14 });
+        continue;
+      }
+      const tall = !original && column >= 4 && column < 8 ? 3 + (row + column) % 4 : 0;
+      const first = { x: x + 9, z: z + 7, w: 11, d: 6, h: 6 + shade * 1.1 + tall, shade };
+      if (original) first.storefront = row * 3 + column;
+      const second = { x: x + 7, z: z + 17, w: 13, d: 5, h: 5 + shade + tall, shade: (shade + 2) % 4 };
+      sectors.set(row * roads.length + column, [first, second]);
+      blocks.push(first, second);
     }
   }
 
@@ -72,6 +83,15 @@
     { x: 73, z: 73.15, dx: 14, dz: 0, pace: 0.17, jacket: ['#c0b3f4', '#8277b5', '#675988'] },
     { x: 90.7, z: 72, dx: 0, dz: 13, pace: 0.23, jacket: ['#edd275', '#ad9356', '#8a7148'] },
   ];
+  for (const [column, row] of [[4,1],[8,1],[2,5],[6,5],[9,5],[1,9],[5,9],[9,9]]) {
+    const x = roads[column];
+    const z = roads[row];
+    traffic.push({ route: [[x + 2.2,z + 2.2],[x + 2.2,z + 25.8],[x + 25.8,z + 25.8],[x + 25.8,z + 2.2]],
+      speed: 4.8 + (row + column) % 4 * 0.55,
+      paint: traffic[(row + column) % 3].paint });
+    workers.push({ x: x + 5.35, z: z + 7, dx: 0, dz: 15, pace: 0.17,
+      jacket: workers[(row + column) % 4].jacket });
+  }
   const camera = { x: player.x, z: player.z, angle: 0, distance: 11 };
   let phase = 'ready';
   let inCar = false;
@@ -116,10 +136,17 @@
   const facing = angle => ({ x: Math.sin(angle), z: -Math.cos(angle) });
   const held = action => keys.has(action) || [...pointers.values()].includes(action);
 
+  function sectorAt(x, z) {
+    const column = Math.floor((x - 12) / 28);
+    const row = Math.floor((z - 12) / 28);
+    if (column < 0 || row < 0 || column >= roads.length - 1 || row >= roads.length - 1) return null;
+    return sectors.get(row * roads.length + column);
+  }
+
   function blocked(x, z, radius) {
-    return x < radius + 2 || x > size - radius - 2 || z < radius + 2 || z > size - radius - 2
-      || blocks.some(b => x + radius > b.x && x - radius < b.x + b.w
-        && z + radius > b.z && z - radius < b.z + b.d);
+    if (x < radius + 2 || x > size - radius - 2 || z < radius + 2 || z > size - radius - 2) return true;
+    return sectorAt(x, z)?.some(b => x + radius > b.x && x - radius < b.x + b.w
+      && z + radius > b.z && z - radius < b.z + b.d) ?? false;
   }
 
   function move(actor, dx, dz, radius) {
@@ -148,6 +175,10 @@
     const point = cell => ({ x: (cell % width) * step, z: Math.floor(cell / width) * step });
     const start = id(from);
     const goal = id(to);
+    const minX = Math.min(from.x, to.x) - 32;
+    const maxX = Math.max(from.x, to.x) + 32;
+    const minZ = Math.min(from.z, to.z) - 32;
+    const maxZ = Math.max(from.z, to.z) + 32;
     const parents = new Map([[start, start]]);
     const queue = [start];
     let nearest = start;
@@ -162,7 +193,7 @@
       for (const next of neighbors) {
         if (next < 0 || next >= width * width || parents.has(next)) continue;
         const p = point(next);
-        if (blocked(p.x, p.z, 1.25)) continue;
+        if (p.x < minX || p.x > maxX || p.z < minZ || p.z > maxZ || blocked(p.x, p.z, 1.25)) continue;
         parents.set(next, current);
         queue.push(next);
       }
@@ -173,6 +204,79 @@
       nearest = parents.get(nearest);
     }
     return result.reverse();
+  }
+
+  function vehicleGap(first, second) {
+    const a = facing(first.angle);
+    const b = facing(second.angle);
+    let gap = Infinity;
+    for (const t of [-1.12, 0, 1.12]) {
+      for (const u of [-1.12, 0, 1.12]) {
+        gap = Math.min(gap, Math.hypot(first.x + a.x * t - second.x - b.x * u,
+          first.z + a.z * t - second.z - b.z * u));
+      }
+    }
+    return gap;
+  }
+
+  function pointToVehicle(point, vehicle) {
+    const nose = facing(vehicle.angle);
+    const offset = clamp((point.x - vehicle.x) * nose.x + (point.z - vehicle.z) * nose.z, -1.18, 1.18);
+    return Math.hypot(point.x - vehicle.x - nose.x * offset, point.z - vehicle.z - nose.z * offset);
+  }
+
+  function moveVehicle(actor, dx, dz) {
+    const previous = { x: actor.x, z: actor.z, angle: actor.angle };
+    const edge = move(actor, dx, dz, 1.22);
+    for (const group of [vehicles, traffic, heatLevel > 1 ? [patrol, backup] : [patrol]]) {
+      for (const other of group) {
+        if (actor === other || distance(actor, other) >= 5) continue;
+        const gap = vehicleGap(actor, other);
+        if (gap < 1.82 && gap < vehicleGap(previous, other) - 0.0001) {
+          actor.x = previous.x;
+          actor.z = previous.z;
+          return 'vehicle';
+        }
+      }
+    }
+    return edge ? 'wall' : null;
+  }
+
+  function updateWorkers(dt) {
+    const impactSpeed = inCar ? Math.abs(car.speed) : 0;
+    const front = facing(car.angle);
+    for (const worker of workers) {
+      if (worker.recover > 0) {
+        worker.recover -= dt;
+        worker.elevation = Math.max(0, worker.elevation + worker.lift * dt);
+        worker.lift -= 11.5 * dt;
+        if (worker.elevation > 0) {
+          move(worker, worker.vx * dt, worker.vz * dt, 0.25);
+          worker.tilt += dt * 3.2;
+        }
+        continue;
+      }
+      const cycle = elapsed * worker.pace;
+      const progress = (1 - Math.cos(cycle)) / 2;
+      worker.x = worker.homeX + worker.dx * progress;
+      worker.z = worker.homeZ + worker.dz * progress;
+      worker.angle = Math.atan2(worker.dx, -worker.dz) + (Math.sin(cycle) < 0 ? Math.PI : 0);
+      worker.elevation = worker.tilt = 0;
+      if (impactSpeed < 4 || distance(car, worker) > 2.4) continue;
+      const heading = Math.sign(car.speed);
+      const hitX = car.x + front.x * heading * 1.28;
+      const hitZ = car.z + front.z * heading * 1.28;
+      if (Math.hypot(worker.x - hitX, worker.z - hitZ) > 1.03) continue;
+      worker.elevation = 0.08;
+      worker.lift = 3.4 + impactSpeed * 0.16;
+      worker.vx = front.x * heading * impactSpeed * 0.49;
+      worker.vz = front.z * heading * impactSpeed * 0.49;
+      worker.recover = 2.2;
+      car.speed *= 0.72;
+      if (!heatLevel) wanted(1);
+      notify('Collision · patrol alerted');
+      cue(117, 48, 0.2, 'triangle');
+    }
   }
 
   function clearControls() {
@@ -207,8 +311,7 @@
       const beside = Math.abs((active.x - vehicle.x) * dz - (active.z - vehicle.z) * dx);
       if (ahead > -0.5 && ahead < 5 && beside < 1.8) continue;
       const travel = Math.min(remaining, vehicle.speed * dt);
-      vehicle.x += dx * travel;
-      vehicle.z += dz * travel;
+      moveVehicle(vehicle, dx * travel, dz * travel);
     }
   }
 
@@ -326,7 +429,7 @@
     won = false;
     Object.assign(player, { x: 12, z: 43, angle: 0 });
     car = spawn(activeJob?.model ?? 'coupe', 12, 32);
-    vehicles = activeJob ? [car] : [car, spawn('muscle', 12, 54), spawn('van', 40, 40, Math.PI / 2)];
+    vehicles = activeJob ? [car] : [car, spawn('muscle', 12, 54), spawn('van', 40, 40, Math.PI / 2), spawn('muscle', 152, 152), spawn('coupe', 264, 208), spawn('van', 320, 292)];
     Object.assign(patrol, { x: 40, z: 56, angle: 0 });
     Object.assign(backup, { x: 68, z: 40, angle: 0 });
     Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
@@ -334,6 +437,7 @@
     elapsed = unseen = caught = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
     resetTraffic();
+    for (const worker of workers) Object.assign(worker, { x: worker.homeX, z: worker.homeZ, recover: 0, elevation: 0, tilt: 0 });
     run();
   }
 
@@ -436,7 +540,8 @@
     element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
     const active = inCar ? car : player;
-    const district = active.x < 30 ? 'WEST RAIL' : active.x > 84 ? 'EAST DOCKS'
+    const district = active.x > 278 ? 'EAST TERMINAL' : active.z > 252 ? 'SOUTH INDUSTRIAL'
+      : active.x > 154 ? 'CENTRAL CITY' : active.z > 121 ? 'LOWER QUAY' : active.x < 30 ? 'WEST RAIL' : active.x > 84 ? 'EAST DOCKS'
       : active.z < 33 ? 'NORTH QUAY' : active.z > 78 ? 'SOUTH YARD' : 'MARKET WARD';
     if (element('district').textContent !== district) element('district').textContent = district;
     const step = activeJob?.stages[stageIndex];
@@ -486,7 +591,7 @@
       unit.angle = Math.atan2(target.x - unit.x, unit.z - target.z);
       const direction = facing(unit.angle);
       const speed = Math.min(separation, seen ? 12 + heatLevel * 1.55 : 8.5 + heatLevel * 1.45);
-      move(unit, direction.x * speed * dt, direction.z * speed * dt, 1.2);
+      moveVehicle(unit, direction.x * speed * dt, direction.z * speed * dt);
     }
     return { seen, separation };
   }
@@ -538,11 +643,13 @@
       const steering = Math.min(1, Math.abs(car.speed) / 3);
       car.angle += steer * Math.sign(car.speed) * steering * (braking ? 3.15 : dragTouch ? 2.3 : 1.9) * dt;
       const direction = facing(car.angle);
-      const previous = { x: car.x, z: car.z };
-      if (move(car, direction.x * car.speed * dt, direction.z * car.speed * dt, 1.22)) car.speed *= 0.35;
-      if (traffic.some(vehicle => distance(car, vehicle) < 2.25 && distance(car, vehicle) < distance(previous, vehicle))) {
-        Object.assign(car, previous);
-        car.speed *= 0.28;
+      const impact = moveVehicle(car, direction.x * car.speed * dt, direction.z * car.speed * dt);
+      if (impact) {
+        if (Math.abs(car.speed) > 3) {
+          notify(impact === 'vehicle' ? 'Vehicle impact' : 'Scraped the curb');
+          cue(105, 38, 0.16, 'triangle');
+        }
+        car.speed *= 0.26;
       }
     } else if (dragTouch ? Math.hypot(horizontal, vertical) > 5 : horizontal || vertical) {
       // Keep the input frame fixed while a gesture or key combination is held.
@@ -556,9 +663,16 @@
       const oldZ = player.z;
       const speed = dragTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
       move(player, direction.x * speed * dt, direction.z * speed * dt, 0.45);
+      const previous = { x: oldX, z: oldZ };
+      for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
+        if (distance(player, vehicle) > 3) continue;
+        const gap = pointToVehicle(player, vehicle);
+        if (gap < 1.22 && gap < pointToVehicle(previous, vehicle)) Object.assign(player, previous);
+      }
       walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
     } else footHeading = null;
     updateTraffic(dt);
+    updateWorkers(dt);
     if (walking) walkCycle += dt * 16;
     walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
 
@@ -568,7 +682,7 @@
       const support = heatLevel > 1 ? pursue(backup, active, dt) : null;
       const separation = Math.min(primary.separation, support?.separation ?? Infinity);
       unseen = !primary.seen && !support?.seen && separation > 12 ? unseen + dt : 0;
-      caught = separation < 3.3 && (!inCar || Math.abs(car.speed) < 4) ? caught + dt : 0;
+      caught = separation < (inCar ? 4.2 : 3.3) && (!inCar || Math.abs(car.speed) < 4) ? caught + dt : 0;
       if (unseen >= 4 + heatLevel * 2) {
         heatLevel = 0;
         lost = true;
@@ -599,7 +713,7 @@
     for (let offset = 2; offset < targetDistance; offset += 0.5) {
       const x = camera.x - forward.x * offset;
       const z = camera.z - forward.z * offset;
-      if (blocks.some(b => x > b.x - 0.4 && x < b.x + b.w + 0.4
+      if (sectorAt(x, z)?.some(b => x > b.x - 0.4 && x < b.x + b.w + 0.4
         && z > b.z - 0.4 && z < b.z + b.d + 0.4)) {
         clearance = Math.max(1.5, offset - 0.75);
         break;
@@ -620,12 +734,13 @@
     spread: 1.35 + (i * 5 % 7) * 0.13,
   })).filter(tree => !roads.some(road => Math.abs(road - tree.z) < 5.6)
     && !(tree.x > 100 && Math.abs(tree.z - garage.z) < 9));
+  for (const park of parks) for (const offset of [-5, 0, 5]) trees.push({ x: park.x + offset, z: park.z + offset * 0.55, height: 4.1, spread: 1.9 });
   const shops = [
     ['BAY MARKET', '#356c69', '#a1cfbc'], ['HARBOR MOTORS', '#695548', '#f0c480'], ['PORT OFFICE', '#455d79', '#bed3e6'],
     ['RAILWAY CAFE', '#834b47', '#eac5a0'], ['DEPOT SUPPLY', '#5d6947', '#d5d1a1'], ['DOCK FREIGHT', '#476075', '#b9cfdb'],
     ['WEST YARD', '#5d635a', '#d8d6bb'], ['WAREHOUSE 08', '#635950', '#dccab0'], ['COAST GUARD', '#476d78', '#c0dfe0'],
   ];
-  const roadWear = roads.flatMap((road, column) => Array.from({ length: 31 }, (_, i) => ({
+  const roadWear = roads.flatMap((road, column) => Array.from({ length: 99 }, (_, i) => ({
     road,
     along: 1.5 + i * 3.4,
     across: ((i * 19 + column * 11) % 53 - 26) / 7,
@@ -899,20 +1014,20 @@
   }
 
   function drawDocks() {
-    if (camera.x < 48) return;
-    box(110, 91, 8, 12, 4.4, 0, ['#415b73', '#263d55', '#30445d']);
-    box(105.94, 91, 0.08, 7.5, 3.55, 0,
+    if (camera.x < size - 60) return;
+    box(size + 5, 291, 8, 12, 4.4, 0, ['#415b73', '#263d55', '#30445d']);
+    box(size + 0.94, 291, 0.08, 7.5, 3.55, 0,
       lost ? ['#ffd68c', '#cb944c', '#edb866'] : ['#70859b', '#364c65', '#415a73']);
-    box(105.85, 91, 0.16, 8.4, 0.28, 0,
+    box(size + 0.85, 291, 0.16, 8.4, 0.28, 0,
       lost ? ['#fff1b6', '#ffcc72', '#ffdf8c'] : ['#7099a9', '#385c70', '#51788c'], 3.68);
     for (let i = 0; i < 6; i += 1) {
-      box(111 + (i % 2) * 3.2, 29 + i * 7.4, 2.8, 6.1, 2.8, 0,
+      box(size + 6 + (i % 2) * 3.2, 229 + i * 7.4, 2.8, 6.1, 2.8, 0,
         i % 2 ? ['#aa715a', '#814d49', '#643941'] : ['#5d8c99', '#416d80', '#315365']);
     }
-    for (const z of [34, 66]) {
-      box(120, z, 1.1, 1.2, 13, 0, ['#ccaa84', '#967e69', '#675f66']);
-      box(115, z, 11, 1.05, 0.8, 0, ['#c39d76', '#987657', '#695263'], 12.1);
-      box(110, z, 0.16, 0.16, 4, 0, ['#9aa7bb', '#586479', '#475163'], 8.2);
+    for (const z of [234, 266]) {
+      box(size + 15, z, 1.1, 1.2, 13, 0, ['#ccaa84', '#967e69', '#675f66']);
+      box(size + 10, z, 11, 1.05, 0.8, 0, ['#c39d76', '#987657', '#695263'], 12.1);
+      box(size + 5, z, 0.16, 0.16, 4, 0, ['#9aa7bb', '#586479', '#475163'], 8.2);
     }
   }
 
@@ -938,19 +1053,25 @@
 
   function minimap(active) {
     const mapSize = Math.min(94, width * 0.25);
-    const scale = mapSize / size;
+    const scale = mapSize / 91;
+    const left = clamp(active.x - 45.5, 0, size - 91);
+    const top = clamp(active.z - 45.5, 0, size - 91);
     const x = width - mapSize - 10;
     const y = height - mapSize - 10;
+    context.save();
+    context.beginPath();
+    context.rect(x, y, mapSize, mapSize);
+    context.clip();
     context.fillStyle = '#111b2de8';
     context.fillRect(x, y, mapSize, mapSize);
     context.strokeStyle = '#698097';
     context.strokeRect(x, y, mapSize, mapSize);
     context.fillStyle = '#354459';
-    for (const b of blocks) context.fillRect(x + b.x * scale, y + b.z * scale, b.w * scale, b.d * scale);
+    for (const b of blocks) if (b.x + b.w >= left && b.x < left + 91 && b.z + b.d >= top && b.z < top + 91) context.fillRect(x + (b.x - left) * scale, y + (b.z - top) * scale, b.w * scale, b.d * scale);
     context.fillStyle = '#263a50';
     for (const road of roads) {
-      context.fillRect(x + (road - 3) * scale, y, 6 * scale, mapSize);
-      context.fillRect(x, y + (road - 3) * scale, mapSize, 6 * scale);
+      context.fillRect(x + (road - 3 - left) * scale, y, 6 * scale, mapSize);
+      context.fillRect(x, y + (road - 3 - top) * scale, mapSize, 6 * scale);
     }
     const dots = [];
     if (!inCar) for (const vehicle of vehicles) dots.push([vehicle, '#79f1c6']);
@@ -961,24 +1082,25 @@
     for (const [point, color] of dots) {
       context.beginPath();
       context.fillStyle = color;
-      context.arc(x + point.x * scale, y + point.z * scale, 3, 0, Math.PI * 2);
+      context.arc(clamp(x + (point.x - left) * scale, x + 3, x + mapSize - 3), clamp(y + (point.z - top) * scale, y + 3, y + mapSize - 3), 3, 0, Math.PI * 2);
       context.fill();
     }
-    const ax = x + active.x * scale;
-    const ay = y + active.z * scale;
+    const ax = x + (active.x - left) * scale;
+    const ay = y + (active.z - top) * scale;
     const direction = facing(active.angle);
     fill([[ax + direction.x * 6, ay + direction.z * 6],
       [ax - direction.x * 4 - direction.z * 3.5, ay - direction.z * 4 + direction.x * 3.5],
       [ax - direction.x * 4 + direction.z * 3.5, ay - direction.z * 4 - direction.x * 3.5]], '#f3fbff');
+    context.restore();
   }
 
   function drawPerson(person, stride, jacket, aiming = false) {
     const forward = facing(person.angle);
     const right = facing(person.angle + Math.PI / 2);
     const position = (x, y, z) => [
-      person.x + right.x * x + forward.x * z,
-      y,
-      person.z + right.z * x + forward.z * z,
+      person.x + right.x * x + forward.x * (z + y * Math.sin(person.tilt || 0)),
+      y * Math.cos(person.tilt || 0) + (person.elevation || 0),
+      person.z + right.z * x + forward.z * (z + y * Math.sin(person.tilt || 0)),
     ];
     const cloth = ['#7792a3', '#506a80', '#34495e'];
     const skin = ['#dfab83', '#bf8864', '#a46c52'];
@@ -1112,7 +1234,7 @@
       context.fillRect(-1, -1, 2, 2);
       context.restore();
     }
-    flat(-140, -140, 390, 390, '#65818a');
+    flat(-140, -140, size + 280, size + 280, '#65818a');
     for (let i = 0; i < 24; i += 1) {
       const w = width / 14;
       const x = ((i * w * 0.67 - camera.angle * 49) % (width + w) + width + w) % (width + w) - w;
@@ -1133,7 +1255,9 @@
         flat(size + 0.65, z + 2, 1.15, 0.16, '#c4d1c52f');
       }
     }
-    flat(101.2, 0, 6.8, size, '#697c54');
+    flat(329.2, 0, 10.8, size, '#697c54');
+    if (camera.x > size - 78) flat(size, 224, 20, 79, '#858980');
+    for (const park of parks) if (distance(park, camera) < 85) flat(park.x - 8, park.z - 8, 16, 16, '#738357');
     for (const road of roads) {
       flat(road - 5.15, 0, 10.3, size, '#a3a49a');
       flat(0, road - 5.15, size, 10.3, '#a3a49a');
@@ -1141,10 +1265,12 @@
     for (const road of roads) {
       flat(road - 4.6, 0, 9.2, size, '#676a6b');
       flat(0, road - 4.6, size, 9.2, '#676a6b');
-      for (let offset = 2; offset < size - 2; offset += 5) {
+      const start = Math.max(2, 2 + Math.floor((Math.min(camera.x, camera.z) - 52) / 5) * 5);
+      const end = Math.min(size - 2, Math.max(camera.x, camera.z) + 54);
+      for (let offset = start; offset < end; offset += 5) {
         if (roads.some(cross => Math.abs(cross - offset) < 5)) continue;
-        flat(road - 0.09, offset, 0.18, 2.1, '#b9b4a0');
-        flat(offset, road - 0.09, 2.1, 0.18, '#b9b4a0');
+        if (Math.abs(road - camera.x) < 54 && Math.abs(offset - camera.z) < 54) flat(road - 0.09, offset, 0.18, 2.1, '#b9b4a0');
+        if (Math.abs(road - camera.z) < 54 && Math.abs(offset - camera.x) < 54) flat(offset, road - 0.09, 2.1, 0.18, '#b9b4a0');
       }
     }
     for (const road of roads) {
@@ -1198,7 +1324,7 @@
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
     drawFerry();
-    for (const b of blocks) drawBuilding(b);
+    for (const b of blocks) if (Math.hypot(b.x - camera.x, b.z - camera.z) < 93) drawBuilding(b);
     drawStreetDetails();
     drawViaduct();
     for (const tree of trees) if (distance(tree, camera) < 48) drawTree(tree);
@@ -1217,11 +1343,8 @@
     }
     for (const vehicle of traffic) if (distance(vehicle, camera) < 48) drawCar(vehicle, false);
     for (const worker of workers) {
-      const cycle = elapsed * worker.pace;
-      const progress = (1 - Math.cos(cycle)) / 2;
-      const walker = { x: worker.x + worker.dx * progress, z: worker.z + worker.dz * progress,
-        angle: Math.atan2(worker.dx, -worker.dz) + (Math.sin(cycle) < 0 ? Math.PI : 0) };
-      if (distance(walker, camera) < 23) drawPerson(walker, Math.sin(elapsed * 11) * 0.18, worker.jacket);
+      if (distance(worker, camera) < 23) drawPerson(worker,
+        worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
     }
     if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450'], shotFlash > 0 || step?.kind === 'shoot');
     faces.sort((a, b) => b.depth - a.depth);
@@ -1379,6 +1502,7 @@
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;
   resetTraffic();
+  for (const worker of workers) Object.assign(worker, { homeX: worker.x, homeZ: worker.z, angle: 0, recover: 0 });
   selectedJob = availableJobs() - 1;
   jobBoard();
   updateHud();
