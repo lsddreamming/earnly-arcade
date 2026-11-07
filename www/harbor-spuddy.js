@@ -28,7 +28,12 @@
     })));
     const surface = document.createElement('canvas'); surface.width = 300; surface.height = 400;
     const ctx = surface.getContext('2d');
-    for (const image of images) ctx.drawImage(image, 0, 0, 300, 400);
+    for (let i = 0; i < images.length; i++) {
+      // The studio body includes a decorative shadow below the shoes. The game
+      // supplies a world-space contact shadow, so omit that part of the body.
+      if (layers[i].slot === 'avatar') ctx.drawImage(images[i], 0, 0, 300, 365, 0, 0, 300, 365);
+      else ctx.drawImage(images[i], 0, 0, 300, 400);
+    }
     return surface;
   }
   async function sync() {

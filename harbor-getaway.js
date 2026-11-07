@@ -1101,15 +1101,15 @@
     const view = window.HarborSpuddy?.view(frontDot);
     const sprite = view?.sprite;
     if (!sprite) { drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450']); return; }
-    const bob = Math.abs(Math.sin(walkCycle)) * walkBlend * 0.10;
-    const feet = cameraPoint([player.x, bob - 0.08, player.z]);
-    const head = cameraPoint([player.x, 2.05 + bob, player.z]);
+    // Anchor the shoe soles to the projected pavement, not the image padding.
+    const feet = cameraPoint([player.x, 0, player.z]);
+    const head = cameraPoint([player.x, 2.05, player.z]);
     if (feet[2] < 0.5 || head[2] < 0.5) return;
     const [x, bottom] = project(feet);
     const [, top] = project(head);
     const height = Math.max(1, bottom - top);
-    faces.push({ depth: feet[2], sprite, x, y: top, width: height * 0.75 * view.width, height,
-      sway: Math.sin(walkCycle) * walkBlend * 0.045 });
+    faces.push({ depth: feet[2], sprite, x, y: top, width: height * 0.56 * view.width, height,
+      stride: Math.sin(walkCycle) * walkBlend });
   }
 
   function drawPerson(person, stride, jacket, aiming = false) {
@@ -1332,7 +1332,7 @@
 
     const front = facing(car.angle);
     groundGlow(car.x, car.z, 1.7, '#0b112659');
-    if (!inCar) groundGlow(player.x, player.z, 0.65, '#0b112650');
+    if (!inCar) groundGlow(player.x, player.z, 0.34, '#07102080');
     if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
     groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
     if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
@@ -1370,8 +1370,18 @@
       if (face.sprite) {
         context.save();
         context.translate(face.x, face.y + face.height);
-        context.rotate(face.sway);
-        context.drawImage(face.sprite, -face.width / 2, -face.height, face.width, face.height);
+        const upper = face.height * 0.72;
+        const leg = face.height - upper;
+        const bounce = Math.abs(face.stride) * face.height * 0.008;
+        // Longer legs with alternating foot lift; the planted foot stays at y=0.
+        context.drawImage(face.sprite, 0, 0, 300, 304,
+          -face.width / 2 + face.stride * face.width * 0.015,
+          -face.height - bounce, face.width, upper + bounce);
+        for (const side of [-1, 1]) {
+          const lift = Math.max(0, face.stride * side) * face.height * 0.035;
+          context.drawImage(face.sprite, side < 0 ? 0 : 150, 304, 150, 74,
+            side < 0 ? -face.width / 2 : 0, -leg, face.width / 2, leg - lift);
+        }
         context.restore();
       } else if (face.points) fill(face.points, face.color);
       else {
