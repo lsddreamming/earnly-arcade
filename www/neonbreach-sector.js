@@ -22,6 +22,10 @@ MAP.splice(17,1,
  '100110001011000001',
  '100000001000000001',
  '111111111111111111');
+// Southern entry lanes, all facing north along clear floor toward the key.
+const STARTS=[
+ {x:1.5,y:25.5},{x:6.5,y:24.5},{x:3.5,y:23.5},{x:7.5,y:22.5}
+];
 function sectorEnemies(s,random){
  const zones=[[2,6,2],[7,12,3],[13,18,3],[19,25,4]];
  const placed=[];
@@ -47,9 +51,11 @@ function sectorEnemies(s,random){
  return placed;
 }
 function message(s,kind){s.events.push({type:'pickup',kind,amount:0})}
-E.createSector=function(random=Math.random){
+E.createSector=function(random=Math.random,previousStart=-1){
  const s=E.create(random);s.mode='sector';s.map=MAP.slice();s.wave=1;s.nextWave=Infinity;
- Object.assign(s.player,{x:3.5,y:25.5,a:-Math.PI/2});
+ const choices=STARTS.map((_,i)=>i).filter(i=>i!==previousStart);
+ s.sectorStart=choices[Math.floor(random()*choices.length)];
+ Object.assign(s.player,STARTS[s.sectorStart],{a:-Math.PI/2});
  s.key=false;s.doorOpen=false;s.weapon='carbine';s.hasShotgun=false;s.shells=0;s.completed=false;
  s.exit={x:14.5,y:3.5};s.supplies=[
  {x:3.5,y:2.5,type:'key'},{x:5.5,y:11.5,type:'shotgun'},

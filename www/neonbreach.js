@@ -36,7 +36,18 @@ function updateSectorHud(){
   if(sectorObjective.textContent!==objective)sectorObjective.textContent=objective;
 }
 
-const makeState=()=>selectedMode==='sector'?E.createSector():E.create();
+const sectorStartKey='neonBreachLastSectorStart';
+let lastSectorStart=-1;
+try{lastSectorStart=Number(localStorage.getItem(sectorStartKey)??-1)}catch{}
+function makeState(startingRun=false){
+ if(selectedMode!=='sector')return E.create();
+ const next=E.createSector(undefined,lastSectorStart);
+ if(startingRun){
+  lastSectorStart=next.sectorStart;
+  try{localStorage.setItem(sectorStartKey,String(lastSectorStart))}catch{}
+ }
+ return next;
+}
 let state=E.create(),running=false,starting=false,paused=false,last=0,raf=0,moveId=null,aimId=null,fireId=null,aimX=0,joy={forward:0,strafe:0},keys=new Set(),pauseControl;
 
 // Opt-in, on-device control evidence. Nothing is stored or uploaded.
@@ -111,7 +122,7 @@ function finish(){if(!running)return;running=false;audio.stop();if(state.complet
  const previous=modeBest(mode);
  if(state.score>previous)try{localStorage.setItem('neonBreachModeBest:'+mode,String(state.score))}catch(_){}
  const result=Arcade.recordResult(game,state.score);refreshModeChoices();chrome();Arcade.gameResult({game,icon:'🤖',title:state.completed?'Sector Secured':state.time>=180?'Breach Complete':'Neon Breach Run Over',outcome:state.kills+' robot'+(state.kills===1?'':'s')+' defeated',tip:state.kills===0?'Tip: hold FIRE while dragging the arena to aim.':'Tip: keep moving sideways while you fire.',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🎮 ${mode==='sector'?'Sector Run':'Wave Arena'} personal best: ${modeBest(mode).toLocaleString()} points`,`🌐 World ranking currently combines both modes`,`🤖 Robots defeated: ${state.kills}`,state.mode==='sector'?`⚿ Key: ${state.key?'found':'missing'} · Exit: ${state.completed?'reached':'not reached'}`:`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
-function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=makeState();if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
+function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=makeState(true);if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
 function selectMode(mode){
  if(running||starting||!['arena','sector'].includes(mode))return;
  selectedMode=mode;state=makeState();

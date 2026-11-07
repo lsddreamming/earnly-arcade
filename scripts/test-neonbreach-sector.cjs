@@ -1,6 +1,24 @@
 const assert=require('node:assert/strict');
 const E=require('../neonbreach-engine.js');global.NeonBreachEngine=E;require('../neonbreach-sector.js');
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name)}
+test('Sector starts vary, avoid repeats, and face open paths to the key',()=>{
+ const starts=new Set();
+ for(const roll of [.01,.26,.51,.76]){
+  const s=E.createSector(()=>roll);
+  const {x,y,a}=s.player;
+  starts.add(s.sectorStart);
+  assert.equal(E.clear(x,y,.24,s.map),true);
+  for(let distance=.25;distance<=3;distance+=.25){
+   assert.equal(E.clear(x+Math.cos(a)*distance,y+Math.sin(a)*distance,.24,s.map),true);
+  }
+  E.navigation(s);
+  const key=s.supplies.find(item=>item.type==='key');
+  assert.ok(s.nav[Math.floor(key.y)*s.map[0].length+Math.floor(key.x)]>=0);
+  assert.ok(s.enemies.every(enemy=>Math.hypot(enemy.x-x,enemy.y-y)>=3.5));
+  assert.notEqual(E.createSector(()=>roll,s.sectorStart).sectorStart,s.sectorStart);
+ }
+ assert.equal(starts.size,4);
+});
 test('Gold door is solid until the key is collected',()=>{const s=E.createSector(()=>.4);s.player.x=7.4;s.player.y=13.5;E.tick(s,.05);assert.equal(s.doorOpen,false);assert.equal(E.wall(8.5,13.5,s.map),true);s.player.x=3.5;s.player.y=2.5;E.tick(s,.05);assert.equal(s.key,true);s.player.x=7.4;s.player.y=13.5;E.tick(s,.05);assert.equal(s.doorOpen,true);assert.equal(E.wall(8.5,13.5,s.map),false)});
 test('Navigation cannot cross the locked door but finds the exit after opening',()=>{const s=E.createSector();E.navigation(s);assert.equal(s.nav[3*18+14],-1);s.player.x=3.5;s.player.y=2.5;E.tick(s,.05);s.player.x=7.4;s.player.y=13.5;E.tick(s,.05);E.navigation(s);assert.ok(s.nav[3*18+14]>=0)});
 test('One shotgun pickup grants shells once, and ammo is consumed per trigger',()=>{const s=E.createSector();s.player.x=5.5;s.player.y=11.5;E.tick(s,.05);E.tick(s,.05);assert.equal(s.shells,8);assert.equal(s.weapon,'shotgun');s.enemies=[{x:5.5,y:10,type:'tank',hp:4,maxHp:4,spawn:0}];s.player.a=-Math.PI/2;s.cooldown=0;E.fire(s);assert.equal(s.enemies.length,0);assert.equal(s.shells,7);E.fire(s);assert.equal(s.shells,7);assert.equal(s.fired,1);assert.equal(s.hits,1)});
