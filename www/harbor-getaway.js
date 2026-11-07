@@ -477,7 +477,11 @@
     won = false;
     Object.assign(player, { x: 12, z: 43, angle: 0 });
     car = spawn(activeJob?.model ?? 'coupe', 12, 32);
-    vehicles = activeJob ? [car] : [car, spawn('muscle', 12, 54), spawn('van', 40, 40, Math.PI / 2), spawn('muscle', 152, 152), spawn('coupe', 264, 208), spawn('van', 320, 292)];
+    // Park parallel to the curb, halfway between junctions, clear of traffic lanes.
+    if (!activeJob) Object.assign(car, { x: 17.3, z: 26 });
+    vehicles = activeJob ? [car] : [car, spawn('muscle', 17.3, 54),
+      spawn('van', 45.3, 54), spawn('muscle', 157.3, 166),
+      spawn('coupe', 269.3, 222), spawn('van', 325.3, 306)];
     Object.assign(patrol, { x: 40, z: 56, angle: 0 });
     Object.assign(backup, { x: 68, z: 40, angle: 0 });
     Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
