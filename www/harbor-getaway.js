@@ -298,7 +298,7 @@
     displacedDrivers.length = 0;
     for (const vehicle of traffic) {
       vehicle.cruiseSpeed ??= vehicle.speed;
-      Object.assign(vehicle, { ...models.coupe, occupied: true, taken: false, speed: vehicle.cruiseSpeed });
+      Object.assign(vehicle, { ...models.coupe, occupied: true, taken: false, doorUntil: 0, speed: vehicle.cruiseSpeed });
       const [[x, z], [nextX, nextZ]] = vehicle.route;
       Object.assign(vehicle, { x, z, next: 1, angle: Math.atan2(nextX - x, z - nextZ) });
     }
@@ -306,6 +306,9 @@
 
   function updateTraffic(dt) {
     const active = inCar ? car : player;
+    for (let i = displacedDrivers.length - 1; i >= 0; i--) {
+      if (displacedDrivers[i].age > 25) displacedDrivers.splice(i, 1);
+    }
     for (const driver of displacedDrivers) {
       driver.age += dt;
       if (driver.age < 0.55) {
@@ -532,7 +535,12 @@
         const x = vehicle.x + side.x * sign * 1.65;
         const z = vehicle.z + side.z * sign * 1.65;
         if (blocked(x,z,0.3)) { notify('Approach the other door'); return; }
-        displacedDrivers.push({ x, z, fromX:vehicle.x, fromZ:vehicle.z, exitX:x, exitZ:z, angle: vehicle.angle + sign * Math.PI/2, age:0 });
+        const fromX = vehicle.x + side.x * sign * 0.5;
+        const fromZ = vehicle.z + side.z * sign * 0.5;
+        displacedDrivers.push({ x:fromX, z:fromZ, fromX, fromZ, exitX:x, exitZ:z, angle: vehicle.angle + sign * Math.PI/2, age:0 });
+        vehicle.doorSide = sign;
+        vehicle.doorUntil = elapsed + 0.9;
+        cue(180, 90, 0.12, 'triangle');
         vehicle.occupied = false;
         vehicle.taken = true;
         vehicle.speed = 0;
@@ -954,6 +962,23 @@
       part(0, muscle ? -0.19 : 0.05, 1.76, 2.02, roofHeight, 0.92, ['#77919b', '#4c6874', '#3a505a'], 0.73);
       part(0, muscle ? -0.19 : 0.05, 1.29, 1.47, 0.09, 0.92 + roofHeight, paint, 0.92);
       if (muscle) part(0, -1.63, 1.73, 0.3, 0.12, 0.93, ['#555b63', '#363e48', '#293440']);
+    }
+    if (detailed && actor.occupied) {
+      // Dark driver silhouettes on the side glazing remain readable at phone scale.
+      for (const sign of [-1,1]) {
+        const point = (ahead,y) => [actor.x+side.x*sign*0.82+front.x*ahead,y,actor.z+side.z*sign*0.82+front.z*ahead];
+        polygon([point(0.12,1.05),point(0.52,1.05),point(0.45,1.22),point(0.18,1.22)], '#26333d');
+        polygon([point(0.22,1.22),point(0.43,1.22),point(0.42,1.37),point(0.25,1.40)], '#b78c6b');
+      }
+    }
+    if (detailed && actor.doorUntil > elapsed) {
+      const openness = Math.sin(Math.min(1,(actor.doorUntil-elapsed)/0.9)*Math.PI);
+      const sign = actor.doorSide || 1;
+      const across = sign * (1.06 + openness * 0.48);
+      const doorAngle = actor.angle + sign * openness * 0.85;
+      const x=actor.x+side.x*across+front.x*0.25, z=actor.z+side.z*across+front.z*0.25;
+      box(x,z,0.09,1.25,0.48,doorAngle,paint,0.45);
+      box(x,z,0.065,1.12,0.36,doorAngle,['#96afb6','#66838d','#486370'],0.94,0.85);
     }
     if (!police && !actor.paint) part(0, -1.78, 1.94, 0.08, 0.065, 0.78, ['#a9e4ca', '#83bdab', '#618f87']);
     part(0, -1.81, 2.07, 0.16, 0.17, 0.28, ['#657489', '#344256', '#414e64']);
