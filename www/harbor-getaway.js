@@ -1112,18 +1112,21 @@
   function drawSpuddy() {
     const forward = facing(player.angle), right = facing(player.angle + Math.PI / 2);
     const stride = Math.sin(walkCycle) * walkBlend;
-    const bob = Math.abs(stride) * 0.018;
+    const bob = Math.abs(stride) * 0.012;
     const front = window.HarborSpuddy?.view(1).sprite;
     const back = window.HarborSpuddy?.view(-1).sprite;
     const skin = ['#dfb37c', '#bf8d5b', '#94643f'];
     const cloth = ['#57768f', '#3a546e', '#293d55'];
     const denim = ['#405b77', '#304760', '#22364c'];
     const shoe = ['#40546a', '#293b50', '#1b2a3c'];
-    const position = (x,y,z) => [player.x + right.x*x + forward.x*z, y, player.z + right.z*x + forward.z*z];
+    const position = (x,y,z) => {
+      const lean = Math.max(0,y-0.6)*walkBlend*0.055;
+      return [player.x+right.x*x+forward.x*(z+lean),y,player.z+right.z*x+forward.z*(z+lean)];
+    };
     // Rounded ring meshes retain thickness at every heading. Front/back artwork
     // is wrapped onto the head and jacket rather than scaled as a billboard.
     function rounded(rings, colors, crop) {
-      const sides = 12;
+      const sides = crop ? 16 : 10;
       const vertices = rings.map(([x,y,z,rx,rz]) => Array.from({length:sides},(_,i) => {
         const angle = i / sides * Math.PI * 2;
         return position(x + Math.cos(angle)*rx,y,z + Math.sin(angle)*rz);
@@ -1138,12 +1141,12 @@
         const light=-0.62*nx+0.78*nz;
         const count=faces.length;
         polygon(points,colors[light>0.44?0:light< -0.32?2:1]);
-        if(crop && faces.length>count && points.every(p=>cameraPoint(p)[2]>1)) {
+        if(crop && Math.abs(Math.sin(angle)) > 0.6 && faces.length>count && points.every(p=>cameraPoint(p)[2]>1)) {
           const texture=Math.sin(angle)>=0?front:back;
           if(texture) {
             const [sx,sy,sw,sh]=crop;
             const u=j=>sx+(Math.cos(j/sides*Math.PI*2)+1)*0.5*sw;
-            const v=r=>sy+(1-r/(rings.length-1))*sh;
+            const v=r=>sy+(1-(rings[r][1]-rings[0][1])/(rings.at(-1)[1]-rings[0][1]))*sh;
             faces[faces.length-1].texture=texture;
             faces[faces.length-1].uv=[[u(i),v(row-1)],[u(next),v(row-1)],[u(next),v(row)],[u(i),v(row)]];
           }
@@ -1152,17 +1155,21 @@
       polygon(vertices.at(-1),colors[0]);
     }
     for(const sign of [-1,1]) {
-      const step=sign*stride, lift=Math.max(0,step)*0.10;
-      const x=sign*0.14, z=step*0.13;
+      const step=sign*stride, lift=Math.max(0,step)*0.13;
+      const x=sign*0.14, z=step*0.19;
       rounded([[x,0.008+lift,z+0.035,0.095,0.17],[x,0.045+lift,z+0.035,0.095,0.17]],['#d2dce1','#b7c6d0','#8799aa']);
       rounded([[x,0.045+lift,z+0.035,0.09,0.165],[x,0.12+lift,z+0.025,0.085,0.14],[x,0.16+lift,z,0.06,0.08]],shoe);
-      rounded([[x,0.14+lift,z,0.07,0.075],[x,0.38, -step*0.045,0.085,0.085],[x,0.66+bob,0,0.10,0.10]],denim);
-      const armZ=-step*0.13;
-      rounded([[sign*0.30,0.70+bob,armZ,0.065,0.065],[sign*0.32,0.78+bob,armZ,0.075,0.07],[sign*0.29,1.04+bob,0,0.08,0.085]],cloth);
-      rounded([[sign*0.30,0.65+bob,armZ,0.025,0.035],[sign*0.30,0.69+bob,armZ,0.065,0.065],[sign*0.30,0.75+bob,armZ,0.055,0.055]],skin);
+      rounded([[x,0.14+lift,z,0.07,0.075],[x,0.38+lift*0.4, Math.max(0,step)*0.12,0.085,0.085],[x,0.66+bob,0,0.10,0.10]],denim);
+      const armZ=-step*0.19;
+      rounded([[sign*0.30,0.75+bob,armZ+0.035,0.055,0.06],[sign*0.32,0.85+bob,armZ-0.025,0.065,0.07],[sign*0.30,0.96+bob,armZ*0.4,0.075,0.08],[sign*0.27,1.07+bob,0,0.085,0.09]],cloth);
+      rounded([[sign*0.30,0.68+bob,armZ+0.035,0.025,0.035],[sign*0.30,0.72+bob,armZ+0.035,0.065,0.065],[sign*0.30,0.78+bob,armZ+0.035,0.055,0.055]],skin);
     }
     rounded([[0,0.62+bob,0,0.20,0.14],[0,0.73+bob,0,0.24,0.17],[0,0.93+bob,0,0.25,0.18],[0,1.10+bob,0,0.22,0.16],[0,1.16+bob,0,0.14,0.12]],cloth,[88,174,126,130]);
+    // A raised hood and cuffs give the jacket a readable silhouette from behind.
+    rounded([[0,1.00+bob,-0.15,0.13,0.045],[0,1.07+bob,-0.17,0.17,0.075],[0,1.15+bob,-0.11,0.14,0.06]],cloth);
     rounded([[0,1.12+bob,0,0.10,0.09],[0,1.18+bob,0,0.20,0.16],[0,1.29+bob,0,0.25,0.21],[0,1.48+bob,0,0.26,0.22],[0,1.64+bob,0,0.23,0.20],[0,1.73+bob,0,0.15,0.13],[0,1.76+bob,0,0.025,0.025]],skin,[80,28,143,158]);
+    // Small dimensional nose keeps the face readable in a three-quarter view.
+    rounded([[0,1.37+bob,0.212,0.025,0.025],[0,1.40+bob,0.24,0.044,0.048],[0,1.44+bob,0.22,0.024,0.024]],skin);
   }
 
   function textureTriangle(texture, dest, uv) {
