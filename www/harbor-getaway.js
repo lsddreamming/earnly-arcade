@@ -37,6 +37,7 @@
 
   const keys = new Set();
   const pointers = new Map();
+  const firePointers = new Set();
   const bindings = {
     ShiftLeft: 'sprint', ShiftRight: 'sprint', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -329,6 +330,7 @@
 
   function clearControls() {
     footSpeed = actualFootSpeed = visualSpeed = turnLean = 0;
+    firePointers.clear();
     footPlants.fill(null);
     keys.clear();
     pointers.clear();
@@ -748,6 +750,7 @@
   function update(dt) {
     elapsed += dt;
     shotFlash = Math.max(0, shotFlash - dt);
+    if (firePointers.size || keys.has('fire')) shoot();
     const horizontal = dragTouch ? dragTouch.dx : Number(held('right')) - Number(held('left'));
     const vertical = dragTouch ? dragTouch.dy : Number(held('down')) - Number(held('up'));
     const look = Number(held('lookRight')) - Number(held('lookLeft'));
@@ -1837,11 +1840,11 @@
     if (action && phase === 'playing' && !(action === 'brake' && (!inCar || event.target?.closest?.('button, a')))) {
       event.preventDefault();
       keys.add(action);
-    } else if (event.code === 'KeyF' && !event.repeat) shoot();
+    } else if (event.code === 'KeyF') { keys.add('fire'); if (!event.repeat) shoot(); }
     else if (event.code === 'KeyE' && !event.repeat) interact();
     else if (event.code === 'Escape' && !event.repeat) pause();
   });
-  document.addEventListener('keyup', event => keys.delete(bindings[event.code]));
+  document.addEventListener('keyup', event => keys.delete(event.code === 'KeyF' ? 'fire' : bindings[event.code]));
   window.addEventListener('blur', () => {
     clearControls();
     pauseOnExit();
@@ -1935,6 +1938,7 @@
   });
 
   function clearPointer(event) {
+    firePointers.delete(event.pointerId);
     pointers.delete(event.pointerId);
     if (event.pointerId === lookPointer) lookPointer = null;
   }
@@ -1984,7 +1988,19 @@
   element('free-roam').addEventListener('click', () => reset(true));
   element('open-board').addEventListener('click', showBoard);
   element('jobs').addEventListener('click', showBoard);
-  element('fire').addEventListener('click', shoot);
+  const fireButton = element('fire');
+  fireButton.style.touchAction = 'none';
+  fireButton.style.userSelect = 'none';
+  fireButton.style.webkitTouchCallout = 'none';
+  fireButton.addEventListener('pointerdown', event => {
+    if (phase !== 'playing' || inCar || event.button !== 0) return;
+    event.preventDefault();
+    fireButton.setPointerCapture?.(event.pointerId);
+    firePointers.add(event.pointerId);
+    shoot();
+  });
+  // Preserve keyboard/assistive activation without duplicating a pointer shot.
+  fireButton.addEventListener('click', event => { if (!event || event.detail === 0) shoot(); });
   element('mission').addEventListener('change', describeJob);
   function showSound() {
     const button = element('sound');
