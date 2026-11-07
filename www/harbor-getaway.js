@@ -143,6 +143,8 @@
   let walkCycle = 0;
   let walkBlend = 0;
   let runEnabled = false;
+  let footSpeed = 0;
+  let actualFootSpeed = 0;
 
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -307,6 +309,7 @@
   }
 
   function clearControls() {
+    footSpeed = actualFootSpeed = 0;
     keys.clear();
     pointers.clear();
     lookPointer = null;
@@ -706,6 +709,7 @@
     if (look) lookBy(look * 1.8 * dt);
     else if (inCar && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) driveLook *= Math.exp(-1.8 * dt);
     let walking = false;
+    let footTravel = 0;
     if (inCar) {
       const braking = held('brake');
       const steer = dragTouch
@@ -751,19 +755,27 @@
       const oldZ = player.z;
       const pace = runEnabled || held('sprint') ? 11 : 7;
       const speed = dragTouch ? pace * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : pace;
-      move(player, direction.x * speed * alignment * dt, direction.z * speed * alignment * dt, 0.45);
+      const desiredSpeed = speed * alignment;
+      const rate = desiredSpeed > footSpeed ? 9 : 16;
+      footSpeed += (desiredSpeed-footSpeed)*(1-Math.exp(-rate*dt));
+      // Never coast backward while pivoting, even with leftover sprint momentum.
+      const travelSpeed = footSpeed * alignment;
+      move(player, direction.x * travelSpeed * dt, direction.z * travelSpeed * dt, 0.45);
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
         if (distance(player, vehicle) > 3) continue;
         const gap = pointToVehicle(player, vehicle);
         if (gap < 1.22 && gap < pointToVehicle(previous, vehicle)) Object.assign(player, previous);
       }
-      walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
-    } else footHeading = null;
+      footTravel = Math.hypot(player.x - oldX, player.z - oldZ);
+      walking = footTravel > dt * 0.1;
+      if (footTravel < 0.00001) footSpeed = 0;
+    } else { footHeading = null; footSpeed = 0; }
     updateTraffic(dt);
     updateWorkers(dt);
-    if (walking) walkCycle += dt * (runEnabled || held('sprint') ? 22 : 16);
-    walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
+    actualFootSpeed = dt > 0 ? footTravel/dt : 0;
+    walkCycle += footTravel * 2.05;
+    walkBlend += (clamp(actualFootSpeed/7,0,1)-walkBlend)*(1-Math.exp(-12*dt));
 
     const active = inCar ? car : player;
     if (heatLevel) {
@@ -1314,7 +1326,7 @@
     const denim = ['#405b77', '#304760', '#22364c'];
     const shoe = ['#40546a', '#293b50', '#1b2a3c'];
     const position = (x,y,z) => {
-      const lean = Math.max(0,y-0.6)*walkBlend*0.055;
+      const lean = Math.max(0,y-0.6)*walkBlend*(0.045+clamp(actualFootSpeed/11,0,1)*0.045);
       return [player.x+right.x*x+forward.x*(z+lean),y,player.z+right.z*x+forward.z*(z+lean)];
     };
     // Rounded ring meshes retain thickness at every heading. Front/back artwork
