@@ -265,6 +265,9 @@
   function moveVehicle(actor, dx, dz) {
     const previous = { x: actor.x, z: actor.z, angle: actor.angle };
     const edge = move(actor, dx, dz, 1.22);
+    if (!inCar && (actor===patrol || actor===backup) && pointToVehicle(player,actor)<1.35) {
+      actor.x=previous.x; actor.z=previous.z; return 'player';
+    }
     for (const group of [vehicles, traffic, heatLevel > 1 ? [patrol, backup] : [patrol]]) {
       for (const other of group) {
         if (actor === other || distance(actor, other) >= 5) continue;
@@ -494,10 +497,12 @@
   }
 
   function wanted(level) {
+    const escalating=level>heatLevel;
     heatLevel = Math.max(heatLevel, level);
     lost = false;
-    notify(heatLevel > 1 ? 'Police backup en route' : 'Patrol alerted');
-    unseen = caught = 0;
+    if(escalating) notify(heatLevel > 1 ? 'Police backup en route' : 'Patrol alerted');
+    unseen = 0;
+    if(escalating) caught=0;
     for (const unit of [patrol, backup]) {
       unit.last = { x: inCar ? car.x : player.x, z: inCar ? car.z : player.z };
       unit.path = [];
@@ -757,7 +762,7 @@
     if (target) {
       unit.angle = Math.atan2(target.x - unit.x, unit.z - target.z);
       const direction = facing(unit.angle);
-      const speed = Math.min(separation, seen ? 12 + heatLevel * 1.55 : 8.5 + heatLevel * 1.45);
+      const speed = Math.min(Math.max(0,separation-(inCar?3.8:3.05))*3, seen ? 12 + heatLevel * 1.55 : 8.5 + heatLevel * 1.45);
       moveVehicle(unit, direction.x * speed * dt, direction.z * speed * dt);
     }
     return { seen, separation };
@@ -1089,6 +1094,11 @@
   }
 
   function drawCar(actor, police) {
+    const start=faces.length;
+    drawCarMesh(actor,police);
+    for(let i=start;i<faces.length;i++) faces[i].vehicle=true;
+  }
+  function drawCarMesh(actor, police) {
     if (actor.destroyed) {
       box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
       const age=elapsed-actor.blastAt;
@@ -1897,7 +1907,7 @@
         }
         context.restore();
       } else if (face.points) {
-        const obscures = face.scenery && !face.architecture && face.nearDepth < subjectView[2] - 0.6
+        const obscures = (face.scenery || (!inCar && face.vehicle)) && !face.architecture && face.nearDepth < subjectView[2] - 0.6
           && Math.min(...face.points.map(p => p[0])) < subjectScreen[0] + protectWidth
           && Math.max(...face.points.map(p => p[0])) > subjectScreen[0] - protectWidth
           && Math.min(...face.points.map(p => p[1])) < subjectScreen[1] + protectHeight
@@ -1924,7 +1934,19 @@
     const target = objectiveTarget();
     if (target) pin(target, target === car ? 3.2 : 3, target === car ? '#79f1c6' : '#ffd373',
       target === car ? 'GETAWAY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
-    if (elapsed-shotAt < 0.09 && shotTarget) {
+    if (!inCar && phase==='playing') {
+      const aim=facing(footView);
+      let range=6;
+      for(let d=0.5;d<6;d+=0.25) if(blocked(player.x+aim.x*d,player.z+aim.z*d,0.05)) { range=d; break; }
+      const view=cameraPoint([player.x+aim.x*range,1.1,player.z+aim.z*range]);
+      if(view[2]>0.3) {
+        const [x,y]=project(view);
+        context.save(); context.strokeStyle='#e8fff0cc'; context.lineWidth=1.5;
+        context.beginPath(); context.arc(x,y,6,0,Math.PI*2); context.stroke();
+        context.fillStyle='#fff6ce'; context.fillRect(x-1,y-1,2,2); context.restore();
+      }
+    }
+    if (elapsed-shotAt < 0.055 && shotTarget) {
       const start = cameraPoint([player.x, 1.07, player.z]);
       const end = cameraPoint([shotTarget.x, 1.42, shotTarget.z]);
       if (start[2] > 1 && end[2] > 1) {
