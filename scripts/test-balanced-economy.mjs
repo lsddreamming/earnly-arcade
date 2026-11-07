@@ -64,7 +64,7 @@ for(const game of games){
   assert(duplicate.duplicate);assert.equal(duplicate.wallet.balance,r.wallet.balance);
  }
 }
-for(const [m,want] of [[0,0],[250,4],[3750,60],[7175,112],[10000,160],[12500,200]])assert.equal(reward('neonBreach',m),want);
+for(const [m,want] of [[0,0],[200,4],[3750,72],[7175,140],[10000,200],[12500,200]])assert.equal(reward('neonBreach',m),want);
 for(const [game,m,a,want] of [['jungleHopper',30,0,25],['jungleHopper',30,10,35],['jungleHopper',100,99,50],['snake',25,0,39],['blockDrop',10,0,45],['starDefender',1200,0,60],['coinCatch',75,0,28],['crystalCommand',45,120,100]])assert.equal(reward(game,m,a),want);
 for(const [m,a,want] of [[3,0,1],[33,0,13],[33,33,16],[36,33,17],[60,40,29],[100,100,53],[210,210,100]])assert.equal(reward('towerStack',m,a),want);
 for(const [m,want] of [[0,0],[4,0],[5,2],[10,4],[25,12],[33,14],[50,26],[75,42],[100,60],[150,80],[199,98],[200,100]])assert.equal(reward('safeCracker',m),want);
