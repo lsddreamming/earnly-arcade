@@ -1095,7 +1095,11 @@
   }
 
   function drawSpuddy() {
-    const sprite = window.HarborSpuddy?.sprite;
+    const forward = facing(player.angle);
+    const dx = eye.x - player.x, dz = eye.z - player.z;
+    const frontDot = (forward.x * dx + forward.z * dz) / (Math.hypot(dx, dz) || 1);
+    const view = window.HarborSpuddy?.view(frontDot);
+    const sprite = view?.sprite;
     if (!sprite) { drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450']); return; }
     const bob = Math.abs(Math.sin(walkCycle)) * walkBlend * 0.10;
     const feet = cameraPoint([player.x, bob - 0.08, player.z]);
@@ -1104,7 +1108,7 @@
     const [x, bottom] = project(feet);
     const [, top] = project(head);
     const height = Math.max(1, bottom - top);
-    faces.push({ depth: feet[2], sprite, x, y: top, width: height * 0.75, height,
+    faces.push({ depth: feet[2], sprite, x, y: top, width: height * 0.75 * view.width, height,
       sway: Math.sin(walkCycle) * walkBlend * 0.045 });
   }
 
