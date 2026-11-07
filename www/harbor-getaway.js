@@ -891,6 +891,7 @@
   let scenery = false;
   let architecture = false;
   let buildingSurface = false;
+  let surfaceFogDepth;
 
   function cameraPoint([x, y, z]) {
     const dx = x - eye.x;
@@ -937,9 +938,9 @@
     const projected = clipped.map(project);
     if (projected.every(p => p[0] < 0) || projected.every(p => p[0] > width)
       || projected.every(p => p[1] < 0) || projected.every(p => p[1] > height)) return;
-    if (scenery) color = distanceColor(color, view.reduce((sum,p) => sum+p[2],0)/view.length);
+    if (scenery) color = distanceColor(color, surfaceFogDepth ?? view.reduce((sum,p) => sum+p[2],0)/view.length);
     if (ground) fill(projected, color);
-    else faces.push({ points: projected, color, scenery, architecture, nearDepth: Math.min(...clipped.map(p => p[2])), depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length - (architecture && !buildingSurface ? 1.2 : 0) });
+    else faces.push({ points: projected, color, scenery, architecture, buildingSurface, nearDepth: Math.min(...clipped.map(p => p[2])), depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length - (architecture && !buildingSurface ? 1.2 : 0) });
   }
 
   function fill(points, color) {
@@ -957,14 +958,16 @@
   function buildingFace(points,color) {
     if (!architecture) { polygon(points,color); return; }
     const length = (a,b) => Math.hypot(...a.map((v,i)=>v-b[i]));
-    const columns = Math.max(1,Math.ceil(length(points[0],points[1])/(Math.hypot(points[0][0]-eye.x,points[0][2]-eye.z)>40 ? 6 : 3)));
-    const rows = Math.max(1,Math.ceil(length(points[0],points[3])/(Math.hypot(points[0][0]-eye.x,points[0][2]-eye.z)>40 ? 6 : 3)));
+    const columns = Math.max(1,Math.ceil(length(points[0],points[1])/(Math.hypot(points[0][0]-eye.x,points[0][2]-eye.z)>47 ? 6 : 0.8)));
+    const rows = Math.max(1,Math.ceil(length(points[0],points[3])/(Math.hypot(points[0][0]-eye.x,points[0][2]-eye.z)>47 ? 6 : 0.8)));
     const at = (u,v) => points[0].map((_,i)=>(points[0][i]*(1-u)+points[1][i]*u)*(1-v)+(points[3][i]*(1-u)+points[2][i]*u)*v);
+    surfaceFogDepth = points.reduce((sum,p)=>sum+cameraPoint(p)[2],0)/points.length;
     buildingSurface = true;
     for(let row=0;row<rows;row++) for(let col=0;col<columns;col++) {
       polygon([at(col/columns,row/rows),at((col+1)/columns,row/rows),at((col+1)/columns,(row+1)/rows),at(col/columns,(row+1)/rows)],color);
     }
     buildingSurface = false;
+    surfaceFogDepth = undefined;
   }
   function box(x, z, w, d, h, angle, colors, base = 0, taper = 1) {
     const cosine = Math.cos(angle);
@@ -1191,17 +1194,20 @@
     for (let level = 2.1; level < b.h - 1.25; level += 2.1) {
       for (let i = 1.4; i < b.w - 1; i += 2.05) {
         const left = b.x + i;
+        let paneDepth = cameraPoint([left+0.43,level+0.45,frontZ])[2]-1.2;
+        const pane = (points,color) => polygon(points,color,false,paneDepth-=0.001);
         const color = Math.floor(i + level + b.x) % 3 ? '#4e5d60' : '#728289';
-        polygon([[left - 0.08, level - 0.08, frontZ], [left + 0.94, level - 0.08, frontZ],
+        pane([[left - 0.08, level - 0.08, frontZ], [left + 0.94, level - 0.08, frontZ],
           [left + 0.94, level + 0.98, frontZ], [left - 0.08, level + 0.98, frontZ]], '#b0aaa0');
-        polygon([[left, level, frontZ], [left + 0.86, level, frontZ],
+        pane([[left, level, frontZ], [left + 0.86, level, frontZ],
           [left + 0.86, level + 0.9, frontZ], [left, level + 0.9, frontZ]], color);
         if (nearDetail) {
           box(left+0.43,frontZ,1.08,0.24,0.09,0,['#b6b2a5','#8c8d86','#777e7d'],level-0.09);
-          polygon([[left+0.40,level,frontZ],[left+0.46,level,frontZ],[left+0.46,level+0.90,frontZ],[left+0.40,level+0.90,frontZ]],'#adb3ae');
-          polygon([[left+0.06,level+0.61,frontZ],[left+0.35,level+0.61,frontZ],[left+0.35,level+0.82,frontZ],[left+0.06,level+0.82,frontZ]],'#92a8ac');
+          pane([[left+0.40,level,frontZ],[left+0.46,level,frontZ],[left+0.46,level+0.90,frontZ],[left+0.40,level+0.90,frontZ]],'#adb3ae');
+          pane([[left+0.06,level+0.61,frontZ],[left+0.35,level+0.61,frontZ],[left+0.35,level+0.82,frontZ],[left+0.06,level+0.82,frontZ]],'#92a8ac');
         }
       }
+      if (b.storefront !== undefined && level < 3) continue;
       for (let i = 1; i < b.d - 0.8; i += 1.65) {
         const near = b.z + i;
         polygon([[sideX, level, near], [sideX, level, near + 0.7],
@@ -1749,6 +1755,12 @@
           && Math.max(...face.points.map(p => p[1])) > subjectScreen[1] - protectHeight;
         context.globalAlpha = obscures ? 0.35 : 1;
         fill(face.points, face.color);
+        // Cover subpixel gaps between tessellated pieces of the same solid wall.
+        if (face.buildingSurface) {
+          context.strokeStyle = face.color;
+          context.lineWidth = 0.65;
+          context.stroke();
+        }
         if(face.texture) for(const ids of [[0,1,2],[0,2,3]])
           textureTriangle(face.texture,ids.map(i=>face.points[i]),ids.map(i=>face.uv[i]));
         context.globalAlpha = 1;
