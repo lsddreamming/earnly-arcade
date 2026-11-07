@@ -22,7 +22,7 @@ $migration$;
 DO $ledger_guard$
 DECLARE original text; updated text;
 old_guard text := 'if p_amount < 0 or p_amount > 100 then';
-new_guard text := 'if p_amount < 0 or p_amount > case when p_source_type = ''game'' and p_game = ''neonBreach'' and coalesce(p_metric,0) >= 5000 then 200 else 100 end then';
+new_guard text := 'if p_amount < 0 or p_amount > (case when p_source_type = ''game'' and p_game = ''neonBreach'' and coalesce(p_metric,0) >= 5000 then 200 else 100 end) then';
 BEGIN
  SELECT pg_get_functiondef('public.apply_coin_ledger_event(uuid,text,text,text,text,integer,integer,integer)'::regprocedure) INTO original;
  IF position(new_guard in original)>0 THEN RETURN; END IF;
