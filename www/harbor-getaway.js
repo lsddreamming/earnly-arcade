@@ -585,7 +585,7 @@
     const turn = (inCar ? car.angle + driveLook : footView) - camera.angle;
     camera.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * smoothing;
     const forward = facing(camera.angle);
-    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : 11;
+    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : 9.6;
     let clearance = targetDistance;
     for (let offset = 2; offset < targetDistance; offset += 0.5) {
       const x = camera.x - forward.x * offset;
@@ -888,19 +888,102 @@
       [ax - direction.x * 4 + direction.z * 3.5, ay - direction.z * 4 - direction.x * 3.5]], '#f3fbff');
   }
 
-  function drawPerson(player, stride, jacket) {
-    const forward = facing(player.angle);
-    const side = facing(player.angle + Math.PI / 2);
-    for (const sign of [-1, 1]) {
-      box(player.x + sign * (side.x * 0.16 + forward.x * stride),
-        player.z + sign * (side.z * 0.16 + forward.z * stride),
-        0.23, 0.31, 0.59, player.angle, ['#8396ad', '#4a617d', '#364b63']);
-      box(player.x + sign * (side.x * 0.39 - forward.x * stride * 0.75),
-        player.z + sign * (side.z * 0.39 - forward.z * stride * 0.75),
-        0.17, 0.23, 0.48, player.angle, ['#f2be92', '#c58764', '#aa6e56'], 0.69);
+  function drawPerson(person, stride, jacket, aiming = false) {
+    const forward = facing(person.angle);
+    const right = facing(person.angle + Math.PI / 2);
+    const position = (x, y, z) => [
+      person.x + right.x * x + forward.x * z,
+      y,
+      person.z + right.z * x + forward.z * z,
+    ];
+    const cloth = ['#7792a3', '#506a80', '#34495e'];
+    const skin = ['#dfab83', '#bf8864', '#a46c52'];
+    const hair = ['#4e3933', '#3c2c2a', '#302323'];
+    const shoes = ['#505b63', '#333d47', '#252d38'];
+    const sole = ['#c2beb1', '#a6a49c', '#858a86'];
+    const bodyBob = Math.abs(stride) * 0.11;
+    const sides = 8;
+
+    // Each ring contains its center and horizontal radii. Offset centers bend joints and taper silhouettes.
+    function mesh(rings, colors) {
+      const vertices = rings.map(([x, y, z, rx, rz]) => Array.from({ length: sides }, (_, i) => {
+        const angle = (i + 0.5) / sides * Math.PI * 2;
+        return position(x + Math.cos(angle) * rx, y, z + Math.sin(angle) * rz);
+      }));
+      for (let level = 1; level < vertices.length; level += 1) {
+        for (let side = 0; side < sides; side += 1) {
+          const next = (side + 1) % sides;
+          const angle = (side + 1) / sides * Math.PI * 2;
+          const nx = right.x * Math.cos(angle) + forward.x * Math.sin(angle);
+          const nz = right.z * Math.cos(angle) + forward.z * Math.sin(angle);
+          const center = vertices[level][side];
+          if (nx * (eye.x - center[0]) + nz * (eye.z - center[2]) < -0.06) continue;
+          const light = -0.62 * nx + 0.78 * nz;
+          polygon([vertices[level - 1][side], vertices[level - 1][next],
+            vertices[level][next], vertices[level][side]], colors[light > 0.44 ? 0 : light < -0.32 ? 2 : 1]);
+        }
+      }
+      polygon(vertices[vertices.length - 1], colors[0]);
     }
-    box(player.x, player.z, 0.61, 0.42, 0.61, player.angle, jacket, 0.59);
-    box(player.x, player.z, 0.43, 0.4, 0.4, player.angle, ['#ffe2b6', '#d99e76', '#aa6e56'], 1.2);
+
+    for (const sign of [-1, 1]) {
+      const step = sign * stride;
+      const x = sign * 0.105;
+      const lift = Math.max(0, -step) * 0.56;
+      mesh([[x, lift + 0.012, step + 0.067, 0.077, 0.151],
+        [x, lift + 0.046, step + 0.067, 0.078, 0.151]], sole);
+      mesh([[x, lift + 0.045, step + 0.066, 0.074, 0.146],
+        [x, lift + 0.117, step + 0.041, 0.065, 0.105],
+        [x, lift + 0.14, step, 0.056, 0.072]], shoes);
+      mesh([[x, lift + 0.119, step, 0.058, 0.064],
+        [x, 0.34 + lift * 0.56, step * 0.77 - 0.04, 0.072, 0.076],
+        [x, 0.49 + lift * 0.32, step * 0.64 + 0.015, 0.084, 0.082],
+        [x, 0.68, step * 0.3, 0.096, 0.099],
+        [x, 0.86 + bodyBob, 0, 0.112, 0.115]], cloth);
+    }
+    mesh([[0, 0.75 + bodyBob, 0, 0.203, 0.117], [0, 0.96 + bodyBob, 0, 0.197, 0.12]], cloth);
+    mesh([[0, 0.92 + bodyBob, -0.015, 0.197, 0.122], [0, 1.08 + bodyBob, 0, 0.198, 0.123],
+      [0, 1.32 + bodyBob, 0.01, 0.257, 0.135], [0, 1.45 + bodyBob, 0.009, 0.228, 0.115],
+      [0, 1.51 + bodyBob, 0.01, 0.11, 0.089]], jacket);
+    for (const sign of [-1, 1]) {
+      const shoulder = sign * 0.235;
+      const swing = -sign * stride * 0.66;
+      const reach = aiming && sign === 1 ? 0.26 : 0;
+      const elbowY = 1.09 + bodyBob + reach * 0.43;
+      const handY = 0.91 + bodyBob + reach * 1.55;
+      mesh([[shoulder * 1.21, elbowY, swing * 0.56 + reach, 0.066, 0.066],
+        [shoulder * 1.26, 1.25 + bodyBob, swing * 0.23 + reach * 0.48, 0.079, 0.077],
+        [shoulder, 1.44 + bodyBob, 0, 0.086, 0.086]], jacket);
+      mesh([[shoulder * 1.15, handY, swing + reach * 2.05, 0.043, 0.056],
+        [shoulder * 1.23, (handY + elbowY) / 2, swing * 0.84 + reach * 1.55, 0.055, 0.06],
+        [shoulder * 1.21, elbowY, swing * 0.56 + reach, 0.062, 0.064]], skin);
+      if (reach) {
+        mesh([[shoulder * 1.15, handY - 0.036, reach * 2.03, 0.036, 0.046],
+          [shoulder * 1.15, handY + 0.054, reach * 2.13, 0.034, 0.10]], ['#505861', '#323942', '#252c34']);
+      }
+    }
+    mesh([[0, 1.47 + bodyBob, 0.013, 0.082, 0.07], [0, 1.6 + bodyBob, 0.023, 0.067, 0.07]], skin);
+    mesh([[0, 1.55 + bodyBob, 0.025, 0.071, 0.079], [0, 1.61 + bodyBob, 0.035, 0.104, 0.094],
+      [0, 1.72 + bodyBob, 0.026, 0.127, 0.117], [0, 1.82 + bodyBob, 0.017, 0.12, 0.111],
+      [0, 1.86 + bodyBob, 0.01, 0.085, 0.085]], skin);
+    mesh([[0, 1.76 + bodyBob, -0.014, 0.126, 0.104], [0, 1.86 + bodyBob, 0.004, 0.126, 0.109],
+      [0, 1.907 + bodyBob, 0.002, 0.086, 0.08]], hair);
+    const frontal = forward.x * (eye.x - person.x) + forward.z * (eye.z - person.z);
+    if (frontal > 0.2 && distance(person, camera) < 13) {
+      for (const sign of [-1, 1]) {
+        const x = sign * 0.047;
+        polygon([position(x - 0.021, 1.717 + bodyBob, 0.139), position(x + 0.021, 1.717 + bodyBob, 0.139),
+          position(x + 0.016, 1.736 + bodyBob, 0.139), position(x - 0.02, 1.735 + bodyBob, 0.139)], '#4c3530');
+      }
+      polygon([position(-0.028, 1.7 + bodyBob, 0.134), position(0.026, 1.686 + bodyBob, 0.136),
+        position(0, 1.694 + bodyBob, 0.171), position(0, 1.742 + bodyBob, 0.14)], '#d49b73');
+      polygon([position(-0.03, 1.642 + bodyBob, 0.129), position(0.03, 1.642 + bodyBob, 0.129),
+        position(0.021, 1.629 + bodyBob, 0.125), position(-0.021, 1.63 + bodyBob, 0.125)], '#814c43');
+    }
+    if (frontal > 0) {
+      polygon([position(-0.081, 1.49 + bodyBob, 0.083), position(0.081, 1.49 + bodyBob, 0.083),
+        position(0.024, 1.32 + bodyBob, 0.14), position(-0.025, 1.32 + bodyBob, 0.14)], '#d6d4c8');
+    }
   }
 
   function render() {
@@ -1044,9 +1127,9 @@
       const progress = (1 - Math.cos(cycle)) / 2;
       const walker = { x: worker.x + worker.dx * progress, z: worker.z + worker.dz * progress,
         angle: Math.atan2(worker.dx, -worker.dz) + (Math.sin(cycle) < 0 ? Math.PI : 0) };
-      if (distance(walker, camera) < 36) drawPerson(walker, Math.sin(elapsed * 11) * 0.18, worker.jacket);
+      if (distance(walker, camera) < 23) drawPerson(walker, Math.sin(elapsed * 11) * 0.18, worker.jacket);
     }
-    if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#f1bd71', '#ce694a', '#9d493f']);
+    if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450'], shotFlash > 0 || step?.kind === 'shoot');
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) fill(face.points, face.color);
     const target = objectiveTarget();
