@@ -842,14 +842,13 @@
     const forward = facing(camera.angle);
     const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : (9.6+1.2*clamp((visualSpeed-7)/4,0,1));
     let clearance = targetDistance;
-    for (let offset = 2; offset < targetDistance; offset += 0.5) {
+    // Sweep the entire camera boom; never enforce a distance that pushes it into a wall.
+    if (blocked(camera.x,camera.z,0.45)) { camera.x=active.x; camera.z=active.z; }
+    for (let offset = 0.4; offset <= targetDistance; offset += 0.2) {
       const x = camera.x - forward.x * offset;
       const z = camera.z - forward.z * offset;
-      if (sectorAt(x, z)?.some(b => x > b.x - 0.4 && x < b.x + b.w + 0.4
-        && z > b.z - 0.4 && z < b.z + b.d + 0.4)) {
-        // Keep the character readable in tight corners. Obstructing scenery
-        // fades below instead of forcing the camera into a first-person view.
-        clearance = Math.max(inCar ? 6 : 5.8, offset - 0.75);
+      if (blocks.some(b => x > b.x-0.45 && x < b.x+b.w+0.45 && z > b.z-0.45 && z < b.z+b.d+0.45)) {
+        clearance = Math.max(0.25,offset-0.25);
         break;
       }
     }
@@ -889,6 +888,8 @@
   let focal = 0;
   let faces = [];
   let scenery = false;
+  let architecture = false;
+  let buildingSurface = false;
 
   function cameraPoint([x, y, z]) {
     const dx = x - eye.x;
@@ -921,7 +922,7 @@
   function polygon(points, color, ground = false, sortDepth) {
     const view = points.map(cameraPoint);
     const clipped = [];
-    const near = 1;
+    const near = 0.15;
     for (let i = 0; i < view.length; i += 1) {
       const a = view[i];
       const b = view[(i + 1) % view.length];
@@ -937,7 +938,7 @@
       || projected.every(p => p[1] < 0) || projected.every(p => p[1] > height)) return;
     if (scenery) color = distanceColor(color, view.reduce((sum,p) => sum+p[2],0)/view.length);
     if (ground) fill(projected, color);
-    else faces.push({ points: projected, color, scenery, nearDepth: Math.min(...clipped.map(p => p[2])), depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length });
+    else faces.push({ points: projected, color, scenery, architecture, nearDepth: Math.min(...clipped.map(p => p[2])), depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length - (architecture && !buildingSurface ? 1.2 : 0) });
   }
 
   function fill(points, color) {
@@ -952,6 +953,18 @@
     polygon([[x, 0, z], [x + w, 0, z], [x + w, 0, z + d], [x, 0, z + d]], color, true);
   }
 
+  function buildingFace(points,color) {
+    if (!architecture) { polygon(points,color); return; }
+    const length = (a,b) => Math.hypot(...a.map((v,i)=>v-b[i]));
+    const columns = Math.max(1,Math.ceil(length(points[0],points[1])/3));
+    const rows = Math.max(1,Math.ceil(length(points[0],points[3])/3));
+    const at = (u,v) => points[0].map((_,i)=>(points[0][i]*(1-u)+points[1][i]*u)*(1-v)+(points[3][i]*(1-u)+points[2][i]*u)*v);
+    buildingSurface = true;
+    for(let row=0;row<rows;row++) for(let col=0;col<columns;col++) {
+      polygon([at(col/columns,row/rows),at((col+1)/columns,row/rows),at((col+1)/columns,(row+1)/rows),at(col/columns,(row+1)/rows)],color);
+    }
+    buildingSurface = false;
+  }
   function box(x, z, w, d, h, angle, colors, base = 0, taper = 1) {
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
@@ -964,10 +977,10 @@
       const a = bottom[i];
       const b = bottom[next];
       if ((b[2] - a[2]) * (eye.x - a[0]) - (b[0] - a[0]) * (eye.z - a[2]) > 0) {
-        polygon([a, b, top[next], top[i]], colors[1 + i % 2]);
+        buildingFace([a, b, top[next], top[i]], colors[1 + i % 2]);
       }
     }
-    polygon(top, colors[0]);
+    buildingFace(top, colors[0]);
   }
 
   function groundGlow(x, z, radius, color) {
@@ -1675,7 +1688,9 @@
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
     drawFerry();
+    architecture = true;
     for (const b of blocks) if (Math.hypot(b.x - camera.x, b.z - camera.z) < 93) drawBuilding(b);
+    architecture = false;
     drawStreetDetails();
     drawViaduct();
     for (const tree of trees) if (distance(tree, camera) < 48) drawTree(tree);
@@ -1726,12 +1741,12 @@
         }
         context.restore();
       } else if (face.points) {
-        const obscures = face.scenery && face.nearDepth < subjectView[2] - 0.6
+        const obscures = face.scenery && !face.architecture && face.nearDepth < subjectView[2] - 0.6
           && Math.min(...face.points.map(p => p[0])) < subjectScreen[0] + protectWidth
           && Math.max(...face.points.map(p => p[0])) > subjectScreen[0] - protectWidth
           && Math.min(...face.points.map(p => p[1])) < subjectScreen[1] + protectHeight
           && Math.max(...face.points.map(p => p[1])) > subjectScreen[1] - protectHeight;
-        context.globalAlpha = obscures ? 0.12 : 1;
+        context.globalAlpha = obscures ? 0.35 : 1;
         fill(face.points, face.color);
         if(face.texture) for(const ids of [[0,1,2],[0,2,3]])
           textureTriangle(face.texture,ids.map(i=>face.points[i]),ids.map(i=>face.uv[i]));
