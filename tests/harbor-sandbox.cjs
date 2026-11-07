@@ -72,3 +72,6 @@ doc.handlers.pointercancel({pointerId:23}); assert.equal(sandbox.inspect().firin
 console.log('Simultaneous touch movement, held fire, release and cancellation passed');
 
 const free=sandbox.sandboxCheck(); assert.equal(free.equipped,1); assert.equal(free.destroyed,true); assert.equal(free.stopped,true); assert.equal(free.enterable,false); assert.equal(free.heat,3); console.log('Weapon pickup, explosion, wreck immobilization and entry prevention passed');
+click('switch-weapon'); assert.match(get('fire').textContent,/Pistol/);
+click('switch-weapon'); assert.match(get('fire').textContent,/SMG/);
+console.log('Collected weapon switching passed');

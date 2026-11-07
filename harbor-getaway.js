@@ -119,6 +119,7 @@
     {name:'Heavy rifle',damage:85,delay:0.55,range:38}
   ];
   let weaponIndex = 0;
+  const ownedWeapons = new Set([0]);
   let shotAt = -10;
   let shotConnected = false;
   const weaponPickups = [{x:17,z:40,type:1},{x:40,z:60,type:2},{x:152,z:180,type:2},{x:292,z:264,type:1}];
@@ -508,7 +509,7 @@
     selectedJob = clamp(Math.floor(Number(element('mission').value) || 0), 0, availableJobs() - 1);
     activeJob = free ? null : jobs[selectedJob];
     stageIndex = heatLevel = shotFlash = feedbackUntil = 0;
-    weaponIndex=0; shotAt=-10; shotConnected=false;
+    weaponIndex=0; ownedWeapons.clear(); ownedWeapons.add(0); shotAt=-10; shotConnected=false;
     weaponPickups.forEach(p=>p.readyAt=0);
     for (const v of [...traffic,patrol,backup]) { v.health=160; v.destroyed=false; }
     shotTarget = null;
@@ -656,6 +657,10 @@
     element('stamina').hidden = inCar;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
+    element('switch-weapon').hidden = inCar || phase !== 'playing';
+    element('switch-weapon').disabled = ownedWeapons.size < 2;
+    element('switch-weapon').textContent = 'Switch gun · '+ownedWeapons.size;
+    element('fire').setAttribute('aria-pressed', String(firePointers.size>0 || keys.has('fire')));
     element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : weapons[weaponIndex].name + ' · Fire';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
@@ -784,7 +789,7 @@
     shotFlash = Math.max(0, shotFlash - dt);
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
       if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
-        weaponIndex=pickup.type; pickup.readyAt=elapsed+45;
+        weaponIndex=pickup.type; ownedWeapons.add(weaponIndex); pickup.readyAt=elapsed+45;
         notify(weapons[weaponIndex].name+' equipped · hold Fire'); cue(650,980,0.15,'sine');
       }
     }
@@ -1080,7 +1085,7 @@
     if (actor.destroyed) {
       box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
       const age=elapsed-actor.blastAt;
-      for(let i=0;i<(age<18?5:0);i++) {
+      for(let i=0;i<Math.max(0,Math.ceil((18-age)/3.6));i++) {
         const y=0.8+(age*1.4+i*0.7)%4;
         const r=0.4+y*0.19;
         box(actor.x+Math.sin(i*2)*0.5,actor.z+Math.cos(i*2)*0.7,r,r,r,age+i,
@@ -1433,7 +1438,8 @@
       context.fillRect(x, y + (road - 3 - top) * scale, mapSize, 6 * scale);
     }
     const dots = [];
-    if (!inCar) for (const vehicle of vehicles) dots.push([vehicle, '#79f1c6']);
+    if (!inCar) for (const vehicle of vehicles) if(!vehicle.destroyed) dots.push([vehicle, '#79f1c6']);
+    if (!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0)) dots.push([pickup,'#ffd48a']);
     if (heatLevel) dots.push([patrol, '#ff6179']);
     if (heatLevel > 1) dots.push([backup, '#ff6179']);
     const target = objectiveTarget();
@@ -2066,6 +2072,12 @@
   element('free-roam').addEventListener('click', () => reset(true));
   element('open-board').addEventListener('click', showBoard);
   element('jobs').addEventListener('click', showBoard);
+  element('switch-weapon').addEventListener('click', () => {
+    if (phase !== 'playing' || inCar) return;
+    const available=[...ownedWeapons].sort();
+    weaponIndex=available[(available.indexOf(weaponIndex)+1)%available.length];
+    notify(weapons[weaponIndex].name+' equipped'); updateHud();
+  });
   const fireButton = element('fire');
   fireButton.style.touchAction = 'none';
   fireButton.style.userSelect = 'none';
