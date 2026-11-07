@@ -87,6 +87,10 @@
   let shotFlash = 0;
   let shotTarget = null;
   let won = false;
+  let feedbackUntil = 0;
+  let audio;
+  let soundEnabled = true;
+  try { soundEnabled = window.localStorage?.getItem('harborSound') !== 'off'; } catch {}
   let records = {};
   const storageKey = 'harborCampaignV1';
   try {
@@ -206,6 +210,78 @@
     }
   }
 
+  function startAudio() {
+    if (!soundEnabled) return;
+    try {
+      if (!audio) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const channel = (type, frequency) => {
+          const oscillator = ctx.createOscillator();
+          const gain = ctx.createGain();
+          oscillator.type = type;
+          oscillator.frequency.value = frequency;
+          gain.gain.value = 0;
+          oscillator.connect(gain).connect(ctx.destination);
+          oscillator.start();
+          return { oscillator, gain };
+        };
+        audio = { ctx, engine: channel('triangle', 48), siren: channel('sine', 620) };
+      }
+      if (audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
+    } catch {}
+  }
+
+  function updateAudio() {
+    if (!audio) return;
+    const now = audio.ctx.currentTime;
+    const enabled = soundEnabled && phase === 'playing' && !document.hidden;
+    const engine = enabled && inCar ? 0.025 + Math.abs(car.speed) * 0.001 : 0;
+    const pursuitDistance = heatLevel > 1 ? Math.min(distance(car, patrol), distance(car, backup)) : distance(inCar ? car : player, patrol);
+    const siren = enabled && heatLevel ? 0.045 * clamp(1 - pursuitDistance / 60, 0, 1) : 0;
+    audio.engine.gain.gain.setTargetAtTime(engine, now, 0.035);
+    audio.siren.gain.gain.setTargetAtTime(siren, now, 0.035);
+    if (!enabled) return;
+    audio.engine.oscillator.frequency.setTargetAtTime(43 + Math.abs(car.speed) * 5.1, now, 0.05);
+    audio.siren.oscillator.frequency.setTargetAtTime(670 + 230 * Math.sin(elapsed * 5.6), now, 0.06);
+  }
+
+  function cue(frequency, end, duration, type = 'sine') {
+    if (!audio || !soundEnabled || document.hidden) return;
+    const { ctx } = audio;
+    const now = ctx.currentTime;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, now);
+    oscillator.frequency.exponentialRampToValueAtTime(end, now + duration);
+    gain.gain.setValueAtTime(0.075, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    oscillator.connect(gain).connect(ctx.destination);
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+    oscillator.start();
+    oscillator.stop(now + duration);
+  }
+
+  function notify(message) {
+    element('feedback').textContent = message;
+    feedbackUntil = elapsed + 2.2;
+  }
+
+  function advanceStage(message) {
+    stageIndex += 1;
+    notify(message);
+    cue(480, 870, 0.18);
+  }
+
+  function describeJob() {
+    const job = jobs[Number(element('mission').value)] ?? jobs[0];
+    const risk = job.heat ? ['','Local patrol','Police backup','Lockdown'][job.heat] : 'No scheduled pursuit';
+    element('brief').textContent = job.stages.length + ' objectives · ' + models[job.model].name
+      + ' · ' + Math.floor(job.time / 60) + ':' + String(job.time % 60).padStart(2, '0') + ' · ' + risk;
+  }
+
   function availableJobs() {
     const unfinished = jobs.findIndex(job => !records[job.name]);
     return unfinished === -1 ? jobs.length : unfinished + 1;
@@ -224,12 +300,14 @@
     });
     selectedJob = Math.min(selectedJob, unlocked - 1);
     board.value = selectedJob;
+    describeJob();
     element('progress').textContent = Object.keys(records).length + ' / ' + jobs.length + ' jobs complete · saved on this device';
   }
 
   function wanted(level) {
     heatLevel = Math.max(heatLevel, level);
     lost = false;
+    notify(heatLevel > 1 ? 'Police backup en route' : 'Patrol alerted');
     unseen = caught = 0;
     for (const unit of [patrol, backup]) {
       unit.last = { x: inCar ? car.x : player.x, z: inCar ? car.z : player.z };
@@ -241,7 +319,7 @@
   function reset(free = false) {
     selectedJob = clamp(Math.floor(Number(element('mission').value) || 0), 0, availableJobs() - 1);
     activeJob = free ? null : jobs[selectedJob];
-    stageIndex = heatLevel = shotFlash = 0;
+    stageIndex = heatLevel = shotFlash = feedbackUntil = 0;
     shotTarget = null;
     won = false;
     Object.assign(player, { x: 12, z: 43, angle: 0 });
@@ -262,11 +340,13 @@
     clearControls();
     element('overlay').hidden = true;
     element('pause').disabled = false;
+    startAudio();
     updateHud();
   }
 
   function overlay(next, title, description, action) {
     phase = next;
+    updateAudio();
     clearControls();
     element('title').textContent = title;
     element('description').textContent = description;
@@ -344,6 +424,7 @@
     meter.hidden = heatLevel === 0;
     meter.max = 4 + heatLevel * 2;
     meter.value = unseen;
+    element('feedback').hidden = phase !== 'playing' || elapsed >= feedbackUntil;
     element('speed').hidden = !inCar;
     element('brake').hidden = !inCar;
     element('brake').disabled = phase !== 'playing';
@@ -375,10 +456,11 @@
     const hit = step?.kind === 'shoot' && span < 22 && (span < 11 || alignment > 0.56) && visible(player, step);
     shotTarget = hit ? step : { x: player.x + aim.x * 13, z: player.z + aim.z * 13 };
     shotFlash = 0.22;
+    cue(185, 47, 0.15, 'square');
     if (!heatLevel) wanted(activeJob?.heat || 1);
     if (hit) {
       player.angle = Math.atan2(step.x - player.x, player.z - step.z);
-      stageIndex += 1;
+      advanceStage('Target down');
     }
     updateHud();
   }
@@ -412,6 +494,7 @@
     }
     const next = jobs[selectedJob + 1];
     won = true;
+    cue(520, 1040, 0.36, 'triangle');
     overlay('finished', 'Job complete', activeJob.name + ' · ' + (time / 1000).toFixed(1)
       + ' seconds.' + (record ? ' New personal best.' : ''), next ? 'Next job' : 'Replay job');
   }
@@ -480,13 +563,15 @@
       if (unseen >= 4 + heatLevel * 2) {
         heatLevel = 0;
         lost = true;
+        notify('Patrol lost');
+        cue(360, 670, 0.25);
       }
     }
     const step = activeJob?.stages[stageIndex];
     if (step && ((step.kind === 'escape' && lost)
       || (inCar && step.kind === 'drive' && distance(car, step) < 5)
       || (inCar && step.kind === 'park' && distance(car, step) < 4.5 && Math.abs(car.speed) < 3))) {
-      stageIndex += 1;
+      advanceStage(step.kind === 'park' ? 'Stop confirmed' : step.kind === 'escape' ? 'Patrol lost' : 'Checkpoint cleared');
       if (step.kind === 'park' && activeJob.heat && !heatLevel && activeJob.stages[stageIndex]?.kind === 'escape') wanted(activeJob.heat);
     }
     if (caught >= 2 || (activeJob && elapsed >= activeJob.time)) {
@@ -985,7 +1070,10 @@
   function frame(time) {
     const dt = Math.min((time - (lastTime || time)) / 1000, 0.05);
     lastTime = time;
-    if (phase === 'playing') update(dt);
+    if (phase === 'playing') {
+      update(dt);
+      updateAudio();
+    }
     render();
     requestAnimationFrame(frame);
   }
@@ -1085,6 +1173,20 @@
   element('open-board').addEventListener('click', showBoard);
   element('jobs').addEventListener('click', showBoard);
   element('fire').addEventListener('click', shoot);
+  element('mission').addEventListener('change', describeJob);
+  function showSound() {
+    const button = element('sound');
+    button.textContent = soundEnabled ? 'Sound on' : 'Sound off';
+    button.setAttribute('aria-pressed', String(soundEnabled));
+  }
+  element('sound').addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    try { window.localStorage?.setItem('harborSound', soundEnabled ? 'on' : 'off'); } catch {}
+    if (soundEnabled && phase === 'playing') startAudio();
+    updateAudio();
+    showSound();
+  });
+  showSound();
   element('interact').addEventListener('click', interact);
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;

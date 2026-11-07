@@ -12,6 +12,7 @@
     main, footer { width: min(960px, 100% - 24px); margin: auto; }
     a { color: #9df3d3; }
     header { display:flex; align-items: center; gap: 1rem; padding: 10px 0; }
+    #sound { margin-left:auto; padding:0 8px; font-size:12px; white-space:nowrap; }
     h1 { font-size: clamp(21px, 5vw, 32px); margin: 0; }
     .stage { position: relative; overflow: hidden; border: 1px solid #456077; border-radius: 19px; background: #14253a; box-shadow:0 18px 44px #03091388; }
     canvas { display: block; width: 100%; height: min(69svh, 590px); touch-action:none; }
@@ -22,6 +23,10 @@
     #heat.clear { border-color:#548e85; color:#a9f7dc; }
     #escape-progress { flex-basis:100%; width:100%; height:7px; accent-color:#9df3d3; }
     #objective { flex: 1 1 100%; width: max-content; max-width: max-content; }
+    .feedback { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); pointer-events:none;
+      border:1px solid #77acaa; border-radius:8px; padding:6px 10px; background:#101a29ed; color:#a9f7dc;
+      font-size:12px; font-weight:750; white-space:nowrap; }
+    #brief { color:#9df3d3; }
     .overlay { position:absolute; inset:0; display:grid; place-items:center; background:#0a1527a8; padding:16px; }
     [hidden] { display:none!important; }
     .panel { width:min(100%,360px); padding:20px; background:linear-gradient(155deg,#233852,#101a29 75%); border:1px solid #5e788f; border-radius:17px; box-shadow:0 12px 32px #0009; }
@@ -65,7 +70,7 @@
 </head>
 <body>
   <main>
-    <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1></header>
+    <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1><button type="button" id="sound" aria-pressed="true">Sound on</button></header>
     <div class="stage">
       <canvas id="city" aria-label="Third-person view of the harbor neighborhood"></canvas>
       <div class="hud">
@@ -73,6 +78,7 @@
         <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
       </div>
+      <div class="feedback" id="feedback" role="status" hidden></div>
       <div class="overlay" id="overlay">
         <section class="panel">
           <span class="eyebrow">HARBOR DISTRICT / COASTAL RUN</span>
@@ -81,7 +87,7 @@
           <p id="best" hidden></p>
           <div class="board-fields" id="board-fields">
             <label for="mission">Choose a job</label>
-            <select id="mission"></select><span id="progress"></span>
+            <select id="mission"></select><span id="brief"></span><span id="progress"></span>
           </div>
           <div class="panel-actions">
             <button type="button" id="start">Start selected job</button>
@@ -117,6 +123,6 @@
       <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
-  <script src="harbor-getaway.js?v=campaign1"></script>
+  <script src="harbor-getaway.js?v=campaign2"></script>
 </body>
 </html>
