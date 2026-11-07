@@ -736,7 +736,7 @@
     && !(tree.x > 100 && Math.abs(tree.z - garage.z) < 9));
   for (const park of parks) for (const offset of [-5, 0, 5]) trees.push({ x: park.x + offset, z: park.z + offset * 0.55, height: 4.1, spread: 1.9 });
   const shops = [
-    ['BAY MARKET', '#356c69', '#a1cfbc'], ['HARBOR MOTORS', '#695548', '#f0c480'], ['PORT OFFICE', '#455d79', '#bed3e6'],
+    ["Shelby’s Bakery", '#356c69', '#a1cfbc'], ["Justin’s Mechanic Shop", '#695548', '#f0c480'], ["Blaze’s Vape Shop", '#455d79', '#bed3e6'],
     ['RAILWAY CAFE', '#834b47', '#eac5a0'], ['DEPOT SUPPLY', '#5d6947', '#d5d1a1'], ['DOCK FREIGHT', '#476075', '#b9cfdb'],
     ['WEST YARD', '#5d635a', '#d8d6bb'], ['WAREHOUSE 08', '#635950', '#dccab0'], ['COAST GUARD', '#476d78', '#c0dfe0'],
   ];
@@ -884,7 +884,7 @@
     const [x, y] = project(view);
     if (x < 0 || x > width || y < 0 || y > height) return;
     const size = clamp(focal * 0.29 / view[2], 6, 15);
-    faces.push({ depth: sortDepth ?? view[2] - 0.22, text: label, x, y, size, color: ink });
+    faces.push({ depth: sortDepth ?? view[2] - 0.22, text: label, x, y, size, maxWidth: focal * 4.45 / view[2], color: ink });
   }
 
   function drawShop(b, x, z) {
@@ -1354,7 +1354,7 @@
         context.font = '700 ' + face.size + 'px system-ui, sans-serif';
         context.textAlign = 'center';
         context.fillStyle = face.color;
-        context.fillText(face.text, face.x, face.y);
+        context.fillText(face.text, face.x, face.y, face.maxWidth);
       }
     }
     const target = objectiveTarget();
