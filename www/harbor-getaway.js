@@ -113,6 +113,13 @@
   let selectedJob = 0;
   let stageIndex = 0;
   let heatLevel = 0;
+  const weapons = [
+    {name:'Pistol',damage:50,delay:0.28,range:22},
+    {name:'SMG',damage:25,delay:0.12,range:26},
+    {name:'Heavy rifle',damage:85,delay:0.55,range:38}
+  ];
+  let weaponIndex = 0;
+  const weaponPickups = [{x:17,z:40,type:1},{x:40,z:60,type:2},{x:152,z:180,type:2},{x:292,z:264,type:1}];
   let shotFlash = 0;
   let shotTarget = null;
   let won = false;
@@ -370,7 +377,7 @@
       move(driver, direction.x * dt * 2.2, direction.z * dt * 2.2, 0.3);
     }
     for (const vehicle of traffic) {
-      if (vehicle.taken) continue;
+      if (vehicle.taken || vehicle.destroyed) continue;
       const [x, z] = vehicle.route[vehicle.next];
       const remaining = Math.hypot(x - vehicle.x, z - vehicle.z);
       if (remaining < 0.001) {
@@ -499,6 +506,9 @@
     selectedJob = clamp(Math.floor(Number(element('mission').value) || 0), 0, availableJobs() - 1);
     activeJob = free ? null : jobs[selectedJob];
     stageIndex = heatLevel = shotFlash = feedbackUntil = 0;
+    weaponIndex=0;
+    weaponPickups.forEach(p=>p.readyAt=0);
+    for (const v of [...traffic,patrol,backup]) { v.health=160; v.destroyed=false; }
     shotTarget = null;
     won = false;
     Object.assign(player, { x: 12, z: 43, angle: 0 });
@@ -561,7 +571,7 @@
   }
 
   function nearestVehicle() {
-    return [...vehicles, ...traffic].filter(vehicle => distance(player, vehicle) < 3.4)
+    return [...vehicles, ...traffic].filter(vehicle => !vehicle.destroyed && distance(player, vehicle) < 3.4)
       .sort((a,b) => distance(player,a)-distance(player,b))[0];
   }
 
@@ -644,7 +654,7 @@
     element('stamina').hidden = inCar;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
-    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : 'Fire';
+    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : weapons[weaponIndex].name + ' · Fire';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
@@ -666,19 +676,34 @@
     element('jobs').hidden = Boolean(activeJob) || phase !== 'playing';
   }
 
+  function damageVehicle(vehicle,damage) {
+    if (vehicle.destroyed) return;
+    vehicle.health=Math.max(0,(vehicle.health ?? 160)-damage);
+    if (vehicle.health>0) { notify('Vehicle damaged · '+vehicle.health+' integrity'); return; }
+    vehicle.destroyed=true; vehicle.speed=0; vehicle.occupied=false; vehicle.blastAt=elapsed;
+    wanted(3); notify('Vehicle exploded · police lockdown'); cue(65,24,0.6,'sawtooth');
+    for (const worker of workers) if (distance(worker,vehicle)<5 && visible(vehicle,worker)) {
+      Object.assign(worker,{health:0,recover:12,elevation:0.2,lift:3,vx:(worker.x-vehicle.x),vz:(worker.z-vehicle.z),tilt:0.5});
+    }
+  }
+
   function shoot() {
     if (phase !== 'playing' || inCar || shotFlash > 0) return;
     const step = activeJob?.stages[stageIndex];
+    const weapon = weapons[weaponIndex];
     const aim = facing(footView);
     const span = step ? distance(player, step) : Infinity;
     const alignment = step && span > 0
       ? ((step.x - player.x) * aim.x + (step.z - player.z) * aim.z) / span : -1;
     let hit = step?.kind === 'shoot' && span < 22 && (span < 11 || alignment > 0.56) && visible(player, step);
     // Trace the first obstruction; shots never pass through walls or cars.
-    let reach = 22;
-    for (let d=0.5;d<=22;d+=0.2) {
+    let hitCar=null;
+    let reach = weapon.range;
+    for (let d=0.5;d<=weapon.range;d+=0.2) {
       const point={x:player.x+aim.x*d,z:player.z+aim.z*d};
-      if (blocked(point.x,point.z,0.03) || [...vehicles,...traffic,patrol,backup].some(v=>pointToVehicle(point,v)<0.85)) { reach=d; break; }
+      if (blocked(point.x,point.z,0.03)) { reach=d; break; }
+      hitCar=[...vehicles,...traffic,patrol,backup].find(v=>pointToVehicle(point,v)<0.85);
+      if (hitCar) { reach=d; break; }
     }
     let victim = null, nearest = reach;
     for (const worker of workers) {
@@ -690,14 +715,15 @@
     }
     if (victim) hit=false;
     shotTarget = victim || (hit ? step : { x: player.x + aim.x * reach, z: player.z + aim.z * reach });
-    shotFlash = 0.22;
+    shotFlash = weapon.delay;
+    if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
     cue(185, 47, 0.15, 'square');
     wanted(victim ? Math.max(2,heatLevel) : Math.max(1,heatLevel,activeJob?.heat || 0));
     for (const worker of workers) if (distance(worker,player)<28) worker.panicUntil=elapsed+8;
     if (victim) {
-      victim.health=Math.max(0,(victim.health ?? 100)-50);
+      victim.health=Math.max(0,(victim.health ?? 100)-weapon.damage);
       Object.assign(victim,{recover:victim.health===0?12:0.35,elevation:0.03,lift:1.2,vx:aim.x*2,vz:aim.z*2,tilt:0.25});
-      notify(victim.health===0?'NPC down · police backup alerted':'Hit · 50 damage · police alerted');
+      notify(victim.health===0?'NPC down · police backup alerted':'Hit · '+weapon.damage+' damage · police alerted');
     }
     if (hit) {
       footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
@@ -707,6 +733,7 @@
   }
 
   function pursue(unit, active, dt) {
+    if (unit.destroyed) return;
     const separation = distance(active, unit);
     const seen = separation < 27 + heatLevel * 4 && visible(unit, active);
     if (seen) Object.assign(unit.last, { x: active.x, z: active.z });
@@ -750,6 +777,12 @@
   function update(dt) {
     elapsed += dt;
     shotFlash = Math.max(0, shotFlash - dt);
+    if (!activeJob && !inCar) for (const pickup of weaponPickups) {
+      if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
+        weaponIndex=pickup.type; pickup.readyAt=elapsed+45;
+        notify(weapons[weaponIndex].name+' equipped · hold Fire'); cue(650,980,0.15,'sine');
+      }
+    }
     if (firePointers.size || keys.has('fire')) shoot();
     const horizontal = dragTouch ? dragTouch.dx : Number(held('right')) - Number(held('left'));
     const vertical = dragTouch ? dragTouch.dy : Number(held('down')) - Number(held('up'));
@@ -1039,6 +1072,17 @@
   }
 
   function drawCar(actor, police) {
+    if (actor.destroyed) {
+      box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
+      const age=elapsed-actor.blastAt;
+      for(let i=0;i<5;i++) {
+        const y=0.8+(age*1.4+i*0.7)%4;
+        const r=0.4+y*0.19;
+        box(actor.x+Math.sin(i*2)*0.5,actor.z+Math.cos(i*2)*0.7,r,r,r,age+i,
+          age<1.2?['#ffe694','#ff9b42','#d94723']:['#697078','#515963','#424a53'],y);
+      }
+      return;
+    }
     const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#365957', '#243d3d', '#1c3033']);
     const rubber = ['#263145', '#101723', '#161e2b'];
     const front = facing(actor.angle);
@@ -1727,9 +1771,18 @@
       box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
+    // Visible seawalls and bollards mark the playable shoreline.
+    for(let offset=4;offset<size;offset+=8) for(const p of [{x:offset,z:1},{x:offset,z:size-1},{x:1,z:offset},{x:size-1,z:offset}]) {
+      if(distance(p,camera)>85) continue;
+      box(p.x,p.z,0.55,0.55,0.85,0,['#d2c6a4','#8e958e','#626e70']);
+    }
+    if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<55) {
+      box(pickup.x,pickup.z,0.9,0.9,0.28,elapsed,['#b6ffe2','#43bc98','#256b63'],0.4+Math.sin(elapsed*3)*0.12);
+
+    }
     drawFerry();
     architecture = true;
-    for (const b of blocks) if (Math.hypot(b.x - camera.x, b.z - camera.z) < 93) drawBuilding(b);
+    for (const b of blocks) if (Math.hypot(b.x - camera.x, b.z - camera.z) < 145) drawBuilding(b);
     architecture = false;
     drawStreetDetails();
     drawViaduct();
@@ -1820,6 +1873,7 @@
         context.stroke();
       }
     }
+    if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<35 && visible(player,pickup)) pin(pickup,2.2,'#a3ffe0',weapons[pickup.type].name);
     minimap(inCar ? car : player);
   }
 
