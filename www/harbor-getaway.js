@@ -358,7 +358,7 @@
     const turn = (inCar ? car.angle + driveLook : footView) - camera.angle;
     camera.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * smoothing;
     const forward = facing(camera.angle);
-    const targetDistance = inCar ? 11 + Math.abs(car.speed) * 0.16 : 11;
+    const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : 11;
     let clearance = targetDistance;
     for (let offset = 2; offset < targetDistance; offset += 0.5) {
       const x = camera.x - forward.x * offset;
@@ -373,10 +373,24 @@
     updateHud();
   }
 
-  const roofs = ['#78646b', '#536c88', '#726386', '#4c7a77'];
-  const walls = ['#594751', '#38546b', '#554669', '#365b58'];
-  const darkWalls = ['#413642', '#283f53', '#403650', '#294743'];
+  const roofs = ['#8d8e86', '#8c9292', '#969086', '#86928c'];
+  const walls = ['#a09d8d', '#909a9c', '#a79e90', '#a0a697'];
+  const darkWalls = ['#777973', '#69767a', '#807a74', '#737f76'];
   const lamps = roads.flatMap(x => roads.map(z => ({ x: x + 5.2, z: z + 5.2 })));
+  const trees = Array.from({ length: 18 }, (_, i) => ({
+    x: i < 9 ? 17.45 : 102.05,
+    z: 4.5 + (i % 9) * 11.9,
+    height: 3.2 + (i * 13 % 8) * 0.24,
+    spread: 1.35 + (i * 5 % 7) * 0.13,
+  })).filter(tree => !roads.some(road => Math.abs(road - tree.z) < 5.6)
+    && !(tree.x > 100 && Math.abs(tree.z - garage.z) < 9));
+  const roadWear = roads.flatMap((road, column) => Array.from({ length: 31 }, (_, i) => ({
+    road,
+    along: 1.5 + i * 3.4,
+    across: ((i * 19 + column * 11) % 53 - 26) / 7,
+    length: 0.35 + (i * 11 % 17) / 10,
+    shade: i % 3 ? '#20263018' : '#d7ddde19',
+  })));
   const eye = { x: 0, y: 0, z: 0, cosine: 1, sine: 0, pitchCosine: 1, pitchSine: 0 };
   let width = 0;
   let height = 0;
@@ -432,12 +446,12 @@
     polygon([[x, 0, z], [x + w, 0, z], [x + w, 0, z + d], [x, 0, z + d]], color, true);
   }
 
-  function box(x, z, w, d, h, angle, colors, base = 0) {
+  function box(x, z, w, d, h, angle, colors, base = 0, taper = 1) {
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
     const point = (dx, y, dz) => [x + dx * cosine - dz * sine, y + base, z + dx * sine + dz * cosine];
     const corners = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]];
-    const top = corners.map(([dx, dz]) => point(dx, h, dz));
+    const top = corners.map(([dx, dz]) => point(dx * taper, h, dz * taper));
     const bottom = corners.map(([dx, dz]) => point(dx, 0, dz));
     for (let i = 0; i < 4; i += 1) {
       const next = (i + 1) % 4;
@@ -469,13 +483,13 @@
   }
 
   function drawCar(actor, police) {
-    const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#8bf6cf', '#258d84', '#19665f']);
+    const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#365957', '#243d3d', '#1c3033']);
     const rubber = ['#263145', '#101723', '#161e2b'];
     const front = facing(actor.angle);
     const side = facing(actor.angle + Math.PI / 2);
-    const part = (across, ahead, w, d, h, base, colors) => box(
+    const part = (across, ahead, w, d, h, base, colors, taper = 1) => box(
       actor.x + across * side.x + ahead * front.x, actor.z + across * side.z + ahead * front.z,
-      w, d, h, actor.angle, colors, base,
+      w, d, h, actor.angle, colors, base, taper,
     );
     for (const sign of [-1, 1]) {
       part(sign * 1.02, -1.15, 0.33, 0.68, 0.62, 0.03, rubber);
@@ -483,8 +497,9 @@
     }
     part(0, 0, 2.12, 3.64, 0.43, 0.27, paint);
     part(0, 0.09, 1.99, 3.34, 0.22, 0.70, paint);
-    part(0, 0.05, 1.65, 1.82, 0.48, 0.92, ['#669ab1', '#315b74', '#26435c']);
-    part(0, 0.05, 1.48, 1.06, 0.09, 1.40, paint);
+    part(0, 0.05, 1.76, 2.02, 0.48, 0.92, ['#77919b', '#4c6874', '#3a505a'], 0.73);
+    part(0, 0.05, 1.29, 1.47, 0.09, 1.40, paint, 0.92);
+    if (!police && !actor.paint) part(0, -1.78, 1.94, 0.08, 0.065, 0.78, ['#a9e4ca', '#83bdab', '#618f87']);
     part(0, -1.81, 2.07, 0.16, 0.17, 0.28, ['#657489', '#344256', '#414e64']);
     part(0, -1.89, 0.39, 0.035, 0.14, 0.48, ['#ccdbe9', '#a9bed4', '#a9bed4']);
     for (const sign of [-1, 1]) {
@@ -515,15 +530,51 @@
     for (let level = 2.1; level < b.h - 1.25; level += 2.1) {
       for (let i = 1.4; i < b.w - 1; i += 2.05) {
         const left = b.x + i;
-        const color = Math.floor(i + level + b.x) % 3 ? '#c6a47a' : '#405e75';
+        const color = Math.floor(i + level + b.x) % 3 ? '#4e5d60' : '#728289';
         polygon([[left, level, frontZ], [left + 0.86, level, frontZ],
           [left + 0.86, level + 0.9, frontZ], [left, level + 0.9, frontZ]], color);
       }
       for (let i = 1; i < b.d - 0.8; i += 1.65) {
         const near = b.z + i;
         polygon([[sideX, level, near], [sideX, level, near + 0.7],
-          [sideX, level + 0.85, near + 0.7], [sideX, level + 0.85, near]], '#7292a3');
+          [sideX, level + 0.85, near + 0.7], [sideX, level + 0.85, near]], '#596a6e');
       }
+    }
+  }
+
+  function drawTree(tree) {
+    const { x, z, height: h, spread: r } = tree;
+    box(x, z, 0.22, 0.24, h * 0.7, 0, ['#62594a', '#685847', '#4e493e']);
+    const leaves = ['#65794e', '#526a45', '#6c8052', '#485f42', '#798656', '#586d4a', '#697b50'];
+    function crown(cx, cy, cz, radius, tint) {
+      const peak = [cx + radius * 0.12, cy + radius * 0.8, cz - radius * 0.05];
+      const rim = Array.from({ length: 7 }, (_, i) => {
+        const angle = i / 7 * Math.PI * 2;
+        const span = radius * (0.84 + (i * 13 % 7) * 0.045);
+        return [cx + Math.cos(angle) * span, cy - 0.18 + (i % 3) * 0.16, cz + Math.sin(angle) * span];
+      });
+      const base = [cx - 0.1, cy - radius * 0.69, cz];
+      for (let i = 0; i < rim.length; i += 1) {
+        const next = rim[(i + 1) % rim.length];
+        polygon([peak, rim[i], next], leaves[(i + tint) % leaves.length]);
+        polygon([base, next, rim[i]], leaves[(i + tint + 3) % leaves.length]);
+      }
+    }
+    crown(x - r * 0.48, h - 0.18, z + r * 0.18, r * 0.7, 2);
+    crown(x + r * 0.48, h + 0.13, z + r * 0.12, r * 0.73, 4);
+    crown(x, h + 0.55, z - r * 0.3, r * 0.8, 0);
+  }
+
+  function drawViaduct() {
+    if (camera.x > 55) return;
+    for (let z = 3; z < size; z += 12) {
+      if (Math.abs(z - camera.z) > 56) continue;
+      box(5.7, z + 5.95, 5.7, 12.1, 0.57, 0, ['#777d81', '#636a70', '#515962'], 5.6);
+      for (const x of [3.6, 7.8]) {
+        box(x, z + 5.95, 0.24, 12.1, 0.48, 0, ['#b3b6ac', '#949990', '#757c79'], 6.16);
+      }
+      box(4.4, z, 0.85, 1.12, 5.65, 0, ['#8e958b', '#8b928a', '#6d7776']);
+      box(5.5, z, 3.7, 1.35, 0.42, 0, ['#9ba297', '#868e89', '#6e7777'], 5.22);
     }
   }
 
@@ -626,62 +677,84 @@
     }
     width = rect.width;
     height = rect.height;
-    focal = Math.min(width * 0.88, height * 0.91);
+    focal = Math.min(width * (inCar ? 0.97 : 0.88), height * 0.95);
     eye.cosine = Math.cos(camera.angle);
     eye.sine = Math.sin(camera.angle);
     eye.x = camera.x - eye.sine * camera.distance;
     eye.z = camera.z + eye.cosine * camera.distance;
     eye.y = Math.min(5, 2.6 + camera.distance * 0.19);
-    const pitch = Math.atan2(eye.y - 1.5, camera.distance + 1);
+    const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5), camera.distance + 1);
     eye.pitchCosine = Math.cos(pitch);
     eye.pitchSine = Math.sin(pitch);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     const sky = context.createLinearGradient(0, 0, 0, height);
-    sky.addColorStop(0, '#090d21');
-    sky.addColorStop(0.34, '#253959');
-    sky.addColorStop(0.65, '#79617c');
-    sky.addColorStop(1, '#253950');
+    sky.addColorStop(0, '#879fbb');
+    sky.addColorStop(0.36, '#b9c6cf');
+    sky.addColorStop(0.66, '#d3d5cd');
+    sky.addColorStop(1, '#9dadaf');
     context.fillStyle = sky;
     context.fillRect(0, 0, width, height);
     const horizon = height * 0.51 - focal * Math.tan(pitch);
-    context.fillStyle = '#b3d4ec8a';
-    for (let i = 0; i < 29; i += 1) {
-      const x = ((i * 83 + 14 - camera.angle * 36) % width + width) % width;
-      const y = ((i * 23) % 71) * Math.max(0, horizon - 5) / 71;
-      context.fillRect(x, y, i % 7 ? 1 : 2, 1);
+    for (let i = 0; i < 4; i += 1) {
+      const x = ((i * 137 - camera.angle * 41) % (width + 150) + width + 150) % (width + 150) - 75;
+      context.save();
+      context.translate(x, 24 + (i * 31 % 56));
+      context.scale(73 + i * 9, 9 + i * 3);
+      const cloud = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+      cloud.addColorStop(0, '#e8ebed76');
+      cloud.addColorStop(1, '#e8ebed00');
+      context.fillStyle = cloud;
+      context.fillRect(-1, -1, 2, 2);
+      context.restore();
     }
-    flat(-140, -140, 390, 390, '#203f53');
-    for (let i = 0; i < 22; i += 1) {
+    flat(-140, -140, 390, 390, '#65818a');
+    for (let i = 0; i < 24; i += 1) {
       const w = width / 14;
-      const x = ((i * w * 0.73 - camera.angle * 49) % (width + w) + width + w) % (width + w) - w;
-      const h = 7 + (i * 31) % 29;
-      context.fillStyle = i % 2 ? '#253550' : '#2e3d55';
+      const x = ((i * w * 0.67 - camera.angle * 49) % (width + w) + width + w) % (width + w) - w;
+      const h = 8 + (i * 31) % 33;
+      context.fillStyle = i % 2 ? '#89969a' : '#929da1';
       context.fillRect(x, horizon - h + 7, w * 0.61, h);
-      context.fillStyle = '#d8ae805e';
-      context.fillRect(x + w * 0.15, horizon - h + 11, 2, 2);
+      context.fillStyle = '#a9b2b199';
+      context.fillRect(x + w * 0.15, horizon - h + 11, 2, 3);
     }
-    flat(0, 0, size, size, '#576571');
+    flat(0, 0, size, size, '#7d8178');
+    flat(0, 0, 6.4, size, '#6c7b52');
+    flat(17.2, 0, 1.7, size, '#758352');
+    flat(101.2, 0, 6.8, size, '#697c54');
     for (const road of roads) {
-      flat(road - 5.15, 0, 10.3, size, '#657584');
-      flat(0, road - 5.15, size, 10.3, '#657584');
+      flat(road - 5.15, 0, 10.3, size, '#a3a49a');
+      flat(0, road - 5.15, size, 10.3, '#a3a49a');
     }
     for (const road of roads) {
-      flat(road - 4.6, 0, 9.2, size, '#344051');
-      flat(0, road - 4.6, size, 9.2, '#344051');
+      flat(road - 4.6, 0, 9.2, size, '#676a6b');
+      flat(0, road - 4.6, size, 9.2, '#676a6b');
       for (let offset = 2; offset < size - 2; offset += 5) {
         if (roads.some(cross => Math.abs(cross - offset) < 5)) continue;
-        flat(road - 0.09, offset, 0.18, 2.1, '#a79b70');
-        flat(offset, road - 0.09, 2.1, 0.18, '#a79b70');
+        flat(road - 0.09, offset, 0.18, 2.1, '#b9b4a0');
+        flat(offset, road - 0.09, 2.1, 0.18, '#b9b4a0');
       }
     }
     for (const road of roads) {
       for (const cross of roads) {
         if (Math.hypot(road - camera.x, cross - camera.z) > 45) continue;
         for (let stripe = -3.6; stripe < 4; stripe += 1.05) {
-          flat(road + stripe, cross - 5.5, 0.42, 1, '#7f909d');
-          flat(road + 4.9, cross + stripe, 1, 0.42, '#7f909d');
+          flat(road + stripe, cross - 5.5, 0.42, 1, '#b8b7ad');
+          flat(road + 4.9, cross + stripe, 1, 0.42, '#b8b7ad');
         }
       }
+    }
+    for (const mark of roadWear) {
+      if (Math.abs(mark.road - camera.x) < 35 && Math.abs(mark.along - camera.z) < 43) {
+        flat(mark.road + mark.across, mark.along, 0.12, mark.length, mark.shade);
+        if (mark.length > 1.55) flat(mark.road + mark.across, mark.along, 0.67, mark.length * 0.84, '#3f464627');
+      }
+      if (Math.abs(mark.road - camera.z) < 35 && Math.abs(mark.along - camera.x) < 43) {
+        flat(mark.along, mark.road + mark.across, mark.length, 0.12, mark.shade);
+        if (mark.length > 1.55) flat(mark.along, mark.road + mark.across, mark.length * 0.84, 0.67, '#3f464627');
+      }
+    }
+    for (const tree of trees) {
+      if (distance(tree, camera) < 48) groundGlow(tree.x + 0.7, tree.z + 0.8, tree.spread * 1.7, '#26322863');
     }
     flat(garage.x - 3.5, garage.z - 3.5, 7, 7, lost ? '#a78248' : '#455165');
     if (lost) {
@@ -689,19 +762,21 @@
       groundGlow(garage.x, garage.z, 5.3, '#ffc27270');
     }
     const nearbyLamps = lamps.filter(lamp => distance(lamp, camera) < 52);
-    for (const lamp of nearbyLamps) groundGlow(lamp.x, lamp.z, 5.4, '#ffc4785e');
+
     const front = facing(car.angle);
     groundGlow(car.x, car.z, 1.7, '#0b112659');
     if (!inCar) groundGlow(player.x, player.z, 0.65, '#0b112650');
     if (stolen && !lost) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
-    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45587f');
-    if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#a6e3ff60');
+    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
+    if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
     faces = [];
     for (const lamp of nearbyLamps) {
       box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
     for (const b of blocks) drawBuilding(b);
+    drawViaduct();
+    for (const tree of trees) if (distance(tree, camera) < 48) drawTree(tree);
     drawDocks();
     drawCar(car, false);
     drawCar(patrol, true);
