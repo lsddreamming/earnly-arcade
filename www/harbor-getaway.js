@@ -50,7 +50,7 @@
   let driveLook = 0;
   let lookPointer = null;
   let lookX = 0;
-  let runTouch = null;
+  let dragTouch = null;
   let walkCycle = 0;
   let walkBlend = 0;
 
@@ -122,7 +122,7 @@
     keys.clear();
     pointers.clear();
     lookPointer = null;
-    runTouch = null;
+    dragTouch = null;
   }
 
   function reset() {
@@ -175,13 +175,14 @@
         Object.assign(player, { x, z, angle: car.angle });
         car.speed = 0;
         inCar = false;
+        dragTouch = null;
         footView = camera.angle;
         break;
       }
     } else if (distance(player, car) < 3.4) {
       if (!stolen) Object.assign(lastSeen, { x: car.x, z: car.z });
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
-      runTouch = null;
+      dragTouch = null;
       pointers.clear();
       inCar = true;
       stolen = true;
@@ -192,11 +193,18 @@
   function updateHud() {
     const seconds = Math.max(0, Math.ceil(180 - elapsed));
     element('clock').textContent = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
-    element('heat').textContent = lost ? 'CLEAR' : !stolen ? 'ON FOOT'
+    const heat = element('heat');
+    heat.textContent = lost ? 'CLEAR' : !stolen ? 'ON FOOT'
       : caught > 0 ? 'PATROL ON YOU' : unseen > 0 ? 'LOSING PATROL' : 'WANTED';
+    heat.classList.toggle('danger', stolen && !lost && unseen === 0);
+    heat.classList.toggle('clear', lost || unseen > 0);
+    const meter = element('escape-progress');
+    meter.hidden = !stolen || lost;
+    meter.value = unseen;
     element('speed').hidden = !inCar;
     element('brake').hidden = !inCar;
-    element('controls').classList.toggle('driving', inCar);
+    element('drive-hint').hidden = !inCar;
+    element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
     const objective = !stolen ? 'Find the marked getaway car.' : !inCar ? 'Get back in the getaway car.'
       : lost ? 'Drive to the garage.' : 'Use the blocks and alleys to lose the patrol.';
@@ -213,31 +221,40 @@
 
   function update(dt) {
     elapsed += dt;
-    const horizontal = runTouch ? runTouch.dx : Number(held('right')) - Number(held('left'));
-    const vertical = runTouch ? runTouch.dy : Number(held('down')) - Number(held('up'));
+    const horizontal = dragTouch ? dragTouch.dx : Number(held('right')) - Number(held('left'));
+    const vertical = dragTouch ? dragTouch.dy : Number(held('down')) - Number(held('up'));
     const look = Number(held('lookRight')) - Number(held('lookLeft'));
     if (look) lookBy(look * 1.8 * dt);
     else if (inCar && lookPointer === null) driveLook *= Math.exp(-2.5 * dt);
     let walking = false;
     if (inCar) {
       const braking = held('brake');
+      const steer = dragTouch
+        ? Math.sign(horizontal) * clamp((Math.abs(horizontal) - 5) / 35, 0, 1)
+        : horizontal;
+      const throttle = dragTouch
+        ? vertical > 17 ? 1 : Math.hypot(horizontal, vertical) > 8 ? -1 : 0
+        : vertical;
       if (braking) car.speed *= Math.exp(-2.8 * dt);
-      else if (vertical) {
-        const acceleration = vertical > 0 && car.speed > 0 ? 24 : 13;
-        car.speed = clamp(car.speed - vertical * acceleration * dt, -7, 20);
+      else if (throttle) {
+        const acceleration = throttle > 0 && car.speed > 0 ? 24 : 13;
+        const cornerSpeed = dragTouch ? 20 - 8 * Math.abs(steer) : 20;
+        car.speed = throttle < 0 && car.speed > cornerSpeed
+          ? Math.max(cornerSpeed, car.speed - 12 * dt)
+          : clamp(car.speed - throttle * acceleration * dt, -7, throttle < 0 ? cornerSpeed : 20);
       } else car.speed *= Math.exp(-2.3 * dt);
       const steering = Math.min(1, Math.abs(car.speed) / 3);
-      car.angle += horizontal * Math.sign(car.speed) * steering * (braking ? 3.15 : 1.9) * dt;
+      car.angle += steer * Math.sign(car.speed) * steering * (braking ? 3.15 : dragTouch ? 2.3 : 1.9) * dt;
       const direction = facing(car.angle);
       if (move(car, direction.x * car.speed * dt, direction.z * car.speed * dt, 1.22)) car.speed *= 0.35;
-    } else if (runTouch ? Math.hypot(horizontal, vertical) > 5 : horizontal || vertical) {
+    } else if (dragTouch ? Math.hypot(horizontal, vertical) > 5 : horizontal || vertical) {
       const directionAngle = camera.angle + Math.atan2(horizontal, -vertical);
       const direction = facing(directionAngle);
       const turn = directionAngle - player.angle;
       player.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-18 * dt));
       const oldX = player.x;
       const oldZ = player.z;
-      const speed = runTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
+      const speed = dragTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
       move(player, direction.x * speed * dt, direction.z * speed * dt, 0.45);
       walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
     }
@@ -455,6 +472,10 @@
     flat(-110, -110, 320, 330, '#244656');
     flat(0, 0, size, size, '#576571');
     for (const road of roads) {
+      flat(road - 5.15, 0, 10.3, size, '#657584');
+      flat(0, road - 5.15, size, 10.3, '#657584');
+    }
+    for (const road of roads) {
       flat(road - 4.6, 0, 9.2, size, '#344051');
       flat(0, road - 4.6, size, 9.2, '#344051');
       for (let offset = 2; offset < size - 2; offset += 5) {
@@ -536,27 +557,27 @@
     if (document.hidden) pauseOnExit();
   });
   canvas.addEventListener('touchstart', event => {
-    if (phase !== 'playing' || inCar) return;
+    if (phase !== 'playing') return;
     event.preventDefault();
-    if (runTouch) return;
+    if (dragTouch) return;
     const touch = event.changedTouches[0];
     pointers.clear();
-    runTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0 };
+    dragTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0 };
   }, { passive: false });
   canvas.addEventListener('touchmove', event => {
-    if (!runTouch) return;
+    if (!dragTouch) return;
     event.preventDefault();
-    const touch = Array.from(event.changedTouches).find(item => item.identifier === runTouch.id);
+    const touch = Array.from(event.changedTouches).find(item => item.identifier === dragTouch.id);
     if (!touch) return;
-    runTouch.dx = touch.clientX - runTouch.x;
-    runTouch.dy = touch.clientY - runTouch.y;
+    dragTouch.dx = touch.clientX - dragTouch.x;
+    dragTouch.dy = touch.clientY - dragTouch.y;
   }, { passive: false });
   function endTouch(event) {
-    if (runTouch && Array.from(event.changedTouches).some(touch => touch.identifier === runTouch.id)) runTouch = null;
+    if (dragTouch && Array.from(event.changedTouches).some(touch => touch.identifier === dragTouch.id)) dragTouch = null;
     if (event.touches.length === 0) {
       pointers.clear();
       lookPointer = null;
-      runTouch = null;
+      dragTouch = null;
     }
   }
   for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, endTouch, true);
@@ -575,7 +596,7 @@
   });
   canvas.addEventListener('pointerdown', event => {
     if (phase !== 'playing' || lookPointer !== null || event.button !== 0
-      || (event.pointerType === 'touch' && !inCar)) return;
+      || event.pointerType === 'touch') return;
     canvas.setPointerCapture?.(event.pointerId);
     lookPointer = event.pointerId;
     lookX = event.clientX;
