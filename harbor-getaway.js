@@ -72,6 +72,7 @@
   let vehicles = [car];
   const patrol = { x: 40, z: 56, angle: 0 };
   const backup = { x: 68, z: 40, angle: 0 };
+  const displacedDrivers = [];
   const traffic = [
     { route: [[42.5, 42.5], [42.5, 65.5], [65.5, 65.5], [65.5, 42.5]], speed: 5.4, paint: ['#e0a269', '#a06153', '#744654'] },
     { route: [[70.4, 37.6], [70.4, 70.4], [93.6, 70.4], [93.6, 37.6]], speed: 6.1, paint: ['#a0b8df', '#586f9f', '#404e7d'] },
@@ -294,7 +295,10 @@
   }
 
   function resetTraffic() {
+    displacedDrivers.length = 0;
     for (const vehicle of traffic) {
+      vehicle.cruiseSpeed ??= vehicle.speed;
+      Object.assign(vehicle, { ...models.coupe, occupied: true, taken: false, speed: vehicle.cruiseSpeed });
       const [[x, z], [nextX, nextZ]] = vehicle.route;
       Object.assign(vehicle, { x, z, next: 1, angle: Math.atan2(nextX - x, z - nextZ) });
     }
@@ -302,7 +306,21 @@
 
   function updateTraffic(dt) {
     const active = inCar ? car : player;
+    for (const driver of displacedDrivers) {
+      driver.age += dt;
+      if (driver.age < 0.55) {
+        const t = Math.min(1,driver.age/0.55);
+        driver.x = driver.fromX+(driver.exitX-driver.fromX)*t;
+        driver.z = driver.fromZ+(driver.exitZ-driver.fromZ)*t;
+        driver.tilt = Math.sin(t*Math.PI)*0.3;
+        continue;
+      }
+      driver.tilt = 0;
+      const direction = facing(driver.angle);
+      move(driver, direction.x * dt * 2.2, direction.z * dt * 2.2, 0.3);
+    }
     for (const vehicle of traffic) {
+      if (vehicle.taken) continue;
       const [x, z] = vehicle.route[vehicle.next];
       const remaining = Math.hypot(x - vehicle.x, z - vehicle.z);
       if (remaining < 0.001) {
@@ -485,7 +503,8 @@
   }
 
   function nearestVehicle() {
-    return vehicles.find(vehicle => distance(player, vehicle) < 3.4);
+    return [...vehicles, ...traffic].filter(vehicle => distance(player, vehicle) < 3.4)
+      .sort((a,b) => distance(player,a)-distance(player,b))[0];
   }
 
   function interact() {
@@ -507,6 +526,19 @@
     } else {
       const vehicle = nearestVehicle();
       if (!vehicle) return;
+      if (vehicle.occupied) {
+        const side = facing(vehicle.angle + Math.PI / 2);
+        const sign = (player.x-vehicle.x)*side.x+(player.z-vehicle.z)*side.z >= 0 ? 1 : -1;
+        const x = vehicle.x + side.x * sign * 1.65;
+        const z = vehicle.z + side.z * sign * 1.65;
+        if (blocked(x,z,0.3)) { notify('Approach the other door'); return; }
+        displacedDrivers.push({ x, z, fromX:vehicle.x, fromZ:vehicle.z, exitX:x, exitZ:z, angle: vehicle.angle + sign * Math.PI/2, age:0 });
+        vehicle.occupied = false;
+        vehicle.taken = true;
+        vehicle.speed = 0;
+        wanted(Math.max(1, heatLevel));
+        notify('Driver pulled out · car taken');
+      }
       car = vehicle;
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
       dragTouch = null;
@@ -562,7 +594,7 @@
     if (element('objective').textContent !== objective) element('objective').textContent = objective;
     const vehicle = inCar ? car : nearestVehicle();
     element('interact').disabled = phase !== 'playing' || (inCar ? Math.abs(car.speed) > 2 : !vehicle);
-    element('interact').textContent = inCar ? 'Exit car' : vehicle ? 'Enter ' + vehicle.name.toLowerCase() : 'Enter car';
+    element('interact').textContent = inCar ? 'Exit car' : vehicle ? (vehicle.occupied ? 'Pull driver out' : 'Enter ' + vehicle.name.toLowerCase()) : 'Enter car';
     element('jobs').hidden = Boolean(activeJob) || phase !== 'playing';
   }
 
@@ -1502,6 +1534,9 @@
       box(step.x, step.z, 0.8, 0.19, 0.71, 0, ['#ffd99d', '#e58b58', '#af5d47'], 1.18);
     }
     for (const vehicle of traffic) if (distance(vehicle, camera) < 48) drawCar(vehicle, false);
+    for (const driver of displacedDrivers) {
+      if (driver.age < 25 && distance(driver,camera) < 30) drawPerson(driver, Math.sin(driver.age*13)*0.65, ['#b6a080','#786b56','#5e5548']);
+    }
     for (const worker of workers) {
       if (distance(worker, camera) < 23) drawPerson(worker,
         worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
