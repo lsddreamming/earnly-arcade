@@ -92,6 +92,10 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 /* Mobile entry: keep the arena visible immediately; card taps replace redundant select. */
 @media (max-width:700px) and (orientation:portrait){
  .breach-page:not(.game-active) .page-header{padding:2px 4px!important;margin:0 0 4px!important}
+ /* Rankings remain available in results, not above the playable arena. */
+ .breach-page:not(.game-active) #earnlyCompactLeaderboard,
+ .breach-page:not(.game-active) .compact-leaderboard-card,
+ .breach-page:not(.game-active) .compact-leaderboard-ticker{display:none!important}
  .breach-page:not(.game-active) .breach-mode-choice{margin:5px 0 7px}
  .breach-page:not(.game-active) .breach-mode-heading{margin-bottom:5px}
  .breach-page:not(.game-active) .breach-mode-card{min-height:81px;padding:9px 10px;gap:3px;border-radius:12px}
