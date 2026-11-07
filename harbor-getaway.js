@@ -68,6 +68,21 @@
     { name: 'Harbor Lockdown', time: 150, heat: 3, model: 'muscle', stages: [checkpoint(12,96,'Reach the south road'),checkpoint(40,96,'Pass the rail yard'),checkpoint(68,68,'Cross the depot'),checkpoint(68,12,'Take the north road'),escape,finish] },
     { name: 'The Last Crossing', time: 185, heat: 3, model: 'coupe', stages: [stop(40,40,'Pick up the final cargo'),checkpoint(68,40,'Pass the east junction'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Return through the port'),escape,finish] },
   ];
+  const missionBriefings = [
+    ['First getaway','Take the coupe along the waterfront, lose the patrol, then bring it home.','Keep moving through both checkpoints before trying to lose the patrol.'],
+    ['Manifest delivery','Collect a shipping manifest and deliver it across town without a scheduled chase.','Brake before each delivery marker; passing through at speed does not count.'],
+    ['Signal training','Find two roadside signal targets, fire on foot, then escape in your coupe.','Exit the car and face each target before firing.'],
+    ['Industrial pursuit','Drive the muscle car from the depot to South Industrial while police close in.','Use the long boulevards for speed and side streets to break sight.'],
+    ['Workshop courier','Collect parts, visit the central workshop, then deliver to East Docks.','Plan for three separate stops and slow down early in the van.'],
+    ['Rail corridor escape','Follow West Rail south, cross the district, then hide before the depot handoff.','Stay on the west corridor until the route sends you east.'],
+    ['Relay shutdown','Disable the west relay, drive to the depot relay, and shut it down before escaping.','This job alternates on-foot shooting and driving; watch the next objective.'],
+    ['Waterfront express','Cross the northern waterfront and follow the eastern shore to a dock handoff.','The long straight is fast, but brake before the turn down East Docks.'],
+    ['Cargo under pressure','Load two shipments and take the cargo van to the southeast industrial depot.','The loaded van turns slowly; choose wider streets during the chase.'],
+    ['Three-district shutdown','Disable alarms in the west, center, and south, then reach the eastern safehouse.','Stop near each alarm, exit, and shoot before continuing across town.'],
+    ['Citywide lockdown','Cross the southwest and southern districts, drive north through East Docks, and disappear.','Three-star patrols require distance and cover; a straight sprint may not lose them.'],
+    ['Final harbor circuit','Collect the final cargo and complete a north-east-south circuit before returning to the garage.','Save time on the long crossings, then lose the patrol before the final stop.']
+  ];
+  jobs.forEach((job,i)=>{ [job.tagline,job.briefing,job.tip]=missionBriefings[i]; });
   // Later jobs graduate from the starter neighborhood to the whole district.
   const expandedRoutes = {
     'Dock Dispatch': [stop(40,68,'Collect the manifest'),stop(152,152,'Deliver to Central City')],
@@ -479,15 +494,17 @@
 
   function advanceStage(message) {
     stageIndex += 1;
-    notify(message);
+    const next=activeJob?.stages[stageIndex];
+    notify(message+(next?' · Next: '+next.label:''));
+    feedbackUntil=elapsed+4;
     cue(480, 870, 0.18);
   }
 
   function describeJob() {
     const job = jobs[Number(element('mission').value)] ?? jobs[0];
     const risk = job.heat ? ['','Local patrol','Police backup','Lockdown'][job.heat] : 'No scheduled pursuit';
-    element('brief').textContent = job.stages.length + ' objectives · ' + models[job.model].name
-      + ' · ' + Math.floor(job.time / 60) + ':' + String(job.time % 60).padStart(2, '0') + ' · ' + risk;
+    element('brief').textContent = job.tagline+' — '+job.briefing+' '+job.stages.length + ' objectives · ' + models[job.model].name
+      + ' · ' + Math.floor(job.time / 60) + ':' + String(job.time % 60).padStart(2, '0') + ' · ' + risk+'. Tip: '+job.tip;
   }
 
   function availableJobs() {
@@ -795,7 +812,7 @@
     won = true;
     cue(520, 1040, 0.36, 'triangle');
     overlay('finished', 'Job complete', activeJob.name + ' · ' + (time / 1000).toFixed(1)
-      + ' seconds.' + (record ? ' New personal best.' : ''), next ? 'Next job' : 'Replay job');
+      + ' seconds · '+activeJob.stages.length+' objectives complete.' + (record ? ' New personal best.' : ''), next ? 'Next job' : 'Replay job');
   }
 
   function lookBy(radians, vertical = 0) {
@@ -926,7 +943,7 @@
     }
     if (caught >= 2 || (activeJob && elapsed >= activeJob.time)) {
       overlay('finished', caught >= 2 ? 'Busted' : 'Time’s up',
-        'Use side streets to break line of sight. Brake to a stop inside marked delivery zones.', activeJob ? 'Retry job' : 'Return to free roam');
+        (activeJob ? activeJob.name+' · Completed '+stageIndex+'/'+activeJob.stages.length+' objectives. '+activeJob.tip : 'Break patrol line of sight using side streets. Keep moving to avoid capture.'), activeJob ? 'Retry job' : 'Return to free roam');
     } else if (activeJob && stageIndex === activeJob.stages.length) completeJob();
 
     const smoothing = 1 - Math.exp(-8 * dt);
