@@ -56,7 +56,7 @@ E.createSector=function(random=Math.random,previousStart=-1){
  const choices=STARTS.map((_,i)=>i).filter(i=>i!==previousStart);
  s.sectorStart=choices[Math.floor(random()*choices.length)];
  Object.assign(s.player,STARTS[s.sectorStart],{a:-Math.PI/2});
- s.key=false;s.doorOpen=false;s.weapon='carbine';s.hasShotgun=false;s.shells=0;s.completed=false;
+ s.key=false;s.doorOpen=false;s.bossSpawned=false;s.bossDefeated=false;s.weapon='carbine';s.hasShotgun=false;s.shells=0;s.completed=false;
  s.exit={x:14.5,y:3.5};s.supplies=[
  {x:3.5,y:2.5,type:'key'},{x:5.5,y:11.5,type:'shotgun'},
  {x:11.5,y:14.5,type:'ammo'},{x:14.5,y:6.5,type:'ammo'}
@@ -69,6 +69,7 @@ E.sectorObjective=function(s){
  if(s.completed)return 'Exit reached';
  if(!s.key)return 'Find the gold access key';
  if(!s.doorOpen)return 'Open the gold door on your radar';
+ if(!s.bossDefeated){const boss=s.enemies.find(e=>e.boss);return boss?'Defeat the Sector Warden · '+Math.max(0,boss.hp)+'/'+boss.maxHp+' hull':'Sector Warden incoming';}
  return 'Reach the green exit beacon';
 };
 E.switchWeapon=function(s){if(s.mode!=='sector'||!s.hasShotgun||s.ended)return false;s.weapon=s.weapon==='shotgun'?'carbine':s.shells>0?'shotgun':'carbine';return true};
@@ -85,11 +86,14 @@ E.tick=function(s,dt,input={}){
   message(s,item.type);
  }
  if(!s.doorOpen&&Math.hypot(p.x-8.5,p.y-13.5)<1.8){
-  if(s.key){s.doorOpen=true;s.wave=5;s.map[13]=s.map[13].slice(0,8)+'0'+s.map[13].slice(9);s.nav=null;message(s,'door')}
+  if(s.key){s.doorOpen=true;s.wave=5;s.map[13]=s.map[13].slice(0,8)+'0'+s.map[13].slice(9);s.nav=null;message(s,'door');
+   // One scripted boss guards the final exit; never respawn it or farm it for rewards.
+   if(!s.bossSpawned){s.bossSpawned=true;s.enemies.push({x:14.5,y:5.5,type:'tank',role:'plasma',elite:true,boss:true,hp:16,maxHp:16,attack:1.6,phase:0,stride:0,motion:0,spawn:2.5,firing:0,charge:0,heading:0});message(s,'boss')}}
   else if(!s.lockNotice||s.time-s.lockNotice>4){s.lockNotice=s.time||.001;message(s,'locked')}
  }
  baseTick(s,dt,input);
- if(!s.ended&&s.doorOpen&&Math.hypot(s.exit.x-p.x,s.exit.y-p.y)<.7){
+ if(s.bossSpawned&&!s.bossDefeated&&!s.enemies.some(e=>e.boss)){s.bossDefeated=true;message(s,'boss-down');}
+ if(!s.ended&&s.doorOpen&&s.bossDefeated&&Math.hypot(s.exit.x-p.x,s.exit.y-p.y)<.7){
   s.completed=true;s.ended=true;message(s,'exit');
  }
 };
