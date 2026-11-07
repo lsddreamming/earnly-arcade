@@ -85,6 +85,18 @@
       .focus-game .actions button { font-size:11px; }
       .hud span { font-size:11px; padding:4px 6px; }
     }
+    .spuddy-settings { background:linear-gradient(145deg,#192d40,#101c2b); }
+    .spuddy-settings label { display:flex; justify-content:space-between; font-size:14px; font-weight:700; }
+    .spuddy-settings output { color:#9df3d3; font-variant-numeric:tabular-nums; }
+    .stat-help { margin:0 0 16px; font-size:12px; color:#a6bdce; }
+    #return-game { width:100%; margin:0 0 12px; background:#9df3d3; color:#10261f; }
+    #spuddy-status { font-size:13px; color:#bed0de; }
+    #spuddy-refresh { font-size:13px; padding:0 12px; margin-right:8px; }
+    @media(pointer:coarse) and (min-width:360px) {
+      .actions { grid-template-columns:repeat(4,minmax(0,1fr)); }
+      .actions button { min-height:46px; font-size:11px; }
+      #interact { grid-column:span 2; }
+    }
   </style>
 </head>
 <body>
@@ -139,11 +151,11 @@
     <p class="hint touch-hint" id="run-hint">Drag to move. Tap Run to sprint. Lift to stop. Use a second finger to look, or tap Look around.</p>
     <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast. Use a second finger to look around.</p>
     <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
-    <details class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
+    <details id="spuddy-settings" class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
       <summary>Your Spuddy &amp; customization</summary>
-      <p class="hint">Movement profile · saved on this device. Endurance improves gradually while running.</p>
-      <label style="display:block">Body build <input id="stat-build" type="range" min="0" max="100" value="0"></label>
-      <label style="display:block">Muscle <input id="stat-muscle" type="range" min="0" max="100" value="50"></label>
+      <p class="hint">Tune your movement. Changes save automatically on this device. The game pauses while this panel is open.</p>
+      <label for="stat-build">Body build <output id="value-build" for="stat-build">0%</output></label><input id="stat-build" type="range" min="0" max="100" value="0" aria-describedby="help-build"><p class="stat-help" id="help-build">A broader build adds weight and slows acceleration.</p>
+      <label for="stat-muscle">Muscle <output id="value-muscle" for="stat-muscle">50%</output></label><input id="stat-muscle" type="range" min="0" max="100" value="50" aria-describedby="help-muscle"><p class="stat-help" id="help-muscle">More muscle gives a small boost to sprint speed.</p><button type="button" id="return-game">Back to game</button>
       <p id="spuddy-status" role="status">Loading Spuddy…</p>
       <button type="button" id="spuddy-refresh">Refresh Spuddy</button>
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>

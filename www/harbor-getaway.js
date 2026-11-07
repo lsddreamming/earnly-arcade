@@ -1851,11 +1851,26 @@
     element('focus-view').textContent = active ? 'Exit focus' : 'Focus view';
     element('focus-view').setAttribute('aria-pressed', String(active));
   });
+  let settingsPaused = false;
+  const settingsPanel = element('spuddy-settings');
+  settingsPanel.addEventListener('toggle', () => {
+    if (settingsPanel.open && phase === 'playing') { settingsPaused = true; pause(); }
+    else if (!settingsPanel.open && settingsPaused) {
+      settingsPaused = false;
+      if (phase === 'paused') run();
+    }
+  });
+  element('return-game').addEventListener('click', () => {
+    settingsPanel.open = false;
+    canvas.scrollIntoView({behavior:'smooth',block:'start'});
+  });
   for (const key of ['build','muscle']) {
     const control = element('stat-'+key);
     control.value = Math.round(stats[key]*100);
+    element('value-'+key).textContent = control.value + '%';
     control.addEventListener('input', () => {
       stats[key] = clamp(Number(control.value)/100,0,1);
+      element('value-'+key).textContent = Math.round(stats[key]*100) + '%';
       saveFitness();
     });
   }
