@@ -21,6 +21,11 @@ test('Sector Run can be selected, completed, and replayed '+prefix,async({page,h
  await expect(page.locator('#sectorObjective')).toHaveText('Open the gold door on your radar');
  await page.evaluate(()=>{sectorTest.player.x=7.4;sectorTest.player.y=13.5});
  await expect.poll(()=>page.evaluate(()=>sectorTest.doorOpen)).toBe(true);
+ await expect(page.locator('#sectorObjective')).toContainText('Defeat the Sector Warden');
+ await page.evaluate(()=>{sectorTest.player.x=sectorTest.exit.x;sectorTest.player.y=sectorTest.exit.y});
+ await expect.poll(()=>page.evaluate(()=>sectorTest.ended)).toBe(false);
+ await page.evaluate(()=>{sectorTest.enemies=sectorTest.enemies.filter(e=>e.boss);sectorTest.player.x=14.5;sectorTest.player.y=7.5;sectorTest.player.a=-Math.PI/2;for(let i=0;i<16;i++){sectorTest.cooldown=0;NeonBreachEngine.fire(sectorTest)}});
+ await expect.poll(()=>page.evaluate(()=>sectorTest.bossDefeated)).toBe(true);
  await expect(page.locator('#sectorObjective')).toHaveText('Reach the green exit beacon');
  await page.evaluate(()=>{sectorTest.player.x=sectorTest.exit.x;sectorTest.player.y=sectorTest.exit.y});
  await expect(page.getByText('Sector Secured',{exact:true})).toBeVisible();
