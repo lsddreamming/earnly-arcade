@@ -19,7 +19,7 @@
       const x = roads[column];
       const z = roads[row];
       const shade = (row * 3 + column) % 4;
-      blocks.push({ x: x + 9, z: z + 7, w: 11, d: 6, h: 6 + shade * 1.1, shade });
+      blocks.push({ x: x + 9, z: z + 7, w: 11, d: 6, h: 6 + shade * 1.1, shade, storefront: row * 3 + column });
       blocks.push({ x: x + 7, z: z + 17, w: 13, d: 5, h: 5 + shade, shade: (shade + 2) % 4 });
     }
   }
@@ -433,6 +433,10 @@
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
+    const active = inCar ? car : player;
+    const district = active.x < 30 ? 'WEST RAIL' : active.x > 84 ? 'EAST DOCKS'
+      : active.z < 33 ? 'NORTH QUAY' : active.z > 78 ? 'SOUTH YARD' : 'MARKET WARD';
+    if (element('district').textContent !== district) element('district').textContent = district;
     const step = activeJob?.stages[stageIndex];
     const target = objectiveTarget();
     const range = target ? ' · ' + Math.ceil(distance(inCar ? car : player, target)) + ' m' : '';
@@ -611,6 +615,11 @@
     spread: 1.35 + (i * 5 % 7) * 0.13,
   })).filter(tree => !roads.some(road => Math.abs(road - tree.z) < 5.6)
     && !(tree.x > 100 && Math.abs(tree.z - garage.z) < 9));
+  const shops = [
+    ['BAY MARKET', '#356c69', '#a1cfbc'], ['HARBOR MOTORS', '#695548', '#f0c480'], ['PORT OFFICE', '#455d79', '#bed3e6'],
+    ['RAILWAY CAFE', '#834b47', '#eac5a0'], ['DEPOT SUPPLY', '#5d6947', '#d5d1a1'], ['DOCK FREIGHT', '#476075', '#b9cfdb'],
+    ['WEST YARD', '#5d635a', '#d8d6bb'], ['WAREHOUSE 08', '#635950', '#dccab0'], ['COAST GUARD', '#476d78', '#c0dfe0'],
+  ];
   const roadWear = roads.flatMap((road, column) => Array.from({ length: 31 }, (_, i) => ({
     road,
     along: 1.5 + i * 3.4,
@@ -640,7 +649,7 @@
     return [width / 2 + focal * x / depth, height * 0.51 - focal * y / depth];
   }
 
-  function polygon(points, color, ground = false) {
+  function polygon(points, color, ground = false, sortDepth) {
     const view = points.map(cameraPoint);
     const clipped = [];
     const near = 1;
@@ -658,7 +667,7 @@
     if (projected.every(p => p[0] < 0) || projected.every(p => p[0] > width)
       || projected.every(p => p[1] < 0) || projected.every(p => p[1] > height)) return;
     if (ground) fill(projected, color);
-    else faces.push({ points: projected, color, depth: view.reduce((sum, p) => sum + p[2], 0) / view.length });
+    else faces.push({ points: projected, color, depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length });
   }
 
   function fill(points, color) {
@@ -749,11 +758,50 @@
     }
   }
 
+  function signText(label, point, ink, sortDepth) {
+    const view = cameraPoint(point);
+    if (view[2] < 2 || view[2] > 28) return;
+    const [x, y] = project(view);
+    if (x < 0 || x > width || y < 0 || y > height) return;
+    const size = clamp(focal * 0.29 / view[2], 6, 15);
+    faces.push({ depth: sortDepth ?? view[2] - 0.22, text: label, x, y, size, color: ink });
+  }
+
+  function drawShop(b, x, z) {
+    const [label, trim, accent] = shops[b.storefront];
+    const west = eye.x < x;
+    const wallX = west ? b.x - 0.028 : b.x + b.w + 0.028;
+    const offset = west ? -1 : 1;
+    const frontDepth = cameraPoint([wallX, b.h / 2, z])[2] - 0.12;
+    const facade = (left, low, span, tall, color, depth = 0) => {
+      const side = wallX + offset * depth;
+      polygon([[side, low, z + left], [side, low, z + left + span],
+        [side, low + tall, z + left + span], [side, low + tall, z + left]], color, false, frontDepth - depth);
+    };
+    facade(-2.45, 0.06, 4.9, 2.55, trim);
+    facade(-2.23, 0.42, 1.36, 1.48, '#344f54', 0.034);
+    facade(0.88, 0.42, 1.34, 1.48, '#394f57', 0.034);
+    facade(-0.54, 0.07, 1.08, 1.84, '#233d48', 0.055);
+    facade(-0.46, 0.8, 0.92, 0.98, '#6e979e', 0.08);
+    for (const edge of [-1.58, 1.52]) facade(edge, 0.4, 0.064, 1.52, accent, 0.058);
+    facade(-2.38, 2.01, 4.76, 0.43, '#22333e', 0.055);
+    if (Math.abs(eye.x - wallX) > Math.abs(eye.z - z) * 0.65) {
+      signText(label, [wallX + offset * 0.16, 2.17, z], accent, frontDepth - 0.16);
+    }
+    for (let i = 0; i < 7; i += 1) {
+      const start = z - 2.46 + i * 0.71;
+      polygon([[wallX, 1.98, start], [wallX, 1.98, start + 0.71],
+        [wallX + offset * 0.82, 1.78, start + 0.71], [wallX + offset * 0.82, 1.78, start]],
+      i % 2 ? '#c1c0aa' : trim, false, frontDepth - 0.12);
+    }
+  }
+
   function drawBuilding(b) {
     const x = b.x + b.w / 2;
     const z = b.z + b.d / 2;
     box(x, z, b.w, b.d, b.h, 0, [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
     if (Math.hypot(x - eye.x, z - eye.z) > 47) return;
+    if (b.storefront !== undefined) drawShop(b, x, z);
     if (b.shade % 2 === 0) {
       const strip = b.shade === 0 ? ['#e9a6d4', '#b6609b', '#7b4b81'] : ['#94efee', '#489ab0', '#326d83'];
       box(x, b.z + b.d + 0.06, b.w * 0.48, 0.15, 0.23, 0, strip, 1.55);
@@ -812,6 +860,37 @@
       box(4.4, z, 0.85, 1.12, 5.65, 0, ['#8e958b', '#8b928a', '#6d7776']);
       box(5.5, z, 3.7, 1.35, 0.42, 0, ['#9ba297', '#868e89', '#6e7777'], 5.22);
     }
+  }
+
+  function drawStreetDetails() {
+    for (const x of roads) {
+      for (const z of roads) {
+        if (Math.hypot(x - camera.x, z - camera.z) > 29) continue;
+        const postX = x + 5.35;
+        const postZ = z - 5.35;
+        box(postX, postZ, 0.12, 0.12, 3.25, 0, ['#68757a', '#506067', '#3d4d55']);
+        box(postX - 0.72, postZ, 1.5, 0.1, 0.11, 0, ['#727c7f', '#58666a', '#404f55'], 3.11);
+        box(postX - 1.37, postZ, 0.31, 0.29, 0.67, 0, ['#475052', '#323d42', '#263339'], 2.55);
+        const green = (Math.floor(elapsed / 6) + Math.round(x / 28)) % 2;
+        box(postX - 1.37, postZ + 0.15, 0.13, 0.04, 0.12, 0,
+          green ? ['#a1e3a0', '#75c483', '#639b6d'] : ['#fb9a89', '#df675d', '#b65454'], green ? 2.6 : 3);
+        box(x + 5.42, z + 5.51, 0.42, 0.43, 0.71, 0, ['#687d78', '#486360', '#3a514f']);
+        box(x + 5.42, z + 5.51, 0.47, 0.49, 0.11, 0, ['#91a19b', '#677d77', '#4c6562'], 0.7);
+      }
+    }
+  }
+
+  function drawFerry() {
+    const x = -15;
+    const z = 24 + Math.sin(elapsed * 0.021) * 35;
+    if (camera.x > 49 || Math.abs(camera.z - z) > 77) return;
+    flat(x - 2.2, z - 12, 0.3, 25, '#bdcacc38');
+    flat(x + 2, z - 9, 0.28, 21, '#bdcacc38');
+    box(x, z, 4.5, 12, 1.12, 0, ['#77858d', '#43596b', '#334857'], 0, 0.94);
+    box(x, z + 0.25, 4.1, 9.7, 0.22, 0, ['#d4d8c9', '#a9b4ae', '#839c9a'], 1.11);
+    box(x, z - 1.5, 3.15, 4.9, 1.68, 0, ['#d4d9ce', '#bdc9c2', '#9aaba9'], 1.34, 0.91);
+    box(x, z - 2, 3.01, 3.4, 0.26, 0, ['#67889a', '#496c82', '#3e5b71'], 2.74);
+    box(x, z + 1.5, 0.33, 0.39, 1.35, 0, ['#7f929a', '#657c84', '#4c686f'], 2.25);
   }
 
   function drawDocks() {
@@ -1041,6 +1120,14 @@
     flat(0, 0, size, size, '#7d8178');
     flat(0, 0, 6.4, size, '#6c7b52');
     flat(17.2, 0, 1.7, size, '#758352');
+    flat(-0.65, 0, 0.65, size, '#aeb1a1');
+    flat(size, 0, 0.65, size, '#aeb1a1');
+    for (let z = 4; z < size; z += 7) {
+      if (Math.abs(camera.z - z) < 50) {
+        flat(-2.1, z, 1.55, 0.16, '#c4d1c52f');
+        flat(size + 0.65, z + 2, 1.15, 0.16, '#c4d1c52f');
+      }
+    }
     flat(101.2, 0, 6.8, size, '#697c54');
     for (const road of roads) {
       flat(road - 5.15, 0, 10.3, size, '#a3a49a');
@@ -1105,7 +1192,9 @@
       box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
+    drawFerry();
     for (const b of blocks) drawBuilding(b);
+    drawStreetDetails();
     drawViaduct();
     for (const tree of trees) if (distance(tree, camera) < 48) drawTree(tree);
     drawDocks();
@@ -1131,7 +1220,15 @@
     }
     if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450'], shotFlash > 0 || step?.kind === 'shoot');
     faces.sort((a, b) => b.depth - a.depth);
-    for (const face of faces) fill(face.points, face.color);
+    for (const face of faces) {
+      if (face.points) fill(face.points, face.color);
+      else {
+        context.font = '700 ' + face.size + 'px system-ui, sans-serif';
+        context.textAlign = 'center';
+        context.fillStyle = face.color;
+        context.fillText(face.text, face.x, face.y);
+      }
+    }
     const target = objectiveTarget();
     if (target) pin(target, target === car ? 3.2 : 3, target === car ? '#79f1c6' : '#ffd373',
       target === car ? 'GETAWAY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');

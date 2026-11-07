@@ -23,6 +23,7 @@
     #heat.clear { border-color:#548e85; color:#a9f7dc; }
     #escape-progress { flex-basis:100%; width:100%; height:7px; accent-color:#9df3d3; }
     #objective { flex: 1 1 100%; width: max-content; max-width: max-content; }
+    #district { position:absolute; left:10px; bottom:10px; color:#e9f7f6; border:1px solid #587687; border-radius:7px; padding:5px 7px; background:#101a29dd; font-size:10px; font-weight:800; letter-spacing:.09em; pointer-events:none; }
     .feedback { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); pointer-events:none;
       border:1px solid #77acaa; border-radius:8px; padding:6px 10px; background:#101a29ed; color:#a9f7dc;
       font-size:12px; font-weight:750; white-space:nowrap; }
@@ -78,6 +79,7 @@
         <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
       </div>
+      <span id="district">WEST RAIL</span>
       <div class="feedback" id="feedback" role="status" hidden></div>
       <div class="overlay" id="overlay">
         <section class="panel">
@@ -123,6 +125,6 @@
       <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
-  <script src="harbor-getaway.js?v=character"></script>
+  <script src="harbor-getaway.js?v=town"></script>
 </body>
 </html>
