@@ -67,6 +67,15 @@
       .panel { padding:10px; }
       .panel p { margin:6px 0; }
     }
+    button { background:linear-gradient(#263e55,#172b40); box-shadow:inset 0 1px #ffffff12; }
+    summary { cursor:pointer; min-height:32px; font-weight:700; color:#a9f7dc; }
+    .focus-game { overflow:hidden; }
+    .focus-game main { width:100%; height:100svh; display:flex; flex-direction:column; padding:env(safe-area-inset-top) 6px env(safe-area-inset-bottom); }
+    .focus-game header, .focus-game footer, .focus-game .hint, .focus-game .spuddy-settings { display:none; }
+    .focus-game .stage { flex:1; min-height:0; border-radius:12px; }
+    .focus-game canvas { height:100%; }
+    .focus-game .controls { flex:none; margin:6px 0; }
+    @media(pointer:coarse) { .actions { width:100%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); } .actions button { font-size:12px; padding:0 5px; } }
   </style>
 </head>
 <body>
@@ -112,19 +121,20 @@
         <button type="button" id="fire" hidden>Fire</button>
         <button type="button" id="jobs" hidden>Jobs</button>
         <button type="button" id="camera-mode" aria-pressed="false">Look around</button>
+        <button type="button" id="focus-view" aria-pressed="false">Focus view</button>
         <button type="button" id="pause">Pause</button>
       </div>
     </div>
     <p class="hint touch-hint" id="run-hint">Drag to run. Lift to stop. Use a second finger to look, or tap Look around.</p>
     <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast. Use a second finger to look around.</p>
     <p class="hint keyboard-hint">Use WASD or arrows to move and drive, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
-    <section aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
-      <strong>Your Spuddy</strong>
+    <details class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
+      <summary>Your Spuddy &amp; customization</summary>
       <p id="spuddy-status" role="status">Loading Spuddy…</p>
       <button type="button" id="spuddy-refresh">Refresh Spuddy</button>
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>
       <p class="hint">Solo free roam · online lobbies are not connected yet.</p>
-    </section>
+    </details>
   </main>
   <footer class="public-footer" aria-label="Earnly site information">
     <nav aria-label="Site information">

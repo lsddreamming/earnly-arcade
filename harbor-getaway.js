@@ -866,6 +866,24 @@
       part(sign * 1.02, -1.15, 0.33, 0.68, 0.62, 0.03, rubber);
       part(sign * 1.02, 1.12, 0.33, 0.68, 0.62, 0.03, rubber);
     }
+    if (Math.hypot(actor.x - eye.x, actor.z - eye.z) < 32) {
+      for (const sign of [-1, 1]) for (const ahead of [-1.15, 1.12]) {
+        const ring = (radius, across) => Array.from({ length: 12 }, (_, i) => {
+          const a = i * Math.PI / 6;
+          const along = ahead + Math.cos(a) * radius;
+          return [actor.x + across * side.x + along * front.x,
+            0.34 + Math.sin(a) * radius, actor.z + across * side.z + along * front.z];
+        });
+        polygon(ring(0.34, sign * 1.20), '#141c25');
+        polygon(ring(0.19, sign * 1.205), '#8c9ca8');
+        polygon(ring(0.09, sign * 1.21), '#354554');
+      }
+      for (const sign of [-1, 1]) {
+        part(sign * 1.07, 0.83, 0.23, 0.34, 0.15, 1.01, paint);
+        part(sign * 1.065, -0.12, 0.035, 0.26, 0.055, 0.78, ['#b4bec5','#9ba9b4','#7a8994']);
+        part(sign * 1.07, 0, 0.035, 2.45, 0.055, 0.48, rubber);
+      }
+    }
     part(0, 0, 2.12, 3.64, 0.43, 0.27, paint);
     part(0, 0.09, 1.99, 3.34, 0.22, 0.70, paint);
     if (actor.name === 'Cargo van') {
@@ -950,6 +968,8 @@
       for (let i = 1.4; i < b.w - 1; i += 2.05) {
         const left = b.x + i;
         const color = Math.floor(i + level + b.x) % 3 ? '#4e5d60' : '#728289';
+        polygon([[left - 0.08, level - 0.08, frontZ], [left + 0.94, level - 0.08, frontZ],
+          [left + 0.94, level + 0.98, frontZ], [left - 0.08, level + 0.98, frontZ]], '#b0aaa0');
         polygon([[left, level, frontZ], [left + 0.86, level, frontZ],
           [left + 0.86, level + 0.9, frontZ], [left, level + 0.9, frontZ]], color);
       }
@@ -1567,6 +1587,11 @@
     }
   }
   for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, endTouch, true);
+  element('focus-view').addEventListener('click', () => {
+    const active = document.body.classList.toggle('focus-game');
+    element('focus-view').textContent = active ? 'Exit focus' : 'Focus view';
+    element('focus-view').setAttribute('aria-pressed', String(active));
+  });
   element('camera-mode').addEventListener('click', () => {
     clearControls();
     cameraMode = !cameraMode;
