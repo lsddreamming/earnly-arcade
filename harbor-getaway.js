@@ -93,6 +93,13 @@
     workers.push({ x: x + 5.35, z: z + 7, dx: 0, dz: 15, pace: 0.17,
       jacket: workers[(row + column) % 4].jacket });
   }
+  for (const worker of [...workers]) {
+    for (let i = 1; i <= 3; i++) workers.push({ ...worker,
+      x: worker.x + (worker.dx ? 0 : (i % 2 ? 0.45 : -0.45)),
+      z: worker.z + (worker.dz ? 0 : (i % 2 ? 0.45 : -0.45)),
+      pace: worker.pace * (0.82 + i * 0.12), phaseOffset: i * 1.7,
+      jacket: workers[i % 4].jacket });
+  }
   const camera = { x: player.x, z: player.z, angle: 0, distance: 11 };
   let phase = 'ready';
   let inCar = false;
@@ -245,6 +252,17 @@
         }
       }
     }
+    if (actor === car && inCar && Math.abs(car.speed) > 4) {
+      for (const lamp of lamps) {
+        if (lamp.brokenAt !== null || pointToVehicle(lamp,actor) > 1.25) continue;
+        lamp.brokenAt = elapsed;
+        lamp.fallAngle = actor.angle + (actor.speed < 0 ? Math.PI : 0);
+        car.speed *= 0.88;
+        notify('Streetlight knocked down');
+        cue(170, 35, 0.25, 'triangle');
+        if (!heatLevel) wanted(1);
+      }
+    }
     return edge ? 'wall' : null;
   }
 
@@ -262,7 +280,7 @@
         }
         continue;
       }
-      const cycle = elapsed * worker.pace;
+      const cycle = elapsed * worker.pace + (worker.phaseOffset || 0);
       const progress = (1 - Math.cos(cycle)) / 2;
       worker.x = worker.homeX + worker.dx * progress;
       worker.z = worker.homeZ + worker.dz * progress;
@@ -296,6 +314,7 @@
 
   function resetTraffic() {
     displacedDrivers.length = 0;
+    for (const lamp of lamps) { lamp.brokenAt = null; lamp.fallAngle = 0; }
     for (const vehicle of traffic) {
       vehicle.cruiseSpeed ??= vehicle.speed;
       Object.assign(vehicle, { ...models.coupe, occupied: true, taken: false, doorUntil: 0, speed: vehicle.cruiseSpeed });
@@ -785,7 +804,7 @@
   const roofs = ['#8d8e86', '#8c9292', '#969086', '#86928c'];
   const walls = ['#a09d8d', '#909a9c', '#a79e90', '#a0a697'];
   const darkWalls = ['#777973', '#69767a', '#807a74', '#737f76'];
-  const lamps = roads.flatMap(x => roads.map(z => ({ x: x + 5.2, z: z + 5.2 })));
+  const lamps = roads.flatMap(x => roads.map(z => ({ x: x + 5.2, z: z + 5.2, brokenAt: null, fallAngle: 0 })));
   const trees = Array.from({ length: 18 }, (_, i) => ({
     x: i < 9 ? 17.45 : 102.05,
     z: 4.5 + (i % 9) * 11.9,
@@ -1048,6 +1067,15 @@
     const nearDetail = Math.hypot(x - eye.x, z - eye.z) < 30;
     if (nearDetail) {
       const stone = ['#aaa79a','#827f76','#716f69'];
+      for (let floor=3.8;floor<b.h-1;floor+=2.1) box(x,z,b.w+0.18,b.d+0.18,0.10,0,stone,floor);
+      if (b.shade % 2 === 1) {
+        for (let floor=2.1;floor<b.h-1.25;floor+=2.1) {
+          const balconyZ=b.z+b.d+0.4;
+          box(x,balconyZ,2.25,0.8,0.14,0,stone,floor-0.16);
+          box(x,balconyZ+0.36,2.25,0.06,0.07,0,['#596d74','#3e5159','#2c414c'],floor+0.55);
+          for(const offset of [-1,-.5,0,.5,1]) box(x+offset,balconyZ+0.36,.045,.045,.65,0,['#596d74','#3e5159','#2c414c'],floor-0.1);
+        }
+      }
       box(x,z,b.w+0.10,b.d+0.10,0.35,0,stone,0.02);
       box(x,z,b.w+0.14,b.d+0.14,0.15,0,stone,1.48);
       for (const edge of [-1,1]) box(x+edge*(b.w/2-0.14),z,0.28,b.d+0.12,b.h-0.3,0,stone,0.16);
@@ -1536,6 +1564,20 @@
     faces = [];
     scenery = true;
     for (const lamp of nearbyLamps) {
+      if (lamp.brokenAt !== null) {
+        const t = clamp((elapsed-lamp.brokenAt)/0.65,0,1);
+        const tilt = t*t*Math.PI/2;
+        const dir = facing(lamp.fallAngle);
+        const right = facing(lamp.fallAngle+Math.PI/2);
+        const base = [lamp.x,0.15,lamp.z];
+        const tip = [lamp.x+dir.x*4.5*Math.sin(tilt),0.15+4.5*Math.cos(tilt),lamp.z+dir.z*4.5*Math.sin(tilt)];
+        const corners = (p) => [[p[0]+right.x*.1,p[1]+.08,p[2]+right.z*.1],[p[0]-right.x*.1,p[1]+.08,p[2]-right.z*.1],[p[0]-right.x*.1,p[1]-.08,p[2]-right.z*.1],[p[0]+right.x*.1,p[1]-.08,p[2]+right.z*.1]];
+        const a=corners(base), b=corners(tip);
+        for(let i=0;i<4;i++) polygon([a[i],a[(i+1)%4],b[(i+1)%4],b[i]], i%2?'#354858':'#637687');
+        box(tip[0],tip[2],0.6,0.45,0.18,lamp.fallAngle,['#727a7c','#454f57','#303b45'],tip[1]);
+        box(lamp.x,lamp.z,.3,.3,.18,0,['#8d8d81','#666d68','#4d5857']);
+        continue;
+      }
       box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
