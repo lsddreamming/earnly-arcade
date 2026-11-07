@@ -1094,6 +1094,20 @@
     context.restore();
   }
 
+  function drawSpuddy() {
+    const sprite = window.HarborSpuddy?.sprite;
+    if (!sprite) { drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450']); return; }
+    const bob = Math.abs(Math.sin(walkCycle)) * walkBlend * 0.10;
+    const feet = cameraPoint([player.x, bob - 0.08, player.z]);
+    const head = cameraPoint([player.x, 2.05 + bob, player.z]);
+    if (feet[2] < 0.5 || head[2] < 0.5) return;
+    const [x, bottom] = project(feet);
+    const [, top] = project(head);
+    const height = Math.max(1, bottom - top);
+    faces.push({ depth: feet[2], sprite, x, y: top, width: height * 0.75, height,
+      sway: Math.sin(walkCycle) * walkBlend * 0.045 });
+  }
+
   function drawPerson(person, stride, jacket, aiming = false) {
     const forward = facing(person.angle);
     const right = facing(person.angle + Math.PI / 2);
@@ -1346,10 +1360,16 @@
       if (distance(worker, camera) < 23) drawPerson(worker,
         worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
     }
-    if (!inCar) drawPerson(player, Math.sin(walkCycle) * 0.27 * walkBlend, ['#67818d', '#455b6a', '#344450'], shotFlash > 0 || step?.kind === 'shoot');
+    if (!inCar) drawSpuddy();
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) {
-      if (face.points) fill(face.points, face.color);
+      if (face.sprite) {
+        context.save();
+        context.translate(face.x, face.y + face.height);
+        context.rotate(face.sway);
+        context.drawImage(face.sprite, -face.width / 2, -face.height, face.width, face.height);
+        context.restore();
+      } else if (face.points) fill(face.points, face.color);
       else {
         context.font = '700 ' + face.size + 'px system-ui, sans-serif';
         context.textAlign = 'center';
