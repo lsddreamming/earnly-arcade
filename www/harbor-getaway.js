@@ -119,6 +119,8 @@
     {name:'Heavy rifle',damage:85,delay:0.55,range:38}
   ];
   let weaponIndex = 0;
+  let shotAt = -10;
+  let shotConnected = false;
   const weaponPickups = [{x:17,z:40,type:1},{x:40,z:60,type:2},{x:152,z:180,type:2},{x:292,z:264,type:1}];
   let shotFlash = 0;
   let shotTarget = null;
@@ -506,7 +508,7 @@
     selectedJob = clamp(Math.floor(Number(element('mission').value) || 0), 0, availableJobs() - 1);
     activeJob = free ? null : jobs[selectedJob];
     stageIndex = heatLevel = shotFlash = feedbackUntil = 0;
-    weaponIndex=0;
+    weaponIndex=0; shotAt=-10; shotConnected=false;
     weaponPickups.forEach(p=>p.readyAt=0);
     for (const v of [...traffic,patrol,backup]) { v.health=160; v.destroyed=false; }
     shotTarget = null;
@@ -679,6 +681,7 @@
   function damageVehicle(vehicle,damage) {
     if (vehicle.destroyed) return;
     vehicle.health=Math.max(0,(vehicle.health ?? 160)-damage);
+    vehicle.hitAt=elapsed;
     if (vehicle.health>0) { notify('Vehicle damaged · '+vehicle.health+' integrity'); return; }
     vehicle.destroyed=true; vehicle.speed=0; vehicle.occupied=false; vehicle.blastAt=elapsed;
     wanted(3); notify('Vehicle exploded · police lockdown'); cue(65,24,0.6,'sawtooth');
@@ -714,7 +717,9 @@
       if (along>0.4 && along<nearest && across<0.65) { victim=worker; nearest=along; }
     }
     if (victim) hit=false;
-    shotTarget = victim || (hit ? step : { x: player.x + aim.x * reach, z: player.z + aim.z * reach });
+    const impact = victim || (hit ? step : { x: player.x + aim.x * reach, z: player.z + aim.z * reach });
+    shotTarget = {x:impact.x,z:impact.z};
+    shotAt=elapsed; shotConnected=Boolean(victim || hit || hitCar);
     shotFlash = weapon.delay;
     if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
     cue(185, 47, 0.15, 'square');
@@ -1075,13 +1080,20 @@
     if (actor.destroyed) {
       box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
       const age=elapsed-actor.blastAt;
-      for(let i=0;i<5;i++) {
+      for(let i=0;i<(age<18?5:0);i++) {
         const y=0.8+(age*1.4+i*0.7)%4;
         const r=0.4+y*0.19;
         box(actor.x+Math.sin(i*2)*0.5,actor.z+Math.cos(i*2)*0.7,r,r,r,age+i,
           age<1.2?['#ffe694','#ff9b42','#d94723']:['#697078','#515963','#424a53'],y);
       }
       return;
+    }
+    if ((actor.health ?? 160) < 85) {
+      for(let i=0;i<3;i++) {
+        const rise=(elapsed*1.25+i*0.75)%2.5;
+        box(actor.x+Math.sin(i*2)*0.15,actor.z-0.7,0.25+rise*0.16,0.25+rise*0.16,0.35,elapsed+i,
+          ['#667078','#505b65','#414b56'],1.1+rise);
+      }
     }
     const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#365957', '#243d3d', '#1c3033']);
     const rubber = ['#263145', '#101723', '#161e2b'];
@@ -1777,7 +1789,11 @@
       box(p.x,p.z,0.55,0.55,0.85,0,['#d2c6a4','#8e958e','#626e70']);
     }
     if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<55) {
-      box(pickup.x,pickup.z,0.9,0.9,0.28,elapsed,['#b6ffe2','#43bc98','#256b63'],0.4+Math.sin(elapsed*3)*0.12);
+      const lift=0.55+Math.sin(elapsed*3)*0.12;
+      box(pickup.x,pickup.z,1.2,1.2,0.12,0,['#81e9c5','#368f7a','#22594f'],0.03);
+      const tint=pickup.type===2?['#ffe3a2','#c99750','#856536']:['#b6ffe2','#43bc98','#256b63'];
+      box(pickup.x,pickup.z,0.24,pickup.type===2?1.25:0.8,0.23,elapsed*0.7,tint,lift);
+      box(pickup.x,pickup.z,0.18,0.25,0.3,elapsed*0.7,['#566779','#354655','#253440'],lift-0.22);
 
     }
     drawFerry();
@@ -1861,7 +1877,7 @@
     const target = objectiveTarget();
     if (target) pin(target, target === car ? 3.2 : 3, target === car ? '#79f1c6' : '#ffd373',
       target === car ? 'GETAWAY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
-    if (shotFlash > 0.08 && shotTarget) {
+    if (elapsed-shotAt < 0.09 && shotTarget) {
       const start = cameraPoint([player.x, 1.07, player.z]);
       const end = cameraPoint([shotTarget.x, 1.42, shotTarget.z]);
       if (start[2] > 1 && end[2] > 1) {
@@ -1871,9 +1887,17 @@
         context.strokeStyle = '#ffe6a5';
         context.lineWidth = 2;
         context.stroke();
+        if (shotConnected) {
+          const [x,y]=project(end);
+          context.strokeStyle='#fff0bc';
+          context.beginPath();
+          for(const sign of [-1,1]) { context.moveTo(x+sign*3,y-3); context.lineTo(x+sign*7,y-7); context.moveTo(x+sign*3,y+3); context.lineTo(x+sign*7,y+7); }
+          context.stroke();
+        }
       }
     }
-    if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<35 && visible(player,pickup)) pin(pickup,2.2,'#a3ffe0',weapons[pickup.type].name);
+    if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<35 && visible(player,pickup)) pin(pickup,2.2,'#a3ffe0',weapons[pickup.type].name+' · Walk over to equip');
+    for(const v of [...vehicles,...traffic]) if(!v.destroyed && elapsed-(v.hitAt ?? -10)<2 && visible(player,v)) pin(v,2.5,'#ffd18c','Integrity '+v.health+'/160');
     minimap(inCar ? car : player);
   }
 
