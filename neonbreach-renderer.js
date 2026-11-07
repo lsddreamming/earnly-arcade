@@ -13,7 +13,7 @@
       if(e.type==='wave'){banner=2;bannerText=`WAVE ${String(e.wave).padStart(2,'0')}`;streakClock=0}
       if(e.type==='fire')laser=e;
       if(e.type==='damage')damageFrom={x:e.x,y:e.y,shield:e.shield,life:.8};
-      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:({key:'ACCESS KEY FOUND',shotgun:'SCATTERGUN / 8 SHELLS',ammo:'+6 SHELLS',door:'ACCESS GRANTED',locked:'GOLD KEY REQUIRED',exit:'SECTOR SECURED',carbine:'OUT OF SHELLS / CARBINE'})[e.kind]||(e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE')};
+      if(e.type==='pickup')pickupNotice={kind:e.kind,life:1.8,label:({key:'ACCESS KEY FOUND',shotgun:'SCATTERGUN / 8 SHELLS',ammo:'+6 SHELLS',door:'ACCESS GRANTED',boss:'SECTOR WARDEN INCOMING', 'boss-down':'WARDEN DEFEATED · EXIT OPEN',locked:'GOLD KEY REQUIRED',exit:'SECTOR SECURED',carbine:'OUT OF SHELLS / CARBINE'})[e.kind]||(e.kind==='health'?(e.amount>0?`+${e.amount} HULL`:'HULL FULL'):e.kind==='shield'?'SHIELD ONLINE':'RAPID FIRE ONLINE')};
       if(e.type==='impact'){
         hit=.18;kill=e.killed?.7:kill;
         effects.push({...e,life:e.killed?.7:.22,total:e.killed?.7:.22});
@@ -97,6 +97,7 @@
         c.strokeStyle=accent;c.globalAlpha=spawn*.7;c.lineWidth=1;c.beginPath();c.ellipse(x,y+size*1.01,size*.45,size*.09,0,0,TAU);c.stroke();
         if(!calm){const scan=y+size*(1-spawn);c.beginPath();c.moveTo(x-size*.36,scan);c.lineTo(x+size*.36,scan);c.stroke()}c.globalAlpha=1;
       }
+      if(s.boss){c.fillStyle='#ffdf78';c.fillRect(x-size*.38,y-size*.17,size*.76,Math.max(3,size*.035));c.fillStyle='#ff537b';c.fillRect(x-size*.38,y-size*.17,size*.76*Math.max(0,s.hp/s.maxHp),Math.max(3,size*.035));}
       if(s.elite){c.fillStyle=accent;c.beginPath();c.moveTo(x,y-size*.12);c.lineTo(x-3,y-size*.12-4);c.lineTo(x+3,y-size*.12-4);c.fill()}
     }
     function render(s,{running=false,dt=0,moving=false}={}){
