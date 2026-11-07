@@ -789,6 +789,18 @@
     return [width / 2 + focal * x / depth, height * 0.51 - focal * y / depth];
   }
 
+  const hazeColors = new Map();
+  function distanceColor(color, depth) {
+    const band = Math.min(6, Math.max(0, Math.floor((depth - 30) / 14)));
+    if (!band || !/^#[0-9a-f]{6}$/i.test(color)) return color;
+    const key = color + band;
+    if (!hazeColors.has(key)) {
+      const t = band * 0.075;
+      const channels = [0,1,2].map(i => Math.round(parseInt(color.slice(1+i*2,3+i*2),16)*(1-t)+[155,174,183][i]*t));
+      hazeColors.set(key, `rgb(${channels.join(',')})`);
+    }
+    return hazeColors.get(key);
+  }
   function polygon(points, color, ground = false, sortDepth) {
     const view = points.map(cameraPoint);
     const clipped = [];
@@ -806,6 +818,7 @@
     const projected = clipped.map(project);
     if (projected.every(p => p[0] < 0) || projected.every(p => p[0] > width)
       || projected.every(p => p[1] < 0) || projected.every(p => p[1] > height)) return;
+    if (scenery) color = distanceColor(color, view.reduce((sum,p) => sum+p[2],0)/view.length);
     if (ground) fill(projected, color);
     else faces.push({ points: projected, color, scenery, nearDepth: Math.min(...clipped.map(p => p[2])), depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length });
   }
@@ -867,11 +880,12 @@
       actor.x + across * side.x + ahead * front.x, actor.z + across * side.z + ahead * front.z,
       w, d, h, actor.angle, colors, base, taper,
     );
-    for (const sign of [-1, 1]) {
+    const detailed = Math.hypot(actor.x - eye.x, actor.z - eye.z) < 42;
+    if (!detailed) for (const sign of [-1, 1]) {
       part(sign * 1.02, -1.15, 0.33, 0.68, 0.62, 0.03, rubber);
       part(sign * 1.02, 1.12, 0.33, 0.68, 0.62, 0.03, rubber);
     }
-    if (Math.hypot(actor.x - eye.x, actor.z - eye.z) < 32) {
+    if (detailed) {
       for (const sign of [-1, 1]) for (const ahead of [-1.15, 1.12]) {
         const ring = (radius, across) => Array.from({ length: 12 }, (_, i) => {
           const a = i * Math.PI / 6;
@@ -879,9 +893,16 @@
           return [actor.x + across * side.x + along * front.x,
             0.34 + Math.sin(a) * radius, actor.z + across * side.z + along * front.z];
         });
-        polygon(ring(0.34, sign * 1.20), '#141c25');
+        const inner = ring(0.34, sign * 0.90), outer = ring(0.34, sign * 1.20);
+        for (let i = 0; i < 12; i++) {
+          const j = (i + 1) % 12;
+          polygon([inner[i],inner[j],outer[j],outer[i]], i < 6 ? '#30383e' : '#141a21');
+        }
+        polygon(outer, '#141c25');
         polygon(ring(0.19, sign * 1.205), '#8c9ca8');
-        polygon(ring(0.09, sign * 1.21), '#354554');
+        const hub = ring(0.065, sign * 1.215), rim = ring(0.16, sign * 1.215);
+        for (let i = 0; i < 12; i += 2) polygon([hub[i],rim[i],rim[(i+1)%12],hub[(i+1)%12]], '#33414d');
+        polygon(ring(0.055, sign * 1.22), '#c1cbd1');
       }
       for (const sign of [-1, 1]) {
         part(sign * 1.07, 0.83, 0.23, 0.34, 0.15, 1.01, paint);
@@ -967,6 +988,22 @@
     }
     box(x, z, b.w + 0.22, b.d + 0.22, 0.24, 0, ['#647184', '#4c5268', '#3a435b'], b.h - 0.08);
     box(x + 1.1, z - 0.55, 2.3, 1.7, 0.85, 0, ['#71849a', '#4d5b73', '#36465c'], b.h + 0.15);
+    const nearDetail = Math.hypot(x - eye.x, z - eye.z) < 30;
+    if (nearDetail) {
+      const stone = ['#aaa79a','#827f76','#716f69'];
+      box(x,z,b.w+0.10,b.d+0.10,0.35,0,stone,0.02);
+      box(x,z,b.w+0.14,b.d+0.14,0.15,0,stone,1.48);
+      for (const edge of [-1,1]) box(x+edge*(b.w/2-0.14),z,0.28,b.d+0.12,b.h-0.3,0,stone,0.16);
+      if (b.storefront === undefined) {
+        for (const sign of [-1,1]) {
+          const doorZ=z+sign*(b.d/2+0.045);
+          box(x,doorZ,1.28,0.08,1.85,0,['#3e5359','#30434b','#24343c'],0.16);
+          box(x,doorZ+sign*0.22,1.65,0.60,0.16,0,stone,2.05);
+          box(x,doorZ+sign*0.18,1.5,0.48,0.12,0,stone,0.02);
+          box(x+0.42,doorZ+sign*0.06,0.07,0.04,0.20,0,['#d5ba7f','#b99c62','#a28d67'],0.92);
+        }
+      }
+    }
     const frontZ = eye.z >= z ? b.z + b.d + 0.025 : b.z - 0.025;
     const sideX = eye.x >= x ? b.x + b.w + 0.025 : b.x - 0.025;
     for (let level = 2.1; level < b.h - 1.25; level += 2.1) {
@@ -977,6 +1014,11 @@
           [left + 0.94, level + 0.98, frontZ], [left - 0.08, level + 0.98, frontZ]], '#b0aaa0');
         polygon([[left, level, frontZ], [left + 0.86, level, frontZ],
           [left + 0.86, level + 0.9, frontZ], [left, level + 0.9, frontZ]], color);
+        if (nearDetail) {
+          box(left+0.43,frontZ,1.08,0.24,0.09,0,['#b6b2a5','#8c8d86','#777e7d'],level-0.09);
+          polygon([[left+0.40,level,frontZ],[left+0.46,level,frontZ],[left+0.46,level+0.90,frontZ],[left+0.40,level+0.90,frontZ]],'#adb3ae');
+          polygon([[left+0.06,level+0.61,frontZ],[left+0.35,level+0.61,frontZ],[left+0.35,level+0.82,frontZ],[left+0.06,level+0.82,frontZ]],'#92a8ac');
+        }
       }
       for (let i = 1; i < b.d - 0.8; i += 1.65) {
         const near = b.z + i;
