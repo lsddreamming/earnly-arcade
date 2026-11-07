@@ -494,6 +494,7 @@
 
   function advanceStage(message) {
     stageIndex += 1;
+    window.HarborOnline?.stage(stageIndex,inCar?car.x:player.x,inCar?car.z:player.z);
     const next=activeJob?.stages[stageIndex];
     notify(message+(next?' · Next: '+next.label:''));
     feedbackUntil=elapsed+4;
@@ -546,6 +547,7 @@
   function reset(free = false) {
     selectedJob = clamp(Math.floor(Number(element('mission').value) || 0), 0, availableJobs() - 1);
     activeJob = free ? null : jobs[selectedJob];
+    window.HarborOnline?.start(free?null:selectedJob);
     stageIndex = heatLevel = shotFlash = feedbackUntil = 0;
     weaponIndex=0; ownedWeapons.clear(); ownedWeapons.add(0); shotAt=-10; shotConnected=false;
     weaponPickups.forEach(p=>p.readyAt=0);
@@ -673,6 +675,7 @@
   }
 
   function updateHud() {
+    element("connect-live").hidden = Boolean(activeJob);
     const seconds = activeJob ? Math.max(0, Math.ceil(activeJob.time - elapsed)) : 0;
     element('clock').textContent = activeJob
       ? Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') : 'FREE ROAM';
@@ -802,6 +805,7 @@
   }
 
   function completeJob() {
+    window.HarborOnline?.finish();
     const time = Math.max(1, Math.ceil(elapsed * 1000));
     const record = !records[activeJob.name] || time < records[activeJob.name];
     if (record) {
@@ -824,6 +828,8 @@
 
   function update(dt) {
     elapsed += dt;
+    const onlineActor=inCar?car:player;
+    window.HarborOnline?.tick({x:onlineActor.x,z:onlineActor.z,angle:onlineActor.angle,driving:inCar,free:!activeJob});
     shotFlash = Math.max(0, shotFlash - dt);
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
       if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
@@ -1892,6 +1898,10 @@
     for (const worker of workers) {
       if (distance(worker, camera) < 23) drawPerson(worker,
         worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
+    }
+    for(const peer of window.HarborOnline?.peers() || []) if(distance(peer,camera)<65) {
+      if(peer.driving) drawCar(peer,false);
+      else drawPerson(peer,Math.sin(elapsed*8)*0.15,['#b2d8ed','#4288ac','#2d5978']);
     }
     if (!inCar) drawSpuddy();
     const subject = inCar ? car : player;

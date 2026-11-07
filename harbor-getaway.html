@@ -97,7 +97,7 @@
       .actions button { min-height:46px; font-size:11px; }
       #interact { grid-column:span 2; }
     }
-  </style>
+  #harbor-login label{display:block;margin:12px 0}#harbor-login input{display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #456077;background:#172b3e;color:white}#online-status{color:#a5efd9;line-height:1.5}</style>
 </head>
 <body>
   <main>
@@ -140,6 +140,7 @@
       <div class="actions">
         <button type="button" id="interact">Enter car</button>
         <button type="button" data-key="brake" id="brake" hidden>Handbrake</button>
+        <button type="button" id="connect-live">Connect Live</button>
         <button type="button" id="fire" hidden>Fire</button>
         <button type="button" id="switch-weapon" hidden>Switch gun</button>
         <button type="button" id="jobs" hidden>Jobs</button>
@@ -160,8 +161,10 @@
       <p id="spuddy-status" role="status">Loading Spuddy…</p>
       <button type="button" id="spuddy-refresh">Refresh Spuddy</button>
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>
-      <p class="hint">Solo free roam · online lobbies are not connected yet.</p>
+      <p class="hint">Connect Live shares player positions. Traffic, police and combat remain local; player-versus-player damage is not enabled.</p>
     </details>
+    <p id="online-status" role="status">Solo free roam · Sign in to earn mission coins.</p>
+    <form id="harbor-login" hidden><label>Email <input id="harbor-email" type="email" autocomplete="username" required></label><label>Password <input id="harbor-password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form>
   </main>
   <footer class="public-footer" aria-label="Earnly site information">
     <nav aria-label="Site information">
@@ -174,6 +177,7 @@
   <script src="cloud.js"></script>
   <script src="potato-rig.js"></script>
   <script src="harbor-spuddy.js?v=3"></script>
+  <script src="harbor-online.js"></script>
   <script src="harbor-getaway.js?v=spuddy-polish"></script>
 </body>
 </html>
