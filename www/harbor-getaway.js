@@ -737,7 +737,8 @@
   }
 
   function shoot() {
-    if (phase !== 'playing' || inCar || shotFlash > 0) return;
+    if (phase !== 'playing' || inCar || shotFlash > 0 || window.HarborOnline?.dead()) return;
+    if(!activeJob)window.HarborOnline?.fire(footView,weaponIndex);
     const step = activeJob?.stages[stageIndex];
     const weapon = weapons[weaponIndex];
     const aim = facing(footView);
@@ -830,6 +831,9 @@
     elapsed += dt;
     const onlineActor=inCar?car:player;
     window.HarborOnline?.tick({x:onlineActor.x,z:onlineActor.z,angle:onlineActor.angle,driving:inCar,free:!activeJob});
+    const liveRespawn=window.HarborOnline?.takeRespawn();
+    if(liveRespawn){inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
+    if(window.HarborOnline?.dead()){keys.clear();pointers.clear();firePointers.clear();return;}
     shotFlash = Math.max(0, shotFlash - dt);
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
       if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
@@ -1899,7 +1903,7 @@
       if (distance(worker, camera) < 23) drawPerson(worker,
         worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
     }
-    for(const peer of window.HarborOnline?.peers() || []) if(distance(peer,camera)<65) {
+    for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<65) {
       if(peer.driving) drawCar(peer,false);
       else drawPerson(peer,Math.sin(elapsed*8)*0.15,['#b2d8ed','#4288ac','#2d5978']);
     }
@@ -2012,6 +2016,7 @@
     }
     if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<35 && visible(player,pickup)) pin(pickup,2.2,'#a3ffe0',weapons[pickup.type].name+' · Walk over to equip');
     for(const v of [...vehicles,...traffic]) if(!v.destroyed && elapsed-(v.hitAt ?? -10)<2 && visible(player,v)) pin(v,2.5,'#ffd18c','Integrity '+v.health+'/160');
+    for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<40 && visible(player,peer)) pin(peer,2.5,peer.shield?'#a3ffe0':'#ffb7bb',peer.shield?'LIVE · Protected':'LIVE · '+peer.health+' HP');
     minimap(inCar ? car : player);
   }
 

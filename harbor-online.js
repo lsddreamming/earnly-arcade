@@ -1,12 +1,12 @@
 (() => {
   'use strict';
   const el=id=>document.getElementById(id);
-  let live=false,busy=false,last=0,peers=[],run=null,queue=Promise.resolve(),generation=0;
+  let live=false,busy=false,last=0,peers=[],run=null,queue=Promise.resolve(),generation=0,health=100,shotBusy=false,respawn=null,noticeUntil=0;
   const client=()=>window.EarnlyCloud?.client;
   const status=text=>{el('online-status').textContent=text;};
   async function rpc(name,args){if(!client())throw new Error('Connection unavailable'); const {data,error}=await client().rpc(name,args);if(error)throw error;return data;}
   async function signedIn(){const {data}=await client().auth.getSession();return Boolean(data.session);}
-  function disconnect(){live=false;peers=[];el('connect-live').textContent='Connect Live';status('Solo free roam');rpc('harbor_live',{p_x:0,p_z:0,p_angle:0,p_leave:true}).catch(()=>{});}
+  function disconnect(){live=false;peers=[];health=100;el('live-health').hidden=true;el('connect-live').textContent='Connect Live';status('Solo free roam');rpc('harbor_live',{p_x:0,p_z:0,p_angle:0,p_leave:true}).catch(()=>{});}
   el('connect-live').addEventListener('click',async()=>{
     if(live){disconnect();return;}
     try {if(!await signedIn()){el('harbor-login').hidden=false;status('Sign in to your Earnly account to connect.');return;}
@@ -20,15 +20,24 @@
   window.addEventListener('pagehide',()=>{if(live)disconnect();});
   window.HarborOnline={
     peers:()=>peers,
+    dead:()=>live&&health===0,
+    takeRespawn(){const value=respawn;respawn=null;return value;},
+    fire(angle,weapon){
+      if(!live||health===0||shotBusy)return;shotBusy=true;
+      rpc('harbor_fire',{p_angle:Math.atan2(Math.sin(angle),Math.cos(angle)),p_weapon:weapon}).then(hit=>{if(!live)return;if(hit.hit){status(hit.killed?'+100 Arcade Coins · live player defeated!':'Live player hit · '+hit.health+' health remaining');noticeUntil=Date.now()+3500;}}).catch(()=>{status('Live shot not confirmed. Check your connection.');}).finally(()=>{shotBusy=false;});
+    },
     tick(state){
       if(!live||busy||Date.now()-last<550)return;
       if(!state.free){disconnect();return;}
       busy=true;last=Date.now();
-      rpc('harbor_live',{p_x:state.x,p_z:state.z,p_angle:Math.atan2(Math.sin(state.angle),Math.cos(state.angle)),p_driving:state.driving}).then(rows=>{
+      rpc('harbor_live',{p_x:state.x,p_z:state.z,p_angle:Math.atan2(Math.sin(state.angle),Math.cos(state.angle)),p_driving:state.driving}).then(data=>{
         if(!live)return;
+        const rows=data.peers;health=data.health ?? 100;
+        el('live-health').hidden=false;el('live-health').textContent=health===0?'Defeated · respawning in '+data.respawnIn+'s':'Live health '+health+'/100'+(data.shield?' · Spawn protection':'');
+        if(data.respawn)respawn={x:data.x,z:data.z};
         peers=Array.isArray(rows)?rows.filter(p=>[p.x,p.z,p.angle].every(Number.isFinite)).slice(0,15):[];
-        status('Live free roam · '+(peers.length+1)+' connected · shared players, local traffic');
-      }).catch(()=>{live=false;peers=[];el('connect-live').textContent='Reconnect Live';status('Disconnected. Your solo game continues.');}).finally(()=>{busy=false;});
+        if(Date.now()>noticeUntil)status('Live PvP · '+(peers.length+1)+' connected · 100 coins per player defeat');
+      }).catch(()=>{live=false;peers=[];health=100;el('live-health').hidden=true;el('connect-live').textContent='Reconnect Live';status('Disconnected. Your solo game continues.');}).finally(()=>{busy=false;});
     },
     start(mission){
       const current=++generation;run=null;queue=Promise.resolve();
