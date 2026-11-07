@@ -147,6 +147,14 @@
   let actualFootSpeed = 0;
   let visualSpeed = 0;
   let turnLean = 0;
+  const stats = { build: 0, muscle: 0.5, endurance: 0.5 };
+  try { const saved = JSON.parse(window.localStorage?.getItem('harborFitnessV1') || '{}');
+    for (const key of Object.keys(stats)) if (Number.isFinite(saved[key])) stats[key] = Math.max(0,Math.min(1,saved[key]));
+  } catch {}
+  let stamina = 100, exhausted = false, fitnessSave = 0;
+  const footPlants = [null,null];
+  function saveFitness() { try { window.localStorage?.setItem('harborFitnessV1',JSON.stringify(stats)); } catch {} }
+
 
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -312,6 +320,7 @@
 
   function clearControls() {
     footSpeed = actualFootSpeed = visualSpeed = turnLean = 0;
+    footPlants.fill(null);
     keys.clear();
     pointers.clear();
     lookPointer = null;
@@ -495,6 +504,7 @@
     elapsed = unseen = caught = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
     runEnabled = false;
+    stamina = 100; exhausted = false;
     element('run-mode').textContent = 'Run';
     element('run-mode').setAttribute('aria-pressed', 'false');
     cameraMode = false; manualLookUntil = 0; cameraLift = 0;
@@ -618,6 +628,8 @@
     element('brake').hidden = !inCar;
     element('brake').disabled = phase !== 'playing';
     element('fire').hidden = inCar || phase !== 'playing';
+    element('stamina').textContent = (exhausted ? 'Recovering ' : 'Energy ') + Math.round(stamina) + '%';
+    element('stamina').hidden = inCar;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
     element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : 'Fire';
@@ -757,10 +769,11 @@
       if (alignment > 0.5 && !look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = player.angle;
       const oldX = player.x;
       const oldZ = player.z;
-      const pace = runEnabled || held('sprint') ? 11 : 7;
+      const sprinting = (runEnabled || held('sprint')) && !exhausted;
+      const pace = sprinting ? 11*(1+stats.muscle*0.10-stats.build*0.15) : 7*(1-stats.build*0.08);
       const speed = dragTouch ? pace * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : pace;
       const desiredSpeed = speed * alignment;
-      const rate = desiredSpeed > footSpeed ? 9 : 16;
+      const rate = (desiredSpeed > footSpeed ? 9 : 16)/(1+stats.build*0.25);
       footSpeed += (desiredSpeed-footSpeed)*(1-Math.exp(-rate*dt));
       // Never coast backward while pivoting, even with leftover sprint momentum.
       const travelSpeed = footSpeed * alignment;
@@ -778,6 +791,14 @@
     updateTraffic(dt);
     updateWorkers(dt);
     actualFootSpeed = dt > 0 ? footTravel/dt : 0;
+    const spending = !inCar && actualFootSpeed > 7.2 && !exhausted;
+    stamina = clamp(stamina + dt*(spending ? -(12-stats.endurance*5) : actualFootSpeed > 0.2 ? 6 : 14),0,100);
+    if (stamina <= 0) exhausted = true;
+    if (stamina >= 30) exhausted = false;
+    if (spending) stats.endurance = clamp(stats.endurance+dt/7200,0,1);
+    fitnessSave += dt;
+    if (fitnessSave >= 10) { saveFitness(); fitnessSave = 0; }
+
     visualSpeed += (actualFootSpeed-visualSpeed)*(1-Math.exp(-8*dt));
     turnLean += (desiredLean*clamp(actualFootSpeed/11,0,1)-turnLean)*(1-Math.exp(-7*dt));
     walkCycle += footTravel * 2.05;
@@ -1336,6 +1357,7 @@
     const position = (x,y,z) => {
       const lean = Math.max(0,y-0.6)*walkBlend*(0.045+clamp(visualSpeed/11,0,1)*0.045);
       const bank = Math.max(0,y-0.55)*turnLean*0.16;
+      x *= 1 + stats.build*0.14 + stats.muscle*0.035;
       return [player.x+right.x*(x+bank)+forward.x*(z+lean),y,player.z+right.z*(x+bank)+forward.z*(z+lean)];
     };
     // Rounded ring meshes retain thickness at every heading. Front/back artwork
@@ -1371,7 +1393,15 @@
     }
     for(const sign of [-1,1]) {
       const step=sign*stride, lift=Math.max(0,step)*0.13;
-      const x=sign*0.14, z=step*0.19;
+      const index = sign < 0 ? 0 : 1;
+      let x=sign*0.14, z=step*0.19;
+      if (step <= 0 && walkBlend > 0.1) {
+        const plant = footPlants[index];
+        if (!plant || Math.hypot(plant.x-player.x,plant.z-player.z)>0.42) footPlants[index] = {x:player.x+right.x*x+forward.x*z,z:player.z+right.z*x+forward.z*z};
+        const planted = footPlants[index];
+        x = (planted.x-player.x)*right.x+(planted.z-player.z)*right.z;
+        z = (planted.x-player.x)*forward.x+(planted.z-player.z)*forward.z;
+      } else footPlants[index]=null;
       rounded([[x,0.008+lift,z+0.035,0.095,0.17],[x,0.045+lift,z+0.035,0.095,0.17]],['#d2dce1','#b7c6d0','#8799aa']);
       rounded([[x,0.045+lift,z+0.035,0.09,0.165],[x,0.12+lift,z+0.025,0.085,0.14],[x,0.16+lift,z,0.06,0.08]],shoe);
       rounded([[x,0.14+lift,z,0.07,0.075],[x,0.38+lift*0.4, Math.max(0,step)*0.12,0.085,0.085],[x,0.66+bob,0,0.10,0.10]],denim);
@@ -1804,6 +1834,14 @@
     element('focus-view').textContent = active ? 'Exit focus' : 'Focus view';
     element('focus-view').setAttribute('aria-pressed', String(active));
   });
+  for (const key of ['build','muscle']) {
+    const control = element('stat-'+key);
+    control.value = Math.round(stats[key]*100);
+    control.addEventListener('input', () => {
+      stats[key] = clamp(Number(control.value)/100,0,1);
+      saveFitness();
+    });
+  }
   element('run-mode').addEventListener('click', () => {
     if (phase !== 'playing' || inCar) return;
     runEnabled = !runEnabled;

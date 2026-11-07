@@ -88,6 +88,7 @@
         <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
       </div>
+      <span id="stamina" style="position:absolute;right:10px;top:100px;background:#101a29dd;padding:5px 8px;border-radius:8px;font-size:12px;pointer-events:none">Energy 100%</span>
       <span id="district">WEST RAIL</span>
       <div class="feedback" id="feedback" role="status" hidden></div>
       <div class="overlay" id="overlay">
@@ -131,6 +132,9 @@
     <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
     <details class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
       <summary>Your Spuddy &amp; customization</summary>
+      <p class="hint">Movement profile · saved on this device. Endurance improves gradually while running.</p>
+      <label style="display:block">Body build <input id="stat-build" type="range" min="0" max="100" value="0"></label>
+      <label style="display:block">Muscle <input id="stat-muscle" type="range" min="0" max="100" value="50"></label>
       <p id="spuddy-status" role="status">Loading Spuddy…</p>
       <button type="button" id="spuddy-refresh">Refresh Spuddy</button>
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>
