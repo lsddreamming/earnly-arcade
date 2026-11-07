@@ -102,6 +102,7 @@
   } catch {}
   let lastTime = 0;
   let footView = 0;
+  let footHeading = null;
   let driveLook = 0;
   let lookPointer = null;
   let lookX = 0;
@@ -179,6 +180,7 @@
     pointers.clear();
     lookPointer = null;
     dragTouch = null;
+    footHeading = null;
   }
 
   function resetTraffic() {
@@ -453,7 +455,7 @@
   function shoot() {
     if (phase !== 'playing' || inCar || shotFlash > 0) return;
     const step = activeJob?.stages[stageIndex];
-    const aim = facing(camera.angle);
+    const aim = facing(footView);
     const span = step ? distance(player, step) : Infinity;
     const alignment = step && span > 0
       ? ((step.x - player.x) * aim.x + (step.z - player.z) * aim.z) / span : -1;
@@ -463,7 +465,7 @@
     cue(185, 47, 0.15, 'square');
     if (!heatLevel) wanted(activeJob?.heat || 1);
     if (hit) {
-      player.angle = Math.atan2(step.x - player.x, player.z - step.z);
+      footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
       advanceStage('Target down');
     }
     updateHud();
@@ -543,7 +545,10 @@
         car.speed *= 0.28;
       }
     } else if (dragTouch ? Math.hypot(horizontal, vertical) > 5 : horizontal || vertical) {
-      const directionAngle = camera.angle + Math.atan2(horizontal, -vertical);
+      // Keep the input frame fixed while a gesture or key combination is held.
+      footHeading ??= camera.angle;
+      const directionAngle = (dragTouch?.heading ?? footHeading) + Math.atan2(horizontal, -vertical);
+      if (!look && lookPointer === null) footView = directionAngle;
       const direction = facing(directionAngle);
       const turn = directionAngle - player.angle;
       player.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-18 * dt));
@@ -552,7 +557,7 @@
       const speed = dragTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
       move(player, direction.x * speed * dt, direction.z * speed * dt, 0.45);
       walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
-    }
+    } else footHeading = null;
     updateTraffic(dt);
     if (walking) walkCycle += dt * 16;
     walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
@@ -1284,7 +1289,7 @@
     if (dragTouch) return;
     const touch = event.changedTouches[0];
     pointers.clear();
-    dragTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0 };
+    dragTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0, heading: camera.angle };
   }, { passive: false });
   canvas.addEventListener('touchmove', event => {
     if (!dragTouch) return;
@@ -1295,7 +1300,10 @@
     dragTouch.dy = touch.clientY - dragTouch.y;
   }, { passive: false });
   function endTouch(event) {
-    if (dragTouch && Array.from(event.changedTouches).some(touch => touch.identifier === dragTouch.id)) dragTouch = null;
+    if (dragTouch && Array.from(event.changedTouches).some(touch => touch.identifier === dragTouch.id)) {
+      dragTouch = null;
+      footHeading = null;
+    }
     if (event.touches.length === 0) {
       pointers.clear();
       lookPointer = null;
