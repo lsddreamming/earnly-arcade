@@ -68,6 +68,22 @@
     { name: 'Harbor Lockdown', time: 150, heat: 3, model: 'muscle', stages: [checkpoint(12,96,'Reach the south road'),checkpoint(40,96,'Pass the rail yard'),checkpoint(68,68,'Cross the depot'),checkpoint(68,12,'Take the north road'),escape,finish] },
     { name: 'The Last Crossing', time: 185, heat: 3, model: 'coupe', stages: [stop(40,40,'Pick up the final cargo'),checkpoint(68,40,'Pass the east junction'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Return through the port'),escape,finish] },
   ];
+  // Later jobs graduate from the starter neighborhood to the whole district.
+  const expandedRoutes = {
+    'Dock Dispatch': [stop(40,68,'Collect the manifest'),stop(152,152,'Deliver to Central City')],
+    'Industrial Mile': [checkpoint(96,96,'Cross the depot'),checkpoint(208,96,'Take the eastern boulevard'),checkpoint(208,264,'Reach South Industrial'),escape,stop(292,264,'Park at the industrial drop-off')],
+    'Parts Run': [stop(40,12,'Collect spare parts'),stop(152,68,'Deliver to the central workshop'),stop(292,152,'Deliver to East Docks')],
+    'Under the Tracks': [checkpoint(12,152,'Follow West Rail'),checkpoint(12,292,'Reach the south rail yard'),checkpoint(152,292,'Cross the southern district'),escape,stop(208,292,'Park at the south depot')],
+    'Breakwater Express': [checkpoint(12,12,'Join the waterfront road'),checkpoint(320,12,'Cross the northern waterfront'),checkpoint(320,208,'Follow East Docks'),escape,stop(292,236,'Park at the dock handoff')],
+    'Heavy Haul': [stop(68,68,'Load the first crate'),stop(180,152,'Load central cargo'),checkpoint(292,152,'Take the eastern boulevard'),escape,stop(292,292,'Unload in South Industrial')],
+    'Three Alarms': [drill(12,28,'Disable the west alarm'),checkpoint(152,152,'Reach Central City'),drill(152,142,'Disable the central alarm'),checkpoint(292,264,'Reach the southern relay'),drill(292,254,'Disable the southern alarm'),escape,stop(320,292,'Park at the east safehouse')],
+    'Harbor Lockdown': [checkpoint(12,292,'Reach the southwest corner'),checkpoint(292,292,'Cross the southern district'),checkpoint(292,40,'Head north through East Docks'),escape,stop(152,40,'Park at the northern safehouse')],
+    'The Last Crossing': [stop(40,40,'Collect the final cargo'),checkpoint(320,40,'Cross the northern district'),checkpoint(320,320,'Follow the eastern shoreline'),checkpoint(40,320,'Cross the southern harbor'),escape,finish]
+  };
+  for(const job of jobs) if(expandedRoutes[job.name]) {
+    job.stages=expandedRoutes[job.name];
+    job.time=Math.max(job.time,job.name==='The Last Crossing'?360:300);
+  }
   const spawn = (model, x, z, angle = 0) => ({ ...models[model], x, z, angle, speed: 0 });
   let car = spawn('coupe', 12, 32);
   let vehicles = [car];
@@ -270,7 +286,7 @@
     }
     for (const group of [vehicles, traffic, heatLevel > 1 ? [patrol, backup] : [patrol]]) {
       for (const other of group) {
-        if (actor === other || distance(actor, other) >= 5) continue;
+        if (other.destroyed || actor === other || distance(actor, other) >= 5) continue;
         const gap = vehicleGap(actor, other);
         if (gap < 1.82 && gap < vehicleGap(previous, other) - 0.0001) {
           actor.x = previous.x;
@@ -715,7 +731,7 @@
     for (let d=0.5;d<=weapon.range;d+=0.2) {
       const point={x:player.x+aim.x*d,z:player.z+aim.z*d};
       if (blocked(point.x,point.z,0.03)) { reach=d; break; }
-      hitCar=[...vehicles,...traffic,patrol,backup].find(v=>pointToVehicle(point,v)<0.85);
+      hitCar=[...vehicles,...traffic,patrol,backup].find(v=>(!v.destroyed || elapsed-v.blastAt<30) && pointToVehicle(point,v)<0.85);
       if (hitCar) { reach=d; break; }
     }
     let victim = null, nearest = reach;
@@ -862,7 +878,8 @@
       move(player, direction.x * travelSpeed * dt, direction.z * travelSpeed * dt, 0.45);
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
-        if (distance(player, vehicle) > 3) continue;
+        // Low wreckage is step-over debris, never a permanent player cage.
+        if (vehicle.destroyed || distance(player, vehicle) > 3) continue;
         const gap = pointToVehicle(player, vehicle);
         if (gap < 1.22 && gap < pointToVehicle(previous, vehicle)) Object.assign(player, previous);
       }
@@ -1100,6 +1117,7 @@
   }
   function drawCarMesh(actor, police) {
     if (actor.destroyed) {
+      if(elapsed-actor.blastAt>30) return;
       box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
       const age=elapsed-actor.blastAt;
       const fade=clamp((18-age)/5,0,1);
