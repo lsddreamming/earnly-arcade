@@ -1543,7 +1543,7 @@ const Arcade = (() => {
       case 'trafficEscape':return min(100,(floor(m/9)+b(30,1)+b(60,2)+b(100,3)+b(150,4)+b(210,5))*3);
       case 'neonMaze':return min(100,(floor(m/6))*4);
       case 'starDefender':return min(60,(floor(m/80))*4);
-      case 'neonBreach':return min(200,floor(m/250)*4);
+      case 'neonBreach':return min(200,floor(m/200)*4);
       case 'neonDrift':return min(90,(min(floor(m/100),25)+min(a,20))*2);
       case 'crystalCommand':return min(100,(10+min(15,floor(m/3)))*4);
       case 'brickBreaker': {
