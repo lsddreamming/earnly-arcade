@@ -727,7 +727,9 @@
       const z = camera.z - forward.z * offset;
       if (sectorAt(x, z)?.some(b => x > b.x - 0.4 && x < b.x + b.w + 0.4
         && z > b.z - 0.4 && z < b.z + b.d + 0.4)) {
-        clearance = Math.max(1.5, offset - 0.75);
+        // Keep the character readable in tight corners. Obstructing scenery
+        // fades below instead of forcing the camera into a first-person view.
+        clearance = Math.max(inCar ? 6 : 5.8, offset - 0.75);
         break;
       }
     }
@@ -764,6 +766,7 @@
   let height = 0;
   let focal = 0;
   let faces = [];
+  let scenery = false;
 
   function cameraPoint([x, y, z]) {
     const dx = x - eye.x;
@@ -799,7 +802,7 @@
     if (projected.every(p => p[0] < 0) || projected.every(p => p[0] > width)
       || projected.every(p => p[1] < 0) || projected.every(p => p[1] > height)) return;
     if (ground) fill(projected, color);
-    else faces.push({ points: projected, color, depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length });
+    else faces.push({ points: projected, color, scenery, nearDepth: Math.min(...clipped.map(p => p[2])), depth: sortDepth ?? view.reduce((sum, p) => sum + p[2], 0) / view.length });
   }
 
   function fill(points, color) {
@@ -1349,6 +1352,7 @@
     groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
     if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
     faces = [];
+    scenery = true;
     for (const lamp of nearbyLamps) {
       box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
@@ -1359,6 +1363,7 @@
     drawViaduct();
     for (const tree of trees) if (distance(tree, camera) < 48) drawTree(tree);
     drawDocks();
+    scenery = false;
     for (const vehicle of vehicles) drawCar(vehicle, false);
     drawCar(patrol, true);
     if (heatLevel > 1) drawCar(backup, true);
@@ -1377,6 +1382,11 @@
         worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
     }
     if (!inCar) drawSpuddy();
+    const subject = inCar ? car : player;
+    const subjectView = cameraPoint([subject.x, inCar ? 1.3 : 1.0, subject.z]);
+    const subjectScreen = project(subjectView);
+    const protectWidth = focal * (inCar ? 1.8 : 0.55) / Math.max(1, subjectView[2]);
+    const protectHeight = focal * (inCar ? 1.0 : 1.1) / Math.max(1, subjectView[2]);
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) {
       if (face.sprite) {
@@ -1395,7 +1405,16 @@
             side < 0 ? -face.width / 2 : 0, -leg, face.width / 2, leg - lift);
         }
         context.restore();
-      } else if (face.points) fill(face.points, face.color);
+      } else if (face.points) {
+        const obscures = face.scenery && face.nearDepth < subjectView[2] - 0.6
+          && Math.min(...face.points.map(p => p[0])) < subjectScreen[0] + protectWidth
+          && Math.max(...face.points.map(p => p[0])) > subjectScreen[0] - protectWidth
+          && Math.min(...face.points.map(p => p[1])) < subjectScreen[1] + protectHeight
+          && Math.max(...face.points.map(p => p[1])) > subjectScreen[1] - protectHeight;
+        context.globalAlpha = obscures ? 0.12 : 1;
+        fill(face.points, face.color);
+        context.globalAlpha = 1;
+      }
       else {
         context.font = '700 ' + face.size + 'px system-ui, sans-serif';
         context.textAlign = 'center';
