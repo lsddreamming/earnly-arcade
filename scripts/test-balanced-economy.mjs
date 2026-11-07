@@ -39,6 +39,15 @@ const safeSql=await read('supabase/migrations/'+safeMigration);await db.exec(saf
 const safeRetry=(await db.query("select claim_coin_reward('safe-before-pacing','game','safeCracker',33,0) r")).rows[0].r;
 assert(safeRetry.duplicate);assert.equal(safeRetry.amount,100);assert.deepEqual(safeRetry.wallet,safeBefore.wallet);
 
+// New claims adopt the higher Neon Breach ceiling; previously issued receipts never change.
+const breachBefore=(await db.query("select claim_coin_reward('breach-before-pacing','game','neonBreach',7500,0) r")).rows[0].r;
+assert.equal(breachBefore.amount,100);
+const breachSql=await read('supabase/migrations/20261107132000_neon_breach_longer_run_rewards.sql');
+await db.exec(breachSql);await db.exec(breachSql);
+const breachRetry=(await db.query("select claim_coin_reward('breach-before-pacing','game','neonBreach',7500,0) r")).rows[0].r;
+assert(breachRetry.duplicate);assert.equal(breachRetry.amount,100);
+assert.deepEqual(breachRetry.wallet,breachBefore.wallet);
+
 const src=await read('arcade.js'),fn=src.slice(src.indexOf('  function gameReward('),src.indexOf('  // END BALANCED GAME REWARDS'));
 const reward=vm.runInNewContext('('+fn.trim()+')');
 const games=[...fn.matchAll(/case '([^']+)'/g)].map(m=>m[1]);
@@ -50,11 +59,12 @@ for(const game of games){
   const id='balance-test-'+(++count);
   const r=(await db.query("select claim_coin_reward($1,'game',$2,$3,$4,null,'balance test') r",[id,game,m,a])).rows[0].r;
   assert.equal(r.amount,reward(game,m,a),`${game} ${m}/${a}`);
-  assert(r.amount>=0&&r.amount<=100);
+  assert(r.amount>=0&&r.amount<=(game==='neonBreach'?200:100));
   const duplicate=(await db.query("select claim_coin_reward($1,'game',$2,$3,$4,null,'balance test') r",[id,game,m,a])).rows[0].r;
   assert(duplicate.duplicate);assert.equal(duplicate.wallet.balance,r.wallet.balance);
  }
 }
+for(const [m,want] of [[0,0],[250,4],[3750,60],[7175,112],[10000,160],[12500,200]])assert.equal(reward('neonBreach',m),want);
 for(const [game,m,a,want] of [['jungleHopper',30,0,25],['jungleHopper',30,10,35],['jungleHopper',100,99,50],['snake',25,0,39],['blockDrop',10,0,45],['starDefender',1200,0,60],['coinCatch',75,0,28],['crystalCommand',45,120,100]])assert.equal(reward(game,m,a),want);
 for(const [m,a,want] of [[3,0,1],[33,0,13],[33,33,16],[36,33,17],[60,40,29],[100,100,53],[210,210,100]])assert.equal(reward('towerStack',m,a),want);
 for(const [m,want] of [[0,0],[4,0],[5,2],[10,4],[25,12],[33,14],[50,26],[75,42],[100,60],[150,80],[199,98],[200,100]])assert.equal(reward('safeCracker',m),want);
