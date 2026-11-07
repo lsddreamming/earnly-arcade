@@ -29,6 +29,7 @@
   const bindings = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    KeyQ: 'lookLeft', KeyR: 'lookRight', Space: 'brake',
   };
   const player = { x: 12, z: 43, angle: 0 };
   const car = { x: 12, z: 32, angle: 0, speed: 0 };
@@ -45,6 +46,12 @@
   let path = [];
   let rethink = 0;
   let lastTime = 0;
+  let footView = 0;
+  let driveLook = 0;
+  let lookPointer = null;
+  let lookX = 0;
+  let walkCycle = 0;
+  let walkBlend = 0;
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -113,6 +120,7 @@
   function clearControls() {
     keys.clear();
     pointers.clear();
+    lookPointer = null;
   }
 
   function reset() {
@@ -122,6 +130,7 @@
     Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
     inCar = stolen = lost = false;
     elapsed = unseen = caught = rethink = 0;
+    footView = driveLook = walkCycle = walkBlend = 0;
     path = [];
     run();
   }
@@ -164,10 +173,12 @@
         Object.assign(player, { x, z, angle: car.angle });
         car.speed = 0;
         inCar = false;
+        footView = camera.angle;
         break;
       }
     } else if (distance(player, car) < 3.4) {
       if (!stolen) Object.assign(lastSeen, { x: car.x, z: car.z });
+      driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
       inCar = true;
       stolen = true;
     }
@@ -180,6 +191,7 @@
     element('heat').textContent = lost ? 'CLEAR' : !stolen ? 'ON FOOT'
       : caught > 0 ? 'PATROL ON YOU' : unseen > 0 ? 'LOSING PATROL' : 'WANTED';
     element('speed').hidden = !inCar;
+    element('brake').hidden = !inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
     const objective = !stolen ? 'Find the marked getaway car.' : !inCar ? 'Get back in the getaway car.'
       : lost ? 'Drive to the garage.' : 'Use the blocks and alleys to lose the patrol.';
@@ -189,24 +201,42 @@
     element('interact').textContent = inCar ? 'Exit car' : 'Enter car';
   }
 
+  function lookBy(radians) {
+    if (inCar) driveLook = clamp(driveLook + radians, -Math.PI, Math.PI);
+    else footView += radians;
+  }
+
   function update(dt) {
     elapsed += dt;
     const horizontal = Number(held('right')) - Number(held('left'));
     const vertical = Number(held('down')) - Number(held('up'));
+    const look = Number(held('lookRight')) - Number(held('lookLeft'));
+    if (look) lookBy(look * 1.8 * dt);
+    else if (inCar && lookPointer === null) driveLook *= Math.exp(-2.5 * dt);
+    let walking = false;
     if (inCar) {
-      if (vertical) {
+      const braking = held('brake');
+      if (braking) car.speed *= Math.exp(-2.8 * dt);
+      else if (vertical) {
         const acceleration = vertical > 0 && car.speed > 0 ? 24 : 13;
         car.speed = clamp(car.speed - vertical * acceleration * dt, -7, 20);
       } else car.speed *= Math.exp(-2.3 * dt);
       const steering = Math.min(1, Math.abs(car.speed) / 3);
-      car.angle += horizontal * Math.sign(car.speed) * steering * 1.9 * dt;
+      car.angle += horizontal * Math.sign(car.speed) * steering * (braking ? 3.15 : 1.9) * dt;
       const direction = facing(car.angle);
       if (move(car, direction.x * car.speed * dt, direction.z * car.speed * dt, 1.22)) car.speed *= 0.35;
     } else if (horizontal || vertical) {
-      player.angle = Math.atan2(horizontal, -vertical);
-      const direction = facing(player.angle);
+      const directionAngle = camera.angle + Math.atan2(horizontal, -vertical);
+      const direction = facing(directionAngle);
+      const turn = directionAngle - player.angle;
+      player.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-18 * dt));
+      const oldX = player.x;
+      const oldZ = player.z;
       move(player, direction.x * 7 * dt, direction.z * 7 * dt, 0.45);
+      walking = Math.hypot(player.x - oldX, player.z - oldZ) > dt;
     }
+    if (walking) walkCycle += dt * 16;
+    walkBlend += (Number(walking) - walkBlend) * (1 - Math.exp(-12 * dt));
 
     const active = inCar ? car : player;
     if (stolen && !lost) {
@@ -242,7 +272,7 @@
     const smoothing = 1 - Math.exp(-8 * dt);
     camera.x += (active.x - camera.x) * smoothing;
     camera.z += (active.z - camera.z) * smoothing;
-    const turn = (inCar ? car.angle : 0) - camera.angle;
+    const turn = (inCar ? car.angle + driveLook : footView) - camera.angle;
     camera.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * smoothing;
     const forward = facing(camera.angle);
     const targetDistance = inCar ? 11 + Math.abs(car.speed) * 0.16 : 11;
@@ -451,8 +481,19 @@
     drawCar(car, false);
     drawCar(patrol, true);
     if (!inCar) {
-      box(player.x, player.z, 0.65, 0.48, 1.08, player.angle, ['#f1bd71', '#ce694a', '#9d493f']);
-      box(player.x, player.z, 0.46, 0.45, 0.48, player.angle, ['#ffe2b6', '#d99e76', '#aa6e56'], 1.08);
+      const forward = facing(player.angle);
+      const side = facing(player.angle + Math.PI / 2);
+      const stride = Math.sin(walkCycle) * 0.27 * walkBlend;
+      for (const sign of [-1, 1]) {
+        box(player.x + sign * (side.x * 0.16 + forward.x * stride),
+          player.z + sign * (side.z * 0.16 + forward.z * stride),
+          0.23, 0.31, 0.59, player.angle, ['#8396ad', '#4a617d', '#364b63']);
+        box(player.x + sign * (side.x * 0.39 - forward.x * stride * 0.75),
+          player.z + sign * (side.z * 0.39 - forward.z * stride * 0.75),
+          0.17, 0.23, 0.48, player.angle, ['#f2be92', '#c58764', '#aa6e56'], 0.69);
+      }
+      box(player.x, player.z, 0.61, 0.42, 0.61, player.angle, ['#f1bd71', '#ce694a', '#9d493f'], 0.59);
+      box(player.x, player.z, 0.43, 0.4, 0.4, player.angle, ['#ffe2b6', '#d99e76', '#aa6e56'], 1.2);
     }
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) fill(face.points, face.color);
@@ -471,7 +512,7 @@
 
   document.addEventListener('keydown', event => {
     const action = bindings[event.code];
-    if (action && phase === 'playing') {
+    if (action && phase === 'playing' && !(action === 'brake' && (!inCar || event.target?.closest?.('button, a')))) {
       event.preventDefault();
       keys.add(action);
     } else if (event.code === 'KeyE' && !event.repeat) interact();
@@ -488,6 +529,22 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) pauseOnExit();
   });
+  canvas.addEventListener('pointerdown', event => {
+    if (phase !== 'playing' || lookPointer !== null || event.button !== 0) return;
+    canvas.setPointerCapture(event.pointerId);
+    lookPointer = event.pointerId;
+    lookX = event.clientX;
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (event.pointerId !== lookPointer) return;
+    lookBy((lookX - event.clientX) * 0.009);
+    lookX = event.clientX;
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    canvas.addEventListener(type, event => {
+      if (event.pointerId === lookPointer) lookPointer = null;
+    });
+  }
   document.querySelectorAll('[data-key]').forEach(button => {
     button.addEventListener('pointerdown', event => {
       if (phase !== 'playing' || event.button !== 0) return;
