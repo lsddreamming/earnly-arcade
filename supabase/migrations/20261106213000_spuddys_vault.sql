@@ -29,6 +29,20 @@ $$;
 revoke all on function earnly_world.spuddy_catalog() from public, anon, authenticated;
 grant execute on function earnly_world.spuddy_catalog() to service_role;
 
+-- Keep Auth rows private and expose only the eligibility result to the Vault service.
+create function earnly_world.spuddy_account_eligible(p_actor uuid)
+returns boolean language sql stable security definer set search_path='' as $eligibility$
+  select exists(
+    select 1 from auth.users
+    where id = p_actor
+      and not coalesce(is_anonymous, false)
+      and email_confirmed_at is not null
+      and deleted_at is null
+  )
+$eligibility$;
+revoke all on function earnly_world.spuddy_account_eligible(uuid) from public, anon, authenticated;
+grant execute on function earnly_world.spuddy_account_eligible(uuid) to service_role;
+
 create function public.spuddy_vault_action(p_actor uuid, p_action text, p_request uuid default null, p_pack text default null)
 returns jsonb language plpgsql security invoker set search_path='' as $$
 declare
@@ -41,7 +55,7 @@ declare
   weekly_ready boolean;
   problem text;
 begin
-  if not exists(select 1 from auth.users where id=p_actor and not coalesce(is_anonymous,false) and email_confirmed_at is not null and deleted_at is null)
+  if not earnly_world.spuddy_account_eligible(p_actor)
      or exists(select 1 from public.leaderboard_bans where user_id=p_actor)
      or exists(select 1 from earnly_world.social_members where user_id=p_actor and suspended_until>now()) then
     raise exception 'Account unavailable';

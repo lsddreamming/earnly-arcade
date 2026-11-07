@@ -18,13 +18,16 @@ await db.exec(`
   create table earnly_world.social_members(user_id uuid, suspended_until timestamptz);
   create table earnly_world.arcade_challenge_awards(user_id uuid, week date);
   grant usage on schema auth, earnly_world to service_role;
-  grant select on auth.users, leaderboard_bans, earnly_world.social_members, earnly_world.arcade_challenge_awards to service_role;
+  grant select on leaderboard_bans, earnly_world.social_members, earnly_world.arcade_challenge_awards to service_role;
   grant select,update on coin_wallets to service_role;
 `);
 await db.exec(await readFile(new URL('../supabase/migrations/20261106213000_spuddys_vault.sql',import.meta.url),'utf8'));
 await db.exec('set role authenticated');
 await assert.rejects(run(player,'status'),/permission denied/);
+await assert.rejects(db.query('select earnly_world.spuddy_account_eligible($1)',[player]),/permission denied/);
 await db.exec('reset role; set role service_role');
+await assert.rejects(db.query('select id from auth.users'),/permission denied/);
+await assert.rejects(run('00000000-0000-4000-8000-000000000003','status'),/Account unavailable/);
 const catalog = (await run(player,'status')).catalog;
 for (const tier of ['starter','deluxe']) assert.equal(catalog.reduce((sum,card) => sum+card[tier],0),10000);
 const key = id();
