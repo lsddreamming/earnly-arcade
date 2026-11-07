@@ -126,6 +126,11 @@
   let driveLook = 0;
   let lookPointer = null;
   let lookX = 0;
+  let lookY = 0;
+  let lookTouch = null;
+  let cameraMode = false;
+  let manualLookUntil = 0;
+  let cameraLift = 0;
   let dragTouch = null;
   let walkCycle = 0;
   let walkBlend = 0;
@@ -283,6 +288,7 @@
     keys.clear();
     pointers.clear();
     lookPointer = null;
+    lookTouch = null;
     dragTouch = null;
     footHeading = null;
   }
@@ -436,6 +442,9 @@
     inCar = stolen = lost = false;
     elapsed = unseen = caught = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
+    cameraMode = false; manualLookUntil = 0; cameraLift = 0;
+    element('camera-mode').textContent = 'Look around';
+    element('camera-mode').setAttribute('aria-pressed', 'false');
     resetTraffic();
     for (const worker of workers) Object.assign(worker, { x: worker.homeX, z: worker.homeZ, recover: 0, elevation: 0, tilt: 0 });
     run();
@@ -610,7 +619,9 @@
       + ' seconds.' + (record ? ' New personal best.' : ''), next ? 'Next job' : 'Replay job');
   }
 
-  function lookBy(radians) {
+  function lookBy(radians, vertical = 0) {
+    manualLookUntil = elapsed + 2;
+    cameraLift = clamp(cameraLift + vertical, -1.2, 2.1);
     if (inCar) driveLook = clamp(driveLook + radians, -Math.PI, Math.PI);
     else footView += radians;
   }
@@ -622,7 +633,7 @@
     const vertical = dragTouch ? dragTouch.dy : Number(held('down')) - Number(held('up'));
     const look = Number(held('lookRight')) - Number(held('lookLeft'));
     if (look) lookBy(look * 1.8 * dt);
-    else if (inCar && lookPointer === null) driveLook *= Math.exp(-2.5 * dt);
+    else if (inCar && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) driveLook *= Math.exp(-1.8 * dt);
     let walking = false;
     if (inCar) {
       const braking = held('brake');
@@ -655,7 +666,7 @@
       // Keep the input frame fixed while a gesture or key combination is held.
       footHeading ??= camera.angle;
       const directionAngle = (dragTouch?.heading ?? footHeading) + Math.atan2(horizontal, -vertical);
-      if (!look && lookPointer === null) footView = directionAngle;
+      if (!look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = directionAngle;
       const direction = facing(directionAngle);
       const turn = directionAngle - player.angle;
       player.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-18 * dt));
@@ -706,7 +717,8 @@
     camera.x += (active.x - camera.x) * smoothing;
     camera.z += (active.z - camera.z) * smoothing;
     const turn = (inCar ? car.angle + driveLook : footView) - camera.angle;
-    camera.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * smoothing;
+    const angleStep = Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-5 * dt));
+    camera.angle += clamp(angleStep, -2.8 * dt, 2.8 * dt);
     const forward = facing(camera.angle);
     const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : 9.6;
     let clearance = targetDistance;
@@ -719,7 +731,7 @@
         break;
       }
     }
-    camera.distance = Math.min(clearance, camera.distance + 12 * dt);
+    camera.distance = Math.min(clearance, camera.distance + 4 * dt);
     updateHud();
   }
 
@@ -1227,7 +1239,7 @@
     eye.sine = Math.sin(camera.angle);
     eye.x = camera.x - eye.sine * camera.distance;
     eye.z = camera.z + eye.cosine * camera.distance;
-    eye.y = Math.min(5, 2.6 + camera.distance * 0.19);
+    eye.y = Math.min(5, 2.6 + camera.distance * 0.19) + cameraLift;
     const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5), camera.distance + 1);
     eye.pitchCosine = Math.cos(pitch);
     eye.pitchSine = Math.sin(pitch);
@@ -1443,31 +1455,49 @@
   canvas.addEventListener('touchstart', event => {
     if (phase !== 'playing') return;
     event.preventDefault();
-    if (dragTouch) return;
-    const touch = event.changedTouches[0];
-    pointers.clear();
-    dragTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0, heading: camera.angle };
+    for (const touch of Array.from(event.changedTouches)) {
+      if (!dragTouch && !cameraMode && !lookTouch) {
+        pointers.clear();
+        dragTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY, dx: 0, dy: 0, heading: camera.angle };
+      } else if (!lookTouch) {
+        lookTouch = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+        manualLookUntil = elapsed + 2;
+      }
+    }
   }, { passive: false });
   canvas.addEventListener('touchmove', event => {
-    if (!dragTouch) return;
+    if (!dragTouch && !lookTouch) return;
     event.preventDefault();
-    const touch = Array.from(event.changedTouches).find(item => item.identifier === dragTouch.id);
-    if (!touch) return;
-    dragTouch.dx = touch.clientX - dragTouch.x;
-    dragTouch.dy = touch.clientY - dragTouch.y;
+    for (const touch of Array.from(event.changedTouches)) {
+      if (touch.identifier === dragTouch?.id) {
+        dragTouch.dx = touch.clientX - dragTouch.x;
+        dragTouch.dy = touch.clientY - dragTouch.y;
+      } else if (touch.identifier === lookTouch?.id) {
+        lookBy((lookTouch.x - touch.clientX) * 0.007, (touch.clientY - lookTouch.y) * 0.012);
+        lookTouch.x = touch.clientX; lookTouch.y = touch.clientY;
+      }
+    }
   }, { passive: false });
   function endTouch(event) {
-    if (dragTouch && Array.from(event.changedTouches).some(touch => touch.identifier === dragTouch.id)) {
-      dragTouch = null;
-      footHeading = null;
+    for (const touch of Array.from(event.changedTouches)) {
+      if (touch.identifier === dragTouch?.id) { dragTouch = null; footHeading = null; }
+      if (touch.identifier === lookTouch?.id) { lookTouch = null; manualLookUntil = elapsed + 2; }
     }
     if (event.touches.length === 0) {
-      pointers.clear();
-      lookPointer = null;
-      dragTouch = null;
+      pointers.clear(); lookPointer = null; dragTouch = null; lookTouch = null;
     }
   }
   for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, endTouch, true);
+  element('camera-mode').addEventListener('click', () => {
+    clearControls();
+    cameraMode = !cameraMode;
+    if (!cameraMode) {
+      footView = player.angle; driveLook = 0; cameraLift = 0; manualLookUntil = 0;
+    }
+    element('camera-mode').textContent = cameraMode ? 'Follow camera' : 'Look around';
+    element('camera-mode').setAttribute('aria-pressed', String(cameraMode));
+    notify(cameraMode ? 'Drag to look around · tap Follow camera to move again' : 'Camera following');
+  });
 
   function clearPointer(event) {
     pointers.delete(event.pointerId);
@@ -1487,10 +1517,12 @@
     canvas.setPointerCapture?.(event.pointerId);
     lookPointer = event.pointerId;
     lookX = event.clientX;
+    lookY = event.clientY ?? 0;
   });
   canvas.addEventListener('pointermove', event => {
     if (event.pointerId !== lookPointer) return;
-    lookBy((lookX - event.clientX) * 0.009);
+    lookBy((lookX - event.clientX) * 0.009, ((event.clientY ?? lookY) - lookY) * 0.012);
+    lookY = event.clientY ?? lookY;
     lookX = event.clientX;
   });
   document.querySelectorAll('[data-key]').forEach(button => {

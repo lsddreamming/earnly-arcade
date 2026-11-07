@@ -111,11 +111,12 @@
         <button type="button" data-key="brake" id="brake" hidden>Handbrake</button>
         <button type="button" id="fire" hidden>Fire</button>
         <button type="button" id="jobs" hidden>Jobs</button>
+        <button type="button" id="camera-mode" aria-pressed="false">Look around</button>
         <button type="button" id="pause">Pause</button>
       </div>
     </div>
-    <p class="hint touch-hint" id="run-hint">Drag to run. The camera follows your turns. Lift to stop.</p>
-    <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast.</p>
+    <p class="hint touch-hint" id="run-hint">Drag to run. Lift to stop. Use a second finger to look, or tap Look around.</p>
+    <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast. Use a second finger to look around.</p>
     <p class="hint keyboard-hint">Use WASD or arrows to move and drive, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
     <section aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
       <strong>Your Spuddy</strong>
@@ -136,6 +137,6 @@
   <script src="cloud.js"></script>
   <script src="potato-rig.js"></script>
   <script src="harbor-spuddy.js?v=3"></script>
-  <script src="harbor-getaway.js?v=spuddy-grounded"></script>
+  <script src="harbor-getaway.js?v=camera-control"></script>
 </body>
 </html>
