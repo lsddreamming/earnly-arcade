@@ -295,6 +295,15 @@
         }
         continue;
       }
+      if (worker.health === 0) worker.health = 100;
+      if (worker.panicUntil > elapsed) {
+        const away = Math.atan2(worker.x-player.x,player.z-worker.z);
+        worker.angle = away;
+        const direction = facing(away);
+        move(worker,direction.x*3.8*dt,direction.z*3.8*dt,0.3);
+        worker.homeX = worker.x; worker.homeZ = worker.z;
+        continue;
+      }
       const cycle = elapsed * worker.pace + (worker.phaseOffset || 0);
       const progress = (1 - Math.cos(cycle)) / 2;
       worker.x = worker.homeX + worker.dx * progress;
@@ -511,7 +520,7 @@
     element('camera-mode').textContent = 'Look around';
     element('camera-mode').setAttribute('aria-pressed', 'false');
     resetTraffic();
-    for (const worker of workers) Object.assign(worker, { x: worker.homeX, z: worker.homeZ, recover: 0, elevation: 0, tilt: 0 });
+    for (const worker of workers) Object.assign(worker, { x: worker.homeX, z: worker.homeZ, recover: 0, elevation: 0, tilt: 0, health: 100, panicUntil: 0 });
     run();
   }
 
@@ -662,11 +671,32 @@
     const span = step ? distance(player, step) : Infinity;
     const alignment = step && span > 0
       ? ((step.x - player.x) * aim.x + (step.z - player.z) * aim.z) / span : -1;
-    const hit = step?.kind === 'shoot' && span < 22 && (span < 11 || alignment > 0.56) && visible(player, step);
-    shotTarget = hit ? step : { x: player.x + aim.x * 13, z: player.z + aim.z * 13 };
+    let hit = step?.kind === 'shoot' && span < 22 && (span < 11 || alignment > 0.56) && visible(player, step);
+    // Trace the first obstruction; shots never pass through walls or cars.
+    let reach = 22;
+    for (let d=0.5;d<=22;d+=0.2) {
+      const point={x:player.x+aim.x*d,z:player.z+aim.z*d};
+      if (blocked(point.x,point.z,0.03) || [...vehicles,...traffic,patrol,backup].some(v=>pointToVehicle(point,v)<0.85)) { reach=d; break; }
+    }
+    let victim = null, nearest = reach;
+    for (const worker of workers) {
+      if (worker.health === 0 || worker.recover > 0) continue;
+      const dx=worker.x-player.x, dz=worker.z-player.z;
+      const along=dx*aim.x+dz*aim.z;
+      const across=Math.abs(dx*aim.z-dz*aim.x);
+      if (along>0.4 && along<nearest && across<0.65) { victim=worker; nearest=along; }
+    }
+    if (victim) hit=false;
+    shotTarget = victim || (hit ? step : { x: player.x + aim.x * reach, z: player.z + aim.z * reach });
     shotFlash = 0.22;
     cue(185, 47, 0.15, 'square');
-    if (!heatLevel) wanted(activeJob?.heat || 1);
+    wanted(victim ? Math.max(2,heatLevel) : Math.max(1,heatLevel,activeJob?.heat || 0));
+    for (const worker of workers) if (distance(worker,player)<28) worker.panicUntil=elapsed+8;
+    if (victim) {
+      victim.health=Math.max(0,(victim.health ?? 100)-50);
+      Object.assign(victim,{recover:victim.health===0?12:0.35,elevation:0.03,lift:1.2,vx:aim.x*2,vz:aim.z*2,tilt:0.25});
+      notify(victim.health===0?'NPC down · police backup alerted':'Hit · 50 damage · police alerted');
+    }
     if (hit) {
       footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
       advanceStage('Target down');
