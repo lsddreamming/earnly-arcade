@@ -44,6 +44,13 @@ const breachBefore=(await db.query("select claim_coin_reward('breach-before-paci
 assert.equal(breachBefore.amount,100);
 const breachSql=await read('supabase/migrations/20261107132000_neon_breach_longer_run_rewards.sql');
 await db.exec(breachSql);await db.exec(breachSql);
+const ledgerRpc='public.apply_coin_ledger_event(uuid,text,text,text,text,integer,integer,integer)';
+for(const role of ['anon','authenticated']){
+ const permission=(await db.query('select has_function_privilege($1,$2,$3) allowed',[role,ledgerRpc,'EXECUTE'])).rows[0].allowed;
+ assert.equal(permission,false,role+' must not call privileged coin writer');
+}
+await assert.rejects(db.query("select * from public.apply_coin_ledger_event('00000000-0000-4000-8000-000000000001','ledger-negative-case','daily_bonus','test',null,0,0,150)"),/invalid reward amount/);
+
 const breachRetry=(await db.query("select claim_coin_reward('breach-before-pacing','game','neonBreach',7500,0) r")).rows[0].r;
 assert(breachRetry.duplicate);assert.equal(breachRetry.amount,100);
 assert.deepEqual(breachRetry.wallet,breachBefore.wallet);
