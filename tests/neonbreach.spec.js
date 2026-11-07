@@ -42,6 +42,19 @@ async function ready(page){await page.goto('/neonbreach.html');await page.locato
 test('Neon Breach starts, pauses, resumes from controls and confirms quit',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);await expect(page.locator('#plays')).toHaveText('2');await page.locator('#earnlyPauseButton').click();await expect(page.locator('#gameStatus')).toHaveText('Paused');const hp=await page.locator('#health').textContent();await page.waitForTimeout(800);await expect(page.locator('#health')).toHaveText(hp);await page.locator('#fireButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running');await page.locator('#earnlyQuitButton').click();await expect(page.locator('.earnly-quit-dialog')).toBeVisible();await page.getByRole('button',{name:'Keep Playing',exact:true}).click();await expect(page.locator('#gameStatus')).toHaveText('Running');await page.locator('#earnlyQuitButton').click();await page.getByRole('button',{name:'Quit Game',exact:true}).click();await expect(page).toHaveURL(/games.html/);expect(errors).toEqual([]);
 });
+test('Neon Breach mobile entry keeps the arena in view and offers both mission cards',async({page})=>{
+ await page.setViewportSize({width:375,height:667});
+ await page.goto('/neonbreach.html');
+ const cards=page.locator('.breach-mode-card');
+ await expect(cards).toHaveCount(2);
+ const box=await cards.first().boundingBox();
+ expect(box.height).toBeLessThanOrEqual(110);
+ const arena=await page.locator('.breach-arena').boundingBox();
+ expect(arena.y).toBeLessThan(667);
+ await cards.last().click();
+ await expect(cards.last()).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#breachMode')).toHaveValue('sector');
+});
 test('Neon Breach controls fit the viewport and pointer cancellation releases the joystick',async({page})=>{
  await ready(page);const r=await page.locator('#fireButton').boundingBox();expect(r.y+r.height).toBeLessThan(await page.evaluate(()=>innerHeight));const b=await page.locator('#earnlyPauseButton').boundingBox();expect(b.y+b.height).toBeLessThan(await page.evaluate(()=>innerHeight));const pad=page.locator('#movePad');const pr=await pad.boundingBox();await page.mouse.move(pr.x+pr.width/2,pr.y+pr.height/2);await page.mouse.down();await page.mouse.move(pr.x+pr.width/2+20,pr.y+pr.height/2);await pad.dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();await expect(page.locator('#moveKnob')).toHaveAttribute('style','');await page.screenshot({path:`test-results/neonbreach-${test.info().project.name}.png`});
 });
