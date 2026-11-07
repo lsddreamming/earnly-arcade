@@ -629,6 +629,7 @@
     element('brake').disabled = phase !== 'playing';
     element('fire').hidden = inCar || phase !== 'playing';
     element('stamina').textContent = (exhausted ? 'Recovering ' : 'Energy ') + Math.round(stamina) + '%';
+    element('stamina').style.color = exhausted ? '#ffca91' : '#a9f7dc';
     element('stamina').hidden = inCar;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
@@ -956,8 +957,8 @@
   function buildingFace(points,color) {
     if (!architecture) { polygon(points,color); return; }
     const length = (a,b) => Math.hypot(...a.map((v,i)=>v-b[i]));
-    const columns = Math.max(1,Math.ceil(length(points[0],points[1])/3));
-    const rows = Math.max(1,Math.ceil(length(points[0],points[3])/3));
+    const columns = Math.max(1,Math.ceil(length(points[0],points[1])/(Math.hypot(points[0][0]-eye.x,points[0][2]-eye.z)>40 ? 6 : 3)));
+    const rows = Math.max(1,Math.ceil(length(points[0],points[3])/(Math.hypot(points[0][0]-eye.x,points[0][2]-eye.z)>40 ? 6 : 3)));
     const at = (u,v) => points[0].map((_,i)=>(points[0][i]*(1-u)+points[1][i]*u)*(1-v)+(points[3][i]*(1-u)+points[2][i]*u)*v);
     buildingSurface = true;
     for(let row=0;row<rows;row++) for(let col=0;col<columns;col++) {
@@ -1789,6 +1790,7 @@
   }
 
   document.addEventListener('keydown', event => {
+    if (event.target?.closest?.('input, select, textarea, [contenteditable=true]')) return;
     const action = bindings[event.code];
     if (action && phase === 'playing' && !(action === 'brake' && (!inCar || event.target?.closest?.('button, a')))) {
       event.preventDefault();

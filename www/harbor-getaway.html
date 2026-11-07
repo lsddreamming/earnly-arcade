@@ -76,6 +76,15 @@
     .focus-game canvas { height:100%; }
     .focus-game .controls { flex:none; margin:6px 0; }
     @media(pointer:coarse) { .actions { width:100%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); } .actions button { font-size:12px; padding:0 5px; } }
+    .spuddy-settings label { padding:8px 0; }
+    .spuddy-settings input[type=range] { width:100%; min-height:32px; accent-color:#9df3d3; touch-action:pan-x; }
+    .actions button[aria-pressed=true] { border-color:#9df3d3; background:#285348; }
+    .actions button:disabled { opacity:.5; }
+    @media(max-height:500px) and (orientation:landscape) {
+      .focus-game .actions { grid-template-columns:repeat(7,minmax(0,1fr)); }
+      .focus-game .actions button { font-size:11px; }
+      .hud span { font-size:11px; padding:4px 6px; }
+    }
   </style>
 </head>
 <body>
@@ -88,7 +97,7 @@
         <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
       </div>
-      <span id="stamina" style="position:absolute;right:10px;top:100px;background:#101a29dd;padding:5px 8px;border-radius:8px;font-size:12px;pointer-events:none">Energy 100%</span>
+      <span id="stamina" style="position:absolute;left:10px;bottom:42px;background:#101a29dd;padding:5px 8px;border-radius:8px;font-size:12px;pointer-events:none">Energy 100%</span>
       <span id="district">WEST RAIL</span>
       <div class="feedback" id="feedback" role="status" hidden></div>
       <div class="overlay" id="overlay">
