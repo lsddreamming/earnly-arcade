@@ -263,6 +263,8 @@
         if (!heatLevel) wanted(1);
       }
     }
+    const nose = facing(actor.angle);
+    actor.wheelSpin = ((actor.wheelSpin || 0) + ((actor.x-previous.x)*nose.x+(actor.z-previous.z)*nose.z)/0.34) % (Math.PI*2);
     return edge ? 'wall' : null;
   }
 
@@ -946,8 +948,8 @@
     }
     if (detailed) {
       for (const sign of [-1, 1]) for (const ahead of [-1.15, 1.12]) {
-        const ring = (radius, across) => Array.from({ length: 12 }, (_, i) => {
-          const a = i * Math.PI / 6;
+        const ring = (radius, across, spin = 0) => Array.from({ length: 12 }, (_, i) => {
+          const a = i * Math.PI / 6 + spin;
           const along = ahead + Math.cos(a) * radius;
           return [actor.x + across * side.x + along * front.x,
             0.34 + Math.sin(a) * radius, actor.z + across * side.z + along * front.z];
@@ -959,7 +961,7 @@
         }
         polygon(outer, '#141c25');
         polygon(ring(0.19, sign * 1.205), '#8c9ca8');
-        const hub = ring(0.065, sign * 1.215), rim = ring(0.16, sign * 1.215);
+        const hub = ring(0.065, sign * 1.215, actor.wheelSpin || 0), rim = ring(0.16, sign * 1.215, actor.wheelSpin || 0);
         for (let i = 0; i < 12; i += 2) polygon([hub[i],rim[i],rim[(i+1)%12],hub[(i+1)%12]], '#33414d');
         polygon(ring(0.055, sign * 1.22), '#c1cbd1');
       }
@@ -969,7 +971,7 @@
         part(sign * 1.07, 0, 0.035, 2.45, 0.055, 0.48, rubber);
       }
     }
-    part(0, 0, 2.12, 3.64, 0.43, 0.27, paint);
+    part(0, 0, 2.12, 3.64, 0.43, 0.27, paint, 0.96);
     part(0, 0.09, 1.99, 3.34, 0.22, 0.70, paint);
     if (actor.name === 'Cargo van') {
       part(0, -0.33, 1.91, 2.65, 0.92, 0.91, paint, 0.95);
@@ -981,6 +983,31 @@
       part(0, muscle ? -0.19 : 0.05, 1.76, 2.02, roofHeight, 0.92, ['#77919b', '#4c6874', '#3a505a'], 0.73);
       part(0, muscle ? -0.19 : 0.05, 1.29, 1.47, 0.09, 0.92 + roofHeight, paint, 0.92);
       if (muscle) part(0, -1.63, 1.73, 0.3, 0.12, 0.93, ['#555b63', '#363e48', '#293440']);
+    }
+    if (detailed) {
+      const chrome = ['#b1bec8','#7a8c9b','#536675'];
+      const trim = ['#37434c','#242e37','#18232c'];
+      // Grille, lower intake, hood seams and sculpted front bumper.
+      part(0,1.84,0.90,0.075,0.23,0.53,trim);
+      for (const y of [0.59,0.67,0.75]) part(0,1.885,0.84,0.025,0.025,y,chrome);
+      part(0,1.83,1.98,0.17,0.15,0.28,paint,0.92);
+      part(0,1.925,1.82,0.035,0.045,0.34,chrome);
+      part(0,-1.91,1.9,0.035,0.035,0.35,chrome);
+      for (const sign of [-1,1]) {
+        part(sign*0.59,1.39,0.018,0.67,0.012,0.925,trim);
+        part(sign*0.95,1.84,0.09,0.06,0.11,0.59,['#f7c478','#d89141','#b26a32']);
+        part(sign*0.68,-1.94,0.18,0.21,0.11,0.20,chrome);
+        part(sign*1.055,0.62,0.025,0.022,0.36,0.48,trim);
+        part(sign*1.055,-0.78,0.025,0.022,0.36,0.48,trim);
+        if (actor.name !== 'Cargo van') {
+          part(sign*0.77,-0.15,0.065,0.09,0.38,0.96,trim,0.87);
+          part(sign*0.85,0.04,0.04,1.86,0.04,0.94,chrome);
+        }
+      }
+      if (actor.name === 'Muscle') {
+        part(0,1.36,0.62,0.65,0.09,0.93,trim,0.7);
+        for(const sign of [-1,1]) part(sign*0.24,-1.40,0.16,0.48,0.012,0.93,trim);
+      }
     }
     if (detailed && actor.occupied) {
       // Dark driver silhouettes on the side glazing remain readable at phone scale.
