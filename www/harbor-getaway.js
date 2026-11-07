@@ -666,10 +666,12 @@
       // Keep the input frame fixed while a gesture or key combination is held.
       footHeading ??= camera.angle;
       const directionAngle = (dragTouch?.heading ?? footHeading) + Math.atan2(horizontal, -vertical);
-      if (!look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = directionAngle;
+      if (!look && !cameraMode && !lookTouch && lookPointer === null && elapsed > manualLookUntil) footView = player.angle;
       const direction = facing(directionAngle);
       const turn = directionAngle - player.angle;
-      player.angle += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-18 * dt));
+      // Ease into the shortest turn, with a firm angular speed limit.
+      const turnError = Math.atan2(Math.sin(turn), Math.cos(turn));
+      player.angle += clamp(turnError * (1 - Math.exp(-5 * dt)), -3.2 * dt, 3.2 * dt);
       const oldX = player.x;
       const oldZ = player.z;
       const speed = dragTouch ? 7 * clamp((Math.hypot(horizontal, vertical) - 5) / 20, 0, 1) : 7;
@@ -717,8 +719,11 @@
     camera.x += (active.x - camera.x) * smoothing;
     camera.z += (active.z - camera.z) * smoothing;
     const turn = (inCar ? car.angle + driveLook : footView) - camera.angle;
-    const angleStep = Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-5 * dt));
-    camera.angle += clamp(angleStep, -2.8 * dt, 2.8 * dt);
+    const manualCamera = cameraMode || look || lookTouch || lookPointer !== null || elapsed <= manualLookUntil;
+    const followRate = manualCamera ? 5 : inCar ? 3.5 : 2.6;
+    const angleStep = Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-followRate * dt));
+    const cameraTurnLimit = manualCamera ? 2.8 : inCar ? 1.8 : 1.35;
+    camera.angle += clamp(angleStep, -cameraTurnLimit * dt, cameraTurnLimit * dt);
     const forward = facing(camera.angle);
     const targetDistance = inCar ? 8.8 + Math.abs(car.speed) * 0.11 : 9.6;
     let clearance = targetDistance;
