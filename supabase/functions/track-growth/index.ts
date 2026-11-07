@@ -2,6 +2,7 @@
 import { withSupabase } from 'npm:@supabase/server'
 
 const EVENT_TYPES = new Set([
+  'promotion_clicked',
   'acquisition_attributed',
   'onboarding_shown',
   'onboarding_completed',
@@ -27,7 +28,7 @@ const EVENT_TYPES = new Set([
 const GAMES = new Set([
   'snake','blockDrop','tapRush','memory','dodger','brickBreaker','jungleHopper','towerStack',
   'coinCatch','colorMatch','paddleRally','laneRunner','safeCracker','blockGrid','mergeRush',
-  'perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape','neonSlice'
+  'perfectDrop','spiralDrop','shapeFit','bounceRun','trafficEscape','neonSlice','neonBreach'
 ])
 
 function cleanToken(value: unknown, max = 64) {
