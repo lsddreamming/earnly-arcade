@@ -1081,24 +1081,41 @@
     context.restore();
   }
 
+  function fireParticle(x,y,z,width,height,kind,alpha) {
+    const view=cameraPoint([x,y,z]);
+    if(view[2]<0.3 || view[2]>90) return;
+    const [sx,sy]=project(view);
+    faces.push({particle:kind,x:sx,y:sy,w:focal*width/view[2],h:focal*height/view[2],alpha,depth:view[2]});
+  }
+
   function drawCar(actor, police) {
     if (actor.destroyed) {
       box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
       const age=elapsed-actor.blastAt;
-      for(let i=0;i<Math.max(0,Math.ceil((18-age)/3.6));i++) {
-        const y=0.8+(age*1.4+i*0.7)%4;
-        const r=0.4+y*0.19;
-        box(actor.x+Math.sin(i*2)*0.5,actor.z+Math.cos(i*2)*0.7,r,r,r,age+i,
-          age<1.2?['#ffe694','#ff9b42','#d94723']:['#697078','#515963','#424a53'],y);
+      const fade=clamp((18-age)/5,0,1);
+      if (fade>0) {
+        fireParticle(actor.x,0.6,actor.z,2.4,1.2,'glow',fade*0.35);
+        for(let i=0;i<9;i++) {
+          const flicker=0.85+0.22*Math.sin(elapsed*13+i*2.3);
+          fireParticle(actor.x+Math.sin(i*2.4)*0.7,0.45,actor.z+Math.cos(i*2.4)*1.2,
+            0.35*flicker, (1.1+(i%3)*0.35)*flicker,'flame',fade);
+        }
+        for(let i=0;i<7;i++) {
+          const t=(age*0.23+i/7)%1;
+          fireParticle(actor.x+Math.sin(i*3+t)*0.5+t*0.9,1.3+t*3.8,actor.z+Math.cos(i*2)*0.5,
+            0.45+t*0.9,0.5+t*1.1,'smoke',fade*(1-t)*0.5);
+        }
+        for(let i=0;i<8;i++) {
+          const t=(age*0.7+i/8)%1;
+          fireParticle(actor.x+Math.sin(i*7)*t,0.8+t*3,actor.z+Math.cos(i*7)*t,
+            0.025,0.07,'spark',fade*(1-t));
+        }
       }
       return;
     }
-    if ((actor.health ?? 160) < 85) {
-      for(let i=0;i<3;i++) {
-        const rise=(elapsed*1.25+i*0.75)%2.5;
-        box(actor.x+Math.sin(i*2)*0.15,actor.z-0.7,0.25+rise*0.16,0.25+rise*0.16,0.35,elapsed+i,
-          ['#667078','#505b65','#414b56'],1.1+rise);
-      }
+    if ((actor.health ?? 160) < 85) for(let i=0;i<4;i++) {
+      const t=(elapsed*0.3+i/4)%1;
+      fireParticle(actor.x+t*0.4,1.1+t*2.2,actor.z-0.7,0.2+t*0.5,0.3+t*0.6,'smoke',(1-t)*0.45);
     }
     const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#365957', '#243d3d', '#1c3033']);
     const rubber = ['#263145', '#101723', '#161e2b'];
@@ -1839,7 +1856,31 @@
     const protectHeight = focal * (inCar ? 1.0 : 1.1) / Math.max(1, subjectView[2]);
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) {
-      if (face.sprite) {
+      if (face.particle) {
+        context.save();
+        context.translate(face.x,face.y);
+        context.globalAlpha=face.alpha;
+        const w=face.w,h=face.h;
+        if(face.particle==='flame') {
+          const gradient=context.createLinearGradient(0,0,0,-h);
+          gradient.addColorStop(0,'#fff5bc'); gradient.addColorStop(0.3,'#ffc34a');
+          gradient.addColorStop(0.68,'#f76b22'); gradient.addColorStop(1,'#c6341200');
+          context.fillStyle=gradient;
+          context.beginPath(); context.moveTo(-w,0);
+          context.bezierCurveTo(-w*1.3,-h*0.4,w*0.4,-h*0.55,w*0.15,-h);
+          context.bezierCurveTo(w*1.5,-h*0.5,w*1.2,-h*0.15,w,0);
+          context.closePath(); context.fill();
+        } else {
+          const gradient=context.createRadialGradient(0,0,0,0,0,Math.max(w,h));
+          const smoke=face.particle==='smoke';
+          gradient.addColorStop(0,smoke?'#55565b': '#ffd577');
+          gradient.addColorStop(0.45,smoke?'#62616599':'#ff7b3566');
+          gradient.addColorStop(1,smoke?'#75747a00':'#ff6b2400');
+          context.fillStyle=gradient;
+          context.beginPath(); context.ellipse(0,0,w,h,0,0,Math.PI*2); context.fill();
+        }
+        context.restore();
+      } else if (face.sprite) {
         context.save();
         context.translate(face.x, face.y + face.height);
         const upper = face.height * 0.72;
