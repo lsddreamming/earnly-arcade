@@ -206,8 +206,10 @@
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
-    const objective = !stolen ? 'Find the marked getaway car.' : !inCar ? 'Get back in the getaway car.'
-      : lost ? 'Drive to the garage.' : 'Use the blocks and alleys to lose the patrol.';
+    const target = inCar && lost ? garage : !inCar ? car : null;
+    const range = target ? ' · ' + Math.ceil(distance(inCar ? car : player, target)) + ' m' : '';
+    const objective = (!stolen ? 'Find the marked getaway car' : !inCar ? 'Get back in the getaway car'
+      : lost ? 'Drive to the garage' : 'Use the alleys to lose the patrol') + range;
     if (element('objective').textContent !== objective) element('objective').textContent = objective;
     element('interact').disabled = phase !== 'playing'
       || (inCar ? Math.abs(car.speed) > 2 : distance(player, car) >= 3.4);
@@ -313,7 +315,7 @@
     updateHud();
   }
 
-  const roofs = ['#997674', '#7097ab', '#957daf', '#64958a'];
+  const roofs = ['#78646b', '#536c88', '#726386', '#4c7a77'];
   const walls = ['#594751', '#38546b', '#554669', '#365b58'];
   const darkWalls = ['#413642', '#283f53', '#403650', '#294743'];
   const lamps = roads.flatMap(x => roads.map(z => ({ x: x + 5.2, z: z + 5.2 })));
@@ -391,31 +393,113 @@
   }
 
   function groundGlow(x, z, radius, color) {
-    for (const scale of [1, 0.75, 0.5]) {
-      const ring = Array.from({ length: 12 }, (_, index) => {
-        const angle = index / 12 * Math.PI * 2;
-        return [x + Math.cos(angle) * radius * scale, 0, z + Math.sin(angle) * radius * scale];
-      });
-      polygon(ring, color, true);
-    }
+    const center = cameraPoint([x, 0, z]);
+    if (center[2] < 2.5) return;
+    const [px, py] = project(center);
+    const spread = radius * focal / center[2];
+    const depthSpread = spread * clamp(eye.y / center[2], 0.08, 0.84);
+    if (px + spread < 0 || px - spread > width || py + depthSpread < 0 || py - depthSpread > height) return;
+    context.save();
+    context.translate(px, py);
+    context.scale(spread, depthSpread);
+    const light = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+    light.addColorStop(0, color);
+    light.addColorStop(1, color.slice(0, 7) + '00');
+    context.fillStyle = light;
+    context.fillRect(-1, -1, 2, 2);
+    context.restore();
   }
 
   function drawCar(actor, police) {
-    const colors = police ? ['#c9d7ec', '#34435b', '#263249'] : ['#79f1c6', '#218c7f', '#176052'];
-    box(actor.x, actor.z, 2.15, 3.65, 0.75, actor.angle, colors, 0.24);
-    box(actor.x, actor.z, 1.55, 1.85, 0.55, actor.angle, ['#263a50', '#1c2d42', '#1a2738'], 0.99);
+    const paint = police ? ['#e3eaf7', '#536783', '#33465f'] : ['#8bf6cf', '#258d84', '#19665f'];
+    const rubber = ['#263145', '#101723', '#161e2b'];
     const front = facing(actor.angle);
-    box(actor.x - front.x * 1.83, actor.z - front.z * 1.83, 1.8, 0.1, 0.14,
-      actor.angle, ['#ff7366', '#fd535b', '#cc4050'], 0.64);
-    if (police) box(actor.x, actor.z, 1.32, 0.32, 0.16, actor.angle,
-      elapsed % 0.55 < 0.275 ? ['#ff6179', '#a42541', '#a42541'] : ['#69baff', '#345fae', '#345fae'], 1.54);
+    const side = facing(actor.angle + Math.PI / 2);
+    const part = (across, ahead, w, d, h, base, colors) => box(
+      actor.x + across * side.x + ahead * front.x, actor.z + across * side.z + ahead * front.z,
+      w, d, h, actor.angle, colors, base,
+    );
+    for (const sign of [-1, 1]) {
+      part(sign * 1.02, -1.15, 0.33, 0.68, 0.62, 0.03, rubber);
+      part(sign * 1.02, 1.12, 0.33, 0.68, 0.62, 0.03, rubber);
+    }
+    part(0, 0, 2.12, 3.64, 0.43, 0.27, paint);
+    part(0, 0.09, 1.99, 3.34, 0.22, 0.70, paint);
+    part(0, 0.05, 1.65, 1.82, 0.48, 0.92, ['#669ab1', '#315b74', '#26435c']);
+    part(0, 0.05, 1.48, 1.06, 0.09, 1.40, paint);
+    part(0, -1.81, 2.07, 0.16, 0.17, 0.28, ['#657489', '#344256', '#414e64']);
+    part(0, -1.89, 0.39, 0.035, 0.14, 0.48, ['#ccdbe9', '#a9bed4', '#a9bed4']);
+    for (const sign of [-1, 1]) {
+      part(sign * 0.75, -1.83, 0.47, 0.1, 0.13, 0.62, ['#ff9b85', '#ff5d69', '#dc4058']);
+      part(sign * 0.75, 1.84, 0.44, 0.08, 0.13, 0.58, ['#e0f8ff', '#b8efff', '#8bc9fa']);
+    }
+    if (police) {
+      const flash = elapsed % 0.55 < 0.275;
+      part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#ff9bae', '#f54365', '#a42541'] : ['#80435e', '#602b44', '#602b44']);
+      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#416c99', '#334f7e', '#334f7e'] : ['#afe7ff', '#69baff', '#345fae']);
+    }
   }
 
-  function pin(actor, y, color) {
+  function drawBuilding(b) {
+    const x = b.x + b.w / 2;
+    const z = b.z + b.d / 2;
+    box(x, z, b.w, b.d, b.h, 0, [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
+    if (Math.hypot(x - eye.x, z - eye.z) > 47) return;
+    box(x, z, b.w + 0.22, b.d + 0.22, 0.24, 0, ['#647184', '#4c5268', '#3a435b'], b.h - 0.08);
+    box(x + 1.1, z - 0.55, 2.3, 1.7, 0.85, 0, ['#71849a', '#4d5b73', '#36465c'], b.h + 0.15);
+    const frontZ = eye.z >= z ? b.z + b.d + 0.025 : b.z - 0.025;
+    const sideX = eye.x >= x ? b.x + b.w + 0.025 : b.x - 0.025;
+    for (let level = 2.1; level < b.h - 1.25; level += 2.1) {
+      for (let i = 1.4; i < b.w - 1; i += 2.05) {
+        const left = b.x + i;
+        const color = Math.floor(i + level + b.x) % 3 ? '#c6a47a' : '#405e75';
+        polygon([[left, level, frontZ], [left + 0.86, level, frontZ],
+          [left + 0.86, level + 0.9, frontZ], [left, level + 0.9, frontZ]], color);
+      }
+      for (let i = 1; i < b.d - 0.8; i += 1.65) {
+        const near = b.z + i;
+        polygon([[sideX, level, near], [sideX, level, near + 0.7],
+          [sideX, level + 0.85, near + 0.7], [sideX, level + 0.85, near]], '#7292a3');
+      }
+    }
+  }
+
+  function drawDocks() {
+    if (camera.x < 48) return;
+    box(110, 91, 8, 12, 4.4, 0, ['#415b73', '#263d55', '#30445d']);
+    box(105.94, 91, 0.08, 7.5, 3.55, 0,
+      lost ? ['#ffd68c', '#cb944c', '#edb866'] : ['#70859b', '#364c65', '#415a73']);
+    box(105.85, 91, 0.16, 8.4, 0.28, 0,
+      lost ? ['#fff1b6', '#ffcc72', '#ffdf8c'] : ['#7099a9', '#385c70', '#51788c'], 3.68);
+    for (let i = 0; i < 6; i += 1) {
+      box(111 + (i % 2) * 3.2, 29 + i * 7.4, 2.8, 6.1, 2.8, 0,
+        i % 2 ? ['#aa715a', '#814d49', '#643941'] : ['#5d8c99', '#416d80', '#315365']);
+    }
+    for (const z of [34, 66]) {
+      box(120, z, 1.1, 1.2, 13, 0, ['#ccaa84', '#967e69', '#675f66']);
+      box(115, z, 11, 1.05, 0.8, 0, ['#c39d76', '#987657', '#695263'], 12.1);
+      box(110, z, 0.16, 0.16, 4, 0, ['#9aa7bb', '#586479', '#475163'], 8.2);
+    }
+  }
+
+  function pin(actor, y, color, label) {
     const point = cameraPoint([actor.x, y, actor.z]);
-    if (point[2] < 1) return;
-    const [x, screenY] = project(point);
-    fill([[x - 7, screenY - 10], [x + 7, screenY - 10], [x, screenY]], color);
+    const onScreen = point[2] > 1 && Math.abs(point[0]) * focal / point[2] < width * 0.5 - 25;
+    const [x, screenY] = onScreen ? project(point) : [
+      point[0] < 0 ? 22 : width - 22,
+      height * 0.53,
+    ];
+    const px = clamp(x, 22, width - 22);
+    const py = clamp(screenY, Math.min(106, height * 0.39), height - 45);
+    fill([[px, py - 17], [px + 13, py - 4], [px, py + 9], [px - 13, py - 4]], '#10192a');
+    fill([[px, py - 13], [px + 9, py - 4], [px, py + 5], [px - 9, py - 4]], color);
+    const textX = clamp(px, 46, width - 46);
+    context.font = '700 10px system-ui, sans-serif';
+    context.textAlign = 'center';
+    context.fillStyle = '#10192a';
+    context.fillRect(textX - 37, py - 35, 74, 15);
+    context.fillStyle = color;
+    context.fillText(label, textX, py - 24);
   }
 
   function minimap(active) {
@@ -429,8 +513,13 @@
     context.strokeRect(x, y, mapSize, mapSize);
     context.fillStyle = '#354459';
     for (const b of blocks) context.fillRect(x + b.x * scale, y + b.z * scale, b.w * scale, b.d * scale);
-    const dots = [[active, '#ffffff']];
-    if (!stolen) dots.push([car, '#79f1c6']);
+    context.fillStyle = '#263a50';
+    for (const road of roads) {
+      context.fillRect(x + (road - 3) * scale, y, 6 * scale, mapSize);
+      context.fillRect(x, y + (road - 3) * scale, mapSize, 6 * scale);
+    }
+    const dots = [];
+    if (!inCar) dots.push([car, '#79f1c6']);
     if (stolen && !lost) dots.push([patrol, '#ff6179']);
     if (lost) dots.push([garage, '#ffd373']);
     for (const [point, color] of dots) {
@@ -439,6 +528,12 @@
       context.arc(x + point.x * scale, y + point.z * scale, 3, 0, Math.PI * 2);
       context.fill();
     }
+    const ax = x + active.x * scale;
+    const ay = y + active.z * scale;
+    const direction = facing(active.angle);
+    fill([[ax + direction.x * 6, ay + direction.z * 6],
+      [ax - direction.x * 4 - direction.z * 3.5, ay - direction.z * 4 + direction.x * 3.5],
+      [ax - direction.x * 4 + direction.z * 3.5, ay - direction.z * 4 - direction.x * 3.5]], '#f3fbff');
   }
 
   function render() {
@@ -464,12 +559,29 @@
     eye.pitchSine = Math.sin(pitch);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     const sky = context.createLinearGradient(0, 0, 0, height);
-    sky.addColorStop(0, '#0b1124');
-    sky.addColorStop(0.5, '#34415b');
-    sky.addColorStop(1, '#172e41');
+    sky.addColorStop(0, '#090d21');
+    sky.addColorStop(0.34, '#253959');
+    sky.addColorStop(0.65, '#79617c');
+    sky.addColorStop(1, '#253950');
     context.fillStyle = sky;
     context.fillRect(0, 0, width, height);
-    flat(-110, -110, 320, 330, '#244656');
+    const horizon = height * 0.51 - focal * Math.tan(pitch);
+    context.fillStyle = '#b3d4ec8a';
+    for (let i = 0; i < 29; i += 1) {
+      const x = ((i * 83 + 14 - camera.angle * 36) % width + width) % width;
+      const y = ((i * 23) % 71) * Math.max(0, horizon - 5) / 71;
+      context.fillRect(x, y, i % 7 ? 1 : 2, 1);
+    }
+    flat(-140, -140, 390, 390, '#203f53');
+    for (let i = 0; i < 22; i += 1) {
+      const w = width / 14;
+      const x = ((i * w * 0.73 - camera.angle * 49) % (width + w) + width + w) % (width + w) - w;
+      const h = 7 + (i * 31) % 29;
+      context.fillStyle = i % 2 ? '#253550' : '#2e3d55';
+      context.fillRect(x, horizon - h + 7, w * 0.61, h);
+      context.fillStyle = '#d8ae805e';
+      context.fillRect(x + w * 0.15, horizon - h + 11, 2, 2);
+    }
     flat(0, 0, size, size, '#576571');
     for (const road of roads) {
       flat(road - 5.15, 0, 10.3, size, '#657584');
@@ -484,27 +596,35 @@
         flat(offset, road - 0.09, 2.1, 0.18, '#a79b70');
       }
     }
+    for (const road of roads) {
+      for (const cross of roads) {
+        if (Math.hypot(road - camera.x, cross - camera.z) > 45) continue;
+        for (let stripe = -3.6; stripe < 4; stripe += 1.05) {
+          flat(road + stripe, cross - 5.5, 0.42, 1, '#7f909d');
+          flat(road + 4.9, cross + stripe, 1, 0.42, '#7f909d');
+        }
+      }
+    }
     flat(garage.x - 3.5, garage.z - 3.5, 7, 7, lost ? '#a78248' : '#455165');
+    if (lost) {
+      for (let i = -3; i <= 3; i += 1) flat(garage.x + i, garage.z - 3.45, 0.43, 0.63, '#ffe0a0');
+      groundGlow(garage.x, garage.z, 5.3, '#ffc27270');
+    }
     const nearbyLamps = lamps.filter(lamp => distance(lamp, camera) < 52);
-    for (const lamp of nearbyLamps) groundGlow(lamp.x, lamp.z, 5.4, '#ffc4781c');
+    for (const lamp of nearbyLamps) groundGlow(lamp.x, lamp.z, 5.4, '#ffc4785e');
     const front = facing(car.angle);
-    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.4, '#ff455827');
-    if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.2, '#a6e3ff20');
+    groundGlow(car.x, car.z, 1.7, '#0b112659');
+    if (!inCar) groundGlow(player.x, player.z, 0.65, '#0b112650');
+    if (stolen && !lost) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
+    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45587f');
+    if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#a6e3ff60');
     faces = [];
     for (const lamp of nearbyLamps) {
       box(lamp.x, lamp.z, 0.18, 0.18, 4.6, 0, ['#576981', '#3d5064', '#293f54']);
       box(lamp.x, lamp.z, 0.6, 0.45, 0.18, 0, ['#ffd795', '#ffca7a', '#d49753'], 4.55);
     }
-    for (const b of blocks) {
-      box(b.x + b.w / 2, b.z + b.d / 2, b.w, b.d, b.h, 0,
-        [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
-      for (let x = b.x + 1.5; x < b.x + b.w - 1; x += 2) {
-        const z = b.z + b.d + 0.015;
-        if (eye.z > z) {
-          polygon([[x, 2.1, z], [x + 0.65, 2.1, z], [x + 0.65, 3.1, z], [x, 3.1, z]], '#d5ab7f');
-        }
-      }
-    }
+    for (const b of blocks) drawBuilding(b);
+    drawDocks();
     drawCar(car, false);
     drawCar(patrol, true);
     if (!inCar) {
@@ -524,8 +644,8 @@
     }
     faces.sort((a, b) => b.depth - a.depth);
     for (const face of faces) fill(face.points, face.color);
-    if (!stolen || !inCar) pin(car, 3.8, '#79f1c6');
-    if (lost) pin(garage, 4, '#ffd373');
+    if (!stolen || !inCar) pin(car, 3.8, '#79f1c6', 'GETAWAY CAR');
+    if (lost) pin(garage, 4, '#ffd373', 'GARAGE');
     minimap(inCar ? car : player);
   }
 

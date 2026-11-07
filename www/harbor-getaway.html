@@ -8,12 +8,12 @@
   <link rel="stylesheet" href="public-info.css">
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; background: #101a29; color: #f1f6fa; font: 16px system-ui,sans-serif; }
+    body { margin: 0; background: radial-gradient(ellipse at 50% 0, #182c43, #0d1524 65%); color: #f1f6fa; font: 16px system-ui,sans-serif; }
     main, footer { width: min(960px, 100% - 24px); margin: auto; }
     a { color: #9df3d3; }
     header { display:flex; align-items: center; gap: 1rem; padding: 10px 0; }
     h1 { font-size: clamp(21px, 5vw, 32px); margin: 0; }
-    .stage { position: relative; overflow: hidden; border: 1px solid #456077; border-radius: 16px; background: #14253a; }
+    .stage { position: relative; overflow: hidden; border: 1px solid #456077; border-radius: 19px; background: #14253a; box-shadow:0 18px 44px #03091388; }
     canvas { display: block; width: 100%; height: min(69svh, 590px); touch-action:none; }
     main { -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }
     .hud { position: absolute; inset: 10px 10px auto; display:flex; flex-wrap:wrap; gap: 6px; pointer-events:none; }
@@ -24,7 +24,8 @@
     #objective { flex: 1 1 100%; width: max-content; max-width: max-content; }
     .overlay { position:absolute; inset:0; display:grid; place-items:center; background:#0a1527a8; padding:16px; }
     [hidden] { display:none!important; }
-    .panel { width:min(100%,360px); padding:20px; background:#101a29; border:1px solid #5e788f; border-radius:14px; box-shadow:0 12px 32px #0009; }
+    .panel { width:min(100%,360px); padding:20px; background:linear-gradient(155deg,#233852,#101a29 75%); border:1px solid #5e788f; border-radius:17px; box-shadow:0 12px 32px #0009; }
+    .eyebrow { display:block; margin-bottom:8px; color:#9df3d3; font-size:11px; font-weight:800; letter-spacing:.16em; }
     h2 { margin:0; }
     p { line-height:1.45; }
     button { min-height:44px; min-width:44px; border-radius:12px; border:1px solid #5a7891; background:#1b3046; color:#f6fbff; font:inherit; font-weight:700; touch-action:none; }
@@ -61,11 +62,12 @@
       <canvas id="city" aria-label="Third-person view of the harbor neighborhood"></canvas>
       <div class="hud">
         <span id="clock">3:00</span><span id="heat">ON FOOT</span><span id="speed" hidden></span>
-        <span id="objective" aria-live="polite">Find the marked getaway car.</span>
+        <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
       </div>
       <div class="overlay" id="overlay">
         <section class="panel">
+          <span class="eyebrow">HARBOR DISTRICT / NIGHT SHIFT</span>
           <h2 id="title">After hours at the harbor</h2>
           <p id="description">Grab the mint coupe, break the patrol’s line of sight, then drive it back to the garage. You have three minutes.</p>
           <button type="button" id="start">Start mission</button>
@@ -96,6 +98,6 @@
       <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
-  <script src="harbor-getaway.js?v=drive1"></script>
+  <script src="harbor-getaway.js?v=night2"></script>
 </body>
 </html>
