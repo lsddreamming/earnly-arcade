@@ -97,21 +97,22 @@
       .actions button { min-height:46px; font-size:11px; }
       #interact { grid-column:span 2; }
     }
-  #harbor-login label{display:block;margin:12px 0}#harbor-login input{display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #456077;background:#172b3e;color:white}#online-status{color:#a5efd9;line-height:1.5}</style>
+  #harbor-login label{display:block;margin:12px 0}#harbor-login input{display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #456077;background:#172b3e;color:white}#online-status{color:#a5efd9;line-height:1.5}#live-notice{position:absolute;left:10px;right:10px;top:100px;pointer-events:none;background:#102b36ed;border:1px solid #6acbb3;border-radius:12px;padding:10px 14px;color:#d8fff3;font-size:13px;box-shadow:0 6px 20px #0005}#live-health{color:#a5efd9!important;border-color:#70c9b4!important}#connect-live{border-color:#79d9c0;background:linear-gradient(145deg,#285c58,#163331)}
+</style>
 </head>
 <body>
   <main>
     <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1><button type="button" id="sound" aria-pressed="true">Sound on</button></header>
     <div class="stage">
       <canvas id="city" aria-label="Third-person view of the harbor neighborhood"></canvas>
-      <div class="hud">
+      <div class="hud"><span id="live-health" role="status" hidden></span>
         <span id="clock">3:00</span><span id="heat">ON FOOT</span><span id="speed" hidden></span>
         <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
       </div>
       <span id="stamina" style="position:absolute;left:10px;bottom:42px;background:#101a29dd;padding:5px 8px;border-radius:8px;font-size:12px;pointer-events:none">Energy 100%</span>
       <span id="district">WEST RAIL</span>
-      <div class="feedback" id="feedback" role="status" hidden></div>
+      <div id="live-notice" role="status" hidden></div><div class="feedback" id="feedback" role="status" hidden></div>
       <div class="overlay" id="overlay">
         <section class="panel">
           <span class="eyebrow">HARBOR DISTRICT / COASTAL RUN</span>
@@ -163,7 +164,7 @@
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>
       <p class="hint">Live player health, defeats and coin rewards are checked by the server. Traffic, police and NPCs remain local to your game.</p>
     </details>
-    <p id="live-health" role="status" hidden></p><p class="hint">Connect Live enters shared PvP free roam. Defeat another connected player to earn 100 Arcade Coins. NPCs do not award coins.</p><p id="online-status" role="status">Solo free roam · Sign in to earn mission coins.</p>
+    <p class="hint">Connect Live enters shared PvP free roam. Defeat another connected player to earn 100 Arcade Coins. NPCs do not award coins.</p><p id="online-status" role="status">Solo free roam · Sign in to earn mission coins.</p>
     <form id="harbor-login" hidden><label>Email <input id="harbor-email" type="email" autocomplete="username" required></label><label>Password <input id="harbor-password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form>
   </main>
   <footer class="public-footer" aria-label="Earnly site information">

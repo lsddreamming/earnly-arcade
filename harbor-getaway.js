@@ -675,6 +675,7 @@
   }
 
   function updateHud() {
+    const liveNotice=element("live-notice");if(liveNotice?.dataset && Date.now()>Number(liveNotice.dataset.until||0))liveNotice.hidden=true;
     element("connect-live").hidden = Boolean(activeJob);
     const seconds = activeJob ? Math.max(0, Math.ceil(activeJob.time - elapsed)) : 0;
     element('clock').textContent = activeJob
