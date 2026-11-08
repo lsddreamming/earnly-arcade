@@ -192,7 +192,8 @@
       { key:'bounceRun', icon:'⚪', name:'Bounce Run', note:'Tap to jump over obstacles · gets faster as you level up', href:'mini.html?game=bounceRun' },
       { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' },
       { key:'starDefender', icon:'👾', name:'Star Defender', note:'Retro alien waves · dodge and fire', href:'stardefender.html?sd=20260925d' },
-      { key:'neonMaze', icon:'⚡', name:'Neon Maze', note:'Collect energy cells · evade sentry drones', href:'neonmaze.html' }
+      { key:'neonMaze', icon:'⚡', name:'Neon Maze', note:'Collect energy cells · evade sentry drones', href:'neonmaze.html' },
+      { key:'harborGetaway', icon:'🌆', name:'Harbor Getaway', note:'Explore the city · complete jobs · optional live free roam', href:'harbor-getaway.html', freeBeta:true }
     ];
 
     function catalogFavorite(info) { return info.freeBeta ? localStorage.getItem(info.key==='crystalCommand'?'crystalCatalogFavorite':info.key+'CatalogFavorite') === '1' : Arcade.isFavorite(info.key); }
@@ -224,7 +225,8 @@
       bounceRun:['new','action'],
       trafficEscape:['new','brain'],
       starDefender:['new','classic','action'],
-      neonMaze:['new','classic','action']
+      neonMaze:['new','classic','action'],
+      harborGetaway:['action']
     };
     let activeGameFilter = 'all';
     let gameSearchText = '';
@@ -316,7 +318,7 @@
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
             const bIndex = browseOrder.indexOf(b.key);
-            const rank = (key, index) => key === 'crystalCommand' ? 101 : key === 'bubblePop' ? 102 : index < 0 ? 100 : index;
+            const rank = (key, index) => key === 'harborGetaway' ? 103 : key === 'crystalCommand' ? 101 : key === 'bubblePop' ? 102 : index < 0 ? 100 : index;
             return rank(a.key, aIndex) - rank(b.key, bIndex);
           })
         : visibleGames;
