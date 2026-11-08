@@ -194,6 +194,7 @@
     for (const key of Object.keys(stats)) if (Number.isFinite(saved[key])) stats[key] = Math.max(0,Math.min(1,saved[key]));
   } catch {}
   let stamina = 100, exhausted = false, fitnessSave = 0;
+  let roofSupport = null;
   let jumpHeight = 0, jumpVelocity = 0, tapCandidate = null, lastTap = null;
   const footPlants = [null,null];
   function saveFitness() { try { window.localStorage?.setItem('harborFitnessV1',JSON.stringify(stats)); } catch {} }
@@ -337,11 +338,13 @@
         worker.lift -= 11.5 * dt;
         if (worker.elevation > 0) {
           move(worker, worker.vx * dt, worker.vz * dt, 0.25);
-          worker.tilt += dt * 3.2;
+          worker.tilt = Math.min(1.35, worker.tilt + dt * 3.2);
         }
+        if (worker.health === 0) worker.tilt = Math.min(1.35, worker.tilt + dt * 3.2);
         continue;
       }
       if (worker.health === 0) worker.health = 100;
+      worker.tilt=0; worker.elevation=0;
       if (worker.panicUntil > elapsed) {
         const away = Math.atan2(worker.x-player.x,player.z-worker.z);
         worker.angle = away;
@@ -454,6 +457,7 @@
         };
         audio = { ctx, engine: channel('triangle', 48), siren: channel('sine', 620) };
       }
+      window.HarborAudio?.start(audio.ctx);
       if (audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
     } catch {}
   }
@@ -462,7 +466,9 @@
     if (!audio) return;
     const now = audio.ctx.currentTime;
     const enabled = soundEnabled && phase === 'playing' && !document.hidden;
-    const engine = enabled && inCar ? 0.025 + Math.abs(car.speed) * 0.001 : 0;
+    const nearby = traffic.filter(v=>v!==car && !v.destroyed).sort((a,b)=>distance(a,player)-distance(b,player))[0];
+    window.HarborAudio?.update({enabled,driving:inCar,speed:car.speed,braking:inCar && Math.abs(car.speed)>3 && (held('brake') || (dragTouch ? dragTouch.dy>8 : held('down'))),trafficVolume:nearby?clamp(1-distance(nearby,inCar?car:player)/24,0,1):0,trafficSpeed:nearby?.speed || 0});
+    const engine = enabled && inCar && !window.HarborAudio?.ready() ? 0.025 + Math.abs(car.speed) * 0.001 : 0;
     const pursuitDistance = heatLevel > 1 ? Math.min(distance(car, patrol), distance(car, backup)) : distance(inCar ? car : player, patrol);
     const siren = enabled && heatLevel ? 0.045 * clamp(1 - pursuitDistance / 60, 0, 1) : 0;
     audio.engine.gain.gain.setTargetAtTime(engine, now, 0.035);
@@ -571,7 +577,7 @@
     footView = driveLook = walkCycle = walkBlend = 0;
     runEnabled = false;
     stamina = 100; exhausted = false;
-    jumpHeight = jumpVelocity = 0;
+    jumpHeight = jumpVelocity = 0; roofSupport = null;
     element('run-mode').textContent = 'Run';
     element('run-mode').setAttribute('aria-pressed', 'false');
     cameraMode = false; manualLookUntil = 0; cameraLift = 0;
@@ -623,9 +629,19 @@
       .sort((a,b) => distance(player,a)-distance(player,b))[0];
   }
 
+  function roofHeight(v) { return v.name === 'Cargo van' ? 1.83 : v.name === 'Muscle' ? 1.41 : 1.49; }
+  function roofOffset(v, p = player) {
+    const f = facing(v.angle), r = facing(v.angle + Math.PI/2);
+    return {x:(p.x-v.x)*r.x+(p.z-v.z)*r.z,z:(p.x-v.x)*f.x+(p.z-v.z)*f.z};
+  }
+  function onRoof(v) {
+    const p = roofOffset(v);
+    return !v.destroyed && Math.abs(p.x) < (v.name === 'Cargo van' ? .84 : .58) && Math.abs(p.z-(v.name === 'Cargo van' ? -.33 : v.name === 'Muscle' ? -.19 : .05)) < (v.name === 'Cargo van' ? 1.22 : .66);
+  }
   function jump() {
-    if (phase !== 'playing' || inCar || jumpHeight > 0 || jumpVelocity > 0 || window.HarborOnline?.dead()) return;
-    jumpVelocity = 6;
+    if (phase !== 'playing' || inCar || (jumpHeight > 0 && !roofSupport) || jumpVelocity !== 0 || window.HarborOnline?.dead()) return;
+    roofSupport = null;
+    jumpVelocity = 9.4;
     footPlants.fill(null);
     cue(230, 390, 0.1, 'sine');
   }
@@ -711,7 +727,7 @@
     element('stamina').style.color = exhausted ? '#ffca91' : '#a9f7dc';
     element('stamina').hidden = inCar;
     element('jump').hidden = inCar;
-    element('jump').disabled = phase !== 'playing' || jumpHeight > 0 || jumpVelocity > 0;
+    element('jump').disabled = phase !== 'playing' || (jumpHeight > 0 && !roofSupport) || jumpVelocity !== 0;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
     element('switch-weapon').hidden = inCar || phase !== 'playing';
@@ -785,13 +801,15 @@
     shotAt=elapsed; shotConnected=Boolean(victim || hit || hitCar);
     shotFlash = weapon.delay;
     if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
-    cue(185, 47, 0.15, 'square');
+    if (!window.HarborAudio?.play('shot',weaponIndex===0?1:weaponIndex===1?1.15:.85)) cue(185, 47, 0.15, 'square');
     wanted(victim ? Math.max(2,heatLevel) : Math.max(1,heatLevel,activeJob?.heat || 0));
     for (const worker of workers) if (distance(worker,player)<28) worker.panicUntil=elapsed+8;
     if (victim) {
+      window.HarborAudio?.play('voice',.9+Math.random()*.2);
+      victim.hitAt=elapsed;
       victim.health=Math.max(0,(victim.health ?? 100)-weapon.damage);
       Object.assign(victim,{recover:victim.health===0?12:0.35,elevation:0.03,lift:1.2,vx:aim.x*2,vz:aim.z*2,tilt:0.25});
-      notify(victim.health===0?'NPC down · police backup alerted':'Hit · '+weapon.damage+' damage · police alerted');
+      notify(victim.health===0?'Knocked out · will recover':'Hit · police alerted');
     }
     if (hit) {
       footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
@@ -848,13 +866,19 @@
     const onlineActor=inCar?car:player;
     window.HarborOnline?.tick({x:onlineActor.x,z:onlineActor.z,angle:onlineActor.angle,driving:inCar,free:!activeJob});
     const liveRespawn=window.HarborOnline?.takeRespawn();
-    if(liveRespawn){jumpHeight=jumpVelocity=0;inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
+    if(liveRespawn){roofSupport=null;jumpHeight=jumpVelocity=0;inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
     if(window.HarborOnline?.dead()){keys.clear();pointers.clear();firePointers.clear();return;}
-    if (inCar) jumpHeight = jumpVelocity = 0;
-    else if (jumpVelocity !== 0 || jumpHeight > 0) {
+    if (roofSupport) {
+      const {vehicle:v,x,z} = roofSupport, f = facing(v.angle), r = facing(v.angle+Math.PI/2);
+      const nx = v.x+r.x*x+f.x*z, nz = v.z+r.z*x+f.z*z;
+      if (v.destroyed || blocked(nx,nz,.45)) roofSupport = null;
+      else { player.x=nx; player.z=nz; jumpHeight=roofHeight(v); }
+    }
+    const previousJumpHeight = jumpHeight;
+    if (inCar) { jumpHeight = jumpVelocity = 0; roofSupport = null; }
+    else if (!roofSupport && (jumpVelocity !== 0 || jumpHeight > 0)) {
       jumpHeight += jumpVelocity * dt - 9 * dt * dt;
       jumpVelocity -= 18 * dt;
-      if (jumpHeight <= 0) { jumpHeight = jumpVelocity = 0; footPlants.fill(null); }
     }
     shotFlash = Math.max(0, shotFlash - dt);
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
@@ -928,7 +952,7 @@
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
         // Low wreckage is step-over debris, never a permanent player cage.
-        if (vehicle.destroyed || distance(player, vehicle) > 3) continue;
+        if (vehicle.destroyed || distance(player, vehicle) > 3 || jumpHeight >= roofHeight(vehicle)-.03) continue;
         const gap = pointToVehicle(player, vehicle);
         if (gap < 1.22 && gap < pointToVehicle(previous, vehicle)) Object.assign(player, previous);
       }
@@ -936,6 +960,12 @@
       walking = footTravel > dt * 0.1;
       if (footTravel < 0.00001) footSpeed = 0;
     } else { footHeading = null; footSpeed = 0; }
+    // Resolve landings after movement, so a running jump can cross onto a roof.
+    if (!inCar) {
+      const roof = [...vehicles,...traffic,patrol,...(heatLevel>1?[backup]:[])].find(v => onRoof(v) && (roofSupport?.vehicle === v || (jumpVelocity <= 0 && previousJumpHeight >= roofHeight(v)-.03 && jumpHeight <= roofHeight(v))));
+      if (roof) { jumpHeight=roofHeight(roof); jumpVelocity=0; roofSupport={vehicle:roof,...roofOffset(roof)}; }
+      else { roofSupport=null; if (jumpHeight <= 0) {jumpHeight=jumpVelocity=0;footPlants.fill(null);} }
+    }
     updateTraffic(dt);
     updateWorkers(dt);
     actualFootSpeed = dt > 0 ? footTravel/dt : 0;
@@ -1647,7 +1677,21 @@
       y * Math.cos(person.tilt || 0) + (person.elevation || 0),
       person.z + right.z * x + forward.z * (z + y * Math.sin(person.tilt || 0)),
     ];
-    const cloth = ['#7792a3', '#506a80', '#34495e'];
+    if (person.health === 0 && person.recover > 0) {
+      for (let i=0;i<3;i++) {
+        const a=elapsed*3+i*Math.PI*2/3;
+        signText('★',[person.x+Math.cos(a)*.45,.9+Math.sin(a*2)*.1,person.z+Math.sin(a)*.45],'#ffe49a');
+      }
+      signText('KO',[person.x,1.35,person.z],'#b9f7e5');
+    }
+    const hitAge = elapsed - (person.hitAt ?? -100);
+    if (hitAge < .35) {
+      for (let i=0;i<5;i++) {
+        const a=i*Math.PI*2/5, r=.2+hitAge*1.8;
+        signText('✦',[person.x+Math.cos(a)*r,1+Math.sin(a)*r,person.z],'#fff0b2');
+      }
+    }
+    const cloth = hitAge < .12 ? ['#fff6cf','#ffe6a3','#eed397'] : ['#7792a3', '#506a80', '#34495e'];
     const skin = ['#dfab83', '#bf8864', '#a46c52'];
     const hair = ['#4e3933', '#3c2c2a', '#302323'];
     const shoes = ['#505b63', '#333d47', '#252d38'];
@@ -1754,8 +1798,9 @@
     eye.sine = Math.sin(camera.angle);
     eye.x = camera.x - eye.sine * camera.distance;
     eye.z = camera.z + eye.cosine * camera.distance;
-    eye.y = Math.min(5, 2.6 + camera.distance * 0.19) + cameraLift;
-    const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5), camera.distance + 1);
+    const playerLift = inCar ? 0 : jumpHeight;
+    eye.y = Math.min(5, 2.6 + camera.distance * 0.19) + cameraLift + playerLift;
+    const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5 + playerLift), camera.distance + 1);
     eye.pitchCosine = Math.cos(pitch);
     eye.pitchSine = Math.sin(pitch);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1931,7 +1976,7 @@
     }
     if (!inCar) drawSpuddy();
     const subject = inCar ? car : player;
-    const subjectView = cameraPoint([subject.x, inCar ? 1.3 : 1.0, subject.z]);
+    const subjectView = cameraPoint([subject.x, inCar ? 1.3 : 1.0+jumpHeight, subject.z]);
     const subjectScreen = project(subjectView);
     const protectWidth = focal * (inCar ? 1.8 : 0.55) / Math.max(1, subjectView[2]);
     const protectHeight = focal * (inCar ? 1.0 : 1.1) / Math.max(1, subjectView[2]);
@@ -2265,7 +2310,12 @@
   });
   showSound();
   element('interact').addEventListener('click', interact);
-  element('jump').addEventListener('click', jump);
+  element('jump').addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    jump();
+  });
+  element('jump').addEventListener('click', event => { if (!event || event.detail === 0) jump(); });
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;
   resetTraffic();
