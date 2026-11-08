@@ -7,3 +7,12 @@ test('auth and owner checks protect reporting; claimed actor is ignored',async()
 test('client cannot forge joins or purchase confirmations or arbitrary properties',async()=>{const a=fixture();for(const kind of ['world_join','purchase_confirmed'])assert.equal((await handleActivity(req({action:'event',kind,id:uid}),a)).status,400);assert.equal(a.calls.length,0);assert.equal((await handleActivity(req({action:'event',kind:'shop_view',id:uid,userId:'victim',roomId:uid,chat:'private'}),a)).status,200);assert.deepEqual(a.calls[0].args,{p_actor:uid,p_id:uid,p_kind:'shop_view'});});
 test('backend errors do not return raw data',async()=>{const a=fixture();a.rpc=async()=>({error:{message:'SECRET'}} as any);const r=await handleActivity(req({action:'report',days:7,includeTests:false}),a);assert.equal(r.status,503);assert.ok(!(await r.text()).includes('SECRET'));});
 test('challenge endpoint derives actor from auth and cannot accept forged progress',async()=>{const a=fixture(false);const r=await handleActivity(req({action:'arcade_challenge',p_actor:'victim',days:7,score:999999}),a);assert.equal(r.status,200);assert.deepEqual(a.calls,[{name:'arcade_challenge_status',args:{p_actor:uid}}]);assert.equal((await handleActivity(req({action:'arcade_challenge'},'invalid'),fixture())).status,401);});
+test('Vault routes mutations using the authenticated actor and rejects invalid requests',async()=>{
+ const a=fixture(false);
+ const invalid=await handleActivity(req({action:'spuddy_vault',operation:'buy',id:'invalid',pack:'deluxe'}),a);
+ assert.equal(invalid.status,400);
+ assert.equal(a.calls.length,0);
+ const result=await handleActivity(req({action:'spuddy_vault',operation:'buy',id:uid,pack:'deluxe',p_actor:'victim',cost:0}),a);
+ assert.equal(result.status,200);
+ assert.deepEqual(a.calls,[{name:'spuddy_vault_action',args:{p_actor:uid,p_action:'buy',p_request:uid,p_pack:'deluxe'}}]);
+});
