@@ -584,6 +584,7 @@
     clearControls();
     element('overlay').hidden = true;
     element('pause').disabled = false;
+    element('pause').textContent = 'Pause';
     startAudio();
     updateHud();
   }
@@ -602,14 +603,15 @@
     element('free-roam').hidden = next !== 'ready';
     element('open-board').hidden = next === 'ready';
     element('overlay').hidden = false;
-    element('pause').disabled = true;
+    element('pause').disabled = next !== 'paused';
+    element('pause').textContent = next === 'paused' ? 'Resume' : 'Pause';
     element('interact').disabled = true;
     if (!document.hidden) element('start').focus();
   }
 
   function pause() {
     if (phase === 'playing') {
-      overlay('paused', 'Mission paused', 'Your timer is frozen. Ready to get back to the harbor?', 'Resume mission');
+      overlay('paused', 'Game paused', activeJob ? 'Your mission timer is frozen. Resume playing or quit to Games. Unfinished mission progress will be lost if you quit.' : 'Resume exploring or quit to Games. Connected players can continue playing while you pause.', 'Resume game');
     } else if (phase === 'paused') run();
   }
 
@@ -2089,10 +2091,15 @@
     }
   }
   for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, endTouch, true);
-  element('focus-view').addEventListener('click', () => {
-    const active = document.body.classList.toggle('focus-game');
+  function showFocusView() {
+    const active = document.body?.classList.contains('focus-game') || false;
     element('focus-view').textContent = active ? 'Exit focus' : 'Focus view';
     element('focus-view').setAttribute('aria-pressed', String(active));
+  }
+  showFocusView();
+  element('focus-view').addEventListener('click', () => {
+    document.body.classList.toggle('focus-game');
+    showFocusView();
   });
   let settingsPaused = false;
   const settingsPanel = element('spuddy-settings');
