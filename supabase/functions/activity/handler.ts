@@ -21,6 +21,16 @@ export async function handleActivity(req:Request,admin:any){
    const r=await admin.rpc('arcade_challenge_status',{p_actor:user.id});
    return r.error?json({error:'Challenges unavailable'},503):json(r.data);
   }
+  if(body.action==='spuddy_vault'){
+   const operation=body.operation;
+   const id=body.id;
+   const pack=body.pack;
+   if(!['status','buy','reveal','vault','sell'].includes(operation)
+    || (operation!=='status'&&(typeof id!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)))
+    || (operation==='buy'&&!['starter','deluxe','weekly'].includes(pack)))return json({error:'Invalid Vault request'},400);
+   const r=await admin.rpc('spuddy_vault_action',{p_actor:user.id,p_action:operation,p_request:operation==='status'?null:id,p_pack:operation==='buy'?pack:null});
+   return r.error?json({error:'Spuddys Vault unavailable'},503):json(r.data);
+  }
   const access=await admin.rpc('activity_owner_access',{p_actor:user.id});
   if(access.error)return json({error:'Activity unavailable'},503);
   if(access.data!==true)return json({error:'Owner access required'},403);
