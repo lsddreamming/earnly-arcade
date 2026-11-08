@@ -2,7 +2,7 @@ const {test,expect}=require('@playwright/test');
 test.beforeEach(async({page})=>{
  await page.route('https://**',route=>route.abort());
  await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('arcadeSound','off')});
- await page.goto('/colormatch.html',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof startGame==='function'&&Boolean(window.Arcade));const clockStart=new Date('2026-11-02T00:00:00Z');await page.clock.install({time:clockStart});await page.clock.pauseAt(new Date(clockStart.getTime()+1000));
+ await page.goto('/colormatch.html',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof startGame==='function'&&typeof Arcade!=='undefined');const clockStart=new Date('2026-11-02T00:00:00Z');await page.clock.install({time:clockStart});await page.clock.pauseAt(new Date(clockStart.getTime()+1000));
 });
 async function start(page){await page.clock.runFor(10);await page.evaluate(()=>{Arcade.countdown=done=>done();startGame()});await expect(page.locator('#gameStatus')).toHaveText('Running')}
 async function correct(page){const answer=await page.evaluate(()=>lastRound.ink);await page.locator('[data-color="'+answer+'"]').click();await page.clock.runFor(150)}
