@@ -53,7 +53,7 @@ pass('Pedestrian population and pause',()=>{fresh();assert.equal(sandbox.inspect
 pass('All mission stage chains',()=>{for(let i=0;i<12;i++){click('free-roam');get('mission').value=i;const state=sandbox.inspect();for(const job of state.jobs)state.records[job.name]=100;get('mission').value=i;click('start');const job=sandbox.inspect().activeJob;assert.ok(job);for(const stage of job.stages){sandbox.testStep(stage);if(stage.kind==='shoot')click('fire');else tick(1);}assert.equal(sandbox.inspect().stageIndex,job.stages.length);}});
 assert.equal(passes,25);
 
-const combat=sandbox.combatCheck(); assert.equal(combat.first,50); assert.equal(combat.second,0); assert.ok(combat.alert>=2); assert.equal(combat.blockedHealth,100); console.log('Combat: damage, knockdown, police escalation and blocked shot passed');
+const combat=sandbox.combatCheck(); assert.equal(combat.first,100); assert.equal(combat.second,100); assert.equal(combat.alert,0); assert.equal(combat.blockedHealth,100); console.log('Pulse tags: protected pedestrians and blocked shots passed');
 
 click('free-roam');
 const city=get('city');
@@ -64,7 +64,7 @@ get('fire').handlers.pointerdown({pointerId:22,button:0,preventDefault(){}});
 tick(30);
 let state=sandbox.inspect();
 assert.ok(Math.hypot(state.player.x-before.x,state.player.z-before.z)>0.5);
-assert.equal(state.firing,1); assert.ok(state.shotFlash>0); assert.ok(state.heatLevel>=1);
+assert.equal(state.firing,1); assert.ok(state.shotFlash>0); assert.equal(state.heatLevel,0);
 doc.handlers.pointerup({pointerId:22});
 tick(20); state=sandbox.inspect(); assert.equal(state.firing,0); assert.equal(state.shotFlash,0);
 get('fire').handlers.pointerdown({pointerId:23,button:0,preventDefault(){}});

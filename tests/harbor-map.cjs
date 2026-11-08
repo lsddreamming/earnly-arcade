@@ -53,7 +53,7 @@ pass('Pedestrian population and pause',()=>{fresh();assert.equal(sandbox.inspect
 pass('All mission stage chains',()=>{for(let i=0;i<12;i++){click('free-roam');get('mission').value=i;const state=sandbox.inspect();for(const job of state.jobs)state.records[job.name]=100;get('mission').value=i;click('start');const job=sandbox.inspect().activeJob;assert.ok(job);for(const stage of job.stages){sandbox.testStep(stage);if(stage.kind==='shoot')click('fire');else tick(1);}assert.equal(sandbox.inspect().stageIndex,job.stages.length);}});
 assert.equal(passes,25);
 
-const combat=sandbox.combatCheck(); assert.equal(combat.first,50); assert.equal(combat.second,0); assert.ok(combat.alert>=2); assert.equal(combat.blockedHealth,100); console.log('Combat: damage, knockdown, police escalation and blocked shot passed');
+const combat=sandbox.combatCheck(); assert.equal(combat.first,100); assert.equal(combat.second,100); assert.equal(combat.alert,0); assert.equal(combat.blockedHealth,100); console.log('Pulse tags: protected pedestrians and blocked shots passed');
 
 click('free-roam');
 const city=get('city');
@@ -64,16 +64,16 @@ get('fire').handlers.pointerdown({pointerId:22,button:0,preventDefault(){}});
 tick(30);
 let state=sandbox.inspect();
 assert.ok(Math.hypot(state.player.x-before.x,state.player.z-before.z)>0.5);
-assert.equal(state.firing,1); assert.ok(state.shotFlash>0); assert.ok(state.heatLevel>=1);
+assert.equal(state.firing,1); assert.ok(state.shotFlash>0); assert.equal(state.heatLevel,0);
 doc.handlers.pointerup({pointerId:22});
 tick(20); state=sandbox.inspect(); assert.equal(state.firing,0); assert.equal(state.shotFlash,0);
 get('fire').handlers.pointerdown({pointerId:23,button:0,preventDefault(){}});
 doc.handlers.pointercancel({pointerId:23}); assert.equal(sandbox.inspect().firing,0);
 console.log('Simultaneous touch movement, held fire, release and cancellation passed');
 
-const free=sandbox.sandboxCheck(); assert.equal(free.equipped,1); assert.equal(free.destroyed,true); assert.equal(free.stopped,true); assert.equal(free.enterable,false); assert.equal(free.heat,3); console.log('Weapon pickup, explosion, wreck immobilization and entry prevention passed');
-click('switch-weapon'); assert.match(get('fire').textContent,/Pistol/);
-click('switch-weapon'); assert.match(get('fire').textContent,/SMG/);
+const free=sandbox.sandboxCheck(); assert.equal(free.equipped,1); assert.equal(free.destroyed,true); assert.equal(free.stopped,true); assert.equal(free.enterable,false); assert.equal(free.heat,0); console.log('Blaster pickup, shield timeout and entry prevention passed');
+click('switch-weapon'); assert.match(get('fire').textContent,/Pulse popper/);
+click('switch-weapon'); assert.match(get('fire').textContent,/Bubble burst/);
 console.log('Collected weapon switching passed');
 
 const police=sandbox.policeCheck(); assert.ok(police.gap>=1.35); assert.equal(police.caught,1); console.log("Police stopping clearance and capture continuity passed");

@@ -788,27 +788,43 @@
   // native-ads-entry.js
   var TEST_REWARDED_IOS = "ca-app-pub-3940256099942544/1712485313";
   var PRODUCTION_REWARDED = {
-    extraPlays: "ca-app-pub-8864401806510610/8249888009"
+    extraPlays: "ca-app-pub-8864401806510610/8249888009",
+    bonusCoins: "ca-app-pub-8864401806510610/1831908609"
   };
   var TEST_MODE = true;
   var isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
   var initializationPromise = null;
+  var sdkInitialized = false;
+  async function adStep(code, action) {
+    try {
+      return await action();
+    } catch (cause) {
+      const error = new Error("Rewarded ad step failed: " + code, { cause });
+      error.code = code;
+      throw error;
+    }
+  }
   async function ensureAdMobReady() {
     if (!isNative) return { ready: false, reason: "not-native" };
     if (!initializationPromise) {
       initializationPromise = (async () => {
-        let tracking = await AdMob.trackingAuthorizationStatus();
+        let tracking = await adStep("EARNLY_AD_TRACKING", () => AdMob.trackingAuthorizationStatus());
         if (tracking.status === "notDetermined") {
-          await AdMob.requestTrackingAuthorization();
-          tracking = await AdMob.trackingAuthorizationStatus();
+          await adStep("EARNLY_AD_TRACKING", () => AdMob.requestTrackingAuthorization());
+          tracking = await adStep("EARNLY_AD_TRACKING", () => AdMob.trackingAuthorizationStatus());
         }
         if (!["authorized", "denied", "restricted"].includes(tracking.status)) {
-          throw new Error("Tracking permission is not resolved. Please try again.");
+          const error = new Error("Tracking permission is not resolved. Please try again.");
+          error.code = "EARNLY_AD_TRACKING";
+          throw error;
         }
-        await AdMob.initialize();
-        let consentInfo2 = await AdMob.requestConsentInfo();
+        if (!sdkInitialized) {
+          await adStep("EARNLY_AD_INITIALIZE", () => AdMob.initialize({ maxAdContentRating: MaxAdContentRating.ParentalGuidance }));
+          sdkInitialized = true;
+        }
+        let consentInfo2 = await adStep("EARNLY_AD_CONSENT", () => AdMob.requestConsentInfo());
         if (consentInfo2?.isConsentFormAvailable && consentInfo2?.status === AdmobConsentStatus.REQUIRED) {
-          consentInfo2 = await AdMob.showConsentForm();
+          consentInfo2 = await adStep("EARNLY_AD_CONSENT", () => AdMob.showConsentForm());
         }
         return consentInfo2;
       })().catch((error) => {
@@ -817,26 +833,80 @@
       });
     }
     const consentInfo = await initializationPromise;
+    initializationPromise = null;
     return {
       ready: !!consentInfo?.canRequestAds,
-      reason: consentInfo?.canRequestAds ? "" : "consent-not-ready"
+      reason: consentInfo?.canRequestAds ? "" : "consent-not-ready",
+      privacyOptionsRequired: consentInfo?.privacyOptionsRequirementStatus === "REQUIRED"
     };
+  }
+  async function showPrivacyOptions() {
+    if (!isNative) return { shown: false, reason: "not-native" };
+    const readiness = await ensureAdMobReady();
+    if (!readiness.privacyOptionsRequired) return { shown: false, reason: "not-required" };
+    try {
+      await AdMob.showPrivacyOptionsForm();
+      return { shown: true };
+    } finally {
+      initializationPromise = null;
+    }
+  }
+  async function presentRewarded(options) {
+    let reward = null;
+    let settled = false;
+    const listeners = [];
+    let resolve, reject;
+    const completion = new Promise((yes, no) => {
+      resolve = yes;
+      reject = no;
+    });
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      for (const listener of listeners) Promise.resolve(listener.remove()).catch(() => {
+      });
+      if (error) reject(error);
+      else resolve(reward);
+    };
+    try {
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, (value) => {
+        if (!settled) reward = value;
+      }));
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => finish()));
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => finish(new Error("Ad presentation failed"))));
+      Promise.resolve(AdMob.showRewardVideoAd(options)).then((value) => {
+        if (!settled) reward = value;
+      }, finish);
+    } catch (error) {
+      finish(error);
+    }
+    return completion;
   }
   async function showRewarded(kind = "extraPlays") {
     const readiness = await ensureAdMobReady();
     if (!readiness.ready) return { earned: false, reason: readiness.reason };
     const productionId = PRODUCTION_REWARDED[kind];
     if (!productionId) throw new Error("Unknown Earnly rewarded-ad placement: " + kind);
+    let ticket;
+    if (!TEST_MODE) {
+      try {
+        ticket = (await window.EarnlyCloud?.adBonus("ticket", kind))?.ticket;
+      } catch {
+      }
+    }
+    if (kind === "bonusCoins" && !ticket) return { earned: false, reason: "bonus-unavailable" };
     const adId = TEST_MODE ? TEST_REWARDED_IOS : productionId;
-    const loaded = await AdMob.prepareRewardVideoAd({
+    const loaded = await adStep("EARNLY_AD_LOAD", () => AdMob.prepareRewardVideoAd({
       adId,
       isTesting: TEST_MODE,
       // Non-personalized ads still require the ATT/consent flow above.
-      npa: true
-    });
-    const reward = await AdMob.showRewardVideoAd(
+      npa: true,
+      ...ticket ? { ssv: { customData: ticket } } : {}
+    }));
+    const reward = await adStep("EARNLY_AD_SHOW", () => presentRewarded(
       loaded?.adUnitId ? { adId: loaded.adUnitId } : void 0
-    );
+    ));
+    if (!reward) return { earned: false, reason: "dismissed" };
     return {
       earned: true,
       amount: Number(reward?.amount || 1),
@@ -848,7 +918,9 @@
   window.EarnlyNativeAds = Object.freeze({
     isNative,
     testMode: TEST_MODE,
+    supportsDailyBonus: !TEST_MODE,
     ensureReady: ensureAdMobReady,
+    showPrivacyOptions,
     showRewarded
   });
   window.dispatchEvent(new CustomEvent("earnly-native-ads-ready", {

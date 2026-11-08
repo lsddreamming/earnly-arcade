@@ -9,5 +9,6 @@ api.update({enabled:true,driving:true,speed:12,braking:true,trafficVolume:.5,tra
 assert.equal(api.play('shot'),true);assert.equal(api.play('voice'),true);assert.equal(api.play('voice'),false);
 api.update({enabled:false,driving:false,speed:0,braking:false,trafficVolume:0,trafficSpeed:0});assert.equal(gains[0].gain.value,0);assert.ok(sources.slice(3).every(s=>s.stopped));assert.equal(api.play('shot'),false);
 api.update({enabled:true,driving:false,speed:0,braking:false,trafficVolume:0,trafficSpeed:0});assert.equal(api.play('shot'),true);for(let i=0;i<20;i++)api.play('shot');assert.ok(sources.filter(s=>!s.stopped&&!s.loop).length<=8);
-console.log('Recorded audio: decode, engine pitch, traffic/skid mix, voice cooldown, mute/pause stop, resume and voice limit passed');
+assert.equal(vm.runInNewContext("atob(clips.shot).slice(0,4)",sandbox),'RIFF'); assert.equal(vm.runInNewContext("atob(clips.voice).slice(0,4)",sandbox),'RIFF');
+console.log('Vehicle recordings and synthesized tag tones: decode, engine pitch, traffic/skid mix, voice cooldown, mute/pause stop, resume and voice limit passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
