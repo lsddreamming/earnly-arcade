@@ -157,6 +157,7 @@
         <button type="button" id="fire" hidden>Fire</button>
         <button type="button" id="switch-weapon" hidden>Switch gun</button>
         <button type="button" id="jobs" hidden>Jobs</button>
+        <button type="button" id="jump" disabled>Jump</button>
         <button type="button" id="run-mode" aria-pressed="false">Run</button>
         <button type="button" id="camera-mode" aria-pressed="false">Look around</button>
 
@@ -167,9 +168,9 @@
       <button type="button" id="focus-view" aria-pressed="false">Focus view</button>
       <a href="games.html" aria-label="Quit Harbor Getaway and go back to Games">← Games · Quit</a>
     </nav>
-    <p class="hint touch-hint" id="run-hint">Drag to move. Tap Run to sprint. Lift to stop. Use a second finger to look, or tap Look around.</p>
+    <p class="hint touch-hint" id="run-hint">Drag to move. Double-tap the game view or tap Jump to jump. Tap Run to sprint. Lift to stop. Use a second finger to look, or tap Look around.</p>
     <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast. Use a second finger to look around.</p>
-    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
+    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to fire, Space to jump on foot or use the handbrake while driving, and Esc to pause.</p>
     <details id="spuddy-settings" class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
       <summary>Your Spuddy &amp; customization</summary>
       <p class="hint">Tune your movement. Changes save automatically on this device. The game pauses while this panel is open.</p>
@@ -195,6 +196,6 @@
   <script src="potato-rig.js"></script>
   <script src="harbor-spuddy.js?v=3"></script>
   <script src="harbor-online.js"></script>
-  <script src="harbor-getaway.js?v=phone-focus-navigation"></script>
+  <script src="harbor-getaway.js?v=phone-jump"></script>
 </body>
 </html>

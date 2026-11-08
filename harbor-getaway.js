@@ -194,6 +194,7 @@
     for (const key of Object.keys(stats)) if (Number.isFinite(saved[key])) stats[key] = Math.max(0,Math.min(1,saved[key]));
   } catch {}
   let stamina = 100, exhausted = false, fitnessSave = 0;
+  let jumpHeight = 0, jumpVelocity = 0, tapCandidate = null, lastTap = null;
   const footPlants = [null,null];
   function saveFitness() { try { window.localStorage?.setItem('harborFitnessV1',JSON.stringify(stats)); } catch {} }
 
@@ -373,6 +374,7 @@
   }
 
   function clearControls() {
+    tapCandidate = lastTap = null;
     footSpeed = actualFootSpeed = visualSpeed = turnLean = 0;
     firePointers.clear();
     footPlants.fill(null);
@@ -569,6 +571,7 @@
     footView = driveLook = walkCycle = walkBlend = 0;
     runEnabled = false;
     stamina = 100; exhausted = false;
+    jumpHeight = jumpVelocity = 0;
     element('run-mode').textContent = 'Run';
     element('run-mode').setAttribute('aria-pressed', 'false');
     cameraMode = false; manualLookUntil = 0; cameraLift = 0;
@@ -620,7 +623,15 @@
       .sort((a,b) => distance(player,a)-distance(player,b))[0];
   }
 
+  function jump() {
+    if (phase !== 'playing' || inCar || jumpHeight > 0 || jumpVelocity > 0 || window.HarborOnline?.dead()) return;
+    jumpVelocity = 6;
+    footPlants.fill(null);
+    cue(230, 390, 0.1, 'sine');
+  }
+
   function interact() {
+    if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (phase !== 'playing') return;
     if (inCar) {
       if (Math.abs(car.speed) > 2) return;
@@ -699,6 +710,8 @@
     element('stamina').textContent = (exhausted ? 'Recovering ' : 'Energy ') + Math.round(stamina) + '%';
     element('stamina').style.color = exhausted ? '#ffca91' : '#a9f7dc';
     element('stamina').hidden = inCar;
+    element('jump').hidden = inCar;
+    element('jump').disabled = phase !== 'playing' || jumpHeight > 0 || jumpVelocity > 0;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
     element('switch-weapon').hidden = inCar || phase !== 'playing';
@@ -835,8 +848,14 @@
     const onlineActor=inCar?car:player;
     window.HarborOnline?.tick({x:onlineActor.x,z:onlineActor.z,angle:onlineActor.angle,driving:inCar,free:!activeJob});
     const liveRespawn=window.HarborOnline?.takeRespawn();
-    if(liveRespawn){inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
+    if(liveRespawn){jumpHeight=jumpVelocity=0;inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
     if(window.HarborOnline?.dead()){keys.clear();pointers.clear();firePointers.clear();return;}
+    if (inCar) jumpHeight = jumpVelocity = 0;
+    else if (jumpVelocity !== 0 || jumpHeight > 0) {
+      jumpHeight += jumpVelocity * dt - 9 * dt * dt;
+      jumpVelocity -= 18 * dt;
+      if (jumpHeight <= 0) { jumpHeight = jumpVelocity = 0; footPlants.fill(null); }
+    }
     shotFlash = Math.max(0, shotFlash - dt);
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
       if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
@@ -1548,7 +1567,7 @@
       const lean = Math.max(0,y-0.6)*walkBlend*(0.045+clamp(visualSpeed/11,0,1)*0.045);
       const bank = Math.max(0,y-0.55)*turnLean*0.16;
       x *= 1 + stats.build*0.14 + stats.muscle*0.035;
-      return [player.x+right.x*(x+bank)+forward.x*(z+lean),y,player.z+right.z*(x+bank)+forward.z*(z+lean)];
+      return [player.x+right.x*(x+bank)+forward.x*(z+lean),y+jumpHeight,player.z+right.z*(x+bank)+forward.z*(z+lean)];
     };
     // Rounded ring meshes retain thickness at every heading. Front/back artwork
     // is wrapped onto the head and jacket rather than scaled as a billboard.
@@ -1585,7 +1604,7 @@
       const step=sign*stride, lift=Math.max(0,step)*0.13;
       const index = sign < 0 ? 0 : 1;
       let x=sign*0.14, z=step*0.19;
-      if (step <= 0 && walkBlend > 0.1) {
+      if (jumpHeight === 0 && step <= 0 && walkBlend > 0.1) {
         const plant = footPlants[index];
         if (!plant || Math.hypot(plant.x-player.x,plant.z-player.z)>0.42) footPlants[index] = {x:player.x+right.x*x+forward.x*z,z:player.z+right.z*x+forward.z*z};
         const planted = footPlants[index];
@@ -2036,6 +2055,10 @@
 
   document.addEventListener('keydown', event => {
     if (event.target?.closest?.('input, select, textarea, [contenteditable=true]')) return;
+    if (event.code === 'Space' && !inCar && !event.target?.closest?.('button, a')) {
+      if (phase === 'playing') { event.preventDefault(); if (!event.repeat) jump(); }
+      return;
+    }
     const action = bindings[event.code];
     if (action && phase === 'playing' && !(action === 'brake' && (!inCar || event.target?.closest?.('button, a')))) {
       event.preventDefault();
@@ -2057,6 +2080,11 @@
   });
   canvas.addEventListener('touchstart', event => {
     if (phase !== 'playing') return;
+    const touches = Array.from(event.changedTouches);
+    if (!inCar && !cameraMode && (event.touches?.length ?? touches.length) === 1 && touches.length === 1) {
+      const t = touches[0];
+      tapCandidate = {id:t.identifier,x:t.clientX,y:t.clientY,time:event.timeStamp ?? Date.now()};
+    } else { tapCandidate = lastTap = null; }
     event.preventDefault();
     for (const touch of Array.from(event.changedTouches)) {
       if (!dragTouch && !cameraMode && !lookTouch) {
@@ -2072,6 +2100,7 @@
     if (!dragTouch && !lookTouch) return;
     event.preventDefault();
     for (const touch of Array.from(event.changedTouches)) {
+      if (tapCandidate?.id === touch.identifier && Math.hypot(touch.clientX-tapCandidate.x,touch.clientY-tapCandidate.y) > 12) tapCandidate = lastTap = null;
       if (touch.identifier === dragTouch?.id) {
         dragTouch.dx = touch.clientX - dragTouch.x;
         dragTouch.dy = touch.clientY - dragTouch.y;
@@ -2082,6 +2111,15 @@
     }
   }, { passive: false });
   function endTouch(event) {
+    if (event.type === 'touchcancel') tapCandidate = lastTap = null;
+    for (const touch of Array.from(event.changedTouches)) {
+      if (tapCandidate?.id !== touch.identifier) continue;
+      const time = event.timeStamp ?? Date.now();
+      const valid = event.touches.length === 0 && time-tapCandidate.time <= 220 && Math.hypot(touch.clientX-tapCandidate.x,touch.clientY-tapCandidate.y) <= 12;
+      if (valid && lastTap && time-lastTap.time <= 300 && Math.hypot(touch.clientX-lastTap.x,touch.clientY-lastTap.y) <= 30) { jump(); lastTap = null; }
+      else lastTap = valid ? {time,x:touch.clientX,y:touch.clientY} : null;
+      tapCandidate = null;
+    }
     for (const touch of Array.from(event.changedTouches)) {
       if (touch.identifier === dragTouch?.id) { dragTouch = null; footHeading = null; }
       if (touch.identifier === lookTouch?.id) { lookTouch = null; manualLookUntil = elapsed + 2; }
@@ -2227,6 +2265,7 @@
   });
   showSound();
   element('interact').addEventListener('click', interact);
+  element('jump').addEventListener('click', jump);
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;
   resetTraffic();
