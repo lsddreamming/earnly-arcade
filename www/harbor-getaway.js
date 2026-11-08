@@ -51,36 +51,36 @@
   };
   const checkpoint = (x, z, label) => ({ kind: 'drive', x, z, label });
   const stop = (x, z, label) => ({ kind: 'park', x, z, label });
-  const escape = { kind: 'escape', label: 'Break patrol line of sight' };
+  const escape = { kind: 'escape', label: 'Break the rally marshal’s line of sight' };
   const drill = (x, z, label) => ({ kind: 'shoot', x, z, label });
   const finish = stop(garage.x, garage.z, 'Park at the garage');
   const jobs = [
     { name: 'Coastal Run', time: 120, heat: 1, model: 'coupe', stages: [checkpoint(12,12,'Pass the west checkpoint'),checkpoint(68,12,'Cross the waterfront'),escape,finish] },
     { name: 'Dock Dispatch', time: 95, heat: 0, model: 'van', stages: [stop(40,40,'Stop for the manifest'),stop(68,68,'Deliver the manifest')] },
-    { name: 'Signal Check', time: 130, heat: 1, model: 'coupe', stages: [drill(12,28,'Shoot the first signal target'),drill(12,19,'Shoot the second signal target'),escape,finish] },
+    { name: 'Signal Check', time: 130, heat: 1, model: 'coupe', stages: [drill(12,28,'Tag the first signal target'),drill(12,19,'Tag the second signal target'),escape,finish] },
     { name: 'Industrial Mile', time: 115, heat: 2, model: 'muscle', stages: [checkpoint(40,40,'Pass the depot'),checkpoint(40,68,'Cross the loading yard'),checkpoint(68,68,'Reach the east junction'),escape,finish] },
     { name: 'Parts Run', time: 100, heat: 0, model: 'van', stages: [stop(12,12,'Collect the spare parts'),stop(40,12,'Make the first delivery'),stop(96,40,'Make the final delivery')] },
     { name: 'Under the Tracks', time: 140, heat: 2, model: 'muscle', stages: [checkpoint(12,68,'Head under the tracks'),checkpoint(12,96,'Pass the south crossing'),checkpoint(68,96,'Reach the dock road'),escape,finish] },
-    { name: 'Cut the Feed', time: 170, heat: 2, model: 'coupe', stages: [drill(12,28,'Take out the first relay'),checkpoint(40,40,'Reach the second relay'),drill(40,30,'Take out the depot relay'),escape,finish] },
+    { name: 'Cut the Feed', time: 170, heat: 2, model: 'coupe', stages: [drill(12,28,'Light up the first relay'),checkpoint(40,40,'Reach the second relay'),drill(40,30,'Light up the depot relay'),escape,finish] },
     { name: 'Breakwater Express', time: 95, heat: 2, model: 'muscle', stages: [checkpoint(12,12,'Reach the north road'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Reach the docks'),escape,finish] },
     { name: 'Heavy Haul', time: 165, heat: 2, model: 'van', stages: [stop(40,40,'Load the first crate'),stop(68,40,'Load the second crate'),checkpoint(96,40,'Take the east road'),escape,finish] },
-    { name: 'Three Alarms', time: 180, heat: 3, model: 'muscle', stages: [drill(12,28,'Disable the west alarm'),checkpoint(40,40,'Reach the depot'),drill(40,30,'Disable the depot alarm'),checkpoint(68,40,'Reach the east gate'),drill(68,31,'Disable the gate alarm'),escape,finish] },
+    { name: 'Three Alarms', time: 180, heat: 3, model: 'muscle', stages: [drill(12,28,'Tag the west alarm'),checkpoint(40,40,'Reach the depot'),drill(40,30,'Tag the depot alarm'),checkpoint(68,40,'Reach the east gate'),drill(68,31,'Tag the gate alarm'),escape,finish] },
     { name: 'Harbor Lockdown', time: 150, heat: 3, model: 'muscle', stages: [checkpoint(12,96,'Reach the south road'),checkpoint(40,96,'Pass the rail yard'),checkpoint(68,68,'Cross the depot'),checkpoint(68,12,'Take the north road'),escape,finish] },
     { name: 'The Last Crossing', time: 185, heat: 3, model: 'coupe', stages: [stop(40,40,'Pick up the final cargo'),checkpoint(68,40,'Pass the east junction'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Return through the port'),escape,finish] },
   ];
   const missionBriefings = [
-    ['First getaway','Take the coupe along the waterfront, lose the patrol, then bring it home.','Keep moving through both checkpoints before trying to lose the patrol.'],
+    ['First rally','Take the coupe along the waterfront, finish chase-tag, then bring it home.','Keep moving through both checkpoints before trying to finish chase-tag.'],
     ['Manifest delivery','Collect a shipping manifest and deliver it across town without a scheduled chase.','Brake before each delivery marker; passing through at speed does not count.'],
-    ['Signal training','Find two roadside signal targets, fire on foot, then escape in your coupe.','Exit the car and face each target before firing.'],
-    ['Industrial pursuit','Drive the muscle car from the depot to South Industrial while police close in.','Use the long boulevards for speed and side streets to break sight.'],
+    ['Signal training','Find two roadside signal targets, tag them on foot, then escape in your coupe.','Exit the car and face each target before tagging.'],
+    ['Industrial pursuit','Drive the muscle car from the depot to South Industrial while rally marshals play chase-tag.','Use the long boulevards for speed and side streets to break sight.'],
     ['Workshop courier','Collect parts, visit the central workshop, then deliver to East Docks.','Plan for three separate stops and slow down early in the van.'],
     ['Rail corridor escape','Follow West Rail south, cross the district, then hide before the depot handoff.','Stay on the west corridor until the route sends you east.'],
-    ['Relay shutdown','Disable the west relay, drive to the depot relay, and shut it down before escaping.','This job alternates on-foot shooting and driving; watch the next objective.'],
+    ['Relay target challenge','Tag the west relay, drive to the depot relay, and shut it down before escaping.','This job alternates pulse-tag targets and driving; watch the next objective.'],
     ['Waterfront express','Cross the northern waterfront and follow the eastern shore to a dock handoff.','The long straight is fast, but brake before the turn down East Docks.'],
     ['Cargo under pressure','Load two shipments and take the cargo van to the southeast industrial depot.','The loaded van turns slowly; choose wider streets during the chase.'],
-    ['Three-district shutdown','Disable alarms in the west, center, and south, then reach the eastern safehouse.','Stop near each alarm, exit, and shoot before continuing across town.'],
-    ['Citywide lockdown','Cross the southwest and southern districts, drive north through East Docks, and disappear.','Three-star patrols require distance and cover; a straight sprint may not lose them.'],
-    ['Final harbor circuit','Collect the final cargo and complete a north-east-south circuit before returning to the garage.','Save time on the long crossings, then lose the patrol before the final stop.']
+    ['Three-district target challenge','Tag rally beacons in the west, center, and south, then reach the eastern rally garage.','Stop near each alarm, exit, and tag before continuing across town.'],
+    ['Citywide rally','Cross the southwest and southern districts, drive north through East Docks, and disappear.','Three-star rally marshals require distance and cover; a straight sprint may not lose them.'],
+    ['Final harbor circuit','Collect the final cargo and complete a north-east-south circuit before returning to the garage.','Save time on the long crossings, then finish chase-tag before the final stop.']
   ];
   jobs.forEach((job,i)=>{ [job.tagline,job.briefing,job.tip]=missionBriefings[i]; });
   // Later jobs graduate from the starter neighborhood to the whole district.
@@ -91,8 +91,8 @@
     'Under the Tracks': [checkpoint(12,152,'Follow West Rail'),checkpoint(12,292,'Reach the south rail yard'),checkpoint(152,292,'Cross the southern district'),escape,stop(208,292,'Park at the south depot')],
     'Breakwater Express': [checkpoint(12,12,'Join the waterfront road'),checkpoint(320,12,'Cross the northern waterfront'),checkpoint(320,208,'Follow East Docks'),escape,stop(292,236,'Park at the dock handoff')],
     'Heavy Haul': [stop(68,68,'Load the first crate'),stop(180,152,'Load central cargo'),checkpoint(292,152,'Take the eastern boulevard'),escape,stop(292,292,'Unload in South Industrial')],
-    'Three Alarms': [drill(12,28,'Disable the west alarm'),checkpoint(152,152,'Reach Central City'),drill(152,142,'Disable the central alarm'),checkpoint(292,264,'Reach the southern relay'),drill(292,254,'Disable the southern alarm'),escape,stop(320,292,'Park at the east safehouse')],
-    'Harbor Lockdown': [checkpoint(12,292,'Reach the southwest corner'),checkpoint(292,292,'Cross the southern district'),checkpoint(292,40,'Head north through East Docks'),escape,stop(152,40,'Park at the northern safehouse')],
+    'Three Alarms': [drill(12,28,'Tag the west alarm'),checkpoint(152,152,'Reach Central City'),drill(152,142,'Tag the central alarm'),checkpoint(292,264,'Reach the southern relay'),drill(292,254,'Tag the southern alarm'),escape,stop(320,292,'Park at the east rally garage')],
+    'Harbor Lockdown': [checkpoint(12,292,'Reach the southwest corner'),checkpoint(292,292,'Cross the southern district'),checkpoint(292,40,'Head north through East Docks'),escape,stop(152,40,'Park at the northern rally garage')],
     'The Last Crossing': [stop(40,40,'Collect the final cargo'),checkpoint(320,40,'Cross the northern district'),checkpoint(320,320,'Follow the eastern shoreline'),checkpoint(40,320,'Cross the southern harbor'),escape,finish]
   };
   for(const job of jobs) if(expandedRoutes[job.name]) {
@@ -145,9 +145,9 @@
   let stageIndex = 0;
   let heatLevel = 0;
   const weapons = [
-    {name:'Pistol',damage:50,delay:0.28,range:22},
-    {name:'SMG',damage:25,delay:0.12,range:26},
-    {name:'Heavy rifle',damage:85,delay:0.55,range:38}
+    {name:'Pulse popper',damage:50,delay:0.28,range:22},
+    {name:'Bubble burst',damage:25,delay:0.12,range:26},
+    {name:'Star launcher',damage:85,delay:0.55,range:38}
   ];
   let weaponIndex = 0;
   const ownedWeapons = new Set([0]);
@@ -298,6 +298,13 @@
   function moveVehicle(actor, dx, dz) {
     const previous = { x: actor.x, z: actor.z, angle: actor.angle };
     const edge = move(actor, dx, dz, 1.22);
+    const bystander = [...workers, ...displacedDrivers].find(w =>
+      pointToVehicle(w,actor)<1.65 && pointToVehicle(w,actor)<pointToVehicle(w,previous));
+    if (bystander) {
+      actor.x=previous.x; actor.z=previous.z; actor.speed=0;
+      if(actor===car && inCar) notify('Safety stop · let neighbors pass');
+      return 'bystander';
+    }
     if (!inCar && (actor===patrol || actor===backup) && pointToVehicle(player,actor)<1.35) {
       actor.x=previous.x; actor.z=previous.z; return 'player';
     }
@@ -364,15 +371,9 @@
       const hitX = car.x + front.x * heading * 1.28;
       const hitZ = car.z + front.z * heading * 1.28;
       if (Math.hypot(worker.x - hitX, worker.z - hitZ) > 1.03) continue;
-      worker.elevation = 0.08;
-      worker.lift = 3.4 + impactSpeed * 0.16;
-      worker.vx = front.x * heading * impactSpeed * 0.49;
-      worker.vz = front.z * heading * impactSpeed * 0.49;
-      worker.recover = 2.2;
-      car.speed *= 0.72;
-      if (!heatLevel) wanted(1);
-      notify('Collision · patrol alerted');
-      cue(117, 48, 0.2, 'triangle');
+      // A crossing neighbor stops the car; no impact or ragdoll animation.
+      car.speed = 0;
+      notify('Safety stop · let neighbors pass');
     }
   }
 
@@ -411,7 +412,7 @@
         const t = Math.min(1,driver.age/0.55);
         driver.x = driver.fromX+(driver.exitX-driver.fromX)*t;
         driver.z = driver.fromZ+(driver.exitZ-driver.fromZ)*t;
-        driver.tilt = Math.sin(t*Math.PI)*0.3;
+        driver.tilt = 0;
         continue;
       }
       driver.tilt = 0;
@@ -470,12 +471,12 @@
     window.HarborAudio?.update({enabled,driving:inCar,speed:car.speed,braking:inCar && Math.abs(car.speed)>3 && (held('brake') || (dragTouch ? dragTouch.dy>8 : held('down'))),trafficVolume:nearby?clamp(1-distance(nearby,inCar?car:player)/24,0,1):0,trafficSpeed:nearby?.speed || 0});
     const engine = enabled && inCar && !window.HarborAudio?.ready() ? 0.025 + Math.abs(car.speed) * 0.001 : 0;
     const pursuitDistance = heatLevel > 1 ? Math.min(distance(car, patrol), distance(car, backup)) : distance(inCar ? car : player, patrol);
-    const siren = enabled && heatLevel ? 0.045 * clamp(1 - pursuitDistance / 60, 0, 1) : 0;
+    const siren = enabled && heatLevel ? 0.018 * clamp(1 - pursuitDistance / 60, 0, 1) : 0;
     audio.engine.gain.gain.setTargetAtTime(engine, now, 0.035);
     audio.siren.gain.gain.setTargetAtTime(siren, now, 0.035);
     if (!enabled) return;
     audio.engine.oscillator.frequency.setTargetAtTime(43 + Math.abs(car.speed) * 5.1, now, 0.05);
-    audio.siren.oscillator.frequency.setTargetAtTime(670 + 230 * Math.sin(elapsed * 5.6), now, 0.06);
+    audio.siren.oscillator.frequency.setTargetAtTime(440 + 35 * Math.sin(elapsed * 2), now, 0.06);
   }
 
   function cue(frequency, end, duration, type = 'sine') {
@@ -511,7 +512,7 @@
 
   function describeJob() {
     const job = jobs[Number(element('mission').value)] ?? jobs[0];
-    const risk = job.heat ? ['','Local patrol','Police backup','Lockdown'][job.heat] : 'No scheduled pursuit';
+    const risk = job.heat ? ['','Rally marshal','Rally challenge','Final circuit'][job.heat] : 'No scheduled pursuit';
     element('brief').textContent = job.tagline+' — '+job.briefing+' '+job.stages.length + ' objectives · ' + models[job.model].name
       + ' · ' + Math.floor(job.time / 60) + ':' + String(job.time % 60).padStart(2, '0') + ' · ' + risk+'. Tip: '+job.tip;
   }
@@ -542,7 +543,7 @@
     const escalating=level>heatLevel;
     heatLevel = Math.max(heatLevel, level);
     lost = false;
-    if(escalating) notify(heatLevel > 1 ? 'Police backup en route' : 'Patrol alerted');
+    if(escalating) notify(heatLevel > 1 ? 'More rally marshals joining' : 'Rally marshal joining');
     unseen = 0;
     if(escalating) caught=0;
     for (const unit of [patrol, backup]) {
@@ -681,8 +682,7 @@
         vehicle.occupied = false;
         vehicle.taken = true;
         vehicle.speed = 0;
-        wanted(Math.max(1, heatLevel));
-        notify('Driver pulled out · car taken');
+        notify('Car shared · driver steps aside');
       }
       car = vehicle;
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
@@ -710,7 +710,7 @@
     element('clock').textContent = activeJob
       ? Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') : 'FREE ROAM';
     const heat = element('heat');
-    heat.textContent = heatLevel ? '★'.repeat(heatLevel) + (caught > 0 ? ' CLOSING IN' : unseen > 0 ? ' EVADING' : ' WANTED')
+    heat.textContent = heatLevel ? '★'.repeat(heatLevel) + (caught > 0 ? ' CLOSING IN' : unseen > 0 ? ' EVADING' : ' CHASE TAG')
       : lost ? 'CLEAR' : inCar ? car.name.toUpperCase() : 'ON FOOT';
     heat.classList.toggle('danger', heatLevel > 0 && unseen === 0);
     heat.classList.toggle('clear', lost || unseen > 0);
@@ -732,9 +732,9 @@
     element('run-mode').disabled = phase !== 'playing';
     element('switch-weapon').hidden = inCar || phase !== 'playing';
     element('switch-weapon').disabled = ownedWeapons.size < 2;
-    element('switch-weapon').textContent = 'Switch gun · '+ownedWeapons.size;
+    element('switch-weapon').textContent = 'Switch blaster · '+ownedWeapons.size;
     element('fire').setAttribute('aria-pressed', String(firePointers.size>0 || keys.has('fire')));
-    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : weapons[weaponIndex].name + ' · Fire';
+    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Tag target' : weapons[weaponIndex].name + ' · Tag';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
     element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
@@ -746,13 +746,13 @@
     const step = activeJob?.stages[stageIndex];
     const target = objectiveTarget();
     const range = target ? ' · ' + Math.ceil(distance(inCar ? car : player, target)) + ' m' : '';
-    const label = !step ? 'Explore the harbor' : step.kind === 'shoot' && inCar ? 'Get out to use your pistol'
+    const label = !step ? 'Explore the harbor' : step.kind === 'shoot' && inCar ? 'Get out to use your pulse popper'
       : !inCar && step.kind !== 'shoot' ? 'Get to your ' + car.name.toLowerCase() : step.label;
     const objective = (step ? (stageIndex + 1) + '/' + activeJob.stages.length + ' · ' : '') + label + range;
     if (element('objective').textContent !== objective) element('objective').textContent = objective;
     const vehicle = inCar ? car : nearestVehicle();
     element('interact').disabled = phase !== 'playing' || (inCar ? Math.abs(car.speed) > 2 : !vehicle);
-    element('interact').textContent = inCar ? 'Exit car' : vehicle ? (vehicle.occupied ? 'Pull driver out' : 'Enter ' + vehicle.name.toLowerCase()) : 'Enter car';
+    element('interact').textContent = inCar ? 'Exit car' : vehicle ? (vehicle.occupied ? 'Borrow car' : 'Enter ' + vehicle.name.toLowerCase()) : 'Enter car';
     element('jobs').hidden = Boolean(activeJob) || phase !== 'playing';
   }
 
@@ -760,12 +760,10 @@
     if (vehicle.destroyed) return;
     vehicle.health=Math.max(0,(vehicle.health ?? 160)-damage);
     vehicle.hitAt=elapsed;
-    if (vehicle.health>0) { notify('Vehicle damaged · '+vehicle.health+' integrity'); return; }
-    vehicle.destroyed=true; vehicle.speed=0; vehicle.occupied=false; vehicle.blastAt=elapsed;
-    wanted(3); notify('Vehicle exploded · police lockdown'); cue(65,24,0.6,'sawtooth');
-    for (const worker of workers) if (distance(worker,vehicle)<5 && visible(vehicle,worker)) {
-      Object.assign(worker,{health:0,recover:12,elevation:0.2,lift:3,vx:(worker.x-vehicle.x),vz:(worker.z-vehicle.z),tilt:0.5});
-    }
+    if (vehicle.health>0) { notify('Vehicle tag shield · '+vehicle.health); return; }
+    // Temporary arcade shield timeout, with no explosion or occupant injury.
+    vehicle.destroyed=true; vehicle.speed=0; vehicle.blastAt=elapsed;
+    notify('Vehicle shield recharging · 4 seconds'); cue(440,880,0.18,'sine');
   }
 
   function shoot() {
@@ -801,15 +799,12 @@
     shotAt=elapsed; shotConnected=Boolean(victim || hit || hitCar);
     shotFlash = weapon.delay;
     if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
-    if (!window.HarborAudio?.play('shot',weaponIndex===0?1:weaponIndex===1?1.15:.85)) cue(185, 47, 0.15, 'square');
-    wanted(victim ? Math.max(2,heatLevel) : Math.max(1,heatLevel,activeJob?.heat || 0));
-    for (const worker of workers) if (distance(worker,player)<28) worker.panicUntil=elapsed+8;
+    if (!window.HarborAudio?.play('shot',weaponIndex===0?1:weaponIndex===1?1.15:.85)) cue(760, 380, 0.12, 'sine');
+    if(activeJob?.heat) wanted(Math.max(heatLevel,activeJob.heat));
     if (victim) {
       window.HarborAudio?.play('voice',.9+Math.random()*.2);
       victim.hitAt=elapsed;
-      victim.health=Math.max(0,(victim.health ?? 100)-weapon.damage);
-      Object.assign(victim,{recover:victim.health===0?12:0.35,elevation:0.03,lift:1.2,vx:aim.x*2,vz:aim.z*2,tilt:0.25});
-      notify(victim.health===0?'Knocked out · will recover':'Hit · police alerted');
+      notify('Sparkle tag · neighbor unharmed');
     }
     if (hit) {
       footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
@@ -863,10 +858,13 @@
 
   function update(dt) {
     elapsed += dt;
+    for(const v of [...vehicles,...traffic,patrol,backup]) if(v.destroyed && elapsed-v.blastAt>=4) {
+      v.destroyed=false; v.health=160;
+    }
     const onlineActor=inCar?car:player;
     window.HarborOnline?.tick({x:onlineActor.x,z:onlineActor.z,angle:onlineActor.angle,driving:inCar,free:!activeJob});
     const liveRespawn=window.HarborOnline?.takeRespawn();
-    if(liveRespawn){roofSupport=null;jumpHeight=jumpVelocity=0;inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
+    if(liveRespawn){roofSupport=null;jumpHeight=jumpVelocity=0;inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Back in play · 5 seconds of protection');}
     if(window.HarborOnline?.dead()){keys.clear();pointers.clear();firePointers.clear();return;}
     if (roofSupport) {
       const {vehicle:v,x,z} = roofSupport, f = facing(v.angle), r = facing(v.angle+Math.PI/2);
@@ -884,7 +882,7 @@
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
       if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
         weaponIndex=pickup.type; ownedWeapons.add(weaponIndex); pickup.readyAt=elapsed+45;
-        notify(weapons[weaponIndex].name+' equipped · hold Fire'); cue(650,980,0.15,'sine');
+        notify(weapons[weaponIndex].name+' equipped · hold Tag'); cue(650,980,0.15,'sine');
       }
     }
     if (firePointers.size || keys.has('fire')) shoot();
@@ -992,7 +990,7 @@
       if (unseen >= 4 + heatLevel * 2) {
         heatLevel = 0;
         lost = true;
-        notify('Patrol lost');
+        notify('Chase-tag cleared');
         cue(360, 670, 0.25);
       }
     }
@@ -1000,12 +998,12 @@
     if (step && ((step.kind === 'escape' && lost)
       || (inCar && step.kind === 'drive' && distance(car, step) < 5)
       || (inCar && step.kind === 'park' && distance(car, step) < 4.5 && Math.abs(car.speed) < 3))) {
-      advanceStage(step.kind === 'park' ? 'Stop confirmed' : step.kind === 'escape' ? 'Patrol lost' : 'Checkpoint cleared');
+      advanceStage(step.kind === 'park' ? 'Stop confirmed' : step.kind === 'escape' ? 'Chase-tag cleared' : 'Checkpoint cleared');
       if (step.kind === 'park' && activeJob.heat && !heatLevel && activeJob.stages[stageIndex]?.kind === 'escape') wanted(activeJob.heat);
     }
     if (caught >= 2 || (activeJob && elapsed >= activeJob.time)) {
-      overlay('finished', caught >= 2 ? 'Busted' : 'Time’s up',
-        (activeJob ? activeJob.name+' · Completed '+stageIndex+'/'+activeJob.stages.length+' objectives. '+activeJob.tip : 'Break patrol line of sight using side streets. Keep moving to avoid capture.'), activeJob ? 'Retry job' : 'Return to free roam');
+      overlay('finished', caught >= 2 ? 'Tagged!' : 'Time’s up',
+        (activeJob ? activeJob.name+' · Completed '+stageIndex+'/'+activeJob.stages.length+' objectives. '+activeJob.tip : 'Break the rally marshal’s line of sight using side streets. Keep moving to avoid being tagged.'), activeJob ? 'Retry job' : 'Return to free roam');
     } else if (activeJob && stageIndex === activeJob.stages.length) completeJob();
 
     const smoothing = 1 - Math.exp(-8 * dt);
@@ -1196,35 +1194,15 @@
   }
   function drawCarMesh(actor, police) {
     if (actor.destroyed) {
-      if(elapsed-actor.blastAt>30) return;
-      box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
-      const age=elapsed-actor.blastAt;
-      const fade=clamp((18-age)/5,0,1);
-      if (fade>0) {
-        fireParticle(actor.x,0.6,actor.z,2.4,1.2,'glow',fade*0.35);
-        for(let i=0;i<9;i++) {
-          const flicker=0.85+0.22*Math.sin(elapsed*13+i*2.3);
-          fireParticle(actor.x+Math.sin(i*2.4)*0.7,0.45,actor.z+Math.cos(i*2.4)*1.2,
-            0.35*flicker, (1.1+(i%3)*0.35)*flicker,'flame',fade);
-        }
-        for(let i=0;i<7;i++) {
-          const t=(age*0.23+i/7)%1;
-          fireParticle(actor.x+Math.sin(i*3+t)*0.5+t*0.9,1.3+t*3.8,actor.z+Math.cos(i*2)*0.5,
-            0.45+t*0.9,0.5+t*1.1,'smoke',fade*(1-t)*0.5);
-        }
-        for(let i=0;i<8;i++) {
-          const t=(age*0.7+i/8)%1;
-          fireParticle(actor.x+Math.sin(i*7)*t,0.8+t*3,actor.z+Math.cos(i*7)*t,
-            0.025,0.07,'spark',fade*(1-t));
-        }
+      box(actor.x,actor.z,2.1,3.8,1.2,actor.angle,['#c6fff4','#74cde2','#7379db'],0.15);
+      for(let i=0;i<6;i++) {
+        const a=elapsed*2+i*Math.PI/3;
+        signText('✦',[actor.x+Math.cos(a)*1.5,1.5+Math.sin(a*2)*.3,actor.z+Math.sin(a)*1.5],'#91ffdf');
       }
+      signText('RECHARGING',[actor.x,2.2,actor.z],'#c6fff4');
       return;
     }
-    if ((actor.health ?? 160) < 85) for(let i=0;i<4;i++) {
-      const t=(elapsed*0.3+i/4)%1;
-      fireParticle(actor.x+t*0.4,1.1+t*2.2,actor.z-0.7,0.2+t*0.5,0.3+t*0.6,'smoke',(1-t)*0.45);
-    }
-    const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#365957', '#243d3d', '#1c3033']);
+    const paint = actor.paint ?? (police ? ['#f4d0ff', '#8f75d6', '#5855a4'] : ['#365957', '#243d3d', '#1c3033']);
     const rubber = ['#263145', '#101723', '#161e2b'];
     const front = facing(actor.angle);
     const side = facing(actor.angle + Math.PI / 2);
@@ -1326,8 +1304,8 @@
     }
     if (police) {
       const flash = elapsed % 0.55 < 0.275;
-      part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#ff9bae', '#f54365', '#a42541'] : ['#80435e', '#602b44', '#602b44']);
-      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#416c99', '#334f7e', '#334f7e'] : ['#afe7ff', '#69baff', '#345fae']);
+      part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#fff4ac', '#e6d44e', '#b5a246'] : ['#80435e', '#602b44', '#602b44']);
+      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#416c99', '#334f7e', '#334f7e'] : ['#c4ffe7', '#69e6bd', '#349f8e']);
     }
   }
 
@@ -1754,7 +1732,7 @@
         [shoulder * 1.21, elbowY, swing * 0.56 + reach, 0.062, 0.064]], skin);
       if (reach) {
         mesh([[shoulder * 1.15, handY - 0.036, reach * 2.03, 0.036, 0.046],
-          [shoulder * 1.15, handY + 0.054, reach * 2.13, 0.034, 0.10]], ['#505861', '#323942', '#252c34']);
+          [shoulder * 1.15, handY + 0.054, reach * 2.13, 0.034, 0.10]], ['#b8fff0', '#44d3df', '#bb77ed']);
       }
     }
     mesh([[0, 1.47 + bodyBob, 0.013, 0.082, 0.07], [0, 1.6 + bodyBob, 0.023, 0.067, 0.07]], skin);
@@ -1905,7 +1883,7 @@
     const front = facing(car.angle);
     groundGlow(car.x, car.z, 1.7, '#0b112659');
     if (!inCar) groundGlow(player.x, player.z, 0.34, '#07102080');
-    if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
+    if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#bb77ed6d' : '#77ffd66d');
     groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
     if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
     faces = [];
@@ -1938,7 +1916,7 @@
       box(pickup.x,pickup.z,1.2,1.2,0.12,0,['#81e9c5','#368f7a','#22594f'],0.03);
       const tint=pickup.type===2?['#ffe3a2','#c99750','#856536']:['#b6ffe2','#43bc98','#256b63'];
       box(pickup.x,pickup.z,0.24,pickup.type===2?1.25:0.8,0.23,elapsed*0.7,tint,lift);
-      box(pickup.x,pickup.z,0.18,0.25,0.3,elapsed*0.7,['#566779','#354655','#253440'],lift-0.22);
+      box(pickup.x,pickup.z,0.18,0.25,0.3,elapsed*0.7,['#ffc4f0','#b977e8','#665dc9'],lift-0.22);
 
     }
     drawFerry();
@@ -2049,7 +2027,7 @@
     }
     const target = objectiveTarget();
     if (target) pin(target, target === car ? 3.2 : 3, target === car ? '#79f1c6' : '#ffd373',
-      target === car ? 'GETAWAY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
+      target === car ? 'RALLY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
     if (!inCar && phase==='playing') {
       const aim=facing(footView);
       let range=6;
@@ -2069,8 +2047,8 @@
         context.beginPath();
         context.moveTo(...project(start));
         context.lineTo(...project(end));
-        context.strokeStyle = '#ffe6a5';
-        context.lineWidth = 2;
+        context.strokeStyle = '#77f5ff';
+        context.lineWidth = 4;
         context.stroke();
         if (shotConnected) {
           const [x,y]=project(end);
@@ -2083,7 +2061,7 @@
     }
     if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<35 && visible(player,pickup)) pin(pickup,2.2,'#a3ffe0',weapons[pickup.type].name+' · Walk over to equip');
     for(const v of [...vehicles,...traffic]) if(!v.destroyed && elapsed-(v.hitAt ?? -10)<2 && visible(player,v)) pin(v,2.5,'#ffd18c','Integrity '+v.health+'/160');
-    for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<40 && visible(player,peer)) pin(peer,2.5,peer.shield?'#a3ffe0':'#ffb7bb',peer.shield?'LIVE · Protected':'LIVE · '+peer.health+' HP');
+    for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<40 && visible(player,peer)) pin(peer,2.5,peer.shield?'#a3ffe0':'#ffb7bb',peer.shield?'LIVE · Protected':'LIVE · '+peer.health+' shield');
     minimap(inCar ? car : player);
   }
 

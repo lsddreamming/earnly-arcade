@@ -119,7 +119,7 @@
       <div class="hud"><button type="button" id="sound" aria-pressed="true">Sound on</button><span id="live-health" role="status" hidden></span>
         <span id="clock">3:00</span><span id="heat">ON FOOT</span><span id="speed" hidden></span>
         <span id="objective">Find the marked getaway car.</span>
-        <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
+        <progress id="escape-progress" max="5" value="0" aria-label="Progress toward clearing chase-tag" hidden></progress>
       </div>
       <span id="stamina" style="position:absolute;left:10px;bottom:42px;background:#101a29dd;padding:5px 8px;border-radius:8px;font-size:12px;pointer-events:none">Energy 100%</span>
       <span id="district">WEST RAIL</span>
@@ -128,7 +128,7 @@
         <section class="panel">
           <span class="eyebrow">HARBOR DISTRICT / COASTAL RUN</span>
           <h2 id="title">Get out of the harbor</h2>
-          <p id="description">Twelve jobs across the harbor, from quick deliveries to multi-stage escapes. Or explore the expanded city in Free roam.</p>
+          <p id="description">A playful harbor rally: deliveries, chase-tag and pulse targets. Borrow cars, jump onto roofs, or explore in Free roam. Neighbors are protected.</p>
           <p id="best" hidden></p>
           <div class="board-fields" id="board-fields">
             <label for="mission">Choose a job</label>
@@ -154,8 +154,8 @@
         <button type="button" id="interact">Enter car</button>
         <button type="button" data-key="brake" id="brake" hidden>Handbrake</button>
         <button type="button" id="connect-live">Connect Live</button>
-        <button type="button" id="fire" hidden>Fire</button>
-        <button type="button" id="switch-weapon" hidden>Switch gun</button>
+        <button type="button" id="fire" hidden>Tag</button>
+        <button type="button" id="switch-weapon" hidden>Switch blaster</button>
         <button type="button" id="jobs" hidden>Jobs</button>
         <button type="button" id="jump" disabled>Jump</button>
         <button type="button" id="run-mode" aria-pressed="false">Run</button>
@@ -170,7 +170,7 @@
     </nav>
     <p class="hint touch-hint" id="run-hint">Drag to move. Double-tap the game view or tap Jump to jump. Tap Run to sprint. Lift to stop. Use a second finger to look, or tap Look around.</p>
     <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast. Use a second finger to look around.</p>
-    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to fire, Space to jump on foot or use the handbrake while driving, and Esc to pause.</p>
+    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to tag, Space to jump on foot or use the handbrake while driving, and Esc to pause.</p>
     <details id="spuddy-settings" class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
       <summary>Your Spuddy &amp; customization</summary>
       <p class="hint">Tune your movement. Changes save automatically on this device. The game pauses while this panel is open.</p>
@@ -179,7 +179,7 @@
       <p id="spuddy-status" role="status">Loading Spuddy…</p>
       <button type="button" id="spuddy-refresh">Refresh Spuddy</button>
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>
-      <p class="hint">Live player health, defeats and coin rewards are checked by the server. Traffic, police and NPCs remain local to your game.</p>
+      <p class="hint">Optional live pulse-tag: shields, round resets and coin rewards are checked by the server. Traffic, rally marshals and protected neighbors stay local to your game.</p>
     </details>
     <p class="hint">Connect Live enters shared PvP free roam. Defeat another connected player to earn 100 Arcade Coins. NPCs do not award coins.</p><p id="online-status" role="status">Solo free roam · Sign in to earn mission coins.</p>
     <form id="harbor-login" hidden><label>Email <input id="harbor-email" type="email" autocomplete="username" required></label><label>Password <input id="harbor-password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form>
@@ -195,8 +195,8 @@
   <script src="cloud.js"></script>
   <script src="potato-rig.js"></script>
   <script src="harbor-spuddy.js?v=3"></script>
-  <script src="harbor-online.js"></script>
-  <script src="harbor-audio.js?v=1"></script>
-  <script src="harbor-getaway.js?v=roof-knockout-audio"></script>
+  <script src="harbor-online.js?v=pulse-tag-2"></script>
+  <script src="harbor-audio.js?v=pulse-tag-2"></script>
+  <script src="harbor-getaway.js?v=pulse-tag-2"></script>
 </body>
 </html>

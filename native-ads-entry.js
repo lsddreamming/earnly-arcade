@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { AdMob, AdmobConsentStatus, RewardAdPluginEvents } from '@capacitor-community/admob';
+import { AdMob, MaxAdContentRating, AdmobConsentStatus, RewardAdPluginEvents } from '@capacitor-community/admob';
 
 const TEST_REWARDED_IOS = 'ca-app-pub-3940256099942544/1712485313';
 const PRODUCTION_REWARDED = {
@@ -41,7 +41,7 @@ async function ensureAdMobReady() {
       // Denial/restriction is respected by iOS: no IDFA is available to the SDK.
       // SDK 8.1 requires initialization before it can present a UMP form.
       if (!sdkInitialized) {
-        await adStep('EARNLY_AD_INITIALIZE', () => AdMob.initialize());
+        await adStep('EARNLY_AD_INITIALIZE', () => AdMob.initialize({maxAdContentRating: MaxAdContentRating.ParentalGuidance}));
         sdkInitialized = true;
       }
 
