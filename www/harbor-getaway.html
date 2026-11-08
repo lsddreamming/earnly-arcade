@@ -12,7 +12,7 @@
     main, footer { width: min(960px, 100% - 24px); margin: auto; }
     a { color: #9df3d3; }
     header { display:flex; align-items: center; gap: 1rem; padding: 10px 0; }
-    #sound { margin-left:auto; padding:0 8px; font-size:12px; white-space:nowrap; }
+    #sound { pointer-events:auto; min-height:32px; margin-left:auto; padding:0 8px; font-size:12px; white-space:nowrap; }
     h1 { font-size: clamp(21px, 5vw, 32px); margin: 0; }
     .stage { position: relative; overflow: hidden; border: 1px solid #456077; border-radius: 19px; background: #14253a; box-shadow:0 18px 44px #03091388; }
     canvas { display: block; width: 100%; height: min(69svh, 590px); touch-action:none; }
@@ -113,10 +113,10 @@
     if (window.matchMedia('(pointer: coarse) and (max-width: 1000px) and (max-height: 1000px)').matches) document.body.classList.add('focus-game');
   </script>
   <main>
-    <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1><button type="button" id="sound" aria-pressed="true">Sound on</button></header>
+    <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1></header>
     <div class="stage">
       <canvas id="city" aria-label="Third-person view of the harbor neighborhood"></canvas>
-      <div class="hud"><span id="live-health" role="status" hidden></span>
+      <div class="hud"><button type="button" id="sound" aria-pressed="true">Sound on</button><span id="live-health" role="status" hidden></span>
         <span id="clock">3:00</span><span id="heat">ON FOOT</span><span id="speed" hidden></span>
         <span id="objective">Find the marked getaway car.</span>
         <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
@@ -188,7 +188,7 @@
     <nav aria-label="Site information">
       <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a>
       <a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a>
-      <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      <a href="harbor-audio-credits.html">Sound credits</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -196,6 +196,7 @@
   <script src="potato-rig.js"></script>
   <script src="harbor-spuddy.js?v=3"></script>
   <script src="harbor-online.js"></script>
-  <script src="harbor-getaway.js?v=phone-jump"></script>
+  <script src="harbor-audio.js?v=1"></script>
+  <script src="harbor-getaway.js?v=roof-knockout-audio"></script>
 </body>
 </html>
