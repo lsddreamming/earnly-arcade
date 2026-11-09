@@ -13,6 +13,8 @@ window.NeonDriftRenderer={create(canvas){
     ctx.shadowColor=color;ctx.shadowBlur=player?13:5;
     ctx.beginPath();ctx.moveTo(-11,-25);ctx.lineTo(11,-25);ctx.lineTo(15,-14);ctx.lineTo(15,21);ctx.lineTo(10,27);ctx.lineTo(-10,27);ctx.lineTo(-15,21);ctx.lineTo(-15,-14);ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.shadowBlur=0;
     const grad=ctx.createLinearGradient(-14,0,14,0);grad.addColorStop(0,'#ffffff66');grad.addColorStop(.4,'#ffffff08');grad.addColorStop(1,'#001b3888');ctx.fillStyle=grad;ctx.fill();
+    // Twin hood accents and bright mirror tips make the player's coupe readable.
+    if(player){ctx.fillStyle='#edffff99';ctx.fillRect(-7,-21,3,8);ctx.fillRect(4,-21,3,8);ctx.fillStyle=color;ctx.fillRect(-19,-7,5,4);ctx.fillRect(14,-7,5,4);}
     ctx.fillStyle='#101c37';ctx.beginPath();ctx.moveTo(-9,-12);ctx.lineTo(9,-12);ctx.lineTo(11,-2);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();ctx.fillRect(-9,10,18,7);
     ctx.strokeStyle='#e5ffff88';ctx.lineWidth=.7;ctx.strokeRect(-8,-10,16,7);ctx.fillStyle='#c2fffa66';ctx.fillRect(-10,-20,4,6);ctx.fillRect(6,-20,4,6);
     ctx.fillStyle='#092038';for(const side of [-12,9])for(let n=0;n<3;n++)ctx.fillRect(side,2+n*2,3,1);
@@ -55,6 +57,7 @@ window.NeonDriftRenderer={create(canvas){
       particles=particles.filter(p=>p.life>0).slice(-100);for(const p of particles){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;ctx.globalAlpha=Math.max(0,p.life/p.max)*(p.smoke?.22:1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.smoke?p.size+(1-p.life/p.max)*9:p.size,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
       if(Math.abs(s.vx)>48&&s.hurt===0){ctx.strokeStyle='#5affec55';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(s.x,E.PLAYER_Y+12,23,27,Math.atan2(s.vx,d.speed)*.75,.15,Math.PI-.15);ctx.stroke();}
       if(s.hurt>0)ctx.globalAlpha=reduced?.7:(Math.floor(s.time*12)%2?.45:1);
+      if(s.boost>0){ctx.save();ctx.translate(s.x,E.PLAYER_Y);ctx.rotate(Math.atan2(s.vx,d.speed)*.75);for(const side of [-8,8]){const length=reduced?13:16+Math.sin(s.time*28)*5;ctx.fillStyle='#ffd477aa';ctx.beginPath();ctx.moveTo(side-3,25);ctx.lineTo(side,25+length);ctx.lineTo(side+3,25);ctx.fill();ctx.fillStyle='#edffff';ctx.fillRect(side-1,25,2,6);}ctx.restore();}
       car(s.x,E.PLAYER_Y,Math.atan2(s.vx,d.speed)*.75,s.boost>0?'#ffe59b':paint,true);ctx.globalAlpha=1;
       ctx.fillStyle='#050d22bc';ctx.fillRect(13,13,115,27);ctx.fillStyle='#c6d6e9';ctx.font='bold 10px monospace';ctx.fillText('SECTOR 0'+s.stage+' / 06',23,31);
       const remain=Math.max(0,1-s.time/E.DURATION);ctx.fillStyle='#ffffff18';ctx.fillRect(145,24,238,3);ctx.fillStyle=palette[0];ctx.fillRect(145,24,238*remain,3);

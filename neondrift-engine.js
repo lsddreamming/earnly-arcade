@@ -3,6 +3,12 @@
   'use strict';
   const DURATION=90, PLAYER_Y=410, SECTORS=6, SECTOR_SECONDS=15;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  // Input stays in the 400-unit road space, independent of retina bitmap size.
+  function dragTarget(target,clientDelta,displayWidth){
+    if(!Number.isFinite(target))target=200;
+    if(!Number.isFinite(clientDelta)||!Number.isFinite(displayWidth)||displayWidth<=0)return clamp(target,14,386);
+    return clamp(target+clientDelta*400/displayWidth,14,386);
+  }
   function road(z){return 200+46*Math.sin(z/510)+19*Math.sin(z/213);}
   function difficulty(time){const stage=Math.min(SECTORS,1+Math.floor(time/SECTOR_SECONDS));return {stage,speed:350+Math.min(290,time*3.4),halfWidth:128-Math.min(18,time*.2),interval:1.2-Math.min(.42,time*.005),pairs:time>=10};}
   function create(random=Math.random){return {random,time:0,distance:0,x:road(0),vx:0,hull:3,hurt:0,score:0,points:0,drift:0,nearMisses:0,combo:1,comboTime:0,bestCombo:1,traffic:[],spawnIn:1.1,ended:false,events:[],stage:1,skids:[],trailIn:0,pickups:[],pickupIn:2,cores:0,coreStreak:0,bonusCoins:0,boost:0,sectorClean:true,cleanSectors:0};}
@@ -68,5 +74,5 @@
     let left=Math.min(.1,dt);while(left>1e-8&&!s.ended){const part=Math.min(1/120,left);step(s,part,steer);left-=part;}
   }
   function rewards(s){const base=Math.min(25,Math.floor(Math.max(0,s.score)/100)),bonus=Math.min(20,Math.max(0,s.bonusCoins));return {base,bonus,total:base+bonus};}
-  return {DURATION,PLAYER_Y,SECTORS,SECTOR_SECONDS,road,difficulty,create,tick,rewards};
+  return {dragTarget,DURATION,PLAYER_Y,SECTORS,SECTOR_SECONDS,road,difficulty,create,tick,rewards};
 });
