@@ -36,6 +36,8 @@ function bot(s,a){
  }
  // Return earlier if a nearby rival is threatening the exposed tail.
  const p=s.actors[0];if(a.path.length>10&&p.alive&&Math.abs(p.x-a.x)+Math.abs(p.y-a.y)<7)a.plan=routeHome(s,a);
+ // Opportunistic cuts: bots can turn toward a nearby exposed player trail.
+ if(p.alive&&p.path.length&&a.path.length<10&&random(s)<.3){const nearest=p.path.map(q=>({x:q%SIZE,y:Math.floor(q/SIZE)})).sort((u,v)=>(Math.abs(u.x-a.x)+Math.abs(u.y-a.y))-(Math.abs(v.x-a.x)+Math.abs(v.y-a.y)))[0];if(Math.abs(nearest.x-a.x)+Math.abs(nearest.y-a.y)<6){const hunt=[0,1,2,3].filter(d=>(d+2)%4!==a.dir).sort((u,v)=>Math.abs(nearest.x-a.x-DIRS[u][0])+Math.abs(nearest.y-a.y-DIRS[u][1])-Math.abs(nearest.x-a.x-DIRS[v][0])-Math.abs(nearest.y-a.y-DIRS[v][1]));a.plan=[hunt[0]];}}
  let d=a.plan.shift()??a.dir;
  const valid=k=>{const x=a.x+DIRS[k][0],y=a.y+DIRS[k][1];return (k+2)%4!==a.dir&&inside(x,y)&&s.trails[index(x,y)]!==a.id;};
  if(!valid(d)){a.plan=[];const home=routeHome(s,a);d=home.length?home[0]:[a.dir,(a.dir+1)%4,(a.dir+3)%4].find(valid);}
