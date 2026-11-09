@@ -412,7 +412,7 @@
         const t = Math.min(1,driver.age/0.55);
         driver.x = driver.fromX+(driver.exitX-driver.fromX)*t;
         driver.z = driver.fromZ+(driver.exitZ-driver.fromZ)*t;
-        driver.tilt = 0;
+        driver.tilt = Math.sin(t*Math.PI)*0.85;
         continue;
       }
       driver.tilt = 0;
@@ -682,7 +682,7 @@
         vehicle.occupied = false;
         vehicle.taken = true;
         vehicle.speed = 0;
-        notify('Car shared · driver steps aside');
+        notify('Driver pulled out · car ready');
       }
       car = vehicle;
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
@@ -752,7 +752,7 @@
     if (element('objective').textContent !== objective) element('objective').textContent = objective;
     const vehicle = inCar ? car : nearestVehicle();
     element('interact').disabled = phase !== 'playing' || (inCar ? Math.abs(car.speed) > 2 : !vehicle);
-    element('interact').textContent = inCar ? 'Exit car' : vehicle ? (vehicle.occupied ? 'Borrow car' : 'Enter ' + vehicle.name.toLowerCase()) : 'Enter car';
+    element('interact').textContent = inCar ? 'Exit car' : 'Enter car';
     element('jobs').hidden = Boolean(activeJob) || phase !== 'playing';
   }
 
@@ -799,7 +799,7 @@
     shotAt=elapsed; shotConnected=Boolean(victim || hit || hitCar);
     shotFlash = weapon.delay;
     if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
-    if (!window.HarborAudio?.play('shot',weaponIndex===0?1:weaponIndex===1?1.15:.85)) cue(760, 380, 0.12, 'sine');
+    if (!window.HarborAudio?.play(['shot','shotRapid','shotHeavy'][weaponIndex])) cue(760, 380, 0.12, 'sine');
     if(activeJob?.heat) wanted(Math.max(heatLevel,activeJob.heat));
     if (victim) {
       window.HarborAudio?.play('voice',.9+Math.random()*.2);
