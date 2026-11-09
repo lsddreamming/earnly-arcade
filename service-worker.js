@@ -44,7 +44,7 @@ const CACHE_NAME = 'earnly-home-snake-20261109';const CORE_ASSETS = [
   './mini.html',
   './stardefender.html',
   './neonmaze.html',
-  './neondrift.html', './neondrift.css?v=2', './neondrift.js?v=2', './neondrift-engine.js?v=2', './neondrift-renderer.js?v=2', './neondrift-audio.js',
+  './neondrift.html', './neondrift.css?v=3', './neondrift.js?v=3', './neondrift-engine.js?v=2', './neondrift-renderer.js?v=3', './neondrift-audio.js',
   './neonbreach-audio.js?v=sector3', './neonbreach-sector.js?v=sector3', './neonbreach-engine.js?v=sector3', './neonbreach-renderer.js?v=sector3',
   './neonbreach.js?v=sector3', './neonbreach.css?v=sector3',
   './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-art.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',

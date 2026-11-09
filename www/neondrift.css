@@ -79,3 +79,12 @@ body.drift-page.game-active .drift-tip{display:none}.drift-callout{top:12%;font-
  .drift-page.game-active .drift-controls{grid-column:2;grid-row:5}
  body.drift-page.game-active .earnly-session-dock{grid-column:2;grid-row:6;margin:0!important}
 }
+
+/* Keep the active cockpit quiet and give the road the space back. */
+body.drift-page.game-active #earnlyCompactLeaderboard { display:none!important; }
+body.drift-page.game-active .game-meta .meta-pill:last-child { display:none!important; }
+body.drift-page.game-active .game-meta { grid-template-columns:repeat(3,minmax(0,1fr))!important; }
+body.drift-page.game-active main.container .drift-arena { width:min(100%,calc((100dvh - 275px) * .76923)); }
+body.drift-page .drift-callout { top:5%; left:12%; right:12%; font-size:11px; letter-spacing:.06em; border-radius:7px; }
+body.drift-page .drift-telemetry #driftState { color:#abc3d4; letter-spacing:.06em; }
+@media(max-height:500px) and (orientation:landscape){body.drift-page.game-active main.container .drift-arena{width:auto;height:calc(100dvh - 20px)}}

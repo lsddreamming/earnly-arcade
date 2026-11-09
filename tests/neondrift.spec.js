@@ -106,8 +106,9 @@ test('Neon Drift sound toggle persists and stays usable while paused',async({pag
 });
 test('Neon Drift reduced-motion setting suppresses smoke and sparks',async({page})=>{
  await page.goto('/neondrift.html');await page.emulateMedia({reducedMotion:'reduce'});
- const counts=await page.evaluate(()=>{const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),original=ctx.arc.bind(ctx);let circles=0;ctx.arc=(...args)=>{circles++;original(...args);};const r=NeonDriftRenderer.create(canvas),s=NeonDriftEngine.create();s.vx=130;r.event({type:'crash'},s);for(let i=0;i<20;i++)r.render(s,{dt:.05});return circles;});
- expect(counts).toBe(0);
+ const counts=await page.evaluate(()=>{const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),original=ctx.arc.bind(ctx);let circles=0;ctx.arc=(...args)=>{circles++;original(...args);};const r=NeonDriftRenderer.create(canvas),s=NeonDriftEngine.create();s.vx=130;r.render(s);const scenery=circles;circles=0;r.event({type:'crash'},s);for(let i=0;i<20;i++)r.render(s,{dt:.05});return {scenery,total:circles};});
+ // Static trees use circles too; reduced motion must add no smoke or spark circles.
+ expect(counts.total).toBe(counts.scenery*20);
 });
 
 test('Neon Drift pickups pay once, break on a miss, and five trigger a bounded boost',()=>{
@@ -193,4 +194,16 @@ test('Overdrive meter switches from active boost back to pickup charge',async({p
  await expect(page.locator('#overdriveMeter')).toHaveJSProperty('value',.6);
  await expect(page.locator('#pickupStreak')).toHaveText('CHARGE 3 / 5');
  await expect(page.locator('body')).not.toHaveClass(/drift-boosting/);
+});
+
+test('active cockpit keeps the road clear and controls available',async({page},info)=>{
+ await page.setViewportSize({width:390,height:844});
+ await ready(page);
+ await page.locator('#earnlyPauseButton').click();
+ await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+ await expect(page.locator('.game-meta .meta-pill:visible')).toHaveCount(3);
+ for(const id of ['leftButton','rightButton','earnlyPauseButton','earnlyQuitButton']) await expect(page.locator('#'+id)).toBeInViewport();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+ await page.screenshot({path:info.outputPath('drift-cockpit.png')});
 });
