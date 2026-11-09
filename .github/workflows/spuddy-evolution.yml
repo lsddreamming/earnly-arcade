@@ -18,6 +18,10 @@ jobs:
             project: mobile-webkit
             browser: webkit
     runs-on: ${{ matrix.os }}
+    env:
+      EVOLUTION_CHROMIUM_3D: ${{ matrix.browser == 'chromium' && '1' || '0' }}
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WEBKIT_DISABLE_DMABUF_RENDERER: '1' 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +29,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm run build:spuddy-evolution && git diff --exit-code spuddy-evolution-3d.js
       - run: node --test tests/spuddy-evolution-engine.cjs
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npx playwright test tests/spuddy-evolution.spec.js --project=${{ matrix.project }}
