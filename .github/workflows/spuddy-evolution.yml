@@ -41,3 +41,21 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 7
+
+  graphics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/spuddy-evolution-visual.spec.js --project=desktop-chromium --workers=1 --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spuddy-evolution-3d-graphics
+          path: test-results/
+          retention-days: 7

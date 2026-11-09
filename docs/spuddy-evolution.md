@@ -1,14 +1,20 @@
-# Spuddy Evolution — first playable
+# Spuddy Evolution — 3D playtest
 
-Original Earnly creature-collection RPG inspired by the accessible idle-arcade structure of Alien Invasion. The current slice includes three contiguous habitats, six upgrades, evolving procedural character art, a helper, automatic root attacks, a burst ability, three telegraphed bosses, nest banking/healing, and versioned device saves. Rendered in Canvas 2D using an angled 2.5D projection with shaded forms and depth sorting; not a full 3D engine. No imported competitor assets.
+The current revision uses real WebGL 2 rendering via a pinned, locally bundled Three.js 0.170.0. Original procedural 3D models have articulated roots, leaves, eyes, armor and evolution crowns. The orthographic camera rotates in 90-degree increments; screen-relative controls rotate with it. Directional lighting, dynamic shadows, fog, instanced tiled floors, laboratory pods, botanical props, transparent gates, particles and world-space boss warnings give the scene depth. There are no remote model, texture, font or CDN dependencies. The Three.js MIT license is included.
+
+## Expanded game
+Five connected habitats: Sprout Sanctuary, Prism Laboratory, Frost Reactor, Ember Foundry, and Bloom Heart. Six paid-in-seeds upgrades; free permanent perks every 90 XP (20 choices maximum); a helper companion; banking/healing outposts in unlocked habitats; five bosses including a rectangular foundry strike and a larger faster final strike. Pods and workbenches have physical collision. Body armor and a crystal crown appear with evolution. Old three-habitat saves retain balances, upgrades and defeated bosses and gain the two new chapters.
 
 ## Research
-- CrazyLabs publisher breakdown: https://www.crazylabs.com/case-study/hyper-casual-meets-midcore-alien-invasions-journey-to-hybrid-casual-stardom/
-- Official upgrade guide: https://crazylabs.freshdesk.com/support/solutions/articles/201000065794-which-alien-upgrades-should-i-prioritize-to-advance-faster-
-- Official enemy archetypes: https://crazylabs.freshdesk.com/support/solutions/articles/201000067368-the-humans
-- October 2026 progression/ad report: https://www.crazylabs.com/case-study/inside-a-transformative-quarter-on-alien-invasion-what-worked-and-why/
+- https://www.crazylabs.com/case-study/hyper-casual-meets-midcore-alien-invasions-journey-to-hybrid-casual-stardom/
+- https://crazylabs.freshdesk.com/support/solutions/articles/201000065794-which-alien-upgrades-should-i-prioritize-to-advance-faster-
+- https://crazylabs.freshdesk.com/support/solutions/articles/201000067368-the-humans
+- https://www.crazylabs.com/case-study/inside-a-transformative-quarter-on-alien-invasion-what-worked-and-why/
 
-The references emphasize one-finger movement, automatic nearby collection, capacity/power upgrades, banking, contrasting enemy behaviors, and progressively unlocked areas. Our theme uses a living Spuddy restoring a botanical research sanctuary. Materials stay inside this game. No coin economy changes, advertisements, subscriptions, payments, or cloud-save claims are part of this first playable. A future rewarded-ad integration should use real completion verification, retain normal free progress, and be tested against the existing Earnly native ad service.
+Original Earnly creatures and environments interpret the explore/capture/bank/upgrade structure. This is not an asset copy or a claim of matching Alien Invasion's full content catalog.
 
-## First-slice limits
-Local progress only; deleting browser storage removes it. Runs on a direct preview page and is intentionally not in the production catalog pending QA and playtesting. Content balancing needs actual human play sessions. Browser QA and engine tests are recorded in the PR. Enemy respawns provide renewable seeds; bosses and gate unlocks persist. Banked seeds and upgrades survive defeat; carried seeds lose 25%. Boss rewards bank directly.
+## Build and QA
+`npm ci && npm run build:spuddy-evolution` reproduces spuddy-evolution-3d.js. Keep the bundle and game assets identical under www. Node engine tests exercise progression, old saves, free perks, wall blocking, full campaign completion and 100 seeded expeditions. Dedicated browser tests require an actual WebGL renderer, check movement/banking, rotation, perks, pause and phone controls, and capture graphics. The cloud interactive browser disables WebGL, so graphics review uses CI screenshots. CI software rendering is not a substitute for physical iPhone performance testing.
+
+## Playtest limits
+Device-local saves only. No production catalog changes, Arcade Coins, ads, purchases, subscriptions or cloud-save claims. Free uninterrupted play. Deleting site storage removes progress. WebGL-unavailable browsers show an explicit explanation; context loss pauses play until restored. Human pacing and physical-device performance feedback remain important before public release.

@@ -8,6 +8,18 @@
     { name: 'Ember Foundry', min: -112, max: -80, color: '#edd6c4', cost: 300, boss: 'Cinder Ram' },
     { name: 'Bloom Heart', min: -144, max: -112, color: '#e1d4e9', cost: 460, boss: 'Hollow Bloom' }
   ];
+  const obstacles = zones.flatMap(z => [
+    { x: -8.7, z: z.min + 13, r: 1 }, { x: 8.7, z: z.min + 18, r: 1 },
+    { x: -9, z: z.min + 23, r: 1.05 }, { x: 9, z: z.min + 23, r: 1.05 }
+  ]);
+  function separate(body, radius) {
+    for (const o of obstacles) {
+      const dx = body.x - o.x, dz = body.z - o.z, r = radius + o.r;
+      if (Math.abs(dx) >= r || Math.abs(dz) >= r) continue;
+      const d = Math.hypot(dx, dz);
+      if (d < r) { body.x = o.x + (d ? dx / d : 1) * r; body.z = o.z + (d ? dz / d : 0) * r; }
+    }
+  }
   const upgrades = {
     power: { name: 'Root power', base: 18, desc: 'Capture faster · +35% base damage' },
     reach: { name: 'Root reach', base: 22, desc: 'Reach farther · +0.4m radius' },
@@ -108,6 +120,7 @@
         const gate = zone.max;
         if (((oldZ <= gate && s.z > gate) || (oldZ >= gate && s.z < gate)) && Math.abs(s.x) > 3.5) s.z = oldZ;
       }
+      separate(s, .65);
       s.moving = len > .05;
       if (s.moving) { s.heading = Math.atan2(ix, iz); s.steps += dt * 9; }
       s.links = []; let targets = 0;
@@ -138,6 +151,7 @@
           if (e.kind === 'hunter' && dist < 1.2) s.hp -= (5 + e.zone * 3) * dt;
         }
       }
+      for (const e of s.enemies) if (!e.dead && e.zone <= save.unlocked) separate(e, e.boss ? 1.3 : .4);
       const nest = nearestNest(), atBase = Math.hypot(s.x - nest.x, s.z - nest.z) < 3;
       if (atBase) {
         s.hp = Math.min(a.hp, s.hp + 30 * dt); s.depositClock += dt;
