@@ -102,6 +102,9 @@
   const spawn = (model, x, z, angle = 0) => ({ ...models[model], x, z, angle, speed: 0 });
   let car = spawn('coupe', 12, 32);
   let vehicles = [car];
+  const parkingBays = [{x:17.3,z:26},{x:17.3,z:54},{x:45.3,z:54},
+    {x:157.3,z:166},{x:269.3,z:222},{x:325.3,z:306},
+    {x:73.3,z:54},{x:101.3,z:82}];
   const patrol = { x: 73.3, z: 54, angle: 0 };
   const backup = { x: 101.3, z: 82, angle: 0 };
   const displacedDrivers = [];
@@ -667,7 +670,7 @@
         const z = car.z + side.z * 2.1 * sign;
         if (blocked(x, z, 0.45)) continue;
         Object.assign(player, { x, z, angle: car.angle });
-        car.speed = 0;
+        car.speed = 0; car.braking = false;
         inCar = false;
         dragTouch = null;
         footView = camera.angle;
@@ -746,7 +749,10 @@
     element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Tag target' : weapons[weaponIndex].name + ' · Tag';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
-    element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
+    const gear = car.speed < -.3 ? 'R' : Math.abs(car.speed)<.3 ? 'P' : 'D';
+    element('speed').textContent = gear+' · '+Math.round(Math.abs(car.speed)*3.6)+' km/h'+(inCar&&car.braking?' · BRAKE':'');
+    element('speed').setAttribute('aria-label', (gear==='R'?'Reverse':gear==='P'?'Stopped':'Forward')+', '+Math.round(Math.abs(car.speed)*3.6)+' kilometers per hour'+(inCar&&car.braking?', braking':''));
+    element('brake').setAttribute('aria-pressed',String(inCar&&held('brake')));
     const active = inCar ? car : player;
     const district = active.x > 278 ? 'EAST TERMINAL' : active.z > 252 ? 'SOUTH INDUSTRIAL'
       : active.x > 154 ? 'CENTRAL CITY' : active.z > 121 ? 'LOWER QUAY' : active.x < 30 ? 'WEST RAIL' : active.x > 84 ? 'EAST DOCKS'
@@ -944,6 +950,7 @@
       const throttle = dragTouch
         ? vertical > 17 ? 1 : Math.hypot(horizontal, vertical) > 8 ? -1 : 0
         : vertical;
+      car.braking = braking || (throttle>0 && car.speed>.3);
       if (braking) car.speed *= Math.exp(-2.8 * dt);
       else if (throttle) {
         const acceleration = throttle > 0 && car.speed > 0 ? 24 : car.acceleration;
@@ -1360,9 +1367,13 @@
     part(0, -1.81, 2.07, 0.16, 0.17, 0.28, ['#657489', '#344256', '#414e64']);
     part(0, -1.89, 0.39, 0.035, 0.14, 0.48, ['#ccdbe9', '#a9bed4', '#a9bed4']);
     for (const sign of [-1, 1]) {
-      part(sign * 0.75, -1.83, 0.47, 0.1, 0.13, 0.62, ['#ff9b85', '#ff5d69', '#dc4058']);
+      part(sign * 0.75, -1.83, 0.47, 0.1, 0.13, 0.62,
+        actor===car&&inCar&&car.braking ? ['#ffe4cc','#ff7770','#f5444f'] : ['#d98a75','#bd4b57','#953c4a']);
+      if(detailed)part(sign*.43,-1.90,.14,.04,.095,.65,
+        actor.speed<-.3 ? ['#ffffff','#dcefff','#c1dfec'] : ['#9aa7aa','#72868b','#526971']);
       part(sign * 0.75, 1.84, 0.44, 0.08, 0.13, 0.58, ['#e0f8ff', '#b8efff', '#8bc9fa']);
     }
+    if(detailed&&actor===car&&inCar&&car.braking)part(0,-.95,.44,.04,.045,1.30,['#ffc7af','#ff6667','#e04453']);
     if (police) {
       const flash = heatLevel > 0 && elapsed % 0.55 < 0.275;
       part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#fff4ac', '#e6d44e', '#b5a246'] : ['#80435e', '#602b44', '#602b44']);
@@ -1553,6 +1564,21 @@
     }
   }
 
+  function drawShoreDetails() {
+    for(const edge of [0,size]) {
+      if(Math.abs(camera.x-edge)>32)continue;
+      const inland=edge===0?1:-1;
+      const start=Math.max(4,Math.floor((camera.z-32)/8)*8);
+      for(let z=start;z<Math.min(size-2,camera.z+34);z+=8) {
+        const x=edge+inland*.65;
+        // Outside the playable boundary: silhouettes add depth without blocking routes.
+        box(x,z,.24,.24,.92,0,['#d0c4a2','#8b9187','#627478']);
+        box(x,z,.34,.34,.10,0,['#d8c6a0','#b5a582','#8d8972'],.91);
+        box(x,z+4,.07,7.8,.07,0,['#a9b5ad','#6f8e8d','#4b737b'],.72);
+      }
+    }
+  }
+
   function drawFerry() {
     const x = -15;
     const z = 24 + Math.sin(elapsed * 0.021) * 35;
@@ -1595,13 +1621,15 @@
     const py = clamp(screenY, Math.min(106, height * 0.39), height - 45);
     fill([[px, py - 17], [px + 13, py - 4], [px, py + 9], [px - 13, py - 4]], '#10192a');
     fill([[px, py - 13], [px + 9, py - 4], [px, py + 5], [px - 9, py - 4]], color);
-    const textX = clamp(px, 46, width - 46);
     context.font = '700 10px system-ui, sans-serif';
+    const lines=label.split(' · ');
+    const labelWidth=Math.min(width-24,Math.max(74,...lines.map(line=>(context.measureText?.(line)?.width || line.length*6)+16)));
+    const textX=clamp(px,labelWidth/2+12,width-labelWidth/2-12);
     context.textAlign = 'center';
     context.fillStyle = '#10192a';
-    context.fillRect(textX - 37, py - 35, 74, 15);
+    context.fillRect(textX-labelWidth/2,py-35-(lines.length-1)*13,labelWidth,17+(lines.length-1)*13);
     context.fillStyle = color;
-    context.fillText(label, textX, py - 24);
+    lines.forEach((line,i)=>context.fillText(line,textX,py-23-(lines.length-1-i)*13,labelWidth-12));
   }
 
   function minimap(active) {
@@ -1889,7 +1917,17 @@
       context.fillRect(-1, -1, 2, 2);
       context.restore();
     }
-    flat(-140, -140, size + 280, size + 280, '#65818a');
+    flat(-140, -140, size + 280, size + 280, '#547d88');
+    for(const edge of [0,size]) {
+      if(Math.abs(camera.x-edge)>45)continue;
+      const outward=edge===0?-1:1;
+      const start=Math.floor((camera.z-40)/6)*6;
+      for(let z=start;z<camera.z+42;z+=6)for(let band=0;band<3;band++) {
+        const drift=Math.sin(elapsed*.65+z*.31+band)*.55;
+        const x=edge+outward*(3+band*4.5)+drift;
+        flat(x-1.5,z+Math.sin(elapsed*.4+band)*.3,3+band*.8,.09,band%2?'#95c6ca35':'#b3d9d03d');
+      }
+    }
     for (let i = 0; i < 24; i += 1) {
       const w = width / 14;
       const x = ((i * w * 0.67 - camera.angle * 49) % (width + w) + width + w) % (width + w) - w;
@@ -1945,6 +1983,17 @@
         }
       }
     }
+    for(const bay of parkingBays) {
+      if(distance(bay,camera)>38)continue;
+      flat(bay.x-1.14,bay.z-2.45,2.28,4.9,'#707779');
+      for(const edge of [-1,1])flat(bay.x-1.08,bay.z+edge*2.35,2.16,.075,'#c9c7b5');
+      flat(bay.x+1.03,bay.z-2.35,.075,4.7,'#c9c7b5');
+      // A simple painted P, no text sprite or new obstruction.
+      flat(bay.x-.24,bay.z-.42,.075,.84,'#c9c7b5');
+      flat(bay.x-.24,bay.z-.42,.46,.075,'#c9c7b5');
+      flat(bay.x+.15,bay.z-.42,.075,.4,'#c9c7b5');
+      flat(bay.x-.24,bay.z-.09,.46,.075,'#c9c7b5');
+    }
     for (const mark of roadWear) {
       if (Math.abs(mark.road - camera.x) < 35 && Math.abs(mark.along - camera.z) < 43) {
         flat(mark.road + mark.across, mark.along, 0.12, mark.length, mark.shade);
@@ -1976,10 +2025,17 @@
     const nearbyLamps = lamps.filter(lamp => distance(lamp, camera) < 52);
 
     const front = facing(car.angle);
-    groundGlow(car.x, car.z, 1.7, '#0b112659');
+    const shadowCars=new Set([...vehicles,...traffic,patrol,...(heatLevel>1?[backup]:[])]);
+    for(const vehicle of shadowCars)if(distance(vehicle,camera)<38) {
+      const heading=facing(vehicle.angle);
+      groundGlow(vehicle.x,vehicle.z,1.35,'#101c2859');
+      groundGlow(vehicle.x+heading.x*.95,vehicle.z+heading.z*.95,.88,'#101c283d');
+      groundGlow(vehicle.x-heading.x*.95,vehicle.z-heading.z*.95,.88,'#101c283d');
+    }
     if (!inCar) groundGlow(player.x, player.z, 0.34, '#07102080');
     if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#bb77ed6d' : '#77ffd66d');
-    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
+    if(inCar&&car.braking)groundGlow(car.x-front.x*2.05,car.z-front.z*2.05,1.65,'#ff455845');
+    if(inCar&&car.speed<-.3)groundGlow(car.x-front.x*2.6,car.z-front.z*2.6,1.7,'#d5edff2b');
     if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
     faces = [];
     scenery = true;
@@ -2014,6 +2070,7 @@
       box(pickup.x,pickup.z,0.18,0.25,0.3,elapsed*0.7,['#ffc4f0','#b977e8','#665dc9'],lift-0.22);
 
     }
+    drawShoreDetails();
     drawFerry();
     architecture = true;
     for (const b of blocks) if (Math.hypot(b.x - camera.x, b.z - camera.z) < 145) drawBuilding(b);
