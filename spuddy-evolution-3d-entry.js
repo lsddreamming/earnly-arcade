@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // All geometry is original and generated locally. No remote textures or models.
 function create(canvas, game) {
@@ -228,6 +229,7 @@ function create(canvas, game) {
   const player = spud(1.08, '#ffb52b', true); scene.add(player.group);
   const companion = spud(.5, '#8ac7a1'); scene.add(companion.group);
   const actors = new Map();
+  let combinedParts = 0;
   for (const e of game.s.enemies) {
     const group = new THREE.Group(); scene.add(group);
     const bodyColor = e.boss ? ['#375f48','#573376','#265975','#833d29','#70345d'][e.zone] : e.kind === 'hunter' ? '#9e244d' : e.kind === 'runner' ? '#ba5621' : e.kind === 'floater' ? '#62399b' : '#167c70';
@@ -239,7 +241,7 @@ function create(canvas, game) {
     const glow = mat(glowColor, {emissive:glowColor,emissiveIntensity:1.25,roughness:.2}).clone();
     const wings = [], tendrils = [], tails = [];
     const profile = e.boss ? [1.08,1,1.08] : e.kind === 'hunter' ? [1.12,.9,1.12] : e.kind === 'runner' ? [.78,1.18,1.05] : e.kind === 'floater' ? [.9,1.08,.9] : [1.22,.82,1.2];
-    const cap = mesh(group, geo.shell, mat(shellColor,{roughness:.32,metalness:.18}), [0,size*1.65,0], [size*1.08,size*.33,size*.95],e.boss);
+    const cap = mesh(group, geo.shell, mat(shellColor,{roughness:.32,metalness:.18}), [0,size*1.6,-size*.2], [size*.94,size*.24,size*.75],e.boss);
     for (const side of [-1, 1]) {
       ball(group, side * size * .36, size * 1.2, size * .73, size * .3, size * .21, size * .14, '#14212c');
       const eye=mesh(group,geo.sphere,glow,[side*size*.36,size*1.23,size*.86],[size*.22,size*.085,size*.06]);eye.rotation.z=side*.3;
@@ -337,6 +339,18 @@ function create(canvas, game) {
     const health = new THREE.Group(); group.add(health); health.position.y = size * 2.4;
     mesh(health, geo.box, basic('#263e48', .4), [0, 0, 0], [size * 2, .09, .02]);
     const fill = mesh(health, geo.box, basic(e.boss ? '#e37477' : '#6fb28b'), [0, 0, .02], [size * 2, .09, .02]);
+    // Combine only static direct children; articulated parts keep their pivots.
+    const movingParts=new Set([body,cap,...wings.map(x=>x.wing),...tendrils.map(x=>x.vine),...tails.map(x=>x.tail),...legs.flatMap(x=>[x.leg,x.shin,x.claw,x.joint])]);
+    const batches=new Map();
+    for(const child of [...group.children]) if(child.isMesh && !movingParts.has(child)) {
+      const key=child.material.uuid+':'+child.castShadow;
+      if(!batches.has(key))batches.set(key,[]);batches.get(key).push(child);
+    }
+    for(const children of batches.values())if(children.length>1) {
+      const geometries=children.map(m=>{m.updateMatrix();return m.geometry.clone().applyMatrix4(m.matrix);});
+      const geometry=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());
+      if(geometry){const merged=new THREE.Mesh(geometry,children[0].material);merged.castShadow=children[0].castShadow;merged.receiveShadow=true;children.forEach(m=>group.remove(m));group.add(merged);combinedParts+=children.length-1;}
+    }
     actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow, jaw, glow, wings, tendrils, tails, profile, deathFade: 0, wasDead: false, gait: 0, lastX: e.x, lastZ: e.z, facing: 0 });
   }
   const reach = ring(scene, game.stats().range, '#ffffff', .55), pulseRing = ring(scene, 1, '#7affcf', .8);
@@ -415,7 +429,7 @@ function create(canvas, game) {
       actor.group.rotation.z=e.hit>0?Math.sin(e.phase*45)*.065:0;
       actor.body.material.emissive.set(e.hit > 0 ? '#7d4937' : '#000000');
       actor.body.scale.y = actor.size * .8 * (1 + Math.sin(e.phase * 4) * .035);
-      actor.cap.position.y = actor.size * 1.65 + Math.sin(e.phase * 4) * .05;
+      actor.cap.position.y = actor.size * 1.6 + Math.sin(e.phase * 4) * .05;
       actor.legs.forEach(({leg,shin,claw,joint,a},i)=>{
         const stride=Math.sin(actor.gait+i*Math.PI)* (moving?.18:.025),lift=Math.max(0,stride);
         const hip=[Math.sin(a)*actor.size*.5,actor.size*.8,Math.cos(a)*actor.size*.5];
@@ -440,6 +454,6 @@ function create(canvas, game) {
     if (arrow.visible) { const nest = game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
     renderer.render(scene, camera);
   }
-  return { available: true, draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
+  return { available: true, diagnostics: () => ({drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
 }
 window.EvolutionRenderer = { create };

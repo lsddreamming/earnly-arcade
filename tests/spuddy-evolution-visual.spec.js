@@ -24,8 +24,11 @@ test('all five boss designs render with attack poses',async({page},info)=>{
     g.s.enemies.forEach((e,i)=>{e.x=[-8,0,8,-5,5][i];e.z=[-11,-11,-11,1,1][i];e.windup=1;e.targetX=e.x;e.targetZ=e.z+2;});
     const r=EvolutionRenderer.create(document.getElementById('gallery'),g);if(!r.available)throw Error('3D gallery unavailable');
     for(let i=0;i<20;i++){g.s.time+=.05;g.s.enemies.forEach(e=>e.phase+=.05);r.draw(.05);}
-    window.galleryRenderer=r;
+    window.galleryRenderer=r; window.galleryDiagnostics=r.diagnostics();
   });
+  const diagnostics=await page.evaluate(()=>window.galleryDiagnostics);
+  expect(diagnostics.combinedParts).toBeGreaterThan(0);expect(diagnostics.drawCalls).toBeGreaterThan(0);
+  console.log('Boss gallery rendering:',JSON.stringify(diagnostics));
   await page.screenshot({path:info.outputPath('five-boss-designs.png')});
   expect(errors).toEqual([]);
 });
