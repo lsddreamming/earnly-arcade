@@ -10,3 +10,7 @@ body:not(.playing) .arena{width:100%;min-height:410px}
 @media(orientation:landscape) and (max-height:540px){.turf-shell{height:100dvh;padding-bottom:4px}.arena,.playing .arena{height:calc(100dvh - 16px)}}
 
 .hud #status.danger{color:#ffbc91}
+
+/* Keep navigation available between matches without crowding active controls. */
+body.playing .public-footer{display:none}
+.public-footer{max-width:620px;padding-left:16px;padding-right:16px}

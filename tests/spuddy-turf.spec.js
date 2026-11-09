@@ -9,3 +9,20 @@ test('keyboard closes a real loop and banks coverage in the result',async({page}
 test('sound preference persists and modes keep separate local bests',async({page})=>{await page.goto('/spuddy-turf.html');await page.locator('#sound').click();await expect(page.locator('#sound')).toHaveAttribute('aria-pressed','true');await page.reload();await expect(page.locator('#sound')).toHaveAttribute('aria-pressed','true');await practice(page);await page.locator('#pause').click();await page.locator('#quit').click();await expect(page.locator('#best')).toContainText('Practice best:');await page.locator('#modes').click();await page.locator('[data-mode="classic"]').click();await page.locator('#start').click();await page.locator('#pause').click();await page.locator('#quit').click();await expect(page.locator('#best')).toContainText('Battle best:');});
 
 test('active controls fit completely in short desktop and phone viewports',async({page})=>{for(const [width,height]of [[1280,720],[390,667],[320,568]]){await page.setViewportSize({width,height});await practice(page);for(const selector of ['#pause','[data-dir=\"0\"]','[data-dir=\"1\"]','[data-dir=\"2\"]','[data-dir=\"3\"]']){const b=await page.locator(selector).boundingBox();expect(b.y).toBeGreaterThanOrEqual(0);expect(b.y+b.height).toBeLessThanOrEqual(height);}await page.locator('#pause').click();}});
+
+test('countdown uses elapsed time after a delayed frame and preserves paused time',async({page})=>{
+  await page.clock.install();await page.goto('/spuddy-turf.html');
+  await page.locator('[data-mode="practice"]').click();await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Get ready');
+  await page.clock.fastForward(2100);
+  await expect(page.locator('#status')).toHaveText('SAFE AT HOME');
+  await expect(page.locator('#time')).toHaveText('3:00');
+  await page.locator('#pause').click();await page.locator('#quit').click();await page.locator('#modes').click();
+  await expect(page.locator('.public-footer')).toBeVisible();
+  await page.locator('#start').click();await page.clock.runFor(500);await page.locator('#pause').click();
+  await page.clock.fastForward(10000);await page.locator('#resume').click();
+  await expect(page.locator('#pausePanel')).toBeHidden();
+  await page.clock.runFor(500);await expect(page.locator('#status')).toHaveText('Get ready');
+  await page.clock.fastForward(1100);await expect(page.locator('#status')).toHaveText('SAFE AT HOME');
+  await expect(page.locator('.public-footer')).toBeHidden();
+});
