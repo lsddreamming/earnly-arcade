@@ -117,13 +117,13 @@ test('one held pointer across new food groups produces separate combos',async({p
  await place();await page.mouse.down();await swipe(.1,.9);
  await expect(page.locator('#sliceScore')).toHaveText('30');
  await page.clock.runFor(200);
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('40');
  // Keep the pointer down while another group arrives, then reverse the swipe.
  await place();await swipe(.9,.1);
  await expect(page.locator('#sliceScore')).toHaveText('70');
  await page.clock.runFor(200);
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
  expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
@@ -312,7 +312,8 @@ test('service feedback follows score and misses and resets for replay',async({pa
  await page.locator('#slicePause').click();
  await expect(page.locator('#sliceNotice')).toBeEmpty();
  await page.locator('#sliceStart').click();
- await page.evaluate(()=>window.__serviceGame.end('Cookout complete'));
+ // End during the next simulation step, as a real completed run does.
+ await page.evaluate(()=>{const g=window.__serviceGame;g.step=function(){delete this.step;this.end('Cookout complete');};});
  await expect(page.locator('#sliceStats')).toBeVisible();
  await page.locator('#sliceStart').click();
  await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',0);
