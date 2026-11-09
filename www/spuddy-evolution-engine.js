@@ -117,7 +117,7 @@
       if(s.time-(e.damageAt||0)>.35 || e.hp<=0){event('damage',{x:e.x,z:e.z,amount:e.damageTotal});e.damageTotal=0;e.damageAt=s.time;}
       if (e.hp <= 0) {
         const species=e.zone*5+(e.boss?4:['hunter','runner','grazer','floater'].indexOf(e.kind));
-        if(species>=0&&species<25){save.journey.journal[species]++;if([1,10,50,200].includes(save.journey.journal[species])){save.journey.shards++;event('discovery',{amount:1});}}
+        if(species>=0&&species<25){save.journey.journal[species]++;if([1,10,50,e.boss?100:200].includes(save.journey.journal[species])){save.journey.shards++;event('discovery',{amount:1});}}
         if(e.boss)save.journey.shards+=1+Math.floor(save.journey.chapter/5);else save.journey.captures++;
         e.hp = 0; e.dead = e.boss ? Infinity : 14; save.xp += e.value;
         if (e.boss) { save.bosses[e.zone] = true; save.bank += e.value; s.won = save.bosses.at(-1); event('boss', { zone: e.zone, value: e.value }); }
