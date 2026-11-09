@@ -7,7 +7,10 @@ for(const path of pages){
   await page.goto('/'+path);
   for(const width of [320,390,440]){
    await page.setViewportSize({width,height:844});
-   expect(await page.evaluate(()=>document.documentElement.scrollWidth),path+' overflow').toBeLessThanOrEqual(width+1);
+   // WebKit can replace its execution context during mobile viewport changes.
+   // Resolve the document through a locator while preserving the same overflow limit.
+   await expect(page).toHaveURL(url=>url.pathname+url.search==='/'+path);
+   expect(await page.locator('html').evaluate(el=>el.scrollWidth),path+' overflow').toBeLessThanOrEqual(width+1);
    const stats=await page.locator('.game-meta .meta-pill').evaluateAll(ns=>ns.map(n=>({font:parseFloat(getComputedStyle(n).fontSize),width:n.clientWidth,scroll:n.scrollWidth})));
    expect(stats.length).toBeGreaterThan(0);
    for(const stat of stats){expect(stat.font).toBeGreaterThanOrEqual(11);expect(stat.scroll).toBeLessThanOrEqual(stat.width+1);}
