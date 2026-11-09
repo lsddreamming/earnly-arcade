@@ -293,3 +293,30 @@ test('challenge sharing handles unavailable clipboard and canceled shares',async
  await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Denied');}}});});
  await page.locator('#sliceShareButton').click();await expect(page.locator('#sliceCopyLabel')).toBeVisible();await expect(page.locator('#sliceCopyLink')).toHaveValue(/challenge=80&/);
 });
+
+test('service feedback follows score and misses and resets for replay',async({page})=>{
+ await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{
+  const start=NeonSliceEngine.Game.prototype.start;
+  NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=999;window.__serviceGame=this;};
+ });
+ await page.locator('#sliceStart').click();
+ await page.evaluate(()=>{const g=window.__serviceGame;g.score=270;g.misses=1;g.time=65;});
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',20);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Rush hour');
+ await expect(page.locator('#sliceNotice')).toContainText('2 chances left');
+ await page.evaluate(()=>{window.__serviceGame.misses=2;});
+ await expect(page.locator('#sliceNotice')).toContainText('Last chance');
+ await expect(page.locator('#sliceMisses')).toHaveClass('slice-last-chance');
+ await page.locator('#slicePause').click();
+ await expect(page.locator('#sliceNotice')).toBeEmpty();
+ await page.locator('#sliceStart').click();
+ await page.evaluate(()=>window.__serviceGame.end('Cookout complete'));
+ await expect(page.locator('#sliceStats')).toBeVisible();
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',0);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 250');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Opening prep');
+ await expect(page.locator('#sliceMisses')).not.toHaveClass('slice-last-chance');
+});
