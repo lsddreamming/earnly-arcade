@@ -102,8 +102,8 @@
   const spawn = (model, x, z, angle = 0) => ({ ...models[model], x, z, angle, speed: 0 });
   let car = spawn('coupe', 12, 32);
   let vehicles = [car];
-  const patrol = { x: 40, z: 56, angle: 0 };
-  const backup = { x: 68, z: 40, angle: 0 };
+  const patrol = { x: 73.3, z: 54, angle: 0 };
+  const backup = { x: 101.3, z: 82, angle: 0 };
   const displacedDrivers = [];
   const traffic = [
     { route: [[42.5, 42.5], [42.5, 65.5], [65.5, 65.5], [65.5, 42.5]], speed: 5.4, paint: ['#e0a269', '#a06153', '#744654'] },
@@ -555,6 +555,7 @@
     if(escalating) caught=0;
     for (const unit of [patrol, backup]) {
       unit.last = { x: inCar ? car.x : player.x, z: inCar ? car.z : player.z };
+      unit.parkingTarget = null;
       unit.path = [];
       unit.rethink = 0;
     }
@@ -577,8 +578,8 @@
     vehicles = activeJob ? [car] : [car, spawn('muscle', 17.3, 54),
       spawn('van', 45.3, 54), spawn('muscle', 157.3, 166),
       spawn('coupe', 269.3, 222), spawn('van', 325.3, 306)];
-    Object.assign(patrol, { x: 40, z: 56, angle: 0 });
-    Object.assign(backup, { x: 68, z: 40, angle: 0 });
+    Object.assign(patrol, { x: 73.3, z: 54, angle: 0, parkingTarget:null });
+    Object.assign(backup, { x: 101.3, z: 82, angle: 0, parkingTarget:null });
     Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
     inCar = stolen = lost = false;
     elapsed = unseen = caught = 0;
@@ -649,7 +650,8 @@
   function jump() {
     if (phase !== 'playing' || inCar || (jumpHeight > 0 && !roofSupport) || jumpVelocity !== 0 || window.HarborOnline?.dead()) return;
     roofSupport = null;
-    jumpVelocity = 9.4;
+    // Vehicle-height hop; a roof hop cannot stack extra building-height lift.
+    jumpVelocity = Math.min(8.4, Math.sqrt(36*Math.max(0,2.05-jumpHeight)));
     footPlants.fill(null);
     cue(230, 390, 0.1, 'sine');
   }
@@ -849,6 +851,31 @@
     return { seen, separation };
   }
 
+  function parkMarshal(unit,dt) {
+    if(unit.destroyed)return;
+    if(!unit.parkingTarget) {
+      const candidates=[];
+      const clearJunction=value=>roads.some(r=>Math.abs(r-value)<8)
+        ? roads.slice(0,-1).map(r=>r+14).sort((a,b)=>Math.abs(a-value)-Math.abs(b-value))[0]
+        : clamp(value,8,size-8);
+      for(const road of roads) for(const sign of [-1,1]) {
+        const alongZ=clearJunction(unit.z),alongX=clearJunction(unit.x);
+        if(!roads.some(r=>Math.abs(r-alongZ)<8)) candidates.push({x:road+sign*5.3,z:alongZ,angle:0});
+        if(!roads.some(r=>Math.abs(r-alongX)<8)) candidates.push({x:alongX,z:road+sign*5.3,angle:Math.PI/2});
+      }
+      unit.parkingTarget=candidates.filter(p=>!blocked(p.x,p.z,1.22)&&visible(unit,p)
+        && ![...vehicles,...traffic,patrol,backup].some(v=>v!==unit&&distance(v,p)<4))
+        .sort((a,b)=>distance(a,unit)-distance(b,unit))[0];
+    }
+    const target=unit.parkingTarget;if(!target)return;
+    const gap=distance(unit,target);
+    if(gap<.12){unit.x=target.x;unit.z=target.z;unit.angle=target.angle;unit.speed=0;return;}
+    unit.angle=Math.atan2(target.x-unit.x,unit.z-target.z);
+    unit.speed=3;const step=Math.min(gap,3*dt);
+    const hit=moveVehicle(unit,(target.x-unit.x)/gap*step,(target.z-unit.z)/gap*step);
+    if(hit)unit.parkingTarget=null;
+  }
+
   function completeJob() {
     window.HarborOnline?.finish();
     const time = Math.max(1, Math.ceil(elapsed * 1000));
@@ -960,7 +987,8 @@
       const rate = (desiredSpeed > footSpeed ? 9 : 16)/(1+stats.build*0.25);
       footSpeed += (desiredSpeed-footSpeed)*(1-Math.exp(-rate*dt));
       // Never coast backward while pivoting, even with leftover sprint momentum.
-      const travelSpeed = footSpeed * alignment;
+      // A controlled airborne stride keeps a running hop on the car instead of sailing over it.
+      const travelSpeed = (jumpHeight>0 && !roofSupport ? Math.min(footSpeed,6) : footSpeed) * alignment;
       move(player, direction.x * travelSpeed * dt, direction.z * travelSpeed * dt, 0.45);
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
@@ -1009,6 +1037,7 @@
         cue(360, 670, 0.25);
       }
     }
+    if(!heatLevel){parkMarshal(patrol,dt);parkMarshal(backup,dt);}
     const step = activeJob?.stages[stageIndex];
     if (step && ((step.kind === 'escape' && lost)
       || (inCar && step.kind === 'drive' && distance(car, step) < 5)
@@ -1244,7 +1273,8 @@
           polygon([inner[i],inner[j],outer[j],outer[i]], i < 6 ? '#30383e' : '#141a21');
         }
         polygon(outer, '#141c25');
-        polygon(ring(0.19, sign * 1.205), '#8c9ca8');
+        polygon(ring(0.23, sign * 1.203), '#c0cbd0');
+        polygon(ring(0.19, sign * 1.205), '#718593');
         const hub = ring(0.065, sign * 1.215, actor.wheelSpin || 0), rim = ring(0.16, sign * 1.215, actor.wheelSpin || 0);
         for (let i = 0; i < 12; i += 2) polygon([hub[i],rim[i],rim[(i+1)%12],hub[(i+1)%12]], '#33414d');
         polygon(ring(0.055, sign * 1.22), '#c1cbd1');
@@ -1271,6 +1301,22 @@
     if (detailed) {
       const chrome = ['#b1bec8','#7a8c9b','#536675'];
       const trim = ['#37434c','#242e37','#18232c'];
+      // Close-range accents keep silhouettes clean at phone scale.
+      for(const sign of [-1,1]) {
+        part(sign*.88,.15,.045,2.55,.045,.85,chrome);
+        part(sign*.76,1.89,.48,.035,.035,.72,['#f3ffff','#d2f8ff','#b0e4ed']);
+        part(sign*.76,-1.90,.48,.035,.035,.79,['#ffbf98','#f87a63','#d55c56']);
+        part(sign*.97,.84,.035,.22,.08,1.04,['#d4edf1','#adcbd3','#789cab']);
+      }
+      if(actor.name==='Muscle') {
+        for(const sign of [-1,1])part(sign*.29,1.30,.16,.95,.012,.925,trim);
+        part(0,-1.5,1.85,.24,.08,1.05,paint);
+      } else if(actor.name==='Cargo van') {
+        part(0,-1.675,1.45,.035,.065,1.18,chrome);
+        for(const sign of [-1,1])part(sign*.93,-.4,.025,1.75,.16,1.23,['#e9d6a5','#c8b07e','#a38c62']);
+      } else {
+        part(0,-.1,.74,.78,.015,1.495,['#a6c5d0','#7295a8','#527484']);
+      }
       // Grille, lower intake, hood seams and sculpted front bumper.
       part(0,1.84,0.90,0.075,0.23,0.53,trim);
       for (const y of [0.59,0.67,0.75]) part(0,1.885,0.84,0.025,0.025,y,chrome);
@@ -1318,9 +1364,9 @@
       part(sign * 0.75, 1.84, 0.44, 0.08, 0.13, 0.58, ['#e0f8ff', '#b8efff', '#8bc9fa']);
     }
     if (police) {
-      const flash = elapsed % 0.55 < 0.275;
+      const flash = heatLevel > 0 && elapsed % 0.55 < 0.275;
       part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#fff4ac', '#e6d44e', '#b5a246'] : ['#80435e', '#602b44', '#602b44']);
-      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#416c99', '#334f7e', '#334f7e'] : ['#c4ffe7', '#69e6bd', '#349f8e']);
+      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, (!heatLevel || flash) ? ['#416c99', '#334f7e', '#334f7e'] : ['#c4ffe7', '#69e6bd', '#349f8e']);
     }
   }
 
@@ -1351,6 +1397,17 @@
     facade(-0.46, 0.8, 0.92, 0.98, '#6e979e', 0.08);
     for (const edge of [-1.58, 1.52]) facade(edge, 0.4, 0.064, 1.52, accent, 0.058);
     facade(-2.38, 2.01, 4.76, 0.43, '#22333e', 0.055);
+    if(Math.hypot(x-eye.x,z-eye.z)<25) {
+      for(const windowZ of [-2.12,1.0]) {
+        facade(windowZ,.51,1.08,.10,accent,.065);
+        facade(windowZ+.08,.68,.30,.32,'#dca674',.06);
+        facade(windowZ+.52,.68,.37,.22,'#b6cda8',.06);
+        facade(windowZ+.05,1.38,.12,.42,'#b4d3cf',.07);
+        facade(windowZ+.23,1.61,.69,.06,'#8cb5bd',.07);
+      }
+      facade(-.38,1.19,.76,.25,'#eed9a2',.085);
+      signText('OPEN',[wallX+offset*.18,1.31,z], '#41535a',frontDepth-.2);
+    }
     if (Math.abs(eye.x - wallX) > Math.abs(eye.z - z) * 0.65) {
       signText(label, [wallX + offset * 0.16, 2.17, z], accent, frontDepth - 0.16);
     }
@@ -1377,7 +1434,15 @@
     box(x + 1.1, z - 0.55, 2.3, 1.7, 0.85, 0, ['#71849a', '#4d5b73', '#36465c'], b.h + 0.15);
     const nearDetail = Math.hypot(x - eye.x, z - eye.z) < 30;
     if (nearDetail) {
-      const stone = ['#aaa79a','#827f76','#716f69'];
+      const stone = ['#b9b2a0','#918b7c','#77796f'];
+      // Flower boxes mounted above head height leave pedestrian space clear.
+      if(b.shade%2===0)for(const edge of [-1,1]) {
+        const px=x+edge*b.w*.28,pz=b.z+b.d+.16;
+        box(px,pz,1.25,.36,.24,0,['#b98561','#976847','#72513d'],2.0);
+        box(px,pz,1.16,.34,.25,0,['#85ad6b','#5c8b56','#456e49'],2.22);
+        for(const offset of [-.34,.34])box(px+offset,pz,.17,.18,.13,0,
+          b.shade===0?['#ffd19e','#ed9d76','#ca7760']:['#e6b6dd','#bd83ba','#9869a0'],2.44);
+      }
       for (let floor=3.8;floor<b.h-1;floor+=2.1) box(x,z,b.w+0.18,b.d+0.18,0.10,0,stone,floor);
       if (b.shade % 2 === 1) {
         for (let floor=2.1;floor<b.h-1.25;floor+=2.1) {
@@ -1472,6 +1537,13 @@
         box(postX, postZ, 0.12, 0.12, 3.25, 0, ['#68757a', '#506067', '#3d4d55']);
         box(postX - 0.72, postZ, 1.5, 0.1, 0.11, 0, ['#727c7f', '#58666a', '#404f55'], 3.11);
         box(postX - 1.37, postZ, 0.31, 0.29, 0.67, 0, ['#475052', '#323d42', '#263339'], 2.55);
+        if(Math.hypot(x-camera.x,z-camera.z)<22) {
+          const dock=x>278,market=x<90&&z<121;
+          const tint=dock?['#86b8d2','#4a829e','#32657e']:market?['#e4b27e','#bd8158','#966440']:['#a6c7a2','#6c997a','#52785e'];
+          box(postX+.27,postZ,.50,.06,1.0,0,tint,1.85);
+          box(postX,postZ,1.38,.10,.28,0,['#a8c8bc','#345b59','#294b4d'],3.32);
+          signText(dock?'DOCKSIDE':market?'MARKET ST':'HARBOR AVE',[postX,3.46,postZ+.07],'#f4efcf');
+        }
         const green = (Math.floor(elapsed / 6) + Math.round(x / 28)) % 2;
         box(postX - 1.37, postZ + 0.15, 0.13, 0.04, 0.12, 0,
           green ? ['#a1e3a0', '#75c483', '#639b6d'] : ['#fb9a89', '#df675d', '#b65454'], green ? 2.6 : 3);
@@ -1791,7 +1863,7 @@
     eye.sine = Math.sin(camera.angle);
     eye.x = camera.x - eye.sine * camera.distance;
     eye.z = camera.z + eye.cosine * camera.distance;
-    const playerLift = inCar ? 0 : jumpHeight;
+    const playerLift = inCar ? 0 : jumpHeight * 0.65;
     eye.y = Math.min(5, 2.6 + camera.distance * 0.19) + cameraLift + playerLift;
     const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5 + playerLift), camera.distance + 1);
     eye.pitchCosine = Math.cos(pitch);
@@ -1840,7 +1912,15 @@
     }
     flat(329.2, 0, 10.8, size, '#697c54');
     if (camera.x > size - 78) flat(size, 224, 20, 79, '#858980');
-    for (const park of parks) if (distance(park, camera) < 85) flat(park.x - 8, park.z - 8, 16, 16, '#738357');
+    for (const park of parks) if (distance(park, camera) < 85) {
+      flat(park.x-8,park.z-8,16,16,'#7b9463');
+      flat(park.x-1.1,park.z-8,2.2,16,'#c3b99c');
+      flat(park.x-8,park.z+2.8,16,1.6,'#c3b99c');
+      if(distance(park,camera)<35)for(const side of [-1,1]) {
+        flat(park.x+side*5-1.5,park.z+4.9,3,1.2,'#58774d');
+        for(let i=0;i<5;i++)flat(park.x+side*5-1.3+i*.55,park.z+5.2,.28,.35,i%2?'#e5b78d':'#ccb1d3');
+      }
+    }
     for (const road of roads) {
       flat(road - 5.15, 0, 10.3, size, '#a3a49a');
       flat(0, road - 5.15, size, 10.3, '#a3a49a');
