@@ -18,6 +18,7 @@ function create(canvas, game) {
   const camera = new THREE.OrthographicCamera(-10, 10, 15, -15, .1, 150);
   const hemisphere = new THREE.HemisphereLight('#f3fbff', '#608eb5', 1.4);
   scene.add(hemisphere);
+  const rim = new THREE.DirectionalLight('#9edcff', 1.1); rim.position.set(8, 10, -14); scene.add(rim);
   const sun = new THREE.DirectionalLight('#fff3de', 2.4);
   sun.position.set(-12, 24, 12); sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -19; sun.shadow.camera.right = 19;
@@ -27,7 +28,7 @@ function create(canvas, game) {
   const materials = new Map();
   function mat(color, options = {}) {
     const key = color + JSON.stringify(options);
-    if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({ color, roughness: .65, metalness: .04, ...options }));
+    if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({ color, roughness: .43, metalness: .06, ...options }));
     return materials.get(key);
   }
   const geo = {
@@ -59,6 +60,14 @@ function create(canvas, game) {
   function ring(parent, radius, color, opacity = 1) {
     const m = new THREE.Mesh(geo.ring, basic(color, opacity)); m.rotation.x = -Math.PI / 2; m.scale.setScalar(radius); m.position.y = .09; parent.add(m); return m;
   }
+  // Cheap ground-contact shadows keep small creatures visually grounded.
+  const shadowCanvas = document.createElement('canvas'); shadowCanvas.width = shadowCanvas.height = 64;
+  const shadowContext = shadowCanvas.getContext('2d');
+  const gradient = shadowContext.createRadialGradient(32, 32, 2, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(18,39,57,.38)'); gradient.addColorStop(1, 'rgba(18,39,57,0)');
+  shadowContext.fillStyle = gradient; shadowContext.fillRect(0, 0, 64, 64);
+  const shadowMaterial = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false });
+  function contact(parent, size) { const m = mesh(parent, geo.disk, shadowMaterial, [0, .025, 0], [size, size, 1]); m.rotation.x = -Math.PI / 2; return m; }
   const colors = ['#29c76c', '#9760ef', '#19bddb', '#ff853b', '#ec53b2'];
   const floorColors = [['#82cf64', '#9ddd79'], ['#b6a0f0', '#c6b6fa'], ['#6fd8eb', '#9be7f4'], ['#efa36c', '#ffc18c'], ['#dc93df', '#ecb0e9']];
   const world = [], gates = [], outposts = [];
@@ -122,6 +131,19 @@ function create(canvas, game) {
       box(group, x, .75, zone.min + 23, 2.3, .12, 1.4, '#edf1e2');
       box(group, x, 1, zone.min + 23, 1.3, .35, .2, colors[zi]);
     }
+    // Instanced border details add density without hundreds of draw calls.
+    const petals = new THREE.InstancedMesh(geo.sphere, mat(zi === 0 ? '#ff72af' : zi === 4 ? '#ffe363' : colors[zi]), 96);
+    const grass = new THREE.InstancedMesh(geo.cone, mat(zi === 0 ? '#239e55' : colors[zi]), 48);
+    for (let i = 0; i < 48; i++) {
+      const x = (i % 2 ? -1 : 1) * (11.7 + Math.sin(i * 7.3) * .5), z = zone.min + 1 + (i * 1.73 % 30);
+      dummy.position.set(x, .28, z); dummy.scale.set(.12, .6, .12); dummy.rotation.set(0, i, .15); dummy.updateMatrix(); grass.setMatrixAt(i, dummy.matrix);
+      for (let j = 0; j < 2; j++) { dummy.position.set(x + j * .22, .22, z + .25); dummy.scale.set(.15, .1, .15); dummy.updateMatrix(); petals.setMatrixAt(i * 2 + j, dummy.matrix); }
+    }
+    group.add(petals, grass);
+    for (const x of [-12.8, 12.8]) {
+      box(group, x, .08, zone.min + 16, .18, .08, 31, colors[zi]);
+      for (let j = 0; j < 4; j++) { cylinder(group, x, .65, zone.min + 4 + j * 8, .22, 1.3, '#36576f'); ball(group, x, 1.35, zone.min + 4 + j * 8, .28, .18, .28, '#fff3a3'); }
+    }
     if (zi === 0) nest(group, 0, 9, true);
     else {
       const n = nest(group, -8, zone.max - 6, false); outposts.push({ group: n, zone: zi });
@@ -135,6 +157,7 @@ function create(canvas, game) {
   }
   function spud(scale = 1, color = '#ffb52b', player = false) {
     const group = new THREE.Group(), rig = new THREE.Group(); group.add(rig);
+    contact(group, 1.4);
     const body = ball(rig, 0, 1, 0, .86, 1, .74, color, player);
     for (const x of [-.31, .31]) {
       ball(rig, x, 1.13, .65, .2, .25, .13, '#fffaf0');
@@ -143,6 +166,7 @@ function create(canvas, game) {
       ball(rig, x * 1.6, .83, .62, .13, .07, .04, '#d68d69');
     }
     const mouth = mesh(rig, new THREE.TorusGeometry(.15, .032, 6, 12, Math.PI), mat('#805f39'), [0, .82, .74], [1, 1, 1]); mouth.rotation.z = Math.PI;
+    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) ball(rig, side * (.48 + i * .07), .92 + (i % 2) * .1, .64 - i * .07, .025, .025, .018, '#b96e26');
     const leaves = [];
     for (let i = 0; i < 4; i++) leaves.push(leaf(rig, (i - 1.5) * .17, 2.04 + (i % 2) * .1, 0, .7, (i - 1.5) * .45, i % 2 ? '#129c57' : '#46d864'));
     const limbs = [];
@@ -180,8 +204,23 @@ function create(canvas, game) {
     const bodyColor = e.boss ? colors[e.zone] : e.kind === 'hunter' ? '#f04473' : e.kind === 'runner' ? '#ff9c26' : e.kind === 'floater' ? '#cb69f4' : '#18cbb0';
     const size = e.boss ? 1.5 + e.zone * .08 : .52;
     const body = ball(group, 0, size, 0, size, size * .8, size * .85, bodyColor, e.boss);
+    body.material = body.material.clone();
     const cap = ball(group, 0, size * 1.65, 0, size * 1.08, size * .26, size * .95, e.boss ? '#533485' : e.kind === 'hunter' ? '#a51c50' : e.kind === 'runner' ? '#e76019' : e.kind === 'floater' ? '#8b35d5' : '#078e75');
     for (const x of [-.3, .3]) { ball(group, x * size, size, size * .75, size * .17, size * .22, size * .12, '#f9f6e3'); ball(group, x * size, size, size * .86, size * .08, size * .12, size * .04, '#21464a'); }
+    const groundShadow = contact(scene, size * 1.6);
+    // Silhouettes communicate each monster's role even at phone size.
+    if (e.kind === 'hunter' || e.boss) {
+      for (const side of [-1, 1]) {
+        const horn = mesh(group, geo.cone, mat('#fff0b0'), [side * size * .65, size * 2, 0], [size * .22, size * .85, size * .22], true); horn.rotation.z = -side * .35;
+        mesh(group, geo.cone, mat('#fff6df'), [side * size * .27, size * .7, size * .85], [size * .12, size * .3, size * .12]).rotation.z = Math.PI;
+      }
+    } else if (e.kind === 'runner') {
+      for (const side of [-1, 1]) { const ear = ball(group, side * size * .45, size * 2.15, 0, size * .18, size * .65, size * .15, '#ffb72e'); ear.rotation.z = side * .2; }
+    } else if (e.kind === 'floater') {
+      for (const side of [-1, 1]) ball(group, side * size * 1.1, size * 1.3, 0, size * .65, size * .12, size * .5, '#ecb7ff');
+    } else {
+      for (let i = 0; i < 3; i++) ball(group, (i - 1) * size * .5, size * 1.9, 0, size * .22, size * .2, size * .35, '#a9f16e');
+    }
     const legs = [];
     for (let i = 0; i < (e.boss ? 6 : 4); i++) {
       const a = i * Math.PI * 2 / (e.boss ? 6 : 4);
@@ -203,7 +242,7 @@ function create(canvas, game) {
     const health = new THREE.Group(); group.add(health); health.position.y = size * 2.4;
     mesh(health, geo.box, basic('#263e48', .4), [0, 0, 0], [size * 2, .09, .02]);
     const fill = mesh(health, geo.box, basic(e.boss ? '#e37477' : '#6fb28b'), [0, 0, .02], [size * 2, .09, .02]);
-    actors.set(e.id, { group, body, cap, legs, size, fill, health, warning });
+    actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow });
   }
   const reach = ring(scene, game.stats().range, '#ffffff', .55), pulseRing = ring(scene, 1, '#7affcf', .8);
   const roots = [];
@@ -245,6 +284,7 @@ function create(canvas, game) {
     for (const e of s.enemies) {
       const actor = actors.get(e.id); if (!actor) continue;
       actor.group.visible = !e.dead && Math.abs(e.z - pz) < 32;
+      actor.groundShadow.visible = actor.group.visible; actor.groundShadow.position.set(e.x, .025, e.z);
       if (actor.warning) {
         actor.warning.visible = !e.dead && e.windup > 0 && actor.group.visible;
         actor.warning.position.set(e.targetX, .13, e.targetZ);
@@ -254,6 +294,7 @@ function create(canvas, game) {
       if (!actor.group.visible) continue;
       actor.group.position.set(e.x, e.kind === 'floater' ? .65 + Math.sin(e.phase * 3) * .18 : 0, e.z);
       actor.group.rotation.y = e.boss ? Math.atan2(s.x - e.x, s.z - e.z) : Math.sin(e.phase) * .3;
+      actor.body.material.emissive.set(e.hit > 0 ? '#91312a' : '#000000');
       actor.body.scale.y = actor.size * .8 * (1 + Math.sin(e.phase * 4) * .035);
       actor.cap.position.y = actor.size * 1.65 + Math.sin(e.phase * 4) * .05;
       actor.legs.forEach(({ leg, a }, i) => segment(leg, [Math.sin(a) * actor.size * .5, actor.size * .7, Math.cos(a) * actor.size * .5], [Math.sin(a) * actor.size * 1.25, .15 + Math.max(0, Math.sin(e.phase * 7 + i) * .13), Math.cos(a) * actor.size * 1.25], actor.size * .12));
