@@ -98,6 +98,8 @@
     function damage(e, n) {
       if (e.dead || e.zone > save.unlocked || (!e.boss && s.cargo >= stats().capacity)) return;
       e.hp -= n; e.hit = .12;
+      e.damageTotal=(e.damageTotal||0)+n;
+      if(s.time-(e.damageAt||0)>.35 || e.hp<=0){event('damage',{x:e.x,z:e.z,amount:e.damageTotal});e.damageTotal=0;e.damageAt=s.time;}
       if (e.hp <= 0) {
         e.hp = 0; e.dead = e.boss ? Infinity : 14; save.xp += e.value;
         if (e.boss) { save.bosses[e.zone] = true; save.bank += e.value; s.won = save.bosses.at(-1); event('boss', { zone: e.zone, value: e.value }); }

@@ -458,6 +458,6 @@ function create(canvas, game) {
     if (arrow.visible) { const nest = game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
     renderer.render(scene, camera);
   }
-  return { available: true, diagnostics: () => ({drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
+  return { available: true, projectPoint: (x,z) => {const v=new THREE.Vector3(x,1.5,z).project(camera);return Math.abs(v.x)>1||Math.abs(v.y)>1?null:{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}, diagnostics: () => ({drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
 }
 window.EvolutionRenderer = { create };

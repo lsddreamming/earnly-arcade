@@ -11,6 +11,10 @@ test('3D phone graphics boot and rotated view',async({page},info)=>{
   await expect(page.locator('#toast')).toContainText('View rotated');
   await page.waitForTimeout(700);
   await page.screenshot({path:info.outputPath('3d-phone-rotated.png')});
+  await page.locator('#upgrades').click();
+  await expect(page.locator('#evolutionGoal')).toHaveText('0/5 upgrades to Rootling');
+  await expect(page.locator('#evolutionAbility')).toContainText('stronger Root burst');
+  await page.screenshot({path:info.outputPath('3d-phone-evolution.png')});
   expect(errors).toEqual([]);
 });
 test('all five boss designs render with attack poses',async({page},info)=>{
