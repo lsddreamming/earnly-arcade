@@ -48,3 +48,15 @@ test('rescued crew, flying courier and rare creatures render at the growing base
  await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();await page.screenshot({path:info.outputPath('crew-home.png')});
  await page.locator('#upgrades').click();await page.locator('#journeyButton').click();await expect(page.locator('#crewCount')).toHaveText('5/5');await page.locator('#crewCount').scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('crew-journey.png')});expect(errors).toEqual([]);
 });
+
+test('upgrade previews and Root Focus fit the phone and persist purchases',async({page},info)=>{
+ await page.setViewportSize({width:320,height:568});
+ await page.addInitScript(()=>{if(!localStorage.getItem('earnly.spuddyEvolution.v1'))localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,bank:200}));});
+ await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();await page.locator('#upgrades').click();
+ await expect(page.locator('#upgradeList')).toContainText('Carry: 24 → 36 seeds');
+ const focus=page.locator('.upgrade').filter({hasText:'Root Focus'});await focus.scrollIntoViewIfNeeded();await expect(focus).toContainText('0 → 15%');
+ await focus.getByRole('button').click();await expect(focus).toContainText('15 → 30%');await expect(page.locator('#panelBank')).toHaveText('145');
+ const box=await focus.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);
+ await page.screenshot({path:info.outputPath('root-focus-upgrades.png')});
+ await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await expect(page.locator('.upgrade').filter({hasText:'Root Focus'})).toContainText('1/3');
+});
