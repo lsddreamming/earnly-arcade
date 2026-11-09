@@ -54,19 +54,27 @@
     </section>
 
     <section class="daily-arcade" id="daily-arcade" aria-labelledby="dailyArcadeHeading">
-      <div class="daily-arcade-head"><div><span class="daily-arcade-kicker">A fresh reason to play</span><h2 id="dailyArcadeHeading">Today’s Arcade Challenge</h2></div><span data-count>3 quick goals</span></div>
-      <p class="daily-arcade-intro">Three games. One daily stamp. Your next room collectible.</p>
+      <details class="daily-challenge-disclosure">
+        <summary class="daily-challenge-summary">
+          <span class="daily-challenge-copy"><strong id="dailyArcadeHeading">Daily challenge</strong><span data-summary-status>Three games · One daily stamp</span></span>
+          <span class="daily-challenge-action"><span data-count>3 goals</span><span class="daily-challenge-chevron" aria-hidden="true">⌄</span></span>
+        </summary>
+        <div class="daily-challenge-content">
       <p data-daily-bonus hidden></p>
       <ol data-goals aria-label="Today’s game goals"></ol>
+      <details class="daily-reward-details"><summary>Weekly collectible <span data-week-summary>0 / 4 days</span></summary>
       <div class="daily-arcade-prize"><img src="arcade-weekly-cup.svg" alt="Blue Arcade All-Star Cup"><div><span class="daily-arcade-kicker">This week’s reward</span><strong data-prize-name>Arcade All-Star Cup</strong><p data-reward-status>Complete all three goals on any four days this week. Missing a day never wipes your progress.</p><div class="daily-arcade-stamps"><div data-stamps class="daily-arcade-stamps"></div><b data-week-count>0 / 4 days</b></div></div></div>
       <details class="daily-room-preview"><summary>Preview in a room</summary><canvas data-room-preview role="img" aria-label="Weekly collectible on a room floor"></canvas><p>Yours to keep and place in your World room.</p></details>
       <p data-next-reward hidden></p>
+      </details>
       <p data-message role="status" aria-live="polite">Checking saved progress…</p>
       <a data-signin href="account.html" hidden>Sign in to earn your trophy</a>
       <button data-retry type="button" hidden>Check progress again</button>
       <a data-world href="world.html" hidden>Open World Backpack →</a>
       <details><summary>How to earn your trophy</summary><p>Sign in before playing. Reach each goal in one finished run. Results must sync to Earnly; daily reward limits apply (up to nine saved runs per game, or three rewarded Neon Slice runs). All three goals earn one stamp. Four days in the same Monday–Sunday UTC week earn the featured collectible automatically. The collection rotates weekly; earned items stay yours. No purchase or ad required.</p></details>
       <p data-reset></p>
+        </div>
+      </details>
     </section>
 
     <section class="home-transfer-banner" id="transferCard" hidden>
