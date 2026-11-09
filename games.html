@@ -119,6 +119,7 @@
       <section class="card game-card compact-game catalog-tile" data-game="paddleRally"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🏓</span><h2>Paddle Rally</h2></div></div><p class="reward-rule">Solo pong · keep the rally alive</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="paddlerally.html" aria-label="Play Paddle Rally">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="laneRunner"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🏎️</span><h2>Lane Runner</h2></div></div><p class="reward-rule">Switch lanes and dodge traffic</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="lanerunner.html" aria-label="Play Lane Runner">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="safeCracker"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🔐</span><h2>Safe Cracker</h2></div></div><p class="reward-rule">Stop the marker in the shrinking green zone</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="safecracker.html" aria-label="Play Safe Cracker">Play</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="spuddyTurf"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🗺️</span><h2>Spuddy Turf</h2></div></div><p class="reward-rule">Claim land · cut bot trails · free solo territory battles</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="spuddy-turf.html" aria-label="Play Spuddy Turf">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonDrift"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🏁</span><h2>Neon Drift</h2></div></div><p class="reward-rule">Faster sectors · bonus Coins · Overdrive streaks</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neondrift.html" aria-label="Play Neon Drift">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="mergeRush"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🔢</span><h2>Merge Rush</h2></div></div><p class="reward-rule">Swipe and merge matching numbers</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="mini.html?game=mergeRush" aria-label="Play Merge Rush">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="perfectDrop"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🎯</span><h2>Perfect Drop</h2></div></div><p class="reward-rule">Time each drop into the target</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="mini.html?game=perfectDrop" aria-label="Play Perfect Drop">Play</a></div></section>
@@ -193,6 +194,7 @@
       { key:'trafficEscape', icon:'🚦', name:'Traffic Escape', note:'Tap clear cars to empty the board', href:'mini.html?game=trafficEscape' },
       { key:'starDefender', icon:'👾', name:'Star Defender', note:'Retro alien waves · dodge and fire', href:'stardefender.html?sd=20260925d' },
       { key:'neonMaze', icon:'⚡', name:'Neon Maze', note:'Collect energy cells · evade sentry drones', href:'neonmaze.html' },
+      { key:'spuddyTurf', icon:'🗺️', name:'Spuddy Turf', note:'Claim land · cut bot trails · free solo territory battles', href:'spuddy-turf.html', freeBeta:true },
       { key:'harborGetaway', icon:'🌆', name:'Harbor Getaway', note:'Explore the city · complete jobs · optional live free roam', href:'harbor-getaway.html', freeBeta:true }
     ];
 
@@ -226,6 +228,7 @@
       trafficEscape:['new','brain'],
       starDefender:['new','classic','action'],
       neonMaze:['new','classic','action'],
+      spuddyTurf:['new','action','strategy'],
       harborGetaway:['action']
     };
     let activeGameFilter = 'all';

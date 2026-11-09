@@ -1,0 +1,36 @@
+name: Spuddy Turf QA
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  turf:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: macos-15-intel
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/spuddy-turf-engine.cjs
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test tests/spuddy-turf.spec.js --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spuddy-turf-${{ matrix.project }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
