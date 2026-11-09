@@ -359,9 +359,21 @@ test('results use game-specific leaderboard gap copy without duplicate best text
 
 test('Snake keeps most apples inside, occasionally uses the wall row, and draws the true playable boundary', () => {
   for (const source of [read('snake.html'), read('www/snake.html')]) {
-    expect(source).toContain('(1 + Math.floor(Math.random() * 18)) * box');
+    // Exercise the placement policy instead of pinning its old rejection-sampling syntax.
+    const vm = require('node:vm');
+    const context = {box:20,snake:[{x:200,y:200}],score:0,lastWallAppleScore:-5,Math:Object.create(Math)};
+    context.Math.random = () => 0;
+    vm.createContext(context);
+    vm.runInContext(source.slice(source.indexOf('    function randomFood()'), source.indexOf('    function refreshRunFeedback()')), context);
+    const cell = () => JSON.parse(JSON.stringify(context.randomFood()));
+    expect(cell()).toEqual({x:20,y:20});
+    context.score=3; expect(cell()).toEqual({x:0,y:0});
+    context.score=4; expect(cell()).toEqual({x:20,y:20});
+    context.score=8; expect(cell()).toEqual({x:0,y:0});
+    context.snake=Array.from({length:400},(_,i)=>({x:(i%20)*20,y:Math.floor(i/20)*20}));
+    expect(cell()).toBeNull();
+    context.snake.pop(); expect(cell()).toEqual({x:380,y:380});
     expect(source).toContain('score - lastWallAppleScore >= 5');
-    expect(source).toContain('Math.floor(Math.random() * 20) * box');
     expect(source).toContain('Math.max(120, 180 - Math.floor(score / 3) * 6)');
     expect(source).toContain("ctx.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3)");
     expect(source).toContain('snakeX >= canvas.width');
