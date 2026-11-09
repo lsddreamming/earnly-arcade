@@ -350,14 +350,21 @@
         if (worker.health === 0) worker.tilt = Math.min(1.35, worker.tilt + dt * 3.2);
         continue;
       }
-      if (worker.health === 0) worker.health = 100;
+      if (worker.health === 0) {
+        worker.health = 100;
+        worker.recover = 0;
+        worker.lift = worker.vx = worker.vz = 0;
+      }
       worker.tilt=0; worker.elevation=0;
       if (worker.panicUntil > elapsed) {
-        const away = Math.atan2(worker.x-player.x,player.z-worker.z);
+        const away = Math.atan2(worker.x-worker.fleeX,worker.fleeZ-worker.z);
         worker.angle = away;
         const direction = facing(away);
         move(worker,direction.x*3.8*dt,direction.z*3.8*dt,0.3);
-        worker.homeX = worker.x; worker.homeZ = worker.z;
+        // Preserve the normal walking path's phase when the sprint ends.
+        const progress = (1-Math.cos(elapsed*worker.pace+(worker.phaseOffset||0)))/2;
+        worker.homeX = worker.x-worker.dx*progress;
+        worker.homeZ = worker.z-worker.dz*progress;
         continue;
       }
       const cycle = elapsed * worker.pace + (worker.phaseOffset || 0);
@@ -800,11 +807,19 @@
     shotFlash = weapon.delay;
     if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
     if (!window.HarborAudio?.play(['shot','shotRapid','shotHeavy'][weaponIndex])) cue(760, 380, 0.12, 'sine');
+    for (const worker of workers) {
+      if (worker.health === 0 || distance(worker,player)>22) continue;
+      worker.panicUntil=elapsed+5;
+      worker.fleeX=player.x; worker.fleeZ=player.z;
+    }
     if(activeJob?.heat) wanted(Math.max(heatLevel,activeJob.heat));
     if (victim) {
       window.HarborAudio?.play('voice',.9+Math.random()*.2);
-      victim.hitAt=elapsed;
-      notify('Sparkle tag · neighbor unharmed');
+      Object.assign(victim,{
+        hitAt:elapsed,health:0,recover:3.5,elevation:0,lift:0,vx:0,vz:0,tilt:0,
+        panicUntil:elapsed+7,fleeX:player.x,fleeZ:player.z
+      });
+      notify('Cartoon knockout · back up shortly');
     }
     if (hit) {
       footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
@@ -1946,7 +1961,7 @@
     }
     for (const worker of workers) {
       if (distance(worker, camera) < 23) drawPerson(worker,
-        worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
+        worker.recover > 0 ? 0 : Math.sin(elapsed * (worker.panicUntil>elapsed?18:11)) * (worker.panicUntil>elapsed?.55:.18), worker.jacket);
     }
     for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<65) {
       if(peer.driving) drawCar(peer,false);

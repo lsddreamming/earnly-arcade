@@ -28,7 +28,26 @@ class AudioContext {
 }
 const sandbox = { document: doc, window: {...make(), AudioContext, localStorage: { getItem: key => saved.get(key), setItem: (key,value) => saved.set(key,value) }}, requestAnimationFrame(fn) { frame = fn; } };
 const src = fs.readFileSync(require('node:path').join(__dirname,'../harbor-getaway.js'), 'utf8').replace('    render();', '    if (Math.round(time / 16.6667) % 30 === 1 || time < 1020) render();');
-vm.runInNewContext(src.replace('  requestAnimationFrame(frame);\n})();', `  globalThis.combatCheck = () => { phase='playing'; activeJob=null; inCar=false; footView=0; Object.assign(player,{x:12,z:100}); workers.forEach(w=>Object.assign(w,{x:200,z:200})); const w=workers[0]; Object.assign(w,{x:12,z:95,health:100,recover:0}); shotFlash=0; shoot(); const first=w.health; const alert=heatLevel; shotFlash=0; w.recover=0; shoot(); const second=w.health; Object.assign(w,{x:26,z:20,health:100,recover:0}); Object.assign(player,{x:26,z:30}); shotFlash=0; shoot(); return {first,second,alert,blockedHealth:w.health}; }; globalThis.safetyCheck = () => {
+vm.runInNewContext(src.replace('  requestAnimationFrame(frame);\n})();', `  globalThis.combatCheck = () => { phase='playing'; activeJob=null; inCar=false; footView=0; Object.assign(player,{x:12,z:100}); workers.forEach(w=>Object.assign(w,{x:200,z:200})); const w=workers[0]; Object.assign(w,{x:12,z:95,health:100,recover:0}); shotFlash=0; shoot(); const first=w.health; const alert=heatLevel; shotFlash=0; shoot(); const second=w.health; Object.assign(w,{x:26,z:20,health:100,recover:0}); Object.assign(player,{x:26,z:30}); shotFlash=0; shoot(); return {first,second,alert,blockedHealth:w.health}; }; globalThis.reactionCheck = () => {
+ reset(true); phase='playing'; inCar=false; activeJob=null; footView=0;
+ Object.assign(player,{x:12,z:100});
+ workers.forEach(w=>Object.assign(w,{x:200,z:200,health:100,recover:0,panicUntil:0}));
+ const target=workers[0],near=workers[1],far=workers[2];
+ Object.assign(target,{x:12,z:95,homeX:12,homeZ:95,dx:0,dz:0});
+ Object.assign(near,{x:15,z:100,homeX:15,homeZ:100,dx:0,dz:0});
+ shotFlash=0; shoot();
+ const knocked=target.health===0 && target.recover===3.5;
+ const fleeing=near.panicUntil>elapsed,quietFar=far.panicUntil===0;
+ const before={x:near.x,z:near.z}; elapsed+=.1; updateWorkers(.1);
+ const ran=Math.hypot(near.x-before.x,near.z-before.z)>.3;
+ shotFlash=0; shoot(); const noExtension=target.recover<3.5;
+ for(let i=0;i<40;i++){elapsed+=.1;updateWorkers(.1);}
+ const recovered=target.health===100 && target.recover===0 && target.tilt===0;
+ const finite=workers.every(w=>Number.isFinite(w.x)&&Number.isFinite(w.z));
+ phase='paused';const frozen=JSON.stringify(workers);frame(10000);const paused=JSON.stringify(workers)===frozen;
+ reset(true); const resetClean=workers.every(w=>w.health===100 && w.recover===0 && w.panicUntil===0);
+ return {knocked,fleeing,quietFar,ran,noExtension,recovered,finite,paused,resetClean};
+ }; globalThis.safetyCheck = () => {
  phase='playing'; activeJob=null; inCar=true; workers.forEach(w=>Object.assign(w,{x:200,z:200,health:100,recover:0}));
  const w=workers[0]; Object.assign(w,{x:12,z:96,homeX:12,homeZ:96,dx:0,dz:0});
  Object.assign(car,{x:12,z:100,angle:0,speed:20}); const result=moveVehicle(car,0,-1.5);
@@ -61,6 +80,8 @@ pass('Pedestrian population and pause',()=>{fresh();assert.equal(sandbox.inspect
 pass('All mission stage chains',()=>{for(let i=0;i<12;i++){click('free-roam');get('mission').value=i;const state=sandbox.inspect();for(const job of state.jobs)state.records[job.name]=100;get('mission').value=i;click('start');const job=sandbox.inspect().activeJob;assert.ok(job);for(const stage of job.stages){sandbox.testStep(stage);if(stage.kind==='shoot')click('fire');else tick(1);}assert.equal(sandbox.inspect().stageIndex,job.stages.length);}});
 assert.equal(passes,25);
 
-const combat=sandbox.combatCheck(); assert.equal(combat.first,100); assert.equal(combat.second,100); assert.equal(combat.alert,0); assert.equal(combat.blockedHealth,100); console.log('Pulse tags: civilians remain unharmed, no free-roam escalation and blocked shots passed');
+const combat=sandbox.combatCheck(); assert.equal(combat.first,0); assert.equal(combat.second,0); assert.equal(combat.alert,0); assert.equal(combat.blockedHealth,100); console.log('Cartoon knockouts, no free-roam escalation and blocked shots passed');
 
 const safety=sandbox.safetyCheck(); assert.equal(safety.result,'bystander'); assert.ok(safety.stopped); assert.ok(safety.protectedAfterTimeout); assert.ok(safety.timedOut); assert.ok(safety.recharged); console.log('Vehicle safety: stops before pedestrians, shield timeout causes no injuries, automatic recharge passed');
+
+const reactions=sandbox.reactionCheck(); for(const [name,passed] of Object.entries(reactions)) assert.ok(passed,name); console.log('Pedestrian reactions: nearby flight, distant calm, knockdown, repeat-hit immunity, recovery, pause and reset passed');
