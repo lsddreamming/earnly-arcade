@@ -1,10 +1,14 @@
 const {test,expect}=require('@playwright/test');
 const state={day:'2026-11-04',week:'2026-11-02',resetAt:'2099-11-05T00:00:00Z',weekResetAt:'2099-11-09T00:00:00Z',goals:[{game:'spiralDrop',goal:8,progress:8},{game:'bounceRun',goal:60,progress:20},{game:'neonSlice',goal:120,progress:0}],days:['2026-11-02','2026-11-04'],reward:'Arcade All-Star Cup',delivered:false,pending:false,totalAwards:0};
-async function setup(page,data=state){
+async function setup(page,data=state,expanded=true){
  await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));
  await page.route('**/cloud.js',r=>r.fulfill({contentType:'application/javascript',body:`window.challengeResponse=${JSON.stringify(data)};window.EarnlyCloud={arcadeChallenge:async()=>{if(window.challengeError)throw Error('offline');return window.challengeResponse;}};`}));
  await page.goto('/index.html');
  await expect(page.locator('#daily-arcade')).toHaveAttribute('aria-busy','false');
+ if(expanded){
+  await page.locator('.daily-challenge-summary').click();
+  await page.locator('.daily-reward-details>summary').click();
+ }
 }
 test('visible card has three direct game links and saved weekly progress',async({page},testInfo)=>{
  await setup(page);const card=page.locator('#daily-arcade');
@@ -55,4 +59,22 @@ test('daily bonus and room collectible preview reflect server confirmation',asyn
  await expect(page.locator('[data-next-reward]')).toContainText('Starlight Room Lamp');
  await page.evaluate(()=>{window.challengeResponse.dailyBonusPaid=true;window.dispatchEvent(new Event('earnly-server-rewards-synced'));});
  await expect(page.locator('[data-daily-bonus]')).toContainText('50 Arcade Coins added');
+});
+
+for(const width of [320,390,440]) test(`Home challenge stays compact until opened at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});
+ await setup(page,state,false);
+ const card=page.locator('#daily-arcade');
+ await expect(card.locator('[data-count]')).toHaveText('1/3 complete');
+ await expect(card.locator('[data-goals]')).toBeHidden();
+ await expect(card.locator('.daily-arcade-prize')).toBeHidden();
+ expect((await card.boundingBox()).height).toBeLessThan(120);
+ await card.locator('.daily-challenge-summary').click();
+ await expect(card.getByRole('link',{name:'Play Bounce Run',exact:true})).toBeVisible();
+ await expect(card.locator('.daily-arcade-prize')).toBeHidden();
+ await card.locator('.daily-reward-details>summary').click();
+ await expect(card.locator('.daily-arcade-prize')).toBeVisible();
+ await card.locator('.daily-challenge-summary').click();
+ await expect(card.locator('[data-goals]')).toBeHidden();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+1);
 });
