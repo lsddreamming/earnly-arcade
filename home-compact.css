@@ -89,7 +89,7 @@ body.home-dashboard .home-container{padding-bottom:90px!important}body.home-dash
 .home-rewards-disclosure>summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;min-height:40px;font-size:14px;font-weight:700}.home-rewards-disclosure>summary::-webkit-details-marker{display:none}
 .home-rewards-disclosure>summary small{display:block;margin-top:4px;font-size:11px;color:#9bb1c7;font-weight:400}.home-rewards-disclosure[open]>summary{margin-bottom:15px}
 .home-game-card:focus-visible,.home-primary-play:focus-visible,.home-rewards-disclosure>summary:focus-visible{outline:3px solid #8ee5ff;outline-offset:4px}
-@media(min-width:700px){.home-game-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.home-game-art{height:130px}}
+@media(min-width:700px){.home-game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-game-art{height:130px}}
 @media(max-width:350px){.home-games-heading h2{font-size:18px}.home-game-copy{padding:10px}.home-game-copy strong{font-size:13px}.home-game-art{height:88px}.home-game-grid{gap:9px}}
 @media(prefers-reduced-motion:reduce){.home-game-card{transition:none}}
 
@@ -135,3 +135,11 @@ body.home-dashboard .public-footer p{font-size:10px;line-height:1.6;max-width:45
 
 body.home-dashboard.has-app-nav{padding-bottom:0!important}
 body.home-dashboard.has-app-nav .home-container{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}
+
+/* Two focused game picks, with room for the artwork and readable descriptions. */
+#homeFeaturedGames .home-game-art{height:clamp(112px,25vw,180px)}
+#homeFeaturedGames .home-game-art svg{width:190px;height:125px}
+#homeFeaturedGames .home-game-art i, #homeFeaturedGames .home-game-art:before, #homeFeaturedGames .home-game-art:after{display:none}
+#homeFeaturedGames .home-game-copy small{font-size:12px;min-height:34px}
+#homeFeaturedGames .home-game-copy strong{font-size:17px}
+@media(max-width:350px){#homeFeaturedGames .home-game-copy strong{font-size:15px}}

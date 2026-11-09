@@ -51,10 +51,17 @@ test('mobile density styles stay scoped away from active game controls', async (
 
 test('Home starts with direct game choices; extras and progress stay secondary',async({page})=>{
  await page.route('https://**',r=>r.abort());await page.setViewportSize({width:390,height:844});await page.goto('/index.html');
- await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-game-card')).toHaveCount(4);await expect(page.locator('.home-game-card').last()).toBeInViewport();
- await expect(page.locator('.home-game-card strong')).toHaveText(['Neon Slice','Snake','Jungle Hopper','Neon Breach']);
- await expect(page.locator('.home-game-snake')).toHaveAttribute('href','snake.html');
- await expect(page.locator('.home-game-breach')).toHaveAttribute('href','neonbreach.html');
+ await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-game-card')).toHaveCount(2);await expect(page.locator('.home-game-card').last()).toBeInViewport();
+ const firstPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
+ expect(new Set(firstPicks).size).toBe(2);
+ for(const href of firstPicks) expect(['neon-slice.html','snake.html','junglehopper.html','neonbreach.html']).toContain(href);
+ await page.reload();
+ await expect(page.locator('.home-game-card')).toHaveCount(2);
+ const nextPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
+ expect(nextPicks.every(href=>!firstPicks.includes(href))).toBe(true);
+ await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));
+ const restoredPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
+ expect(restoredPicks.every(href=>!nextPicks.includes(href))).toBe(true);
  await expect(page.locator('#home-coin-shop')).toHaveAttribute('href','avatars.html');await expect(page.locator('dialog[open]')).toHaveCount(0);
  await expect(page.locator('#homeChatSlot #arcadeChatButton')).toBeVisible();
  await page.locator('#arcadeChatButton').click();await expect(page.locator('#arcadeChat')).toBeVisible();await page.getByRole('button',{name:'Close chat',exact:true}).click();
