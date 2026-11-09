@@ -166,3 +166,31 @@ test('Neon Drift results keep replay before collapsed run details',async({page})
  await dialog.getByText('Run details',{exact:true}).click();
  await expect(dialog.locator('.result-notes')).toBeVisible();
 });
+
+test('track drag uses logical road coordinates on retina canvases',async({page})=>{
+ await page.goto('/neondrift.html');
+ await page.evaluate(()=>{
+  window.__dragSamples=[];
+  const original=NeonDriftEngine.dragTarget;
+  NeonDriftEngine.dragTarget=(target,delta,width)=>{const next=original(target,delta,width);window.__dragSamples.push({target,delta,width,next});return next;};
+ });
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ const box=await page.locator('#game').boundingBox();
+ await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
+ await page.mouse.move(box.x+box.width*.55,box.y+box.height/2);await page.mouse.up();
+ const samples=await page.evaluate(()=>window.__dragSamples);
+ expect(samples.length).toBeGreaterThan(0);
+ for(const sample of samples)expect(sample.next).toBeCloseTo(Math.max(14,Math.min(386,sample.target+sample.delta*400/sample.width)),5);
+});
+
+test('Overdrive meter switches from active boost back to pickup charge',async({page})=>{
+ await page.goto('/neondrift.html');
+ await page.evaluate(()=>{const create=NeonDriftEngine.create;NeonDriftEngine.create=()=>{const s=create();s.boost=4;s.spawnIn=999;s.pickupIn=999;window.__driftRun=s;return s;};});
+ await page.locator('#startButton').click();await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:10000});
+ await expect(page.locator('#overdriveMeter')).toHaveAttribute('aria-label','Overdrive time remaining');
+ await expect(page.locator('body')).toHaveClass(/drift-boosting/);
+ await page.evaluate(()=>{window.__driftRun.boost=0;window.__driftRun.coreStreak=3;});
+ await expect(page.locator('#overdriveMeter')).toHaveJSProperty('value',.6);
+ await expect(page.locator('#pickupStreak')).toHaveText('CHARGE 3 / 5');
+ await expect(page.locator('body')).not.toHaveClass(/drift-boosting/);
+});
