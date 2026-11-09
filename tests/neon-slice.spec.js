@@ -117,13 +117,13 @@ test('one held pointer across new food groups produces separate combos',async({p
  await place();await page.mouse.down();await swipe(.1,.9);
  await expect(page.locator('#sliceScore')).toHaveText('30');
  await page.clock.runFor(200);
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('40');
  // Keep the pointer down while another group arrives, then reverse the swipe.
  await place();await swipe(.9,.1);
  await expect(page.locator('#sliceScore')).toHaveText('70');
  await page.clock.runFor(200);
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
  expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
@@ -292,4 +292,32 @@ test('challenge sharing handles unavailable clipboard and canceled shares',async
  await expect(page.locator('#sliceCopyLabel')).toBeHidden();await expect(page.locator('#sliceShareButton')).toBeEnabled();
  await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Denied');}}});});
  await page.locator('#sliceShareButton').click();await expect(page.locator('#sliceCopyLabel')).toBeVisible();await expect(page.locator('#sliceCopyLink')).toHaveValue(/challenge=80&/);
+});
+
+test('service feedback follows score and misses and resets for replay',async({page})=>{
+ await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{
+  const start=NeonSliceEngine.Game.prototype.start;
+  NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=999;window.__serviceGame=this;};
+ });
+ await page.locator('#sliceStart').click();
+ await page.evaluate(()=>{const g=window.__serviceGame;g.score=270;g.misses=1;g.time=65;});
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',20);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Rush hour');
+ await expect(page.locator('#sliceNotice')).toContainText('2 chances left');
+ await page.evaluate(()=>{window.__serviceGame.misses=2;});
+ await expect(page.locator('#sliceNotice')).toContainText('Last chance');
+ await expect(page.locator('#sliceMisses')).toHaveClass('slice-last-chance');
+ await page.locator('#slicePause').click();
+ await expect(page.locator('#sliceNotice')).toBeEmpty();
+ await page.locator('#sliceStart').click();
+ // End during the next simulation step, as a real completed run does.
+ await page.evaluate(()=>{const g=window.__serviceGame;g.step=function(){delete this.step;this.end('Cookout complete');};});
+ await expect(page.locator('#sliceStats')).toBeVisible();
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',0);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 250');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Opening prep');
+ await expect(page.locator('#sliceMisses')).not.toHaveClass('slice-last-chance');
 });

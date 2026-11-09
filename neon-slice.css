@@ -62,3 +62,15 @@ body.neon-slice-page #sliceCanvas{position:absolute;inset:0;width:100%;height:10
 /* Sharing lives below the arena so replay and reward controls keep their space. */
 .slice-share{padding:16px;margin-top:16px;border:1px solid #466782;border-radius:16px;background:#14243d}
 .slice-share[hidden],.slice-share [hidden]{display:none}.slice-share h2{font-size:17px;margin:0 0 6px}.slice-share p{font-size:13px;line-height:1.5;color:#bdddec}.slice-share>div{display:flex;flex-wrap:wrap;gap:8px}.slice-share button,.slice-share a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid #5adbe4;border-radius:10px;font:700 13px system-ui;text-align:center}.slice-share button{background:#a8fbef;color:#082836}.slice-share a{color:#a8fbef}.slice-share button:disabled{opacity:.6}.slice-share input{display:block;width:100%;margin-top:6px;padding:10px;color:#fff;background:#081323;border:1px solid #5adbe4;border-radius:8px}.slice-share label{font-size:13px}.slice-share .slice-share-note{font-size:11px;margin-bottom:0}
+
+/* Cookout service: legible feedback around the food, never over touch controls. */
+.slice-service{position:absolute;z-index:1;top:5px;left:9px;right:9px;display:flex;justify-content:space-between;gap:6px;pointer-events:none;font-size:9px;letter-spacing:.25px;color:#c0d8e4}
+.slice-service span{padding:3px 6px;border-radius:5px;background:#091622db}
+.slice-idle .slice-service{visibility:hidden}
+.slice-notice{position:absolute;bottom:50px;left:12px;right:12px;pointer-events:none;text-align:center;font:650 12px/1.4 system-ui;color:#ffe3bc;text-shadow:0 2px 5px #000}
+.slice-notice:not(:empty){padding:7px 10px;border:1px solid #b68a5655;border-radius:10px;background:#142334ed}
+.slice-last-chance{color:#ffab96!important}
+#sliceProgress{display:block;appearance:none;width:min(180px,75%);height:4px;margin:7px auto 0;border:0;border-radius:8px;overflow:hidden;background:#284154;color:#7ce7da}
+#sliceProgress::-webkit-progress-bar{background:#284154}#sliceProgress::-webkit-progress-value{background:#7ce7da}#sliceProgress::-moz-progress-bar{background:#7ce7da}
+.slice-title h1{font-weight:850}.slice-title p{letter-spacing:.15px}
+.slice-controls button:active{background:#25475d}.slice-hud>span:first-child strong{color:#fff1cc}
