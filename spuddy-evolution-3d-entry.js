@@ -233,7 +233,7 @@ function create(canvas, game) {
   const actors = new Map();
   let combinedParts = 0;
   function createActor(e) {
-    const group = new THREE.Group(); scene.add(group);
+    const group = new THREE.Group(); group.visible=false; scene.add(group);
     const bodyColor = e.boss ? ['#375f48','#573376','#265975','#833d29','#70345d'][e.zone] : e.kind === 'hunter' ? '#9e244d' : e.kind === 'runner' ? '#ba5621' : e.kind === 'floater' ? '#62399b' : '#167c70';
     const size = e.boss ? 1.65 + e.zone * .08 : .61;
     const body = ball(group, 0, size, 0, size, size * .8, size * .85, bodyColor, e.boss);
@@ -353,6 +353,7 @@ function create(canvas, game) {
       const geometry=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());
       if(geometry){const merged=new THREE.Mesh(geometry,children[0].material);merged.castShadow=children[0].castShadow;merged.receiveShadow=true;children.forEach(m=>group.remove(m));group.add(merged);combinedParts+=children.length-1;}
     }
+    groundShadow.visible=false;if(warning)warning.visible=false;
     actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow, jaw, glow, wings, tendrils, tails, profile, deathFade: 0, wasDead: false, gait: 0, lastX: e.x, lastZ: e.z, facing: 0 });
   }
   for(const e of game.s.enemies)createActor(e);
