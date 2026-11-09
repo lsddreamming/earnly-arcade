@@ -301,6 +301,9 @@ test('service feedback follows score and misses and resets for replay',async({pa
   NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=999;window.__serviceGame=this;};
  });
  await page.locator('#sliceStart').click();
+ // Reward setup is asynchronous; interact with score only after the real start completes.
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
+ await page.waitForFunction(()=>window.__serviceGame?.state==='running');
  await page.evaluate(()=>{const g=window.__serviceGame;g.score=270;g.misses=1;g.time=65;});
  await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',20);
  await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
@@ -316,6 +319,7 @@ test('service feedback follows score and misses and resets for replay',async({pa
  await page.evaluate(()=>{const g=window.__serviceGame;g.step=function(){delete this.step;this.end('Cookout complete');};});
  await expect(page.locator('#sliceStats')).toBeVisible();
  await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
  await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',0);
  await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 250');
  await expect(page.locator('#sliceServiceLabel')).toHaveText('Opening prep');
