@@ -10,15 +10,15 @@ function create(canvas, game) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = .95;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#b6d5d2');
-  scene.fog = new THREE.Fog('#b6d5d2', 38, 95);
+  scene.background = new THREE.Color('#63c8eb');
+  scene.fog = new THREE.Fog('#63c8eb', 38, 95);
   const camera = new THREE.OrthographicCamera(-10, 10, 15, -15, .1, 150);
-  const hemisphere = new THREE.HemisphereLight('#f3fbff', '#9b9473', 2.3);
+  const hemisphere = new THREE.HemisphereLight('#f3fbff', '#608eb5', 1.4);
   scene.add(hemisphere);
-  const sun = new THREE.DirectionalLight('#fff0d1', 3.4);
+  const sun = new THREE.DirectionalLight('#fff3de', 2.4);
   sun.position.set(-12, 24, 12); sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -19; sun.shadow.camera.right = 19;
   sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
@@ -59,11 +59,11 @@ function create(canvas, game) {
   function ring(parent, radius, color, opacity = 1) {
     const m = new THREE.Mesh(geo.ring, basic(color, opacity)); m.rotation.x = -Math.PI / 2; m.scale.setScalar(radius); m.position.y = .09; parent.add(m); return m;
   }
-  const colors = ['#83bb92', '#a891da', '#6dbbcc', '#e49a70', '#be8dc5'];
-  const floorColors = [['#d8e5c9', '#e3ecd8'], ['#dad9e8', '#e7e4f0'], ['#c6e5eb', '#d7edf1'], ['#e6c9b4', '#f0dac7'], ['#ded4e8', '#eaddf0']];
+  const colors = ['#29c76c', '#9760ef', '#19bddb', '#ff853b', '#ec53b2'];
+  const floorColors = [['#82cf64', '#9ddd79'], ['#b6a0f0', '#c6b6fa'], ['#6fd8eb', '#9be7f4'], ['#efa36c', '#ffc18c'], ['#dc93df', '#ecb0e9']];
   const world = [], gates = [], outposts = [];
   const dummy = new THREE.Object3D();
-  const background = box(scene, 0, -.7, -60, 240, .5, 320, '#aacac5');
+  const background = box(scene, 0, -.7, -60, 240, .5, 320, '#419fbd');
   background.receiveShadow = false;
   function leaf(parent, x, y, z, scale, angle, color) {
     const l = ball(parent, x, y, z, .18 * scale, .62 * scale, .12 * scale, color); l.rotation.z = angle; return l;
@@ -88,11 +88,11 @@ function create(canvas, game) {
   }
   function nest(parent, x, z, main) {
     const g = new THREE.Group(); parent.add(g); g.position.set(x, 0, z);
-    cylinder(g, 0, .08, 0, main ? 2.5 : 2, .18, '#98bd91');
-    cylinder(g, 0, .2, 0, main ? 2.1 : 1.6, .2, '#dbe6ba');
+    cylinder(g, 0, .08, 0, main ? 2.5 : 2, .18, '#24a66a');
+    cylinder(g, 0, .2, 0, main ? 2.1 : 1.6, .2, '#b8ef5a');
     cylinder(g, 0, .34, 0, .85, .4, '#629e87');
     ring(g, main ? 2.7 : 2.2, '#edffe4', .75);
-    for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; ball(g, Math.sin(a) * (main ? 1.9 : 1.4), .4, Math.cos(a) * (main ? 1.9 : 1.4), .28, .2, .3, '#c3cba4', true); }
+    for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; ball(g, Math.sin(a) * (main ? 1.9 : 1.4), .4, Math.cos(a) * (main ? 1.9 : 1.4), .28, .2, .3, '#ffd354', true); }
     plant(g, -1, -.5, .9, '#519e75');
     label(g, main ? 'HOME NEST · BANK & HEAL' : 'OUTPOST · BANK & HEAL', 0, .6, 3, '#44725b', 5);
     return g;
@@ -113,7 +113,7 @@ function create(canvas, game) {
     }
     for (let i = 0; i < 8; i++) {
       const x = i % 2 ? -11.5 : 11.5, z = zone.min + 3 + i * 3.4;
-      if (zi === 0 || zi === 4) plant(group, x, z, 1 + i % 3 * .2, zi === 4 ? '#b57fc2' : '#69ac7d');
+      if (zi === 0 || zi === 4) plant(group, x, z, 1 + i % 3 * .2, zi === 4 ? '#ed42bd' : '#20bd60');
       else crystal(group, x, z, .9 + i % 3 * .25, colors[zi]);
     }
     pod(group, -8.7, zone.min + 13, colors[zi]); pod(group, 8.7, zone.min + 18, colors[zi]);
@@ -133,7 +133,7 @@ function create(canvas, game) {
       gates.push({ group: gate, field, sign, zone: zi });
     }
   }
-  function spud(scale = 1, color = '#e2b563', player = false) {
+  function spud(scale = 1, color = '#ffb52b', player = false) {
     const group = new THREE.Group(), rig = new THREE.Group(); group.add(rig);
     const body = ball(rig, 0, 1, 0, .86, 1, .74, color, player);
     for (const x of [-.31, .31]) {
@@ -144,13 +144,13 @@ function create(canvas, game) {
     }
     const mouth = mesh(rig, new THREE.TorusGeometry(.15, .032, 6, 12, Math.PI), mat('#805f39'), [0, .82, .74], [1, 1, 1]); mouth.rotation.z = Math.PI;
     const leaves = [];
-    for (let i = 0; i < 4; i++) leaves.push(leaf(rig, (i - 1.5) * .17, 2.04 + (i % 2) * .1, 0, .7, (i - 1.5) * .45, i % 2 ? '#54b987' : '#77c99a'));
+    for (let i = 0; i < 4; i++) leaves.push(leaf(rig, (i - 1.5) * .17, 2.04 + (i % 2) * .1, 0, .7, (i - 1.5) * .45, i % 2 ? '#129c57' : '#46d864'));
     const limbs = [];
     for (let i = 0; i < 6; i++) {
       const a = i * Math.PI / 3;
-      const upper = mesh(group, geo.cylinder, mat('#4b927b'), [0, 0, 0], [.1, 1, .1]);
-      const lower = mesh(group, geo.cylinder, mat('#69b694'), [0, 0, 0], [.09, 1, .09]);
-      const foot = ball(group, 0, .15, 0, .2, .14, .22, '#4d8c75');
+      const upper = mesh(group, geo.cylinder, mat('#087c67'), [0, 0, 0], [.1, 1, .1]);
+      const lower = mesh(group, geo.cylinder, mat('#1bbf8b'), [0, 0, 0], [.09, 1, .09]);
+      const foot = ball(group, 0, .15, 0, .2, .14, .22, '#08745c');
       limbs.push({ a, upper, lower, foot });
     }
     const armor = new THREE.Group(); rig.add(armor);
@@ -172,15 +172,15 @@ function create(canvas, game) {
     }
     model.leaves.forEach((leaf, i) => { leaf.rotation.x = Math.sin(phase * .6 + i) * .14; });
   }
-  const player = spud(1.08, '#e2b563', true); scene.add(player.group);
+  const player = spud(1.08, '#ffb52b', true); scene.add(player.group);
   const companion = spud(.5, '#8ac7a1'); scene.add(companion.group);
   const actors = new Map();
   for (const e of game.s.enemies) {
     const group = new THREE.Group(); scene.add(group);
-    const bodyColor = e.boss ? colors[e.zone] : e.kind === 'hunter' ? '#ce8997' : e.kind === 'runner' ? '#e2b85d' : colors[e.zone];
+    const bodyColor = e.boss ? colors[e.zone] : e.kind === 'hunter' ? '#f04473' : e.kind === 'runner' ? '#ff9c26' : e.kind === 'floater' ? '#cb69f4' : '#18cbb0';
     const size = e.boss ? 1.5 + e.zone * .08 : .52;
     const body = ball(group, 0, size, 0, size, size * .8, size * .85, bodyColor, e.boss);
-    const cap = ball(group, 0, size * 1.65, 0, size * 1.08, size * .26, size * .95, e.boss ? '#667985' : '#769d92');
+    const cap = ball(group, 0, size * 1.65, 0, size * 1.08, size * .26, size * .95, e.boss ? '#533485' : e.kind === 'hunter' ? '#a51c50' : e.kind === 'runner' ? '#e76019' : e.kind === 'floater' ? '#8b35d5' : '#078e75');
     for (const x of [-.3, .3]) { ball(group, x * size, size, size * .75, size * .17, size * .22, size * .12, '#f9f6e3'); ball(group, x * size, size, size * .86, size * .08, size * .12, size * .04, '#21464a'); }
     const legs = [];
     for (let i = 0; i < (e.boss ? 6 : 4); i++) {
