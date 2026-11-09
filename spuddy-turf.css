@@ -6,3 +6,5 @@ body:not(.playing) .arena{width:100%;min-height:410px}
 .pause{width:44px;min-width:44px}
 @media(max-width:360px){body:not(.playing) .arena{min-height:375px}.control-hint{max-width:100px}.control-row{gap:6px}.dpad{gap:3px}.ranks{gap:3px}}
 @media(orientation:landscape) and (max-height:540px){body:not(.playing) .arena{min-height:0}.dpad{grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px}}
+
+@media(orientation:landscape) and (max-height:540px){.turf-shell{height:100dvh;padding-bottom:4px}.arena,.playing .arena{height:calc(100dvh - 16px)}}
