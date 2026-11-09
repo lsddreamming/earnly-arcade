@@ -60,3 +60,12 @@ test('upgrade previews and Root Focus fit the phone and persist purchases',async
  await page.screenshot({path:info.outputPath('root-focus-upgrades.png')});
  await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await expect(page.locator('.upgrade').filter({hasText:'Root Focus'})).toContainText('1/3');
 });
+
+test('Evolution Lab shows materials, buys an ability and preserves it on phone reload',async({page},info)=>{
+ await page.setViewportSize({width:320,height:568});
+ await page.addInitScript(()=>{if(!localStorage.getItem('earnly.spuddyEvolution.v1'))localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,bosses:[true]}));});
+ await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();await page.locator('#upgrades').click();await page.locator('#journeyButton').click();
+ const card=page.locator('.lab-card').first();await card.scrollIntoViewIfNeeded();await expect(card).toContainText('Thorn seed: 1');await card.getByRole('button').click();await expect(card).toContainText('Thorn renewal · 1/3');await expect(card.getByRole('button')).toBeDisabled();await expect(page.locator('#labCount')).toHaveText('1/15');
+ const box=await card.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);await page.screenshot({path:info.outputPath('evolution-lab-phone.png')});
+ await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await page.locator('#journeyButton').click();await expect(page.locator('.lab-card').first()).toContainText('Thorn seed: 0');await expect(page.locator('#labCount')).toHaveText('1/15');
+});

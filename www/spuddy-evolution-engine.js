@@ -47,8 +47,15 @@
     {name:'Withered springs', desc:'Nests heal 35% slower; their sanctuary remains safe.', armor:1, haste:1, healing:.65}
   ];
   const research = {power:{name:'Ancient roots',desc:'+8% capture power per rank'},health:{name:'Living bark',desc:'+20 maximum health per rank'},cargo:{name:'Deep pockets',desc:'+8 carrying capacity per rank'}};
+  const lab = [
+    {name:'Thorn renewal',material:'Thorn seed',desc:'Captures restore 1 / 2 / 3 health.',color:'#43866a'},
+    {name:'Prism sweep',material:'Prism shard',desc:'Root burst clears incoming spores within 4 / 6 / 8 metres.',color:'#8d69c2'},
+    {name:'Frost guard',material:'Frost core',desc:'Root burst grants 30% damage protection for 1 / 2 / 3 seconds.',color:'#368da7'},
+    {name:'Ember burst',material:'Ember heart',desc:'Root burst deals 20% / 40% / 60% more damage.',color:'#c36a36'},
+    {name:'Bloom renewal',material:'Bloom pearl',desc:'Root burst restores 3% / 6% / 9% maximum health.',color:'#ab588b'}
+  ];
   function clean(raw) {
-    const s = { version: 1, bank: 0, xp: 0, deposited: 0, unlocked: 0, bosses: zones.map(() => false), perks: [], journey: {chapter:1,shards:0,captures:0,banked:0,research:{power:0,health:0,cargo:0},journal:Array(25).fill(0)}, crew:{rescued:Array(5).fill(false),transit:0,rare:0}, levels: { focus:0,roots:0,courier:0,power: 0, reach: 0, cargo: 0, speed: 0, health: 0, helper: 0 } };
+    const s = { version: 1, lab:{cores:Array(5).fill(0),ranks:Array(5).fill(0)}, bank: 0, xp: 0, deposited: 0, unlocked: 0, bosses: zones.map(() => false), perks: [], journey: {chapter:1,shards:0,captures:0,banked:0,research:{power:0,health:0,cargo:0},journal:Array(25).fill(0)}, crew:{rescued:Array(5).fill(false),transit:0,rare:0}, levels: { focus:0,roots:0,courier:0,power: 0, reach: 0, cargo: 0, speed: 0, health: 0, helper: 0 } };
     if (!raw || raw.version !== 1) return s;
     for (const k of ['bank', 'xp', 'deposited']) s[k] = Number.isFinite(raw[k]) ? clamp(Math.floor(raw[k]), 0, 1000000) : 0;
     s.unlocked = Number.isInteger(raw.unlocked) ? clamp(raw.unlocked, 0, zones.length - 1) : 0;
@@ -63,6 +70,8 @@
       for(const k of Object.keys(research))s.journey.research[k]=Number.isInteger(j.research?.[k])?clamp(j.research[k],0,30):0;
       s.journey.journal=s.journey.journal.map((_,i)=>Number.isInteger(j.journal?.[i])?clamp(j.journal[i],0,1000000):0);
     }
+    s.lab.ranks=s.lab.ranks.map((_,i)=>Number.isInteger(raw.lab?.ranks?.[i])?clamp(raw.lab.ranks[i],0,3):0);
+    s.lab.cores=s.lab.cores.map((_,i)=>raw.lab?Number.isInteger(raw.lab.cores?.[i])?clamp(raw.lab.cores[i],0,100):0:Math.min(100,Math.max(s.bosses[i]?1:0,s.journey.journal[i*5+4])));
     return s;
   }
   function clearPath(x, z, tx, tz) {
@@ -77,7 +86,7 @@
   }
   function create(raw, random = Math.random) {
     const save = clean(raw);
-    const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0, hurt: 0, projectiles: [],courier:{x:0,z:9},rescueProgress:0,rescueTarget:-1,gardenClock:0 };
+    const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0, hurt: 0, projectiles: [],courier:{x:0,z:9},rescueProgress:0,rescueTarget:-1,gardenClock:0,labGuard:0 };
     const condition = () => save.journey.chapter===1 ? null : conditions[(save.journey.chapter-2)%conditions.length];
     const rescuedCount=()=>save.crew.rescued.filter(Boolean).length;
     const count = key => save.perks.filter(p => p === key).length;
@@ -147,26 +156,29 @@
         if(species>=0&&species<25){save.journey.journal[species]++;if([1,10,50,e.boss?100:200].includes(save.journey.journal[species])){save.journey.shards++;event('discovery',{amount:1});}}
         if(e.boss)save.journey.shards+=1+Math.floor(save.journey.chapter/5);else save.journey.captures++;
         e.hp = 0; e.dead = e.boss ? Infinity : 14; save.xp += e.value;
-        if (e.boss) { save.bosses[e.zone] = true; save.bank += e.value; s.won = save.bosses.at(-1); event('boss', { zone: e.zone, value: e.value }); }
-        else { s.cargo = Math.min(stats().capacity, s.cargo + e.value); event('capture', { x: e.x, z: e.z, value: e.value }); }
+        if (e.boss) { if(!save.bosses[e.zone])save.lab.cores[e.zone]=Math.min(100,save.lab.cores[e.zone]+1); save.bosses[e.zone] = true; save.bank += e.value; s.won = save.bosses.at(-1); event('boss', { zone: e.zone, value: e.value }); }
+        else { s.hp=Math.min(stats().hp,s.hp+save.lab.ranks[0]); s.cargo = Math.min(stats().capacity, s.cargo + e.value); event('capture', { x: e.x, z: e.z, value: e.value }); }
       }
     }
     function hurt(amount) {
       const nest = nearestNest();
       if (s.hurt > 0 || Math.hypot(s.x - nest.x, s.z - nest.z) < 3) return;
-      amount*=1+.018*(save.journey.chapter-1);
+      amount*=(1+.018*(save.journey.chapter-1))*(s.labGuard>0?.7:1);
       s.hp = Math.max(0, s.hp - amount); s.hurt = .65;
       event('hurt', { amount });
     }
     function pulse() {
       if (s.paused || s.dead || s.cooldown > 0) return false;
       s.cooldown = evolution()===2?5:7; s.pulse = .6;
-      for (const e of s.enemies) if (clearPath(s.x, s.z, e.x, e.z) && Math.hypot(e.x - s.x, e.z - s.z) < stats().range * 1.6) damage(e, stats().power * (evolution()>=1?3:2.3));
+      if(save.lab.ranks[1])s.projectiles=s.projectiles.filter(p=>Math.hypot(p.x-s.x,p.z-s.z)>2+2*save.lab.ranks[1]||!clearPath(s.x,s.z,p.x,p.z));
+      s.labGuard=save.lab.ranks[2];
+      s.hp=Math.min(stats().hp,s.hp+stats().hp*.03*save.lab.ranks[4]);
+      for (const e of s.enemies) if (clearPath(s.x, s.z, e.x, e.z) && Math.hypot(e.x - s.x, e.z - s.z) < stats().range * 1.6) damage(e, stats().power * (evolution()>=1?3:2.3)*(1+.2*save.lab.ranks[3]));
       event('pulse'); return true;
     }
     function step(dt, input = { x: 0, z: 0 }) {
       if (s.paused || s.dead || !Number.isFinite(dt) || dt <= 0) return;
-      dt = Math.min(dt, .05); s.hurt = Math.max(0, s.hurt - dt); s.time += dt; s.cooldown = Math.max(0, s.cooldown - dt); s.pulse = Math.max(0, s.pulse - dt);
+      dt = Math.min(dt, .05); s.labGuard=Math.max(0,s.labGuard-dt); s.hurt = Math.max(0, s.hurt - dt); s.time += dt; s.cooldown = Math.max(0, s.cooldown - dt); s.pulse = Math.max(0, s.pulse - dt);
       const a = stats(); let ix = Number.isFinite(input.x) ? input.x : 0, iz = Number.isFinite(input.z) ? input.z : 0, len = Math.hypot(ix, iz);
       if (len > 1) { ix /= len; iz /= len; }
       s.x = clamp(s.x + ix * a.speed * dt, -12, 12);
@@ -265,7 +277,7 @@
     }
     function bankCargo(amount){save.bank+=amount;save.deposited+=amount;save.journey.banked+=amount;event('deposit',{amount});}
     function respawn() {
-      const nest = nearestNest(); s.dead = false; s.x = nest.x; s.z = nest.z; s.hp = stats().hp; s.cargo = Math.floor(s.cargo * .75); s.cooldown = 0; s.hurt = 2; s.projectiles=[]; for(const e of s.enemies){e.dash=0;e.windup=0;}
+      const nest = nearestNest(); s.dead = false; s.x = nest.x; s.z = nest.z; s.hp = stats().hp; s.cargo = Math.floor(s.cargo * .75); s.cooldown = 0; s.labGuard=0; s.hurt = 2; s.projectiles=[]; for(const e of s.enemies){e.dash=0;e.windup=0;}
       for (const e of s.enemies) if (e.boss && !e.dead) { e.hp = e.maxHp; e.windup = 0; e.attack = 2; } event('respawn');
     }
     function travel(zone){
@@ -277,6 +289,11 @@
       const ready=save.bosses.every(Boolean)&&j.captures>=captures&&j.banked>=banked;
       return {chapter:j.chapter,total:CHAPTERS,captures,banked,ready,complete:ready&&j.chapter===CHAPTERS,condition:condition(),bosses:save.bosses.filter(Boolean).length};
     }
+    function labCost(zone){return Number.isInteger(zone)&&zone>=0&&zone<lab.length?save.lab.ranks[zone]+1:Infinity;}
+    function buyLab(zone){
+      if(s.dead||!Number.isInteger(zone)||zone<0||zone>=lab.length||save.lab.ranks[zone]>=3||save.lab.cores[zone]<labCost(zone))return false;
+      save.lab.cores[zone]-=labCost(zone);save.lab.ranks[zone]++;event('lab',{zone});return true;
+    }
     function researchCost(key){return Object.hasOwn(research,key)?2+Math.floor(save.journey.research[key]/3):Infinity;}
     function buyResearch(key){
       if(!Object.hasOwn(research,key)||s.dead||save.journey.research[key]>=30||save.journey.shards<researchCost(key))return false;
@@ -286,7 +303,7 @@
       const status=journeyStatus();if(!status.ready||status.complete||s.dead)return false;
       if(save.crew.transit){bankCargo(save.crew.transit);save.crew.transit=0;}s.courier={x:0,z:9};s.rescueProgress=0;s.rescueTarget=-1;
       save.journey.chapter++;save.journey.captures=0;save.journey.banked=0;save.bosses=zones.map(()=>false);save.unlocked=0;
-      s.x=0;s.z=9;s.cargo=0;s.hp=stats().hp;s.won=false;s.dead=false;s.cooldown=0;s.hurt=2;s.projectiles=[];s.links=[];s.events=[];s.enemies=[];s.depositClock=0;
+      s.x=0;s.z=9;s.cargo=0;s.hp=stats().hp;s.won=false;s.dead=false;s.cooldown=0;s.labGuard=0;s.hurt=2;s.projectiles=[];s.links=[];s.events=[];s.enemies=[];s.depositClock=0;
       for(let z=0;z<zones.length;z++){for(let i=0;i<12;i++)s.enemies.push(spawn(z,i));s.enemies.push(spawn(z,99,true));}
       event('chapter',{chapter:save.journey.chapter});return true;
     }
@@ -297,8 +314,8 @@
       if (!save.bosses[save.unlocked]) return 'Defeat the ' + zones[save.unlocked].boss;
       return 'Bank ' + zones[save.unlocked + 1].cost + ' seeds to unlock the next habitat';
     }
-    return { s, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
+    return { s, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
   }
-  const api = { create, clean, zones, upgrades, perks, research, conditions, CHAPTERS, upgradeCap, rescues };
+  const api = { create, clean, lab, zones, upgrades, perks, research, conditions, CHAPTERS, upgradeCap, rescues };
   if (typeof module !== 'undefined') module.exports = api; else root.SpuddyEvolution = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
