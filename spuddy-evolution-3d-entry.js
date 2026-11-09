@@ -196,6 +196,10 @@ function create(canvas, game) {
       warning.visible = false;
       label(group, SpuddyEvolution.zones[e.zone].boss.toUpperCase(), 0, size * 2.9, 0, '#6e5662', 6);
     }
+    if (!e.boss) {
+      warning = mesh(scene, geo.disk, basic('#ff7957', .45), [0, .12, 0], [1, 1, 1]);
+      warning.rotation.x = -Math.PI / 2; warning.visible = false;
+    }
     const health = new THREE.Group(); group.add(health); health.position.y = size * 2.4;
     mesh(health, geo.box, basic('#263e48', .4), [0, 0, 0], [size * 2, .09, .02]);
     const fill = mesh(health, geo.box, basic(e.boss ? '#e37477' : '#6fb28b'), [0, 0, .02], [size * 2, .09, .02]);
@@ -245,6 +249,7 @@ function create(canvas, game) {
         actor.warning.visible = !e.dead && e.windup > 0 && actor.group.visible;
         actor.warning.position.set(e.targetX, .13, e.targetZ);
         actor.warning.scale.set(e.zone === 3 ? 3.6 : e.zone === 4 ? 4.2 : 3.4, e.zone === 3 ? .05 : e.zone === 4 ? 4.2 : 3.4, e.zone === 3 ? 10 : 1);
+        if (!e.boss) actor.warning.scale.set(e.attackRadius || 1.3, e.attackRadius || 1.3, 1);
       }
       if (!actor.group.visible) continue;
       actor.group.position.set(e.x, e.kind === 'floater' ? .65 + Math.sin(e.phase * 3) * .18 : 0, e.z);

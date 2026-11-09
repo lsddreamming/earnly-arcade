@@ -56,7 +56,7 @@
   }
   function create(raw, random = Math.random) {
     const save = clean(raw);
-    const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0 };
+    const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0, hurt: 0 };
     const count = key => save.perks.filter(p => p === key).length;
     const stats = () => ({ power: 10 * (1 + .35 * save.levels.power + .08 * count('roots')), range: 3.1 + .4 * save.levels.reach, capacity: 24 + 12 * save.levels.cargo + 6 * count('harvest'), speed: 5.2 * (1 + .08 * save.levels.speed), hp: 100 + 25 * save.levels.health + 15 * count('vigor'), targets: 2 + Math.floor(save.levels.power / 2) });
     s.hp = stats().hp;
@@ -103,6 +103,12 @@
         else { s.cargo = Math.min(stats().capacity, s.cargo + e.value); event('capture', { x: e.x, z: e.z, value: e.value }); }
       }
     }
+    function hurt(amount) {
+      const nest = nearestNest();
+      if (s.hurt > 0 || Math.hypot(s.x - nest.x, s.z - nest.z) < 3) return;
+      s.hp = Math.max(0, s.hp - amount); s.hurt = .65;
+      event('hurt', { amount });
+    }
     function pulse() {
       if (s.paused || s.dead || s.cooldown > 0) return false;
       s.cooldown = 7; s.pulse = .6;
@@ -111,7 +117,7 @@
     }
     function step(dt, input = { x: 0, z: 0 }) {
       if (s.paused || s.dead || !Number.isFinite(dt) || dt <= 0) return;
-      dt = Math.min(dt, .05); s.time += dt; s.cooldown = Math.max(0, s.cooldown - dt); s.pulse = Math.max(0, s.pulse - dt);
+      dt = Math.min(dt, .05); s.hurt = Math.max(0, s.hurt - dt); s.time += dt; s.cooldown = Math.max(0, s.cooldown - dt); s.pulse = Math.max(0, s.pulse - dt);
       const a = stats(); let ix = Number.isFinite(input.x) ? input.x : 0, iz = Number.isFinite(input.z) ? input.z : 0, len = Math.hypot(ix, iz);
       if (len > 1) { ix /= len; iz /= len; }
       s.x = clamp(s.x + ix * a.speed * dt, -12, 12);
@@ -139,16 +145,34 @@
             e.windup -= dt;
             if (e.windup <= 0) {
               const hit = e.zone === 3 ? Math.abs(s.x - e.targetX) < 1.8 && Math.abs(s.z - e.targetZ) < 5 : Math.hypot(s.x - e.targetX, s.z - e.targetZ) < (e.zone === 4 ? 4.2 : 3.4);
-              if (hit) s.hp -= 28 + e.zone * 12;
+              if (hit && clearPath(e.x, e.z, s.x, s.z)) hurt(18 + e.zone * 12);
               event('slam', { x: e.targetX, z: e.targetZ }); e.attack = e.zone === 4 ? 2.8 : 3.8;
             }
           } else if (e.attack <= 0 && dist < 9) { e.windup = e.zone === 4 ? 1.6 : 1.25; e.targetX = s.x; e.targetZ = s.z; }
           else if (dist < 10 && dist > 2) { e.x = clamp(e.x + dx * 1.3 * dt, -11, 11); e.z = clamp(e.z + dz * 1.3 * dt, zone.min + 3, zone.max - 3); }
         } else {
           let vx = Math.sin(e.phase + e.id) * .35, vz = Math.cos(e.phase * .7 + e.id) * .35;
-          if (dist < 5) { const direction = e.kind === 'hunter' ? 1 : e.kind === 'runner' ? -1 : 0; vx += dx * direction * (e.kind === 'runner' ? 1.8 : 1.25); vz += dz * direction * (e.kind === 'runner' ? 1.8 : 1.25); }
+          if (dist < 5) { const direction = e.kind === 'hunter' ? 1 : e.kind === 'runner' ? -1 : 0; vx += dx * direction * (e.kind === 'runner' ? 1.8 : 1.25 + e.zone * .4); vz += dz * direction * (e.kind === 'runner' ? 1.8 : 1.25 + e.zone * .4); }
           e.x = clamp(e.x + vx * dt, -11.5, 11.5); e.z = clamp(e.z + vz * dt, zone.min + 3, zone.max - 3);
-          if (e.kind === 'hunter' && dist < 1.2) s.hp -= (5 + e.zone * 3) * dt;
+          // Each species gains an offensive role gradually; starting bites are forgiving.
+          e.attack = Math.max(0, (Number.isFinite(e.attack) ? e.attack : 2) - dt);
+          const canReach = clearPath(e.x, e.z, s.x, s.z);
+          if (e.windup > 0) {
+            e.windup -= dt;
+            if (e.windup <= 0) {
+              if (canReach && Math.hypot(s.x - e.targetX, s.z - e.targetZ) < e.attackRadius) hurt(5 + e.zone * 4);
+              e.attack = 3.8 - e.zone * .35;
+            }
+          } else if (canReach && !e.attack) {
+            if (e.kind === 'floater' && e.zone >= 1 && dist < 6 || e.kind === 'grazer' && e.zone >= 2 && dist < 2.8) {
+              e.targetX = e.kind === 'grazer' ? e.x : s.x; e.targetZ = e.kind === 'grazer' ? e.z : s.z;
+              e.attackRadius = e.kind === 'grazer' ? 2.4 : 1.3;
+              e.windup = 1.4 - e.zone * .1;
+            } else if (dist < 1.35) {
+              hurt((e.kind === 'hunter' ? 4 : 2) + e.zone * 3);
+              e.attack = 2.5 - e.zone * .3;
+            }
+          }
         }
       }
       for (const e of s.enemies) if (!e.dead && e.zone <= save.unlocked) separate(e, e.boss ? 1.3 : .4);
@@ -160,7 +184,7 @@
       if (s.hp <= 0) { s.hp = 0; s.dead = true; s.links = []; event('defeat'); }
     }
     function respawn() {
-      const nest = nearestNest(); s.dead = false; s.x = nest.x; s.z = nest.z; s.hp = stats().hp; s.cargo = Math.floor(s.cargo * .75); s.cooldown = 0;
+      const nest = nearestNest(); s.dead = false; s.x = nest.x; s.z = nest.z; s.hp = stats().hp; s.cargo = Math.floor(s.cargo * .75); s.cooldown = 0; s.hurt = 2;
       for (const e of s.enemies) if (e.boss && !e.dead) { e.hp = e.maxHp; e.windup = 0; e.attack = 2; } event('respawn');
     }
     function objective() {
