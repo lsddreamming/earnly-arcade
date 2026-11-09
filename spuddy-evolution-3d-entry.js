@@ -210,8 +210,10 @@ function create(canvas, game) {
     const armor = new THREE.Group(); rig.add(armor);
     for (const x of [-.82, .82]) ball(armor, x, 1.2, 0, .23, .4, .35, '#4faca8', player);
     armor.visible = false;
+    for(const side of [-1,1]){const claw=mesh(armor,geo.cone,mat('#ffe9a3'),[side*1.08,.9,.45],[.17,.65,.17]);claw.rotation.z=-side*.8;}
     const crown = new THREE.Group(); rig.add(crown);
     for (let i = 0; i < 5; i++) mesh(crown, geo.cone, mat('#93dfcc', { metalness: .2 }), [(i - 2) * .25, 2, -.2], [.15, .65, .15]);
+    for(const side of [-1,1])mesh(crown,geo.shell,mat('#3ce1d0'),[side*.75,.95,.2],[.3,.5,.25]);
     crown.visible = false; group.scale.setScalar(scale);
     return { group, rig, body, limbs, leaves, armor, crown };
   }
@@ -353,6 +355,7 @@ function create(canvas, game) {
     }
     actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow, jaw, glow, wings, tendrils, tails, profile, deathFade: 0, wasDead: false, gait: 0, lastX: e.x, lastZ: e.z, facing: 0 });
   }
+  const shots=Array.from({length:32},()=>{const m=mesh(scene,geo.sphere,mat('#e6a1ff',{emissive:'#aa26df',emissiveIntensity:1.3}),[0,0,0],[.23,.23,.23]);m.visible=false;return m;});
   const reach = ring(scene, game.stats().range, '#ffffff', .55), pulseRing = ring(scene, 1, '#7affcf', .8);
   const roots = [];
   for (let i = 0; i < 6; i++) { const pieces = []; for (let j = 0; j < 6; j++) pieces.push(mesh(scene, geo.cylinder, mat('#62ba98', { emissive: '#2d7f68', emissiveIntensity: .25 }), [0, 0, 0], [.06, 1, .06])); roots.push(pieces); }
@@ -376,6 +379,7 @@ function create(canvas, game) {
   function draw(dt = 0) {
     if (contextLost) return;
     const s = game.s, a = game.stats(), t = s.time;
+    shots.forEach((m,i)=>{const p=s.projectiles[i];m.visible=!!p;if(p)m.position.set(p.x,.75,p.z);});
     const smooth = 1 - Math.exp(-Math.max(dt, .016) * 7);
     px += (s.x - px) * smooth; pz += (s.z - pz) * smooth; yaw += (targetYaw - yaw) * smooth;
     camera.position.set(px + Math.sin(yaw) * 19, 24, pz + Math.cos(yaw) * 19); camera.lookAt(px, 0, pz);
@@ -418,7 +422,7 @@ function create(canvas, game) {
       actor.group.scale.set(actor.profile[0]*(1+charge*.06)*fade,actor.profile[1]*(1-charge*.14)*fade,actor.profile[2]*(1+charge*.06)*fade);
       if(e.dead) actor.group.position.y+=(1-fade)*1.1;
       actor.group.rotation.x=charge?-.1:0;
-      actor.glow.emissiveIntensity=1.1+charge*.9+Math.sin(e.phase*2)*.12;
+      actor.glow.emissiveIntensity=(e.enraged?2:1.1)+charge*.9+Math.sin(e.phase*2)*.12;
       actor.wings.forEach(({wing,side})=>{wing.rotation.z=side*Math.sin(e.phase*6)*.25;wing.rotation.x=-.5+Math.sin(e.phase*6)*.15;});
       actor.tendrils.forEach(({vine,side,i,floating})=>{
         if(floating)segment(vine,[side*actor.size*.4,actor.size*.65,-.1],[side*actor.size*.55+Math.sin(e.phase*3+i)*.13,-.28,-.1+Math.cos(e.phase*2+i)*.12],.045);
