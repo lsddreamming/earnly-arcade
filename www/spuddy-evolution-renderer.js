@@ -1,6 +1,6 @@
 (function(root){'use strict';
 function create(canvas,game){const c=canvas.getContext('2d');let w=0,h=0,dpr=1,scale=30,cx=0,cz=9,guide=0;const particles=[];const palette=['#91cdb2','#b5a0df','#83cbdc'];
-function resize(){w=innerWidth;h=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=w*dpr;canvas.height=h*dpr;scale=Math.max(26,Math.min(43,w/15));c.setTransform(dpr,0,0,dpr,0,0);}resize();
+function resize(){w=innerWidth;h=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=w*dpr;canvas.height=h*dpr;scale=Math.max(30,Math.min(48,w/11.5));c.setTransform(dpr,0,0,dpr,0,0);}resize();
 function p(x,z,y=0){return {x:w/2+(x-cx)*scale,y:h*.53+(z-cz)*scale*.68-y*scale};}
 function ellipse(x,y,rx,ry,fill,stroke){c.beginPath();c.ellipse(x,y,Math.max(.01,rx),Math.max(.01,ry),0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}}
 function shadow(x,z,r){const q=p(x,z);const g=c.createRadialGradient(q.x,q.y,0,q.x,q.y,r*scale);g.addColorStop(0,'#294f4440');g.addColorStop(1,'#294f4400');ellipse(q.x,q.y,r*scale,r*scale*.43,g);}
