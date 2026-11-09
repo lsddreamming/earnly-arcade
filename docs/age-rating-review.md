@@ -7,7 +7,7 @@ App Store version 1.12 build 1002 was submitted with the previous Harbor mechani
 ## Findings and changes
 
 - Harbor previously allowed repeated gunfire at human pedestrians, vehicle impacts with ragdolls, and explosive vehicle damage affecting nearby people. These were substantive reasons to review realistic violence, even without blood.
-- Pulse tags now produce sparkle feedback without reducing pedestrian health or knocking them down. Moving vehicles brake before approaching bystanders, including drivers who have stepped out. Vehicle shields temporarily recharge without explosion, fire, or nearby injury.
+- Pedestrians now flee nearby shots for five seconds. A direct hit triggers a 3.5-second cartoon knockdown with stars, followed by recovery and flight; downed pedestrians cannot be hit repeatedly. This is depicted violence against human pedestrians and must be included in the realistic-violence and mature-theme reassessment, even without blood. Moving vehicles brake before approaching bystanders, including drivers who have stepped out. Vehicle shields temporarily recharge without explosion, fire, or nearby injury.
 - Recorded gunshots and screams have been removed from the packaged audio. Original layered synthesized shots and pop tones replace them; real engine and brake recordings remain.
 - Occupied-car entry now pulls the driver out with a brief sideways animation; they stand and walk away without injury. Entry does not trigger a chase alert. This forced-entry mechanic must be considered when reassessing mature/crime themes. Missions describe a rally and chase-tag, with colorful marshal vehicles and quieter musical cues. Existing job IDs/names are retained for server and save compatibility.
 - Optional live combat is presented as pulse-tag with shields and round resets. Server-side hit validation, reward limits and account controls are unchanged. Do not describe the entire app as containing no combat or weapons.
@@ -33,3 +33,7 @@ Official references (checked 2026-11-08):
 ## Validation
 
 Passed locally: Harbor movement/combat, jump/roof, audio, online and map/sandbox simulations; 23 native advertising consent/content-cap tests; and 20 page source contracts. Web cache version was advanced so existing installs refresh the revised assets. Browser CI and on-device visual/listening checks remain release gates. Specifically verify harmless pedestrian tags, forward/reverse safety stops, shield recharge, simultaneous run/jump, toy audio, and optional live tag rounds.
+
+## Pedestrian reaction follow-up
+
+Four existing Harbor simulations and new flight/recovery/pause/reset assertions passed in a JavaScript harness. The local shell runner was unavailable; GitHub Node/browser CI and on-device review remain required. The Apple questionnaire is unchanged.

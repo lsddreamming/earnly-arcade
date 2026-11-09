@@ -39,20 +39,30 @@ function hold(code, frames) { key(code,true); tick(frames); key(code,false); }
 function fresh(){click('free-roam');sandbox.pose(124,124,0);tick(1);}
 function tap(time,x=100,y=100){const t={identifier:1,clientX:x,clientY:y};get('city').handlers.touchstart({timeStamp:time,touches:[t],changedTouches:[t],preventDefault(){}});doc.handlers.touchend({type:'touchend',timeStamp:time+50,touches:[],changedTouches:[t]});}
 fresh();click('jump');tick(10);assert.ok(sandbox.inspect().jumpHeight>0);const rising=sandbox.inspect().jumpVelocity;click('jump');assert.equal(sandbox.inspect().jumpVelocity,rising);tick(80);assert.equal(sandbox.inspect().jumpHeight,0);
-fresh();tap(1000);assert.equal(sandbox.inspect().jumpVelocity,0);tap(1200);assert.equal(sandbox.inspect().jumpVelocity,9.4);tick(10);click('pause');const height=sandbox.inspect().jumpHeight;tick(20);assert.equal(sandbox.inspect().jumpHeight,height);click('pause');tick(80);assert.equal(sandbox.inspect().jumpHeight,0);
+fresh();tap(1000);assert.equal(sandbox.inspect().jumpVelocity,0);tap(1200);assert.equal(sandbox.inspect().jumpVelocity,8.4);tick(10);click('pause');const height=sandbox.inspect().jumpHeight;tick(20);assert.equal(sandbox.inspect().jumpHeight,height);click('pause');tick(80);assert.equal(sandbox.inspect().jumpHeight,0);
 fresh();tap(2000);tap(2500);assert.equal(sandbox.inspect().jumpVelocity,0);
 fresh();tap(3000);tap(3200,200);assert.equal(sandbox.inspect().jumpVelocity,0);
 fresh();tap(4000);const t={identifier:2,clientX:100,clientY:100};get('city').handlers.touchstart({timeStamp:4200,touches:[t],changedTouches:[t],preventDefault(){}});get('city').handlers.touchmove({changedTouches:[{...t,clientX:140}],preventDefault(){}});doc.handlers.touchend({type:'touchend',timeStamp:4250,touches:[],changedTouches:[t]});assert.equal(sandbox.inspect().jumpVelocity,0);
 fresh();tap(5000);get('city').handlers.touchstart({timeStamp:5200,touches:[t,{...t,identifier:3}],changedTouches:[t],preventDefault(){}});doc.handlers.touchend({type:'touchend',timeStamp:5250,touches:[],changedTouches:[t]});assert.equal(sandbox.inspect().jumpVelocity,0);
 fresh();tap(6000);get('city').handlers.touchstart({timeStamp:6200,touches:[t],changedTouches:[t],preventDefault(){}});doc.handlers.touchcancel({type:'touchcancel',timeStamp:6250,touches:[],changedTouches:[t]});assert.equal(sandbox.inspect().jumpVelocity,0);
-fresh();key('Space',true);assert.equal(sandbox.inspect().jumpVelocity,9.4);tick(10);click('free-roam');assert.equal(sandbox.inspect().jumpHeight,0);assert.equal(sandbox.inspect().jumpVelocity,0);
+fresh();key('Space',true);assert.equal(sandbox.inspect().jumpVelocity,8.4);tick(10);click('free-roam');assert.equal(sandbox.inspect().jumpHeight,0);assert.equal(sandbox.inspect().jumpVelocity,0);
 fresh();sandbox.setCar(124,124,0,0);click('jump');tap(7000);tap(7200);assert.equal(sandbox.inspect().jumpVelocity,0);
 fresh();key('ArrowUp',true);click('jump');const before=sandbox.inspect().player;tick(10);key('ArrowUp',false);assert.ok(sandbox.inspect().jumpHeight>0);assert.ok(Math.hypot(sandbox.inspect().player.x-before.x,sandbox.inspect().player.z-before.z)>0);
 console.log('Jump: button, keyboard, double-tap, landing, no air jump, pause/resume, reset, movement, driving exclusion, drag, spacing, multi-touch and cancellation passed');
 
-fresh();let v=sandbox.inspect().vehicles[0];sandbox.roofTest(v,2.3,-1);tick(40);assert.equal(sandbox.inspect().roofSupport?.vehicle,v);assert.ok(sandbox.inspect().jumpHeight>1);click('jump');assert.equal(sandbox.inspect().jumpVelocity,9.4);tick(100);assert.equal(sandbox.inspect().roofSupport?.vehicle,v);v.destroyed=true;tick(80);assert.equal(sandbox.inspect().jumpHeight,0);v.destroyed=false;
+fresh();let v=sandbox.inspect().vehicles[0];sandbox.roofTest(v,2.3,-1);tick(40);assert.equal(sandbox.inspect().roofSupport?.vehicle,v);assert.ok(sandbox.inspect().jumpHeight>1);click('jump');assert.ok(sandbox.inspect().jumpVelocity>0 && sandbox.inspect().jumpVelocity<5);tick(100);assert.equal(sandbox.inspect().roofSupport?.vehicle,v);v.destroyed=true;tick(80);assert.equal(sandbox.inspect().jumpHeight,0);v.destroyed=false;
 fresh();v=sandbox.inspect().vehicles[0];sandbox.roofTest(v,2.3,-1);tick(40);const p=sandbox.inspect().player;v.x+=.3;tick(1);assert.ok(Math.abs(sandbox.inspect().player.x-p.x-.3)<.001);key('ArrowUp',true);tick(100);key('ArrowUp',false);tick(80);assert.equal(sandbox.inspect().jumpHeight,0);
 fresh();const finger={identifier:11,clientX:100,clientY:100};get('city').handlers.touchstart({changedTouches:[finger],touches:[finger],preventDefault(){}});get('city').handlers.touchmove({changedTouches:[{...finger,clientY:60}],preventDefault(){}});const pos=sandbox.inspect().player;get('jump').handlers.pointerdown({button:0,preventDefault(){}});tick(10);assert.ok(sandbox.inspect().jumpHeight>0);assert.ok(Math.hypot(sandbox.inspect().player.x-pos.x,sandbox.inspect().player.z-pos.z)>0);doc.handlers.touchend({type:'touchend',changedTouches:[finger],touches:[]});
 console.log('Roof landing, roof re-jump, moving support, destroyed support, walk-off and simultaneous run/jump passed');
 
 fresh();const stunned=sandbox.inspect().workers[0];Object.assign(stunned,{health:0,recover:.1,tilt:1.3,elevation:0,lift:0});tick(20);assert.equal(stunned.health,100);assert.equal(stunned.tilt,0);assert.equal(stunned.elevation,0);console.log('Cartoon knockout recovery returns pedestrian upright');
+
+fresh();click('jump');let peak=0;for(let i=0;i<80;i++){tick(1);peak=Math.max(peak,sandbox.inspect().jumpHeight);}assert.ok(peak>1.83 && peak<2.05);console.log('Short hop clears vehicle roofs and stays below 2.05 units');
+
+for(const index of [0,1,2]) {
+ fresh();const vehicle=sandbox.inspect().vehicles[index];
+ sandbox.pose(vehicle.x,vehicle.z+3.7,0);click('run-mode');key('ArrowUp',true);click('jump');
+ let landed=false;for(let i=0;i<65;i++){tick(1);if(sandbox.inspect().roofSupport?.vehicle===vehicle){landed=true;break;}}
+ key('ArrowUp',false);assert.ok(landed,'running hop onto '+vehicle.name);
+}
+console.log('Running ground hops land on coupe, muscle and cargo-van roofs');
