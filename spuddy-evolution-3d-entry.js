@@ -230,33 +230,54 @@ function create(canvas, game) {
   const actors = new Map();
   for (const e of game.s.enemies) {
     const group = new THREE.Group(); scene.add(group);
-    const bodyColor = e.boss ? colors[e.zone] : e.kind === 'hunter' ? '#f04473' : e.kind === 'runner' ? '#ff9c26' : e.kind === 'floater' ? '#cb69f4' : '#18cbb0';
+    const bodyColor = e.boss ? ['#375f48','#573376','#265975','#833d29','#70345d'][e.zone] : e.kind === 'hunter' ? '#9e244d' : e.kind === 'runner' ? '#ba5621' : e.kind === 'floater' ? '#62399b' : '#167c70';
     const size = e.boss ? 1.65 + e.zone * .08 : .61;
     const body = ball(group, 0, size, 0, size, size * .8, size * .85, bodyColor, e.boss);
     body.material = body.material.clone();
-    for(let i=0;i<5;i++){const angle=i*1.25;ball(group,Math.sin(angle)*size*.65,size*1.52,Math.cos(angle)*size*.55,size*.09,size*.06,size*.09,e.boss?'#ffd279':'#fff0c0');}
-
-    const cap = ball(group, 0, size * 1.65, 0, size * 1.08, size * .26, size * .95, e.boss ? '#533485' : e.kind === 'hunter' ? '#a51c50' : e.kind === 'runner' ? '#e76019' : e.kind === 'floater' ? '#8b35d5' : '#078e75');
-    for (const x of [-.3, .3]) { ball(group, x * size, size, size * .75, size * .17, size * .22, size * .12, '#f9f6e3'); ball(group, x * size, size, size * .86, size * .08, size * .12, size * .04, '#21464a'); }
+    const shellColor = e.boss ? '#263441' : e.kind === 'hunter' ? '#421a36' : e.kind === 'runner' ? '#633019' : e.kind === 'floater' ? '#302346' : '#1c4547';
+    const glowColor = e.kind === 'floater' ? '#e393ff' : e.kind === 'grazer' ? '#b3ff57' : '#ffb62d';
+    const glow = mat(glowColor, {emissive:glowColor,emissiveIntensity:1.6,roughness:.2});
+    const cap = ball(group, 0, size * 1.65, 0, size * 1.08, size * .26, size * .95, shellColor);
+    for (const side of [-1, 1]) {
+      ball(group, side * size * .36, size * 1.2, size * .73, size * .3, size * .21, size * .14, '#14212c');
+      const eye=mesh(group,geo.sphere,glow,[side*size*.36,size*1.23,size*.86],[size*.22,size*.085,size*.06]);eye.rotation.z=side*.3;
+      const brow=box(group,side*size*.36,size*1.4,size*.8,size*.59,size*.13,size*.14,shellColor);brow.rotation.z=side*.3;
+    }
+    const jaw = new THREE.Group(); group.add(jaw); jaw.position.set(0,size*.72,size*.72);
+    ball(jaw,0,0,0,size*.55,size*.3,size*.2,'#14212c');
+    for(let i=0;i<5;i++) {
+      const x=(i-2)*size*.18;
+      const tooth=mesh(jaw,geo.cone,mat('#f4e7b4'),[x,size*.13,size*.18],[size*.075,size*(i%2?.23:.32),size*.075]);tooth.rotation.z=Math.PI;
+      mesh(jaw,geo.cone,mat('#d9cc9d'),[x,-size*.16,size*.17],[size*.06,size*.16,size*.06]);
+    }
+    // A ridge of angular carapace spikes breaks up the former rounded caps.
+    for(let i=0;i<4;i++) {
+      const z=(i-1.5)*size*.43;
+      mesh(group,geo.cone,mat(i%2 ? shellColor : bodyColor),[0,size*1.88,z],[size*.22,size*(.45+i*.08),size*.24],e.boss);
+    }
     const groundShadow = contact(scene, size * 1.6);
     // Silhouettes communicate each monster's role even at phone size.
     if (e.kind === 'hunter' || e.boss) {
       for (const side of [-1, 1]) {
-        const horn = mesh(group, geo.cone, mat('#fff0b0'), [side * size * .65, size * 2, 0], [size * .22, size * .85, size * .22], true); horn.rotation.z = -side * .35;
+        const horn = mesh(group, geo.cone, mat('#fff0b0'), [side * size * .7, size * 2, -.12], [size * .2, size * 1.1, size * .22], true); horn.rotation.z = -side * .35;
         mesh(group, geo.cone, mat('#fff6df'), [side * size * .27, size * .7, size * .85], [size * .12, size * .3, size * .12]).rotation.z = Math.PI;
       }
     } else if (e.kind === 'runner') {
-      for (const side of [-1, 1]) { const ear = ball(group, side * size * .45, size * 2.15, 0, size * .18, size * .65, size * .15, '#ffb72e'); ear.rotation.z = side * .2; }
+      for (const side of [-1, 1]) { const horn = mesh(group,geo.cone,mat('#f1ba5b'),[side*size*.5,size*2.15,-size*.2],[size*.16,size*.95,size*.2]);horn.rotation.z=side*.6; }
     } else if (e.kind === 'floater') {
-      for (const side of [-1, 1]) ball(group, side * size * 1.1, size * 1.3, 0, size * .65, size * .12, size * .5, '#ecb7ff');
+      for (const side of [-1,1]) {
+        const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*1.6,.7);shape.lineTo(side*1.25,-.15);shape.lineTo(side*.9,.12);shape.lineTo(side*.6,-.4);shape.lineTo(0,0);
+        const wing=mesh(group,new THREE.ShapeGeometry(shape),mat('#a75ac6',{side:THREE.DoubleSide}),[side*size*.6,size*1.5,0],[size,size,size]);wing.rotation.x=-.5;
+      }
     } else {
-      for (let i = 0; i < 3; i++) ball(group, (i - 1) * size * .5, size * 1.9, 0, size * .22, size * .2, size * .35, '#a9f16e');
+      for(const side of [-1,1])for(let i=0;i<3;i++){const plate=mesh(group,geo.cone,mat('#77bc75'),[side*size*.85,size*1.3,(i-1)*size*.5],[size*.24,size*.55,size*.28]);plate.rotation.z=-side*.9;}
     }
     const legs = [];
     for (let i = 0; i < (e.boss ? 6 : 4); i++) {
       const a = i * Math.PI * 2 / (e.boss ? 6 : 4);
-      const leg = mesh(group, geo.cylinder, mat('#618c8c'), [0, 0, 0], [1, 1, 1]);
-      legs.push({ leg, a });
+      const leg = mesh(group, geo.cylinder, mat('#293e49'), [0, 0, 0], [1, 1, 1]);
+      const claw=mesh(group,geo.cone,mat('#e2ca92'),[0,0,0],[size*.11,size*.35,size*.11]);claw.rotation.x=Math.PI/2;
+      legs.push({ leg, a, claw });
     }
     let warning;
     if (e.boss) {
@@ -273,7 +294,7 @@ function create(canvas, game) {
     const health = new THREE.Group(); group.add(health); health.position.y = size * 2.4;
     mesh(health, geo.box, basic('#263e48', .4), [0, 0, 0], [size * 2, .09, .02]);
     const fill = mesh(health, geo.box, basic(e.boss ? '#e37477' : '#6fb28b'), [0, 0, .02], [size * 2, .09, .02]);
-    actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow });
+    actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow, jaw });
   }
   const reach = ring(scene, game.stats().range, '#ffffff', .55), pulseRing = ring(scene, 1, '#7affcf', .8);
   const roots = [];
@@ -329,6 +350,8 @@ function create(canvas, game) {
       actor.body.scale.y = actor.size * .8 * (1 + Math.sin(e.phase * 4) * .035);
       actor.cap.position.y = actor.size * 1.65 + Math.sin(e.phase * 4) * .05;
       actor.legs.forEach(({ leg, a }, i) => segment(leg, [Math.sin(a) * actor.size * .5, actor.size * .7, Math.cos(a) * actor.size * .5], [Math.sin(a) * actor.size * 1.25, .15 + Math.max(0, Math.sin(e.phase * 7 + i) * .13), Math.cos(a) * actor.size * 1.25], actor.size * .12));
+      actor.legs.forEach(({claw,a},i)=>claw.position.set(Math.sin(a)*actor.size*1.25,.13+Math.max(0,Math.sin(e.phase*7+i)*.13),Math.cos(a)*actor.size*1.25+.1));
+      actor.jaw.rotation.x = -.12 - Math.max(0,Math.sin(e.phase*3))*.18 - (e.windup>0?.25:0);
       actor.health.visible = e.boss || e.hp < e.maxHp; actor.health.quaternion.copy(actor.group.quaternion).invert().multiply(camera.quaternion); actor.fill.scale.x = actor.size * 2 * e.hp / e.maxHp;
       actor.fill.position.x = -actor.size * (1 - e.hp / e.maxHp);
     }
