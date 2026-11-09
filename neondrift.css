@@ -67,3 +67,15 @@ body.drift-page.game-active .drift-tip{display:none}.drift-callout{top:12%;font-
 .drift-callout[data-kind=boost],.drift-callout[data-kind=pickup]{color:#ffe1a0;border-color:#bda15d88}
 .drift-controls button:focus-visible{outline:3px solid #fff1c5;outline-offset:3px}
 @media(max-height:500px) and (orientation:landscape){.drift-page.game-active .drift-charge{grid-column:2}}
+
+/* Keep all cockpit rows beside the arena, including the new charge meter. */
+@media(max-height:500px) and (orientation:landscape){
+ body.drift-page.game-active main.container{grid-template-rows:auto auto 4px auto 57px 44px;row-gap:5px;align-content:start}
+ body.drift-page.game-active main.container .drift-arena{grid-row:1/7;height:calc(100dvh - 20px)}
+ .drift-page.game-active .page-header{grid-column:2;grid-row:1}
+ .drift-page.game-active .drift-progress{grid-column:2;grid-row:2}
+ .drift-page.game-active .drift-charge{grid-column:2;grid-row:3;margin:0}
+ .drift-page.game-active .drift-telemetry{grid-column:2;grid-row:4}
+ .drift-page.game-active .drift-controls{grid-column:2;grid-row:5}
+ body.drift-page.game-active .earnly-session-dock{grid-column:2;grid-row:6;margin:0!important}
+}
