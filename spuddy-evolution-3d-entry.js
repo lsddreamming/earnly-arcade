@@ -232,7 +232,7 @@ function create(canvas, game) {
   const companion = spud(.5, '#8ac7a1'); scene.add(companion.group);
   const actors = new Map();
   let combinedParts = 0;
-  for (const e of game.s.enemies) {
+  function createActor(e) {
     const group = new THREE.Group(); scene.add(group);
     const bodyColor = e.boss ? ['#375f48','#573376','#265975','#833d29','#70345d'][e.zone] : e.kind === 'hunter' ? '#9e244d' : e.kind === 'runner' ? '#ba5621' : e.kind === 'floater' ? '#62399b' : '#167c70';
     const size = e.boss ? 1.65 + e.zone * .08 : .61;
@@ -355,6 +355,7 @@ function create(canvas, game) {
     }
     actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow, jaw, glow, wings, tendrils, tails, profile, deathFade: 0, wasDead: false, gait: 0, lastX: e.x, lastZ: e.z, facing: 0 });
   }
+  for(const e of game.s.enemies)createActor(e);
   const shots=Array.from({length:32},()=>{const m=mesh(scene,geo.sphere,mat('#e6a1ff',{emissive:'#aa26df',emissiveIntensity:1.3}),[0,0,0],[.23,.23,.23]);m.visible=false;return m;});
   const reach = ring(scene, game.stats().range, '#ffffff', .55), pulseRing = ring(scene, 1, '#7affcf', .8);
   const roots = [];
@@ -395,7 +396,8 @@ function create(canvas, game) {
     reach.position.set(s.x, .08, s.z); reach.scale.setScalar(a.range);
     pulseRing.visible = s.pulse > 0; pulseRing.position.set(s.x, .15, s.z); pulseRing.scale.setScalar(a.range * 1.6 * (1 - s.pulse / .6));
     for (const e of s.enemies) {
-      const actor = actors.get(e.id); if (!actor) continue;
+      if(!actors.has(e.id))createActor(e);
+      const actor = actors.get(e.id);
       if(e.dead && !actor.wasDead) actor.deathFade=.24;
       if(!e.dead) actor.deathFade=0;
       actor.wasDead=!!e.dead; actor.deathFade=Math.max(0,actor.deathFade-dt);
@@ -458,6 +460,6 @@ function create(canvas, game) {
     if (arrow.visible) { const nest = game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
     renderer.render(scene, camera);
   }
-  return { available: true, projectPoint: (x,z) => {const v=new THREE.Vector3(x,1.5,z).project(camera);return Math.abs(v.x)>1||Math.abs(v.y)>1?null:{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}, diagnostics: () => ({drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
+  return { available: true, projectPoint: (x,z) => {const v=new THREE.Vector3(x,1.5,z).project(camera);return Math.abs(v.x)>1||Math.abs(v.y)>1?null:{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}, diagnostics: () => ({actorCount:actors.size,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
 }
 window.EvolutionRenderer = { create };

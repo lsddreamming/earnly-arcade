@@ -18,3 +18,10 @@ Original Earnly creatures and environments interpret the explore/capture/bank/up
 
 ## Playtest limits
 Device-local saves only. No production catalog changes, Arcade Coins, ads, purchases, subscriptions or cloud-save claims. Free uninterrupted play. Deleting site storage removes progress. WebGL-unavailable browsers show an explicit explanation; context loss pauses play until restored. Human pacing and physical-device performance feedback remain important before public release.
+
+## Hundredfold Bloom campaign
+100 expeditions reuse the five connected habitats. Expedition 1 retains the original onboarding pace; subsequent expeditions require all five guardians, `40 + chapter × 8` captures and `200 + chapter × 60` banked seeds. Four rotating conditions alter grazer armor, spore speed, boss recovery or nest healing. Enemy health rises by 7.5% of base per expedition and damage by 1.8%; seed payouts rise by 2.5%. These are initial tuning values, not a measured claim of months/year completion time.
+
+Advancing is explicit in Evolve → Journey. It preserves banked seeds, normal upgrades, perks, research and journal, while refreshing bosses, gates, expedition counters and carried pouch. Three research tracks have 30 ranks each; boss victories and species milestones pay crystals. The journal tracks four species and a boss in each of five habitats, with milestone rewards at 1/10/50/200. There are 100 progression stages, not 100 unique maps. Future authored encounters and player pacing feedback remain necessary to establish long-term retention.
+
+Old saves migrate without resetting progression. Journey includes JSON backup export and validated import with a separate replace-progress action; saves remain local to the device. There are no calendar locks, paid skips or missed-day penalties.
