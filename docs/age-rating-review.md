@@ -8,8 +8,8 @@ App Store version 1.12 build 1002 was submitted with the previous Harbor mechani
 
 - Harbor previously allowed repeated gunfire at human pedestrians, vehicle impacts with ragdolls, and explosive vehicle damage affecting nearby people. These were substantive reasons to review realistic violence, even without blood.
 - Pulse tags now produce sparkle feedback without reducing pedestrian health or knocking them down. Moving vehicles brake before approaching bystanders, including drivers who have stepped out. Vehicle shields temporarily recharge without explosion, fire, or nearby injury.
-- Recorded gunshots and screams have been removed from the packaged audio. Original sine-wave pulse/pop tones replace them; real engine and brake recordings remain.
-- Vehicle borrowing no longer triggers forced ejection or a crime alert. The driver steps out upright. Missions describe a rally and chase-tag, with colorful marshal vehicles and quieter musical cues. Existing job IDs/names are retained for server and save compatibility.
+- Recorded gunshots and screams have been removed from the packaged audio. Original layered synthesized shots and pop tones replace them; real engine and brake recordings remain.
+- Occupied-car entry now pulls the driver out with a brief sideways animation; they stand and walk away without injury. Entry does not trigger a chase alert. This forced-entry mechanic must be considered when reassessing mature/crime themes. Missions describe a rally and chase-tag, with colorful marshal vehicles and quieter musical cues. Existing job IDs/names are retained for server and save compatibility.
 - Optional live combat is presented as pulse-tag with shields and round resets. Server-side hit validation, reward limits and account controls are unchanged. Do not describe the entire app as containing no combat or weapons.
 - Native rewarded advertising now requests a maximum ParentalGuidance content rating. ATT, UMP consent and existing non-child-directed settings are unchanged. This is not age verification and is not a Kids Category declaration.
 
