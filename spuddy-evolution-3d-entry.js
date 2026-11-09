@@ -69,10 +69,10 @@ function create(canvas, game) {
   const shadowMaterial = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false });
   function contact(parent, size) { const m = mesh(parent, geo.disk, shadowMaterial, [0, .025, 0], [size, size, 1]); m.rotation.x = -Math.PI / 2; return m; }
   const colors = ['#29c76c', '#9760ef', '#19bddb', '#ff853b', '#ec53b2'];
-  const floorColors = [['#82cf64', '#9ddd79'], ['#b6a0f0', '#c6b6fa'], ['#6fd8eb', '#9be7f4'], ['#efa36c', '#ffc18c'], ['#dc93df', '#ecb0e9']];
+  const floorColors = [['#68b85b', '#71be61'], ['#aca0d9', '#b3a7df'], ['#88d4df', '#94dce5'], ['#d49568', '#dda070'], ['#ba8dc8', '#c397ce']];
   const world = [], gates = [], outposts = [];
   const dummy = new THREE.Object3D();
-  const background = box(scene, 0, -.7, -60, 240, .5, 320, '#419fbd');
+  const background = box(scene, 0, -.7, -60, 240, .5, 320, '#397f79');
   background.receiveShadow = false;
   function leaf(parent, x, y, z, scale, angle, color) {
     const l = ball(parent, x, y, z, .18 * scale, .62 * scale, .12 * scale, color); l.rotation.z = angle; return l;
@@ -101,6 +101,17 @@ function create(canvas, game) {
     cylinder(g, 0, .2, 0, main ? 2.1 : 1.6, .2, '#b8ef5a');
     cylinder(g, 0, .34, 0, .85, .4, '#629e87');
     ring(g, main ? 2.7 : 2.2, '#edffe4', .75);
+    const clearing = mesh(g, geo.disk, mat('#bdcc8c', {roughness:1}), [0,.015,0], [main ? 3.6 : 2.8, main ? 3.6 : 2.8, 1]); clearing.rotation.x = -Math.PI/2;
+    for(let i=0;i<12;i++) {
+      const angle=i*Math.PI/6, radius=main ? 3.25 : 2.5;
+      const x=Math.sin(angle)*radius,z=Math.cos(angle)*radius;
+      ball(g,x,.12,z,.24,.12,.2,i%2 ? '#8ca782':'#a6ba91');
+      if(i%3===0) { for(let j=0;j<5;j++){const a=j*Math.PI*2/5;ball(g,x+Math.sin(a)*.16,.28,z+Math.cos(a)*.16,.12,.055,.12,'#ff85b5');}ball(g,x,.31,z,.09,.06,.09,'#ffe77b'); }
+    }
+    // A carved seed emblem gives the home base its own identity.
+    const emblem = new THREE.Group(); g.add(emblem); emblem.position.set(0,.45,-1.8);
+    ball(emblem,0,.25,0,.32,.42,.16,'#ffc144',true); leaf(emblem,.17,.74,0,.48,-.6,'#138c63');
+
     for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; ball(g, Math.sin(a) * (main ? 1.9 : 1.4), .4, Math.cos(a) * (main ? 1.9 : 1.4), .28, .2, .3, '#ffd354', true); }
     plant(g, -1, -.5, .9, '#519e75');
     label(g, main ? 'HOME NEST · BANK & HEAL' : 'OUTPOST · BANK & HEAL', 0, .6, 3, '#44725b', 5);
@@ -108,14 +119,21 @@ function create(canvas, game) {
   }
   for (let zi = 0; zi < SpuddyEvolution.zones.length; zi++) {
     const zone = SpuddyEvolution.zones[zi], group = new THREE.Group(); scene.add(group); world.push(group);
-    for (let parity = 0; parity < 2; parity++) {
-      const tiles = new THREE.InstancedMesh(geo.box, mat(floorColors[zi][parity]), 112);
-      let index = 0;
-      for (let z = zone.min; z < zone.max; z += 2) for (let x = -14; x < 14; x += 2) if (((x + z) / 2 & 1) === parity) {
-        dummy.position.set(x + 1, -.15, z + 1); dummy.scale.set(1.98, .25, 1.98); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); tiles.setMatrixAt(index++, dummy.matrix);
-      }
-      tiles.receiveShadow = true; group.add(tiles);
+    // Deterministic surface detail replaces the distracting checkerboard.
+    const terrainCanvas = document.createElement('canvas'); terrainCanvas.width = terrainCanvas.height = 256;
+    const tc = terrainCanvas.getContext('2d'); tc.fillStyle = floorColors[zi][0]; tc.fillRect(0, 0, 256, 256);
+    let seed = zi + 73; const random = () => ((seed = Math.imul(seed, 1664525) + 1013904223 >>> 0) / 4294967296);
+    for (let i = 0; i < 480; i++) {
+      const x = random() * 256, y = random() * 256; tc.strokeStyle = i % 2 ? '#ffffff12' : '#173f3510'; tc.lineWidth = 1;
+      tc.beginPath(); tc.moveTo(x, y); tc.lineTo(x + 2, y - 3 - random() * 4); tc.stroke();
     }
+    if (zi === 1 || zi === 3) { tc.strokeStyle = '#44365a24'; tc.lineWidth = 2; tc.strokeRect(3, 3, 250, 250); tc.fillStyle = '#eaf7ff60'; for (const x of [12,244]) for (const y of [12,244]) { tc.beginPath();tc.arc(x,y,2,0,Math.PI*2);tc.fill(); } }
+    const terrainTexture = new THREE.CanvasTexture(terrainCanvas); terrainTexture.colorSpace = THREE.SRGBColorSpace;
+    terrainTexture.wrapS = terrainTexture.wrapT = THREE.RepeatWrapping; terrainTexture.repeat.set(7,8); terrainTexture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    mesh(group, geo.box, mat('#ffffff', { map: terrainTexture, roughness: .9 }), [0, -.15, zone.min + 16], [28, .25, 32]);
+    // Low ground-cover clusters remain passable and do not hide attack markers.
+    const groundCover = new THREE.InstancedMesh(geo.sphere, mat(zi === 0 ? '#ffdc7c' : '#dceaff'), 90);
+    for (let i=0;i<90;i++) { const x = (i%2 ? -1:1)*(4.6+random()*6), z=zone.min+2+random()*28; dummy.position.set(x,.04,z); dummy.scale.set(.045+random()*.07,.025,.06);dummy.rotation.set(0,0,0);dummy.updateMatrix();groundCover.setMatrixAt(i,dummy.matrix); } group.add(groundCover);
     for (const x of [-13.5, 13.5]) {
       box(group, x, .6, zone.min + 16, .8, 1.2, 32, '#a8bdb7', true);
       box(group, x, 1.25, zone.min + 16, 1, .16, 32, '#eef2df');
@@ -144,7 +162,16 @@ function create(canvas, game) {
       box(group, x, .08, zone.min + 16, .18, .08, 31, colors[zi]);
       for (let j = 0; j < 4; j++) { cylinder(group, x, .65, zone.min + 4 + j * 8, .22, 1.3, '#36576f'); ball(group, x, 1.35, zone.min + 4 + j * 8, .28, .18, .28, '#fff3a3'); }
     }
-    if (zi === 0) nest(group, 0, 9, true);
+    if (zi === 0) {
+      nest(group, 0, 9, true);
+      box(group, 0, -.28, 20, 28, .35, 8, '#397d58');
+      for(let i=0;i<9;i++) {
+        const x=-12+i*3, z=17+(i%2)*1.4;
+        ball(group,x,.45,z,1.65,.7,1.3,'#248663',true);
+        ball(group,x-.45,1,z,1.05,.7,.9,i%2 ? '#36a56a':'#57ba73',true);
+        for(let j=0;j<3;j++)ball(group,x+(j-1)*.55,1.5,z,.12,.12,.12,'#ffb6c9');
+      }
+    }
     else {
       const n = nest(group, -8, zone.max - 6, false); outposts.push({ group: n, zone: zi });
       const gate = new THREE.Group(); scene.add(gate); gate.position.z = zone.max;
@@ -167,6 +194,8 @@ function create(canvas, game) {
     }
     const mouth = mesh(rig, new THREE.TorusGeometry(.15, .032, 6, 12, Math.PI), mat('#805f39'), [0, .82, .74], [1, 1, 1]); mouth.rotation.z = Math.PI;
     for (const side of [-1, 1]) for (let i = 0; i < 3; i++) ball(rig, side * (.48 + i * .07), .92 + (i % 2) * .1, .64 - i * .07, .025, .025, .018, '#b96e26');
+    const belt = mesh(rig, new THREE.TorusGeometry(.78,.065,6,24), mat('#08735d'), [0,.64,0], [1,1,.92]); belt.rotation.x=Math.PI/2;
+    ball(rig,0,.65,.72,.16,.14,.08,'#ffe69b');
     const leaves = [];
     for (let i = 0; i < 4; i++) leaves.push(leaf(rig, (i - 1.5) * .17, 2.04 + (i % 2) * .1, 0, .7, (i - 1.5) * .45, i % 2 ? '#129c57' : '#46d864'));
     const limbs = [];
@@ -202,9 +231,11 @@ function create(canvas, game) {
   for (const e of game.s.enemies) {
     const group = new THREE.Group(); scene.add(group);
     const bodyColor = e.boss ? colors[e.zone] : e.kind === 'hunter' ? '#f04473' : e.kind === 'runner' ? '#ff9c26' : e.kind === 'floater' ? '#cb69f4' : '#18cbb0';
-    const size = e.boss ? 1.5 + e.zone * .08 : .52;
+    const size = e.boss ? 1.65 + e.zone * .08 : .61;
     const body = ball(group, 0, size, 0, size, size * .8, size * .85, bodyColor, e.boss);
     body.material = body.material.clone();
+    for(let i=0;i<5;i++){const angle=i*1.25;ball(group,Math.sin(angle)*size*.65,size*1.52,Math.cos(angle)*size*.55,size*.09,size*.06,size*.09,e.boss?'#ffd279':'#fff0c0');}
+
     const cap = ball(group, 0, size * 1.65, 0, size * 1.08, size * .26, size * .95, e.boss ? '#533485' : e.kind === 'hunter' ? '#a51c50' : e.kind === 'runner' ? '#e76019' : e.kind === 'floater' ? '#8b35d5' : '#078e75');
     for (const x of [-.3, .3]) { ball(group, x * size, size, size * .75, size * .17, size * .22, size * .12, '#f9f6e3'); ball(group, x * size, size, size * .86, size * .08, size * .12, size * .04, '#21464a'); }
     const groundShadow = contact(scene, size * 1.6);
