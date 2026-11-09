@@ -230,6 +230,10 @@ function create(canvas, game) {
   }
   const player = spud(1.08, '#ffb52b', true); scene.add(player.group);
   const companion = spud(.5, '#8ac7a1'); scene.add(companion.group);
+  const courier=spud(.45,'#55c9f2');scene.add(courier.group);box(courier.rig,0,1,-.8,1.1,1.1,.7,'#8b5d3b');
+  const courierWings=[-1,1].map(side=>ball(courier.rig,side*1.1,1.5,0,.9,.12,.45,'#e4fcff'));
+  const rescueModels=SpuddyEvolution.rescues.map(r=>{const model=spud(.5,['#69d1fa','#a2e869','#edb269','#f2a8db','#ae9aef'][r.zone]);scene.add(model.group);model.group.position.set(r.x,0,r.z);label(model.group,r.name,0,3.6,0,'#76591d',4);const cage=new THREE.Group();model.group.add(cage);for(let i=0;i<6;i++){const a=i*Math.PI/3;cylinder(cage,Math.sin(a)*1.4,1.2,Math.cos(a)*1.4,.075,2.5,'#bc8c45');}return {model,cage,r};});
+  const camp=[];for(let i=0;i<5;i++){const g=new THREE.Group();scene.add(g);g.position.set(i%2?-4.7:4.7,0,6+Math.floor(i/2)*2.7);camp.push(g);if(i===0){box(g,0,.2,0,2,.4,1.5,'#916543');for(let k=0;k<3;k++)plant(g,k*.6-.6,0,.7,'#6bd665');}else if(i===1){box(g,0,.6,0,1.7,1.2,1.3,'#976e41');mesh(g,geo.cone,mat('#52a4d0'),[0,1.7,0],[1.4,.8,1.1]);}else if(i===2){for(let k=0;k<3;k++)box(g,(k-1)*.65,.4+(k%2)*.4,0,.6,.8,.7,'#d7aa53');}else if(i===3){cylinder(g,0,.3,0,1,.6,'#79c5c7');ball(g,0,.75,0,.65,.12,.65,'#5af0ff');}else{cylinder(g,0,1,0,.09,2,'#8f633e');box(g,.55,1.6,0,1,.6,.08,'#e7b8ff');}}
   const actors = new Map();
   let combinedParts = 0;
   function createActor(e) {
@@ -353,14 +357,15 @@ function create(canvas, game) {
       const geometry=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());
       if(geometry){const merged=new THREE.Mesh(geometry,children[0].material);merged.castShadow=children[0].castShadow;merged.receiveShadow=true;children.forEach(m=>group.remove(m));group.add(merged);combinedParts+=children.length-1;}
     }
+    const rareCrest=new THREE.Group();group.add(rareCrest);for(let k=0;k<3;k++)mesh(rareCrest,geo.cone,mat('#ffd95c',{emissive:'#c57c12',emissiveIntensity:.6}),[(k-1)*.35,size*2.3,0],[.17,.6,.17]);rareCrest.visible=false;
     groundShadow.visible=false;if(warning)warning.visible=false;
-    actors.set(e.id, { group, body, cap, legs, size, fill, health, warning, groundShadow, jaw, glow, wings, tendrils, tails, profile, deathFade: 0, wasDead: false, gait: 0, lastX: e.x, lastZ: e.z, facing: 0 });
+    actors.set(e.id, { rareCrest, group, body, cap, legs, size, fill, health, warning, groundShadow, jaw, glow, wings, tendrils, tails, profile, deathFade: 0, wasDead: false, gait: 0, lastX: e.x, lastZ: e.z, facing: 0 });
   }
   for(const e of game.s.enemies)createActor(e);
   const shots=Array.from({length:32},()=>{const m=mesh(scene,geo.sphere,mat('#e6a1ff',{emissive:'#aa26df',emissiveIntensity:1.3}),[0,0,0],[.23,.23,.23]);m.visible=false;return m;});
   const reach = ring(scene, game.stats().range, '#ffffff', .55), pulseRing = ring(scene, 1, '#7affcf', .8);
   const roots = [];
-  for (let i = 0; i < 6; i++) { const pieces = []; for (let j = 0; j < 6; j++) pieces.push(mesh(scene, geo.cylinder, mat('#62ba98', { emissive: '#2d7f68', emissiveIntensity: .25 }), [0, 0, 0], [.06, 1, .06])); roots.push(pieces); }
+  for (let i = 0; i < 10; i++) { const pieces = []; for (let j = 0; j < 6; j++) pieces.push(mesh(scene, geo.cylinder, mat('#62ba98', { emissive: '#2d7f68', emissiveIntensity: .25 }), [0, 0, 0], [.06, 1, .06])); roots.push(pieces); }
   const sparks = [];
   for (let i = 0; i < 96; i++) { const m = mesh(scene, geo.sphere, mat('#ffd578', { emissive: '#dda94a', emissiveIntensity: .35 }), [0, -10, 0], [.07, .07, .07]); m.visible = false; sparks.push({ m, life: 0, vx: 0, vz: 0 }); }
   let sparkIndex = 0, guideTime = 0;
@@ -382,6 +387,9 @@ function create(canvas, game) {
     if (contextLost) return;
     const s = game.s, a = game.stats(), t = s.time;
     shots.forEach((m,i)=>{const p=s.projectiles[i];m.visible=!!p;if(p)m.position.set(p.x,.75,p.z);});
+    courier.group.visible=s.save.levels.courier>0||s.save.crew.transit>0;courier.group.position.set(s.courier.x,.8+Math.sin(t*5)*.12,s.courier.z);animateSpud(courier,t*8,true);courierWings.forEach((w,i)=>w.rotation.z=Math.sin(t*14)*(i?1:-1)*.5);
+    camp.forEach((g,i)=>g.visible=game.rescuedCount()>i);
+    rescueModels.forEach(({model,cage,r})=>{const rescued=s.save.crew.rescued[r.zone];model.group.visible=rescued?Math.abs(pz-9)<32:r.zone<=s.save.unlocked&&Math.abs(r.z-pz)<28;model.group.position.set(rescued?(r.zone%2?-3.7:3.7):r.x,0,rescued?7+r.zone*.8:r.z);cage.visible=!rescued;animateSpud(model,t+r.zone,false);});
     const smooth = 1 - Math.exp(-Math.max(dt, .016) * 7);
     px += (s.x - px) * smooth; pz += (s.z - pz) * smooth; yaw += (targetYaw - yaw) * smooth;
     camera.position.set(px + Math.sin(yaw) * 19, 24, pz + Math.cos(yaw) * 19); camera.lookAt(px, 0, pz);
@@ -399,6 +407,7 @@ function create(canvas, game) {
     for (const e of s.enemies) {
       if(!actors.has(e.id))createActor(e);
       const actor = actors.get(e.id);
+      actor.rareCrest.visible=!!e.rare;
       if(e.dead && !actor.wasDead) actor.deathFade=.24;
       if(!e.dead) actor.deathFade=0;
       actor.wasDead=!!e.dead; actor.deathFade=Math.max(0,actor.deathFade-dt);
@@ -458,9 +467,9 @@ function create(canvas, game) {
     });
     for (const p of sparks) if (p.life > 0) { p.life -= dt; p.m.position.x += p.vx * dt; p.m.position.z += p.vz * dt; p.m.position.y += dt * 1.3; p.m.scale.setScalar(Math.max(.01, p.life * .13)); p.m.visible = p.life > 0; }
     guideTime = Math.max(0, guideTime - dt); arrow.visible = guideTime > 0;
-    if (arrow.visible) { const nest = game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
+    if (arrow.visible) { const nest = s.tracking&&!s.save.crew.rescued[s.tracking.zone]?s.tracking:game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
     renderer.render(scene, camera);
   }
-  return { available: true, projectPoint: (x,z) => {const v=new THREE.Vector3(x,1.5,z).project(camera);return Math.abs(v.x)>1||Math.abs(v.y)>1?null:{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}, diagnostics: () => ({actorCount:actors.size,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 10; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
+  return { available: true, projectPoint: (x,z) => {const v=new THREE.Vector3(x,1.5,z).project(camera);return Math.abs(v.x)>1||Math.abs(v.y)>1?null:{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}, diagnostics: () => ({actorCount:actors.size,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 45; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
 }
 window.EvolutionRenderer = { create };

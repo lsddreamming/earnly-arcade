@@ -26,8 +26,13 @@
     cargo: { name: 'Seed pouch', base: 16, desc: 'Carry more · +12 capacity' },
     speed: { name: 'Quick feet', base: 20, desc: 'Move faster · +8% speed' },
     health: { name: 'Hardy skin', base: 18, desc: 'Survive longer · +25 health' },
+    roots: { name: 'More roots', base: 45, desc: 'Latch onto one more creature at once' },
+    courier: { name: 'Courier wings', base: 60, desc: 'Rescue Pip first · unlock and improve cargo deliveries' },
     helper: { name: 'Sprout companion', base: 65, desc: 'A little friend · +18% gathering power' }
   };
+  const upgradeCap = key => key==='helper'?1:key==='roots'?4:key==='courier'?5:8;
+  const rescueNames=['Pip','Fern','Copper','Clover','Nova'];
+  const rescues=zones.map((z,i)=>({name:rescueNames[i],zone:i,x:i%2?-6:6,z:z.max-10}));
   const perks = {
     roots: { name: 'Wild roots', desc: '+8% base capture power' },
     vigor: { name: 'Deep roots', desc: '+15 maximum health' },
@@ -42,14 +47,15 @@
   ];
   const research = {power:{name:'Ancient roots',desc:'+8% capture power per rank'},health:{name:'Living bark',desc:'+20 maximum health per rank'},cargo:{name:'Deep pockets',desc:'+8 carrying capacity per rank'}};
   function clean(raw) {
-    const s = { version: 1, bank: 0, xp: 0, deposited: 0, unlocked: 0, bosses: zones.map(() => false), perks: [], journey: {chapter:1,shards:0,captures:0,banked:0,research:{power:0,health:0,cargo:0},journal:Array(25).fill(0)}, levels: { power: 0, reach: 0, cargo: 0, speed: 0, health: 0, helper: 0 } };
+    const s = { version: 1, bank: 0, xp: 0, deposited: 0, unlocked: 0, bosses: zones.map(() => false), perks: [], journey: {chapter:1,shards:0,captures:0,banked:0,research:{power:0,health:0,cargo:0},journal:Array(25).fill(0)}, crew:{rescued:Array(5).fill(false),transit:0,rare:0}, levels: { roots:0,courier:0,power: 0, reach: 0, cargo: 0, speed: 0, health: 0, helper: 0 } };
     if (!raw || raw.version !== 1) return s;
     for (const k of ['bank', 'xp', 'deposited']) s[k] = Number.isFinite(raw[k]) ? clamp(Math.floor(raw[k]), 0, 1000000) : 0;
     s.unlocked = Number.isInteger(raw.unlocked) ? clamp(raw.unlocked, 0, zones.length - 1) : 0;
-    for (const k in s.levels) s.levels[k] = Number.isInteger(raw.levels?.[k]) ? clamp(raw.levels[k], 0, k === 'helper' ? 1 : 8) : 0;
+    for (const k in s.levels) s.levels[k] = Number.isInteger(raw.levels?.[k]) ? clamp(raw.levels[k], 0, upgradeCap(k)) : 0;
     s.bosses = s.bosses.map((_, i) => raw.bosses?.[i] === true);
     for (let i = 0; i < s.unlocked; i++) if (!s.bosses[i]) { s.unlocked = i; break; }
     s.perks = Array.isArray(raw.perks) ? raw.perks.filter(k => Object.hasOwn(perks, k)).slice(0, Math.min(20, Math.floor(s.xp / 90))) : [];
+    if(raw.crew){s.crew.rescued=s.crew.rescued.map((_,i)=>raw.crew.rescued?.[i]===true);s.crew.transit=Number.isInteger(raw.crew.transit)?clamp(raw.crew.transit,0,72):0;s.crew.rare=Number.isInteger(raw.crew.rare)?clamp(raw.crew.rare,0,1000000):0;}
     const j=raw.journey;
     if(j && typeof j==='object'){
       for(const [k,max] of Object.entries({chapter:CHAPTERS,shards:1000000,captures:1000000,banked:1000000}))s.journey[k]=Number.isInteger(j[k])?clamp(j[k],k==='chapter'?1:0,max):s.journey[k];
@@ -70,17 +76,19 @@
   }
   function create(raw, random = Math.random) {
     const save = clean(raw);
-    const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0, hurt: 0, projectiles: [] };
+    const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0, hurt: 0, projectiles: [],courier:{x:0,z:9},rescueProgress:0,rescueTarget:-1,gardenClock:0 };
     const condition = () => save.journey.chapter===1 ? null : conditions[(save.journey.chapter-2)%conditions.length];
+    const rescuedCount=()=>save.crew.rescued.filter(Boolean).length;
     const count = key => save.perks.filter(p => p === key).length;
     const evolution = () => Math.min(2, Math.floor(Object.values(save.levels).reduce((a,b)=>a+b,0)/5));
-    const stats = () => ({ power: 10 * (1 + .35 * save.levels.power + .08 * count('roots')) * (1+.08*save.journey.research.power), range: 3.1 + .4 * save.levels.reach, capacity: 24 + 12 * save.levels.cargo + 6 * count('harvest') + 8*save.journey.research.cargo, speed: 5.2 * (1 + .08 * save.levels.speed), hp: 100 + 25 * save.levels.health + 15 * count('vigor') + 20*save.journey.research.health, targets: 2 + Math.floor(save.levels.power / 2) });
+    const stats = () => ({ power: 10 * (1 + .35 * save.levels.power + .08 * count('roots')) * (1+.08*save.journey.research.power), range: 3.1 + .4 * save.levels.reach, capacity: 24 + 12 * save.levels.cargo + 6 * count('harvest') + 8*save.journey.research.cargo+(rescuedCount()>=3?20:0), speed: 5.2 * (1 + .08 * save.levels.speed), hp: 100 + 25 * save.levels.health + 15 * count('vigor') + 20*save.journey.research.health, targets: 2 + Math.floor(save.levels.power / 2)+save.levels.roots });
     s.hp = stats().hp;
     function event(type, data = {}) { s.events.push({ type, ...data }); if (s.events.length > 40) s.events.shift(); }
     function spawn(zone, index, boss = false) {
       const z = zones[zone];
-      const hp = (boss ? 110 + zone * 150 : 9 + zone * 12 + (index % 3) * 4) * (1+.075*(save.journey.chapter-1)) * (!boss && index%4===2 ? condition()?.armor||1 : 1);
-      return { id: zone * 100 + index, zone, boss, kind: boss ? 'warden' : index % 4 === 0 ? 'hunter' : index % 4 === 1 ? 'runner' : index % 4 === 2 ? 'grazer' : 'floater', x: boss ? 0 : -10 + random() * 20, z: boss ? z.min + 6 : z.min + 5 + random() * 19, hp, maxHp: hp, dead: 0, phase: random() * 6, attack: 2, windup: 0, targetX: 0, targetZ: 0, hit: 0, value: Math.ceil((boss ? 35 + zone * 30 : 3 + zone * 3)*(1+.025*(save.journey.chapter-1))) };
+      const rare=!boss&&index>=8&&random()<.12;
+      const hp = (rare?1.8:1)*(boss ? 110 + zone * 150 : 9 + zone * 12 + (index % 3) * 4) * (1+.075*(save.journey.chapter-1)) * (!boss && index%4===2 ? condition()?.armor||1 : 1);
+      return { id: zone * 100 + index, zone, boss, rare, kind: boss ? 'warden' : index % 4 === 0 ? 'hunter' : index % 4 === 1 ? 'runner' : index % 4 === 2 ? 'grazer' : 'floater', x: boss ? 0 : -10 + random() * 20, z: boss ? z.min + 6 : z.min + 5 + random() * 19, hp, maxHp: hp, dead: 0, phase: random() * 6, attack: 2, windup: 0, targetX: 0, targetZ: 0, hit: 0, value: Math.ceil((rare?3:1)*(boss ? 35 + zone * 30 : 3 + zone * 3)*(1+.025*(save.journey.chapter-1))) };
     }
     for (let zone = 0; zone < zones.length; zone++) {
       for (let i = 0; i < 12; i++) s.enemies.push(spawn(zone, i));
@@ -88,7 +96,8 @@
     }
     function cost(key) { return upgrades[key] ? Math.floor(upgrades[key].base * Math.pow(1.55, save.levels[key])) : Infinity; }
     function buy(key) {
-      if (!Object.hasOwn(upgrades, key) || s.dead || save.levels[key] >= (key === 'helper' ? 1 : 8) || save.bank < cost(key)) return false;
+      if(key==='courier'&&!save.crew.rescued[0])return false;
+      if (!Object.hasOwn(upgrades, key) || s.dead || save.levels[key] >= upgradeCap(key) || save.bank < cost(key)) return false;
       save.bank -= cost(key); save.levels[key]++;
       s.hp = Math.min(stats().hp, s.hp + (key === 'health' ? 25 : 0)); event('upgrade', { key }); if(Object.values(save.levels).reduce((a,b)=>a+b,0)%5===0 && evolution()>0)event('evolution',{form:evolution()}); return true;
     }
@@ -116,6 +125,7 @@
       e.damageTotal=(e.damageTotal||0)+n;
       if(s.time-(e.damageAt||0)>.35 || e.hp<=0){event('damage',{x:e.x,z:e.z,amount:e.damageTotal});e.damageTotal=0;e.damageAt=s.time;}
       if (e.hp <= 0) {
+        if(e.rare){save.crew.rare++;save.journey.shards+=2;event('rare',{amount:2});}
         const species=e.zone*5+(e.boss?4:['hunter','runner','grazer','floater'].indexOf(e.kind));
         if(species>=0&&species<25){save.journey.journal[species]++;if([1,10,50,e.boss?100:200].includes(save.journey.journal[species])){save.journey.shards++;event('discovery',{amount:1});}}
         if(e.boss)save.journey.shards+=1+Math.floor(save.journey.chapter/5);else save.journey.captures++;
@@ -178,7 +188,7 @@
           if(e.windup>0 || e.dash>0){vx=0;vz=0;}
           e.x = clamp(e.x + vx * dt, -11.5, 11.5); e.z = clamp(e.z + vz * dt, zone.min + 3, zone.max - 3);
           // Each species gains an offensive role gradually; starting bites are forgiving.
-          e.attack = Math.max(0, (Number.isFinite(e.attack) ? e.attack : 2) - dt);
+          e.attack = Math.max(0, (Number.isFinite(e.attack) ? e.attack : 2) - dt*(e.rare?1.5:1));
           const canReach = clearPath(e.x, e.z, s.x, s.z);
           if(e.dash>0){
             e.dash-=dt;e.x=clamp(e.x+e.dashX*dt,-11.5,11.5);e.z=clamp(e.z+e.dashZ*dt,zone.min+3,zone.max-3);
@@ -199,7 +209,7 @@
           } else if (canReach && !e.attack) {
             if ((e.kind==='hunter' && e.zone>=1 || e.kind==='runner' && e.zone>=2) && dist>1.35 && dist<5 || e.kind === 'floater' && e.zone >= 1 && dist < 6 || e.kind === 'grazer' && e.zone >= 2 && dist < 2.8) {
               e.targetX = e.kind === 'grazer' ? e.x : s.x; e.targetZ = e.kind === 'grazer' ? e.z : s.z;
-              e.attackRadius = e.kind === 'grazer' ? 2.4 : 1.3;
+              e.attackRadius = e.kind === 'grazer' ? (e.rare?3.2:2.4) : 1.3;
               e.windup = 1.4 - e.zone * .1;
             } else if (dist < 1.35) {
               hurt((e.kind === 'hunter' ? 4 : 2) + e.zone * 3);
@@ -214,16 +224,32 @@
         if(!clearPath(ox,oz,p.x,p.z)||p.x<-12||p.x>12||obstacles.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<o.r+.2))p.life=0;
         if(p.life>0 && Math.hypot(p.x-s.x,p.z-s.z)<.85){hurt(p.damage);p.life=0;}
       }s.projectiles=s.projectiles.filter(p=>p.life>0);
+      // Rescue one stranded Spuddy per habitat by staying nearby, away from active danger.
+      const rescue=rescues.find(r=>r.zone<=save.unlocked&&!save.crew.rescued[r.zone]&&Math.hypot(s.x-r.x,s.z-r.z)<2);
+      const safe=s.hp>0&&rescue&&!s.enemies.some(e=>!e.dead&&e.zone<=save.unlocked&&Math.hypot(e.x-s.x,e.z-s.z)<2.5);
+      if(safe){if(s.rescueTarget!==rescue.zone)s.rescueProgress=0;s.rescueTarget=rescue.zone;s.rescueProgress+=dt;if(s.rescueProgress>=2){save.crew.rescued[rescue.zone]=true;save.journey.shards+=3;s.rescueProgress=0;event('rescue',{name:rescue.name});}}else{s.rescueProgress=0;s.rescueTarget=-1;}
+      // The flying courier transfers conserved cargo; no offline production or duplicate rewards.
+      if(save.levels.courier>0 || save.crew.transit>0){
+        const c=s.courier,target=save.crew.transit>0?{x:0,z:9}:s,dx=target.x-c.x,dz=target.z-c.z,d=Math.hypot(dx,dz),distance=(5+save.levels.courier+(rescuedCount()>=2?2:0))*dt;
+        if(d>0){c.x+=dx/d*Math.min(d,distance);c.z+=dz/d*Math.min(d,distance);}
+        if(d<1.2){if(save.crew.transit>0){const amount=save.crew.transit;save.crew.transit=0;bankCargo(amount);event('delivery',{amount});}else if(s.cargo>0&&Math.hypot(s.x,s.z-9)>4){const amount=Math.min(s.cargo,12+8*save.levels.courier+(rescuedCount()>=5?20:0));s.cargo-=amount;save.crew.transit=amount;event('pickup',{amount});}}
+      }
+      if(rescuedCount()>=1){s.gardenClock+=dt;if(s.gardenClock>=30){s.gardenClock-=30;const amount=3*rescuedCount();save.bank+=amount;event('garden',{amount});}}
       const nest = nearestNest(), atBase = Math.hypot(s.x - nest.x, s.z - nest.z) < 3;
       if (atBase) {
-        s.hp = Math.min(a.hp, s.hp + 30 * dt*(condition()?.healing||1)); s.depositClock += dt;
-        if (s.cargo && s.depositClock > .5) { const amount = s.cargo; save.bank += amount; save.deposited += amount; save.journey.banked += amount; s.cargo = 0; s.depositClock = 0; event('deposit', { amount }); }
+        s.hp = Math.min(a.hp, s.hp + 30 * dt*(condition()?.healing||1)*(rescuedCount()>=4?1.5:1)); s.depositClock += dt;
+        if (s.cargo && s.depositClock > .5) { const amount = s.cargo; s.cargo = 0; s.depositClock = 0;bankCargo(amount); }
       } else s.depositClock = 0;
       if (s.hp <= 0) { s.hp = 0; s.dead = true; s.links = []; event('defeat'); }
     }
+    function bankCargo(amount){save.bank+=amount;save.deposited+=amount;save.journey.banked+=amount;event('deposit',{amount});}
     function respawn() {
       const nest = nearestNest(); s.dead = false; s.x = nest.x; s.z = nest.z; s.hp = stats().hp; s.cargo = Math.floor(s.cargo * .75); s.cooldown = 0; s.hurt = 2; s.projectiles=[]; for(const e of s.enemies){e.dash=0;e.windup=0;}
       for (const e of s.enemies) if (e.boss && !e.dead) { e.hp = e.maxHp; e.windup = 0; e.attack = 2; } event('respawn');
+    }
+    function travel(zone){
+      const nest=nearestNest();if(s.dead||!Number.isInteger(zone)||zone<0||zone>save.unlocked||!save.crew.rescued[zone]||Math.hypot(s.x-nest.x,s.z-nest.z)>=3)return false;
+      if(s.cargo){bankCargo(s.cargo);s.cargo=0;}s.x=zone===0?0:-8;s.z=zone===0?9:zones[zone].max-6;s.links=[];s.hurt=2;event('travel');return true;
     }
     function journeyStatus(){
       const j=save.journey, captures=j.chapter===1?0:40+j.chapter*8, banked=j.chapter===1?0:200+j.chapter*60;
@@ -237,6 +263,7 @@
     }
     function nextChapter(){
       const status=journeyStatus();if(!status.ready||status.complete||s.dead)return false;
+      if(save.crew.transit){bankCargo(save.crew.transit);save.crew.transit=0;}s.courier={x:0,z:9};s.rescueProgress=0;s.rescueTarget=-1;
       save.journey.chapter++;save.journey.captures=0;save.journey.banked=0;save.bosses=zones.map(()=>false);save.unlocked=0;
       s.x=0;s.z=9;s.cargo=0;s.hp=stats().hp;s.won=false;s.dead=false;s.cooldown=0;s.hurt=2;s.projectiles=[];s.links=[];s.events=[];s.enemies=[];s.depositClock=0;
       for(let z=0;z<zones.length;z++){for(let i=0;i<12;i++)s.enemies.push(spawn(z,i));s.enemies.push(spawn(z,99,true));}
@@ -249,8 +276,8 @@
       if (!save.bosses[save.unlocked]) return 'Defeat the ' + zones[save.unlocked].boss;
       return 'Bank ' + zones[save.unlocked + 1].cost + ' seeds to unlock the next habitat';
     }
-    return { s, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
+    return { s, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
   }
-  const api = { create, clean, zones, upgrades, perks, research, conditions, CHAPTERS };
+  const api = { create, clean, zones, upgrades, perks, research, conditions, CHAPTERS, upgradeCap, rescues };
   if (typeof module !== 'undefined') module.exports = api; else root.SpuddyEvolution = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

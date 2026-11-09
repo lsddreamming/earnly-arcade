@@ -41,3 +41,10 @@ test('all five boss designs render with attack poses',async({page},info)=>{
   await page.screenshot({path:info.outputPath('five-boss-designs.png')});
   expect(errors).toEqual([]);
 });
+
+test('rescued crew, flying courier and rare creatures render at the growing base',async({page},info)=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{Math.random=()=>0;localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,bank:500,crew:{rescued:[true,true,true,true,true],transit:12},levels:{courier:2,roots:2}}));});
+ await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();await page.screenshot({path:info.outputPath('crew-home.png')});
+ await page.locator('#upgrades').click();await page.locator('#journeyButton').click();await expect(page.locator('#crewCount')).toHaveText('5/5');await page.locator('#crewCount').scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('crew-journey.png')});expect(errors).toEqual([]);
+});
