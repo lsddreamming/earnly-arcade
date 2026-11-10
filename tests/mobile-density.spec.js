@@ -153,7 +153,7 @@ for (const width of [320, 390, 440]) {
       await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
       await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
       const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
-      expect(order.slice(-3)).toEqual(['crystalCommand', 'bubblePop', 'harborGetaway']);
+      expect(order.slice(-4)).toEqual(['crystalCommand', 'bubblePop', 'harborGetaway', 'spuddyEvolution']);
       expect(order.slice(0, 2)).toEqual(['neonSlice', 'neonBreach']);
       await page.screenshot({ path: testInfo.outputPath('catalog.png'), fullPage: true });
     });
