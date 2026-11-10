@@ -92,3 +92,11 @@ for(const width of [320,390])test('compact boss HUD and clear progression at '+w
  const boss=await page.locator('#bossHud').boundingBox(),hud=await page.locator('.hud').boundingBox();expect(boss.height).toBeLessThanOrEqual(58);expect(boss.y).toBeGreaterThanOrEqual(hud.y+hud.height);expect(boss.x+boss.width).toBeLessThanOrEqual(width);await page.screenshot({path:info.outputPath('compact-boss-'+width+'.png')});
  await page.locator('#upgrades').click();await expect(page.locator('.progression-help')).toContainText('XP levels earn free perks');await expect(page.locator('.progression-help')).toContainText('Buying 5 upgrades evolves your body');await page.screenshot({path:info.outputPath('progression-help-'+width+'.png')});
 });
+
+test('critical health wins over cargo and courier hints without floating over combat',async({page},info)=>{
+ await page.setViewportSize({width:320,height:568});
+ await page.route('**/spuddy-evolution-engine.js*',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+`;{const original=SpuddyEvolution.create;SpuddyEvolution.create=function(){const g=original({version:1,crew:{transit:12},levels:{courier:1}});g.s.z=-7;g.s.hp=20;g.s.cargo=24;g.s.enemies=[];g.step=()=>{};return g;};}`});});
+ await page.goto('/spuddy-evolution.html');await page.locator('#start').click();await expect(page.locator('#hint')).toContainText('Health low');await expect(page.locator('#healthReadout')).toHaveText('♥ 20 / 100');await expect(page.locator('#home')).toHaveClass(/needs-return/);
+ const warning=await page.locator('#lowHealth').boundingBox(),cargo=await page.locator('.cargo').boundingBox();expect(warning.y).toBeGreaterThanOrEqual(cargo.y);expect(warning.y+warning.height).toBeLessThanOrEqual(cargo.y+cargo.height);await page.screenshot({path:info.outputPath('critical-health-phone.png')});
+ await page.locator('#upgrades').click();await expect(page.locator('[data-upgrade="power"] .seed-shortage')).toHaveText('Bank 18 more seeds');await page.screenshot({path:info.outputPath('upgrade-shortages-phone.png')});
+});
