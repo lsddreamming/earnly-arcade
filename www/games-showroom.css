@@ -116,3 +116,5 @@ body.games-dashboard #games .catalog-tile:has(.game-preview) .play-pill{display:
 body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row{display:flex!important;align-items:center!important;justify-content:space-between!important}
 body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-actions{position:static!important;flex:none!important}
 body.games-dashboard #games .catalog-tile:has(.game-preview) .game-name-wrap{padding:0!important;min-width:0!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview){align-self:stretch!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .reward-rule{display:block!important;height:auto!important;max-height:none!important;overflow:visible!important;-webkit-line-clamp:unset}
