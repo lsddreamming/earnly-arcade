@@ -88,7 +88,7 @@ for(const width of [320,390])test('compact boss HUD and clear progression at '+w
  await page.setViewportSize({width,height:690});
  await page.route('**/spuddy-evolution-engine.js*',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+`;{const original=SpuddyEvolution.create;SpuddyEvolution.create=function(){const g=original({version:1,bank:225,xp:360});g.s.z=-8;g.s.enemies=g.s.enemies.filter(e=>e.boss&&e.zone===0);return g;};}`});});
  await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();
- await expect(page.locator('#bossHud')).toBeVisible();await expect(page.locator('#xpText')).toHaveText('XP LEVEL 5');await expect(page.locator('#evolutionHint')).toHaveText('0/5 upgrades to evolve');await expect(page.locator('#upgradeLabel')).toContainText('upgrade ready');
+ await expect(page.locator('#bossHud')).toBeVisible();await expect(page.locator('#xpText')).toHaveText('XP LEVEL 5');await expect(page.locator('#evolutionHint')).toHaveText('0/5 upgrades to evolve');await expect(page.locator('#upgradeStatus')).toContainText('Upgrade ready');
  const boss=await page.locator('#bossHud').boundingBox(),hud=await page.locator('.hud').boundingBox();expect(boss.height).toBeLessThanOrEqual(58);expect(boss.y).toBeGreaterThanOrEqual(hud.y+hud.height);expect(boss.x+boss.width).toBeLessThanOrEqual(width);await page.screenshot({path:info.outputPath('compact-boss-'+width+'.png')});
  await page.locator('#upgrades').click();await expect(page.locator('.progression-help')).toContainText('XP levels earn free perks');await expect(page.locator('.progression-help')).toContainText('Buying 5 upgrades evolves your body');await page.screenshot({path:info.outputPath('progression-help-'+width+'.png')});
 });
@@ -107,4 +107,13 @@ test('nest distance and stable burst cooldown fit phone controls',async({page},i
  await expect(page.locator('#burstStatus')).toHaveText('Ready');await page.locator('#pulse').click();await expect(page.locator('#burstLabel')).toHaveText('Root burst');await expect(page.locator('#pulse')).toBeDisabled();await expect(page.locator('#burstStatus')).toContainText('remaining');
  for(const id of ['home','pulse']){const box=await page.locator('#'+id).boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);expect(box.y+box.height).toBeLessThanOrEqual(568);expect(box.height).toBeGreaterThanOrEqual(44);}
  await page.screenshot({path:info.outputPath('navigation-cooldown-phone.png')});
+});
+
+for(const width of [320,390])test('perk choices show exact benefits and preserve free rewards at '+width+'px',async({page},info)=>{
+ await page.setViewportSize({width,height:568});await page.addInitScript(()=>{if(!localStorage.getItem('earnly.spuddyEvolution.v1'))localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,xp:180,bank:303}));});
+ await page.goto('/spuddy-evolution.html');await page.locator('#start').click();await page.locator('#perkButton').click();await expect(page.locator('#perkRemaining')).toHaveText('2 free choices');
+ await expect(page.locator('[data-perk="vigor"]')).toContainText('100 → 115 max health');await expect(page.locator('[data-perk="harvest"]')).toContainText('24 → 30 pouch capacity');
+ await page.screenshot({path:info.outputPath('perk-picker-'+width+'.png')});
+ await page.locator('[data-perk="vigor"]').click();await expect(page.locator('#perkRemaining')).toHaveText('1 free choice');await expect(page.locator('[data-perk="vigor"]')).toContainText('115 → 130 max health');await expect(page.locator('[data-perk="vigor"]')).toContainText('Chosen 1 time');
+ await page.locator('[data-perk="harvest"]').click();await expect(page.locator('#perkPanel')).not.toBeVisible();const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')));expect(saved.bank).toBe(303);expect(saved.perks).toEqual(['vigor','harvest']);
 });

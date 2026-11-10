@@ -89,9 +89,9 @@
     const s = { save, x: 0, z: 9, hp: 100, cargo: 0, time: 0, paused: true, dead: false, won: save.bosses.at(-1), cooldown: 0, enemies: [], links: [], events: [], pulse: 0, heading: 0, steps: 0, moving: false, depositClock: 0, hurt: 0, projectiles: [],courier:{x:0,z:9},rescueProgress:0,rescueTarget:-1,gardenClock:0,labGuard:0 };
     const condition = () => save.journey.chapter===1 ? null : conditions[(save.journey.chapter-2)%conditions.length];
     const rescuedCount=()=>save.crew.rescued.filter(Boolean).length;
-    const count = key => save.perks.filter(p => p === key).length;
+    const count = (key, choices = save.perks) => choices.filter(p => p === key).length;
     const evolution = () => Math.min(2, Math.floor(Object.values(save.levels).reduce((a,b)=>a+b,0)/5));
-    const stats = (levels = save.levels) => ({ power: 10 * (1 + .35 * levels.power + .08 * count('roots')) * (1+.08*save.journey.research.power), range: 3.1 + .4 * levels.reach, capacity: 24 + 12 * levels.cargo + 6 * count('harvest') + 8*save.journey.research.cargo+(rescuedCount()>=3?20:0), speed: 5.2 * (1 + .08 * levels.speed), hp: 100 + 25 * levels.health + 15 * count('vigor') + 20*save.journey.research.health, targets: 2 + Math.floor(levels.power / 2)+levels.roots });
+    const stats = (levels = save.levels, choices = save.perks) => ({ power: 10 * (1 + .35 * levels.power + .08 * count('roots', choices)) * (1+.08*save.journey.research.power), range: 3.1 + .4 * levels.reach, capacity: 24 + 12 * levels.cargo + 6 * count('harvest', choices) + 8*save.journey.research.cargo+(rescuedCount()>=3?20:0), speed: 5.2 * (1 + .08 * levels.speed), hp: 100 + 25 * levels.health + 15 * count('vigor', choices) + 20*save.journey.research.health, targets: 2 + Math.floor(levels.power / 2)+levels.roots });
     s.hp = stats().hp;
     function event(type, data = {}) { s.events.push({ type, ...data }); if (s.events.length > 40) s.events.shift(); }
     function spawn(zone, index, boss = false) {
@@ -128,6 +128,12 @@
       s.hp = Math.min(stats().hp, s.hp + (key === 'health' ? 25 : 0)); event('upgrade', { key }); if(Object.values(save.levels).reduce((a,b)=>a+b,0)%5===0 && evolution()>0)event('evolution',{form:evolution()}); return true;
     }
     function pendingPerks() { return Math.max(0, Math.min(20, Math.floor(save.xp / 90)) - save.perks.length); }
+    function perkPreview(key) {
+      if (!Object.hasOwn(perks,key) || !pendingPerks() || s.dead) return null;
+      const before=stats(),after=stats(save.levels,[...save.perks,key]);
+      const field=key==='roots'?'power':key==='vigor'?'hp':'capacity';
+      return {before:before[field],after:after[field],field};
+    }
     function choosePerk(key) {
       if (!Object.hasOwn(perks, key) || !pendingPerks() || s.dead) return false;
       save.perks.push(key); if (key === 'vigor') s.hp += 15; event('perk', { key }); return true;
@@ -327,7 +333,7 @@
       const gate = gateStatus();
       return gate.ready ? 'Gate ready! Approach the door to '+gate.name : gate.message+' to open '+gate.name;
     }
-    return { s, gateStatus, nearbyGate, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
+    return { s, perkPreview, gateStatus, nearbyGate, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
   }
   const api = { create, clean, lab, zones, upgrades, perks, research, conditions, CHAPTERS, upgradeCap, rescues };
   if (typeof module !== 'undefined') module.exports = api; else root.SpuddyEvolution = api;

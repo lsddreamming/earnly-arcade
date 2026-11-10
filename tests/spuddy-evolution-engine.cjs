@@ -65,3 +65,8 @@ test('all four doors unlock in order and stay traversable without repeated fees'
  for(let zone=1;zone<5;zone++){g.s.x=0;g.s.z=E.zones[zone].max+1;assert.equal(g.nearbyGate().zone,zone);assert(!g.unlock());g.s.save.bosses[zone-1]=true;assert(g.gateStatus().ready);assert(g.unlock());tick(g,12,{x:0,z:-1});assert(g.s.z<E.zones[zone].max);const bank=g.s.save.bank;tick(g,12,{x:0,z:1});assert(g.s.z>E.zones[zone].max);assert.equal(g.s.save.bank,bank);}
  assert.equal(g.s.save.bank,0);assert.equal(g.gateStatus(),null);assert(!g.unlock());assert.equal(g.gateStatus(-1),null);g.s.x=10;assert.equal(g.nearbyGate(),null);
 });
+
+test('perk previews match purchases without mutating progress and reject unavailable choices',()=>{
+ for(const key of ['roots','vigor','harvest']){const g=E.create({version:1,xp:270,perks:['roots'],levels:{power:3,health:2,cargo:2},journey:{research:{power:4,health:3,cargo:2}}});const saved=JSON.stringify(g.exportSave()),p=g.perkPreview(key);assert(p);assert.equal(JSON.stringify(g.exportSave()),saved);assert.equal(p.before,g.stats()[p.field]);assert(g.choosePerk(key));assert.equal(p.after,g.stats()[p.field]);}
+ const g=E.create();assert.equal(g.perkPreview('roots'),null);assert.equal(g.perkPreview('__proto__'),null);g.s.save.xp=90;g.s.dead=true;assert.equal(g.perkPreview('vigor'),null);
+});
