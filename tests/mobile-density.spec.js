@@ -199,9 +199,9 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
 
 
 for(const prefix of ['', 'www/']){
-  test('rotating Games starters form balanced, readable phone cards '+(prefix||'root/'),async({page})=>{
+  test('rotating Games starters form balanced, readable phone cards '+(prefix||'root/'),async({page,baseURL})=>{
     await page.setViewportSize({width:390,height:844});
-    await page.goto('/'+prefix+'games.html');
+    await page.goto(new URL('/'+prefix+'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
     await expect(page.locator('#games.starter-grid > .catalog-tile')).toHaveCount(4);
     const layout=await page.locator('#games.starter-grid > .catalog-tile').evaluateAll(cards=>
       cards.map(card=>{
@@ -228,5 +228,29 @@ for(const prefix of ['', 'www/']){
     }
     expect(Math.max(...layout.map(c=>c.height))-Math.min(...layout.map(c=>c.height))).toBeLessThan(85);
     await page.screenshot({path:test.info().outputPath('games-fresh-picks-390.png'),fullPage:true});
+  });
+}
+
+
+for(const prefix of ['', 'www/']){
+  test('rotating Games starters cover all 28 titles across seven refreshes '+(prefix||'root/'),async({page,baseURL})=>{
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(new URL('/'+prefix+'games.html',process.env.EARNLY_CATALOG_BASE_URL||baseURL).href);
+    const seen=new Set();
+    for(let turn=0;turn<7;turn++){
+      if(turn)await page.reload();
+      await expect(page.locator('#games.starter-grid > .catalog-tile')).toHaveCount(4);
+      const batch=await page.locator('#games.starter-grid > [data-game]').evaluateAll(cards=>cards.map(card=>card.dataset.game));
+      expect(batch).toHaveLength(4);
+      expect(new Set(batch).size).toBe(4);
+      for(const game of batch){
+        expect(seen.has(game),game+' repeated before all 28 titles appeared').toBe(false);
+        seen.add(game);
+      }
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    }
+    expect(seen.size).toBe(28);
+    await page.locator('[data-filter=all]').click();
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
   });
 }
