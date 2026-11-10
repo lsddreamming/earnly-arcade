@@ -28,7 +28,7 @@ test('rare burgers score 50 once; regular ingredients score 10 and bombs overrid
  let seed=12345;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};const sim=new Game(random);sim.start();let bonus=0,total=0;const kinds=new Set();for(let i=0;i<1000;i++){sim.items=[];sim.spawn();for(const item of sim.items){if(!item.bomb){total++;if(item.type===7)bonus++;else kinds.add(item.type);}}}expect(bonus/total).toBeGreaterThan(.03);expect(bonus/total).toBeLessThan(.09);expect(kinds.size).toBe(11);
 });
 test('public catalog supports discovery and favorites without spending plays',async({page})=>{
- await page.goto('/games.html');const card=page.locator('[data-game="neonSlice"]');await expect(card).toBeVisible();await expect(card.getByRole('link',{name:/Play Neon Slice/})).toHaveAttribute('href','neon-slice.html');await expect(card).toContainText('Earn up to 30 Coins');
+ await page.goto('/games.html');await page.locator('[data-filter=all]').click();await expect(page.locator('#games .catalog-tile')).toHaveCount(28);const card=page.locator('[data-game="neonSlice"]');await expect(card).toBeVisible();await expect(card.getByRole('link',{name:/Play Neon Slice/})).toHaveAttribute('href','neon-slice.html');await expect(card).toContainText('Earn up to 30 Coins');
  await card.getByRole('button').click();await page.reload();expect(await page.evaluate(()=>localStorage.getItem('neonSliceCatalogFavorite'))).toBe('1');
 });
 test('results show readable run totals and preserve best score',async({page})=>{
