@@ -1,10 +1,10 @@
 name: Spuddy Evolution QA
 on:
   pull_request:
-    paths: ['spuddy-evolution*', 'www/spuddy-evolution*', 'tests/spuddy-evolution*', '.github/workflows/spuddy-evolution.yml']
+    paths: ['games.html', 'www/games.html', 'spuddy-evolution*', 'www/spuddy-evolution*', 'tests/spuddy-evolution*', '.github/workflows/spuddy-evolution.yml']
   push:
     branches: [main]
-    paths: ['spuddy-evolution*', 'www/spuddy-evolution*', 'tests/spuddy-evolution*', '.github/workflows/spuddy-evolution.yml']
+    paths: ['games.html', 'www/games.html', 'spuddy-evolution*', 'www/spuddy-evolution*', 'tests/spuddy-evolution*', '.github/workflows/spuddy-evolution.yml']
 jobs:
   evolution:
     strategy:
@@ -28,12 +28,12 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: node --test tests/spuddy-evolution-runtime.cjs
+      - run: node --test tests/spuddy-evolution-runtime.cjs tests/spuddy-evolution-catalog.cjs
       - run: npm ci
       - run: npm run build:spuddy-evolution && git diff --exit-code spuddy-evolution-3d.js
       - run: node --test tests/spuddy-evolution-engine.cjs
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: npx playwright test tests/spuddy-evolution.spec.js --project=${{ matrix.project }} --workers=1
+      - run: npx playwright test tests/spuddy-evolution.spec.js tests/spuddy-evolution-catalog.spec.js --project=${{ matrix.project }} --workers=1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -51,7 +51,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: node --test tests/spuddy-evolution-runtime.cjs
+      - run: node --test tests/spuddy-evolution-runtime.cjs tests/spuddy-evolution-catalog.cjs
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/spuddy-evolution-visual.spec.js --project=desktop-chromium --workers=1 --retries=0
