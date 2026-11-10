@@ -81,7 +81,7 @@ test('opening: public free game teaches a goal match and appears in the catalog'
  await tapSwap(page,3,10);
  await expect(page.locator('#goals')).toContainText('15 left');
  await expect(page.locator('#moves')).toHaveText('21');
- await page.goto('/games.html');await expect(page.locator('[data-game="bubblePop"] a[href="bubble-pop.html"]')).toHaveText('Play · Earn Coins');
+ await page.goto('/games.html');await page.locator('[data-filter=all]').click();await expect(page.locator('[data-game="bubblePop"] a[href="bubble-pop.html"]')).toHaveText('Play · Earn Coins');
 });
 
 test('onboarding: collect, ice and star goals are introduced separately before mixed goals',()=>{
