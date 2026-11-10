@@ -1,0 +1,76 @@
+name: Verify deployed Bounce Run WEB assets
+
+on:
+  push:
+    branches: [verify/bounce-run-live-20261110]
+    paths: [.github/workflows/verify-bounce-run-live.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-bounce-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out the exact source files
+        uses: actions/checkout@v4
+      - name: Compare all deployed Bounce Run files against Git bytes on both hosts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          import time
+
+          files = [
+              "bounce-run-engine.js",
+              "www/bounce-run-engine.js",
+              "mini.html",
+              "www/mini.html",
+          ]
+          hosts = ["https://earnlyarcade.com", "https://www.earnlyarcade.com"]
+
+          source = {p: Path(p).read_bytes() for p in files}
+          assert source["bounce-run-engine.js"] == source["www/bounce-run-engine.js"], "Source engine mirror differs"
+          assert source["mini.html"] == source["www/mini.html"], "Source mini mirror differs"
+          assert b"3.25" in source["bounce-run-engine.js"], "Faster starting speed missing"
+          assert b"36" in source["bounce-run-engine.js"], "First-obstacle timing missing"
+          assert b"bounce-run-engine.js?v=faststart-1" in source["mini.html"], "Cache-bumped loader missing"
+
+          for host in hosts:
+              for path in files + ["mini.html?game=bounceRun", "www/mini.html?game=bounceRun"]:
+                  source_path = path.split("?", 1)[0]
+                  expected = source[source_path]
+                  url = host + "/" + path
+                  good = False
+                  for attempt in range(3):
+                      try:
+                          request = Request(url, headers={
+                              "User-Agent": "EarnlyArcadeBounceRunReleaseCheck/1.0",
+                              "Cache-Control": "no-cache",
+                          })
+                          with urlopen(request, timeout=35) as response:
+                              actual = response.read()
+                              status = response.status
+                          digest = sha256(actual).hexdigest()
+                          expected_digest = sha256(expected).hexdigest()
+                          if status == 200 and actual == expected:
+                              print(f"PASS {url} status=200 bytes={len(actual)} sha256={digest}", flush=True)
+                              good = True
+                              break
+                          print(
+                              f"MISMATCH {url} attempt={attempt + 1} status={status} "
+                              f"actual_bytes={len(actual)} actual_sha256={digest} "
+                              f"expected_bytes={len(expected)} expected_sha256={expected_digest}",
+                              flush=True,
+                          )
+                      except Exception as exc:
+                          print(f"FETCH ERROR {url} attempt={attempt + 1}: {exc!r}", flush=True)
+                      if attempt < 2:
+                          time.sleep(8)
+                  if not good:
+                      raise SystemExit(f"Exact production byte verification failed: {url}")
+          print("All 12 live Bounce Run URL responses match committed Git sources byte for byte.", flush=True)
+          PY
