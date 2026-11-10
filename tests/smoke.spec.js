@@ -312,6 +312,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
+  await page.locator('[data-filter=all]').click();
   await expect(cards).toHaveCount(28);
   const featured = cards.first();
   await expect(featured).toHaveAttribute('data-game', 'neonSlice');
@@ -2470,6 +2471,7 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
 
 test('Crystal Command belongs to the 28-game catalog as a free searchable strategy beta', async ({page}) => {
   await page.goto('/games.html');
+  await page.locator('[data-filter=all]').click();
   await expect(page.locator('#games .catalog-tile')).toHaveCount(28);
   await expect(page.locator('#gameBrowseCount')).toHaveText('28 games to explore');
   await page.locator('[data-filter=strategy]').click();
@@ -2772,3 +2774,73 @@ test('Coin Catch sounds share the sound toggle and advertisement mute',async({pa
  expect(sound).toEqual({off:0,ad:0,enabled:16,afterOff:16});
 });
 
+
+for (const prefix of ['/', '/www/']) {
+  test(prefix + 'starter discovery previews four games and opens the full catalog', async ({ page }) => {
+    await page.goto(prefix + 'games.html');
+    const cards = page.locator('#games .catalog-tile');
+    await expect(cards).toHaveCount(4);
+    await expect(page.locator('[data-filter=starter]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#games .game-preview')).toHaveCount(4);
+    await expect.poll(() => page.locator('#games .game-preview').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0))).toBe(true);
+    await expect(page.locator('#games .game-description')).toHaveCount(4);
+    await expect(page.locator('#games [data-game=spuddyEvolution] .reward-rule')).toContainText('no Arcade Coin rewards');
+    const before = await page.evaluate(() => ({coins:Arcade.number('points'), plays:Arcade.remaining('snake')}));
+    await page.locator('#browseAllGames').click();
+    await expect(cards).toHaveCount(28);
+    await expect(page.locator('[data-filter=all]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#browseAllGames')).toBeHidden();
+    await page.locator('[data-filter=starter]').click();
+    await page.locator('#gameSearch').fill('Neon Breach');
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first()).toHaveAttribute('data-game','neonBreach');
+    await page.locator('[data-filter=starter]').click();
+    await expect(page.locator('#gameSearch')).toHaveValue('');
+    await expect(cards).toHaveCount(4);
+    expect(await page.evaluate(() => ({coins:Arcade.number('points'), plays:Arcade.remaining('snake')}))).toEqual(before);
+    for (const width of [320,390,768,1280]) {
+      await page.setViewportSize({width,height:844});
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      for (const card of await cards.all()) {
+        const play = await card.locator('.game-play-button').boundingBox();
+        expect(play.height).toBeGreaterThanOrEqual(44);
+      }
+    }
+    await cards.first().locator('.game-preview').click();
+    await expect(page).toHaveURL(new RegExp(prefix.replaceAll('/', '\\/') + 'neon-slice\\.html$'));
+  });
+}
+
+for (const prefix of ['/', '/www/']) {
+  test(prefix + 'Home offers every game, advances on return, and leaves picks stable while browsing', async ({page}) => {
+    await page.goto(prefix + 'index.html');
+    const cards = page.locator('#homeFeaturedGames .home-game-card');
+    const keys = () => cards.evaluateAll(items => items.map(item => item.dataset.game));
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toHaveAttribute('data-game', /.+/);
+    const seen = await keys();
+    for(let i=1;i<14;i++){
+      await page.locator('#homeMorePicks').click();
+      const pair=await keys();expect(pair[0]).not.toBe(pair[1]);seen.push(...pair);
+    }
+    expect(new Set(seen).size).toBe(28);
+    const last=await keys();await page.reload();
+    await expect(cards.first()).toHaveAttribute('data-game', /.+/);
+    const next=await keys();expect(next.some(key=>last.includes(key))).toBe(false);
+    await page.waitForTimeout(500);expect(await keys()).toEqual(next);
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));
+    expect((await keys()).some(key=>next.includes(key))).toBe(false);
+    const href=await cards.first().getAttribute('href');
+    await cards.first().click();await expect(page).toHaveURL(new URL(prefix + href, 'http://127.0.0.1:4173/').href);
+  });
+  test(prefix + 'Home keeps rotation working when browser storage is unavailable', async ({page}) => {
+    await page.addInitScript(() => {Object.defineProperty(window,'localStorage',{get(){throw new Error('Storage unavailable');}});});
+    await page.goto(prefix + 'index.html');
+    const cards=page.locator('#homeFeaturedGames .home-game-card');
+    await expect(cards.first()).toHaveAttribute('data-game', /.+/);
+    const before=await cards.evaluateAll(items=>items.map(item=>item.dataset.game));
+    await page.locator('#homeMorePicks').click();
+    const after=await cards.evaluateAll(items=>items.map(item=>item.dataset.game));
+    expect(after).toHaveLength(2);expect(after.some(key=>before.includes(key))).toBe(false);
+  });
+}

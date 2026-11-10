@@ -3,6 +3,7 @@ const { test, expect } = require('@playwright/test');
 for (const prefix of ['/', '/www/']) {
   test(prefix + 'Evolution beta is discoverable, free, favoritable and directly linked', async ({ page, baseURL }) => {
     await page.goto(new URL(prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
+    await page.locator('[data-filter=all]').click();
     const cards = page.locator('#games [data-game="spuddyEvolution"]');
     await expect(cards).toHaveCount(1);
     const card = cards.first();

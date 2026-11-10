@@ -409,3 +409,44 @@ test('root and native mirror share ordinary web assets', () => {
     expect(fs.readFileSync(path.join('www', file)).equals(fs.readFileSync(file)), file + ' differs from its root source').toBe(true);
   }
 });
+test('Home rotation includes the complete published catalog and preserves every destination', () => {
+  const vm = require('node:vm');
+  const {catalog} = require('../home-featured.js');
+  const games = vm.runInNewContext('(' + read('games.html').match(/const gameInfo = (\[[\s\S]*?\n    \]);/)[1] + ')');
+  expect(catalog.map(g => [g.key,g.name,g.href]).sort()).toEqual(Array.from(games, g => [g.key,g.name,g.href]).sort());
+  expect(new Set(catalog.map(g => g.key)).size).toBe(catalog.length);
+  for (const game of catalog) expect(fs.existsSync(path.join(ROOT,game.href.split('?')[0]))).toBe(true);
+  expect(read('home-featured.js')).toBe(read('www/home-featured.js'));
+});
+
+test('Home shuffle queue covers all games before repeating across persisted visits', () => {
+  const {catalog,nextPair} = require('../home-featured.js');
+  for (const random of [()=>0,()=>0.999999,Math.random]) {
+    let saved = null, previous = [];
+    for (let cycle = 0; cycle < 20; cycle++) {
+      const seen = [];
+      for (let visit = 0; visit < catalog.length/2; visit++) {
+        const {selected,state} = nextPair(catalog, saved, random);
+        expect(selected).toHaveLength(2);
+        expect(new Set(selected).size).toBe(2);
+        expect(selected.some(id => previous.includes(id))).toBe(false);
+        seen.push(...selected); previous = selected;
+        saved = JSON.parse(JSON.stringify(state));
+      }
+      expect(new Set(seen).size).toBe(catalog.length);
+      expect(saved.remaining).toEqual([]);
+    }
+  }
+});
+
+test('Home shuffle repairs stale queues and handles catalog additions and odd counts', () => {
+  const {catalog,nextPair} = require('../home-featured.js');
+  for (const saved of [null,{},[],{remaining:['retired']},{signature:catalog.map(g=>g.key).sort().join('|'),remaining:['snake','snake']}]) {
+    expect(new Set(nextPair(catalog,saved).selected).size).toBe(2);
+  }
+  const odd = catalog.slice(0,5); let saved = null; const seen=[];
+  for(let i=0;i<3;i++){const result=nextPair(odd,saved,()=>0);expect(new Set(result.selected).size).toBe(2);seen.push(...result.selected);saved=result.state;}
+  expect(new Set(seen.slice(0,5)).size).toBe(5);
+  const result=nextPair(catalog,saved,()=>0);
+  expect(new Set([...result.selected,...result.state.remaining]).size).toBe(catalog.length);
+});

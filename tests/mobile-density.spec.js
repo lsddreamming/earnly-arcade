@@ -54,7 +54,9 @@ test('Home starts with direct game choices; extras and progress stay secondary',
  await expect(page.locator('.home-primary-play')).toBeInViewport();await expect(page.locator('.home-game-card')).toHaveCount(2);await expect(page.locator('.home-game-card').last()).toBeInViewport();
  const firstPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
  expect(new Set(firstPicks).size).toBe(2);
- for(const href of firstPicks) expect(['neon-slice.html','snake.html','junglehopper.html','neonbreach.html']).toContain(href);
+ const publishedHrefs=new Set(require('../home-featured.js').catalog.map(game=>game.href));
+ expect(publishedHrefs.size).toBe(28);
+ for(const href of firstPicks) expect(publishedHrefs.has(href)).toBe(true);
  await page.reload();
  await expect(page.locator('.home-game-card')).toHaveCount(2);
  const nextPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
@@ -148,8 +150,14 @@ for (const width of [320, 390, 440]) {
     test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
       await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-      // Wait for the catalog's dynamic rebuild, including its favorite controls.
+      // Starter picks intentionally precede the complete catalog.
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
+      await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
+      const starters = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
+      expect(starters).toEqual(['neonSlice', 'snake', 'bubblePop', 'spuddyEvolution']);
+      await expect(page.locator('#games .game-preview')).toHaveCount(4);
+      await page.locator('[data-filter=all]').click();
+      await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
       await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
       await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
       const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
@@ -169,11 +177,12 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
     const bounds=await firstPlay.boundingBox();
     expect(bounds.y).toBeGreaterThan(0);
     expect(bounds.y+bounds.height).toBeLessThanOrEqual(height-64);
-    const order=await page.evaluate(()=>{
+    const pageOrder=await page.evaluate(()=>{
       const games=document.getElementById('games');
-      return ['.games-simple-note','#quickSections','.rank-discovery'].every(selector=>Boolean(games.compareDocumentPosition(document.querySelector(selector)) & Node.DOCUMENT_POSITION_FOLLOWING));
+      const follows=selector=>Boolean(games.compareDocumentPosition(document.querySelector(selector)) & Node.DOCUMENT_POSITION_FOLLOWING);
+      return {playAgainBefore:!follows('#quickSections'),howItWorksAfter:follows('.games-simple-note'),leaderboardsAfter:follows('.rank-discovery')};
     });
-    expect(order).toBe(true);
+    expect(pageOrder).toEqual({playAgainBefore:true,howItWorksAfter:true,leaderboardsAfter:true});
     const titleCollisions=await page.locator('#games > .catalog-tile').evaluateAll(cards=>cards.flatMap(card=>{
       const heading=card.querySelector('h2'),favorite=card.querySelector('.favorite-button');
       if(!heading||!favorite)return [];
