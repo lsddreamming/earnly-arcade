@@ -132,7 +132,7 @@ body.games-dashboard #games .catalog-tile:has(.game-preview) .game-play-button{m
     grid-column:1/-1!important;
     display:grid!important;
     grid-template-columns:92px minmax(0,1fr)!important;
-    grid-template-areas:"preview title" "preview description" "preview reward" "play play";
+    grid-template-areas:"preview title" "preview description" "preview reward" "play play"!important;
     grid-template-rows:auto auto auto 44px!important;
     align-content:start!important;
     min-height:0!important;
@@ -216,7 +216,7 @@ body.games-dashboard #games.starter-grid .status-line{font-size:10px;line-height
     grid-column:1/-1!important;
     display:grid!important;flex-direction:initial!important;
     grid-template-columns:102px minmax(0,1fr)!important;
-    grid-template-areas:"preview title" "preview description" "preview reward" "play play";
+    grid-template-areas:"preview title" "preview description" "preview reward" "play play"!important;
     grid-template-rows:auto auto auto minmax(44px,auto)!important;
     align-content:start!important;align-items:start!important;
     gap:4px 12px!important;padding:10px!important;
