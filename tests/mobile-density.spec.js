@@ -196,3 +196,37 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
     await expect(page.locator('#games > .catalog-tile:visible')).toContainText('100 Arcade Coins');
   });
 }
+
+
+for(const prefix of ['', 'www/']){
+  test('rotating Games starters form balanced, readable phone cards '+(prefix||'root/'),async({page})=>{
+    await page.setViewportSize({width:390,height:844});
+    await page.goto('/'+prefix+'games.html');
+    await expect(page.locator('#games.starter-grid > .catalog-tile')).toHaveCount(4);
+    const layout=await page.locator('#games.starter-grid > .catalog-tile').evaluateAll(cards=>
+      cards.map(card=>{
+        const bounds=card.getBoundingClientRect();
+        const image=card.querySelector('.game-preview')?.getBoundingClientRect();
+        const play=card.querySelector('.game-play-button')?.getBoundingClientRect();
+        const reward=card.querySelector('.reward-rule');
+        return {x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height,
+          imageWidth:image?.width,imageHeight:image?.height,
+          playHeight:play?.height,playBottom:play?.bottom,
+          cardBottom:bounds.bottom,noteFits:reward?.scrollHeight<=reward?.clientHeight+1};
+      }));
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    for(let i=0;i<layout.length;i++){
+      const c=layout[i];
+      expect(Math.abs(c.x-layout[0].x)).toBeLessThan(2);
+      expect(c.width).toBeGreaterThan(350);
+      expect(c.imageWidth).toBeGreaterThanOrEqual(85);
+      expect(c.imageHeight).toBeGreaterThanOrEqual(85);
+      expect(c.playHeight).toBeGreaterThanOrEqual(44);
+      expect(c.playBottom).toBeLessThanOrEqual(c.cardBottom+1);
+      expect(c.noteFits).toBe(true);
+      if(i)expect(c.y).toBeGreaterThanOrEqual(layout[i-1].cardBottom);
+    }
+    expect(Math.max(...layout.map(c=>c.height))-Math.min(...layout.map(c=>c.height))).toBeLessThan(85);
+    await page.screenshot({path:test.info().outputPath('games-fresh-picks-390.png'),fullPage:true});
+  });
+}
