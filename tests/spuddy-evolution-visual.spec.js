@@ -58,7 +58,7 @@ test('upgrade previews and Root Focus fit the phone and persist purchases',async
  await focus.getByRole('button').click();await expect(focus).toContainText('15 → 30%');await expect(page.locator('#panelBank')).toHaveText('145');
  const box=await focus.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);
  await page.screenshot({path:info.outputPath('root-focus-upgrades.png')});
- await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await expect(page.locator('.upgrade').filter({hasText:'Root Focus'})).toContainText('1/3');
+ await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await expect(page.locator('.upgrade').filter({hasText:'Root Focus'})).toContainText('Rank 1 / 3');
 });
 
 test('Evolution Lab shows materials, buys an ability and preserves it on phone reload',async({page},info)=>{
