@@ -31,3 +31,32 @@ test('countdown uses elapsed time after a delayed frame and preserves paused tim
   await page.clock.fastForward(1100);await expect(page.locator('#status')).toHaveText('SAFE AT HOME');
   await expect(page.locator('.public-footer')).toBeHidden();
 });
+
+
+test('live Turf trail cues point toward owned land, pause safely and keep phone controls accessible',async({page},info)=>{
+ await frozenClock(page);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/spuddy-turf.html');
+ await expect(page.locator('#trailGuide')).toContainText('Leave blue land');
+ await page.locator('[data-mode="practice"]').click();
+ await page.locator('#start').click();
+ await page.clock.runFor(2050);
+ await expect(page.locator('#status')).toHaveText('SAFE AT HOME');
+ await page.clock.runFor(1250);
+ await expect(page.locator('#status')).toHaveText('TRAIL EXPOSED');
+ await expect(page.locator('#trailGuide')).toContainText('Blue land');
+ await expect(page.locator('#arena')).toHaveClass(/trail-exposed/);
+ await page.screenshot({path:info.outputPath('spuddy-turf-trail-guide.png')});
+ const pad=await page.locator('.dpad').boundingBox();
+ const pause=await page.locator('#pause').boundingBox();
+ expect(pad.y+pad.height).toBeLessThanOrEqual(844);
+ expect(pause.y+pause.height).toBeLessThanOrEqual(844);
+ await page.locator('#pause').click();
+ await expect(page.locator('#status')).toHaveText('Paused');
+ const frozen=await page.locator('#trailGuide').innerText();
+ await page.clock.fastForward(5000);
+ await expect(page.locator('#trailGuide')).toHaveText(frozen);
+ await page.locator('#resume').click();
+ await expect(page.locator('#pausePanel')).toBeHidden();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
