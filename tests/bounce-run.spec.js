@@ -3,7 +3,7 @@ async function open(page,path='/mini.html?game=bounceRun'){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');});
   await page.route('https://**',route=>route.abort());
-  await page.route('**/bounce-run-engine.js',async route=>{
+  await page.route('**/bounce-run-engine.js*',async route=>{
     const response=await route.fetch();
     await route.fulfill({response,body:await response.text()+`;const originalBounceCreate=BounceRunEngine.create;BounceRunEngine.create=(...args)=>{
       const engine=originalBounceCreate(...args);
@@ -22,6 +22,30 @@ async function open(page,path='/mini.html?game=bounceRun'){
   await expect(page.locator('#surface canvas')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.testBounce?.state.ticks||0)).toBeGreaterThan(0);
   return errors;
+}
+for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
+ test('Bounce Run opens with a fast, immediately visible course '+path,async({page})=>{
+  const errors=await open(page,path);
+  const start=await page.evaluate(()=>({
+    speed:testBounce.state.speed,
+    wait:testBounce.state.wait,
+    initial:BounceRunEngine.speedFor(0),
+    afterFive:BounceRunEngine.speedFor(5),
+    afterTen:BounceRunEngine.speedFor(10)
+  }));
+  expect(start.speed).toBe(3.25);
+  expect(start.initial).toBe(3.25);
+  expect(start.wait).toBeGreaterThan(0);
+  expect(start.afterFive).toBeGreaterThan(start.initial);
+  expect(start.afterTen).toBeGreaterThan(start.afterFive);
+  // The Playwright fixture holds hazards back for controls tests; briefly
+  // permit a real physics wave and assert that it uses the launch pace.
+  await page.evaluate(()=>{testBounce.state.wait=1;});
+  await expect.poll(()=>page.evaluate(()=>testBounce.state.obstacles.length)).toBeGreaterThan(0);
+  const waveSpeed=await page.evaluate(()=>testBounce.state.obstacles[0].speed);
+  expect(waveSpeed).toBe(3.25);
+  expect(errors).toEqual([]);
+ });
 }
 test('Bounce Run HUD and motion preferences avoid frame-by-frame DOM and storage work',async({page})=>{
  const errors=await open(page);
