@@ -1,0 +1,63 @@
+name: Spuddy Evolution QA
+on:
+  pull_request:
+    paths: ['spuddy-evolution*', 'www/spuddy-evolution*', 'tests/spuddy-evolution*', '.github/workflows/spuddy-evolution.yml']
+  push:
+    branches: [main]
+    paths: ['spuddy-evolution*', 'www/spuddy-evolution*', 'tests/spuddy-evolution*', '.github/workflows/spuddy-evolution.yml']
+jobs:
+  evolution:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: ubuntu-latest
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    env:
+      EVOLUTION_CHROMIUM_3D: ${{ matrix.browser == 'chromium' && '1' || '0' }}
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WEBKIT_DISABLE_DMABUF_RENDERER: '1' 
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: node --test tests/spuddy-evolution-runtime.cjs
+      - run: npm ci
+      - run: npm run build:spuddy-evolution && git diff --exit-code spuddy-evolution-3d.js
+      - run: node --test tests/spuddy-evolution-engine.cjs
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test tests/spuddy-evolution.spec.js --project=${{ matrix.project }} --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spuddy-evolution-${{ matrix.project }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  graphics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: node --test tests/spuddy-evolution-runtime.cjs
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/spuddy-evolution-visual.spec.js --project=desktop-chromium --workers=1 --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spuddy-evolution-3d-graphics
+          path: test-results/
+          retention-days: 7
