@@ -64,7 +64,7 @@ test('Pause Save & Exit returns to Games and resumes the exact adventure on this
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')));
  expect(saved.session).toMatchObject({version:1,chapter:1,x:4,z:1,hp:67,cargo:7,cooldown:2.5});
  await page.locator('#saveExit').click();
- await expect(page).toHaveURL(/games\\.html$/);
+ await expect(page).toHaveURL(/games\.html$/);
  await page.goto(url);
  await expect(page.locator('#start')).toBeEnabled({timeout:15000});
  await expect(page.locator('#start')).toContainText('Resume saved adventure');
@@ -86,7 +86,7 @@ test('Pause Save & Exit stays in the game and explains unavailable device storag
  await page.locator('#saveExit').click();
  await expect(page.locator('#saveStatus')).toContainText('Could not save');
  await expect(page.locator('#pausePanel')).toBeVisible();
- await expect(page).toHaveURL(/spuddy-evolution\\.html$/);
+ await expect(page).toHaveURL(/spuddy-evolution\.html$/);
 });
 test('upgrades spend saved seeds and persist, gate cannot bypass bosses',async({page})=>{await page.addInitScript(()=>localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,bank:100})));await page.goto(url);await expect(page.locator('#start')).toBeEnabled({timeout:15000});await page.locator('#start').click();await page.locator('#upgrades').click();await page.getByRole('button',{name:'Upgrade Root power for 18 seeds',exact:true}).click();await expect(page.locator('#panelBank')).toHaveText('82');await expect(page.locator('#gate')).toBeDisabled();await page.locator('#closePanel').click();await expect(page.locator('#bank')).toHaveText('82');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')).levels.power)).toBe(1);});
 test('pause, background pause, resume and burst cooldown work',async({page})=>{
