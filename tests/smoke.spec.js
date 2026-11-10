@@ -2810,3 +2810,37 @@ for (const prefix of ['/', '/www/']) {
     await expect(page).toHaveURL(new RegExp(prefix.replaceAll('/', '\\/') + 'neon-slice\\.html$'));
   });
 }
+
+for (const prefix of ['/', '/www/']) {
+  test(prefix + 'Home offers every game, advances on return, and leaves picks stable while browsing', async ({page}) => {
+    await page.goto(prefix + 'index.html');
+    const cards = page.locator('#homeFeaturedGames .home-game-card');
+    const keys = () => cards.evaluateAll(items => items.map(item => item.dataset.game));
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toHaveAttribute('data-game', /.+/);
+    const seen = await keys();
+    for(let i=1;i<14;i++){
+      await page.locator('#homeMorePicks').click();
+      const pair=await keys();expect(pair[0]).not.toBe(pair[1]);seen.push(...pair);
+    }
+    expect(new Set(seen).size).toBe(28);
+    const last=await keys();await page.reload();
+    await expect(cards.first()).toHaveAttribute('data-game', /.+/);
+    const next=await keys();expect(next.some(key=>last.includes(key))).toBe(false);
+    await page.waitForTimeout(500);expect(await keys()).toEqual(next);
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));
+    expect((await keys()).some(key=>next.includes(key))).toBe(false);
+    const href=await cards.first().getAttribute('href');
+    await cards.first().click();await expect(page).toHaveURL(new URL(prefix + href, 'http://127.0.0.1:4173/').href);
+  });
+  test(prefix + 'Home keeps rotation working when browser storage is unavailable', async ({page}) => {
+    await page.addInitScript(() => {Object.defineProperty(window,'localStorage',{get(){throw new Error('Storage unavailable');}});});
+    await page.goto(prefix + 'index.html');
+    const cards=page.locator('#homeFeaturedGames .home-game-card');
+    await expect(cards.first()).toHaveAttribute('data-game', /.+/);
+    const before=await cards.evaluateAll(items=>items.map(item=>item.dataset.game));
+    await page.locator('#homeMorePicks').click();
+    const after=await cards.evaluateAll(items=>items.map(item=>item.dataset.game));
+    expect(after).toHaveLength(2);expect(after.some(key=>before.includes(key))).toBe(false);
+  });
+}
