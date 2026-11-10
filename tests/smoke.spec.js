@@ -345,10 +345,10 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
 
 test('Pick for me opens a playable game without searching', async ({ page }) => {
   await page.goto('/games.html');
-  const firstGame = await page.evaluate(() => gameInfo[0].href);
+  const selected = await page.locator('#games .game-play-button[href]').evaluateAll(links=>links.map(link=>link.href));
   await page.evaluate(() => { Math.random = () => 0; });
   await page.locator('#surpriseGame').click();
-  await expect(page).toHaveURL(new URL(firstGame, 'http://127.0.0.1:4173/').href);
+  expect(selected).toContain(page.url());
 });
 
 test('core navigation never points to a missing internal page', async ({ page }) => {
@@ -2782,12 +2782,15 @@ for (const prefix of ['/', '/www/']) {
     await expect(cards).toHaveCount(4);
     await expect(page.locator('[data-filter=starter]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#games .game-preview')).toHaveCount(4);
-    await expect.poll(() => page.locator('#games .game-preview').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0))).toBe(true);
+    await expect(page.locator('#games .game-preview-symbol')).toHaveCount(4);
     await expect(page.locator('#games .game-description')).toHaveCount(4);
-    await expect(page.locator('#games [data-game=spuddyEvolution] .reward-rule')).toContainText('no Arcade Coin rewards');
+    const selected = await cards.evaluateAll(items=>items.map(item=>item.dataset.game));
+    expect(new Set(selected).size).toBe(4);
+    await expect(page.locator('#gameBrowseCount')).toContainText('fresh picks');
     const before = await page.evaluate(() => ({coins:Arcade.number('points'), plays:Arcade.remaining('snake')}));
     await page.locator('#browseAllGames').click();
     await expect(cards).toHaveCount(28);
+    await expect(page.locator('#games [data-game=spuddyEvolution] .reward-rule')).toContainText('no Arcade Coin rewards');
     await expect(page.locator('[data-filter=all]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#browseAllGames')).toBeHidden();
     await page.locator('[data-filter=starter]').click();
@@ -2806,8 +2809,55 @@ for (const prefix of ['/', '/www/']) {
         expect(play.height).toBeGreaterThanOrEqual(44);
       }
     }
+    const destination = await cards.first().locator('.game-play-button[href]').getAttribute('href');
     await cards.first().locator('.game-preview').click();
-    await expect(page).toHaveURL(new RegExp(prefix.replaceAll('/', '\\/') + 'neon-slice\\.html$'));
+    await expect(page).toHaveURL(new URL(prefix+destination,'http://127.0.0.1:4173/').href);
+  });
+}
+
+for (const prefix of ['/', '/www/']) {
+  test(prefix + 'Games starter picks rotate all 28 titles over seven page refreshes',async({page})=>{
+    await page.route('https://**',r=>r.abort());
+    const keys=()=>page.locator('#games > .catalog-tile').evaluateAll(items=>items.map(item=>item.dataset.game));
+    const seen=[],groups=[];
+    for(let visit=0;visit<7;visit++){
+      if(visit===0)await page.goto(prefix+'games.html');
+      else await page.reload();
+      await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
+      const selected=await keys();
+      expect(new Set(selected).size).toBe(4);
+      if(groups.length)expect(selected.some(id=>groups.at(-1).includes(id))).toBe(false);
+      groups.push(selected);seen.push(...selected);
+    }
+    expect(new Set(seen).size).toBe(28);
+    await page.reload();
+    const next=await keys();
+    expect(next.some(id=>groups.at(-1).includes(id))).toBe(false);
+    const unchanged=await keys();
+    await page.locator('[data-filter=all]').click();
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
+    await page.locator('[data-filter=starter]').click();
+    expect(await keys()).toEqual(unchanged);
+  });
+
+  test(prefix+' Games fall back to illustrated cards when photos cannot load',async({page})=>{
+    const ids=require('../home-featured.js').catalog.map(game=>game.key);
+    await page.addInitScript(catalog=>{
+      localStorage.setItem('earnly.games.starter.queue.v1',JSON.stringify({
+        signature:catalog.slice().sort().join('|'),
+        remaining:['neonSlice','snake','bubblePop','spuddyEvolution'],
+        previous:[]
+      }));
+    },ids);
+    await page.route('**/game-preview-*',r=>r.abort());
+    await page.goto(prefix+'games.html');
+    await expect(page.locator('#games .catalog-tile')).toHaveCount(4);
+    await expect(page.locator('#games .game-preview-symbol')).toHaveCount(4);
+    await expect(page.locator('#games .game-preview-photo')).toHaveCount(0);
+    for(const card of await page.locator('#games .catalog-tile').all()){
+      await expect(card.locator('.game-preview')).toBeVisible();
+      await expect(card.locator('.game-play-button')).toBeVisible();
+    }
   });
 }
 

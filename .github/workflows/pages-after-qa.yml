@@ -122,7 +122,7 @@ jobs:
           python3 - <<'PYTHON'
           import pathlib, time, urllib.request
           hosts = ['https://earnlyarcade.com', 'https://www.earnlyarcade.com']
-          files = ['games.html', 'games-showroom.css', 'www/games.html', 'www/games-showroom.css', 'world.html', 'world.js', 'world-renderer.js', 'www/world.html', 'www/world.js', 'www/world-renderer.js']
+          files = ['games.html', 'games-showroom.css', 'games-starter-rotation.js', 'www/games.html', 'www/games-showroom.css', 'www/games-starter-rotation.js', 'world.html', 'world.js', 'world-renderer.js', 'www/world.html', 'www/world.js', 'www/world-renderer.js']
           # Keep direct production byte checks on the starter preview assets,
           # so blank images fail publication before browser QA can start.
           files += [prefix + name for prefix in ['', 'www/'] for name in ['game-preview-neon-slice.webp', 'game-preview-snake.webp', 'game-preview-bubble-pop.webp']]
@@ -142,7 +142,11 @@ jobs:
                       time.sleep(15)
           PYTHON
       - name: Test live phone catalog including native mirror
-        run: npx playwright test tests/mobile-density.spec.js --project=mobile-webkit --grep 'catalog badges|catalog puts'
+        run: npx playwright test tests/mobile-density.spec.js --project=mobile-webkit --grep 'catalog badges|catalog puts|rotating Games starters'
+        env:
+          EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
+      - name: Verify live starter card width and non-overlapping artwork
+        run: npx playwright test tests/games-starter-layout.spec.js --project=mobile-webkit --workers=1
         env:
           EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
       - name: Verify live Evolution beta discovery and Play link

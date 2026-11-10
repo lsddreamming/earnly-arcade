@@ -150,14 +150,14 @@ for (const width of [320, 390, 440]) {
     test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
       await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-      // Starter picks intentionally precede the complete catalog.
-      await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
+      // Four refreshed games lead into the complete 28-game catalog.
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
       const starters = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
-      expect(starters).toEqual(['neonSlice', 'snake', 'bubblePop', 'spuddyEvolution']);
+      expect(new Set(starters).size).toBe(4);
       await expect(page.locator('#games .game-preview')).toHaveCount(4);
       await page.locator('[data-filter=all]').click();
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
+      await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
       await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
       await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
       const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
@@ -172,7 +172,7 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
   test(`catalog puts a complete Play card on the first phone screen ${width}px`, async ({page,baseURL})=>{
     await page.setViewportSize({width,height});
     await page.goto(new URL('/games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-    await expect(page.getByRole('button',{name:'Add Snake favorite',exact:true})).toBeVisible();
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
     const firstPlay=page.locator('#games > .catalog-tile').first().locator('.game-play-button');
     const bounds=await firstPlay.boundingBox();
     expect(bounds.y).toBeGreaterThan(0);
@@ -194,5 +194,63 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
     await page.getByRole('searchbox',{name:'Search games'}).fill('Snake');
     await expect(page.locator('#games > .catalog-tile:visible')).toHaveCount(1);
     await expect(page.locator('#games > .catalog-tile:visible')).toContainText('100 Arcade Coins');
+  });
+}
+
+
+for(const prefix of ['', 'www/']){
+  test('rotating Games starters form balanced, readable phone cards '+(prefix||'root/'),async({page,baseURL})=>{
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(new URL('/'+prefix+'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
+    await expect(page.locator('#games.starter-grid > .catalog-tile')).toHaveCount(4);
+    const layout=await page.locator('#games.starter-grid > .catalog-tile').evaluateAll(cards=>
+      cards.map(card=>{
+        const bounds=card.getBoundingClientRect();
+        const image=card.querySelector('.game-preview')?.getBoundingClientRect();
+        const play=card.querySelector('.game-play-button')?.getBoundingClientRect();
+        const reward=card.querySelector('.reward-rule');
+        return {x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height,
+          imageWidth:image?.width,imageHeight:image?.height,
+          playHeight:play?.height,playBottom:play?.bottom,
+          cardBottom:bounds.bottom,noteFits:reward?.scrollHeight<=reward?.clientHeight+1};
+      }));
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    for(let i=0;i<layout.length;i++){
+      const c=layout[i];
+      expect(Math.abs(c.x-layout[0].x)).toBeLessThan(2);
+      expect(c.width).toBeGreaterThan(350);
+      expect(c.imageWidth).toBeGreaterThanOrEqual(85);
+      expect(c.imageHeight).toBeGreaterThanOrEqual(85);
+      expect(c.playHeight).toBeGreaterThanOrEqual(44);
+      expect(c.playBottom).toBeLessThanOrEqual(c.cardBottom+1);
+      expect(c.noteFits).toBe(true);
+      if(i)expect(c.y).toBeGreaterThanOrEqual(layout[i-1].cardBottom);
+    }
+    expect(Math.max(...layout.map(c=>c.height))-Math.min(...layout.map(c=>c.height))).toBeLessThan(85);
+    await page.screenshot({path:test.info().outputPath('games-fresh-picks-390.png'),fullPage:true});
+  });
+}
+
+
+for(const prefix of ['', 'www/']){
+  test('rotating Games starters cover all 28 titles across seven refreshes '+(prefix||'root/'),async({page,baseURL})=>{
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(new URL('/'+prefix+'games.html',process.env.EARNLY_CATALOG_BASE_URL||baseURL).href);
+    const seen=new Set();
+    for(let turn=0;turn<7;turn++){
+      if(turn)await page.reload();
+      await expect(page.locator('#games.starter-grid > .catalog-tile')).toHaveCount(4);
+      const batch=await page.locator('#games.starter-grid > [data-game]').evaluateAll(cards=>cards.map(card=>card.dataset.game));
+      expect(batch).toHaveLength(4);
+      expect(new Set(batch).size).toBe(4);
+      for(const game of batch){
+        expect(seen.has(game),game+' repeated before all 28 titles appeared').toBe(false);
+        seen.add(game);
+      }
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    }
+    expect(seen.size).toBe(28);
+    await page.locator('[data-filter=all]').click();
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
   });
 }
