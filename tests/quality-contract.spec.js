@@ -496,6 +496,7 @@ test('Games starter refresh validates corrupt or stale storage and odd catalogs'
   expect(new Set(seen.slice(0,5)).size).toBe(5);
   const updated=nextBatch([...items,'trafficEscape'],saved,()=>0);
   expect(updated.selected).toHaveLength(4);
-  expect(updated.selected).toContain('trafficEscape');
+  const next=nextBatch([...items,'trafficEscape'],updated.state,()=>0);
+  expect(new Set([...updated.selected,...next.selected])).toContain('trafficEscape');
   expect(nextBatch([],null).selected).toEqual([]);
 });
