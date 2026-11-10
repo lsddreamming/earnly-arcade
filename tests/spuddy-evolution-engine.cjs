@@ -8,6 +8,42 @@ test('burst requires active play and respects cooldown',()=>{const g=E.create();
 test('boss attacks telegraph, kill banks rewards once, gates require boss and seeds',()=>{const g=E.create({version:1,bank:200});assert(!g.unlock());g.s.paused=false;g.s.x=0;g.s.z=-9;g.s.enemies=g.s.enemies.filter(e=>e.boss&&e.zone===0);const e=g.s.enemies[0];e.hp=1;tick(g,10);assert(g.s.save.bosses[0]);assert.equal(g.s.save.bank,235);tick(g,100);assert.equal(g.s.save.bank,235);assert(g.unlock());assert.equal(g.s.save.bank,155);assert.equal(g.s.save.unlocked,1);assert(!g.unlock());});
 test('defeat retains banked progress and respawn restores a safe full-health state',()=>{const g=E.create({version:1,bank:100,levels:{health:2}});g.s.cargo=20;g.s.hp=0;g.s.z=0;tick(g,1);assert(g.s.dead);g.respawn();assert.equal(g.s.hp,150);assert.equal(g.s.cargo,15);assert.equal(g.s.save.bank,100);assert.equal(g.s.z,9);});
 test('save roundtrip preserves progression and defeated bosses stay defeated',()=>{const g=E.create({version:1,bank:200,xp:80,deposited:120,unlocked:1,bosses:[true,false,false],levels:{power:2}});const b=E.create(JSON.parse(JSON.stringify(g.exportSave())));assert.deepEqual(g.exportSave(),b.exportSave());assert(!b.s.enemies.some(e=>e.zone===0&&e.boss));});
+test('session checkpoint restores position, pouch, health and cooldown without changing bank',()=>{
+ const g=E.create({version:1,bank:75,unlocked:1,bosses:[true,false,false,false,false],levels:{health:1,cargo:1}});
+ Object.assign(g.s,{x:4.25,z:-22,hp:69,cargo:17,cooldown:3.5,time:125});
+ const complete={...g.exportSave(),session:g.exportSession()};
+ const copy=E.create(JSON.parse(JSON.stringify(complete)));
+ assert.equal(copy.restoredSession,true);
+ for(const k of ['x','z','hp','cargo','cooldown','time'])assert.equal(copy.s[k],g.s[k],k);
+ assert.equal(copy.s.save.bank,75);
+ assert.equal(copy.s.paused,true);
+ // Backups predating session support remain usable and start at the nest.
+ const legacy=E.create(g.exportSave());
+ assert.equal(legacy.restoredSession,false);
+ assert.equal(legacy.s.z,9);
+ assert.equal(legacy.s.cargo,0);
+});
+test('checkpoint validation rejects stale chapters and locked or corrupted locations',()=>{
+ const permanent={version:1,bank:41,journey:{chapter:3},unlocked:1,bosses:[true,false,false,false,false]};
+ const normal=E.create(permanent);
+ const valid={...normal.exportSession(),x:2,z:-20,hp:60,cargo:7,cooldown:2};
+ for(const session of [
+  {...valid,chapter:2},{...valid,z:-100},{...valid,x:30},
+  {...valid,cargo:-1},{...valid,hp:0},{...valid,hp:Infinity},
+  {...valid,cooldown:-1},{...valid,version:2}
+ ]){
+  const loaded=E.create({...permanent,session});
+  assert.equal(loaded.restoredSession,false);
+  assert.equal(loaded.s.z,9);
+  assert.equal(loaded.s.cargo,0);
+  assert.equal(loaded.s.save.bank,41);
+ }
+ const clamped=E.create({...permanent,session:{...valid,hp:9999,cargo:9999,cooldown:9999}});
+ assert.equal(clamped.restoredSession,true);
+ assert.equal(clamped.s.hp,clamped.stats().hp);
+ assert.equal(clamped.s.cargo,clamped.stats().capacity);
+ assert.equal(clamped.s.cooldown,7);
+});
 test('100 seeded expeditions preserve finite states and currency invariants',()=>{for(let seed=1;seed<=100;seed++){let v=seed;const rng=()=>((v=Math.imul(v,1664525)+1013904223>>>0)/4294967296);const g=E.create(null,rng);for(let i=0;i<2400;i++){g.s.paused=false;g.step(.05,{x:Math.sin(i/80),z:Math.cos(i/91)});if(i%80===0)g.pulse();if(g.s.dead)g.respawn();assert(Number.isFinite(g.s.x+g.s.z+g.s.hp));assert(g.s.cargo>=0&&g.s.cargo<=g.stats().capacity);assert(g.s.save.bank>=0);assert(g.s.hp<=g.stats().hp);}}});
 test('unlocked walls still block movement and root attacks outside the doorway',()=>{const g=E.create({version:1,unlocked:1,bosses:[true,false,false]});g.s.x=8;g.s.z=-15.9;tick(g,4,{x:0,z:-1});assert(g.s.z>-16);g.s.enemies=[{id:101,zone:1,boss:false,kind:'grazer',x:8,z:-17,hp:50,maxHp:50,dead:0,phase:0,hit:0,value:6}];tick(g,5);assert.equal(g.s.enemies[0].hp,50);g.s.x=0;tick(g,10,{x:0,z:-1});assert(g.s.z<-16);});
 test('boss slam damages the marked location and can be dodged',()=>{const g=E.create();g.s.z=-8;g.s.enemies=g.s.enemies.filter(e=>e.boss&&e.zone===0);const e=g.s.enemies[0];e.attack=0;tick(g,1);assert(e.windup>0);const hp=g.s.hp;tick(g,30,{x:1,z:0});assert.equal(g.s.hp,hp);e.attack=0;g.s.x=e.x;g.s.z=e.z+1;tick(g,1);tick(g,26);assert(g.s.hp<hp);});
