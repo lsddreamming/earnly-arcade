@@ -100,3 +100,11 @@ test('critical health wins over cargo and courier hints without floating over co
  const warning=await page.locator('#lowHealth').boundingBox(),cargo=await page.locator('.cargo').boundingBox();expect(warning.y).toBeGreaterThanOrEqual(cargo.y);expect(warning.y+warning.height).toBeLessThanOrEqual(cargo.y+cargo.height);await page.screenshot({path:info.outputPath('critical-health-phone.png')});
  await page.locator('#upgrades').click();await expect(page.locator('[data-upgrade="power"] .seed-shortage')).toHaveText('Bank 18 more seeds');await page.screenshot({path:info.outputPath('upgrade-shortages-phone.png')});
 });
+
+test('nest distance and stable burst cooldown fit phone controls',async({page},info)=>{
+ await page.setViewportSize({width:320,height:568});await page.goto('/spuddy-evolution.html');await page.locator('#start').click();
+ await expect(page.locator('#nestDistance')).toHaveText('Bank & heal');await page.locator('#home').click();await expect(page.locator('#toast')).toContainText('safe at the nest');
+ await expect(page.locator('#burstStatus')).toHaveText('Ready');await page.locator('#pulse').click();await expect(page.locator('#burstLabel')).toHaveText('Root burst');await expect(page.locator('#pulse')).toBeDisabled();await expect(page.locator('#burstStatus')).toContainText('remaining');
+ for(const id of ['home','pulse']){const box=await page.locator('#'+id).boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);expect(box.y+box.height).toBeLessThanOrEqual(568);expect(box.height).toBeGreaterThanOrEqual(44);}
+ await page.screenshot({path:info.outputPath('navigation-cooldown-phone.png')});
+});
