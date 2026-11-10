@@ -4,10 +4,15 @@ for(const path of pages){
  test('Classic game clarity: '+path,async({page})=>{
   await page.route('https://**',r=>r.abort());
   await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('arcadeSound','off');});
-  await page.goto('/'+path);
+  // Star Defender intentionally redirects once to its cache-busted build URL.
+  const target=path==='stardefender.html'?path+'?sd=20260925d':path;
+  await page.goto('/'+target);
   for(const width of [320,390,440]){
    await page.setViewportSize({width,height:844});
-   expect(await page.evaluate(()=>document.documentElement.scrollWidth),path+' overflow').toBeLessThanOrEqual(width+1);
+   // Reacquire the document after navigation and mobile viewport changes.
+   // Resolve the document through a locator while preserving the same overflow limit.
+   await expect(page).toHaveURL(url=>url.pathname+url.search==='/'+target);
+   expect(await page.locator('html').evaluate(el=>el.scrollWidth),path+' overflow').toBeLessThanOrEqual(width+1);
    const stats=await page.locator('.game-meta .meta-pill').evaluateAll(ns=>ns.map(n=>({font:parseFloat(getComputedStyle(n).fontSize),width:n.clientWidth,scroll:n.scrollWidth})));
    expect(stats.length).toBeGreaterThan(0);
    for(const stat of stats){expect(stat.font).toBeGreaterThanOrEqual(11);expect(stat.scroll).toBeLessThanOrEqual(stat.width+1);}
