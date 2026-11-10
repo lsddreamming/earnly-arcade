@@ -69,6 +69,9 @@ jobs:
         run: |
           mkdir -p _pages
           cp -- ./*.html ./*.css ./*.js ./*.svg ./*.webmanifest ./CNAME _pages/
+          # Starter picture previews are WebP files. Without them the live
+          # catalog removes 3 of its 4 preview cards' images on load.
+          cp -- ./*.webp _pages/
           cp -- ./sitemap.xml ./robots.txt ./ads.txt ./app-ads.txt _pages/
           # The existing branch-backed site also serves the native web mirror
           # at /www/, so keep that URL tree available after the source switch.
@@ -77,6 +80,12 @@ jobs:
           test "$(cat _pages/CNAME)" = 'earnlyarcade.com'
           test -s _pages/index.html
           test -s _pages/www/index.html
+          # Verify all three photographic starter previews are packaged at
+          # the root and under the native mirror before deployment begins.
+          for asset in game-preview-neon-slice.webp game-preview-snake.webp game-preview-bubble-pop.webp; do
+            test -s "_pages/$asset"
+            test -s "_pages/www/$asset"
+          done
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
@@ -114,6 +123,9 @@ jobs:
           import pathlib, time, urllib.request
           hosts = ['https://earnlyarcade.com', 'https://www.earnlyarcade.com']
           files = ['games.html', 'games-showroom.css', 'www/games.html', 'www/games-showroom.css', 'world.html', 'world.js', 'world-renderer.js', 'www/world.html', 'www/world.js', 'www/world-renderer.js']
+          # Keep direct production byte checks on the starter preview assets,
+          # so blank images fail publication before browser QA can start.
+          files += [prefix + name for prefix in ['', 'www/'] for name in ['game-preview-neon-slice.webp', 'game-preview-snake.webp', 'game-preview-bubble-pop.webp']]
           files += [prefix + name for prefix in ['', 'www/'] for name in ['spuddy-evolution.html', 'spuddy-evolution.css', 'spuddy-evolution-engine.js', 'spuddy-evolution-3d.js', 'spuddy-evolution.js']]
           for host in hosts:
               for file in files:
