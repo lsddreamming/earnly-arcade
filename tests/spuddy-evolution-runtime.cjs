@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const E = require('../spuddy-evolution-engine.js');
+const { seedCollectionFixture } = require('./spuddy-evolution-fixtures.cjs');
 const root = path.resolve(__dirname, '..');
 const runtime = fs.readFileSync(path.join(root, 'spuddy-evolution.js'), 'utf8');
 
@@ -19,10 +20,10 @@ test('web and native controllers are identical', () => {
   assert.equal(runtime, fs.readFileSync(path.join(root, 'www/spuddy-evolution.js'), 'utf8'));
 });
 
-function harness() {
+function harness(configure = game => { game.s.enemies = []; }) {
   const game = E.create(null, () => .5);
   game.s.paused = false;
-  game.s.enemies = [];
+  configure(game);
   const steps = [];
   const step = game.step;
   game.step = (dt, input) => { steps.push(dt); step(dt, input); };
@@ -83,24 +84,32 @@ test('a suspended tab cannot create an unbounded catch-up loop', () => {
   assert.equal(h.steps.length, 10);
 });
 
-test('real capture, nest deposit, and exported progress survive reconstruction', () => {
-  const h = harness();
-  h.game.s.enemies = [{ id: 2, zone: 0, kind: 'grazer', x: 0, z: 5,
-    hp: 9, maxHp: 9, dead: 0, phase: 0, attack: 2, windup: 0, hit: 0, value: 3 }];
-  h.context.input.z = -1;
-  for (let now = 250; now <= 1000; now += 250) h.frame(now);
-  h.context.input.z = 0;
-  for (let now = 1250; now <= 3000; now += 250) h.frame(now);
-  assert.equal(h.game.s.cargo, 3);
-  assert.equal(h.game.s.save.bank, 0);
-  h.context.input.z = 1;
-  for (let now = 3250; now <= 4000; now += 250) h.frame(now);
-  h.context.input.z = 0;
-  for (let now = 4250; now <= 6000; now += 250) h.frame(now);
-  assert.equal(h.game.s.cargo, 0);
-  assert.equal(h.game.s.save.bank, 3);
-  const restored = E.create(h.game.exportSave(), () => .5);
-  assert.equal(restored.s.save.bank, 3);
-  assert.equal(restored.s.save.deposited, 3);
-  assert.equal(restored.s.save.journey.captures, 1);
-});
+for (const intervals of [[1000 / 60], [250], [500], [17, 500, 33, 250]]) {
+  test('browser capture fixture separates collection and banking at frame intervals ' + intervals.join('/'), () => {
+    const h = harness(seedCollectionFixture);
+    let now = 0, frame = 0;
+    const advance = () => { now += intervals[frame++ % intervals.length]; h.frame(now); };
+    h.context.input.z = -1;
+    while (!h.game.s.cargo && now < 15000) advance();
+    assert.equal(h.game.s.cargo, 3, 'Real roots must capture the real engine target');
+    assert.equal(h.game.s.save.bank, 0, 'Capture must occur outside nest banking range');
+    assert.ok(h.game.s.z < 6, 'Keyboard movement leaves the nest before capture');
+    // A slow driver may release the held key one rendered frame later.
+    advance();
+    h.context.input.z = 0;
+    advance();
+    assert.equal(h.game.s.cargo, 3);
+    assert.equal(h.game.s.save.bank, 0);
+    h.context.input.z = 1;
+    while (!h.game.s.save.bank && now < 30000) advance();
+    h.context.input.z = 0;
+    assert.equal(h.game.s.cargo, 0);
+    assert.equal(h.game.s.save.bank, 3);
+    assert.equal(h.game.s.save.deposited, 3);
+    assert.equal(h.game.s.save.journey.captures, 1);
+    const restored = E.create(h.game.exportSave(), () => .5);
+    assert.equal(restored.s.save.bank, 3);
+    assert.equal(restored.s.save.deposited, 3);
+    assert.equal(restored.s.save.journey.captures, 1);
+  });
+}
