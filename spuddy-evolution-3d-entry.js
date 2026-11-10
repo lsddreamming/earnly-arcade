@@ -395,7 +395,7 @@ function create(canvas, game) {
     camera.position.set(px + Math.sin(yaw) * 19, 24, pz + Math.cos(yaw) * 19); camera.lookAt(px, 0, pz);
     sun.position.set(px - 12, 24, pz + 12); sun.target.position.set(px, 0, pz); sun.target.updateMatrixWorld();
     world.forEach((g, i) => { g.visible = Math.abs((SpuddyEvolution.zones[i].min + 16) - pz) < 48; });
-    gates.forEach(g => { g.group.visible = Math.abs(SpuddyEvolution.zones[g.zone].max - pz) < 45; g.field.visible = s.save.unlocked < g.zone; g.field.material.opacity = .38 + Math.sin(t * 2) * .08; });
+    gates.forEach(g => { g.group.visible = Math.abs(SpuddyEvolution.zones[g.zone].max - pz) < 45; g.field.visible = s.save.unlocked < g.zone; g.field.material.opacity = .25 + Math.sin(t * 2) * .06; const status=game.gateStatus(g.zone), color=status.ready?'#5cf2ac':'#edb65b';g.field.material.color.set(color);g.field.material.emissive.set(status.ready?'#169b6b':'#b2732b'); });
     outposts.forEach(o => { o.group.visible = o.zone <= s.save.unlocked; });
     const total = Object.values(s.save.levels).reduce((n, v) => n + v, 0), form = Math.min(2, Math.floor(total / 5));
     player.group.position.set(s.x, 0, s.z); player.group.rotation.y = s.heading;
@@ -467,9 +467,10 @@ function create(canvas, game) {
     });
     for (const p of sparks) if (p.life > 0) { p.life -= dt; p.m.position.x += p.vx * dt; p.m.position.z += p.vz * dt; p.m.position.y += dt * 1.3; p.m.scale.setScalar(Math.max(.01, p.life * .13)); p.m.visible = p.life > 0; }
     guideTime = Math.max(0, guideTime - dt); arrow.visible = guideTime > 0;
-    if (arrow.visible) { const nest = s.tracking&&!s.save.crew.rescued[s.tracking.zone]?s.tracking:game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
+    if (arrow.visible) { const nest = s.tracking?.kind==='guardian'&&!s.tracking.target.dead?s.tracking.target:s.tracking&&s.tracking.kind!=='guardian'&&!s.save.crew.rescued[s.tracking.zone]?s.tracking:game.nearestNest(), angle = Math.atan2(nest.x - s.x, nest.z - s.z); arrow.position.set(s.x + Math.sin(angle) * 3, .6, s.z + Math.cos(angle) * 3); arrow.rotation.set(Math.PI / 2, 0, -angle); }
     renderer.render(scene, camera);
   }
   return { available: true, projectPoint: (x,z) => {const v=new THREE.Vector3(x,1.5,z).project(camera);return Math.abs(v.x)>1||Math.abs(v.y)>1?null:{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}, diagnostics: () => ({actorCount:actors.size,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,combinedParts}), draw, resize, burst, guide: () => { guideTime = 45; }, rotate: () => { targetYaw += Math.PI / 2; }, transformInput: v => ({ x: v.x * Math.cos(yaw) + v.z * Math.sin(yaw), z: -v.x * Math.sin(yaw) + v.z * Math.cos(yaw) }) };
 }
 window.EvolutionRenderer = { create };
+

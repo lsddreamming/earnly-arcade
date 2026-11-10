@@ -50,3 +50,18 @@ test('each guardian drops only its own core and unlock spending caps at three',(
 test('Lab burst abilities clear only nearby projectiles, shield, heal and increase damage',()=>{const g=focusArena();g.s.save.lab.ranks=[0,1,3,3,3];g.s.hp=50;g.s.projectiles=[{x:1,z:0},{x:9,z:0}];g.s.paused=false;assert(g.pulse());assert.equal(g.s.projectiles.length,1);assert.equal(g.s.projectiles[0].x,9);assert.equal(g.s.labGuard,3);assert.equal(g.s.hp,59);assert(Math.abs(g.s.enemies[0].hp-(10000-23*1.6))<1e-9);assert(!g.pulse());assert.equal(g.s.hp,59);g.s.paused=true;g.step(.05);assert.equal(g.s.labGuard,3);});
 test('Thorn renewal heals on captures only and Frost guard reduces actual hits',()=>{const g=focusArena({},1,false);g.s.save.lab.ranks[0]=3;g.s.hp=50;g.s.enemies[0].hp=.1;tick(g,1);assert.equal(g.s.hp,53);tick(g,1);assert.equal(g.s.hp,53);const a=combat(0,'hunter');a.s.labGuard=2;tick(a,1);assert(Math.abs(a.s.hp-97.2)<1e-9);});
 test('Lab materials and ranks persist across expeditions and backup reloads',()=>{const g=E.create({version:1,bosses:Array(5).fill(true),lab:{cores:[2,3,4,5,6],ranks:[1,2,3,1,2]}});assert(g.nextChapter());assert.deepEqual(g.s.save.lab.cores,[2,3,4,5,6]);assert.deepEqual(E.create(g.exportSave()).s.save.lab.ranks,[1,2,3,1,2]);});
+
+
+test('door details distinguish guardian lock, unbanked seeds, readiness and open passage',()=>{
+ const g=E.create({version:1,bank:30});g.s.enemies=[];g.s.z=-15;g.s.cargo=24;
+ assert.equal(g.nearbyGate().name,'Prism Laboratory');assert.match(g.gateStatus().message,/Thorn Warden/);assert(!g.gateStatus().ready);assert(!g.unlock());
+ g.s.save.bosses[0]=true;assert.equal(g.gateStatus().missing,50);assert.match(g.gateStatus().message,/Bank 50 more/);assert(!g.unlock());
+ g.s.save.bank=80;assert(g.gateStatus().ready);assert(g.unlock());assert.equal(g.s.save.bank,0);assert(g.gateStatus(1).open);assert(!g.unlock());
+ tick(g,12,{x:0,z:-1});assert(g.s.z<-16,'unlocked doorway must be passable');
+ const restored=E.create(g.exportSave());assert(restored.gateStatus(1).open);assert.equal(restored.s.save.bank,0);
+});
+test('all four doors unlock in order and stay traversable without repeated fees',()=>{
+ const g=E.create({version:1,bank:1020});g.s.enemies=[];
+ for(let zone=1;zone<5;zone++){g.s.x=0;g.s.z=E.zones[zone].max+1;assert.equal(g.nearbyGate().zone,zone);assert(!g.unlock());g.s.save.bosses[zone-1]=true;assert(g.gateStatus().ready);assert(g.unlock());tick(g,12,{x:0,z:-1});assert(g.s.z<E.zones[zone].max);const bank=g.s.save.bank;tick(g,12,{x:0,z:1});assert(g.s.z>E.zones[zone].max);assert.equal(g.s.save.bank,bank);}
+ assert.equal(g.s.save.bank,0);assert.equal(g.gateStatus(),null);assert(!g.unlock());assert.equal(g.gateStatus(-1),null);g.s.x=10;assert.equal(g.nearbyGate(),null);
+});

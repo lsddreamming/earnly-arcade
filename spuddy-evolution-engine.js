@@ -132,6 +132,18 @@
       if (!Object.hasOwn(perks, key) || !pendingPerks() || s.dead) return false;
       save.perks.push(key); if (key === 'vigor') s.hp += 15; event('perk', { key }); return true;
     }
+    function gateStatus(zone = save.unlocked + 1) {
+      if (!Number.isInteger(zone) || zone < 1 || zone >= zones.length) return null;
+      const open = zone <= save.unlocked, boss = zones[zone - 1].boss;
+      const defeated = save.bosses[zone - 1], cost = zones[zone].cost;
+      const missing = Math.max(0, cost - save.bank), available = zone === save.unlocked + 1;
+      return {zone, name:zones[zone].name, x:0, z:zones[zone].max, open, boss, defeated, cost, missing,
+        ready:available && defeated && missing === 0 && !s.dead,
+        message:open ? 'Open · walk through the center' : !available ? 'Open the earlier habitats first' : !defeated ? 'Defeat '+boss+' first' : missing ? 'Bank '+missing+' more seeds at a nest' : 'Ready · unlock for '+cost+' banked seeds'};
+    }
+    function nearbyGate() {
+      return zones.slice(1).map((_,i)=>gateStatus(i+1)).find(g=>Math.abs(s.z-g.z)<5 && Math.abs(s.x)<6) || null;
+    }
     function unlock() {
       const next = save.unlocked + 1;
       if (next >= zones.length || !save.bosses[next - 1] || save.bank < zones[next].cost || s.dead) return false;
@@ -312,9 +324,10 @@
       if (save.deposited < 20) return 'Gather 20 seeds and bring them to your nest';
       if (Object.values(save.levels).reduce((a, b) => a + b, 0) < 2) return 'Spend your banked seeds on two upgrades';
       if (!save.bosses[save.unlocked]) return 'Defeat the ' + zones[save.unlocked].boss;
-      return 'Bank ' + zones[save.unlocked + 1].cost + ' seeds to unlock the next habitat';
+      const gate = gateStatus();
+      return gate.ready ? 'Gate ready! Approach the door to '+gate.name : gate.message+' to open '+gate.name;
     }
-    return { s, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
+    return { s, gateStatus, nearbyGate, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
   }
   const api = { create, clean, lab, zones, upgrades, perks, research, conditions, CHAPTERS, upgradeCap, rescues };
   if (typeof module !== 'undefined') module.exports = api; else root.SpuddyEvolution = api;

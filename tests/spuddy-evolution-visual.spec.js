@@ -69,3 +69,17 @@ test('Evolution Lab shows materials, buys an ability and preserves it on phone r
  const box=await card.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);await page.screenshot({path:info.outputPath('evolution-lab-phone.png')});
  await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await page.locator('#journeyButton').click();await expect(page.locator('.lab-card').first()).toContainText('Thorn seed: 0');await expect(page.locator('#labCount')).toHaveText('1/15');
 });
+
+
+for(const state of ['guardian','seeds','ready'])test('door explains '+state+' and offers the right action at 320px',async({page},info)=>{
+ await page.setViewportSize({width:320,height:568});
+ await page.route('**/spuddy-evolution-engine.js*',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+`;{const original=SpuddyEvolution.create;SpuddyEvolution.create=function(){const g=original({version:1,bank:${state==='ready'?80:30},bosses:[${state!=='guardian'}]});g.s.x=0;g.s.z=-15;g.s.enemies=[];window.doorTestGame=g;return g;};}`});});
+ await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();
+ const prompt=page.locator('#nearGate');await expect(prompt).toBeVisible();await expect(prompt).toContainText('Prism Laboratory');const box=await prompt.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(320);expect(box.height).toBeGreaterThanOrEqual(44);
+ await prompt.click();await expect(page.getByRole('dialog',{name:'Prism Laboratory'})).toBeVisible();
+ await expect(page.locator('#gateExplanation')).toContainText(state==='guardian'?'Defeat Thorn Warden':state==='seeds'?'Bank 50 more':'Ready');
+ await page.screenshot({path:info.outputPath('door-'+state+'-phone.png')});
+ await page.locator('#gateAction').click();await expect(page.locator('#gatePanel')).not.toBeVisible();
+ if(state==='ready'){await expect(prompt).toContainText('OPEN');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')).unlocked)).toBe(1);await expect(page.locator('#bank')).toHaveText('0');await page.screenshot({path:info.outputPath('door-open-phone.png')});}
+ else await expect(page.locator('#toast')).toContainText(state==='guardian'?'Thorn Warden':'nest');
+});
