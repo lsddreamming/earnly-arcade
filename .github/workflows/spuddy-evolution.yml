@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - run: node --test tests/spuddy-evolution-runtime.cjs
       - run: npm ci
       - run: npm run build:spuddy-evolution && git diff --exit-code spuddy-evolution-3d.js
       - run: node --test tests/spuddy-evolution-engine.cjs
@@ -50,6 +51,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - run: node --test tests/spuddy-evolution-runtime.cjs
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/spuddy-evolution-visual.spec.js --project=desktop-chromium --workers=1 --retries=0
