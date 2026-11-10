@@ -450,3 +450,52 @@ test('Home shuffle repairs stale queues and handles catalog additions and odd co
   const result=nextPair(catalog,saved,()=>0);
   expect(new Set([...result.selected,...result.state.remaining]).size).toBe(catalog.length);
 });
+
+
+test('Games starter refresh cycles every published title before repeating', () => {
+  const vm=require('node:vm');
+  const {nextBatch}=require('../games-starter-rotation.js');
+  const gameInfo=vm.runInNewContext('(' + read('games.html').match(/const gameInfo = (\[[\s\S]*?\n    \]);/)[1] + ')');
+  expect(gameInfo).toHaveLength(28);
+  expect(read('games-starter-rotation.js')).toBe(read('www/games-starter-rotation.js'));
+  for(const random of [()=>0,()=>0.999999,Math.random]){
+    let saved=null,previous=[];
+    for(let cycle=0;cycle<12;cycle++){
+      const seen=[];
+      for(let visit=0;visit<7;visit++){
+        const {selected,state}=nextBatch(gameInfo,saved,random);
+        expect(selected).toHaveLength(4);
+        expect(new Set(selected).size).toBe(4);
+        expect(selected.some(id=>previous.includes(id))).toBe(false);
+        seen.push(...selected);
+        previous=selected;
+        saved=JSON.parse(JSON.stringify(state));
+      }
+      expect(new Set(seen).size).toBe(28);
+      expect(saved.remaining).toEqual([]);
+    }
+  }
+});
+
+test('Games starter refresh validates corrupt or stale storage and odd catalogs',()=>{
+  const {nextBatch}=require('../games-starter-rotation.js');
+  const items=['neonSlice','snake','bubblePop','spuddyEvolution','bounceRun'];
+  const signature=items.slice().sort().join('|');
+  for(const saved of [null,{},[],{signature,remaining:['snake','snake']},
+    {signature,remaining:['unknown']},{signature:'retired',remaining:['snake']}]){
+    const result=nextBatch(items,saved,()=>0);
+    expect(result.selected).toHaveLength(4);
+    expect(new Set(result.selected).size).toBe(4);
+    expect(result.selected.every(id=>items.includes(id))).toBe(true);
+  }
+  let saved=null; const seen=[];
+  for(let i=0;i<2;i++){
+    const result=nextBatch(items,saved,()=>0);
+    seen.push(...result.selected);saved=result.state;
+  }
+  expect(new Set(seen.slice(0,5)).size).toBe(5);
+  const updated=nextBatch([...items,'trafficEscape'],saved,()=>0);
+  expect(updated.selected).toHaveLength(4);
+  expect(updated.selected).toContain('trafficEscape');
+  expect(nextBatch([],null).selected).toEqual([]);
+});
