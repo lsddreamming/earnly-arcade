@@ -18,3 +18,19 @@ test('journey advances completed saves and research survives reload',async({page
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')));expect(saved.journey.chapter).toBe(2);expect(saved.journey.research.power).toBe(1);expect(saved.bank).toBe(100);
  await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await page.locator('#journeyButton').click();await expect(page.locator('#chapterTitle')).toHaveText('Expedition 2 / 100');await expect(page.locator('#nextChapter')).toBeDisabled();
 });
+
+test('workshop categories keep upgrades reachable and preserve purchases on small phones',async({page},testInfo)=>{
+ await page.addInitScript(()=>localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,bank:100})));
+ for(const width of [320,390]){
+  await page.setViewportSize({width,height:740});await page.goto(url);await expect(page.locator('#start')).toBeEnabled({timeout:15000});await page.locator('#start').click();await page.locator('#upgrades').click();
+  await expect(page.locator('#upgradeList .upgrade:visible')).toHaveCount(9);
+  await page.getByRole('button',{name:'Combat',exact:true}).click();await expect(page.locator('#upgradeList .upgrade:visible')).toHaveCount(4);
+  await page.getByRole('button',{name:'Explore',exact:true}).click();await expect(page.locator('#upgradeList .upgrade:visible')).toHaveCount(3);
+  await page.getByRole('button',{name:'Upgrade Seed pouch for 16 seeds',exact:true}).click();await expect(page.locator('#panelBank')).toHaveText('84');await expect(page.getByRole('button',{name:'Explore',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.locator('#purchaseStatus')).toContainText('Seed pouch upgraded to rank 1');
+  await page.getByRole('button',{name:'Helpers',exact:true}).click();await expect(page.locator('#upgradeList .upgrade:visible')).toHaveCount(2);await expect(page.locator('[data-upgrade="courier"] button')).toBeDisabled();await expect(page.locator('#shopAvailable')).toHaveText('1 available');
+  expect(await page.locator('#panel').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  for(const button of await page.locator('#upgradeFilters button').all()){const box=await button.boundingBox();expect(box.height).toBeGreaterThanOrEqual(44);expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);}
+  await page.screenshot({path:testInfo.outputPath('workshop-'+width+'.png')});
+  await page.locator('#closePanel').click();await expect(page.locator('#cargo')).toHaveText('Pouch 0 / 36');
+ }
+});
