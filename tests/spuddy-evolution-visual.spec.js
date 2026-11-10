@@ -83,3 +83,12 @@ for(const state of ['guardian','seeds','ready'])test('door explains '+state+' an
  if(state==='ready'){await expect(prompt).toContainText('OPEN');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')).unlocked)).toBe(1);await expect(page.locator('#bank')).toHaveText('0');await page.screenshot({path:info.outputPath('door-open-phone.png')});}
  else await expect(page.locator('#toast')).toContainText(state==='guardian'?'Thorn Warden':'nest');
 });
+
+for(const width of [320,390])test('compact boss HUD and clear progression at '+width+'px',async({page},info)=>{
+ await page.setViewportSize({width,height:690});
+ await page.route('**/spuddy-evolution-engine.js*',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+`;{const original=SpuddyEvolution.create;SpuddyEvolution.create=function(){const g=original({version:1,bank:225,xp:360});g.s.z=-8;g.s.enemies=g.s.enemies.filter(e=>e.boss&&e.zone===0);return g;};}`});});
+ await page.goto('/spuddy-evolution.html');await expect(page.locator('#start')).toBeEnabled();await page.locator('#start').click();
+ await expect(page.locator('#bossHud')).toBeVisible();await expect(page.locator('#xpText')).toHaveText('XP LEVEL 5');await expect(page.locator('#evolutionHint')).toHaveText('0/5 upgrades to evolve');await expect(page.locator('#upgradeLabel')).toContainText('upgrade ready');
+ const boss=await page.locator('#bossHud').boundingBox(),hud=await page.locator('.hud').boundingBox();expect(boss.height).toBeLessThanOrEqual(58);expect(boss.y).toBeGreaterThanOrEqual(hud.y+hud.height);expect(boss.x+boss.width).toBeLessThanOrEqual(width);await page.screenshot({path:info.outputPath('compact-boss-'+width+'.png')});
+ await page.locator('#upgrades').click();await expect(page.locator('.progression-help')).toContainText('XP levels earn free perks');await expect(page.locator('.progression-help')).toContainText('Buying 5 upgrades evolves your body');await page.screenshot({path:info.outputPath('progression-help-'+width+'.png')});
+});

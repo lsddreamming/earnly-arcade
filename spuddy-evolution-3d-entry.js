@@ -336,7 +336,7 @@ function create(canvas, game) {
       warning = mesh(scene, e.zone === 3 ? geo.box : geo.disk, basic('#ef6a5f', .32), [0, .12, 0], [1, 1, 1]);
       if (e.zone !== 3) warning.rotation.x = -Math.PI / 2;
       warning.visible = false;
-      label(group, SpuddyEvolution.zones[e.zone].boss.toUpperCase(), 0, size * 2.9, 0, '#6e5662', 6);
+      // The compact HUD names the guardian; keep its model and attack markings unobstructed.
     }
     if (!e.boss) {
       warning = mesh(scene, geo.disk, basic('#ff7957', .45), [0, .12, 0], [1, 1, 1]);
@@ -455,7 +455,7 @@ function create(canvas, game) {
         joint.position.set(...knee);claw.position.set(foot[0],foot[1],foot[2]+.1);
       });
       actor.jaw.rotation.x = -.12 - Math.max(0,Math.sin(e.phase*3))*.18 - (e.windup>0?.25:0);
-      actor.health.visible = !e.dead && (e.boss || e.hp < e.maxHp); actor.health.quaternion.copy(actor.group.quaternion).invert().multiply(camera.quaternion); actor.fill.scale.x = actor.size * 2 * e.hp / e.maxHp;
+      actor.health.visible = !e.dead && !e.boss && e.hp < e.maxHp; actor.health.quaternion.copy(actor.group.quaternion).invert().multiply(camera.quaternion); actor.fill.scale.x = actor.size * 2 * e.hp / e.maxHp;
       actor.fill.position.x = -actor.size * (1 - e.hp / e.maxHp);
     }
     roots.forEach((pieces, i) => {
