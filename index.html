@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="rank-discovery.css">
   <link rel="stylesheet" href="home-compact.css?v=4">
   <link rel="stylesheet" href="daily-arcade.css">
+  <link rel="stylesheet" href="app-download.css">
   <link rel="stylesheet" href="earn-coins.css?v=1">
 </head>
 <body class="home-dashboard">
@@ -52,6 +53,11 @@
       </template>
       <script src="home-featured.js"></script>
     </section>
+
+    <aside class="app-download-card browser-only" aria-label="Get the iPhone app">
+      <div><strong>Your arcade. On your iPhone.</strong><span>Get Earnly Arcade from the App Store.</span></div>
+      <a class="app-download-button" data-growth-action="app-store" data-growth-placement="home" href="https://apps.apple.com/us/app/earnly-arcade/id6814277509">Download on the App Store <span aria-hidden="true">↗</span></a>
+    </aside>
 
     <section class="daily-arcade" id="daily-arcade" aria-labelledby="dailyArcadeHeading">
       <details class="daily-challenge-disclosure">
@@ -245,7 +251,7 @@
 
     <footer class="public-footer" aria-label="Earnly site information">
       <nav aria-label="Site information">
-        <a href="index.html" aria-current="page">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+        <a href="index.html" aria-current="page">Home</a><a href="games.html">Games</a><a href="about.html">About</a><a href="game-guides.html">Game Guides</a><a href="neon-breach.html">Discover Neon Breach</a><a href="support.html">Help &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
       </nav>
       <p>Arcade Coins are in-app points. Cash-out and real-value redemption are not available.</p>
     </footer>
@@ -761,5 +767,6 @@ function revealHomeTarget(){
 }
 window.addEventListener('hashchange',revealHomeTarget);revealHomeTarget();
 </script>
+<script defer src="app-download.js"></script>
 <script defer src="metricool-web.js"></script></body>
 </html>
