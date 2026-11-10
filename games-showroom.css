@@ -121,3 +121,46 @@ body.games-dashboard #games .catalog-tile:has(.game-preview) .reward-rule{displa
 body.games-dashboard #games .catalog-tile:has(.game-preview){display:flex!important;flex-direction:column!important}
 body.games-dashboard #games .catalog-tile:has(.game-preview) .game-card-footer{margin-top:auto!important}
 body.games-dashboard #games .catalog-tile:has(.game-preview) .game-play-button{min-height:44px!important;height:auto!important}
+
+
+/* Keep a real, readable starter Play button inside the very first phone
+   viewport. The first introductory card is a wide illustrated quick start;
+   all four choices keep their full descriptions and reward disclosures below. */
+@media(max-width:699px){
+  body.games-dashboard .game-browse-heading{margin:2px 2px 5px!important}
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child:has(.game-preview){
+    grid-column:1/-1!important;
+    display:grid!important;
+    grid-template-columns:92px minmax(0,1fr)!important;
+    grid-template-areas:"preview title" "preview description" "preview reward" "play play";
+    grid-template-rows:auto auto auto 44px!important;
+    align-content:start!important;
+    min-height:0!important;
+    padding:8px!important;
+    gap:3px 9px!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-preview{
+    grid-area:preview;
+    width:100%!important;
+    height:92px!important;
+    object-fit:cover;
+    align-self:start;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-preview-label{display:none!important}
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-title-row{
+    grid-area:title;min-height:30px!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-description{
+    grid-area:description;font-size:11px!important;line-height:1.2!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .reward-rule{
+    grid-area:reward;margin:0!important;min-height:0!important;
+    font-size:10px!important;line-height:1.2!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-card-footer{
+    grid-area:play;min-height:44px!important;margin:0!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-play-button{
+    min-height:44px!important;height:44px!important;
+  }
+}
