@@ -93,6 +93,27 @@
     const evolution = () => Math.min(2, Math.floor(Object.values(save.levels).reduce((a,b)=>a+b,0)/5));
     const stats = (levels = save.levels, choices = save.perks) => ({ power: 10 * (1 + .35 * levels.power + .08 * count('roots', choices)) * (1+.08*save.journey.research.power), range: 3.1 + .4 * levels.reach, capacity: 24 + 12 * levels.cargo + 6 * count('harvest', choices) + 8*save.journey.research.cargo+(rescuedCount()>=3?20:0), speed: 5.2 * (1 + .08 * levels.speed), hp: 100 + 25 * levels.health + 15 * count('vigor', choices) + 20*save.journey.research.health, targets: 2 + Math.floor(levels.power / 2)+levels.roots });
     s.hp = stats().hp;
+    // An expedition checkpoint is stored atomically beside permanent progress.
+    // Legacy saves start at the nest; stale or malformed locations cannot
+    // bypass a locked habitat or create additional carried seeds.
+    let restoredSession = false;
+    const session = raw?.session;
+    if (session?.version === 1 && session.chapter === save.journey.chapter &&
+        Number.isFinite(session.x) && Number.isFinite(session.z) &&
+        Number.isFinite(session.hp) && session.hp > 0 &&
+        Number.isInteger(session.cargo) && session.cargo >= 0 &&
+        Number.isFinite(session.cooldown) && session.cooldown >= 0 &&
+        Math.abs(session.x) <= 11.5 &&
+        session.z >= zones[save.unlocked].min + 1 && session.z <= 14) {
+      s.x = clamp(session.x, -11.5, 11.5);
+      s.z = clamp(session.z, zones[save.unlocked].min + 1, 14);
+      separate(s, .45);
+      s.hp = clamp(session.hp, 1, stats().hp);
+      s.cargo = clamp(session.cargo, 0, stats().capacity);
+      s.cooldown = clamp(session.cooldown, 0, 7);
+      s.time = Number.isFinite(session.time) ? clamp(session.time, 0, 10000000) : 0;
+      restoredSession = true;
+    }
     function event(type, data = {}) { s.events.push({ type, ...data }); if (s.events.length > 40) s.events.shift(); }
     function spawn(zone, index, boss = false) {
       const z = zones[zone];
@@ -333,7 +354,7 @@
       const gate = gateStatus();
       return gate.ready ? 'Gate ready! Approach the door to '+gate.name : gate.message+' to open '+gate.name;
     }
-    return { s, perkPreview, gateStatus, nearbyGate, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, exportSave: () => JSON.parse(JSON.stringify(save)) };
+    return { s, perkPreview, gateStatus, nearbyGate, labCost, buyLab, upgradePreview, travel, rescuedCount, journeyStatus, researchCost, buyResearch, nextChapter, stats, evolution, cost, buy, unlock, step, pulse, respawn, objective, nearestNest, pendingPerks, choosePerk, restoredSession, exportSession: () => ({version:1, chapter:save.journey.chapter, x:s.x, z:s.z, hp:s.hp, cargo:s.cargo, cooldown:s.cooldown, time:s.time}), exportSave: () => JSON.parse(JSON.stringify(save)) };
   }
   const api = { create, clean, lab, zones, upgrades, perks, research, conditions, CHAPTERS, upgradeCap, rescues };
   if (typeof module !== 'undefined') module.exports = api; else root.SpuddyEvolution = api;
