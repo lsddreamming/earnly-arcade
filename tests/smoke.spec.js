@@ -312,7 +312,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
-  await expect(cards).toHaveCount(27);
+  await expect(cards).toHaveCount(28);
   const featured = cards.first();
   await expect(featured).toHaveAttribute('data-game', 'neonSlice');
   const feature = await featured.boundingBox();
@@ -2468,10 +2468,10 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   }
 });
 
-test('Crystal Command belongs to the 27-game catalog as a free searchable strategy beta', async ({page}) => {
+test('Crystal Command belongs to the 28-game catalog as a free searchable strategy beta', async ({page}) => {
   await page.goto('/games.html');
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(27);
-  await expect(page.locator('#gameBrowseCount')).toHaveText('27 games to explore');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(28);
+  await expect(page.locator('#gameBrowseCount')).toHaveText('28 games to explore');
   await page.locator('[data-filter=strategy]').click();
   const card=page.locator('#games [data-game=crystalCommand]');
   await expect(page.locator('#games .catalog-tile')).toHaveCount(2);

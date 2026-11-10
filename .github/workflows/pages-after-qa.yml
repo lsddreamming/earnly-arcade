@@ -114,6 +114,7 @@ jobs:
           import pathlib, time, urllib.request
           hosts = ['https://earnlyarcade.com', 'https://www.earnlyarcade.com']
           files = ['games.html', 'games-showroom.css', 'www/games.html', 'www/games-showroom.css', 'world.html', 'world.js', 'world-renderer.js', 'www/world.html', 'www/world.js', 'www/world-renderer.js']
+          files += [prefix + name for prefix in ['', 'www/'] for name in ['spuddy-evolution.html', 'spuddy-evolution.css', 'spuddy-evolution-engine.js', 'spuddy-evolution-3d.js', 'spuddy-evolution.js']]
           for host in hosts:
               for file in files:
                   expected = pathlib.Path(file).read_bytes()
@@ -130,6 +131,10 @@ jobs:
           PYTHON
       - name: Test live phone catalog including native mirror
         run: npx playwright test tests/mobile-density.spec.js --project=mobile-webkit --grep 'catalog badges|catalog puts'
+        env:
+          EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
+      - name: Verify live Evolution beta discovery and Play link
+        run: npx playwright test tests/spuddy-evolution-catalog.spec.js --project=mobile-webkit --workers=1
         env:
           EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
       - name: Test published World room controls on mobile WebKit
