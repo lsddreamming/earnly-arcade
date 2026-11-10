@@ -91,3 +91,28 @@ body.games-dashboard #games .catalog-tile>.game-new-bubble:after{display:none!im
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-icon-bubble{height:24px!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-title-row>.game-title-actions{position:absolute!important;top:10px!important;right:10px!important}
 }
+
+/* Guided discovery: four approachable choices, with the complete catalog one tap away. */
+body.games-dashboard #games .game-preview{display:block;width:100%;height:116px;object-fit:cover;border-radius:12px;background:#132b39;flex-shrink:0}
+body.games-dashboard #games [data-game=spuddyEvolution] .game-preview{object-fit:contain;background:radial-gradient(ellipse at center,#eaf4cf,#91c6a5);padding:6px;box-sizing:border-box}
+body.games-dashboard #games .game-preview-label{margin:3px 0 0;color:#8ee7de;font-size:11px;font-weight:750;line-height:1.3}
+body.games-dashboard #games .game-description{margin:0;color:#e0eaf4;font-size:13px;line-height:1.45}
+body.games-dashboard #games .catalog-tile:has(.game-preview){min-height:310px!important;height:auto!important;gap:7px!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .reward-rule{font-size:10px!important;line-height:1.4!important;min-height:28px!important;-webkit-line-clamp:3}
+body.games-dashboard .browse-all-games{display:block;width:100%;min-height:48px;margin:16px 0 20px;border:1px solid #6de2dd65;background:#153d49;color:#d4fffa;border-radius:14px;font-size:15px;font-weight:750}
+body.games-dashboard .browse-all-games[hidden]{display:none}
+body.games-dashboard #quickSections:empty{display:none}
+body.games-dashboard #quickSections .quick-section{margin:8px 0!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-icon-bubble{display:none!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row h2{font-size:15px!important;line-height:1.25!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .favorite-button{width:32px!important;height:36px!important;min-height:36px!important}
+body.games-dashboard #games .starter-grid{align-items:stretch}
+body.games-dashboard .game-filter:focus-visible,body.games-dashboard .browse-all-games:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(min-width:700px){body.games-dashboard #games.starter-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}body.games-dashboard #games .game-preview{height:150px}}
+@media(max-width:380px){body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row h2{font-size:13px!important}body.games-dashboard #games .game-description{font-size:12px}}
+@media(min-width:900px){body.games-dashboard .container{max-width:1080px!important;width:calc(100% - 48px)!important}body.games-dashboard .games-hero{text-align:left!important}body.games-dashboard .games-hero h1{max-width:none!important}body.games-dashboard .games-hero h1 span{display:inline!important}}
+@media(min-width:700px) and (max-width:899px){body.games-dashboard #games.starter-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .play-pill{display:none!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row{display:flex!important;align-items:center!important;justify-content:space-between!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-actions{position:static!important;flex:none!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-name-wrap{padding:0!important;min-width:0!important}

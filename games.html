@@ -62,7 +62,7 @@
     }
   </style>
   <link rel="stylesheet" href="public-info.css">
-  <link rel="stylesheet" href="games-showroom.css?v=2">
+  <link rel="stylesheet" href="games-showroom.css?v=3">
   <link rel="canonical" href="https://earnlyarcade.com/games.html">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="rank-discovery.css">
@@ -78,7 +78,8 @@
     </div>
 
     <header class="games-hero">
-      <h1>Pick a <span>game.</span></h1>
+      <h1>Find your <span>next favorite.</span></h1>
+      <p>New here? Try a starter pick. Tap a picture to play.</p>
     </header>
 
     <section class="game-browser-tools" aria-label="Find a game">
@@ -87,7 +88,8 @@
         <input id="gameSearch" type="search" inputmode="search" autocomplete="off" placeholder="Search games…" aria-label="Search games">
       </label>
       <div class="game-filter-row" id="gameFilters" aria-label="Game categories">
-        <button type="button" class="game-filter active" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="game-filter active" data-filter="starter" aria-pressed="true">Start here</button>
+        <button type="button" class="game-filter" data-filter="all" aria-pressed="false">All games</button>
         <button type="button" class="game-filter" data-filter="favorites" aria-pressed="false">⭐ Favorites</button>
         <button type="button" class="game-filter" data-filter="new" aria-pressed="false">✨ New</button>
         <button type="button" class="game-filter" data-filter="action" aria-pressed="false">⚡ Action</button>
@@ -99,6 +101,7 @@
     </section>
 
 
+    <div id="quickSections"></div>
     <div class="game-browse-heading">
       <p class="game-browse-count" id="gameBrowseCount" aria-live="polite">Browse arcade games</p>
       <button class="game-surprise-button" id="surpriseGame" type="button">🎲 Pick for me</button>
@@ -134,6 +137,8 @@
       <section class="card game-card compact-game catalog-tile" data-game="spuddyEvolution"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🌱</span><h2>Spuddy Evolution</h2></div></div><p class="reward-rule">3D adventure · device-only saves · no Arcade Coin rewards</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="spuddy-evolution.html" aria-label="Play Spuddy Evolution">Play · Free beta</a></div></section>
     </div>
 
+    <button id="browseAllGames" class="browse-all-games" type="button" hidden>Explore all games →</button>
+
     <div class="games-simple-note">
       <span>🎟️ 3 free plays per game daily · <a href="rewards.html#earn-coins">Get Coins</a></span>
       <details>
@@ -142,8 +147,6 @@
       </details>
       <a href="game-guides.html" class="catalog-guide-link">Guides &amp; tips →</a>
     </div>
-
-    <div id="quickSections"></div>
 
     <a class="rank-discovery" href="leaderboards.html"><span aria-hidden="true">🏆</span><span><strong>Leaderboards</strong><small>See the Top 25. Find your next score to beat.</small></span><b aria-hidden="true">→</b></a>
 
@@ -204,7 +207,7 @@
     const byKey = Object.fromEntries(gameInfo.map(game => [game.key, game]));
     const gameTags = {
       neonSlice:['new','action','quick'],
-      bubblePop:['new','puzzle'],
+      bubblePop:['new','brain','puzzle'],
       crystalCommand:['new','strategy'],
       neonBreach:['new','action'],
       snake:['classic'],
@@ -234,7 +237,14 @@
       harborGetaway:['action'],
       spuddyEvolution:['new','action']
     };
-    let activeGameFilter = 'all';
+    const starterKeys = ['neonSlice','snake','bubblePop','spuddyEvolution'];
+    const gamePreviews = {
+      neonSlice: {src:'neon-slice.webp', label:'Quick & satisfying', description:'Swipe through cookout food. Dodge the bombs.'},
+      snake: {src:'snake.webp', label:'A familiar classic', description:'Steer, eat apples, and keep growing.'},
+      bubblePop: {src:'bubble-pop.webp', label:'Take your time', description:'Match colorful bubbles. Solve one level at a time.'},
+      spuddyEvolution: {src:'spuddy-evolution.svg', label:'Explore & grow', description:'Gather seeds and grow your own little Spuddy.'}
+    };
+    let activeGameFilter = 'starter';
     let gameSearchText = '';
 
     const gameSearch = document.getElementById('gameSearch');
@@ -284,7 +294,7 @@
 
       const recent = Arcade.recentGames().filter(key => byKey[key]).slice(0, 3);
       const favorites = gameInfo.filter(catalogFavorite).map(info=>info.key).slice(0,3);
-      const keys = recent.length ? recent : (favorites.length ? favorites : ['tapRush','neonDrift','snake']);
+      const keys = recent.length ? recent : favorites;
       const title = recent.length ? '🔥 Play again' : (favorites.length ? '⭐ Favorites' : '✨ Recommended');
       const section = renderQuickSection(title, keys);
       if (section) root.append(section);
@@ -313,14 +323,14 @@
       root.replaceChildren();
 
       const visibleGames = gameInfo.filter(info => {
-        const matchesFilter = activeGameFilter === 'all' ||
+        const matchesFilter = activeGameFilter === 'all' || (activeGameFilter === 'starter' && starterKeys.includes(info.key)) ||
           (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter));
         const haystack = (info.name + ' ' + info.note).toLowerCase();
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
       });
       const browseOrder = ['neonSlice','neonBreach','neonDrift','tapRush','snake','starDefender','brickBreaker','memory','coinCatch','jungleHopper'];
-      const gamesToRender = activeGameFilter === 'all' && !gameSearchText
+      const gamesToRender = activeGameFilter === 'starter' ? starterKeys.map(key => visibleGames.find(info => info.key === key)).filter(Boolean) : activeGameFilter === 'all' && !gameSearchText
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
             const bIndex = browseOrder.indexOf(b.key);
@@ -328,9 +338,12 @@
             return rank(a.key, aIndex) - rank(b.key, bIndex);
           })
         : visibleGames;
-      document.getElementById('gameBrowseCount').textContent = visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's') + (gameSearchText || activeGameFilter !== 'all' ? ' found' : ' to explore');
+      document.getElementById('browseAllGames').hidden = activeGameFilter !== 'starter';
+      document.getElementById('browseAllGames').textContent = 'Explore all ' + gameInfo.length + ' games →';
+      root.classList.toggle('starter-grid', activeGameFilter === 'starter');
+      document.getElementById('gameBrowseCount').textContent = activeGameFilter === 'starter' ? '4 easy places to start' : visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's') + (gameSearchText || activeGameFilter !== 'all' ? ' found' : ' to explore');
       document.getElementById('surpriseGame').disabled = visibleGames.length === 0;
-      const recommendedKeys = new Set(['tapRush','neonDrift','snake']);
+      const recommendedKeys = new Set();
 
       gamesToRender.forEach(info => {
         const remaining = info.freeBeta ? Infinity : Arcade.remaining(info.key);
@@ -437,7 +450,30 @@
         footer.className = 'game-card-footer ' + (best.value ? 'has-best' : 'no-best');
         footer.append(bestLine, play);
 
-        card.append(heading, rule, footer);
+        const preview = activeGameFilter === 'starter' ? gamePreviews[info.key] : null;
+        if (preview) {
+          const picture = document.createElement('img');
+          picture.className = 'game-preview';
+          picture.src = 'game-preview-' + preview.src;
+          picture.alt = ''; // The adjacent title and description name the game.
+          picture.width = 560; picture.height = 350;
+          picture.loading = activeGameFilter === 'starter' ? 'eager' : 'lazy';
+          picture.decoding = 'async';
+          picture.addEventListener('error', () => picture.remove(), {once:true});
+          card.append(picture);
+          const tagline = document.createElement('p');
+          tagline.className = 'game-preview-label';
+          tagline.textContent = preview.label;
+          card.append(tagline);
+        }
+        card.append(heading);
+        if (preview) {
+          const description = document.createElement('p');
+          description.className = 'game-description';
+          description.textContent = preview.description;
+          card.append(description);
+        }
+        card.append(rule, footer);
 
         if (!remaining) {
           const status = document.createElement('div');
@@ -466,6 +502,8 @@
       const button = event.target.closest('[data-filter]');
       if (!button) return;
       activeGameFilter = button.dataset.filter || 'all';
+      gameSearchText = '';
+      gameSearch.value = '';
       gameFilters.querySelectorAll('.game-filter').forEach(item => {
         const selected = item === button;
         item.classList.toggle('active', selected);
@@ -474,9 +512,16 @@
       render();
     });
 
+    document.getElementById('browseAllGames').addEventListener('click', () => {
+      const all = gameFilters.querySelector('[data-filter=all]');
+      all.click();
+      all.focus();
+      document.querySelector('.game-browser-tools').scrollIntoView({block:'start'});
+    });
+
     document.getElementById('surpriseGame').addEventListener('click', () => {
       const choices = gameInfo.filter(info =>
-        (activeGameFilter === 'all' || (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter))) &&
+        (activeGameFilter === 'all' || (activeGameFilter === 'starter' && starterKeys.includes(info.key)) || (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter))) &&
         (!gameSearchText || (info.name + ' ' + info.note).toLowerCase().includes(gameSearchText))
       );
       const playable = choices.filter(info => info.freeBeta || Arcade.remaining(info.key) > 0);
