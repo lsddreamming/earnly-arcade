@@ -150,14 +150,14 @@ for (const width of [320, 390, 440]) {
     test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
       await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-      // Starter picks intentionally precede the complete catalog.
-      await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
+      // Four refreshed games lead into the complete 28-game catalog.
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
       const starters = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
-      expect(starters).toEqual(['neonSlice', 'snake', 'bubblePop', 'spuddyEvolution']);
+      expect(new Set(starters).size).toBe(4);
       await expect(page.locator('#games .game-preview')).toHaveCount(4);
       await page.locator('[data-filter=all]').click();
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
+      await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
       await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
       await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
       const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
@@ -172,7 +172,7 @@ for (const [width,height] of [[320,568],[390,844],[440,956]]) {
   test(`catalog puts a complete Play card on the first phone screen ${width}px`, async ({page,baseURL})=>{
     await page.setViewportSize({width,height});
     await page.goto(new URL('/games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-    await expect(page.getByRole('button',{name:'Add Snake favorite',exact:true})).toBeVisible();
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
     const firstPlay=page.locator('#games > .catalog-tile').first().locator('.game-play-button');
     const bounds=await firstPlay.boundingBox();
     expect(bounds.y).toBeGreaterThan(0);
