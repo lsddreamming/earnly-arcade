@@ -63,3 +63,88 @@ body.mini-bounceRun .game-result-dialog .result-badge{color:#baffd5;border-color
   html body.mini-bounceRun.game-active .bounce-tap-zone.bounce-jumping,.bounce-tap-zone.bounce-jumping .bounce-jump-icon{transform:none}
 }
 
+
+/* High-score chase lives in the open space BELOW Jump / Pause / Quit.
+   The world scores are real leaderboard results, never placeholder players. */
+html body.mini-bounceRun #earnlyCompactLeaderboard.compact-leaderboard-card{
+  display:block!important;
+  width:min(94vw,400px)!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:9px auto 12px!important;
+  padding:9px 11px!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+  pointer-events:auto!important;
+  border-color:rgba(136,235,194,.4)!important;
+  border-radius:17px!important;
+  background:linear-gradient(145deg,#16364b,#0c2238)!important;
+  animation:none!important;
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-head{
+  display:flex!important;
+  gap:8px;
+  align-items:center;
+  margin:0 0 6px!important;
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-head strong{
+  color:#e8fff4;
+  font-size:13px!important;
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-link{
+  display:inline-flex!important;
+  font-size:10px!important;
+  padding:5px 8px!important;
+  color:#ffe8ab;
+  border-color:rgba(255,223,150,.3);
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-list{
+  display:grid!important;
+  gap:4px!important;
+  min-height:64px;
+  max-height:clamp(102px,17svh,165px)!important;
+  padding:1px 4px 1px 1px;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y!important;
+  scrollbar-width:thin;
+  scrollbar-color:#6ed9b7 #102a40;
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-row{
+  grid-template-columns:27px minmax(0,1fr) auto!important;
+  gap:6px!important;
+  min-height:31px!important;
+  padding:4px 7px!important;
+  border-radius:9px!important;
+  background:rgba(8,28,44,.82);
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-avatar{display:none!important}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-rank{font-size:13px!important}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-player{
+  font-size:11px!important;
+  color:#e7f8f4;
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-score{
+  font-size:11px!important;
+  color:#ffdc89;
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-target{
+  display:block!important;
+  margin:7px 0 0!important;
+  padding:6px 8px!important;
+  font-size:10px!important;
+  line-height:1.35;
+  color:#d5fff3;
+  background:rgba(28,91,94,.26);
+  border-color:rgba(110,217,183,.27);
+}
+html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-ticker,
+html body.mini-bounceRun #earnlyCompactLeaderboard + .compact-leaderboard-record-chip{
+  display:none!important;
+}
+@media(max-width:359px){
+  html body.mini-bounceRun #earnlyCompactLeaderboard.compact-leaderboard-card{padding:7px!important}
+  html body.mini-bounceRun #earnlyCompactLeaderboard .compact-leaderboard-score{font-size:10px!important}
+}
