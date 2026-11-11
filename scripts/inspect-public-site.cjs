@@ -11,7 +11,7 @@ const routes = ['index.html','games.html','world.html','stats.html','rewards.htm
 const output = path.resolve(process.env.INSPECT_OUTPUT || 'inspection-results');
 (async () => {
   await fs.mkdir(output, { recursive: true });
-  const report = { timestamp: new Date().toISOString(), origin: origin.origin, sourceSha: require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), scope: 'guest page load and layout; not gameplay or authenticated verification', results: [] };
+  const report = { timestamp: new Date().toISOString(), origin: origin.origin, checkoutSha: require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), scope: 'guest page load and layout; not gameplay or authenticated verification', results: [] };
   for (const device of [{ name:'desktop', engine:chromium, viewport:{width:1440,height:900} }, { name:'iphone', engine:webkit, viewport:{width:390,height:844}, isMobile:true, hasTouch:true }, { name:'narrow', engine:webkit, viewport:{width:320,height:568}, isMobile:true, hasTouch:true }, { name:'landscape', engine:webkit, viewport:{width:844,height:390}, isMobile:true, hasTouch:true }]) {
     let browser;
     try {
