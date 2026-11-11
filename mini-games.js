@@ -671,7 +671,7 @@
     const onWideJump=e=>{
       if(!alive)return;
       if(e.target===c || bounceZone.contains(e.target))return;
-      const nav=e.target.closest&&e.target.closest('.bottom-nav,.game-pause-control,button,a,input,select,textarea');
+      const nav=e.target.closest&&e.target.closest('.bottom-nav,.game-pause-control,.compact-leaderboard-card,button,a,input,select,textarea');
       if(nav)return;
       const rect=c.getBoundingClientRect();
       if(e.clientY<rect.top)return;
