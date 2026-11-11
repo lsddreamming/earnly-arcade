@@ -215,9 +215,52 @@ for(const height of [640,740])test('Bounce Run phone controls stay below the jum
  expect(q.y).toBeGreaterThanOrEqual(j.y+j.height+4);
  expect(p.y+p.height).toBeLessThanOrEqual(height);
  expect(q.x).toBeGreaterThanOrEqual(p.x+p.width+4);
- await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+ const leaderboard=page.locator('#earnlyCompactLeaderboard');
+ await expect(leaderboard).toBeVisible();
+ const board=await leaderboard.boundingBox();
+ expect(board.y).toBeGreaterThanOrEqual(p.y+p.height+4);
  await pause.click();await page.getByRole('button',{name:/Resume/}).click();
  await page.screenshot({path:test.info().outputPath('bounce-run-phone-'+height+'.png')});
  expect(errors).toEqual([]);
 });
 
+
+for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
+ test('Bounce Run scrolls 10 real-format scores beneath its controls without jumping '+path,async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const errors=await open(page,path);
+  await page.evaluate(()=>{
+   window.EarnlyCloud={
+    ...(window.EarnlyCloud||{}),
+    leaderboard:async(game,limit)=>({
+     ok:true,game,label:'distance',
+     entries:Array.from({length:10},(_,index)=>({
+      rank:index+1,username:'test_runner_'+(index+1),
+      score:1000-index*75,avatar:'⚪'
+     })).slice(0,limit)
+    })
+   };
+   window.dispatchEvent(new Event('earnly-leaderboard-updated'));
+  });
+  const card=page.locator('#earnlyCompactLeaderboard');
+  const list=card.locator('.compact-leaderboard-list');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.compact-leaderboard-row')).toHaveCount(10);
+  await expect(card.locator('.compact-leaderboard-target')).toContainText('Beat #10');
+  const controls=await page.locator('.bounce-session-controls').boundingBox();
+  const cardBounds=await card.boundingBox();
+  expect(cardBounds.y).toBeGreaterThanOrEqual(controls.y+controls.height+4);
+  const before=await page.evaluate(()=>testBounce.state.jumps);
+  await card.locator('.compact-leaderboard-target').click();
+  expect(await page.evaluate(()=>testBounce.state.jumps)).toBe(before);
+  const scroll=await list.evaluate(el=>{
+   const scrollable=el.scrollHeight>el.clientHeight;
+   el.scrollTop=el.scrollHeight;
+   return {scrollable,scrollTop:el.scrollTop,touchAction:getComputedStyle(el).touchAction};
+  });
+  expect(scroll.scrollable).toBe(true);
+  expect(scroll.scrollTop).toBeGreaterThan(0);
+  expect(scroll.touchAction).toBe('pan-y');
+  expect(errors).toEqual([]);
+ });
+}
