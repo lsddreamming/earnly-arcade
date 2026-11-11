@@ -123,6 +123,8 @@ jobs:
           import pathlib, time, urllib.request
           hosts = ['https://earnlyarcade.com', 'https://www.earnlyarcade.com']
           files = ['games.html', 'games-showroom.css', 'games-starter-rotation.js', 'www/games.html', 'www/games-showroom.css', 'www/games-starter-rotation.js', 'world.html', 'world.js', 'world-renderer.js', 'www/world.html', 'www/world.js', 'www/world-renderer.js']
+          # Bounce Run leaderboard release: require byte-identical scripts, page, and styles on BOTH production hosts.
+          files += [prefix + name for prefix in ['', 'www/'] for name in ['mini.html', 'arcade.js', 'mini-games.js', 'bounce-run.css']]
           # Keep direct production byte checks on the starter preview assets,
           # so blank images fail publication before browser QA can start.
           files += [prefix + name for prefix in ['', 'www/'] for name in ['game-preview-neon-slice.webp', 'game-preview-snake.webp', 'game-preview-bubble-pop.webp']]
