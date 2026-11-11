@@ -57,6 +57,41 @@ function step(s){
  if(area(s,1)>=35){s.ended=true;s.reason='You claimed 35% of the island!';}
 }
 function tick(s,dt){if(s.ended||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.1);s.events=[];s.time=Math.min(s.limit,s.time+dt);s.clock+=dt;const period=s.mode==='practice'?.18:.145;while(s.clock>=period&&!s.ended){s.clock-=period;step(s);}if(s.ended)return;for(const a of s.actors)if(!a.alive&&a.id!==1)respawn(s,a);if(s.time>=s.limit){s.ended=true;s.reason=s.mode==='practice'?'Practice complete. Try a bigger loop next time.':rank(s)[0].id===1?'Time! You own the biggest patch.':'Time! A rival finished with more land.';}}
+// Read-only navigation and risk information for the HUD / renderer.
+// A guide to the closest owned cell, not autopilot: the player still steers,
+// closes loops and must obey the existing no-reverse collision rules.
+function trailStatus(s){
+ const a=s.actors[0],path=a.path||[],length=path.length;
+ const next=a.next??a.dir;
+ const edge=(next===0&&a.x>=37)||(next===1&&a.y>=37)||
+            (next===2&&a.x<=2)||(next===3&&a.y<=2);
+ let home=null,closest=Infinity;
+ if(length){
+   for(let p=0;p<N;p++)if(s.grid[p]===1){
+     const x=p%SIZE,y=Math.floor(p/SIZE),distance=Math.abs(a.x-x)+Math.abs(a.y-y);
+     if(distance<closest){closest=distance;home={x,y};}
+   }
+ }
+ let rivalDistance=Infinity;
+ if(length){
+   for(const rival of s.actors){
+     if(rival.id===1||!rival.alive)continue;
+     for(const p of path){
+       const d=Math.abs(rival.x-p%SIZE)+Math.abs(rival.y-Math.floor(p/SIZE));
+       if(d<rivalDistance)rivalDistance=d;
+     }
+   }
+ }
+ let direction='';
+ if(home){
+   const dx=home.x-a.x,dy=home.y-a.y;
+   direction=Math.abs(dx)>=Math.abs(dy)?dx>0?'RIGHT':'LEFT':dy>0?'DOWN':'UP';
+ }
+ return {exposed:length>0,length,edge,home,homeDistance:length?closest:0,
+   homeDirection:direction,rivalDistance,
+   nearbyRival:Number.isFinite(rivalDistance)&&rivalDistance<=5,
+   risk:length===0?'safe':rivalDistance<=5?'danger':'exposed'};
+}
 function rank(s){return s.actors.map(a=>({id:a.id,name:a.name,area:area(s,a.id),alive:a.alive})).sort((a,b)=>b.area-a.area||a.id-b.id);}
-const api={SIZE,DIRS,create,tick,turn,area,rank,step,close,index,routeHome};if(typeof module!=='undefined')module.exports=api;root.SpuddyTurfEngine=api;
+const api={SIZE,DIRS,create,tick,turn,area,rank,step,close,index,routeHome,trailStatus};if(typeof module!=='undefined')module.exports=api;root.SpuddyTurfEngine=api;
 })(typeof window!=='undefined'?window:globalThis);
