@@ -1,0 +1,46 @@
+name: Big Fish Energy release checks
+on:
+  pull_request:
+    paths: ['big-fish-energy*', 'www/big-fish-energy*', 'scripts/test-big-fish*', 'tests/big-fish-energy*', 'supabase/functions/big-fish-energy/**', 'supabase/migrations/*big_fish*', '.github/workflows/big-fish-energy.yml']
+  push:
+    branches: [main]
+    paths: ['big-fish-energy*', 'www/big-fish-energy*', 'scripts/test-big-fish*', 'tests/big-fish-energy*', 'supabase/functions/big-fish-energy/**', 'supabase/migrations/*big_fish*', '.github/workflows/big-fish-energy.yml']
+  workflow_dispatch:
+concurrency:
+  group: big-fish-energy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  game-checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: macos-15-intel
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Verify growth, collisions, permanent sizes and simulation replay
+        run: node --test scripts/test-big-fish-energy.cjs
+      - name: Verify server replay, reward pacing and leaderboard integrity
+        run: node scripts/test-big-fish-rewards.mjs && node --test scripts/test-big-fish-rewards-client.cjs && node --experimental-strip-types --test scripts/test-big-fish-handler.ts
+      - name: Verify browser controls, lifecycle and device layouts
+        run: npx playwright test tests/big-fish-energy.spec.js tests/big-fish-energy-catalog.spec.js --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: big-fish-energy-${{ matrix.project }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

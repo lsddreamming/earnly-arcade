@@ -24,3 +24,7 @@ verify_jwt = false
 [functions.track-growth]
 # Existing guest analytics validates the publishable key with withSupabase.
 verify_jwt = false
+
+[functions.big-fish-energy]
+# Public leaderboard reads; every run mutation validates its bearer with auth.getUser.
+verify_jwt = false

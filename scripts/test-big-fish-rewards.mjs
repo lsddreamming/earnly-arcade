@@ -1,0 +1,32 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url),E=require('../big-fish-energy-engine.js'),verify=require('../supabase/functions/big-fish-energy/verify.js');
+assert.equal(await readFile('big-fish-energy-engine.js','utf8'),await readFile('supabase/functions/big-fish-energy/engine.js','utf8'),'server engine mirror');
+const steps=Array.from({length:90},()=>[1000,0,0]),a=verify({seed:17,mode:'endless'},steps),b=verify({snapshot:a.snapshot},steps),g=E.create({seed:17});for(const v of [...steps,...steps])g.step(1/30,{x:v[0]/1000,y:0,boost:false});assert.deepEqual(b.snapshot,g.exportState());
+for(const bad of [[],[[1.5,0,0]],[[1001,0,0]],[[0,0,2]],Array(1801).fill([0,0,0])])assert.throws(()=>verify({seed:1,mode:'endless'},bad),/INVALID_STEPS/);
+const db=new PGlite();await db.exec(await readFile('tests/commerce-fixture.sql','utf8'));
+await db.exec(`CREATE ROLE service_role BYPASSRLS; ALTER TABLE coin_wallets ALTER balance SET DEFAULT 0;
+CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,client_event_id text,source_type text,source_label text,game text,metric int,aux int,amount int,created_at timestamptz DEFAULT now(),UNIQUE(user_id,client_event_id));
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
+CREATE TABLE coin_play_receipts(user_id uuid, request_id uuid, game text, action text);
+CREATE TABLE coin_play_credits(user_id uuid, game text, remaining int);`);
+await db.exec(await readFile('tests/kart-reward-baseline.sql','utf8'));
+await db.exec(await readFile('supabase/migrations/20261112001651_big_fish_energy_verified_runs.sql','utf8'));
+const uid='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
+const data=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
+const start=()=>data("select big_fish_start($1,17,'endless') r",[uid]);
+const claim=(id,seq=0,size=.6,time=90,eaten=20,owner=uid)=>data('select big_fish_checkpoint($1,$2,$3,$4,1800,$5,$6,$7,false) r',[owner,id,seq,JSON.stringify(a.snapshot),size,eaten,time]);
+const age=id=>db.query("update big_fish_runs set created_at=now()-interval '1 hour' where id=$1",[id]);
+let round=await start();await assert.rejects(claim(round.id),/ROUND_TOO_FAST/);await assert.rejects(claim(round.id,0,.6,90,20,other),/ROUND_NOT_FOUND/);await age(round.id);
+let r=await claim(round.id);assert.equal(r.amount,5);assert.equal(r.wallet.balance,'1255');assert.equal((await claim(round.id)).amount,0);await assert.rejects(claim(round.id,3),/SEQUENCE_CONFLICT/);
+r=await claim(round.id,1,1.2,180,40);assert.equal(r.amount,5);assert.equal(r.earned,10);
+const list=await data('select big_fish_leaderboard() r');assert.equal(list[0].size,1.2);assert.equal(list[0].username,'PlayerOne');
+await db.query('insert into leaderboard_bans values($1)',[uid]);assert.equal((await data('select big_fish_leaderboard() r')).length,0);await db.query('delete from leaderboard_bans');
+// Server computed metrics, not claimed browser size, are sent by handler; SQL verifies atomic pacing and idempotency.
+round=await start();await age(round.id);assert.equal((await claim(round.id,0,1e6,1800,400)).amount,90);round=await start();await age(round.id);assert.equal((await claim(round.id,0,1e6,1800,400)).amount,0);
+assert.equal((await db.query("select sum(amount)::int n from coin_ledger where game='bigFishEnergy'")).rows[0].n,100);
+await db.query("update big_fish_runs set updated_at=now()-interval '25 hours' where id=$1",[round.id]);await assert.rejects(claim(round.id,1),/ROUND_EXPIRED/);
+for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(start(),/permission denied/);await assert.rejects(claim(round.id),/permission denied/);await assert.rejects(db.query('select * from big_fish_runs'),/permission denied/);await assert.rejects(db.query('select * from big_fish_bests'),/permission denied/);await db.exec('RESET ROLE');}
+await db.close();console.log('PASS Big Fish deterministic checkpoint replay, input bounds, wallet pacing, ownership, retry idempotency, sequence CAS, daily cap, leaderboard bans, and denied client minting');

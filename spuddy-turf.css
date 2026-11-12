@@ -14,3 +14,21 @@ body:not(.playing) .arena{width:100%;min-height:410px}
 /* Keep navigation available between matches without crowding active controls. */
 body.playing .public-footer{display:none}
 .public-footer{max-width:620px;padding-left:16px;padding-right:16px}
+
+
+/* Trail awareness and readable claim feedback. Never cover the steering pad. */
+.hud #status.warning{color:#8debf3}
+.hud #status.danger{color:#ffc08a}
+.control-hint{min-width:0}
+.control-hint strong{line-height:1.3}
+.control-hint #trailGuide{line-height:1.3;max-width:154px;color:#a6c9db;overflow-wrap:break-word}
+.control-hint #trailGuide.urgent{color:#ffc391;font-weight:750}
+.arena.trail-exposed{border-color:#6bcbf78f;box-shadow:0 0 0 1px #7fdef329,0 17px 43px #0006}
+.arena.trail-danger{border-color:#ffc78a;box-shadow:0 0 0 2px #f8bd7559,0 17px 43px #0006}
+@media(max-width:360px){
+ .control-hint #trailGuide{max-width:100px;font-size:9px}
+ .control-row{gap:5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .arena.trail-exposed,.arena.trail-danger{transition:none!important}
+}
