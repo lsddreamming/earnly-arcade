@@ -3,6 +3,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium, webkit } = require('playwright');
+const { allowInspectionRequest } = require('./inspection-readonly-policy.cjs');
 const origin = new URL(process.env.INSPECT_BASE_URL || 'https://earnlyarcade.com');
 if (!['https://earnlyarcade.com', 'http://127.0.0.1:4173'].includes(origin.origin) || origin.pathname !== '/') {
   throw new Error('Use the Earnly public origin or an isolated localhost preview.');
@@ -11,14 +12,19 @@ const routes = ['index.html','games.html','world.html','stats.html','rewards.htm
 const output = path.resolve(process.env.INSPECT_OUTPUT || 'inspection-results');
 (async () => {
   await fs.mkdir(output, { recursive: true });
-  const report = { timestamp: new Date().toISOString(), origin: origin.origin, checkoutSha: require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), scope: 'guest page load and layout; not gameplay or authenticated verification', results: [] };
+  const report = { timestamp: new Date().toISOString(), origin: origin.origin, checkoutSha: require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), scope: 'guest static page load and layout with network writes/third-party requests blocked; not gameplay or authenticated verification', results: [] };
   for (const device of [{ name:'desktop', engine:chromium, viewport:{width:1440,height:900} }, { name:'iphone', engine:webkit, viewport:{width:390,height:844}, isMobile:true, hasTouch:true }, { name:'narrow', engine:webkit, viewport:{width:320,height:568}, isMobile:true, hasTouch:true }, { name:'landscape', engine:webkit, viewport:{width:844,height:390}, isMobile:true, hasTouch:true }]) {
     let browser;
     try {
       browser = await device.engine.launch();
-      const context = await browser.newContext({ viewport:device.viewport, isMobile:!!device.isMobile, hasTouch:!!device.hasTouch, serviceWorkers:'block' });
-      // Production visits must not generate account, reward, chat, or analytics writes.
-      await context.route('**/*', route => ['GET','HEAD','OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
+      const context = await browser.newContext({ viewport:device.viewport, isMobile:!!device.isMobile, hasTouch:!!device.hasTouch, serviceWorkers:'block', extraHTTPHeaders:{DNT:'1','Sec-GPC':'1'} });
+      await context.addInitScript(() => {
+        try { Object.defineProperty(navigator,'globalPrivacyControl',{configurable:true,value:true}); } catch (_) {}
+      });
+      // Same-origin static reads only: GET can otherwise invoke analytics APIs.
+      // WebSockets may mutate multiplayer presence and are blocked separately.
+      await context.route('**/*', route => allowInspectionRequest(route.request(), origin.origin) ? route.continue() : route.abort());
+      await context.routeWebSocket('**/*', ws => ws.close());
       for (const route of routes) {
         const page = await context.newPage();
         const result = { device:device.name, route, errors:0 };
