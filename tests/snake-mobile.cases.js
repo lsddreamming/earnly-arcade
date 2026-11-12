@@ -345,8 +345,10 @@ test('Normal account still runs out of plays normally', async ({page}) => {
   await page.locator('[data-filter=all]').click();
   await expect(page.locator('#games .catalog-tile')).toHaveCount(28);
   const snake = page.locator('[data-game="snake"]');
-  await expect(snake).toContainText('0 plays left');
-  await expect(snake.locator('.game-play-button')).toHaveText('Come Back Tomorrow');
+  await expect(snake.locator('.play-pill')).toHaveCount(0);
+  await expect(snake).toContainText('More plays tomorrow');
+  await expect(snake.locator('.game-play-button')).toHaveText('Play');
+  await expect(snake.locator('.game-play-button')).toBeDisabled();
   expect(await page.evaluate(() => Arcade.hasUnlimitedPlays())).toBe(false);
 });
 

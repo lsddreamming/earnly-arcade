@@ -264,7 +264,8 @@ test('result screen shows level progress and a single-play rewarded replay', () 
   expect(arcade).toContain("levelProgress.className = 'result-level-progress'");
   expect(arcade).toContain("'📺 Watch Ad · +1 Play & Replay'");
   expect(arcade).toContain('const PLAY_AD_BONUS = 1;');
-  expect(games).toContain('📺 Watch Ad · +1 Play');
+  expect(games).toContain("play.textContent = 'Play'");
+  expect(games).toContain("else if (adStatus.remaining > 0) Arcade.out(info.key, render)");
   expect(games).not.toContain('+3 Plays');
   expect(rewards).toContain('voluntary +1-play unlocks');
 });

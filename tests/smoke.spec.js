@@ -330,7 +330,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   expect(Math.abs(feature.height - first.height)).toBeLessThan(2);
   expect(Math.abs(second.x - feature.x)).toBeLessThan(2);
   expect(second.y).toBeGreaterThanOrEqual(feature.y + feature.height);
-  await expect(featured.locator('.game-play-button')).toContainText('Play · Earn Coins');
+  await expect(featured.locator('.game-play-button')).toHaveText('Play');
   const featurePlay = await featured.locator('.game-play-button').boundingBox();
   expect(featurePlay.height).toBeGreaterThanOrEqual(44);
   const favorite = await arcade.first().locator('.favorite-button').boundingBox();
@@ -2478,7 +2478,7 @@ test('Crystal Command belongs to the 28-game catalog as a free searchable strate
   const card=page.locator('#games [data-game=crystalCommand]');
   await expect(page.locator('#games .catalog-tile')).toHaveCount(2);
   await expect(page.locator('#games [data-game=spuddyTurf] a')).toHaveAttribute('href','spuddy-turf.html');
-  await expect(card.locator('.game-play-button')).toHaveText('Play · Free beta');
+  await expect(card.locator('.game-play-button')).toHaveText('Play');
   await expect(card.locator('.game-play-button')).toHaveAttribute('href','crystal-command.html');
   const before=await page.evaluate(()=>({coins:Arcade.number('points'),plays:Arcade.remaining('snake')}));
   await card.locator('.favorite-button').click();
