@@ -94,3 +94,14 @@ test('big bite feedback explains growth and voluntary finish saves without a fak
   await page.screenshot({path:info.outputPath('big-fish-energy-saved-dive.png')});
   await page.locator('#replay').click();await expect(page.locator('#resultSheet')).toBeHidden();await expect(page.locator('#size')).toHaveText('30 cm');
 });
+
+test('start screen provides standard static information links without covering gameplay',async({page,request})=>{
+  for(const prefix of ['','www/']){
+    const response=await request.get('/'+prefix+'big-fish-energy.html');expect(response.ok()).toBe(true);
+    const html=await response.text();expect(html).toContain('href="public-info.css"');
+    const footer=html.match(/<footer class="public-footer"[\s\S]*?<\/footer>/)?.[0];expect(footer).toContain('aria-label="Site information"');
+    for(const target of ['index.html','games.html','about.html','game-guides.html','support.html','privacy.html','terms.html'])expect(footer).toContain('href="'+target+'"');
+  }
+  await open(page);await page.locator('.site-links summary').click();await expect(page.locator('.public-footer')).toBeVisible();
+  await expect(page.locator('.public-footer a[href="support.html"]')).toBeVisible();await start(page);await expect(page.locator('.public-footer')).toBeHidden();
+});

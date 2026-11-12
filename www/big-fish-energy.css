@@ -4,3 +4,7 @@
 @media(max-height:650px){.sheet{align-items:start}.intro-card{margin:0 auto}.modal-card{margin:auto}}
 
 #biteFeedback{position:absolute;top:43%;left:50%;transform:translate(-50%,-50%);font-size:18px;font-weight:900;letter-spacing:1px;color:#c5ff95;text-shadow:0 2px 9px #002a3c;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}.size-stat strong{transition:color .2s}
+
+/* Site information stays on the start screen, away from live swim controls. */
+.site-links{margin-top:10px;color:#a9d4dc;font-size:11px}.site-links summary{min-height:44px;padding:14px 0;text-align:center;cursor:pointer;touch-action:manipulation}.site-links summary:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}.site-links .public-footer{margin:0;padding:8px 0;border-color:#7fc7d32e;font-size:11px}.site-links .public-footer a{padding:6px 8px}
+#intro{align-items:start}#intro .intro-card{margin-block:auto}
