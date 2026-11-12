@@ -2,3 +2,5 @@
 
 .pause-bars{display:inline-block;width:13px;height:17px;border-left:4px solid currentColor;border-right:4px solid currentColor}
 @media(max-height:650px){.sheet{align-items:start}.intro-card{margin:0 auto}.modal-card{margin:auto}}
+
+#biteFeedback{position:absolute;top:43%;left:50%;transform:translate(-50%,-50%);font-size:18px;font-weight:900;letter-spacing:1px;color:#c5ff95;text-shadow:0 2px 9px #002a3c;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}.size-stat strong{transition:color .2s}

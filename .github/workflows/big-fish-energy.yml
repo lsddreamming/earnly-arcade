@@ -35,7 +35,7 @@ jobs:
       - name: Verify server replay, reward pacing and leaderboard integrity
         run: node scripts/test-big-fish-rewards.mjs && node --test scripts/test-big-fish-rewards-client.cjs && node --experimental-strip-types --test scripts/test-big-fish-handler.ts
       - name: Verify browser controls, lifecycle and device layouts
-        run: npx playwright test tests/big-fish-energy.spec.js --project=${{ matrix.project }}
+        run: npx playwright test tests/big-fish-energy.spec.js tests/big-fish-energy-catalog.spec.js --project=${{ matrix.project }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

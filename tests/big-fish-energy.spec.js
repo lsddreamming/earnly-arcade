@@ -74,3 +74,23 @@ test('landscape and enormous fish retain visible controls and a finite camera',a
   expect(await page.evaluate(()=>Array.from(document.querySelector('#sea').getContext('2d').getTransform().toFloat64Array()).every(Number.isFinite))).toBe(true);
   await page.screenshot({path:info.outputPath('big-fish-energy-abyss-landscape.png')});
 });
+
+test('big bite feedback explains growth and voluntary finish saves without a fake death',async({page},info)=>{
+  await frozen(page);await open(page);await start(page);
+  await page.evaluate(()=>{const s=window.__fishTestGame.state,p=s.player;const f=s.fish[0];Object.assign(f,{x:p.x,y:p.y,size:.29});s.fish=[f];});
+  await page.clock.runFor(200);
+  await expect(page.locator('#biteFeedback')).toContainText('BIG BITE!');
+  await expect(page.locator('#biteFeedback')).toHaveText(/BIG BITE! \+[0-9.]+%/);
+  expect(await page.locator('#biteFeedback').evaluate(el=>Number(getComputedStyle(el).opacity))).toBeGreaterThan(0);
+  const actualSize=await page.evaluate(()=>window.__fishTestGame.state.player.size);
+  await page.locator('#pause').click();await page.locator('#endDive').click();
+  await expect(page.locator('#pauseSheet')).toBeHidden();await expect(page.locator('#resultSheet')).toBeVisible();
+  await expect(page.locator('#resultReason')).toHaveText('Dive complete. Your best size is saved.');
+  await expect(page.locator('#resultBest')).toContainText('New personal best');
+  expect(await page.evaluate(()=>window.__fishTestGame.state.dead)).toBe(false);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly-big-fish-energy-best-v1')).size)).toBe(actualSize);
+  const stopped=await page.evaluate(()=>window.__fishTestGame.snapshot());await page.clock.runFor(2000);
+  expect(await page.evaluate(()=>window.__fishTestGame.snapshot())).toEqual(stopped);
+  await page.screenshot({path:info.outputPath('big-fish-energy-saved-dive.png')});
+  await page.locator('#replay').click();await expect(page.locator('#resultSheet')).toBeHidden();await expect(page.locator('#size')).toHaveText('30 cm');
+});

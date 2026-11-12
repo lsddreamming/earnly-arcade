@@ -313,7 +313,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
   await page.locator('[data-filter=all]').click();
-  await expect(cards).toHaveCount(28);
+  await expect(cards).toHaveCount(29);
   const featured = cards.first();
   await expect(featured).toHaveAttribute('data-game', 'neonSlice');
   const feature = await featured.boundingBox();
@@ -330,7 +330,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   expect(Math.abs(feature.height - first.height)).toBeLessThan(2);
   expect(Math.abs(second.x - feature.x)).toBeLessThan(2);
   expect(second.y).toBeGreaterThanOrEqual(feature.y + feature.height);
-  await expect(featured.locator('.game-play-button')).toContainText('Play · Earn Coins');
+  await expect(featured.locator('.game-play-button')).toHaveText('Play');
   const featurePlay = await featured.locator('.game-play-button').boundingBox();
   expect(featurePlay.height).toBeGreaterThanOrEqual(44);
   const favorite = await arcade.first().locator('.favorite-button').boundingBox();
@@ -2469,16 +2469,16 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   }
 });
 
-test('Crystal Command belongs to the 28-game catalog as a free searchable strategy beta', async ({page}) => {
+test('Crystal Command belongs to the 29-game catalog as a free searchable strategy beta', async ({page}) => {
   await page.goto('/games.html');
   await page.locator('[data-filter=all]').click();
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(28);
-  await expect(page.locator('#gameBrowseCount')).toHaveText('28 games to explore');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(29);
+  await expect(page.locator('#gameBrowseCount')).toHaveText('29 games to explore');
   await page.locator('[data-filter=strategy]').click();
   const card=page.locator('#games [data-game=crystalCommand]');
   await expect(page.locator('#games .catalog-tile')).toHaveCount(2);
   await expect(page.locator('#games [data-game=spuddyTurf] a')).toHaveAttribute('href','spuddy-turf.html');
-  await expect(card.locator('.game-play-button')).toHaveText('Play · Free beta');
+  await expect(card.locator('.game-play-button')).toHaveText('Play');
   await expect(card.locator('.game-play-button')).toHaveAttribute('href','crystal-command.html');
   const before=await page.evaluate(()=>({coins:Arcade.number('points'),plays:Arcade.remaining('snake')}));
   await card.locator('.favorite-button').click();
@@ -2789,7 +2789,7 @@ for (const prefix of ['/', '/www/']) {
     await expect(page.locator('#gameBrowseCount')).toContainText('fresh picks');
     const before = await page.evaluate(() => ({coins:Arcade.number('points'), plays:Arcade.remaining('snake')}));
     await page.locator('#browseAllGames').click();
-    await expect(cards).toHaveCount(28);
+    await expect(cards).toHaveCount(29);
     await expect(page.locator('#games [data-game=spuddyEvolution] .reward-rule')).toContainText('no Arcade Coin rewards');
     await expect(page.locator('[data-filter=all]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#browseAllGames')).toBeHidden();
@@ -2816,11 +2816,11 @@ for (const prefix of ['/', '/www/']) {
 }
 
 for (const prefix of ['/', '/www/']) {
-  test(prefix + 'Games starter picks rotate all 28 titles over seven page refreshes',async({page})=>{
+  test(prefix + 'Games starter picks rotate all 29 titles over eight page refreshes',async({page})=>{
     await page.route('https://**',r=>r.abort());
     const keys=()=>page.locator('#games > .catalog-tile').evaluateAll(items=>items.map(item=>item.dataset.game));
     const seen=[],groups=[];
-    for(let visit=0;visit<7;visit++){
+    for(let visit=0;visit<8;visit++){
       if(visit===0)await page.goto(prefix+'games.html');
       else await page.reload();
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
@@ -2829,13 +2829,13 @@ for (const prefix of ['/', '/www/']) {
       if(groups.length)expect(selected.some(id=>groups.at(-1).includes(id))).toBe(false);
       groups.push(selected);seen.push(...selected);
     }
-    expect(new Set(seen).size).toBe(28);
+    expect(new Set(seen).size).toBe(29);
     await page.reload();
     const next=await keys();
     expect(next.some(id=>groups.at(-1).includes(id))).toBe(false);
     const unchanged=await keys();
     await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games > .catalog-tile')).toHaveCount(28);
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(29);
     await page.locator('[data-filter=starter]').click();
     expect(await keys()).toEqual(unchanged);
   });
@@ -2869,11 +2869,11 @@ for (const prefix of ['/', '/www/']) {
     await expect(cards).toHaveCount(2);
     await expect(cards.first()).toHaveAttribute('data-game', /.+/);
     const seen = await keys();
-    for(let i=1;i<14;i++){
+    for(let i=1;i<15;i++){
       await page.locator('#homeMorePicks').click();
       const pair=await keys();expect(pair[0]).not.toBe(pair[1]);seen.push(...pair);
     }
-    expect(new Set(seen).size).toBe(28);
+    expect(new Set(seen).size).toBe(29);
     const last=await keys();await page.reload();
     await expect(cards.first()).toHaveAttribute('data-game', /.+/);
     const next=await keys();expect(next.some(key=>last.includes(key))).toBe(false);

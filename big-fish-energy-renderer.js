@@ -17,7 +17,7 @@
     if (!ctx) throw new Error('Canvas graphics unavailable');
     let width=1,height=1,dpr=1,time=0,alive=true;
     const camera={x:state.player.x,y:state.player.y,zoom:1};
-    const sparks=[];
+    const sparks=[],growthRings=[];
     const initialSize = Math.max(.01,state.player.size || 1);
     let initialized=false,biteUntil=0,drawCost=0,slowFrames=0,reduced=false;
     const sprites=new Map();
@@ -34,7 +34,8 @@
       const amount=Math.min(1,(dist-9)/36);return {x:dx/dist*amount,y:dy/dist*amount};
     }
     function burst(x,y,hue) {
-      biteUntil=time+.16;
+      biteUntil=time+.2;
+      growthRings.push({life:.55,max:.55});if(growthRings.length>4)growthRings.shift();
       for(let i=0;i<12;i++) {const a=TAU*i/12; sparks.push({x,y,vx:Math.cos(a)*26/camera.zoom,vy:Math.sin(a)*26/camera.zoom,life:.65,max:.65,hue:hue??43,r:2+hash(i+time)*3});}
       if(sparks.length>120)sparks.splice(0,sparks.length-120);
     }
@@ -85,10 +86,17 @@
       const r=Math.max(1.3,raw*.5);
       if(!buildingSprite&&(p.x+r*2<0||p.x-r*2>width||p.y+r*2<0||p.y-r*2>height))return;
       const edible=!isPlayer&&entity.size<state.player.size;
-      const kind=entity.kind||'fish',shark=/shark|barracuda|predator|tuna/i.test(kind),squid=/squid/i.test(kind),monster=/monster|leviathan|boss|abyss/i.test(kind),angler=/angler/i.test(kind);
+      const kind=isPlayer?(state.zone>=4?'leviathan':state.zone>=2?'shark':state.zone>=1?'tuna':'tropical'):(entity.kind||'fish'),shark=/shark|barracuda|predator|tuna/i.test(kind),squid=/squid/i.test(kind),monster=/monster|leviathan|boss|abyss/i.test(kind),angler=/angler/i.test(kind);
       const hue=isPlayer?36:(Number.isFinite(entity.hue)?entity.hue:(shark?199:monster?281:angler?261:((entity.id||0)*47+170)%360));
       const angle=Number.isFinite(entity.angle)?entity.angle:0,flip=Math.cos(angle)<0;
       const bodyHeight=r*(shark?.39:squid?.5:monster?.6:.63);
+      if(!isPlayer&&!buildingSprite&&!edible&&entity.behavior==='hunt'){
+        // Heading cone is presentation only: it does not change collision or AI.
+        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(angle);
+        ctx.fillStyle='rgba(255,127,96,.075)';ctx.strokeStyle='rgba(255,161,119,.35)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(r*.7,0);ctx.lineTo(r*2.5,-r*.65);ctx.quadraticCurveTo(r*2.8,0,r*2.5,r*.65);ctx.closePath();ctx.fill();
+        for(let j=0;j<2;j++){const x=r*(1.4+j*.43);ctx.beginPath();ctx.moveTo(x-r*.12,-r*.13);ctx.lineTo(x,0);ctx.lineTo(x-r*.12,r*.13);ctx.stroke();}ctx.restore();
+      }
       if(!isPlayer&&!buildingSprite){
         // Bounded four-pose sprite cache retains original shaded artwork while
         // replacing dozens of paths/gradients per NPC with one GPU-friendly blit.
@@ -111,6 +119,12 @@
       if(isPlayer&&state.boosting){ctx.save();ctx.rotate(entity.angle||0);for(let i=0;i<5;i++){ctx.globalAlpha=(1-i/5)*.3;ellipse(-r*(1.3+i*.35),Math.sin(time*20+i)*r*.1,r*.3,r*.17,'#c5f9ff');}ctx.restore();}
       ctx.rotate(flip?angle-Math.PI:angle);ctx.scale(flip?-1:1,1);
       const wag=Math.sin(time*(isPlayer?10:6)+(entity.id||0))*r*.15;
+      if(isPlayer&&monster){
+        // Golden identity persists through the luminous, original abyss form.
+        const pulse=.7+Math.sin(time*2.5)*.15;
+        ctx.strokeStyle=`rgba(125,255,235,${pulse})`;ctx.lineWidth=Math.max(1,r*.055);
+        for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(-r*.28,side*bodyHeight*.5);ctx.bezierCurveTo(-r*.8,side*r*.95,-r*1.4,side*r*.8+wag,-r*1.65,side*r*.4+wag);ctx.stroke();}
+      }
       const grad=ctx.createLinearGradient(0,-bodyHeight,0,bodyHeight);grad.addColorStop(0,`hsl(${hue},${isPlayer?100:65}%,${isPlayer?76:68}%)`);grad.addColorStop(.42,`hsl(${hue},${isPlayer?96:66}%,${isPlayer?56:48}%)`);grad.addColorStop(1,`hsl(${hue},65%,${isPlayer?31:24}%)`);
       if(squid){
         for(let n=0;n<5;n++){ctx.strokeStyle=`hsl(${hue+n*4},60%,${42+n*4}%)`;ctx.lineWidth=Math.max(1,r*.09);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-r*.5,(n-2)*r*.15);ctx.bezierCurveTo(-r*1.1,(n-2)*r*.2+wag,-r*1.4,(n-2)*r*.27-wag,-r*1.8,(n-2)*r*.2+wag);ctx.stroke();}
@@ -122,7 +136,11 @@
         path([[-r*.35,bodyHeight*.6],[-r*.2,bodyHeight*1.35],[r*.3,bodyHeight*.65]],`hsl(${hue+5},65%,33%)`);
       }
       ctx.beginPath();ctx.moveTo(r,0);ctx.bezierCurveTo(r*.96,-bodyHeight*.8,r*.07,-bodyHeight*1.32,-r*.83,-bodyHeight*.32);ctx.quadraticCurveTo(-r*.98,0,-r*.83,bodyHeight*.32);ctx.bezierCurveTo(r*.02,bodyHeight*1.3,r*.95,bodyHeight*.7,r,0);ctx.fillStyle=grad;ctx.fill();
-      if(monster){for(let j=0;j<5;j++){const x=-r*.65+j*r*.29;path([[x,-bodyHeight*.7],[x+r*.07,-bodyHeight*(1.35+Math.sin(j)*.15)],[x+r*.2,-bodyHeight*.8]],`hsl(${hue+28},67%,63%)`);}}
+      if(monster){for(let j=0;j<5;j++){const x=-r*.65+j*r*.29;path([[x,-bodyHeight*.7],[x+r*.07,-bodyHeight*(1.35+Math.sin(j)*.15)],[x+r*.2,-bodyHeight*.8]],isPlayer?'#a5fff0':`hsl(${hue+28},67%,63%)`);}}
+      if(isPlayer&&monster){
+        ctx.strokeStyle='#b2fff1';ctx.lineWidth=Math.max(1,r*.045);ctx.beginPath();ctx.moveTo(-r*.75,-bodyHeight*.1);ctx.bezierCurveTo(-r*.22,-bodyHeight*.65,r*.12,-bodyHeight*.47,r*.42,-bodyHeight*.2);ctx.stroke();
+        for(let j=0;j<5;j++)ellipse(-r*.5+j*r*.18,bodyHeight*(.14+Math.sin(j)*.16),r*.045,r*.045,'#bdfff4');
+      }
       ctx.save();ctx.globalAlpha=.25;ellipse(r*.08,-bodyHeight*.38,r*.57,bodyHeight*.23,'#e8ffff',-.12);ctx.restore();
       if(!shark&&!squid&&!monster){ctx.strokeStyle=`hsla(${hue+70},80%,90%,.43)`;ctx.lineWidth=Math.max(1,r*.13);for(let j=0;j<2;j++){ctx.beginPath();ctx.moveTo(-r*.35+j*r*.32,-bodyHeight*.75);ctx.quadraticCurveTo(-r*.52+j*r*.32,0,-r*.35+j*r*.32,bodyHeight*.75);ctx.stroke();}}
       // Animated pectoral fin, gill, expressive eye and mouth.
@@ -136,7 +154,16 @@
       ctx.restore();
       }
       // Symbols accompany color, useful for color-blind players and tiny screens.
-      if(!isPlayer&&!buildingSprite&&r>6){ctx.save();ctx.translate(p.x,p.y-bodyHeight-9);ctx.globalAlpha=.8;ctx.fillStyle=edible?'#a8ffbc':'#ffc8ac';ctx.font='bold '+Math.max(9,Math.min(13,r*.28))+'px system-ui';ctx.textAlign='center';ctx.fillText(edible?'•':'!',0,0);ctx.restore();}
+      if(!isPlayer&&!buildingSprite&&r>6){
+        ctx.save();ctx.translate(p.x,p.y-bodyHeight-9);ctx.globalAlpha=.9;
+        const warning=entity.behavior==='hunt'&&!edible;
+        ctx.fillStyle=edible?'#a8ffbc':warning?'#ffd0ad':'#ffc8ac';ctx.font='bold '+Math.max(9,Math.min(13,r*.28))+'px system-ui';ctx.textAlign='center';
+        if(entity.boss){
+          path([[-9,-16],[-9,-24],[-4,-20],[0,-27],[4,-20],[9,-24],[9,-16]],edible?'#a8ffbc':'#ffcf75');
+          ctx.fillText(edible?'FEAST':'BOSS',0,-2);
+        }else ctx.fillText(edible?'•':warning?'HUNTING !':'!',0,0);
+        ctx.restore();
+      }
       if(isPlayer){ctx.strokeStyle='rgba(255,228,136,.3)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(p.x,p.y,r*1.65,r*1.18,0,0,TAU);ctx.stroke();}
     }
     function draw(dt) {
@@ -155,13 +182,19 @@
       for(let i=0;i<list.length;i++)if(!list[i].dead&&list[i].size<size)fish(list[i],false);
       fish(p,true);
       for(let i=0;i<list.length;i++)if(!list[i].dead&&list[i].size>=size)fish(list[i],false);
+      for(let i=growthRings.length-1;i>=0;i--){
+        const ring=growthRings[i];ring.life-=dt;if(ring.life<=0){growthRings.splice(i,1);continue;}
+        const progress=1-ring.life/ring.max,q=project(p.x,p.y),radius=p.size*camera.zoom*(.65+progress*.75);
+        ctx.globalAlpha=(1-progress)*.65;ctx.strokeStyle=state.zone>=4?'#acffef':'#ffe6a2';ctx.lineWidth=3*(1-progress)+.5;
+        ctx.beginPath();ctx.ellipse(q.x,q.y,radius,radius*.75,0,0,TAU);ctx.stroke();
+      }ctx.globalAlpha=1;
       for(let i=sparks.length-1;i>=0;i--){const s=sparks[i];s.life-=dt;if(s.life<=0){sparks.splice(i,1);continue;}s.x+=s.vx*dt;s.y+=s.vy*dt;const q=project(s.x,s.y);ctx.globalAlpha=s.life/s.max;ellipse(q.x,q.y,s.r,s.r,`hsl(${s.hue},95%,76%)`);}ctx.globalAlpha=1;
       drawCost=drawCost*.9+(performance.now()-began)*.1;
       if(drawCost>14)slowFrames++;else slowFrames=Math.max(0,slowFrames-1);
       if(!reduced&&slowFrames>12){reduced=true;resize();}
     }
     resize();
-    return {resize,draw,direction,burst,camera,destroy(){alive=false;sparks.length=0;sprites.clear();}};
+    return {resize,draw,direction,burst,camera,destroy(){alive=false;sparks.length=0;growthRings.length=0;sprites.clear();}};
   }
   root.BigFishRenderer={create};
 })(typeof window!=='undefined'?window:globalThis);

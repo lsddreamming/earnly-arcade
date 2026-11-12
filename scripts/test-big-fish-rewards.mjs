@@ -13,7 +13,7 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
 CREATE TABLE coin_play_receipts(user_id uuid, request_id uuid, game text, action text);
 CREATE TABLE coin_play_credits(user_id uuid, game text, remaining int);`);
 await db.exec(await readFile('tests/kart-reward-baseline.sql','utf8'));
-await db.exec(await readFile('supabase/migrations/20261112000242_big_fish_energy_verified_runs.sql','utf8'));
+await db.exec(await readFile('supabase/migrations/20261112001651_big_fish_energy_verified_runs.sql','utf8'));
 const uid='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
 const data=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
 const start=()=>data("select big_fish_start($1,17,'endless') r",[uid]);
