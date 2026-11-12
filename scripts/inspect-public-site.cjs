@@ -23,12 +23,19 @@ const output = path.resolve(process.env.INSPECT_OUTPUT || 'inspection-results');
       });
       // Same-origin static reads only: GET can otherwise invoke analytics APIs.
       // WebSockets may mutate multiplayer presence and are blocked separately.
-      await context.route('**/*', route => allowInspectionRequest(route.request(), origin.origin) ? route.continue() : route.abort());
+      let policyBlockedTotal = 0;
+      await context.route('**/*', route => {
+        if (allowInspectionRequest(route.request(), origin.origin)) return route.continue();
+        policyBlockedTotal++;
+        return route.abort();
+      });
       await context.routeWebSocket('**/*', ws => ws.close());
       for (const route of routes) {
         const page = await context.newPage();
-        const result = { device:device.name, route, errors:0 };
+        const result = { device:device.name, browser:device.name==='desktop'?'chromium':'webkit', viewport:device.viewport, route, errors:0, consoleErrors:0, policyBlockedRequests:0 };
+        const policyBlockedBefore = policyBlockedTotal;
         page.on('pageerror', () => result.errors++);
+        page.on('console', message => { if (message.type()==='error') result.consoleErrors++; });
         try {
           const response = await page.goto(new URL(route, origin).href, {waitUntil:'load',timeout:30000});
           result.status = response?.status();
@@ -42,8 +49,10 @@ const output = path.resolve(process.env.INSPECT_OUTPUT || 'inspection-results');
           result.capturedAt = new Date().toISOString();
           result.screenshot = `${device.name}-${route}.png`;
           await page.screenshot({path:path.join(output,result.screenshot),fullPage:true,timeout:15000});
-          result.needsReview = result.status >= 400 || result.errors > 0 || result.layout.scrollWidth > result.layout.width + 1 || result.layout.brokenImages > 0 || result.layout.visibleContentCharacters < 20;
+          result.needsReview = result.status >= 400 || result.errors > 0 || result.consoleErrors > 0 || result.layout.scrollWidth > result.layout.width + 1 || result.layout.brokenImages > 0 || result.layout.visibleContentCharacters < 20;
         } catch (error) { result.blocked = error.name; result.needsReview=true; }
+        result.policyBlockedRequests = policyBlockedTotal - policyBlockedBefore;
+        result.inspectionLimited = result.policyBlockedRequests > 0;
         report.results.push(result);
         await fs.writeFile(path.join(output,'report.json'), JSON.stringify(report,null,2));
         await page.close();
