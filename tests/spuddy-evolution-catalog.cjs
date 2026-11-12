@@ -34,7 +34,7 @@ for (const prefix of ['', 'www/']) {
     const matches = [...html.matchAll(/<section\b[^>]*data-game="spuddyEvolution"[^>]*>[\s\S]*?<\/section>/g)];
     assert.equal(matches.length, 1);
     assert.match(matches[0][0], /href="spuddy-evolution.html"/);
-    assert.match(matches[0][0], /Play · Free beta/);
+    assert.match(matches[0][0], />Play<\/a>/);
     assert.match(matches[0][0], /device-only saves/);
     assert.match(matches[0][0], /no Arcade Coin rewards/);
   });

@@ -82,7 +82,7 @@ jobs:
           test -s _pages/www/index.html
           # Verify all three photographic starter previews are packaged at
           # the root and under the native mirror before deployment begins.
-          for asset in game-preview-neon-slice.webp game-preview-snake.webp game-preview-bubble-pop.webp; do
+          for asset in game-preview-neon-slice.webp game-preview-snake.webp game-preview-bubble-pop.webp game-preview-big-fish-energy.webp; do
             test -s "_pages/$asset"
             test -s "_pages/www/$asset"
           done
@@ -128,6 +128,8 @@ jobs:
           # Keep direct production byte checks on the starter preview assets,
           # so blank images fail publication before browser QA can start.
           files += [prefix + name for prefix in ['', 'www/'] for name in ['game-preview-neon-slice.webp', 'game-preview-snake.webp', 'game-preview-bubble-pop.webp']]
+          # BIG FISH ENERGY must match this exact tested release on both hosts.
+          files += [prefix + name for prefix in ['', 'www/'] for name in ['big-fish-energy.html', 'big-fish-energy.css', 'big-fish-energy-engine.js', 'big-fish-energy-renderer.js', 'big-fish-energy-rewards.js', 'big-fish-energy.js', 'game-preview-big-fish-energy.webp']]
           files += [prefix + name for prefix in ['', 'www/'] for name in ['spuddy-evolution.html', 'spuddy-evolution.css', 'spuddy-evolution-engine.js', 'spuddy-evolution-3d.js', 'spuddy-evolution.js']]
           for host in hosts:
               for file in files:
@@ -143,6 +145,8 @@ jobs:
                           raise SystemExit('Production content does not match tested commit: ' + url)
                       time.sleep(15)
           PYTHON
+      - name: Verify live Big Fish leaderboard and unsigned reward boundaries
+        run: node scripts/verify-big-fish-live.mjs
       - name: Test live phone catalog including native mirror
         run: npx playwright test tests/mobile-density.spec.js --project=mobile-webkit --grep 'catalog badges|catalog puts|rotating Games starters'
         env:
@@ -153,6 +157,10 @@ jobs:
           EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
       - name: Verify live Evolution beta discovery and Play link
         run: npx playwright test tests/spuddy-evolution-catalog.spec.js --project=mobile-webkit --workers=1
+        env:
+          EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
+      - name: Verify live Big Fish cover, catalog entry and mobile pause controls
+        run: npx playwright test tests/big-fish-energy-catalog.spec.js --project=mobile-webkit --workers=1
         env:
           EARNLY_CATALOG_BASE_URL: https://earnlyarcade.com
       - name: Test published World room controls on mobile WebKit

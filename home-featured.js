@@ -196,7 +196,8 @@
     "href": "spuddy-evolution.html",
     "icon": "🌱",
     "description": "Gather seeds. Grow your Spuddy."
-  }
+  },
+  {"key":"bigFishEnergy","name":"BIG FISH ENERGY","href":"big-fish-energy.html","icon":"🦈","description":"Eat fish. Become an ocean giant."}
 ];
 
   // A persisted shuffle bag gives every title a turn before another cycle starts.
@@ -236,7 +237,7 @@
   const storageKey = 'earnly.home.featured.queue.v2';
   let memoryState = null;
   const themes = ['slice','snake','jungle','breach'];
-  const previewImages = {bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
+  const previewImages = {bigFishEnergy:'game-preview-big-fish-energy.webp',bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
 
   function makeCard(info) {
     const original = existing.find(card => card.getAttribute('href') === info.href);
