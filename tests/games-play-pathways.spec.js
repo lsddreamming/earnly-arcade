@@ -11,6 +11,7 @@ for(const prefix of ['/','/www/']){
    const quick=page.locator('[data-path="short-session"]'),big=page.locator('[data-path="deep-session"]');
    await expect(quick).toBeVisible();await expect(big).toBeVisible();
    await expect(page.locator('#games.starter-grid .catalog-tile')).toHaveCount(4);
+   await page.screenshot({path:test.info().outputPath('games-discovery-'+width+'.png')});
    if(width<600){
     const play=page.locator('#games .catalog-tile').first().locator('.game-play-button');
     const bounds=await play.boundingBox();
