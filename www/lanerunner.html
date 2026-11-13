@@ -145,7 +145,8 @@
     function refreshProgress(){
       if(goalSecond===seconds)return;goalSecond=seconds;
       const stage=seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED';
-      goalEl.textContent=stage+' · Next goal '+laneGoal()+'s';
+      const goalText=stage+' · Next goal '+laneGoal()+'s';
+      if(goalEl.textContent!==goalText)goalEl.textContent=goalText;
       goalFill.style.width=Math.min(100,seconds/laneGoal()*100)+'%';
       document.getElementById('laneBest').textContent='Best '+Math.floor(Number(Arcade.best('laneRunner').value)||0)+'s';
     }
