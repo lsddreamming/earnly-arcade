@@ -44,6 +44,7 @@ jobs:
       - name: Build small AR game inside existing Earnly app
         run: |
           npm run native:web
+          rm -rf ios
           npx cap add ios
           npx cap sync ios
           node scripts/configure-ios.mjs
