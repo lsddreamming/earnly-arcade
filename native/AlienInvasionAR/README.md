@@ -12,7 +12,7 @@ Set `EARNLY_ALIEN_AR_PREVIEW=1` for both `npm run native:web` and `node scripts/
 
 The `earnly-integrated-game` CI job compiles the full Earnly app with this flag for the physical iPhone SDK, unsigned. It does not upload to Apple. Signed TestFlight delivery still requires the repository's exact-source release checks and existing signing workflow. An unsigned build is not installable; physical tracking is not verified by CI.
 
-After approval and green PR/main checks, run **Earnly 1.12 App Store upload** on that main commit with `confirm_apple_upload=true` and `alien_ar_preview=true`. The latter defaults to false. It also requires the AR workflow, including the full-app compile job, to pass on that same main commit. This uploads a beta of the existing Earnly app; it does not submit a public App Store release. Follow `docs/testflight-release.md` through Apple processing, compliance and the owner's existing internal group before reporting it available.
+After approval and green PR/main checks, run **Earnly 1.13 TestFlight upload** on that main commit with `confirm_apple_upload=true` and `alien_ar_preview=true`. The latter defaults to false. It also requires the AR workflow, including the full-app compile job, to pass on that same main commit. This uploads a beta of the existing Earnly app; it does not submit a public App Store release. Follow `docs/testflight-release.md` through Apple processing, compliance and the owner's existing internal group before reporting it available.
 
 ## Run on your iPhone from a Mac
 

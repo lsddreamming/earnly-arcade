@@ -8,11 +8,6 @@ on:
         type: boolean
         required: true
         default: false
-      alien_ar_preview:
-        description: 'Include the optional Alien Invasion game in this Earnly TestFlight build'
-        type: boolean
-        required: true
-        default: false
 
 permissions:
   contents: read
@@ -58,24 +53,8 @@ jobs:
             }
             throw new Error('Release checks did not finish in time. Upload blocked.');
 
-  preview-gate:
-    needs: release-gates
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify selected AR playtest compiled in the full Earnly app
-        if: ${{ inputs.alien_ar_preview == true }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            if (context.ref !== 'refs/heads/main') throw new Error('AR TestFlight candidates must use approved main.');
-            const {data} = await github.rest.actions.listWorkflowRunsForRepo({...context.repo, head_sha: context.sha, per_page: 100});
-            const run = data.workflow_runs.find(r => r.path === '.github/workflows/alien-invasion-ar.yml' && r.head_branch === 'main' && ['push','workflow_dispatch'].includes(r.event));
-            if (!run || run.status !== 'completed' || run.conclusion !== 'success') throw new Error('Run Alien Invasion AR prototype checks successfully on this main commit before uploading the playtest.');
-            const {data: jobs} = await github.rest.actions.listJobsForWorkflowRun({...context.repo, run_id: run.id});
-            if (!jobs.jobs.some(j => j.name === 'earnly-integrated-game' && j.conclusion === 'success')) throw new Error('Full Earnly app with AR has not compiled. Upload blocked.');
-
   archive:
-    needs: [release-gates, preview-gate]
+    needs: release-gates
     runs-on: macos-26
     timeout-minutes: 35
     env:
@@ -105,8 +84,6 @@ jobs:
           npx playwright test tests/quality-contract.spec.js --config=playwright.contract.config.js
 
       - name: Build native web bundle
-        env:
-          EARNLY_ALIEN_AR_PREVIEW: ${{ inputs.alien_ar_preview && '1' || '0' }}
         run: npm run native:web
 
       - name: Verify account deletion is packaged for review
@@ -117,23 +94,12 @@ jobs:
           grep -Fq 'Arcade Coins are in-app points. Cash-out and real-value redemption are not available.' www/account.html
 
       - name: Generate iOS project
-        env:
-          EARNLY_ALIEN_AR_PREVIEW: ${{ inputs.alien_ar_preview && '1' || '0' }}
         run: |
           rm -rf ios build
           npx cap add ios
           npx cap sync ios
           node scripts/configure-ios.mjs
           cmp ios-icon-1024.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
-
-      - name: Verify selected AR game is packaged inside Earnly
-        if: ${{ inputs.alien_ar_preview == true }}
-        run: |
-          grep -q 'registerPluginInstance(AlienInvasionPlugin())' ios/App/App/AppDelegate.swift
-          grep -q 'alienARPreviewEntry' ios/App/App/public/index.html
-          test -s ios/App/App/public/native-alien-ar.js
-          test -s ios/App/App/public/alien-ar-zap.wav
-          test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' ios/App/App/Info.plist)"
 
       - name: Verify native release mode
         run: |

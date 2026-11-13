@@ -76,7 +76,7 @@ test('only a selected preview packages the launcher; rebuilding normally removes
 });
 
 test('AR upload gate requires a successful integrated app build on the approved main commit',async()=>{
-  const workflow=await readFile(path.join(repo,'.github/workflows/ios-v1-12-testflight.yml'),'utf8');
+  const workflow=await readFile(path.join(repo,'.github/workflows/ios-v1-13-testflight.yml'),'utf8');
   const section=workflow.split('\n  preview-gate:')[1].split('\n  archive:')[0];
   const script=section.split('          script: |\n')[1].trimEnd().split('\n').map(line=>line.slice(12)).join('\n');
   const execute=new (Object.getPrototypeOf(async function(){}).constructor)('github','context',script);
