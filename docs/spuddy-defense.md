@@ -9,7 +9,7 @@ Original mobile-first tower defense for Earnly Arcade. Release requires explicit
 - Five maps with different paths and build obstructions. Easy 40, Normal 60, Hard 100, scalable Endless. Ten encounter patterns per act, staged enemy introductions.
 - Fixed 30 Hz deterministic engine shared by browser and server, bounded enemy/tower/effect counts, 1×/2× simulation, automatic waves, pause, zoom/pan, automatic portrait map rotation and touch controls of at least 44 pixels.
 - Corruption-checked device saves, XP, map/mode unlocks, tower mastery, achievements, daily and weekly UTC challenges, personal and boss records.
-- Original generated cover, original Canvas scenery/characters/weapon animation, synthesized original sound cues.
+- Original generated cover, original Canvas scenery/characters/weapon animation, synthesized original sound cues. Enemy artwork is cached once per species (14 bounded sprites); movement, shields, health bars and weapons remain animated. Pop particles are batched into one filled path per burst.
 - Isolated authenticated server replay, cloud saves/progression, map/mode leaderboards and Arcade Coin rewards through the existing ledger. Match money never spends Arcade Coins.
 
 ## Security and release boundaries

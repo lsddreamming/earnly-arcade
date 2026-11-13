@@ -15,3 +15,20 @@ test('browser and native game assets are identical and catalog has a direct Play
 test('practice preview plays without any account or reward requests',async({page})=>{const calls=[];page.on('request',r=>{if(/supabase|functions\/v1/.test(r.url()))calls.push(r.url());});await open(page,'/spuddy-defense-preview.html');await start(page);await place(page);await page.locator('#nextWave').click();await expect(page.locator('#nextWave')).toContainText('in progress');expect(calls).toEqual([]);});
 
 test('downloadable export preserves scripts and plays with no external assets',async({page})=>{test.setTimeout(90000);const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process');const out=fs.mkdtempSync(path.join(os.tmpdir(),'spuddy-export-'));try{execFileSync(process.execPath,['scripts/build-spuddy-defense-preview.mjs',out]);const html=fs.readFileSync(path.join(out,'index.html'),'utf8'),errors=[],assets=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.resourceType()!=='document')assets.push(r.url());});await page.route('**/standalone-playtest',r=>r.fulfill({contentType:'text/html',body:html}));await open(page,'/standalone-playtest');await start(page);await place(page);await expect(page.locator('#money')).toHaveText('530');await page.locator('#pause').click();await page.getByRole('button',{name:'Save & return to menu',exact:true}).click();await page.reload();await page.locator('#continue').click();await expect(page.locator('#game')).toBeVisible();await expect(page.locator('#money')).toHaveText('530');expect(errors).toEqual([]);expect(assets.filter(u=>!u.startsWith('data:'))).toEqual([]);}finally{fs.rmSync(out,{recursive:true,force:true});}});
+
+test('crowded rendering reuses bounded artwork caches without changing game state',async({page},info)=>{
+ await open(page,'/spuddy-defense-preview.html');
+ const result=await page.evaluate(()=>{
+  const E=SpuddyDefense,g=E.create({map:'neon',mode:'endless'});g.state.money=1000000;
+  for(let x=36;x<930;x+=50)for(let y=36;y<570;y+=50)if(g.state.towers.length<35&&g.canPlace(x,y))g.action({kind:'place',type:g.state.towers.length%8,x,y});
+  g.state.towers.forEach(t=>{t.a=t.type%4;t.b=2;});
+  g.state.enemies=Array.from({length:100},(_,i)=>({id:1000+i,type:E.ENEMIES[i%14].id,...E.point(g.geometry,i*g.geometry.length/100),hp:60,maxHp:100,shield:i%3?0:20,slow:i%4?1:.5,stage:1}));
+  const canvas=document.createElement('canvas');canvas.id='loadTest';Object.assign(canvas.style,{position:'fixed',inset:0,width:'100vw',height:'80vh',zIndex:999});document.body.append(canvas);
+  const context=CanvasRenderingContext2D.prototype,gradient=context.createRadialGradient,create=document.createElement;let gradients=0,canvases=0;
+  context.createRadialGradient=function(...args){gradients++;return gradient.apply(this,args);};document.createElement=function(name,...args){if(name==='canvas')canvases++;return create.call(this,name,...args);};
+  try{const art=SpuddyDefenseArt.create(canvas),before=JSON.stringify(g.snapshot());art.render(g);const first={gradients,canvases};for(let i=0;i<10;i++)art.render(g);return {first,repeatedGradients:gradients-first.gradients,repeatedCanvases:canvases-first.canvases,unchanged:before===JSON.stringify(g.snapshot())};}
+  finally{context.createRadialGradient=gradient;document.createElement=create;}
+ });
+ expect(result.first.gradients).toBe(14);expect(result.first.canvases).toBeLessThan(32);expect(result.repeatedGradients).toBe(0);expect(result.repeatedCanvases).toBe(0);expect(result.unchanged).toBe(true);
+ await page.locator('#loadTest').screenshot({path:info.outputPath('crowded-defense.png')});
+});
