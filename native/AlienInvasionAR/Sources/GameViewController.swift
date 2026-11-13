@@ -5,7 +5,10 @@ import RoomPlan
 import AVFoundation
 import simd
 
+@available(iOS 17.0, *)
 final class GameViewController: UIViewController, ARSessionDelegate, RoomCaptureSessionDelegate {
+    /// Set by Earnly's native bridge when this game is presented inside the arcade.
+    var onExit: (() -> Void)?
     private let ar = ARSCNView()
     private let world = InvasionWorld()
     private let root = SCNNode()
@@ -115,10 +118,11 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     private func lobby() {
         phase="lobby"; titleLabel.text="ALIEN\nINVASION AR"
-        bodyLabel.text="Native room-scale prototype\n\nScan your floor, mark a doorway or wall, then defend your room. Stand in a clear spot and turn in place. Do not walk during combat.\n\nCamera and room data stay on this device."
+        bodyLabel.text="Scan your floor, mark a doorway or wall, then defend your room. Stand in a clear spot and turn in place. Do not walk during combat.\n\nCamera and room data stay on this device."
         primary.setTitle("Play · enable camera",for:.normal); primary.isHidden=false
         secondary.isHidden=true; scanButton.isHidden=true; testButton.isHidden=true
-        card.isHidden=false; controls.isHidden=true; top.isHidden=true; hint.isHidden=true; crosshair.isHidden=true; threat.isHidden=true
+        card.isHidden=false; controls.isHidden=true; top.isHidden=onExit == nil; hint.isHidden=true; crosshair.isHidden=true; threat.isHidden=true
+        stats.text="AR PLAYTEST"; pauseButton.isHidden=true
     }
     @objc private func primaryAction() {
         if phase == "lobby" {
@@ -127,7 +131,10 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
                 DispatchQueue.main.async {
                     guard let self=self else{return}
                     if allowed { self.beginScan(reset:true) }
-                    else { self.bodyLabel.text="Camera access is off. Open Settings → Apps → Alien Invasion AR → Camera, then return and tap Play." }
+                    else {
+                        let appName=Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "Earnly Arcade"
+                        self.bodyLabel.text="Camera access is off. Open Settings → Apps → \(appName) → Camera, then return and tap Play."
+                    }
                 }
             }
         } else if phase == "scanningRoom" { finishSmartScan() }
@@ -315,7 +322,12 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     @objc private func exitGame() {
         firing=false; roomCapture?.stop(); roomCapture=nil; ar.session.pause()
         world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; nodes.removeAll(); portalNodes=[]
-        gun?.removeFromParentNode(); gun=nil; UIApplication.shared.isIdleTimerDisabled=false; lobby()
+        gun?.removeFromParentNode(); gun=nil; UIApplication.shared.isIdleTimerDisabled=false
+        if let onExit=onExit {
+            clock?.invalidate(); clock=nil
+            NotificationCenter.default.removeObserver(self)
+            onExit()
+        } else { lobby() }
     }
     @objc private func background() { pause("App interrupted. Resume after tracking recovers."); ar.session.pause(); previous=0 }
     @objc private func foreground() { if phase != "lobby" { ar.session.run(config(),options:[]); previous=0 } }
@@ -439,7 +451,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         }
     }
     private func playSound(at node:SCNNode?) {
-        guard let node=node, let source=SCNAudioSource(fileNamed:"zap.wav") else{return}
+        guard let node=node, let source=SCNAudioSource(fileNamed:"zap.wav") ?? SCNAudioSource(fileNamed:"public/alien-ar-zap.wav") else{return}
         source.isPositional=true; source.volume=0.25; source.load()
         node.runAction(.playAudio(source,waitForCompletion:false))
     }
