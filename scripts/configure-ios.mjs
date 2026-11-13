@@ -134,3 +134,8 @@ delegate = delegate.split('// EARNLY STOREKIT BRIDGE')[0].trimEnd();
 await writeFile(delegatePath, delegate + '\n\n// EARNLY STOREKIT BRIDGE\n' + await readFile('native/ArcadePurchases.swift', 'utf8'));
 const scenePath = 'ios/App/App/SceneDelegate.swift';
 await writeFile(scenePath, (await readFile(scenePath, 'utf8')).replace('= CAPBridgeViewController()', '= EarnlyBridgeViewController()'));
+
+if (process.env.EARNLY_ALIEN_AR_PREVIEW === '1') {
+  const {installAlienARPreview}=await import('./install-alien-ar-preview.mjs');
+  await installAlienARPreview();
+}
