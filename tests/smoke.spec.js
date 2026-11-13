@@ -1718,7 +1718,7 @@ test('Shape Fit exposes urgency and stage feedback', async ({ page }) => {
   const jsResponse = await page.request.get('/mini-games.js');
   const source = await jsResponse.text();
   expect(source).toContain("title.classList.toggle('urgent',timeLeft<=1800)");
-  expect(source).toContain("if(lastStage&&currentStage!==lastStage)Arcade.feedback('perfect')");
+  expect(source).toContain("if(lastStage&&current.stage!==lastStage)Arcade.feedback('perfect')");
   expect(source).toContain("wrap.classList.add('fit-success')");
   expect(source).toContain("wrap.classList.add('fit-miss')");
 

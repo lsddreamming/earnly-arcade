@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-harbor-pulse-tag-20261108';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-gameplay-depth-20261113';const CORE_ASSETS = [
+ './lane-runner.css?v=1','./shape-fit.css?v=1','./shape-fit-rules.js?v=1','./mini-games.js?v=depth-polish-1',
  './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',
  './crystal-command-rewards.js','./turbo-kart-driver.js','./turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
  './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-room-layouts.js','./world-placement.js',

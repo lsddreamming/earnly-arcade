@@ -87,6 +87,7 @@
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/lanerunner.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
+  <link rel="stylesheet" href="lane-runner.css?v=1">
 </head>
 <body class="classic-game-ui lanerunner-page">
   <main class="container">
@@ -95,7 +96,7 @@
       <a class="balance-chip" href="rewards.html">🪙 <span id="balance">0</span></a>
     </div>
     <header class="page-header">
-      <h1>🏎️ Lane Runner</h1>
+      <h1>Lane Runner</h1>
       <div class="game-meta"><span class="meta-pill">Time: <span id="time">0</span>s</span>
         <span class="meta-pill">Passed: <span id="passed">0</span></span>
         <span class="meta-pill">Reward: <span id="rewardPreview">0</span> 🪙</span>
@@ -103,8 +104,9 @@
       <span class="game-status" id="gameStatus">Ready</span>
     </header>
     <button class="green wide" id="startButton" type="button">👆 Tap the Game to Start</button>
+    <div class="lane-progress"><span id="laneGoal" aria-live="polite">CITY LIMITS · Next goal 15s</span><span id="laneBest"></span><i aria-hidden="true"><b id="laneProgressFill"></b></i></div>
     <canvas class="lane-board touch-surface" id="game" width="360" height="520" aria-label="Lane Runner game board"></canvas>
-    <div class="lane-control-zone" id="laneControlZone">↔️ Swipe anywhere here to change lanes</div>
+    <div class="lane-control-zone" id="laneControlZone"><button id="laneLeft" type="button" aria-label="Move left">←</button><span><strong id="lanePosition">CENTER LANE</strong><small>Swipe here or tap an arrow</small></span><button id="laneRight" type="button" aria-label="Move right">→</button></div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
 
     <a class="game-guide-link" href="game-guides.html#laneRunner">How to play Lane Runner · guide &amp; tips</a>
@@ -131,14 +133,29 @@
 
     const canvas=document.getElementById('game'),laneControlZone=document.getElementById('laneControlZone'),ctx=canvas.getContext('2d'),timeEl=document.getElementById('time'),passedEl=document.getElementById('passed'),rewardPreviewEl=document.getElementById('rewardPreview');
     Arcade.gameGuide({game:'laneRunner',surface:canvas,steps:[{icon:'👆',title:'Start',text:'Tap board or press Enter'},{icon:'↔️',title:'Control',text:'Swipe left/right or use arrows'},{icon:'🏎️',title:'Goal',text:'Dodge traffic as long as you can'}],
-      overlayIcon:'🏎️',overlayTitle:'Pick a Lane',overlayText:'Swipe left/right to change lanes. Avoid oncoming cars.',replayTitle:'Tap to Play Again',
-      tips:['On computer use Left/Right arrows. On phone swipe left/right to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 100 Coins.'});
+      overlayIcon:'🏎️',overlayTitle:'City Run',overlayText:'Choose your gap. Swipe or tap an arrow to change lanes.',replayTitle:'Tap to Play Again',
+      tips:['On computer use Left/Right arrows. On phone swipe left/right or tap an arrow to change lanes.','Traffic gets faster and arrives more often the longer you survive.'],reward:'Long skilled runs keep earning. Survival time and passed cars can earn up to 100 Coins.'});
+    const W=360,H=520,ratio=Math.min(2,window.devicePixelRatio||1);canvas.width=W*ratio;canvas.height=H*ratio;ctx.scale(ratio,ratio);
+    const goalEl=document.getElementById('laneGoal'),goalFill=document.getElementById('laneProgressFill');
+    let goalSecond=-1,pauseAfterCountdown=false;
     const lanes=[72,180,288];let lane=1,targetLane=1,playerX=lanes[1],obstacles=[],passed=0,seconds=0,running=false,starting=false,animation=null,startAt=0,lastSpawn=0,lastSpawnLane=-1,sameLaneSpawns=0,roadOffset=0,lastFrame=0;
     function rewardFor(s,p){ return Arcade.gameReward('laneRunner',s,p); }
     function refreshReward(){rewardPreviewEl.textContent=rewardFor(seconds,passed)}
-    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;playerX=lanes[1];obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
+    const laneGoal=()=>[15,30,60,90,120].find(value=>value>seconds)||(Math.floor(seconds/30)+1)*30;
+    function refreshProgress(){
+      if(goalSecond===seconds)return;goalSecond=seconds;
+      const stage=seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED';
+      goalEl.textContent=stage+' · Next goal '+laneGoal()+'s';
+      goalFill.style.width=Math.min(100,seconds/laneGoal()*100)+'%';
+      document.getElementById('laneBest').textContent='Best '+Math.floor(Number(Arcade.best('laneRunner').value)||0)+'s';
+    }
+
+    function reset(){cancelAnimationFrame(animation);animation=null;lane=1;targetLane=1;playerX=lanes[1];obstacles=[];passed=0;seconds=0;startAt=0;lastSpawn=0;roadOffset=0;lastFrame=0;lastSpawnLane=-1;sameLaneSpawns=0;clearLaneGesture();goalSecond=-1;refreshProgress();syncLaneControls();timeEl.textContent='0';passedEl.textContent='0';refreshReward();draw()}
     function drawCar(x,y,isPlayer,variant){
-      ctx.save();ctx.translate(x,y);
+      const depth=roadDepth(y);ctx.save();ctx.translate(roadX(x,y),y);ctx.scale(depth,depth);
+      // A low chassis, raised hood and offset shadow give each car readable depth.
+      ctx.fillStyle='#030b16aa';ctx.beginPath();ctx.ellipse(5,22,27,11,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=isPlayer?'#831f3a':'#10263b';ctx.beginPath();ctx.roundRect(-21,-13,42,36,9);ctx.fill();
       const body=isPlayer?'#ef4444':variant===1?'#38bdf8':variant===2?'#fbbf24':'#a78bfa';
       const trim=isPlayer?'#fecaca':variant===1?'#bae6fd':variant===2?'#fef3c7':'#ddd6fe';
       const halfWidth=variant===2&&!isPlayer?21:19;
@@ -195,49 +212,45 @@
       }
       ctx.restore();
     }
+    function roadDepth(y){return .43+.57*Math.max(0,Math.min(1,y/H));}
+    function roadX(x,y){return W/2+(x-W/2)*roadDepth(y);}
+    function roadPolygon(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach(([x,y],i)=>{if(i)ctx.lineTo(roadX(x,y),y);else ctx.moveTo(roadX(x,y),y);});ctx.closePath();ctx.fill();}
     function draw(){
-      const sky=ctx.createLinearGradient(0,0,0,canvas.height);sky.addColorStop(0,'#06111f');sky.addColorStop(1,'#0a1524');ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      // Calm neon roadway: no bright moving white dashes. Traffic supplies the
-      // sense of speed while the road remains easy on the eyes.
-      ctx.fillStyle='#091525';ctx.fillRect(0,0,24,canvas.height);ctx.fillRect(336,0,24,canvas.height);
-      const road=ctx.createLinearGradient(24,0,336,0);
-      road.addColorStop(0,'#242b34');road.addColorStop(.16,'#343b44');road.addColorStop(.5,'#3d444d');road.addColorStop(.84,'#343b44');road.addColorStop(1,'#242b34');
-      ctx.fillStyle=road;ctx.fillRect(24,0,312,canvas.height);
-
-      // Soft shoulder glow replaces the harsh white edge lines.
-      ctx.fillStyle='#d6b75c';ctx.fillRect(27,0,2,canvas.height);ctx.fillRect(331,0,2,canvas.height);
-      ctx.fillStyle='rgba(59,130,246,.08)';ctx.fillRect(29,0,5,canvas.height);ctx.fillRect(326,0,5,canvas.height);
-
-      // Fixed, low-contrast lane guides avoid flicker while keeping lanes clear.
-      ctx.save();
-      ctx.strokeStyle='rgba(246,222,135,.65)';
-      ctx.setLineDash([20,24]);
-      ctx.lineWidth=2;
-      ctx.shadowColor='rgba(34,211,238,.12)';
-      ctx.shadowBlur=0;
-      [126,234].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()});
-      ctx.restore();
-
-      // A gentle glow under the player's lane gives orientation without motion.
-      const laneGlow=ctx.createRadialGradient(playerX,465,8,playerX,465,86);
-      laneGlow.addColorStop(0,'rgba(34,211,238,.11)');laneGlow.addColorStop(1,'rgba(34,211,238,0)');
-      ctx.fillStyle=laneGlow;ctx.fillRect(Math.max(24,playerX-92),372,184,150);
-
-      ctx.fillStyle='rgba(6,17,31,.82)';ctx.beginPath();ctx.roundRect(38,12,112,28,8);ctx.fill();
-      ctx.strokeStyle='rgba(56,189,248,.18)';ctx.lineWidth=1;ctx.stroke();
-      ctx.fillStyle='#cbd5e1';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(seconds<20?'CITY LIMITS':seconds<45?'FAST TRAFFIC':seconds<75?'RUSH HOUR':'HIGH SPEED',48,26);
-
-      obstacles.forEach(o=>drawCar(lanes[o.lane],o.y,false,o.variant||0));
-      drawCar(playerX,465,true,0);
+      const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#173953');sky.addColorStop(.5,'#102b3d');sky.addColorStop(1,'#071521');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+      // Fixed city terraces and roof planes create depth without flashing scenery.
+      for(let side=0;side<2;side++) for(let i=0;i<7;i++){
+        const y=22+i*75,depth=roadDepth(y),w=18+i*3,h=32+i*7;
+        const x=side?roadX(350,y)+9:roadX(10,y)-w-9;
+        ctx.fillStyle=i%2?'#132b40':'#1b3d4b';ctx.fillRect(x,y-h,w,h+16);
+        ctx.fillStyle='#355666';ctx.beginPath();ctx.moveTo(x,y-h);ctx.lineTo(x+6*depth,y-h-6);ctx.lineTo(x+w+6*depth,y-h-6);ctx.lineTo(x+w,y-h);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#0a1b2d';ctx.beginPath();ctx.moveTo(x+w,y-h);ctx.lineTo(x+w+6*depth,y-h-6);ctx.lineTo(x+w+6*depth,y+10);ctx.lineTo(x+w,y+16);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#b9dbb660';for(let row=0;row<3;row++){ctx.fillRect(x+4,y-h+8+row*10,4,3);ctx.fillRect(x+w-8,y-h+8+row*10,4,3);}
+      }
+      roadPolygon([[17,0],[343,0],[343,H],[17,H]],'#06111c');
+      const road=ctx.createLinearGradient(0,0,0,H);road.addColorStop(0,'#334756');road.addColorStop(1,'#293d4a');
+      roadPolygon([[24,0],[336,0],[336,H],[24,H]],road);
+      roadPolygon([[24,0],[30,0],[30,H],[24,H]],'#83a4a7');
+      roadPolygon([[330,0],[336,0],[336,H],[330,H]],'#83a4a7');
+      roadPolygon([[30,0],[33,0],[33,H],[30,H]],'#101e2b');
+      roadPolygon([[327,0],[330,0],[330,H],[327,H]],'#101e2b');
+      // Fixed, low-contrast lane guides avoid flicker while traffic grows in perspective.
+      for(const x of [126,234])for(let y=0;y<H;y+=44){roadPolygon([[x-1,y],[x+1,y],[x+1,y+22],[x-1,y+22]],'#e6dba57a');}
+      const glowX=roadX(playerX,465),glow=ctx.createRadialGradient(glowX,465,4,glowX,465,65);
+      glow.addColorStop(0,'#83e4e52b');glow.addColorStop(1,'#83e4e500');ctx.fillStyle=glow;ctx.fillRect(glowX-65,400,130,120);
+      // Draw distant traffic first; the player's car keeps its existing collision position.
+      const cars=obstacles.map(o=>({x:lanes[o.lane],y:o.y,player:false,variant:o.variant||0}));
+      cars.push({x:playerX,y:465,player:true,variant:0});cars.sort((a,b)=>a.y-b.y);
+      for(const car of cars)drawCar(car.x,car.y,car.player,car.variant);
+      ctx.fillStyle='#0c2132d9';ctx.beginPath();ctx.roundRect(111,12,138,26,9);ctx.fill();
+      ctx.fillStyle='#d3e6ee';ctx.font='800 10px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(passed+' CARS PASSED',180,25);
     }
-    function finish(){if(!running)return;running=false;pauseStartedAt=0;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
+    function finish(){if(!running)return;running=false;pauseStartedAt=0;cancelAnimationFrame(animation);animation=null;lastFrame=0;lastSpawn=0;clearLaneGesture();const earned=rewardFor(seconds,passed);Arcade.earn(earned,'Lane Runner',{kind:'game',game:'laneRunner',metric:seconds,aux:passed});Arcade.feedback('fail');const result=Arcade.recordResult('laneRunner',seconds);starting=false;refreshChrome();startButton.disabled=false;startButton.textContent='👆 Tap Game to Play Again';setStatus('Crash','over');draw();
       requestAnimationFrame(()=>Arcade.gameResult({icon:'🏎️',title:'Run Over',scoreLabel:'Seconds Survived',score:seconds,best:result.best.display,coins:earned,result,playsLeft:Arcade.remaining('laneRunner'),game:'laneRunner',extra:['⏱️ Time played: '+Math.max(1,Math.round((performance.now()-earnlyRunStartedAt-totalPausedMs)/1000))+'s','🚘 Cars passed: '+passed,seconds>=30?'🔥 Great highway run!':'Switch lanes early.'],onReplay:startGame,onMorePlays:()=>Arcade.out('laneRunner',refreshChrome)}))}
     function loop(now){
-      if(!running)return;
+      if(!running||pauseStartedAt)return;
       if(!lastFrame)lastFrame=now;
       const dt=Math.min(34,Math.max(0,now-lastFrame))/16.67;lastFrame=now;
-      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;playerX+=(lanes[targetLane]-playerX)*Math.min(1,.24*dt);timeEl.textContent=String(seconds);refreshReward();
+      seconds=Math.floor((now-startAt)/1000);roadOffset=(roadOffset+Math.min(9,3.5+seconds*.055)*dt)%44;playerX+=(lanes[targetLane]-playerX)*Math.min(1,.24*dt);timeEl.textContent=String(seconds);refreshReward();refreshProgress();
       const spawnGap=Math.max(330,880-seconds*9);
       if(!lastSpawn||now-lastSpawn>=spawnGap){
         let nextLane=Math.floor(Math.random()*3);
@@ -263,50 +276,71 @@
       }
       draw();animation=requestAnimationFrame(loop);
     }
-    function setLane(n){const next=Math.max(0,Math.min(2,n));if(next===lane)return;lane=next;targetLane=next;Arcade.feedback('move')}
+    function setLane(n){if(!canSteer())return;const next=Math.max(0,Math.min(2,n));if(next===lane)return;lane=next;targetLane=next;syncLaneControls();Arcade.feedback('move')}
     let earnlyRunStartedAt=0,totalPausedMs=0,pauseStartedAt=0;
-    function startGame(){if(running||starting)return;starting=true;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
-      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();startAt=earnlyRunStartedAt;lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');animation=requestAnimationFrame(loop)})}
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{
+    function startGame(){if(running||starting)return;starting=true;pauseAfterCountdown=false;if(!beginPlay()){starting=false;return} earnlyRunStartedAt=0; totalPausedMs=0; pauseStartedAt=0;reset();startButton.disabled=true;startButton.textContent='Get Ready…';setStatus('Get Ready');
+      Arcade.countdown(()=>{starting=false;running=true;earnlyRunStartedAt=performance.now();startAt=earnlyRunStartedAt;lastSpawn=0;startButton.textContent='Game Running';setStatus('Running','running');if(document.hidden||pauseAfterCountdown)pauseLaneRunner();else animation=requestAnimationFrame(loop)})}
+    const lanePauseControl=Arcade.installPauseControl({isRunning:()=>running,preserveOnHistoryRestore:true,allowWhilePaused:event=>event.type==='keydown'&&!!event.target?.closest?.('#earnlyPauseButton')&&(event.key==='Enter'||event.code==='Space'),pause:()=>{
       if(!running||pauseStartedAt)return;
-      pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false;
+      pauseStartedAt=performance.now();lastFrame=0;cancelAnimationFrame(animation);animation=null;clearLaneGesture();
     },resume:()=>{
       if(!running||!pauseStartedAt)return;
       const d=performance.now()-pauseStartedAt;totalPausedMs+=d;pauseStartedAt=0;startAt+=d;if(lastSpawn)lastSpawn+=d;lastFrame=0;cancelAnimationFrame(animation);animation=null;animation=requestAnimationFrame(loop);
     }});
-    let swipeStartX=null,swipeStartY=null,swipeLastX=null,swipeChangedLane=false;
-    canvas.addEventListener('pointerdown',e=>{
-      if(e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;
-      e.preventDefault();
-      if(!running){if(!starting)startGame();swipeStartX=null;swipeStartY=null;return}
-      swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false;
+    // One pointer owns a gesture. Cancellation and pause discard it completely.
+    let lanePointer=null,lanePointerSurface=null,swipeStartX=0,swipeStartY=0,swipeChangedLane=false;
+    function canSteer(){return running&&!starting&&!pauseStartedAt&&!document.body.classList.contains('earnly-game-paused');}
+    function syncLaneControls(){document.getElementById('lanePosition').textContent=['LEFT LANE','CENTER LANE','RIGHT LANE'][lane];}
+    function clearLaneGesture(){
+      const id=lanePointer,owner=lanePointerSurface;lanePointer=null;lanePointerSurface=null;swipeChangedLane=false;
+      if(owner&&id!==null){try{owner.releasePointerCapture(id);}catch{}}
+    }
+    function laneSwipeStart(event){
+      if(!canSteer()||lanePointer!==null||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0)||Arcade.isProtectedGameControlTarget(event.target))return;
+      event.preventDefault();lanePointer=event.pointerId;lanePointerSurface=event.currentTarget===canvas?canvas:laneControlZone;
+      swipeStartX=event.clientX;swipeStartY=event.clientY;swipeChangedLane=false;
+      try{lanePointerSurface.setPointerCapture(lanePointer);}catch{}
+    }
+    function laneSwipeMove(event){
+      if(!canSteer()||lanePointer!==event.pointerId||swipeChangedLane)return;
+      const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;
+      if(Math.abs(dx)>=28&&Math.abs(dx)>Math.abs(dy)*1.15){event.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true;}
+    }
+    function laneSwipeEnd(event){if(lanePointer!==event.pointerId)return;laneSwipeMove(event);clearLaneGesture();}
+    function laneSwipeCancel(event){if(lanePointer===event.pointerId)clearLaneGesture();}
+    for(const surface of [canvas,laneControlZone]){
+      surface.addEventListener('pointerdown',event=>{
+        if(surface===canvas&&!running&&!starting){if(event.isPrimary!==false&&!(event.pointerType==='mouse'&&event.button!==0)){event.preventDefault();startGame();}return;}
+        laneSwipeStart(event);
+      },{passive:false});
+      surface.addEventListener('lostpointercapture',laneSwipeCancel);
+    }
+    document.addEventListener('pointerdown',event=>{
+      if(event.target===canvas||laneControlZone.contains(event.target)||!Arcade.inExpandedGameZone(event,canvas,100))return;
+      laneSwipeStart(event);
     },{passive:false});
-    canvas.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}},{passive:false});
-    canvas.addEventListener('pointerup',e=>{
-      if(!running||swipeStartX===null)return;
-      const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;
-      swipeStartX=null;swipeStartY=null;
-      if(!swipeChangedLane&&Math.abs(dx)>=28&&Math.abs(dx)>Math.abs(dy)*1.15){
-        e.preventDefault();
-        setLane(lane+(dx>0?1:-1));
-      }
-      swipeLastX=null;
-      swipeChangedLane=false;
-    },{passive:false});
-    canvas.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
-    function laneSwipeStart(e){if(!running||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();swipeStartX=e.clientX;swipeStartY=e.clientY;swipeLastX=e.clientX;swipeChangedLane=false}
-    function laneSwipeEnd(e){if(!running||swipeStartX===null)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;swipeStartX=null;swipeStartY=null;swipeLastX=null;if(!swipeChangedLane&&Math.abs(dx)>=24&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1))}swipeChangedLane=false}
-    function laneSwipeMove(e){if(!running||swipeLastX===null||swipeChangedLane)return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)>=34&&Math.abs(dx)>Math.abs(dy)*1.15){e.preventDefault();setLane(lane+(dx>0?1:-1));swipeChangedLane=true}}
-    laneControlZone.addEventListener('pointerdown',laneSwipeStart,{passive:false});laneControlZone.addEventListener('pointermove',laneSwipeMove,{passive:false});laneControlZone.addEventListener('pointerup',laneSwipeEnd,{passive:false});laneControlZone.addEventListener('pointercancel',()=>{swipeStartX=null;swipeStartY=null;swipeLastX=null;swipeChangedLane=false});
-    document.addEventListener('pointerdown',e=>{if(!running||Arcade.isProtectedGameControlTarget(e.target)||e.target===canvas||laneControlZone.contains(e.target)||e.clientY<window.innerHeight-145)return;laneSwipeStart(e)},{passive:false});
-    document.addEventListener('pointermove',e=>{if(!running||swipeLastX===null||e.target===canvas||laneControlZone.contains(e.target))return;laneSwipeMove(e)},{passive:false});
-    document.addEventListener('pointerup',e=>{if(!running||swipeStartX===null)return;laneSwipeEnd(e)},{passive:false});
-    document.addEventListener('keydown',e=>{
-      if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();startGame();return}
-      if(!running)return;
-      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){e.preventDefault();setLane(lane-1)}
-      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){e.preventDefault();setLane(lane+1)}
+    document.addEventListener('pointermove',laneSwipeMove,{passive:false});
+    document.addEventListener('pointerup',laneSwipeEnd,{passive:false});
+    document.addEventListener('pointercancel',laneSwipeCancel);
+    document.getElementById('laneLeft').addEventListener('click',()=>setLane(lane-1));
+    document.getElementById('laneRight').addEventListener('click',()=>setLane(lane+1));
+    document.addEventListener('keydown',event=>{
+      if(event.target?.closest?.('input,textarea,select,dialog,.modal-backdrop'))return;
+      if((event.key==='Enter'||event.key===' ')&&event.target?.closest?.('button,a'))return;
+      if((event.key==='Enter'||event.key===' ')&&!running&&!starting){event.preventDefault();startGame();return;}
+      if(!canSteer()||event.repeat)return;
+      if(['ArrowLeft','a','A','ArrowRight','d','D'].includes(event.key)){event.preventDefault();setLane(lane+(['ArrowLeft','a','A'].includes(event.key)?-1:1));}
     });
+    function pauseLaneRunner(){
+      clearLaneGesture();
+      if(starting)pauseAfterCountdown=true;
+      if(running&&!lanePauseControl.isPaused()){lanePauseControl.sync();lanePauseControl.button.click();}
+    }
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseLaneRunner();});
+    document.addEventListener('pause',pauseLaneRunner);document.addEventListener('resume',pauseLaneRunner);
+    window.addEventListener('pagehide',pauseLaneRunner);
+    const sessionDock=document.createElement('div');sessionDock.id='laneSessionActions';laneControlZone.after(sessionDock);
+    sessionDock.append(lanePauseControl.button,document.getElementById('earnlyQuitButton'));
     startButton.addEventListener('click',startGame);reset();refreshChrome();
 
   </script>

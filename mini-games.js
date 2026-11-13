@@ -59,6 +59,7 @@
   let pauseStartedAt = 0;
   let miniPaused = false;
   let resultShowing = false;
+  let shapePauseAfterCountdown = false;
 
   function setStatus(text, mode) {
     statusEl.textContent = text;
@@ -165,10 +166,11 @@
 
   function pauseAwareDelay(callback, delay=0) {
     let remaining=Math.max(0,delay);
-    let lastChecked=performance.now();
+    const activeTime=()=>performance.now()-totalPausedMs-(miniPaused?Math.max(0,performance.now()-pauseStartedAt):0);
+    let lastChecked=activeTime();
     const wait=()=>{
       if(!running) return;
-      const now=performance.now();
+      const now=activeTime();
       if(miniPaused){
         // Freeze delayed transitions while paused. Without this, a long pause
         // could silently consume a celebration/mismatch delay and fire the
@@ -289,65 +291,96 @@
     return SpiralDropGame.create({surface,ui,finish,isPaused:()=>miniPaused});
   }
 
-  // Each entry must be a genuinely different shape even after rotation.
-  // J is a rotation of L, and S is a rotation of Z, so listing them as
-  // separate answers could show two visually valid matches while only one
-  // was accepted. Keep one representative from each rotation family.
-  const SHAPES = [
-    {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},
-    {name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
-    {name:'Square',cells:[[0,0],[1,0],[0,1],[1,1]]},
-    {name:'Zigzag',cells:[[0,0],[1,0],[1,1],[2,1]]},
-    {name:'Line',cells:[[0,0],[1,0],[2,0],[3,0]]},
-    {name:'Corner',cells:[[0,0],[0,1],[1,1]]}
-  ];
-  function rotateCells(cells,turns=1){let out=cells.map(([x,y])=>[x,y]);for(let t=0;t<turns;t++)out=out.map(([x,y])=>[3-y,x]);const minX=Math.min(...out.map(p=>p[0])),minY=Math.min(...out.map(p=>p[1]));return out.map(([x,y])=>[x-minX,y-minY])}
-  function makeShapeFit(){
-    let score=0,streak=0,lives=3,answer=null,alive=false,locked=false,timer=null,timeLeft=0,roundNo=0,bestStreak=0,lastStage='';
-    const wrap=document.createElement('div');wrap.className='fit-wrap';const title=document.createElement('div');title.className='fit-title';const target=document.createElement('div');target.className='fit-shape';const hint=document.createElement('div');hint.className='fit-hint';hint.setAttribute('aria-live','polite');const answers=document.createElement('div');answers.className='fit-answers';wrap.append(title,target,hint,answers);surface.replaceChildren(wrap);
-    // Keep every Shape Fit choice reachable without requiring the player to
-    // find a tiny strip beside the board to scroll the page on mobile.
-    wrap.style.touchAction='pan-y';
-    answers.style.touchAction='pan-y';
-    answers.style.overscrollBehavior='contain';
-    answers.style.webkitOverflowScrolling='touch';
-    answers.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
-    function key(cells){return cells.map(p=>p.join(',')).sort().join('|')} function variant(shape,turns){return{name:shape.name,cells:rotateCells(shape.cells,turns),base:shape}}
-    function preview(shape,className){const p=document.createElement('span');p.className=className;for(let y=0;y<4;y++)for(let x=0;x<4;x++){const d=document.createElement('span');d.className='fit-preview-dot'+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');p.append(d)}return p}
-    function draw(shape){target.replaceChildren();for(let y=0;y<4;y++)for(let x=0;x<4;x++){const d=document.createElement('div');d.className='fit-dot'+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');target.append(d)}}
-    function stopTimer(){if(timer){clearInterval(timer);timer=null}}
-    function stage(){return roundNo<=3?'Warm-up':roundNo<=8?'Rotation challenge':roundNo<=15?'Quick Match':'Expert Shapes'}
-    function header(){
-      const pct=Math.max(0,Math.min(100,(timeLeft/(roundNo<=3?7000:Math.max(2800,6600-(roundNo-3)*220)))*100));
-      title.innerHTML='<div class="fit-stage"><strong>'+stage()+'</strong><small>Round '+roundNo+' · '+'❤️'.repeat(lives)+'♡'.repeat(3-lives)+'</small></div><div class="fit-clock"><span>⏱️ '+(timeLeft/1000).toFixed(1)+'s</span><i><b style="width:'+pct+'%"></b></i></div>';
-      title.classList.toggle('urgent',timeLeft<=1800);
-    }
-    function miss(msg){if(locked||!alive)return;locked=true;stopTimer();lives--;streak=0;hint.textContent=msg+' · '+lives+' '+(lives===1?'life':'lives')+' left';Arcade.feedback('fail');ui(score,streak);if(lives<=0){alive=false;pauseAwareDelay(()=>finish(score,bestStreak,['🧠 Correct matches: '+score,'🔥 Best streak: '+bestStreak,'🎯 Round reached: '+roundNo,'Rotations, choices, and the timer get harder as you advance.'],'Shape Fit Run Over'),350);return}pauseAwareDelay(()=>{if(alive)round()},520)}
-    function round(){stopTimer();locked=false;roundNo++;const currentStage=stage();if(lastStage&&currentStage!==lastStage)Arcade.feedback('perfect');lastStage=currentStage;const base=SHAPES[Math.floor(Math.random()*SHAPES.length)],targetTurns=roundNo<4?0:Math.floor(Math.random()*4);answer=variant(base,targetTurns);target.dataset.base=base.name;draw(answer);const count=roundNo<=3?3:roundNo<=7?4:roundNo<=13?6:8;wrap.classList.toggle('many-choices',count>4);const correctTurns=roundNo<4?targetTurns:(targetTurns+1+Math.floor(Math.random()*3))%4,correct=variant(base,correctTurns),opts=[correct],used=new Set([base.name+':'+key(correct.cells)]);while(opts.length<count){const sh=SHAPES[Math.floor(Math.random()*SHAPES.length)];if(sh===base)continue;const v=variant(sh,Math.floor(Math.random()*4)),k=sh.name+':'+key(v.cells);if(!used.has(k)){used.add(k);opts.push(v)}}opts.sort(()=>Math.random()-.5);answers.replaceChildren();opts.forEach(shape=>{const b=document.createElement('button');b.type='button';b.className='fit-answer';b.dataset.base=shape.base.name;b.setAttribute('aria-label','Choose shape');b.append(preview(shape,'fit-answer-preview'));const n=document.createElement('small');n.textContent=roundNo<4?shape.base.name:'ROTATED';b.append(n);b.addEventListener('click',()=>choose(shape,b));answers.append(b)});timeLeft=roundNo<=3?7000:Math.max(2800,6600-(roundNo-3)*220);header();hint.textContent=roundNo<4?'👆 Tap the shape that matches the target exactly':(count>4?'🔄 Find the same shape — rotation does not matter · '+count+' choices · swipe up for more':'🔄 Find the same shape — rotation does not matter');let lastTick=performance.now();timer=setInterval(()=>{const now=performance.now();if(miniPaused){lastTick=now;return}const elapsed=Math.max(0,now-lastTick);lastTick=now;timeLeft-=elapsed;header();if(timeLeft<=0){stopTimer();miss('⏰ Too slow')}},100)}
-    function choose(shape,b){
-      if(!alive||locked||miniPaused)return;
-      // Lock immediately for both correct and wrong answers so a rapid
-      // double-tap can never score twice or remove two lives in one round.
-      locked=true;
-      stopTimer();
-      if(shape.base===answer.base){
-        score++;streak++;bestStreak=Math.max(bestStreak,streak);
-        b.classList.add('correct');wrap.classList.add('fit-success');
-        pauseAwareDelay(()=>wrap.classList.remove('fit-success'),220);
-        hint.textContent=streak>=5?'🔥 '+streak+' streak!':'✅ Correct!';
-        Arcade.feedback(streak>=5?'perfect':'match');ui(score,streak);
-        pauseAwareDelay(()=>{if(alive)round()},300);
-      }else{
-        b.classList.add('wrong');wrap.classList.add('fit-miss');
-        pauseAwareDelay(()=>wrap.classList.remove('fit-miss'),260);
-        [...answers.children].forEach(node=>{if(node.dataset.base===answer.base.name)node.classList.add('correct')});
-        locked=false;
-        miss('❌ Wrong shape');
+  function makeShapeFit() {
+    let score=0, streak=0, lives=3, alive=false, locked=false, timer=null;
+    let timeLeft=0, roundNo=0, bestStreak=0, lastStage='', current=null, lastTick=0;
+    const wrap=document.createElement('div'); wrap.className='fit-wrap';
+    wrap.innerHTML='<div class="fit-title"><div class="fit-stage"><strong></strong><small></small></div><div class="fit-clock"><span></span><i><b></b></i></div></div><div class="fit-target-stage"><span class="fit-kicker">MATCH THIS SHAPE</span><div class="fit-shape" role="img"></div><span class="fit-next-goal"></span></div><div class="fit-hint" aria-live="polite"></div><div class="fit-answers" role="group" aria-label="Shape choices"></div>';
+    surface.replaceChildren(wrap);
+    const title=wrap.querySelector('.fit-title'),target=wrap.querySelector('.fit-shape');
+    const hint=wrap.querySelector('.fit-hint'),answers=wrap.querySelector('.fit-answers');
+    const goal=wrap.querySelector('.fit-next-goal');
+    function drawShape(shape, host, cellClass) {
+      host.replaceChildren();
+      for(let y=0;y<4;y++) for(let x=0;x<4;x++) {
+        const cell=document.createElement('span');
+        cell.className=cellClass+(shape.cells.some(([cx,cy])=>cx===x&&cy===y)?' on':'');
+        host.append(cell);
       }
     }
-    return{
-      start(){score=0;streak=0;bestStreak=0;lives=3;roundNo=0;lastStage='';timeLeft=0;answer=null;alive=true;locked=false;wrap.classList.remove('fit-success','fit-miss','many-choices');ui(0,0);round()},
-      stop(){alive=false;locked=true;stopTimer();timeLeft=0;answer=null;wrap.classList.remove('fit-success','fit-miss','many-choices')}
+    function stopTimer(){if(timer!==null){clearInterval(timer);timer=null;}}
+    function header() {
+      title.querySelector('strong').textContent=current.stage;
+      title.querySelector('small').textContent='Round '+roundNo+' · '+lives+' of 3 lives';
+      title.querySelector('.fit-clock span').textContent=(Math.max(0,timeLeft)/1000).toFixed(1)+'s';
+      title.querySelector('.fit-clock b').style.width=Math.max(0,Math.min(100,timeLeft/current.duration*100))+'%';
+      title.classList.toggle('urgent',timeLeft<=1800);
+      goal.textContent='Next goal: '+ShapeFitRules.nextGoal(score)+' matches';
+    }
+    function revealAnswer() {
+      for(const button of answers.children) {
+        button.disabled=true;
+        if(button.dataset.base===current.target.name) button.classList.add('correct');
+      }
+    }
+    function miss(message) {
+      if(locked||!alive)return;
+      locked=true;stopTimer();lives--;streak=0;revealAnswer();header();
+      wrap.classList.add('fit-miss');
+      hint.textContent=message+' · '+(lives ? lives+' '+(lives===1?'life':'lives')+' left' : 'Run complete');
+      Arcade.feedback('fail');ui(score,streak);
+      if(!lives) {
+        alive=false;
+        pauseAwareDelay(()=>finish(score,bestStreak,['🧠 Correct matches: '+score,'🔥 Best streak: '+bestStreak,'🎯 Round reached: '+roundNo,'Next goal: '+ShapeFitRules.nextGoal(score)+' matches.'],'Shape Fit Run Over'),650);
+      } else pauseAwareDelay(()=>{if(alive)round();},650);
+    }
+    function choose(shape, button) {
+      if(!alive||locked||miniPaused)return;
+      if(shape.name!==current.target.name) {button.classList.add('wrong');miss('Different shape');return;}
+      locked=true;stopTimer();score++;streak++;bestStreak=Math.max(bestStreak,streak);
+      revealAnswer();wrap.classList.add('fit-success');
+      hint.textContent=[5,10,20,35,50].includes(score)?score+' MATCHES!':streak>=5?streak+' in a row!':'Match!';
+      Arcade.feedback(streak>=5?'perfect':'match');ui(score,streak);header();
+      pauseAwareDelay(()=>{if(alive)round();},350);
+    }
+    function round() {
+      stopTimer();locked=false;roundNo++;current=ShapeFitRules.round(roundNo);
+      if(lastStage&&current.stage!==lastStage)Arcade.feedback('perfect');
+      lastStage=current.stage;wrap.classList.remove('fit-success','fit-miss');
+      wrap.classList.toggle('many-choices',current.choices.length>4);
+      wrap.dataset.round=String(roundNo);wrap.dataset.choices=String(current.choices.length);
+      target.dataset.base=current.target.name;
+      target.setAttribute('aria-label','Target: '+current.target.name+' shape. Match its silhouette at any rotation.');
+      drawShape(current.target,target,'fit-dot');answers.replaceChildren();
+      current.choices.forEach((shape,index)=>{
+        const button=document.createElement('button');button.type='button';button.className='fit-answer';
+        button.dataset.base=shape.name;button.setAttribute('aria-label','Choose shape '+(index+1)+': '+shape.name);
+        button.setAttribute('aria-keyshortcuts',String(index+1));
+        const preview=document.createElement('span');preview.className='fit-answer-preview';preview.setAttribute('aria-hidden','true');
+        drawShape(shape,preview,'fit-preview-dot');
+        const label=document.createElement('small');label.textContent=(index+1)+(roundNo<4?' · '+shape.name:'');
+        button.append(preview,label);button.addEventListener('click',()=>choose(shape,button));answers.append(button);
+      });
+      timeLeft=current.duration;lastTick=performance.now();header();
+      hint.textContent=roundNo<4?'Match the raised blocks · tap a choice':'Same shape, any rotation · tap a choice';
+      timer=setInterval(()=>{
+        const now=performance.now();
+        if(miniPaused){lastTick=now;return;}
+        timeLeft=Math.max(0,timeLeft-Math.max(0,now-lastTick));lastTick=now;header();
+        if(timeLeft<=0)miss('Time’s up');
+      },100);
+    }
+    const onKey=event=>{
+      if(!alive||locked||miniPaused||event.repeat||event.altKey||event.ctrlKey||event.metaKey)return;
+      if(event.target?.closest?.('input,textarea,select,dialog,.modal-backdrop'))return;
+      const index=Number(event.key)-1;
+      if(/^[1-8]$/.test(event.key)&&index<answers.children.length){event.preventDefault();answers.children[index].click();}
+    };
+    document.addEventListener('keydown',onKey);
+    return {
+      start(){score=0;streak=0;bestStreak=0;lives=3;roundNo=0;lastStage='';alive=true;locked=false;ui(0,0);round();},
+      adjustPauseTime(){lastTick=performance.now();},
+      stop(){alive=false;locked=true;stopTimer();document.removeEventListener('keydown',onKey);}
     };
   }
 
@@ -751,6 +784,7 @@
   function startGame() {
     if(running||starting||resultShowing)return;
     starting=true;
+    shapePauseAfterCountdown=false;
 
     if(!Arcade.consume(key)){
       starting=false;
@@ -788,12 +822,14 @@
       startButton.textContent='Game Running';
       engine=(factories[key]||makeMergeRush)();
       engine.start();
+      if(key==='shapeFit'&&(document.hidden||shapePauseAfterCountdown))pauseShapeFit();
     });
   }
 
-  Arcade.installPauseControl({
+  const miniPauseControl=Arcade.installPauseControl({
     isRunning:()=>running,
-    allowWhilePaused:event=>(key==='perfectDrop'||key==='trafficEscape')&&event.type==='keydown'&&
+    preserveOnHistoryRestore:key==='shapeFit',
+    allowWhilePaused:event=>(key==='perfectDrop'||key==='trafficEscape'||key==='shapeFit')&&event.type==='keydown'&&
       !!event.target?.closest?.('#earnlyPauseButton')&&
       (event.key==='Enter'||event.code==='Space'),
     pause:()=>{
@@ -815,6 +851,16 @@
       miniPaused=false;
     }
   });
+
+  function pauseShapeFit() {
+    if(key!=='shapeFit')return;
+    if(starting)shapePauseAfterCountdown=true;
+    if(running&&!miniPauseControl.isPaused()){miniPauseControl.sync();miniPauseControl.button.click();}
+  }
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseShapeFit();});
+  document.addEventListener('pause',pauseShapeFit);
+  document.addEventListener('resume',pauseShapeFit);
+  window.addEventListener('pagehide',pauseShapeFit);
 
   startButton.addEventListener('click',startGame);
   surface.addEventListener('pointerdown',e=>{

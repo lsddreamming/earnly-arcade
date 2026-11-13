@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-spuddy-turf-20261109';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-gameplay-depth-20261113';const CORE_ASSETS = [
+ './lane-runner.css?v=1','./shape-fit.css?v=1','./shape-fit-rules.js?v=1','./mini-games.js?v=depth-polish-1',
  './spuddy-turf.html','./spuddy-turf.css?v=1','./spuddy-turf-engine.js?v=1','./spuddy-turf-renderer.js?v=1','./spuddy-turf.js?v=1',
  './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',
  './crystal-command-rewards.js','./turbo-kart-driver.js','./turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
