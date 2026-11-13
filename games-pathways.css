@@ -13,7 +13,8 @@ body.games-dashboard .games-paths .game-path-duration{color:#b7fcf3;font-size:13
 body.games-dashboard .games-paths .game-path-deep .game-path-duration{color:#e1c9ff}
 body.games-dashboard .games-paths .game-path-description{color:#d6e5f3;font-size:12px;line-height:1.4}
 body.games-dashboard .games-paths .game-path-arrow{flex:none;font-size:30px;color:#d6fbf7}
-body.games-dashboard #games .game-session-label{display:inline;padding:2px 7px;margin-right:7px;border-radius:8px;border:1px solid #579bad;background:#123b48;color:#b6f4f2;font-size:10px;font-weight:800;white-space:nowrap;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+/* Include badge padding and borders in the text row's measured height. */
+body.games-dashboard #games .game-session-label{display:inline-block;vertical-align:baseline;padding:1px 6px;margin-right:5px;border-radius:8px;border:1px solid #579bad;background:#123b48;color:#b6f4f2;font-size:10px;line-height:1.2;font-weight:800;white-space:nowrap}
 body.games-dashboard #games .game-session-label.deep{background:#39274a;border-color:#88709d;color:#efd0ff}
 @media(max-width:599px){
  /* Keep both choices and a complete Play card in a small phone's first view. */

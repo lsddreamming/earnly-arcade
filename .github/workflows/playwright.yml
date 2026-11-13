@@ -102,7 +102,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Verify first-screen catalog, retries and controls
-        run: npx playwright test tests/mobile-density.spec.js tests/games-play-pathways.spec.js tests/daily-results.spec.js tests/neonbreach.spec.js tests/smoke.spec.js --project=${{ matrix.project }} --grep 'mobile catalog shows Crystal Command|catalog badges|catalog puts|games paths|website empty-play|native empty-play|Snake result explains|Neon Breach shows|Help pauses|First movement hints'
+        run: npx playwright test tests/mobile-density.spec.js tests/games-play-pathways.spec.js tests/daily-results.spec.js tests/neonbreach.spec.js tests/smoke.spec.js --project=${{ matrix.project }} --grep 'mobile catalog shows Crystal Command|catalog badges|catalog puts|games paths|games catalog keeps Play readable|rotating Games starters|website empty-play|native empty-play|Snake result explains|Neon Breach shows|Help pauses|First movement hints'
       - name: Upload game discovery previews
         if: always()
         uses: actions/upload-artifact@v4
