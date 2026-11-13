@@ -23,10 +23,17 @@ test('real media API with Chromium synthetic device: portals, fire, switch, paus
     await page.locator('#scene').click({position:{x:195,y:320}});await page.getByRole('button',{name:'Defend · 1 portal'}).click();
     await expect(page.getByRole('button',{name:'Hold to fire'})).toBeVisible();
     await page.getByRole('button',{name:'Hold to fire'}).click();await expect(page.locator('#ammo')).toHaveText('23 / 24');
+    // Wait for the first real animation-loop spawn, then defeat it through the canvas.
+    await page.waitForTimeout(900);
+    await page.locator('#scene').click({position:{x:195,y:325}});
+    await page.waitForTimeout(200);
+    await page.locator('#scene').click({position:{x:195,y:325}});
+    await expect(page.locator('#stats')).toContainText('1 KILLS');
     await page.locator('#weapon').click();await expect(page.locator('#weaponName')).toHaveText('Alien Zapper ⇄');
     await page.getByRole('button',{name:'Pause game'}).click();await expect(page.getByRole('heading',{name:'Invasion paused'})).toBeVisible();
     await page.getByRole('button',{name:'Resume',exact:true}).click();
     await page.getByRole('button',{name:'Pause game'}).click();await page.getByRole('button',{name:'Restart waves'}).click();await expect(page.locator('#ammo')).toHaveText('24 / 24');
+    await page.waitForTimeout(1200);
     await page.screenshot({path:testInfo.outputPath('alien-camera-gameplay.png')});
     await page.evaluate(()=>window.trackForTest=document.getElementById('camera').srcObject.getVideoTracks()[0]);
     await page.getByRole('button',{name:'Exit game',exact:true}).click();expect(await page.evaluate(()=>window.trackForTest.readyState)).toBe('ended');
