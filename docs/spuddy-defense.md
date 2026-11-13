@@ -7,8 +7,8 @@ Original mobile-first tower defense for Earnly Arcade. Release requires explicit
 - Eight towers, six upgrades per tower (two paths, maximum 3/2 crosspath), four targeting priorities, 70% sell refunds, previews and explicit placement confirmation.
 - Fourteen enemy types including splitting, stealth, regenerating, armored and shielded Glooplings; two three-stage bosses.
 - Five maps with different paths and build obstructions. Easy 40, Normal 60, Hard 100, scalable Endless. Ten encounter patterns per act, staged enemy introductions.
-- Fixed 30 Hz deterministic engine shared by browser and server, bounded enemy/tower/effect counts, 1×/2× simulation, automatic waves, pause, zoom/pan and responsive portrait/landscape controls.
-- Device saves, XP, map/mode unlocks, tower mastery, achievements, daily and weekly UTC challenges, personal and boss records.
+- Fixed 30 Hz deterministic engine shared by browser and server, bounded enemy/tower/effect counts, 1×/2× simulation, automatic waves, pause, zoom/pan, automatic portrait map rotation and touch controls of at least 44 pixels.
+- Corruption-checked device saves, XP, map/mode unlocks, tower mastery, achievements, daily and weekly UTC challenges, personal and boss records.
 - Original generated cover, original Canvas scenery/characters/weapon animation, synthesized original sound cues.
 - Isolated authenticated server replay, cloud saves/progression, map/mode leaderboards and Arcade Coin rewards through the existing ledger. Match money never spends Arcade Coins.
 
@@ -34,7 +34,7 @@ npx playwright test tests/spuddy-defense.spec.js
 node scripts/build-spuddy-defense-preview.mjs
 ```
 
-The game workflow runs simulation, SQL, API, client retry and Chromium/mobile WebKit tests. Existing Earnly QA and unsigned native iOS compilation also run on the PR. The practice HTML is packaged as a workflow artifact. Before release, inspect all checks on the exact PR head, deploy only the reviewed new backend assets after approval, verify live authenticated rewards/cloud saves and leaderboard isolation, then verify the Pages publish and actual-site checks. Passing a local simulation does not certify human balance or native device performance.
+Local validation has completed full Easy campaigns on all five maps, Hard wave 100 and Endless wave 125 using only earned match money; deterministic command replay through a boss encounter; SQL ownership, daily cap, idempotency and leaderboard isolation; API tamper rejection; client retry; and Chromium/mobile WebKit gameplay checks. Frost reveals stealth enemies to the rest of the squad, while ordinary Cannons and Rapid Launchers require support. The game workflow repeats simulation, SQL, API, client retry and Chromium/mobile WebKit tests. Existing Earnly QA and unsigned native iOS compilation also run on the PR. The practice HTML is packaged as a workflow artifact. Before release, inspect all checks on the exact PR head, deploy only the reviewed new backend assets after approval, verify live authenticated rewards/cloud saves and leaderboard isolation, then verify the Pages publish and actual-site checks. Passing a local simulation does not certify human balance or native device performance.
 
 ## Artwork provenance
 

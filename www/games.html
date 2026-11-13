@@ -370,7 +370,7 @@
         ? visibleGames.sort((a,b) => {
             const aIndex = browseOrder.indexOf(a.key);
             const bIndex = browseOrder.indexOf(b.key);
-            const rank = (key, index) => key === 'spuddyDefense' ? 106 : key === 'bigFishEnergy' ? 105 : key === 'spuddyEvolution' ? 104 : key === 'harborGetaway' ? 103 : key === 'crystalCommand' ? 101 : key === 'bubblePop' ? 102 : index < 0 ? 100 : index;
+            const rank = (key, index) => key === 'spuddyDefense' ? 104.5 : key === 'bigFishEnergy' ? 105 : key === 'spuddyEvolution' ? 104 : key === 'harborGetaway' ? 103 : key === 'crystalCommand' ? 101 : key === 'bubblePop' ? 102 : index < 0 ? 100 : index;
             return rank(a.key, aIndex) - rank(b.key, bIndex);
           })
         : visibleGames;

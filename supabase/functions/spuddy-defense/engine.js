@@ -50,7 +50,7 @@
  function geometry(map){const path=map.path,segments=[];let length=0;for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]);segments.push({a,b,l,start:length});length+=l;}return {segments,length};}
  function point(g,d){for(const s of g.segments)if(d<=s.start+s.l){const q=clamp((d-s.start)/s.l,0,1);return {x:s.a[0]+(s.b[0]-s.a[0])*q,y:s.a[1]+(s.b[1]-s.a[1])*q};}const b=g.segments[g.segments.length-1].b;return {x:b[0],y:b[1]};}
  function segmentDistance(x,y,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],q=clamp(((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy),0,1);return Math.hypot(x-a[0]-q*dx,y-a[1]-q*dy);}
- function stats(t){const b=TOWERS[t.type],a=t.a||0,c=t.b||0,key=t.type+":"+a+":"+c;if(STAT_CACHE.has(key))return STAT_CACHE.get(key);const result={...b,damage:b.damage*Math.pow(1.75,a)*(b.kind==='frost'?1+c*.8:1),range:b.range*(1+c*.13),rate:b.rate/((1+c*.18)*(b.kind==='rapid'?1+a*.1:1)),splash:(b.splash||0)*(1+c*.25),chain:(b.chain||0)+c*2,jump:100+c*25,slow:b.slow?Math.max(.2,b.slow-a*.09):0,pierce:b.pierce||a>=2,detect:b.detect||c>=2,bossBonus:b.kind==='laser'?1+a*.25:1};STAT_CACHE.set(key,result);return result;}
+ function stats(t){const b=TOWERS[t.type],a=t.a||0,c=t.b||0,key=t.type+":"+a+":"+c;if(STAT_CACHE.has(key))return STAT_CACHE.get(key);const result={...b,damage:b.damage*Math.pow(1.75,a)*(b.kind==='frost'?1+c*.8:1),range:b.range*(1+c*.13),rate:b.rate/((1+c*.18)*(b.kind==='rapid'?1+a*.1:1)),splash:(b.splash||0)*(1+c*.25),chain:(b.chain||0)+c*2,jump:100+c*25,slow:b.slow?Math.max(.2,b.slow-a*.09):0,pierce:b.pierce||a>=2,detect:b.detect||(b.kind==='seed'&&c>=2),bossBonus:b.kind==='laser'?1+a*.25:1};STAT_CACHE.set(key,result);return result;}
  function upgradeCost(t,path){const level=t[path];return Math.ceil(TOWERS[t.type].cost*[.7,1.35,2.6][level]);}
  function wavePlan(w,seed=1){const unlocked=ENEMIES.filter(e=>!e.boss&&e.at<=w),pattern=PATTERNS[(w-1)%10];let count=Math.min(110,8+Math.floor(w*1.4)),types=[];const latest=unlocked[unlocked.length-1];for(let i=0;i<count;i++){
    let e=unlocked[(i*7+w+seed)%unlocked.length];
@@ -85,6 +85,7 @@
   }
   function effect(v){if(s.effects.length>=120)s.effects.shift();s.effects.push({...v,life:12});}
   function hit(e,amount,t,st){if(e.dead)return;const def=ENEMY[e.type];let damage=amount*(def.boss?(st.bossBonus||1):1);if(e.shield>0){const mult=st.kind==='arc'?2.5:1,used=Math.min(e.shield,damage*mult);e.shield-=used;damage-=used/mult;}damage=Math.max(0,damage-(st.pierce?0:(def.armor||0)));if(damage===0&&e.shield<=0)damage=.5;e.hp-=damage;s.damage+=damage;e.hitTick=s.tick;
+   if(st.kind==='frost')e.revealedUntil=s.tick+90;
    if(st.slow){e.slow=Math.min(e.slow,def.boss?Math.max(.65,st.slow):st.slow);e.slowUntil=s.tick+60+(t.a||0)*15;}
    if(e.hp<=0){e.dead=true;s.kills++;t.kills++;s.mastery[t.type]++;s.money+=def.value;effect({kind:'pop',x:e.x,y:e.y,color:def.color,r:def.boss?45:18});if(def.boss)s.bosses++;if(def.split)for(const child of def.split)spawn(child,Math.max(0,e.d-14));}
   }
@@ -94,10 +95,10 @@
     if(def.boss){const stage=e.hp/e.maxHp<.33?2:e.hp/e.maxHp<.67?1:0;if(stage>e.stage){e.stage=stage;if(stage===1){e.shield+=e.maxHp*.12;for(let i=0;i<5;i++)spawn('zip',Math.max(0,e.d-i*12));}effect({kind:'burst',x:e.x,y:e.y,color:def.color,r:65});}}
     let speed=def.speed*(1+Math.min(.65,Math.max(0,s.wave-40)*.003));if(def.id==='dash'&&e.hp<e.maxHp*.5)speed*=1.5;if(e.stage===2)speed*=1.5;if(s.challenge?.modifier==='swift')speed*=1.15;e.d+=speed*e.slow*DT;Object.assign(e,point(g,e.d));if(e.d>=g.length){e.dead=true;s.lives=Math.max(0,s.lives-def.lives);effect({kind:'leak',x:e.x-12,y:e.y,color:'#ff6b76',r:30});}
    }
-   for(const t of s.towers){t.flash=Math.max(0,t.flash-1);t.cooldown-=DT;if(t.cooldown>0)continue;const st=stats(t);let targets=s.enemies.filter(e=>!e.dead&&(!ENEMY[e.type].stealth||st.detect)&&Math.hypot(e.x-t.x,e.y-t.y)<=st.range&&Math.hypot(e.x-t.x,e.y-t.y)>=(st.minRange||0));
+   for(const t of s.towers){t.flash=Math.max(0,t.flash-1);t.cooldown-=DT;if(t.cooldown>0)continue;const st=stats(t);let targets=s.enemies.filter(e=>!e.dead&&(!ENEMY[e.type].stealth||st.detect||e.revealedUntil>=s.tick)&&Math.hypot(e.x-t.x,e.y-t.y)<=st.range&&Math.hypot(e.x-t.x,e.y-t.y)>=(st.minRange||0));
     targets.sort((a,b)=>t.target==='strong'?(b.hp+b.shield)-(a.hp+a.shield):t.target==='last'?a.d-b.d:t.target==='near'?Math.hypot(a.x-t.x,a.y-t.y)-Math.hypot(b.x-t.x,b.y-t.y):b.d-a.d);const target=targets[0];if(!target)continue;
     const boost=s.towers.some(c=>c!==t&&c.type===7&&Math.hypot(c.x-t.x,c.y-t.y)<stats(c).range)?1.12:1;t.cooldown=st.rate/boost;t.flash=5;t.angle=Math.atan2(target.y-t.y,target.x-t.x);const tx=target.x,ty=target.y;hit(target,st.damage*boost,t,st);effect({kind:st.kind,x:t.x,y:t.y,tx,ty,color:st.color,r:st.splash||5});
-    if(st.splash)for(const e of s.enemies.slice())if(e!==target&&!e.dead&&(!ENEMY[e.type].stealth||st.detect)&&Math.hypot(e.x-tx,e.y-ty)<=st.splash)hit(e,st.damage*.75*boost,t,st);
+    if(st.splash)for(const e of s.enemies.slice())if(e!==target&&!e.dead&&(!ENEMY[e.type].stealth||st.detect||e.revealedUntil>=s.tick)&&Math.hypot(e.x-tx,e.y-ty)<=st.splash)hit(e,st.damage*.75*boost,t,st);
     if(st.chain){let prev=target;const struck=new Set([target.id]);for(let i=1;i<st.chain;i++){const next=s.enemies.filter(e=>!e.dead&&!struck.has(e.id)&&Math.hypot(e.x-prev.x,e.y-prev.y)<st.jump).sort((a,b)=>Math.hypot(a.x-prev.x,a.y-prev.y)-Math.hypot(b.x-prev.x,b.y-prev.y))[0];if(!next)break;effect({kind:'arc',x:prev.x,y:prev.y,tx:next.x,ty:next.y,color:st.color});hit(next,st.damage*Math.pow(.86,i)*boost,t,st);struck.add(next.id);prev=next;}}
    }
    s.enemies=s.enemies.filter(e=>!e.dead);
@@ -105,7 +106,10 @@
    if(!s.queue.length&&!s.enemies.length){s.completed=s.wave;s.money+=65+Math.floor(s.wave*2.5);const goal=s.challenge?.goal||rules.waves;s.phase=s.completed>=goal?'won':'build';effect({kind:'clear',x:480,y:240,color:'#fff4a8',r:80});}
   }
   function snapshot(){const out=clone(s);out.effects=[];return out;}
-  function restore(v){if(!v||v.version!==VERSION||v.map!==map.id||v.mode!==mode||!Array.isArray(v.towers)||v.towers.length>MAX_TOWERS||!Array.isArray(v.enemies)||v.enemies.length>MAX_ENEMIES||!Number.isInteger(v.tick)||v.tick<0||!Number.isFinite(v.money)||!Number.isFinite(v.lives))throw Error('INVALID_SAVE');s=clone(v);s.effects=[];return s;}
+  function restore(v){const nonnegative=n=>Number.isFinite(n)&&n>=0;
+   const validTower=t=>t&&Number.isInteger(t.type)&&!!TOWERS[t.type]&&['first','last','strong','near'].includes(t.target)&&['id','x','y','spent','kills'].every(k=>nonnegative(t[k]))&&['a','b'].every(k=>Number.isInteger(t[k])&&t[k]>=0&&t[k]<=3)&&!(t.a===3&&t.b===3)&&Number.isFinite(t.cooldown);
+   const validEnemy=e=>e&&!!ENEMY[e.type]&&['id','hp','maxHp','shield','d','x','y','slowUntil','slow','stage'].every(k=>nonnegative(e[k]))&&Number.isFinite(e.hitTick);
+   if(!v||v.version!==VERSION||v.map!==map.id||v.mode!==mode||!['build','wave','won','lost'].includes(v.phase)||!Array.isArray(v.towers)||v.towers.length>MAX_TOWERS||!v.towers.every(validTower)||!Array.isArray(v.enemies)||v.enemies.length>MAX_ENEMIES||!v.enemies.every(validEnemy)||!Array.isArray(v.queue)||v.queue.length>111||!v.queue.every(id=>!!ENEMY[id])||!Array.isArray(v.mastery)||v.mastery.length!==8||!v.mastery.every(nonnegative)||!['tick','wave','completed','spawnTick','waveTick','nextId','kills','bosses','money','lives','damage'].every(k=>nonnegative(v[k]))||!Number.isInteger(v.tick)||!Number.isInteger(v.wave)||v.completed>v.wave)throw Error('INVALID_SAVE');s=clone(v);s.effects=[];return s;}
   return {get state(){return s;},map,geometry:g,action,step,canPlace,snapshot,restore};
  }
  function replay(round,batch){if(!batch||!Number.isInteger(batch.ticks)||batch.ticks<0||batch.ticks>900||!Array.isArray(batch.commands)||batch.commands.length>100||(!batch.ticks&&!batch.commands.length))throw Error('INVALID_BATCH');const game=create({map:round.map,mode:round.mode,seed:round.seed,challenge:round.challenge});if(round.snapshot)game.restore(round.snapshot);let index=0,last=-1;

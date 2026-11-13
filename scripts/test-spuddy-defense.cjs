@@ -15,3 +15,20 @@ test('challenge rotation is deterministic and weekly dates align to Monday UTC',
 test('five maps support legal, earned-money mixed defenses through a complete Easy campaign',()=>{for(const map of E.MAPS){const g=E.create({map:map.id,mode:'easy',seed:44});while(!['won','lost'].includes(g.state.phase)){invest(g);g.action({kind:'wave'});run(g);}console.log(map.id,{wave:g.state.completed,lives:g.state.lives,towers:g.state.towers.length,kills:g.state.kills});assert.equal(g.state.phase,'won',map.id+' must be winnable with earned funds');assert(g.state.bosses>=3);assert(g.state.maxEnemies<=E.MAX_ENEMIES);}});
 test('Hard 100-wave campaign and Endless 125-wave load stay bounded and winnable',()=>{for(const mode of ['hard','endless']){const g=E.create({mode,seed:5});while(!['won','lost'].includes(g.state.phase)&&g.state.completed<125){invest(g);g.action({kind:'wave'});run(g);}console.log(mode,{wave:g.state.completed,lives:g.state.lives,towers:g.state.towers.length,peak:g.state.maxEnemies});assert(g.state.completed>=(mode==='hard'?100:125));assert(g.state.maxEnemies<=240);assert(g.state.effects.length<=120);assert(g.state.towers.length<=64);}});
 module.exports={spot,invest,run};
+
+test('corrupt device saves are rejected before rendering or simulation',()=>{const g=E.create();for(const change of [s=>s.queue=['unknown'],s=>s.mastery=null,s=>s.phase='invalid',s=>s.towers=[{type:999}],s=>s.enemies=[{type:'pip',hp:NaN}]]){const s=g.snapshot();change(s);assert.throws(()=>g.restore(s),/INVALID_SAVE/);}});
+
+test('all commands and checkpoints replay exactly across a complete boss encounter',()=>{
+ const g=E.create({seed:73}),original=g.action;let snapshot=null,batch={ticks:0,commands:[]},checkpoints=0;
+ function flush(){if(!batch.ticks&&!batch.commands.length)return;snapshot=E.replay({map:'meadows',mode:'normal',seed:73,snapshot},batch);assert.deepEqual(snapshot,g.snapshot());batch={ticks:0,commands:[]};checkpoints++;}
+ g.action=a=>{const ok=original(a);if(ok){batch.commands.push({at:batch.ticks,action:a});if(batch.commands.length===90)flush();}return ok;};
+ while(!['won','lost'].includes(g.state.phase)&&g.state.completed<20){invest(g);g.action({kind:'wave'});while(g.state.phase==='wave'){g.step();batch.ticks++;if(batch.ticks===300)flush();}flush();}
+ assert.equal(g.state.completed,20);assert(g.state.bosses>0);assert(checkpoints>20);
+});
+test('stealth detection and Frost reveal give mixed squads meaningful advantages',()=>{
+ assert.equal(Boolean(E.stats({type:1,a:2,b:2}).detect),false);
+ assert.equal(Boolean(E.stats({type:0,a:0,b:2}).detect),true);
+ const g=E.create();g.state.money=10000;g.action({kind:'place',type:2,x:276,y:216});g.action({kind:'place',type:1,x:276,y:276});
+ g.action({kind:'wave'});g.state.queue=[];g.state.enemies=[{id:99,type:'ghost',hp:500,maxHp:500,shield:0,d:270,x:205,y:210,slow:1,slowUntil:0,hitTick:-999,stage:0,dead:false}];
+ g.step();assert(g.state.enemies[0].revealedUntil>g.state.tick);assert(g.state.enemies[0].hp<490,'Cannon should hit the Frost-revealed ghost');
+});

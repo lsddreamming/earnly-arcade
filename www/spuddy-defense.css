@@ -7,3 +7,7 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 .mode-row select{min-width:0;flex:1;width:0}.mode-row label{flex:none}.extras{grid-template-columns:repeat(4,minmax(0,1fr))}.extras button{min-width:0;overflow-wrap:anywhere}.section-heading>div{min-width:0}
 @media(max-width:760px){.extras{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Keep secondary touch controls comfortable on small iPhones. */
+.map-tools button,#selection .panel-heading button,.target-label select,.danger,#placementControls .text-button{min-height:44px;min-width:44px}.target-label select{font-size:16px}#selection .panel-heading button{height:44px;width:44px}
+@media(max-width:600px) and (orientation:portrait){.tower-panel:has(#selection:not([hidden])){height:260px}#selection .panel-heading{height:44px}.tower-list{grid-template-columns:repeat(4,minmax(0,1fr))}.tower-choice{min-width:0;display:flex;flex-direction:column;justify-content:center;padding:4px 1px;gap:2px}.tower-choice canvas{width:28px;height:27px}.tower-choice strong{font-size:8px}.tower-choice small{font-size:9px}.tower-choice{min-height:69px}.map-tools button{width:44px}}
