@@ -12,7 +12,7 @@ enum AlienKind: Int, CaseIterable {
     var radius: Float { [0.22, 0.29, 0.38, 0.24][rawValue] }
     var damage: Float { [5, 8, 12, 5][rawValue] }
 }
-enum PortalKind: String, CaseIterable { case door = "Door", window = "Window", wall = "Wall", ceiling = "Ceiling" }
+enum PortalKind: String, CaseIterable { case air = "Air", door = "Door", window = "Window", wall = "Wall", ceiling = "Ceiling" }
 struct Entrance {
     let id = UUID()
     var position: V3
@@ -63,7 +63,7 @@ final class InvasionWorld {
     }
     func spawn(at portal: Entrance, kind: AlienKind) {
         var p = portal.position
-        let actual: AlienKind = portal.kind == .ceiling ? .flyer : kind
+        let actual: AlienKind = portal.kind == .ceiling || portal.kind == .air ? .flyer : kind
         if actual != .flyer { p.y = actual.radius }
         aliens.append(Alien(kind: actual, position: p, hp: actual.hp))
     }

@@ -21,7 +21,8 @@ After approval and green PR/main checks, run **Earnly 1.12 App Store upload** on
 3. Open `native/AlienInvasionAR/AlienInvasionAR.xcodeproj` in Xcode.
 4. Select **AlienInvasionAR → Signing & Capabilities → your Apple development team**. The separate bundle identifier is `com.earnlyarcade.alieninvasion.prototype`.
 5. Connect the iPhone, enable Developer Mode if requested, select it as the run destination, and press Run.
-6. Tap Play to grant camera access. Find a clear floor; aim at it and tap Mark floor. Then aim at a recognized wall and place a portal. One portal is sufficient. Choose ceiling to place an overhead entrance on a detected horizontal surface above the camera.
+6. Tap Play to grant camera access. Find a clear floor; aim at it and tap Mark floor. Choose **Air** to place a floating portal about 2m ahead, or choose Door/Window/Wall/Ceiling for a recognized surface. One portal is sufficient.
+7. Drag the portal body to move it on its fixed 3D plane. Drag any cyan corner to change width and height independently, or pinch to resize. Air entrances also offer Closer/Farther buttons. Tap **Lock portal**, then defend. To edit a locked portal, select Edit / add entrances, tap the portal and choose Edit portal. Portals cannot be edited during combat.
 
 No Apple signing identity is embedded. An unsigned CI compilation is **not** an installable build or TestFlight release. Physical camera/tracking tests cannot be replaced by the simulator.
 
@@ -30,13 +31,14 @@ No Apple signing identity is embedded. An unsigned CI compilation is **not** an 
 - ARWorldTrackingConfiguration uses horizontal/vertical planes and 6DoF tracking. One explicit ARAnchor defines the game coordinate system. All enemy positions are metres in that anchor's local space; camera children are used only for the held weapon.
 - A continuous simulation updates every enemy, independent of render visibility. Offscreen enemies retain UUIDs, health, position, animation age and attack cooldown.
 - Ray/sphere 3D intersections hit the nearest alien along the physical camera aim direction. Four primitive 3D character types, two weapons, three waves, reload, score, health, defeat particles and positional audio are implemented.
-- Optional RoomPlan uses the same ARSession and stops with `pauseARSession:false`. RoomPlan supplies floor/door/window/wall suggestions. Ceiling suggestions require an actual ARKit ceiling classification; missing ceilings are not invented. Manual portal placement requires recognized plane geometry.
+- Optional RoomPlan uses the same ARSession and stops with `pauseARSession:false`. RoomPlan supplies floor/door/window/wall suggestions. Ceiling suggestions require an actual ARKit ceiling classification; missing ceilings are not invented. Manual surface portals require recognized plane geometry. Floating portals take a single tracked pose when placed and then remain children of the world anchor, not of the camera.
+- Portal gestures cast touch rays into the fixed portal plane in anchor space. Opposite corners stay fixed while reshaping the opening. Width/height are bounded to 0.4–3m, and edited centers remain 0.8–8m from the phone. Explicit locks reject edits; all portals must be locked before combat. Air portals spawn flying aliens at their edited 3D position.
 - Tracking loss, interruptions and movement beyond 0.7m horizontally from the combat origin freeze combat until explicitly resumed. Session errors require a restart. Exiting stops camera capture.
 
 ## Mandatory physical acceptance test — not yet verified
 
-1. Use a well-lit clear room. Mark floor and one doorway/wall portal about 2–3m away.
-2. Select **180° tracking test**. Three armored aliens spawn with stable identities.
+1. Use a well-lit clear room. Mark floor and one doorway/wall portal about 2–3m away. Drag it across the opening, resize with the corner handles and pinch, and lock it. Move/rotate the phone without touching the portal: confirm it stays aligned with the room. Repeat with a floating Air portal and its depth controls.
+2. Select **180° tracking test**. Three aliens spawn with stable identities (flying enemies for Air/Ceiling entrances).
 3. Turn in place 180°. Wait at least three seconds while tracking remains normal.
 4. Turn back. Confirm the same aliens have advanced from the doorway and stayed aligned with the room. The diagnostic reports ID continuity, which alone does not prove spatial accuracy.
 5. Shoot all three. Confirm nearest-target hit detection, hit response and defeat.
@@ -48,6 +50,6 @@ Physical AR alignment, tracking recovery, actual camera permissions, frame rate,
 
 ## Checks
 
-`swift test` runs five deterministic core tests, including turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload and restart. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking.
+`swift test` runs ten deterministic core tests, including turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
 
 Apple references: [world tracking](https://developer.apple.com/documentation/arkit/understanding-world-tracking), [RoomPlan shared sessions](https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure), [ceiling classification](https://developer.apple.com/documentation/arkit/arplaneanchor/classification-swift.enum/ceiling).

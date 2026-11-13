@@ -6,7 +6,7 @@ import AVFoundation
 import simd
 
 @available(iOS 17.0, *)
-final class GameViewController: UIViewController, ARSessionDelegate, RoomCaptureSessionDelegate {
+final class GameViewController: UIViewController, ARSessionDelegate, RoomCaptureSessionDelegate, UIGestureRecognizerDelegate {
     /// Set by Earnly's native bridge when this game is presented inside the arcade.
     var onExit: (() -> Void)?
     private let ar = ARSCNView()
@@ -14,7 +14,11 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private let root = SCNNode()
     private var originAnchor: ARAnchor?
     private var nodes: [UUID:SCNNode] = [:]
-    private var portalNodes: [SCNNode] = []
+    private var portalNodes: [UUID:SCNNode] = [:]
+    private var portalPlacements: [UUID:PortalPlacement] = [:]
+    private var selectedEntrance: UUID?
+    private var portalDrag: (id:UUID, placement:PortalPlacement, grab:V3, corner:SIMD2<Float>?)?
+    private var portalPinch: (id:UUID, placement:PortalPlacement)?
     private var roomCapture: RoomCaptureSession?
     private var room: CapturedRoom?
     private var clock: CADisplayLink?
@@ -23,7 +27,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private var readyTracking = false
     private var sessionFailed = false
     private var safetyOrigin = V3.zero
-    private var selectedPortal = PortalKind.wall
+    private var selectedPortal = PortalKind.air
     private var firing = false
     private var gun: SCNNode?
     private var flash: SCNNode?
@@ -45,6 +49,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private let fireButton = UIButton(type:.system), reloadButton = UIButton(type:.system)
     private let weaponButton = UIButton(type:.system), pauseButton = UIButton(type:.system)
     private let exitButton = UIButton(type:.system)
+    private let lockButton=UIButton(type:.system), deletePortalButton=UIButton(type:.system)
+    private let closerButton=UIButton(type:.system), fartherButton=UIButton(type:.system)
+    private let editControls=UIStackView(), depthControls=UIStackView()
     private let titleLabel = UILabel(), bodyLabel = UILabel()
 
     override var prefersStatusBarHidden: Bool { true }
@@ -58,6 +65,11 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         ar.antialiasingMode = .multisampling2X
         ar.session.delegate=self; ar.scene.rootNode.addChildNode(root); view.addSubview(ar)
         buildUI()
+        let tap=UITapGestureRecognizer(target:self,action:#selector(selectPortal(_:)))
+        let pan=UIPanGestureRecognizer(target:self,action:#selector(dragPortal(_:))); pan.maximumNumberOfTouches=1
+        let pinch=UIPinchGestureRecognizer(target:self,action:#selector(resizePortal(_:)))
+        let gestures:[UIGestureRecognizer]=[tap,pan,pinch]
+        for gesture in gestures { gesture.delegate=self; ar.addGestureRecognizer(gesture) }
         NotificationCenter.default.addObserver(self,selector:#selector(background),name:UIApplication.willResignActiveNotification,object:nil)
         NotificationCenter.default.addObserver(self,selector:#selector(foreground),name:UIApplication.didBecomeActiveNotification,object:nil)
         clock=CADisplayLink(target:self,selector:#selector(tick)); clock?.add(to:.main,forMode:.common)
@@ -86,7 +98,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         style(secondary,"Resume",#selector(secondaryAction))
         style(scanButton,"Smart room scan",#selector(smartScan))
         style(placeButton,"Mark floor",#selector(place))
-        style(typeButton,"Entrance: Wall",#selector(nextType))
+        style(typeButton,"Entrance: Air",#selector(nextType))
         style(testButton,"180° tracking test",#selector(startTest))
         style(fireButton,"FIRE",#selector(stopFire))
         fireButton.addTarget(self,action:#selector(startFire),for:.touchDown)
@@ -104,7 +116,12 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         controls.axis = .vertical; controls.spacing=10
         let setup=UIStackView(arrangedSubviews:[typeButton,placeButton]); setup.spacing=8; setup.distribution = .fillEqually
         let combat=UIStackView(arrangedSubviews:[weaponButton,reloadButton,fireButton]); combat.spacing=8; combat.distribution = .fillEqually
-        [setup,combat].forEach{controls.addArrangedSubview($0)}
+        style(lockButton,"Lock portal",#selector(lockPortal)); style(deletePortalButton,"Remove",#selector(removePortal))
+        style(closerButton,"Closer",#selector(movePortalCloser)); style(fartherButton,"Farther",#selector(movePortalFarther))
+        for row in [editControls,depthControls] { row.spacing=8; row.distribution = .fillEqually; row.isHidden=true }
+        [lockButton,deletePortalButton].forEach{editControls.addArrangedSubview($0)}
+        [closerButton,fartherButton].forEach{depthControls.addArrangedSubview($0)}
+        [setup,combat,editControls,depthControls].forEach{controls.addArrangedSubview($0)}
         for v in [top,hint,threat,crosshair,card,controls] { v.translatesAutoresizingMaskIntoConstraints=false; view.addSubview(v) }
         let s=view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
@@ -118,7 +135,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     private func lobby() {
         phase="lobby"; titleLabel.text="ALIEN\nINVASION AR"
-        bodyLabel.text="Scan your floor, mark a doorway or wall, then defend your room. Stand in a clear spot and turn in place. Do not walk during combat.\n\nCamera and room data stay on this device."
+        bodyLabel.text="Scan your floor. Place a floating portal or one on a doorway or wall. Drag and resize its opening, then lock it in your room.\n\nStand in a clear spot and turn in place during combat. Camera and room data stay on this device."
         primary.setTitle("Play · enable camera",for:.normal); primary.isHidden=false
         secondary.isHidden=true; scanButton.isHidden=true; testButton.isHidden=true
         card.isHidden=false; controls.isHidden=true; top.isHidden=onExit == nil; hint.isHidden=true; crosshair.isHidden=true; threat.isHidden=true
@@ -149,7 +166,8 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private func beginScan(reset:Bool) {
         roomCapture?.stop(); roomCapture=nil; room=nil; world.reset(); world.entrances=[]
         nodes.values.forEach{$0.removeFromParentNode()}; nodes.removeAll()
-        portalNodes.forEach{$0.removeFromParentNode()}; portalNodes=[]; originAnchor=nil
+        portalNodes.values.forEach{$0.removeFromParentNode()}; portalNodes=[:]; portalPlacements=[:]; originAnchor=nil
+        selectedEntrance=nil; portalDrag=nil; portalPinch=nil; editControls.isHidden=true; depthControls.isHidden=true
         root.simdTransform=matrix_identity_float4x4; root.isPaused=false
         gun?.removeFromParentNode(); gun=nil
         readyTracking=false; sessionFailed=false; phase="scan"; firing=false; previous=0
@@ -165,7 +183,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         typeButton.isEnabled=false; pauseButton.isHidden=true
     }
     @objc private func secondaryAction() {
-        if phase == "scan" { card.isHidden=true }
+        if phase == "scan" { card.isHidden=true; refreshPortalEditor() }
         else if phase == "paused" {
             guard readyTracking, !sessionFailed, let frame=ar.session.currentFrame else { bodyLabel.text="Tracking is not ready. Slowly look at the scanned area, or restart the scan."; return }
             let p=frame.camera.transform.columns.3.xyz
@@ -178,26 +196,31 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         selectedPortal=all[(i+1)%all.count]; typeButton.setTitle("Entrance: \(selectedPortal.rawValue)",for:.normal)
     }
     @objc private func place() {
-        guard phase == "scan", readyTracking else { hint.text="Tracking needs more detail. Slowly look around a well-lit area."; return }
+        guard phase == "scan", readyTracking, let frame=ar.session.currentFrame else { hint.text="Tracking needs more detail. Slowly look around a well-lit area."; return }
+        guard world.entrances.count<6 else { hint.text="Six entrances placed. Tap a portal to edit it."; return }
+        if originAnchor != nil && selectedPortal == .air {
+            // Take one snapshot of the tracked pose. Never attach the portal to
+            // the camera or update this transform just because the phone turns.
+            var transform=frame.camera.transform
+            transform.columns.3 -= SIMD4<Float>(transform.columns.2.xyz*2,0)
+            addPortal(transform:transform,kind:.air,roomPlan:true,editable:true)
+            return
+        }
         let center=CGPoint(x:ar.bounds.midX,y:ar.bounds.midY)
         let alignment: ARRaycastQuery.TargetAlignment = originAnchor == nil || selectedPortal == .ceiling ? .horizontal : .vertical
         guard let q=ar.raycastQuery(from:center,allowing:.existingPlaneGeometry,alignment:alignment),
-              let result=ar.session.raycast(q).first, let plane=result.anchor as? ARPlaneAnchor,
-              let frame=ar.session.currentFrame else { hint.text="No recognized surface here yet. Move the phone slowly; aim at the floor, wall or ceiling and try again."; return }
+              let result=ar.session.raycast(q).first, let plane=result.anchor as? ARPlaneAnchor else { hint.text="No recognized surface here yet. Move the phone slowly, or choose Air after marking the floor."; return }
         let y=result.worldTransform.columns.3.y, cameraY=frame.camera.transform.columns.3.y
         if originAnchor == nil {
             guard plane.classification == .floor || (plane.classification == .none && y < cameraY-0.7) else { hint.text="Aim at a clear floor below you. Tables and other classified surfaces cannot be the floor."; return }
             setOrigin(at:result.worldTransform.columns.3.xyz)
-            hint.text="Floor confirmed. Aim at a doorway, wall or window and tap Place portal."
+            hint.text="Floor confirmed. Choose Air to place a floating portal, or aim at a wall, doorway or window."
             placeButton.setTitle("Place portal",for:.normal); typeButton.isEnabled=true
         } else {
-            guard world.entrances.count<6 else { hint.text="Six entrances placed. Ready to defend!"; return }
             if selectedPortal == .ceiling && !(plane.classification == .ceiling || y > cameraY+0.25) { hint.text="Aim overhead at a recognized ceiling surface."; return }
             var transform=result.worldTransform
-            // AR raycast local Y is the surface normal. Our portal lies in XZ.
             transform.columns.3 += SIMD4<Float>(transform.columns.1.xyz*0.015,0)
-            addPortal(transform:transform,kind:selectedPortal,roomPlan:false)
-            showReady()
+            addPortal(transform:transform,kind:selectedPortal,roomPlan:false,editable:true)
         }
     }
     private func setOrigin(at p:V3) {
@@ -205,41 +228,143 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let anchor=ARAnchor(name:"invasion-world",transform:transform)
         originAnchor=anchor; root.simdTransform=transform; ar.session.add(anchor:anchor)
     }
-    private func addPortal(transform:simd_float4x4,kind:PortalKind,roomPlan:Bool) {
+    private func addPortal(transform:simd_float4x4,kind:PortalKind,roomPlan:Bool,editable:Bool=false) {
         guard originAnchor != nil, world.entrances.count<6 else{return}
-        let local=simd_inverse(root.simdTransform)*transform
+        // Normalize every portal to its local XY plane, with Z as its normal.
+        let facing=roomPlan ? transform : transform*simd_float4x4(simd_quatf(angle: -.pi/2,axis:V3(1,0,0)))
+        let local=simd_inverse(root.simdTransform)*facing
         let p=local.columns.3.xyz
-        if world.entrances.contains(where:{length($0.position-p)<0.6}) { return }
-        world.entrances.append(Entrance(position:p,kind:kind))
-        let portal=SCNNode(); portal.simdTransform=local
-        let ring=SCNTorus(ringRadius:0.34,pipeRadius:0.025)
-        ring.firstMaterial=material(kind == .ceiling ? .cyan : .systemPurple,glow:true)
-        let r=SCNNode(geometry:ring); portal.addChildNode(r)
-        if roomPlan { r.eulerAngles.x = .pi/2 }
-        let dark=SCNCylinder(radius:0.31,height:0.005); dark.firstMaterial=material(UIColor(white:0.02,alpha:0.85))
-        let hole=SCNNode(geometry:dark); if roomPlan { hole.eulerAngles.x = .pi/2 }; portal.addChildNode(hole)
-        let pulse=SCNAction.sequence([.scale(to:1.08,duration:0.7),.scale(to:1,duration:0.7)])
-        r.runAction(.repeatForever(pulse))
-        if kind == .wall {
-            // Virtual cracks only; no camera imagery is modified or stored.
+        if world.entrances.contains(where:{length($0.position-p)<0.6}) { hint.text="Move the aim away from the other entrance first."; return }
+        let entrance=Entrance(position:p,kind:kind); world.entrances.append(entrance)
+        let placement=PortalPlacement(center:p,right:normalized(local.columns.0.xyz),up:normalized(local.columns.1.xyz),width:0.9,height:kind == .ceiling ? 0.9 : 1.4,locked:!editable)
+        portalPlacements[entrance.id]=placement
+        let node=SCNNode(); root.addChildNode(node); portalNodes[entrance.id]=node
+        if editable {
+            let previous=selectedEntrance; selectedEntrance=entrance.id; card.isHidden=true
+            if let previous=previous { renderPortal(previous) }
+        }
+        renderPortal(entrance.id); refreshPortalEditor(); burst(at:p,color:.systemPurple)
+    }
+    private func renderPortal(_ id:UUID) {
+        guard let p=portalPlacements[id],let node=portalNodes[id] else{return}
+        node.simdTransform=simd_float4x4(columns:(SIMD4<Float>(p.right,0),SIMD4<Float>(p.up,0),SIMD4<Float>(p.normal,0),SIMD4<Float>(p.center,1)))
+        node.childNodes.forEach{$0.removeFromParentNode()}
+        let editing=selectedEntrance == id && !p.locked
+        let color:UIColor=editing ? .cyan : .systemPurple
+        let opening=SCNNode(); opening.scale=SCNVector3(p.width,p.height,1); node.addChildNode(opening)
+        let ring=SCNTorus(ringRadius:0.5,pipeRadius:0.018); ring.firstMaterial=material(color,glow:true)
+        let r=SCNNode(geometry:ring); r.eulerAngles.x = .pi/2; opening.addChildNode(r)
+        let hole=SCNCylinder(radius:0.48,height:0.006); hole.firstMaterial=material(UIColor(white:0.02,alpha:0.8))
+        let h=SCNNode(geometry:hole); h.eulerAngles.x = .pi/2; opening.addChildNode(h)
+        r.runAction(.repeatForever(.sequence([.fadeOpacity(to:0.55,duration:0.7),.fadeOpacity(to:1,duration:0.7)])))
+        if world.entrances.first(where:{$0.id == id})?.kind == .wall {
             for i in 0..<7 {
                 let a=Float(i)*2 * .pi/7
-                let crack=SCNNode(geometry:SCNBox(width:0.018,height:0.008,length:0.24,chamferRadius:0.004))
-                crack.geometry?.firstMaterial=material(.systemPurple,glow:true)
-                crack.position=SCNVector3(sin(a)*0.41,0,cos(a)*0.41); crack.eulerAngles.y=a
-                if roomPlan { crack.position=SCNVector3(sin(a)*0.41,cos(a)*0.41,0); crack.eulerAngles=SCNVector3(.pi/2,0,-a) }
-                portal.addChildNode(crack)
+                let crack=SCNNode(geometry:SCNBox(width:0.018,height:0.24,length:0.008,chamferRadius:0.004))
+                crack.geometry?.firstMaterial=material(color,glow:true)
+                crack.position=SCNVector3(sin(a)*p.width*0.64,cos(a)*p.height*0.64,0); crack.eulerAngles.z = -a; node.addChildNode(crack)
             }
         }
-        root.addChildNode(portal); portalNodes.append(portal)
-        portal.scale=SCNVector3(0.05,0.05,0.05); portal.runAction(.scale(to:1,duration:0.45))
-        burst(at:p,color:.systemPurple)
+        if editing {
+            for x:Float in [-1,1] { for y:Float in [-1,1] {
+                let handle=ball(0.045,.cyan,SCNVector3(x*p.width/2,y*p.height/2,0.035),node)
+                handle.geometry?.firstMaterial=material(.cyan,glow:true)
+            } }
+        }
+    }
+    private func refreshPortalEditor() {
+        guard phase == "scan",let id=selectedEntrance,let p=portalPlacements[id] else { editControls.isHidden=true; depthControls.isHidden=true; return }
+        editControls.isHidden=false
+        depthControls.isHidden=p.locked || world.entrances.first(where:{$0.id == id})?.kind != .air
+        lockButton.setTitle(p.locked ? "Edit portal" : "Lock portal",for:.normal)
+        hint.text=p.locked ? "Portal locked in your room. Tap Edit portal to change it." : String(format:"Drag body to move · drag corners or pinch to resize\n%.2f m × %.2f m · Lock when ready",p.width,p.height)
+    }
+    private func applyPortal(_ id:UUID,_ placement:PortalPlacement) {
+        guard let i=world.entrances.firstIndex(where:{$0.id == id}),let frame=ar.session.currentFrame else{return}
+        let camera=(simd_inverse(root.simdTransform)*frame.camera.transform).columns.3.xyz
+        guard length(placement.center-camera)>=0.8,length(placement.center-camera)<=8 else { hint.text="Keep the entrance between 0.8 and 8 metres away."; return }
+        portalPlacements[id]=placement
+        world.entrances[i].position=placement.center
+        renderPortal(id); refreshPortalEditor()
+    }
+    @objc private func lockPortal() {
+        guard phase == "scan",readyTracking,let id=selectedEntrance,var p=portalPlacements[id] else{return}
+        p.locked.toggle(); portalPlacements[id]=p; portalDrag=nil; portalPinch=nil
+        renderPortal(id); refreshPortalEditor()
+        if p.locked && portalPlacements.values.allSatisfy({$0.locked}) { showReady() }
+    }
+    @objc private func removePortal() {
+        guard phase == "scan",let id=selectedEntrance else{return}
+        portalNodes.removeValue(forKey:id)?.removeFromParentNode(); portalPlacements.removeValue(forKey:id)
+        world.entrances.removeAll{$0.id == id}; selectedEntrance=nil; portalDrag=nil; portalPinch=nil
+        refreshPortalEditor(); card.isHidden=true; hint.text="Choose an entrance type, then tap Place portal."
+        if !world.entrances.isEmpty && portalPlacements.values.allSatisfy({$0.locked}) { showReady() }
+    }
+    @objc private func movePortalCloser() { shiftPortalDepth(0.25) }
+    @objc private func movePortalFarther() { shiftPortalDepth(-0.25) }
+    private func shiftPortalDepth(_ amount:Float) {
+        guard phase == "scan",readyTracking,let id=selectedEntrance,var p=portalPlacements[id],!p.locked,
+              world.entrances.first(where:{$0.id == id})?.kind == .air,let frame=ar.session.currentFrame else{return}
+        let camera=(simd_inverse(root.simdTransform)*frame.camera.transform).columns.3.xyz
+        p.center += normalized(camera-p.center)*amount
+        applyPortal(id,p)
+    }
+    func gestureRecognizerShouldBegin(_ gestureRecognizer:UIGestureRecognizer)->Bool {
+        phase == "scan" && readyTracking && originAnchor != nil && card.isHidden
+    }
+    private func touchRay(_ point:CGPoint)->(origin:V3,direction:V3) {
+        let near=ar.unprojectPoint(SCNVector3(Float(point.x),Float(point.y),0))
+        let far=ar.unprojectPoint(SCNVector3(Float(point.x),Float(point.y),1))
+        let inverse=simd_inverse(root.simdTransform)
+        let origin=(inverse*SIMD4<Float>(near.x,near.y,near.z,1)).xyz
+        let target=(inverse*SIMD4<Float>(far.x,far.y,far.z,1)).xyz
+        return (origin,normalized(target-origin))
+    }
+    private func portalHit(_ point:CGPoint)->(id:UUID,point:V3)? {
+        let ray=touchRay(point)
+        return portalPlacements.compactMap { id,p -> (id:UUID,point:V3)? in
+            guard let hit=p.intersection(origin:ray.origin,direction:ray.direction),p.contains(hit) else{return nil}
+            return (id,hit)
+        }.min(by:{length($0.point-ray.origin)<length($1.point-ray.origin)})
+    }
+    private func selectEntrance(_ id:UUID) {
+        let old=selectedEntrance; selectedEntrance=id
+        if let old=old { renderPortal(old) }; renderPortal(id); refreshPortalEditor()
+    }
+    @objc private func selectPortal(_ gesture:UITapGestureRecognizer) {
+        guard phase == "scan",readyTracking,let hit=portalHit(gesture.location(in:ar)) else{return}
+        selectEntrance(hit.id)
+    }
+    @objc private func dragPortal(_ gesture:UIPanGestureRecognizer) {
+        guard phase == "scan",readyTracking else { portalDrag=nil; return }
+        let point=gesture.location(in:ar),ray=touchRay(point)
+        if gesture.state == .began {
+            guard let hit=portalHit(point),let p=portalPlacements[hit.id] else{return}
+            selectEntrance(hit.id)
+            guard !p.locked else{return}
+            let offset=hit.point-p.center,x=dot(offset,p.right),y=dot(offset,p.up)
+            let corner:SIMD2<Float>? = abs(x)>p.width*0.33 && abs(y)>p.height*0.33 ? SIMD2<Float>(x<0 ? -1:1,y<0 ? -1:1) : nil
+            portalDrag=(hit.id,p,hit.point,corner)
+        } else if gesture.state == .changed,let start=portalDrag {
+            if let corner=start.corner,let hit=start.placement.intersection(origin:ray.origin,direction:ray.direction),let resized=start.placement.resized(corner:corner,point:hit) {
+                applyPortal(start.id,resized)
+            } else if start.corner == nil,let moved=start.placement.moved(grab:start.grab,origin:ray.origin,direction:ray.direction) { applyPortal(start.id,moved) }
+        } else if gesture.state == .ended || gesture.state == .cancelled || gesture.state == .failed { portalDrag=nil }
+    }
+    @objc private func resizePortal(_ gesture:UIPinchGestureRecognizer) {
+        guard phase == "scan",readyTracking else { portalPinch=nil; return }
+        if gesture.state == .began {
+            if let hit=portalHit(gesture.location(in:ar)) { selectEntrance(hit.id) }
+            guard let id=selectedEntrance,let p=portalPlacements[id],!p.locked else{return}
+            portalPinch=(id,p); portalDrag=nil
+        } else if gesture.state == .changed,let start=portalPinch,let resized=start.placement.scaled(by:Float(gesture.scale)) { applyPortal(start.id,resized) }
+        else if gesture.state == .ended || gesture.state == .cancelled || gesture.state == .failed { portalPinch=nil }
     }
     private func showReady() {
         card.isHidden=false; titleLabel.text="\(world.entrances.count) entrance\(world.entrances.count == 1 ? "" : "s") ready"
-        bodyLabel.text="You can defend with one entrance. Add wall or ceiling portals for more directions.\n\nStay in one clear spot. Turn to aim at the crosshair; hold FIRE. Reload or switch weapons below."
+        bodyLabel.text="Your entrances are locked in the room. They stay there when you turn the phone.\n\nStay in one clear spot. Turn to aim; hold FIRE. Add or edit entrances before combat."
         primary.isHidden=false; primary.setTitle("Defend · 3 waves",for:.normal)
-        secondary.setTitle("Add another entrance",for:.normal); secondary.isHidden=false
+        secondary.setTitle("Edit / add entrances",for:.normal); secondary.isHidden=false
         scanButton.isHidden=true; testButton.isHidden=false
     }
     @objc private func smartScan() {
@@ -289,9 +414,11 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     @objc private func startTest() { startCombat(test:true) }
     private func startCombat(test:Bool) {
-        guard readyTracking, originAnchor != nil, !world.entrances.isEmpty, let frame=ar.session.currentFrame else { bodyLabel.text="Wait for stable tracking and place at least one entrance."; return }
+        guard readyTracking, originAnchor != nil, !world.entrances.isEmpty, portalPlacements.values.allSatisfy({$0.locked}), let frame=ar.session.currentFrame else { bodyLabel.text="Wait for stable tracking, place an entrance, and lock every portal before combat."; return }
         world.reset(); phase="combat"; card.isHidden=true; controls.isHidden=false; pauseButton.isHidden=false
         controls.arrangedSubviews[0].isHidden=true; controls.arrangedSubviews[1].isHidden=false
+        editControls.isHidden=true; depthControls.isHidden=true; selectedEntrance=nil; portalDrag=nil; portalPinch=nil
+        for id in portalNodes.keys { renderPortal(id) }
         safetyOrigin=frame.camera.transform.columns.3.xyz
         world.player=(simd_inverse(root.simdTransform)*SIMD4<Float>(safetyOrigin,1)).xyz
         verificationMode=test; verificationIDs=[]; sawAway=false; returned=false; awayTime=0
@@ -321,7 +448,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     @objc private func exitGame() {
         firing=false; roomCapture?.stop(); roomCapture=nil; ar.session.pause()
-        world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; nodes.removeAll(); portalNodes=[]
+        world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; nodes.removeAll(); portalNodes=[:]; portalPlacements=[:]; selectedEntrance=nil
         gun?.removeFromParentNode(); gun=nil; UIApplication.shared.isIdleTimerDisabled=false
         if let onExit=onExit {
             clock?.invalidate(); clock=nil
@@ -343,7 +470,12 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         guard phase != "lobby", let frame=ar.session.currentFrame else{return}
         if case .normal=frame.camera.trackingState { readyTracking = !sessionFailed } else { readyTracking=false }
         if let id=originAnchor?.identifier, let anchor=frame.anchors.first(where:{$0.identifier == id}) { root.simdTransform=anchor.transform }
-        if phase == "scan" { hint.text=readyTracking ? (originAnchor == nil ? "Aim at the floor · tap Mark floor" : "Aim at a recognized surface · tap Place portal") : "Scanning · slowly move the phone in a well-lit area"; return }
+        if phase == "scan" {
+            if !readyTracking { portalDrag=nil; portalPinch=nil; hint.text="Tracking paused · slowly look at the scanned room. Portals stay locked." }
+            else if selectedEntrance != nil { refreshPortalEditor() }
+            else { hint.text=originAnchor == nil ? "Aim at the floor · tap Mark floor" : "Choose Air for a floating portal, or aim at a recognized surface." }
+            return
+        }
         guard phase == "combat" else{return}
         guard readyTracking else { pause("Tracking is limited. Stand still, improve lighting, and slowly look at the scanned room. Enemies are frozen until you resume."); return }
         let camera=frame.camera.transform, position=camera.columns.3.xyz

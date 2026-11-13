@@ -8,7 +8,7 @@ objects = []
 def obj(name, content):
     objects.append(f'{uid(name)} = {{ {content} }};')
     return uid(name)
-files = ['Sources/App.swift','Sources/World.swift','Sources/GameViewController.swift','zap.wav']
+files = ['Sources/App.swift','Sources/World.swift','Sources/PortalPlacement.swift','Sources/GameViewController.swift','zap.wav']
 for f in files:
     obj('ref'+f, f'isa = PBXFileReference; lastKnownFileType = {"sourcecode.swift" if f.endswith("swift") else "audio.wav"}; path = "{f}"; sourceTree = "<group>";')
     obj('build'+f, f'isa = PBXBuildFile; fileRef = {uid("ref"+f)};')
