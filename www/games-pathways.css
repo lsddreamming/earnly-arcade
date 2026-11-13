@@ -1,0 +1,27 @@
+/* Game discovery by session length; isolate from gameplay and rewards. */
+body.games-dashboard .games-paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:5px 0 14px}
+body.games-dashboard .games-paths .game-path{display:flex;position:relative;align-items:center;gap:13px;width:100%;min-width:0;min-height:125px;padding:16px;border:1px solid #416d87;border-radius:17px;color:#f5fbff;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+body.games-dashboard .games-paths .game-path-quick{background:linear-gradient(135deg,#133b4b,#143047 72%,#17243e)}
+body.games-dashboard .games-paths .game-path-deep{background:linear-gradient(135deg,#35254f,#242954 72%,#15384c);border-color:#685483}
+body.games-dashboard .games-paths .game-path.active{border-color:#a0f4e9;box-shadow:inset 0 0 0 1px #a0f4e9,0 0 0 2px #163c43}
+body.games-dashboard .games-paths .game-path:focus-visible{outline:3px solid #e5fffb;outline-offset:3px}
+@media(hover:hover){body.games-dashboard .games-paths .game-path:hover{transform:translateY(-2px);border-color:#a0f4e9}}
+body.games-dashboard .games-paths .game-path-icon{flex:none;display:grid;place-items:center;width:54px;height:54px;border-radius:15px;background:#ffffff15;font-size:28px}
+body.games-dashboard .games-paths .game-path-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;line-height:1.25}
+body.games-dashboard .games-paths .game-path-copy strong{font-size:clamp(16px,2vw,21px);line-height:1.1;letter-spacing:-.3px}
+body.games-dashboard .games-paths .game-path-duration{color:#b7fcf3;font-size:13px;font-weight:800}
+body.games-dashboard .games-paths .game-path-deep .game-path-duration{color:#e1c9ff}
+body.games-dashboard .games-paths .game-path-description{color:#d6e5f3;font-size:12px;line-height:1.4}
+body.games-dashboard .games-paths .game-path-arrow{flex:none;font-size:30px;color:#d6fbf7}
+body.games-dashboard #games .game-session-label{display:inline;padding:2px 7px;margin-right:7px;border-radius:8px;border:1px solid #579bad;background:#123b48;color:#b6f4f2;font-size:10px;font-weight:800;white-space:nowrap;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+body.games-dashboard #games .game-session-label.deep{background:#39274a;border-color:#88709d;color:#efd0ff}
+@media(max-width:599px){
+ body.games-dashboard .games-paths{grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:10px}
+ body.games-dashboard .games-paths .game-path{min-height:84px;padding:10px 12px;gap:11px;border-radius:14px}
+ body.games-dashboard .games-paths .game-path-icon{width:42px;height:42px;font-size:22px;border-radius:11px}
+ body.games-dashboard .games-paths .game-path-copy strong{font-size:17px}
+ body.games-dashboard .games-paths .game-path-duration{font-size:12px}
+ body.games-dashboard .games-paths .game-path-description{font-size:11px}
+ body.games-dashboard .games-paths .game-path-arrow{font-size:25px}
+}
+@media(prefers-reduced-motion:reduce){body.games-dashboard .games-paths .game-path{transition:none}}
