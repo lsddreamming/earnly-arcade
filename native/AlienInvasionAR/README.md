@@ -1,6 +1,8 @@
 # Alien Invasion AR — Earnly Arcade playtest
 
-The user-facing target is a small optional game inside the existing **Earnly Arcade** iOS app (`com.earnly.arcade`), distributed through its existing TestFlight record. Do not create a separate Apple app record. The standalone Xcode project below is only a developer harness.
+The user-facing target is an **iPhone-only** small optional game inside the existing **Earnly Arcade** iOS app (`com.earnly.arcade`), distributed through its existing TestFlight record. Do not create a separate Apple app record. The standalone Xcode project below is only a developer harness.
+
+The native bridge rejects iPad, Mac, Mac Catalyst and simulator launches before camera access. iPhone Safari retains the explicitly labeled camera-overlay preview; its desktop/tablet entry is blocked. True room tracking remains native-only.
 
 The game has no ads, accounts, purchases, coins, network requests, camera recording, or uploads. Minimum iOS 17 and a physical ARKit-capable iPhone. RoomPlan is optional and gated by `RoomCaptureSession.isSupported`. Earnly's existing features are unchanged.
 

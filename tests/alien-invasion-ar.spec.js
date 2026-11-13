@@ -1,4 +1,6 @@
-const {test,expect,chromium}=require('@playwright/test');
+const {test,expect,chromium,devices}=require('@playwright/test');
+test.describe('iPhone browser camera preview',()=>{
+test.use({userAgent:devices['iPhone 14'].userAgent});
 test('camera is requested only after Play and denied permission is recoverable',async({page})=>{
   await page.addInitScript(()=>{window.cameraRequests=0;Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>{window.cameraRequests++;throw new DOMException('denied','NotAllowedError');}},configurable:true});});
   await page.goto('/alien-invasion-ar.html');
@@ -11,10 +13,26 @@ test('camera is requested only after Play and denied permission is recoverable',
   await page.getByRole('button',{name:'Exit to start'}).click();
   await expect(page.getByRole('button',{name:'Play with my camera'})).toBeVisible();
 });
+});
+for(const device of ['Desktop Chrome','iPad (gen 7)']){
+  test(device+' cannot start the game or request camera access',async({browser})=>{
+    const context=await browser.newContext({userAgent:devices[device].userAgent});
+    const page=await context.newPage();
+    try{
+      await page.addInitScript(()=>{window.cameraRequests=0;Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>{window.cameraRequests++;throw new Error('Camera must remain unused');}},configurable:true});});
+      await page.goto('http://127.0.0.1:4173/alien-invasion-ar.html');
+      await expect(page.getByRole('heading',{name:'Bring your iPhone.'})).toBeVisible();
+      await expect(page.getByRole('button',{name:'Play with my camera'})).toBeHidden();
+      await page.keyboard.press('Space');
+      expect(await page.evaluate(()=>window.cameraRequests)).toBe(0);
+      expect(await page.locator('video').evaluate(v=>v.srcObject)).toBeNull();
+    }finally{await context.close();}
+  });
+}
 test('real media API with Chromium synthetic device: portals, fire, switch, pause, restart and stop tracks',async({},testInfo)=>{
   test.skip(testInfo.project.name!=='desktop-chromium','Chromium fake camera is a CI device, not physical iPhone validation');
   const browser=await chromium.launch({args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
-  const context=await browser.newContext({viewport:{width:390,height:844},permissions:['camera']});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const context=await browser.newContext({userAgent:devices['iPhone 14'].userAgent,viewport:{width:390,height:844},permissions:['camera']});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const requests=[];page.on('request',r=>requests.push({url:r.url(),method:r.method()}));
   try{
     await page.goto('http://127.0.0.1:4173/alien-invasion-ar.html');await page.getByRole('button',{name:'Play with my camera'}).click();

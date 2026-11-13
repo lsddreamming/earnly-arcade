@@ -1,5 +1,10 @@
 (()=>{
 'use strict';
+// iPhone Safari remains playable; computers and tablets never start the game
+// or request camera access. Native room tracking has its own hardware gate.
+if(!/\biPhone\b/i.test(navigator.userAgent))return;
+document.getElementById('phoneOnly').hidden=true;
+document.getElementById('intro').hidden=false;
 const $=id=>document.getElementById(id), canvas=$('scene'), c=canvas.getContext('2d'), video=$('camera');
 const {Game,types}=window.AlienDemo, game=new Game();
 let w=innerWidth,h=innerHeight,dpr=1,stream=null,epoch=0,phase='intro',previous=0,aim={x:w*.5,y:h*.45},held=false,recoil=0,flash=0,particles=[],traces=[],sound=null,muted=false,oldHealth=100,needsCamera=false,lastWave=1,modalKind='pause';
@@ -77,7 +82,7 @@ canvas.addEventListener('pointerdown',e=>{if(phase==='setup'){const p=point(e);g
 canvas.addEventListener('pointermove',e=>{if(phase==='playing'&&e.buttons){aim=point(e);}});
 $('fire').addEventListener('pointerdown',e=>{if(phase!=='playing')return;e.preventDefault();audio();$('fire').setPointerCapture(e.pointerId);held=true;shoot();});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])$('fire').addEventListener(event,()=>held=false);
-$('play').onclick=play;$('defend').onclick=defend;$('clear').onclick=()=>{game.portals=[];updatePortals();};$('pause').onclick=()=>pause();$('exit').onclick=home;$('home').onclick=()=>modalKind==='info'?show('modal',false):home();$('resume').onclick=resume;$('restart').onclick=()=>{if(stream)defend();else play();};$('reload').onclick=()=>{game.beginReload();$('hint').textContent='Reloading energy cells…';};$('weapon').onclick=()=>{game.changeWeapon();updateHUD();};$('nativeInfo').onclick=()=>modal('True room tracking','The separate native iPhone prototype uses ARKit world anchors, 3D enemies and optional RoomPlan scanning. It needs installation from Xcode on a Mac.\n\nPhysical room tracking and the 180° turn test have not yet been verified. This browser demo cannot perform that test.','info');
+$('play').onclick=play;$('defend').onclick=defend;$('clear').onclick=()=>{game.portals=[];updatePortals();};$('pause').onclick=()=>pause();$('exit').onclick=home;$('home').onclick=()=>modalKind==='info'?show('modal',false):home();$('resume').onclick=resume;$('restart').onclick=()=>{if(stream)defend();else play();};$('reload').onclick=()=>{game.beginReload();$('hint').textContent='Reloading energy cells…';};$('weapon').onclick=()=>{game.changeWeapon();updateHUD();};$('nativeInfo').onclick=()=>modal('True room tracking','The room-tracked game runs inside the Earnly Arcade iPhone app, using ARKit world anchors, 3D enemies and optional RoomPlan scanning. Its TestFlight build is being prepared.\n\nPhysical room tracking and the 180° turn test have not yet been verified. This browser demo cannot perform that test.','info');
 document.addEventListener('visibilitychange',()=>{if(document.hidden){pause('App switched. Tap Resume to reconnect your camera.');if(phase==='setup'){home();return;}needsCamera=true;stopCamera();}});addEventListener('pagehide',home);addEventListener('blur',()=>pause());addEventListener('resize',resize);
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&phase==='playing'){e.preventDefault();held=true;}if(e.code==='KeyR')game.beginReload();if(e.code==='KeyQ'){game.changeWeapon();updateHUD();}if(e.code==='Escape')pause();});document.addEventListener('keyup',e=>{if(e.code==='Space')held=false;});
 function frame(now){const dt=Math.min(.04,previous?(now-previous)/1000:0);previous=now;c.clearRect(0,0,w,h);
