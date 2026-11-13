@@ -3,12 +3,14 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const out=resolve(process.argv[2]||'dist/spuddy-defense-preview');
 await mkdir(out,{recursive:true});
-const externalLinks=html=>html.replace(/href="(games|account|game-guides|support|privacy|terms)\.html"/g,'href="https://earnlyarcade.com/$1.html"');
+const externalLinks=html=>html.replace(/href="(index|games|about|account|game-guides|support|privacy|terms)\.html"/g,'href="https://earnlyarcade.com/$1.html"');
 let html=(await readFile('spuddy-defense.html','utf8'))
  .replace('<html lang="en">','<html lang="en" data-practice>')
  .replace('<script src="crystal-command-vendor.js"></script>','');
 await writeFile('spuddy-defense-preview.html',externalLinks(html));
-const css=(await readFile('spuddy-defense.css','utf8')).replace("@import url('public-info.css');",'');
+const css=await readFile('spuddy-defense.css','utf8');
+const publicCss=await readFile('public-info.css','utf8');
+html=html.replace('<link rel="stylesheet" href="public-info.css">',()=>'<style>'+publicCss+'</style>');
 html=html.replace('<link rel="stylesheet" href="spuddy-defense.css">',()=>'<style>'+css+'</style>');
 const cover='data:image/webp;base64,'+(await readFile('game-preview-spuddy-defense.webp')).toString('base64');
 html=html.replaceAll('game-preview-spuddy-defense.webp',()=>cover);
