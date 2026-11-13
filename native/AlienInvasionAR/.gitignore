@@ -1,0 +1,5 @@
+.build/
+DerivedData/
+AlienInvasionAR.xcodeproj/
+Info.plist
+zap.wav

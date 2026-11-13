@@ -1,0 +1,31 @@
+name: Alien Invasion AR prototype
+on:
+  pull_request:
+    paths: ['native/AlienInvasionAR/**', 'alien-invasion-ar*', 'tests/alien-invasion-ar*', '.github/workflows/alien-invasion-ar.yml']
+  workflow_dispatch:
+jobs:
+  native-prototype:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test 3D simulation and offscreen persistence
+        working-directory: native/AlienInvasionAR
+        run: swift test
+      - name: Generate isolated Xcode project
+        run: python3 native/AlienInvasionAR/generate-project.py
+      - name: Compile prototype for physical iPhone SDK (unsigned)
+        run: >-
+          xcodebuild -project native/AlienInvasionAR/AlienInvasionAR.xcodeproj
+          -scheme AlienInvasionAR -configuration Debug -sdk iphoneos
+          -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO
+          -derivedDataPath native/AlienInvasionAR/DerivedData build
+      - name: Package source for Mac and device testing
+        run: |
+          cd native/AlienInvasionAR
+          zip -r ../../Alien-Invasion-AR-Xcode.zip Sources Tests Package.swift generate-project.py AlienInvasionAR.xcodeproj Info.plist zap.wav README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Alien-Invasion-AR-Xcode
+          path: Alien-Invasion-AR-Xcode.zip
+          retention-days: 14
