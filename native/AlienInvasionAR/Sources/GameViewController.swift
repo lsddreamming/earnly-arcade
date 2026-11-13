@@ -212,7 +212,13 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
               let result=ar.session.raycast(q).first, let plane=result.anchor as? ARPlaneAnchor else { hint.text="No recognized surface here yet. Move the phone slowly, or choose Air after marking the floor."; return }
         let y=result.worldTransform.columns.3.y, cameraY=frame.camera.transform.columns.3.y
         if originAnchor == nil {
-            guard plane.classification == .floor || (plane.classification == ARPlaneAnchor.Classification.none && y < cameraY-0.7) else { hint.text="Aim at a clear floor below you. Tables and other classified surfaces cannot be the floor."; return }
+            switch plane.classification {
+            case .floor: break
+            case .none(_) where y < cameraY-0.7: break
+            default:
+                hint.text="Aim at a clear floor below you. Tables and other classified surfaces cannot be the floor."
+                return
+            }
             setOrigin(at:result.worldTransform.columns.3.xyz)
             hint.text="Floor confirmed. Choose Air to place a floating portal, or aim at a wall, doorway or window."
             placeButton.setTitle("Place portal",for:.normal); typeButton.isEnabled=true
