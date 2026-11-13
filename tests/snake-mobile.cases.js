@@ -331,7 +331,7 @@ test('Unlimited account keeps plays available across every game without a tester
   await expect(page.locator('body')).not.toContainText('Private tester access');
   // Featured cards rotate. Check unrestricted play from the full catalog.
   await page.locator('[data-filter=all]').click();
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(29);
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(30);
   const snake = page.locator('[data-game="snake"]');
   await expect(snake.locator('.game-play-button')).toContainText('Play');
   await expect(snake.locator('.game-play-button')).toHaveAttribute('href','snake.html');
@@ -343,7 +343,7 @@ test('Normal account still runs out of plays normally', async ({page}) => {
   await page.goto('/games.html');
   // Exhausted plays must remain visible even when Snake is not featured.
   await page.locator('[data-filter=all]').click();
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(29);
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(30);
   const snake = page.locator('[data-game="snake"]');
   await expect(snake.locator('.play-pill')).toHaveCount(0);
   await expect(snake).toContainText('More plays tomorrow');

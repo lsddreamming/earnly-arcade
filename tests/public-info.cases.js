@@ -12,7 +12,9 @@ test('every public page has working static information links, including the web 
       const footer = html.match(/<footer class="public-footer"[\s\S]*?<\/footer>/)?.[0];
       expect(footer, prefix + file).toBeTruthy();
       for (const target of ['index.html', 'games.html', 'about.html', 'game-guides.html', 'support.html', 'privacy.html', 'terms.html']) {
-        expect(footer, prefix + file).toContain('href="' + target + '"');
+        // The standalone practice entry links back to the real site from its preview host.
+        const site = file === 'spuddy-defense-preview.html' ? 'https://earnlyarcade.com/' : '';
+        expect(footer, prefix + file).toContain('href="' + site + target + '"');
         expect(fs.existsSync(path.join(root, prefix, target)), prefix + target).toBeTruthy();
       }
       expect(html, prefix + file).toContain('href="public-info.css"');
@@ -20,10 +22,10 @@ test('every public page has working static information links, including the web 
   }
 });
 
-test('all 24 guides have valid play destinations and meaningful controls and strategy', async ({ page }) => {
+test('all 25 guides have valid play destinations and meaningful controls and strategy', async ({ page }) => {
   await page.goto('/game-guides.html');
   const guides = page.locator('.game-reference');
-  await expect(guides).toHaveCount(24);
+  await expect(guides).toHaveCount(25);
   const links = await page.locator('.guide-index a').evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
   for (const href of links) await expect(page.locator(href)).toHaveCount(1);
   for (const guide of await guides.all()) {
@@ -42,7 +44,7 @@ test('public pages remain navigable without JavaScript', async ({ browser }) => 
   await page.locator('.public-footer').getByRole('link', { name:'About', exact:true }).click();
   await expect(page.getByRole('heading', { name:'About Earnly Arcade', exact:true })).toBeVisible();
   await page.locator('.public-footer').getByRole('link', { name:'Game Guides', exact:true }).click();
-  await expect(page.locator('.game-reference')).toHaveCount(24);
+  await expect(page.locator('.game-reference')).toHaveCount(25);
   await context.close();
 });
 
