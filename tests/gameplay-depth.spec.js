@@ -53,8 +53,9 @@ for(const prefix of ['/','/www/']){
     const dialog=page.locator('dialog.game-result-dialog');await expect(dialog).toBeVisible();
     expect(await page.evaluate(()=>depthAwards)).toEqual([{amount:await page.evaluate(()=>Arcade.gameReward('shapeFit',1)),evidence:{kind:'game',game:'shapeFit',metric:1}}]);
     await page.clock.runFor(20000);expect(await page.evaluate(()=>depthAwards.length)).toBe(1);
-    await dialog.getByRole('button',{name:/Play Again/}).click();await page.clock.runFor(50);
-    await expect(page.locator('#score')).toHaveText('0');await expect(page.locator('.fit-stage small')).toContainText('3 of 3 lives');expect(errors).toEqual([]);
+    await dialog.getByRole('button',{name:/Play Again/}).click();
+    // The native dialog close event schedules replay on a later animation frame.
+    await expect.poll(async()=>{await page.clock.runFor(50);return page.locator('#score').textContent();}).toBe('0');await expect(page.locator('.fit-stage small')).toContainText('3 of 3 lives');expect(errors).toEqual([]);
   });
   test('Lane Runner steering, interrupted gestures and play time survive pause '+prefix,async({page})=>{
     const errors=await open(page,prefix+'lanerunner.html');
