@@ -757,7 +757,7 @@
 function revealHomeTarget(){
   let id;try{id=decodeURIComponent(location.hash.slice(1));}catch{return;}
   const target=document.getElementById(id);if(!target)return;
-  for(let parent=target.parentElement;parent;parent=parent.parentElement){if(parent.tagName==='DETAILS')parent.open=true;}
+  for(let parent=target;parent;parent=parent.parentElement){if(parent.tagName==='DETAILS')parent.open=true;}
   if(id)target.scrollIntoView({block:'center'});
 }
 window.addEventListener('hashchange',revealHomeTarget);revealHomeTarget();
