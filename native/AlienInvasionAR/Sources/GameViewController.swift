@@ -212,7 +212,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
               let result=ar.session.raycast(q).first, let plane=result.anchor as? ARPlaneAnchor else { hint.text="No recognized surface here yet. Move the phone slowly, or choose Air after marking the floor."; return }
         let y=result.worldTransform.columns.3.y, cameraY=frame.camera.transform.columns.3.y
         if originAnchor == nil {
-            guard plane.classification == .floor || (plane.classification == .none && y < cameraY-0.7) else { hint.text="Aim at a clear floor below you. Tables and other classified surfaces cannot be the floor."; return }
+            guard plane.classification == .floor || (plane.classification == ARPlaneAnchor.Classification.none && y < cameraY-0.7) else { hint.text="Aim at a clear floor below you. Tables and other classified surfaces cannot be the floor."; return }
             setOrigin(at:result.worldTransform.columns.3.xyz)
             hint.text="Floor confirmed. Choose Air to place a floating portal, or aim at a wall, doorway or window."
             placeButton.setTitle("Place portal",for:.normal); typeButton.isEnabled=true
@@ -347,8 +347,13 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             portalDrag=(hit.id,p,hit.point,corner)
         } else if gesture.state == .changed,let start=portalDrag {
             if let corner=start.corner,let hit=start.placement.intersection(origin:ray.origin,direction:ray.direction) {
-                let originalCorner=start.placement.center+start.placement.right*corner.x*start.placement.width/2+start.placement.up*corner.y*start.placement.height/2
-                if let resized=start.placement.resized(corner:corner,point:hit+originalCorner-start.grab) { applyPortal(start.id,resized) }
+                let halfWidth:Float=corner.x*start.placement.width/2
+                let halfHeight:Float=corner.y*start.placement.height/2
+                let horizontal:V3=start.placement.right*halfWidth
+                let vertical:V3=start.placement.up*halfHeight
+                let originalCorner:V3=start.placement.center+horizontal+vertical
+                let adjustedTouch:V3=originalCorner+(hit-start.grab)
+                if let resized=start.placement.resized(corner:corner,point:adjustedTouch) { applyPortal(start.id,resized) }
             } else if start.corner == nil,let moved=start.placement.moved(grab:start.grab,origin:ray.origin,direction:ray.direction) { applyPortal(start.id,moved) }
         } else if gesture.state == .ended || gesture.state == .cancelled || gesture.state == .failed { portalDrag=nil }
     }
