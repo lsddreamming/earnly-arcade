@@ -2852,7 +2852,9 @@ for (const prefix of ['/', '/www/']) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       for (const card of await cards.all()) {
         const play = await card.locator('.game-play-button').boundingBox();
-        expect(play.height).toBeGreaterThanOrEqual(44);
+        // DOM rectangles can report 43.999969px for a rendered 44px button.
+        // Ignore only sub-hundredth-pixel rounding; retain the 44px target.
+        expect(Math.round(play.height * 100) / 100).toBeGreaterThanOrEqual(44);
       }
     }
     const destination = await cards.first().locator('.game-play-button[href]').getAttribute('href');

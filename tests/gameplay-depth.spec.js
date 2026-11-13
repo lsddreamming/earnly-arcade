@@ -111,6 +111,8 @@ test('Lane Runner perspective road and steering fit phones and landscape',async(
     await page.setViewportSize(size);await page.clock.runFor(50);
     const boxes=await checkFits(page,['#game','#laneLeft','#laneRight','#earnlyPauseButton','#earnlyQuitButton']);
     expect(boxes[0].h).toBeGreaterThan(250);for(const b of boxes.slice(1)){expect(b.w).toBeGreaterThanOrEqual(44);expect(b.h).toBeGreaterThanOrEqual(44);}
+    const labels=await page.locator('.game-meta .meta-pill, #gameStatus').evaluateAll(nodes=>nodes.map(el=>({text:el.textContent,font:parseFloat(getComputedStyle(el).fontSize),width:el.clientWidth,scroll:el.scrollWidth})));
+    for(const label of labels){expect(label.font,label.text).toBeGreaterThanOrEqual(11);expect(label.scroll,label.text).toBeLessThanOrEqual(label.width+1);}
     await page.screenshot({path:test.info().outputPath('gameplay-depth-lane-'+size.width+'.png')});
   }
   expect(errors).toEqual([]);
