@@ -1,9 +1,9 @@
 const {test,expect}=require('@playwright/test');
 const deep=['bubblePop','crystalCommand','neonBreach','spuddyTurf','harborGetaway','spuddyEvolution','bigFishEnergy'];
 for(const prefix of ['/','/www/']){
- for(const width of [320,390,1024]){
+ for(const [width,height] of [[320,568],[390,844],[1024,844]]){
   test(`games paths and search ${prefix} ${width}px`,async({page,baseURL})=>{
-   await page.setViewportSize({width,height:844});
+   await page.setViewportSize({width,height});
    await page.route('**/functions/v1/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":"QA_OFFLINE"}'}));
    await page.route('**/rest/v1/**',route=>route.abort());
    await page.route('**/auth/v1/**',route=>route.abort());
@@ -11,6 +11,17 @@ for(const prefix of ['/','/www/']){
    const quick=page.locator('[data-path="short-session"]'),big=page.locator('[data-path="deep-session"]');
    await expect(quick).toBeVisible();await expect(big).toBeVisible();
    await expect(page.locator('#games.starter-grid .catalog-tile')).toHaveCount(4);
+   if(width<600){
+    const play=page.locator('#games .catalog-tile').first().locator('.game-play-button');
+    const bounds=await play.boundingBox();
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
+    expect(bounds.y+bounds.height).toBeLessThanOrEqual(height-64);
+    const choices=await page.locator('#gamePlayPaths button').evaluateAll(buttons=>buttons.map(button=>{
+     const rect=button.getBoundingClientRect();return {top:rect.top,bottom:rect.bottom,height:rect.height};
+    }));
+    expect(choices[0].top).toBe(choices[1].top);
+    expect(choices.every(choice=>choice.height>=44&&choice.bottom<height-64)).toBe(true);
+   }
    await big.click();
    await expect(big).toHaveAttribute('aria-pressed','true');
    let keys=await page.locator('#games .catalog-tile').evaluateAll(cards=>cards.map(card=>card.dataset.game));

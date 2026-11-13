@@ -158,7 +158,8 @@ for (const width of [320, 390, 440]) {
       await page.locator('[data-filter=all]').click();
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(29);
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
-      await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
+      await expect(page.locator('[data-game="snake"] .game-session-label')).toHaveText('⚡ Quick play');
+      await expect(page.locator('[data-game="snake"] .game-reward-copy')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
       await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
       const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
       expect(order.slice(-5)).toEqual(['crystalCommand', 'bubblePop', 'harborGetaway', 'spuddyEvolution', 'bigFishEnergy']);

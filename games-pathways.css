@@ -16,12 +16,17 @@ body.games-dashboard .games-paths .game-path-arrow{flex:none;font-size:30px;colo
 body.games-dashboard #games .game-session-label{display:inline;padding:2px 7px;margin-right:7px;border-radius:8px;border:1px solid #579bad;background:#123b48;color:#b6f4f2;font-size:10px;font-weight:800;white-space:nowrap;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 body.games-dashboard #games .game-session-label.deep{background:#39274a;border-color:#88709d;color:#efd0ff}
 @media(max-width:599px){
- body.games-dashboard .games-paths{grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:10px}
- body.games-dashboard .games-paths .game-path{min-height:84px;padding:10px 12px;gap:11px;border-radius:14px}
- body.games-dashboard .games-paths .game-path-icon{width:42px;height:42px;font-size:22px;border-radius:11px}
- body.games-dashboard .games-paths .game-path-copy strong{font-size:17px}
+ /* Keep both choices and a complete Play card in a small phone's first view. */
+ body.games-dashboard .games-hero{padding:2px 2px 4px!important}
+ body.games-dashboard .games-hero h1{font-size:21px!important;margin:4px 0!important}
+ body.games-dashboard .games-hero h1 span{display:inline!important}
+ body.games-dashboard .games-hero p{display:none}
+ body.games-dashboard .games-paths{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:4px 0 6px}
+ body.games-dashboard .games-paths .game-path{min-height:68px;padding:8px;gap:0;border-radius:14px}
+ body.games-dashboard .games-paths .game-path-icon,
+ body.games-dashboard .games-paths .game-path-description,
+ body.games-dashboard .games-paths .game-path-arrow{display:none}
+ body.games-dashboard .games-paths .game-path-copy strong{font-size:14px}
  body.games-dashboard .games-paths .game-path-duration{font-size:12px}
- body.games-dashboard .games-paths .game-path-description{font-size:11px}
- body.games-dashboard .games-paths .game-path-arrow{font-size:25px}
 }
 @media(prefers-reduced-motion:reduce){body.games-dashboard .games-paths .game-path{transition:none}}
