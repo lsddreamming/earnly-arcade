@@ -346,8 +346,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             let corner:SIMD2<Float>? = abs(x)>p.width*0.33 && abs(y)>p.height*0.33 ? SIMD2<Float>(x<0 ? -1:1,y<0 ? -1:1) : nil
             portalDrag=(hit.id,p,hit.point,corner)
         } else if gesture.state == .changed,let start=portalDrag {
-            if let corner=start.corner,let hit=start.placement.intersection(origin:ray.origin,direction:ray.direction),let resized=start.placement.resized(corner:corner,point:hit) {
-                applyPortal(start.id,resized)
+            if let corner=start.corner,let hit=start.placement.intersection(origin:ray.origin,direction:ray.direction) {
+                let originalCorner=start.placement.center+start.placement.right*corner.x*start.placement.width/2+start.placement.up*corner.y*start.placement.height/2
+                if let resized=start.placement.resized(corner:corner,point:hit+originalCorner-start.grab) { applyPortal(start.id,resized) }
             } else if start.corner == nil,let moved=start.placement.moved(grab:start.grab,origin:ray.origin,direction:ray.direction) { applyPortal(start.id,moved) }
         } else if gesture.state == .ended || gesture.state == .cancelled || gesture.state == .failed { portalDrag=nil }
     }
