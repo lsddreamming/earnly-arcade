@@ -5,6 +5,14 @@ func dot(_ a: V3, _ b: V3) -> Float { a.x*b.x + a.y*b.y + a.z*b.z }
 func length(_ a: V3) -> Float { sqrt(dot(a,a)) }
 func normalized(_ a: V3) -> V3 { a / max(0.0001, length(a)) }
 
+/// Camera displacement includes the arc of an outstretched arm while the player
+/// turns in place. This allowance is not body tracking or permission to walk.
+func isWithinStationaryCombatArea(_ position: V3, origin: V3) -> Bool {
+    let delta = position - origin
+    let cameraAllowance: Float = 1.25
+    return delta.x*delta.x + delta.z*delta.z < cameraAllowance*cameraAllowance
+}
+
 enum AlienKind: Int, CaseIterable {
     case runner, armor, brute, flyer
     var hp: Float { [2, 5, 10, 3][rawValue] }

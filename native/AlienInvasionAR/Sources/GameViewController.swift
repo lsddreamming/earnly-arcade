@@ -187,7 +187,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         else if phase == "paused" {
             guard readyTracking, !sessionFailed, let frame=ar.session.currentFrame else { bodyLabel.text="Tracking is not ready. Slowly look at the scanned area, or restart the scan."; return }
             let p=frame.camera.transform.columns.3.xyz
-            guard horizontalDistance(p,safetyOrigin)<0.7 else { bodyLabel.text="The phone moved outside the starting area. Restart the scan from a clear stationary spot."; return }
+            guard isWithinStationaryCombatArea(p,origin:safetyOrigin) else { bodyLabel.text="The phone moved outside the starting area. Restart the scan from a clear stationary spot."; return }
             phase="combat"; world.paused=false; root.isPaused=false; card.isHidden=true
         }
     }
@@ -476,7 +476,6 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         guard let self=self else{return}; self.sessionFailed=true; self.readyTracking=false
         self.pause("AR tracking failed. Restart scan to recover."); self.hint.text="AR unavailable: \(error.localizedDescription)"
     } }
-    private func horizontalDistance(_ a:V3,_ b:V3)->Float { length(V3(a.x-b.x,0,a.z-b.z)) }
     @objc private func tick(_ link:CADisplayLink) {
         let dt=Float(min(0.05,previous == 0 ? 0 : link.timestamp-previous)); previous=link.timestamp
         guard phase != "lobby", let frame=ar.session.currentFrame else{return}
@@ -491,7 +490,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         guard phase == "combat" else{return}
         guard readyTracking else { pause("Tracking is limited. Stand still, improve lighting, and slowly look at the scanned room. Enemies are frozen until you resume."); return }
         let camera=frame.camera.transform, position=camera.columns.3.xyz
-        guard horizontalDistance(position,safetyOrigin)<0.7 else { pause("You moved outside the starting spot. Combat paused. Restart from a clear stationary position."); return }
+        guard isWithinStationaryCombatArea(position,origin:safetyOrigin) else { pause("The phone moved outside the starting area. Combat paused. Restart from a clear stationary position."); return }
         let inverse=simd_inverse(root.simdTransform)
         world.player=(inverse*SIMD4<Float>(position,1)).xyz
         let direction=normalized((inverse*SIMD4<Float>(-camera.columns.2.xyz,0)).xyz)

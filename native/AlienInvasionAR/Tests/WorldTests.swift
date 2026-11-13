@@ -2,6 +2,15 @@ import XCTest
 @testable import InvasionCore
 
 final class WorldTests: XCTestCase {
+    func testMovementGuardAllowsArmHeldTurnAndRejectsLeavingArea() {
+        let origin = V3(0,1.6,-0.5)
+        // Phone held half a metre ahead, then rotated with the stationary player.
+        XCTAssertTrue(isWithinStationaryCombatArea(V3(0.5,1.6,0),origin:origin))
+        XCTAssertTrue(isWithinStationaryCombatArea(V3(0,1.6,0.5),origin:origin))
+        XCTAssertTrue(isWithinStationaryCombatArea(V3(0,2.1,-0.5),origin:origin))
+        XCTAssertFalse(isWithinStationaryCombatArea(V3(1.25,1.6,-0.5),origin:origin))
+        XCTAssertFalse(isWithinStationaryCombatArea(V3(1,1.6,0.5),origin:origin))
+    }
     func testTurnAwayWaitTurnBackRetainsThreeAliens() {
         let w = InvasionWorld(); w.spawned = w.waveTarget
         w.player = V3(0,1.5,0)

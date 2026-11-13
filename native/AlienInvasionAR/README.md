@@ -33,7 +33,7 @@ No Apple signing identity is embedded. An unsigned CI compilation is **not** an 
 - Ray/sphere 3D intersections hit the nearest alien along the physical camera aim direction. Four primitive 3D character types, two weapons, three waves, reload, score, health, defeat particles and positional audio are implemented.
 - Optional RoomPlan uses the same ARSession and stops with `pauseARSession:false`. RoomPlan supplies floor/door/window/wall suggestions. Ceiling suggestions require an actual ARKit ceiling classification; missing ceilings are not invented. Manual surface portals require recognized plane geometry. Floating portals take a single tracked pose when placed and then remain children of the world anchor, not of the camera.
 - Portal gestures cast touch rays into the fixed portal plane in anchor space. Opposite corners stay fixed while reshaping the opening. Width/height are bounded to 0.4–3m, and edited centers remain 0.8–8m from the phone. Explicit locks reject edits; all portals must be locked before combat. Air portals spawn flying aliens at their edited 3D position.
-- Tracking loss, interruptions and movement beyond 0.7m horizontally from the combat origin freeze combat until explicitly resumed. Session errors require a restart. Exiting stops camera capture.
+- Tracking loss, interruptions and camera movement of 1.25m or more horizontally from the combat origin freeze combat until explicitly resumed. The camera allowance accommodates turning in place with the phone held out; it does not track the player's body or permit walking. Session errors require a restart. Exiting stops camera capture.
 
 ## Mandatory physical acceptance test — not yet verified
 
@@ -50,6 +50,6 @@ Physical AR alignment, tracking recovery, actual camera permissions, frame rate,
 
 ## Checks
 
-`swift test` runs ten deterministic core tests, including turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
+`swift test` runs eleven deterministic core tests, including the movement guard during an arm-held turn, turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
 
 Apple references: [world tracking](https://developer.apple.com/documentation/arkit/understanding-world-tracking), [RoomPlan shared sessions](https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure), [ceiling classification](https://developer.apple.com/documentation/arkit/arplaneanchor/classification-swift.enum/ceiling).
