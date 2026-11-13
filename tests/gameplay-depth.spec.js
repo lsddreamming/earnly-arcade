@@ -9,7 +9,9 @@ async function open(page,path,{countdown=false}={}){
   await page.goto(path);
   await page.clock.pauseAt(new Date('2026-11-13T12:02:00Z'));
   if(!countdown)await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
-  await page.locator('#startButton').click();
+  // The phone entry screen starts from the visible board; desktop has a button.
+  if(await page.locator('#startButton').isVisible())await page.locator('#startButton').click();
+  else await page.locator('#surface, #game').first().click({position:{x:120,y:120}});
   if(!countdown)await page.clock.runFor(50);
   return errors;
 }
