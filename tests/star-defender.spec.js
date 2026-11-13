@@ -70,7 +70,10 @@ for(const viewport of [{width:320,height:568},{width:390,height:844},{width:440,
  await page.getByRole('button',{name:/Resume/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running');
  await page.keyboard.down('ArrowLeft');await page.waitForTimeout(100);await page.keyboard.up('ArrowLeft');
  expect((await page.evaluate(()=>starTest.state())).shipX).toBeLessThan(state.shipX);
- await page.locator('#earnlyQuitButton').click();await expect(page).toHaveURL(/games\.html/);expect(errors).toEqual([]);
+ await page.locator('#earnlyQuitButton').click();
+ await expect(page.locator('.earnly-quit-dialog')).toBeVisible();await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.getByRole('button',{name:'Quit Game',exact:true}).click();
+ await expect(page).toHaveURL(/games\.html/);expect(errors).toEqual([]);
 });
 
 test('Star Defender relative drag stays one-to-one after rotation and ignores canceled pointers',async({page})=>{
