@@ -1,0 +1,46 @@
+name: Spuddy Defense release checks
+on:
+  pull_request:
+    paths: ['spuddy-defense*', 'game-preview-spuddy-defense*', 'www/spuddy-defense*', 'scripts/*spuddy-defense*', 'tests/spuddy-defense*', 'supabase/functions/spuddy-defense/**', 'supabase/migrations/*spuddy_defense*', '.github/workflows/spuddy-defense.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: spuddy-defense-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  defense:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: macos-15-intel
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node --test scripts/test-spuddy-defense.cjs scripts/test-spuddy-defense-online.cjs
+      - run: node scripts/test-spuddy-defense-rewards.mjs
+      - run: node --experimental-strip-types --test scripts/test-spuddy-defense-handler.ts
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test tests/spuddy-defense.spec.js --project=${{ matrix.project }} --workers=2
+      - name: Package isolated practice preview
+        run: node scripts/build-spuddy-defense-preview.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spuddy-defense-${{ matrix.project }}
+          path: |
+            test-results/
+            playwright-report/
+            dist/spuddy-defense-preview/
+          retention-days: 14

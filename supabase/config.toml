@@ -28,3 +28,7 @@ verify_jwt = false
 [functions.big-fish-energy]
 # Public leaderboard reads; every run mutation validates its bearer with auth.getUser.
 verify_jwt = false
+
+[functions.spuddy-defense]
+# Leaderboards are public; mutations validate auth.getUser and replay every action.
+verify_jwt = false
