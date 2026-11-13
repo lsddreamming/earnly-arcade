@@ -11,91 +11,11 @@
   <link rel="icon" href="earnly-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
-  <style>
-    body.star-page{overscroll-behavior:none}
-    .star-page .star-board{display:block;width:min(94vw,390px,calc((100dvh - 245px)*.69));height:auto;margin:7px auto;border:2px solid #3a5e94;border-radius:19px;background:#060b1c;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 0 28px #2369e530,inset 0 0 32px #16336955}
-    .star-page .star-tip{text-align:center;color:#a9bbd6;font-size:12px;margin:5px auto 10px}
-    .star-page .page-header{padding:12px;margin:5px 0 7px}
-    .star-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-    .star-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
-    .star-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
-    /* iPhone/coarse-pointer override: the shared stylesheet hides #startButton on touch devices. */
-    .star-page #startButton{
-      display:block!important;width:min(94vw,390px)!important;margin:8px auto!important;
-      min-height:54px!important;font-size:16px!important;font-weight:900!important;
-      touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;
-      position:relative!important;z-index:60!important;
-    }
-    .star-page.game-active .topbar,.star-page.game-active #startButton,.star-page.game-active #starStartOverlay,.star-page.game-active #arcadeBottomNav,.star-page.game-active .star-tip,.star-page.game-active .back-games{display:none!important}
-    .star-page .game-guide-overlay{display:none!important}
-    .star-page .game-guide-surface-wrap{position:relative}
-    .star-page #starStartOverlay{
-      display:none!important;position:relative!important;inset:auto!important;z-index:30!important;
-      width:min(94vw,390px)!important;height:auto!important;min-height:58px!important;
-      margin:8px auto!important;padding:10px 14px!important;border-radius:16px!important;
-      flex-direction:row!important;gap:9px!important;background:linear-gradient(135deg,#075985,#1d4ed8)!important;
-      box-shadow:0 0 0 2px rgba(103,232,249,.42),0 10px 26px rgba(0,0,0,.28)!important;
-    }
-    .star-page #starStartOverlay strong{font-size:15px!important}
-    .star-page #starStartOverlay span{display:none!important}
-    .star-page #starStartOverlay b{margin:0!important;padding:0!important;border:0!important;background:transparent!important;font-size:15px!important;color:white!important}
-    .star-page.game-active #starStartOverlay{display:none!important}
-    .star-start-overlay{
-      position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
-      width:100%;height:100%;margin:0;padding:24px;border:0;border-radius:inherit;
-      background:linear-gradient(180deg,rgba(6,11,28,.42),rgba(6,11,28,.72));color:#fff;
-      touch-action:manipulation;-webkit-tap-highlight-color:transparent;cursor:pointer;
-    }
-    .star-start-overlay strong{font-size:26px;line-height:1.1;text-shadow:0 0 18px rgba(86,229,255,.45)}
-    .star-start-overlay span{margin-top:8px;color:#b8cae2;font-size:13px;font-weight:700}
-    .star-start-overlay b{margin-top:14px;padding:10px 16px;border:1px solid rgba(86,229,255,.55);border-radius:999px;background:rgba(37,99,235,.34);color:#dff8ff;font-size:13px}
-    .star-start-overlay:active{transform:scale(.995)}
 
-    /* Live-play compact mode: prioritize the board on iPhone. */
-    .star-page.game-active .compact-leaderboard-card,
-    .star-page.game-active .game-guide-strip,
-    .star-page.game-active .game-guide-more{display:none!important}
-    .star-page.game-active .page-header{
-      display:grid!important;
-      grid-template-columns:minmax(0,1fr) auto!important;
-      align-items:center!important;
-      gap:4px 6px!important;
-      margin:0!important;
-      padding:6px 8px!important;
-    }
-    .star-page.game-active .game-title-status-row{
-      grid-column:1!important;grid-row:1!important;
-      justify-content:flex-start!important;gap:6px!important;margin:0!important;
-    }
-    .star-page.game-active .game-title-status-row h1{
-      margin:0!important;font-size:18px!important;line-height:1.05!important;white-space:nowrap!important;
-    }
-    .star-page.game-active .title-status{
-      padding:4px 7px!important;font-size:10px!important;line-height:1!important;
-    }
-    .star-page.game-active #earnlyPauseButton{
-      grid-column:2!important;grid-row:1!important;
-      min-width:72px!important;min-height:30px!important;
-      margin:0!important;padding:5px 8px!important;font-size:11px!important;
-    }
-    .star-page.game-active .game-meta{
-      grid-column:1/-1!important;grid-row:2!important;
-      margin:0!important;gap:4px!important;
-    }
-    .star-page.game-active .meta-pill{
-      padding:5px 2px!important;min-height:0!important;font-size:10px!important;line-height:1.1!important;
-    }
-    .star-page.game-active .star-board{
-      width:min(94vw,390px,calc((100dvh - 132px)*.69))!important;
-      margin:3px auto!important;
-    }
-    .star-page.game-active main.container{padding-bottom:max(8px,env(safe-area-inset-bottom))}
-    @media(max-height:720px){.star-page .star-board{width:min(84vw,330px,calc((100dvh - 220px)*.69))}}
-  </style>
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/stardefender.html">
   <link rel="stylesheet" href="classic-game-ui.css?v=1">
-  <link rel="stylesheet" href="star-defender.css?v=2">
+  <link rel="stylesheet" href="star-defender.css?v=3">
 </head>
 <body class="classic-game-ui star-page">
   <main class="container">
@@ -104,9 +24,9 @@
       <div class="game-title-status-row"><h1>👾 Star Defender</h1><span class="game-status title-status" id="gameStatus">Ready</span></div>
       <div class="game-meta">
         <span class="meta-pill">Score: <span id="score">0</span></span>
-        <span class="meta-pill">❤️ <span id="lives">3</span></span>
-        <span class="meta-pill">🪙 <span id="coins">0</span></span>
-        <span class="meta-pill">🎟️ <span id="plays">0</span></span>
+        <span class="meta-pill">Hull: <span id="lives">3</span></span>
+        <span class="meta-pill">Coins: <span id="coins">0</span></span>
+        <span class="meta-pill star-plays">Plays: <span id="plays">0</span></span>
       </div>
     </header>
     <button class="green wide" id="startButton" type="button" aria-label="Tap to start Star Defender">▶ TAP TO START</button>
@@ -118,7 +38,16 @@
       <progress id="starUnlockProgress" aria-label="Next ship color progress" max="20" value="0"></progress>
       <small class="star-local-note">Cosmetic colors &amp; flight log · saved on this device</small>
     </section>
-    <canvas id="game" class="star-board touch-surface" width="330" height="480" aria-label="Star Defender alien shooter game board"></canvas>
+    <canvas id="game" class="star-board touch-surface" width="330" height="480" tabindex="0" aria-label="Star Defender alien shooter game board"></canvas>
+    <div id="starMission" class="star-mission" aria-label="Current flight mission">
+      <div><strong id="starWave">Wave 1</strong><span id="starTime">45s</span></div>
+      <progress id="starTimeProgress" aria-label="Flight time remaining" max="45" value="45"></progress>
+    </div>
+    <div id="starNotice" class="star-notice" role="status" aria-live="polite"></div>
+    <div id="starControls" class="star-controls">
+      <div class="star-combat-info"><strong id="starPower">5 to rapid fire</strong><span id="starSteerHint">Drag to steer · auto-fire</span></div>
+    </div>
+    <div class="star-pause-message"><strong>Flight paused</strong><span>Press Resume when you're ready</span></div>
     <p class="star-tip">Drag anywhere to steer · your ship fires automatically · dodge alien shots</p>
     <a class="button wide secondary back-games" href="games.html">← Back to Games</a>
 
@@ -133,15 +62,16 @@
 </main>
   <script src="arcade.js"></script>
   <script src="star-defender-flight.js?v=1"></script>
+  <script src="star-defender-scene.js?v=1"></script>
   <script>
   (()=>{
-    const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+    const canvas=document.getElementById('game'),scene=StarDefenderScene.create(canvas);
     const els=Object.fromEntries(['score','lives','coins','plays','balance','gameStatus','startButton'].map(id=>[id,document.getElementById(id)]));
-    const W=330,H=480,shipY=426,stars=Array.from({length:52},(_,i)=>({x:(i*97+23)%W,y:(i*173+41)%H,r:i%7===0?1.5:.7}));
-    const skyLayers=[['#1b2254','#111b38','#071528'],['#352047','#171b36','#071528']].map(colors=>{const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,colors[0]);g.addColorStop(.6,colors[1]);g.addColorStop(1,colors[2]);return g;});
+    const W=330,H=480,shipY=426;
     let running=false,starting=false,paused=false,frame=0,last=0,elapsed=0,score=0,kills=0,lives=3,wave=0,shipX=W/2,invincible=0,fireClock=0,enemyClock=0,shotClock=0,bullets=[],enemyShots=[],aliens=[],particles=[],raf=0,startedAt=0,pausedAt=0,pauseTotal=0,keys=new Set(),pointer=null,steerTarget=null,dragLastX=null;
     const Flight=StarDefenderFlight,motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
     let rapid=0,shield=0,bosses=0,chain=0,bestChain=0,nextWaveIn=0,warningAlien=null,notice='',noticeUntil=0,settled=false,runOwner='',progress=null,livery=Flight.liveries[0],bestBefore=0,bestCelebrated=false,bank=0,previousX=shipX;
+    let pauseAfterCountdown=false;
     let reduced=false,motionPollAt=0,accumulator=0,rings=[],scorePops=[],damageTint=0,commanderAt=-10;
     const owner=()=>localStorage.getItem('earnlyLocalProgressOwner')||'';
     const shipArt=()=>'<svg viewBox="0 0 64 72" aria-hidden="true"><path class="ship-flame" d="M25 53 32 71 39 53" fill="#ffba65"/><path d="M32 3 59 56 42 49 32 58 22 49 5 56Z" fill="var(--ship-color)"/><path d="M32 7 39 48 32 54 25 48Z" fill="var(--ship-accent)"/><path d="M32 22Q22 41 32 44Q42 41 32 22" fill="#173853"/></svg>';
@@ -187,46 +117,23 @@
     starStartOverlay.innerHTML='<strong>👾 Star Defender</strong><span>Drag anywhere to steer · auto-fire enabled</span><b>▶ TAP TO START</b>';
     starGuide?.wrapper?.insertAdjacentElement('beforebegin',starStartOverlay);
     function chrome(){const remaining=Arcade.remaining('starDefender');const values={score,lives,coins:Arcade.gameReward('starDefender',score),plays:running&&!remaining?'Last':remaining,balance:Arcade.number('points').toLocaleString()};for(const [key,value]of Object.entries(values))if(els[key].textContent!==String(value))els[key].textContent=String(value);}
-    function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active);if(starStartOverlay)starStartOverlay.hidden=active}
-    function alien(x,y,color){ctx.save();ctx.translate(x,y);ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=color;ctx.fillRect(-12,-7,24,13);ctx.fillRect(-16,-2,5,7);ctx.fillRect(11,-2,5,7);ctx.fillRect(-8,6,4,5);ctx.fillRect(4,6,4,5);ctx.shadowBlur=0;ctx.fillStyle='#081126';ctx.fillRect(-7,-2,4,4);ctx.fillRect(3,-2,4,4);ctx.restore()}
+    function status(text,active=false){els.gameStatus.textContent=text;els.gameStatus.className='game-status title-status'+(active?' running':'');document.body.classList.toggle('game-active',active);resizeScene();if(starStartOverlay)starStartOverlay.hidden=active}
+    const mission=document.getElementById('starMission'),controls=document.getElementById('starControls');
+    const hud=Object.fromEntries(['starWave','starTime','starTimeProgress','starPower','starSteerHint','starNotice'].map(id=>[id,document.getElementById(id)]));
+    const setText=(el,value)=>{if(el.textContent!==value)el.textContent=value;};
+    function resizeScene(){
+      const active=document.body.classList.contains('game-active');
+      const height=canvas.getBoundingClientRect().height;
+      scene.resize({immersive:active,top:active?mission.getBoundingClientRect().bottom+10:0,bottom:active?height-controls.getBoundingClientRect().top+10:0});
+    }
     function draw(){
-      const motion=reduced?0:elapsed;
-      ctx.fillStyle=skyLayers[wave>=4?1:0];ctx.fillRect(0,0,W,H);
-      ctx.fillStyle='#4766ac18';ctx.beginPath();ctx.ellipse(272,130,130,210,-.5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#a1b8d012';ctx.beginPath();ctx.arc(280,170,62,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#819ed222';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(280,170,90,18,-.4,0,Math.PI*2);ctx.stroke();
-      for(const star of stars){ctx.globalAlpha=.25+star.r*.24;ctx.fillStyle='#a5eaff';ctx.fillRect(star.x,(star.y+motion*24*(star.r+.4))%H,star.r,star.r+(reduced?0:star.r*1.4))}ctx.globalAlpha=1;
-      ctx.strokeStyle='#24406a44';for(let y=310;y<H;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-      for(const a of aliens){
-        if(a.boss){
-          ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='#fc90c9';ctx.beginPath();ctx.moveTo(-38,4);ctx.lineTo(-22,-13);ctx.lineTo(22,-13);ctx.lineTo(38,4);ctx.lineTo(24,16);ctx.lineTo(-24,16);ctx.closePath();ctx.fill();ctx.fillStyle='#512b60';ctx.fillRect(-24,-6,48,13);ctx.fillStyle='#ffe8b5';ctx.fillRect(-16,-3,8,5);ctx.fillRect(8,-3,8,5);ctx.restore();
-          ctx.fillStyle='#130f29';ctx.fillRect(a.x-32,a.y+32,64,4);ctx.fillStyle='#ffc17d';ctx.fillRect(a.x-32,a.y+32,64*a.hp/a.maxHp,4);
-        }else{alien(a.x,a.y,a.color);if(a.maxHp>1){ctx.strokeStyle='#ffdc98';ctx.lineWidth=2;ctx.strokeRect(a.x-18,a.y-12,36,25);}}
-        if(a.flash>0&&!reduced){ctx.globalAlpha=.65;ctx.fillStyle='#fff';ctx.fillRect(a.x-10,a.y-6,20,12);ctx.globalAlpha=1;}
-        if(a===warningAlien){ctx.strokeStyle='#ffca79';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(a.x,a.y,a.boss?42:22,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#ffc7d8';ctx.beginPath();ctx.moveTo(a.x-4,a.y+22);ctx.lineTo(a.x,a.y+28);ctx.lineTo(a.x+4,a.y+22);ctx.fill();}
-      }
-      ctx.save();ctx.shadowColor='#45dbff';ctx.shadowBlur=15;ctx.fillStyle='#72e9ff';for(const b of bullets){if(rapid>0){ctx.fillStyle='#ffe5a1';ctx.fillRect(b.x-4,b.y-9,2,14);ctx.fillRect(b.x+2,b.y-9,2,14);}else ctx.fillRect(b.x-2,b.y-9,4,12);}ctx.restore();
-      ctx.save();ctx.shadowColor='#ff5fa8';ctx.shadowBlur=13;ctx.fillStyle='#ff7ebc';for(const b of enemyShots){ctx.beginPath();ctx.arc(b.x,b.y,4,0,Math.PI*2);ctx.fill()}ctx.restore();
-      particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,3,3)});ctx.globalAlpha=1;
-      if(!reduced){
-        for(const r of rings){ctx.globalAlpha=r.life/.5;ctx.strokeStyle=r.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(r.x,r.y,8+(1-r.life/.5)*28,0,Math.PI*2);ctx.stroke();}ctx.globalAlpha=1;
-        ctx.font='900 11px system-ui';ctx.textAlign='center';for(const p of scorePops){ctx.globalAlpha=Math.min(1,p.life*3);ctx.fillStyle=p.color;ctx.fillText(p.text,p.x,p.y);}ctx.globalAlpha=1;ctx.textAlign='left';
-      }
-      if(shield){ctx.strokeStyle='#8bf4e1';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(shipX,shipY-2,25,28,0,0,Math.PI*2);ctx.stroke();}
-      ctx.save();ctx.translate(shipX,shipY);ctx.rotate(reduced?0:bank);ctx.globalAlpha=invincible>0?.55:1;
-      ctx.fillStyle='#f7ce70';ctx.beginPath();ctx.moveTo(-5,12);ctx.lineTo(0,25+(reduced?0:Math.sin(elapsed*35)*4));ctx.lineTo(5,12);ctx.fill();
-      ctx.fillStyle=livery.color;ctx.beginPath();ctx.moveTo(0,-23);ctx.lineTo(20,13);ctx.lineTo(8,8);ctx.lineTo(0,15);ctx.lineTo(-8,8);ctx.lineTo(-20,13);ctx.closePath();ctx.fill();
-      ctx.fillStyle=livery.accent;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(5,7);ctx.lineTo(0,11);ctx.lineTo(-5,7);ctx.closePath();ctx.fill();ctx.fillStyle='#193951';ctx.beginPath();ctx.ellipse(0,-5,3,7,0,0,Math.PI*2);ctx.fill();ctx.restore();
-      if(!reduced&&damageTint>0){ctx.globalAlpha=damageTint;ctx.strokeStyle='#ff889f';ctx.lineWidth=8;ctx.strokeRect(4,4,W-8,H-8);ctx.globalAlpha=1;}
-      if(running){
-        ctx.fillStyle='#08172be6';ctx.fillRect(0,0,W,39);ctx.font='800 11px system-ui';ctx.fillStyle='#d2e7ff';ctx.fillText('WAVE '+wave+(wave%4===0?' · COMMANDER':''),12,17);ctx.textAlign='right';ctx.fillText(Math.max(0,45-Math.floor(elapsed))+'s',W-12,17);ctx.textAlign='left';
-        ctx.fillStyle='#253c58';ctx.fillRect(12,26,W-24,3);ctx.fillStyle='#79e2d6';ctx.fillRect(12,26,(W-24)*Math.max(0,1-elapsed/45),3);
-        const untilBoost=5-kills%5,nextBoost=Math.floor(kills/5)%2===0?'RAPID FIRE':'SHIELD';
-        ctx.fillStyle='#091a2de6';ctx.fillRect(0,H-26,W,26);ctx.font='800 9px system-ui';ctx.fillStyle='#b6cde0';ctx.fillText(untilBoost+' TO '+nextBoost,12,H-15);ctx.textAlign='right';ctx.fillStyle='#ffe3a2';ctx.fillText(rapid>0?'RAPID '+Math.ceil(rapid)+'s'+(shield?' · SHIELD':''):shield?'SHIELD READY':chain>=3?chain+' CLEAN STREAK':'',W-12,H-15);ctx.textAlign='left';
-        for(let i=0;i<5;i++){ctx.fillStyle=i<kills%5?'#7cf0d1':'#29425d';ctx.fillRect(12+i*12,H-7,9,3);}
-        if(noticeUntil>elapsed){ctx.fillStyle='#0b203ae8';ctx.beginPath();ctx.roundRect(35,37,260,23,8);ctx.fill();ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.fillStyle='#e4fbff';ctx.fillText(notice,W/2,52);ctx.textAlign='left';}
-        if(wave%4===0&&aliens.some(a=>a.boss)&&elapsed-commanderAt<1.4){ctx.strokeStyle='#ffb0d8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(16,68);ctx.lineTo(16,83);ctx.lineTo(33,83);ctx.moveTo(W-16,68);ctx.lineTo(W-16,83);ctx.lineTo(W-33,83);ctx.stroke();}
-      }else if(!starting){ctx.textAlign='center';ctx.font='900 23px system-ui';ctx.fillStyle='#f8faff';ctx.fillText('STAR DEFENDER',W/2,210);ctx.font='12px system-ui';ctx.fillStyle='#9ef7df';ctx.fillText('FORMATIONS • POWER-UPS • COMMANDERS',W/2,235);ctx.fillStyle='#afc4df';ctx.fillText('Drag to steer. Your ship handles the blasting.',W/2,257);ctx.textAlign='left';}
+      scene.draw({elapsed,reduced,bank,shipX,livery,invincible,shield,rapid,aliens,bullets,enemyShots,particles,rings,scorePops,warningAlien,damageTint});
+      setText(hud.starWave,wave?(wave%4===0?'Wave '+wave+' · Commander':'Wave '+wave):'Launch sequence');
+      setText(hud.starTime,Math.max(0,45-Math.floor(elapsed))+'s');hud.starTimeProgress.value=Math.max(0,45-elapsed);
+      const nextBoost=Math.floor(kills/5)%2===0?'rapid fire':'shield';
+      setText(hud.starPower,rapid>0?'Rapid fire · '+Math.ceil(rapid)+'s'+(shield?' + shield':''):shield?'Shield ready':(5-kills%5)+' to '+nextBoost);
+      setText(hud.starSteerHint,chain>=3?chain+' clean streak':'Drag to steer · auto-fire');
+      setText(hud.starNotice,noticeUntil>elapsed?notice:'');
     }
     function burst(x,y,color){if(reduced)return;if(rings.length<12)rings.push({x,y,color,life:.5});for(let i=0;i<9&&particles.length<90;i++){const angle=i*Math.PI*2/9;particles.push({x,y,vx:Math.cos(angle)*75,vy:Math.sin(angle)*75,life:.45,color})}}
     function spawnWave(){
@@ -269,7 +176,7 @@
         const stoppedAt=performance.now();
         if(Arcade.offerAdContinue({
           message:'Keep '+score+' points and wave '+wave+'. Return with one life and a 3-second shield. One bonus life per run.',
-          onContinue:()=>{bonusLifeUsed=true;lives=1;enemyShots=[];invincible=3;chrome();status('Get Ready',true);Arcade.countdown(()=>{pauseTotal+=performance.now()-stoppedAt;starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);last=performance.now();accumulator=0;raf=requestAnimationFrame(loop)})},
+          onContinue:()=>{bonusLifeUsed=true;lives=1;enemyShots=[];invincible=3;chrome();status('Get Ready',true);Arcade.countdown(()=>{pauseTotal+=performance.now()-stoppedAt;starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);last=performance.now();accumulator=0;const interrupted=document.hidden||pauseAfterCountdown;pauseAfterCountdown=false;if(interrupted)pauseFlight();else raf=requestAnimationFrame(loop)})},
           onFinish:()=>{pauseTotal+=performance.now()-stoppedAt;finish(true)}
         }))return;
       }
@@ -280,18 +187,31 @@
       const outcome=log?.unlocked.length?'Unlocked '+log.unlocked.map(l=>l.name).join(' & ')+' · equip your new color':bosses?'Commander defeated · sector secured':bestChain>=10?'Clean streak · '+bestChain+' aliens without a hit':'Flight complete · '+kills+' aliens defeated';
       const tip=next?'Next goal: '+next.label+' · '+next.value+'/'+next.target:'All 3 daily goals complete · new missions tomorrow.';
       const seconds=Math.max(1,Math.round((performance.now()-startedAt-pauseTotal)/1000));const earned=Arcade.gameReward('starDefender',score);Arcade.earn(earned,'Star Defender',{kind:'game',game:'starDefender',metric:score,aux:kills});const result=Arcade.recordResult('starDefender',score);chrome();status('Run Over');els.startButton.textContent='▶ Play Again';Arcade.gameResult({icon:'🚀',title:'Flight complete',scoreLabel:'POINTS',score,best:Arcade.best('starDefender').display,coins:earned,result,outcome,tip,playsLeft:Arcade.remaining('starDefender'),game:'starDefender',extra:['⏱️ Time played: '+seconds+'s','👾 Aliens defeated: '+kills,'🌌 Wave reached: '+wave,'🛸 Commanders defeated: '+bosses,'🎯 Best clean streak: '+bestChain],onReplay:start,onMorePlays:()=>Arcade.out('starDefender',chrome)});flightLogAction();draw()}
-    function start(){if(running||starting)return;hangar();runOwner=owner();starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ TAP TO START';Arcade.out('starDefender',chrome);return}bonusLifeUsed=false;settled=false;elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();pointer=null;steerTarget=null;dragLastX=null;rapid=shield=bosses=chain=bestChain=nextWaveIn=bank=accumulator=motionPollAt=damageTint=0;rings=[];scorePops=[];commanderAt=-10;previousX=shipX;warningAlien=null;notice='';noticeUntil=0;bestBefore=Number(Arcade.best('starDefender').value)||0;bestCelebrated=false;reduced=Arcade.reducedMotionEnabled?Arcade.reducedMotionEnabled():motionQuery.matches;chrome();status('Get Ready');draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);window.scrollTo({top:0,left:0,behavior:'auto'});chrome();raf=requestAnimationFrame(loop)})}
+    function start(){if(running||starting)return;paused=false;pauseAfterCountdown=false;hangar();runOwner=owner();starting=true;if(starStartOverlay){starStartOverlay.hidden=true;starStartOverlay.disabled=true}els.startButton.disabled=true;els.startButton.textContent='Starting…';if(!Arcade.consume('starDefender')){starting=false;if(starStartOverlay){starStartOverlay.hidden=false;starStartOverlay.disabled=false}els.startButton.disabled=false;els.startButton.textContent='▶ TAP TO START';Arcade.out('starDefender',chrome);return}bonusLifeUsed=false;settled=false;elapsed=score=kills=wave=fireClock=enemyClock=shotClock=pauseTotal=0;lives=3;shipX=W/2;invincible=0;bullets=[];enemyShots=[];aliens=[];particles=[];keys.clear();pointer=null;steerTarget=null;dragLastX=null;rapid=shield=bosses=chain=bestChain=nextWaveIn=bank=accumulator=motionPollAt=damageTint=0;rings=[];scorePops=[];commanderAt=-10;previousX=shipX;warningAlien=null;notice='';noticeUntil=0;bestBefore=Number(Arcade.best('starDefender').value)||0;bestCelebrated=false;reduced=Arcade.reducedMotionEnabled?Arcade.reducedMotionEnabled():motionQuery.matches;chrome();status('Get Ready',true);draw();Arcade.countdown(()=>{starting=false;running=true;paused=false;if(starStartOverlay)starStartOverlay.disabled=false;els.startButton.disabled=false;startedAt=performance.now();last=startedAt;status('Running',true);window.scrollTo({top:0,left:0,behavior:'auto'});chrome();const interrupted=document.hidden||pauseAfterCountdown;pauseAfterCountdown=false;if(interrupted)pauseFlight();else raf=requestAnimationFrame(loop)})}
     // Relative drag: touching an edge never teleports the ship. Finger travel moves it 1:1.
-    function boardX(clientX){const r=canvas.getBoundingClientRect();return (clientX-r.left)*W/r.width}
-    function beginDrag(e){if(!running||paused||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0)||Arcade.isProtectedGameControlTarget(e.target))return;const r=canvas.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;pointer=e.pointerId;dragLastX=boardX(e.clientX);steerTarget=null;e.preventDefault()}
+    function boardX(clientX){return scene.boardX(clientX)}
+    function beginDrag(e){if(!running||paused||pointer!==null||e.isPrimary===false||(e.pointerType==='mouse'&&e.button!==0)||Arcade.isProtectedGameControlTarget(e.target))return;const r=canvas.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;pointer=e.pointerId;dragLastX=boardX(e.clientX);steerTarget=null;if(canvas.hasPointerCapture?.(e.pointerId)===false){try{canvas.setPointerCapture(e.pointerId)}catch{}}e.preventDefault()}
     function drag(e){if(!running||paused||pointer!==e.pointerId||dragLastX===null)return;const x=boardX(e.clientX);shipX=Math.max(19,Math.min(W-19,shipX+x-dragLastX));dragLastX=x;steerTarget=null;e.preventDefault()}
     document.addEventListener('pointerdown',beginDrag,{passive:false});
     document.addEventListener('pointermove',drag,{passive:false});
     document.addEventListener('pointerup',e=>{if(pointer===e.pointerId){pointer=null;dragLastX=null}});
     document.addEventListener('pointercancel',e=>{if(pointer===e.pointerId){pointer=null;dragLastX=null}});
+    canvas.addEventListener('lostpointercapture',e=>{if(pointer===e.pointerId){pointer=null;dragLastX=null}});
     document.addEventListener('keydown',e=>{if(Arcade.isProtectedGameControlTarget(e.target))return;const k=e.key.toLowerCase();if(e.key==='ArrowLeft'||e.key==='ArrowRight'||k==='a'||k==='d'){if(running&&!paused){e.preventDefault();keys.add(e.key.startsWith('Arrow')?e.key:k)}}else if((e.key==='Enter'||e.key===' ')&&!running&&!starting){e.preventDefault();start()}});
     document.addEventListener('keyup',e=>keys.delete(e.key.startsWith('Arrow')?e.key:e.key.toLowerCase()));window.addEventListener('blur',()=>keys.clear());
-    Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);keys.clear();pointer=null;steerTarget=null;dragLastX=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();accumulator=0;raf=requestAnimationFrame(loop)}});
+    const pauseControl=Arcade.installPauseControl({preserveOnHistoryRestore:true,isRunning:()=>running,pause:()=>{paused=true;pausedAt=performance.now();cancelAnimationFrame(raf);keys.clear();pointer=null;steerTarget=null;dragLastX=null},resume:()=>{if(!paused)return;pauseTotal+=performance.now()-pausedAt;paused=false;last=performance.now();accumulator=0;canvas.focus({preventScroll:true});raf=requestAnimationFrame(loop)}});
+    controls.append(pauseControl.button,document.getElementById('earnlyQuitButton'));
+    document.querySelector('.earnly-session-dock')?.remove();
+    function pauseFlight(){
+      keys.clear();pointer=null;dragLastX=null;steerTarget=null;
+      if(starting){pauseAfterCountdown=true;return;}
+      if(running&&!paused)pauseControl.button.click();
+    }
+    window.addEventListener('blur',pauseFlight);
+    window.addEventListener('pagehide',pauseFlight);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseFlight();});
+    window.addEventListener('resize',()=>{pointer=null;dragLastX=null;keys.clear();resizeScene();draw();});
+    new ResizeObserver(()=>{resizeScene();draw();}).observe(canvas);
     // The shared guide overlay sits above the canvas before a run. Treat a
     // tap anywhere on the board/guide surface as Start so mobile players are
     // never left tapping a non-responsive intro screen.
@@ -323,7 +243,7 @@
         start();
       }
     }, {capture:true,passive:false});
-    hangar();chrome();draw();
+    hangar();chrome();resizeScene();draw();
   })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
