@@ -2476,7 +2476,8 @@ test('Crystal Command belongs to the 30-game catalog as a free searchable strate
   await expect(page.locator('#gameBrowseCount')).toHaveText('30 games to explore');
   await page.locator('[data-filter=strategy]').click();
   const card=page.locator('#games [data-game=crystalCommand]');
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(2);
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(3);
+  await expect(page.locator('#games [data-game=spuddyDefense] a')).toHaveAttribute('href','spuddy-defense.html');
   await expect(page.locator('#games [data-game=spuddyTurf] a')).toHaveAttribute('href','spuddy-turf.html');
   await expect(card.locator('.game-play-button')).toHaveText('Play');
   await expect(card.locator('.game-play-button')).toHaveAttribute('href','crystal-command.html');
