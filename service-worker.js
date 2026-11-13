@@ -1,4 +1,5 @@
-const CACHE_NAME = 'earnly-gameplay-depth-20261113';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-star-immersive-20261113';const CORE_ASSETS = [
+ './star-defender.css?v=3','./star-defender-scene.js?v=1','./star-defender-flight.js?v=1',
  './lane-runner.css?v=1','./shape-fit.css?v=1','./shape-fit-rules.js?v=1','./mini-games.js?v=depth-polish-1',
  './spuddy-turf.html','./spuddy-turf.css?v=1','./spuddy-turf-engine.js?v=1','./spuddy-turf-renderer.js?v=1','./spuddy-turf.js?v=1',
  './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',

@@ -3,15 +3,8 @@ body.star-page{background:radial-gradient(ellipse at 20% 0%,#20375c,transparent 
 .star-hangar h2{font-size:20px;margin:3px 0 6px;letter-spacing:-.6px}.star-hangar p{font-size:12px;line-height:1.45;color:#acc5dc;margin:5px 0 12px}.star-eyebrow{font-size:9px;letter-spacing:1.6px;font-weight:900;color:#82eaff}
 .star-goals{display:grid;gap:9px;margin:12px 0}.star-goal{display:grid;grid-template-columns:1fr auto;gap:4px;font-size:11px;color:#c9dcec}.star-goal b{color:#a8f7d5}.star-goal progress{grid-column:1/-1;width:100%;height:5px;accent-color:#6ee7cb;border:0;border-radius:8px;overflow:hidden}
 .star-liveries{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0}.star-liveries button{padding:9px 3px!important;min-height:48px;border:1px solid #567294;border-radius:11px;background:#0d2138;font-size:10px;color:#d7eaff;cursor:pointer}.star-liveries button[aria-pressed=true]{border-color:#86f7e1;box-shadow:inset 0 0 0 1px #86f7e1}.star-liveries button:disabled{opacity:.6;cursor:default}.star-liveries i{display:block;color:var(--ship-color);font-size:19px;font-style:normal;line-height:1.2}.star-hangar small{display:block;color:#8eabc4;font-size:10px;line-height:1.5}
-.star-page.game-active .star-hangar{display:none}
-.star-page.game-active #earnlyCompactLeaderboard{display:none!important}
-html body.star-page.game-active .star-board{width:min(94vw,390px,calc((100svh - 210px)*.6875))!important;margin:7px auto!important;border-color:#638db4;box-shadow:0 10px 32px #0006,0 0 0 4px #4b9aa710}
-html body.star-page.game-active .page-header{width:min(96vw,410px);box-sizing:border-box;margin:0 auto!important;padding:5px!important}
-html body.star-page.game-active .game-meta .meta-pill{min-height:32px!important;padding:4px!important}
-html body.star-page.game-active .earnly-session-dock{width:min(94vw,390px)!important;margin:8px auto!important}
 .star-page #game,.star-page #game *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:none}
 .star-flight-action{grid-column:1/-1;min-height:42px;font-size:13px;border-color:#5fc7b76b;color:#bbf7e4}
-@media(max-height:650px){html body.star-page.game-active .star-board{width:min(94vw,390px,calc((100svh - 190px)*.6875))!important}}
 /* Flight deck: keep the launch action first and the loadout compact. */
 .star-hangar{text-align:left;padding:12px 16px;background:radial-gradient(ellipse at 0 0,#25536666,transparent 65%),linear-gradient(145deg,#142b45,#10192e)}
 .star-launch{display:flex;align-items:center;gap:14px}.star-launch p{margin:0;font-size:11px}.star-launch h2{margin:3px 0 4px;font-size:21px}
@@ -33,3 +26,41 @@ html body.star-page.game-active .earnly-session-dock{width:min(94vw,390px)!impor
 .star-result-unlock{display:grid;gap:6px;text-align:left;margin:12px 0 0;color:#ecdcae;font-size:10px}.star-result-unlock progress{height:4px}
 .star-page .star-result .star-flight-action{min-height:44px;font-size:12px}
 @media(prefers-reduced-motion:reduce){.star-liveries button{transition:none}}
+
+/* Launch stays familiar; playing opens an edge-to-edge flight deck. */
+body.star-page{overscroll-behavior:none}
+.star-page .star-board{display:block;width:min(94vw,390px);height:auto;aspect-ratio:330/480;margin:8px auto;border:1px solid #55799c;border-radius:20px;background:#061322;touch-action:none;user-select:none;-webkit-user-select:none}
+.star-page .star-tip{text-align:center;color:#bdd2e5;font-size:12px;margin:8px auto}
+.star-page .page-header{padding:12px;margin:5px 0 7px}
+.star-page .game-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.star-page .meta-pill{min-width:0;padding:7px 3px;text-align:center;font-size:11px}
+.star-page .game-title-status-row h1{font-size:clamp(22px,6vw,30px)}
+html body.star-page #startButton{display:block!important;width:min(94vw,390px)!important;min-height:54px!important;margin:8px auto!important;font-size:16px!important;font-weight:900!important;position:relative!important;z-index:60!important;touch-action:manipulation!important}
+.star-page #starStartOverlay,.star-page .game-guide-overlay{display:none!important}
+.star-page .game-guide-surface-wrap{position:relative}
+.star-mission,.star-controls,.star-notice,.star-pause-message{display:none}
+
+html:has(body.star-page.game-active){overflow:hidden!important;overscroll-behavior:none}
+html body.star-page.game-active{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;overflow:hidden!important;touch-action:none;background:#061322}
+html body.star-page.game-active main.container{position:static!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;transform:none!important}
+html body.star-page.game-active :is(.topbar,#startButton,#starHangar,#starStartOverlay,#arcadeBottomNav,#arcadeDesktopNav,#earnlyCompactLeaderboard,.compact-leaderboard-card,.game-guide-strip,.game-guide-more,.game-guide-link,.star-tip,.back-games,.public-footer,.game-start-summary){display:none!important}
+html body.star-page.game-active .game-guide-surface-wrap{position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;height:100dvh!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;transform:none!important;z-index:1!important;box-shadow:none!important}
+html body.star-page.game-active canvas.star-board{position:absolute!important;inset:0!important;display:block!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;aspect-ratio:auto!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;transform:none!important}
+html body.star-page.game-active .page-header{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:10!important;display:grid!important;grid-template-columns:1fr!important;gap:5px!important;width:100%!important;max-width:none!important;min-height:0!important;margin:0!important;padding:calc(env(safe-area-inset-top) + 10px) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left))!important;box-sizing:border-box!important;background:linear-gradient(#041224e8,#0412249c,transparent)!important;border:0!important;border-radius:0!important;box-shadow:none!important;transform:none!important;pointer-events:none}
+html body.star-page.game-active .game-title-status-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;flex-wrap:nowrap!important;margin:0!important}
+html body.star-page.game-active .page-header .game-title-status-row h1{font-size:17px!important;line-height:22px!important;letter-spacing:-.3px!important;margin:0!important;color:#f0fcff!important}
+html body.star-page.game-active #gameStatus{font-size:11px!important;line-height:16px!important;padding:3px 9px!important;border-radius:20px!important;background:#123641aa!important;border:1px solid #85efda40!important;color:#c6fce4!important}
+html body.star-page.game-active .game-meta{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:14px!important;margin:0!important}
+html body.star-page.game-active .page-header .game-meta .meta-pill{display:inline-flex!important;flex:0 1 auto!important;min-height:22px!important;padding:0!important;margin:0!important;font-size:12px!important;line-height:22px!important;gap:5px!important;flex-wrap:nowrap!important;color:#b9d0e2!important;background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+html body.star-page.game-active .page-header .game-meta .star-plays{display:none!important}
+html body.star-page.game-active .game-meta .meta-pill span{font-size:14px!important;font-weight:850!important;color:#f1fdff!important}
+html body.star-page.game-active .star-mission{position:fixed;display:block;z-index:10;top:calc(env(safe-area-inset-top) + 76px);left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));pointer-events:none}
+.star-mission>div{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#b6cddd}.star-mission strong{font-weight:750;color:#d9ebf4}.star-mission progress{height:3px;margin-top:7px;background:#7fb7d320}.star-mission progress::-webkit-progress-bar{background:#7fb7d320}
+html body.star-page.game-active .star-controls{position:fixed;display:flex;align-items:center;gap:8px;z-index:1411;bottom:calc(env(safe-area-inset-bottom) + 12px);left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));min-height:48px;pointer-events:none}
+.star-combat-info{text-align:left;flex:1;min-width:0;text-shadow:0 2px 8px #000;display:grid;gap:4px;padding:5px 3px}.star-combat-info strong{font-size:12px;color:#b6f5dc;font-weight:800}.star-combat-info span{font-size:11px;color:#a9c8db}
+html body.star-page.game-active #starControls :is(#earnlyPauseButton,#earnlyQuitButton){position:static!important;inset:auto!important;transform:none!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:auto!important;min-width:58px!important;max-width:none!important;min-height:46px!important;height:46px!important;margin:0!important;padding:10px!important;border:1px solid #a3d9eb45!important;border-radius:14px!important;background:#0b2639dc!important;color:#e0f7ff!important;box-shadow:0 3px 16px #0003!important;font-size:12px!important;line-height:16px!important;font-weight:800!important;pointer-events:auto!important;text-decoration:none!important;touch-action:manipulation!important}
+html body.star-page.game-active #starControls :is(#earnlyPauseButton,#earnlyQuitButton)[hidden]{display:none!important}
+html body.star-page.game-active .star-notice:not(:empty){display:block;position:fixed;z-index:10;top:calc(env(safe-area-inset-top) + 115px);left:16px;right:16px;text-align:center;color:#d3ffed;font-size:12px;font-weight:850;letter-spacing:.7px;text-shadow:0 2px 7px #001;pointer-events:none}
+html body.star-page.game-active.earnly-game-paused .star-pause-message{display:grid;gap:8px;position:fixed;left:50%;top:48%;transform:translate(-50%,-50%);z-index:12;padding:22px;width:min(82vw,310px);box-sizing:border-box;text-align:center;border:1px solid #90c5dd55;border-radius:20px;background:#07192df2;box-shadow:0 16px 60px #0006;pointer-events:none}.star-pause-message strong{font-size:24px;color:#effcff}.star-pause-message span{font-size:12px;color:#b6d1e2}
+@media(min-width:950px){html body.star-page.game-active .page-header{padding-left:32px!important;padding-right:32px!important}.star-page.game-active .star-controls{left:32px!important;right:32px!important}.star-page.game-active .star-mission{left:32px!important;right:32px!important}}
+@media(orientation:landscape) and (max-height:500px){html body.star-page.game-active .page-header{display:flex!important;align-items:center!important;justify-content:space-between!important;padding-top:calc(env(safe-area-inset-top) + 8px)!important}.star-page.game-active .game-title-status-row{gap:15px!important}.star-page.game-active .star-mission{top:calc(env(safe-area-inset-top) + 43px)!important}.star-page.game-active .star-notice:not(:empty){top:calc(env(safe-area-inset-top) + 76px)!important}.star-page.game-active .star-controls{bottom:calc(env(safe-area-inset-bottom) + 8px)!important}}

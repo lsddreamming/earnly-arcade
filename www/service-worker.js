@@ -1,5 +1,7 @@
-const CACHE_NAME = 'earnly-gameplay-depth-20261113';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-star-immersive-20261113';const CORE_ASSETS = [
+ './star-defender.css?v=3','./star-defender-scene.js?v=1','./star-defender-flight.js?v=1',
  './lane-runner.css?v=1','./shape-fit.css?v=1','./shape-fit-rules.js?v=1','./mini-games.js?v=depth-polish-1',
+ './spuddy-turf.html','./spuddy-turf.css?v=1','./spuddy-turf-engine.js?v=1','./spuddy-turf-renderer.js?v=1','./spuddy-turf.js?v=1',
  './paddle-rally.css?v=1','./paddle-rally-engine.js?v=1',
  './crystal-command-rewards.js','./turbo-kart-driver.js','./turbo-kart.html','./turbo-kart.css','./turbo-kart.js','./turbo-kart-engine.js','./turbo-kart-renderer.js',
  './world.html','./world.css','./world.js','./world-config.js','./world-renderer.js','./world-room-layouts.js','./world-placement.js',
@@ -14,7 +16,7 @@ const CACHE_NAME = 'earnly-gameplay-depth-20261113';const CORE_ASSETS = [
   './crystal-command.html', './crystal-command.css', './crystal-command.js', './crystal-command-engine.js', './crystal-command-renderer.js', './crystal-command-art.js', './crystal-command-network.js', './crystal-command-vendor.js',
   './compact-game-entry.css', './snake-ui.css',
   './',
-  './index.html', './daily-arcade.js', './daily-arcade.css', './arcade-weekly-cup.svg',
+  './index.html', './home-featured.js', './home-compact.css', './daily-arcade.js', './daily-arcade.css', './arcade-weekly-cup.svg',
   './about.html',
   './game-guides.html',
   './public-info.css',
@@ -45,7 +47,7 @@ const CACHE_NAME = 'earnly-gameplay-depth-20261113';const CORE_ASSETS = [
   './mini.html',
   './stardefender.html',
   './neonmaze.html',
-  './neondrift.html', './neondrift.css', './neondrift.js', './neondrift-engine.js', './neondrift-renderer.js', './neondrift-audio.js',
+  './neondrift.html', './neondrift.css?v=3', './neondrift.js?v=3', './neondrift-engine.js?v=2', './neondrift-renderer.js?v=3', './neondrift-audio.js',
   './neonbreach-audio.js?v=sector3', './neonbreach-sector.js?v=sector3', './neonbreach-engine.js?v=sector3', './neonbreach-renderer.js?v=sector3',
   './neonbreach.js?v=sector3', './neonbreach.css?v=sector3',
   './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-art.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',
