@@ -62,7 +62,8 @@
     }
   </style>
   <link rel="stylesheet" href="public-info.css">
-  <link rel="stylesheet" href="games-showroom.css?v=4">
+  <link rel="stylesheet" href="games-showroom.css?v=6">
+  <link rel="stylesheet" href="games-pathways.css?v=3">
   <link rel="canonical" href="https://earnlyarcade.com/games.html">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
   <link rel="stylesheet" href="rank-discovery.css">
@@ -78,9 +79,21 @@
     </div>
 
     <header class="games-hero">
-      <h1>Find your <span>next favorite.</span></h1>
-      <p>Four fresh picks each visit. Refresh to discover more, or explore every game.</p>
+      <h1>Play your <span>kind of game.</span></h1>
+      <p>Five minutes or a whole afternoon? Choose how you want to play.</p>
     </header>
+    <section class="games-paths" id="gamePlayPaths" aria-label="Choose a game play style">
+      <button class="game-path game-path-quick" type="button" data-path="short-session" aria-pressed="false">
+        <span class="game-path-icon" aria-hidden="true">⚡</span>
+        <span class="game-path-copy"><strong>Quick Play</strong><span class="game-path-duration">2–5 minutes</span><span class="game-path-description">Jump in, beat a score, and have fun.</span></span>
+        <span class="game-path-arrow" aria-hidden="true">›</span>
+      </button>
+      <button class="game-path game-path-deep" type="button" data-path="deep-session" aria-pressed="false">
+        <span class="game-path-icon" aria-hidden="true">🌎</span>
+        <span class="game-path-copy"><strong>Big Adventures</strong><span class="game-path-duration">Longer play &amp; progression</span><span class="game-path-description">Explore, build, grow, and come back for more.</span></span>
+        <span class="game-path-arrow" aria-hidden="true">›</span>
+      </button>
+    </section>
 
     <section class="game-browser-tools" aria-label="Find a game">
       <label class="game-search-wrap" for="gameSearch">
@@ -106,7 +119,7 @@
       <p class="game-browse-count" id="gameBrowseCount" aria-live="polite">Browse arcade games</p>
       <button class="game-surprise-button" id="surpriseGame" type="button">🎲 Pick for me</button>
     </div>
-    <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,#surpriseGame{display:none!important}</style></noscript>
+    <noscript><p>Enable JavaScript to play. You can still browse the games and <a href="game-guides.html">read their guides</a>.</p><style>.game-browser-tools,.games-paths,#surpriseGame{display:none!important}</style></noscript>
     <div id="games" class="game-list compact-catalog-grid">
       <section class="card game-card compact-game catalog-tile" data-game="neonSlice"><div class="game-title-row"><h2>🍔 Neon Slice</h2></div><p class="reward-rule">Cookout combos · Earn up to 30 Coins</p><a class="wide game-play-button" href="neon-slice.html">Play</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="neonBreach"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Neon Breach</h2></div></div><p class="reward-rule">First-person blaster · survive robot waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="neonbreach.html" aria-label="Play Neon Breach">Play</a></div></section>
@@ -240,6 +253,12 @@
       spuddyEvolution:['new','action'],
       bigFishEnergy:['new','action']
     };
+    // Game length is independent of genre, coins and save capability.
+    // Add newly launched large games (like Spuddy Defense) only after release.
+    const deepPlayKeys = new Set([
+      'bubblePop','crystalCommand','neonBreach','spuddyTurf',
+      'harborGetaway','spuddyEvolution','bigFishEnergy'
+    ]);
     // Visiting or refreshing Games advances four picks through all 28 titles.
     // Do not advance during favorites, cloud updates, filtering or rerenders.
     const starterStorageKey = 'earnly.games.starter.queue.v1';
@@ -286,11 +305,7 @@
       // selected. Players can choose a category again to narrow the results.
       if (gameSearchText && activeGameFilter !== 'all') {
         activeGameFilter = 'all';
-        document.querySelectorAll('#gameFilters .game-filter').forEach(item => {
-          const selected = item.dataset.filter === 'all';
-          item.classList.toggle('active', selected);
-          item.setAttribute('aria-pressed', selected ? 'true' : 'false');
-        });
+        syncDiscoveryControls();
       }
       render();
     });
@@ -345,6 +360,28 @@
         : status.completed + '/' + status.total + ' complete';
     }
 
+    function matchesCurrentFilter(info) {
+      if (activeGameFilter === 'all') return true;
+      if (activeGameFilter === 'starter') return starterKeys.includes(info.key);
+      if (activeGameFilter === 'favorites') return catalogFavorite(info);
+      if (activeGameFilter === 'short-session') return !deepPlayKeys.has(info.key);
+      if (activeGameFilter === 'deep-session') return deepPlayKeys.has(info.key);
+      return (gameTags[info.key] || []).includes(activeGameFilter);
+    }
+
+    function syncDiscoveryControls() {
+      document.querySelectorAll('#gameFilters .game-filter').forEach(item => {
+        const selected = item.dataset.filter === activeGameFilter;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-pressed', String(selected));
+      });
+      document.querySelectorAll('#gamePlayPaths [data-path]').forEach(item => {
+        const selected = item.dataset.path === activeGameFilter;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-pressed', String(selected));
+      });
+    }
+
     function render() {
       document.getElementById('balance').textContent = Arcade.number('points').toLocaleString();
       document.getElementById('level').textContent = Arcade.xpStatus().level;
@@ -355,8 +392,7 @@
       root.replaceChildren();
 
       const visibleGames = gameInfo.filter(info => {
-        const matchesFilter = activeGameFilter === 'all' || (activeGameFilter === 'starter' && starterKeys.includes(info.key)) ||
-          (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter));
+        const matchesFilter = matchesCurrentFilter(info);
         const haystack = (info.name + ' ' + info.note).toLowerCase();
         const matchesSearch = !gameSearchText || haystack.includes(gameSearchText);
         return matchesFilter && matchesSearch;
@@ -373,7 +409,11 @@
       document.getElementById('browseAllGames').hidden = activeGameFilter !== 'starter';
       document.getElementById('browseAllGames').textContent = 'Explore all ' + gameInfo.length + ' games →';
       root.classList.toggle('starter-grid', activeGameFilter === 'starter');
-      document.getElementById('gameBrowseCount').textContent = activeGameFilter === 'starter' ? starterKeys.length+' fresh picks · new games every visit' : visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's') + (gameSearchText || activeGameFilter !== 'all' ? ' found' : ' to explore');
+      document.getElementById('gameBrowseCount').textContent =
+        activeGameFilter === 'starter' ? starterKeys.length + ' fresh picks · new games every visit'
+        : activeGameFilter === 'short-session' ? visibleGames.length + ' quick games · 2–5 minute sessions'
+        : activeGameFilter === 'deep-session' ? visibleGames.length + ' big adventures · stay and explore'
+        : visibleGames.length + ' game' + (visibleGames.length === 1 ? '' : 's') + (gameSearchText || activeGameFilter !== 'all' ? ' found' : ' to explore');
       document.getElementById('surpriseGame').disabled = visibleGames.length === 0;
       const recommendedKeys = new Set();
 
@@ -426,7 +466,13 @@
 
         const rule = document.createElement('p');
         rule.className = 'reward-rule';
-        rule.textContent = info.note;
+        const playStyle = document.createElement('span');
+        playStyle.className = 'game-session-label ' + (deepPlayKeys.has(info.key) ? 'deep' : 'quick');
+        playStyle.textContent = deepPlayKeys.has(info.key) ? '🌎 Big adventure' : '⚡ Quick play';
+        const rewardCopy = document.createElement('span');
+        rewardCopy.className = 'game-reward-copy';
+        rewardCopy.textContent = info.note;
+        rule.append(playStyle, document.createTextNode(' '), rewardCopy);
 
         const bestLine = document.createElement('div');
         bestLine.className = 'game-best';
@@ -535,17 +581,24 @@
     }
     const gameFilters = document.getElementById('gameFilters');
 
+    document.getElementById('gamePlayPaths').addEventListener('click', event => {
+      const button = event.target.closest('[data-path]');
+      if (!button) return;
+      activeGameFilter = button.dataset.path;
+      gameSearchText = '';
+      gameSearch.value = '';
+      syncDiscoveryControls();
+      render();
+      document.getElementById('gameBrowseCount').scrollIntoView({block:'start'});
+    });
+
     gameFilters.addEventListener('click', event => {
       const button = event.target.closest('[data-filter]');
       if (!button) return;
       activeGameFilter = button.dataset.filter || 'all';
       gameSearchText = '';
       gameSearch.value = '';
-      gameFilters.querySelectorAll('.game-filter').forEach(item => {
-        const selected = item === button;
-        item.classList.toggle('active', selected);
-        item.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      });
+      syncDiscoveryControls();
       render();
     });
 
@@ -558,7 +611,7 @@
 
     document.getElementById('surpriseGame').addEventListener('click', () => {
       const choices = gameInfo.filter(info =>
-        (activeGameFilter === 'all' || (activeGameFilter === 'starter' && starterKeys.includes(info.key)) || (activeGameFilter === 'favorites' ? catalogFavorite(info) : (gameTags[info.key] || []).includes(activeGameFilter))) &&
+        matchesCurrentFilter(info) &&
         (!gameSearchText || (info.name + ' ' + info.note).toLowerCase().includes(gameSearchText))
       );
       const playable = choices.filter(info => info.freeBeta || Arcade.remaining(info.key) > 0);
@@ -567,6 +620,7 @@
     });
 
 
+    syncDiscoveryControls();
     render();
     window.addEventListener('pageshow', render);
     window.addEventListener('storage', render);

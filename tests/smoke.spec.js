@@ -285,11 +285,56 @@ test('games page links into playable games', async ({ page }) => {
   expect(await links.count()).toBeGreaterThan(0);
 });
 
-test('games catalog keeps Play bright, disabled actions readable, and avoids duplicate mobile Home control', async ({ page }) => {
-  await page.goto('/games.html');
+for (const prefix of ['', 'www/']) {
+test('games catalog keeps Play readable, disabled actions readable, and avoids duplicate mobile Home control '+(prefix||'root/'), async ({ page }) => {
+  await openGuestGamePage(page, '/'+prefix+'games.html');
+  await expect(page.locator('#games .game-play-button')).toHaveCount(4);
 
-  const livePlay = page.locator('#games .game-play-button').first();
-  await expect(livePlay).toHaveCSS('color', 'rgb(9, 25, 40)');
+  // The quieter buttons use light accent lettering on a dark tint. Test
+  // contrast across every accent instead of locking in the retired dark text.
+  for (const catalog of ['starter', 'all']) {
+    if (catalog === 'all') await page.locator('[data-filter=all]').click();
+    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 29 : 4);
+    const colors = await page.locator('#games .game-play-button:not(:disabled)').evaluateAll(buttons => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext('2d');
+      function rgba(color) {
+        context.clearRect(0, 0, 1, 1);
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+        return Array.from(context.getImageData(0, 0, 1, 1).data);
+      }
+      function luminance(rgb) {
+        const linear = rgb.slice(0, 3).map(value => {
+          const channel = value / 255;
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      }
+      return buttons.map(button => {
+        const style = getComputedStyle(button);
+        const foreground = rgba(style.color), background = rgba(style.backgroundColor);
+        const textLight = luminance(foreground), backgroundLight = luminance(background);
+        return {
+          game: button.closest('[data-game]').dataset.game,
+          contrast: (Math.max(textLight, backgroundLight) + 0.05) / (Math.min(textLight, backgroundLight) + 0.05),
+          foreground, fill: rgba(style.webkitTextFillColor || style.color), background,
+          backgroundLight, backgroundImage: style.backgroundImage, opacity: style.opacity
+        };
+      });
+    });
+    expect(colors).toHaveLength(catalog === 'all' ? 29 : 4);
+    for (const color of colors) {
+      expect(color.contrast, color.game+' Play contrast').toBeGreaterThanOrEqual(4.5);
+      expect(color.backgroundLight, color.game+' quiet Play background').toBeLessThan(0.1);
+      expect(color.background[3]).toBe(255);
+      expect(color.backgroundImage).toBe('none');
+      expect(color.fill).toEqual(color.foreground);
+      expect(color.opacity).toBe('1');
+    }
+    await expect(page.locator('#games .reward-rule').first()).toHaveCSS('color', 'rgb(214, 226, 240)');
+  }
 
   await page.locator('#games .game-card-footer').first().evaluate(footer => {
     const button = document.createElement('button');
@@ -307,6 +352,7 @@ test('games catalog keeps Play bright, disabled actions readable, and avoids dup
   if (width < 700) await expect(backHome).toBeHidden();
   else await expect(backHome).toBeVisible();
 });
+}
 
 test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   test.skip((page.viewportSize()?.width || 1280) >= 700, 'Phone layout only');

@@ -158,7 +158,8 @@ for (const width of [320, 390, 440]) {
       await page.locator('[data-filter=all]').click();
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(29);
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
-      await expect(page.locator('[data-game="snake"] .reward-rule')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
+      await expect(page.locator('[data-game="snake"] .game-session-label')).toHaveText('⚡ Quick play');
+      await expect(page.locator('[data-game="snake"] .game-reward-copy')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
       await expect(page.locator('#games .game-new-bubble')).toHaveCount(0);
       const order = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
       expect(order.slice(-5)).toEqual(['crystalCommand', 'bubblePop', 'harborGetaway', 'spuddyEvolution', 'bigFishEnergy']);
@@ -243,6 +244,14 @@ for(const prefix of ['', 'www/']){
       const batch=await page.locator('#games.starter-grid > [data-game]').evaluateAll(cards=>cards.map(card=>card.dataset.game));
       expect(batch).toHaveLength(4);
       expect(new Set(batch).size).toBe(4);
+      const overflowingNotes = await page.locator('#games > .catalog-tile').evaluateAll(cards => cards.flatMap(card => {
+        const note = card.querySelector('.reward-rule');
+        const badge = note.querySelector('.game-session-label');
+        const noteBounds = note.getBoundingClientRect(), badgeBounds = badge.getBoundingClientRect();
+        return note.scrollHeight > note.clientHeight + 1 || badgeBounds.top < noteBounds.top - 1 || badgeBounds.bottom > noteBounds.bottom + 1
+          ? [{game:card.dataset.game, noteHeight:note.clientHeight, contentHeight:note.scrollHeight, badgeBottom:badgeBounds.bottom, noteBottom:noteBounds.bottom}] : [];
+      }));
+      expect(overflowingNotes).toEqual([]);
       for(const game of batch){
         if(seen.size<29)expect(seen.has(game),game+' repeated before all 29 titles appeared').toBe(false);
         seen.add(game);
