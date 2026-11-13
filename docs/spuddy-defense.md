@@ -7,7 +7,7 @@ Original mobile-first tower defense for Earnly Arcade. Release requires explicit
 - Eight towers, six upgrades per tower (two paths, maximum 3/2 crosspath), four targeting priorities, 70% sell refunds, previews and explicit placement confirmation.
 - Fourteen enemy types including splitting, stealth, regenerating, armored and shielded Glooplings; two three-stage bosses.
 - Five maps with different paths and build obstructions. Easy 40, Normal 60, Hard 100, scalable Endless. Ten encounter patterns per act, staged enemy introductions.
-- Fixed 30 Hz deterministic engine shared by browser and server, bounded enemy/tower/effect counts, 1×/2× simulation, automatic waves, pause, zoom/pan, automatic portrait map rotation and touch controls of at least 44 pixels.
+- Fixed 30 Hz deterministic engine shared by browser and server, bounded enemy/tower/effect counts, 1×/2× simulation, automatic waves, pause, zoom/pan, automatic portrait map rotation and touch controls of at least 44 pixels. Includes an older-Canvas rounded-rectangle fallback and viewport-height fallbacks for the existing iOS 15 deployment target.
 - Corruption-checked device saves, XP, map/mode unlocks, tower mastery, achievements, daily and weekly UTC challenges, personal and boss records.
 - Original generated cover, original Canvas scenery/characters/weapon animation, synthesized original sound cues. Enemy artwork is cached once per species (14 bounded sprites); movement, shields, health bars and weapons remain animated. Pop particles are batched into one filled path per burst.
 - Isolated authenticated server replay, cloud saves/progression, map/mode leaderboards and Arcade Coin rewards through the existing ledger. Match money never spends Arcade Coins.

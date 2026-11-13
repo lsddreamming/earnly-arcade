@@ -32,3 +32,5 @@ test('crowded rendering reuses bounded artwork caches without changing game stat
  expect(result.first.gradients).toBe(14);expect(result.first.canvases).toBeLessThan(32);expect(result.repeatedGradients).toBe(0);expect(result.repeatedCanvases).toBe(0);expect(result.unchanged).toBe(true);
  await page.locator('#loadTest').screenshot({path:info.outputPath('crowded-defense.png')});
 });
+
+test('older iOS canvas without roundRect still renders and accepts touch placement',async({page})=>{await page.addInitScript(()=>{CanvasRenderingContext2D.prototype.roundRect=undefined;});const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,'/spuddy-defense-preview.html');await start(page);await place(page);await expect(page.locator('#money')).toHaveText('530');expect(errors).toEqual([]);});

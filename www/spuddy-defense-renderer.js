@@ -1,7 +1,7 @@
 /* Original code-drawn Spuddy characters and scenery. Cosmetic only. */
 (()=>{'use strict';const E=globalThis.SpuddyDefense,enemyDefs=Object.fromEntries(E.ENEMIES.map(e=>[e.id,e])),enemySprites=new Map();
  function circle(c,x,y,r,fill,stroke){c.beginPath();c.arc(x,y,r,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.stroke();}}
- function round(c,x,y,w,h,r,fill,stroke){c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.stroke();}}
+ function round(c,x,y,w,h,r,fill,stroke){c.beginPath();if(c.roundRect)c.roundRect(x,y,w,h,r);else{const k=Math.max(0,Math.min(r,w/2,h/2));c.moveTo(x+k,y);c.arcTo(x+w,y,x+w,y+h,k);c.arcTo(x+w,y+h,x,y+h,k);c.arcTo(x,y+h,x,y,k);c.arcTo(x,y,x+w,y,k);c.closePath();}if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.stroke();}}
  function path(c,pts,width,color){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.strokeStyle=color;c.stroke();}
  function mapArt(c,m){c.fillStyle=m.colors[0];c.fillRect(0,0,960,600);
   for(let i=0;i<170;i++){const n=E.hash(m.id+i),x=n%960,y=(n>>>10)%600;c.globalAlpha=.13;circle(c,x,y,2+(n%3),m.colors[1]);if(i%3===0)path(c,[[x-4,y],[x,y-5],[x+3,y]],1.5,m.colors[1]);}c.globalAlpha=1;
