@@ -1,0 +1,47 @@
+html body.lanerunner-page{background:radial-gradient(ellipse at 20% 0,#204758,transparent 60%),#081624;color:#e9f5fc}
+html body.lanerunner-page main.container{max-width:430px!important;width:100%!important;box-sizing:border-box;padding:12px 14px 90px!important}
+html body.lanerunner-page .page-header{padding:8px!important;margin:0 0 8px!important;border:1px solid #39566b!important;background:#102638!important;box-shadow:0 4px 0 #071521!important}
+html body.lanerunner-page .page-header h1{font-size:24px!important;letter-spacing:-.03em;margin:0!important}
+html body.lanerunner-page .game-title-status-row{margin:0 0 6px!important;gap:8px!important}
+html body.lanerunner-page .game-meta{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;width:100%!important;margin:4px 0!important}
+html body.lanerunner-page .page-header .game-meta .meta-pill{min-width:0!important;min-height:34px!important;font-size:11px!important;padding:4px 2px!important;line-height:1.25!important;background:#0b1e2f!important;border-color:#365368!important;color:#cde1ec!important}
+html body.lanerunner-page #gameStatus{font-size:11px!important;padding:4px 7px!important;line-height:1.2!important;margin:0!important}
+.lane-progress{display:grid;grid-template-columns:1fr auto;gap:6px;margin:8px 0;color:#bfdee5;font-size:10px;line-height:1.3;font-weight:750}
+.lane-progress #laneBest{color:#94adbe;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lane-progress i{grid-column:1/-1;display:block;height:4px;border-radius:4px;background:#213d50;overflow:hidden}
+.lane-progress i b{display:block;height:100%;width:0;background:#88ddce;border-radius:4px;transition:width .2s linear}
+html body.lanerunner-page .game-guide-surface-wrap{display:block!important;width:min(100%,360px)!important;max-width:100%!important;margin:0 auto!important;overflow:hidden;border-radius:18px}
+html body.lanerunner-page canvas.lane-board{display:block!important;width:100%!important;height:auto!important;max-height:none!important;max-width:100%!important;margin:0!important;border:1px solid #61818a!important;border-radius:18px!important;box-sizing:border-box;box-shadow:0 7px 0 #071521,0 18px 30px #0004!important;touch-action:none}
+html body.lanerunner-page .lane-control-zone{display:none}
+html body.lanerunner-page.game-active .lane-control-zone{display:flex!important;align-items:center;justify-content:space-between;width:100%!important;height:54px!important;box-sizing:border-box;margin:8px 0 0!important;padding:0 4px;border:1px solid #48677b!important;border-radius:15px;background:linear-gradient(150deg,#26485c,#142e42)!important;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 4px 0 #071521!important}
+.lane-control-zone>span{display:grid;gap:3px;justify-items:center;flex:1;pointer-events:none}
+.lane-control-zone strong{font-size:10px;letter-spacing:.08em;color:#c1f0e9}
+.lane-control-zone small{font-size:10px;font-weight:500;color:#b1cbd8}
+html body.lanerunner-page .lane-control-zone button{display:grid;place-items:center;flex:0 0 48px;min-width:48px;min-height:44px;margin:0;padding:0;border:1px solid #52788d;border-radius:11px;background:#163246;color:#d5f8fb;font-size:24px;font-weight:800;box-shadow:0 3px 0 #091e2c;touch-action:manipulation}
+html body.lanerunner-page .lane-control-zone button:active{translate:0 2px;box-shadow:0 1px 0 #091e2c;background:#245167}
+.lane-control-zone button:focus-visible{outline:3px solid #f4d79b;outline-offset:2px}
+#laneSessionActions{display:flex;gap:8px;margin:8px 0 0}
+html body.lanerunner-page #laneSessionActions :is(#earnlyPauseButton,#earnlyQuitButton){position:static!important;display:flex!important;align-items:center;justify-content:center;flex:1;width:auto!important;min-width:0!important;min-height:44px!important;padding:8px!important;margin:0!important;border:1px solid #48677b!important;border-radius:12px!important;background:#142e42!important;color:#d5e9f3!important;font-size:12px!important;line-height:1.2!important;transform:none!important;box-shadow:none!important;text-decoration:none!important}
+html body.lanerunner-page #laneSessionActions [hidden]{display:none!important}
+html body.lanerunner-page:not(.game-active) #laneSessionActions{display:none}
+html body.lanerunner-page .earnly-session-dock:empty{display:none!important}
+html body.lanerunner-page.game-active :is(.topbar,#arcadeBottomNav,#arcadeDesktopNav,#startButton,.game-guide-strip,.game-guide-more,.game-guide-overlay,.game-overlay,.game-guide-link,.public-footer,.compact-leaderboard-ticker,#earnlyCompactLeaderboard,a.button.secondary){display:none!important}
+html body.lanerunner-page.game-active main.container{padding-top:max(8px,env(safe-area-inset-top))!important;padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
+html body.lanerunner-page.game-active .game-guide-surface-wrap{width:min(100%,360px,calc((100dvh - 260px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .6923))!important}
+html body.lanerunner-page.earnly-game-paused #laneSessionActions #earnlyPauseButton{background:#25574f!important;border-color:#91e6cd!important}
+@media(max-height:650px){
+ html body.lanerunner-page.game-active .page-header{padding:5px!important;margin-bottom:5px!important}
+ html body.lanerunner-page.game-active .page-header h1{font-size:21px!important}
+ html body.lanerunner-page.game-active .game-title-status-row{margin-bottom:3px!important}
+ html body.lanerunner-page.game-active .lane-control-zone{height:48px!important;margin-top:5px!important}
+ .lane-progress{margin:5px 0;font-size:9px}#laneSessionActions{margin-top:6px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ html body.lanerunner-page.game-active main.container{display:grid!important;grid-template-columns:1fr 1fr;grid-template-rows:auto auto 1fr auto;gap:6px 18px!important;max-width:800px!important;padding:10px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left))!important}
+ html body.lanerunner-page.game-active .page-header{grid-column:1;grid-row:1}
+ .game-active .lane-progress{grid-column:1;grid-row:2}
+ html body.lanerunner-page.game-active .game-guide-surface-wrap{grid-column:2;grid-row:1/5;width:calc((100dvh - 20px) * .6923)!important;max-width:100%!important}
+ html body.lanerunner-page.game-active .lane-control-zone{grid-column:1;grid-row:3;align-self:end;height:64px!important}
+ .game-active #laneSessionActions{grid-column:1;grid-row:4}
+}
+@media(prefers-reduced-motion:reduce){.lane-progress i b{transition:none}}

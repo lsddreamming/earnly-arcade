@@ -26,7 +26,7 @@ jobs:
       - name: Validate payment ledger and API boundaries
         run: node scripts/test-neon-slice-client.mjs && node scripts/test-neon-slice-rewards.mjs && node --experimental-strip-types --test scripts/test-neon-slice-handler.ts && node scripts/test-bubble-pop-rewards.mjs && node --experimental-strip-types --test scripts/test-bubble-pop-handler.ts && node scripts/test-activity.mjs && node --experimental-strip-types --test scripts/test-activity-handler.ts && node --test scripts/test-native-ads.mjs && node --experimental-strip-types --test scripts/test-ad-bonus.ts && node scripts/test-ad-bonus-ledger.mjs && node scripts/test-progressive-ad-rewards.mjs && node scripts/test-balanced-economy.mjs && node scripts/test-arcade-chat.mjs && node scripts/test-jungle-rewards.mjs && node scripts/test-kart-rewards.mjs && node scripts/test-game-shop-loop.mjs && npm run test:commerce && node scripts/test-coin-staging.mjs && node scripts/test-avatar-staging.mjs && node --test scripts/test-native-environment.mjs && node --test scripts/test-ios-release-gates.mjs && node --test scripts/test-ios-export-compliance.mjs
       - name: Verify reachable Bounce Run waves
-        run: node --test scripts/test-cloud-conflicts.cjs scripts/test-bounce-run.cjs scripts/test-star-defender-flight.cjs scripts/test-coin-catch-rules.cjs scripts/test-safe-cracker-engine.cjs scripts/test-spiral-drop-engine.cjs scripts/test-perfect-drop-engine.cjs scripts/test-traffic-escape-engine.cjs
+        run: node --test scripts/test-gameplay-depth.cjs scripts/test-cloud-conflicts.cjs scripts/test-bounce-run.cjs scripts/test-star-defender-flight.cjs scripts/test-coin-catch-rules.cjs scripts/test-safe-cracker-engine.cjs scripts/test-spiral-drop-engine.cjs scripts/test-perfect-drop-engine.cjs scripts/test-traffic-escape-engine.cjs
       - name: Verify Harbor jump and touch controls
         run: node --test tests/spuddy-turf-engine.cjs && node tests/harbor-jump.cjs && node tests/harbor-move-fire.cjs && node tests/harbor-audio.cjs
       - name: Run simulations and source contracts once
@@ -91,6 +91,16 @@ jobs:
       - name: Verify furniture touch gesture timing
         if: matrix.project == 'mobile-webkit' && matrix.shard == '2/3'
         run: npx playwright test tests/world.spec.js --project=mobile-webkit --grep 'Owned furniture double-taps'
+      - name: Verify Lane Runner and Shape Fit depth, controls and pause
+        run: npx playwright test tests/gameplay-depth.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+      - name: Upload Lane Runner and Shape Fit previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameplay-depth-${{ matrix.project }}${{ matrix.artifact_suffix }}
+          path: test-results/**/gameplay-depth-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify Color Match Prism feedback and phone controls
         run: node --test scripts/test-color-match-engine.cjs && npx playwright test tests/color-match-polish.spec.js --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - name: Upload Color Match previews
