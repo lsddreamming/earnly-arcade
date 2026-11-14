@@ -10,6 +10,7 @@ final class AlienVisual {
     private let pose = SCNNode(), head = SCNNode()
     private var legs: [SCNNode] = [], arms: [SCNNode] = [], wings: [SCNNode] = []
     private var eyes: [SCNNode] = []
+    private let reactor = SCNNode()
     private let skin: SCNMaterial
     private var previousPosition: V3?
     private var previousAttack: Float = 1
@@ -23,6 +24,8 @@ final class AlienVisual {
         let white = AlienArt.material(.white)
         let glow = AlienArt.material(kind == .brute ? .systemYellow : .cyan, glow: true)
         let armor = AlienArt.material(UIColor(red: 0.24, green: 0.17, blue: 0.39, alpha: 1))
+        let trim = AlienArt.material(UIColor(red: 0.65, green: 0.78, blue: 0.90, alpha: 1))
+        armor.metalness.contents = 0.65
         let r = kind.radius
         node.addChildNode(pose)
         let body = AlienArt.sphere(r * 0.68, skin, at: V3(0, -r * 0.05, 0), in: pose)
@@ -76,6 +79,45 @@ final class AlienVisual {
             _ = AlienArt.box(V3(r * 0.08, r * 0.32, r * 0.08), dark, at: V3(0, r * 0.59, 0), in: head)
             _ = AlienArt.sphere(r * 0.12, glow, at: V3(0, r * 0.78, 0), in: head)
         }
+        // Silhouette and surface detail use small cached meshes, not lights or
+        // screen-space overlays. They all remain children of the actor pose.
+        for side: Float in [-1, 1] {
+            if kind == .runner {
+                let ear = AlienArt.sphere(r * 0.23, skin, at: V3(side * r * 0.61, r * 0.12, 0), in: head)
+                ear.scale = SCNVector3(1.55, 0.65, 0.35); ear.eulerAngles.z = side * 0.35
+                for i in 0..<3 {
+                    _ = AlienArt.sphere(r * 0.035, glow,
+                        at: V3(side * r * (0.30 + Float(i) * 0.07), -r * 0.13, r * 0.47), in: head)
+                }
+            } else if kind == .armor || kind == .brute {
+                let plate = AlienArt.box(V3(r * 0.27, r * 0.12, r * 0.06), trim,
+                    at: V3(side * r * 0.28, r * 0.17, r * 0.63), in: pose)
+                plate.eulerAngles.z = side * 0.25
+                for i in 0..<2 {
+                    _ = AlienArt.box(V3(r * 0.18, r * 0.045, r * 0.06), glow,
+                        at: V3(side * r * 0.30, -r * (0.12 + Float(i) * 0.12), r * 0.63), in: pose)
+                }
+                _ = AlienArt.sphere(r * 0.075, trim, at: V3(side * r * 0.66, r * 0.25, r * 0.34), in: pose)
+            } else {
+                let pod = AlienArt.sphere(r * 0.21, dark, at: V3(side * r * 0.46, -r * 0.30, -r * 0.12), in: pose)
+                pod.scale = SCNVector3(0.65, 1.25, 0.8)
+                let exhaust = AlienArt.sphere(r * 0.13, glow, at: V3(0, -r * 0.23, 0), in: pod)
+                exhaust.scale = SCNVector3(0.8, 1.7, 0.8)
+            }
+        }
+        reactor.position = SCNVector3(0, -r * 0.04, r * 0.66); pose.addChildNode(reactor)
+        let core = AlienArt.sphere(r * 0.105, glow, at: .zero, in: reactor)
+        core.scale.z = 0.4
+        let collar = SCNTorus(ringRadius: CGFloat(r * 0.15), pipeRadius: CGFloat(r * 0.022))
+        collar.ringSegmentCount = 12; collar.pipeSegmentCount = 6; collar.firstMaterial = trim
+        let ring = SCNNode(geometry: collar); ring.eulerAngles.x = .pi / 2; reactor.addChildNode(ring)
+        if kind == .brute {
+            for i in -1...1 {
+                let crest = AlienArt.box(V3(r * 0.13, r * 0.20, r * 0.27), armor,
+                    at: V3(Float(i) * r * 0.19, r * 0.50, -r * 0.02), in: head)
+                crest.eulerAngles.z = -Float(i) * 0.14
+            }
+        }
     }
 
     func hit() { hitRemaining = 0.18 }
@@ -98,8 +140,12 @@ final class AlienVisual {
         pose.position.y = sin(alien.age * (alien.kind == .flyer ? 5 : 14)) * (moving ? 0.012 : 0.004)
         pose.eulerAngles.z = hitRemaining > 0 ? sin(hitRemaining * 65) * 0.13 : 0
         let squash = hitRemaining / 0.18
-        pose.scale = SCNVector3(1 + squash * 0.08, 1 - squash * 0.10, 1)
-        skin.emission.contents = hitRemaining > 0 ? UIColor(white: 0.55, alpha: 1) : UIColor.black
+        let arrival = min(1, max(0.05, alien.age / 0.24))
+        pose.scale = SCNVector3((1 + squash * 0.08) * arrival, (1 - squash * 0.10) * arrival, arrival)
+        skin.emission.contents = hitRemaining > 0 ? UIColor.white : color
+        skin.emission.intensity = hitRemaining > 0 ? 0.55 : 0.08
+        let pulse = 1 + sin(alien.age * 4) * 0.10
+        reactor.scale = SCNVector3(pulse, pulse, 1)
         head.eulerAngles.z = sin(alien.age * 2.3) * 0.05
         let blink = alien.age.truncatingRemainder(dividingBy: 3.7) > 3.55
         for eye in eyes { eye.scale.y = blink ? 0.12 : 1.22 }
@@ -139,6 +185,9 @@ final class AlienWeaponVisual {
     let color: UIColor
     private let flash: SCNNode
     private var kick: Float = 0
+    private let rotor = SCNNode()
+    private var cells: [SCNNode] = []
+    private var age: Float = 0
 
     init(weapon: Weapon) {
         color = weapon == .plasma ? .cyan : .green
@@ -153,6 +202,26 @@ final class AlienWeaponVisual {
         _ = AlienArt.box(V3(0.038, 0.018, 0.075), energy, at: V3(0, 0.044, 0.012), in: node)
         for side: Float in [-1, 1] {
             _ = AlienArt.box(V3(0.008, 0.020, 0.13), energy, at: V3(side * 0.048, 0, 0), in: node)
+            _ = AlienArt.box(V3(0.012, 0.043, 0.09), trim, at: V3(side * 0.048, -0.008, 0.028), in: node)
+            for i in 0..<3 {
+                _ = AlienArt.box(V3(0.014, 0.005, 0.024), dark,
+                    at: V3(side * 0.055, -0.018 + Float(i) * 0.012, 0.03), in: node)
+            }
+        }
+        _ = AlienArt.box(V3(0.065, 0.028, 0.048), trim, at: V3(0, 0.043, 0.065), in: node)
+        for i in 0..<6 {
+            cells.append(AlienArt.box(V3(0.009, 0.004, 0.018), energy,
+                at: V3(-0.027 + Float(i) * 0.011, 0.060, 0.065), in: node))
+        }
+        rotor.position = SCNVector3(0, 0.045, -0.055); node.addChildNode(rotor)
+        let chamber = AlienArt.sphere(0.024, energy, at: .zero, in: rotor)
+        chamber.scale = SCNVector3(0.7, 0.7, 1.3)
+        for side: Float in [-1, 1] {
+            _ = AlienArt.box(V3(0.008, 0.045, 0.045), trim, at: V3(side * 0.027, 0, 0), in: rotor)
+        }
+        for i in 0..<3 {
+            let ray = AlienArt.box(V3(0.006, 0.065, 0.004), energy, at: .zero, in: flash)
+            ray.eulerAngles.z = Float(i) * .pi / 3
         }
         let barrelOffsets: [Float] = weapon == .plasma ? [0] : [-0.025, 0.025]
         for x in barrelOffsets {
@@ -173,12 +242,17 @@ final class AlienWeaponVisual {
 
     func fire() { kick = 1 }
 
-    func update(dt: Float, reload: Float) {
+    func update(dt: Float, reload: Float, charge: Float = 1) {
+        age += dt
         kick = max(0, kick - dt * 9)
         let dip = reload > 0 ? sin(min(1, reload / 1.2) * .pi) : 0
-        node.position = SCNVector3(0.10, -0.14 - dip * 0.10, -0.30 + kick * 0.035)
+        node.position = SCNVector3(0.10, -0.14 - dip * 0.10 + sin(age * 2) * 0.002, -0.30 + kick * 0.035)
         node.eulerAngles = SCNVector3(kick * 0.13, 0, -dip * 0.5)
         flash.isHidden = kick < 0.65
+        rotor.eulerAngles.z += dt * (reload > 0 ? 7 : 1.5 + kick * 8)
+        for (i, cell) in cells.enumerated() {
+            cell.opacity = Float(i) < charge * Float(cells.count) ? 1 : 0.10
+        }
     }
 }
 

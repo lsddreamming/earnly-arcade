@@ -1,5 +1,6 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 
 // Called only by an explicitly selected preview build. Ordinary Earnly builds
 // retain their existing native plugins, camera permissions and home page.
@@ -13,7 +14,7 @@ export async function installAlienARPreview(root=process.cwd()) {
   const registration='bridge?.registerPluginInstance(ArcadePurchasesPlugin())';
   if(!delegate.includes(registration))throw new Error('Earnly bridge registration point missing; preview injection stopped.');
   delegate=delegate.replace(registration,registration+'; bridge?.registerPluginInstance(AlienInvasionPlugin())');
-  const source=await Promise.all(['native/AlienInvasionAR/Sources/World.swift','native/AlienInvasionAR/Sources/PortalPlacement.swift','native/AlienInvasionAR/Sources/AlienVisuals.swift','native/AlienInvasionAR/Sources/GameViewController.swift','native/AlienInvasionBridge.swift'].map(read));
+  const source=await Promise.all(['native/AlienInvasionAR/Sources/World.swift','native/AlienInvasionAR/Sources/PortalPlacement.swift','native/AlienInvasionAR/Sources/AlienVisuals.swift','native/AlienInvasionAR/Sources/AlienAudio.swift','native/AlienInvasionAR/Sources/GameViewController.swift','native/AlienInvasionBridge.swift'].map(read));
   let plist=await read(app+'Info.plist');
   if(!/<\/dict>\s*<\/plist>\s*$/.test(plist))throw new Error('Invalid application plist; preview injection stopped.');
   if(!plist.includes('<key>NSCameraUsageDescription</key>')){
@@ -22,10 +23,7 @@ export async function installAlienARPreview(root=process.cwd()) {
   await writeFile(path.join(root,delegatePath),delegate+'\n\n// EARNLY ALIEN AR PREVIEW\n'+source.join('\n'));
   await writeFile(path.join(root,app+'Info.plist'),plist);
   const publicDir=path.join(root,app,'public');await mkdir(publicDir,{recursive:true});
-  // Short positional zap, generated locally. No recording or network assets.
-  const samples=4400, wav=Buffer.alloc(44+samples*2);
-  wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(22050,24);wav.writeUInt32LE(44100,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(samples*2,40);
-  for(let i=0;i<samples;i++)wav.writeInt16LE(Math.round(8000*(1-i/samples)**2*Math.sin(2*Math.PI*(900*i/22050-550*(i/22050)**2))),44+i*2);
-  await writeFile(path.join(publicDir,'alien-ar-zap.wav'),wav);
+  // One shared offline generator keeps the standalone and embedded clips identical.
+  execFileSync('python3',[path.join(root,'native/AlienInvasionAR/audio_assets.py'),publicDir,'--prefix','alien-ar-']);
   console.log('Enabled native AR game inside the existing Earnly Arcade preview app.');
 }
