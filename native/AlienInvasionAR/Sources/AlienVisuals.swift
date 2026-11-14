@@ -12,7 +12,7 @@ final class AlienVisual {
     private var eyes: [SCNNode] = []
     private let skin: SCNMaterial
     private var previousPosition: V3?
-    private var previousAttack: Float = 1
+    private var previousWindup: Float = 0
     private var hitRemaining: Float = 0
     private var attackRemaining: Float = 0
 
@@ -103,16 +103,18 @@ final class AlienVisual {
     func update(_ alien: Alien, player: V3, dt: Float) {
         let moving = previousPosition.map { length(alien.position - $0) > 0.00001 } ?? true
         previousPosition = alien.position
-        if alien.attackCooldown > previousAttack + 0.1 { attackRemaining = 0.28 }
-        previousAttack = alien.attackCooldown
+        if previousWindup > 0 && alien.attackWindup == 0 && alien.attackCooldown > 1.5 && alien.stagger == 0 { attackRemaining = 0.28 }
+        previousWindup = alien.attackWindup
         hitRemaining = max(0, hitRemaining - dt); attackRemaining = max(0, attackRemaining - dt)
         node.simdPosition = alien.position
         let delta = player - alien.position
         node.eulerAngles.y = atan2(delta.x, delta.z)
         let gait = sin(alien.age * (alien.kind == .runner ? 13 : 7)) * (moving ? Float(0.55) : 0)
         for (i, leg) in legs.enumerated() { leg.eulerAngles.x = (i == 0 ? gait : -gait) }
+        let windup = alien.attackProgress
         let strike = sin((1 - attackRemaining / 0.28) * .pi) * 1.2
-        for (i, arm) in arms.enumerated() { arm.eulerAngles.x = (i == 0 ? -gait : gait) * 0.65 - strike }
+        let anticipation = sin(windup * .pi / 2) * 0.9
+        for (i, arm) in arms.enumerated() { arm.eulerAngles.x = (i == 0 ? -gait : gait) * 0.65 - strike + anticipation }
         for (i, wing) in wings.enumerated() { wing.eulerAngles.z = sin(alien.age * 24) * (i == 0 ? 0.4 : -0.4) }
         // Only a small cosmetic bob; the actor root stays at its exact hit position.
         pose.position.y = sin(alien.age * (alien.kind == .flyer ? 5 : 14)) * (moving ? 0.012 : 0.004)
@@ -120,8 +122,8 @@ final class AlienVisual {
         let squash = hitRemaining / 0.18
         let emerge: Float = alien.emergenceOrigin == nil ? 1 : min(1,0.25+alien.age*1.1)
         pose.scale = SCNVector3((1+squash*0.08)*emerge,(1-squash*0.10)*emerge,emerge)
-        pose.eulerAngles.x = alien.kind == .runner ? 0.22 : 0
-        skin.emission.contents = hitRemaining > 0 ? UIColor(white: 0.55, alpha: 1) : UIColor.black
+        pose.eulerAngles.x = (alien.kind == .runner ? Float(0.22) : 0) - anticipation*0.18
+        skin.emission.contents = hitRemaining > 0 ? UIColor(white: 0.55, alpha: 1) : alien.attackWindup > 0 ? UIColor(red:CGFloat(windup)*0.55,green:0.08,blue:0,alpha:1) : UIColor.black
         head.eulerAngles.z = sin(alien.age * 2.3) * 0.05
         let blink = alien.age.truncatingRemainder(dividingBy: 3.7) > 3.55
         for eye in eyes { eye.scale.y = blink ? 0.12 : 1.22 }
