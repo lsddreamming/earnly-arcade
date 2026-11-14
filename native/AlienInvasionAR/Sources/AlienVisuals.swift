@@ -206,7 +206,7 @@ final class AlienWeaponVisual {
     func update(dt: Float, reload: Float) {
         kick = max(0, kick - dt * 9)
         let dip = reload > 0 ? sin(min(1, reload / 1.2) * .pi) : 0
-        node.position = SCNVector3(0.10, -0.14 - dip * 0.10, -0.30 + kick * 0.035)
+        node.position = SCNVector3(0.07, -0.09 - dip * 0.10, -0.36 + kick * 0.035)
         node.eulerAngles = SCNVector3(kick * 0.13, 0, -dip * 0.5)
         battery.position.y = -0.036-dip*0.08
         battery.eulerAngles.z = dip*0.25

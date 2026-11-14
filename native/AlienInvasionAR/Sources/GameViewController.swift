@@ -295,7 +295,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let p=local.columns.3.xyz
         if world.entrances.contains(where:{length($0.position-p)<0.6}) { hint.text="Move the aim away from the other entrance first."; return }
         let entrance=Entrance(position:p,kind:kind); world.entrances.append(entrance)
-        let placement=PortalPlacement(center:p,right:normalized(local.columns.0.xyz),up:normalized(local.columns.1.xyz),width:0.9,height:kind == .ceiling ? 0.9 : 1.4,locked:!editable)
+        let width:Float = kind == .air || kind == .window ? 1.1 : 0.9
+        let height:Float = kind == .air ? width : kind == .ceiling ? 0.9 : kind == .window ? 0.85 : 1.4
+        let placement=PortalPlacement(center:p,right:normalized(local.columns.0.xyz),up:normalized(local.columns.1.xyz),width:width,height:height,locked:!editable)
         portalPlacements[entrance.id]=placement
         let node=SCNNode(); root.addChildNode(node); portalNodes[entrance.id]=node
         if editable {
@@ -632,7 +634,8 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let kind=PortalKind.allCases.first(where:{args.contains($0.rawValue)}) ?? .air
         let combat=args.contains("combat"), paused=args.contains("paused")
         ar.scene.background.contents=UIColor(red:0.045,green:0.07,blue:0.11,alpha:1)
-        let camera=SCNNode(); camera.camera=SCNCamera(); camera.position=SCNVector3(0,1.5,0)
+        let camera=SCNNode(); camera.camera=SCNCamera(); camera.camera?.zNear=0.01
+        camera.position=SCNVector3(0,1.5,0)
         ar.scene.rootNode.addChildNode(camera); ar.pointOfView=camera; ar.isPlaying=true
         originAnchor=ARAnchor(transform:matrix_identity_float4x4)
         var t=matrix_identity_float4x4; t.columns.3=SIMD4<Float>(0,1.5,-2.5,1)
@@ -669,7 +672,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             let rect=target.convert(target.bounds,to:self.view)
             let safe=self.view.safeAreaLayoutGuide.layoutFrame
             let pass=rect.width >= 44 && rect.height >= 44 && safe.contains(rect)
-            let result:[String:Any] = ["layoutPass":pass,"kind":kind.rawValue,"physicalARVerified":false]
+            let muzzle=self.heldWeapon.map { self.ar.projectPoint($0.muzzle.worldPosition) }
+            let weaponVisible = !combat || muzzle.map { $0.z > 0 && $0.z < 1 && safe.contains(CGPoint(x:CGFloat($0.x),y:CGFloat($0.y))) } == true
+            let result:[String:Any] = ["layoutPass":pass && weaponVisible,"weaponVisible":weaponVisible,"kind":kind.rawValue,"physicalARVerified":false]
             let folder=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
             if let data=try? JSONSerialization.data(withJSONObject:result) { try? data.write(to:folder.appendingPathComponent("visual-review.json")) }
         }
@@ -705,6 +710,8 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     private func installGun() {
         guard heldWeapon == nil, let camera=ar.pointOfView else{return}
+        // Keep the camera-mounted model inside the near clipping plane.
+        camera.camera?.zNear=0.01
         let weapon=AlienWeaponVisual(weapon:world.weapon)
         camera.addChildNode(weapon.node); heldWeapon=weapon; ar.audioListener=camera
     }
