@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 
@@ -22,10 +23,6 @@ export async function installAlienARPreview(root=process.cwd()) {
   await writeFile(path.join(root,delegatePath),delegate+'\n\n// EARNLY ALIEN AR PREVIEW\n'+source.join('\n'));
   await writeFile(path.join(root,app+'Info.plist'),plist);
   const publicDir=path.join(root,app,'public');await mkdir(publicDir,{recursive:true});
-  // Short positional zap, generated locally. No recording or network assets.
-  const samples=4400, wav=Buffer.alloc(44+samples*2);
-  wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(22050,24);wav.writeUInt32LE(44100,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(samples*2,40);
-  for(let i=0;i<samples;i++)wav.writeInt16LE(Math.round(8000*(1-i/samples)**2*Math.sin(2*Math.PI*(900*i/22050-550*(i/22050)**2))),44+i*2);
-  await writeFile(path.join(publicDir,'alien-ar-zap.wav'),wav);
+  execFileSync('python3',[path.join(root,'native/AlienInvasionAR/generate-audio.py'),publicDir,'alien-ar-']);
   console.log('Enabled native AR game inside the existing Earnly Arcade preview app.');
 }
