@@ -16,6 +16,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private var actors: [UUID:AlienVisual] = [:]
     private let effects = SCNNode()
     private var portalNodes: [UUID:SCNNode] = [:]
+    private var portalVisuals: [UUID:AlienPortalVisual] = [:]
     private var portalPlacements: [UUID:PortalPlacement] = [:]
     private var selectedEntrance: UUID?
     private var portalDrag: (id:UUID, placement:PortalPlacement, grab:V3, corner:SIMD2<Float>?)?
@@ -174,7 +175,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         // Also clear particles and defeated actors, which no longer have live IDs.
         root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll()
         effects.childNodes.forEach{$0.removeFromParentNode()}; root.addChildNode(effects)
-        portalNodes=[:]; portalPlacements=[:]; originAnchor=nil
+        portalNodes=[:]; portalVisuals=[:]; portalPlacements=[:]; originAnchor=nil
         selectedEntrance=nil; portalDrag=nil; portalPinch=nil; editControls.isHidden=true; depthControls.isHidden=true
         root.simdTransform=matrix_identity_float4x4; root.isPaused=false
         heldWeapon?.node.removeFromParentNode(); heldWeapon=nil
@@ -263,29 +264,14 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private func renderPortal(_ id:UUID) {
         guard let p=portalPlacements[id],let node=portalNodes[id] else{return}
         node.simdTransform=simd_float4x4(columns:(SIMD4<Float>(p.right,0),SIMD4<Float>(p.up,0),SIMD4<Float>(p.normal,0),SIMD4<Float>(p.center,1)))
-        node.childNodes.forEach{$0.removeFromParentNode()}
-        let editing=selectedEntrance == id && !p.locked
-        let color:UIColor=editing ? .cyan : .systemPurple
-        let opening=SCNNode(); opening.scale=SCNVector3(p.width,p.height,1); node.addChildNode(opening)
-        let ring=SCNTorus(ringRadius:0.5,pipeRadius:0.018); ring.firstMaterial=material(color,glow:true)
-        let r=SCNNode(geometry:ring); r.eulerAngles.x = .pi/2; opening.addChildNode(r)
-        let hole=SCNCylinder(radius:0.48,height:0.006); hole.firstMaterial=material(UIColor(white:0.02,alpha:0.8))
-        let h=SCNNode(geometry:hole); h.eulerAngles.x = .pi/2; opening.addChildNode(h)
-        r.runAction(.repeatForever(.sequence([.fadeOpacity(to:0.55,duration:0.7),.fadeOpacity(to:1,duration:0.7)])))
-        if world.entrances.first(where:{$0.id == id})?.kind == .wall {
-            for i in 0..<7 {
-                let a=Float(i)*2 * .pi/7
-                let crack=SCNNode(geometry:SCNBox(width:0.018,height:0.24,length:0.008,chamferRadius:0.004))
-                crack.geometry?.firstMaterial=material(color,glow:true)
-                crack.position=SCNVector3(sin(a)*p.width*0.64,cos(a)*p.height*0.64,0); crack.eulerAngles.z = -a; node.addChildNode(crack)
-            }
+        let visual:AlienPortalVisual
+        if let existing=portalVisuals[id] { visual=existing }
+        else {
+            let kind=world.entrances.first(where:{$0.id == id})?.kind ?? .air
+            visual=AlienPortalVisual(kind:kind); portalVisuals[id]=visual; node.addChildNode(visual.node)
         }
-        if editing {
-            for x:Float in [-1,1] { for y:Float in [-1,1] {
-                let handle=ball(0.045,.cyan,SCNVector3(x*p.width/2,y*p.height/2,0.035),node)
-                handle.geometry?.firstMaterial=material(.cyan,glow:true)
-            } }
-        }
+        visual.update(width:p.width,height:p.height,editing:selectedEntrance == id && !p.locked)
+        if p.locked { visual.beginInvasion() }
     }
     private func refreshPortalEditor() {
         guard phase == "scan",let id=selectedEntrance,let p=portalPlacements[id] else { editControls.isHidden=true; depthControls.isHidden=true; return }
@@ -310,7 +296,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     @objc private func removePortal() {
         guard phase == "scan",let id=selectedEntrance else{return}
-        portalNodes.removeValue(forKey:id)?.removeFromParentNode(); portalPlacements.removeValue(forKey:id)
+        portalNodes.removeValue(forKey:id)?.removeFromParentNode(); portalVisuals.removeValue(forKey:id); portalPlacements.removeValue(forKey:id)
         world.entrances.removeAll{$0.id == id}; selectedEntrance=nil; portalDrag=nil; portalPinch=nil
         refreshPortalEditor(); card.isHidden=true; hint.text="Choose an entrance type, then tap Place portal."
         if !world.entrances.isEmpty && portalPlacements.values.allSatisfy({$0.locked}) { showReady() }
@@ -474,7 +460,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     @objc private func exitGame() {
         firing=false; roomCapture?.stop(); roomCapture=nil; ar.session.pause()
-        world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll(); portalNodes=[:]; portalPlacements=[:]; selectedEntrance=nil
+        world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll(); portalNodes=[:]; portalVisuals=[:]; portalPlacements=[:]; selectedEntrance=nil
         effects.childNodes.forEach{$0.removeFromParentNode()}
         heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; UIApplication.shared.isIdleTimerDisabled=false
         if let onExit=onExit {
@@ -567,6 +553,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         for alien in world.aliens {
             if actors[alien.id] == nil {
                 let actor=AlienVisual(kind:alien.kind); root.addChildNode(actor.node); actors[alien.id]=actor
+                if let entranceID=alien.entranceID,let visual=portalVisuals[entranceID],let placement=portalPlacements[entranceID] {
+                    visual.arrival(); burst(at:placement.center,color:visual.color)
+                }
             }
             actors[alien.id]?.update(alien,player:world.player,dt:dt)
         }

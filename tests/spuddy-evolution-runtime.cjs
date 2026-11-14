@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const E = require('../spuddy-evolution-engine.js');
-const { seedCollectionFixture } = require('./spuddy-evolution-fixtures.cjs');
+const { seedCollectionFixture, quietMenuRandom } = require('./spuddy-evolution-fixtures.cjs');
 const root = path.resolve(__dirname, '..');
 const runtime = fs.readFileSync(path.join(root, 'spuddy-evolution.js'), 'utf8');
 
@@ -113,3 +113,25 @@ for (const intervals of [[1000 / 60], [250], [500], [17, 500, 33, 250]]) {
     assert.equal(restored.s.save.journey.captures, 1);
   });
 }
+
+
+test('journey menu fixture keeps real balances stable before and after chapter advancement', () => {
+  const raw = { version: 1, bank: 100, bosses: [true, true, true, true, true],
+    unlocked: 4, journey: { chapter: 1, shards: 5 } };
+  const game = E.create(raw, quietMenuRandom);
+  const waitAtNest = () => {
+    game.s.paused = false;
+    for (let i = 0; i < 2400; i++) game.step(.05);
+  };
+  waitAtNest(); // Even a two-minute slow menu interaction must not earn rewards.
+  assert.equal(game.s.save.bank, 100);
+  assert.equal(game.s.save.journey.shards, 5);
+  assert.equal(game.buyResearch('power'), true);
+  assert.equal(game.nextChapter(), true);
+  waitAtNest();
+  const reloaded = E.create(game.exportSave(), quietMenuRandom).exportSave();
+  assert.equal(reloaded.bank, 100);
+  assert.equal(reloaded.journey.shards, 3);
+  assert.equal(reloaded.journey.chapter, 2);
+  assert.equal(reloaded.journey.research.power, 1);
+});

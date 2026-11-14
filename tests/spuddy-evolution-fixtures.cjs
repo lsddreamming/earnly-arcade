@@ -12,4 +12,9 @@ function seedCollectionFixture(game) {
   return game;
 }
 
-module.exports = { seedCollectionFixture };
+// Menu/persistence checks need a repeatable world with no creatures close to
+// the starting nest. This uses the engine's real spawn RNG input; combat,
+// rewards, research, chapter changes and storage still run normally.
+function quietMenuRandom() { return 0; }
+
+module.exports = { seedCollectionFixture, quietMenuRandom };
