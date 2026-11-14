@@ -18,6 +18,19 @@ async function fixture(t){
   return {root,read:p=>readFile(path.join(root,p),'utf8')};
 }
 
+test('native portal editor always exposes a start-game action after placement',async()=>{
+  const source=await readFile(path.join(repo,'native/AlienInvasionAR/Sources/GameViewController.swift'),'utf8');
+  assert.match(source,/style\(startButton,"START GAME · 3 WAVES",#selector\(startGameFromPlacement\)\)/);
+  assert.match(source,/\[setup,combat,editControls,depthControls,startButton\]/,'start is in the persistent bottom controls, not only the popup');
+  assert.match(source,/startButton\.isHidden = phase != "scan" \|\| world\.entrances\.isEmpty/);
+  assert.match(source,/startButton\.isEnabled = canStart/);
+  assert.match(source,/portalPlacements\.count == world\.entrances\.count && portalPlacements\.values\.allSatisfy/);
+  assert.match(source,/private func refreshPortalEditor\(\) \{\s*refreshStartButton\(\)/);
+  assert.match(source,/private func showReady\(\) \{\s*refreshStartButton\(\)/);
+  assert.match(source,/@objc private func startGameFromPlacement\(\) \{\s*guard phase == "scan" else \{ return \}\s*startCombat\(test:false\)/);
+  assert.match(source,/editControls\.isHidden=true; depthControls\.isHidden=true; startButton\.isHidden=true/,'start disappears during combat');
+});
+
 test('embedding is repeatable and preserves the existing app, StoreKit and plist',async t=>{
   const f=await fixture(t);
   await installAlienARPreview(f.root);

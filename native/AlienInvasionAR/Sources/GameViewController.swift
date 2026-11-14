@@ -56,6 +56,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private let fireButton = UIButton(type:.system), reloadButton = UIButton(type:.system)
     private let weaponButton = UIButton(type:.system), pauseButton = UIButton(type:.system)
     private let exitButton = UIButton(type:.system)
+    private let startButton = UIButton(type:.system)
     private let lockButton=UIButton(type:.system), deletePortalButton=UIButton(type:.system)
     private let closerButton=UIButton(type:.system), fartherButton=UIButton(type:.system)
     private let editControls=UIStackView(), depthControls=UIStackView()
@@ -113,6 +114,10 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         fireButton.backgroundColor=UIColor(red:0.06,green:0.5,blue:0.9,alpha:0.95)
         style(reloadButton,"Reload",#selector(reloadGun)); style(weaponButton,"Plasma ⇄",#selector(changeWeapon))
         style(pauseButton,"Ⅱ",#selector(pauseGame)); style(exitButton,"Exit",#selector(exitGame))
+        style(startButton,"START GAME · 3 WAVES",#selector(startGameFromPlacement))
+        startButton.backgroundColor=UIColor(red:0.69,green:0.98,blue:0.44,alpha:1)
+        startButton.setTitleColor(UIColor(red:0.05,green:0.15,blue:0.08,alpha:1),for:.normal)
+        startButton.isHidden=true
         top.axis = .horizontal; top.spacing=8
         [exitButton,stats,pauseButton].forEach{top.addArrangedSubview($0)}
         stats.setContentHuggingPriority(.defaultLow,for:.horizontal)
@@ -128,7 +133,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         for row in [editControls,depthControls] { row.spacing=8; row.distribution = .fillEqually; row.isHidden=true }
         [lockButton,deletePortalButton].forEach{editControls.addArrangedSubview($0)}
         [closerButton,fartherButton].forEach{depthControls.addArrangedSubview($0)}
-        [setup,combat,editControls,depthControls].forEach{controls.addArrangedSubview($0)}
+        [setup,combat,editControls,depthControls,startButton].forEach{controls.addArrangedSubview($0)}
         for v in [top,hint,threat,crosshair,card,controls] { v.translatesAutoresizingMaskIntoConstraints=false; view.addSubview(v) }
         let s=view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
@@ -185,6 +190,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         UIApplication.shared.isIdleTimerDisabled=true
         top.isHidden=false; hint.isHidden=false; crosshair.isHidden=false; controls.isHidden=false; threat.isHidden=true
         controls.arrangedSubviews[0].isHidden=false; controls.arrangedSubviews[1].isHidden=true
+        refreshStartButton()
         titleLabel.text="Find your floor"
         bodyLabel.text="Slowly point at a clear floor until tracking is ready. Hide this card, aim the crosshair at the floor, then tap Mark floor."
         primary.isHidden=true; secondary.isHidden=false; secondary.setTitle("Show camera",for:.normal)
@@ -273,12 +279,24 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         visual.update(width:p.width,height:p.height,editing:selectedEntrance == id && !p.locked)
         if p.locked { visual.beginInvasion() }
     }
+    private func refreshStartButton() {
+        let canStart = phase == "scan" && !world.entrances.isEmpty &&
+            portalPlacements.count == world.entrances.count && portalPlacements.values.allSatisfy({$0.locked})
+        startButton.isHidden = phase != "scan" || world.entrances.isEmpty
+        startButton.isEnabled = canStart
+        startButton.setTitle(canStart ? "START GAME · 3 WAVES" : "Lock all portals to start",for:.normal)
+    }
+    @objc private func startGameFromPlacement() {
+        guard phase == "scan" else { return }
+        startCombat(test:false)
+    }
     private func refreshPortalEditor() {
+        refreshStartButton()
         guard phase == "scan",let id=selectedEntrance,let p=portalPlacements[id] else { editControls.isHidden=true; depthControls.isHidden=true; return }
         editControls.isHidden=false
         depthControls.isHidden=p.locked || world.entrances.first(where:{$0.id == id})?.kind != .air
         lockButton.setTitle(p.locked ? "Edit portal" : "Lock portal",for:.normal)
-        hint.text=p.locked ? "Portal locked in your room. Tap Edit portal to change it." : String(format:"Drag body to move · drag corners or pinch to resize\n%.2f m × %.2f m · Lock when ready",p.width,p.height)
+        hint.text=p.locked ? "Portal locked in your room. Tap START GAME below or Edit portal to change it." : String(format:"Drag body to move · drag corners or pinch to resize\n%.2f m × %.2f m · Lock when ready",p.width,p.height)
     }
     private func applyPortal(_ id:UUID,_ placement:PortalPlacement) {
         guard let i=world.entrances.firstIndex(where:{$0.id == id}),let frame=ar.session.currentFrame else{return}
@@ -368,6 +386,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         else if gesture.state == .ended || gesture.state == .cancelled || gesture.state == .failed { portalPinch=nil }
     }
     private func showReady() {
+        refreshStartButton()
         card.isHidden=false; titleLabel.text="\(world.entrances.count) entrance\(world.entrances.count == 1 ? "" : "s") ready"
         bodyLabel.text="Your entrances are locked in the room. They stay there when you turn the phone.\n\nStay in one clear spot. Turn to aim; hold FIRE. Add or edit entrances before combat."
         primary.isHidden=false; primary.setTitle("Defend · 3 waves",for:.normal)
@@ -421,10 +440,13 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     @objc private func startTest() { startCombat(test:true) }
     private func startCombat(test:Bool) {
-        guard readyTracking, originAnchor != nil, !world.entrances.isEmpty, portalPlacements.values.allSatisfy({$0.locked}), let frame=ar.session.currentFrame else { bodyLabel.text="Wait for stable tracking, place an entrance, and lock every portal before combat."; return }
+        guard phase == "scan", readyTracking, originAnchor != nil, !world.entrances.isEmpty, portalPlacements.count == world.entrances.count, portalPlacements.values.allSatisfy({$0.locked}), let frame=ar.session.currentFrame else {
+            let message="Wait for stable tracking, place an entrance, and lock every portal before combat."
+            bodyLabel.text=message; hint.text=message; return
+        }
         world.reset(); phase="combat"; card.isHidden=true; controls.isHidden=false; pauseButton.isHidden=false
         controls.arrangedSubviews[0].isHidden=true; controls.arrangedSubviews[1].isHidden=false
-        editControls.isHidden=true; depthControls.isHidden=true; selectedEntrance=nil; portalDrag=nil; portalPinch=nil
+        editControls.isHidden=true; depthControls.isHidden=true; startButton.isHidden=true; selectedEntrance=nil; portalDrag=nil; portalPinch=nil
         for id in portalNodes.keys { renderPortal(id) }
         safetyOrigin=frame.camera.transform.columns.3.xyz
         world.player=(simd_inverse(root.simdTransform)*SIMD4<Float>(safetyOrigin,1)).xyz
