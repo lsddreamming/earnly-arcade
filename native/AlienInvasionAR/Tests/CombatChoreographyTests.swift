@@ -42,6 +42,21 @@ final class CombatChoreographyTests: XCTestCase {
         XCTAssertGreaterThan(w.aliens[0].attackWindup,0)
         XCTAssertEqual(w.aliens[0].stagger,0)
     }
+    func testInterruptedWindupDoesNotDealDelayedDamageAndPauseFreezesStagger() {
+        let w = room(.armor)
+        for _ in 0..<61 { w.update(1/60) }
+        w.weapon = .zapper
+        w.shoot(origin:w.player,direction:w.aliens[0].position-w.player)
+        let before = w.aliens[0]
+        w.paused = true; w.update(20)
+        XCTAssertEqual(w.aliens[0].stagger,before.stagger)
+        XCTAssertEqual(w.aliens[0].staggerImmunity,before.staggerImmunity)
+        w.paused = false
+        for _ in 0..<60 { w.update(1/60) }
+        XCTAssertEqual(w.health,100)
+        for _ in 0..<60 { w.update(1/60) }
+        XCTAssertEqual(w.health,100-AlienKind.armor.damage)
+    }
     func testSpeciesPathsStayBoundedAndWorldIdentityPersists() {
         for kind in AlienKind.allCases {
             let w = room(kind,distance:4)

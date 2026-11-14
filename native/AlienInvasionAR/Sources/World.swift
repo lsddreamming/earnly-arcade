@@ -137,11 +137,11 @@ final class InvasionWorld {
         for i in aliens.indices {
             aliens[i].age += dt
             aliens[i].staggerImmunity = max(0, aliens[i].staggerImmunity-dt)
+            aliens[i].empowered = max(0, aliens[i].empowered-dt)
             if aliens[i].stagger > 0 {
                 aliens[i].stagger = max(0, aliens[i].stagger-dt)
                 continue
             }
-            aliens[i].empowered = max(0, aliens[i].empowered-dt)
             if let start = aliens[i].emergenceOrigin {
                 var end = start
                 if aliens[i].kind != .flyer { end.y = aliens[i].kind.radius }
