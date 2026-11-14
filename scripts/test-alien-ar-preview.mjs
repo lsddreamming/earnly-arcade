@@ -25,6 +25,7 @@ test('embedding is repeatable and preserves the existing app, StoreKit and plist
   await installAlienARPreview(f.root);
   assert.equal(await f.read('ios/App/App/AppDelegate.swift'),first);
   assert.equal(first.match(/@main/g).length,1,'do not embed a second application');
+  assert.ok(first.includes(await f.read('native/AlienInvasionAR/Sources/AlienVisuals.swift')), 'package the complete alien and weapon renderer');
   assert.equal(first.match(/registerPluginInstance\(ArcadePurchasesPlugin\(\)\)/g).length,1);
   assert.equal(first.match(/registerPluginInstance\(AlienInvasionPlugin\(\)\)/g).length,1);
   const parsed=spawnSync('python3',['-c','import plistlib,json,sys; print(json.dumps(plistlib.load(open(sys.argv[1],"rb"))))',path.join(f.root,'ios/App/App/Info.plist')],{encoding:'utf8'});

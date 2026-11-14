@@ -13,7 +13,8 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private let world = InvasionWorld()
     private let root = SCNNode()
     private var originAnchor: ARAnchor?
-    private var nodes: [UUID:SCNNode] = [:]
+    private var actors: [UUID:AlienVisual] = [:]
+    private let effects = SCNNode()
     private var portalNodes: [UUID:SCNNode] = [:]
     private var portalPlacements: [UUID:PortalPlacement] = [:]
     private var selectedEntrance: UUID?
@@ -29,8 +30,13 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private var safetyOrigin = V3.zero
     private var selectedPortal = PortalKind.air
     private var firing = false
-    private var gun: SCNNode?
-    private var flash: SCNNode?
+    private var heldWeapon: AlienWeaponVisual?
+    private let hitHaptic = UIImpactFeedbackGenerator(style:.light)
+    private var hitMarkerRemaining: Float = 0
+    private lazy var zapSound: SCNAudioSource? = {
+        let source=SCNAudioSource(fileNamed:"zap.wav") ?? SCNAudioSource(fileNamed:"public/alien-ar-zap.wav")
+        source?.isPositional=true; source?.volume=0.25; source?.load(); return source
+    }()
     private var lastSound: Float = 0
     private var elapsed: Float = 0
     private var lastHealth: Float = 100
@@ -165,11 +171,14 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     private func beginScan(reset:Bool) {
         roomCapture?.stop(); roomCapture=nil; room=nil; world.reset(); world.entrances=[]
-        nodes.values.forEach{$0.removeFromParentNode()}; nodes.removeAll()
-        portalNodes.values.forEach{$0.removeFromParentNode()}; portalNodes=[:]; portalPlacements=[:]; originAnchor=nil
+        // Also clear particles and defeated actors, which no longer have live IDs.
+        root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll()
+        effects.childNodes.forEach{$0.removeFromParentNode()}; root.addChildNode(effects)
+        portalNodes=[:]; portalPlacements=[:]; originAnchor=nil
         selectedEntrance=nil; portalDrag=nil; portalPinch=nil; editControls.isHidden=true; depthControls.isHidden=true
         root.simdTransform=matrix_identity_float4x4; root.isPaused=false
-        gun?.removeFromParentNode(); gun=nil
+        heldWeapon?.node.removeFromParentNode(); heldWeapon=nil
+        hitMarkerRemaining=0; crosshair.text="+"; crosshair.textColor = .white
         readyTracking=false; sessionFailed=false; phase="scan"; firing=false; previous=0
         ar.session.delegate=self; ar.session.run(config(),options:reset ? [.resetTracking,.removeExistingAnchors] : [])
         UIApplication.shared.isIdleTimerDisabled=true
@@ -444,12 +453,17 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             verificationIDs=world.aliens.map(\.id)
         }
         hint.text=test ? "Turn 180°, wait 3 seconds, then turn back. The same 3 aliens keep moving." : "Stand still · turn to aim · hold FIRE · reload when empty"
-        threat.isHidden=false; lastHealth=world.health; gun=nil; previous=0
+        threat.isHidden=false; lastHealth=world.health; previous=0; elapsed=0; lastSound=0
+        heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; installGun()
+        _ = zapSound; hitHaptic.prepare()
     }
-    @objc private func startFire() { firing=true }
+    @objc private func startFire() { if phase == "combat" { firing=true } }
     @objc private func stopFire() { firing=false }
-    @objc private func reloadGun() { world.beginReload() }
-    @objc private func changeWeapon() { world.switchWeapon(); gun?.removeFromParentNode(); gun=nil }
+    @objc private func reloadGun() { if phase == "combat" { world.beginReload() } }
+    @objc private func changeWeapon() {
+        guard phase == "combat", world.reload == 0 else{return}
+        world.switchWeapon(); heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; installGun()
+    }
     @objc private func pauseGame() { pause("Paused. Stay aware of your surroundings.") }
     private func pause(_ reason:String) {
         guard phase == "combat" else{return}
@@ -460,8 +474,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     }
     @objc private func exitGame() {
         firing=false; roomCapture?.stop(); roomCapture=nil; ar.session.pause()
-        world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; nodes.removeAll(); portalNodes=[:]; portalPlacements=[:]; selectedEntrance=nil
-        gun?.removeFromParentNode(); gun=nil; UIApplication.shared.isIdleTimerDisabled=false
+        world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll(); portalNodes=[:]; portalPlacements=[:]; selectedEntrance=nil
+        effects.childNodes.forEach{$0.removeFromParentNode()}
+        heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; UIApplication.shared.isIdleTimerDisabled=false
         if let onExit=onExit {
             clock?.invalidate(); clock=nil
             NotificationCenter.default.removeObserver(self)
@@ -504,15 +519,23 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             }
         }
         world.update(dt); elapsed += dt
-        if firing && world.cooldown == 0 && world.reload == 0 && world.ammo>0 {
+        installGun(); heldWeapon?.update(dt:dt,reload:world.reload)
+        // Materialize this frame's spawns before resolving a shot at one of them.
+        updateModels(dt:dt)
+        hitMarkerRemaining=max(0,hitMarkerRemaining-dt)
+        if hitMarkerRemaining == 0 { crosshair.text="+"; crosshair.textColor = .white }
+        if firing && !world.finished && world.cooldown == 0 && world.reload == 0 && world.ammo>0 {
             let hit=world.shoot(origin:world.player,direction:direction)
             let end=world.player+direction*(hit?.1 ?? 5)
             beam(to:end,color:world.weapon == .plasma ? .cyan : .green)
-            if hit != nil { burst(at:end,color:world.weapon == .plasma ? .cyan : .green) }
-            gun?.runAction(.sequence([.moveBy(x:0,y:0,z:0.04,duration:0.045),.moveBy(x:0,y:0,z:-0.04,duration:0.08)]))
-            flash?.isHidden=false; flash?.runAction(.sequence([.wait(duration:0.05),.hide()]))
+            if let hit=hit {
+                actors[hit.0]?.hit(); hitMarkerRemaining=0.14
+                crosshair.text="×"; crosshair.textColor = .cyan; hitHaptic.impactOccurred(intensity:0.65)
+                burst(at:end,color:world.weapon == .plasma ? .cyan : .green)
+            }
+            heldWeapon?.fire(); heldWeapon?.update(dt:0,reload:0)
+            retireDefeatedModels()
         }
-        updateModels(); installGun()
         stats.text="♥ \(Int(world.health))   WAVE \(world.wave)/3\n\(world.score) PTS · \(world.kills) KILLS"
         fireButton.setTitle(world.reload>0 ? "Loading…" : "FIRE \(world.ammo)",for:.normal)
         weaponButton.setTitle(world.weapon == .plasma ? "Plasma ⇄" : "Zapper ⇄",for:.normal)
@@ -532,70 +555,74 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let shape=SCNSphere(radius:radius); shape.segmentCount=14; shape.firstMaterial=material(color)
         let n=SCNNode(geometry:shape); n.position=at; parent.addChildNode(n); return n
     }
-    private func model(_ kind:AlienKind)->SCNNode {
-        let n=SCNNode(); let colors:[UIColor]=[.systemGreen,.systemPurple,.systemOrange,.systemTeal]
-        let color=colors[kind.rawValue]; let r=CGFloat(kind.radius)
-        let body=ball(r*0.85,color,SCNVector3Zero,n); body.scale=SCNVector3(0.85,1.1,0.75)
-        let face=ball(r*0.65,color,SCNVector3(0,Float(r*0.5),Float(r*0.35)),n)
-        for sign:Float in [-1,1] {
-            let eye=ball(r*0.23,.white,SCNVector3(sign*Float(r*0.28),Float(r*0.16),Float(r*0.5)),face)
-            _=ball(r*0.11,UIColor(white:0.03,alpha:1),SCNVector3(0,0,Float(r*0.2)),eye)
-            let leg=ball(r*0.3,color,SCNVector3(sign*Float(r*0.55),-Float(r*0.75),0),n); leg.name=sign<0 ? "leftLeg" : "rightLeg"
-            let arm=ball(r*0.28,color,SCNVector3(sign*Float(r*0.9),0,0),n); arm.scale=SCNVector3(0.8,1.7,0.8)
-            if kind == .armor || kind == .brute { _=ball(r*0.42,UIColor(white:0.23,alpha:1),SCNVector3(sign*Float(r*0.65),Float(r*0.32),0),n) }
-            if kind == .flyer {
-                let wing=ball(r*0.8,.cyan,SCNVector3(sign*Float(r*1.3),0,0),n); wing.scale=SCNVector3(1,0.15,0.8)
-            }
-        }
-        let mouth=ball(r*0.17,UIColor(white:0.08,alpha:1),SCNVector3(0,0,Float(r*0.89)),n); mouth.scale=SCNVector3(1.5,0.45,0.3)
-        let antenna=ball(r*0.12,.yellow,SCNVector3(0,Float(r*1.5),0),n); antenna.geometry?.firstMaterial?.emission.contents=UIColor.yellow
-        return n
-    }
-    private func updateModels() {
+    private func retireDefeatedModels() {
         let ids=Set(world.aliens.map(\.id))
-        for id in Array(nodes.keys) where !ids.contains(id) {
-            if let n=nodes.removeValue(forKey:id) { n.runAction(.sequence([.group([.scale(to:0.01,duration:0.25),.rotateBy(x:0,y:3,z:1,duration:0.25)]),.removeFromParentNode()])) }
+        for id in Array(actors.keys) where !ids.contains(id) {
+            guard let actor=actors.removeValue(forKey:id) else{continue}
+            burst(at:actor.node.simdPosition,color:actor.color,defeat:true)
+            actor.defeat()
         }
-        for a in world.aliens {
-            if nodes[a.id] == nil { let n=model(a.kind); root.addChildNode(n); nodes[a.id]=n }
-            guard let n=nodes[a.id] else{continue}
-            n.simdPosition=a.position
-            let d=world.player-a.position; n.eulerAngles.y=atan2(d.x,d.z)
-            n.childNode(withName:"leftLeg",recursively:true)?.eulerAngles.x=sin(a.age*9)*0.65
-            n.childNode(withName:"rightLeg",recursively:true)?.eulerAngles.x = -sin(a.age*9)*0.65
-            if a.kind == .flyer { n.position.y += sin(a.age*5)*0.08 }
-            n.scale=SCNVector3(1,1+sin(a.age*7)*0.03,1)
+    }
+    private func updateModels(dt:Float) {
+        for alien in world.aliens {
+            if actors[alien.id] == nil {
+                let actor=AlienVisual(kind:alien.kind); root.addChildNode(actor.node); actors[alien.id]=actor
+            }
+            actors[alien.id]?.update(alien,player:world.player,dt:dt)
         }
     }
     private func installGun() {
-        guard gun == nil, let camera=ar.pointOfView else{return}
-        let n=SCNNode(); n.position=SCNVector3(0.10,-0.14,-0.30)
-        let chassis=SCNBox(width:0.10,height:0.09,length:0.22,chamferRadius:0.018)
-        chassis.firstMaterial=material(UIColor(white:0.2,alpha:1)); n.addChildNode(SCNNode(geometry:chassis))
-        let color:UIColor=world.weapon == .plasma ? .cyan : .green
-        let barrel=SCNCylinder(radius:0.025,height:0.18); barrel.firstMaterial=material(color,glow:true)
-        let b=SCNNode(geometry:barrel); b.eulerAngles.x = .pi/2; b.position.z = -0.14; n.addChildNode(b)
-        let f=ball(0.04,color,SCNVector3(0,0,-0.24),n); f.geometry?.firstMaterial=material(color,glow:true); f.isHidden=true
-        flash=f; camera.addChildNode(n); gun=n; ar.audioListener=camera
+        guard heldWeapon == nil, let camera=ar.pointOfView else{return}
+        let weapon=AlienWeaponVisual(weapon:world.weapon)
+        camera.addChildNode(weapon.node); heldWeapon=weapon; ar.audioListener=camera
+    }
+    private func newEffect() -> SCNNode {
+        // Fixed upper bound, even during sustained fire or a burst of defeats.
+        while effects.childNodes.count >= 12 { effects.childNodes.first?.removeFromParentNode() }
+        let effect=SCNNode(); effects.addChildNode(effect); return effect
     }
     private func beam(to end:V3,color:UIColor) {
-        let start=world.player; let d=end-start
-        let g=SCNCylinder(radius:0.009,height:CGFloat(length(d))); g.firstMaterial=material(color,glow:true)
-        let n=SCNNode(geometry:g); n.simdPosition=(start+end)/2
-        n.simdOrientation=simd_quatf(from:V3(0,1,0),to:normalized(d)); root.addChildNode(n)
-        n.runAction(.sequence([.fadeOut(duration:0.1),.removeFromParentNode()]))
-        playSound(at:gun)
-    }
-    private func burst(at p:V3,color:UIColor) {
-        for i in 0..<10 {
-            let n=ball(0.025,color,SCNVector3(p),root)
-            let a=Float(i)*2 * .pi/10
-            n.runAction(.sequence([.group([.moveBy(x:CGFloat(sin(a)*0.3),y:CGFloat(cos(a)*0.3),z:CGFloat(sin(a*2)*0.2),duration:0.3),.scale(to:0.01,duration:0.3)]),.removeFromParentNode()]))
+        let start:V3
+        if let muzzle=heldWeapon?.muzzle {
+            let p=root.convertPosition(SCNVector3Zero,from:muzzle); start=V3(p.x,p.y,p.z)
+        } else { start=world.player }
+        let effect=newEffect()
+        if world.weapon == .plasma {
+            let bolt=AlienArt.sphere(0.018,material(color,glow:true),at:start,in:effect)
+            bolt.runAction(.move(to:SCNVector3(end),duration:TimeInterval(min(0.12,length(end-start)/35))))
+            effect.runAction(.sequence([.wait(duration:0.12),.removeFromParentNode()]))
+        } else {
+            let d=end-start
+            guard length(d)>0.001 else { effect.removeFromParentNode(); return }
+            let g=SCNCylinder(radius:0.012,height:CGFloat(length(d))); g.radialSegmentCount=8
+            g.firstMaterial=material(color,glow:true)
+            let beam=SCNNode(geometry:g); beam.simdPosition=(start+end)/2
+            beam.simdOrientation=simd_quatf(from:V3(0,1,0),to:normalized(d)); effect.addChildNode(beam)
+            effect.runAction(.sequence([.fadeOut(duration:0.16),.removeFromParentNode()]))
         }
+        playSound(at:heldWeapon?.node)
+    }
+    private func burst(at p:V3,color:UIColor,defeat:Bool=false) {
+        let effect=newEffect(); effect.simdPosition=p
+        let count=defeat ? 12 : 6, duration:TimeInterval=defeat ? 0.42 : 0.22
+        let sparkle=material(color,glow:true)
+        for i in 0..<count {
+            let n=AlienArt.sphere(defeat ? 0.025 : 0.012,sparkle,at:.zero,in:effect)
+            let angle=Float(i)*2 * .pi/Float(count), reach:Float=defeat ? 0.38 : 0.13
+            n.runAction(.group([
+                .moveBy(x:CGFloat(sin(angle)*reach),y:CGFloat(cos(angle)*reach),z:CGFloat(sin(angle*2)*reach*0.5),duration:duration),
+                .scale(to:0.01,duration:duration)
+            ]))
+        }
+        if defeat {
+            let g=SCNTorus(ringRadius:0.08,pipeRadius:0.008); g.ringSegmentCount=20; g.pipeSegmentCount=6; g.firstMaterial=sparkle
+            let ring=SCNNode(geometry:g); ring.simdOrientation=simd_quatf(from:V3(0,1,0),to:normalized(world.player-p))
+            effect.addChildNode(ring); ring.runAction(.group([.scale(to:4,duration:duration),.fadeOut(duration:duration)]))
+        }
+        effect.runAction(.sequence([.wait(duration:duration),.removeFromParentNode()]))
     }
     private func playSound(at node:SCNNode?) {
-        guard let node=node, let source=SCNAudioSource(fileNamed:"zap.wav") ?? SCNAudioSource(fileNamed:"public/alien-ar-zap.wav") else{return}
-        source.isPositional=true; source.volume=0.25; source.load()
+        guard let node=node, let source=zapSound else{return}
         node.runAction(.playAudio(source,waitForCompletion:false))
     }
     private func updateThreats(camera:simd_float4x4) {
@@ -607,7 +634,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         if let nearest=outside.min(by:{length($0.position-world.player)<length($1.position-world.player)}) {
             let local=(inverse*root.simdTransform*SIMD4<Float>(nearest.position,1)).xyz
             threat.text=local.z>0 ? "↶ \(outside.count) behind you" : local.x<0 ? "← Alien on your left" : "Alien on your right →"
-            if elapsed-lastSound>2.5 { playSound(at:nodes[nearest.id]); lastSound=elapsed }
+            if elapsed-lastSound>2.5 { playSound(at:actors[nearest.id]?.node); lastSound=elapsed }
         } else { threat.text="" }
     }
 }
