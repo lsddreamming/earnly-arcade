@@ -2,4 +2,5 @@
 DerivedData/
 AlienInvasionAR.xcodeproj/
 Info.plist
-zap.wav
+*.wav
+__pycache__/

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,cp,symlink,rm,access} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,cp,symlink,rm,access,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -12,7 +12,7 @@ async function fixture(t){
   const root=await mkdtemp(path.join(tmpdir(),'earnly-ar-'));
   t.after(()=>rm(root,{recursive:true,force:true}));
   await mkdir(path.join(root,'ios/App/App'),{recursive:true});
-  await cp(path.join(repo,'native'),path.join(root,'native'),{recursive:true,filter:source=>!/(DerivedData|\.build|\.xcodeproj)/.test(source)});
+  await cp(path.join(repo,'native'),path.join(root,'native'),{recursive:true,filter:source=>!/(DerivedData|\.build|\.xcodeproj|__pycache__|\.wav$)/.test(source)});
   await writeFile(path.join(root,'ios/App/App/AppDelegate.swift'),'import UIKit\n@main class AppDelegate {}\n'+await readFile(path.join(repo,'native/ArcadePurchases.swift'),'utf8'));
   await writeFile(path.join(root,'ios/App/App/Info.plist'),'<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>com.earnly.arcade</string><key>ITSAppUsesNonExemptEncryption</key><false/><key>Unrelated</key><dict><key>keep</key><true/></dict></dict></plist>');
   return {root,read:p=>readFile(path.join(root,p),'utf8')};
@@ -26,6 +26,7 @@ test('embedding is repeatable and preserves the existing app, StoreKit and plist
   assert.equal(await f.read('ios/App/App/AppDelegate.swift'),first);
   assert.equal(first.match(/@main/g).length,1,'do not embed a second application');
   assert.ok(first.includes(await f.read('native/AlienInvasionAR/Sources/AlienVisuals.swift')), 'package the complete alien and weapon renderer');
+  assert.ok(first.includes(await f.read('native/AlienInvasionAR/Sources/AlienAudio.swift')), 'package the native sound lifecycle');
   assert.equal(first.match(/registerPluginInstance\(ArcadePurchasesPlugin\(\)\)/g).length,1);
   assert.equal(first.match(/registerPluginInstance\(AlienInvasionPlugin\(\)\)/g).length,1);
   const parsed=spawnSync('python3',['-c','import plistlib,json,sys; print(json.dumps(plistlib.load(open(sys.argv[1],"rb"))))',path.join(f.root,'ios/App/App/Info.plist')],{encoding:'utf8'});
@@ -49,6 +50,40 @@ test('missing bridge or invalid plist fails before changing generated source',as
   await writeFile(path.join(f.root,'ios/App/App/Info.plist'),'invalid');
   await assert.rejects(installAlienARPreview(f.root),/Invalid application plist/);
   assert.equal(await f.read('ios/App/App/AppDelegate.swift'),'bridge?.registerPluginInstance(ArcadePurchasesPlugin())');
+});
+
+test('both iPhone packages contain the same bounded, distinct mono sound bank',async t=>{
+  const f=await fixture(t);
+  await installAlienARPreview(f.root);
+  const standalone=path.join(f.root,'native/AlienInvasionAR');
+  const run=spawnSync('python3',[path.join(standalone,'generate-project.py')],{encoding:'utf8'});
+  assert.equal(run.status,0,run.stderr);
+  const names=['zap','laser','hit','pop','portal','reload','ready','switch','wave','win','lose','runner','armor','brute','flyer','hurt','empty'];
+  const bundled=await readdir(path.join(f.root,'ios/App/App/public'));
+  assert.deepEqual(bundled.sort(),names.map(n=>`alien-ar-${n}.wav`).sort());
+  const project=await readFile(path.join(standalone,'AlienInvasionAR.xcodeproj/project.pbxproj'),'utf8');
+  const unique=new Set(); let total=0;
+  for(const name of names){
+    const wav=await readFile(path.join(f.root,`ios/App/App/public/alien-ar-${name}.wav`));
+    assert.deepEqual(wav,await readFile(path.join(standalone,`${name}.wav`)),`${name}: packages differ`);
+    assert.ok(project.includes(`path = "${name}.wav"`),`${name}: absent from standalone resources`);
+    assert.equal(wav.toString('ascii',0,4),'RIFF');
+    assert.equal(wav.readUInt32LE(4),wav.length-8);
+    assert.equal(wav.readUInt16LE(22),1,'mono positional audio');
+    assert.equal(wav.readUInt32LE(24),22050);
+    assert.equal(wav.readUInt16LE(34),16);
+    assert.equal(wav.readUInt32LE(40),wav.length-44);
+    assert.ok(wav.length>2000 && wav.length<=44144,'each cue under one second');
+    let peak=0,energy=0;
+    for(let i=44;i<wav.length;i+=2){const sample=wav.readInt16LE(i);peak=Math.max(peak,Math.abs(sample));energy+=sample*sample;}
+    assert.ok(peak<16000 && peak>1000,`${name}: clipping or silence`);
+    assert.ok(Math.sqrt(energy/((wav.length-44)/2))>200,`${name}: inaudible signal`);
+    assert.equal(wav.readInt16LE(44),0,'soft attack');
+    assert.equal(wav.readInt16LE(wav.length-2),0,'soft release');
+    unique.add(wav.toString('base64'));total+=wav.length;
+  }
+  assert.equal(unique.size,names.length,'events must have distinct sounds');
+  assert.ok(total<400000,'keep the entire sound bank below 400 KB');
 });
 
 test('only a selected preview packages the launcher; rebuilding normally removes it',async t=>{

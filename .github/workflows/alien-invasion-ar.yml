@@ -77,7 +77,7 @@ jobs:
       - name: Package source for Mac and device testing
         run: |
           cd native/AlienInvasionAR
-          zip -r ../../Alien-Invasion-AR-Xcode.zip Sources Tests Package.swift generate-project.py AlienInvasionAR.xcodeproj Info.plist zap.wav README.md
+          zip -r ../../Alien-Invasion-AR-Xcode.zip Sources Tests Package.swift generate-project.py audio_assets.py AlienInvasionAR.xcodeproj Info.plist *.wav README.md
       - uses: actions/upload-artifact@v4
         with:
           name: Alien-Invasion-AR-Xcode

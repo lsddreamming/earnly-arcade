@@ -34,10 +34,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private var heldWeapon: AlienWeaponVisual?
     private let hitHaptic = UIImpactFeedbackGenerator(style:.light)
     private var hitMarkerRemaining: Float = 0
-    private lazy var zapSound: SCNAudioSource? = {
-        let source=SCNAudioSource(fileNamed:"zap.wav") ?? SCNAudioSource(fileNamed:"public/alien-ar-zap.wav")
-        source?.isPositional=true; source?.volume=0.25; source?.load(); return source
-    }()
+    private let sounds = AlienAudio()
     private var lastSound: Float = 0
     private var elapsed: Float = 0
     private var lastHealth: Float = 100
@@ -55,7 +52,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     private let typeButton = UIButton(type:.system), testButton = UIButton(type:.system)
     private let fireButton = UIButton(type:.system), reloadButton = UIButton(type:.system)
     private let weaponButton = UIButton(type:.system), pauseButton = UIButton(type:.system)
-    private let exitButton = UIButton(type:.system)
+    private let exitButton = UIButton(type:.system), soundButton = UIButton(type:.system)
     private let lockButton=UIButton(type:.system), deletePortalButton=UIButton(type:.system)
     private let closerButton=UIButton(type:.system), fartherButton=UIButton(type:.system)
     private let editControls=UIStackView(), depthControls=UIStackView()
@@ -82,7 +79,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         clock=CADisplayLink(target:self,selector:#selector(tick)); clock?.add(to:.main,forMode:.common)
         lobby()
     }
-    deinit { clock?.invalidate(); ar.session.pause() }
+    deinit { sounds.stop(); clock?.invalidate(); ar.session.pause() }
 
     private func style(_ b:UIButton,_ text:String,_ action:Selector) {
         b.setTitle(text,for:.normal); b.titleLabel?.font = .systemFont(ofSize:15,weight:.bold)
@@ -114,7 +111,11 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         style(reloadButton,"Reload",#selector(reloadGun)); style(weaponButton,"Plasma ⇄",#selector(changeWeapon))
         style(pauseButton,"Ⅱ",#selector(pauseGame)); style(exitButton,"Exit",#selector(exitGame))
         top.axis = .horizontal; top.spacing=8
-        [exitButton,stats,pauseButton].forEach{top.addArrangedSubview($0)}
+        style(soundButton,"",#selector(toggleSound)); refreshSoundButton()
+        soundButton.contentEdgeInsets = .zero
+        soundButton.widthAnchor.constraint(equalToConstant:44).isActive=true
+        stats.adjustsFontSizeToFitWidth=true; stats.minimumScaleFactor=0.75
+        [exitButton,stats,soundButton,pauseButton].forEach{top.addArrangedSubview($0)}
         stats.setContentHuggingPriority(.defaultLow,for:.horizontal)
         card.axis = .vertical; card.spacing=13; card.isLayoutMarginsRelativeArrangement=true
         card.layoutMargins=UIEdgeInsets(top:24,left:20,bottom:24,right:20)
@@ -140,6 +141,12 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             controls.bottomAnchor.constraint(equalTo:s.bottomAnchor,constant:-12),controls.leadingAnchor.constraint(equalTo:s.leadingAnchor,constant:12),controls.trailingAnchor.constraint(equalTo:s.trailingAnchor,constant:-12)
         ])
     }
+    private func refreshSoundButton() {
+        soundButton.setImage(UIImage(systemName:sounds.muted ? "speaker.slash.fill" : "speaker.wave.2.fill"),for:.normal)
+        soundButton.tintColor = .white
+        soundButton.accessibilityLabel=sounds.muted ? "Enable game sounds" : "Mute game sounds"
+    }
+    @objc private func toggleSound() { sounds.muted.toggle(); refreshSoundButton() }
     private func lobby() {
         phase="lobby"; titleLabel.text="ALIEN\nINVASION AR"
         bodyLabel.text="Scan your floor. Place a floating portal or one on a doorway or wall. Drag and resize its opening, then lock it in your room.\n\nStand in a clear spot and turn in place during combat. Camera and room data stay on this device."
@@ -171,10 +178,11 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         return c
     }
     private func beginScan(reset:Bool) {
+        sounds.stop()
         roomCapture?.stop(); roomCapture=nil; room=nil; world.reset(); world.entrances=[]
         // Also clear particles and defeated actors, which no longer have live IDs.
         root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll()
-        effects.childNodes.forEach{$0.removeFromParentNode()}; root.addChildNode(effects)
+        effects.childNodes.forEach{$0.removeFromParentNode()}; root.addChildNode(effects); root.addChildNode(sounds.node)
         portalNodes=[:]; portalVisuals=[:]; portalPlacements=[:]; originAnchor=nil
         selectedEntrance=nil; portalDrag=nil; portalPinch=nil; editControls.isHidden=true; depthControls.isHidden=true
         root.simdTransform=matrix_identity_float4x4; root.isPaused=false
@@ -292,6 +300,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         guard phase == "scan",readyTracking,let id=selectedEntrance,var p=portalPlacements[id] else{return}
         p.locked.toggle(); portalPlacements[id]=p; portalDrag=nil; portalPinch=nil
         renderPortal(id); refreshPortalEditor()
+        if p.locked { sounds.play(.portal,at:p.center) }
         if p.locked && portalPlacements.values.allSatisfy({$0.locked}) { showReady() }
     }
     @objc private func removePortal() {
@@ -441,24 +450,31 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         hint.text=test ? "Turn 180°, wait 3 seconds, then turn back. The same 3 aliens keep moving." : "Stand still · turn to aim · hold FIRE · reload when empty"
         threat.isHidden=false; lastHealth=world.health; previous=0; elapsed=0; lastSound=0
         heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; installGun()
-        _ = zapSound; hitHaptic.prepare()
+        sounds.prepare(); sounds.play(.wave,at:world.player); hitHaptic.prepare()
     }
     @objc private func startFire() { if phase == "combat" { firing=true } }
     @objc private func stopFire() { firing=false }
-    @objc private func reloadGun() { if phase == "combat" { world.beginReload() } }
+    @objc private func reloadGun() {
+        guard phase == "combat", world.reload == 0 else { return }
+        world.beginReload()
+        if world.reload > 0 { sounds.play(.reload,at:world.player) }
+    }
     @objc private func changeWeapon() {
         guard phase == "combat", world.reload == 0 else{return}
         world.switchWeapon(); heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; installGun()
+        sounds.play(.switch,at:world.player)
     }
     @objc private func pauseGame() { pause("Paused. Stay aware of your surroundings.") }
     private func pause(_ reason:String) {
         guard phase == "combat" else{return}
+        sounds.stop()
         phase="paused"; world.paused=true; root.isPaused=true; firing=false; card.isHidden=false
         titleLabel.text="Invasion paused"; bodyLabel.text=reason
         primary.setTitle("Restart scan",for:.normal); primary.isHidden=false
         secondary.setTitle("Resume",for:.normal); secondary.isHidden=false; scanButton.isHidden=true; testButton.isHidden=true
     }
     @objc private func exitGame() {
+        sounds.stop()
         firing=false; roomCapture?.stop(); roomCapture=nil; ar.session.pause()
         world.reset(); root.childNodes.forEach{$0.removeFromParentNode()}; actors.removeAll(); portalNodes=[:]; portalVisuals=[:]; portalPlacements=[:]; selectedEntrance=nil
         effects.childNodes.forEach{$0.removeFromParentNode()}
@@ -469,7 +485,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             onExit()
         } else { lobby() }
     }
-    @objc private func background() { pause("App interrupted. Resume after tracking recovers."); ar.session.pause(); previous=0 }
+    @objc private func background() { sounds.stop(); pause("App interrupted. Resume after tracking recovers."); ar.session.pause(); previous=0 }
     @objc private func foreground() { if phase != "lobby" { ar.session.run(config(),options:[]); previous=0 } }
     func sessionWasInterrupted(_ session:ARSession) { DispatchQueue.main.async { [weak self] in self?.pause("Tracking interrupted. Look at the scanned room before resuming.") } }
     func sessionInterruptionEnded(_ session:ARSession) { DispatchQueue.main.async { [weak self] in guard let self=self else{return}; self.ar.session.run(self.config(),options:[]) } }
@@ -483,6 +499,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         if case .normal=frame.camera.trackingState { readyTracking = !sessionFailed } else { readyTracking=false }
         if let id=originAnchor?.identifier, let anchor=frame.anchors.first(where:{$0.identifier == id}) { root.simdTransform=anchor.transform }
         if phase == "scan" {
+            sounds.update(dt)
             if !readyTracking { portalDrag=nil; portalPinch=nil; hint.text="Tracking paused · slowly look at the scanned room. Portals stay locked." }
             else if selectedEntrance != nil { refreshPortalEditor() }
             else { hint.text=originAnchor == nil ? "Aim at the floor · tap Mark floor" : "Choose Air for a floating portal, or aim at a recognized surface." }
@@ -504,8 +521,12 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
                 hint.text=same ? "Same 3 enemy IDs retained. Check their room positions, then shoot." : "Turn test incomplete: an enemy was defeated. Restart the test."
             }
         }
-        world.update(dt); elapsed += dt
-        installGun(); heldWeapon?.update(dt:dt,reload:world.reload)
+        let priorWave=world.wave, priorReload=world.reload
+        world.update(dt); elapsed += dt; sounds.update(dt)
+        if world.wave != priorWave { sounds.play(.wave,at:world.player) }
+        if priorReload > 0 && world.reload == 0 { sounds.play(.ready,at:world.player) }
+        installGun(); heldWeapon?.update(dt:dt,reload:world.reload,charge:Float(world.ammo)/Float(world.weapon.capacity))
+        if firing && !world.finished && world.reload == 0 && world.ammo == 0 { sounds.play(.empty,at:world.player) }
         // Materialize this frame's spawns before resolving a shot at one of them.
         updateModels(dt:dt)
         hitMarkerRemaining=max(0,hitMarkerRemaining-dt)
@@ -518,16 +539,18 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
                 actors[hit.0]?.hit(); hitMarkerRemaining=0.14
                 crosshair.text="×"; crosshair.textColor = .cyan; hitHaptic.impactOccurred(intensity:0.65)
                 burst(at:end,color:world.weapon == .plasma ? .cyan : .green)
+                sounds.play(.hit,at:end)
             }
-            heldWeapon?.fire(); heldWeapon?.update(dt:0,reload:0)
+            heldWeapon?.fire(); heldWeapon?.update(dt:0,reload:0,charge:Float(world.ammo)/Float(world.weapon.capacity))
             retireDefeatedModels()
         }
         stats.text="♥ \(Int(world.health))   WAVE \(world.wave)/3\n\(world.score) PTS · \(world.kills) KILLS"
         fireButton.setTitle(world.reload>0 ? "Loading…" : "FIRE \(world.ammo)",for:.normal)
         weaponButton.setTitle(world.weapon == .plasma ? "Plasma ⇄" : "Zapper ⇄",for:.normal)
-        if world.health<lastHealth { UIImpactFeedbackGenerator(style:.medium).impactOccurred(); lastHealth=world.health }
+        if world.health<lastHealth { UIImpactFeedbackGenerator(style:.medium).impactOccurred(); sounds.play(.hurt,at:world.player); lastHealth=world.health }
         updateThreats(camera:camera)
         if world.finished {
+            sounds.stop(); sounds.play(world.won ? .win : .lose,at:world.player)
             phase="finished"; firing=false; card.isHidden=false; titleLabel.text=world.won ? "ROOM DEFENDED" : "INVASION WINS"
             bodyLabel.text="\(world.score) points · \(world.kills) aliens defeated\n\n"+(verificationMode ? "The debug test checks identity continuity. Visually confirm that aliens stayed aligned with the room." : "Three-wave prototype. Take a moment to check your surroundings.")
             primary.isHidden=false; primary.setTitle("Restart scan",for:.normal); secondary.isHidden=true; scanButton.isHidden=true; testButton.isHidden=true
@@ -546,6 +569,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         for id in Array(actors.keys) where !ids.contains(id) {
             guard let actor=actors.removeValue(forKey:id) else{continue}
             burst(at:actor.node.simdPosition,color:actor.color,defeat:true)
+            sounds.play(.pop,at:actor.node.simdPosition)
             actor.defeat()
         }
     }
@@ -553,8 +577,10 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         for alien in world.aliens {
             if actors[alien.id] == nil {
                 let actor=AlienVisual(kind:alien.kind); root.addChildNode(actor.node); actors[alien.id]=actor
+                sounds.play(.voice(alien.kind),at:alien.position)
                 if let entranceID=alien.entranceID,let visual=portalVisuals[entranceID],let placement=portalPlacements[entranceID] {
                     visual.arrival(); burst(at:placement.center,color:visual.color)
+                    sounds.play(.portal,at:placement.center)
                 }
             }
             actors[alien.id]?.update(alien,player:world.player,dt:dt)
@@ -578,6 +604,12 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let effect=newEffect()
         if world.weapon == .plasma {
             let bolt=AlienArt.sphere(0.018,material(color,glow:true),at:start,in:effect)
+            _ = AlienArt.sphere(0.010,material(.white,glow:true),at:.zero,in:bolt)
+            let travel=normalized(end-start)
+            for i in 1...3 {
+                let trail=AlienArt.sphere(0.016-Float(i)*0.003,material(color,glow:true),at: -travel * Float(i) * 0.035,in:bolt)
+                trail.opacity=CGFloat(0.65-Float(i)*0.13)
+            }
             bolt.runAction(.move(to:SCNVector3(end),duration:TimeInterval(min(0.12,length(end-start)/35))))
             effect.runAction(.sequence([.wait(duration:0.12),.removeFromParentNode()]))
         } else {
@@ -587,32 +619,33 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             g.firstMaterial=material(color,glow:true)
             let beam=SCNNode(geometry:g); beam.simdPosition=(start+end)/2
             beam.simdOrientation=simd_quatf(from:V3(0,1,0),to:normalized(d)); effect.addChildNode(beam)
+            let core=SCNCylinder(radius:0.004,height:CGFloat(length(d))); core.radialSegmentCount=6
+            core.firstMaterial=material(.white,glow:true); beam.addChildNode(SCNNode(geometry:core))
             effect.runAction(.sequence([.fadeOut(duration:0.16),.removeFromParentNode()]))
         }
-        playSound(at:heldWeapon?.node)
+        sounds.play(world.weapon == .plasma ? .zap : .laser,at:world.player)
     }
     private func burst(at p:V3,color:UIColor,defeat:Bool=false) {
         let effect=newEffect(); effect.simdPosition=p
         let count=defeat ? 12 : 6, duration:TimeInterval=defeat ? 0.42 : 0.22
         let sparkle=material(color,glow:true)
+        let flash=AlienArt.sphere(defeat ? 0.07 : 0.025,material(.white,glow:true),at:.zero,in:effect)
+        flash.runAction(.group([.scale(to:0.01,duration:duration * 0.65),.fadeOut(duration:duration * 0.65)]))
         for i in 0..<count {
-            let n=AlienArt.sphere(defeat ? 0.025 : 0.012,sparkle,at:.zero,in:effect)
+            let n=AlienArt.box(defeat ? V3(0.024,0.045,0.016) : V3(0.008,0.025,0.008),sparkle,at:.zero,in:effect)
             let angle=Float(i)*2 * .pi/Float(count), reach:Float=defeat ? 0.38 : 0.13
             n.runAction(.group([
                 .moveBy(x:CGFloat(sin(angle)*reach),y:CGFloat(cos(angle)*reach),z:CGFloat(sin(angle*2)*reach*0.5),duration:duration),
+                .rotateBy(x:CGFloat(angle),y:2,z:1,duration:duration),
                 .scale(to:0.01,duration:duration)
             ]))
         }
-        if defeat {
-            let g=SCNTorus(ringRadius:0.08,pipeRadius:0.008); g.ringSegmentCount=20; g.pipeSegmentCount=6; g.firstMaterial=sparkle
+        do {
+            let g=SCNTorus(ringRadius:defeat ? 0.08 : 0.025,pipeRadius:defeat ? 0.008 : 0.003); g.ringSegmentCount=20; g.pipeSegmentCount=6; g.firstMaterial=sparkle
             let ring=SCNNode(geometry:g); ring.simdOrientation=simd_quatf(from:V3(0,1,0),to:normalized(world.player-p))
             effect.addChildNode(ring); ring.runAction(.group([.scale(to:4,duration:duration),.fadeOut(duration:duration)]))
         }
         effect.runAction(.sequence([.wait(duration:duration),.removeFromParentNode()]))
-    }
-    private func playSound(at node:SCNNode?) {
-        guard let node=node, let source=zapSound else{return}
-        node.runAction(.playAudio(source,waitForCompletion:false))
     }
     private func updateThreats(camera:simd_float4x4) {
         let inverse=simd_inverse(camera)
@@ -623,7 +656,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         if let nearest=outside.min(by:{length($0.position-world.player)<length($1.position-world.player)}) {
             let local=(inverse*root.simdTransform*SIMD4<Float>(nearest.position,1)).xyz
             threat.text=local.z>0 ? "↶ \(outside.count) behind you" : local.x<0 ? "← Alien on your left" : "Alien on your right →"
-            if elapsed-lastSound>2.5 { playSound(at:actors[nearest.id]?.node); lastSound=elapsed }
+            if elapsed-lastSound>2.5 { sounds.play(.voice(nearest.kind),at:nearest.position); lastSound=elapsed }
         } else { threat.text="" }
     }
 }

@@ -8,7 +8,7 @@ The game has no ads, accounts, purchases, coins, network requests, camera record
 
 ## Current iPhone beta
 
-Earnly **1.13 (1101)** was verified as **Testing** in the existing Early Internal Testers group on November 13, 2026, after [the signed upload](https://github.com/lsddreamming/earnly-arcade/actions/runs/43526383555). Open TestFlight → Earnly Arcade → Update, then **Play Alien Invasion AR · Native test**. That beta is from `16d84f5f12d431a1c8c2de044cd40ba25e2056b6`; changes on later development branches are not in build 1101. Public App Store submission remains on hold.
+Earnly **1.13 (1103)** was verified as **Testing** in the existing Early Internal Testers group on November 14, 2026, after [the signed upload](https://github.com/lsddreamming/earnly-arcade/actions/runs/43589458230). Open TestFlight → Earnly Arcade → Update, then **Play Alien Invasion AR · Native test**. That beta is from `cf50bd3625f681961e2cbf2246a5dc67c3731aee` and includes the portal polish. The owner reported that it worked great. The sound/graphics changes on this development branch are not in build 1103. Public App Store submission remains on hold.
 
 ## Build inside Earnly Arcade
 
@@ -54,6 +54,14 @@ On November 13, 2026, Justin reported that build **1.13 (1101)** worked well on 
 8. For the entrance polish candidate: place and lock two different portal types, including a wall portal. Confirm the correct entrance pulses when its alien arrives. Reshape and move an unlocked portal repeatedly; its interior animation should continue smoothly while the corner handles follow the opening. Pause and resume during a pulse, and remove/recreate portals without leaving rings or cracks in the room.
 
 The entrance candidate uses cached procedural geometry, type-specific colors, rotating interior sparks, an arrival pulse and a wall crack animation on locking. All animation is below the fixed portal transform. The four resize handles remain unscaled in metres and are hidden when locked. Each alien retains its entrance ID so a ground-height adjustment cannot accidentally pulse another nearby portal. No per-frame portal mesh reconstruction or new camera/network dependency is introduced.
+
+## Sound and graphics polish candidate
+
+Seventeen original, short mono cues are generated offline by `audio_assets.py`: separate plasma/laser shots, hits, defeat pops, portals, reload/ready/switch/empty feedback, wave/win/lose signals, damage and four alien voices. Both packages use the same generator; Python 3 is needed at build time only. No audio assets are downloaded or synthesized during gameplay. `AlienAudio` caches sources and caps sound nodes at ten; muting, pausing, interruptions, restart and exit explicitly stop active voices. The speaker button remembers its setting. Enemy and portal cues use world positions; weapon/UI cues are non-positional. Phone speaker directionality and final mix balance need an iPhone test.
+
+Alien details include cheek markings, armor trim, brute crests, flyer engine pods and pulsing chest cores. Weapon reactors spin, six charge cells follow actual ammo, and shots have bright cores, plasma trails, muzzle spokes and expanding impact rings. All cosmetic poses stay below existing actor transforms; simulation, hit spheres, anchors and portal editing are unchanged. Temporary effect groups remain capped at twelve.
+
+Candidate playtest: compare both weapons and all four voices, including enemies behind you; empty each magazine and reload; confirm six charge cells refill. Toggle mute during rapid fire and after a win, pause during a portal sound, background/foreground, and restart/exit while effects play. No old sound should continue, and muting must persist when reopening the game. Verify the HUD on a small iPhone and frame rate/heat through three waves. Recheck the 180° anchoring scenario. These checks remain unverified on physical hardware for this candidate.
 
 ## Known prototype limits
 
