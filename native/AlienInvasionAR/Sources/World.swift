@@ -33,6 +33,9 @@ struct Alien {
     var hp: Float
     var age: Float = 0
     var attackCooldown: Float = 1
+    // Presentation can signal the actual entrance without guessing from a
+    // ground enemy's height-adjusted position or its later movement.
+    var entranceID: UUID? = nil
 }
 enum Weapon: Int {
     case plasma, zapper
@@ -73,7 +76,7 @@ final class InvasionWorld {
         var p = portal.position
         let actual: AlienKind = portal.kind == .ceiling || portal.kind == .air ? .flyer : kind
         if actual != .flyer { p.y = actual.radius }
-        aliens.append(Alien(kind: actual, position: p, hp: actual.hp))
+        aliens.append(Alien(kind: actual, position: p, hp: actual.hp, entranceID: portal.id))
     }
     func update(_ dt: Float) {
         guard !paused, !finished else { return }

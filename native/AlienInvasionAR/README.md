@@ -39,7 +39,9 @@ No Apple signing identity is embedded. An unsigned CI compilation is **not** an 
 - Portal gestures cast touch rays into the fixed portal plane in anchor space. Opposite corners stay fixed while reshaping the opening. Width/height are bounded to 0.4–3m, and edited centers remain 0.8–8m from the phone. Explicit locks reject edits; all portals must be locked before combat. Air portals spawn flying aliens at their edited 3D position.
 - Tracking loss, interruptions and camera movement of 1.25m or more horizontally from the combat origin freeze combat until explicitly resumed. The camera allowance accommodates turning in place with the phone held out; it does not track the player's body or permit walking. Session errors require a restart. Exiting stops camera capture.
 
-## Mandatory physical acceptance test — not yet verified
+## Physical acceptance test — owner confirmed the core turn test
+
+On November 13, 2026, Justin reported that build **1.13 (1101)** worked well on his iPhone and confirmed that portals remained locked in the room and the same aliens kept moving when he turned away and back. This is owner-reported evidence for that scenario, not a claim that every device, room, interruption or newer visual change has passed.
 
 1. Use a well-lit clear room. Mark floor and one doorway/wall portal about 2–3m away. Drag it across the opening, resize with the corner handles and pinch, and lock it. Move/rotate the phone without touching the portal: confirm it stays aligned with the room. Repeat with a floating Air portal and its depth controls.
 2. Select **180° tracking test**. Three aliens spawn with stable identities (flying enemies for Air/Ceiling entrances).
@@ -49,12 +51,16 @@ No Apple signing identity is embedded. An unsigned CI compilation is **not** an 
 6. Repeat with a ceiling portal, without LiDAR, denied camera, interrupted session, low light, background/foreground, pause/reload, all waves and both weapons.
 7. For the combat polish candidate: compare running, armored, brute and flying enemies; confirm wing/limb movement, hit flinches and defeat bursts. Hold FIRE through several reloads, switch weapons and pause mid-effect. Restart while an explosion is visible: the new scan must contain no old enemies or effects. Check frame rate and heat after all three waves.
 
+8. For the entrance polish candidate: place and lock two different portal types, including a wall portal. Confirm the correct entrance pulses when its alien arrives. Reshape and move an unlocked portal repeatedly; its interior animation should continue smoothly while the corner handles follow the opening. Pause and resume during a pulse, and remove/recreate portals without leaving rings or cracks in the room.
+
+The entrance candidate uses cached procedural geometry, type-specific colors, rotating interior sparks, an arrival pulse and a wall crack animation on locking. All animation is below the fixed portal transform. The four resize handles remain unscaled in metres and are hidden when locked. Each alien retains its entrance ID so a ground-height adjustment cannot accidentally pulse another nearby portal. No per-frame portal mesh reconstruction or new camera/network dependency is introduced.
+
 ## Known prototype limits
 
 Physical AR alignment, tracking recovery, actual camera permissions, frame rate, sound direction and RoomPlan handoff require an iPhone playtest. This is not a verified room-scale release. Procedural models use low segment counts; their visual quality and sustained-fire performance still need physical-device review. Ground enemies follow a straight line across the confirmed floor; real furniture avoidance/mesh occlusion is not implemented. Virtual wall cracks/holes are decorative meshes, not physical wall damage. Door/window portal placement is manual without RoomPlan. Session anchors persist during the run; saved maps and cross-launch room persistence are not implemented.
 
 ## Checks
 
-`swift test` runs eleven deterministic core tests, including the movement guard during an arm-held turn, turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
+`swift test` runs twelve deterministic core tests, including exact entrance identity after height-adjusted spawning, movement and pause, the movement guard during an arm-held turn, turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
 
 Apple references: [world tracking](https://developer.apple.com/documentation/arkit/understanding-world-tracking), [RoomPlan shared sessions](https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure), [ceiling classification](https://developer.apple.com/documentation/arkit/arplaneanchor/classification-swift.enum/ceiling).

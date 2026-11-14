@@ -2,6 +2,22 @@ import XCTest
 @testable import InvasionCore
 
 final class WorldTests: XCTestCase {
+    func testSpawnRemembersExactEntranceAfterMovementAndPause() {
+        let w = InvasionWorld(); w.spawned = w.waveTarget; w.player = V3(0, 1.6, 0)
+        let wall = Entrance(position: V3(0, 1.8, -3), kind: .wall)
+        let air = Entrance(position: V3(0, 2.4, -3), kind: .air)
+        w.spawn(at: wall, kind: .runner); w.spawn(at: air, kind: .brute)
+        XCTAssertEqual(w.aliens.map(\.entranceID), [wall.id, air.id])
+        XCTAssertEqual(w.aliens[0].position.y, AlienKind.runner.radius)
+        XCTAssertEqual(w.aliens[1].kind, .flyer)
+        let before = w.aliens.map(\.position)
+        for _ in 0..<180 { w.update(1 / 60) }
+        XCTAssertNotEqual(w.aliens.map(\.position), before)
+        XCTAssertEqual(w.aliens.map(\.entranceID), [wall.id, air.id])
+        w.paused = true; w.update(3)
+        XCTAssertEqual(w.aliens.map(\.entranceID), [wall.id, air.id])
+        w.reset(); XCTAssertTrue(w.aliens.isEmpty)
+    }
     func testMovementGuardAllowsArmHeldTurnAndRejectsLeavingArea() {
         let origin = V3(0,1.6,-0.5)
         // Phone held half a metre ahead, then rotated with the stationary player.

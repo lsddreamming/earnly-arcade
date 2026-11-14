@@ -181,3 +181,111 @@ final class AlienWeaponVisual {
         flash.isHidden = kick < 0.65
     }
 }
+
+/// All moving light and breach details are children of the fixed portal plane.
+/// Resizing reuses geometry; it never restarts animations or changes its anchor.
+@available(iOS 17.0, *)
+final class AlienPortalVisual {
+    let node = SCNNode()
+    let color: UIColor
+    private let opening = SCNNode(), orbit = SCNNode(), cracks = SCNNode()
+    private let rim: SCNNode, pulse: SCNNode
+    private let energy: SCNMaterial
+    private var handles: [SCNNode] = []
+    private var crackSegments: [SCNNode] = []
+    private var invasionStarted = false
+
+    init(kind: PortalKind) {
+        switch kind {
+        case .air: color = .systemPurple
+        case .door: color = .systemGreen
+        case .window: color = .systemBlue
+        case .wall: color = .systemOrange
+        case .ceiling: color = .systemTeal
+        }
+        energy = AlienArt.material(color, glow: true)
+        rim = Self.ring(radius: 0.5, thickness: 0.012, material: energy)
+        pulse = Self.ring(radius: 0.5, thickness: 0.008, material: energy)
+        node.addChildNode(opening); opening.addChildNode(rim); opening.addChildNode(pulse)
+        pulse.opacity = 0; pulse.position.z = 0.02
+        let void = SCNCylinder(radius: 0.48, height: 0.006)
+        void.radialSegmentCount = 40
+        let dark = AlienArt.material(UIColor(red: 0.025, green: 0.015, blue: 0.07, alpha: 1))
+        dark.lightingModel = .constant; void.firstMaterial = dark
+        let disk = SCNNode(geometry: void); disk.eulerAngles.x = .pi / 2
+        disk.position.z = -0.012; opening.addChildNode(disk)
+        // Concentric glow and orbiting sparks suggest depth without video,
+        // imported assets, lights, shaders, or a growing particle system.
+        for i in 0..<3 {
+            let ring = Self.ring(radius: CGFloat(0.16 + Float(i) * 0.10), thickness: 0.003, material: energy)
+            ring.opacity = CGFloat(0.12 + Float(i) * 0.08)
+            ring.position.z = 0.004; opening.addChildNode(ring)
+        }
+        opening.addChildNode(orbit); orbit.position.z = 0.012
+        for i in 0..<8 {
+            let angle = Float(i) * .pi / 4
+            let spark = AlienArt.box(V3(0.012, 0.045, 0.006), energy,
+                                     at: V3(sin(angle) * 0.42, cos(angle) * 0.42, 0), in: orbit)
+            spark.eulerAngles.z = -angle
+        }
+        orbit.runAction(.repeatForever(.rotateBy(x: 0, y: 0, z: .pi * 2, duration: 9)))
+        rim.runAction(.repeatForever(.sequence([.fadeOpacity(to: 0.6, duration: 0.9), .fadeOpacity(to: 1, duration: 0.9)])))
+        opening.addChildNode(cracks); cracks.isHidden = true
+        if kind == .wall {
+            for i in 0..<7 {
+                let a = Float(i) * 2 * .pi / 7
+                let start = V3(sin(a) * 0.50, cos(a) * 0.50, 0.008)
+                let bend = V3(sin(a + 0.13) * 0.62, cos(a + 0.13) * 0.62, 0.008)
+                let end = V3(sin(a - 0.06) * 0.77, cos(a - 0.06) * 0.77, 0.008)
+                addCrack(from: start, to: bend); addCrack(from: bend, to: end)
+                addCrack(from: bend, to: V3(sin(a + 0.32) * 0.71, cos(a + 0.32) * 0.71, 0.008))
+            }
+        }
+        let handleMaterial = AlienArt.material(.cyan, glow: true)
+        for _ in 0..<4 { handles.append(AlienArt.sphere(0.045, handleMaterial, at: .zero, in: node)) }
+    }
+
+    func update(width: Float, height: Float, editing: Bool) {
+        opening.scale = SCNVector3(width, height, 1)
+        energy.diffuse.contents = editing ? UIColor.cyan : color
+        energy.emission.contents = editing ? UIColor.cyan : color
+        let corners: [SIMD2<Float>] = [SIMD2(-1, -1), SIMD2(-1, 1), SIMD2(1, -1), SIMD2(1, 1)]
+        for (i, handle) in handles.enumerated() {
+            handle.position = SCNVector3(corners[i].x * width / 2, corners[i].y * height / 2, 0.035)
+            handle.isHidden = !editing
+        }
+    }
+
+    func beginInvasion() {
+        guard !invasionStarted else { return }; invasionStarted = true
+        cracks.isHidden = false
+        for (i, segment) in crackSegments.enumerated() {
+            segment.scale = SCNVector3(1, 0.001, 1)
+            let grow = SCNAction.customAction(duration: 0.18) { node, time in
+                node.scale.y = max(0.001, Float(time / 0.18))
+            }
+            segment.runAction(.sequence([.wait(duration: Double(i % 3) * 0.10 + Double(i / 3) * 0.025), grow]))
+        }
+        arrival()
+    }
+
+    func arrival() {
+        // Reuse one pulse mesh per portal, including rapid diagnostic spawns.
+        pulse.removeAction(forKey: "arrival"); pulse.scale = SCNVector3(1, 1, 1); pulse.opacity = 1
+        pulse.runAction(.group([.scale(to: 1.25, duration: 0.40), .fadeOut(duration: 0.40)]), forKey: "arrival")
+    }
+
+    private func addCrack(from start: V3, to end: V3) {
+        let delta = end - start, size = length(delta)
+        let segment = SCNNode(); segment.simdPosition = start
+        segment.eulerAngles.z = -atan2(delta.x, delta.y); cracks.addChildNode(segment)
+        _ = AlienArt.box(V3(0.008, size, 0.006), energy, at: V3(0, size / 2, 0), in: segment)
+        crackSegments.append(segment)
+    }
+
+    private static func ring(radius: CGFloat, thickness: CGFloat, material: SCNMaterial) -> SCNNode {
+        let shape = SCNTorus(ringRadius: radius, pipeRadius: thickness)
+        shape.ringSegmentCount = 40; shape.pipeSegmentCount = 6; shape.firstMaterial = material
+        let node = SCNNode(geometry: shape); node.eulerAngles.x = .pi / 2; return node
+    }
+}
