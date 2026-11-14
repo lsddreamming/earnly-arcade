@@ -499,6 +499,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         if case .normal=frame.camera.trackingState { readyTracking = !sessionFailed } else { readyTracking=false }
         if let id=originAnchor?.identifier, let anchor=frame.anchors.first(where:{$0.identifier == id}) { root.simdTransform=anchor.transform }
         if phase == "scan" {
+            sounds.update(dt)
             if !readyTracking { portalDrag=nil; portalPinch=nil; hint.text="Tracking paused · slowly look at the scanned room. Portals stay locked." }
             else if selectedEntrance != nil { refreshPortalEditor() }
             else { hint.text=originAnchor == nil ? "Aim at the floor · tap Mark floor" : "Choose Air for a floating portal, or aim at a recognized surface." }
