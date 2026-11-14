@@ -6,6 +6,10 @@ The native bridge rejects iPad, Mac, Mac Catalyst and simulator launches before 
 
 The game has no ads, accounts, purchases, coins, network requests, camera recording, or uploads. Minimum iOS 17 and a physical ARKit-capable iPhone. RoomPlan is optional and gated by `RoomCaptureSession.isSupported`. Earnly's existing features are unchanged.
 
+## Current iPhone beta
+
+Earnly **1.13 (1101)** was verified as **Testing** in the existing Early Internal Testers group on November 13, 2026, after [the signed upload](https://github.com/lsddreamming/earnly-arcade/actions/runs/43526383555). Open TestFlight → Earnly Arcade → Update, then **Play Alien Invasion AR · Native test**. That beta is from `16d84f5f12d431a1c8c2de044cd40ba25e2056b6`; changes on later development branches are not in build 1101. Public App Store submission remains on hold.
+
 ## Build inside Earnly Arcade
 
 Set `EARNLY_ALIEN_AR_PREVIEW=1` for both `npm run native:web` and `node scripts/configure-ios.mjs`, with the usual `npx cap add ios` / `npx cap sync ios` between them. This flag packages a launcher, registers the native game plugin alongside StoreKit, and includes its camera purpose string. Exit dismisses the game, stops its camera and display loop, and returns to Earnly. Ordinary builds omit the launcher and native plugin. Generate a fresh `ios/` for every release.
@@ -30,7 +34,7 @@ No Apple signing identity is embedded. An unsigned CI compilation is **not** an 
 
 - ARWorldTrackingConfiguration uses horizontal/vertical planes and 6DoF tracking. One explicit ARAnchor defines the game coordinate system. All enemy positions are metres in that anchor's local space; camera children are used only for the held weapon.
 - A continuous simulation updates every enemy, independent of render visibility. Offscreen enemies retain UUIDs, health, position, animation age and attack cooldown.
-- Ray/sphere 3D intersections hit the nearest alien along the physical camera aim direction. Four primitive 3D character types, two weapons, three waves, reload, score, health, defeat particles and positional audio are implemented.
+- Ray/sphere 3D intersections hit the nearest alien along the physical camera aim direction. Four procedural 3D character types, two weapons, three waves, reload, score, health, defeat particles and positional audio are implemented. `AlienVisuals.swift` keeps limb, blink, hit and attack poses beneath each authoritative enemy transform. The two weapons have separate silhouettes, muzzle effects and recoil/reload poses. Plasma bolts and zapper beams start at the held muzzle; damage still uses the camera aim ray. Temporary effect groups are capped at twelve and audio is loaded once.
 - Optional RoomPlan uses the same ARSession and stops with `pauseARSession:false`. RoomPlan supplies floor/door/window/wall suggestions. Ceiling suggestions require an actual ARKit ceiling classification; missing ceilings are not invented. Manual surface portals require recognized plane geometry. Floating portals take a single tracked pose when placed and then remain children of the world anchor, not of the camera.
 - Portal gestures cast touch rays into the fixed portal plane in anchor space. Opposite corners stay fixed while reshaping the opening. Width/height are bounded to 0.4–3m, and edited centers remain 0.8–8m from the phone. Explicit locks reject edits; all portals must be locked before combat. Air portals spawn flying aliens at their edited 3D position.
 - Tracking loss, interruptions and camera movement of 1.25m or more horizontally from the combat origin freeze combat until explicitly resumed. The camera allowance accommodates turning in place with the phone held out; it does not track the player's body or permit walking. Session errors require a restart. Exiting stops camera capture.
@@ -43,10 +47,11 @@ No Apple signing identity is embedded. An unsigned CI compilation is **not** an 
 4. Turn back. Confirm the same aliens have advanced from the doorway and stayed aligned with the room. The diagnostic reports ID continuity, which alone does not prove spatial accuracy.
 5. Shoot all three. Confirm nearest-target hit detection, hit response and defeat.
 6. Repeat with a ceiling portal, without LiDAR, denied camera, interrupted session, low light, background/foreground, pause/reload, all waves and both weapons.
+7. For the combat polish candidate: compare running, armored, brute and flying enemies; confirm wing/limb movement, hit flinches and defeat bursts. Hold FIRE through several reloads, switch weapons and pause mid-effect. Restart while an explosion is visible: the new scan must contain no old enemies or effects. Check frame rate and heat after all three waves.
 
 ## Known prototype limits
 
-Physical AR alignment, tracking recovery, actual camera permissions, frame rate, sound direction and RoomPlan handoff require an iPhone playtest. This is not a verified room-scale release. Primitive models prioritize tracking. Ground enemies follow a straight line across the confirmed floor; real furniture avoidance/mesh occlusion is not implemented. Virtual wall cracks/holes are decorative meshes, not physical wall damage. Door/window portal placement is manual without RoomPlan. Session anchors persist during the run; saved maps and cross-launch room persistence are not implemented. No TestFlight distribution has occurred.
+Physical AR alignment, tracking recovery, actual camera permissions, frame rate, sound direction and RoomPlan handoff require an iPhone playtest. This is not a verified room-scale release. Procedural models use low segment counts; their visual quality and sustained-fire performance still need physical-device review. Ground enemies follow a straight line across the confirmed floor; real furniture avoidance/mesh occlusion is not implemented. Virtual wall cracks/holes are decorative meshes, not physical wall damage. Door/window portal placement is manual without RoomPlan. Session anchors persist during the run; saved maps and cross-launch room persistence are not implemented.
 
 ## Checks
 

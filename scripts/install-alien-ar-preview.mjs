@@ -13,7 +13,7 @@ export async function installAlienARPreview(root=process.cwd()) {
   const registration='bridge?.registerPluginInstance(ArcadePurchasesPlugin())';
   if(!delegate.includes(registration))throw new Error('Earnly bridge registration point missing; preview injection stopped.');
   delegate=delegate.replace(registration,registration+'; bridge?.registerPluginInstance(AlienInvasionPlugin())');
-  const source=await Promise.all(['native/AlienInvasionAR/Sources/World.swift','native/AlienInvasionAR/Sources/PortalPlacement.swift','native/AlienInvasionAR/Sources/GameViewController.swift','native/AlienInvasionBridge.swift'].map(read));
+  const source=await Promise.all(['native/AlienInvasionAR/Sources/World.swift','native/AlienInvasionAR/Sources/PortalPlacement.swift','native/AlienInvasionAR/Sources/AlienVisuals.swift','native/AlienInvasionAR/Sources/GameViewController.swift','native/AlienInvasionBridge.swift'].map(read));
   let plist=await read(app+'Info.plist');
   if(!/<\/dict>\s*<\/plist>\s*$/.test(plist))throw new Error('Invalid application plist; preview injection stopped.');
   if(!plist.includes('<key>NSCameraUsageDescription</key>')){
