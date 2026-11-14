@@ -589,7 +589,8 @@
       gameSearch.value = '';
       syncDiscoveryControls();
       render();
-      document.getElementById('gameBrowseCount').scrollIntoView({block:'start'});
+      // Finish the results jump before another tap; CSS smooth scrolling can move the controls mid-click.
+      document.getElementById('gameBrowseCount').scrollIntoView({block:'start',behavior:'instant'});
     });
 
     gameFilters.addEventListener('click', event => {
