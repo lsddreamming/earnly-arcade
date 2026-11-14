@@ -802,7 +802,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             let local=(inverse*root.simdTransform*SIMD4<Float>(nearest.position,1)).xyz
             threat.text=local.z>0 ? "↶ \(outside.count) behind you" : local.x<0 ? "← Alien on your left" : "Alien on your right →"
             if elapsed-lastSound>2.5 { playSound(at:actors[nearest.id]?.node); lastSound=elapsed }
-        } else { threat.text="" }
+        } else { threat.text=world.aliens.contains(where:{$0.attackWindup > 0}) ? "⚠ Alien charging — fire to defend!" : "" }
     }
 }
 

@@ -78,3 +78,7 @@ Physical AR alignment, tracking recovery, actual camera permissions, frame rate,
 `swift test` runs twelve deterministic core tests, including exact entrance identity after height-adjusted spawning, movement and pause, the movement guard during an arm-held turn, turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
 
 Apple references: [world tracking](https://developer.apple.com/documentation/arkit/understanding-world-tracking), [RoomPlan shared sessions](https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure), [ceiling classification](https://developer.apple.com/documentation/arkit/arplaneanchor/classification-swift.enum/ceiling).
+
+### Combat choreography follow-up
+
+Runners weave and flyers bank along bounded world-space paths; armored enemies advance steadily. Each species visibly winds up before damage, with a longer warning for brutes. Plasma briefly interrupts lighter enemies; the zapper can interrupt armor, with a 1.4-second immunity window preventing repeated stun locks. These states freeze with tracking pause and never depend on camera visibility. No room-mesh collision or furniture avoidance is implied. Physical iPhone testing remains required for perceived movement, attack readability, tracking and thermal behavior.
