@@ -6,6 +6,20 @@ The native bridge rejects iPad, Mac, Mac Catalyst and simulator launches before 
 
 The game has no ads, accounts, purchases, coins, network requests, camera recording, or uploads. Minimum iOS 17 and a physical ARKit-capable iPhone. RoomPlan is optional and gated by `RoomCaptureSession.isSupported`. Earnly's existing features are unchanged.
 
+## AR 2.0 candidate
+
+This branch upgrades the existing anchored native game. It is not uploaded until the exact-source PR/main, native compilation and published-site gates pass. The current available beta below remains unchanged until a new upload is verified.
+
+- Five entrance silhouettes: technological door rails, fractured window fragments, holographic wall cracks, overhead vortex and floating multi-ring wormhole. One procedural shader plane per portal adds animated swirling depth. Rings, arcs, fixed-count sparks, silhouette and a short local light pulse stay below the original placement transform.
+- Charging cues precede the exact entrance's spawn; ground enemies smoothly descend from the placed opening to the confirmed floor. Overload briefly speeds an enemy, Swarm compresses three existing wave spawns, Heavy Breach introduces the final wave's brute (or reinforced flyer for overhead portals). The existing 27-enemy / three-wave budget is retained, with at most eight live enemies.
+- START GAME stays in the bottom controls. Locking no longer opens a modal ready card. Setup offers restart, return to camera and the existing turn test. Pause cards scroll, and combat controls hide during pause/results.
+- Layered alien suits, chittering runner limbs, weapon batteries/reload motion, distinct locally generated audio cues, threat counts and wave/event banners. No new dependencies, permissions, ads or monetization.
+- Relocalization is explicitly requested after interruptions; combat also requires the original world anchor to remain present. Low-power/serious thermal state lowers rendering to 30 FPS and reduces sparks/light; critical temperature pauses combat. These are safeguards, not measured thermal/performance results.
+
+CI adds deterministic charge/emergence/event/cap/pause/restart tests and simulator-only screenshots of the actual portal renderer and controls. Screenshots and layout assertions do not verify camera access, spatial stability, real touch placement, device heat, sound direction or physical AR. The `--ar-visual-review` fixture is compiled only for the simulator and cannot run in a TestFlight device build.
+
+Physical acceptance for this candidate: place/resize/lock all five kinds; start from one and several portals; turn away/back during charging and emergence; hold FIRE through reloads; pause/background/relocalize; finish all waves; restart/exit; check sustained frame rate, temperature, occlusion limits and audio comfort on iPhone.
+
 ## Current iPhone beta
 
 Earnly **1.13 (1101)** was verified as **Testing** in the existing Early Internal Testers group on November 13, 2026, after [the signed upload](https://github.com/lsddreamming/earnly-arcade/actions/runs/43526383555). Open TestFlight → Earnly Arcade → Update, then **Play Alien Invasion AR · Native test**. That beta is from `16d84f5f12d431a1c8c2de044cd40ba25e2056b6`; changes on later development branches are not in build 1101. Public App Store submission remains on hold.

@@ -36,6 +36,18 @@ struct Alien {
     // Presentation can signal the actual entrance without guessing from a
     // ground enemy's height-adjusted position or its later movement.
     var entranceID: UUID? = nil
+    var emergenceOrigin: V3? = nil
+    var empowered: Float = 0
+}
+enum BreachEvent: String { case normal, overload, swarm, heavy }
+struct SpawnCue {
+    let id = UUID()
+    let entrance: Entrance
+    let kind: AlienKind
+    let event: BreachEvent
+    let duration: Float
+    var remaining: Float
+    var progress: Float { 1 - remaining / duration }
 }
 enum Weapon: Int {
     case plasma, zapper
@@ -64,19 +76,25 @@ final class InvasionWorld {
     var finished = false
     var won = false
     var paused = false
+    var pendingSpawn: SpawnCue?
+    static let maximumAliens = 8
+    var threatsRemaining: Int { max(0, waveTarget-spawned) + aliens.count }
     var waveTarget: Int { [6, 9, 12][min(2, wave-1)] }
     var ammo: Int { ammunition[weapon.rawValue] }
 
     func reset() {
         aliens.removeAll(); health = 100; score = 0; kills = 0; wave = 1
         spawned = 0; spawnTimer = 0; waveBreak = 0; reload = 0; cooldown = 0
-        ammunition = [24,8]; weapon = .plasma; finished = false; won = false; paused = false
+        ammunition = [24,8]; weapon = .plasma; finished = false; won = false; paused = false; pendingSpawn = nil
     }
-    func spawn(at portal: Entrance, kind: AlienKind) {
+    func spawn(at portal: Entrance, kind: AlienKind, event: BreachEvent = .normal, emerging: Bool = false) {
         var p = portal.position
         let actual: AlienKind = portal.kind == .ceiling || portal.kind == .air ? .flyer : kind
-        if actual != .flyer { p.y = actual.radius }
-        aliens.append(Alien(kind: actual, position: p, hp: actual.hp, entranceID: portal.id))
+        if actual != .flyer && !emerging { p.y = actual.radius }
+        let hp = actual.hp * (event == .heavy && actual == .flyer ? 2 : 1)
+        aliens.append(Alien(kind: actual, position: p, hp: hp, entranceID: portal.id,
+                            emergenceOrigin: emerging ? portal.position : nil,
+                            empowered: event == .overload ? 6 : 0))
     }
     func update(_ dt: Float) {
         guard !paused, !finished else { return }
@@ -86,21 +104,47 @@ final class InvasionWorld {
             if reload == 0 { ammunition[weapon.rawValue] = weapon.capacity }
         }
         if waveBreak > 0 { waveBreak = max(0,waveBreak-dt); return }
-        spawnTimer -= dt
-        if spawned < waveTarget, spawnTimer <= 0, !entrances.isEmpty {
-            let kind: AlienKind = wave == 1 ? (spawned == 5 ? .armor : .runner) : AlienKind(rawValue:(spawned + wave) % 4)!
-            spawn(at: entrances[spawned % entrances.count], kind: kind)
-            spawned += 1; spawnTimer = max(0.7, 1.9-Float(wave)*0.3)
+        if var cue = pendingSpawn {
+            cue.remaining = max(0, cue.remaining-dt)
+            pendingSpawn = cue
+            if cue.remaining == 0 {
+                spawn(at: cue.entrance, kind: cue.kind, event: cue.event, emerging: true)
+                spawned += 1; pendingSpawn = nil
+                spawnTimer = cue.event == .swarm ? 0.08 : max(0.5, 1.4-Float(wave)*0.25)
+            }
+        } else {
+            spawnTimer -= dt
+            if spawned < waveTarget, spawnTimer <= 0, !entrances.isEmpty, aliens.count < Self.maximumAliens {
+                let event: BreachEvent = wave == 3 && spawned == 0 ? .heavy :
+                    wave >= 2 && (3...5).contains(spawned) ? .swarm :
+                    wave >= 2 && spawned % 6 == 1 ? .overload : .normal
+                let kind: AlienKind = event == .heavy ? .brute : event == .swarm ? .runner :
+                    wave == 1 ? (spawned == 5 ? .armor : .runner) : AlienKind(rawValue:(spawned + wave) % 4)!
+                // Rotate the starting entrance each wave. The cue keeps the exact
+                // entrance identity through charging, emergence and offscreen play.
+                let entrance = entrances[(spawned + wave-1) % entrances.count]
+                let duration: Float = event == .heavy ? 2 : event == .swarm ? 0.38 : spawned == 0 ? 1.8 : 0.9
+                pendingSpawn = SpawnCue(entrance: entrance, kind: kind, event: event, duration: duration, remaining: duration)
+            }
         }
         for i in aliens.indices {
             aliens[i].age += dt
+            aliens[i].empowered = max(0, aliens[i].empowered-dt)
+            if let start = aliens[i].emergenceOrigin {
+                var end = start
+                if aliens[i].kind != .flyer { end.y = aliens[i].kind.radius }
+                let t = min(1, aliens[i].age / 0.8), smooth = t*t*(3-2*t)
+                aliens[i].position = start + (end-start)*smooth
+                if aliens[i].age < 0.8 { continue }
+            }
+            aliens[i].emergenceOrigin = nil
             var destination = player
             destination.y = aliens[i].kind == .flyer ? player.y : aliens[i].kind.radius
             let d = destination - aliens[i].position
             let distance = length(d)
             // Stop short of the player; no physical movement is required.
             if distance > 0.75 {
-                aliens[i].position += normalized(d) * min(distance-0.75, aliens[i].kind.speed*dt)
+                aliens[i].position += normalized(d) * min(distance-0.75, aliens[i].kind.speed*dt*(aliens[i].empowered > 0 ? 1.5 : 1))
             } else {
                 aliens[i].attackCooldown -= dt
                 if aliens[i].attackCooldown <= 0 {
@@ -112,7 +156,7 @@ final class InvasionWorld {
         if health <= 0 { finished = true; return }
         if spawned == waveTarget && aliens.isEmpty {
             if wave == 3 { finished = true; won = true }
-            else { wave += 1; spawned = 0; waveBreak = 2.5; health = min(100,health+15); ammunition = [24,8] }
+            else { wave += 1; spawned = 0; spawnTimer = 0; waveBreak = 2.5; health = min(100,health+15); ammunition = [24,8] }
         }
     }
     func beginReload() { if reload == 0 && ammo < weapon.capacity { reload = 1.2 } }

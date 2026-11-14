@@ -51,6 +51,17 @@ test('embedding is repeatable and preserves the existing app, StoreKit and plist
   const wav=await readFile(path.join(f.root,'ios/App/App/public/alien-ar-zap.wav'));
   assert.equal(wav.toString('ascii',0,4),'RIFF');
   assert.equal(wav.readUInt32LE(4),wav.length-8);
+  const signatures=new Set();
+  for(const name of ['plasma','zapper','charge','breach','wave','reload']) {
+    const cue=await readFile(path.join(f.root,`ios/App/App/public/alien-ar-${name}.wav`));
+    assert.equal(cue.toString('ascii',0,4),'RIFF');
+    assert.equal(cue.readUInt32LE(4),cue.length-8);
+    assert.equal(cue.readUInt16LE(22),1,'mono positional audio');
+    assert.equal(cue.readUInt32LE(24),22050);
+    assert.ok(cue.length>4000 && cue.length<60000,'short, bounded PCM cue');
+    signatures.add(cue.toString('base64'));
+  }
+  assert.equal(signatures.size,6,'weapons, charge, breach, wave and reload are distinct');
 });
 
 test('missing bridge or invalid plist fails before changing generated source',async t=>{
