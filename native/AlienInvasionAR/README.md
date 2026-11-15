@@ -82,3 +82,12 @@ Apple references: [world tracking](https://developer.apple.com/documentation/ark
 ### Combat choreography follow-up
 
 Runners weave and flyers bank along bounded world-space paths; armored enemies advance steadily. Each species visibly winds up before damage, with a longer warning for brutes. Plasma briefly interrupts lighter enemies; the zapper can interrupt armor, with a 1.4-second immunity window preventing repeated stun locks. These states freeze with tracking pause and never depend on camera visibility. No room-mesh collision or furniture avoidance is implied. Physical iPhone testing remains required for perceived movement, attack readability, tracking and thermal behavior.
+
+
+### Reactive portal follow-up
+
+Portals now have a tapered 0.66m visual tunnel, five receding energy rings, a translucent filament membrane and a recessed alien silhouette. Door/window arcs follow a rounded rectangular aperture; air, ceiling and wall entrances retain circular vortices. Meshes, twelve sparks and the hit ripple shader are allocated at placement and reused. Reduced-effects mode removes alternate rings, extra spirals/arcs and local lights. No animation writes to the placement transform or AR anchor.
+
+Tap a portal during setup to preview a short charge without spawning an enemy or hiding START GAME. Dragging/resizing pulses the handles; locking confirms with a pulse and subtle haptic. In combat, shots striking the opening ripple at the impact position. Three plasma hits or two zapper hits on the currently charging entrance delay that alien for 1.25 seconds, once per cue. Shots consume normal ammunition; enemies in front intercept them, while enemies behind the aperture cannot be hit through it. Delays never remove threats or award points. Pause/tracking loss freezes both the cue and the delay.
+
+Five new core tests cover aperture shape, shot occlusion/ammunition, one-delay limits, pause/reset, and completing all 27 enemies with every cue delayed. Simulator fixtures additionally capture an impact, an oblique view and reduced effects, and assert that both placement and visual root transforms remain unchanged. Physical acceptance still requires iPhone: check parallax, wall alignment, sound, tap/drag/pinch/lock, held fire at a charging portal, pause/resume and sustained performance with six portals. This visual tunnel does not implement real wall cutting, furniture occlusion or saved room maps.

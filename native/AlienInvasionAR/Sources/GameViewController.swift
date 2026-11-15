@@ -335,7 +335,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         editControls.isHidden=false
         depthControls.isHidden=p.locked || world.entrances.first(where:{$0.id == id})?.kind != .air
         lockButton.setTitle(p.locked ? "Edit portal" : "Lock portal",for:.normal)
-        hint.text=p.locked ? "Portal locked in your room. Tap START GAME below or Edit portal to change it." : String(format:"Drag body to move · drag corners or pinch to resize\n%.2f m × %.2f m · Lock when ready",p.width,p.height)
+        hint.text=p.locked ? "Locked in your room · tap portal to preview\nSTART GAME below · Edit portal to change it." : String(format:"Drag body to move · drag corners or pinch to resize\n%.2f m × %.2f m · Lock when ready",p.width,p.height)
     }
     private func applyPortal(_ id:UUID,_ placement:PortalPlacement) {
         guard let i=world.entrances.firstIndex(where:{$0.id == id}),let frame=ar.session.currentFrame else{return}
@@ -343,12 +343,13 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         guard length(placement.center-camera)>=0.8,length(placement.center-camera)<=8 else { hint.text="Keep the entrance between 0.8 and 8 metres away."; return }
         portalPlacements[id]=placement
         world.entrances[i].position=placement.center
-        renderPortal(id); refreshPortalEditor()
+        renderPortal(id); portalVisuals[id]?.edited(); refreshPortalEditor()
     }
     @objc private func lockPortal() {
         guard phase == "scan",readyTracking,let id=selectedEntrance,var p=portalPlacements[id] else{return}
         p.locked.toggle(); portalPlacements[id]=p; portalDrag=nil; portalPinch=nil
         renderPortal(id); refreshPortalEditor()
+        if p.locked { portalVisuals[id]?.arrival(); hitHaptic.impactOccurred(intensity:0.4) }
         if p.locked && portalPlacements.values.allSatisfy({$0.locked}) { showReady() }
     }
     @objc private func removePortal() {
@@ -392,6 +393,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
     @objc private func selectPortal(_ gesture:UITapGestureRecognizer) {
         guard phase == "scan",readyTracking,let hit=portalHit(gesture.location(in:ar)) else{return}
         selectEntrance(hit.id)
+        if portalVisuals[hit.id]?.preview() == true {
+            hitHaptic.impactOccurred(intensity:0.3); playSound("charge",at:portalNodes[hit.id])
+        }
     }
     @objc private func dragPortal(_ gesture:UIPanGestureRecognizer) {
         guard phase == "scan",readyTracking else { portalDrag=nil; return }
@@ -496,7 +500,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             }
             verificationIDs=world.aliens.map(\.id)
         }
-        hint.text=test ? "Turn 180°, wait 3 seconds, then turn back. The same 3 aliens keep moving." : "Stand still · turn to aim · hold FIRE · reload when empty"
+        hint.text=test ? "Turn 180°, wait 3 seconds, then turn back. The same 3 aliens keep moving." : "Stand still · turn to aim · hold FIRE\nShoot a charging portal to briefly delay its breach"
         threat.isHidden=false; lastHealth=world.health; previous=0; elapsed=0; lastSound=0
         heldWeapon?.node.removeFromParentNode(); heldWeapon=nil; installGun()
         _ = zapSound; _ = sounds; hitHaptic.prepare(); damageHaptic.prepare()
@@ -599,13 +603,28 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         hitMarkerRemaining=max(0,hitMarkerRemaining-dt)
         if hitMarkerRemaining == 0 { crosshair.text="+"; crosshair.textColor = .white }
         if firing && !world.finished && world.cooldown == 0 && world.reload == 0 && world.ammo>0 {
-            let hit=world.shoot(origin:world.player,direction:direction)
-            let end=world.player+direction*(hit?.1 ?? 5)
+            let portalHit=world.entrances.compactMap { entrance -> (id:UUID,distance:Float)? in
+                guard let placement=portalPlacements[entrance.id],
+                      let distance=placement.hitDistance(origin:world.player,direction:direction,kind:entrance.kind) else { return nil }
+                return (entrance.id,distance)
+            }.min(by:{$0.distance < $1.distance})
+            let hit=world.shoot(origin:world.player,direction:direction,maximumDistance:portalHit?.distance ?? 15)
+            let end=world.player+direction*(hit?.1 ?? portalHit?.distance ?? 5)
             beam(to:end,color:world.weapon == .plasma ? .cyan : .green)
             if let hit=hit {
                 actors[hit.0]?.hit(); hitMarkerRemaining=0.14
                 crosshair.text="×"; crosshair.textColor = .cyan; hitHaptic.impactOccurred(intensity:0.65)
                 burst(at:end,color:world.weapon == .plasma ? .cyan : .green)
+            }
+            if hit == nil, let portalHit=portalHit, let placement=portalPlacements[portalHit.id] {
+                portalVisuals[portalHit.id]?.impact(at:placement.apertureCoordinates(end))
+                hitMarkerRemaining=0.14; crosshair.text="◇"; crosshair.textColor = .cyan
+                hitHaptic.impactOccurred(intensity:0.25)
+                if world.disruptPortal(portalHit.id,weapon:world.weapon) {
+                    portalVisuals[portalHit.id]?.arrival()
+                    announce("BREACH DELAYED\nIncoming alien held for a moment")
+                    playSound("breach",at:portalNodes[portalHit.id])
+                }
             }
             heldWeapon?.fire(); heldWeapon?.update(dt:0,reload:0)
             retireDefeatedModels()
@@ -633,12 +652,14 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let args=ProcessInfo.processInfo.arguments
         let kind=PortalKind.allCases.first(where:{args.contains($0.rawValue)}) ?? .air
         let combat=args.contains("combat"), paused=args.contains("paused")
+        let reactive=args.contains("reactive"), oblique=args.contains("depth"), reduced=args.contains("reduced")
         ar.scene.background.contents=UIColor(red:0.045,green:0.07,blue:0.11,alpha:1)
         let camera=SCNNode(); camera.camera=SCNCamera(); camera.camera?.zNear=0.01
         camera.position=SCNVector3(0,1.5,0)
         ar.scene.rootNode.addChildNode(camera); ar.pointOfView=camera; ar.isPlaying=true
         originAnchor=ARAnchor(transform:matrix_identity_float4x4)
         var t=matrix_identity_float4x4; t.columns.3=SIMD4<Float>(0,1.5,-2.5,1)
+        if oblique { t = simd_float4x4(simd_quatf(angle:0.45,axis:V3(0,1,0))); t.columns.3=SIMD4<Float>(0,1.5,-2.5,1) }
         phase="scan"; readyTracking=true
         addPortal(transform:t,kind:kind,roomPlan:true)
         top.isHidden=false; controls.isHidden=false; hint.isHidden=false; crosshair.isHidden=false
@@ -659,11 +680,19 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             let actor=AlienVisual(kind:a.kind); root.addChildNode(actor.node); actor.update(a,player:world.player,dt:0)
             announce("WAVE 2\nINVASION ESCALATING")
         }
+        let placedTransforms=portalNodes.mapValues { $0.simdTransform }
+        let visualTransforms=portalVisuals.mapValues { $0.node.simdTransform }
         for visual in portalVisuals.values {
             let entrance=world.entrances[0]
             visual.chargeUp(SpawnCue(entrance:entrance,kind:.runner,event:.normal,duration:1,remaining:0.15))
-            visual.animate(dt:2.5,reducedEffects:false)
+            visual.animate(dt:2.5,reducedEffects:reduced)
+            if reactive {
+                visual.preview(); visual.impact(at:SIMD2(0.68,0.55))
+                visual.animate(dt:0.18,reducedEffects:reduced)
+            }
         }
+        let anchorsStable=portalNodes.allSatisfy { placedTransforms[$0.key] == $0.value.simdTransform } &&
+            portalVisuals.allSatisfy { visualTransforms[$0.key] == $0.value.node.simdTransform }
         if paused { pause("Tracking is limited. Enemies are frozen until you resume.") }
         DispatchQueue.main.asyncAfter(deadline:.now()+1) { [weak self] in
             guard let self=self else { return }
@@ -674,7 +703,7 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
             let pass=rect.width >= 44 && rect.height >= 44 && safe.contains(rect)
             let muzzle=self.heldWeapon.map { self.ar.projectPoint($0.muzzle.worldPosition) }
             let weaponVisible = !combat || muzzle.map { $0.z > 0 && $0.z < 1 && safe.contains(CGPoint(x:CGFloat($0.x),y:CGFloat($0.y))) } == true
-            let result:[String:Any] = ["layoutPass":pass && weaponVisible,"weaponVisible":weaponVisible,"kind":kind.rawValue,"physicalARVerified":false]
+            let result:[String:Any] = ["layoutPass":pass && weaponVisible,"anchorsStable":anchorsStable,"weaponVisible":weaponVisible,"kind":kind.rawValue,"physicalARVerified":false]
             let folder=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
             if let data=try? JSONSerialization.data(withJSONObject:result) { try? data.write(to:folder.appendingPathComponent("visual-review.json")) }
         }
