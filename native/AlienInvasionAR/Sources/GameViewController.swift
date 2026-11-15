@@ -684,7 +684,9 @@ final class GameViewController: UIViewController, ARSessionDelegate, RoomCapture
         let visualTransforms=portalVisuals.mapValues { $0.node.simdTransform }
         for visual in portalVisuals.values {
             let entrance=world.entrances[0]
-            visual.chargeUp(SpawnCue(entrance:entrance,kind:.runner,event:.normal,duration:1,remaining:0.15))
+            var cue=SpawnCue(entrance:entrance,kind:.runner,event:args.contains("heavy") ? .heavy : .normal,duration:1,remaining:0.15)
+            if args.contains("suppressed") { cue.wasDisrupted=true; cue.suppressionRemaining=1 }
+            visual.chargeUp(cue)
             visual.animate(dt:2.5,reducedEffects:reduced)
             if reactive {
                 visual.preview(); visual.impact(at:SIMD2(0.68,0.55))

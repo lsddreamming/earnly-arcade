@@ -9,7 +9,7 @@ xcrun simctl boot "$DEVICE" || true
 xcrun simctl bootstatus "$DEVICE" -b
 xcrun simctl install "$DEVICE" /tmp/alien-ar-review/Build/Products/Debug-iphonesimulator/AlienInvasionAR.app
 mkdir -p test-results/alien-native
-for MODE in Air Door Window Wall Ceiling combat paused reactive depth reduced; do
+for MODE in Air Door Window Wall Ceiling combat paused reactive depth reduced heavy suppressed; do
   xcrun simctl terminate "$DEVICE" com.earnlyarcade.alieninvasion.prototype 2>/dev/null || true
   xcrun simctl launch --stdout=/tmp/alien-review-out.log --stderr=/tmp/alien-review-err.log "$DEVICE" com.earnlyarcade.alieninvasion.prototype --ar-visual-review "$MODE"
   sleep 3

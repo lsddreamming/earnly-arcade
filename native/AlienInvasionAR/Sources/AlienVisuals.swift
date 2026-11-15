@@ -350,7 +350,7 @@ final class AlienPortalVisual {
             }
         }
         cracks.opacity = 0
-        let silhouette = AlienArt.material(UIColor(red:0.004,green:0.007,blue:0.015,alpha:1))
+        let silhouette = AlienArt.material(UIColor(red:0.04,green:0.065,blue:0.11,alpha:1))
         silhouette.lightingModel = .constant
         let head = AlienArt.sphere(0.10,silhouette,at:V3(0,0.12,0),in:shadow)
         head.scale = SCNVector3(1.2,0.85,0.55)
@@ -444,8 +444,9 @@ final class AlienPortalVisual {
         shadow.scale = SCNVector3(shadowScale,shadowScale,1)
         shadow.opacity = CGFloat(power*0.9); shadow.position.z = -0.28+power*0.23
         shadow.eulerAngles.z = sin(time*1.4)*0.045
-        pulse.opacity = CGFloat(arrivalTime/0.55)
-        let burst: Float = 1+(1-arrivalTime/0.55)*0.20
+        let heavyPulse: Float = event == .heavy ? power*0.55 : 0
+        pulse.opacity = CGFloat(max(arrivalTime/0.55,heavyPulse))
+        let burst: Float = arrivalTime > 0 ? 1+(1-arrivalTime/0.55)*0.20 : 1+heavyPulse*0.28
         pulse.scale = SCNVector3(burst,burst,1)
         lightNode.light?.color = tint
         lightNode.light?.intensity = reducedEffects ? 0 : CGFloat(power*75+arrivalTime*90)
