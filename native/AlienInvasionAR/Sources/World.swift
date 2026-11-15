@@ -53,6 +53,9 @@ struct SpawnCue {
     let event: BreachEvent
     let duration: Float
     var remaining: Float
+    var disruptionHits: Int = 0
+    var wasDisrupted = false
+    var suppressionRemaining: Float = 0
     var progress: Float { 1 - remaining / duration }
 }
 enum Weapon: Int {
@@ -112,7 +115,9 @@ final class InvasionWorld {
         }
         if waveBreak > 0 { waveBreak = max(0,waveBreak-dt); return }
         if var cue = pendingSpawn {
-            cue.remaining = max(0, cue.remaining-dt)
+            let frozen = min(dt,cue.suppressionRemaining)
+            cue.suppressionRemaining = max(0,cue.suppressionRemaining-dt)
+            cue.remaining = max(0, cue.remaining-(dt-frozen))
             pendingSpawn = cue
             if cue.remaining == 0 {
                 spawn(at: cue.entrance, kind: cue.kind, event: cue.event, emerging: true)
@@ -190,6 +195,18 @@ final class InvasionWorld {
     func beginReload() { if reload == 0 && ammo < weapon.capacity { reload = 1.2 } }
     func switchWeapon() { if reload == 0 { weapon = weapon == .plasma ? .zapper : .plasma } }
 
+    /// A finite tactical delay, once per incoming alien. Never removes a threat,
+    /// awards points, or resets the wave budget. Caller resolves an actual shot first.
+    @discardableResult func disruptPortal(_ id: UUID, weapon: Weapon) -> Bool {
+        guard !paused, !finished, var cue = pendingSpawn,
+              cue.entrance.id == id, !cue.wasDisrupted else { return false }
+        cue.disruptionHits += weapon == .plasma ? 1 : 2
+        let disrupted = cue.disruptionHits >= 3
+        if disrupted { cue.wasDisrupted = true; cue.suppressionRemaining = 1.25 }
+        pendingSpawn = cue
+        return disrupted
+    }
+
     /// Ray/sphere intersections in the same 3D space as the tracked player.
     /// Nearest positive intersection wins; aliens behind the ray cannot be hit.
     func target(origin: V3, direction: V3) -> (UUID, Float)? {
@@ -207,10 +224,11 @@ final class InvasionWorld {
         }
         return nearest
     }
-    @discardableResult func shoot(origin: V3, direction: V3) -> (UUID, Float)? {
+    @discardableResult func shoot(origin: V3, direction: V3, maximumDistance: Float = 15) -> (UUID, Float)? {
         guard !paused, !finished, cooldown == 0, reload == 0, ammo > 0 else { return nil }
         ammunition[weapon.rawValue] -= 1; cooldown = weapon.interval
-        guard let hit = target(origin:origin,direction:direction), let i = aliens.firstIndex(where:{$0.id == hit.0}) else { return nil }
+        guard let hit = target(origin:origin,direction:direction), hit.1 < maximumDistance,
+              let i = aliens.firstIndex(where:{$0.id == hit.0}) else { return nil }
         aliens[i].hp -= weapon.damage
         // Heavy enemies resist plasma interruption. A recovery window prevents
         // holding FIRE from indefinitely stun-locking an enemy.

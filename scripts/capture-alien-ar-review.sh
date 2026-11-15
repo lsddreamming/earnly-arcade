@@ -9,13 +9,13 @@ xcrun simctl boot "$DEVICE" || true
 xcrun simctl bootstatus "$DEVICE" -b
 xcrun simctl install "$DEVICE" /tmp/alien-ar-review/Build/Products/Debug-iphonesimulator/AlienInvasionAR.app
 mkdir -p test-results/alien-native
-for MODE in Air Door Window Wall Ceiling combat paused; do
+for MODE in Air Door Window Wall Ceiling combat paused reactive depth reduced heavy suppressed; do
   xcrun simctl terminate "$DEVICE" com.earnlyarcade.alieninvasion.prototype 2>/dev/null || true
   xcrun simctl launch --stdout=/tmp/alien-review-out.log --stderr=/tmp/alien-review-err.log "$DEVICE" com.earnlyarcade.alieninvasion.prototype --ar-visual-review "$MODE"
   sleep 3
   DATA_DIR=$(xcrun simctl get_app_container "$DEVICE" com.earnlyarcade.alieninvasion.prototype data)
   cp "$DATA_DIR/Documents/visual-review.json" "test-results/alien-native/$MODE.json"
-  python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["layoutPass"],r; assert r["physicalARVerified"] is False' "test-results/alien-native/$MODE.json"
+  python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["layoutPass"],r; assert r["anchorsStable"],r; assert r["physicalARVerified"] is False' "test-results/alien-native/$MODE.json"
   xcrun simctl io "$DEVICE" screenshot "test-results/alien-native/$MODE.png"
   if rg -i 'failed to compile|compilation failed|Error Domain=SCNErrorDomain' /tmp/alien-review-err.log; then
     cat /tmp/alien-review-err.log; exit 1

@@ -216,22 +216,24 @@ final class AlienWeaponVisual {
     }
 }
 
-/// Every animation stays below this node and the fixed placement transform.
-/// A bounded mesh set and one small shader plane per portal are reused throughout.
+/// All geometry, light and UV animation stays below the fixed placement node.
+/// Meshes and the impact membrane are built once; no emitters or per-shot nodes.
 @available(iOS 17.0, *)
 final class AlienPortalVisual {
     let node = SCNNode()
     let color: UIColor
     private let kind: PortalKind
-    private let opening = SCNNode(), rings = SCNNode(), sparks = SCNNode(), shadow = SCNNode()
+    private let opening = SCNNode(), sparks = SCNNode(), shadow = SCNNode()
     private let pulse = SCNNode(), cracks = SCNNode(), lightNode = SCNNode()
     private let energy: SCNMaterial, interior: SCNMaterial
     private var handles: [SCNNode] = [], orbiters: [SCNNode] = [], arcNodes: [SCNNode] = []
-    private var ringNodes: [SCNNode] = []
+    private var ringNodes: [SCNNode] = [], spirals: [SCNNode] = []
     private var time: Float = 0, arrivalTime: Float = 0, activation: Float = 0
-    private var charge: Float = 0
+    private var charge: Float = 0, previewTime: Float = 0, hitTime: Float = 0, editTime: Float = 0
+    private var suppressed = false
     private var event = BreachEvent.normal
     private var editing = false, invasionStarted = false
+    private var rectangular: Bool { kind == .door || kind == .window }
 
     init(kind: PortalKind) {
         self.kind = kind
@@ -247,89 +249,123 @@ final class AlienPortalVisual {
         interior = SCNMaterial(); interior.lightingModel = .constant
         interior.diffuse.contents = color; interior.isDoubleSided = true
         interior.writesToDepthBuffer = false
-        // Local UV distortion only: never changes a world vertex or anchor.
         interior.shaderModifiers = [.fragment: Self.vortexShader]
-        interior.setValue(NSNumber(value:0),forKey:"portalTime")
-        interior.setValue(NSNumber(value:0),forKey:"portalCharge")
+        for key in ["portalTime","portalCharge","portalHit","portalHitX","portalHitY"] {
+            interior.setValue(NSNumber(value:0),forKey:key)
+        }
         interior.setValue(NSNumber(value:kind == .door || kind == .window ? 1 : 0),forKey:"portalSquare")
         node.addChildNode(opening)
-        let plane = SCNPlane(width:0.98,height:0.98); plane.firstMaterial = interior
-        let core = SCNNode(geometry:plane); core.position.z = -0.025; opening.addChildNode(core)
-        [rings,sparks,shadow,pulse,cracks,lightNode].forEach { opening.addChildNode($0) }
+        [sparks,shadow,pulse,cracks,lightNode].forEach { opening.addChildNode($0) }
 
-        let metal = AlienArt.material(UIColor(red:0.10,green:0.14,blue:0.24,alpha:1))
-        metal.metalness.contents = 0.75
-        if kind == .door || kind == .window {
-            // Real doorway silhouette with inset energy rails and alien circuitry.
+        let dark = AlienArt.material(UIColor(red:0.006,green:0.01,blue:0.035,alpha:1))
+        dark.lightingModel = .constant; dark.isDoubleSided = true
+        // A tapered, closed tunnel produces actual parallax when viewed obliquely.
+        // It is simulated depth behind the aperture, never a change to the wall.
+        let tunnel = Self.tunnel(kind:kind,material:dark); opening.addChildNode(tunnel)
+        let plane = SCNPlane(width:1,height:1); plane.firstMaterial = interior
+        let core = SCNNode(geometry:plane); core.position.z = 0.012
+        core.renderingOrder = 10; opening.addChildNode(core)
+
+        let metal = AlienArt.material(UIColor(red:0.065,green:0.095,blue:0.17,alpha:1))
+        metal.metalness.contents = 0.85; metal.roughness.contents = 0.25
+        let white = AlienArt.material(UIColor(red:0.7,green:1,blue:0.96,alpha:1),glow:true)
+        white.lightingModel = .constant
+        let halo = AlienArt.material(color,glow:true)
+        halo.lightingModel = .constant; halo.transparency = 0.13
+        halo.writesToDepthBuffer = false; halo.isDoubleSided = true
+        if rectangular {
             for side: Float in [-1,1] {
-                _ = AlienArt.box(V3(0.075,1.05,0.10),metal,at:V3(side*0.51,0,0),in:opening)
-                _ = AlienArt.box(V3(0.016,0.98,0.025),energy,at:V3(side*0.475,0,0.065),in:opening)
-                for i in 0..<5 {
-                    let glyph = AlienArt.box(V3(0.038,0.018,0.014),energy,at:V3(side*0.52,Float(i)*0.18-0.36,0.065),in:opening)
+                _ = AlienArt.box(V3(0.07,1.06,0.14),metal,at:V3(side*0.525,0,-0.025),in:opening)
+                _ = AlienArt.box(V3(0.014,0.90,0.016),white,at:V3(side*0.49,0,0.05),in:opening)
+                _ = AlienArt.box(V3(1.10,0.07,0.14),metal,at:V3(0,side*0.525,-0.025),in:opening)
+                for i in 0..<6 {
+                    let glyph = AlienArt.box(V3(0.025,0.012,0.015),energy,at:V3(side*0.53,Float(i)*0.14-0.35,0.055),in:opening)
                     glyph.eulerAngles.z = side*0.4
                 }
-                _ = AlienArt.box(V3(1.07,0.065,0.10),metal,at:V3(0,side*0.51,0),in:opening)
-                _ = AlienArt.box(V3(0.94,0.012,0.025),energy,at:V3(0,side*0.475,0.065),in:opening)
+                for x: Float in [-0.45,0.45] {
+                    _ = AlienArt.box(V3(0.13,0.11,0.17),metal,at:V3(x,side*0.49,0),in:opening)
+                    _ = AlienArt.box(V3(0.075,0.016,0.02),energy,at:V3(x,side*0.49,0.09),in:opening)
+                }
             }
         } else {
-            let rim = Self.ring(radius:0.50,thickness:0.017,material:energy)
-            opening.addChildNode(rim)
-            let backing = Self.ring(radius:0.525,thickness:0.027,material:metal)
-            opening.addChildNode(backing)
-        }
-        for i in 0..<3 {
-            let carrier = SCNNode(); rings.addChildNode(carrier)
-            let ring = Self.ring(radius:CGFloat(0.35+Float(i)*0.09),thickness:i == 2 ? 0.008 : 0.004,material:energy)
-            carrier.addChildNode(ring); carrier.position.z = -Float(2-i)*0.065
-            carrier.opacity = i == 2 ? 0.85 : 0.40; ringNodes.append(carrier)
-            for j in 0..<4 {
-                let a = Float(j) * .pi/2+Float(i)*0.4
-                let mark = AlienArt.box(V3(0.035,0.065,0.012),energy,at:V3(sin(a)*0.53,cos(a)*0.53,0),in:carrier)
-                mark.eulerAngles.z = -a
+            opening.addChildNode(Self.ring(radius:0.516,thickness:0.022,material:metal))
+            for i in 0..<8 {
+                let a = Float(i) * .pi/4
+                let plate = AlienArt.box(V3(0.075,0.038,0.06),metal,at:V3(sin(a)*0.52,cos(a)*0.52,0),in:opening)
+                plate.eulerAngles.z = -a
+                let inset = AlienArt.box(V3(0.035,0.008,0.015),white,at:V3(0,0,0.035),in:plate)
+                inset.opacity = 0.8
             }
         }
-        // Short jagged arcs rotate around the perimeter, with no particle emitter.
-        for i in 0..<3 {
-            let arc = SCNNode(); opening.addChildNode(arc); arcNodes.append(arc)
-            for j in 0..<7 {
-                let a = Float(j)*0.09, b = Float(j+1)*0.09
-                let ra: Float = j % 2 == 0 ? 0.49 : 0.54
-                let rb: Float = j % 2 == 0 ? 0.54 : 0.49
-                Self.segment(from:V3(sin(a)*ra,cos(a)*ra,0.06),to:V3(sin(b)*rb,cos(b)*rb,0.06),material:energy,in:arc)
-            }
-            arc.eulerAngles.z = Float(i)*2 * .pi/3
+        opening.addChildNode(Self.contourRing(kind:kind,radius:0.49,width:0.010,z:0.025,material:energy))
+        opening.addChildNode(Self.contourRing(kind:kind,radius:0.49,width:0.035,z:0.024,material:halo))
+        // Receding, increasingly small rings make the dark center read as depth.
+        for i in 0..<5 {
+            let carrier = SCNNode(); opening.addChildNode(carrier); ringNodes.append(carrier)
+            let radius = 0.46-Float(i)*0.046
+            carrier.position.z = -0.07-Float(i)*0.115
+            carrier.addChildNode(Self.contourRing(kind:kind,radius:radius,width:0.003,z:0,material:energy))
+            carrier.addChildNode(Self.contourRing(kind:kind,radius:radius,width:0.018,z:0,material:halo))
+            carrier.opacity = CGFloat(0.75-Float(i)*0.10)
         }
-        let moteGeometry = SCNSphere(radius:0.009); moteGeometry.segmentCount = 6; moteGeometry.firstMaterial = energy
+        if !rectangular {
+            for i in 0..<3 {
+                let spiral = Self.spiral(material:energy)
+                spiral.eulerAngles.z = Float(i)*2 * .pi/3; opening.addChildNode(spiral); spirals.append(spiral)
+            }
+            if kind == .air {
+                let orbit = Self.ring(radius:0.56,thickness:0.004,material:white)
+                orbit.eulerAngles = SCNVector3(.pi/2+0.3,0.3,0); orbit.opacity = 0.6
+                opening.addChildNode(orbit)
+            }
+        }
+        // Prebuilt short arcs track the actual opening contour, including corners.
+        for i in 0..<24 {
+            let a = Float(i)*2 * .pi/24
+            let arc = SCNNode()
+            for j in 0..<3 {
+                let aa = a+Float(j)*0.06, bb = aa+0.06
+                let pa = PortalPlacement.contour(aa,kind:kind)*(j % 2 == 0 ? 0.493 : 0.516)
+                let pb = PortalPlacement.contour(bb,kind:kind)*(j % 2 == 0 ? 0.516 : 0.493)
+                Self.segment(from:V3(pa.x,pa.y,0.055),to:V3(pb.x,pb.y,0.055),material:white,in:arc)
+            }
+            let merged = arc.flattenedClone(); opening.addChildNode(merged); arcNodes.append(merged)
+        }
+        let moteGeometry = SCNSphere(radius:0.006); moteGeometry.segmentCount = 6; moteGeometry.firstMaterial = white
         for _ in 0..<12 {
             let mote = SCNNode(geometry:moteGeometry); sparks.addChildNode(mote); orbiters.append(mote)
         }
         if kind == .wall || kind == .window {
             for i in 0..<8 {
-                let a = Float(i)*2 * .pi/8
-                let start = V3(sin(a)*0.49,cos(a)*0.49,0.02)
-                let bend = V3(sin(a+0.12)*0.62,cos(a+0.12)*0.62,0.02)
-                let end = V3(sin(a-0.05)*0.79,cos(a-0.05)*0.79,0.02)
+                let a = Float(i)*2 * .pi/8, c = PortalPlacement.contour(a,kind:kind)
+                let start = V3(c.x*0.50,c.y*0.50,0.02)
+                let bend = V3(c.x*0.61+0.025,c.y*0.61,0.02)
+                let end = V3(c.x*0.72,c.y*0.72-0.025,0.02)
                 Self.segment(from:start,to:bend,material:energy,in:cracks)
                 Self.segment(from:bend,to:end,material:energy,in:cracks)
                 if kind == .window {
-                    let shard = AlienArt.box(V3(0.055,0.12,0.018),energy,at:bend,in:cracks)
-                    shard.eulerAngles = SCNVector3(0.4,a,0.5); shard.opacity = 0.7
+                    let shard = AlienArt.box(V3(0.026,0.07,0.018),white,at:bend,in:cracks)
+                    shard.eulerAngles = SCNVector3(0.4,a,0.5); shard.opacity = 0.65
                 }
             }
         }
         cracks.opacity = 0
-        let silhouette = AlienArt.material(UIColor(red:0.015,green:0.025,blue:0.05,alpha:1))
+        let silhouette = AlienArt.material(UIColor(red:0.04,green:0.065,blue:0.11,alpha:1))
         silhouette.lightingModel = .constant
-        let head = AlienArt.sphere(0.105,silhouette,at:V3(0,0.1,0),in:shadow)
-        head.scale = SCNVector3(1.2,0.85,0.35)
-        let body = AlienArt.sphere(0.10,silhouette,at:V3(0,-0.07,0),in:shadow)
-        body.scale = SCNVector3(0.9,1.3,0.4)
+        let head = AlienArt.sphere(0.10,silhouette,at:V3(0,0.12,0),in:shadow)
+        head.scale = SCNVector3(1.2,0.85,0.55)
+        let body = AlienArt.sphere(0.09,silhouette,at:V3(0,-0.035,0),in:shadow)
+        body.scale = SCNVector3(0.85,1.3,0.5)
         for side: Float in [-1,1] {
-            let eye = AlienArt.sphere(0.022,energy,at:V3(side*0.046,0.11,0.045),in:shadow)
-            eye.scale = SCNVector3(1,0.55,0.3)
+            let eye = AlienArt.sphere(0.022,white,at:V3(side*0.046,0.13,0.048),in:shadow)
+            eye.scale = SCNVector3(1,0.45,0.3); eye.eulerAngles.z = side*0.25
+            let arm = AlienArt.sphere(0.045,silhouette,at:V3(side*0.10,-0.04,0),in:shadow)
+            arm.scale = SCNVector3(0.6,2,0.65); arm.eulerAngles.z = side*0.3
+            let leg = AlienArt.sphere(0.045,silhouette,at:V3(side*0.045,-0.17,0),in:shadow)
+            leg.scale = SCNVector3(0.7,1.6,0.65)
         }
-        shadow.position.z = 0.015; shadow.opacity = 0
-        pulse.addChildNode(Self.ring(radius:0.5,thickness:0.01,material:energy)); pulse.opacity = 0
+        shadow.position.z = -0.10; shadow.opacity = 0
+        pulse.addChildNode(Self.contourRing(kind:kind,radius:0.49,width:0.006,z:0.055,material:white)); pulse.opacity = 0
         let light = SCNLight(); light.type = .omni; light.color = color
         light.intensity = 0; light.attenuationStartDistance = 0; light.attenuationEndDistance = 2
         light.castsShadow = false; lightNode.light = light; lightNode.position.z = 0.16
@@ -349,76 +385,149 @@ final class AlienPortalVisual {
         guard !invasionStarted else { return }
         invasionStarted = true; activation = 0.001; arrival()
     }
+    @discardableResult func preview() -> Bool {
+        guard previewTime == 0 else { return false }
+        previewTime = 1.4; arrival(); return true
+    }
+    func edited() { editTime = 0.25 }
+    func impact(at uv: SIMD2<Float>) {
+        hitTime = 0.65
+        interior.setValue(NSNumber(value:uv.x),forKey:"portalHitX")
+        interior.setValue(NSNumber(value:uv.y),forKey:"portalHitY")
+    }
     func chargeUp(_ cue: SpawnCue?) {
-        charge = cue.map { 0.15+$0.progress*0.85 } ?? 0
+        suppressed = (cue?.suppressionRemaining ?? 0) > 0
+        charge = suppressed ? 0 : cue.map { 0.15+$0.progress*0.85 } ?? 0
         event = cue?.event ?? .normal
     }
     func arrival() { arrivalTime = 0.55 }
     func animate(dt: Float, reducedEffects: Bool) {
         time += dt; arrivalTime = max(0,arrivalTime-dt)
+        previewTime = max(0,previewTime-dt); hitTime = max(0,hitTime-dt); editTime = max(0,editTime-dt)
         if activation > 0 { activation = min(1,activation+dt*1.5) }
-        let tint: UIColor = editing ? .cyan : event == .overload ? .systemRed : color
+        let previewCharge = sin(previewTime/1.4 * .pi)*0.9
+        let power = max(charge,previewCharge)
+        let tint: UIColor = suppressed ? .cyan : event == .overload ? .systemRed : color
         energy.diffuse.contents = tint; energy.emission.contents = tint; interior.diffuse.contents = tint
         interior.setValue(NSNumber(value:time),forKey:"portalTime")
-        interior.setValue(NSNumber(value:charge),forKey:"portalCharge")
+        interior.setValue(NSNumber(value:power),forKey:"portalCharge")
+        interior.setValue(NSNumber(value:hitTime),forKey:"portalHit")
         for (i,ring) in ringNodes.enumerated() {
-            ring.eulerAngles.z = time*(i % 2 == 0 ? 0.34 : -0.45)
-            ring.eulerAngles.x = kind == .air ? sin(time*0.6+Float(i))*0.22 : 0
-            ring.eulerAngles.y = kind == .air ? cos(time*0.5+Float(i))*0.2 : 0
-            let swell: Float = 1+charge*0.08+(event == .heavy ? charge*0.16 : 0)
+            ring.eulerAngles.z = rectangular ? 0 : time*(i % 2 == 0 ? 0.16 : -0.21)
+            let swell: Float = 1+sin(time*1.8-Float(i)*0.7)*0.018+power*0.025
             ring.scale = SCNVector3(swell,swell,1)
+            ring.isHidden = reducedEffects && i % 2 == 1
+        }
+        for (i,spiral) in spirals.enumerated() {
+            spiral.eulerAngles.z = Float(i)*2 * .pi/3-time*0.4
+            spiral.opacity = CGFloat(0.16+power*0.18); spiral.isHidden = reducedEffects && i > 0
         }
         for (i,arc) in arcNodes.enumerated() {
-            arc.eulerAngles.z = Float(i)*2 * .pi/3-time*(1.1+charge)
-            arc.opacity = CGFloat(0.45+0.45*abs(sin(time*4+Float(i)*2)))
-            arc.isHidden = reducedEffects && i > 0
+            let phase = Float(i)/24 * 2 * .pi+time*(1.7+power)
+            let flash = pow(max(0,sin(phase*3)),12)
+            arc.opacity = CGFloat(flash*(0.45+power*0.5))
+            arc.isHidden = reducedEffects && i % 3 != 0
         }
         for (i,mote) in orbiters.enumerated() {
-            let a = Float(i)*2 * .pi/12+time*0.45
-            let radius: Float = 0.54+sin(time*1.2+Float(i))*0.04
-            mote.position = SCNVector3(sin(a)*radius,cos(a)*radius,sin(time+Float(i))*0.10)
-            mote.opacity = CGFloat(0.4+0.5*abs(sin(time+Float(i))))
+            let a = Float(i)*2 * .pi/12+time*0.35
+            let point = PortalPlacement.contour(a,kind:kind)*(0.52+sin(time+Float(i))*0.025)
+            mote.position = SCNVector3(point.x,point.y,sin(time+Float(i))*0.09)
+            mote.opacity = CGFloat(0.3+0.6*abs(sin(time+Float(i))))
             mote.isHidden = reducedEffects && i % 2 == 0
         }
-        cracks.opacity = CGFloat(activation*(0.55+charge*0.45))
-        let shadowScale: Float = 0.5+charge*0.6
-        shadow.scale = SCNVector3(shadowScale,shadowScale,1); shadow.opacity = CGFloat(charge*0.9)
-        pulse.opacity = CGFloat(arrivalTime/0.55)
-        let burst: Float = 1+(1-arrivalTime/0.55)*0.35
+        for handle in handles {
+            let size: Float = 1+editTime*0.7
+            handle.scale = SCNVector3(size,size,size)
+        }
+        cracks.opacity = CGFloat((invasionStarted ? activation : 0.3)*(0.35+power*0.45))
+        let shadowScale: Float = 0.5+power*0.65
+        shadow.scale = SCNVector3(shadowScale,shadowScale,1)
+        shadow.opacity = CGFloat(power*0.9); shadow.position.z = -0.28+power*0.23
+        shadow.eulerAngles.z = sin(time*1.4)*0.045
+        let heavyPulse: Float = event == .heavy ? power*0.55 : 0
+        pulse.opacity = CGFloat(max(arrivalTime/0.55,heavyPulse))
+        let burst: Float = arrivalTime > 0 ? 1+(1-arrivalTime/0.55)*0.20 : 1+heavyPulse*0.28
         pulse.scale = SCNVector3(burst,burst,1)
         lightNode.light?.color = tint
-        lightNode.light?.intensity = reducedEffects ? 0 : CGFloat(charge*90+arrivalTime*120)
+        lightNode.light?.intensity = reducedEffects ? 0 : CGFloat(power*75+arrivalTime*90)
     }
 
     private static func segment(from start: V3,to end: V3,material: SCNMaterial,in parent: SCNNode) {
         let delta = end-start
-        let bar = AlienArt.box(V3(0.007,length(delta),0.009),material,at:(start+end)/2,in:parent)
+        let bar = AlienArt.box(V3(0.003,length(delta),0.005),material,at:(start+end)/2,in:parent)
         bar.eulerAngles.z = -atan2(delta.x,delta.y)
     }
     private static func ring(radius: CGFloat,thickness: CGFloat,material: SCNMaterial) -> SCNNode {
         let shape = SCNTorus(ringRadius:radius,pipeRadius:thickness)
-        shape.ringSegmentCount = 48; shape.pipeSegmentCount = 6; shape.firstMaterial = material
+        shape.ringSegmentCount = 64; shape.pipeSegmentCount = 6; shape.firstMaterial = material
         let node = SCNNode(geometry:shape); node.eulerAngles.x = .pi/2; return node
+    }
+    private static func mesh(_ vertices: [SCNVector3], _ indices: [Int32], material: SCNMaterial) -> SCNNode {
+        let geometry = SCNGeometry(sources:[SCNGeometrySource(vertices:vertices)],elements:[SCNGeometryElement(indices:indices,primitiveType:.triangles)])
+        geometry.firstMaterial = material; return SCNNode(geometry:geometry)
+    }
+    private static func contourRing(kind: PortalKind,radius: Float,width: Float,z: Float,material: SCNMaterial) -> SCNNode {
+        var vertices: [SCNVector3] = [], indices: [Int32] = []
+        for i in 0...96 {
+            let p = PortalPlacement.contour(Float(i)*2 * .pi/96,kind:kind)
+            vertices.append(SCNVector3(p.x*(radius-width/2),p.y*(radius-width/2),z))
+            vertices.append(SCNVector3(p.x*(radius+width/2),p.y*(radius+width/2),z))
+            if i < 96 { let k = Int32(i*2); indices += [k,k+1,k+2,k+1,k+3,k+2] }
+        }
+        material.isDoubleSided = true
+        return mesh(vertices,indices,material:material)
+    }
+    private static func tunnel(kind: PortalKind,material: SCNMaterial) -> SCNNode {
+        var vertices: [SCNVector3] = [SCNVector3(0,0,-0.66)], indices: [Int32] = []
+        for i in 0...96 {
+            let p = PortalPlacement.contour(Float(i)*2 * .pi/96,kind:kind)
+            vertices.append(SCNVector3(p.x*0.49,p.y*0.49,-0.005))
+            vertices.append(SCNVector3(p.x*0.23,p.y*0.23,-0.66))
+            if i < 96 { let k = Int32(i*2+1); indices += [k,k+1,k+2,k+1,k+3,k+2,0,k+1,k+3] }
+        }
+        return mesh(vertices,indices,material:material)
+    }
+    private static func spiral(material: SCNMaterial) -> SCNNode {
+        var vertices: [SCNVector3] = [], indices: [Int32] = []
+        for i in 0...64 {
+            let t = Float(i)/64, a = t*2 * .pi, r = 0.45-t*0.22
+            let width: Float = 0.002+sin(t * .pi)*0.006
+            vertices.append(SCNVector3(sin(a)*(r-width),cos(a)*(r-width),-0.04-t*0.56))
+            vertices.append(SCNVector3(sin(a)*(r+width),cos(a)*(r+width),-0.04-t*0.56))
+            if i < 64 { let k = Int32(i*2); indices += [k,k+1,k+2,k+1,k+3,k+2] }
+        }
+        return mesh(vertices,indices,material:material)
     }
     private static let vortexShader = """
     #pragma arguments
     float portalTime;
     float portalCharge;
     float portalSquare;
+    float portalHit;
+    float portalHitX;
+    float portalHitY;
     #pragma transparent
     #pragma body
-    float2 p = _surface.diffuseTexcoord * 2.0 - 1.0;
+    float2 uv = _surface.diffuseTexcoord;
+    float2 p = uv * 2.0 - 1.0;
     float r = length(p);
-    float edge = mix(r, max(abs(p.x), abs(p.y)), portalSquare);
-    float mask = 1.0 - smoothstep(0.90, 1.0, edge);
-    float angle = atan2(p.y, p.x);
-    float swirl = sin(angle * 5.0 + r * 18.0 - portalTime * 2.2);
-    float wisps = pow(max(0.0, swirl), 5.0);
-    float ripple = 0.5 + 0.5 * sin(r * 32.0 - portalTime * 3.0 + swirl);
-    float rim = pow(clamp(edge, 0.0, 1.0), 6.0);
+    float square = pow(pow(abs(p.x),6.0)+pow(abs(p.y),6.0),1.0/6.0);
+    float edge = mix(r,square,portalSquare);
+    float mask = 1.0-smoothstep(0.96,1.0,edge);
+    float angle = atan2(p.y,p.x);
+    float flow = angle*3.0+r*12.0-portalTime*1.3;
+    float filament = pow(0.5+0.5*sin(flow+sin(r*9.0-portalTime)*0.6),18.0);
+    float counter = pow(0.5+0.5*sin(angle*5.0-r*15.0+portalTime*0.8),28.0);
+    float rim = pow(clamp(edge,0.0,1.0),10.0);
+    float centerFade = smoothstep(0.18,0.78,r);
+    float shimmer = 0.5+0.5*sin(edge*65.0-portalTime*3.0);
+    float hitAge = 1.0-portalHit/0.65;
+    float hitDistance = length(uv-float2(portalHitX,portalHitY));
+    float impact = (1.0-smoothstep(0.012,0.05,abs(hitDistance-hitAge*0.8)))*portalHit/0.65;
+    float strength = ((filament*0.55+counter*0.2)*centerFade+rim*(0.5+shimmer*0.2))*(0.65+portalCharge*0.55);
     float3 tint = _output.color.rgb;
-    float3 deep = float3(0.008, 0.012, 0.032);
-    float strength = (0.12 + wisps * 0.50 + ripple * 0.12 + rim * 0.55) * (0.7 + portalCharge * 0.6);
-    _output.color = float4((deep + tint * strength) * mask, mask * 0.92);
+    float3 glow = tint*strength+float3(0.65,0.95,1.0)*(impact*0.95+pow(filament,2.0)*centerFade*0.10);
+    float alpha = (0.09+strength*0.60+impact*0.65)*mask;
+    _output.color = float4(glow*mask,clamp(alpha,0.0,0.88));
     """
 }

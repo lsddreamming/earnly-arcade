@@ -25,6 +25,24 @@ struct PortalPlacement {
         let offset=point-center
         return abs(dot(offset,right))<=width/2+margin && abs(dot(offset,up))<=height/2+margin
     }
+    /// Shared aperture contour for rendering and combat. Editing keeps its
+    /// forgiving rectangular handles; shots must actually enter the opening.
+    static func contour(_ angle: Float, kind: PortalKind) -> SIMD2<Float> {
+        let x = sin(angle), y = cos(angle)
+        guard kind == .door || kind == .window else { return SIMD2(x,y) }
+        return SIMD2(copysign(pow(abs(x),Float(1)/3),x),copysign(pow(abs(y),Float(1)/3),y))
+    }
+    func apertureCoordinates(_ point: V3) -> SIMD2<Float> {
+        let offset = point-center
+        return SIMD2(dot(offset,right)/width+0.5,0.5-dot(offset,up)/height)
+    }
+    func hitDistance(origin: V3, direction: V3, kind: PortalKind) -> Float? {
+        guard let point = intersection(origin:origin,direction:direction) else { return nil }
+        let uv = apertureCoordinates(point), p = (uv-SIMD2<Float>(repeating:0.5))*2
+        let edge = kind == .door || kind == .window ? pow(abs(p.x),6)+pow(abs(p.y),6) : p.x*p.x+p.y*p.y
+        guard edge <= 1 else { return nil }
+        return length(point-origin)
+    }
     func moved(grab: V3, origin: V3, direction: V3) -> PortalPlacement? {
         guard !locked, let point=intersection(origin:origin,direction:direction) else{return nil}
         var result=self; result.center += point-grab; return result
