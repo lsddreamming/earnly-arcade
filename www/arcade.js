@@ -3771,6 +3771,7 @@ const Arcade = (() => {
     if (!document.body || document.getElementById('earnlyCompactLeaderboard')) return;
     const game = currentCompactLeaderboardGame();
     if (!game) return;
+    const isBounceRun = game === 'bounceRun';
 
     const container = document.querySelector('.container');
     if (!container) return;
@@ -3784,7 +3785,7 @@ const Arcade = (() => {
     const card = document.createElement('section');
     card.id = 'earnlyCompactLeaderboard';
     card.className = 'compact-leaderboard-card';
-    card.setAttribute('aria-label', 'Top three global players');
+    card.setAttribute('aria-label', isBounceRun ? 'Bounce Run global top ten high scores' : 'Top three global players');
 
     const top = document.createElement('div');
     top.className = 'compact-leaderboard-head';
@@ -3792,9 +3793,9 @@ const Arcade = (() => {
     const titleWrap = document.createElement('div');
     const eyebrow = document.createElement('span');
     eyebrow.className = 'compact-leaderboard-eyebrow';
-    eyebrow.textContent = 'GLOBAL CHALLENGE';
+    eyebrow.textContent = isBounceRun ? 'DISTANCE CHALLENGE' : 'GLOBAL CHALLENGE';
     const title = document.createElement('strong');
-    title.textContent = '🏆 Top 3 to Beat';
+    title.textContent = isBounceRun ? '🏆 Scores to Beat · Top 10' : '🏆 Top 3 to Beat';
     titleWrap.append(eyebrow, title);
 
     const fullLink = document.createElement('a');
@@ -3805,6 +3806,10 @@ const Arcade = (() => {
 
     const list = document.createElement('div');
     list.className = 'compact-leaderboard-list';
+    if (isBounceRun) {
+      list.tabIndex = 0;
+      list.setAttribute('aria-label', 'Scroll to see the top ten Bounce Run distances');
+    }
     list.innerHTML = '<div class="compact-leaderboard-loading">Loading world scores…</div>';
     const ticker = document.createElement('div');
     ticker.className = 'compact-leaderboard-ticker';
@@ -3826,12 +3831,15 @@ const Arcade = (() => {
 
     const target = document.createElement('div');
     target.className = 'compact-leaderboard-target';
-    target.textContent = 'Set a personal best and chase the podium.';
+    target.textContent = isBounceRun ? 'Your personal best and next distance to beat will appear here.' : 'Set a personal best and chase the podium.';
 
     card.append(top, list, target, ticker);
     // Keep all three leaders visible before and during play. The active layout
     // shrinks the rows without covering the board or controls.
-    if (header) header.insertAdjacentElement('afterend', card);
+    // Bounce Run creates its jump and Pause/Quit controls after #surface.
+    // Mount here first: those controls insert ahead of the rankings when play begins.
+    if (isBounceRun && document.getElementById('surface')) document.getElementById('surface').insertAdjacentElement('afterend', card);
+    else if (header) header.insertAdjacentElement('afterend', card);
     else if (playfield) playfield.insertAdjacentElement('beforebegin', card);
     else if (backLink) host.insertBefore(card, backLink);
     else host.append(card);
@@ -3861,8 +3869,8 @@ const Arcade = (() => {
 
       try {
         const localBest = best(game).value;
-        const data = await window.EarnlyCloud.leaderboard(game, 3);
-        const entries = (data?.entries || []).slice(0, 3);
+        const data = await window.EarnlyCloud.leaderboard(game, isBounceRun ? 10 : 3);
+        const entries = (data?.entries || []).slice(0, isBounceRun ? 10 : 3);
         updateTicker(entries.length ? entries.map((entry, index) =>
           '#' + (index + 1) + ' @' + (entry.username || 'player') + ' ' + compactLeaderboardScore(entry, data)
         ).join('     ✦     ') : 'Be the first player on the world board');
@@ -3880,7 +3888,7 @@ const Arcade = (() => {
           empty.textContent = 'No world score yet — your run could be #1.';
           list.append(empty);
           target.textContent = localBest > 0
-            ? 'Your best: ' + localBest.toLocaleString()
+            ? 'Your best: ' + localBest.toLocaleString() + (isBounceRun ? ' distance · Be the first on this board!' : '')
             : 'Play now and claim the first spot.';
           return true;
         }
@@ -3891,7 +3899,7 @@ const Arcade = (() => {
 
           const rank = document.createElement('span');
           rank.className = 'compact-leaderboard-rank';
-          rank.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+          rank.textContent = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '#' + (index + 1);
 
           const avatar = document.createElement('span');
           avatar.className = 'compact-leaderboard-avatar';
@@ -3912,7 +3920,22 @@ const Arcade = (() => {
         const thirdScore = entries.length >= 3 ? Number(entries[2].score || 0) : 0;
         const gap = compactLeaderboardGap(localBest, thirdScore, data?.label);
         const mine = localBest > 0 ? 'Your best: ' + localBest.toLocaleString() : 'No personal best yet';
-        target.textContent = gap ? mine + ' · ' + gap : mine + ' · Beat a score above to climb the board';
+        if (isBounceRun) {
+          // Choose the lowest displayed score the player has not yet beaten,
+          // instead of demanding that a new runner immediately beat #1.
+          const nextIndex = entries.findIndex(entry => Number(entry.score || 0) <= localBest);
+          const chaseIndex = nextIndex < 0 ? entries.length - 1 : nextIndex - 1;
+          if (chaseIndex >= 0) {
+            const next = entries[chaseIndex];
+            const scoreToBeat = Math.max(0, Math.floor(Number(next.score) || 0)) + 1;
+            const remaining = Math.max(0, scoreToBeat - localBest);
+            target.textContent = '🎯 ' + mine + ' distance · Beat #' + (chaseIndex + 1) + ': ' + scoreToBeat.toLocaleString() + ' (' + remaining.toLocaleString() + ' to go)';
+          } else {
+            target.textContent = '🏆 ' + mine + ' distance · Your best tops these scores. Keep defending it!';
+          }
+        } else {
+          target.textContent = gap ? mine + ' · ' + gap : mine + ' · Beat a score above to climb the board';
+        }
         return true;
       } catch {
         updateTicker('World scores unavailable right now');
@@ -3980,7 +4003,9 @@ const Arcade = (() => {
       // Traffic Escape has useful controls/help below its board. Keeping the
       // whole body position:fixed while running clips that lower content on
       // iPhone, so let this tap-only game keep normal vertical scrolling.
-      const allowGameScroll = document.body?.classList.contains('mini-traffic');
+      // Bounce Run has a touch-scrollable leaderboard beneath its controls.
+      const allowGameScroll = document.body?.classList.contains('mini-traffic') ||
+        document.body?.classList.contains('mini-bounceRun');
       setGameplayScrollLock((running || paused) && !allowGameScroll);
     };
 

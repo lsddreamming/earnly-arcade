@@ -94,7 +94,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('28 catalog games retain historical reward records for the unlisted racer', () => {
+test('29 catalog games retain historical reward records for the unlisted racer', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
@@ -104,8 +104,8 @@ test('28 catalog games retain historical reward records for the unlisted racer',
   const miniConfigs = objectKeysNear(mini, 'const configs');
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
-  expect(new Set(catalog).size).toBe(28);
-  expect([...catalog].sort()).toEqual([...expectedGameKeys.filter(game => game !== 'turboKart'), 'crystalCommand', 'bubblePop', 'neonSlice', 'harborGetaway', 'spuddyTurf', 'spuddyEvolution'].sort());
+  expect(new Set(catalog).size).toBe(29);
+  expect([...catalog].sort()).toEqual([...expectedGameKeys.filter(game => game !== 'turboKart'), 'crystalCommand', 'bubblePop', 'neonSlice', 'harborGetaway', 'spuddyTurf', 'spuddyEvolution', 'bigFishEnergy'].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys, 'dodger'].sort());
   expect([...miniConfigs].sort()).toEqual([
@@ -264,7 +264,8 @@ test('result screen shows level progress and a single-play rewarded replay', () 
   expect(arcade).toContain("levelProgress.className = 'result-level-progress'");
   expect(arcade).toContain("'📺 Watch Ad · +1 Play & Replay'");
   expect(arcade).toContain('const PLAY_AD_BONUS = 1;');
-  expect(games).toContain('📺 Watch Ad · +1 Play');
+  expect(games).toContain("play.textContent = 'Play'");
+  expect(games).toContain("else if (adStatus.remaining > 0) Arcade.out(info.key, render)");
   expect(games).not.toContain('+3 Plays');
   expect(rewards).toContain('voluntary +1-play unlocks');
 });
@@ -408,4 +409,91 @@ test('root and native mirror share ordinary web assets', () => {
     if (nativeOnly.has(file) || !fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
     expect(fs.readFileSync(path.join('www', file)).equals(fs.readFileSync(file)), file + ' differs from its root source').toBe(true);
   }
+});
+test('Home rotation includes the complete published catalog and preserves every destination', () => {
+  const vm = require('node:vm');
+  const {catalog} = require('../home-featured.js');
+  const games = vm.runInNewContext('(' + read('games.html').match(/const gameInfo = (\[[\s\S]*?\n    \]);/)[1] + ')');
+  expect(catalog.map(g => [g.key,g.name,g.href]).sort()).toEqual(Array.from(games, g => [g.key,g.name,g.href]).sort());
+  expect(new Set(catalog.map(g => g.key)).size).toBe(catalog.length);
+  for (const game of catalog) expect(fs.existsSync(path.join(ROOT,game.href.split('?')[0]))).toBe(true);
+  expect(read('home-featured.js')).toBe(read('www/home-featured.js'));
+});
+
+test('Home shuffle queue covers all games before repeating across persisted visits', () => {
+  const {catalog,nextPair} = require('../home-featured.js');
+  for (const random of [()=>0,()=>0.999999,Math.random]) {
+    let saved = null, previous = [];
+    const seen = [];
+    for (let visit = 0; visit < catalog.length * 20 / 2; visit++) {
+      const {selected,state} = nextPair(catalog, saved, random);
+      expect(selected).toHaveLength(2);
+      expect(new Set(selected).size).toBe(2);
+      expect(selected.some(id => previous.includes(id))).toBe(false);
+      seen.push(...selected); previous = selected;
+      saved = JSON.parse(JSON.stringify(state));
+    }
+    for(let offset=0;offset<seen.length;offset+=catalog.length)
+      expect(new Set(seen.slice(offset,offset+catalog.length)).size).toBe(catalog.length);
+    expect(saved.remaining).toEqual([]);
+  }
+});
+
+test('Home shuffle repairs stale queues and handles catalog additions and odd counts', () => {
+  const {catalog,nextPair} = require('../home-featured.js');
+  for (const saved of [null,{},[],{remaining:['retired']},{signature:catalog.map(g=>g.key).sort().join('|'),remaining:['snake','snake']}]) {
+    expect(new Set(nextPair(catalog,saved).selected).size).toBe(2);
+  }
+  const odd = catalog.slice(0,5); let saved = null; const seen=[];
+  for(let i=0;i<3;i++){const result=nextPair(odd,saved,()=>0);expect(new Set(result.selected).size).toBe(2);seen.push(...result.selected);saved=result.state;}
+  expect(new Set(seen.slice(0,5)).size).toBe(5);
+  const result=nextPair(catalog,saved,()=>0);
+  expect(new Set([...result.selected,...result.state.remaining]).size).toBe(catalog.length);
+});
+
+
+test('Games starter refresh cycles every published title before repeating', () => {
+  const vm=require('node:vm');
+  const {nextBatch}=require('../games-starter-rotation.js');
+  const gameInfo=vm.runInNewContext('(' + read('games.html').match(/const gameInfo = (\[[\s\S]*?\n    \]);/)[1] + ')');
+  expect(gameInfo).toHaveLength(29);
+  expect(read('games-starter-rotation.js')).toBe(read('www/games-starter-rotation.js'));
+  for(const random of [()=>0,()=>0.999999,Math.random]){
+    let saved=null,previous=[];
+    const seen=[];
+    for(let visit=0;visit<gameInfo.length*12/4;visit++){
+      const {selected,state}=nextBatch(gameInfo,saved,random);
+      expect(selected).toHaveLength(4);
+      expect(new Set(selected).size).toBe(4);
+      expect(selected.some(id=>previous.includes(id))).toBe(false);
+      seen.push(...selected);previous=selected;saved=JSON.parse(JSON.stringify(state));
+    }
+    for(let offset=0;offset<seen.length;offset+=gameInfo.length)
+      expect(new Set(seen.slice(offset,offset+gameInfo.length)).size).toBe(gameInfo.length);
+    expect(saved.remaining).toEqual([]);
+  }
+});
+
+test('Games starter refresh validates corrupt or stale storage and odd catalogs',()=>{
+  const {nextBatch}=require('../games-starter-rotation.js');
+  const items=['neonSlice','snake','bubblePop','spuddyEvolution','bounceRun'];
+  const signature=items.slice().sort().join('|');
+  for(const saved of [null,{},[],{signature,remaining:['snake','snake']},
+    {signature,remaining:['unknown']},{signature:'retired',remaining:['snake']}]){
+    const result=nextBatch(items,saved,()=>0);
+    expect(result.selected).toHaveLength(4);
+    expect(new Set(result.selected).size).toBe(4);
+    expect(result.selected.every(id=>items.includes(id))).toBe(true);
+  }
+  let saved=null; const seen=[];
+  for(let i=0;i<2;i++){
+    const result=nextBatch(items,saved,()=>0);
+    seen.push(...result.selected);saved=result.state;
+  }
+  expect(new Set(seen.slice(0,5)).size).toBe(5);
+  const updated=nextBatch([...items,'trafficEscape'],saved,()=>0);
+  expect(updated.selected).toHaveLength(4);
+  const next=nextBatch([...items,'trafficEscape'],updated.state,()=>0);
+  expect([...new Set([...updated.selected,...next.selected])]).toContain('trafficEscape');
+  expect(nextBatch([],null).selected).toEqual([]);
 });

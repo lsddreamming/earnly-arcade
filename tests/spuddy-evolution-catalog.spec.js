@@ -3,14 +3,15 @@ const { test, expect } = require('@playwright/test');
 for (const prefix of ['/', '/www/']) {
   test(prefix + 'Evolution beta is discoverable, free, favoritable and directly linked', async ({ page, baseURL }) => {
     await page.goto(new URL(prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
+    await page.locator('[data-filter=all]').click();
     const cards = page.locator('#games [data-game="spuddyEvolution"]');
     await expect(cards).toHaveCount(1);
     const card = cards.first();
     await expect(card).toBeVisible();
-    await expect(page.locator('#games .catalog-tile').last()).toHaveAttribute('data-game', 'spuddyEvolution');
+    await expect(page.locator('#games .catalog-tile').nth(-2)).toHaveAttribute('data-game', 'spuddyEvolution');
     await expect(card.locator('.reward-rule')).toContainText('device-only saves');
     await expect(card.locator('.reward-rule')).toContainText('no Arcade Coin rewards');
-    await expect(card.locator('.game-play-button')).toHaveText('Play · Free beta');
+    await expect(card.locator('.game-play-button')).toHaveText('Play');
     await expect(card.locator('.game-play-button')).toHaveAttribute('href', 'spuddy-evolution.html');
     await expect(card.locator('.status-line')).toHaveCount(0);
 

@@ -143,3 +143,16 @@ body.home-dashboard.has-app-nav .home-container{padding-bottom:calc(100px + env(
 #homeFeaturedGames .home-game-copy small{font-size:12px;min-height:34px}
 #homeFeaturedGames .home-game-copy strong{font-size:17px}
 @media(max-width:350px){#homeFeaturedGames .home-game-copy strong{font-size:15px}}
+
+/* Browse another pair without moving tiles under a player's finger. */
+.home-picks-controls{display:flex;justify-content:flex-end;margin-top:10px}
+#homeMorePicks{min-height:44px;padding:9px 15px;border:1px solid #45647c;background:#132d43;color:#bcefff;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer}
+#homeMorePicks[hidden]{display:none}
+#homeMorePicks:focus-visible{outline:3px solid #8ee5ff;outline-offset:3px}
+.home-picks-status{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#homeFeaturedGames .home-game-art img{display:block;width:100%;height:100%;object-fit:cover}
+#homeFeaturedGames [data-game=spuddyEvolution] .home-game-art img{object-fit:contain;background:#b2d7b8;padding:8px;box-sizing:border-box}
+#homeFeaturedGames .home-game-card{display:flex;flex-direction:column}
+#homeFeaturedGames .home-game-copy{display:flex;flex-direction:column;flex:1}
+#homeFeaturedGames .home-game-copy b{margin-top:auto;padding-top:12px}
+#homeFeaturedGames .home-game-copy small{margin-bottom:10px}
