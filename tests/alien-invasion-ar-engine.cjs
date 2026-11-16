@@ -1,0 +1,10 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');
+const {Game}=require('../alien-invasion-ar-engine.js');
+test('camera demo requires a portal and caps manual entrances',()=>{const g=new Game();assert.equal(g.start(),false);for(let i=0;i<8;i++)g.addPortal(i/8,.4);assert.equal(g.portals.length,4);assert.equal(g.start(),true);});
+test('both weapons, reload, hit detection and all three waves are playable',()=>{const g=new Game();g.addPortal(.5,.35);g.addPortal(.75,.4);g.start();let plasma=0,zapper=0;
+for(let tick=0;tick<20000&&g.state==='playing';tick++){g.update(1/60);if(g.enemies.length){const b=g.bounds(g.enemies[0],390,844);if(!g.ammo[g.weapon])g.beginReload();if(g.wave>1&&g.weapon===0&&!g.reload)g.changeWeapon();const shot=g.shoot(b.x,b.y,390,844);if(shot.fired){if(g.weapon)zapper++;else plasma++;}}}
+assert.equal(g.state,'won');assert.equal(g.kills,27);assert.ok(g.score>2700);assert.ok(plasma>0&&zapper>0);
+});
+test('pause freezes enemies, reload and damage; restart clears run',()=>{const g=new Game();g.addPortal(.5,.3);g.start();g.update(1);const before=structuredClone(g.enemies);g.state='paused';g.update(60);assert.deepEqual(g.enemies,before);g.reset();assert.equal(g.health,100);assert.equal(g.score,0);assert.equal(g.enemies.length,0);assert.equal(g.portals.length,1);});
+test('ignored enemies deal damage and cause game over',()=>{const g=new Game();g.addPortal(.5,.3);g.start();for(let i=0;i<10000&&g.state==='playing';i++)g.update(1/60);assert.equal(g.state,'lost');assert.equal(g.health,0);});
+test('nearest overlapping enemy takes damage, shots and energy are bounded',()=>{const g=new Game();g.addPortal(.5,.3);g.start();g.update(1);const far=g.enemies[0];g.enemies.push({...far,id:99,depth:.7});const near=g.enemies[1], b=g.bounds(near,390,844);g.shoot(b.x,b.y,390,844);assert.equal(near.hp,1);assert.equal(far.hp,2);assert.equal(g.ammo[0],23);assert.equal(g.shoot(b.x,b.y,390,844).fired,false);g.ammo[0]=0;g.cooldown=0;assert.equal(g.shoot(b.x,b.y,390,844).fired,false);});

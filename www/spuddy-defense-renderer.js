@@ -5,6 +5,7 @@
  function path(c,pts,width,color){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.strokeStyle=color;c.stroke();}
  function mapArt(c,m){c.fillStyle=m.colors[0];c.fillRect(0,0,960,600);
   for(let i=0;i<170;i++){const n=E.hash(m.id+i),x=n%960,y=(n>>>10)%600;c.globalAlpha=.13;circle(c,x,y,2+(n%3),m.colors[1]);if(i%3===0)path(c,[[x-4,y],[x,y-5],[x+3,y]],1.5,m.colors[1]);}c.globalAlpha=1;
+  const light=c.createLinearGradient(0,0,650,600);light.addColorStop(0,'#ffffff16');light.addColorStop(1,'#062a4320');c.fillStyle=light;c.fillRect(0,0,960,600);
   path(c,m.path,76,m.colors[1]);path(c,m.path,64,m.colors[3]);path(c,m.path,54,m.colors[2]);
   const g=E.geometry(m);for(let d=35;d<g.length;d+=38){const p=E.point(g,d);c.globalAlpha=.16;circle(c,p.x+3,p.y+2,1.5,m.colors[3]);}c.globalAlpha=1;
   for(const [x,y,r] of m.props){c.save();c.translate(x,y);circle(c,7,10,r+6,'#122f3828');
@@ -48,20 +49,30 @@
   c.restore();
  }
  // Cache original vector bodies once per species; keep status and motion live.
- function enemy(c,e,time,turn=0){
+ function enemy(c,e,time,turn=0,reduced=false){
   const d=enemyDefs[e.type],r=d.boss?33:d.id==='nest'||d.id==='chrome'?18:13+Math.min(5,d.hp/60);
   let sprite=enemySprites.get(e.type);
   if(!sprite){const size=d.boss?128:80,canvas=document.createElement('canvas');canvas.width=canvas.height=size*2;const context=canvas.getContext('2d');context.scale(2,2);drawEnemy(context,{...e,x:size/2,y:size/2,id:0,hp:1,maxHp:1,shield:0,slow:1},0);sprite={canvas,size};enemySprites.set(e.type,sprite);}
-  const bob=Math.sin(time*5+e.id)*2;c.save();c.translate(e.x,e.y);c.rotate(-turn);circle(c,1,r*.65+5,r*.8,'#17304425');c.save();c.translate(0,bob);const beat=Math.sin(time*(d.id==='zip'||d.id==='dash'?12:4)+e.id);c.rotate(beat*(d.boss?.025:d.id==='ghost'||d.id==='phantom'?.09:.045));c.scale(1+beat*.025,1-beat*.025);c.drawImage(sprite.canvas,-sprite.size/2,-sprite.size/2,sprite.size,sprite.size);c.restore();c.translate(0,bob);if(d.stealth)c.globalAlpha=.56;c.lineWidth=2;
-  if(e.shield>0)circle(c,0,0,r+5,null,'#c2f6ff');if(e.slow<1)circle(c,0,0,r+2,null,'#79eaff');
+  const floating=['ghost','phantom','bubble'].includes(d.id),armored=['tin','chrome'].includes(d.id);
+  const gait=reduced?0:Math.sin(time*(d.speed>90?13:armored?5:8)+e.id),beat=reduced?0:Math.sin(time*4+e.id);
+  const bob=floating?beat*3:Math.abs(gait)*(d.boss?1.5:2.5),hit=Math.max(0,Math.min(1,1-(time/E.DT-e.hitTick)/5))||0;
+  c.save();c.translate(e.x,e.y);c.rotate(-turn);circle(c,1,r*.65+5,r*.8,'#17304425');
+  if(!floating){for(const side of [-1,1]){const stride=gait*side*(armored?1:3);round(c,side*r*.52-5,r*.65+stride,armored?12:10,armored?7:6,3,armored?'#32445b':'#36595b');}}
+  c.save();c.translate(0,-bob);if(d.stealth)c.globalAlpha=.75;
+  c.rotate(gait*(d.boss?.018:armored?.015:floating?.07:.04));c.scale(1+beat*.02+hit*.08,1-beat*.02-hit*.08);
+  c.drawImage(sprite.canvas,-sprite.size/2,-sprite.size/2,sprite.size,sprite.size);
+  if(hit>0){c.globalAlpha=hit*.25;circle(c,0,0,r,'#fff');}c.restore();c.translate(0,-bob);c.lineWidth=2;
+  if(d.regen&&e.hp<e.maxHp&&!reduced){c.globalAlpha=.5+.3*beat;path(c,[[r+7,-7],[r+7,1]],2,'#c3ffb1');path(c,[[r+3,-3],[r+11,-3]],2,'#c3ffb1');c.globalAlpha=1;}
+
+  if(e.shield>0){circle(c,0,0,r+5,null,'#c2f6ff');c.beginPath();const angle=reduced?0:time*1.4+e.id;c.arc(0,0,r+6,angle,angle+1.1);c.strokeStyle='#fff';c.lineWidth=3;c.stroke();c.lineWidth=2;}if(e.slow<1)circle(c,0,0,r+2,null,'#79eaff');
   if(e.hp<e.maxHp){round(c,-r,-r-8,r*2,4,2,'#21354b');round(c,-r,-r-8,Math.max(0,e.hp/e.maxHp)*r*2,4,2,d.boss?'#ffc95b':'#a4f9b4');}c.restore();
  }
- function create(canvas){const c=canvas.getContext('2d',{alpha:false});let mapCanvas=null,mapId='',transform={scale:1,x:0,y:0},camera={zoom:1,x:480,y:300};
+ function create(canvas){const c=canvas.getContext('2d',{alpha:false}),motion=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');let mapCanvas=null,mapId='',transform={scale:1,x:0,y:0},camera={zoom:1,x:480,y:300};
   function resize(){const b=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);if(canvas.width!==Math.round(b.width*d)||canvas.height!==Math.round(b.height*d)){canvas.width=Math.round(b.width*d);canvas.height=Math.round(b.height*d);}return {w:b.width,h:b.height,d};}
   function render(game,view={}){const {w,h,d}=resize(),m=game.map,s=game.state;if(m.id!==mapId){mapId=m.id;mapCanvas=document.createElement('canvas');mapCanvas.width=960;mapCanvas.height=600;mapArt(mapCanvas.getContext('2d'),m);}
    c.setTransform(d,0,0,d,0,0);c.fillStyle=m.colors[1];c.fillRect(0,0,w,h);const turn=h>w*1.05?Math.PI/2:0,scale=Math.min(w/(turn?600:960),h/(turn?960:600))*camera.zoom;transform={scale,x:w/2,y:h/2,turn};c.translate(w/2,h/2);c.rotate(turn);c.scale(scale,scale);c.translate(-camera.x,-camera.y);c.drawImage(mapCanvas,0,0);
    if(view.selected||view.placement){const t=view.selected||{type:view.placement.type,a:0,b:0,x:view.placement.x,y:view.placement.y},st=E.stats(t);c.globalAlpha=.16;circle(c,t.x,t.y,st.range,view.placement&&!game.canPlace(t.x,t.y)?'#ff405b':'#ecffff');c.globalAlpha=1;c.lineWidth=2;circle(c,t.x,t.y,st.range,null,view.placement&&!game.canPlace(t.x,t.y)?'#ff6d7f':'#ffffff99');if(st.minRange){c.setLineDash([5,5]);circle(c,t.x,t.y,st.minRange,null,'#ffce81');c.setLineDash([]);}}
-   const time=performance.now()/1000;s.towers.forEach(t=>tower(c,t,false,turn));s.enemies.forEach(e=>enemy(c,e,time,turn));
+   const time=s.tick*E.DT;s.towers.forEach(t=>tower(c,t,false,turn));s.enemies.forEach(e=>enemy(c,e,time,turn,!!motion?.matches));
    for(const f of s.effects){c.save();c.globalAlpha=f.life/12;c.lineWidth=3;if(['pop','burst','clear','leak'].includes(f.kind)){c.beginPath();for(let i=0;i<7;i++){const a=i*6.283/7,r=(13-f.life)*f.r/12,x=f.x+Math.cos(a)*r,y=f.y+Math.sin(a)*r,size=Math.max(1,f.life/4);c.moveTo(x+size,y);c.arc(x,y,size,0,Math.PI*2);}c.fillStyle=f.color;c.fill();}
     else if(f.kind==='arc'){const mx=(f.x+f.tx)/2,my=(f.y+f.ty)/2;path(c,[[f.x,f.y],[mx-6,my+9],[mx+5,my-7],[f.tx,f.ty]],3,f.color);}
     else if(['blast','mortar','command','frost'].includes(f.kind)){circle(c,f.tx,f.ty,(13-f.life)*f.r/12,null,f.color);circle(c,f.tx,f.ty,Math.max(2,f.life*.7),f.color);}

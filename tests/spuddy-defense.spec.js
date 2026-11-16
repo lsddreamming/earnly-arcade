@@ -34,3 +34,20 @@ test('crowded rendering reuses bounded artwork caches without changing game stat
 });
 
 test('older iOS canvas without roundRect still renders and accepts touch placement',async({page})=>{await page.addInitScript(()=>{CanvasRenderingContext2D.prototype.roundRect=undefined;});const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,'/spuddy-defense-preview.html');await start(page);await place(page);await expect(page.locator('#money')).toHaveText('530');expect(errors).toEqual([]);});
+
+for(const action of ['Save & return to menu','Return to Games'])test('failed device save prevents '+action+' and retry preserves the match',async({page})=>{
+ await clock(page);await open(page,'/spuddy-defense-preview.html');await start(page);await place(page);await page.locator('#nextWave').click();await page.clock.runFor(1800);await page.locator('#pause').click();
+ const before=await page.evaluate(()=>__defense.snapshot());
+ await page.evaluate(()=>{window.originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new Error('QuotaExceededError');};});
+ await page.getByRole('button',{name:action,exact:true}).click();
+ await expect(page.locator('#dialogBody')).toContainText('Could not save your defense');await expect(page.locator('#game')).toBeVisible();await expect(page).toHaveURL(/spuddy-defense-preview\.html$/);
+ await page.clock.runFor(1000);expect(await page.evaluate(()=>__defense.snapshot())).toEqual(before);
+ await page.evaluate(()=>{Storage.prototype.setItem=window.originalSetItem;});
+ await page.getByRole('button',{name:'Save & return to menu',exact:true}).click();await expect(page.locator('#continue')).toBeVisible();await page.reload();await page.locator('#continue').click();expect(await page.evaluate(()=>__defense.snapshot())).toEqual(before);
+});
+test('paused enemy animation stays still and renderer respects reduced motion without changing combat',async({page})=>{
+ await clock(page);await open(page,'/spuddy-defense-preview.html');await start(page);await page.locator('#nextWave').click();await page.clock.runFor(1200);await page.locator('#pause').click();
+ const before=await page.locator('#field').evaluate(c=>c.toDataURL());const snapshot=await page.evaluate(()=>__defense.snapshot());await page.clock.runFor(1200);
+ expect(await page.locator('#field').evaluate(c=>c.toDataURL())).toBe(before);
+ await page.emulateMedia({reducedMotion:'reduce'});await page.clock.runFor(100);expect(await page.evaluate(()=>__defense.snapshot())).toEqual(snapshot);
+});

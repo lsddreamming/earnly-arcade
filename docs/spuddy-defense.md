@@ -46,3 +46,7 @@ The cover was generated with the built-in image tool for this project. Prompt: o
 - Conduct a real-iPhone human playtest to tune pacing, small-screen placement and late-game challenge.
 - Obtain owner approval, then apply the isolated migration and deploy the new function; verify a real signed-in cloud save and coin receipt.
 - Merge/publish only after the approved release checks pass. Multiplayer remains future work.
+
+## Integration polish
+
+Merged current main without replacing newer game guides. Species now have footsteps, floating and armor motion, readable hit squash and shield/regeneration feedback. Animation follows simulation time and respects reduced motion; rendering reuses species caches and does not alter replay state. Save & return and Return to Games stay in the paused match when local storage fails, with a retry message. Device storage recovery is covered end-to-end. Backend deployment and the new-game release remain pending.

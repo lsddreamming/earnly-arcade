@@ -2,36 +2,24 @@ const { test, expect } = require('@playwright/test');
 
 function rng(seed){let s=seed>>>0;return()=>{s=(1664525*s+1013904223)>>>0;return s/4294967296}}
 
-const SHAPES=[
- {name:'L',cells:[[0,0],[0,1],[0,2],[1,2]]},
- {name:'T',cells:[[0,0],[1,0],[2,0],[1,1]]},
- {name:'Square',cells:[[0,0],[1,0],[0,1],[1,1]]},
- {name:'Zigzag',cells:[[0,0],[1,0],[1,1],[2,1]]},
- {name:'Line',cells:[[0,0],[1,0],[2,0],[3,0]]},
- {name:'Corner',cells:[[0,0],[0,1],[1,1]]}
-];
-function rotate(cells,t){let a=cells.map(p=>[...p]);while(t--){a=a.map(([x,y])=>[3-y,x]);const minX=Math.min(...a.map(p=>p[0])),minY=Math.min(...a.map(p=>p[1]));a=a.map(([x,y])=>[x-minX,y-minY])}return a}
-function key(c){return c.map(p=>p.join(',')).sort().join('|')}
-
-test('Shape Fit: 50,000 rounds always contain exactly one base-shape answer',()=>{
- const random=rng(203); let problem=null;
- for(let round=1;round<=50000;round++){
-  const base=SHAPES[Math.floor(random()*SHAPES.length)], turns=round<4?0:Math.floor(random()*4);
-  const answer={base,cells:rotate(base.cells,turns)};
-  const count=round<=3?3:round<=7?4:round<=13?6:8;
-  const correctTurns=round<4?turns:(turns+1+Math.floor(random()*3))%4;
-  const opts=[{base,cells:rotate(base.cells,correctTurns)}],used=new Set([base.name+':'+key(opts?.[0]?.cells||rotate(base.cells,correctTurns))]);
-  let guard=0;
-  while(opts.length<count&&guard++<500){
-   const sh=SHAPES[Math.floor(random()*SHAPES.length)];
-   if(sh===base)continue;
-   const v={base:sh,cells:rotate(sh.cells,Math.floor(random()*4))},k=sh.name+':'+key(v.cells);
-   if(!used.has(k)){used.add(k);opts.push(v)}
-  }
-  const matching=opts.filter(o=>o.base===answer.base).length;
-  if(!problem && (opts.length!==count || matching!==1)){
-    problem={round,base:base.name,expectedChoices:count,actualChoices:opts.length,matching,guard};
-  }
+const shapeRules=require('../shape-fit-rules.js');
+function silhouette(cells){
+ const views=[];let points=cells.map(p=>p.slice());
+ for(let n=0;n<4;n++){
+  const x=Math.min(...points.map(p=>p[0])),y=Math.min(...points.map(p=>p[1]));
+  views.push(points.map(p=>[p[0]-x,p[1]-y].join(',')).sort().join(';'));
+  points=points.map(([a,b])=>[-b,a]);
+ }
+ return views.sort()[0];
+}
+test('Shape Fit: 50,000 production rounds always contain exactly one matching silhouette',()=>{
+ const random=rng(203);let problem=null;
+ for(let n=1;n<=50000;n++){
+  const round=shapeRules.round(n,random),target=silhouette(round.target.cells);
+  const count=n<=3?3:n<=7?4:n<=13?6:8;
+  const matches=round.choices.filter(s=>silhouette(s.cells)===target).length;
+  const unique=new Set(round.choices.map(s=>s.cells.map(p=>p.join(',')).sort().join(';'))).size;
+  if(!problem&&(round.choices.length!==count||matches!==1||unique!==count))problem={n,count,matches,unique};
  }
  expect(problem,'first invalid Shape Fit round').toBeNull();
 });

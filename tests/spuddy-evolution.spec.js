@@ -1,13 +1,14 @@
 const {test,expect}=require('@playwright/test');
-const {seedCollectionFixture}=require('./spuddy-evolution-fixtures.cjs');
+const {seedCollectionFixture,quietMenuRandom}=require('./spuddy-evolution-fixtures.cjs');
 const url='/spuddy-evolution.html';
 
 // Observe the real engine; do not stub movement, capture, banking or storage.
-async function observeGame(page,fixture=null){
+async function observeGame(page,fixture=null,random=null){
  await page.route('**/spuddy-evolution-engine.js*',async route=>{
   const response=await route.fetch();
   const setup=fixture?'('+fixture.toString()+')(g);':'';
-  await route.fulfill({response,body:(await response.text())+`\n;{const create=SpuddyEvolution.create;SpuddyEvolution.create=function(...args){const g=create(...args);${setup}window.evolutionTest=g;return g;};}`});
+  const createArgs=random?'args[0],('+random.toString()+')':'...args';
+  await route.fulfill({response,body:(await response.text())+`\n;{const create=SpuddyEvolution.create;SpuddyEvolution.create=function(...args){const g=create(${createArgs});${setup}window.evolutionTest=g;return g;};}`});
  });
 }
 
@@ -87,11 +88,13 @@ test('real WebGL renderer rotates, free perks apply once, and old saves migrate'
 test('unsupported graphics produces a clear non-playable explanation',async({page})=>{await page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){if(type.startsWith('webgl'))return null;return original.call(this,type,...args)}});await page.goto(url);await expect(page.locator('#start')).toBeDisabled();await expect(page.locator('#intro')).toContainText('could not start WebGL 3D');});
 
 test('journey advances completed saves and research survives reload',async({page})=>{
+ // Random auto-captures can otherwise alter the seeded balance before a slow WebKit click.
+ await observeGame(page,null,quietMenuRandom);
  await page.addInitScript(()=>{if(!localStorage.getItem('earnly.spuddyEvolution.v1'))localStorage.setItem('earnly.spuddyEvolution.v1',JSON.stringify({version:1,bank:100,bosses:[true,true,true,true,true],unlocked:4,journey:{chapter:1,shards:5}}));});
- await page.goto(url);await expect(page.locator('#start')).toBeEnabled({timeout:15000});await page.locator('#start').click();await page.locator('#upgrades').click();await page.locator('#journeyButton').click();
+ await page.goto(url);await expect(page.locator('#start')).toBeEnabled({timeout:15000});await page.locator('#start').click();await expect(page.locator('#intro')).not.toBeVisible();await page.locator('#upgrades').click();await expect(page.locator('#panel')).toBeVisible();await page.locator('#journeyButton').click();
  await page.getByRole('button',{name:'Research Ancient roots',exact:true}).click();await expect(page.locator('#shards')).toHaveText('✧ 3');await page.locator('#nextChapter').click();await expect(page.locator('#journeyPanel')).not.toBeVisible();
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.spuddyEvolution.v1')));expect(saved.journey.chapter).toBe(2);expect(saved.journey.research.power).toBe(1);expect(saved.bank).toBe(100);
- await page.reload();await page.locator('#start').click();await page.locator('#upgrades').click();await page.locator('#journeyButton').click();await expect(page.locator('#chapterTitle')).toHaveText('Expedition 2 / 100');await expect(page.locator('#nextChapter')).toBeDisabled();
+ await page.reload();await page.locator('#start').click();await expect(page.locator('#intro')).not.toBeVisible();await page.locator('#upgrades').click();await expect(page.locator('#panel')).toBeVisible();await page.locator('#journeyButton').click();await expect(page.locator('#chapterTitle')).toHaveText('Expedition 2 / 100');await expect(page.locator('#nextChapter')).toBeDisabled();
 });
 
 test('workshop categories keep upgrades reachable and preserve purchases on small phones',async({page},testInfo)=>{

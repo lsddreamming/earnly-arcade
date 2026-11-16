@@ -1,0 +1,93 @@
+# Alien Invasion AR — Earnly Arcade playtest
+
+The user-facing target is an **iPhone-only** small optional game inside the existing **Earnly Arcade** iOS app (`com.earnly.arcade`), distributed through its existing TestFlight record. Do not create a separate Apple app record. The standalone Xcode project below is only a developer harness.
+
+The native bridge rejects iPad, Mac, Mac Catalyst and simulator launches before camera access. iPhone Safari retains the explicitly labeled camera-overlay preview; its desktop/tablet entry is blocked. True room tracking remains native-only.
+
+The game has no ads, accounts, purchases, coins, network requests, camera recording, or uploads. Minimum iOS 17 and a physical ARKit-capable iPhone. RoomPlan is optional and gated by `RoomCaptureSession.isSupported`. Earnly's existing features are unchanged.
+
+## AR 2.0 candidate
+
+This branch upgrades the existing anchored native game. It is not uploaded until the exact-source PR/main, native compilation and published-site gates pass. The current available beta below remains unchanged until a new upload is verified.
+
+- Five entrance silhouettes: technological door rails, fractured window fragments, holographic wall cracks, overhead vortex and floating multi-ring wormhole. A recessed mesh tunnel and translucent shader membrane add animated swirling depth. Rings, arcs, fixed-count sparks, silhouette and a short local light pulse stay below the original placement transform.
+- Charging cues precede the exact entrance's spawn; ground enemies smoothly descend from the placed opening to the confirmed floor. Overload briefly speeds an enemy, Swarm compresses three existing wave spawns, Heavy Breach introduces the final wave's brute (or reinforced flyer for overhead portals). The existing 27-enemy / three-wave budget is retained, with at most eight live enemies.
+- START GAME stays in the bottom controls. Locking no longer opens a modal ready card. Setup offers restart, return to camera and the existing turn test. Pause cards scroll, and combat controls hide during pause/results.
+- Layered alien suits, chittering runner limbs, weapon batteries/reload motion, distinct locally generated audio cues, threat counts and wave/event banners. No new dependencies, permissions, ads or monetization.
+- Relocalization is explicitly requested after interruptions; combat also requires the original world anchor to remain present. Low-power/serious thermal state lowers rendering to 30 FPS and reduces sparks/light; critical temperature pauses combat. These are safeguards, not measured thermal/performance results.
+
+CI adds deterministic charge/emergence/event/cap/pause/restart tests and simulator-only screenshots of the actual portal renderer and controls. Screenshots and layout assertions do not verify camera access, spatial stability, real touch placement, device heat, sound direction or physical AR. The `--ar-visual-review` fixture is compiled only for the simulator and cannot run in a TestFlight device build.
+
+Physical acceptance for this candidate: place/resize/lock all five kinds; start from one and several portals; turn away/back during charging and emergence; hold FIRE through reloads; pause/background/relocalize; finish all waves; restart/exit; check sustained frame rate, temperature, occlusion limits and audio comfort on iPhone.
+
+## Current iPhone beta
+
+Earnly **1.13 (1101)** was verified as **Testing** in the existing Early Internal Testers group on November 13, 2026, after [the signed upload](https://github.com/lsddreamming/earnly-arcade/actions/runs/43526383555). Open TestFlight → Earnly Arcade → Update, then **Play Alien Invasion AR · Native test**. That beta is from `16d84f5f12d431a1c8c2de044cd40ba25e2056b6`; changes on later development branches are not in build 1101. Public App Store submission remains on hold.
+
+## Build inside Earnly Arcade
+
+Set `EARNLY_ALIEN_AR_PREVIEW=1` for both `npm run native:web` and `node scripts/configure-ios.mjs`, with the usual `npx cap add ios` / `npx cap sync ios` between them. This flag packages a launcher, registers the native game plugin alongside StoreKit, and includes its camera purpose string. Exit dismisses the game, stops its camera and display loop, and returns to Earnly. Ordinary builds omit the launcher and native plugin. Generate a fresh `ios/` for every release.
+
+The `earnly-integrated-game` CI job compiles the full Earnly app with this flag for the physical iPhone SDK, unsigned. It does not upload to Apple. Signed TestFlight delivery still requires the repository's exact-source release checks and existing signing workflow. An unsigned build is not installable; physical tracking is not verified by CI.
+
+After approval and green PR/main checks, run **Earnly 1.13 TestFlight upload** on that main commit with `confirm_apple_upload=true` and `alien_ar_preview=true`. The latter defaults to false. It also requires the AR workflow, including the full-app compile job, to pass on that same main commit. This uploads a beta of the existing Earnly app; it does not submit a public App Store release. Follow `docs/testflight-release.md` through Apple processing, compliance and the owner's existing internal group before reporting it available.
+
+## Run on your iPhone from a Mac
+
+1. Download this branch or the `Alien-Invasion-AR-Xcode` CI artifact.
+2. Run `python3 native/AlienInvasionAR/generate-project.py` from the repository root (the CI artifact already includes the generated project).
+3. Open `native/AlienInvasionAR/AlienInvasionAR.xcodeproj` in Xcode.
+4. Select **AlienInvasionAR → Signing & Capabilities → your Apple development team**. The separate bundle identifier is `com.earnlyarcade.alieninvasion.prototype`.
+5. Connect the iPhone, enable Developer Mode if requested, select it as the run destination, and press Run.
+6. Tap Play to grant camera access. Find a clear floor; aim at it and tap Mark floor. Choose **Air** to place a floating portal about 2m ahead, or choose Door/Window/Wall/Ceiling for a recognized surface. One portal is sufficient.
+7. Drag the portal body to move it on its fixed 3D plane. Drag any cyan corner to change width and height independently, or pinch to resize. Air entrances also offer Closer/Farther buttons. Tap **Lock portal**, then defend. To edit a locked portal, select Edit / add entrances, tap the portal and choose Edit portal. Portals cannot be edited during combat.
+
+No Apple signing identity is embedded. An unsigned CI compilation is **not** an installable build or TestFlight release. Physical camera/tracking tests cannot be replaced by the simulator.
+
+## What the implementation does
+
+- ARWorldTrackingConfiguration uses horizontal/vertical planes and 6DoF tracking. One explicit ARAnchor defines the game coordinate system. All enemy positions are metres in that anchor's local space; camera children are used only for the held weapon.
+- A continuous simulation updates every enemy, independent of render visibility. Offscreen enemies retain UUIDs, health, position, animation age and attack cooldown.
+- Ray/sphere 3D intersections hit the nearest alien along the physical camera aim direction. Four procedural 3D character types, two weapons, three waves, reload, score, health, defeat particles and positional audio are implemented. `AlienVisuals.swift` keeps limb, blink, hit and attack poses beneath each authoritative enemy transform. The two weapons have separate silhouettes, muzzle effects and recoil/reload poses. Plasma bolts and zapper beams start at the held muzzle; damage still uses the camera aim ray. Temporary effect groups are capped at twelve and audio is loaded once.
+- Optional RoomPlan uses the same ARSession and stops with `pauseARSession:false`. RoomPlan supplies floor/door/window/wall suggestions. Ceiling suggestions require an actual ARKit ceiling classification; missing ceilings are not invented. Manual surface portals require recognized plane geometry. Floating portals take a single tracked pose when placed and then remain children of the world anchor, not of the camera.
+- Portal gestures cast touch rays into the fixed portal plane in anchor space. Opposite corners stay fixed while reshaping the opening. Width/height are bounded to 0.4–3m, and edited centers remain 0.8–8m from the phone. Explicit locks reject edits; all portals must be locked before combat. Air portals spawn flying aliens at their edited 3D position.
+- Tracking loss, interruptions and camera movement of 1.25m or more horizontally from the combat origin freeze combat until explicitly resumed. The camera allowance accommodates turning in place with the phone held out; it does not track the player's body or permit walking. Session errors require a restart. Exiting stops camera capture.
+
+## Physical acceptance test — owner confirmed the core turn test
+
+On November 13, 2026, Justin reported that build **1.13 (1101)** worked well on his iPhone and confirmed that portals remained locked in the room and the same aliens kept moving when he turned away and back. This is owner-reported evidence for that scenario, not a claim that every device, room, interruption or newer visual change has passed.
+
+1. Use a well-lit clear room. Mark floor and one doorway/wall portal about 2–3m away. Drag it across the opening, resize with the corner handles and pinch, and lock it. Move/rotate the phone without touching the portal: confirm it stays aligned with the room. Repeat with a floating Air portal and its depth controls.
+2. Select **180° tracking test**. Three aliens spawn with stable identities (flying enemies for Air/Ceiling entrances).
+3. Turn in place 180°. Wait at least three seconds while tracking remains normal.
+4. Turn back. Confirm the same aliens have advanced from the doorway and stayed aligned with the room. The diagnostic reports ID continuity, which alone does not prove spatial accuracy.
+5. Shoot all three. Confirm nearest-target hit detection, hit response and defeat.
+6. Repeat with a ceiling portal, without LiDAR, denied camera, interrupted session, low light, background/foreground, pause/reload, all waves and both weapons.
+7. For the combat polish candidate: compare running, armored, brute and flying enemies; confirm wing/limb movement, hit flinches and defeat bursts. Hold FIRE through several reloads, switch weapons and pause mid-effect. Restart while an explosion is visible: the new scan must contain no old enemies or effects. Check frame rate and heat after all three waves.
+
+8. For the entrance polish candidate: place and lock two different portal types, including a wall portal. Confirm the correct entrance pulses when its alien arrives. Reshape and move an unlocked portal repeatedly; its interior animation should continue smoothly while the corner handles follow the opening. Pause and resume during a pulse, and remove/recreate portals without leaving rings or cracks in the room.
+
+The entrance candidate uses cached procedural geometry, type-specific colors, rotating interior sparks, an arrival pulse and a wall crack animation on locking. All animation is below the fixed portal transform. The four resize handles remain unscaled in metres and are hidden when locked. Each alien retains its entrance ID so a ground-height adjustment cannot accidentally pulse another nearby portal. No per-frame portal mesh reconstruction or new camera/network dependency is introduced.
+
+## Known prototype limits
+
+Physical AR alignment, tracking recovery, actual camera permissions, frame rate, sound direction and RoomPlan handoff require an iPhone playtest. This is not a verified room-scale release. Procedural models use low segment counts; their visual quality and sustained-fire performance still need physical-device review. Ground enemies steer across the confirmed floor; real furniture avoidance/mesh occlusion is not implemented. Virtual wall cracks/holes are decorative meshes, not physical wall damage. Door/window portal placement is manual without RoomPlan. Session anchors persist during the run; saved maps and cross-launch room persistence are not implemented.
+
+## Checks
+
+`swift test` runs 27 deterministic core tests, including exact entrance identity after height-adjusted spawning, movement and pause, the movement guard during an arm-held turn, turn-away/offscreen persistence and attacks, 3D nearest-ray hits, all waves, reload/restart, fixed-plane dragging, independent corner resizing, pinch bounds, locked edit rejection, and floating spawn positions. CI compiles against the physical iOS SDK without signing. Passing these does not verify real room tracking or physical touch gestures.
+
+Apple references: [world tracking](https://developer.apple.com/documentation/arkit/understanding-world-tracking), [RoomPlan shared sessions](https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure), [ceiling classification](https://developer.apple.com/documentation/arkit/arplaneanchor/classification-swift.enum/ceiling).
+
+### Combat choreography follow-up
+
+Runners weave and flyers bank along bounded world-space paths; armored enemies advance steadily. Each species visibly winds up before damage, with a longer warning for brutes. Plasma briefly interrupts lighter enemies; the zapper can interrupt armor, with a 1.4-second immunity window preventing repeated stun locks. These states freeze with tracking pause and never depend on camera visibility. No room-mesh collision or furniture avoidance is implied. Physical iPhone testing remains required for perceived movement, attack readability, tracking and thermal behavior.
+
+
+### Reactive portal follow-up
+
+Portals now have a tapered 0.66m visual tunnel, five receding energy rings, a translucent filament membrane and a recessed alien silhouette. Door/window arcs follow a rounded rectangular aperture; air, ceiling and wall entrances retain circular vortices. Meshes, twelve sparks and the hit ripple shader are allocated at placement and reused. Reduced-effects mode removes alternate rings, extra spirals/arcs and local lights. No animation writes to the placement transform or AR anchor.
+
+Tap a portal during setup to preview a short charge without spawning an enemy or hiding START GAME. Dragging/resizing pulses the handles; locking confirms with a pulse and subtle haptic. In combat, shots striking the opening ripple at the impact position. Three plasma hits or two zapper hits on the currently charging entrance delay that alien for 1.25 seconds, once per cue. Shots consume normal ammunition; enemies in front intercept them, while enemies behind the aperture cannot be hit through it. Delays never remove threats or award points. Pause/tracking loss freezes both the cue and the delay.
+
+Five new core tests cover aperture shape, shot occlusion/ammunition, one-delay limits, pause/reset, and completing all 27 enemies with every cue delayed. Simulator fixtures additionally capture an impact, an oblique view, reduced effects, a heavy breach and a suppressed breach, and assert that both placement and visual root transforms remain unchanged. Physical acceptance still requires iPhone: check parallax, wall alignment, sound, tap/drag/pinch/lock, held fire at a charging portal, pause/resume and sustained performance with six portals. This visual tunnel does not implement real wall cutting, furniture occlusion or saved room maps.
