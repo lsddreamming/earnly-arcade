@@ -28,7 +28,19 @@ class AudioContext {
 }
 const sandbox = { document: doc, window: {...make(), AudioContext, localStorage: { getItem: key => saved.get(key), setItem: (key,value) => saved.set(key,value) }}, requestAnimationFrame(fn) { frame = fn; } };
 const src = fs.readFileSync(require('node:path').join(__dirname,'../harbor-getaway.js'), 'utf8').replace('    render();', '    if (Math.round(time / 16.6667) % 30 === 1 || time < 1020) render();');
-vm.runInNewContext(src.replace('  requestAnimationFrame(frame);\n})();', `  globalThis.roofTest = (v,y,velocity=0) => { roofSupport=null; inCar=false; jumpHeight=y; jumpVelocity=velocity; Object.assign(player,{x:v.x,z:v.z,angle:v.angle}); }; globalThis.pose = (x,z,a) => { Object.assign(player,{x,z,angle:a}); Object.assign(camera,{x,z,angle:a,distance:9.6}); footView=a; }; globalThis.setEnergy = n => stamina=n; globalThis.inspect = () => ({roofSupport,jumpHeight,jumpVelocity,blocks, lamps, displacedDrivers, stamina,exhausted,stats:{...stats},walkCycle, footSpeed, actualFootSpeed, car: {...car}, player: {...player}, patrol: {...patrol}, phase, lost, inCar, elapsed, visible, route, garage, blocked, camera: {...camera}, eye: {...eye}, stageIndex, heatLevel, activeJob, records, vehicles, jobs, size, workers, traffic: traffic.map(v => ({...v})) }); globalThis.setPlayer = (x,z) => Object.assign(player,{x,z}); globalThis.setCar = (x,z,angle,speed) => { inCar=stolen=true; Object.assign(car,{x,z,angle,speed}); }; globalThis.testStep = (step) => { if (step.kind === 'escape') { heatLevel = 0; lost = true; } else if (step.kind === 'shoot') { inCar = false; player.x = step.x; player.z = step.z + 2; shotFlash = 0; } else { inCar = stolen = true; Object.assign(car,{x:step.x,z:step.z,speed:0}); } };\n  requestAnimationFrame(frame);\n})();`), sandbox);
+vm.runInNewContext(src.replace('  requestAnimationFrame(frame);\n})();', `  globalThis.cullingCheck = () => {
+    width=390;height=480;focal=320;scenery=true;architecture=true;
+    const results=[];const cull=visibleBounds;
+    for(const [x,z] of [[12,40],[112,124]]) for(const a of [0,.7,1.8,3.1,4.6]){
+      Object.assign(eye,{x,y:3,z,cosine:Math.cos(a),sine:Math.sin(a),pitchCosine:1,pitchSine:0});
+      faces=[];for(const b of blocks)drawBuilding(b);const actual=JSON.stringify(faces);
+      let rejected=0;for(const b of blocks)if(!cull(b.x+b.w/2,b.h/2,b.z+b.d/2,Math.hypot(b.w,b.d,b.h)/2+4))rejected++;
+      visibleBounds=()=>true;faces=[];for(const b of blocks)drawBuilding(b);const expected=JSON.stringify(faces);visibleBounds=cull;
+      results.push({same:actual===expected,rejected});
+    }
+    scenery=false;architecture=false;return results;
+  };
+  globalThis.roofTest = (v,y,velocity=0) => { roofSupport=null; inCar=false; jumpHeight=y; jumpVelocity=velocity; Object.assign(player,{x:v.x,z:v.z,angle:v.angle}); }; globalThis.pose = (x,z,a) => { Object.assign(player,{x,z,angle:a}); Object.assign(camera,{x,z,angle:a,distance:9.6}); footView=a; }; globalThis.setEnergy = n => stamina=n; globalThis.inspect = () => ({roofSupport,jumpHeight,jumpVelocity,blocks, lamps, displacedDrivers, stamina,exhausted,stats:{...stats},walkCycle, footSpeed, actualFootSpeed, car: {...car}, player: {...player}, patrol: {...patrol}, phase, lost, inCar, elapsed, visible, route, garage, blocked, camera: {...camera}, eye: {...eye}, stageIndex, heatLevel, activeJob, records, vehicles, jobs, size, workers, traffic: traffic.map(v => ({...v})) }); globalThis.setPlayer = (x,z) => Object.assign(player,{x,z}); globalThis.setCar = (x,z,angle,speed) => { inCar=stolen=true; Object.assign(car,{x,z,angle,speed}); }; globalThis.testStep = (step) => { if (step.kind === 'escape') { heatLevel = 0; lost = true; } else if (step.kind === 'shoot') { inCar = false; player.x = step.x; player.z = step.z + 2; shotFlash = 0; } else { inCar = stolen = true; Object.assign(car,{x:step.x,z:step.z,speed:0}); } };\n  requestAnimationFrame(frame);\n})();`), sandbox);
 let now = 1000;
 function tick(frames) { for (let i = 0; i < frames; i++) frame(now += 1000/60); }
 const click = id => get(id).handlers.click();
@@ -66,3 +78,8 @@ for(const index of [0,1,2]) {
  key('ArrowUp',false);assert.ok(landed,'running hop onto '+vehicle.name);
 }
 console.log('Running ground hops land on coupe, muscle and cargo-van roofs');
+
+const culling=sandbox.cullingCheck();
+assert.ok(culling.every(r=>r.same),'camera culling must preserve every visible building face');
+assert.ok(culling.some(r=>r.rejected>0),'offscreen buildings should skip mesh generation');
+console.log('Ten camera views preserve exact building faces while culling offscreen meshes');
