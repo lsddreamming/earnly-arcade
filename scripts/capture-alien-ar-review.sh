@@ -11,9 +11,23 @@ xcrun simctl install "$DEVICE" /tmp/alien-ar-review/Build/Products/Debug-iphones
 mkdir -p test-results/alien-native
 for MODE in Air Door Window Wall Ceiling combat paused reactive depth reduced heavy suppressed runner flyer brute weapon; do
   xcrun simctl terminate "$DEVICE" com.earnlyarcade.alieninvasion.prototype 2>/dev/null || true
-  xcrun simctl launch --stdout=/tmp/alien-review-out.log --stderr=/tmp/alien-review-err.log "$DEVICE" com.earnlyarcade.alieninvasion.prototype --ar-visual-review "$MODE"
-  sleep 3
   DATA_DIR=$(xcrun simctl get_app_container "$DEVICE" com.earnlyarcade.alieninvasion.prototype data)
+  rm -f "$DATA_DIR/Documents/visual-review.json"
+  xcrun simctl launch --stdout=/tmp/alien-review-out.log --stderr=/tmp/alien-review-err.log "$DEVICE" com.earnlyarcade.alieninvasion.prototype --ar-visual-review "$MODE"
+  # A cold CI simulator can take longer than three seconds to load SceneKit/audio.
+  # Wait for this launch's result, never a previous mode's file, and retain diagnostics.
+  for ((attempt=0; attempt<45; attempt++)); do
+    if [ -s "$DATA_DIR/Documents/visual-review.json" ]; then break; fi
+    sleep 1
+  done
+  cp /tmp/alien-review-out.log "test-results/alien-native/$MODE-stdout.log" || true
+  cp /tmp/alien-review-err.log "test-results/alien-native/$MODE-stderr.log" || true
+  if [ ! -s "$DATA_DIR/Documents/visual-review.json" ]; then
+    xcrun simctl io "$DEVICE" screenshot "test-results/alien-native/$MODE-failed.png" || true
+    cat /tmp/alien-review-err.log || true
+    echo "No native visual review result for $MODE within 45 seconds" >&2
+    exit 1
+  fi
   cp "$DATA_DIR/Documents/visual-review.json" "test-results/alien-native/$MODE.json"
   python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["layoutPass"],r; assert r["anchorsStable"],r; assert r["audioPass"],r; assert r["soundControlPass"],r; assert r["physicalARVerified"] is False' "test-results/alien-native/$MODE.json"
   xcrun simctl io "$DEVICE" screenshot "test-results/alien-native/$MODE.png"
