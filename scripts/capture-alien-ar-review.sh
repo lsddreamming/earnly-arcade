@@ -9,29 +9,55 @@ xcrun simctl boot "$DEVICE" || true
 xcrun simctl bootstatus "$DEVICE" -b
 xcrun simctl install "$DEVICE" /tmp/alien-ar-review/Build/Products/Debug-iphonesimulator/AlienInvasionAR.app
 mkdir -p test-results/alien-native
-for MODE in Air Door Window Wall Ceiling combat paused reactive depth reduced heavy suppressed runner flyer brute weapon; do
+LAUNCH_PID=
+stop_capture() {
   xcrun simctl terminate "$DEVICE" com.earnlyarcade.alieninvasion.prototype 2>/dev/null || true
+  if [ -n "$LAUNCH_PID" ]; then
+    for ((waited=0; waited<20; waited++)); do
+      if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then break; fi
+      sleep 0.1
+    done
+    kill "$LAUNCH_PID" 2>/dev/null || true
+    wait "$LAUNCH_PID" 2>/dev/null || true
+    LAUNCH_PID=
+  fi
+}
+trap stop_capture EXIT
+for MODE in Air Door Window Wall Ceiling combat paused reactive depth reduced heavy suppressed runner flyer brute weapon; do
+  stop_capture
   DATA_DIR=$(xcrun simctl get_app_container "$DEVICE" com.earnlyarcade.alieninvasion.prototype data)
   rm -f "$DATA_DIR/Documents/visual-review.json"
-  xcrun simctl launch --stdout=/tmp/alien-review-out.log --stderr=/tmp/alien-review-err.log "$DEVICE" com.earnlyarcade.alieninvasion.prototype --ar-visual-review "$MODE"
+  # simctl --stdout/--stderr paths live inside the simulator. Attach a PTY
+  # instead and redirect on the host so SceneKit diagnostics reach the gate.
+  CONSOLE_LOG="test-results/alien-native/$MODE-console.log"
+  xcrun simctl launch --console-pty "$DEVICE" com.earnlyarcade.alieninvasion.prototype --ar-visual-review "$MODE" </dev/null >"$CONSOLE_LOG" 2>&1 &
+  LAUNCH_PID=$!
   # A cold CI simulator can take longer than three seconds to load SceneKit/audio.
   # Wait for this launch's result, never a previous mode's file, and retain diagnostics.
   for ((attempt=0; attempt<45; attempt++)); do
     if [ -s "$DATA_DIR/Documents/visual-review.json" ]; then break; fi
+    if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then break; fi
     sleep 1
   done
-  cp /tmp/alien-review-out.log "test-results/alien-native/$MODE-stdout.log" || true
-  cp /tmp/alien-review-err.log "test-results/alien-native/$MODE-stderr.log" || true
   if [ ! -s "$DATA_DIR/Documents/visual-review.json" ]; then
     xcrun simctl io "$DEVICE" screenshot "test-results/alien-native/$MODE-failed.png" || true
-    cat /tmp/alien-review-err.log || true
+    cat "$CONSOLE_LOG"
     echo "No native visual review result for $MODE within 45 seconds" >&2
     exit 1
   fi
   cp "$DATA_DIR/Documents/visual-review.json" "test-results/alien-native/$MODE.json"
   python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["layoutPass"],r; assert r["anchorsStable"],r; assert r["audioPass"],r; assert r["soundControlPass"],r; assert r["physicalARVerified"] is False' "test-results/alien-native/$MODE.json"
   xcrun simctl io "$DEVICE" screenshot "test-results/alien-native/$MODE.png"
-  if rg -i 'failed to compile|compilation failed|Error Domain=SCNErrorDomain' /tmp/alien-review-err.log; then
-    cat /tmp/alien-review-err.log; exit 1
-  fi
+  stop_capture
+  # Python is already required above; do not silently skip this check when
+  # an optional search utility is absent from the hosted macOS runner.
+  python3 - "$CONSOLE_LOG" <<'PYTHON'
+import pathlib, re, sys
+log = pathlib.Path(sys.argv[1]).read_text(errors='replace')
+if not log.strip():
+    raise SystemExit('Simulator console capture is empty: ' + sys.argv[1])
+if re.search(r'failed to compile|compilation failed|Error Domain=SCNErrorDomain', log, re.I):
+    print(log)
+    raise SystemExit('SceneKit shader errors in ' + sys.argv[1])
+PYTHON
 done

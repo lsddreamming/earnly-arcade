@@ -21,7 +21,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
       - run: node --test tests/alien-invasion-ar-engine.cjs
-      - run: node --test scripts/test-alien-ar-preview.mjs
+      - run: node --test scripts/test-alien-ar-preview.mjs scripts/test-alien-ar-capture.mjs
       - name: Verify new public page keeps Earnly information links
         run: npx playwright test tests/page-polish.spec.js --project=desktop-chromium --grep 'every public page has working static information links'
       - run: npx playwright test tests/alien-invasion-ar.spec.js --project=desktop-chromium --project=mobile-webkit
