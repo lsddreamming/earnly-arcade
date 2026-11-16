@@ -3,3 +3,4 @@ DerivedData/
 AlienInvasionAR.xcodeproj/
 Info.plist
 *.wav
+__pycache__/

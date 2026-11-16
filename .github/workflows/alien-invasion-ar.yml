@@ -21,7 +21,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
       - run: node --test tests/alien-invasion-ar-engine.cjs
-      - run: node --test scripts/test-alien-ar-preview.mjs
+      - run: node --test scripts/test-alien-ar-preview.mjs scripts/test-alien-ar-capture.mjs
       - name: Verify new public page keeps Earnly information links
         run: npx playwright test tests/page-polish.spec.js --project=desktop-chromium --grep 'every public page has working static information links'
       - run: npx playwright test tests/alien-invasion-ar.spec.js --project=desktop-chromium --project=mobile-webkit
@@ -85,7 +85,7 @@ jobs:
       - name: Package source for Mac and device testing
         run: |
           cd native/AlienInvasionAR
-          zip -r ../../Alien-Invasion-AR-Xcode.zip Sources Tests Package.swift generate-project.py generate-audio.py AlienInvasionAR.xcodeproj Info.plist *.wav README.md
+          zip -r ../../Alien-Invasion-AR-Xcode.zip Sources Tests Package.swift generate-project.py audio_assets.py AlienInvasionAR.xcodeproj Info.plist *.wav README.md
       - uses: actions/upload-artifact@v4
         with:
           name: Alien-Invasion-AR-Xcode
