@@ -329,6 +329,9 @@ test('Unlimited account keeps plays available across every game without a tester
 
   await expect(page.locator('body')).not.toContainText('Private Test Run');
   await expect(page.locator('body')).not.toContainText('Private tester access');
+  // Featured cards rotate. Check unrestricted play from the full catalog.
+  await page.locator('[data-filter=all]').click();
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(29);
   const snake = page.locator('[data-game="snake"]');
   await expect(snake.locator('.game-play-button')).toContainText('Play');
   await expect(snake.locator('.game-play-button')).toHaveAttribute('href','snake.html');
@@ -338,9 +341,14 @@ test('Normal account still runs out of plays normally', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   await unlimitedAccountFixture(page, false);
   await page.goto('/games.html');
+  // Exhausted plays must remain visible even when Snake is not featured.
+  await page.locator('[data-filter=all]').click();
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(29);
   const snake = page.locator('[data-game="snake"]');
-  await expect(snake).toContainText('0 plays left');
-  await expect(snake.locator('.game-play-button')).toHaveText('Come Back Tomorrow');
+  await expect(snake.locator('.play-pill')).toHaveCount(0);
+  await expect(snake).toContainText('More plays tomorrow');
+  await expect(snake.locator('.game-play-button')).toHaveText('Play');
+  await expect(snake.locator('.game-play-button')).toBeDisabled();
   expect(await page.evaluate(() => Arcade.hasUnlimitedPlays())).toBe(false);
 });
 
@@ -384,4 +392,40 @@ test('Unlimited account Snake run is a normal leaderboard-eligible run', async (
   expect(after.runs).toBe(before.runs + 1);
   expect(after.best).toBeGreaterThanOrEqual(9);
   expect(after.points).toBeGreaterThanOrEqual(before.points);
+});
+
+test('Snake polish: crowded boards always place food in a free cell and detect a full board', async ({page}) => {
+  await snakeFixture(page); await page.goto('/snake.html');
+  const result = await page.evaluate(() => {
+    const all = [];
+    for(let y=0;y<400;y+=20) for(let x=0;x<400;x+=20) all.push({x,y});
+    snake = all.filter(p=>p.x!==380 || p.y!==380);
+    score=0;
+    const lastFree=randomFood();
+    snake=all;
+    const full=randomFood();
+    score=30; refreshRunFeedback();
+    const pace=document.getElementById('snakePace').textContent;
+    score=0; refreshRunFeedback();
+    return {lastFree,full,pace,goal:document.getElementById('snakeProgress').max,value:document.getElementById('snakeProgress').value};
+  });
+  expect(result).toEqual({lastFree:{x:380,y:380},full:null,pace:'Top speed · 1.5×',goal:10,value:0});
+});
+
+test('Snake polish: pickup renders the new head and never spawns food inside it',async({page})=>{
+  await snakeFixture(page); await page.goto('/snake.html');
+  const result=await page.evaluate(()=>{
+    snake=[{x:0,y:20}]; direction=nextDirection='RIGHT'; food={x:20,y:20}; score=0;
+    game=setInterval(()=>{},10000);
+    const random=Math.random; Math.random=()=>0;
+    const paint=paintBoard; let renderedHead;
+    paintBoard=()=>{renderedHead={...snake[0]};paint();};
+    try {
+      draw(); clearInterval(game);
+      return {head:snake[0],renderedHead,food,score,overlap:snake.some(p=>p.x===food.x&&p.y===food.y)};
+    } finally {Math.random=random;paintBoard=paint;}
+  });
+  expect(result.head).toEqual({x:20,y:20});
+  expect(result.renderedHead).toEqual(result.head);
+  expect(result.score).toBe(1); expect(result.overlap).toBe(false);
 });

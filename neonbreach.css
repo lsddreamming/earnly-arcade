@@ -44,3 +44,67 @@ html body.breach-page.game-active .earnly-session-dock #earnlyPauseButton,html b
 .breach-page #movePad>*{pointer-events:none}
 .breach-page #movePad>span{position:absolute;bottom:9px;font-size:9px;letter-spacing:1px}
 .breach-page #movePad:before,.breach-page #movePad:after{pointer-events:none}
+
+/* Sector selector is outside the live two-thumb surfaces. */
+.breach-mode-label{display:flex;align-items:center;gap:12px;color:#b9d6e6;font-size:12px;margin:9px 0}
+.breach-mode-label select{flex:1;min-height:44px;min-width:0;padding:8px 12px;border:1px solid #3f677f;border-radius:10px;background:#102337;color:#ecfaff;font:inherit}
+.breach-page.game-active .breach-mode-label{display:none}
+.breach-settings #breachWeapon[hidden]{display:none!important}
+.breach-page.sector-run .breach-weapon-label{display:none}
+.breach-settings #breachWeapon{white-space:normal;max-width:155px;min-height:44px;color:#ffcf9f!important}
+@media(max-width:380px){.breach-settings #breachWeapon{font-size:9px!important;padding:5px!important;max-width:130px}}
+
+/* The mission objective sits inside the arena without taking room from touch controls. */
+.sector-hud {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 20px);
+  padding: 5px 9px;
+  border: 1px solid #a98347;
+  border-radius: 6px;
+  background: #081120ed;
+  color: #fff0cc;
+  pointer-events: none;
+}
+.sector-hud[hidden] { display: none; }
+.sector-hud span { display: block; color: #f4bd68; font-size: 9px; }
+.sector-hud strong { display: block; font-size: 11px; }
+
+
+/* Clear mission choices, without moving controls during an active run. */
+.breach-mode-choice{margin:12px 0 14px}
+.breach-mode-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:8px}
+.breach-mode-heading strong{font-size:12px;letter-spacing:1.4px;color:#d8efff}
+.breach-mode-heading span{font-size:11px;color:#8fb8cf}
+.breach-mode-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.breach-page .breach-mode-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;text-align:left;gap:5px;min-height:140px;padding:13px 12px;background:linear-gradient(155deg,#112c43,#0b1b30);border:2px solid #31546d;border-radius:16px;color:#d8e8f8;box-shadow:none;white-space:normal;touch-action:manipulation}
+.breach-page .breach-mode-card.is-selected{border-color:#56e9de;background:linear-gradient(155deg,#174758,#0d2a3d);box-shadow:inset 0 0 0 1px #56e9de4a}
+.breach-mode-card .breach-mode-icon{font-size:23px;line-height:1.1}
+.breach-mode-card strong{font-size:16px;line-height:1.2}
+.breach-mode-card small{font-size:11px;line-height:1.35;color:#a9cadc}
+.breach-mode-card em{font-size:11px;font-style:normal;color:#81f3d7;margin-top:auto}
+.breach-mode-choice .breach-mode-label{margin:10px 0 0;font-size:11px}
+.breach-mode-note{font-size:11px;color:#9dc8df;margin:8px 2px 0;line-height:1.4}
+.breach-page.game-active .breach-mode-choice{display:none}
+@media(max-width:360px){.breach-page .breach-mode-card{padding:10px 9px;min-height:152px}.breach-mode-card strong{font-size:14px}}
+
+/* Mobile entry: keep the arena visible immediately; card taps replace redundant select. */
+@media (max-width:700px) and (orientation:portrait){
+ .breach-page:not(.game-active) .page-header{padding:2px 4px!important;margin:0 0 4px!important}
+ /* Rankings remain available in results, not above the playable arena. */
+ .breach-page:not(.game-active) #earnlyCompactLeaderboard,
+ .breach-page:not(.game-active) .compact-leaderboard-card,
+ .breach-page:not(.game-active) .compact-leaderboard-ticker{display:none!important}
+ .breach-page:not(.game-active) .breach-mode-choice{margin:5px 0 7px}
+ .breach-page:not(.game-active) .breach-mode-heading{margin-bottom:5px}
+ .breach-page:not(.game-active) .breach-mode-card{min-height:81px;padding:9px 10px;gap:3px;border-radius:12px}
+ .breach-page:not(.game-active) .breach-mode-icon{display:none}
+ .breach-page:not(.game-active) .breach-mode-card strong{font-size:15px}
+ .breach-page:not(.game-active) .breach-mode-card small{font-size:10px;line-height:1.15}
+ .breach-page:not(.game-active) .breach-mode-card em{font-size:10px}
+ .breach-page:not(.game-active) .breach-mode-choice .breach-mode-label,
+ .breach-page:not(.game-active) .breach-mode-note{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+ .breach-page:not(.game-active) #startButton{min-height:48px;margin:5px 0}
+ .breach-page:not(.game-active) .breach-arena{margin-top:4px}
+}

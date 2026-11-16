@@ -1,0 +1,33 @@
+name: Neon Breach Sector Run QA
+on:
+  pull_request:
+    paths: ['neonbreach*', 'www/neonbreach*', 'tests/neonbreach-sector.spec.js', 'scripts/test-neonbreach-sector.cjs', '.github/workflows/neonbreach-sector.yml']
+  workflow_dispatch:
+jobs:
+  sector:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: macos-15-intel
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/test-neonbreach-sector.cjs
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test tests/neonbreach-sector.spec.js --project=${{ matrix.project }} --workers=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: neonbreach-sector-${{ matrix.project }}
+          path: test-results/

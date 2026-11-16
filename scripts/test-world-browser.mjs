@@ -100,8 +100,23 @@ try{
 await a.getByRole('button',{name:'Preview Moon Fern',exact:true}).click();await a.getByRole('button',{name:'Rotate preview'}).click();await a.getByRole('button',{name:'Choose this piece',exact:true}).click();await a.getByRole('button',{name:'Buy for ◇ 70'}).click();await a.locator('.item-card').filter({hasText:'Moon Fern'}).waitFor();
  await a.getByRole('button',{name:'Close panel'}).click();
  // Start a trade by tapping the other saved avatar in the real canvas.
- const target=await a.evaluate(uid=>{const r=window.testWorldRenderer,h=r.hit.find(h=>h.user.userId===uid);return {x:r.cx+h.x*r.scale,y:r.cy+(h.y-25)*r.scale};},fixture.users[1]);
- await a.locator('#worldCanvas').click({position:target});await a.getByRole('button',{name:'Trade decor',exact:true}).click();
+ // Residents can overlap the saved avatar. Find a visible pixel that resolves
+ // to this player, rather than assuming its center is the topmost hit.
+ let target;
+ await expect.poll(async()=>{
+  target=await a.evaluate(uid=>{
+   const r=window.testWorldRenderer,h=r.hit.find(h=>h.user.userId===uid);if(!h)return null;
+   for(let dy=-45;dy<0;dy+=5)for(const dx of [0,-10,10]){
+    const x=h.x+dx,y=h.y+dy;
+    if(r.doorHit&&Math.abs(x-r.doorHit.x)<22&&y>r.doorHit.y-52&&y<r.doorHit.y+8)continue;
+    if(r.hit.some(n=>n.user.isAI&&Math.abs(x-n.x)<(n.nameWidth||40)/2&&y>n.y+5&&y<n.y+23))continue;
+    const person=[...r.hit].reverse().find(n=>Math.abs(x-n.x)<19&&y>n.y-50&&y<n.y+4);
+    const px=r.cx+x*r.scale,py=r.cy+y*r.scale,box=document.getElementById('worldCanvas').getBoundingClientRect();
+    if(person?.user.userId===uid&&px>0&&py>0&&px<box.width&&py<box.height)return {x:px,y:py};
+   }return null;
+  },fixture.users[1]);return !!target;
+ },{timeout:15000,message:'Other player has an unobscured canvas target'}).toBe(true);
+ await a.locator('#worldCanvas').click({position:target});await expect(a.locator('#panelTitle')).toHaveText('Player1');await a.getByRole('button',{name:'Trade decor',exact:true}).click().catch(async error=>{console.error('Trade target diagnostic',JSON.stringify({target,panel:await a.locator('#panelTitle').textContent(),hits:await a.evaluate(()=>window.testWorldRenderer.hit.map(h=>({x:h.x,y:h.y,id:h.user.userId,name:h.user.username})))}));throw error;});
  const confirmation=p=>p.getByRole('button',{name:'Confirm exchange',exact:true});
  await expect(confirmation(a)).toBeDisabled();
  // Pace intentional writes below the production account rate limit.
@@ -169,3 +184,4 @@ await a.getByRole('button',{name:'Preview Moon Fern',exact:true}).click();await 
  console.log('Browser integration passed: two saved avatars, chat, catalog purchase, trade-offer unlocks, personal room, placement, direct furniture selection, repeated movement, rotation, cancellation and pickup.');
 
 }finally{await browser.close();await gateway.close();await new Promise(r=>server.close(r));await fixture.close();await rm(tls,{recursive:true,force:true});}
+

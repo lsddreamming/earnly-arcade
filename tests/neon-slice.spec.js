@@ -3,11 +3,11 @@ const {Game}=require('../neon-slice-engine');
 test('slicing scores each fruit once, combos once, and bombs end the run',()=>{const g=new Game(()=>.5);g.start();g.items=[{x:80,y:100,r:24,type:0},{x:160,y:100,r:24,type:1}];g.slice({x:10,y:100},{x:210,y:100});expect(g.score).toBe(20);expect(g.endStroke()).toBeNull();g.endStroke();g.slice({x:10,y:100},{x:210,y:100});expect(g.score).toBe(20);g.items=[{x:100,y:100,r:24,bomb:true}];g.slice({x:0,y:100},{x:200,y:100});expect(g.state).toBe('over');expect(g.continue()).toBe(true);expect(g.score).toBe(20);g.end('Bomb hit');expect(g.continue()).toBe(false);});
 test('simulation ends after three misses, pauses safely, ramps and stays bounded',()=>{const g=new Game(()=>.5);g.start();g.pause();g.step(.04);expect(g.time).toBe(0);g.resume();for(let i=0;i<2000&&g.state==='running';i++)g.step(.04);expect(g.state).toBe('over');expect(g.misses).toBeGreaterThanOrEqual(3);expect(g.items.length).toBeLessThan(20);g.start();g.time=90;g.spawn();expect(g.items).toHaveLength(4);expect(g.items.every(x=>Number.isFinite(x.vy))).toBe(true);});
 test.beforeEach(async({page})=>{await page.route('https://**',r=>r.abort());await page.addInitScript(()=>localStorage.setItem('arcadeOnboardingSeen','1'));});
-test('signed-out free play starts, pauses and resumes without economy changes',async({page})=>{await page.goto('/neon-slice.html');const before=await page.evaluate(()=>({coins:localStorage.getItem('points'),plays:localStorage.getItem('plays')}));await page.getByRole('button',{name:'Play free',exact:true}).click();await expect(page.locator('#sliceOverlay')).toBeHidden();await page.getByRole('button',{name:'Pause',exact:true}).click();await expect(page.locator('#sliceHeading')).toHaveText('Paused');await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceContinue')).toBeHidden();expect(await page.evaluate(()=>({coins:localStorage.getItem('points'),plays:localStorage.getItem('plays')}))).toEqual(before);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(()=>innerWidth));});
+test('signed-out free play starts, pauses and resumes without economy changes',async({page})=>{await page.goto('/neon-slice.html');const before=await page.evaluate(()=>({coins:localStorage.getItem('points'),plays:localStorage.getItem('plays')}));await page.getByRole('button',{name:'Play',exact:true}).click();await expect(page.locator('#sliceOverlay')).toBeHidden();await page.getByRole('button',{name:'Pause',exact:true}).click();await expect(page.locator('#sliceHeading')).toHaveText('Paused');await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceContinue')).toBeHidden();expect(await page.evaluate(()=>({coins:localStorage.getItem('points'),plays:localStorage.getItem('plays')}))).toEqual(before);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(()=>innerWidth));});
 test('public game is listed, indexable and mirrored',async({request})=>{for(const f of ['neon-slice.html','neon-slice.js','neon-slice.css','neon-slice-engine.js','neon-slice-rewards.js','neon-slice-presentation.js']){const a=await request.get('/'+f),b=await request.get('/www/'+f);expect(a.ok()).toBe(true);expect(await a.text()).toBe(await b.text());}expect(await(await request.get('/neon-slice.html')).text()).not.toContain('noindex,nofollow');expect(await(await request.get('/games.html')).text()).toContain('neon-slice');});
 test('a real drag cuts airborne fruit and keeps a local best after misses',async({page})=>{await page.addInitScript(()=>{Math.random=()=>.5;});await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__observedGame=this;};});await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();await page.waitForFunction(()=>window.__observedGame.items.some(o=>!o.bomb&&o.y<400&&o.y>200));const target=await page.evaluate(()=>{const food=window.__observedGame.items.find(o=>!o.bomb&&o.y<400&&o.y>200);return {x:food.x};});const swipeX=box.x+target.x/360*box.width;await page.mouse.move(swipeX,box.y+20);await page.mouse.down();await page.mouse.move(swipeX,box.y+box.height-10,{steps:8});await page.mouse.up();await expect.poll(async()=>Number(await page.locator('#sliceScore').innerText())).toBeGreaterThanOrEqual(10);await expect(page.locator('#sliceOverlay')).toBeVisible({timeout:15000});expect(Number(await page.locator('#sliceBest').innerText())).toBeGreaterThanOrEqual(10);await page.reload();expect(Number(await page.locator('#sliceBest').innerText())).toBeGreaterThanOrEqual(10);});
 test('ad continue requires an earned reward and is offered once per run',async({page})=>{test.setTimeout(45000);await page.goto('/neon-slice.html');await page.evaluate(()=>{window.EarnlyNativeAds={isNative:true,showRewarded:async()=>({earned:window.__earned===true})};});await page.locator('#sliceStart').click();await expect(page.locator('#sliceContinue')).toBeVisible({timeout:16000});await page.locator('#sliceContinue').click();await page.getByRole('button',{name:'📺 Watch Ad · Continue',exact:true}).click();await expect(page.getByText('Ad closed without a reward.',{exact:false})).toBeVisible();await expect(page.locator('#sliceOverlay')).toBeVisible();await page.evaluate(()=>{window.__earned=true;});await page.getByRole('button',{name:'📺 Watch Ad · Continue',exact:true}).click();await expect(page.locator('#sliceOverlay')).toBeHidden();await expect(page.locator('#sliceMisses')).toHaveText('0 / 3');await expect(page.locator('#sliceOverlay')).toBeVisible({timeout:16000});await expect(page.locator('#sliceContinue')).toBeHidden();});
-test('phone arena preserves round fruit and visible controls',async({page})=>{for(const [width,height] of [[320,568],[390,664],[440,844]]){await page.setViewportSize({width,height});await page.goto('/neon-slice.html');const c=await page.locator('#sliceCanvas').boundingBox();expect(c.width/c.height).toBeCloseTo(2/3,1);await expect(page.locator('#sliceStart')).toBeInViewport();await expect(page.locator('#slicePause')).toBeInViewport();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);}await page.screenshot({path:'test-results/neon-slice-preview.png'});});
+test('phone arena preserves round fruit and visible controls',async({page})=>{for(const [width,height] of [[320,568],[390,664],[440,844]]){await page.setViewportSize({width,height});await page.goto('/neon-slice.html');const c=await page.locator('#sliceCanvas').boundingBox();expect(c.width/c.height).toBeCloseTo(2/3,1);await expect(page.locator('#sliceStart')).toBeInViewport();await expect(page.locator('#slicePause')).toBeHidden();await expect(page.locator('#sliceQuit')).toBeHidden();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);}await page.screenshot({path:'test-results/neon-slice-preview.png'});});
 test('transient window blur does not pause swiping, but backgrounding does',async({page})=>{
   await page.goto('/neon-slice.html');await page.locator('#sliceStart').click();
   await page.evaluate(()=>{window.dispatchEvent(new Event('blur'));});
@@ -28,7 +28,7 @@ test('rare burgers score 50 once; regular ingredients score 10 and bombs overrid
  let seed=12345;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};const sim=new Game(random);sim.start();let bonus=0,total=0;const kinds=new Set();for(let i=0;i<1000;i++){sim.items=[];sim.spawn();for(const item of sim.items){if(!item.bomb){total++;if(item.type===7)bonus++;else kinds.add(item.type);}}}expect(bonus/total).toBeGreaterThan(.03);expect(bonus/total).toBeLessThan(.09);expect(kinds.size).toBe(11);
 });
 test('public catalog supports discovery and favorites without spending plays',async({page})=>{
- await page.goto('/games.html');const card=page.locator('[data-game="neonSlice"]');await expect(card).toBeVisible();await expect(card.getByRole('link',{name:/Play Neon Slice/})).toHaveAttribute('href','neon-slice.html');await expect(card).toContainText('Earn up to 30 Coins');
+ await page.goto('/games.html');await page.locator('[data-filter=all]').click();await expect(page.locator('#games .catalog-tile')).toHaveCount(29);const card=page.locator('[data-game="neonSlice"]');await expect(card).toBeVisible();await expect(card.getByRole('link',{name:/Play Neon Slice/})).toHaveAttribute('href','neon-slice.html');await expect(card).toContainText('Earn up to 30 Coins');
  await card.getByRole('button').click();await page.reload();expect(await page.evaluate(()=>localStorage.getItem('neonSliceCatalogFavorite'))).toBe('1');
 });
 test('results show readable run totals and preserve best score',async({page})=>{
@@ -98,13 +98,32 @@ test('stationary holds, reversals and prolonged scribbles cannot build a mega co
  g.start();g.items=[food(40),food(70),food(100),{...food(130),bomb:true}];g.slice({x:10,y:100},{x:160,y:100});expect(g.score).toBe(30);expect(g.endStroke()).toBeNull();expect(g.state).toBe('over');
 });
 test('one held pointer across new food groups produces separate combos',async({page})=>{
- await page.goto('/neon-slice.html');await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;window.__comboGame=this;};});
- await page.locator('#sliceStart').click();const box=await page.locator('#sliceCanvas').boundingBox();
+ // Drive simulation time explicitly: host delays between pointer commands must
+ // not turn this short swipe into a slow drag past falling ingredients.
+ await page.clock.install({time:new Date('2026-11-01T12:00:00Z')});
+ await page.goto('/neon-slice.html');
+ await page.clock.pauseAt(new Date('2026-11-01T12:02:00Z'));
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=100;window.__comboGame=this;};});
+ await page.locator('#sliceStart').click();await page.clock.runFor(50);
+ const box=await page.locator('#sliceCanvas').boundingBox();
  const place=()=>page.evaluate(()=>{window.__comboGame.items=[80,180,280].map(x=>({x,y:240,r:20,type:0,vx:0,vy:0,angle:0,spin:0}));});
- await place();await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540);await page.mouse.down();await page.mouse.move(box.x+box.width*.9,box.y+box.height*240/540,{steps:8});
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ const swipe=async(from,to)=>{
+  for(let step=1;step<=8;step++){
+   await page.mouse.move(box.x+box.width*(from+(to-from)*step/8),box.y+box.height*240/540);
+   await page.clock.runFor(10);
+  }
+ };
+ await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540);
+ await place();await page.mouse.down();await swipe(.1,.9);
+ await expect(page.locator('#sliceScore')).toHaveText('30');
+ await page.clock.runFor(200);
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
+ await expect(page.locator('#sliceScore')).toHaveText('40');
  // Keep the pointer down while another group arrives, then reverse the swipe.
- await place();await page.mouse.move(box.x+box.width*.1,box.y+box.height*240/540,{steps:8});
+ await place();await swipe(.9,.1);
+ await expect(page.locator('#sliceScore')).toHaveText('70');
+ await page.clock.runFor(200);
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
  expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
@@ -226,4 +245,83 @@ test('v3 launches cover both edges with varied heights and stay on screen',()=>{
  const bins=new Set(),heights=new Set();let left=360,right=0;
  for(let seed=1;seed<=50;seed++){const g=new Game(require('../neon-slice-engine').seededRandom(seed),3);g.start();for(let wave=0;wave<15;wave++){g.time=wave*5;g.items=[];g.spawn();for(const item of g.items){if(item.bomb)continue;bins.add(Math.floor(item.x/60));heights.add(Math.round(item.vy/10));for(let t=0;t<2.5;t+=.04){const y=item.y+item.vy*t+.5*item.gravity*t*t;if(y>=0&&y<=540){const x=item.x+item.vx*t;left=Math.min(left,x-item.r);right=Math.max(right,x+item.r);}}}}}
  expect(left).toBeGreaterThanOrEqual(0);expect(right).toBeLessThanOrEqual(360);expect(bins.has(0)).toBe(true);expect(bins.has(5)).toBe(true);expect(bins.size).toBeGreaterThanOrEqual(5);expect(heights.size).toBeGreaterThan(8);
+});
+
+for(const [width,height] of [[320,568],[390,844],[667,375]])test(`night market fits ${width}x${height}`,async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width,height});await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{const start=NeonSliceEngine.Game.prototype.start;NeonSliceEngine.Game.prototype.start=function(){start.call(this);window.__market=this;this.items=Array.from({length:8},(_,type)=>({id:type,x:65+(type%3)*115,y:180+Math.floor(type/3)*100,r:25,type,angle:.15}));};NeonSliceEngine.Game.prototype.step=function(){};});
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceOverlay')).toBeHidden();
+ const box=await page.locator('#sliceCanvas').boundingBox();expect(box.width/box.height).toBeCloseTo(2/3,2);expect(box.y+box.height).toBeLessThanOrEqual(height);
+ for(const id of ['slicePause','sliceQuit','sliceSound']){await expect(page.locator('#'+id)).toBeInViewport({ratio:1});const control=await page.locator('#'+id).boundingBox();expect(control.y+control.height).toBeLessThanOrEqual(height);}
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ await page.evaluate(()=>window.__market.score=260);await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
+ await page.screenshot({path:test.info().outputPath(`market-${width}.png`)});expect(errors).toEqual([]);
+});
+
+test('friend challenges stay separate from rewards and share the actual finished score',async({page})=>{
+ await page.goto('/neon-slice.html?challenge=250&utm_source=player');
+ await expect(page.locator('#sliceHeading')).toHaveText('Beat 250 points');
+ await expect(page.locator('#sliceShare')).toBeHidden();
+ const before=await page.evaluate(()=>({coins:localStorage.getItem('points'),best:localStorage.getItem('neonSlicePreviewBest')}));
+ expect(before.best).toBeNull();
+ await page.evaluate(()=>{
+  Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__share=data;}});
+  NeonSliceEngine.Game.prototype.step=function(){this.score=280;this.bestCombo=3;this.end('Bomb hit');};
+ });
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceChallengeResult')).toContainText('Challenge beaten!');
+ await page.locator('#sliceShareButton').click();
+ const shared=await page.evaluate(()=>window.__share);const url=new URL(shared.url);
+ expect(url.origin).toBe('https://earnlyarcade.com');expect(url.pathname).toBe('/neon-slice.html');
+ expect(url.searchParams.get('challenge')).toBe('280');expect(url.searchParams.get('utm_source')).toBe('player');
+ expect(await page.evaluate(()=>localStorage.getItem('points'))).toBe(before.coins);
+ const events=await page.evaluate(()=>Arcade.pendingSyncEvents().filter(e=>e.payload.game==='neonSlice'));
+ expect(events.map(e=>e.type)).toEqual(['score_challenge_opened','play_started','game_result','score_challenge_completed','score_challenge_shared']);
+ expect(events.find(e=>e.type==='game_result').payload).toMatchObject({metric:280,source:'player'});
+ expect(events.find(e=>e.type==='game_result').payload.newBest).toBeUndefined();
+ await expect(page.locator('#sliceSaveCard')).toHaveAttribute('href',/^blob:/);
+ await page.evaluate(()=>{NeonSliceEngine.Game.prototype.step=function(){};});
+ await page.locator('#sliceStart').click();await expect(page.locator('#sliceShare')).toBeHidden();
+});
+test('challenge sharing handles unavailable clipboard and canceled shares',async({page})=>{
+ await page.goto('/neon-slice.html?challenge=%3Cscript%3E');
+ await expect(page.locator('#sliceHeading')).toHaveText('Ready to slice?');
+ await page.evaluate(()=>{NeonSliceEngine.Game.prototype.step=function(){this.score=80;this.end('Bomb hit');};Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('Canceled','AbortError');}});});
+ await page.locator('#sliceStart').click();await page.locator('#sliceShareButton').click();
+ await expect(page.locator('#sliceCopyLabel')).toBeHidden();await expect(page.locator('#sliceShareButton')).toBeEnabled();
+ await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Denied');}}});});
+ await page.locator('#sliceShareButton').click();await expect(page.locator('#sliceCopyLabel')).toBeVisible();await expect(page.locator('#sliceCopyLink')).toHaveValue(/challenge=80&/);
+});
+
+test('service feedback follows score and misses and resets for replay',async({page})=>{
+ await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{
+  const start=NeonSliceEngine.Game.prototype.start;
+  NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=999;window.__serviceGame=this;};
+ });
+ await page.locator('#sliceStart').click();
+ // Reward setup is asynchronous; interact with score only after the real start completes.
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
+ await page.waitForFunction(()=>window.__serviceGame?.state==='running');
+ await page.evaluate(()=>{const g=window.__serviceGame;g.score=270;g.misses=1;g.time=65;});
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',20);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Rush hour');
+ await expect(page.locator('#sliceNotice')).toContainText('2 chances left');
+ await page.evaluate(()=>{window.__serviceGame.misses=2;});
+ await expect(page.locator('#sliceNotice')).toContainText('Last chance');
+ await expect(page.locator('#sliceMisses')).toHaveClass('slice-last-chance');
+ await page.locator('#slicePause').click();
+ await expect(page.locator('#sliceNotice')).toBeEmpty();
+ await page.locator('#sliceStart').click();
+ // End during the next simulation step, as a real completed run does.
+ await page.evaluate(()=>{const g=window.__serviceGame;g.step=function(){delete this.step;this.end('Cookout complete');};});
+ await expect(page.locator('#sliceStats')).toBeVisible();
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',0);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 250');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Opening prep');
+ await expect(page.locator('#sliceMisses')).not.toHaveClass('slice-last-chance');
 });

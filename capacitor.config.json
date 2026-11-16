@@ -3,6 +3,6 @@
   "appName": "Earnly Arcade",
   "webDir": "www",
   "ios": {
-    "contentInset": "automatic"
+    "contentInset": "never"
   }
 }

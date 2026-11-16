@@ -24,9 +24,9 @@ body.games-dashboard #games .catalog-tile[data-game=crystalCommand]{--tile-accen
 body.games-dashboard #games .catalog-tile:before{content:"";position:absolute;right:-15px;bottom:36px;width:65px;height:65px;border:1px solid var(--tile-accent);transform:rotate(35deg);border-radius:15px;opacity:.1;z-index:-1;pointer-events:none}
 body.games-dashboard #games .game-icon-bubble{background:color-mix(in srgb,var(--tile-accent) 12%,#0d192a)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tile-accent) 25%,transparent),0 0 18px color-mix(in srgb,var(--tile-accent) 8%,transparent)!important;color:var(--tile-accent)!important;border-radius:11px!important}
 body.games-dashboard #games .game-name-wrap h2{color:#f0f6ff!important;font-weight:800;letter-spacing:-.3px}
-body.games-dashboard #games .reward-rule{color:#adbed3!important}
+body.games-dashboard #games .catalog-tile .reward-rule{color:#d6e2f0!important}
 body.games-dashboard #games .favorite-button{color:#c7d8e9!important;border:0!important;background:#07111e55!important;border-radius:10px!important}
-body.games-dashboard #games .game-card-footer .game-play-button:not(:disabled){background:linear-gradient(100deg,color-mix(in srgb,var(--tile-accent) 85%,white),var(--tile-accent))!important;color:#091928!important;border:0!important;border-radius:11px!important;box-shadow:none!important;font-weight:800}
+body.games-dashboard #games .game-card-footer .game-play-button:not(:disabled){background:color-mix(in srgb,var(--tile-accent) 12%,#101c2e)!important;color:var(--tile-accent)!important;border:1px solid color-mix(in srgb,var(--tile-accent) 45%,#101c2e)!important;border-radius:11px!important;box-shadow:none!important;font-weight:800}
 body.games-dashboard #games .game-card-footer .game-play-button:focus-visible{outline:3px solid white;outline-offset:3px}
 body.games-dashboard #quickSections .quick-game{background:#11243a!important;border:1px solid #6096b333!important;border-radius:10px!important}
 @media(max-width:699px){
@@ -47,7 +47,7 @@ body.games-dashboard #quickSections .quick-game{background:#11243a!important;bor
  body.games-dashboard .games-shortcuts{margin-top:16px}
 }
 @media(prefers-reduced-motion:no-preference) and (hover:hover){body.games-dashboard #games .catalog-tile:hover{border-color:var(--tile-accent)!important;transform:translateY(-2px);transition:transform .15s,border-color .15s}}
-body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-card-footer .game-play-button:not(:disabled){color:#091928!important;text-shadow:none!important}
+body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-card-footer .game-play-button:not(:disabled){color:var(--tile-accent)!important;text-shadow:none!important}
 @media(max-width:699px){
  body.games-dashboard .games-hero{padding-top:4px!important;padding-bottom:4px!important}
  body.games-dashboard .games-hero h1{font-size:25px!important}
@@ -64,7 +64,7 @@ body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-card-footer
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile .favorite-button{width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-title-row>.game-title-actions{grid-column:2!important;grid-row:1!important;justify-self:end!important;align-self:start!important;margin:0!important;padding:0!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile .game-name-wrap h2{text-align:left!important}
- body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.no-best a.game-play-button:not(:disabled),body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.has-best a.game-play-button:not(:disabled){color:#091928!important;text-shadow:none!important}
+ body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.no-best a.game-play-button:not(:disabled),body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer.has-best a.game-play-button:not(:disabled){color:var(--tile-accent)!important;text-shadow:none!important}
 }
 
 /* Raised announcement bubble keeps Crystal Command easy to spot. */
@@ -74,9 +74,9 @@ body.games-dashboard #games .catalog-tile[data-game=crystalCommand]:before{right
 body.games-dashboard #games .game-new-bubble{position:absolute;top:-14px;left:14px;z-index:3;display:block;padding:5px 12px;border:1px solid #defff3;border-radius:999px;background:linear-gradient(110deg,#b7ff7a,#72efcc);color:#08271f;font-size:10px;font-weight:900;line-height:16px;letter-spacing:1px;white-space:nowrap;box-shadow:0 0 18px #72efcc55,0 3px 8px #0005;pointer-events:none}
 body.games-dashboard #games .game-new-bubble:after{content:"";position:absolute;left:16px;bottom:-5px;width:8px;height:8px;background:#a4fb91;transform:rotate(45deg);border-radius:0 0 2px 0}
 
-/* Bright buttons need dark lettering, including nested labels and WebKit text fill. */
+/* Keep tinted Play lettering consistent, including nested labels and WebKit text fill. */
 body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled),
-body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled) *{color:#091928!important;-webkit-text-fill-color:#091928!important;text-shadow:none!important;font-weight:850!important}
+body.games-dashboard #games.compact-catalog-grid>section.catalog-tile .game-card-footer a.game-play-button:not(:disabled) *{color:var(--tile-accent)!important;-webkit-text-fill-color:var(--tile-accent)!important;text-shadow:none!important;font-weight:850!important}
 
 /* Keep NEW GAME labels inside clipped mobile cards and the scroll viewport. */
 body.games-dashboard #games .catalog-tile:has(>.game-new-bubble){padding-top:28px!important}
@@ -90,4 +90,190 @@ body.games-dashboard #games .catalog-tile>.game-new-bubble:after{display:none!im
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-name-wrap{min-height:28px!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-icon-bubble{height:24px!important}
  body.games-dashboard #games.compact-catalog-grid>.catalog-tile:has(>.game-new-bubble) .game-title-row>.game-title-actions{position:absolute!important;top:10px!important;right:10px!important}
+}
+
+/* Guided discovery: four approachable choices, with the complete catalog one tap away. */
+body.games-dashboard #games .game-preview{display:block;width:100%;height:116px;object-fit:cover;border-radius:12px;background:#132b39;flex-shrink:0}
+body.games-dashboard #games [data-game=spuddyEvolution] .game-preview{object-fit:contain;background:radial-gradient(ellipse at center,#eaf4cf,#91c6a5);padding:6px;box-sizing:border-box}
+body.games-dashboard #games .game-preview-label{margin:3px 0 0;color:#8ee7de;font-size:11px;font-weight:750;line-height:1.3}
+body.games-dashboard #games .game-description{margin:0;color:#e0eaf4;font-size:13px;line-height:1.45}
+body.games-dashboard #games .catalog-tile:has(.game-preview){min-height:310px!important;height:auto!important;gap:7px!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .reward-rule{font-size:10px!important;line-height:1.4!important;min-height:28px!important;-webkit-line-clamp:3}
+body.games-dashboard .browse-all-games{display:block;width:100%;min-height:48px;margin:16px 0 20px;border:1px solid #6de2dd65;background:#153d49;color:#d4fffa;border-radius:14px;font-size:15px;font-weight:750}
+body.games-dashboard .browse-all-games[hidden]{display:none}
+body.games-dashboard #quickSections:empty{display:none}
+body.games-dashboard #quickSections .quick-section{margin:8px 0!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-icon-bubble{display:none!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row h2{font-size:15px!important;line-height:1.25!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .favorite-button{width:32px!important;height:36px!important;min-height:36px!important}
+body.games-dashboard #games .starter-grid{align-items:stretch}
+body.games-dashboard .game-filter:focus-visible,body.games-dashboard .browse-all-games:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(min-width:700px){body.games-dashboard #games.starter-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}body.games-dashboard #games .game-preview{height:150px}}
+@media(max-width:380px){body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row h2{font-size:13px!important}body.games-dashboard #games .game-description{font-size:12px}}
+@media(min-width:900px){body.games-dashboard .container{max-width:1080px!important;width:calc(100% - 48px)!important}body.games-dashboard .games-hero{text-align:left!important}body.games-dashboard .games-hero h1{max-width:none!important}body.games-dashboard .games-hero h1 span{display:inline!important}}
+@media(min-width:700px) and (max-width:899px){body.games-dashboard #games.starter-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .play-pill{display:none!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-row{display:flex!important;align-items:center!important;justify-content:space-between!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-title-actions{position:static!important;flex:none!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-name-wrap{padding:0!important;min-width:0!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview){align-self:stretch!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .reward-rule{display:block!important;height:auto!important;max-height:none!important;overflow:visible!important;-webkit-line-clamp:unset}
+body.games-dashboard #games .catalog-tile:has(.game-preview){display:flex!important;flex-direction:column!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-card-footer{margin-top:auto!important}
+body.games-dashboard #games .catalog-tile:has(.game-preview) .game-play-button{min-height:44px!important;height:auto!important}
+
+
+/* Keep a real, readable starter Play button inside the very first phone
+   viewport. The first introductory card is a wide illustrated quick start;
+   all four choices keep their full descriptions and reward disclosures below. */
+@media(max-width:699px){
+  body.games-dashboard .game-browse-heading{margin:2px 2px 5px!important}
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child:has(.game-preview){
+    grid-column:1/-1!important;
+    display:grid!important;
+    grid-template-columns:92px minmax(0,1fr)!important;
+    grid-template-areas:"preview title" "preview description" "preview reward" "play play"!important;
+    grid-template-rows:auto auto auto 44px!important;
+    align-content:start!important;
+    min-height:0!important;
+    padding:8px!important;
+    gap:3px 9px!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-preview{
+    grid-area:preview;
+    width:100%!important;
+    height:92px!important;
+    object-fit:cover;
+    align-self:start;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-preview-label{display:none!important}
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-title-row{
+    grid-area:title;min-height:30px!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-description{
+    grid-area:description;font-size:11px!important;line-height:1.2!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .reward-rule{
+    grid-area:reward;margin:0!important;min-height:0!important;
+    font-size:10px!important;line-height:1.2!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-card-footer{
+    grid-area:play;min-height:44px!important;margin:0!important;
+  }
+  body.games-dashboard #games.starter-grid > .catalog-tile:first-child .game-play-button{
+    min-height:44px!important;height:44px!important;
+  }
+}
+
+
+/* Rotating discovery: equal-weight game art, compact readable cards and a
+   permanent illustrated fallback when a preview image cannot be loaded. */
+body.games-dashboard #games.starter-grid{padding-top:0!important;row-gap:12px!important;align-items:stretch!important}
+body.games-dashboard #games.starter-grid>.catalog-tile:has(.game-preview){
+  min-height:0!important;height:auto!important;align-self:stretch!important;
+  padding:13px!important;gap:8px!important;border-radius:17px!important;
+  border-color:#7adad23e!important;box-shadow:0 7px 21px #0002!important;
+}
+body.games-dashboard #games.starter-grid .game-preview{
+  position:relative;isolation:isolate;display:grid!important;place-items:center;
+  width:100%!important;height:130px!important;flex:0 0 auto!important;
+  overflow:hidden;border-radius:13px!important;
+  background:radial-gradient(circle at 25% 25%,#66d6f650,transparent 52%),linear-gradient(135deg,#173f60,#11253c)!important;
+}
+body.games-dashboard #games.starter-grid .game-preview[data-theme="brain"]{
+  background:radial-gradient(circle at 24% 20%,#e9b5ff55,transparent 55%),linear-gradient(130deg,#3a2858,#1b2547)!important
+}
+body.games-dashboard #games.starter-grid .game-preview[data-theme="classic"]{
+  background:radial-gradient(circle at 25% 20%,#a5f6b655,transparent 55%),linear-gradient(130deg,#174a51,#1b3546)!important
+}
+body.games-dashboard #games.starter-grid .game-preview[data-theme="quick"]{
+  background:radial-gradient(circle at 25% 20%,#ffde8955,transparent 55%),linear-gradient(130deg,#55432c,#233c53)!important
+}
+body.games-dashboard #games.starter-grid .game-preview[data-theme="strategy"]{
+  background:radial-gradient(circle at 25% 20%,#e2b2ff55,transparent 55%),linear-gradient(130deg,#393a62,#182a49)!important
+}
+body.games-dashboard #games.starter-grid .game-preview-symbol{font-size:65px;line-height:1;filter:drop-shadow(0 9px 10px #09152380);transform:rotate(-6deg)}
+body.games-dashboard #games.starter-grid .game-preview-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+body.games-dashboard #games.starter-grid [data-game="spuddyEvolution"] .game-preview-photo{object-fit:contain;background:#b2d7b8;padding:3px;box-sizing:border-box}
+body.games-dashboard #games.starter-grid .game-preview-label{margin:1px 0 0!important;min-height:0!important;font-size:10px!important;letter-spacing:.15px;color:#aaf4e5!important}
+body.games-dashboard #games.starter-grid .game-title-row{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:8px!important;min-height:36px!important}
+body.games-dashboard #games.starter-grid .game-title-row .game-name-wrap{min-width:0!important;flex:1!important;padding:0!important}
+body.games-dashboard #games.starter-grid .game-title-row .game-name-wrap h2{font-size:16px!important;line-height:1.2!important;overflow-wrap:anywhere!important}
+body.games-dashboard #games.starter-grid .favorite-button{width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important;font-size:23px!important}
+body.games-dashboard #games.starter-grid .game-description{font-size:12px!important;line-height:1.4!important;margin:0!important;color:#d6e6f2!important;max-width:100%}
+body.games-dashboard #games.starter-grid .reward-rule{font-size:10px!important;line-height:1.3!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:visible!important}
+body.games-dashboard #games.starter-grid .game-card-footer{margin-top:auto!important;min-width:0!important}
+body.games-dashboard #games.starter-grid .game-card-footer .game-play-button{width:100%!important;min-width:0!important;min-height:46px!important;height:auto!important;font-size:13px!important;border-radius:12px!important}
+body.games-dashboard #games.starter-grid .status-line{font-size:10px;line-height:1.35}
+
+/* One comfortable full-width choice per row on phones. The old 2-column
+   starter layout caused a giant Spuddy card and uneven empty gaps. The full
+   All games catalog remains the existing compact two-column grid. */
+@media(max-width:699px){
+  body.games-dashboard #games.starter-grid{grid-template-columns:minmax(0,1fr)!important;gap:11px!important}
+  body.games-dashboard #games.starter-grid>.catalog-tile:has(.game-preview),
+  body.games-dashboard #games.starter-grid>.catalog-tile:first-child:has(.game-preview){
+    grid-column:1/-1!important;
+    display:grid!important;flex-direction:initial!important;
+    grid-template-columns:102px minmax(0,1fr)!important;
+    grid-template-areas:"preview title" "preview description" "preview reward" "play play"!important;
+    grid-template-rows:auto auto auto minmax(44px,auto)!important;
+    align-content:start!important;align-items:start!important;
+    gap:4px 12px!important;padding:10px!important;
+    min-height:0!important;height:auto!important;
+  }
+  body.games-dashboard #games.starter-grid>.catalog-tile:has(.game-preview) .game-preview,
+  body.games-dashboard #games.starter-grid>.catalog-tile:first-child:has(.game-preview) .game-preview{
+    grid-area:preview!important;height:100px!important;width:100%!important;align-self:start!important;
+  }
+  body.games-dashboard #games.starter-grid .game-preview-symbol{font-size:51px}
+  body.games-dashboard #games.starter-grid>.catalog-tile .game-preview-label{display:none!important}
+  body.games-dashboard #games.starter-grid>.catalog-tile .game-title-row{
+    grid-area:title!important;display:flex!important;min-height:38px!important;
+  }
+  body.games-dashboard #games.starter-grid .game-title-row .game-name-wrap h2{font-size:15px!important;white-space:normal!important}
+  body.games-dashboard #games.starter-grid>.catalog-tile .game-description{
+    grid-area:description!important;font-size:12px!important;line-height:1.3!important;
+  }
+  body.games-dashboard #games.starter-grid>.catalog-tile .reward-rule{
+    grid-area:reward!important;font-size:10px!important;line-height:1.25!important;
+    display:block!important;-webkit-line-clamp:unset!important;white-space:normal!important;
+  }
+  body.games-dashboard #games.starter-grid>.catalog-tile .game-card-footer{
+    grid-area:play!important;width:100%!important;margin-top:1px!important;
+  }
+  body.games-dashboard #games.starter-grid>.catalog-tile .game-card-footer .game-play-button{
+    display:flex!important;align-items:center;justify-content:center;min-height:44px!important;height:44px!important;
+  }
+  body.games-dashboard #games.starter-grid>.catalog-tile .status-line{grid-column:1/-1!important}
+  body.games-dashboard .browse-all-games{margin:13px 0 22px!important}
+  body.games-dashboard #quickSections .quick-section{margin:4px 0!important}
+}
+@media(max-width:350px){
+  body.games-dashboard #games.starter-grid>.catalog-tile:has(.game-preview),
+  body.games-dashboard #games.starter-grid>.catalog-tile:first-child:has(.game-preview){
+    grid-template-columns:85px minmax(0,1fr)!important;gap:3px 8px!important;padding:8px!important;
+  }
+  body.games-dashboard #games.starter-grid>.catalog-tile .game-preview{height:85px!important}
+  body.games-dashboard #games.starter-grid .game-title-row .game-name-wrap h2{font-size:13px!important}
+  body.games-dashboard #games.starter-grid .game-description{font-size:11px!important}
+  body.games-dashboard #games.starter-grid .favorite-button{min-width:36px!important;width:36px!important;height:36px!important;min-height:36px!important}
+}
+
+/* Readable catalog copy with quieter Play controls, including the static fallback. */
+body.games-dashboard #games.compact-catalog-grid > section.catalog-tile .game-play-button:not(:disabled){
+  background:color-mix(in srgb,var(--tile-accent) 12%,#101c2e)!important;
+  color:var(--tile-accent)!important;
+  -webkit-text-fill-color:var(--tile-accent)!important;
+  border:1px solid color-mix(in srgb,var(--tile-accent) 45%,#101c2e)!important;
+  box-shadow:none!important;text-shadow:none!important;
+}
+body.games-dashboard #games.compact-catalog-grid > section.catalog-tile .game-play-button:focus-visible{
+  outline:3px solid #fff;outline-offset:3px;
+}
+@media(hover:hover){
+  body.games-dashboard #games.compact-catalog-grid > section.catalog-tile .game-play-button:not(:disabled):hover{
+    background:color-mix(in srgb,var(--tile-accent) 20%,#101c2e)!important;
+    border-color:var(--tile-accent)!important;
+  }
 }

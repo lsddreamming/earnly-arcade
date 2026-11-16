@@ -1,7 +1,31 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {create,wave,arc}=require('../bounce-run-engine.js');
+const {create,wave,arc,speedFor}=require('../bounce-run-engine.js');
 function rng(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
+test('Bounce Run starts briskly and accelerates every clear without speed drops',()=>{
+  const g=create(()=>.5);
+  assert.equal(g.state.speed,3.25);
+  assert.equal(g.state.wait,36);
+  assert.equal(speedFor(5),4.65);
+  assert.equal(speedFor(10),5.75);
+  assert.equal(speedFor(20),6.9);
+  assert.equal(speedFor(35),7.95);
+  for(let cleared=1;cleared<=150;cleared++){
+    const speed=speedFor(cleared);
+    assert(speed>=speedFor(cleared-1), 'Speed decreased after clear '+cleared);
+    assert(speed<=10, 'Speed exceeded the normal course cap');
+  }
+  let firstObstacleAt=0,collisionAt=0;
+  while(g.state.alive&&g.state.ticks<200){
+    g.step();
+    if(!firstObstacleAt&&g.state.obstacles.length)firstObstacleAt=g.state.ticks;
+  }
+  collisionAt=g.state.ticks;
+  assert.equal(firstObstacleAt,36,'The first hazard should enter the course promptly');
+  assert(collisionAt>=120&&collisionAt<=155,'First obstacle must arrive quickly but leave reaction time');
+  assert.equal(g.state.cleared,0);
+  assert(Math.abs(g.state.distance-collisionAt*.18)<1e-7,'Distance and reward metric stay unchanged');
+});
 // Try actual frame-by-frame jumps, rather than duplicated width bounds.
 test('every generated single/double has a forgiving successful launch window',()=>{
   const random=rng(781);let doubles=0;
@@ -57,7 +81,7 @@ test('cleared hazards travel offscreen without rescoring or delaying the next wa
   assert.equal(s.wait,1,'The spawn countdown runs while a cleared hazard is visible');
   g.step();
   assert.equal(s.obstacles.length,2,'The next wave arrives on the original schedule');
-  assert.equal(s.travel,1.35*2+s.speed);
+  assert.equal(s.travel,speedFor(0)*2+s.speed);
   // Remove only the incoming wave so the retained hazard can exit in isolation.
   s.obstacles=s.obstacles.filter(o=>o.passed);s.wait=10000;
   for(let i=0;i<50;i++)g.step();

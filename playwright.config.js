@@ -21,6 +21,8 @@ module.exports = defineConfig({
   },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-webkit', use: { ...devices['iPhone 14'] } }
+    // Intel hosted Macs need more time for browser setup and navigation.
+    // Keep assertion deadlines unchanged so behavioral failures still fail fast.
+    { name: 'mobile-webkit', timeout: process.env.CI ? 60000 : 30000, use: { ...devices['iPhone 14'] } }
   ]
 });

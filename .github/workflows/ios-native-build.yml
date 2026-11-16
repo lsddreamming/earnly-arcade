@@ -2,9 +2,18 @@ name: Earnly iOS native build
 
 # Compile ad integration changes without signing or uploading to Apple.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/AlienInvasionAR/**'
+      - 'scripts/*alien-ar*'
+      - '.github/workflows/ios-native-build.yml'
   workflow_dispatch:
   pull_request:
     paths:
+      - 'native/AlienInvasionAR/**'
+      - 'scripts/*alien-ar*'
+      - 'capacitor.config.json'
       - 'games.html'
       - 'games-showroom.css'
       - 'www/games.html'

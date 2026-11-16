@@ -93,7 +93,10 @@ test('game information navigation asks before leaving an active run', async ({ p
   await dialog.getByRole('button', { name:'Keep Playing', exact:true }).click();
   await expect(page).toHaveURL(/snake\.html$/);
   await page.locator('.game-guide-link').evaluate(link => link.click());
-  await dialog.getByRole('button', { name:'Quit Game', exact:true }).click();
+  const quit = dialog.getByRole('button', { name:'Quit Game', exact:true });
+  await expect(quit).toBeVisible();
+  // Wait for the destination explicitly. WebKit may keep the click pending after navigation.
+  await quit.evaluate(button => button.click());
   await expect(page).toHaveURL(/game-guides\.html#snake$/);
 });
 

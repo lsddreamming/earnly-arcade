@@ -6,7 +6,7 @@ async function open(page,path='/stardefender.html',motion='no-preference'){
  await page.route('https://**',r=>r.abort());
  await page.route('**/stardefender.html*',async route=>{
    const response=await route.fetch(),html=(await response.text()).replace('    function finish(finalize=false)',`    window.starTest={
-     state:()=>({elapsed,score,kills,lives,wave,shipX,rapid,shield,bosses,paused,running,particles:particles.length,rings:rings.length,scorePops:scorePops.length,bullets:bullets.length,shots:enemyShots.length,aliens:aliens.map(a=>({...a}))}),
+     state:()=>({elapsed,score,kills,lives,wave,shipX,rapid,shield,bosses,paused,running,pointer,starting,layout:scene.layout(),particles:particles.length,rings:rings.length,scorePops:scorePops.length,bullets:bullets.length,shots:enemyShots.length,aliens:aliens.map(a=>({...a}))}),
      freeze:()=>{cancelAnimationFrame(raf);raf=0;},
      tick:n=>{for(let i=0;i<n&&running;i++)move(1/60);draw();},
      boss:()=>{wave=3;aliens=[];nextWaveIn=0;move(1/60);draw();},
@@ -19,7 +19,8 @@ async function open(page,path='/stardefender.html',motion='no-preference'){
     function finish(finalize=false)`);
    await route.fulfill({response,body:html});
  });
- await page.goto(path);await expect(page.locator('#starHangar')).toBeVisible();
+ // Game readiness is the parsed DOM plus visible controls; optional resources can delay load in WebKit.
+ await page.goto(path,{waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();
  await expect(page.locator('#startButton')).toBeVisible();
  expect((await page.locator('#startButton').boundingBox()).y).toBeLessThan(340);
  await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
@@ -40,12 +41,75 @@ for(const path of ['/stardefender.html','/www/stardefender.html'])test('Star Def
  await expect(page.locator('dialog.game-result-dialog')).toBeHidden();
  await expect(page.locator('#starHangar')).toBeVisible();await expect(page.locator('#starGoalHeading')).toContainText('3/3 complete');
  const solar=page.getByRole('button',{name:'Solar ship',exact:true});await expect(solar).toBeEnabled();await solar.click();await expect(solar).toHaveAttribute('aria-pressed','true');
- await page.reload();await expect(page.getByRole('button',{name:'Solar ship',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();await expect(page.getByRole('button',{name:'Solar ship',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.evaluate(()=>localStorage.setItem('earnlyLocalProgressOwner','different-test-player'));
  await page.getByRole('button',{name:'Solar ship',exact:true}).click();
- await expect(page.locator('#starUnlock')).toContainText('0/20');await page.reload();
+ await expect(page.locator('#starUnlock')).toContainText('0/20');await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();
  await expect(page.locator('#starGoalHeading')).toContainText('0/3 complete');await expect(page.locator('#starUnlock')).toContainText('0/20');
  expect(errors).toEqual([]);
+});
+
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:440,height:956},{width:844,height:390}])test('Star Defender fills the viewport and keeps controls readable '+viewport.width+'x'+viewport.height,async({page})=>{
+ await page.setViewportSize(viewport);const errors=await open(page);
+ await page.locator('#earnlyPauseButton').click();
+ const state=await page.evaluate(()=>starTest.state());
+ const before=state.elapsed;
+ const layout=await page.evaluate(()=>{
+   const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
+   return {board:rect(document.querySelector('#game')),header:rect(document.querySelector('.page-header')),mission:rect(document.querySelector('#starMission')),controls:rect(document.querySelector('#starControls')),buttons:['#earnlyPauseButton','#earnlyQuitButton'].map(s=>rect(document.querySelector(s))),stats:[...document.querySelectorAll('.game-meta .meta-pill:not(.star-plays)')].map(e=>({font:parseFloat(getComputedStyle(e).fontSize),width:e.clientWidth,scroll:e.scrollWidth})),pixels:[game.width,game.height],dpr:devicePixelRatio,overflow:document.documentElement.scrollWidth};
+ });
+ expect(layout.board.x).toBe(0);expect(layout.board.y).toBe(0);expect(layout.board.width).toBe(viewport.width);expect(layout.board.height).toBe(viewport.height);
+ expect(layout.overflow).toBeLessThanOrEqual(viewport.width);
+ for(const button of layout.buttons){expect(button.width).toBeGreaterThanOrEqual(44);expect(button.height).toBeGreaterThanOrEqual(44);expect(button.x).toBeGreaterThanOrEqual(0);expect(button.right).toBeLessThanOrEqual(viewport.width);expect(button.bottom).toBeLessThanOrEqual(viewport.height);}
+ for(const stat of layout.stats){expect(stat.font).toBeGreaterThanOrEqual(11);expect(stat.scroll).toBeLessThanOrEqual(stat.width+1);}
+ expect(layout.mission.y).toBeGreaterThanOrEqual(layout.header.bottom-3);
+ expect(state.layout.y).toBeGreaterThan(layout.mission.bottom);expect(state.layout.y+state.layout.h).toBeLessThan(layout.controls.y);
+ expect(layout.pixels[0]).toBe(Math.round(viewport.width*Math.min(2,layout.dpr)));expect(layout.pixels[1]).toBe(Math.round(viewport.height*Math.min(2,layout.dpr)));
+ await page.waitForTimeout(150);expect((await page.evaluate(()=>starTest.state())).elapsed).toBe(before);
+ await page.screenshot({path:test.info().outputPath('star-defender-immersive-'+viewport.width+'.png')});
+ await page.getByRole('button',{name:/Resume/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.keyboard.down('ArrowLeft');await page.waitForTimeout(100);await page.keyboard.up('ArrowLeft');
+ expect((await page.evaluate(()=>starTest.state())).shipX).toBeLessThan(state.shipX);
+ await page.locator('#earnlyQuitButton').click();
+ await expect(page.locator('.earnly-quit-dialog')).toBeVisible();await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ await page.getByRole('button',{name:'Quit Game',exact:true}).click();
+ await expect(page).toHaveURL(/games\.html/);expect(errors).toEqual([]);
+});
+
+test('Star Defender relative drag stays one-to-one after rotation and ignores canceled pointers',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await open(page);await page.evaluate(()=>starTest.freeze());
+ let state=await page.evaluate(()=>starTest.state());
+ await page.mouse.move(300,450);await page.mouse.down();
+ expect((await page.evaluate(()=>starTest.state())).shipX).toBe(state.shipX);
+ await page.mouse.move(340,450);
+ let moved=await page.evaluate(()=>starTest.state());
+ expect((moved.shipX-state.shipX)*state.layout.sx).toBeCloseTo(40,1);
+ await page.evaluate(()=>document.dispatchEvent(new PointerEvent('pointercancel',{pointerId:starTest.state().pointer,bubbles:true})));
+ await page.mouse.move(360,450);expect((await page.evaluate(()=>starTest.state())).shipX).toBe(moved.shipX);await page.mouse.up();
+ await page.setViewportSize({width:844,height:390});
+ await expect.poll(async()=> (await page.evaluate(()=>starTest.state())).layout.width).toBe(844);
+ state=await page.evaluate(()=>starTest.state());await page.mouse.move(450,200);await page.mouse.down();await page.mouse.move(420,200);await page.mouse.up();
+ moved=await page.evaluate(()=>starTest.state());expect((moved.shipX-state.shipX)*state.layout.sx).toBeCloseTo(-30,1);
+});
+
+test('Star Defender pauses on interruption during combat and countdown',async({page})=>{
+ await open(page);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+ await expect(page.locator('#gameStatus')).toHaveText('Paused');const before=await page.evaluate(()=>starTest.state());
+ await page.waitForTimeout(150);expect((await page.evaluate(()=>starTest.state())).elapsed).toBe(before.elapsed);
+ await page.getByRole('button',{name:/Resume/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+ await page.evaluate(()=>{starTest.end();Arcade.countdown=fn=>{window.pendingStarCountdown=fn};});
+ await page.locator('dialog.game-result-dialog').getByRole('button',{name:/Play Again/}).click();
+ await expect(page.locator('#gameStatus')).toHaveText('Get Ready');
+ await page.evaluate(()=>{window.dispatchEvent(new Event('blur'));pendingStarCountdown();});
+ await expect(page.locator('#gameStatus')).toHaveText('Paused');
+ const pausedState=await page.evaluate(()=>starTest.state());expect(pausedState.elapsed).toBe(0);expect(pausedState.running).toBe(true);
+ await page.getByRole('button',{name:/Resume/}).click();await expect(page.locator('#gameStatus')).toHaveText('Running');
+});
+
+test('Star Defender rendering and cache assets match the native mirror',async({request})=>{
+ for(const file of ['stardefender.html','star-defender.css','star-defender-scene.js','star-defender-flight.js','service-worker.js']){
+  const [root,native]=await Promise.all([request.get('/'+file),request.get('/www/'+file)]);expect(root.ok()).toBe(true);expect(native.ok()).toBe(true);expect(await native.text(),file).toBe(await root.text());
+ }
 });
 test('Star Defender boosts, shields and commander are real combat states',async({page})=>{
  const errors=await open(page);await page.evaluate(()=>{starTest.freeze();starTest.kill(4);});
@@ -80,7 +144,7 @@ for(const motion of ['reduce','no-preference'])test('Star Defender phone combat 
  expect(effects.rings).toBeLessThanOrEqual(12);expect(effects.scorePops).toBeLessThanOrEqual(8);
  if(motion==='reduce'){expect(effects.particles).toBe(0);expect(effects.rings).toBe(0);expect(effects.scorePops).toBe(0);}else{expect(effects.rings).toBeGreaterThan(0);expect(effects.scorePops).toBeGreaterThan(0);}
  await page.screenshot({path:test.info().outputPath('star-defender-phone-'+motion+'.png')});
- await page.evaluate(()=>starTest.end());await page.reload();
+ await page.evaluate(()=>starTest.end());await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#starHangar')).toBeVisible();
  const hangar=await page.locator('#starHangar').boundingBox();expect(hangar.height).toBeLessThan(350);
  await expect(page.locator('#starFlightDetails')).not.toHaveAttribute('open','');
  await page.locator('#starGoalHeading').click();await expect(page.locator('#starGoals')).toBeVisible();

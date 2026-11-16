@@ -7,7 +7,7 @@ async function place(page,offset=0){await page.evaluate(offset=>{moving.x=blocks
 test('retina artwork retains logical placement and travel bounds',async({page})=>{
  await start(page);
  const state=await page.evaluate(()=>({width:canvas.width,height:canvas.height,scale:renderScale,world:WORLD_WIDTH,base:blocks[0].x,transform:ctx.getTransform().a}));
- expect(state.width).toBe(360*state.scale);expect(state.height).toBe(560*state.scale);expect(state.transform).toBe(state.scale);
+ expect(state.width).toBe(Math.round(360*state.scale));expect(state.height).toBe(Math.round(560*state.scale));expect(state.transform).toBe(state.scale);
  expect(state.world).toBe(360);expect(state.base).toBe(85);
  await place(page);expect(await page.evaluate(()=>blocks.at(-1).w)).toBe(190);
 });
@@ -65,4 +65,19 @@ test('all skyline content and session controls fit portrait and landscape',async
 test('reduced motion keeps precision and score without decorative particles',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});await page.reload();await start(page);await place(page);
  expect(await page.evaluate(()=>({floors,perfects,sparks:sparks.length,rings:rings.length}))).toEqual({floors:1,perfects:1,sparks:0,rings:0});
+});
+
+test('skyline redraws reuse bounded layers and root artwork matches native artwork',async({page,request})=>{
+ const result=await page.evaluate(()=>{
+  cancelAnimationFrame(animation);animation=null;draw();
+  const create=document.createElement;let allocations=0;
+  document.createElement=function(name,...args){if(name==='canvas')allocations++;return create.call(this,name,...args)};
+  try{for(let i=0;i<60;i++)TowerStackArt.background(ctx,TowerStackEngine.district(0),i*4);return allocations}
+  finally{document.createElement=create}
+ });
+ expect(result).toBe(0);
+ for(const name of ['towerstack.html','tower-stack-art.js']){
+  const root=await request.get('/'+name),native=await request.get('/www/'+name);
+  expect(root.ok()).toBe(true);expect(native.ok()).toBe(true);expect(await native.text()).toBe(await root.text());
+ }
 });

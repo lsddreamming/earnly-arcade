@@ -350,6 +350,13 @@
     }
   }
 
+  async function arcadeChallenge(){
+    if (!await user()) return null;
+    const { data, error } = await requireClient().functions.invoke('activity', { body:{ action:'arcade_challenge' } });
+    if (error) throw error;
+    return data;
+  }
+
   async function adBonus(action='status', placement){
     const { data, error } = await requireClient().functions.invoke('ad-bonus', { body:{ action, placement } });
     if (error) throw error;
@@ -534,6 +541,9 @@
 
   const GROWTH_EVENT_TYPES = new Set([
     'acquisition_attributed',
+    'score_challenge_shared',
+    'score_challenge_opened',
+    'score_challenge_completed',
     'onboarding_shown',
     'onboarding_completed',
     'onboarding_dismissed',
@@ -676,6 +686,10 @@
   }
 
   function markCloudConflict(remote, status = Arcade.appStatus()){
+    const existing = cloudConflict();
+    if (existing?.remoteUpdatedAt === (remote?.updated_at || null) &&
+        existing?.remoteDeviceId === (remote?.device_id || null) &&
+        existing?.localDeviceId === status.deviceId) return existing;
     const conflict = {
       reason:'newer-cloud-save',
       remoteUpdatedAt:remote?.updated_at || null,
@@ -686,6 +700,44 @@
     localStorage.setItem('arcadeCloudConflict', JSON.stringify(conflict));
     window.dispatchEvent(new CustomEvent('earnly-cloud-conflict', { detail:conflict }));
     return conflict;
+  }
+
+  // Browser IDs can differ after a restore or between Safari storage contexts.
+  // Only ask the player when an unknown revision actually contains different data.
+  async function checkSaveConflict(){
+    const current = await user();
+    if (!current || localStorage.getItem(LOCAL_OWNER_KEY) !== current.id) {
+      throw new Error('Sign in to check your saved progress.');
+    }
+    let remote = await cloudSaveInfo();
+    if (!cloudRevisionMatches(remote)) {
+      const { data, error } = await requireClient().from('player_saves')
+        .select('payload,updated_at,app_version,device_id')
+        .eq('user_id', current.id).maybeSingle();
+      if (error) throw error;
+      remote = data;
+      if (localStorage.getItem(LOCAL_OWNER_KEY) !== current.id || (await user())?.id !== current.id) {
+        throw new Error('Your account changed. Please try again.');
+      }
+      if (!cloudRevisionMatches(remote)) {
+        const local = Arcade.snapshotData().data;
+        const saved = remote?.payload?.data;
+        const keys = Object.keys(local);
+        const identical = remote?.payload?.app === 'Earnly Arcade' && saved &&
+          !Array.isArray(saved) && keys.length === Object.keys(saved).length &&
+          keys.every(key => Object.prototype.hasOwnProperty.call(saved, key) && saved[key] === local[key]);
+        if (!identical) return markCloudConflict(remote);
+        if (remote.updated_at) localStorage.setItem('arcadeLastCloudSave', remote.updated_at);
+        localStorage.setItem('arcadeLastCloudHash', snapshotSignature(remote.payload));
+      }
+    }
+    if (localStorage.getItem(LOCAL_OWNER_KEY) !== current.id || (await user())?.id !== current.id) {
+      throw new Error('Your account changed. Please try again.');
+    }
+    const hadConflict = !!cloudConflict();
+    localStorage.removeItem('arcadeCloudConflict');
+    if (hadConflict) window.dispatchEvent(new CustomEvent('earnly-cloud-conflict-cleared'));
+    return null;
   }
 
   async function saveProgress(options = {}){
@@ -707,10 +759,8 @@
     // writing, compare the current cloud revision with the revision this
     // device last saw. Automatic saves already perform this check earlier.
     if (!options.skipConflictCheck) {
-      const remote = await cloudSaveInfo();
-      if (!cloudRevisionMatches(remote, status)) {
-        markCloudConflict(remote, status);
-        const error = new Error('A newer cloud save exists on another device. Restore it before replacing cloud progress.');
+      if (await checkSaveConflict()) {
+        const error = new Error('There are two different saves. Review them before changing your backup.');
         error.code = 'EARNLY_CLOUD_CONFLICT';
         throw error;
       }
@@ -843,12 +893,9 @@
       if (localStorage.getItem(LOCAL_OWNER_KEY) !== current.id) return { skipped:'account-unverified' };
 
       const rewardSync = await syncServerRewards();
-      const remote = await cloudSaveInfo();
+      const conflict = await checkSaveConflict();
+      if (conflict) return { skipped:'newer-cloud-save', conflict };
       const localDevice = Arcade.deviceId();
-      if (!cloudRevisionMatches(remote, { deviceId:localDevice })) {
-        const conflict = markCloudConflict(remote, { deviceId:localDevice });
-        return { skipped:'newer-cloud-save', conflict };
-      }
 
       // Re-check immediately before the write. Another device may have
       // saved after our first cloud read while reward reconciliation was running.
@@ -883,6 +930,7 @@
       throw error;
     } finally {
       syncRunning = false;
+      window.dispatchEvent(new CustomEvent('earnly-cloud-sync-idle'));
       if (syncAgain) {
         syncAgain = false;
         scheduleAutoSync('queued-change', 500);
@@ -1137,6 +1185,7 @@
     cloudSaveInfo,
     walletInfo,
     adBonus,
+    arcadeChallenge,
     spendContinue,
     continueReceipt,
     syncServerRewards,
@@ -1149,6 +1198,7 @@
     autoSyncEnabled,
     setAutoSyncEnabled,
     cloudConflict,
+    checkSaveConflict,
     restoreProgress
   };
 })();

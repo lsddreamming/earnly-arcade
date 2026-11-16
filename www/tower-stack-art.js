@@ -1,6 +1,24 @@
 /* Architectural canvas artwork. All coordinates remain in the 360 × 560 game world. */
 window.TowerStackArt=(()=>{
-  let skyKey='',sky=null;
+  let skyKey='',sky=null,layers=null,fog=null;
+  function cityLayers(){
+    return Array.from({length:3},(_,layer)=>{
+      const canvas=document.createElement('canvas');canvas.width=720;canvas.height=640;const g=canvas.getContext('2d');g.scale(2,2);
+      const step=layer===2?59:35;
+      for(let i=0;i<Math.ceil(360/step)+1;i++){
+        const x=i*step-20+layer*11,w=step-7,h=55+(i*43+layer*37)%135,y=220-h;
+        g.fillStyle=['#23405a','#172f48','#0d2238'][layer];g.fillRect(x,y,w,h+100);
+        g.fillStyle=['#294b64','#21445a','#18394d'][layer];g.fillRect(x+3,y-5,w-7,5);
+        if(i%3===0){g.fillRect(x+w*.6,y-20,1,15);g.fillStyle='#ffba9770';g.fillRect(x+w*.6,y-21,1.5,1.5)}
+        for(let row=0;row<Math.ceil(h/12);row++)for(let col=0;col<Math.floor(w/7);col++){
+          const seed=(row*17+col*13+i*7+layer*11)%11;
+          g.fillStyle=seed<3?'#f4d29a75':seed<6?'#8ac9e23a':'#050f202a';g.fillRect(x+4+col*7,y+9+row*12,2.5,4);
+        }
+        g.fillStyle='#75bfd91c';g.fillRect(x,y,1,h);
+      }
+      return canvas;
+    });
+  }
   function background(ctx,zone,camera){
     if(skyKey!==zone.sky){
       skyKey=zone.sky;sky=document.createElement('canvas');sky.width=720;sky.height=1120;
@@ -13,23 +31,14 @@ window.TowerStackArt=(()=>{
       for(let i=0;i<5;i++){const y=155+i*64;const mist=g.createLinearGradient(0,y,360,y+26);mist.addColorStop(0,'#b7d8ee00');mist.addColorStop(.5,'#b7d8ee0b');mist.addColorStop(1,'#b7d8ee00');g.fillStyle=mist;g.beginPath();g.ellipse(50+i*59,y,150,9+i*2,-.12,0,Math.PI*2);g.fill()}
     }
     ctx.drawImage(sky,0,0,360,560);
+    // Reuse three bounded layers; only their positions change as the camera rises.
+    if(!layers)layers=cityLayers();
     for(let layer=0;layer<3;layer++){
       const horizon=510+Math.min(260,camera*(.06+layer*.045));
-      const step=layer===2?59:35;
-      for(let i=0;i<Math.ceil(360/step)+1;i++){
-        const x=i*step-20+layer*11,w=step-7,h=55+(i*43+layer*37)%135,y=horizon-h;
-        if(y>560)continue;
-        ctx.fillStyle=['#23405a','#172f48','#0d2238'][layer];ctx.fillRect(x,y,w,h+80);
-        ctx.fillStyle=['#294b64','#21445a','#18394d'][layer];ctx.fillRect(x+3,y-5,w-7,5);
-        if(i%3===0){ctx.fillRect(x+w*.6,y-20,1,15);ctx.fillStyle='#ffba9770';ctx.fillRect(x+w*.6,y-21,1.5,1.5)}
-        for(let row=0;row<Math.ceil(h/12);row++)for(let col=0;col<Math.floor(w/7);col++){
-          const seed=(row*17+col*13+i*7+layer*11)%11;
-          ctx.fillStyle=seed<3?'#f4d29a75':seed<6?'#8ac9e23a':'#050f202a';ctx.fillRect(x+4+col*7,y+9+row*12,2.5,4);
-        }
-        ctx.fillStyle='#75bfd91c';ctx.fillRect(x,y,1,h);
-      }
+      ctx.drawImage(layers[layer],0,horizon-220,360,320);
     }
-    const fog=ctx.createLinearGradient(0,425,0,560);fog.addColorStop(0,'#1c4b6100');fog.addColorStop(1,'#21485a65');ctx.fillStyle=fog;ctx.fillRect(0,425,360,135);
+    if(!fog){fog=ctx.createLinearGradient(0,425,0,560);fog.addColorStop(0,'#1c4b6100');fog.addColorStop(1,'#21485a65')}
+    ctx.fillStyle=fog;ctx.fillRect(0,425,360,135);
   }
   function floor(ctx,block,y){
     const {x,w,color}=block;if(y>585||y+28<0||w<=0)return;
@@ -52,6 +61,7 @@ window.TowerStackArt=(()=>{
     ctx.fillStyle='#142c40';ctx.fillRect(x,y+16,w,1);ctx.fillStyle='#8ba7b4';ctx.fillRect(x,y+25,w,2);
     ctx.fillStyle=color;ctx.fillRect(x,y+6,w,1.5);ctx.fillStyle=color+'60';ctx.fillRect(x,y+24,w,1);
     ctx.fillStyle='#06142699';ctx.fillRect(x+w-bevel,y+7,bevel,18);ctx.fillStyle='#d7f4ff50';ctx.fillRect(x,y+8,1,16);
+    if(block.floor===0&&w>65){ctx.fillStyle='#08182e';ctx.fillRect(x+w*.43,y+10,w*.14,15);ctx.fillStyle='#ffe2a3';ctx.fillRect(x+w*.49,y+12,1.5,13)}
     // Occasional floor markers feel architectural instead of numbering every bar.
     if(w>65&&block.floor>0&&block.floor%5===0){ctx.fillStyle='#08182ee0';ctx.fillRect(x+w/2-10,y+10,20,12);ctx.fillStyle='#e7edf0';ctx.font='600 7px system-ui';ctx.textAlign='center';ctx.fillText(String(block.floor).padStart(2,'0'),x+w/2,y+19)}
     ctx.restore();
