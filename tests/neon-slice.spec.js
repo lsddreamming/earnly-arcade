@@ -28,7 +28,7 @@ test('rare burgers score 50 once; regular ingredients score 10 and bombs overrid
  let seed=12345;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};const sim=new Game(random);sim.start();let bonus=0,total=0;const kinds=new Set();for(let i=0;i<1000;i++){sim.items=[];sim.spawn();for(const item of sim.items){if(!item.bomb){total++;if(item.type===7)bonus++;else kinds.add(item.type);}}}expect(bonus/total).toBeGreaterThan(.03);expect(bonus/total).toBeLessThan(.09);expect(kinds.size).toBe(11);
 });
 test('public catalog supports discovery and favorites without spending plays',async({page})=>{
- await page.goto('/games.html');const card=page.locator('[data-game="neonSlice"]');await expect(card).toBeVisible();await expect(card.getByRole('link',{name:/Play Neon Slice/})).toHaveAttribute('href','neon-slice.html');await expect(card).toContainText('Earn up to 30 Coins');
+ await page.goto('/games.html');await page.locator('[data-filter=all]').click();await expect(page.locator('#games .catalog-tile')).toHaveCount(29);const card=page.locator('[data-game="neonSlice"]');await expect(card).toBeVisible();await expect(card.getByRole('link',{name:/Play Neon Slice/})).toHaveAttribute('href','neon-slice.html');await expect(card).toContainText('Earn up to 30 Coins');
  await card.getByRole('button').click();await page.reload();expect(await page.evaluate(()=>localStorage.getItem('neonSliceCatalogFavorite'))).toBe('1');
 });
 test('results show readable run totals and preserve best score',async({page})=>{
@@ -117,13 +117,13 @@ test('one held pointer across new food groups produces separate combos',async({p
  await place();await page.mouse.down();await swipe(.1,.9);
  await expect(page.locator('#sliceScore')).toHaveText('30');
  await page.clock.runFor(200);
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('40');
  // Keep the pointer down while another group arrives, then reverse the swipe.
  await place();await swipe(.9,.1);
  await expect(page.locator('#sliceScore')).toHaveText('70');
  await page.clock.runFor(200);
- await expect(page.locator('#sliceCombo')).toHaveText('3 item combo! +10');
+ await expect(page.locator('#sliceCombo')).toHaveText('3 food combo · +10');
  await expect(page.locator('#sliceScore')).toHaveText('80');await page.mouse.up();
  expect(await page.evaluate(()=>window.__comboGame.bestCombo)).toBe(3);
 });
@@ -292,4 +292,36 @@ test('challenge sharing handles unavailable clipboard and canceled shares',async
  await expect(page.locator('#sliceCopyLabel')).toBeHidden();await expect(page.locator('#sliceShareButton')).toBeEnabled();
  await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Denied');}}});});
  await page.locator('#sliceShareButton').click();await expect(page.locator('#sliceCopyLabel')).toBeVisible();await expect(page.locator('#sliceCopyLink')).toHaveValue(/challenge=80&/);
+});
+
+test('service feedback follows score and misses and resets for replay',async({page})=>{
+ await page.goto('/neon-slice.html');
+ await page.evaluate(()=>{
+  const start=NeonSliceEngine.Game.prototype.start;
+  NeonSliceEngine.Game.prototype.start=function(){start.call(this);this.nextWave=999;window.__serviceGame=this;};
+ });
+ await page.locator('#sliceStart').click();
+ // Reward setup is asynchronous; interact with score only after the real start completes.
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
+ await page.waitForFunction(()=>window.__serviceGame?.state==='running');
+ await page.evaluate(()=>{const g=window.__serviceGame;g.score=270;g.misses=1;g.time=65;});
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',20);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 500');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Rush hour');
+ await expect(page.locator('#sliceNotice')).toContainText('2 chances left');
+ await page.evaluate(()=>{window.__serviceGame.misses=2;});
+ await expect(page.locator('#sliceNotice')).toContainText('Last chance');
+ await expect(page.locator('#sliceMisses')).toHaveClass('slice-last-chance');
+ await page.locator('#slicePause').click();
+ await expect(page.locator('#sliceNotice')).toBeEmpty();
+ await page.locator('#sliceStart').click();
+ // End during the next simulation step, as a real completed run does.
+ await page.evaluate(()=>{const g=window.__serviceGame;g.step=function(){delete this.step;this.end('Cookout complete');};});
+ await expect(page.locator('#sliceStats')).toBeVisible();
+ await page.locator('#sliceStart').click();
+ await expect(page.locator('#sliceOverlay')).toBeHidden();
+ await expect(page.locator('#sliceProgress')).toHaveJSProperty('value',0);
+ await expect(page.locator('#sliceGoal')).toHaveText('Next score milestone · 250');
+ await expect(page.locator('#sliceServiceLabel')).toHaveText('Opening prep');
+ await expect(page.locator('#sliceMisses')).not.toHaveClass('slice-last-chance');
 });

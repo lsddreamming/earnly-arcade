@@ -7,11 +7,13 @@
   'use strict';
   const GROUND=349,JUMP=-9.6,STEP=1000/60;
   function speedFor(cleared){
-    if(cleared<5)return 1.35+cleared*.16;
-    if(cleared<10)return 2.9+(cleared-5)*.24;
-    if(cleared<20)return 4.1+(cleared-10)*.22;
-    if(cleared<35)return 6.3+(cleared-20)*.10;
-    return Math.min(10,7.8+(cleared-35)*.045);
+    // Get into the fun immediately: a brisk launch and smooth speed-up
+    // after each clear, without changing jump physics or reward scoring.
+    if(cleared<5)return 3.25+cleared*.28;
+    if(cleared<10)return 4.65+(cleared-5)*.22;
+    if(cleared<20)return 5.75+(cleared-10)*.115;
+    if(cleared<35)return 6.9+(cleared-20)*.07;
+    return Math.min(10,7.95+(cleared-35)*.045);
   }
   function flight(){
     let y=GROUND,vy=JUMP,t=0,first=0,last=0;
@@ -34,7 +36,7 @@
       delay:Math.max(12,arc.land+14-300/speed)+random()*22};
   }
   function create(random=Math.random){
-    const s={y:GROUND,vy:0,obstacles:[],distance:0,travel:0,speed:speedFor(0),cleared:0,alive:true,buffer:0,wait:60,ticks:0,jumps:0,lands:0};
+    const s={y:GROUND,vy:0,obstacles:[],distance:0,travel:0,speed:speedFor(0),cleared:0,alive:true,buffer:0,wait:36,ticks:0,jumps:0,lands:0};
     function jump(){if(!s.alive)return false;s.buffer=7;if(s.y>=GROUND){s.vy=JUMP;s.buffer=0;s.jumps++;return true;}return false;}
     function step(){
       if(!s.alive)return;

@@ -3,7 +3,7 @@ async function open(page,path='/mini.html?game=bounceRun'){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');});
   await page.route('https://**',route=>route.abort());
-  await page.route('**/bounce-run-engine.js',async route=>{
+  await page.route('**/bounce-run-engine.js*',async route=>{
     const response=await route.fetch();
     await route.fulfill({response,body:await response.text()+`;const originalBounceCreate=BounceRunEngine.create;BounceRunEngine.create=(...args)=>{
       const engine=originalBounceCreate(...args);
@@ -22,6 +22,30 @@ async function open(page,path='/mini.html?game=bounceRun'){
   await expect(page.locator('#surface canvas')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.testBounce?.state.ticks||0)).toBeGreaterThan(0);
   return errors;
+}
+for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
+ test('Bounce Run opens with a fast, immediately visible course '+path,async({page})=>{
+  const errors=await open(page,path);
+  const start=await page.evaluate(()=>({
+    speed:testBounce.state.speed,
+    wait:testBounce.state.wait,
+    initial:BounceRunEngine.speedFor(0),
+    afterFive:BounceRunEngine.speedFor(5),
+    afterTen:BounceRunEngine.speedFor(10)
+  }));
+  expect(start.speed).toBe(3.25);
+  expect(start.initial).toBe(3.25);
+  expect(start.wait).toBeGreaterThan(0);
+  expect(start.afterFive).toBeGreaterThan(start.initial);
+  expect(start.afterTen).toBeGreaterThan(start.afterFive);
+  // The Playwright fixture holds hazards back for controls tests; briefly
+  // permit a real physics wave and assert that it uses the launch pace.
+  await page.evaluate(()=>{testBounce.state.wait=1;});
+  await expect.poll(()=>page.evaluate(()=>testBounce.state.obstacles.length)).toBeGreaterThan(0);
+  const waveSpeed=await page.evaluate(()=>testBounce.state.obstacles[0].speed);
+  expect(waveSpeed).toBe(3.25);
+  expect(errors).toEqual([]);
+ });
 }
 test('Bounce Run HUD and motion preferences avoid frame-by-frame DOM and storage work',async({page})=>{
  const errors=await open(page);
@@ -191,9 +215,52 @@ for(const height of [640,740])test('Bounce Run phone controls stay below the jum
  expect(q.y).toBeGreaterThanOrEqual(j.y+j.height+4);
  expect(p.y+p.height).toBeLessThanOrEqual(height);
  expect(q.x).toBeGreaterThanOrEqual(p.x+p.width+4);
- await expect(page.locator('#earnlyCompactLeaderboard')).toBeHidden();
+ const leaderboard=page.locator('#earnlyCompactLeaderboard');
+ await expect(leaderboard).toBeVisible();
+ const board=await leaderboard.boundingBox();
+ expect(board.y).toBeGreaterThanOrEqual(p.y+p.height+4);
  await pause.click();await page.getByRole('button',{name:/Resume/}).click();
  await page.screenshot({path:test.info().outputPath('bounce-run-phone-'+height+'.png')});
  expect(errors).toEqual([]);
 });
 
+
+for(const path of ['/mini.html?game=bounceRun','/www/mini.html?game=bounceRun']){
+ test('Bounce Run scrolls 10 real-format scores beneath its controls without jumping '+path,async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const errors=await open(page,path);
+  await page.evaluate(()=>{
+   window.EarnlyCloud={
+    ...(window.EarnlyCloud||{}),
+    leaderboard:async(game,limit)=>({
+     ok:true,game,label:'distance',
+     entries:Array.from({length:10},(_,index)=>({
+      rank:index+1,username:'test_runner_'+(index+1),
+      score:1000-index*75,avatar:'⚪'
+     })).slice(0,limit)
+    })
+   };
+   window.dispatchEvent(new Event('earnly-leaderboard-updated'));
+  });
+  const card=page.locator('#earnlyCompactLeaderboard');
+  const list=card.locator('.compact-leaderboard-list');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.compact-leaderboard-row')).toHaveCount(10);
+  await expect(card.locator('.compact-leaderboard-target')).toContainText('Beat #10');
+  const controls=await page.locator('.bounce-session-controls').boundingBox();
+  const cardBounds=await card.boundingBox();
+  expect(cardBounds.y).toBeGreaterThanOrEqual(controls.y+controls.height+4);
+  const before=await page.evaluate(()=>testBounce.state.jumps);
+  await card.locator('.compact-leaderboard-target').click();
+  expect(await page.evaluate(()=>testBounce.state.jumps)).toBe(before);
+  const scroll=await list.evaluate(el=>{
+   const scrollable=el.scrollHeight>el.clientHeight;
+   el.scrollTop=el.scrollHeight;
+   return {scrollable,scrollTop:el.scrollTop,touchAction:getComputedStyle(el).touchAction};
+  });
+  expect(scroll.scrollable).toBe(true);
+  expect(scroll.scrollTop).toBeGreaterThan(0);
+  expect(scroll.touchAction).toBe('pan-y');
+  expect(errors).toEqual([]);
+ });
+}

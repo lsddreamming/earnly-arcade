@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
+<defs><linearGradient id="coat"><stop stop-color="#314b66"/><stop offset=".45" stop-color="#58758e"/><stop offset="1" stop-color="#263c54"/></linearGradient></defs>
+<g stroke="#182b40" stroke-width="2.5" stroke-linejoin="round">
+<path d="M106 278L194 278L202 345L165 350L150 309L136 350L98 345Z" fill="#263a53"/>
+<path d="M103 173Q82 175 70 199L57 254L88 264L105 221ZM197 173Q220 175 228 201L240 254L210 264L194 221Z" fill="url(#coat)"/>
+<path d="M103 173Q150 157 198 173L210 217L217 266Q216 288 207 300Q152 317 93 300Q83 287 83 265L91 211Z" fill="url(#coat)"/>
+<path d="M108 165Q150 188 192 165Q205 187 188 210Q150 233 112 210Q95 187 108 165Z" fill="#30465e"/>
+<path d="M113 174Q150 192 187 174M150 193V215M101 285Q150 297 204 285M112 307L107 338M188 307L194 338" fill="none" stroke="#839aae" stroke-width="2" opacity=".65"/>
+<path d="M94 295Q150 310 206 295L205 304Q150 320 95 304Z" fill="#1e3248"/>
+<path d="M97 338L139 338L140 373Q118 380 91 374L91 359Z M163 338L203 338L212 359L214 374Q187 380 164 373Z" fill="#30465e"/>
+<path d="M91 367Q115 373 140 367L140 376Q115 382 91 376ZM164 367Q188 373 214 367L214 376Q187 382 164 376Z" fill="#cdd9df"/>
+</g></svg>

@@ -6,19 +6,48 @@ const modePicker=document.getElementById('breachMode'),weaponButton=document.get
 const sectorHud=document.getElementById('sectorHud');
 const sectorStage=document.getElementById('sectorStage');
 const sectorObjective=document.getElementById('sectorObjective');
+const modeCards=Array.from(document.querySelectorAll('.breach-mode-card'));
+const modeNote=document.getElementById('breachModeNote');
+function modeBest(mode){
+ try{return Math.max(0,Number(localStorage.getItem('neonBreachModeBest:'+mode))||0)}catch(_){return 0}
+}
+function refreshModeChoices(){
+ for(const button of modeCards){
+  const active=button.dataset.mode===selectedMode;
+  button.classList.toggle('is-selected',active);button.setAttribute('aria-pressed',String(active));
+  const label=document.getElementById(button.dataset.mode+'ModeBest');
+  if(label)label.textContent='Your best: '+(modeBest(button.dataset.mode)||'—');
+ }
+ modePicker.value=selectedMode;
+ modeNote.textContent=selectedMode==='sector'
+  ?'Sector Run: explore extended chambers, face roaming robots, find the key and escape. Rankings currently combine modes.'
+  :'Wave Arena: survive escalating waves for up to three minutes. Rankings currently combine modes.';
+}
+
 
 function updateSectorHud(){
   const visible=running&&state.mode==='sector';
   sectorHud.hidden=!visible;
   if(!visible)return;
-  const step=state.doorOpen?3:state.key?2:1;
-  const stage='Objective '+step+' of 3';
+  const step=state.bossDefeated?4:state.doorOpen?3:state.key?2:1;
+  const stage='Objective '+step+' of 4';
   const objective=E.sectorObjective(state);
   if(sectorStage.textContent!==stage)sectorStage.textContent=stage;
   if(sectorObjective.textContent!==objective)sectorObjective.textContent=objective;
 }
 
-const makeState=()=>selectedMode==='sector'?E.createSector():E.create();
+const sectorStartKey='neonBreachLastSectorStart';
+let lastSectorStart=-1;
+try{lastSectorStart=Number(localStorage.getItem(sectorStartKey)??-1)}catch{}
+function makeState(startingRun=false){
+ if(selectedMode!=='sector')return E.create();
+ const next=E.createSector(undefined,lastSectorStart);
+ if(startingRun){
+  lastSectorStart=next.sectorStart;
+  try{localStorage.setItem(sectorStartKey,String(lastSectorStart))}catch{}
+ }
+ return next;
+}
 let state=E.create(),running=false,starting=false,paused=false,last=0,raf=0,moveId=null,aimId=null,fireId=null,aimX=0,joy={forward:0,strafe:0},keys=new Set(),pauseControl;
 
 // Opt-in, on-device control evidence. Nothing is stored or uploaded.
@@ -28,7 +57,7 @@ checkButton.className='breach-control-check';
 const helpButton=document.createElement('button');helpButton.id='breachHelp';helpButton.type='button';helpButton.textContent='Help';helpButton.className='breach-control-check';
 document.querySelector('.aim-tip').append(helpButton);
 const helpDialog=document.createElement('dialog');helpDialog.id='breachHelpDialog';helpDialog.className='breach-help-dialog';
-helpDialog.innerHTML='<h2>Neon Breach controls</h2><p>1. Drag MOVE to walk.<br>2. Drag the arena to aim.<br>3. Hold FIRE to shoot. Keep moving as you aim.</p><p>Keyboard: WASD to move, arrows to aim, Space to fire. In Sector Run, press E or tap the weapon button to switch.</p><p>Sector Run: find the gold key, approach the gold door, and reach the green exit. Pick up the Scattergun and shells along the way. Follow the passage around the key room window, and watch for drones when you grab the key. Sidestep blue plasma bolts and break line of sight when a sentry paints an amber targeting beam.</p><p>Having trouble? Control check shows what your touches are doing.</p>';
+helpDialog.innerHTML='<h2>Neon Breach controls</h2><p>1. Drag MOVE to walk.<br>2. Drag the arena to aim.<br>3. Hold FIRE to shoot. Keep moving as you aim.</p><p>Keyboard: WASD to move, arrows to aim, Space to fire. In Sector Run, press E or tap the weapon button to switch.</p><p>Sector Run: find the gold key, approach the gold door, and defeat the Sector Warden, then reach the green exit. Pick up the Scattergun and shells along the way. Follow the passage around the key room window, and watch for drones when you grab the key. Sidestep blue plasma bolts and break line of sight when a sentry paints an amber targeting beam.</p><p>Having trouble? Control check shows what your touches are doing.</p>';
 const helpBack=document.createElement('button');helpBack.type='button';helpBack.textContent='Back to game';helpBack.className='wide green';
 helpDialog.append(checkButton,helpBack);document.body.append(helpDialog);
 let resumeAfterHelp=false;
@@ -89,9 +118,20 @@ function events(){
 }
 
 function loop(now){if(!running||paused)return;const dt=Math.min(.05,(now-last)/1000);last=now;const input={forward:joy.forward+(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0),strafe:joy.strafe+(keys.has('d')?1:0)-(keys.has('a')?1:0),turn:(keys.has('ArrowRight')?2:0)-(keys.has('ArrowLeft')?2:0),fire:fireId!==null||keys.has(' ')};E.tick(state,dt,input);if(controlCheck.enabled){controlCheck.frames++;const o=controlCheck.origin;if(o)controlCheck.distance=Math.max(controlCheck.distance,Math.hypot(state.player.x-o.x,state.player.y-o.y))}events();chrome();render(dt,Math.hypot(input.forward,input.strafe)>.1);fireButton.classList.toggle('firing',input.fire);if(state.ended){finish();return}raf=requestAnimationFrame(loop)}
-function finish(){if(!running)return;running=false;audio.stop();if(state.completed||state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML=state.mode==='sector'?(state.completed?'SECTOR SECURED<span>You reached the exit beacon.</span>':'MISSION FAILED<span>Try using cover between fights.</span>'):'RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const result=Arcade.recordResult(game,state.score);chrome();Arcade.gameResult({game,icon:'🤖',title:state.completed?'Sector Secured':state.time>=180?'Breach Complete':'Neon Breach Run Over',outcome:state.kills+' robot'+(state.kills===1?'':'s')+' defeated',tip:state.kills===0?'Tip: hold FIRE while dragging the arena to aim.':'Tip: keep moving sideways while you fire.',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🤖 Robots defeated: ${state.kills}`,state.mode==='sector'?`⚿ Key: ${state.key?'found':'missing'} · Exit: ${state.completed?'reached':'not reached'}`:`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
-function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=makeState();if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
-modePicker.addEventListener('change',()=>{if(running||starting)return;selectedMode=modePicker.value;state=makeState();message.querySelector('span').textContent=selectedMode==='sector'?'Find the key. Open the gold door. Reach the exit.':'They found you. Make every shot count.';chrome();render();});
+function finish(){if(!running)return;running=false;audio.stop();if(state.completed||state.time>=180)audio.voice('complete',true);comms.hidden=true;resetInput();cancelAnimationFrame(raf);status('Run Over',false);els.startButton.textContent='▶ PLAY AGAIN';message.hidden=false;message.innerHTML=state.mode==='sector'?(state.completed?'SECTOR SECURED<span>You reached the exit beacon.</span>':'MISSION FAILED<span>Try using cover between fights.</span>'):'RUN COMPLETE<span>Ready for another breach?</span>';const coins=Arcade.gameReward('neonBreach',state.score);Arcade.earn(coins,'Neon Breach',{kind:'game',game,metric:state.score,aux:state.kills});const mode=state.mode==='sector'?'sector':'arena';
+ const previous=modeBest(mode);
+ if(state.score>previous)try{localStorage.setItem('neonBreachModeBest:'+mode,String(state.score))}catch(_){}
+ const result=Arcade.recordResult(game,state.score);refreshModeChoices();chrome();Arcade.gameResult({game,icon:'🤖',title:state.completed?'Sector Secured':state.time>=180?'Breach Complete':'Neon Breach Run Over',outcome:state.kills+' robot'+(state.kills===1?'':'s')+' defeated',tip:state.kills===0?'Tip: hold FIRE while dragging the arena to aim.':'Tip: keep moving sideways while you fire.',scoreLabel:'POINTS',score:state.score,best:Arcade.best(game).display,coins,result,playsLeft:Arcade.remaining(game),extra:[`🎮 ${mode==='sector'?'Sector Run':'Wave Arena'} personal best: ${modeBest(mode).toLocaleString()} points`,`🌐 World ranking currently combines both modes`,`🏅 Run XP: +${result.xpAward} (higher scores unlock more XP)`,`🪙 Run coins: ${coins}/200 max · next tier every 200 points`,`🤖 Robots defeated: ${state.kills}`,state.mode==='sector'?`⚿ Key: ${state.key?'found':'missing'} · Exit: ${state.completed?'reached':'not reached'}`:`⚡ Wave reached: ${state.wave}`,`⏱️ Time played: ${Math.round(state.time)}s`,`◎ Accuracy: ${state.fired?Math.round(state.hits/state.fired*100):0}%`],onReplay:start,onMorePlays:()=>Arcade.out(game,()=>{chrome();start()})})}
+function start(){if(running||starting)return;audio.unlock();audio.reset();renderer.reset();lastComms=-20;lowHealth=false;comms.hidden=true;if(!Arcade.consume(game)){Arcade.out(game,()=>{chrome();start()});return}starting=true;els.startButton.disabled=true;resetInput();state=makeState(true);if(controlCheck.enabled){controlCheck.origin={x:state.player.x,y:state.player.y};controlCheck.distance=0;controlCheck.frames=0}message.hidden=true;render();Arcade.countdown(()=>{starting=false;running=true;paused=false;els.startButton.disabled=false;status('Running',true);chrome();last=performance.now();raf=requestAnimationFrame(loop)})}
+function selectMode(mode){
+ if(running||starting||!['arena','sector'].includes(mode))return;
+ selectedMode=mode;state=makeState();
+ message.querySelector('span').textContent=selectedMode==='sector'?'Find the key. Open the gold door. Reach the exit.':'They found you. Make every shot count.';
+ refreshModeChoices();chrome();render();
+}
+modePicker.addEventListener('change',()=>selectMode(modePicker.value));
+for(const button of modeCards)button.addEventListener('click',()=>selectMode(button.dataset.mode));
+refreshModeChoices();
 weaponButton.addEventListener('click',()=>{if(!running||paused)return;E.switchWeapon(state);chrome()});
 els.startButton.addEventListener('click',start);
 // Accept either finger stream. A real Touch Event takes over its role from
@@ -168,9 +208,19 @@ for(const name of ['touchend','touchcancel'])document.addEventListener(name,e=>{
 document.addEventListener('pointermove',e=>{const id=pointerId(e);if(id===moveId||id===aimId){e.preventDefault();moveInput(id,e)}});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,e=>releaseInput(pointerId(e)));
 document.addEventListener('keydown',e=>{if(e.target.closest?.('input,textarea,select,a,.modal-backdrop,#soundButton,#voiceButton'))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d',' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault();if(running&&!paused)keys.add(key)}if(key==='e'&&running&&!paused){E.switchWeapon(state);chrome()}if(e.key==='Enter'&&!running&&!starting)start()});document.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
-pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachHelp,.breach-help-dialog'),resumeOnInput:e=>e.type==='keydown'||!!e.target.closest?.('#breachControls,#game')});
+pauseControl=Arcade.installPauseControl({isRunning:()=>running,pause:()=>{paused=true;audio.suspend();resetInput();cancelAnimationFrame(raf);message.innerHTML='PAUSED<span>Tap a control to resume</span>';message.hidden=false},resume:()=>{if(!paused||!running)return;paused=false;audio.unlock();message.hidden=true;resetInput();last=performance.now();raf=requestAnimationFrame(loop)},allowWhilePaused:e=>!!e.target.closest?.('.breach-settings,#breachHelp,.breach-help-dialog'),preserveOnHistoryRestore:true,resumeOnInput:e=>{
+ if(e.type==='keydown')return true;
+ // Safari can retarget the first touch after returning to the page.
+ if(e.type==='touchstart')return Array.from(e.changedTouches).some(fingerSurface);
+ if(e.type==='pointerdown'&&e.pointerType==='touch')return Boolean(fingerSurface(e));
+ return (e.type==='pointerdown'||e.type==='click')&&!!e.target.closest?.('#breachControls,#game');
+}});
 // Shared mobile dock is initially inserted after the canvas; move it below the thumb controls.
 let dock=document.querySelector('.earnly-session-dock');if(!dock){dock=document.createElement('div');dock.className='earnly-session-dock';dock.append(pauseControl.button,document.getElementById('earnlyQuitButton'))}document.getElementById('breachControls').insertAdjacentElement('afterend',dock);
-function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',()=>{running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput()});
+function backgroundPause(){audio.suspend();resetInput();if(running&&!paused)pauseControl.button.click()}window.addEventListener('blur',backgroundPause);document.addEventListener('visibilitychange',()=>{if(document.hidden)backgroundPause()});window.addEventListener('pagehide',event=>{
+ if(event.persisted){backgroundPause();return}
+ running=false;starting=false;audio.suspend();cancelAnimationFrame(raf);resetInput();
+});
+window.addEventListener('pageshow',event=>{if(event.persisted){resetInput();pauseControl.sync();render()}});
 new ResizeObserver(()=>{const r=canvas.getBoundingClientRect(),width=Math.round(Math.min(800,Math.max(400,r.width*Math.min(2,window.devicePixelRatio||1))));canvas.width=width;canvas.height=Math.round(width*r.height/Math.max(1,r.width));render()}).observe(canvas);soundControls();chrome();render();
 })();
