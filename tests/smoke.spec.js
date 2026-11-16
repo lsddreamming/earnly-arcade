@@ -294,7 +294,7 @@ test('games catalog keeps Play readable, disabled actions readable, and avoids d
   // contrast across every accent instead of locking in the retired dark text.
   for (const catalog of ['starter', 'all']) {
     if (catalog === 'all') await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 29 : 4);
+    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 30 : 4);
     const colors = await page.locator('#games .game-play-button:not(:disabled)').evaluateAll(buttons => {
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = 1;
@@ -324,7 +324,7 @@ test('games catalog keeps Play readable, disabled actions readable, and avoids d
         };
       });
     });
-    expect(colors).toHaveLength(catalog === 'all' ? 29 : 4);
+    expect(colors).toHaveLength(catalog === 'all' ? 30 : 4);
     for (const color of colors) {
       expect(color.contrast, color.game+' Play contrast').toBeGreaterThanOrEqual(4.5);
       expect(color.backgroundLight, color.game+' quiet Play background').toBeLessThan(0.1);
