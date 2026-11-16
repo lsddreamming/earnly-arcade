@@ -294,7 +294,7 @@ test('games catalog keeps Play readable, disabled actions readable, and avoids d
   // contrast across every accent instead of locking in the retired dark text.
   for (const catalog of ['starter', 'all']) {
     if (catalog === 'all') await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 29 : 4);
+    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 30 : 4);
     const colors = await page.locator('#games .game-play-button:not(:disabled)').evaluateAll(buttons => {
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = 1;
@@ -324,7 +324,7 @@ test('games catalog keeps Play readable, disabled actions readable, and avoids d
         };
       });
     });
-    expect(colors).toHaveLength(catalog === 'all' ? 29 : 4);
+    expect(colors).toHaveLength(catalog === 'all' ? 30 : 4);
     for (const color of colors) {
       expect(color.contrast, color.game+' Play contrast').toBeGreaterThanOrEqual(4.5);
       expect(color.backgroundLight, color.game+' quiet Play background').toBeLessThan(0.1);
@@ -359,7 +359,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
   await page.locator('[data-filter=all]').click();
-  await expect(cards).toHaveCount(29);
+  await expect(cards).toHaveCount(30);
   const featured = cards.first();
   await expect(featured).toHaveAttribute('data-game', 'neonSlice');
   const feature = await featured.boundingBox();
@@ -1815,7 +1815,7 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
 
 
 test('first visit starts with games and optional help without a blocking walkthrough', async ({ page }) => {
-  await page.goto('/index.html');
+  await openGuestGamePage(page, '/index.html');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForTimeout(650);
@@ -1946,7 +1946,7 @@ test('offline cloud progress has an explicit recovery lifecycle', async ({ page 
 
 
 test('Home resets restored scroll and clears the fixed bottom nav', async ({ page }) => {
-  await page.goto('/index.html');
+  await openGuestGamePage(page, '/index.html');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
   await page.reload();
 
@@ -2515,14 +2515,15 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   }
 });
 
-test('Crystal Command belongs to the 29-game catalog as a free searchable strategy beta', async ({page}) => {
+test('Crystal Command belongs to the 30-game catalog as a free searchable strategy beta', async ({page}) => {
   await page.goto('/games.html');
   await page.locator('[data-filter=all]').click();
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(29);
-  await expect(page.locator('#gameBrowseCount')).toHaveText('29 games to explore');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(30);
+  await expect(page.locator('#gameBrowseCount')).toHaveText('30 games to explore');
   await page.locator('[data-filter=strategy]').click();
   const card=page.locator('#games [data-game=crystalCommand]');
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(2);
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(3);
+  await expect(page.locator('#games [data-game=spuddyDefense] a')).toHaveAttribute('href','spuddy-defense.html');
   await expect(page.locator('#games [data-game=spuddyTurf] a')).toHaveAttribute('href','spuddy-turf.html');
   await expect(card.locator('.game-play-button')).toHaveText('Play');
   await expect(card.locator('.game-play-button')).toHaveAttribute('href','crystal-command.html');
@@ -2835,7 +2836,7 @@ for (const prefix of ['/', '/www/']) {
     await expect(page.locator('#gameBrowseCount')).toContainText('fresh picks');
     const before = await page.evaluate(() => ({coins:Arcade.number('points'), plays:Arcade.remaining('snake')}));
     await page.locator('#browseAllGames').click();
-    await expect(cards).toHaveCount(29);
+    await expect(cards).toHaveCount(30);
     await expect(page.locator('#games [data-game=spuddyEvolution] .reward-rule')).toContainText('no Arcade Coin rewards');
     await expect(page.locator('[data-filter=all]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#browseAllGames')).toBeHidden();
@@ -2864,7 +2865,7 @@ for (const prefix of ['/', '/www/']) {
 }
 
 for (const prefix of ['/', '/www/']) {
-  test(prefix + 'Games starter picks rotate all 29 titles over eight page refreshes',async({page})=>{
+  test(prefix + 'Games starter picks rotate all 30 titles over eight page refreshes',async({page})=>{
     await page.route('https://**',r=>r.abort());
     const keys=()=>page.locator('#games > .catalog-tile').evaluateAll(items=>items.map(item=>item.dataset.game));
     const seen=[],groups=[];
@@ -2877,13 +2878,13 @@ for (const prefix of ['/', '/www/']) {
       if(groups.length)expect(selected.some(id=>groups.at(-1).includes(id))).toBe(false);
       groups.push(selected);seen.push(...selected);
     }
-    expect(new Set(seen).size).toBe(29);
+    expect(new Set(seen).size).toBe(30);
     await page.reload();
     const next=await keys();
     expect(next.some(id=>groups.at(-1).includes(id))).toBe(false);
     const unchanged=await keys();
     await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games > .catalog-tile')).toHaveCount(29);
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(30);
     await page.locator('[data-filter=starter]').click();
     expect(await keys()).toEqual(unchanged);
   });
@@ -2921,7 +2922,7 @@ for (const prefix of ['/', '/www/']) {
       await page.locator('#homeMorePicks').click();
       const pair=await keys();expect(pair[0]).not.toBe(pair[1]);seen.push(...pair);
     }
-    expect(new Set(seen).size).toBe(29);
+    expect(new Set(seen).size).toBe(30);
     const last=await keys();await page.reload();
     await expect(cards.first()).toHaveAttribute('data-game', /.+/);
     const next=await keys();expect(next.some(key=>last.includes(key))).toBe(false);

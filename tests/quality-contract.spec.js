@@ -94,7 +94,7 @@ function objectKeysNear(source, label) {
     .map(match => match[1]);
 }
 
-test('29 catalog games retain historical reward records for the unlisted racer', () => {
+test('30 catalog games retain historical reward records for the unlisted racer', () => {
   const arcade = read('arcade.js');
   const games = read('games.html');
   const mini = read('mini-games.js');
@@ -104,8 +104,8 @@ test('29 catalog games retain historical reward records for the unlisted racer',
   const miniConfigs = objectKeysNear(mini, 'const configs');
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
-  expect(new Set(catalog).size).toBe(29);
-  expect([...catalog].sort()).toEqual([...expectedGameKeys.filter(game => game !== 'turboKart'), 'crystalCommand', 'bubblePop', 'neonSlice', 'harborGetaway', 'spuddyTurf', 'spuddyEvolution', 'bigFishEnergy'].sort());
+  expect(new Set(catalog).size).toBe(30);
+  expect([...catalog].sort()).toEqual([...expectedGameKeys.filter(game => game !== 'turboKart'), 'crystalCommand', 'bubblePop', 'neonSlice', 'harborGetaway', 'spuddyTurf', 'spuddyEvolution', 'bigFishEnergy', 'spuddyDefense'].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys, 'dodger'].sort());
   expect([...miniConfigs].sort()).toEqual([
@@ -456,7 +456,7 @@ test('Games starter refresh cycles every published title before repeating', () =
   const vm=require('node:vm');
   const {nextBatch}=require('../games-starter-rotation.js');
   const gameInfo=vm.runInNewContext('(' + read('games.html').match(/const gameInfo = (\[[\s\S]*?\n    \]);/)[1] + ')');
-  expect(gameInfo).toHaveLength(29);
+  expect(gameInfo).toHaveLength(30);
   expect(read('games-starter-rotation.js')).toBe(read('www/games-starter-rotation.js'));
   for(const random of [()=>0,()=>0.999999,Math.random]){
     let saved=null,previous=[];

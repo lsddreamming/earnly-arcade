@@ -197,6 +197,7 @@
     "icon": "🌱",
     "description": "Gather seeds. Grow your Spuddy."
   },
+  {"key":"spuddyDefense","name":"Spuddy Defense","href":"spuddy-defense.html","icon":"🥔","description":"Build your squad. Protect your patch."},
   {"key":"bigFishEnergy","name":"BIG FISH ENERGY","href":"big-fish-energy.html","icon":"🦈","description":"Eat fish. Become an ocean giant."}
 ];
 
@@ -237,7 +238,7 @@
   const storageKey = 'earnly.home.featured.queue.v2';
   let memoryState = null;
   const themes = ['slice','snake','jungle','breach'];
-  const previewImages = {bigFishEnergy:'game-preview-big-fish-energy.webp',bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
+  const previewImages = {spuddyDefense:'game-preview-spuddy-defense.webp',bigFishEnergy:'game-preview-big-fish-energy.webp',bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
 
   function makeCard(info) {
     const original = existing.find(card => card.getAttribute('href') === info.href);

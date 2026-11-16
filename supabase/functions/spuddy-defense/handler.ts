@@ -1,0 +1,17 @@
+import './engine.js';
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Content-Type':'application/json'};
+export async function handleDefense(req:Request,db:any){
+ const json=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers}),E=(globalThis as any).SpuddyDefense;
+ if(req.method==='OPTIONS')return new Response('ok',{headers});if(req.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
+ try{const raw=await req.text();if(raw.length>50000)return json({error:'REQUEST_TOO_LARGE'},413);let b:any;try{b=JSON.parse(raw);}catch{return json({error:'INVALID_REQUEST'},400);}if(!b||typeof b!=='object'||Array.isArray(b))return json({error:'INVALID_REQUEST'},400);
+  const validMap=(v:any)=>E.MAPS.some((m:any)=>m.id===v),validMode=(v:any)=>Object.keys(E.MODES).includes(v);
+  if(b.action==='list'){if(!validMap(b.map)||!validMode(b.mode))return json({error:'INVALID_OPTIONS'},400);const {data,error}=await db.rpc('spuddy_defense_leaderboard',{p_map:b.map,p_mode:b.mode});if(error)throw error;return json({entries:data||[]});}
+  const token=req.headers.get('Authorization')?.replace(/^Bearer /i,'');if(!token)return json({error:'SIGN_IN_REQUIRED'},401);const {data:auth,error:authError}=await db.auth.getUser(token);if(authError||!auth?.user||auth.user.is_anonymous)return json({error:'SIGN_IN_REQUIRED'},401);const uid=auth.user.id;
+  if(b.action==='profile'){const {data,error}=await db.rpc('spuddy_defense_profile',{p_user_id:uid});if(error)throw error;return json(data);}
+  if(b.action==='start'){if(!validMap(b.map)||!validMode(b.mode)||(b.challengeKind&&!['daily','weekly'].includes(b.challengeKind)))return json({error:'INVALID_OPTIONS'},400);const challenge=b.challengeKind?E.challenge(b.challengeKind):null,options=challenge||{map:b.map,mode:b.mode,seed:crypto.getRandomValues(new Uint32Array(1))[0]||1};const s=E.create({...options,challenge}).snapshot();const {data,error}=await db.rpc('spuddy_defense_start',{p_user_id:uid,p_snapshot:s});if(error)throw error;return json(data);}
+  if(b.action!=='checkpoint'||typeof b.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.id)||!Number.isInteger(b.sequence)||b.sequence<0)return json({error:'INVALID_REQUEST'},400);
+  const {data:round,error}=await db.from('spuddy_defense_runs').select('id,user_id,map,mode,seed,challenge,snapshot,sequence,last_receipt,finished').eq('id',b.id).eq('user_id',uid).maybeSingle();if(error)throw error;if(!round)return json({error:'ROUND_NOT_FOUND'},404);
+  if(b.sequence===round.sequence-1&&round.last_receipt)return json({...round.last_receipt,duplicate:true,amount:0});if(b.sequence!==round.sequence||round.finished)return json({error:'SEQUENCE_CONFLICT'},409);
+  const snapshot=E.replay(round,b.batch);const {data,error:commitError}=await db.rpc('spuddy_defense_checkpoint',{p_user_id:uid,p_id:round.id,p_sequence:b.sequence,p_snapshot:snapshot,p_ticks:b.batch.ticks});if(commitError)throw commitError;return json(data);
+ }catch(e){const code=String((e as any)?.message||'SERVER_ERROR'),known=['INVALID_BATCH','INVALID_COMMAND','INVALID_TICKS','INVALID_SAVE','ROUND_LIMIT','ROUND_NOT_FOUND','ROUND_TOO_FAST','SEQUENCE_CONFLICT','CONTENT_LOCKED','INVALID_RUN'];return json({error:known.includes(code)?code:'SERVER_ERROR'},known.includes(code)?409:500);}
+}
