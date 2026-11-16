@@ -1,4 +1,4 @@
-const CACHE_NAME = 'earnly-star-immersive-20261113';const CORE_ASSETS = [
+const CACHE_NAME = 'earnly-key-bay-20261116';const CORE_ASSETS = [
  './star-defender.css?v=3','./star-defender-scene.js?v=1','./star-defender-flight.js?v=1',
  './lane-runner.css?v=1','./shape-fit.css?v=1','./shape-fit-rules.js?v=1','./mini-games.js?v=depth-polish-1',
  './spuddy-turf.html','./spuddy-turf.css?v=1','./spuddy-turf-engine.js?v=1','./spuddy-turf-renderer.js?v=1','./spuddy-turf.js?v=1',
@@ -50,6 +50,7 @@ const CACHE_NAME = 'earnly-star-immersive-20261113';const CORE_ASSETS = [
   './neondrift.html', './neondrift.css?v=3', './neondrift.js?v=3', './neondrift-engine.js?v=2', './neondrift-renderer.js?v=3', './neondrift-audio.js',
   './neonbreach-audio.js?v=sector3', './neonbreach-sector.js?v=sector3', './neonbreach-engine.js?v=sector3', './neonbreach-renderer.js?v=sector3',
   './neonbreach.js?v=sector3', './neonbreach.css?v=sector3',
+  './neonbreach-engine.js?v=key-bay2', './neonbreach-sector.js?v=key-bay2', './neonbreach-renderer.js?v=key-bay2', './neonbreach.js?v=key-bay2',
   './neonbreach.html', './neonbreach.css', './neonbreach.js', './neonbreach-engine.js', './neonbreach-art.js', './neonbreach-renderer.js', './neonbreach-audio.js', './neonbreach-voices.js',
   './mini-games.js', './mergerush-rules.js',
   './arcade.css',
