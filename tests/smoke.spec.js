@@ -1815,7 +1815,7 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
 
 
 test('first visit starts with games and optional help without a blocking walkthrough', async ({ page }) => {
-  await page.goto('/index.html');
+  await openGuestGamePage(page, '/index.html');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForTimeout(650);
@@ -1946,7 +1946,7 @@ test('offline cloud progress has an explicit recovery lifecycle', async ({ page 
 
 
 test('Home resets restored scroll and clears the fixed bottom nav', async ({ page }) => {
-  await page.goto('/index.html');
+  await openGuestGamePage(page, '/index.html');
   await page.evaluate(() => localStorage.setItem('arcadeOnboardingSeen', '1'));
   await page.reload();
 
