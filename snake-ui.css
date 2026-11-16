@@ -200,3 +200,15 @@ body.snake-page.snake-game-active :is(.public-footer,.game-guide-link) { display
 @media(max-width:360px) {
   html body.snake-page.game-guide-page:not(.snake-game-active) #earnlyCompactLeaderboard .compact-leaderboard-head { display:none!important; }
 }
+
+/* Orchard board: restrained color and a readable goal within the existing dock. */
+body.snake-page canvas#game { background:#071b23!important; border-color:#38745d!important; border-radius:12px; box-shadow:0 12px 32px #0005,inset 0 0 0 1px #b5ffd215; }
+body.snake-page #snakePace { color:#d9ffad; font-variant-numeric:tabular-nums; }
+body.snake-page #snakeGoal { color:#c7e6d5; font-size:10px; }
+body.snake-page #snakeProgress { display:block; width:100%; height:4px; margin-top:3px; border:0; border-radius:4px; overflow:hidden; background:#25473c; accent-color:#a3e970; }
+body.snake-page #snakeProgress::-webkit-progress-bar { background:#25473c; }
+body.snake-page #snakeProgress::-webkit-progress-value { background:#a3e970; }
+body.snake-page #snakeProgress::-moz-progress-bar { background:#a3e970; }
+@media(prefers-reduced-motion:reduce) {
+  body.snake-page canvas#game { transition:none!important; }
+}

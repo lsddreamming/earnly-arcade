@@ -151,13 +151,22 @@ test('Owned furniture double-taps lift and drop while invalid tiles and cancella
  expect(await page.evaluate(()=>Number.isFinite(window.testRenderer.placement.x))).toBe(true);
  await page.locator('#cancelPlace').click();
  // Panning, a second finger, and pointer cancellation all cancel pending pickup.
+ await expect(page.locator('#placementHint')).not.toBeVisible();
+ // Keep cancellation before the 500ms hold deadline even when dispatching
+ // separate events takes longer on a loaded WebKit CI worker.
  for(const mode of ['pan','pinch','cancel']){
-  p=await point();await pointer('pointerdown',p);
-  if(mode==='pan')await pointer('pointermove',{x:p.x+20,y:p.y});
-  if(mode==='pinch')await pointer('pointerdown',{x:p.x+50,y:p.y},72);
-  if(mode==='cancel')await pointer('pointercancel',p);
-  await page.waitForTimeout(600);await expect(page.locator('#placementHint')).not.toBeVisible();
-  await pointer('pointerup',p);if(mode==='pinch')await pointer('pointerup',p,72);
+  await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
+  try{
+   p=await point();await pointer('pointerdown',p);
+   await page.clock.runFor(400);
+   await expect(page.locator('#placementHint'),mode+' must remain pending before hold deadline').not.toBeVisible();
+   if(mode==='pan')await pointer('pointermove',{x:p.x+20,y:p.y});
+   if(mode==='pinch')await pointer('pointerdown',{x:p.x+50,y:p.y},72);
+   if(mode==='cancel')await pointer('pointercancel',p);
+   await page.clock.runFor(600);
+   await expect(page.locator('#placementHint'),mode+' must cancel pending pickup').not.toBeVisible();
+   await pointer('pointerup',p);if(mode==='pinch')await pointer('pointerup',p,72);
+  }finally{await page.clock.resume();}
  }
  // Tapping away saves the preview position, never the tapped floor coordinates.
  const tap=async q=>{if(isMobile)await page.touchscreen.tap(q.x,q.y);else await page.mouse.click(q.x,q.y);};

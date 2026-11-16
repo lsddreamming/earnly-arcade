@@ -12,7 +12,7 @@
     main, footer { width: min(960px, 100% - 24px); margin: auto; }
     a { color: #9df3d3; }
     header { display:flex; align-items: center; gap: 1rem; padding: 10px 0; }
-    #sound { margin-left:auto; padding:0 8px; font-size:12px; white-space:nowrap; }
+    #sound { pointer-events:auto; min-height:32px; margin-left:auto; padding:0 8px; font-size:12px; white-space:nowrap; }
     h1 { font-size: clamp(21px, 5vw, 32px); margin: 0; }
     .stage { position: relative; overflow: hidden; border: 1px solid #456077; border-radius: 19px; background: #14253a; box-shadow:0 18px 44px #03091388; }
     canvas { display: block; width: 100%; height: min(69svh, 590px); touch-action:none; }
@@ -22,11 +22,14 @@
     #heat.danger { border-color:#c26877; color:#ffd0d7; }
     #heat.clear { border-color:#548e85; color:#a9f7dc; }
     #escape-progress { flex-basis:100%; width:100%; height:7px; accent-color:#9df3d3; }
-    #objective { flex: 1 1 100%; width: max-content; max-width: max-content; }
+    #objective { flex:1 1 100%; min-width:0; max-width:100%; overflow-wrap:anywhere; line-height:1.35; }
+    #speed { font-variant-numeric:tabular-nums; font-weight:800; border-color:#7ebfb1; color:#c7ffe8; }
+    #brake[aria-pressed=true] { background:#704338; border-color:#ffc49c; color:#fff2e6; }
+    .actions button:active { transform:translateY(1px); }
     #district { position:absolute; left:10px; bottom:10px; color:#e9f7f6; border:1px solid #587687; border-radius:7px; padding:5px 7px; background:#101a29dd; font-size:10px; font-weight:800; letter-spacing:.09em; pointer-events:none; }
-    .feedback { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); pointer-events:none;
+    .feedback { position:absolute; left:50%; bottom:114px; transform:translateX(-50%); pointer-events:none;
       border:1px solid #77acaa; border-radius:8px; padding:6px 10px; background:#101a29ed; color:#a9f7dc;
-      font-size:12px; font-weight:750; white-space:nowrap; }
+      font-size:12px; font-weight:750; max-width:calc(100% - 24px); width:max-content; white-space:normal; text-align:center; line-height:1.35; overflow-wrap:anywhere; }
     #brief { color:#9df3d3; }
     .overlay { position:absolute; inset:0; display:grid; place-items:center; background:#0a1527a8; padding:16px; }
     [hidden] { display:none!important; }
@@ -69,7 +72,14 @@
     }
     button { background:linear-gradient(#263e55,#172b40); box-shadow:inset 0 1px #ffffff12; }
     summary { cursor:pointer; min-height:32px; font-weight:700; color:#a9f7dc; }
+    .game-navigation { display:grid; grid-template-columns:1fr 1fr 1.3fr; gap:6px; margin:0 0 6px; flex:none; }
+    .game-navigation button, .game-navigation a, .quit-link { min-height:44px; display:flex; align-items:center; justify-content:center; border:1px solid #7899ad; border-radius:10px; padding:6px; font-size:12px; font-weight:750; text-decoration:none; text-align:center; }
+    .game-navigation a, .quit-link { background:#402b39; border-color:#bf8799; color:#ffe4eb; }
+    .quit-link { margin-top:12px; }
+    #pause { background:#9df3d3; color:#10261f; }
     .focus-game { overflow:hidden; }
+    .focus-game #online-status { margin:2px 0 6px; font-size:12px; }
+    .focus-game #harbor-login { overflow:auto; max-height:40svh; flex-shrink:0; }
     .focus-game main { width:100%; height:100svh; display:flex; flex-direction:column; padding:env(safe-area-inset-top) 6px env(safe-area-inset-bottom); }
     .focus-game header, .focus-game footer, .focus-game .hint, .focus-game .spuddy-settings { display:none; }
     .focus-game .stage { flex:1; min-height:0; border-radius:12px; }
@@ -101,14 +111,18 @@
 </style>
 </head>
 <body>
+  <script>
+    // Start phones in the large view, in either orientation. Manual exit remains available.
+    if (window.matchMedia('(pointer: coarse) and (max-width: 1000px) and (max-height: 1000px)').matches) document.body.classList.add('focus-game');
+  </script>
   <main>
-    <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1><button type="button" id="sound" aria-pressed="true">Sound on</button></header>
+    <header><a href="games.html">← Games</a><h1>Harbor Getaway</h1></header>
     <div class="stage">
       <canvas id="city" aria-label="Third-person view of the harbor neighborhood"></canvas>
-      <div class="hud"><span id="live-health" role="status" hidden></span>
+      <div class="hud"><button type="button" id="sound" aria-pressed="true">Sound on</button><span id="live-health" role="status" hidden></span>
         <span id="clock">3:00</span><span id="heat">ON FOOT</span><span id="speed" hidden></span>
         <span id="objective">Find the marked getaway car.</span>
-        <progress id="escape-progress" max="5" value="0" aria-label="Progress toward losing the patrol" hidden></progress>
+        <progress id="escape-progress" max="5" value="0" aria-label="Progress toward clearing chase-tag" hidden></progress>
       </div>
       <span id="stamina" style="position:absolute;left:10px;bottom:42px;background:#101a29dd;padding:5px 8px;border-radius:8px;font-size:12px;pointer-events:none">Energy 100%</span>
       <span id="district">WEST RAIL</span>
@@ -117,7 +131,7 @@
         <section class="panel">
           <span class="eyebrow">HARBOR DISTRICT / COASTAL RUN</span>
           <h2 id="title">Get out of the harbor</h2>
-          <p id="description">Twelve jobs across the harbor, from quick deliveries to multi-stage escapes. Or explore the expanded city in Free roam.</p>
+          <p id="description">A playful harbor rally: deliveries, chase-tag and pulse targets. Enter cars, hop onto car roofs, or explore in Free roam. Nearby pedestrians flee shots; direct hits cause brief cartoon knockdowns.</p>
           <p id="best" hidden></p>
           <div class="board-fields" id="board-fields">
             <label for="mission">Choose a job</label>
@@ -128,6 +142,7 @@
             <button type="button" id="free-roam">Free roam</button>
             <button type="button" id="open-board" hidden>Jobs board</button>
           </div>
+          <a class="quit-link" href="games.html">Quit · Back to Games</a>
         </section>
       </div>
     </div>
@@ -142,18 +157,23 @@
         <button type="button" id="interact">Enter car</button>
         <button type="button" data-key="brake" id="brake" hidden>Handbrake</button>
         <button type="button" id="connect-live">Connect Live</button>
-        <button type="button" id="fire" hidden>Fire</button>
-        <button type="button" id="switch-weapon" hidden>Switch gun</button>
+        <button type="button" id="fire" hidden>Tag</button>
+        <button type="button" id="switch-weapon" hidden>Switch blaster</button>
         <button type="button" id="jobs" hidden>Jobs</button>
+        <button type="button" id="jump" disabled>Jump</button>
         <button type="button" id="run-mode" aria-pressed="false">Run</button>
         <button type="button" id="camera-mode" aria-pressed="false">Look around</button>
-        <button type="button" id="focus-view" aria-pressed="false">Focus view</button>
-        <button type="button" id="pause">Pause</button>
+
       </div>
     </div>
-    <p class="hint touch-hint" id="run-hint">Drag to move. Tap Run to sprint. Lift to stop. Use a second finger to look, or tap Look around.</p>
+    <nav class="game-navigation" aria-label="Pause, view and quit">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="focus-view" aria-pressed="false">Focus view</button>
+      <a href="games.html" aria-label="Quit Harbor Getaway and go back to Games">← Games · Quit</a>
+    </nav>
+    <p class="hint touch-hint" id="run-hint">Drag to move. Double-tap the game view or tap Jump to jump. Tap Run to sprint. Lift to stop. Use a second finger to look, or tap Look around.</p>
     <p class="hint touch-hint" id="drive-hint" hidden>Drag up to drive or sideways to turn. Drag down to brake or reverse. Lift to coast. Use a second finger to look around.</p>
-    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to fire, Space for handbrake, and Esc to pause.</p>
+    <p class="hint keyboard-hint">Use WASD or arrows to move and drive, hold Shift to sprint, Q/R or mouse drag to look, E to enter or exit, F to tag, Space to jump on foot or use the handbrake while driving, and Esc to pause.</p>
     <details id="spuddy-settings" class="spuddy-settings" aria-label="Your Spuddy" style="margin:18px 0;padding:14px;border:1px solid #456077;border-radius:12px">
       <summary>Your Spuddy &amp; customization</summary>
       <p class="hint">Tune your movement. Changes save automatically on this device. The game pauses while this panel is open.</p>
@@ -162,7 +182,7 @@
       <p id="spuddy-status" role="status">Loading Spuddy…</p>
       <button type="button" id="spuddy-refresh">Refresh Spuddy</button>
       <a href="https://earnlyarcade.com/avatars.html">Customize on Earnly Arcade</a>
-      <p class="hint">Live player health, defeats and coin rewards are checked by the server. Traffic, police and NPCs remain local to your game.</p>
+      <p class="hint">Optional live pulse-tag: shields, round resets and coin rewards are checked by the server. Traffic, rally marshals and pedestrians stay local to your game.</p>
     </details>
     <p class="hint">Connect Live enters shared PvP free roam. Defeat another connected player to earn 100 Arcade Coins. NPCs do not award coins.</p><p id="online-status" role="status">Solo free roam · Sign in to earn mission coins.</p>
     <form id="harbor-login" hidden><label>Email <input id="harbor-email" type="email" autocomplete="username" required></label><label>Password <input id="harbor-password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form>
@@ -171,14 +191,15 @@
     <nav aria-label="Site information">
       <a href="index.html">Home</a><a href="games.html">Games</a><a href="about.html">About</a>
       <a href="game-guides.html">Game Guides</a><a href="support.html">Help &amp; Contact</a>
-      <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
+      <a href="harbor-audio-credits.html">Sound credits</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a>
     </nav>
   </footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
   <script src="potato-rig.js"></script>
   <script src="harbor-spuddy.js?v=3"></script>
-  <script src="harbor-online.js"></script>
-  <script src="harbor-getaway.js?v=city-distance-1"></script>
+  <script src="harbor-online.js?v=waterfront-polish-6"></script>
+  <script src="harbor-audio.js?v=waterfront-polish-6"></script>
+  <script src="harbor-getaway.js?v=city-distance-2"></script>
 </body>
 </html>

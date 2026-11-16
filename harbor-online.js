@@ -27,7 +27,7 @@
     takeRespawn(){const value=respawn;respawn=null;return value;},
     fire(angle,weapon){
       if(!live||health===0||shotBusy)return;shotBusy=true;const epoch=liveEpoch;
-      rpc('harbor_fire',{p_angle:Math.atan2(Math.sin(angle),Math.cos(angle)),p_weapon:weapon}).then(hit=>{if(!live||epoch!==liveEpoch)return;if(hit.hit){status(hit.killed?'+'+hit.amount+' Arcade Coins · live player defeated!':'Live player hit · '+hit.health+' health remaining');noticeUntil=Date.now()+3500;}}).catch(()=>{status('Live shot not confirmed. Check your connection.');}).finally(()=>{shotBusy=false;});
+      rpc('harbor_fire',{p_angle:Math.atan2(Math.sin(angle),Math.cos(angle)),p_weapon:weapon}).then(hit=>{if(!live||epoch!==liveEpoch)return;if(hit.hit){status(hit.killed?'+'+hit.amount+' Arcade Coins · tag round won!':'Pulse tag · '+hit.health+' shield remaining');noticeUntil=Date.now()+3500;}}).catch(()=>{status('Live tag not confirmed. Check your connection.');}).finally(()=>{shotBusy=false;});
     },
     tick(state){
       if(!live||busy||Date.now()-last<550)return;
@@ -36,7 +36,7 @@
       rpc('harbor_live',{p_x:state.x,p_z:state.z,p_angle:Math.atan2(Math.sin(state.angle),Math.cos(state.angle)),p_driving:state.driving}).then(data=>{
         if(!live||epoch!==liveEpoch)return;
         const rows=data.peers;health=data.health ?? 100;
-        el('live-health').hidden=false;el('live-health').textContent=health===0?'Defeated · respawning in '+data.respawnIn+'s':'Live health '+health+'/100'+(data.shield?' · Spawn protection':'');
+        el('live-health').hidden=false;el('live-health').textContent=health===0?'Tagged · rejoining in '+data.respawnIn+'s':'Tag shield '+health+'/100'+(data.shield?' · Spawn protection':'');
         if(data.respawn)respawn={x:data.x,z:data.z};
         peers=Array.isArray(rows)?rows.filter(p=>[p.x,p.z,p.angle].every(Number.isFinite)).slice(0,15).map(p=>{const old=window.HarborOnline.peers().find(v=>v.id===p.id);const blend=old&&Math.hypot(old.x-p.x,old.z-p.z)<12;return {...p,fromX:blend?old.x:p.x,fromZ:blend?old.z:p.z,fromAngle:blend?old.angle:p.angle,received:Date.now()};}):[];
         if(Date.now()>noticeUntil)el('online-status').textContent='Live PvP · '+(peers.length+1)+' connected · 100 coins per player defeat';

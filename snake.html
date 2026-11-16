@@ -16,7 +16,7 @@
   <meta name="description" content="Grow a neon snake by collecting apples while keeping a route open for its expanding body.">
   <link rel="stylesheet" href="arcade.css">
   <link rel="stylesheet" href="premium.css?v=32">
-  <link rel="stylesheet" href="snake-ui.css?v=4">
+  <link rel="stylesheet" href="snake-ui.css?v=5">
   <link rel="stylesheet" href="public-info.css">
   <link rel="canonical" href="https://earnlyarcade.com/snake.html">
 </head>
@@ -46,8 +46,10 @@
 
     <div class="controls desktop-controls snake-control-dock" id="snakeControlDock" aria-label="Snake direction controls">
       <div class="snake-control-caption">
-        <strong>Steer</strong>
+        <strong id="snakePace">Cruise · 1×</strong>
         <span>Swipe anywhere or tap arrows</span>
+        <span id="snakeGoal">Next goal: 10 apples</span>
+        <progress id="snakeProgress" max="10" value="0" aria-label="Apples toward next goal"></progress>
       </div>
       <div class="snake-dpad" role="group" aria-label="Direction buttons">
         <button class="game-control snake-dpad-up" type="button" data-direction="UP" aria-label="Move up">↑</button>
@@ -387,22 +389,32 @@
     canvas.addEventListener('contextmenu', event => event.preventDefault());
 
     function randomFood() {
-      let next;
+      const occupied = new Set(snake.map(part => part.x + ',' + part.y));
+      const free = [], interior = [], edge = [];
+      for (let y = 0; y < 400; y += box) for (let x = 0; x < 400; x += box) {
+        if (occupied.has(x + ',' + y)) continue;
+        const cell = { x, y };
+        free.push(cell);
+        (x === 0 || y === 0 || x === 380 || y === 380 ? edge : interior).push(cell);
+      }
+      if (!free.length) return null;
       const wallApple = score >= 3 && score - lastWallAppleScore >= 5 && Math.random() < 0.18;
-      do {
-        // Most apples leave room for a safe turn. An occasional edge apple
-        // keeps wall approaches in play without clustering them together.
-        next = wallApple ? {
-          x: Math.floor(Math.random() * 20) * box,
-          y: Math.floor(Math.random() * 20) * box
-        } : {
-          x: (1 + Math.floor(Math.random() * 18)) * box,
-          y: (1 + Math.floor(Math.random() * 18)) * box
-        };
-      } while ((wallApple && next.x !== 0 && next.y !== 0 && next.x !== canvas.width - box && next.y !== canvas.height - box) ||
-        snake.some(part => part.x === next.x && part.y === next.y));
-      if (wallApple) lastWallAppleScore = score;
+      const preferred = wallApple ? edge : interior;
+      const choices = preferred.length ? preferred : free;
+      const next = choices[Math.floor(Math.random() * choices.length)];
+      if (next.x === 0 || next.y === 0 || next.x === 380 || next.y === 380) lastWallAppleScore = score;
       return next;
+    }
+
+    function refreshRunFeedback() {
+      const pace = 180 / snakeTickMs();
+      document.getElementById('snakePace').textContent =
+        (score < 15 ? 'Cruise' : score < 30 ? 'Quick' : 'Top speed') + ' · ' + pace.toFixed(1) + '×';
+      const target = score < 10 ? 10 : score < 25 ? 25 : score < 50 ? 50 : (Math.floor(score / 25) + 1) * 25;
+      document.getElementById('snakeGoal').textContent = 'Next goal: ' + target + ' apples';
+      const progress = document.getElementById('snakeProgress');
+      progress.max = target;
+      progress.value = score;
     }
 
     function snakeTickMs() {
@@ -449,7 +461,9 @@
       ctx.translate(head.x + box / 2, head.y + box / 2);
       ctx.rotate(angle);
 
-      ctx.fillStyle = '#16a34a';
+      const skin = ctx.createLinearGradient(-8, -8, 8, 8);
+      skin.addColorStop(0, '#d9ff9a'); skin.addColorStop(.45, '#72e95b'); skin.addColorStop(1, '#22a666');
+      ctx.fillStyle = skin;
       ctx.beginPath();
       ctx.ellipse(0, 0, 9.5, 8.5, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -486,6 +500,7 @@
     }
 
     function drawApple() {
+      if (!food) return;
       const centerX = food.x + box / 2;
       const centerY = food.y + box / 2;
 
@@ -539,10 +554,22 @@
     function paintBoard() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      const ground = ctx.createLinearGradient(0, 0, 400, 400);
+      ground.addColorStop(0, '#102f29'); ground.addColorStop(1, '#071b23');
+      ctx.fillStyle = ground;
+      ctx.fillRect(0, 0, 400, 400);
+      // Quiet checkerboard makes cell distances readable without competing with food.
+      ctx.fillStyle = 'rgba(144,222,183,.035)';
+      for (let y=0;y<20;y++) for (let x=0;x<20;x++) {
+        if ((x+y)%2 === 0) ctx.fillRect(x*box,y*box,box,box);
+      }
+      ctx.fillStyle = 'rgba(179,232,207,.14)';
+      for (let y=20;y<400;y+=box) for (let x=20;x<400;x+=box) ctx.fillRect(x-.5,y-.5,1,1);
+
       // Draw the wall on the true canvas boundary. The outermost grid cells are
       // still playable; the snake only crashes when its next cell is outside it.
       ctx.save();
-      ctx.strokeStyle = 'rgba(56,189,248,.78)';
+      ctx.strokeStyle = 'rgba(134,239,172,.78)';
       ctx.lineWidth = 3;
       ctx.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3);
       ctx.restore();
@@ -555,8 +582,6 @@
     function draw() {
       direction = queuedDirections.shift() || direction;
       nextDirection = queuedDirections[0] || direction;
-      paintBoard();
-
       let snakeX = snake[0].x;
       let snakeY = snake[0].y;
 
@@ -566,7 +591,7 @@
       if (direction === 'DOWN') snakeY += box;
 
       const newHead = { x: snakeX, y: snakeY };
-      const willEat = snakeX === food.x && snakeY === food.y;
+      const willEat = food && snakeX === food.x && snakeY === food.y;
       const hitWall =
         snakeX < 0 ||
         snakeY < 0 ||
@@ -600,12 +625,19 @@
         if (score === 25) Arcade.milestone('🔥 25 apples · You’re on fire!');
         if (score === 50) Arcade.milestone('🏆 50 apples · Monster run!', 'perfect');
 
-        food = randomFood();
       } else {
         snake.pop();
       }
 
       snake.unshift(newHead);
+      if (willEat) food = randomFood();
+      if (willEat) refreshRunFeedback();
+      paintBoard();
+      if (!food) {
+        bonusLifeUsed = true;
+        gameOver('Board cleared — every square filled!');
+        return;
+      }
       if (willEat && game !== null && game !== 'paused') {
         clearInterval(game);
         game = setInterval(draw, snakeTickMs());
@@ -694,7 +726,7 @@
 
       const earned = snakeReward(score);
       Arcade.earn(earned, 'Snake', { kind:'game', game:'snake', metric:score });
-      Arcade.feedback('fail');
+      Arcade.feedback(reason.startsWith('Board cleared') ? 'score' : 'fail');
       const result = Arcade.recordResult('snake', score);
       refreshChrome();
 
@@ -705,9 +737,9 @@
 
       Arcade.gameResult({
         icon:'🐍',
-        title:'Snake Run Over',
-        outcome:reason.includes('wall') ? 'You hit the wall.' : reason.includes('tail') ? 'You hit your tail.' : 'Run complete.',
-        tip:reason.includes('tail') ? 'Tip: leave a clear path before turning back.' : 'Tip: turn one square before the edge.',
+        title:reason.startsWith('Board cleared') ? 'Board Cleared!' : 'Snake Run Over',
+        outcome:reason.startsWith('Board cleared') ? 'You filled the entire board!' : reason.includes('wall') ? 'You hit the wall.' : reason.includes('tail') ? 'You hit your tail.' : 'Run complete.',
+        tip:reason.startsWith('Board cleared') ? 'Every square filled. A perfect run!' : reason.includes('tail') ? 'Tip: leave a clear path before turning back.' : 'Tip: turn one square before the edge.',
         scoreLabel:'Apples',
         score,
         best:result.best.display + ' saved on this device',
@@ -763,6 +795,8 @@
       scoreEl.textContent = '0';
       rewardPreviewEl.textContent = '0';
       food = randomFood();
+      refreshRunFeedback();
+      paintBoard();
 
       refreshChrome();
       startButton.disabled = true;
@@ -892,7 +926,8 @@
       setTimeout(refreshTesterState, 0);
     }
     refreshChrome();
-    draw();
+    refreshRunFeedback();
+    paintBoard();
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

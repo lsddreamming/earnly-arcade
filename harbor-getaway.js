@@ -51,36 +51,36 @@
   };
   const checkpoint = (x, z, label) => ({ kind: 'drive', x, z, label });
   const stop = (x, z, label) => ({ kind: 'park', x, z, label });
-  const escape = { kind: 'escape', label: 'Break patrol line of sight' };
+  const escape = { kind: 'escape', label: 'Break the rally marshal’s line of sight' };
   const drill = (x, z, label) => ({ kind: 'shoot', x, z, label });
   const finish = stop(garage.x, garage.z, 'Park at the garage');
   const jobs = [
     { name: 'Coastal Run', time: 120, heat: 1, model: 'coupe', stages: [checkpoint(12,12,'Pass the west checkpoint'),checkpoint(68,12,'Cross the waterfront'),escape,finish] },
     { name: 'Dock Dispatch', time: 95, heat: 0, model: 'van', stages: [stop(40,40,'Stop for the manifest'),stop(68,68,'Deliver the manifest')] },
-    { name: 'Signal Check', time: 130, heat: 1, model: 'coupe', stages: [drill(12,28,'Shoot the first signal target'),drill(12,19,'Shoot the second signal target'),escape,finish] },
+    { name: 'Signal Check', time: 130, heat: 1, model: 'coupe', stages: [drill(12,28,'Tag the first signal target'),drill(12,19,'Tag the second signal target'),escape,finish] },
     { name: 'Industrial Mile', time: 115, heat: 2, model: 'muscle', stages: [checkpoint(40,40,'Pass the depot'),checkpoint(40,68,'Cross the loading yard'),checkpoint(68,68,'Reach the east junction'),escape,finish] },
     { name: 'Parts Run', time: 100, heat: 0, model: 'van', stages: [stop(12,12,'Collect the spare parts'),stop(40,12,'Make the first delivery'),stop(96,40,'Make the final delivery')] },
     { name: 'Under the Tracks', time: 140, heat: 2, model: 'muscle', stages: [checkpoint(12,68,'Head under the tracks'),checkpoint(12,96,'Pass the south crossing'),checkpoint(68,96,'Reach the dock road'),escape,finish] },
-    { name: 'Cut the Feed', time: 170, heat: 2, model: 'coupe', stages: [drill(12,28,'Take out the first relay'),checkpoint(40,40,'Reach the second relay'),drill(40,30,'Take out the depot relay'),escape,finish] },
+    { name: 'Cut the Feed', time: 170, heat: 2, model: 'coupe', stages: [drill(12,28,'Light up the first relay'),checkpoint(40,40,'Reach the second relay'),drill(40,30,'Light up the depot relay'),escape,finish] },
     { name: 'Breakwater Express', time: 95, heat: 2, model: 'muscle', stages: [checkpoint(12,12,'Reach the north road'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Reach the docks'),escape,finish] },
     { name: 'Heavy Haul', time: 165, heat: 2, model: 'van', stages: [stop(40,40,'Load the first crate'),stop(68,40,'Load the second crate'),checkpoint(96,40,'Take the east road'),escape,finish] },
-    { name: 'Three Alarms', time: 180, heat: 3, model: 'muscle', stages: [drill(12,28,'Disable the west alarm'),checkpoint(40,40,'Reach the depot'),drill(40,30,'Disable the depot alarm'),checkpoint(68,40,'Reach the east gate'),drill(68,31,'Disable the gate alarm'),escape,finish] },
+    { name: 'Three Alarms', time: 180, heat: 3, model: 'muscle', stages: [drill(12,28,'Tag the west alarm'),checkpoint(40,40,'Reach the depot'),drill(40,30,'Tag the depot alarm'),checkpoint(68,40,'Reach the east gate'),drill(68,31,'Tag the gate alarm'),escape,finish] },
     { name: 'Harbor Lockdown', time: 150, heat: 3, model: 'muscle', stages: [checkpoint(12,96,'Reach the south road'),checkpoint(40,96,'Pass the rail yard'),checkpoint(68,68,'Cross the depot'),checkpoint(68,12,'Take the north road'),escape,finish] },
     { name: 'The Last Crossing', time: 185, heat: 3, model: 'coupe', stages: [stop(40,40,'Pick up the final cargo'),checkpoint(68,40,'Pass the east junction'),checkpoint(96,12,'Cross the breakwater'),checkpoint(96,68,'Return through the port'),escape,finish] },
   ];
   const missionBriefings = [
-    ['First getaway','Take the coupe along the waterfront, lose the patrol, then bring it home.','Keep moving through both checkpoints before trying to lose the patrol.'],
+    ['First rally','Take the coupe along the waterfront, finish chase-tag, then bring it home.','Keep moving through both checkpoints before trying to finish chase-tag.'],
     ['Manifest delivery','Collect a shipping manifest and deliver it across town without a scheduled chase.','Brake before each delivery marker; passing through at speed does not count.'],
-    ['Signal training','Find two roadside signal targets, fire on foot, then escape in your coupe.','Exit the car and face each target before firing.'],
-    ['Industrial pursuit','Drive the muscle car from the depot to South Industrial while police close in.','Use the long boulevards for speed and side streets to break sight.'],
+    ['Signal training','Find two roadside signal targets, tag them on foot, then escape in your coupe.','Exit the car and face each target before tagging.'],
+    ['Industrial pursuit','Drive the muscle car from the depot to South Industrial while rally marshals play chase-tag.','Use the long boulevards for speed and side streets to break sight.'],
     ['Workshop courier','Collect parts, visit the central workshop, then deliver to East Docks.','Plan for three separate stops and slow down early in the van.'],
     ['Rail corridor escape','Follow West Rail south, cross the district, then hide before the depot handoff.','Stay on the west corridor until the route sends you east.'],
-    ['Relay shutdown','Disable the west relay, drive to the depot relay, and shut it down before escaping.','This job alternates on-foot shooting and driving; watch the next objective.'],
+    ['Relay target challenge','Tag the west relay, drive to the depot relay, and shut it down before escaping.','This job alternates pulse-tag targets and driving; watch the next objective.'],
     ['Waterfront express','Cross the northern waterfront and follow the eastern shore to a dock handoff.','The long straight is fast, but brake before the turn down East Docks.'],
     ['Cargo under pressure','Load two shipments and take the cargo van to the southeast industrial depot.','The loaded van turns slowly; choose wider streets during the chase.'],
-    ['Three-district shutdown','Disable alarms in the west, center, and south, then reach the eastern safehouse.','Stop near each alarm, exit, and shoot before continuing across town.'],
-    ['Citywide lockdown','Cross the southwest and southern districts, drive north through East Docks, and disappear.','Three-star patrols require distance and cover; a straight sprint may not lose them.'],
-    ['Final harbor circuit','Collect the final cargo and complete a north-east-south circuit before returning to the garage.','Save time on the long crossings, then lose the patrol before the final stop.']
+    ['Three-district target challenge','Tag rally beacons in the west, center, and south, then reach the eastern rally garage.','Stop near each alarm, exit, and tag before continuing across town.'],
+    ['Citywide rally','Cross the southwest and southern districts, drive north through East Docks, and disappear.','Three-star rally marshals require distance and cover; a straight sprint may not lose them.'],
+    ['Final harbor circuit','Collect the final cargo and complete a north-east-south circuit before returning to the garage.','Save time on the long crossings, then finish chase-tag before the final stop.']
   ];
   jobs.forEach((job,i)=>{ [job.tagline,job.briefing,job.tip]=missionBriefings[i]; });
   // Later jobs graduate from the starter neighborhood to the whole district.
@@ -91,8 +91,8 @@
     'Under the Tracks': [checkpoint(12,152,'Follow West Rail'),checkpoint(12,292,'Reach the south rail yard'),checkpoint(152,292,'Cross the southern district'),escape,stop(208,292,'Park at the south depot')],
     'Breakwater Express': [checkpoint(12,12,'Join the waterfront road'),checkpoint(320,12,'Cross the northern waterfront'),checkpoint(320,208,'Follow East Docks'),escape,stop(292,236,'Park at the dock handoff')],
     'Heavy Haul': [stop(68,68,'Load the first crate'),stop(180,152,'Load central cargo'),checkpoint(292,152,'Take the eastern boulevard'),escape,stop(292,292,'Unload in South Industrial')],
-    'Three Alarms': [drill(12,28,'Disable the west alarm'),checkpoint(152,152,'Reach Central City'),drill(152,142,'Disable the central alarm'),checkpoint(292,264,'Reach the southern relay'),drill(292,254,'Disable the southern alarm'),escape,stop(320,292,'Park at the east safehouse')],
-    'Harbor Lockdown': [checkpoint(12,292,'Reach the southwest corner'),checkpoint(292,292,'Cross the southern district'),checkpoint(292,40,'Head north through East Docks'),escape,stop(152,40,'Park at the northern safehouse')],
+    'Three Alarms': [drill(12,28,'Tag the west alarm'),checkpoint(152,152,'Reach Central City'),drill(152,142,'Tag the central alarm'),checkpoint(292,264,'Reach the southern relay'),drill(292,254,'Tag the southern alarm'),escape,stop(320,292,'Park at the east rally garage')],
+    'Harbor Lockdown': [checkpoint(12,292,'Reach the southwest corner'),checkpoint(292,292,'Cross the southern district'),checkpoint(292,40,'Head north through East Docks'),escape,stop(152,40,'Park at the northern rally garage')],
     'The Last Crossing': [stop(40,40,'Collect the final cargo'),checkpoint(320,40,'Cross the northern district'),checkpoint(320,320,'Follow the eastern shoreline'),checkpoint(40,320,'Cross the southern harbor'),escape,finish]
   };
   for(const job of jobs) if(expandedRoutes[job.name]) {
@@ -102,8 +102,11 @@
   const spawn = (model, x, z, angle = 0) => ({ ...models[model], x, z, angle, speed: 0 });
   let car = spawn('coupe', 12, 32);
   let vehicles = [car];
-  const patrol = { x: 40, z: 56, angle: 0 };
-  const backup = { x: 68, z: 40, angle: 0 };
+  const parkingBays = [{x:17.3,z:26},{x:17.3,z:54},{x:45.3,z:54},
+    {x:157.3,z:166},{x:269.3,z:222},{x:325.3,z:306},
+    {x:73.3,z:54},{x:101.3,z:82}];
+  const patrol = { x: 73.3, z: 54, angle: 0 };
+  const backup = { x: 101.3, z: 82, angle: 0 };
   const displacedDrivers = [];
   const traffic = [
     { route: [[42.5, 42.5], [42.5, 65.5], [65.5, 65.5], [65.5, 42.5]], speed: 5.4, paint: ['#e0a269', '#a06153', '#744654'] },
@@ -145,9 +148,9 @@
   let stageIndex = 0;
   let heatLevel = 0;
   const weapons = [
-    {name:'Pistol',damage:50,delay:0.28,range:22},
-    {name:'SMG',damage:25,delay:0.12,range:26},
-    {name:'Heavy rifle',damage:85,delay:0.55,range:38}
+    {name:'Pulse popper',damage:50,delay:0.28,range:22},
+    {name:'Bubble burst',damage:25,delay:0.12,range:26},
+    {name:'Star launcher',damage:85,delay:0.55,range:38}
   ];
   let weaponIndex = 0;
   const ownedWeapons = new Set([0]);
@@ -194,6 +197,8 @@
     for (const key of Object.keys(stats)) if (Number.isFinite(saved[key])) stats[key] = Math.max(0,Math.min(1,saved[key]));
   } catch {}
   let stamina = 100, exhausted = false, fitnessSave = 0;
+  let roofSupport = null;
+  let jumpHeight = 0, jumpVelocity = 0, tapCandidate = null, lastTap = null;
   const footPlants = [null,null];
   function saveFitness() { try { window.localStorage?.setItem('harborFitnessV1',JSON.stringify(stats)); } catch {} }
 
@@ -296,6 +301,13 @@
   function moveVehicle(actor, dx, dz) {
     const previous = { x: actor.x, z: actor.z, angle: actor.angle };
     const edge = move(actor, dx, dz, 1.22);
+    const bystander = [...workers, ...displacedDrivers].find(w =>
+      pointToVehicle(w,actor)<1.65 && pointToVehicle(w,actor)<pointToVehicle(w,previous));
+    if (bystander) {
+      actor.x=previous.x; actor.z=previous.z; actor.speed=0;
+      if(actor===car && inCar) notify('Safety stop · let neighbors pass');
+      return 'bystander';
+    }
     if (!inCar && (actor===patrol || actor===backup) && pointToVehicle(player,actor)<1.35) {
       actor.x=previous.x; actor.z=previous.z; return 'player';
     }
@@ -336,17 +348,26 @@
         worker.lift -= 11.5 * dt;
         if (worker.elevation > 0) {
           move(worker, worker.vx * dt, worker.vz * dt, 0.25);
-          worker.tilt += dt * 3.2;
+          worker.tilt = Math.min(1.35, worker.tilt + dt * 3.2);
         }
+        if (worker.health === 0) worker.tilt = Math.min(1.35, worker.tilt + dt * 3.2);
         continue;
       }
-      if (worker.health === 0) worker.health = 100;
+      if (worker.health === 0) {
+        worker.health = 100;
+        worker.recover = 0;
+        worker.lift = worker.vx = worker.vz = 0;
+      }
+      worker.tilt=0; worker.elevation=0;
       if (worker.panicUntil > elapsed) {
-        const away = Math.atan2(worker.x-player.x,player.z-worker.z);
+        const away = Math.atan2(worker.x-worker.fleeX,worker.fleeZ-worker.z);
         worker.angle = away;
         const direction = facing(away);
         move(worker,direction.x*3.8*dt,direction.z*3.8*dt,0.3);
-        worker.homeX = worker.x; worker.homeZ = worker.z;
+        // Preserve the normal walking path's phase when the sprint ends.
+        const progress = (1-Math.cos(elapsed*worker.pace+(worker.phaseOffset||0)))/2;
+        worker.homeX = worker.x-worker.dx*progress;
+        worker.homeZ = worker.z-worker.dz*progress;
         continue;
       }
       const cycle = elapsed * worker.pace + (worker.phaseOffset || 0);
@@ -360,19 +381,14 @@
       const hitX = car.x + front.x * heading * 1.28;
       const hitZ = car.z + front.z * heading * 1.28;
       if (Math.hypot(worker.x - hitX, worker.z - hitZ) > 1.03) continue;
-      worker.elevation = 0.08;
-      worker.lift = 3.4 + impactSpeed * 0.16;
-      worker.vx = front.x * heading * impactSpeed * 0.49;
-      worker.vz = front.z * heading * impactSpeed * 0.49;
-      worker.recover = 2.2;
-      car.speed *= 0.72;
-      if (!heatLevel) wanted(1);
-      notify('Collision · patrol alerted');
-      cue(117, 48, 0.2, 'triangle');
+      // A crossing neighbor stops the car; no impact or ragdoll animation.
+      car.speed = 0;
+      notify('Safety stop · let neighbors pass');
     }
   }
 
   function clearControls() {
+    tapCandidate = lastTap = null;
     footSpeed = actualFootSpeed = visualSpeed = turnLean = 0;
     firePointers.clear();
     footPlants.fill(null);
@@ -406,7 +422,7 @@
         const t = Math.min(1,driver.age/0.55);
         driver.x = driver.fromX+(driver.exitX-driver.fromX)*t;
         driver.z = driver.fromZ+(driver.exitZ-driver.fromZ)*t;
-        driver.tilt = Math.sin(t*Math.PI)*0.3;
+        driver.tilt = Math.sin(t*Math.PI)*0.85;
         continue;
       }
       driver.tilt = 0;
@@ -452,6 +468,7 @@
         };
         audio = { ctx, engine: channel('triangle', 48), siren: channel('sine', 620) };
       }
+      window.HarborAudio?.start(audio.ctx);
       if (audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
     } catch {}
   }
@@ -460,14 +477,16 @@
     if (!audio) return;
     const now = audio.ctx.currentTime;
     const enabled = soundEnabled && phase === 'playing' && !document.hidden;
-    const engine = enabled && inCar ? 0.025 + Math.abs(car.speed) * 0.001 : 0;
+    const nearby = traffic.filter(v=>v!==car && !v.destroyed).sort((a,b)=>distance(a,player)-distance(b,player))[0];
+    window.HarborAudio?.update({enabled,driving:inCar,speed:car.speed,braking:inCar && Math.abs(car.speed)>3 && (held('brake') || (dragTouch ? dragTouch.dy>8 : held('down'))),trafficVolume:nearby?clamp(1-distance(nearby,inCar?car:player)/24,0,1):0,trafficSpeed:nearby?.speed || 0});
+    const engine = enabled && inCar && !window.HarborAudio?.ready() ? 0.025 + Math.abs(car.speed) * 0.001 : 0;
     const pursuitDistance = heatLevel > 1 ? Math.min(distance(car, patrol), distance(car, backup)) : distance(inCar ? car : player, patrol);
-    const siren = enabled && heatLevel ? 0.045 * clamp(1 - pursuitDistance / 60, 0, 1) : 0;
+    const siren = enabled && heatLevel ? 0.018 * clamp(1 - pursuitDistance / 60, 0, 1) : 0;
     audio.engine.gain.gain.setTargetAtTime(engine, now, 0.035);
     audio.siren.gain.gain.setTargetAtTime(siren, now, 0.035);
     if (!enabled) return;
     audio.engine.oscillator.frequency.setTargetAtTime(43 + Math.abs(car.speed) * 5.1, now, 0.05);
-    audio.siren.oscillator.frequency.setTargetAtTime(670 + 230 * Math.sin(elapsed * 5.6), now, 0.06);
+    audio.siren.oscillator.frequency.setTargetAtTime(440 + 35 * Math.sin(elapsed * 2), now, 0.06);
   }
 
   function cue(frequency, end, duration, type = 'sine') {
@@ -503,7 +522,7 @@
 
   function describeJob() {
     const job = jobs[Number(element('mission').value)] ?? jobs[0];
-    const risk = job.heat ? ['','Local patrol','Police backup','Lockdown'][job.heat] : 'No scheduled pursuit';
+    const risk = job.heat ? ['','Rally marshal','Rally challenge','Final circuit'][job.heat] : 'No scheduled pursuit';
     element('brief').textContent = job.tagline+' — '+job.briefing+' '+job.stages.length + ' objectives · ' + models[job.model].name
       + ' · ' + Math.floor(job.time / 60) + ':' + String(job.time % 60).padStart(2, '0') + ' · ' + risk+'. Tip: '+job.tip;
   }
@@ -534,11 +553,12 @@
     const escalating=level>heatLevel;
     heatLevel = Math.max(heatLevel, level);
     lost = false;
-    if(escalating) notify(heatLevel > 1 ? 'Police backup en route' : 'Patrol alerted');
+    if(escalating) notify(heatLevel > 1 ? 'More rally marshals joining' : 'Rally marshal joining');
     unseen = 0;
     if(escalating) caught=0;
     for (const unit of [patrol, backup]) {
       unit.last = { x: inCar ? car.x : player.x, z: inCar ? car.z : player.z };
+      unit.parkingTarget = null;
       unit.path = [];
       unit.rethink = 0;
     }
@@ -561,14 +581,15 @@
     vehicles = activeJob ? [car] : [car, spawn('muscle', 17.3, 54),
       spawn('van', 45.3, 54), spawn('muscle', 157.3, 166),
       spawn('coupe', 269.3, 222), spawn('van', 325.3, 306)];
-    Object.assign(patrol, { x: 40, z: 56, angle: 0 });
-    Object.assign(backup, { x: 68, z: 40, angle: 0 });
+    Object.assign(patrol, { x: 73.3, z: 54, angle: 0, parkingTarget:null });
+    Object.assign(backup, { x: 101.3, z: 82, angle: 0, parkingTarget:null });
     Object.assign(camera, { x: player.x, z: player.z, angle: 0, distance: 11 });
     inCar = stolen = lost = false;
     elapsed = unseen = caught = 0;
     footView = driveLook = walkCycle = walkBlend = 0;
     runEnabled = false;
     stamina = 100; exhausted = false;
+    jumpHeight = jumpVelocity = 0; roofSupport = null;
     element('run-mode').textContent = 'Run';
     element('run-mode').setAttribute('aria-pressed', 'false');
     cameraMode = false; manualLookUntil = 0; cameraLift = 0;
@@ -584,6 +605,7 @@
     clearControls();
     element('overlay').hidden = true;
     element('pause').disabled = false;
+    element('pause').textContent = 'Pause';
     startAudio();
     updateHud();
   }
@@ -602,14 +624,15 @@
     element('free-roam').hidden = next !== 'ready';
     element('open-board').hidden = next === 'ready';
     element('overlay').hidden = false;
-    element('pause').disabled = true;
+    element('pause').disabled = next !== 'paused';
+    element('pause').textContent = next === 'paused' ? 'Resume' : 'Pause';
     element('interact').disabled = true;
     if (!document.hidden) element('start').focus();
   }
 
   function pause() {
     if (phase === 'playing') {
-      overlay('paused', 'Mission paused', 'Your timer is frozen. Ready to get back to the harbor?', 'Resume mission');
+      overlay('paused', 'Game paused', activeJob ? 'Your mission timer is frozen. Resume playing or quit to Games. Unfinished mission progress will be lost if you quit.' : 'Resume exploring or quit to Games. Connected players can continue playing while you pause.', 'Resume game');
     } else if (phase === 'paused') run();
   }
 
@@ -618,7 +641,26 @@
       .sort((a,b) => distance(player,a)-distance(player,b))[0];
   }
 
+  function roofHeight(v) { return v.name === 'Cargo van' ? 1.83 : v.name === 'Muscle' ? 1.41 : 1.49; }
+  function roofOffset(v, p = player) {
+    const f = facing(v.angle), r = facing(v.angle + Math.PI/2);
+    return {x:(p.x-v.x)*r.x+(p.z-v.z)*r.z,z:(p.x-v.x)*f.x+(p.z-v.z)*f.z};
+  }
+  function onRoof(v) {
+    const p = roofOffset(v);
+    return !v.destroyed && Math.abs(p.x) < (v.name === 'Cargo van' ? .84 : .58) && Math.abs(p.z-(v.name === 'Cargo van' ? -.33 : v.name === 'Muscle' ? -.19 : .05)) < (v.name === 'Cargo van' ? 1.22 : .66);
+  }
+  function jump() {
+    if (phase !== 'playing' || inCar || (jumpHeight > 0 && !roofSupport) || jumpVelocity !== 0 || window.HarborOnline?.dead()) return;
+    roofSupport = null;
+    // Vehicle-height hop; a roof hop cannot stack extra building-height lift.
+    jumpVelocity = Math.min(8.4, Math.sqrt(36*Math.max(0,2.05-jumpHeight)));
+    footPlants.fill(null);
+    cue(230, 390, 0.1, 'sine');
+  }
+
   function interact() {
+    if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (phase !== 'playing') return;
     if (inCar) {
       if (Math.abs(car.speed) > 2) return;
@@ -628,7 +670,7 @@
         const z = car.z + side.z * 2.1 * sign;
         if (blocked(x, z, 0.45)) continue;
         Object.assign(player, { x, z, angle: car.angle });
-        car.speed = 0;
+        car.speed = 0; car.braking = false;
         inCar = false;
         dragTouch = null;
         footView = camera.angle;
@@ -652,8 +694,7 @@
         vehicle.occupied = false;
         vehicle.taken = true;
         vehicle.speed = 0;
-        wanted(Math.max(1, heatLevel));
-        notify('Driver pulled out · car taken');
+        notify('Driver pulled out · car ready');
       }
       car = vehicle;
       driveLook = Math.atan2(Math.sin(camera.angle - car.angle), Math.cos(camera.angle - car.angle));
@@ -681,7 +722,7 @@
     element('clock').textContent = activeJob
       ? Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') : 'FREE ROAM';
     const heat = element('heat');
-    heat.textContent = heatLevel ? '★'.repeat(heatLevel) + (caught > 0 ? ' CLOSING IN' : unseen > 0 ? ' EVADING' : ' WANTED')
+    heat.textContent = heatLevel ? '★'.repeat(heatLevel) + (caught > 0 ? ' CLOSING IN' : unseen > 0 ? ' EVADING' : ' CHASE TAG')
       : lost ? 'CLEAR' : inCar ? car.name.toUpperCase() : 'ON FOOT';
     heat.classList.toggle('danger', heatLevel > 0 && unseen === 0);
     heat.classList.toggle('clear', lost || unseen > 0);
@@ -697,16 +738,21 @@
     element('stamina').textContent = (exhausted ? 'Recovering ' : 'Energy ') + Math.round(stamina) + '%';
     element('stamina').style.color = exhausted ? '#ffca91' : '#a9f7dc';
     element('stamina').hidden = inCar;
+    element('jump').hidden = inCar;
+    element('jump').disabled = phase !== 'playing' || (jumpHeight > 0 && !roofSupport) || jumpVelocity !== 0;
     element('run-mode').hidden = inCar;
     element('run-mode').disabled = phase !== 'playing';
     element('switch-weapon').hidden = inCar || phase !== 'playing';
     element('switch-weapon').disabled = ownedWeapons.size < 2;
-    element('switch-weapon').textContent = 'Switch gun · '+ownedWeapons.size;
+    element('switch-weapon').textContent = 'Switch blaster · '+ownedWeapons.size;
     element('fire').setAttribute('aria-pressed', String(firePointers.size>0 || keys.has('fire')));
-    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Fire at target' : weapons[weaponIndex].name + ' · Fire';
+    element('fire').textContent = activeJob?.stages[stageIndex]?.kind === 'shoot' ? 'Tag target' : weapons[weaponIndex].name + ' · Tag';
     element('drive-hint').hidden = !inCar;
     element('run-hint').hidden = inCar;
-    element('speed').textContent = Math.round(Math.abs(car.speed) * 3.6) + ' km/h';
+    const gear = car.speed < -.3 ? 'R' : Math.abs(car.speed)<.3 ? 'P' : 'D';
+    element('speed').textContent = gear+' · '+Math.round(Math.abs(car.speed)*3.6)+' km/h'+(inCar&&car.braking?' · BRAKE':'');
+    element('speed').setAttribute('aria-label', (gear==='R'?'Reverse':gear==='P'?'Stopped':'Forward')+', '+Math.round(Math.abs(car.speed)*3.6)+' kilometers per hour'+(inCar&&car.braking?', braking':''));
+    element('brake').setAttribute('aria-pressed',String(inCar&&held('brake')));
     const active = inCar ? car : player;
     const district = active.x > 278 ? 'EAST TERMINAL' : active.z > 252 ? 'SOUTH INDUSTRIAL'
       : active.x > 154 ? 'CENTRAL CITY' : active.z > 121 ? 'LOWER QUAY' : active.x < 30 ? 'WEST RAIL' : active.x > 84 ? 'EAST DOCKS'
@@ -715,13 +761,13 @@
     const step = activeJob?.stages[stageIndex];
     const target = objectiveTarget();
     const range = target ? ' · ' + Math.ceil(distance(inCar ? car : player, target)) + ' m' : '';
-    const label = !step ? 'Explore the harbor' : step.kind === 'shoot' && inCar ? 'Get out to use your pistol'
+    const label = !step ? 'Explore the harbor' : step.kind === 'shoot' && inCar ? 'Get out to use your pulse popper'
       : !inCar && step.kind !== 'shoot' ? 'Get to your ' + car.name.toLowerCase() : step.label;
     const objective = (step ? (stageIndex + 1) + '/' + activeJob.stages.length + ' · ' : '') + label + range;
     if (element('objective').textContent !== objective) element('objective').textContent = objective;
     const vehicle = inCar ? car : nearestVehicle();
     element('interact').disabled = phase !== 'playing' || (inCar ? Math.abs(car.speed) > 2 : !vehicle);
-    element('interact').textContent = inCar ? 'Exit car' : vehicle ? (vehicle.occupied ? 'Pull driver out' : 'Enter ' + vehicle.name.toLowerCase()) : 'Enter car';
+    element('interact').textContent = inCar ? 'Exit car' : 'Enter car';
     element('jobs').hidden = Boolean(activeJob) || phase !== 'playing';
   }
 
@@ -729,12 +775,10 @@
     if (vehicle.destroyed) return;
     vehicle.health=Math.max(0,(vehicle.health ?? 160)-damage);
     vehicle.hitAt=elapsed;
-    if (vehicle.health>0) { notify('Vehicle damaged · '+vehicle.health+' integrity'); return; }
-    vehicle.destroyed=true; vehicle.speed=0; vehicle.occupied=false; vehicle.blastAt=elapsed;
-    wanted(3); notify('Vehicle exploded · police lockdown'); cue(65,24,0.6,'sawtooth');
-    for (const worker of workers) if (distance(worker,vehicle)<5 && visible(vehicle,worker)) {
-      Object.assign(worker,{health:0,recover:12,elevation:0.2,lift:3,vx:(worker.x-vehicle.x),vz:(worker.z-vehicle.z),tilt:0.5});
-    }
+    if (vehicle.health>0) { notify('Vehicle tag shield · '+vehicle.health); return; }
+    // Temporary arcade shield timeout, with no explosion or occupant injury.
+    vehicle.destroyed=true; vehicle.speed=0; vehicle.blastAt=elapsed;
+    notify('Vehicle shield recharging · 4 seconds'); cue(440,880,0.18,'sine');
   }
 
   function shoot() {
@@ -770,13 +814,20 @@
     shotAt=elapsed; shotConnected=Boolean(victim || hit || hitCar);
     shotFlash = weapon.delay;
     if (hitCar && !victim && !hit) damageVehicle(hitCar,weapon.damage);
-    cue(185, 47, 0.15, 'square');
-    wanted(victim ? Math.max(2,heatLevel) : Math.max(1,heatLevel,activeJob?.heat || 0));
-    for (const worker of workers) if (distance(worker,player)<28) worker.panicUntil=elapsed+8;
+    if (!window.HarborAudio?.play(['shot','shotRapid','shotHeavy'][weaponIndex])) cue(760, 380, 0.12, 'sine');
+    for (const worker of workers) {
+      if (worker.health === 0 || distance(worker,player)>22) continue;
+      worker.panicUntil=elapsed+5;
+      worker.fleeX=player.x; worker.fleeZ=player.z;
+    }
+    if(activeJob?.heat) wanted(Math.max(heatLevel,activeJob.heat));
     if (victim) {
-      victim.health=Math.max(0,(victim.health ?? 100)-weapon.damage);
-      Object.assign(victim,{recover:victim.health===0?12:0.35,elevation:0.03,lift:1.2,vx:aim.x*2,vz:aim.z*2,tilt:0.25});
-      notify(victim.health===0?'NPC down · police backup alerted':'Hit · '+weapon.damage+' damage · police alerted');
+      window.HarborAudio?.play('voice',.9+Math.random()*.2);
+      Object.assign(victim,{
+        hitAt:elapsed,health:0,recover:3.5,elevation:0,lift:0,vx:0,vz:0,tilt:0,
+        panicUntil:elapsed+7,fleeX:player.x,fleeZ:player.z
+      });
+      notify('Cartoon knockout · back up shortly');
     }
     if (hit) {
       footView = player.angle = Math.atan2(step.x - player.x, player.z - step.z);
@@ -806,6 +857,31 @@
     return { seen, separation };
   }
 
+  function parkMarshal(unit,dt) {
+    if(unit.destroyed)return;
+    if(!unit.parkingTarget) {
+      const candidates=[];
+      const clearJunction=value=>roads.some(r=>Math.abs(r-value)<8)
+        ? roads.slice(0,-1).map(r=>r+14).sort((a,b)=>Math.abs(a-value)-Math.abs(b-value))[0]
+        : clamp(value,8,size-8);
+      for(const road of roads) for(const sign of [-1,1]) {
+        const alongZ=clearJunction(unit.z),alongX=clearJunction(unit.x);
+        if(!roads.some(r=>Math.abs(r-alongZ)<8)) candidates.push({x:road+sign*5.3,z:alongZ,angle:0});
+        if(!roads.some(r=>Math.abs(r-alongX)<8)) candidates.push({x:alongX,z:road+sign*5.3,angle:Math.PI/2});
+      }
+      unit.parkingTarget=candidates.filter(p=>!blocked(p.x,p.z,1.22)&&visible(unit,p)
+        && ![...vehicles,...traffic,patrol,backup].some(v=>v!==unit&&distance(v,p)<4))
+        .sort((a,b)=>distance(a,unit)-distance(b,unit))[0];
+    }
+    const target=unit.parkingTarget;if(!target)return;
+    const gap=distance(unit,target);
+    if(gap<.12){unit.x=target.x;unit.z=target.z;unit.angle=target.angle;unit.speed=0;return;}
+    unit.angle=Math.atan2(target.x-unit.x,unit.z-target.z);
+    unit.speed=3;const step=Math.min(gap,3*dt);
+    const hit=moveVehicle(unit,(target.x-unit.x)/gap*step,(target.z-unit.z)/gap*step);
+    if(hit)unit.parkingTarget=null;
+  }
+
   function completeJob() {
     window.HarborOnline?.finish();
     const time = Math.max(1, Math.ceil(elapsed * 1000));
@@ -830,16 +906,31 @@
 
   function update(dt) {
     elapsed += dt;
+    for(const v of [...vehicles,...traffic,patrol,backup]) if(v.destroyed && elapsed-v.blastAt>=4) {
+      v.destroyed=false; v.health=160;
+    }
     const onlineActor=inCar?car:player;
     window.HarborOnline?.tick({x:onlineActor.x,z:onlineActor.z,angle:onlineActor.angle,driving:inCar,free:!activeJob});
     const liveRespawn=window.HarborOnline?.takeRespawn();
-    if(liveRespawn){inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Respawned · 5 seconds of protection');}
+    if(liveRespawn){roofSupport=null;jumpHeight=jumpVelocity=0;inCar=false;Object.assign(player,liveRespawn);keys.clear();pointers.clear();firePointers.clear();notify('Back in play · 5 seconds of protection');}
     if(window.HarborOnline?.dead()){keys.clear();pointers.clear();firePointers.clear();return;}
+    if (roofSupport) {
+      const {vehicle:v,x,z} = roofSupport, f = facing(v.angle), r = facing(v.angle+Math.PI/2);
+      const nx = v.x+r.x*x+f.x*z, nz = v.z+r.z*x+f.z*z;
+      if (v.destroyed || blocked(nx,nz,.45)) roofSupport = null;
+      else { player.x=nx; player.z=nz; jumpHeight=roofHeight(v); }
+    }
+    const previousJumpHeight = jumpHeight;
+    if (inCar) { jumpHeight = jumpVelocity = 0; roofSupport = null; }
+    else if (!roofSupport && (jumpVelocity !== 0 || jumpHeight > 0)) {
+      jumpHeight += jumpVelocity * dt - 9 * dt * dt;
+      jumpVelocity -= 18 * dt;
+    }
     shotFlash = Math.max(0, shotFlash - dt);
     if (!activeJob && !inCar) for (const pickup of weaponPickups) {
       if (elapsed >= (pickup.readyAt || 0) && distance(player,pickup)<1.6) {
         weaponIndex=pickup.type; ownedWeapons.add(weaponIndex); pickup.readyAt=elapsed+45;
-        notify(weapons[weaponIndex].name+' equipped · hold Fire'); cue(650,980,0.15,'sine');
+        notify(weapons[weaponIndex].name+' equipped · hold Tag'); cue(650,980,0.15,'sine');
       }
     }
     if (firePointers.size || keys.has('fire')) shoot();
@@ -859,6 +950,7 @@
       const throttle = dragTouch
         ? vertical > 17 ? 1 : Math.hypot(horizontal, vertical) > 8 ? -1 : 0
         : vertical;
+      car.braking = braking || (throttle>0 && car.speed>.3);
       if (braking) car.speed *= Math.exp(-2.8 * dt);
       else if (throttle) {
         const acceleration = throttle > 0 && car.speed > 0 ? 24 : car.acceleration;
@@ -902,12 +994,13 @@
       const rate = (desiredSpeed > footSpeed ? 9 : 16)/(1+stats.build*0.25);
       footSpeed += (desiredSpeed-footSpeed)*(1-Math.exp(-rate*dt));
       // Never coast backward while pivoting, even with leftover sprint momentum.
-      const travelSpeed = footSpeed * alignment;
+      // A controlled airborne stride keeps a running hop on the car instead of sailing over it.
+      const travelSpeed = (jumpHeight>0 && !roofSupport ? Math.min(footSpeed,6) : footSpeed) * alignment;
       move(player, direction.x * travelSpeed * dt, direction.z * travelSpeed * dt, 0.45);
       const previous = { x: oldX, z: oldZ };
       for (const vehicle of [...vehicles, ...traffic, patrol, ...(heatLevel > 1 ? [backup] : [])]) {
         // Low wreckage is step-over debris, never a permanent player cage.
-        if (vehicle.destroyed || distance(player, vehicle) > 3) continue;
+        if (vehicle.destroyed || distance(player, vehicle) > 3 || jumpHeight >= roofHeight(vehicle)-.03) continue;
         const gap = pointToVehicle(player, vehicle);
         if (gap < 1.22 && gap < pointToVehicle(previous, vehicle)) Object.assign(player, previous);
       }
@@ -915,6 +1008,12 @@
       walking = footTravel > dt * 0.1;
       if (footTravel < 0.00001) footSpeed = 0;
     } else { footHeading = null; footSpeed = 0; }
+    // Resolve landings after movement, so a running jump can cross onto a roof.
+    if (!inCar) {
+      const roof = [...vehicles,...traffic,patrol,...(heatLevel>1?[backup]:[])].find(v => onRoof(v) && (roofSupport?.vehicle === v || (jumpVelocity <= 0 && previousJumpHeight >= roofHeight(v)-.03 && jumpHeight <= roofHeight(v))));
+      if (roof) { jumpHeight=roofHeight(roof); jumpVelocity=0; roofSupport={vehicle:roof,...roofOffset(roof)}; }
+      else { roofSupport=null; if (jumpHeight <= 0) {jumpHeight=jumpVelocity=0;footPlants.fill(null);} }
+    }
     updateTraffic(dt);
     updateWorkers(dt);
     actualFootSpeed = dt > 0 ? footTravel/dt : 0;
@@ -941,20 +1040,21 @@
       if (unseen >= 4 + heatLevel * 2) {
         heatLevel = 0;
         lost = true;
-        notify('Patrol lost');
+        notify('Chase-tag cleared');
         cue(360, 670, 0.25);
       }
     }
+    if(!heatLevel){parkMarshal(patrol,dt);parkMarshal(backup,dt);}
     const step = activeJob?.stages[stageIndex];
     if (step && ((step.kind === 'escape' && lost)
       || (inCar && step.kind === 'drive' && distance(car, step) < 5)
       || (inCar && step.kind === 'park' && distance(car, step) < 4.5 && Math.abs(car.speed) < 3))) {
-      advanceStage(step.kind === 'park' ? 'Stop confirmed' : step.kind === 'escape' ? 'Patrol lost' : 'Checkpoint cleared');
+      advanceStage(step.kind === 'park' ? 'Stop confirmed' : step.kind === 'escape' ? 'Chase-tag cleared' : 'Checkpoint cleared');
       if (step.kind === 'park' && activeJob.heat && !heatLevel && activeJob.stages[stageIndex]?.kind === 'escape') wanted(activeJob.heat);
     }
     if (caught >= 2 || (activeJob && elapsed >= activeJob.time)) {
-      overlay('finished', caught >= 2 ? 'Busted' : 'Time’s up',
-        (activeJob ? activeJob.name+' · Completed '+stageIndex+'/'+activeJob.stages.length+' objectives. '+activeJob.tip : 'Break patrol line of sight using side streets. Keep moving to avoid capture.'), activeJob ? 'Retry job' : 'Return to free roam');
+      overlay('finished', caught >= 2 ? 'Tagged!' : 'Time’s up',
+        (activeJob ? activeJob.name+' · Completed '+stageIndex+'/'+activeJob.stages.length+' objectives. '+activeJob.tip : 'Break the rally marshal’s line of sight using side streets. Keep moving to avoid being tagged.'), activeJob ? 'Retry job' : 'Return to free roam');
     } else if (activeJob && stageIndex === activeJob.stages.length) completeJob();
 
     const smoothing = 1 - Math.exp(-8 * dt);
@@ -1138,42 +1238,31 @@
     faces.push({particle:kind,x:sx,y:sy,w:focal*width/view[2],h:focal*height/view[2],alpha,depth:view[2]});
   }
 
+  // Conservative camera-space sphere culling happens before building mesh faces.
+  // Extra radius includes balconies, roof fixtures and vehicle lights.
+  function visibleBounds(x,y,z,radius) {
+    const [side,,depth]=cameraPoint([x,y,z]);
+    const slope=width/(2*focal);
+    return depth+radius>=0.15 && Math.abs(side)<=depth*slope+radius*(1+slope);
+  }
+
   function drawCar(actor, police) {
+    if (!visibleBounds(actor.x,1.2,actor.z,4)) return;
     const start=faces.length;
     drawCarMesh(actor,police);
     for(let i=start;i<faces.length;i++) faces[i].vehicle=true;
   }
   function drawCarMesh(actor, police) {
     if (actor.destroyed) {
-      if(elapsed-actor.blastAt>30) return;
-      box(actor.x,actor.z,2.1,3.8,0.65,actor.angle,['#343536','#242628','#181c20'],0.15);
-      const age=elapsed-actor.blastAt;
-      const fade=clamp((18-age)/5,0,1);
-      if (fade>0) {
-        fireParticle(actor.x,0.6,actor.z,2.4,1.2,'glow',fade*0.35);
-        for(let i=0;i<9;i++) {
-          const flicker=0.85+0.22*Math.sin(elapsed*13+i*2.3);
-          fireParticle(actor.x+Math.sin(i*2.4)*0.7,0.45,actor.z+Math.cos(i*2.4)*1.2,
-            0.35*flicker, (1.1+(i%3)*0.35)*flicker,'flame',fade);
-        }
-        for(let i=0;i<7;i++) {
-          const t=(age*0.23+i/7)%1;
-          fireParticle(actor.x+Math.sin(i*3+t)*0.5+t*0.9,1.3+t*3.8,actor.z+Math.cos(i*2)*0.5,
-            0.45+t*0.9,0.5+t*1.1,'smoke',fade*(1-t)*0.5);
-        }
-        for(let i=0;i<8;i++) {
-          const t=(age*0.7+i/8)%1;
-          fireParticle(actor.x+Math.sin(i*7)*t,0.8+t*3,actor.z+Math.cos(i*7)*t,
-            0.025,0.07,'spark',fade*(1-t));
-        }
+      box(actor.x,actor.z,2.1,3.8,1.2,actor.angle,['#c6fff4','#74cde2','#7379db'],0.15);
+      for(let i=0;i<6;i++) {
+        const a=elapsed*2+i*Math.PI/3;
+        signText('✦',[actor.x+Math.cos(a)*1.5,1.5+Math.sin(a*2)*.3,actor.z+Math.sin(a)*1.5],'#91ffdf');
       }
+      signText('RECHARGING',[actor.x,2.2,actor.z],'#c6fff4');
       return;
     }
-    if ((actor.health ?? 160) < 85) for(let i=0;i<4;i++) {
-      const t=(elapsed*0.3+i/4)%1;
-      fireParticle(actor.x+t*0.4,1.1+t*2.2,actor.z-0.7,0.2+t*0.5,0.3+t*0.6,'smoke',(1-t)*0.45);
-    }
-    const paint = actor.paint ?? (police ? ['#e3eaf7', '#536783', '#33465f'] : ['#365957', '#243d3d', '#1c3033']);
+    const paint = actor.paint ?? (police ? ['#f4d0ff', '#8f75d6', '#5855a4'] : ['#365957', '#243d3d', '#1c3033']);
     const rubber = ['#263145', '#101723', '#161e2b'];
     const front = facing(actor.angle);
     const side = facing(actor.angle + Math.PI / 2);
@@ -1181,7 +1270,15 @@
       actor.x + across * side.x + ahead * front.x, actor.z + across * side.z + ahead * front.z,
       w, d, h, actor.angle, colors, base, taper,
     );
-    const detailed = Math.hypot(actor.x - eye.x, actor.z - eye.z) < 42;
+    const carRange = Math.hypot(actor.x - eye.x, actor.z - eye.z);
+    if (carRange > 65) {
+      // Moving silhouettes remain visible down the street with three simple parts.
+      part(0,0,2.12,3.64,.62,.27,paint);
+      part(0,.05,1.76,2.02,.48,.92,['#77919b','#4c6874','#3a505a'],.73);
+      part(0,-1.83,1.65,.1,.13,.62,['#ffbd9e','#d78678','#ac706d']);
+      return;
+    }
+    const detailed = carRange < 42;
     if (!detailed) for (const sign of [-1, 1]) {
       part(sign * 1.02, -1.15, 0.33, 0.68, 0.62, 0.03, rubber);
       part(sign * 1.02, 1.12, 0.33, 0.68, 0.62, 0.03, rubber);
@@ -1200,7 +1297,8 @@
           polygon([inner[i],inner[j],outer[j],outer[i]], i < 6 ? '#30383e' : '#141a21');
         }
         polygon(outer, '#141c25');
-        polygon(ring(0.19, sign * 1.205), '#8c9ca8');
+        polygon(ring(0.23, sign * 1.203), '#c0cbd0');
+        polygon(ring(0.19, sign * 1.205), '#718593');
         const hub = ring(0.065, sign * 1.215, actor.wheelSpin || 0), rim = ring(0.16, sign * 1.215, actor.wheelSpin || 0);
         for (let i = 0; i < 12; i += 2) polygon([hub[i],rim[i],rim[(i+1)%12],hub[(i+1)%12]], '#33414d');
         polygon(ring(0.055, sign * 1.22), '#c1cbd1');
@@ -1227,6 +1325,22 @@
     if (detailed) {
       const chrome = ['#b1bec8','#7a8c9b','#536675'];
       const trim = ['#37434c','#242e37','#18232c'];
+      // Close-range accents keep silhouettes clean at phone scale.
+      for(const sign of [-1,1]) {
+        part(sign*.88,.15,.045,2.55,.045,.85,chrome);
+        part(sign*.76,1.89,.48,.035,.035,.72,['#f3ffff','#d2f8ff','#b0e4ed']);
+        part(sign*.76,-1.90,.48,.035,.035,.79,['#ffbf98','#f87a63','#d55c56']);
+        part(sign*.97,.84,.035,.22,.08,1.04,['#d4edf1','#adcbd3','#789cab']);
+      }
+      if(actor.name==='Muscle') {
+        for(const sign of [-1,1])part(sign*.29,1.30,.16,.95,.012,.925,trim);
+        part(0,-1.5,1.85,.24,.08,1.05,paint);
+      } else if(actor.name==='Cargo van') {
+        part(0,-1.675,1.45,.035,.065,1.18,chrome);
+        for(const sign of [-1,1])part(sign*.93,-.4,.025,1.75,.16,1.23,['#e9d6a5','#c8b07e','#a38c62']);
+      } else {
+        part(0,-.1,.74,.78,.015,1.495,['#a6c5d0','#7295a8','#527484']);
+      }
       // Grille, lower intake, hood seams and sculpted front bumper.
       part(0,1.84,0.90,0.075,0.23,0.53,trim);
       for (const y of [0.59,0.67,0.75]) part(0,1.885,0.84,0.025,0.025,y,chrome);
@@ -1270,13 +1384,17 @@
     part(0, -1.81, 2.07, 0.16, 0.17, 0.28, ['#657489', '#344256', '#414e64']);
     part(0, -1.89, 0.39, 0.035, 0.14, 0.48, ['#ccdbe9', '#a9bed4', '#a9bed4']);
     for (const sign of [-1, 1]) {
-      part(sign * 0.75, -1.83, 0.47, 0.1, 0.13, 0.62, ['#ff9b85', '#ff5d69', '#dc4058']);
+      part(sign * 0.75, -1.83, 0.47, 0.1, 0.13, 0.62,
+        actor===car&&inCar&&car.braking ? ['#ffe4cc','#ff7770','#f5444f'] : ['#d98a75','#bd4b57','#953c4a']);
+      if(detailed)part(sign*.43,-1.90,.14,.04,.095,.65,
+        actor.speed<-.3 ? ['#ffffff','#dcefff','#c1dfec'] : ['#9aa7aa','#72868b','#526971']);
       part(sign * 0.75, 1.84, 0.44, 0.08, 0.13, 0.58, ['#e0f8ff', '#b8efff', '#8bc9fa']);
     }
+    if(detailed&&actor===car&&inCar&&car.braking)part(0,-.95,.44,.04,.045,1.30,['#ffc7af','#ff6667','#e04453']);
     if (police) {
-      const flash = elapsed % 0.55 < 0.275;
-      part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#ff9bae', '#f54365', '#a42541'] : ['#80435e', '#602b44', '#602b44']);
-      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#416c99', '#334f7e', '#334f7e'] : ['#afe7ff', '#69baff', '#345fae']);
+      const flash = heatLevel > 0 && elapsed % 0.55 < 0.275;
+      part(-0.39, 0.05, 0.66, 0.32, 0.16, 1.49, flash ? ['#fff4ac', '#e6d44e', '#b5a246'] : ['#80435e', '#602b44', '#602b44']);
+      part(0.39, 0.05, 0.66, 0.32, 0.16, 1.49, (!heatLevel || flash) ? ['#416c99', '#334f7e', '#334f7e'] : ['#c4ffe7', '#69e6bd', '#349f8e']);
     }
   }
 
@@ -1307,6 +1425,17 @@
     facade(-0.46, 0.8, 0.92, 0.98, '#6e979e', 0.08);
     for (const edge of [-1.58, 1.52]) facade(edge, 0.4, 0.064, 1.52, accent, 0.058);
     facade(-2.38, 2.01, 4.76, 0.43, '#22333e', 0.055);
+    if(Math.hypot(x-eye.x,z-eye.z)<25) {
+      for(const windowZ of [-2.12,1.0]) {
+        facade(windowZ,.51,1.08,.10,accent,.065);
+        facade(windowZ+.08,.68,.30,.32,'#dca674',.06);
+        facade(windowZ+.52,.68,.37,.22,'#b6cda8',.06);
+        facade(windowZ+.05,1.38,.12,.42,'#b4d3cf',.07);
+        facade(windowZ+.23,1.61,.69,.06,'#8cb5bd',.07);
+      }
+      facade(-.38,1.19,.76,.25,'#eed9a2',.085);
+      signText('OPEN',[wallX+offset*.18,1.31,z], '#41535a',frontDepth-.2);
+    }
     if (Math.abs(eye.x - wallX) > Math.abs(eye.z - z) * 0.65) {
       signText(label, [wallX + offset * 0.16, 2.17, z], accent, frontDepth - 0.16);
     }
@@ -1321,6 +1450,7 @@
   function drawBuilding(b) {
     const x = b.x + b.w / 2;
     const z = b.z + b.d / 2;
+    if (!visibleBounds(x,b.h/2,z,Math.hypot(b.w,b.d,b.h)/2+4)) return;
     box(x, z, b.w, b.d, b.h, 0, [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
     const buildingRange = Math.hypot(x - eye.x, z - eye.z);
     // Keep the solid silhouette at every distance. Midrange facades retain
@@ -1346,7 +1476,15 @@
     box(x + 1.1, z - 0.55, 2.3, 1.7, 0.85, 0, ['#71849a', '#4d5b73', '#36465c'], b.h + 0.15);
     const nearDetail = Math.hypot(x - eye.x, z - eye.z) < 30;
     if (nearDetail) {
-      const stone = ['#aaa79a','#827f76','#716f69'];
+      const stone = ['#b9b2a0','#918b7c','#77796f'];
+      // Flower boxes mounted above head height leave pedestrian space clear.
+      if(b.shade%2===0)for(const edge of [-1,1]) {
+        const px=x+edge*b.w*.28,pz=b.z+b.d+.16;
+        box(px,pz,1.25,.36,.24,0,['#b98561','#976847','#72513d'],2.0);
+        box(px,pz,1.16,.34,.25,0,['#85ad6b','#5c8b56','#456e49'],2.22);
+        for(const offset of [-.34,.34])box(px+offset,pz,.17,.18,.13,0,
+          b.shade===0?['#ffd19e','#ed9d76','#ca7760']:['#e6b6dd','#bd83ba','#9869a0'],2.44);
+      }
       for (let floor=3.8;floor<b.h-1;floor+=2.1) box(x,z,b.w+0.18,b.d+0.18,0.10,0,stone,floor);
       if (b.shade % 2 === 1) {
         for (let floor=2.1;floor<b.h-1.25;floor+=2.1) {
@@ -1441,11 +1579,33 @@
         box(postX, postZ, 0.12, 0.12, 3.25, 0, ['#68757a', '#506067', '#3d4d55']);
         box(postX - 0.72, postZ, 1.5, 0.1, 0.11, 0, ['#727c7f', '#58666a', '#404f55'], 3.11);
         box(postX - 1.37, postZ, 0.31, 0.29, 0.67, 0, ['#475052', '#323d42', '#263339'], 2.55);
+        if(Math.hypot(x-camera.x,z-camera.z)<22) {
+          const dock=x>278,market=x<90&&z<121;
+          const tint=dock?['#86b8d2','#4a829e','#32657e']:market?['#e4b27e','#bd8158','#966440']:['#a6c7a2','#6c997a','#52785e'];
+          box(postX+.27,postZ,.50,.06,1.0,0,tint,1.85);
+          box(postX,postZ,1.38,.10,.28,0,['#a8c8bc','#345b59','#294b4d'],3.32);
+          signText(dock?'DOCKSIDE':market?'MARKET ST':'HARBOR AVE',[postX,3.46,postZ+.07],'#f4efcf');
+        }
         const green = (Math.floor(elapsed / 6) + Math.round(x / 28)) % 2;
         box(postX - 1.37, postZ + 0.15, 0.13, 0.04, 0.12, 0,
           green ? ['#a1e3a0', '#75c483', '#639b6d'] : ['#fb9a89', '#df675d', '#b65454'], green ? 2.6 : 3);
         box(x + 5.42, z + 5.51, 0.42, 0.43, 0.71, 0, ['#687d78', '#486360', '#3a514f']);
         box(x + 5.42, z + 5.51, 0.47, 0.49, 0.11, 0, ['#91a19b', '#677d77', '#4c6562'], 0.7);
+      }
+    }
+  }
+
+  function drawShoreDetails() {
+    for(const edge of [0,size]) {
+      if(Math.abs(camera.x-edge)>32)continue;
+      const inland=edge===0?1:-1;
+      const start=Math.max(4,Math.floor((camera.z-32)/8)*8);
+      for(let z=start;z<Math.min(size-2,camera.z+34);z+=8) {
+        const x=edge+inland*.65;
+        // Outside the playable boundary: silhouettes add depth without blocking routes.
+        box(x,z,.24,.24,.92,0,['#d0c4a2','#8b9187','#627478']);
+        box(x,z,.34,.34,.10,0,['#d8c6a0','#b5a582','#8d8972'],.91);
+        box(x,z+4,.07,7.8,.07,0,['#a9b5ad','#6f8e8d','#4b737b'],.72);
       }
     }
   }
@@ -1492,13 +1652,15 @@
     const py = clamp(screenY, Math.min(106, height * 0.39), height - 45);
     fill([[px, py - 17], [px + 13, py - 4], [px, py + 9], [px - 13, py - 4]], '#10192a');
     fill([[px, py - 13], [px + 9, py - 4], [px, py + 5], [px - 9, py - 4]], color);
-    const textX = clamp(px, 46, width - 46);
     context.font = '700 10px system-ui, sans-serif';
+    const lines=label.split(' · ');
+    const labelWidth=Math.min(width-24,Math.max(74,...lines.map(line=>(context.measureText?.(line)?.width || line.length*6)+16)));
+    const textX=clamp(px,labelWidth/2+12,width-labelWidth/2-12);
     context.textAlign = 'center';
     context.fillStyle = '#10192a';
-    context.fillRect(textX - 37, py - 35, 74, 15);
+    context.fillRect(textX-labelWidth/2,py-35-(lines.length-1)*13,labelWidth,17+(lines.length-1)*13);
     context.fillStyle = color;
-    context.fillText(label, textX, py - 24);
+    lines.forEach((line,i)=>context.fillText(line,textX,py-23-(lines.length-1-i)*13,labelWidth-12));
   }
 
   function minimap(active) {
@@ -1559,7 +1721,7 @@
       const lean = Math.max(0,y-0.6)*walkBlend*(0.045+clamp(visualSpeed/11,0,1)*0.045);
       const bank = Math.max(0,y-0.55)*turnLean*0.16;
       x *= 1 + stats.build*0.14 + stats.muscle*0.035;
-      return [player.x+right.x*(x+bank)+forward.x*(z+lean),y,player.z+right.z*(x+bank)+forward.z*(z+lean)];
+      return [player.x+right.x*(x+bank)+forward.x*(z+lean),y+jumpHeight,player.z+right.z*(x+bank)+forward.z*(z+lean)];
     };
     // Rounded ring meshes retain thickness at every heading. Front/back artwork
     // is wrapped onto the head and jacket rather than scaled as a billboard.
@@ -1596,7 +1758,7 @@
       const step=sign*stride, lift=Math.max(0,step)*0.13;
       const index = sign < 0 ? 0 : 1;
       let x=sign*0.14, z=step*0.19;
-      if (step <= 0 && walkBlend > 0.1) {
+      if (jumpHeight === 0 && step <= 0 && walkBlend > 0.1) {
         const plant = footPlants[index];
         if (!plant || Math.hypot(plant.x-player.x,plant.z-player.z)>0.42) footPlants[index] = {x:player.x+right.x*x+forward.x*z,z:player.z+right.z*x+forward.z*z};
         const planted = footPlants[index];
@@ -1639,7 +1801,21 @@
       y * Math.cos(person.tilt || 0) + (person.elevation || 0),
       person.z + right.z * x + forward.z * (z + y * Math.sin(person.tilt || 0)),
     ];
-    const cloth = ['#7792a3', '#506a80', '#34495e'];
+    if (person.health === 0 && person.recover > 0) {
+      for (let i=0;i<3;i++) {
+        const a=elapsed*3+i*Math.PI*2/3;
+        signText('★',[person.x+Math.cos(a)*.45,.9+Math.sin(a*2)*.1,person.z+Math.sin(a)*.45],'#ffe49a');
+      }
+      signText('KO',[person.x,1.35,person.z],'#b9f7e5');
+    }
+    const hitAge = elapsed - (person.hitAt ?? -100);
+    if (hitAge < .35) {
+      for (let i=0;i<5;i++) {
+        const a=i*Math.PI*2/5, r=.2+hitAge*1.8;
+        signText('✦',[person.x+Math.cos(a)*r,1+Math.sin(a)*r,person.z],'#fff0b2');
+      }
+    }
+    const cloth = hitAge < .12 ? ['#fff6cf','#ffe6a3','#eed397'] : ['#7792a3', '#506a80', '#34495e'];
     const skin = ['#dfab83', '#bf8864', '#a46c52'];
     const hair = ['#4e3933', '#3c2c2a', '#302323'];
     const shoes = ['#505b63', '#333d47', '#252d38'];
@@ -1702,7 +1878,7 @@
         [shoulder * 1.21, elbowY, swing * 0.56 + reach, 0.062, 0.064]], skin);
       if (reach) {
         mesh([[shoulder * 1.15, handY - 0.036, reach * 2.03, 0.036, 0.046],
-          [shoulder * 1.15, handY + 0.054, reach * 2.13, 0.034, 0.10]], ['#505861', '#323942', '#252c34']);
+          [shoulder * 1.15, handY + 0.054, reach * 2.13, 0.034, 0.10]], ['#b8fff0', '#44d3df', '#bb77ed']);
       }
     }
     mesh([[0, 1.47 + bodyBob, 0.013, 0.082, 0.07], [0, 1.6 + bodyBob, 0.023, 0.067, 0.07]], skin);
@@ -1746,8 +1922,9 @@
     eye.sine = Math.sin(camera.angle);
     eye.x = camera.x - eye.sine * camera.distance;
     eye.z = camera.z + eye.cosine * camera.distance;
-    eye.y = Math.min(5, 2.6 + camera.distance * 0.19) + cameraLift;
-    const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5), camera.distance + 1);
+    const playerLift = inCar ? 0 : jumpHeight * 0.65;
+    eye.y = Math.min(5, 2.6 + camera.distance * 0.19) + cameraLift + playerLift;
+    const pitch = Math.atan2(eye.y - (inCar ? 2.05 : 1.5 + playerLift), camera.distance + 1);
     eye.pitchCosine = Math.cos(pitch);
     eye.pitchSine = Math.sin(pitch);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1771,7 +1948,17 @@
       context.fillRect(-1, -1, 2, 2);
       context.restore();
     }
-    flat(-140, -140, size + 280, size + 280, '#65818a');
+    flat(-140, -140, size + 280, size + 280, '#547d88');
+    for(const edge of [0,size]) {
+      if(Math.abs(camera.x-edge)>45)continue;
+      const outward=edge===0?-1:1;
+      const start=Math.floor((camera.z-40)/6)*6;
+      for(let z=start;z<camera.z+42;z+=6)for(let band=0;band<3;band++) {
+        const drift=Math.sin(elapsed*.65+z*.31+band)*.55;
+        const x=edge+outward*(3+band*4.5)+drift;
+        flat(x-1.5,z+Math.sin(elapsed*.4+band)*.3,3+band*.8,.09,band%2?'#95c6ca35':'#b3d9d03d');
+      }
+    }
     for (let i = 0; i < 24; i += 1) {
       const w = width / 14;
       const x = ((i * w * 0.67 - camera.angle * 49) % (width + w) + width + w) % (width + w) - w;
@@ -1794,7 +1981,15 @@
     }
     flat(329.2, 0, 10.8, size, '#697c54');
     if (camera.x > size - 78) flat(size, 224, 20, 79, '#858980');
-    for (const park of parks) if (distance(park, camera) < 85) flat(park.x - 8, park.z - 8, 16, 16, '#738357');
+    for (const park of parks) if (distance(park, camera) < 85) {
+      flat(park.x-8,park.z-8,16,16,'#7b9463');
+      flat(park.x-1.1,park.z-8,2.2,16,'#c3b99c');
+      flat(park.x-8,park.z+2.8,16,1.6,'#c3b99c');
+      if(distance(park,camera)<35)for(const side of [-1,1]) {
+        flat(park.x+side*5-1.5,park.z+4.9,3,1.2,'#58774d');
+        for(let i=0;i<5;i++)flat(park.x+side*5-1.3+i*.55,park.z+5.2,.28,.35,i%2?'#e5b78d':'#ccb1d3');
+      }
+    }
     for (const road of roads) {
       flat(road - 5.15, 0, 10.3, size, '#a3a49a');
       flat(0, road - 5.15, size, 10.3, '#a3a49a');
@@ -1818,6 +2013,17 @@
           flat(road + 4.9, cross + stripe, 1, 0.42, '#b8b7ad');
         }
       }
+    }
+    for(const bay of parkingBays) {
+      if(distance(bay,camera)>38)continue;
+      flat(bay.x-1.14,bay.z-2.45,2.28,4.9,'#707779');
+      for(const edge of [-1,1])flat(bay.x-1.08,bay.z+edge*2.35,2.16,.075,'#c9c7b5');
+      flat(bay.x+1.03,bay.z-2.35,.075,4.7,'#c9c7b5');
+      // A simple painted P, no text sprite or new obstruction.
+      flat(bay.x-.24,bay.z-.42,.075,.84,'#c9c7b5');
+      flat(bay.x-.24,bay.z-.42,.46,.075,'#c9c7b5');
+      flat(bay.x+.15,bay.z-.42,.075,.4,'#c9c7b5');
+      flat(bay.x-.24,bay.z-.09,.46,.075,'#c9c7b5');
     }
     for (const mark of roadWear) {
       if (Math.abs(mark.road - camera.x) < 35 && Math.abs(mark.along - camera.z) < 43) {
@@ -1850,10 +2056,17 @@
     const nearbyLamps = lamps.filter(lamp => distance(lamp, camera) < 52);
 
     const front = facing(car.angle);
-    groundGlow(car.x, car.z, 1.7, '#0b112659');
+    const shadowCars=new Set([...vehicles,...traffic,patrol,...(heatLevel>1?[backup]:[])]);
+    for(const vehicle of shadowCars)if(distance(vehicle,camera)<38) {
+      const heading=facing(vehicle.angle);
+      groundGlow(vehicle.x,vehicle.z,1.35,'#101c2859');
+      groundGlow(vehicle.x+heading.x*.95,vehicle.z+heading.z*.95,.88,'#101c283d');
+      groundGlow(vehicle.x-heading.x*.95,vehicle.z-heading.z*.95,.88,'#101c283d');
+    }
     if (!inCar) groundGlow(player.x, player.z, 0.34, '#07102080');
-    if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#ff54756d' : '#619cff6d');
-    groundGlow(car.x - front.x * 2.4, car.z - front.z * 2.4, 2.8, '#ff45582b');
+    if (heatLevel) groundGlow(patrol.x, patrol.z, 4.2, elapsed % 0.55 < 0.275 ? '#bb77ed6d' : '#77ffd66d');
+    if(inCar&&car.braking)groundGlow(car.x-front.x*2.05,car.z-front.z*2.05,1.65,'#ff455845');
+    if(inCar&&car.speed<-.3)groundGlow(car.x-front.x*2.6,car.z-front.z*2.6,1.7,'#d5edff2b');
     if (inCar) groundGlow(car.x + front.x * 4.2, car.z + front.z * 4.2, 3.7, '#e3f3ff1e');
     faces = [];
     scenery = true;
@@ -1885,9 +2098,10 @@
       box(pickup.x,pickup.z,1.2,1.2,0.12,0,['#81e9c5','#368f7a','#22594f'],0.03);
       const tint=pickup.type===2?['#ffe3a2','#c99750','#856536']:['#b6ffe2','#43bc98','#256b63'];
       box(pickup.x,pickup.z,0.24,pickup.type===2?1.25:0.8,0.23,elapsed*0.7,tint,lift);
-      box(pickup.x,pickup.z,0.18,0.25,0.3,elapsed*0.7,['#566779','#354655','#253440'],lift-0.22);
+      box(pickup.x,pickup.z,0.18,0.25,0.3,elapsed*0.7,['#ffc4f0','#b977e8','#665dc9'],lift-0.22);
 
     }
+    drawShoreDetails();
     drawFerry();
     architecture = true;
     for (const b of blocks) drawBuilding(b);
@@ -1915,7 +2129,7 @@
     }
     for (const worker of workers) {
       if (distance(worker, camera) < 23) drawPerson(worker,
-        worker.recover > 0 ? 0 : Math.sin(elapsed * 11) * 0.18, worker.jacket);
+        worker.recover > 0 ? 0 : Math.sin(elapsed * (worker.panicUntil>elapsed?18:11)) * (worker.panicUntil>elapsed?.55:.18), worker.jacket);
     }
     for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<65) {
       if(peer.driving) drawCar(peer,false);
@@ -1923,7 +2137,7 @@
     }
     if (!inCar) drawSpuddy();
     const subject = inCar ? car : player;
-    const subjectView = cameraPoint([subject.x, inCar ? 1.3 : 1.0, subject.z]);
+    const subjectView = cameraPoint([subject.x, inCar ? 1.3 : 1.0+jumpHeight, subject.z]);
     const subjectScreen = project(subjectView);
     const protectWidth = focal * (inCar ? 1.8 : 0.55) / Math.max(1, subjectView[2]);
     const protectHeight = focal * (inCar ? 1.0 : 1.1) / Math.max(1, subjectView[2]);
@@ -1996,7 +2210,7 @@
     }
     const target = objectiveTarget();
     if (target) pin(target, target === car ? 3.2 : 3, target === car ? '#79f1c6' : '#ffd373',
-      target === car ? 'GETAWAY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
+      target === car ? 'RALLY CAR' : step.kind === 'shoot' ? 'TARGET' : step.kind === 'park' ? 'STOP HERE' : 'CHECKPOINT');
     if (!inCar && phase==='playing') {
       const aim=facing(footView);
       let range=6;
@@ -2016,8 +2230,8 @@
         context.beginPath();
         context.moveTo(...project(start));
         context.lineTo(...project(end));
-        context.strokeStyle = '#ffe6a5';
-        context.lineWidth = 2;
+        context.strokeStyle = '#77f5ff';
+        context.lineWidth = 4;
         context.stroke();
         if (shotConnected) {
           const [x,y]=project(end);
@@ -2030,7 +2244,7 @@
     }
     if(!activeJob) for(const pickup of weaponPickups) if(elapsed >= (pickup.readyAt || 0) && distance(pickup,camera)<35 && visible(player,pickup)) pin(pickup,2.2,'#a3ffe0',weapons[pickup.type].name+' · Walk over to equip');
     for(const v of [...vehicles,...traffic]) if(!v.destroyed && elapsed-(v.hitAt ?? -10)<2 && visible(player,v)) pin(v,2.5,'#ffd18c','Integrity '+v.health+'/160');
-    for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<40 && visible(player,peer)) pin(peer,2.5,peer.shield?'#a3ffe0':'#ffb7bb',peer.shield?'LIVE · Protected':'LIVE · '+peer.health+' HP');
+    for(const peer of window.HarborOnline?.peers() || []) if(peer.health!==0 && distance(peer,camera)<40 && visible(player,peer)) pin(peer,2.5,peer.shield?'#a3ffe0':'#ffb7bb',peer.shield?'LIVE · Protected':'LIVE · '+peer.health+' shield');
     minimap(inCar ? car : player);
   }
 
@@ -2047,6 +2261,10 @@
 
   document.addEventListener('keydown', event => {
     if (event.target?.closest?.('input, select, textarea, [contenteditable=true]')) return;
+    if (event.code === 'Space' && !inCar && !event.target?.closest?.('button, a')) {
+      if (phase === 'playing') { event.preventDefault(); if (!event.repeat) jump(); }
+      return;
+    }
     const action = bindings[event.code];
     if (action && phase === 'playing' && !(action === 'brake' && (!inCar || event.target?.closest?.('button, a')))) {
       event.preventDefault();
@@ -2068,6 +2286,11 @@
   });
   canvas.addEventListener('touchstart', event => {
     if (phase !== 'playing') return;
+    const touches = Array.from(event.changedTouches);
+    if (!inCar && !cameraMode && (event.touches?.length ?? touches.length) === 1 && touches.length === 1) {
+      const t = touches[0];
+      tapCandidate = {id:t.identifier,x:t.clientX,y:t.clientY,time:event.timeStamp ?? Date.now()};
+    } else { tapCandidate = lastTap = null; }
     event.preventDefault();
     for (const touch of Array.from(event.changedTouches)) {
       if (!dragTouch && !cameraMode && !lookTouch) {
@@ -2083,6 +2306,7 @@
     if (!dragTouch && !lookTouch) return;
     event.preventDefault();
     for (const touch of Array.from(event.changedTouches)) {
+      if (tapCandidate?.id === touch.identifier && Math.hypot(touch.clientX-tapCandidate.x,touch.clientY-tapCandidate.y) > 12) tapCandidate = lastTap = null;
       if (touch.identifier === dragTouch?.id) {
         dragTouch.dx = touch.clientX - dragTouch.x;
         dragTouch.dy = touch.clientY - dragTouch.y;
@@ -2093,6 +2317,15 @@
     }
   }, { passive: false });
   function endTouch(event) {
+    if (event.type === 'touchcancel') tapCandidate = lastTap = null;
+    for (const touch of Array.from(event.changedTouches)) {
+      if (tapCandidate?.id !== touch.identifier) continue;
+      const time = event.timeStamp ?? Date.now();
+      const valid = event.touches.length === 0 && time-tapCandidate.time <= 220 && Math.hypot(touch.clientX-tapCandidate.x,touch.clientY-tapCandidate.y) <= 12;
+      if (valid && lastTap && time-lastTap.time <= 300 && Math.hypot(touch.clientX-lastTap.x,touch.clientY-lastTap.y) <= 30) { jump(); lastTap = null; }
+      else lastTap = valid ? {time,x:touch.clientX,y:touch.clientY} : null;
+      tapCandidate = null;
+    }
     for (const touch of Array.from(event.changedTouches)) {
       if (touch.identifier === dragTouch?.id) { dragTouch = null; footHeading = null; }
       if (touch.identifier === lookTouch?.id) { lookTouch = null; manualLookUntil = elapsed + 2; }
@@ -2102,10 +2335,15 @@
     }
   }
   for (const type of ['touchend', 'touchcancel']) document.addEventListener(type, endTouch, true);
-  element('focus-view').addEventListener('click', () => {
-    const active = document.body.classList.toggle('focus-game');
+  function showFocusView() {
+    const active = document.body?.classList.contains('focus-game') || false;
     element('focus-view').textContent = active ? 'Exit focus' : 'Focus view';
     element('focus-view').setAttribute('aria-pressed', String(active));
+  }
+  showFocusView();
+  element('focus-view').addEventListener('click', () => {
+    document.body.classList.toggle('focus-game');
+    showFocusView();
   });
   let settingsPaused = false;
   const settingsPanel = element('spuddy-settings');
@@ -2233,6 +2471,12 @@
   });
   showSound();
   element('interact').addEventListener('click', interact);
+  element('jump').addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    jump();
+  });
+  element('jump').addEventListener('click', event => { if (!event || event.detail === 0) jump(); });
   element('pause').addEventListener('click', pause);
   element('pause').disabled = true;
   resetTraffic();

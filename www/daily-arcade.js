@@ -5,7 +5,7 @@
   const games={
     spiralDrop:{name:'Spiral Drop',goal:8,unit:'rings',icon:'🌀',href:'mini.html?game=spiralDrop'},
     bounceRun:{name:'Bounce Run',goal:60,unit:'distance',icon:'⚪',href:'mini.html?game=bounceRun'},
-    neonSlice:{name:'Neon Slice',goal:120,unit:'points',icon:'🍉',href:'neon-slice.html'},
+    neonSlice:{name:'Neon Slice',goal:120,unit:'points',icon:'🍔',href:'neon-slice.html'},
     towerStack:{name:'Tower Stack',goal:8,unit:'floors',icon:'🏗️',href:'towerstack.html'},
     snake:{name:'Snake',goal:5,unit:'apples',icon:'🐍',href:'snake.html'},
     coinCatch:{name:'Coin Catch',goal:20,unit:'catches',icon:'🪙',href:'coincatch.html'}
@@ -20,6 +20,8 @@
   function paint(){
     const goals=state?.goals||preview(),completed=goals.filter(g=>g.progress>=g.goal).length;
     root.querySelector('[data-count]').textContent=state?`${completed}/3 complete`:'3 quick goals';
+    const summary=root.querySelector('[data-summary-status]');
+    if(summary)summary.textContent=failed?'Progress unavailable · Tap to retry':request?'Checking progress…':state?.pending?'Collectible earned · Check Backpack':state&&completed===3?'Complete · Your daily stamp is saved':state?.dailyBonus?`3 games · +${state.dailyBonus} Arcade Coins`:'Three games · One daily stamp';
     list.replaceChildren();
     for(const goal of goals){
       const game=games[goal.game];if(!game)continue;
@@ -49,6 +51,8 @@
     }
     const days=state?.days||[];
     root.querySelector('[data-week-count]').textContent=`${Math.min(4,days.length)} / 4 days`;
+    const weekSummary=root.querySelector('[data-week-summary]');
+    if(weekSummary)weekSummary.textContent=`${Math.min(4,days.length)} / 4 days`;
     const stamps=root.querySelector('[data-stamps]');stamps.replaceChildren();
     for(let i=0;i<4;i++){const stamp=make('span',i<days.length?'✓':String(i+1),i<days.length?'earned':'');stamp.setAttribute('aria-hidden','true');stamps.append(stamp);}
     const reward=root.querySelector('[data-reward-status]');

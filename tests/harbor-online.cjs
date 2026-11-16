@@ -1,6 +1,6 @@
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const nodes=new Map(),calls=[];let authenticated=true;
-const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:true,textContent:'',value:'',addEventListener(event,fn){this[event]=fn;}});return nodes.get(id);};
+const node=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{},hidden:true,textContent:'',value:'',addEventListener(event,fn){this[event]=fn;}});return nodes.get(id);};
 const client={auth:{async getSession(){return {data:{session:authenticated?{}:null}};}},async rpc(name,args){calls.push([name,args]);return {data:name==='harbor_live'?{health:100,peers:[{id:'other',x:14,z:43,angle:0,driving:false,health:100}]}:name==='harbor_fire'?{hit:true,killed:true,amount:100,health:0}:args.p_action==='start'?{token:'token',reward:25}:args.p_action==='claim'?{amount:25}:{stage:args.p_stage}};}};
 const window={EarnlyCloud:{client},addEventListener(){}};
 vm.runInNewContext(fs.readFileSync(__dirname+'/../harbor-online.js','utf8'),{window,document:{getElementById:node},Date,Math,Number,Array,Promise,Error});
