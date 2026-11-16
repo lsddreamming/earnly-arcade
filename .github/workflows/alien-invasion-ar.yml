@@ -74,6 +74,14 @@ jobs:
           -scheme AlienInvasionAR -configuration Debug -sdk iphoneos
           -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO
           -derivedDataPath native/AlienInvasionAR/DerivedData build
+      - name: Render native portals and check phone control bounds in simulator
+        run: bash scripts/capture-alien-ar-review.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alien-native-visual-review
+          path: test-results/alien-native/
+          retention-days: 14
       - name: Package source for Mac and device testing
         run: |
           cd native/AlienInvasionAR

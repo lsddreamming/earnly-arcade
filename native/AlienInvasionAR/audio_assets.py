@@ -8,6 +8,10 @@ import wave
 RATE = 22050
 # duration, start Hz, end Hz, noise blend, overtone blend
 CUES = {
+    'plasma': (.16, 740, 160, .06, .25),
+    'zapper': (.32, 1600, 90, .12, .60),
+    'charge': (.90, 65, 240, .10, .35),
+    'breach': (.42, 130, 45, .35, .40),
     'zap': (.18, 1500, 230, .06, .25),
     'laser': (.40, 360, 80, .12, .60),
     'hit': (.13, 950, 180, .45, .20),

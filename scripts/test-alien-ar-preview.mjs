@@ -18,6 +18,19 @@ async function fixture(t){
   return {root,read:p=>readFile(path.join(root,p),'utf8')};
 }
 
+test('native portal editor always exposes a start-game action after placement',async()=>{
+  const source=await readFile(path.join(repo,'native/AlienInvasionAR/Sources/GameViewController.swift'),'utf8');
+  assert.match(source,/style\(startButton,"START GAME · 3 WAVES",#selector\(startGameFromPlacement\)\)/);
+  assert.match(source,/\[setup,combat,editControls,depthControls,startButton\]/,'start is in the persistent bottom controls, not only the popup');
+  assert.match(source,/startButton\.isHidden = phase != "scan" \|\| world\.entrances\.isEmpty/);
+  assert.match(source,/startButton\.isEnabled = canStart/);
+  assert.match(source,/portalPlacements\.count == world\.entrances\.count && portalPlacements\.values\.allSatisfy/);
+  assert.match(source,/private func refreshPortalEditor\(\) \{\s*refreshStartButton\(\)/);
+  assert.match(source,/private func showReady\(\) \{\s*refreshStartButton\(\)/);
+  assert.match(source,/@objc private func startGameFromPlacement\(\) \{\s*guard phase == "scan" else \{ return \}\s*startCombat\(test:false\)/);
+  assert.match(source,/editControls\.isHidden=true; depthControls\.isHidden=true; startButton\.isHidden=true/,'start disappears during combat');
+});
+
 test('embedding is repeatable and preserves the existing app, StoreKit and plist',async t=>{
   const f=await fixture(t);
   await installAlienARPreview(f.root);
@@ -39,6 +52,17 @@ test('embedding is repeatable and preserves the existing app, StoreKit and plist
   const wav=await readFile(path.join(f.root,'ios/App/App/public/alien-ar-zap.wav'));
   assert.equal(wav.toString('ascii',0,4),'RIFF');
   assert.equal(wav.readUInt32LE(4),wav.length-8);
+  const signatures=new Set();
+  for(const name of ['plasma','zapper','charge','breach','wave','reload']) {
+    const cue=await readFile(path.join(f.root,`ios/App/App/public/alien-ar-${name}.wav`));
+    assert.equal(cue.toString('ascii',0,4),'RIFF');
+    assert.equal(cue.readUInt32LE(4),cue.length-8);
+    assert.equal(cue.readUInt16LE(22),1,'mono positional audio');
+    assert.equal(cue.readUInt32LE(24),22050);
+    assert.ok(cue.length>4000 && cue.length<60000,'short, bounded PCM cue');
+    signatures.add(cue.toString('base64'));
+  }
+  assert.equal(signatures.size,6,'weapons, charge, breach, wave and reload are distinct');
 });
 
 test('missing bridge or invalid plist fails before changing generated source',async t=>{
@@ -58,7 +82,7 @@ test('both iPhone packages contain the same bounded, distinct mono sound bank',a
   const standalone=path.join(f.root,'native/AlienInvasionAR');
   const run=spawnSync('python3',[path.join(standalone,'generate-project.py')],{encoding:'utf8'});
   assert.equal(run.status,0,run.stderr);
-  const names=['zap','laser','hit','pop','portal','reload','ready','switch','wave','win','lose','runner','armor','brute','flyer','hurt','empty'];
+  const names=['plasma','zapper','charge','breach','zap','laser','hit','pop','portal','reload','ready','switch','wave','win','lose','runner','armor','brute','flyer','hurt','empty'];
   const bundled=await readdir(path.join(f.root,'ios/App/App/public'));
   assert.deepEqual(bundled.sort(),names.map(n=>`alien-ar-${n}.wav`).sort());
   const project=await readFile(path.join(standalone,'AlienInvasionAR.xcodeproj/project.pbxproj'),'utf8');

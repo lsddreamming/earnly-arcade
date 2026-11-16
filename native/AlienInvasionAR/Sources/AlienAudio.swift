@@ -3,11 +3,11 @@ import SceneKit
 @available(iOS 17.0, *)
 enum AlienCue: String, CaseIterable {
     case zap, laser, hit, pop, portal, reload, ready, `switch`, wave, win, lose
-    case runner, armor, brute, flyer, hurt, empty
+    case runner, armor, brute, flyer, hurt, empty, plasma, zapper, charge, breach
 
     var positional: Bool {
         switch self {
-        case .hit, .pop, .portal, .runner, .armor, .brute, .flyer: return true
+        case .hit, .pop, .portal, .charge, .breach, .runner, .armor, .brute, .flyer: return true
         default: return false
         }
     }
@@ -26,6 +26,7 @@ final class AlienAudio {
         }
     }
     private var sources: [AlienCue: SCNAudioSource] = [:]
+    var loadedCueCount: Int { sources.count }
     private var prepared = false
     private var cooldowns: [AlienCue: Float] = [:]
 
@@ -35,7 +36,7 @@ final class AlienAudio {
             guard let source = SCNAudioSource(fileNamed: "\(cue.rawValue).wav") ??
                     SCNAudioSource(fileNamed: "public/alien-ar-\(cue.rawValue).wav") else { continue }
             source.isPositional = cue.positional; source.loops = false
-            source.volume = cue == .zap || cue == .laser ? 0.32 : 0.24
+            source.volume = cue == .plasma || cue == .zapper ? 0.32 : 0.24
             source.reverbBlend = cue.positional ? 0.12 : 0
             source.load(); sources[cue] = source
         }

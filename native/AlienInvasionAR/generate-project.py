@@ -37,4 +37,4 @@ ref=f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ui
 info={'CFBundleDisplayName':'Alien Invasion AR','CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundleName':'$(PRODUCT_NAME)','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.1','CFBundleVersion':'1','LSRequiresIPhoneOS':True,'NSCameraUsageDescription':'Show your room and track alien portals in 3D. Camera footage stays on your device.','UIRequiredDeviceCapabilities':['arkit','arm64'],'UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait'],'UILaunchScreen':{},'ITSAppUsesNonExemptEncryption':False}
 (root/'Info.plist').write_bytes(plistlib.dumps(info))
 write_sounds(root)
-print('Generated AlienInvasionAR.xcodeproj, Info.plist and 17 original sound cues.')
+print('Generated AlienInvasionAR.xcodeproj, Info.plist and 21 original sound cues.')

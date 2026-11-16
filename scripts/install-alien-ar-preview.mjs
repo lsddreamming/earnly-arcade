@@ -1,6 +1,6 @@
+import {execFileSync} from 'node:child_process';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import {execFileSync} from 'node:child_process';
 
 // Called only by an explicitly selected preview build. Ordinary Earnly builds
 // retain their existing native plugins, camera permissions and home page.
