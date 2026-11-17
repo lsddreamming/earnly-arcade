@@ -2,13 +2,14 @@
 import {mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const out=resolve(process.argv[2]||'dist/metal-mayhem-preview');await mkdir(out,{recursive:true});
-const files=['metal-mayhem.css','metal-mayhem-display.woff2','metal-mayhem-engine.js','metal-mayhem-3d.js','metal-mayhem-rewards.js','metal-mayhem.js','metal-mayhem-font-LICENSE.txt','metal-mayhem-three-LICENSE.txt','game-preview-metal-mayhem.svg'];
+const files=['public-info.css','metal-mayhem.css','metal-mayhem-display.woff2','metal-mayhem-engine.js','metal-mayhem-3d.js','metal-mayhem-rewards.js','metal-mayhem.js','metal-mayhem-font-LICENSE.txt','metal-mayhem-three-LICENSE.txt','game-preview-metal-mayhem.svg'];
 for(const f of files)await copyFile(f,resolve(out,f));
-const html=(await readFile('metal-mayhem.html','utf8')).replace('<script src="crystal-command-vendor.js"></script>','').replaceAll('href="games.html"','href="https://earnlyarcade.com/games.html"');
+const html=(await readFile('metal-mayhem.html','utf8')).replace('<script src="crystal-command-vendor.js"></script>','').replace(/href="(index|games|about|game-guides|support|privacy|terms)\.html"/g,(_,page)=>'href="https://earnlyarcade.com/'+page+'.html"');
 await writeFile(resolve(out,'index.html'),html);await writeFile(resolve(out,'metal-mayhem.html'),html);
 console.log('Practice-only Metal Mayhem exported to '+out);
 if(process.argv[3]){
- let single=html;
+ const publicCss=await readFile('public-info.css','utf8');
+ let single=html.replace('<link rel="stylesheet" href="public-info.css">',()=>'<style>'+publicCss+'</style>');
  let css=await readFile('metal-mayhem.css','utf8');
  css=css.replace("url('metal-mayhem-display.woff2')",`url('data:font/woff2;base64,${(await readFile('metal-mayhem-display.woff2')).toString('base64')}')`);
  single=single.replace('<link rel="stylesheet" href="metal-mayhem.css">','<style>'+css+'</style>');

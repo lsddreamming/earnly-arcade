@@ -9,3 +9,14 @@ for(const prefix of ['/','/www/'])test(`Metal Mayhem appears in Home rotation ${
  await expect(card).toContainText('Metal Mayhem');
  await expect(card.locator('img')).toHaveAttribute('src','game-preview-metal-mayhem.svg');
 });
+
+for(const prefix of ['/','/www/'])test(`Metal Mayhem includes shared information navigation ${prefix}`,async({request})=>{
+ const html=await(await request.get(prefix+'metal-mayhem.html')).text();
+ expect(html).toContain('href="public-info.css"');
+ const footer=html.match(/<footer class="public-footer"[\s\S]*?<\/footer>/)?.[0];
+ expect(footer).toContain('aria-label="Site information"');
+ for(const target of ['index','games','about','game-guides','support','privacy','terms']){
+  expect(footer).toContain('href="'+target+'.html"');
+  expect((await request.get(prefix+target+'.html')).ok()).toBe(true);
+ }
+});
