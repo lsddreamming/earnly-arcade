@@ -28,3 +28,7 @@ verify_jwt = false
 [functions.big-fish-energy]
 # Public leaderboard reads; every run mutation validates its bearer with auth.getUser.
 verify_jwt = false
+
+[functions.metal-mayhem]
+# Disabled until separately approved. Handler validates bearer tokens for every run.
+verify_jwt = false

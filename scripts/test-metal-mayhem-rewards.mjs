@@ -1,0 +1,32 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url),E=require('../metal-mayhem-engine.js'),verify=require('../supabase/functions/metal-mayhem/verify.js');
+const steps=Array.from({length:90},()=>[1000,0,0,0,0]),a=verify({seed:17},steps),b=verify({snapshot:a.snapshot},steps),s=E.create(17);for(const v of [...steps,...steps])E.step(s,{x:1});assert.deepEqual(b.snapshot,E.snapshot(s));
+for(const bad of [[],[[1.5,0,0,0,0]],[[1001,0,0,0,0]],[[0,0,4000,0,0]],[[0,0,0,16,0]],[[0,0,0,0,1]],Array(901).fill([0,0,0,0,0])])assert.throws(()=>verify({seed:1},bad),/INVALID_STEPS/);
+const db=new PGlite();await db.exec(await readFile('tests/commerce-fixture.sql','utf8'));
+await db.exec(`CREATE ROLE service_role BYPASSRLS; ALTER TABLE coin_wallets ALTER balance SET DEFAULT 0;
+CREATE TABLE coin_ledger(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id uuid,client_event_id text,source_type text,source_label text,game text,metric int,aux int,amount int,created_at timestamptz DEFAULT now(),UNIQUE(user_id,client_event_id));
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
+CREATE TABLE coin_play_receipts(user_id uuid,request_id uuid,game text,action text);
+CREATE TABLE coin_play_credits(user_id uuid,game text,remaining int);`);
+await db.exec(await readFile('tests/kart-reward-baseline.sql','utf8'));
+await db.exec(await readFile('supabase/migrations/20261117010000_metal_mayhem_verified_runs.sql','utf8'));
+const uid='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
+const data=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
+const start=()=>data('select metal_mayhem_start($1,17) r',[uid]);
+const claim=(id,seq=0,score=1000,wave=4,time=90,kills=10,owner=uid)=>data('select metal_mayhem_checkpoint($1,$2,$3,$4,900,$5,$6,$7,$8,false) r',[owner,id,seq,JSON.stringify(a.snapshot),score,wave,kills,time]);
+const age=id=>db.query("update metal_mayhem_runs set created_at=now()-interval '1 hour' where id=$1",[id]);
+let round=await start();await assert.rejects(claim(round.id),/ROUND_TOO_FAST/);await assert.rejects(claim(round.id,0,1000,4,90,10,other),/ROUND_NOT_FOUND/);await age(round.id);
+let r=await claim(round.id);assert.equal(r.amount,5);assert.equal(r.wallet.balance,'1255');assert.equal((await claim(round.id)).amount,0);await assert.rejects(claim(round.id,3),/SEQUENCE_CONFLICT/);
+r=await claim(round.id,1,2000,7,180,20);assert.equal(r.amount,5);assert.equal(r.earned,10);
+let list=await data('select metal_mayhem_leaderboard() r');assert.equal(list[0].score,2000);assert.equal(list[0].username,'PlayerOne');
+await db.query('insert into leaderboard_bans values($1)',[uid]);assert.equal((await data('select metal_mayhem_leaderboard() r')).length,0);await db.query('delete from leaderboard_bans');
+// Idle time and repeated low-wave farming cannot mint coins.
+round=await start();await age(round.id);assert.equal((await claim(round.id,0,1000,2,1800,200)).amount,0);assert.equal((await claim(round.id,1,1000,60,1800,0)).amount,0);
+round=await start();await age(round.id);assert.equal((await claim(round.id,0,50000,61,1800,200)).amount,90);round=await start();await age(round.id);assert.equal((await claim(round.id,0,60000,61,1800,200)).amount,0);
+assert.equal((await db.query("select sum(amount)::int n from coin_ledger where game='metalMayhem'")).rows[0].n,100);
+await db.query("update metal_mayhem_runs set updated_at=now()-interval '25 hours' where id=$1",[round.id]);await assert.rejects(claim(round.id,1),/ROUND_EXPIRED/);
+for(const role of ['anon','authenticated']){await db.exec('SET ROLE '+role);await assert.rejects(start(),/permission denied/);await assert.rejects(claim(round.id),/permission denied/);await assert.rejects(db.query('select * from metal_mayhem_runs'),/permission denied/);await assert.rejects(db.query('select * from metal_mayhem_bests'),/permission denied/);await db.exec('RESET ROLE');}
+await db.close();console.log('PASS Metal Mayhem replay, input bounds, ownership, receipt retry, sequence CAS, reward pacing, daily cap, bans, RLS and denied browser minting');

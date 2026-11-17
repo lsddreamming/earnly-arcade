@@ -1,0 +1,52 @@
+name: Metal Mayhem release checks
+on:
+  pull_request:
+    paths: ['metal-mayhem*', 'www/metal-mayhem*', 'game-preview-metal-mayhem.svg', 'tests/metal-mayhem*', 'scripts/*metal-mayhem*', 'supabase/functions/metal-mayhem/**', 'supabase/migrations/*metal_mayhem*', '.github/workflows/metal-mayhem.yml']
+  push:
+    branches: [main]
+    paths: ['metal-mayhem*', 'www/metal-mayhem*', 'tests/metal-mayhem*', 'scripts/*metal-mayhem*', 'supabase/functions/metal-mayhem/**', 'supabase/migrations/*metal_mayhem*', '.github/workflows/metal-mayhem.yml']
+  workflow_dispatch:
+concurrency:
+  group: metal-mayhem-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  game-checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: desktop-chromium
+            browser: chromium
+          - os: ubuntu-latest
+            project: mobile-webkit
+            browser: webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      METAL_MAYHEM_CHROMIUM_3D: ${{ matrix.browser == 'chromium' && '1' || '0' }}
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WEBKIT_DISABLE_DMABUF_RENDERER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Verify simulation, destruction, replay and server-only rewards
+        run: node --test tests/metal-mayhem-engine.cjs scripts/test-metal-mayhem-client.cjs && node scripts/test-metal-mayhem-rewards.mjs && node --experimental-strip-types --test scripts/test-metal-mayhem-handler.ts
+      - name: Verify real WebGL, controls, lifecycle and layouts
+        run: npx playwright test tests/metal-mayhem.spec.js tests/metal-mayhem-catalog.spec.js --project=${{ matrix.project }} --workers=1
+      - name: Export practice playtest
+        if: always()
+        run: node scripts/build-metal-mayhem-preview.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: metal-mayhem-${{ matrix.project }}
+          path: |
+            test-results/
+            playwright-report/
+            dist/metal-mayhem-preview/
+          retention-days: 14
