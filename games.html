@@ -148,6 +148,7 @@
       <section class="card game-card compact-game catalog-tile" data-game="crystalCommand"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">◈</span><h2>Crystal Command</h2></div></div><p class="reward-rule">Full battle wins · 10–25 Coins</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="crystal-command.html" aria-label="Play Crystal Command">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="bubblePop"><div class="game-title-row"><h2>🫧 Bubble Pop</h2></div><p class="reward-rule">1,000 levels · First clears earn 15–35 Coins + milestones</p><a class="wide game-play-button" href="bubble-pop.html">Play</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="spuddyEvolution"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🌱</span><h2>Spuddy Evolution</h2></div></div><p class="reward-rule">3D adventure · device-only saves · no Arcade Coin rewards</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="spuddy-evolution.html" aria-label="Play Spuddy Evolution">Play</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="metalMayhem"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Metal Mayhem</h2></div></div><p class="reward-rule">3D robot combat · sever limbs · survive endless waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="metal-mayhem.html" aria-label="Play Metal Mayhem">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="bigFishEnergy"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🦈</span><h2>BIG FISH ENERGY</h2></div></div><p class="reward-rule">Eat smaller fish · grow into an ocean giant</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="big-fish-energy.html" aria-label="Play BIG FISH ENERGY">Play</a></div></section>
     </div>
 
@@ -215,6 +216,7 @@
       { key:'spuddyTurf', icon:'🗺️', name:'Spuddy Turf', note:'Claim land · cut bot trails · free solo territory battles', href:'spuddy-turf.html', freeBeta:true },
       { key:'harborGetaway', icon:'🌆', name:'Harbor Getaway', note:'Explore the city · complete jobs · optional live free roam', href:'harbor-getaway.html', freeBeta:true },
       { key:'spuddyEvolution', icon:'🌱', name:'Spuddy Evolution', note:'3D adventure · device-only saves · no Arcade Coin rewards', href:'spuddy-evolution.html', freeBeta:true },
+      { key:'metalMayhem', icon:'🤖', name:'Metal Mayhem', note:'3D robot combat · sever limbs · survive endless waves', href:'metal-mayhem.html', freeBeta:true },
       { key:'bigFishEnergy', icon:'🦈', name:'BIG FISH ENERGY', note:'Eat smaller fish · grow into an ocean giant', href:'big-fish-energy.html', freeBeta:true }
     ];
 
@@ -251,15 +253,16 @@
       spuddyTurf:['new','action','strategy'],
       harborGetaway:['action'],
       spuddyEvolution:['new','action'],
+      metalMayhem:['new','action'],
       bigFishEnergy:['new','action']
     };
     // Game length is independent of genre, coins and save capability.
     // Add newly launched large games (like Spuddy Defense) only after release.
     const deepPlayKeys = new Set([
       'bubblePop','crystalCommand','neonBreach','spuddyTurf',
-      'harborGetaway','spuddyEvolution','bigFishEnergy'
+      'harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem'
     ]);
-    // Visiting or refreshing Games advances four picks through all 28 titles.
+    // Visiting or refreshing Games advances four picks through all available titles.
     // Do not advance during favorites, cloud updates, filtering or rerenders.
     const starterStorageKey = 'earnly.games.starter.queue.v1';
     function nextStarterPicks() {
@@ -283,6 +286,7 @@
       snake: {src:'snake.webp', label:'A familiar classic', description:'Steer, eat apples, and keep growing.'},
       bubblePop: {src:'bubble-pop.webp', label:'Take your time', description:'Match colorful bubbles. Solve one level at a time.'},
       spuddyEvolution: {src:'spuddy-evolution.svg', label:'Explore & grow', description:'Gather seeds and grow your own little Spuddy.'},
+      metalMayhem: {src:'metal-mayhem.svg', label:'Built to break.', description:'Dismantle robot gladiators. Upgrade. Survive the next wave.'},
       bigFishEnergy: {src:'big-fish-energy.webp', label:'Small fry. Big future.', description:'Eat, escape and grow into a gigantic ocean legend.'}
     };
     function starterPreview(info) {

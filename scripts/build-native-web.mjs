@@ -8,12 +8,13 @@ const environment = nativeEnvironment(process.env.EARNLY_BACKEND_ENVIRONMENT);
 const root = process.cwd();
 const outDir = path.join(root, 'www');
 const allowedExtensions = new Set([
-  '.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.webmanifest'
+  '.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.webmanifest', '.woff2'
 ]);
 const excluded = new Set([
   'coin-sandbox.html',
   'coin-sandbox.js',
   'native-ads-entry.js',
+  'metal-mayhem-renderer-entry.js',
   'world-placement-entry.js',
   'native-purchases-entry.js',
   'native-share-entry.js',
@@ -33,7 +34,7 @@ const entries = await readdir(root, { withFileTypes:true });
 for (const entry of entries) {
   if (!entry.isFile()) continue;
   if (excluded.has(entry.name)) continue;
-  if (!allowedExtensions.has(path.extname(entry.name))) continue;
+  if (!allowedExtensions.has(path.extname(entry.name)) && !entry.name.endsWith('-LICENSE.txt')) continue;
   await cp(path.join(root, entry.name), path.join(outDir, entry.name));
 }
 

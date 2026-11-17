@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const deep=['bubblePop','crystalCommand','neonBreach','spuddyTurf','harborGetaway','spuddyEvolution','bigFishEnergy'];
+const deep=['bubblePop','crystalCommand','neonBreach','spuddyTurf','harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem'];
 for(const prefix of ['/','/www/']){
  for(const [width,height] of [[320,568],[390,844],[1024,844]]){
   test(`games paths and search ${prefix} ${width}px`,async({page,baseURL})=>{
