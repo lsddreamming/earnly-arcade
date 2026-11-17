@@ -57,6 +57,7 @@ export class ArenaView {
   for(const part of Object.values(parts))this.mergeStatic(part);
   const weapon=new THREE.Group();const blade=this.box(weapon,0,0,0,.095,1,.075,a.type==='player'?0x79eeff:color,true);const spine=this.box(weapon,0,0,.04,.035,1,.06,steel);const guard=this.box(weapon,0,-.36,0,.38,.07,.18,dark);
   if(a.type==='hammer'||a.type==='giant')this.box(weapon,0,.36,0,.55,.27,.4,color);
+  if(a.type==='archer'){blade.visible=false;spine.visible=false;this.box(weapon,0,0,0,.18,.6,.22,dark);this.box(weapon,0,.1,0,.8,.06,.15,color);for(const x of [-.4,.4])this.box(weapon,x,.18,0,.08,.22,.13,color);this.box(weapon,0,.19,-.13,.52,.018,.018,eye,true);}
   root.add(weapon);
   const telegraph=new THREE.Mesh(new THREE.RingGeometry(.55,.68,40),new THREE.MeshBasicMaterial({color:0xff6446,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));telegraph.rotation.x=-Math.PI/2;root.add(telegraph);
   const shadow=new THREE.Mesh(new THREE.CircleGeometry(.7,24),new THREE.MeshBasicMaterial({color:0x020912,transparent:true,opacity:.38,depthWrite:false}));shadow.rotation.x=-Math.PI/2;root.add(shadow);
@@ -81,7 +82,7 @@ export class ArenaView {
   for(const a of [s.player,...s.enemies]){if(!a.alive)continue;ids.add(a.id);const m=this.models.get(a.id)||this.robot(a);m.root.visible=true;
    for(const name of Object.keys(m.parts))m.parts[name].visible=false;
    for(const part of E.segments(a)){const g=m.parts[part.name];g.visible=true;g.position.set(part.x,part.y,part.z);g.scale.setScalar(a.scale*(a.spawn>0?Math.max(.1,1-a.spawn/.8):1));g.rotation.set(0,-a.yaw,0);if(part.name.endsWith('Leg'))g.rotation.x=Math.sin(a.walk+(part.name==='leftLeg'?0:Math.PI))*.22;if(part.name==='core')g.rotation.z=Math.sin(a.walk*.5)*.035;}
-   const blade=E.blade(a),start=new THREE.Vector3(blade.a.x,blade.a.y,blade.a.z),end=new THREE.Vector3(blade.b.x,blade.b.y,blade.b.z),v=end.clone().sub(start);m.weapon.visible=a.hp.leftArm>0||a.hp.rightArm>0;m.weapon.position.copy(start).addScaledVector(v,.5);m.weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());m.weapon.scale.set(a.scale,v.length(),a.scale);
+   const blade=E.blade(a),start=new THREE.Vector3(blade.a.x,blade.a.y,blade.a.z),end=new THREE.Vector3(blade.b.x,blade.b.y,blade.b.z),v=end.clone().sub(start);m.weapon.visible=a.id===0?(a.hp.leftArm>0||a.hp.rightArm>0):a.hp.rightArm>0;m.weapon.position.copy(start).addScaledVector(v,.5);m.weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());m.weapon.scale.set(a.scale,v.length(),a.scale);
    m.telegraph.visible=a.telegraph>0||a.block||a.spawn>0;m.telegraph.position.set(a.x,.04,a.z);m.telegraph.scale.setScalar(a.scale*(1.2+(a.telegraph>0?Math.sin(this.elapsed*15)*.08:0)));m.telegraph.material.color.setHex(a.block?0x80efff:a.spawn>0?0xffbc67:0xff493b);
    m.shadow.position.set(a.x,.015,a.z);m.shadow.scale.setScalar(a.scale*(1-a.y*.07));
   }
@@ -99,10 +100,11 @@ export class ArenaView {
   const p=s.player,target=new THREE.Vector3(p.x,p.y+1.35,p.z),dist=this.camera.aspect<1?6.4:6.8;
   const offset=new THREE.Vector3(-Math.sin(yaw)*dist,2.3+pitch*3,Math.cos(yaw)*dist);
   if(intro){target.set(0,1.3,4);offset.set(-5,3.1,8);}
-  let fraction=1;for(let t=.12;t<=1;t+=.035){const x=target.x+offset.x*t,z=target.z+offset.z*t,y=target.y+offset.y*t;if(Math.abs(x)>19.4||Math.abs(z)>19.4||y<4.6&&E.OBSTACLES.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+.45)){fraction=Math.max(.08,t-.05);break;}}
-  const desired=target.clone().addScaledVector(offset,fraction),smoothing=1-Math.exp(-dt*14);this.camera.position.lerp(desired,intro?smoothing:Math.max(.08,smoothing));
+  let fraction=1;for(let t=.12;t<=1;t+=.035){const x=target.x+offset.x*t,z=target.z+offset.z*t,y=target.y+offset.y*t;if(Math.hypot(x,z)>19.4||y<4.6&&E.OBSTACLES.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+.45)||s.enemies.some(e=>e.alive&&Math.hypot(x-e.x,z-e.z)<e.scale*.8&&y<e.y+2.4*e.scale)){fraction=Math.max(.08,t-.05);break;}}
+  const desired=target.clone().addScaledVector(offset,fraction);if(fraction<.32)desired.y=Math.max(desired.y,p.y+4.9);const smoothing=1-Math.exp(-dt*14);this.camera.position.lerp(desired,intro?smoothing:Math.max(.08,smoothing));
   // Smooth follow can cross a pylon after a fast yaw change; project out immediately.
   for(const o of E.OBSTACLES){const dx=this.camera.position.x-o.x,dz=this.camera.position.z-o.z,len=Math.hypot(dx,dz);if(len<o.r+.28&&this.camera.position.y<4.5){this.camera.position.x=o.x+(dx/(len||1))*(o.r+.28);this.camera.position.z=o.z+(dz/(len||1))*(o.r+.28);}}
+  for(const e of s.enemies)if(e.alive&&Math.hypot(this.camera.position.x-e.x,this.camera.position.z-e.z)<e.scale*.8&&this.camera.position.y<e.y+2.4*e.scale)this.camera.position.y=e.y+2.4*e.scale;
   this.camera.lookAt(target);if(this.shake>0&&dt){this.camera.position.x+=(Math.random()-.5)*this.shake;this.camera.position.y+=(Math.random()-.5)*this.shake;this.shake*=Math.exp(-18*dt);}
   this.renderer.render(this.scene,this.camera);
  }

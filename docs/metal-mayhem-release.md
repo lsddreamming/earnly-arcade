@@ -15,13 +15,16 @@ device personal records, and responsive desktop/touch controls.
 - `node scripts/test-metal-mayhem-rewards.mjs`
 - `node --experimental-strip-types --test scripts/test-metal-mayhem-handler.ts`
 - `METAL_MAYHEM_CHROMIUM_3D=1 npx playwright test tests/metal-mayhem.spec.js tests/metal-mayhem-catalog.spec.js --project=desktop-chromium`
-- Run the same browser tests with `--project=mobile-webkit` on a supported Mac.
+- Run the same browser tests with `--project=mobile-webkit` on the existing Linux software-rendered WebKit CI environment.
 - `node scripts/build-metal-mayhem-preview.mjs` exports a practice-only folder
   with no authentication SDK. Serve its `index.html` to play.
 
 The cloud review browser in the development session reports its WebGL context
 disabled. That environment cannot establish visual quality or iPhone frame rate.
-Use the dedicated CI screenshots and a physical iPhone before release.
+Desktop Chromium rendered screenshots have been inspected. The initial Intel Mac
+WebKit runner also lost its graphics context before constructing the scene. The
+dedicated workflow uses the same software-rendered Linux WebKit setup as Earnly's
+Spuddy Evolution checks; it does not replace physical-iPhone acceptance.
 
 ## Reward release is deliberately disabled
 

@@ -13,14 +13,14 @@
   giant:{name:'THE CRUCIBLE',speed:2,hp:4,damage:40,reach:4,windup:1.25,color:0xff493c,score:1200}
  };
  const UPGRADES=[
-  {id:'edge',name:'Plasma edge',desc:'+22% blade damage. Cut through limbs faster.',icon:'⚔',max:8},
+  {id:'edge',name:'Plasma edge',desc:'+22% blade damage. Cut through limbs faster.',icon:'⚔',max:Infinity},
   {id:'tempo',name:'Quick hands',desc:'12% faster swings and recovery.',icon:'»',max:5},
-  {id:'armor',name:'Reinforced chassis',desc:'+25 maximum core armor. Restore all limbs.',icon:'⬡',max:6},
+  {id:'armor',name:'Reinforced chassis',desc:'+25 maximum core armor. Restore all limbs.',icon:'⬡',max:Infinity},
   {id:'speed',name:'Overclock',desc:'+10% running speed. Keep the flank.',icon:'ϟ',max:5},
   {id:'dodge',name:'Phase drive',desc:'Longer dodges, lower energy cost.',icon:'↗',max:4},
   {id:'regen',name:'Power cell',desc:'+25% energy regeneration.',icon:'↻',max:5},
   {id:'force',name:'Impact amplifier',desc:'+35% knockback and longer stagger.',icon:'✦',max:5},
-  {id:'repair',name:'Full rebuild',desc:'Restore every segment and refill energy.',icon:'+',max:999},
+  {id:'repair',name:'Full rebuild',desc:'Restore every segment and refill energy.',icon:'+',max:Infinity},
   {id:'pulse',name:'Shock landing',desc:'Jump attacks release a stunning pulse.',icon:'◎',max:3}
  ];
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -31,7 +31,7 @@
  function local(a,x,y,z){const c=Math.cos(a.yaw),s=Math.sin(a.yaw),k=a.scale;return {x:a.x+(x*c-z*s)*k,y:a.y+y*k,z:a.z+(x*s+z*c)*k};}
  function actor(id,type,x,z,wave=1){
   const t=TYPES[type]||TYPES.blade,scale=type==='giant'?1.85:type==='hammer'?1.15:1;
-  const hp=type==='player'?1:t.hp*(1+Math.min(2.2,(wave-1)*.035));
+  const hp=type==='player'?1:t.hp*(1+(wave-1)*.035);
   const max={core:Math.round((type==='player'?120:62)*hp),head:Math.round(35*hp),leftArm:Math.round(27*hp),rightArm:Math.round(27*hp),leftLeg:Math.round(32*hp),rightLeg:Math.round(32*hp)};
   return {id,type,x,z,y:0,vy:0,vx:0,vz:0,yaw:0,scale,hp:{...max},max,armor:type==='armored'||type==='giant'?{core:30*hp,head:18*hp,leftArm:12*hp,rightArm:12*hp}: {},alive:true,attack:null,cooldown:.7,stagger:0,dodge:0,invulnerable:0,block:false,parry:0,blockWas:false,telegraph:0,phase:0,walk:0,path:[],repath:0,combo:0,hitFlash:0,spawn:0};
  }
@@ -54,10 +54,10 @@
   return {a:hand,b:{x:hand.x+Math.sin(theta)*len,y:hand.y+height*a.scale,z:hand.z-Math.cos(theta)*len}};
  }
  function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z;const d=x*x+y*y+z*z;const t=clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/(d||1),0,1);return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}
- function blocked(x,z,r=.6){return Math.abs(x)>BOUND-r||Math.abs(z)>BOUND-r||OBSTACLES.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+r);}
+ function blocked(x,z,r=.6){return Math.hypot(x,z)>BOUND-r||OBSTACLES.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+r);}
  function move(a,x,z){
   const r=.48*a.scale;
-  a.x=clamp(x,-BOUND+r,BOUND-r);a.z=clamp(z,-BOUND+r,BOUND-r);
+  const wall=Math.hypot(x,z),limit=BOUND-r;a.x=wall>limit?x/wall*limit:x;a.z=wall>limit?z/wall*limit:z;
   for(const o of OBSTACLES){let dx=a.x-o.x,dz=a.z-o.z,d=Math.hypot(dx,dz);if(d<o.r+r){if(d<.001){dx=1;dz=0;d=1;}a.x=o.x+dx/d*(o.r+r);a.z=o.z+dz/d*(o.r+r);}}
  }
  function clearLine(a,b,r=.65){const n=Math.ceil(distance(a,b)/.5);for(let i=1;i<n;i++)if(blocked(a.x+(b.x-a.x)*i/n,a.z+(b.z-a.z)*i/n,r))return false;return true;}
@@ -83,10 +83,10 @@
  function emit(s,e){if(s.events.length<100)s.events.push(e);}
  function end(s,reason){s.phase='dead';s.reason=reason;emit(s,{type:'death',id:0,x:s.player.x,z:s.player.z});}
  function destroy(s,a,part,source){
-  const pose=segments({...a,hp:{...a.hp,[part]:1}}).find(p=>p.name===part);
+  const pose=segments({...a,hp:{...a.hp,[part]:1}}).find(p=>p.name===part),droppedBlade=blade(a);
   a.hp[part]=0;emit(s,{type:'sever',id:a.id,part,...pose,color:TYPES[a.type]?.color||0x60eaff});
   if(source?.id===0){s.severed++;s.score+=20;}
-  if(part==='rightArm')emit(s,{type:'weapon',id:a.id,...blade(a).b,color:TYPES[a.type]?.color||0x60eaff});
+  if(part==='rightArm')emit(s,{type:'weapon',id:a.id,...droppedBlade.b,color:TYPES[a.type]?.color||0x60eaff});
   if(part==='core'||part==='head'){
    a.alive=false;a.attack=null;
    for(const p of segments(a))emit(s,{type:'sever',id:a.id,part:p.name,...p,color:TYPES[a.type]?.color||0x60eaff});
@@ -102,7 +102,7 @@
    if(target.id!==0||s.energy>=8){if(target.id===0)s.energy-=8;source.stagger=target.parry>0?.95:.23;source.attack=null;emit(s,{type:target.parry>0?'parry':'block',...point,id:target.id});return false;}
   }
   if(target.armor[part]>0){target.armor[part]-=amount;emit(s,{type:'armor',...point,id:target.id,broken:target.armor[part]<=0});amount*=.35;}
-  if(target.id===0)amount/=1+(s.upgrades.armor||0)*.055;
+  if(target.id===0)amount/=1+Math.min(6,s.upgrades.armor||0)*.055;
   target.hp[part]-=amount;target.hitFlash=.16;target.stagger=.18+(source.id===0?(s.upgrades.force||0)*.06:0);
   const theta=bearing(source,target),force=(source.id===0?3.5*(1+(s.upgrades.force||0)*.35):2)/target.scale;
   target.vx+=Math.sin(theta)*force;target.vz-=Math.cos(theta)*force;
@@ -110,7 +110,7 @@
   if(target.hp[part]<=0)destroy(s,target,part,source);
   return true;
  }
- function beginAttack(a){if(a.cooldown>0||a.attack||a.stagger>0||a.dodge>0||a.hp.leftArm<=0&&a.hp.rightArm<=0)return false;const fast=a.type==='player'?a.tempo||1:a.type==='speed'?.8:1;a.combo++;a.attack={elapsed:0,duration:(a.type==='hammer'||a.type==='giant'?.55:.34)*fast,mode:(a.combo-1)%3,hit:[]};a.block=false;return true;}
+ function beginAttack(a){if(a.cooldown>0||a.attack||a.stagger>0||a.dodge>0||(a.id!==0&&a.hp.rightArm<=0)||a.hp.leftArm<=0&&a.hp.rightArm<=0)return false;const fast=a.type==='player'?a.tempo||1:a.type==='speed'?.8:1;a.combo++;a.attack={elapsed:0,duration:(a.type==='hammer'||a.type==='giant'?.55:.34)*fast,mode:(a.combo-1)%3,hit:[]};a.block=false;return true;}
  function resolveAttack(s,a,dt){
   const atk=a.attack;if(!atk)return;
   const old=atk.elapsed/atk.duration;atk.elapsed+=dt;const now=clamp(atk.elapsed/atk.duration,0,1);
@@ -120,7 +120,7 @@
    // Swept blade volumes, including the space traversed between rendered frames.
    const samples=Math.max(2,Math.ceil((now-old)*16));
    for(let i=0;i<=samples&&!best;i++){const progress=old+(now-old)*i/samples;if(progress<.08||progress>.96)continue;const sword=blade(a,progress);for(const p of segments(target)){if(segmentDistance(p,sword.a,sword.b)<p.r+.11*a.scale){best=p;break;}}}
-   if(best){atk.hit.push(target.id);const amount=a.id===0?30*(1+(s.upgrades.edge||0)*.22):(TYPES[a.type]?.damage||18);damage(s,target,best.name,amount,a,best);if(a.attack!==atk)break;}
+   if(best){atk.hit.push(target.id);const amount=a.id===0?30*(1+(s.upgrades.edge||0)*.22):(TYPES[a.type]?.damage||18)*(1+Math.max(0,s.wave-1)*.035);damage(s,target,best.name,amount,a,best);if(a.attack!==atk)break;}
   }
   if(atk.elapsed>=atk.duration&&a.attack===atk){a.attack=null;a.cooldown=a.id===0?.22*(a.tempo||1):.7;}
  }
@@ -153,7 +153,7 @@
    else{beginAttack(e);emit(s,{type:'swing',id:e.id});}
   }return;}
   e.yaw+=angle(theta-e.yaw)*Math.min(1,DT*8);e.block=false;
-  const armed=e.hp.leftArm>0||e.hp.rightArm>0;
+  const armed=e.hp.rightArm>0;
   if(!armed){if(dist<1.3&&e.cooldown<=0){damage(s,p,'core',8,e,{x:p.x,y:1,z:p.z});e.cooldown=1.6;} }
   else if(e.cooldown<=0&&dist<(e.type==='archer'&&e.hp.rightArm<=0?2.3:t.reach)&&clearLine(e,p,.1)){e.telegraph=t.windup/Math.min(1.45,1+s.wave*.012);return;}
   if((e.type==='armored'||e.type==='speed')&&p.attack&&dist<3.8&&e.cooldown>.1){
@@ -169,11 +169,11 @@
   else if(dist<1.35)speed=0;
   move(e,e.x+Math.sin(dir)*speed*DT,e.z-Math.cos(dir)*speed*DT);e.walk+=speed*DT*3.7;
  }
- function spawn(s){const type=s.queue.shift();if(!type)return;const side=s.nextId%4,positions=[{x:-14,z:-12},{x:14,z:-12},{x:14,z:12},{x:-14,z:12}];let pos=positions[side];if(distance(pos,s.player)<6)pos=positions[(side+2)%4];const e=actor(s.nextId++,type,pos.x+(random(s)-.5)*2,pos.z+(random(s)-.5)*2,s.wave);e.spawn=.75;e.yaw=bearing(e,s.player);s.enemies.push(e);emit(s,{type:'spawn',x:e.x,y:0,z:e.z,id:e.id});}
+ function spawn(s){const type=s.queue.shift();if(!type)return;const side=s.nextId%4,positions=s.wave===1?[{x:0,z:-2},{x:5,z:1},{x:-5,z:0},{x:0,z:-6}]:[{x:-14,z:-12},{x:14,z:-12},{x:14,z:12},{x:-14,z:12}];let pos=positions[side];if(distance(pos,s.player)<6)pos=positions[(side+2)%4];const e=actor(s.nextId++,type,pos.x+(random(s)-.5)*2,pos.z+(random(s)-.5)*2,s.wave);e.spawn=.75;e.yaw=bearing(e,s.player);s.enemies.push(e);emit(s,{type:'spawn',x:e.x,y:0,z:e.z,id:e.id});}
  function choose(s,id){if(s.phase!=='upgrade'||!s.choices.includes(id))return false;const u=UPGRADES.find(u=>u.id===id);if(!u)return false;s.upgrades[id]=(s.upgrades[id]||0)+1;const p=s.player;
   if(id==='armor')p.max.core+=25;
   for(const k of Object.keys(p.hp)){const heal=id==='repair'||id==='armor'?p.max[k]:Math.ceil(p.max[k]*.2);p.hp[k]=Math.min(p.max[k],Math.max(1,p.hp[k])+heal);}
-  p.attack=null;p.stagger=0;p.telegraph=0;p.block=false;p.vx=p.vz=0;s.energy=Math.min(100,s.energy+40);p.x=0;p.z=8;p.y=0;p.vy=0;startWave(s);return true;
+  p.attack=null;p.stagger=0;p.telegraph=0;p.block=false;p.vx=p.vz=0;s.energy=id==='repair'?100:Math.min(100,s.energy+40);p.x=0;p.z=8;p.y=0;p.vy=0;startWave(s);return true;
  }
  function step(s,input={}){
   s.events=[];

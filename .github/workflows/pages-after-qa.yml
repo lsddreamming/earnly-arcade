@@ -65,6 +65,23 @@ jobs:
           print("World engine publication gate passed.")
           PYTHON
 
+      - name: Require successful Metal Mayhem checks when scheduled
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          python - <<'PYTHON'
+          import json, os, urllib.request
+          url = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/actions/workflows/metal-mayhem.yml/runs?head_sha={os.environ['TESTED_SHA']}&event=push&per_page=100"
+          request = urllib.request.Request(url, headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"})
+          runs = json.load(urllib.request.urlopen(request))["workflow_runs"]
+          if runs:
+              latest = max(runs, key=lambda run: run["id"])
+              if latest["status"] != "completed" or latest["conclusion"] != "success":
+                  raise SystemExit("Metal Mayhem QA is not green; leaving production unchanged.")
+          print("Metal Mayhem publication gate passed.")
+          PYTHON
+
       - name: Stage the existing root web site
         run: |
           mkdir -p _pages
