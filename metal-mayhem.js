@@ -28,9 +28,11 @@
   state=E.create(ticket?.seed||crypto.getRandomValues(new Uint32Array(1))[0]);session=window.MetalMayhemRewards?.createSession(ticket)||null;
   playing=true;paused=false;saved=false;phase='';yaw=0;pitch=.4;accumulator=0;last=performance.now();view.reset();show(null);banner('WAVE 01','SCRAP THE OPPOSITION');audio.play('wave');
   $('rewardNote').textContent=ticket?'Verified run · rewards confirmed by Earnly':'Practice play · personal records saved on this device.';$('start').textContent='Enter the arena →';$('start').disabled=false;starting=false;
+  // A ticket can finish loading after the player has switched away.
+  if(document.hidden)pause();
  }
  function pause(){if(!playing||state.phase==='dead'||paused)return;paused=true;clearInput();accumulator=0;show('pauseScreen');audio.ctx?.suspend().catch(()=>{});}
- function resume(){if(!playing)return;paused=false;clearInput();last=performance.now();accumulator=0;audio.init();if(state.phase==='upgrade'){show('upgradeScreen');}else show(null);}
+ function resume(){if(!playing||document.hidden)return;paused=false;clearInput();last=performance.now();accumulator=0;audio.init();if(state.phase==='upgrade'){show('upgradeScreen');}else show(null);}
  function upgrades(){clearInput();show('upgradeScreen');$('clearLabel').textContent=`WAVE ${String(state.wave).padStart(2,'0')} COMPLETE · ${state.score.toLocaleString()} POINTS`;$('upgradeChoices').replaceChildren();
   for(const id of state.choices){const u=E.UPGRADES.find(x=>x.id===id),b=document.createElement('button');b.className='upgrade-card';b.dataset.upgrade=id;const icon=document.createElement('span');icon.className='upgrade-icon';icon.textContent=u.icon;const name=document.createElement('strong');name.textContent=u.name;const p=document.createElement('p');p.textContent=u.desc;const small=document.createElement('small');small.textContent=`LEVEL ${(state.upgrades[id]||0)+1} · SELECT UPGRADE →`;b.append(icon,name,p,small);b.onclick=()=>{if(state.phase!=='upgrade'||paused)return;const input={x:0,z:0,yaw,upgrade:id};session?.record(input);E.step(state,input);audio.play('upgrade');clearInput();accumulator=0;show(null);banner(`WAVE ${String(state.wave).padStart(2,'0')}`,state.wave%5===0?'THE CRUCIBLE HAS ENTERED':'REBUILT. RELOADED. READY.');};$('upgradeChoices').append(b);}
   session?.flush().catch(()=>{});
@@ -68,7 +70,11 @@
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if(look?.id===e.pointerId)look=null;if(e.pointerType==='mouse'&&(ev!=='lostpointercapture'||document.pointerLockElement!==canvas)){held.attack=false;held.block=false;}});
  canvas.addEventListener('contextmenu',e=>e.preventDefault());
  document.addEventListener('keydown',e=>{if(e.code==='Escape'){if(playing){paused?resume():pause();}return;}if(!playing||paused)return;if(['KeyW','KeyA','KeyS','KeyD','KeyQ','Space','ShiftLeft','ShiftRight'].includes(e.code)){e.preventDefault();keys.add(e.code);}});document.addEventListener('keyup',e=>keys.delete(e.code));
- document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();session?.flush().catch(()=>{});}});window.addEventListener('blur',pause);window.addEventListener('pagehide',()=>{clearInput();session?.flush(true).catch(()=>{});});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();session?.flush().catch(()=>{});}});
+ // On touch browsers, loss of focus alone does not mean the arena is hidden.
+ // Release held controls on every blur; reserve mobile auto-pause for page hiding.
+ window.addEventListener('blur',()=>{clearInput();if(!coarse||document.hidden)pause();});
+ window.addEventListener('pagehide',()=>{clearInput();pause();session?.flush(true).catch(()=>{});});
  window.addEventListener('resize',()=>{clearInput();view?.resize();});
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();pause();$('errorTitle').textContent='Graphics were interrupted.';$('errorMessage').textContent='Reload to restore the arena. Your previous personal records are safe.';show('errorScreen');});
  if(!coarse)$('controlHint').textContent='WASD to move · click to strike · mouse to aim. Space jumps, Shift dodges, Q blocks.';

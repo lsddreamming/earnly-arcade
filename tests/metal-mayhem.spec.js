@@ -7,6 +7,60 @@ async function open(page,prefix='/'){
  await page.goto(prefix+'metal-mayhem.html?qa=1',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#start')).toBeEnabled({timeout:25000});
 }
+async function visibility(page,hidden){
+ await page.evaluate(hidden=>{
+  Object.defineProperty(document,'hidden',{configurable:true,get:()=>hidden});
+  document.dispatchEvent(new Event('visibilitychange'));
+ },hidden);
+}
+for(const prefix of ['/','/www/'])test(`Metal Mayhem focus changes clear controls without a mobile pause loop ${prefix}`,async({page})=>{
+ await open(page,prefix);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
+ const coarse=await page.evaluate(()=>matchMedia('(pointer:coarse)').matches);
+ for(let i=0;i<2;i++){
+  await page.keyboard.down('KeyW');expect(await page.evaluate(()=>__metalMayhem.input.z)).toBe(-1);
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+  expect(await page.evaluate(()=>__metalMayhem.input.z)).toBe(0);
+  await page.keyboard.up('KeyW');
+  expect(await page.evaluate(()=>__metalMayhem.paused)).toBe(!coarse);
+  if(coarse){
+   await expect(page.locator('#pauseScreen')).toBeHidden();
+   const tick=await page.evaluate(()=>__metalMayhem.state.tick);
+   await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.tick)).toBeGreaterThan(tick);
+   // Deliberate pause still works, and another blur after Resume must not reopen it.
+   await page.locator('#pause').click();
+  }
+  await expect(page.locator('#pauseScreen')).toBeVisible();await page.locator('#resume').click();
+ }
+});
+test('Metal Mayhem hidden pages stay paused until a visible Resume, including pagehide',async({page})=>{
+ await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
+ await visibility(page,true);await expect(page.locator('#pauseScreen')).toBeVisible();
+ const tick=await page.evaluate(()=>__metalMayhem.state.tick);
+ await page.evaluate(()=>document.getElementById('resume').click());
+ expect(await page.evaluate(()=>__metalMayhem.paused)).toBe(true);
+ await page.waitForTimeout(200);expect(await page.evaluate(()=>__metalMayhem.state.tick)).toBe(tick);
+ await visibility(page,false);expect(await page.evaluate(()=>__metalMayhem.paused)).toBe(true);
+ await page.locator('#resume').click();await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.tick)).toBeGreaterThan(tick);
+ await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));
+ await expect(page.locator('#pauseScreen')).toBeVisible();
+ await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));
+ expect(await page.evaluate(()=>__metalMayhem.paused)).toBe(true);
+ await page.locator('#resume').click();await expect(page.locator('#pauseScreen')).toBeHidden();
+});
+test('Metal Mayhem backgrounding during arena entry does not start combat offscreen',async({page})=>{
+ await open(page);
+ await page.evaluate(()=>{
+  window.MetalMayhemRewards.start=()=>new Promise(resolve=>{window.finishArenaEntry=resolve;});
+  document.getElementById('start').click();
+  Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});
+  document.dispatchEvent(new Event('visibilitychange'));
+  window.finishArenaEntry(null);
+ });
+ await expect(page.locator('#pauseScreen')).toBeVisible();
+ expect(await page.evaluate(()=>__metalMayhem.state.tick)).toBe(0);
+ await visibility(page,false);await page.locator('#resume').click();
+ await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.tick)).toBeGreaterThan(0);
+});
 for(const prefix of ['/','/www/'])test(`Metal Mayhem real WebGL loads, moves, pauses and restarts ${prefix}`,async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,prefix);await page.screenshot({path:info.outputPath('metal-mayhem-menu.png')});await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
  const start=await page.evaluate(()=>__metalMayhem.state.player.z);await page.keyboard.down('KeyW');await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.player.z),{timeout:15000}).toBeLessThan(start-1);await page.keyboard.up('KeyW');
