@@ -15,7 +15,7 @@ export async function handleMetalMayhem(req:Request,db:any,enabled=false){
   const token=req.headers.get('Authorization')?.replace(/^Bearer /i,'');if(!token)return json({error:'SIGN_IN_REQUIRED'},401);
   const{data:auth,error:authError}=await db.auth.getUser(token);if(authError||!auth?.user||auth.user.is_anonymous)return json({error:'SIGN_IN_REQUIRED'},401);
   const uid=auth.user.id;
-  if(b.action==='start'){const seed=crypto.getRandomValues(new Uint32Array(1))[0]||1;const{data,error}=await db.rpc('metal_mayhem_start',{p_user_id:uid,p_seed:seed});if(error)throw error;return json(data);}
+  if(b.action==='start'){const engineVersion=(globalThis as any).MetalMayhem.VERSION;if(b.engineVersion!==engineVersion)return json({error:'ENGINE_VERSION'},409);const seed=crypto.getRandomValues(new Uint32Array(1))[0]||1;const{data,error}=await db.rpc('metal_mayhem_start',{p_user_id:uid,p_seed:seed});if(error)throw error;return json({...data,engineVersion});}
   if(b.action!=='checkpoint'||typeof b.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.id)||!Number.isInteger(b.sequence)||b.sequence<0)return json({error:'INVALID_REQUEST'},400);
   const{data:round,error}=await db.from('metal_mayhem_runs').select('id,user_id,seed,snapshot,sequence,last_receipt,finished').eq('id',b.id).eq('user_id',uid).maybeSingle();
   if(error)throw error;if(!round)return json({error:'ROUND_NOT_FOUND'},404);

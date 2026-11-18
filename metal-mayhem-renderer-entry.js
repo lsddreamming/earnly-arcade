@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {followCamera,clearCamera} from './metal-mayhem-camera.mjs';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 /* Original procedural artwork. All resources local; bounded debris and spark pools. */
@@ -29,7 +30,7 @@ export class ArenaView {
   for(let ix=-6;ix<=6;ix++)for(let iz=-6;iz<=6;iz++){const x=ix*3.46,z=iz*4+(ix%2?2:0);if(Math.hypot(x,z)<24.5)tiles.push({x,z});}
   const grid=new THREE.InstancedMesh(geo,plateMat,tiles.length),dummy=new THREE.Object3D();tiles.forEach((p,i)=>{dummy.position.set(p.x,-.035,p.z);dummy.updateMatrix();grid.setMatrixAt(i,dummy.matrix);grid.setColorAt(i,new THREE.Color(i%5?0x8da6bd:0xb3c4cf));});grid.receiveShadow=true;this.scene.add(grid);
   for(const radius of [5.3,13.8,19.5]){const ring=new THREE.Mesh(new THREE.RingGeometry(radius-.04,radius+.04,96),new THREE.MeshBasicMaterial({color:radius===19.5?0xff8c45:0x397386,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.011;this.scene.add(ring);}
-  for(let i=0;i<32;i++){const a=i/32*Math.PI*2,g=new THREE.Group();g.position.set(Math.sin(a)*21,0,-Math.cos(a)*21);g.rotation.y=-a;this.box(g,0,.8,0,3.7,1.6,1.3,0x223443);this.box(g,0,1.65,0,3.8,.13,1.4,0x4d6779);this.box(g,0,1.25,-.72,2.8,.07,.07,i%4?0x43c9e5:0xffad56,true);this.box(g,0,3.5,2,3.9,.3,4,0x172b3f);this.box(g,0,5,4,3.9,.3,4,0x172b3f);this.scene.add(g);}
+  for(let i=0;i<32;i++){const a=i/32*Math.PI*2,g=new THREE.Group();g.position.set(Math.sin(a)*21,0,-Math.cos(a)*21);g.rotation.y=-a;this.box(g,0,.8,0,3.7,1.6,1.3,0x223443);this.box(g,0,1.65,0,3.8,.13,1.4,0x4d6779);this.box(g,0,1.25,-.72,2.8,.07,.07,i%4?0x43c9e5:0xffad56,true);this.box(g,0,3.5,-2,3.9,.3,4,0x172b3f);this.box(g,0,5,-4,3.9,.3,4,0x172b3f);this.scene.add(g);}
   for(let i=0;i<8;i++){const a=i/8*Math.PI*2,g=new THREE.Group();g.position.set(Math.sin(a)*23,0,-Math.cos(a)*23);g.rotation.y=-a;this.box(g,0,5,0,.9,10,1.5,0x354a5e);this.box(g,0,5,-.83,.13,8,.05,0x30bcdf,true);this.box(g,0,9,-1.5,2,.55,3,0x566f81);this.box(g,0,8.7,-2.2,1.4,.1,1.2,0xd1edff,true);this.scene.add(g);}
   for(const o of E.OBSTACLES){const g=new THREE.Group();g.position.set(o.x,0,o.z);this.tube(g,0,.18,0,1.85,.36,0x0c1d2b);this.tube(g,0,2,0,1.45,3.8,0x425367);this.tube(g,0,3.9,0,1.62,.28,0x71879a);this.tube(g,0,.6,0,1.55,.23,0xc48a48);for(let i=0;i<4;i++){const a=i*Math.PI/2;const stripe=this.box(g,Math.sin(a)*1.46,2,-Math.cos(a)*1.46,.14,2.4,.09,0x78dff1,true);stripe.rotation.y=-a;}this.scene.add(g);}
   const emblem=this.text('THE CRUCIBLE','#579bb5',768);emblem.rotation.x=-Math.PI/2;emblem.position.set(0,.02,1.8);emblem.scale.set(1.5,1.5,1.5);this.scene.add(emblem);
@@ -100,12 +101,14 @@ export class ArenaView {
   const p=s.player,target=new THREE.Vector3(p.x,p.y+1.35,p.z),dist=this.camera.aspect<1?6.4:6.8;
   const offset=new THREE.Vector3(-Math.sin(yaw)*dist,2.3+(this.mobile?.4:pitch)*3,Math.cos(yaw)*dist);
   if(intro){target.set(0,1.3,4);offset.set(-5,3.1,8);}
-  let fraction=1;for(let t=.12;t<=1;t+=.035){const x=target.x+offset.x*t,z=target.z+offset.z*t,y=target.y+offset.y*t;if(Math.hypot(x,z)>19.4||y<4.6&&E.OBSTACLES.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+.45)||s.enemies.some(e=>e.alive&&Math.hypot(x-e.x,z-e.z)<e.scale*.8&&y<e.y+2.4*e.scale)){fraction=Math.max(.08,t-.05);break;}}
-  const desired=target.clone().addScaledVector(offset,fraction);if(fraction<.32)desired.y=Math.max(desired.y,p.y+4.9);const smoothing=1-Math.exp(-dt*14);this.camera.position.lerp(desired,intro?smoothing:Math.max(.08,smoothing));
-  // Smooth follow can cross a pylon after a fast yaw change; project out immediately.
-  for(const o of E.OBSTACLES){const dx=this.camera.position.x-o.x,dz=this.camera.position.z-o.z,len=Math.hypot(dx,dz);if(len<o.r+.28&&this.camera.position.y<4.5){this.camera.position.x=o.x+(dx/(len||1))*(o.r+.28);this.camera.position.z=o.z+(dz/(len||1))*(o.r+.28);}}
+  const desired=target.clone().add(offset);
+  this.camera.position.copy(followCamera(target,desired,this.camera.position,dt,E.OBSTACLES));
   for(const e of s.enemies)if(e.alive&&Math.hypot(this.camera.position.x-e.x,this.camera.position.z-e.z)<e.scale*.8&&this.camera.position.y<e.y+2.4*e.scale)this.camera.position.y=e.y+2.4*e.scale;
-  this.camera.lookAt(target);if(this.shake>0&&dt){this.camera.position.x+=(Math.random()-.5)*this.shake;this.camera.position.y+=(Math.random()-.5)*this.shake;this.shake*=Math.exp(-18*dt);}
+  if(this.shake>0&&dt){this.camera.position.x+=(Math.random()-.5)*this.shake;this.camera.position.y+=(Math.random()-.5)*this.shake;this.shake*=Math.exp(-18*dt);}
+  this.camera.position.copy(clearCamera(target,this.camera.position,E.OBSTACLES));
+  const overhead=Math.max(0,1-Math.hypot(this.camera.position.x-target.x,this.camera.position.z-target.z)/1.2);
+  this.camera.up.set(Math.sin(yaw)*overhead,1-overhead,-Math.cos(yaw)*overhead);
+  this.camera.lookAt(target);
   this.renderer.render(this.scene,this.camera);
  }
  reset(){for(const m of this.models.values())m.root.visible=false;this.debris=[];this.sparks=[];this.trailHistory=[];}

@@ -20,3 +20,21 @@ test('server and native engines match the reviewed browser source',()=>{const so
 test('severed weapon arm actually disarms enemies, and round wall blocks corner escapes',()=>{const s=quiet(),e=s.enemies[0];E.damage(s,e,'rightArm',100,s.player,e);e.cooldown=0;e.stagger=0;assert.equal(E.beginAttack(e),false);s.player.x=12;s.player.z=12;for(let i=0;i<90;i++)E.step(s,{x:1,z:1});assert(Math.hypot(s.player.x,s.player.z)<=E.BOUND-.47);});
 
 test('very long runs still offer three upgrades and Full rebuild refills energy',()=>{const s=quiet();for(const u of E.UPGRADES)s.upgrades[u.id]=Number.isFinite(u.max)?u.max:1000;E.damage(s,s.enemies[0],'core',999,s.player,s.enemies[0]);E.step(s,{});assert.equal(s.choices.length,3);assert.deepEqual(new Set(s.choices),new Set(['edge','armor','repair']));s.energy=0;E.choose(s,'repair');assert.equal(s.energy,100);});
+
+test('jump attacks choose an overhead chop immediately, regardless of combo position',()=>{
+ for(const combo of [0,1,2,3]){const s=quiet();s.player.cooldown=0;s.player.combo=combo;E.step(s,{jump:true,attack:true});assert.equal(s.player.attack.mode,2);}
+ const p=E.actor(0,'player',0,0);p.cooldown=0;E.beginAttack(p);assert.equal(p.attack.mode,0);
+ p.attack=null;p.cooldown=0;p.combo=2;E.beginAttack(p);assert.equal(p.attack.mode,2);
+});
+test('overhead blade follows a vertical arc of constant length',()=>{
+ const p=E.actor(0,'player',0,0);p.y=1;p.cooldown=0;p.yaw=.7;E.beginAttack(p);
+ const poses=[.1,.5,.9].map(t=>E.blade(p,t));assert(poses[0].b.y>poses[1].b.y);assert(poses[1].b.y>poses[2].b.y);
+ for(const b of poses){assert(Math.abs(Math.hypot(b.b.x-b.a.x,b.b.y-b.a.y,b.b.z-b.a.z)-1.95)<1e-10);assert(Math.abs(E.angle(Math.atan2(b.b.x-b.a.x,-(b.b.z-b.a.z))-p.yaw))<1e-10);}
+});
+test('descending chop hits the robot below through the physical blade, without distant damage',()=>{
+ const s=quiet(),p=s.player,e=s.enemies[0];p.z=0;p.y=1.1;p.vy=-1;p.cooldown=0;e.z=-1.3;e.stagger=99;
+ const far=E.actor(2,'blade',0,-5);far.stagger=99;s.enemies.push(far);let hit=false;
+ for(let i=0;i<12;i++){E.step(s,{attack:i===0,yaw:0});if(s.events.some(v=>v.type==='hit'&&v.id===e.id))hit=true;}
+ assert(hit,'chop must contact a robot underneath and in front');assert.deepEqual(far.hp,far.max);
+});
+test('old combat snapshots cannot replay with changed sword physics',()=>{const s=E.snapshot(E.create(1));s.version=1;assert.throws(()=>E.restore(s),/ENGINE_VERSION/);});
