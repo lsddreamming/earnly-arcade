@@ -78,4 +78,35 @@ for(const path of ['metal-mayhem.js','www/metal-mayhem.js']){
   assert.equal(t.qa.paused,true);t.frame();assert.equal(t.qa.state.tick,0);
   t.visibility(false);t.element('resume').onclick();t.frame();assert(t.qa.state.tick>0);
  });
+ test(`${path}: turn pad spins continuously, keeps horizon level, and releases on cancel`,async()=>{
+  const t=setup(path);await t.element('start').onclick();t.qa.state.player.invulnerable=100;
+  t.element('joystick').emit('pointerdown',{pointerId:1,clientX:50,clientY:20});
+  t.element('turnPad').emit('pointerdown',{pointerId:2,clientX:100,clientY:50});
+  t.element('attack').emit('pointerdown',{pointerId:3});
+  for(let i=0;i<65;i++)t.frame();
+  assert(t.qa.yaw>Math.PI*2,'hold turns through a complete circle without repeated swipes');
+  assert.equal(t.qa.pitch,.4);assert.equal(t.qa.input.attack,true);
+  assert(Math.hypot(t.qa.input.x,t.qa.input.z)>.5,'movement stays active while turning and attacking');
+  t.element('turnPad').emit('pointercancel',{pointerId:2});
+  const yaw=t.qa.yaw;t.frame();assert.equal(t.qa.yaw,yaw);
+  t.element('turnPad').emit('pointerdown',{pointerId:4,clientX:0,clientY:50});t.frame();assert(t.qa.yaw<yaw);
+  t.element('pause').onclick();t.element('resume').onclick();
+  const resumed=t.qa.yaw;t.frame();assert.equal(t.qa.yaw,resumed);assert.equal(t.qa.input.attack,false);
+ });
+ test(`${path}: touch aiming ignores vertical travel and extra fingers`,async()=>{
+  const t=setup(path);await t.element('start').onclick();const c=t.element('arenaCanvas');
+  c.emit('pointerdown',{pointerId:1,pointerType:'touch',clientX:250,clientY:200});
+  c.emit('pointerdown',{pointerId:2,pointerType:'touch',clientX:300,clientY:200});
+  c.emit('pointermove',{pointerId:2,pointerType:'touch',clientX:350,clientY:450});assert.equal(t.qa.yaw,0);
+  c.emit('pointermove',{pointerId:1,pointerType:'touch',clientX:250,clientY:450});assert.equal(t.qa.pitch,.4);assert.equal(t.qa.yaw,0);
+  c.emit('pointermove',{pointerId:1,pointerType:'touch',clientX:350,clientY:450});assert.equal(t.qa.yaw,1);
+  c.emit('pointerup',{pointerId:1,pointerType:'touch'});
+  c.emit('pointermove',{pointerId:1,pointerType:'touch',clientX:390,clientY:500});assert.equal(t.qa.yaw,1);
+ });
+ test(`${path}: combat consumes page gestures but pause menus remain scrollable`,async()=>{
+  const t=setup(path);await t.element('start').onclick();let prevented=0;
+  t.element('arena').emit('touchmove',{cancelable:true,preventDefault(){prevented++;}});assert.equal(prevented,1);
+  t.element('pause').onclick();t.element('arena').emit('touchmove',{cancelable:true,preventDefault(){prevented++;}});assert.equal(prevented,1);
+ });
+
 }

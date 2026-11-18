@@ -94,6 +94,21 @@ test('Metal Mayhem wave clear, upgrade, death, records and safe practice mode',a
  await expect(page.locator('#resultScreen')).toBeVisible();await expect(page.locator('#rewardStatus')).toContainText('Practice');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.metalMayhem.best.v1')).wave)).toBe(2);await page.locator('#replay').click();await expect(page.locator('#resultScreen')).toBeHidden();
 });
 test('Metal Mayhem layouts and controls fit portrait, landscape and narrow phones',async({page},info)=>{
- for(const [width,height]of [[320,568],[390,844],[844,390]]){await page.setViewportSize({width,height});await open(page);await page.screenshot({path:info.outputPath(`metal-mayhem-intro-${width}.png`)});await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();await page.addStyleTag({content:'#controls{display:block!important}'});for(const id of ['pause','joystick','attack','block','dodge','jump']){const r=await page.locator('#'+id).boundingBox();expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);await page.screenshot({path:info.outputPath(`metal-mayhem-play-${width}.png`)});}
+ for(const [width,height]of [[320,568],[390,844],[844,390]]){await page.setViewportSize({width,height});await open(page);await page.screenshot({path:info.outputPath(`metal-mayhem-intro-${width}.png`)});await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();await page.addStyleTag({content:'#controls{display:block!important}'});for(const id of ['pause','joystick','turnPad','attack','block','dodge','jump']){const r=await page.locator('#'+id).boundingBox();expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);await page.screenshot({path:info.outputPath(`metal-mayhem-play-${width}.png`)});}
 });
 test('Metal Mayhem bounded crowded renderer and context loss recovery',async({page},info)=>{await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();await page.evaluate(()=>{const s=__metalMayhem.state;s.queue=[];s.player.invulnerable=100;for(let i=0;i<12;i++){const e=MetalMayhem.actor(100+i,Object.keys(MetalMayhem.TYPES)[i%6],Math.sin(i)*10,Math.cos(i)*10,15);s.enemies.push(e);}});await page.waitForTimeout(600);const stats=await page.evaluate(()=>__metalMayhem.stats());console.log('Metal Mayhem crowded renderer:',stats);expect(stats.debris).toBeLessThanOrEqual(100);expect(stats.sparks).toBeLessThanOrEqual(180);expect(stats.drawCalls).toBeLessThan(1100);await page.screenshot({path:info.outputPath('metal-mayhem-crowded.png')});await page.evaluate(()=>document.getElementById('arenaCanvas').dispatchEvent(new Event('webglcontextlost',{cancelable:true})));await expect(page.locator('#errorTitle')).toHaveText('Graphics were interrupted.');});
+
+test('Metal Mayhem turn pad stays anchored and spins without tilting on touch',async({page},info)=>{
+ test.skip(info.project.name!=='mobile-webkit','Mobile camera and viewport contract');
+ await open(page);await page.locator('#start').click();await expect(page.locator('#controls')).toBeVisible();
+ await page.evaluate(()=>{__metalMayhem.state.player.invulnerable=100;});
+ const box=await page.locator('#turnPad').boundingBox();
+ await page.mouse.move(box.x+box.width-12,box.y+box.height/2);await page.mouse.down();
+ await expect.poll(()=>page.evaluate(()=>__metalMayhem.yaw),{timeout:10000}).toBeGreaterThan(Math.PI*2);
+ await page.mouse.up();const yaw=await page.evaluate(()=>__metalMayhem.yaw);await page.waitForTimeout(150);
+ expect(await page.evaluate(()=>__metalMayhem.yaw)).toBe(yaw);expect(await page.evaluate(()=>__metalMayhem.pitch)).toBe(.4);
+ const after=await page.locator('#turnPad').boundingBox();expect(after).toEqual(box);
+ expect(await page.evaluate(()=>({x:scrollX,y:scrollY,scale:visualViewport.scale}))).toEqual({x:0,y:0,scale:1});
+ for(const id of ['attack','jump','block','dodge']){const a=await page.locator('#'+id).boundingBox();expect(box.y+box.height).toBeLessThan(a.y);}
+ await page.screenshot({path:info.outputPath('metal-mayhem-steady-touch-controls.png')});
+});

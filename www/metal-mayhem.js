@@ -2,7 +2,7 @@
  'use strict';
  const E=window.MetalMayhem,$=id=>document.getElementById(id),coarse=matchMedia('(pointer:coarse)').matches;
  let state=E.create(17),view,playing=false,paused=false,last=0,accumulator=0,yaw=0,pitch=.4,session=null,saved=false,helpReturn='intro',phase='',startGeneration=0,starting=false;
- let joy={x:0,y:0},look=null,joyId=null,keys=new Set(),held={attack:false,block:false,jump:false,dodge:false},buttonIds=new Map(),bannerUntil=0,feedbackUntil=0,hurtUntil=0,hitStopUntil=0,lastFoot=0,ambienceDue=0,slowFrames=0,autoLow=false;
+ let joy={x:0,y:0},look=null,turnId=null,turn=0,joyId=null,keys=new Set(),held={attack:false,block:false,jump:false,dodge:false},buttonIds=new Map(),bannerUntil=0,feedbackUntil=0,hurtUntil=0,hitStopUntil=0,lastFoot=0,ambienceDue=0,slowFrames=0,autoLow=false;
  const screens=['intro','pauseScreen','upgradeScreen','resultScreen','helpScreen','rankScreen','errorScreen'];
  let best={score:0,wave:0};try{const x=JSON.parse(localStorage.getItem('earnly.metalMayhem.best.v1')||'{}');best.score=Math.max(0,Math.min(1e9,Number(x.score)||0));best.wave=Math.max(0,Math.min(1e6,Number(x.wave)||0));}catch{}
  let sound=true;try{sound=localStorage.getItem('earnly.metalMayhem.sound')!=='off';}catch{}
@@ -14,7 +14,7 @@
   if(['hit','sever','destroy','swing'].includes(type)){if(!this.noise){this.noise=c.createBuffer(1,c.sampleRate*.4,c.sampleRate);const data=this.noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);}const n=c.createBufferSource(),ng=c.createGain(),f=c.createBiquadFilter();n.buffer=this.noise;f.type='highpass';f.frequency.value=type==='destroy'?250:2000;ng.gain.setValueAtTime(a[3]*.6,now);ng.gain.exponentialRampToValueAtTime(.0001,now+a[2]);n.connect(f);f.connect(ng);ng.connect(c.destination);n.start();n.stop(now+a[2]);n.onended=()=>{n.disconnect();f.disconnect();ng.disconnect();};}
  }};
  function show(id){for(const name of screens)$(name).hidden=name!==id;const active=playing&&!paused&&state.phase==='combat'&&!id;$('hud').hidden=!playing||id==='intro';$('controls').hidden=!active;$('crosshair').hidden=!active;$('desktopHelp').hidden=!active;if(id&&document.pointerLockElement)document.exitPointerLock?.();}
- function clearInput(){keys.clear();joy={x:0,y:0};joyId=null;look=null;for(const k of Object.keys(held))held[k]=false;for(const k of ['attack','block','jump','dodge'])$(k).classList.remove('pressed');buttonIds.clear();$('stick').style.transform='';}
+ function clearInput(){keys.clear();joy={x:0,y:0};joyId=null;look=null;turnId=null;turn=0;$('turnStick').style.transform='';for(const k of Object.keys(held))held[k]=false;for(const k of ['attack','block','jump','dodge'])$(k).classList.remove('pressed');buttonIds.clear();$('stick').style.transform='';}
  function banner(text,sub=''){ $('waveBanner').replaceChildren();$('waveBanner').append(document.createTextNode(text));if(sub){const el=document.createElement('small');el.textContent=sub;$('waveBanner').append(el);}$('waveBanner').classList.add('show');bannerUntil=performance.now()+2100;}
  function feedback(text){$('feedback').textContent=text;feedbackUntil=performance.now()+800;}
  function bestLabel(){$('best').textContent=best.wave?`BEST WAVE ${best.wave} · ${best.score.toLocaleString()}`:'NO RECORD YET';}
@@ -44,7 +44,7 @@
  function events(){view.effects(state.events);for(const e of state.events){if(e.type==='wave')continue;if(e.type==='swing'&&e.id!==0)continue;audio.play(e.type);if(e.type==='parry'&&e.id===0)feedback('PERFECT PARRY');if(e.type==='sever'&&e.id!==0)feedback(e.part.endsWith('Arm')?'WEAPON ARM SEVERED':e.part.endsWith('Leg')?'MOBILITY DESTROYED':'CRITICAL CUT');if(e.type==='hit'&&e.id===0)hurtUntil=performance.now()+180;if(e.type==='destroy'&&e.id!==0&&!view.reduced)hitStopUntil=performance.now()+75;}}
  function frame(now){requestAnimationFrame(frame);if(!view)return;const dt=Math.min(.1,(now-(last||now))/1000);last=now;
   if(playing&&!paused&&state.phase==='combat'){
-   accumulator+=dt*(now<hitStopUntil?.18:1);let count=0;while(accumulator>=E.DT&&count++<4&&state.phase==='combat'){const raw=input(),v=session?.record(raw)||raw;E.step(state,v);events();accumulator-=E.DT;}
+   yaw+=turn*2.8*dt;accumulator+=dt*(now<hitStopUntil?.18:1);let count=0;while(accumulator>=E.DT&&count++<4&&state.phase==='combat'){const raw=input(),v=session?.record(raw)||raw;E.step(state,v);events();accumulator-=E.DT;}
    if(count>=4)accumulator=0;
   }
   if(playing&&!paused&&state.phase!==phase){phase=state.phase;if(phase==='upgrade')upgrades();else if(phase==='dead')results();}
@@ -64,9 +64,18 @@
  $('reload').onclick=()=>location.reload();
  for(const name of ['attack','block','jump','dodge']){const el=$(name);el.addEventListener('pointerdown',e=>{if(paused||state.phase!=='combat')return;e.preventDefault();e.stopPropagation();el.setPointerCapture(e.pointerId);buttonIds.set(e.pointerId,name);held[name]=true;el.classList.add('pressed');audio.init();});const end=e=>{if(buttonIds.get(e.pointerId)!==name)return;buttonIds.delete(e.pointerId);held[name]=false;el.classList.remove('pressed');};for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,end);}
  const stick=$('joystick');function steer(e){if(e.pointerId!==joyId)return;const r=stick.getBoundingClientRect(),radius=r.width*.34;let x=(e.clientX-r.left-r.width/2)/radius,y=(e.clientY-r.top-r.height/2)/radius;const d=Math.hypot(x,y);if(d>1){x/=d;y/=d;}joy={x,y};$('stick').style.transform=`translate(${x*radius}px,${y*radius}px)`;}
- stick.addEventListener('pointerdown',e=>{if(joyId!==null)return;joyId=e.pointerId;stick.setPointerCapture(e.pointerId);e.preventDefault();steer(e);});stick.addEventListener('pointermove',steer);for(const ev of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(ev,e=>{if(e.pointerId===joyId){joyId=null;joy={x:0,y:0};$('stick').style.transform='';}});
- const canvas=$('arenaCanvas');canvas.addEventListener('pointerdown',e=>{if(!playing||paused||state.phase!=='combat')return;e.preventDefault();if(e.pointerType==='mouse'){if(e.button===0)held.attack=true;if(e.button===2)held.block=true;try{const lock=canvas.requestPointerLock?.();lock?.catch?.(()=>{});}catch{}}if(e.pointerType==='mouse'||e.clientX>innerWidth*.32){look={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);}});
- canvas.addEventListener('pointermove',e=>{if(!playing||paused)return;if(document.pointerLockElement===canvas){yaw+=e.movementX*.0035;pitch=Math.max(-.3,Math.min(1,e.movementY*.003+pitch));}else if(look?.id===e.pointerId){yaw+=(e.clientX-look.x)*.006;pitch=Math.max(-.3,Math.min(1,pitch+(e.clientY-look.y)*.004));look.x=e.clientX;look.y=e.clientY;}});
+ stick.addEventListener('pointerdown',e=>{if(!playing||paused||state.phase!=='combat'||joyId!==null)return;joyId=e.pointerId;stick.setPointerCapture(e.pointerId);e.preventDefault();steer(e);});stick.addEventListener('pointermove',steer);for(const ev of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(ev,e=>{if(e.pointerId===joyId){joyId=null;joy={x:0,y:0};$('stick').style.transform='';}});
+ // A horizontal rate pad keeps turning while held; vertical movement never tilts the mobile view.
+ const turnPad=$('turnPad');
+ function turnSteer(e){if(e.pointerId!==turnId)return;e.preventDefault();const r=turnPad.getBoundingClientRect(),dx=Math.max(-1,Math.min(1,(e.clientX-r.left-r.width/2)/(r.width*.36)));turn=Math.abs(dx)<.12?0:Math.sign(dx)*(Math.abs(dx)-.12)/.88;$('turnStick').style.transform=`translateX(${dx*r.width*.30}px)`;}
+ turnPad.addEventListener('pointerdown',e=>{if(!playing||paused||state.phase!=='combat'||turnId!==null||look)return;e.preventDefault();e.stopPropagation();turnId=e.pointerId;turnPad.setPointerCapture(e.pointerId);turnSteer(e);});
+ turnPad.addEventListener('pointermove',turnSteer);
+ for(const ev of ['pointerup','pointercancel','lostpointercapture'])turnPad.addEventListener(ev,e=>{if(e.pointerId===turnId){turnId=null;turn=0;$('turnStick').style.transform='';}});
+ // Keep combat gestures inside the arena while allowing menu panels to scroll.
+ $('arena').addEventListener('touchmove',e=>{if(playing&&!paused&&state.phase==='combat'&&e.cancelable)e.preventDefault();},{passive:false});
+ $('arena').addEventListener('gesturestart',e=>{if(playing&&!paused&&state.phase==='combat')e.preventDefault();},{passive:false});
+ const canvas=$('arenaCanvas');canvas.addEventListener('pointerdown',e=>{if(!playing||paused||state.phase!=='combat')return;e.preventDefault();if(e.pointerType==='mouse'){if(e.button===0)held.attack=true;if(e.button===2)held.block=true;try{const lock=canvas.requestPointerLock?.();lock?.catch?.(()=>{});}catch{}}if(!look&&turnId===null&&(e.pointerType==='mouse'||e.clientX>innerWidth*.32)){look={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);}});
+ canvas.addEventListener('pointermove',e=>{if(!playing||paused)return;if(document.pointerLockElement===canvas){yaw+=e.movementX*.0035;pitch=Math.max(-.3,Math.min(1,e.movementY*.003+pitch));}else if(look?.id===e.pointerId){yaw+=(e.clientX-look.x)*(e.pointerType==='mouse'?.006:.010);if(e.pointerType==='mouse'&&!coarse)pitch=Math.max(-.3,Math.min(1,pitch+(e.clientY-look.y)*.004));look.x=e.clientX;look.y=e.clientY;}});
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if(look?.id===e.pointerId)look=null;if(e.pointerType==='mouse'&&(ev!=='lostpointercapture'||document.pointerLockElement!==canvas)){held.attack=false;held.block=false;}});
  canvas.addEventListener('contextmenu',e=>e.preventDefault());
  document.addEventListener('keydown',e=>{if(e.code==='Escape'){if(playing){paused?resume():pause();}return;}if(!playing||paused)return;if(['KeyW','KeyA','KeyS','KeyD','KeyQ','Space','ShiftLeft','ShiftRight'].includes(e.code)){e.preventDefault();keys.add(e.code);}});document.addEventListener('keyup',e=>keys.delete(e.code));
@@ -81,5 +90,5 @@
  bestLabel();
  try{view=new window.MetalMayhemView(canvas);$('start').disabled=false;$('start').textContent='Enter the arena →';if(coarse)$('quality').textContent='Graphics: balanced';requestAnimationFrame(frame);}catch(error){console.error('Metal Mayhem renderer unavailable',error);show('errorScreen');}
  // Diagnostic state is never submitted as a score or a reward claim.
- if(new URLSearchParams(location.search).has('qa'))window.__metalMayhem={get state(){return state;},get input(){return input();},get paused(){return paused;},get yaw(){return yaw;},get view(){return view;},get session(){return session;},stats:()=>view?.stats()};
+ if(new URLSearchParams(location.search).has('qa'))window.__metalMayhem={get state(){return state;},get input(){return input();},get paused(){return paused;},get yaw(){return yaw;},get pitch(){return pitch;},get view(){return view;},get session(){return session;},stats:()=>view?.stats()};
 })();

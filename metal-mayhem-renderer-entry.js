@@ -73,7 +73,7 @@ export class ArenaView {
  effects(events){for(const e of events){
   if(e.type==='sever'||e.type==='weapon'){const leg=e.part?.endsWith('Leg'),core=e.part==='core';this.debris.push({x:e.x,y:e.y||1,z:e.z,vx:(Math.random()-.5)*6,vy:3+Math.random()*4,vz:(Math.random()-.5)*6,rx:Math.random()*3,rz:Math.random()*3,w:core?.6:leg?.25:.32,h:core?.6:leg?.65:.4,d:.3,life:4.8,color:e.color});}
   if(['hit','destroy','parry','armor','spark','sever','shoot'].includes(e.type)){const n=e.type==='destroy'?22:e.type==='parry'?18:8;for(let i=0;i<n;i++)this.sparks.push({x:e.x||0,y:e.y||1,z:e.z||0,vx:(Math.random()-.5)*8,vy:Math.random()*6,vz:(Math.random()-.5)*8,life:.3+Math.random()*.4,color:e.type==='parry'?0x7af6ff:0xffc164});}
-  if(!this.reduced&&(e.type==='hit'||e.type==='destroy'))this.shake=Math.min(.15,e.type==='destroy'?.15:.065);
+  if(!this.mobile&&!this.reduced&&(e.type==='hit'||e.type==='destroy'))this.shake=Math.min(.15,e.type==='destroy'?.15:.065);
   if(e.type==='pulse')for(let i=0;i<32;i++){const a=i/32*Math.PI*2;this.sparks.push({x:e.x,y:.2,z:e.z,vx:Math.sin(a)*8,vy:1,vz:Math.cos(a)*8,life:.5,color:0x66ddff});}
  }this.debris=this.debris.slice(-100);this.sparks=this.sparks.slice(-180);}
  resize(){const w=this.canvas.clientWidth||innerWidth,h=this.canvas.clientHeight||innerHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=w<h?66:58;this.camera.updateProjectionMatrix();}
@@ -98,7 +98,7 @@ export class ArenaView {
   if(s.player.attack){const b=E.blade(s.player);this.trailHistory.push(b);this.trailHistory=this.trailHistory.slice(-5);}else this.trailHistory=[];
   let n=0;for(let i=1;i<this.trailHistory.length;i++){const a=this.trailHistory[i-1],b=this.trailHistory[i];for(const p of [a.a,a.b,b.b,a.a,b.b,b.a]){this.trailPositions[n++]=p.x;this.trailPositions[n++]=p.y;this.trailPositions[n++]=p.z;}}this.trailGeometry.attributes.position.needsUpdate=true;this.trailGeometry.setDrawRange(0,n/3);
   const p=s.player,target=new THREE.Vector3(p.x,p.y+1.35,p.z),dist=this.camera.aspect<1?6.4:6.8;
-  const offset=new THREE.Vector3(-Math.sin(yaw)*dist,2.3+pitch*3,Math.cos(yaw)*dist);
+  const offset=new THREE.Vector3(-Math.sin(yaw)*dist,2.3+(this.mobile?.4:pitch)*3,Math.cos(yaw)*dist);
   if(intro){target.set(0,1.3,4);offset.set(-5,3.1,8);}
   let fraction=1;for(let t=.12;t<=1;t+=.035){const x=target.x+offset.x*t,z=target.z+offset.z*t,y=target.y+offset.y*t;if(Math.hypot(x,z)>19.4||y<4.6&&E.OBSTACLES.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+.45)||s.enemies.some(e=>e.alive&&Math.hypot(x-e.x,z-e.z)<e.scale*.8&&y<e.y+2.4*e.scale)){fraction=Math.max(.08,t-.05);break;}}
   const desired=target.clone().addScaledVector(offset,fraction);if(fraction<.32)desired.y=Math.max(desired.y,p.y+4.9);const smoothing=1-Math.exp(-dt*14);this.camera.position.lerp(desired,intro?smoothing:Math.max(.08,smoothing));
