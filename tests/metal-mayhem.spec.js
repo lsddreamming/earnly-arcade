@@ -134,10 +134,15 @@ test('Metal Mayhem camera keeps the robot visible during fast wall and pylon tur
 });
 test('Metal Mayhem Jump then Strike starts an overhead attack',async({page})=>{
  await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
- await page.evaluate(()=>{__metalMayhem.state.player.cooldown=0;__metalMayhem.state.player.invulnerable=100;});
+ // Exercise the real Strike button on both projects, without entering desktop pointer lock.
+ await page.addStyleTag({content:'#controls{display:block!important}'});
+ const strike=await page.locator('#attack').boundingBox();await page.mouse.move(strike.x+strike.width/2,strike.y+strike.height/2);
+ await page.evaluate(()=>{
+  __metalMayhem.state.player.cooldown=0;__metalMayhem.state.player.invulnerable=100;window.firstChop=null;
+  const observe=()=>{const p=__metalMayhem.state.player;if(p.attack)window.firstChop={mode:p.attack.mode,combo:p.combo,height:p.y};else requestAnimationFrame(observe);};requestAnimationFrame(observe);
+ });
  await page.keyboard.down('Space');await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.player.y)).toBeGreaterThan(.1);
- await page.mouse.move(180,220);await page.mouse.down();
- await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.player.attack?.mode)).toBe(2);
- expect(await page.evaluate(()=>__metalMayhem.state.player.combo)).toBe(1);
- await page.mouse.up();await page.keyboard.up('Space');await page.locator('#pause').click();
+ await page.mouse.down();await expect.poll(()=>page.evaluate(()=>window.firstChop?.mode)).toBe(2);
+ expect(await page.evaluate(()=>window.firstChop.combo)).toBe(1);expect(await page.evaluate(()=>window.firstChop.height)).toBeGreaterThan(0);
+ await page.mouse.up();await page.keyboard.up('Space');await page.locator('#pause').click();await expect(page.locator('#pauseScreen')).toBeVisible();
 });
