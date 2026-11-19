@@ -103,8 +103,10 @@ export class ArenaView {
    for(const part of E.segments(a)){const g=m.parts[part.name];g.visible=true;g.position.set(part.x,part.y,part.z);g.scale.setScalar(a.scale*(a.spawn>0?Math.max(.1,1-a.spawn/.8):1));g.rotation.set(0,-a.yaw,0);if(part.name.endsWith('Leg'))g.rotation.x=Math.sin(a.walk+(part.name==='leftLeg'?0:Math.PI))*.22;if(part.name==='core')g.rotation.z=Math.sin(a.walk*.5)*.035;}
    let blade=E.blade(a);
    if(a.telegraph>0&&a.type!=='archer'){
+    const length=Math.hypot(blade.b.x-blade.a.x,blade.b.y-blade.a.y,blade.b.z-blade.a.z);
     blade=E.blade({...a,attack:{mode:a.combo%3,elapsed:0,duration:1}},0);
-    blade.b.y+=1.4; // Draw back the blade before the collision-active swing begins.
+    const dx=blade.b.x-blade.a.x,dz=blade.b.z-blade.a.z,horizontal=Math.hypot(dx,dz)||1;
+    blade.b={x:blade.a.x+dx/horizontal*length*Math.cos(.7),y:blade.a.y+length*Math.sin(.7),z:blade.a.z+dz/horizontal*length*Math.cos(.7)}; // Raise without stretching the weapon.
    }
    const start=new THREE.Vector3(blade.a.x,blade.a.y,blade.a.z),end=new THREE.Vector3(blade.b.x,blade.b.y,blade.b.z),v=end.clone().sub(start);m.weapon.visible=a.id===0?(a.hp.leftArm>0||a.hp.rightArm>0):a.hp.rightArm>0;m.weapon.position.copy(start).addScaledVector(v,.5);m.weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());m.weapon.scale.set(a.scale,v.length(),a.scale);
    m.telegraph.visible=a.telegraph>0||a.block||a.spawn>0;m.telegraph.position.set(a.x,.04,a.z);m.telegraph.scale.setScalar(a.scale*(1.2+(a.telegraph>0?Math.sin(this.elapsed*15)*.08:0)));m.telegraph.material.color.setHex(a.block?0x80efff:a.spawn>0?0xffbc67:0xff493b);
