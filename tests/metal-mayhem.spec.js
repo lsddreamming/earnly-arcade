@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+const fs=require('node:fs/promises');
 test.use({launchOptions:{args:process.env.METAL_MAYHEM_CHROMIUM_3D==='1'?['--use-angle=swiftshader','--enable-unsafe-swiftshader']:[]}});
 test.setTimeout(120000);
 async function open(page,prefix='/'){
@@ -12,6 +13,20 @@ async function visibility(page,hidden){
   Object.defineProperty(document,'hidden',{configurable:true,get:()=>hidden});
   document.dispatchEvent(new Event('visibilitychange'));
  },hidden);
+}
+async function captureArena(page,info,name){
+ // Linux WebKit can omit the accelerated canvas from page screenshots. Read the
+ // actual rendered framebuffer in the same task, before its buffer is recycled.
+ const frame=await page.evaluate(()=>{
+  const {state,view}=__metalMayhem;view.render(state,0,__metalMayhem.yaw,__metalMayhem.pitch);
+  const gl=view.renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight;
+  const pixels=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+  const colors=new Set();for(let y=0;y<height;y+=Math.max(1,Math.floor(height/40)))for(let x=0;x<width;x+=Math.max(1,Math.floor(width/40))){const i=(y*width+x)*4;colors.add((pixels[i]<<16)|(pixels[i+1]<<8)|pixels[i+2]);}
+  return {error:gl.getError(),colors:colors.size,image:view.canvas.toDataURL('image/png')};
+ });
+ expect(frame.error).toBe(0);expect(frame.colors).toBeGreaterThan(100);
+ const path=info.outputPath(name);await fs.writeFile(path,Buffer.from(frame.image.split(',')[1],'base64'));
+ await info.attach(name,{path,contentType:'image/png'});
 }
 for(const prefix of ['/','/www/'])test(`Metal Mayhem focus changes clear controls without a mobile pause loop ${prefix}`,async({page})=>{
  await open(page,prefix);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
@@ -160,6 +175,7 @@ test('Metal Mayhem wider framing shows more arena and camera preference survives
   });
   expect(sizes.wide).toBeLessThan(sizes.close*.8);expect(sizes.far).toBeLessThan(sizes.wide*.9);
   await page.screenshot({path:info.outputPath(`metal-mayhem-wide-${width}.png`)});
+  await captureArena(page,info,`metal-mayhem-wide-canvas-${width}.png`);
  }
  await page.locator('#pause').click();await page.locator('#cameraDistance').click();await expect(page.locator('#cameraDistance')).toHaveText('Camera: far');
  expect(await page.evaluate(()=>__metalMayhem.view.cameraMode)).toBe('far');await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#start')).toBeEnabled({timeout:25000});
@@ -185,5 +201,6 @@ test('Metal Mayhem shows attack windups and recognizable severed limbs with boun
  expect(result.warning).toBe(true);expect(result.raised).toBe(true);expect(result.detailed).toBeGreaterThan(1);expect(result.valid).toBe(true);expect(result.independent).toBe(true);expect(result.removed).toBe(true);expect(result.detached).toBe(true);
  expect(result.stats.fragments).toBeLessThanOrEqual(24);expect(result.stats.debris).toBeLessThanOrEqual(100);expect(result.stats.sparks).toBeLessThanOrEqual(180);expect(result.stats.drawCalls).toBeLessThan(1100);
  await page.screenshot({path:info.outputPath('metal-mayhem-severed-armor.png')});
+ await captureArena(page,info,'metal-mayhem-severed-canvas.png');
  const cleaned=await page.evaluate(()=>{const {state:s,view:v}=__metalMayhem;for(let i=0;i<50;i++)v.render(s,.1,0,.4);return v.stats().fragments;});expect(cleaned).toBe(0);
 });
