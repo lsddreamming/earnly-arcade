@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+const fs=require('node:fs/promises');
 test.use({launchOptions:{args:process.env.METAL_MAYHEM_CHROMIUM_3D==='1'?['--use-angle=swiftshader','--enable-unsafe-swiftshader']:[]}});
 test.setTimeout(120000);
 async function open(page,prefix='/'){
@@ -12,6 +13,20 @@ async function visibility(page,hidden){
   Object.defineProperty(document,'hidden',{configurable:true,get:()=>hidden});
   document.dispatchEvent(new Event('visibilitychange'));
  },hidden);
+}
+async function captureArena(page,info,name){
+ // Linux WebKit can omit the accelerated canvas from page screenshots. Read the
+ // actual rendered framebuffer in the same task, before its buffer is recycled.
+ const frame=await page.evaluate(()=>{
+  const {state,view}=__metalMayhem;view.render(state,0,__metalMayhem.yaw,__metalMayhem.pitch);
+  const gl=view.renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight;
+  const pixels=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+  const colors=new Set();for(let y=0;y<height;y+=Math.max(1,Math.floor(height/40)))for(let x=0;x<width;x+=Math.max(1,Math.floor(width/40))){const i=(y*width+x)*4;colors.add((pixels[i]<<16)|(pixels[i+1]<<8)|pixels[i+2]);}
+  return {error:gl.getError(),colors:colors.size,image:view.canvas.toDataURL('image/png')};
+ });
+ expect(frame.error).toBe(0);expect(frame.colors).toBeGreaterThan(100);
+ const path=info.outputPath(name);await fs.writeFile(path,Buffer.from(frame.image.split(',')[1],'base64'));
+ await info.attach(name,{path,contentType:'image/png'});
 }
 for(const prefix of ['/','/www/'])test(`Metal Mayhem focus changes clear controls without a mobile pause loop ${prefix}`,async({page})=>{
  await open(page,prefix);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
@@ -145,4 +160,47 @@ test('Metal Mayhem Jump then Strike starts an overhead attack',async({page})=>{
  await page.mouse.down();await expect.poll(()=>page.evaluate(()=>window.firstChop?.mode)).toBe(2);
  expect(await page.evaluate(()=>window.firstChop.combo)).toBe(1);expect(await page.evaluate(()=>window.firstChop.height)).toBeGreaterThan(0);
  await page.mouse.up();await page.keyboard.up('Space');await page.locator('#pause').click();await expect(page.locator('#pauseScreen')).toBeVisible();
+});
+
+
+test('Metal Mayhem wider framing shows more arena and camera preference survives reload',async({page},info)=>{
+ await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
+ expect(await page.evaluate(()=>__metalMayhem.view.cameraMode)).toBe('wide');
+ for(const [width,height] of [[390,844],[844,390]]){
+  await page.setViewportSize({width,height});
+  const sizes=await page.evaluate(()=>{
+   const {state:s,view:v}=__metalMayhem;s.player.x=0;s.player.z=0;s.player.invulnerable=100;s.enemies=[];s.queue=['blade'];s.spawnTimer=100;
+   const sizes={};for(const mode of ['close','wide','far']){v.setCameraMode(mode);for(let i=0;i<8;i++)v.render(s,.1,0,.4);const top=v.camera.position.clone().set(0,2.2,0).project(v.camera),foot=v.camera.position.clone().set(0,0,0).project(v.camera);sizes[mode]=Math.abs(top.y-foot.y);}
+   v.setCameraMode('wide');for(let i=0;i<8;i++)v.render(s,.1,0,.4);return sizes;
+  });
+  expect(sizes.wide).toBeLessThan(sizes.close*.8);expect(sizes.far).toBeLessThan(sizes.wide*.9);
+  await page.screenshot({path:info.outputPath(`metal-mayhem-wide-${width}.png`)});
+  await captureArena(page,info,`metal-mayhem-wide-canvas-${width}.png`);
+ }
+ await page.locator('#pause').click();await page.locator('#cameraDistance').click();await expect(page.locator('#cameraDistance')).toHaveText('Camera: far');
+ expect(await page.evaluate(()=>__metalMayhem.view.cameraMode)).toBe('far');await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#start')).toBeEnabled({timeout:25000});
+ expect(await page.evaluate(()=>__metalMayhem.view.cameraMode)).toBe('far');
+});
+
+test('Metal Mayhem shows attack windups and recognizable severed limbs with bounded cleanup',async({page},info)=>{
+ await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
+ const result=await page.evaluate(()=>{
+  const {state:s,view:v}=__metalMayhem;s.player.x=0;s.player.z=3;s.player.invulnerable=100;s.queue=['blade'];s.spawnTimer=100;
+  const e=MetalMayhem.actor(800,'blade',0,0);e.cooldown=99;s.enemies=[e];v.render(s,1/60,0,.4);
+  const m=v.models.get(e.id),idle=m.weapon.position.y,idleLength=m.weapon.scale.y;e.telegraph=.5;v.render(s,1/60,0,.4);
+  const warning=m.attackZone.visible&&m.fan.material.opacity>.12,raised=m.weapon.position.y>idle+.2&&Math.abs(m.weapon.scale.y-idleLength)<.001; e.telegraph=0;
+  const source=[];m.parts.rightArm.traverse(x=>{if(x.isMesh)source.push(x.geometry.uuid);});
+  s.events=[];MetalMayhem.damage(s,e,'rightArm',100,s.player,e);v.effects(s.events);v.render(s,1/60,0,.4);
+  const arm=v.fragments.find(f=>f.part==='rightArm'),weapon=v.fragments.find(f=>f.part==='weapon');let detailed=0,valid=true,independent=true;
+  arm.mesh.traverse(x=>{if(x.isMesh){detailed++;valid&&=!!x.material.isMaterial;independent&&=!source.includes(x.geometry.uuid);}});
+  const removed=!m.parts.rightArm.visible&&!m.weapon.visible,detached=arm.mesh.visible&&!!weapon;
+  // Many real damage events can arrive together. The rendered fragment pool must stay bounded.
+  const events=s.events.slice();for(let i=0;i<35;i++)v.effects(events);v.render(s,1/60,0,.4);
+  return {warning,raised,detailed,valid,independent,removed,detached,stats:v.stats()};
+ });
+ expect(result.warning).toBe(true);expect(result.raised).toBe(true);expect(result.detailed).toBeGreaterThan(1);expect(result.valid).toBe(true);expect(result.independent).toBe(true);expect(result.removed).toBe(true);expect(result.detached).toBe(true);
+ expect(result.stats.fragments).toBeLessThanOrEqual(24);expect(result.stats.debris).toBeLessThanOrEqual(100);expect(result.stats.sparks).toBeLessThanOrEqual(180);expect(result.stats.drawCalls).toBeLessThan(1100);
+ await page.screenshot({path:info.outputPath('metal-mayhem-severed-armor.png')});
+ await captureArena(page,info,'metal-mayhem-severed-canvas.png');
+ const cleaned=await page.evaluate(()=>{const {state:s,view:v}=__metalMayhem;for(let i=0;i<50;i++)v.render(s,.1,0,.4);return v.stats().fragments;});expect(cleaned).toBe(0);
 });

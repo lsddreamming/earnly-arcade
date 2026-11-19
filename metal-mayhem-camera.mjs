@@ -1,6 +1,11 @@
 // Camera clearance uses the full sight line, including the position after smoothing.
 // Keep the near plane inside the arena gates and away from the pylon caps.
 export const CAMERA_BOUND=18.65;
+export function cameraFraming(aspect,mode='wide'){
+ const portrait=aspect<1;
+ if(mode==='close')return {distance:portrait?6.4:6.8,height:3.5,fov:portrait?66:58};
+ return {distance:mode==='far'?(portrait?11.8:11.2):(portrait?9.6:9.2),height:mode==='far'?4.8:4.1,fov:portrait?70:62};
+}
 export function clipCamera(target,candidate,obstacles){
  const dx=candidate.x-target.x,dy=candidate.y-target.y,dz=candidate.z-target.z;
  const horizontal=dx*dx+dz*dz,length=Math.hypot(dx,dy,dz);let fraction=1;
@@ -27,7 +32,7 @@ export function clearCamera(target,candidate,obstacles){
  const safe=clipCamera(target,candidate,obstacles);
  // At close quarters, look down from above the robot instead of squeezing into it.
  return Math.hypot(safe.x-target.x,safe.y-target.y,safe.z-target.z)<1.8
-  ?{x:target.x,y:target.y+5,z:target.z}:safe;
+  ?{x:target.x,y:target.y+6.5,z:target.z}:safe;
 }
 export function followCamera(target,desired,previous,dt,obstacles){
  const goal=clearCamera(target,desired,obstacles),a=Math.max(.08,1-Math.exp(-Math.max(0,dt)*14));

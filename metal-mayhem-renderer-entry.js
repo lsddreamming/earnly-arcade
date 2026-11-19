@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {followCamera,clearCamera} from './metal-mayhem-camera.mjs';
+import {followCamera,clearCamera,cameraFraming} from './metal-mayhem-camera.mjs';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 /* Original procedural artwork. All resources local; bounded debris and spark pools. */
@@ -14,7 +14,7 @@ export class ArenaView {
   this.scene.add(new THREE.HemisphereLight(0x8cceff,0x17202b,2.1));
   const sun=new THREE.DirectionalLight(0xe5f4ff,3.5);sun.position.set(5,16,8);sun.castShadow=true;sun.shadow.mapSize.set(this.mobile?1024:2048,this.mobile?1024:2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,near:1,far:60});sun.shadow.bias=-.001;sun.shadow.normalBias=.03;this.scene.add(sun);
   const rim=new THREE.DirectionalLight(0x27b5ff,2);rim.position.set(-8,5,-15);this.scene.add(rim);
-  this.materials=new Map();this.models=new Map();this.debris=[];this.sparks=[];this.rings=[];this.shake=0;this.frame=0;this.elapsed=0;this.slow=0;
+  this.cameraMode="wide";this.fragments=[];this.flashMaterial=new THREE.MeshBasicMaterial({color:0xd8fcff});this.materials=new Map();this.models=new Map();this.debris=[];this.sparks=[];this.rings=[];this.shake=0;this.frame=0;this.elapsed=0;this.slow=0;
   this.unitBox=this.beveled();this.cylinder=new THREE.CylinderGeometry(1,1,1,10);this.sphere=new THREE.IcosahedronGeometry(1,1);
   this.arena();this.mergeStatic(this.scene);this.pool();this.resize();
  }
@@ -62,7 +62,11 @@ export class ArenaView {
   root.add(weapon);
   const telegraph=new THREE.Mesh(new THREE.RingGeometry(.55,.68,40),new THREE.MeshBasicMaterial({color:0xff6446,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));telegraph.rotation.x=-Math.PI/2;root.add(telegraph);
   const shadow=new THREE.Mesh(new THREE.CircleGeometry(.7,24),new THREE.MeshBasicMaterial({color:0x020912,transparent:true,opacity:.38,depthWrite:false}));shadow.rotation.x=-Math.PI/2;root.add(shadow);
-  const model={root,parts,weapon,blade,spine,guard,telegraph,shadow,color};this.models.set(a.id,model);return model;
+  // Ground warning is visual only; actual contact still uses the swept weapon.
+  const attackZone=new THREE.Group(),r=a.type==='archer'?12:((E.TYPES[a.type]?.reach||2.4)/a.scale),half=a.type==='archer'?.09:1.25;
+  const fan=new THREE.Mesh(new THREE.RingGeometry(.4,r,32,1,Math.PI/2-half,half*2),new THREE.MeshBasicMaterial({color:0xff763a,transparent:true,opacity:.15,side:THREE.DoubleSide,depthWrite:false}));fan.rotation.x=-Math.PI/2;attackZone.add(fan);root.add(attackZone);
+  for(const part of Object.values(parts))part.traverse(mesh=>{if(mesh.isMesh)mesh.restMaterial=mesh.material;});
+  const model={root,parts,weapon,blade,spine,guard,telegraph,shadow,color,attackZone,fan};this.models.set(a.id,model);return model;
  }
  pool(){
   this.debrisMesh=new THREE.InstancedMesh(this.unitBox,this.material(0xa4b3c3),100);this.debrisMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);this.debrisMesh.count=0;this.debrisMesh.castShadow=true;this.debrisMesh.frustumCulled=false;this.scene.add(this.debrisMesh);
@@ -71,25 +75,48 @@ export class ArenaView {
   this.dummy=new THREE.Object3D();
   this.trailPositions=new Float32Array(20*6*3);this.trailGeometry=new THREE.BufferGeometry();this.trailGeometry.setAttribute('position',new THREE.BufferAttribute(this.trailPositions,3).setUsage(THREE.DynamicDrawUsage));this.trailGeometry.setDrawRange(0,0);this.trail=new THREE.Mesh(this.trailGeometry,new THREE.MeshBasicMaterial({color:0x71f5ff,transparent:true,opacity:.38,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));this.trail.frustumCulled=false;this.scene.add(this.trail);this.trailHistory=[];
  }
+ releaseFragment(f){f.mesh.removeFromParent();f.mesh.traverse(m=>{if(m.isMesh)m.geometry.dispose();});}
+ detach(e){
+  const model=this.models.get(e.id),source=e.type==='weapon'?model?.weapon:model?.parts[e.part];
+  if(!source)return false;
+  if(this.fragments.length>=24)this.releaseFragment(this.fragments.shift());
+  const rest=[];source.traverse(m=>{if(m.isMesh)rest.push(m.restMaterial||m.material);});
+  const mesh=source.clone(true);mesh.visible=true;let materialIndex=0;
+  mesh.traverse(m=>{if(m.isMesh){m.geometry=m.geometry.clone();m.material=rest[materialIndex++];}});
+  // Keep the original armor, silhouette and weapon, with independent geometry lifetime.
+  if(e.type!=='weapon')mesh.position.set(e.x,e.y??1,e.z);
+  this.scene.add(mesh);this.fragments.push({mesh,part:e.part||'weapon',scale:mesh.scale.clone(),vx:(Math.random()-.5)*5,vy:3+Math.random()*3,vz:(Math.random()-.5)*5,spinX:(Math.random()-.5)*7,spinZ:(Math.random()-.5)*7,life:4.5});return true;
+ }
  effects(events){for(const e of events){
-  if(e.type==='sever'||e.type==='weapon'){const leg=e.part?.endsWith('Leg'),core=e.part==='core';this.debris.push({x:e.x,y:e.y||1,z:e.z,vx:(Math.random()-.5)*6,vy:3+Math.random()*4,vz:(Math.random()-.5)*6,rx:Math.random()*3,rz:Math.random()*3,w:core?.6:leg?.25:.32,h:core?.6:leg?.65:.4,d:.3,life:4.8,color:e.color});}
+  if((e.type==='sever'||e.type==='weapon')&&!this.detach(e)){const leg=e.part?.endsWith('Leg'),core=e.part==='core';this.debris.push({x:e.x,y:e.y||1,z:e.z,vx:(Math.random()-.5)*6,vy:3+Math.random()*4,vz:(Math.random()-.5)*6,rx:Math.random()*3,rz:Math.random()*3,w:core?.6:leg?.25:.32,h:core?.6:leg?.65:.4,d:.3,life:4.8,color:e.color});}
+  if(e.type==='sever'||(e.type==='armor'&&e.broken)){for(let i=0;i<6;i++)this.debris.push({x:e.x,y:e.y??1,z:e.z,vx:(Math.random()-.5)*7,vy:2+Math.random()*4,vz:(Math.random()-.5)*7,rx:Math.random()*3,rz:Math.random()*3,w:.10+Math.random()*.1,h:.12,d:.1,life:1.5+Math.random(),color:e.color||0xc7d9e7});}
   if(['hit','destroy','parry','armor','spark','sever','shoot'].includes(e.type)){const n=e.type==='destroy'?22:e.type==='parry'?18:8;for(let i=0;i<n;i++)this.sparks.push({x:e.x||0,y:e.y||1,z:e.z||0,vx:(Math.random()-.5)*8,vy:Math.random()*6,vz:(Math.random()-.5)*8,life:.3+Math.random()*.4,color:e.type==='parry'?0x7af6ff:0xffc164});}
   if(!this.mobile&&!this.reduced&&(e.type==='hit'||e.type==='destroy'))this.shake=Math.min(.15,e.type==='destroy'?.15:.065);
   if(e.type==='pulse')for(let i=0;i<32;i++){const a=i/32*Math.PI*2;this.sparks.push({x:e.x,y:.2,z:e.z,vx:Math.sin(a)*8,vy:1,vz:Math.cos(a)*8,life:.5,color:0x66ddff});}
  }this.debris=this.debris.slice(-100);this.sparks=this.sparks.slice(-180);}
- resize(){const w=this.canvas.clientWidth||innerWidth,h=this.canvas.clientHeight||innerHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=w<h?66:58;this.camera.updateProjectionMatrix();}
+ resize(){const w=this.canvas.clientWidth||innerWidth,h=this.canvas.clientHeight||innerHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=cameraFraming(w/h,this.cameraMode).fov;this.camera.updateProjectionMatrix();}
+ setCameraMode(mode){this.cameraMode=['wide','far','close'].includes(mode)?mode:'wide';this.resize();}
  render(s,dt,yaw=0,pitch=.4,intro=false){
   this.elapsed+=dt;this.frame++;const ids=new Set();
   for(const a of [s.player,...s.enemies]){if(!a.alive)continue;ids.add(a.id);const m=this.models.get(a.id)||this.robot(a);m.root.visible=true;
-   for(const name of Object.keys(m.parts))m.parts[name].visible=false;
+   for(const name of Object.keys(m.parts)){m.parts[name].visible=false;m.parts[name].traverse(mesh=>{if(mesh.isMesh)mesh.material=a.hitFlash>.07?this.flashMaterial:mesh.restMaterial;});}
    for(const part of E.segments(a)){const g=m.parts[part.name];g.visible=true;g.position.set(part.x,part.y,part.z);g.scale.setScalar(a.scale*(a.spawn>0?Math.max(.1,1-a.spawn/.8):1));g.rotation.set(0,-a.yaw,0);if(part.name.endsWith('Leg'))g.rotation.x=Math.sin(a.walk+(part.name==='leftLeg'?0:Math.PI))*.22;if(part.name==='core')g.rotation.z=Math.sin(a.walk*.5)*.035;}
-   const blade=E.blade(a),start=new THREE.Vector3(blade.a.x,blade.a.y,blade.a.z),end=new THREE.Vector3(blade.b.x,blade.b.y,blade.b.z),v=end.clone().sub(start);m.weapon.visible=a.id===0?(a.hp.leftArm>0||a.hp.rightArm>0):a.hp.rightArm>0;m.weapon.position.copy(start).addScaledVector(v,.5);m.weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());m.weapon.scale.set(a.scale,v.length(),a.scale);
+   let blade=E.blade(a);
+   if(a.telegraph>0&&a.type!=='archer'){
+    const length=Math.hypot(blade.b.x-blade.a.x,blade.b.y-blade.a.y,blade.b.z-blade.a.z);
+    blade=E.blade({...a,attack:{mode:a.combo%3,elapsed:0,duration:1}},0);
+    const dx=blade.b.x-blade.a.x,dz=blade.b.z-blade.a.z,horizontal=Math.hypot(dx,dz)||1;
+    blade.b={x:blade.a.x+dx/horizontal*length*Math.cos(.7),y:blade.a.y+length*Math.sin(.7),z:blade.a.z+dz/horizontal*length*Math.cos(.7)}; // Raise without stretching the weapon.
+   }
+   const start=new THREE.Vector3(blade.a.x,blade.a.y,blade.a.z),end=new THREE.Vector3(blade.b.x,blade.b.y,blade.b.z),v=end.clone().sub(start);m.weapon.visible=a.id===0?(a.hp.leftArm>0||a.hp.rightArm>0):a.hp.rightArm>0;m.weapon.position.copy(start).addScaledVector(v,.5);m.weapon.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());m.weapon.scale.set(a.scale,v.length(),a.scale);
    m.telegraph.visible=a.telegraph>0||a.block||a.spawn>0;m.telegraph.position.set(a.x,.04,a.z);m.telegraph.scale.setScalar(a.scale*(1.2+(a.telegraph>0?Math.sin(this.elapsed*15)*.08:0)));m.telegraph.material.color.setHex(a.block?0x80efff:a.spawn>0?0xffbc67:0xff493b);
+   m.attackZone.visible=a.id!==0&&a.telegraph>0&&a.hp.rightArm>0;m.attackZone.position.set(a.x,.035,a.z);m.attackZone.rotation.y=-a.yaw;m.attackZone.scale.setScalar(a.scale);m.fan.material.opacity=.12+.22*(1-Math.min(1,a.telegraph/(E.TYPES[a.type]?.windup||1)));
    m.shadow.position.set(a.x,.015,a.z);m.shadow.scale.setScalar(a.scale*(1-a.y*.07));
   }
   for(const [id,m]of this.models)if(!ids.has(id))m.root.visible=false;
   // Clear obsolete model trees at wave transitions; shared geometries/materials stay cached.
-  if(this.models.size>30)for(const [id,m]of this.models)if(!ids.has(id)){this.scene.remove(m.root);for(const part of Object.values(m.parts))part.traverse(mesh=>{if(mesh.isMesh&&![this.unitBox,this.cylinder,this.sphere].includes(mesh.geometry))mesh.geometry.dispose();});m.telegraph.geometry.dispose();m.telegraph.material.dispose();m.shadow.geometry.dispose();m.shadow.material.dispose();this.models.delete(id);}
+  if(this.models.size>30)for(const [id,m]of this.models)if(!ids.has(id)){this.scene.remove(m.root);for(const part of Object.values(m.parts))part.traverse(mesh=>{if(mesh.isMesh&&![this.unitBox,this.cylinder,this.sphere].includes(mesh.geometry))mesh.geometry.dispose();});m.fan.geometry.dispose();m.fan.material.dispose();m.telegraph.geometry.dispose();m.telegraph.material.dispose();m.shadow.geometry.dispose();m.shadow.material.dispose();this.models.delete(id);}
+  for(let i=this.fragments.length-1;i>=0;i--){const f=this.fragments[i];f.life-=dt;if(f.life<=0){this.releaseFragment(f);this.fragments.splice(i,1);continue;}f.vy-=dt*14;f.mesh.position.x+=f.vx*dt;f.mesh.position.y+=f.vy*dt;f.mesh.position.z+=f.vz*dt;if(f.mesh.position.y<.25){f.mesh.position.y=.25;f.vy=Math.abs(f.vy)*.22;f.vx*=.85;f.vz*=.85;}f.mesh.rotation.x+=f.spinX*dt;f.mesh.rotation.z+=f.spinZ*dt;f.mesh.scale.copy(f.scale).multiplyScalar(Math.min(1,f.life));}
   const d=this.dummy;
   for(const arr of [this.debris,this.sparks])for(const p of arr){p.life-=dt;p.vy-=dt*14;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;if(p.y<.12){p.y=.12;p.vy=Math.abs(p.vy)*.28;p.vx*=.88;p.vz*=.88;}if(p.w){p.rx+=dt*2;p.rz+=dt*3;}}
   this.debris=this.debris.filter(p=>p.life>0);this.sparks=this.sparks.filter(p=>p.life>0);
@@ -98,8 +125,8 @@ export class ArenaView {
   this.boltMesh.count=s.projectiles.length;s.projectiles.forEach((p,i)=>{d.position.set(p.x,p.y,p.z);d.scale.set(.1,.1,.32);d.rotation.y=Math.atan2(p.vx,p.vz);d.updateMatrix();this.boltMesh.setMatrixAt(i,d.matrix);});this.boltMesh.instanceMatrix.needsUpdate=true;
   if(s.player.attack){const b=E.blade(s.player);this.trailHistory.push(b);this.trailHistory=this.trailHistory.slice(-5);}else this.trailHistory=[];
   let n=0;for(let i=1;i<this.trailHistory.length;i++){const a=this.trailHistory[i-1],b=this.trailHistory[i];for(const p of [a.a,a.b,b.b,a.a,b.b,b.a]){this.trailPositions[n++]=p.x;this.trailPositions[n++]=p.y;this.trailPositions[n++]=p.z;}}this.trailGeometry.attributes.position.needsUpdate=true;this.trailGeometry.setDrawRange(0,n/3);
-  const p=s.player,target=new THREE.Vector3(p.x,p.y+1.35,p.z),dist=this.camera.aspect<1?6.4:6.8;
-  const offset=new THREE.Vector3(-Math.sin(yaw)*dist,2.3+(this.mobile?.4:pitch)*3,Math.cos(yaw)*dist);
+  const p=s.player,target=new THREE.Vector3(p.x,p.y+1.35,p.z),framing=cameraFraming(this.camera.aspect,this.cameraMode),dist=framing.distance;
+  const offset=new THREE.Vector3(-Math.sin(yaw)*dist,framing.height+(this.mobile?0:(pitch-.4)*3),Math.cos(yaw)*dist);
   if(intro){target.set(0,1.3,4);offset.set(-5,3.1,8);}
   const desired=target.clone().add(offset);
   this.camera.position.copy(followCamera(target,desired,this.camera.position,dt,E.OBSTACLES));
@@ -111,8 +138,8 @@ export class ArenaView {
   this.camera.lookAt(target);
   this.renderer.render(this.scene,this.camera);
  }
- reset(){for(const m of this.models.values())m.root.visible=false;this.debris=[];this.sparks=[];this.trailHistory=[];}
+ reset(){for(const f of this.fragments)this.releaseFragment(f);this.fragments=[];for(const m of this.models.values())m.root.visible=false;this.debris=[];this.sparks=[];this.trailHistory=[];}
  setQuality(low){this.low=low;this.renderer.setPixelRatio(low?1:Math.min(devicePixelRatio,this.mobile?1.45:1.8));this.renderer.shadowMap.enabled=!low;this.resize();}
- stats(){return {drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,debris:this.debris.length,sparks:this.sparks.length,models:this.models.size};}
+ stats(){return {drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,debris:this.debris.length,fragments:this.fragments.length,sparks:this.sparks.length,models:this.models.size};}
 }
 window.MetalMayhemView=ArenaView;

@@ -80,3 +80,10 @@ code; no Clone Drone artwork, names, levels or audio is used.
 - Camera clearance is checked again after smoothing. Close walls use an overhead view, and spectator decks extend outside the fighting area.
 - Jump, then Strike for an overhead chop. Ground attacks retain the three-swing combo.
 - Combat engine version 2 changes the physical overhead blade path. Browser/native/server engine sources match. A version handshake falls back to practice when the verifier is absent or incompatible. Reward activation remains disabled and requires its existing separate approval.
+
+
+### Wider arena and sword-combat follow-up
+
+Default third-person distance is now 9.2–9.6 units, with a saved Wide / Far / Close choice in Pause. All three views retain wall/pylon clearance. Enemy windups show a raised weapon and directional floor warning. Severed limbs and dropped weapons keep their original meshes in a bounded 24-fragment pool; small armor chips retain the existing instanced pool. Light robots are more vulnerable to precise hits, the second combo swing sweeps the legs, and attacks retain 90% movement speed. Jump then Strike still selects an overhead chop.
+
+Browser, native mirror and server simulation use engine version 3. Version mismatch still falls back to practice. Reward activation and backend deployment remain on hold; this change does not enable them.
