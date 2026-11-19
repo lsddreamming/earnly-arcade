@@ -54,8 +54,9 @@
    const hand=local(a,arm*.18,1.55+crouch,-.3),elevation=1.15-clamp(p,0,1)*2.5;
    return {a:hand,b:{x:hand.x+Math.sin(a.yaw)*Math.cos(elevation)*len,y:hand.y+Math.sin(elevation)*len,z:hand.z-Math.cos(a.yaw)*Math.cos(elevation)*len}};
   }
-  const height=atk?(mode===2?Math.cos(p*Math.PI)*1.25:mode===1?(a.id===0?-.35-p*.95:.45-p*.9):0):.55;
+  const height=atk?(mode===2?Math.cos(p*Math.PI)*1.25:mode===1?(.45-p*.9):0):.55;
   const hand={x:start.x+Math.sin(theta)*.34*a.scale,y:start.y,z:start.z-Math.cos(theta)*.34*a.scale};
+  if(atk&&mode===1&&a.id===0){const elevation=-.18-clamp(p,0,1)*.47;return {a:hand,b:{x:hand.x+Math.sin(theta)*Math.cos(elevation)*len,y:hand.y+Math.sin(elevation)*len,z:hand.z-Math.cos(theta)*Math.cos(elevation)*len}};}
   return {a:hand,b:{x:hand.x+Math.sin(theta)*len,y:hand.y+height*a.scale,z:hand.z-Math.cos(theta)*len}};
  }
  function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z;const d=x*x+y*y+z*z;const t=clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/(d||1),0,1);return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}

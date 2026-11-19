@@ -41,7 +41,7 @@ test('old combat snapshots cannot replay with changed sword physics',()=>{const 
 
 
 test('placed side cuts, low sweeps and overhead chops sever light robot parts through real contact',()=>{
- for(const [combo,x,z,part] of [[0,-2,-1.5,'rightArm'],[1,-1.75,-1.5,'rightLeg'],[2,0,-2,'head']]){
+ for(const [combo,x,z,part] of [[0,-2,-1.5,'rightArm'],[1,0,-2,'rightLeg'],[2,0,-2,'head']]){
   const s=quiet(),p=s.player,e=s.enemies[0];p.z=0;p.combo=combo;p.cooldown=0;e.x=x;e.z=z;e.stagger=99;
   const far=E.actor(2,'blade',0,-7);far.stagger=99;s.enemies.push(far);let severed=false;
   for(let i=0;i<12;i++){E.step(s,{attack:i===0});severed ||= s.events.some(v=>v.type==='sever'&&v.id===e.id&&v.part===part);}
@@ -52,4 +52,9 @@ test('sword attacks preserve agile movement while keeping a small commitment pen
  const attacking=quiet(),running=quiet();for(const s of [attacking,running]){s.enemies[0].z=-12;s.player.cooldown=0;}
  for(let i=0;i<10;i++){E.step(attacking,{x:1,attack:true});E.step(running,{x:1});}
  assert(attacking.player.x>running.player.x*.88);assert(attacking.player.x<running.player.x);
+});
+
+test('low leg sweep keeps a rigid blade throughout the downward return arc',()=>{
+ const p=E.actor(0,'player',0,0);p.cooldown=0;p.combo=1;E.beginAttack(p);
+ for(const t of [0,.25,.5,.75,1]){const b=E.blade(p,t);assert(Math.abs(Math.hypot(b.b.x-b.a.x,b.b.y-b.a.y,b.b.z-b.a.z)-1.95)<1e-10);assert(b.b.y<b.a.y);}
 });
