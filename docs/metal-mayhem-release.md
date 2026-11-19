@@ -73,3 +73,10 @@ changes, generic browser minting, or edits to other games' reward rules.
 Three.js MIT and Barlow Condensed OFL notices ship beside the game. All robot,
 arena, card illustration, animation and sound designs are generated in project
 code; no Clone Drone artwork, names, levels or audio is used.
+
+## Mobile combat follow-up
+
+- Right turn pad supports continuous rotation; touch aiming stays level and the play surface is fixed.
+- Camera clearance is checked again after smoothing. Close walls use an overhead view, and spectator decks extend outside the fighting area.
+- Jump, then Strike for an overhead chop. Ground attacks retain the three-swing combo.
+- Combat engine version 2 changes the physical overhead blade path. Browser/native/server engine sources match. A version handshake falls back to practice when the verifier is absent or incompatible. Reward activation remains disabled and requires its existing separate approval.

@@ -94,6 +94,55 @@ test('Metal Mayhem wave clear, upgrade, death, records and safe practice mode',a
  await expect(page.locator('#resultScreen')).toBeVisible();await expect(page.locator('#rewardStatus')).toContainText('Practice');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('earnly.metalMayhem.best.v1')).wave)).toBe(2);await page.locator('#replay').click();await expect(page.locator('#resultScreen')).toBeHidden();
 });
 test('Metal Mayhem layouts and controls fit portrait, landscape and narrow phones',async({page},info)=>{
- for(const [width,height]of [[320,568],[390,844],[844,390]]){await page.setViewportSize({width,height});await open(page);await page.screenshot({path:info.outputPath(`metal-mayhem-intro-${width}.png`)});await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();await page.addStyleTag({content:'#controls{display:block!important}'});for(const id of ['pause','joystick','attack','block','dodge','jump']){const r=await page.locator('#'+id).boundingBox();expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);await page.screenshot({path:info.outputPath(`metal-mayhem-play-${width}.png`)});}
+ for(const [width,height]of [[320,568],[390,844],[844,390]]){await page.setViewportSize({width,height});await open(page);await page.screenshot({path:info.outputPath(`metal-mayhem-intro-${width}.png`)});await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();await page.addStyleTag({content:'#controls{display:block!important}'});for(const id of ['pause','joystick','turnPad','attack','block','dodge','jump']){const r=await page.locator('#'+id).boundingBox();expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);await page.screenshot({path:info.outputPath(`metal-mayhem-play-${width}.png`)});}
 });
 test('Metal Mayhem bounded crowded renderer and context loss recovery',async({page},info)=>{await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();await page.evaluate(()=>{const s=__metalMayhem.state;s.queue=[];s.player.invulnerable=100;for(let i=0;i<12;i++){const e=MetalMayhem.actor(100+i,Object.keys(MetalMayhem.TYPES)[i%6],Math.sin(i)*10,Math.cos(i)*10,15);s.enemies.push(e);}});await page.waitForTimeout(600);const stats=await page.evaluate(()=>__metalMayhem.stats());console.log('Metal Mayhem crowded renderer:',stats);expect(stats.debris).toBeLessThanOrEqual(100);expect(stats.sparks).toBeLessThanOrEqual(180);expect(stats.drawCalls).toBeLessThan(1100);await page.screenshot({path:info.outputPath('metal-mayhem-crowded.png')});await page.evaluate(()=>document.getElementById('arenaCanvas').dispatchEvent(new Event('webglcontextlost',{cancelable:true})));await expect(page.locator('#errorTitle')).toHaveText('Graphics were interrupted.');});
+
+test('Metal Mayhem turn pad stays anchored and spins without tilting on touch',async({page},info)=>{
+ test.skip(info.project.name!=='mobile-webkit','Mobile camera and viewport contract');
+ await open(page);await page.locator('#start').click();await expect(page.locator('#controls')).toBeVisible();
+ await page.evaluate(()=>{__metalMayhem.state.player.invulnerable=100;});
+ const box=await page.locator('#turnPad').boundingBox();
+ await page.mouse.move(box.x+box.width-12,box.y+box.height/2);await page.mouse.down();
+ await expect.poll(()=>page.evaluate(()=>__metalMayhem.yaw),{timeout:10000}).toBeGreaterThan(Math.PI*2);
+ await page.mouse.up();const yaw=await page.evaluate(()=>__metalMayhem.yaw);await page.waitForTimeout(150);
+ expect(await page.evaluate(()=>__metalMayhem.yaw)).toBe(yaw);expect(await page.evaluate(()=>__metalMayhem.pitch)).toBe(.4);
+ const after=await page.locator('#turnPad').boundingBox();expect(after).toEqual(box);
+ expect(await page.evaluate(()=>({x:scrollX,y:scrollY,scale:visualViewport.scale}))).toEqual({x:0,y:0,scale:1});
+ for(const id of ['attack','jump','block','dodge']){const a=await page.locator('#'+id).boundingBox();expect(box.y+box.height).toBeLessThan(a.y);}
+ await page.screenshot({path:info.outputPath('metal-mayhem-steady-touch-controls.png')});
+});
+
+test('Metal Mayhem camera keeps the robot visible during fast wall and pylon turns',async({page},info)=>{
+ await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
+ const failures=await page.evaluate(()=>{
+  const s=__metalMayhem.state,v=__metalMayhem.view;s.player.invulnerable=100;s.enemies=[];s.queue=['blade'];s.spawnTimer=100;
+  const failures=[];
+  for(const [x,z] of [[0,17.7],[17.7,0],[-7,-3.95],[9.05,-6]]){
+   s.player.x=x;s.player.z=z;
+   for(let i=0;i<24;i++){
+    v.render(s,1/60,i*1.3,.4);const c=v.camera.position,t={x,y:s.player.y+1.35,z};
+    if(Math.hypot(c.x,c.z)>18.651)failures.push('outside wall');
+    for(let j=0;j<=100;j++){const k=j/100,px=x+(c.x-x)*k,py=t.y+(c.y-t.y)*k,pz=z+(c.z-z)*k;if(py<4.2&&MetalMayhem.OBSTACLES.some(o=>Math.hypot(px-o.x,pz-o.z)<1.72))failures.push('blocked by pylon');}
+   }
+  }
+  // The spectator decks must be outside the fighting area, including their inner vertices.
+  v.scene.traverse(mesh=>{const attr=mesh.geometry?.attributes?.position;if(!attr)return;for(let i=0;i<attr.count;i++){const p=v.camera.position.clone().fromBufferAttribute(attr,i).applyMatrix4(mesh.matrixWorld),r=Math.hypot(p.x,p.z);if(r>14&&r<20&&p.y>3.3&&p.y<5.3)failures.push('overhanging arena deck');}});
+  s.player.x=0;s.player.z=17.7;return failures;
+ });
+ expect(failures).toEqual([]);await page.screenshot({path:info.outputPath('metal-mayhem-clear-wall-camera.png')});
+});
+test('Metal Mayhem Jump then Strike starts an overhead attack',async({page})=>{
+ await open(page);await page.locator('#start').click();await expect(page.locator('#hud')).toBeVisible();
+ // Exercise the real Strike button on both projects, without entering desktop pointer lock.
+ await page.addStyleTag({content:'#controls{display:block!important}'});
+ const strike=await page.locator('#attack').boundingBox();await page.mouse.move(strike.x+strike.width/2,strike.y+strike.height/2);
+ await page.evaluate(()=>{
+  __metalMayhem.state.player.cooldown=0;__metalMayhem.state.player.invulnerable=100;window.firstChop=null;
+  const observe=()=>{const p=__metalMayhem.state.player;if(p.attack)window.firstChop={mode:p.attack.mode,combo:p.combo,height:p.y};else requestAnimationFrame(observe);};requestAnimationFrame(observe);
+ });
+ await page.keyboard.down('Space');await expect.poll(()=>page.evaluate(()=>__metalMayhem.state.player.y)).toBeGreaterThan(.1);
+ await page.mouse.down();await expect.poll(()=>page.evaluate(()=>window.firstChop?.mode)).toBe(2);
+ expect(await page.evaluate(()=>window.firstChop.combo)).toBe(1);expect(await page.evaluate(()=>window.firstChop.height)).toBeGreaterThan(0);
+ await page.mouse.up();await page.keyboard.up('Space');await page.locator('#pause').click();await expect(page.locator('#pauseScreen')).toBeVisible();
+});

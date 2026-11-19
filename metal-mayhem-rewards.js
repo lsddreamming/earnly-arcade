@@ -6,7 +6,7 @@
  function quantize(v){return {x:Math.round(Math.max(-1,Math.min(1,Number(v.x)||0))*1000)/1000,z:Math.round(Math.max(-1,Math.min(1,Number(v.z)||0))*1000)/1000,yaw:Math.round(Math.atan2(Math.sin(v.yaw||0),Math.cos(v.yaw||0))*1000)/1000,attack:!!v.attack,block:!!v.block,jump:!!v.jump,dodge:!!v.dodge,upgrade:ids.includes(v.upgrade)?v.upgrade:null};}
  async function user(){if(!client)return null;const{data,error}=await client.auth.getSession();if(error)throw error;return data.session?.user||null;}
  async function call(body){if(!client)throw Error('VERIFICATION_UNAVAILABLE');const{data,error}=await client.functions.invoke('metal-mayhem',{body});if(error||data?.error)throw Error(data?.error||'VERIFICATION_UNAVAILABLE');return data;}
- async function start(){const u=await user();if(!u||u.is_anonymous)return null;return call({action:'start'});}
+ async function start(){const u=await user();if(!u||u.is_anonymous)return null;const engineVersion=window.MetalMayhem.VERSION,ticket=await call({action:'start',engineVersion});return ticket?.engineVersion===engineVersion?ticket:null;}
  function createSession(ticket){let steps=[],sequence=0,inflight=null,closed=false,final=false,error=null,earned=0,failed=false;
   const status=()=>({practice:!ticket,pending:!!inflight||steps.length>0,closed,error,earned});
   function record(raw){const v=quantize(raw);if(ticket&&!closed&&!failed){if(steps.length>=18000){failed=true;error='VERIFICATION_CONNECTION_LOST';}else{steps.push([Math.round(v.x*1000),Math.round(v.z*1000),Math.round(v.yaw*1000),Number(v.attack)|Number(v.block)<<1|Number(v.jump)<<2|Number(v.dodge)<<3,v.upgrade?ids.indexOf(v.upgrade)+1:0]);if(steps.length>=900)flush().catch(()=>{});}}return v;}

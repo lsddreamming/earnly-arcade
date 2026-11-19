@@ -2,7 +2,7 @@
  * The same segment and blade poses drive both collision and the 3D renderer. */
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;root.MetalMayhem=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const VERSION=1,DT=1/30,TAU=Math.PI*2,BOUND=18.2;
+ const VERSION=2,DT=1/30,TAU=Math.PI*2,BOUND=18.2;
  const OBSTACLES=[{x:-7,z:-6,r:1.55},{x:7,z:-6,r:1.55},{x:-7,z:6,r:1.55},{x:7,z:6,r:1.55}];
  const TYPES={
   blade:{name:'Scrapper',speed:2.8,hp:1,damage:18,reach:2.4,windup:.8,color:0xff7755,score:100},
@@ -49,6 +49,11 @@
   const start=local(a,arm*.48,1.4+crouch,-.12);
   let theta=a.yaw+(atk?(-1.45+clamp(p,0,1)*2.9)*reverse:.48);
   const len=(a.type==='hammer'?2.15:a.type==='giant'?2.1:1.95)*a.scale;
+  if(atk&&mode===2&&a.id===0){
+   // A true overhead arc: same physical blade pose for rendering and swept hits.
+   const hand=local(a,arm*.18,1.55+crouch,-.3),elevation=1.15-clamp(p,0,1)*2.5;
+   return {a:hand,b:{x:hand.x+Math.sin(a.yaw)*Math.cos(elevation)*len,y:hand.y+Math.sin(elevation)*len,z:hand.z-Math.cos(a.yaw)*Math.cos(elevation)*len}};
+  }
   const height=atk?(mode===2?Math.cos(p*Math.PI)*1.25:mode===1?(.45-p*.9):0):.55;
   const hand={x:start.x+Math.sin(theta)*.34*a.scale,y:start.y,z:start.z-Math.cos(theta)*.34*a.scale};
   return {a:hand,b:{x:hand.x+Math.sin(theta)*len,y:hand.y+height*a.scale,z:hand.z-Math.cos(theta)*len}};
@@ -110,7 +115,7 @@
   if(target.hp[part]<=0)destroy(s,target,part,source);
   return true;
  }
- function beginAttack(a){if(a.cooldown>0||a.attack||a.stagger>0||a.dodge>0||(a.id!==0&&a.hp.rightArm<=0)||a.hp.leftArm<=0&&a.hp.rightArm<=0)return false;const fast=a.type==='player'?a.tempo||1:a.type==='speed'?.8:1;a.combo++;a.attack={elapsed:0,duration:(a.type==='hammer'||a.type==='giant'?.55:.34)*fast,mode:(a.combo-1)%3,hit:[]};a.block=false;return true;}
+ function beginAttack(a){if(a.cooldown>0||a.attack||a.stagger>0||a.dodge>0||(a.id!==0&&a.hp.rightArm<=0)||a.hp.leftArm<=0&&a.hp.rightArm<=0)return false;const fast=a.type==='player'?a.tempo||1:a.type==='speed'?.8:1;a.combo++;a.attack={elapsed:0,duration:(a.type==='hammer'||a.type==='giant'?.55:.34)*fast,mode:a.id===0&&(a.y>.05||a.vy>0)?2:(a.combo-1)%3,hit:[]};a.block=false;return true;}
  function resolveAttack(s,a,dt){
   const atk=a.attack;if(!atk)return;
   const old=atk.elapsed/atk.duration;atk.elapsed+=dt;const now=clamp(atk.elapsed/atk.duration,0,1);
