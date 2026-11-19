@@ -15,13 +15,13 @@ test('smoothed camera cannot leave a pylon between the camera and robot',async()
  const p=followCamera(target,{x:-7,y:4.85,z:2.45},{x:-7,y:3,z:-10},1/60,E.OBSTACLES);clear(target,p);
 });
 test('fast spins, jumps, and changes of direction stay inside the arena and clear of pylons',async()=>{
- const {followCamera}=await camera;
+ const {followCamera,cameraFraming}=await camera;
  const positions=[[0,17.7],[17.7,0],[0,-17.7],[-17.7,0]];
  for(const o of E.OBSTACLES)for(let a=0;a<8;a++)positions.push([o.x+Math.sin(a*Math.PI/4)*2.05,o.z+Math.cos(a*Math.PI/4)*2.05]);
- for(const [x,z] of positions)for(const h of [0,1.3]){
+ for(const [x,z] of positions)for(const h of [0,1.3])for(const mode of ['close','wide','far']){
   const target={x,y:h+1.35,z};let p={x:0,y:6,z:15};
   for(let i=0;i<40;i++){
-   const yaw=i*1.7,desired={x:x-Math.sin(yaw)*6.8,y:target.y+3.5,z:z+Math.cos(yaw)*6.8};
+   const yaw=i*1.7,f=cameraFraming(.46,mode),desired={x:x-Math.sin(yaw)*f.distance,y:target.y+f.height,z:z+Math.cos(yaw)*f.distance};
    p=followCamera(target,desired,p,i%2?1/120:1/15,E.OBSTACLES);clear(target,p);
   }
  }

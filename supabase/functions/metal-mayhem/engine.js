@@ -2,7 +2,7 @@
  * The same segment and blade poses drive both collision and the 3D renderer. */
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;root.MetalMayhem=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const VERSION=2,DT=1/30,TAU=Math.PI*2,BOUND=18.2;
+ const VERSION=3,DT=1/30,TAU=Math.PI*2,BOUND=18.2;
  const OBSTACLES=[{x:-7,z:-6,r:1.55},{x:7,z:-6,r:1.55},{x:-7,z:6,r:1.55},{x:7,z:6,r:1.55}];
  const TYPES={
   blade:{name:'Scrapper',speed:2.8,hp:1,damage:18,reach:2.4,windup:.8,color:0xff7755,score:100},
@@ -54,7 +54,7 @@
    const hand=local(a,arm*.18,1.55+crouch,-.3),elevation=1.15-clamp(p,0,1)*2.5;
    return {a:hand,b:{x:hand.x+Math.sin(a.yaw)*Math.cos(elevation)*len,y:hand.y+Math.sin(elevation)*len,z:hand.z-Math.cos(a.yaw)*Math.cos(elevation)*len}};
   }
-  const height=atk?(mode===2?Math.cos(p*Math.PI)*1.25:mode===1?(.45-p*.9):0):.55;
+  const height=atk?(mode===2?Math.cos(p*Math.PI)*1.25:mode===1?(a.id===0?-.35-p*.95:.45-p*.9):0):.55;
   const hand={x:start.x+Math.sin(theta)*.34*a.scale,y:start.y,z:start.z-Math.cos(theta)*.34*a.scale};
   return {a:hand,b:{x:hand.x+Math.sin(theta)*len,y:hand.y+height*a.scale,z:hand.z-Math.cos(theta)*len}};
  }
@@ -125,7 +125,7 @@
    // Swept blade volumes, including the space traversed between rendered frames.
    const samples=Math.max(2,Math.ceil((now-old)*16));
    for(let i=0;i<=samples&&!best;i++){const progress=old+(now-old)*i/samples;if(progress<.08||progress>.96)continue;const sword=blade(a,progress);for(const p of segments(target)){if(segmentDistance(p,sword.a,sword.b)<p.r+.11*a.scale){best=p;break;}}}
-   if(best){atk.hit.push(target.id);const amount=a.id===0?30*(1+(s.upgrades.edge||0)*.22):(TYPES[a.type]?.damage||18)*(1+Math.max(0,s.wave-1)*.035);damage(s,target,best.name,amount,a,best);if(a.attack!==atk)break;}
+   if(best){atk.hit.push(target.id);const amount=a.id===0?36*(1+(s.upgrades.edge||0)*.22):(TYPES[a.type]?.damage||18)*(1+Math.max(0,s.wave-1)*.035);damage(s,target,best.name,amount,a,best);if(a.attack!==atk)break;}
   }
   if(atk.elapsed>=atk.duration&&a.attack===atk){a.attack=null;a.cooldown=a.id===0?.22*(a.tempo||1):.7;}
  }
@@ -138,7 +138,7 @@
  function updatePlayer(s,input){
   const p=s.player;p.yaw=angle(Number(input.yaw)||0);p.tempo=Math.pow(.88,s.upgrades.tempo||0);
   let mx=clamp(Number(input.x)||0,-1,1),mz=clamp(Number(input.z)||0,-1,1),len=Math.hypot(mx,mz);if(len>1){mx/=len;mz/=len;len=1;}
-  const speed=5.6*(1+(s.upgrades.speed||0)*.1)*mobility(p)*(input.block?.5:1)*(p.attack?.7:1);
+  const speed=5.6*(1+(s.upgrades.speed||0)*.1)*mobility(p)*(input.block?.5:1)*(p.attack?.9:1);
   p.block=!!input.block&&!p.attack&&!p.dodge&&s.energy>0;if(p.block&&!p.blockWas)p.parry=.19;p.blockWas=!!input.block;
   s.energy=clamp(s.energy+DT*(p.block?3:20)*(1+(s.upgrades.regen||0)*.25),0,100);
   if(input.dodge&&!s.dodgeWas&&p.dodge===0&&p.stagger===0&&s.energy>=28-(s.upgrades.dodge||0)*3){s.energy-=28-(s.upgrades.dodge||0)*3;p.dodge=.36;p.invulnerable=.3;p.attack=null;const dx=len>.1?mx:Math.sin(p.yaw),dz=len>.1?mz:-Math.cos(p.yaw);p.vx=dx*27*(1+(s.upgrades.dodge||0)*.15);p.vz=dz*27*(1+(s.upgrades.dodge||0)*.15);emit(s,{type:'dodge',x:p.x,y:.2,z:p.z});}

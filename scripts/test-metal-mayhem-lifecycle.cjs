@@ -26,7 +26,7 @@ function setup(path,{coarse=true,start=async()=>null}={}){
  const document={...target(),hidden:false,getElementById:element,createTextNode:x=>x,createElement:()=>element(Symbol())};
  let renderFrame,now=100;
  const window={...target(),MetalMayhem:engine,MetalMayhemRewards:{start,createSession:()=>null},
-  MetalMayhemView:class{reset(){}render(){}effects(){}resize(){}}};
+  MetalMayhemView:class{setCameraMode(mode){this.cameraMode=mode;}reset(){}render(){}effects(){}resize(){}}};
  vm.runInNewContext(fs.readFileSync(path,'utf8'),{
   window,document,console,matchMedia:()=>({matches:coarse}),
   localStorage:{getItem:()=>null,setItem(){}},location:{search:'?qa=1'},URLSearchParams,

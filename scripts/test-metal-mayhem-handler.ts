@@ -11,8 +11,8 @@ test('release defaults disabled and authenticated ownership gates server-replaye
  const r=await handler(req({action:'checkpoint',id,sequence:0,steps:[[0,0,0,0,0]],snapshot:{hacked:true},score:999999,amount:100000,userId:'victim'}),d,true);assert.equal(r.status,200);
  const call=d.calls.find(c=>c[0]==='metal_mayhem_checkpoint')[1];assert.equal(call.p_user_id,uid);assert.equal(call.p_score,0);assert.equal(call.p_ticks,1);assert(!('amount'in call));assert(!call.p_snapshot.hacked);assert(d.calls.some(c=>c[0]==='user_id'&&c[1]===uid));
  assert.equal((await handler(req({action:'checkpoint',id,sequence:7,steps:[[0,0,0,0,0]]}),d,true)).status,409);
- assert.equal((await handler(req({action:'list'},''),d,true)).status,200);assert.equal((await handler(req({action:'start',engineVersion:2}),d,true)).status,200);
- const mismatch=db();assert.equal((await handler(req({action:'start',engineVersion:1}),mismatch,true)).status,409);assert.equal(mismatch.calls.length,0);
+ assert.equal((await handler(req({action:'list'},''),d,true)).status,200);assert.equal((await handler(req({action:'start',engineVersion:3}),d,true)).status,200);
+ const mismatch=db();assert.equal((await handler(req({action:'start',engineVersion:2}),mismatch,true)).status,409);assert.equal(mismatch.calls.length,0);
  const args=d.calls.find(c=>c[0]==='metal_mayhem_start')[1];assert(args.p_seed>0&&args.p_seed<=4294967295);
  assert.equal((await handler(new Request('https://test',{method:'POST',body:'{'}),d,true)).status,400);assert.equal((await handler(req({a:'x'.repeat(50001)}),d,true)).status,413);
 });
