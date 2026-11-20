@@ -1,0 +1,27 @@
+name: App Store screenshot drafts (no upload)
+on:
+  push:
+    branches: [assets/app-store-previews]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install webkit
+      - name: Capture current interface drafts
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/earnly-preview-server.log 2>&1 &
+          node scripts/capture-store-previews.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-store-review-drafts
+          path: app-store-previews/
+          retention-days: 30
