@@ -1,7 +1,7 @@
 name: Daily Arcade challenge QA
 on:
   pull_request:
-    paths: ['daily-arcade*', 'arcade-weekly-cup.svg', 'index.html', 'cloud.js', 'world.js', 'supabase/functions/activity/**', 'supabase/migrations/*daily_arcade*', 'supabase/migrations/*arcade_collectibles*', 'world-renderer.js', 'scripts/test-daily-arcade.mjs', 'tests/daily-arcade.spec.js', '.github/workflows/daily-arcade.yml']
+    paths: ['daily-arcade*', 'arcade-weekly-cup.svg', 'index.html', 'cloud.js', 'world.js', 'supabase/functions/activity/**', 'supabase/migrations/*daily_arcade*', 'supabase/migrations/*arcade_collectibles*', 'world-renderer.js', 'scripts/test-daily-arcade.mjs', 'tests/daily-arcade.spec.js', 'tests/home-deep-link.spec.js', '.github/workflows/daily-arcade.yml']
   workflow_dispatch:
 jobs:
   challenge:
@@ -27,7 +27,7 @@ jobs:
       - run: CHALLENGE_TEST_PERSONAL_PETS=1 node scripts/test-daily-arcade.mjs
       - run: node --experimental-strip-types --test scripts/test-activity-handler.ts
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: npx playwright test tests/daily-arcade.spec.js tests/daily-results.spec.js --project=${{ matrix.project }} --workers=2
+      - run: npx playwright test tests/daily-arcade.spec.js tests/daily-results.spec.js tests/home-deep-link.spec.js --project=${{ matrix.project }} --workers=2
       - uses: actions/upload-artifact@v4
         if: always()
         with:
