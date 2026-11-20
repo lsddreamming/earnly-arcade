@@ -1137,11 +1137,11 @@
 
   const hazeColors = new Map();
   function distanceColor(color, depth) {
-    const band = Math.min(6, Math.max(0, Math.floor((depth - 30) / 14)));
+    const band = Math.min(48, Math.max(0, Math.round((depth - 30) / 4)));
     if (!band || !/^#[0-9a-f]{6}$/i.test(color)) return color;
     const key = color + band;
     if (!hazeColors.has(key)) {
-      const t = band * 0.075;
+      const t = 0.82 * (1 - Math.exp(-band / 22));
       const channels = [0,1,2].map(i => Math.round(parseInt(color.slice(1+i*2,3+i*2),16)*(1-t)+[155,174,183][i]*t));
       hazeColors.set(key, `rgb(${channels.join(',')})`);
     }
@@ -1238,7 +1238,16 @@
     faces.push({particle:kind,x:sx,y:sy,w:focal*width/view[2],h:focal*height/view[2],alpha,depth:view[2]});
   }
 
+  // Conservative camera-space sphere culling happens before building mesh faces.
+  // Extra radius includes balconies, roof fixtures and vehicle lights.
+  function visibleBounds(x,y,z,radius) {
+    const [side,,depth]=cameraPoint([x,y,z]);
+    const slope=width/(2*focal);
+    return depth+radius>=0.15 && Math.abs(side)<=depth*slope+radius*(1+slope);
+  }
+
   function drawCar(actor, police) {
+    if (!visibleBounds(actor.x,1.2,actor.z,4)) return;
     const start=faces.length;
     drawCarMesh(actor,police);
     for(let i=start;i<faces.length;i++) faces[i].vehicle=true;
@@ -1261,7 +1270,15 @@
       actor.x + across * side.x + ahead * front.x, actor.z + across * side.z + ahead * front.z,
       w, d, h, actor.angle, colors, base, taper,
     );
-    const detailed = Math.hypot(actor.x - eye.x, actor.z - eye.z) < 42;
+    const carRange = Math.hypot(actor.x - eye.x, actor.z - eye.z);
+    if (carRange > 65) {
+      // Moving silhouettes remain visible down the street with three simple parts.
+      part(0,0,2.12,3.64,.62,.27,paint);
+      part(0,.05,1.76,2.02,.48,.92,['#77919b','#4c6874','#3a505a'],.73);
+      part(0,-1.83,1.65,.1,.13,.62,['#ffbd9e','#d78678','#ac706d']);
+      return;
+    }
+    const detailed = carRange < 42;
     if (!detailed) for (const sign of [-1, 1]) {
       part(sign * 1.02, -1.15, 0.33, 0.68, 0.62, 0.03, rubber);
       part(sign * 1.02, 1.12, 0.33, 0.68, 0.62, 0.03, rubber);
@@ -1433,8 +1450,22 @@
   function drawBuilding(b) {
     const x = b.x + b.w / 2;
     const z = b.z + b.d / 2;
+    if (!visibleBounds(x,b.h/2,z,Math.hypot(b.w,b.d,b.h)/2+4)) return;
     box(x, z, b.w, b.d, b.h, 0, [roofs[b.shade], walls[b.shade], darkWalls[b.shade]]);
-    if (Math.hypot(x - eye.x, z - eye.z) > 47) return;
+    const buildingRange = Math.hypot(x - eye.x, z - eye.z);
+    // Keep the solid silhouette at every distance. Midrange facades retain
+    // inexpensive windows instead of suddenly becoming featureless boxes.
+    if (buildingRange > 47) {
+      if (buildingRange < 125) {
+        for (let floor = 2; floor < b.h - 1; floor += 3) {
+          for (const offset of [-0.27, 0.27]) {
+            box(x + b.w * offset, z, 0.8, b.d + 0.04, 1.1, 0,
+              ['#687e87', '#536c77', '#455e68'], floor);
+          }
+        }
+      }
+      return;
+    }
     if (b.storefront !== undefined) drawShop(b, x, z);
     if (b.shade % 2 === 0) {
       const strip = b.shade === 0 ? ['#e9a6d4', '#b6609b', '#7b4b81'] : ['#94efee', '#489ab0', '#326d83'];
@@ -2073,7 +2104,7 @@
     drawShoreDetails();
     drawFerry();
     architecture = true;
-    for (const b of blocks) if (Math.hypot(b.x - camera.x, b.z - camera.z) < 145) drawBuilding(b);
+    for (const b of blocks) drawBuilding(b);
     architecture = false;
     drawStreetDetails();
     drawViaduct();
@@ -2092,7 +2123,7 @@
       box(step.x, step.z, 0.14, 0.14, 1.55, 0, ['#414b53', '#34434b', '#2b343d']);
       box(step.x, step.z, 0.8, 0.19, 0.71, 0, ['#ffd99d', '#e58b58', '#af5d47'], 1.18);
     }
-    for (const vehicle of traffic) if (distance(vehicle, camera) < 48) drawCar(vehicle, false);
+    for (const vehicle of traffic) if (distance(vehicle, camera) < 110) drawCar(vehicle, false);
     for (const driver of displacedDrivers) {
       if (driver.age < 25 && distance(driver,camera) < 30) drawPerson(driver, Math.sin(driver.age*13)*0.65, ['#b6a080','#786b56','#5e5548']);
     }
