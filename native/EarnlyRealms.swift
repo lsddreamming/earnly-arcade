@@ -156,7 +156,7 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                                     "view": self.numbers(c.viewMatrix(for: orientation)),
                                     "light": Double(f.lightEstimate?.ambientIntensity ?? 1000)]
             if let depth=self.viewportDepth(f,orientation,view.bounds.size) {result["depth"]=depth}
-            var seats=[String:[Double]]()
+            var seats = JSObject()
             for anchor in f.anchors {
                 if self.seats[anchor.identifier] != nil { seats[anchor.identifier.uuidString]=self.numbers(anchor.transform) }
                 if anchor.identifier == self.wallFinish?.identifier {result["wallAnchor"]=self.numbers(anchor.transform)}
