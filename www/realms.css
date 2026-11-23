@@ -346,3 +346,4 @@ dialog::backdrop {
 }
 .floor-swatch{position:absolute;top:0;left:0;width:400px;height:215px;transform-origin:0 0;pointer-events:none;border:2px solid #acffde;box-sizing:border-box}
 .realm-info{pointer-events:auto;margin-top:8px;font-size:13px}.realm-info summary{cursor:pointer;color:#a6c8c6}.realm-info .public-footer{max-width:90vw;margin:4px 0;padding:4px}.realm-info nav{display:flex;flex-wrap:wrap}
+.seat-link{display:inline-flex;width:32%;vertical-align:top;padding:3px}.seat-link img{border-radius:10px;width:100%;height:auto}

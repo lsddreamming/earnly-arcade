@@ -11,13 +11,22 @@ import UIKit
 public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "EarnlyRealmsPlugin"
     public let jsName = "EarnlyRealms"
-    public let pluginMethods: [CAPPluginMethod] = ["identify", "scanRoom", "open", "frame", "place", "saveMap", "close"].compactMap {
+    public let pluginMethods: [CAPPluginMethod] = ["removeSeat", "identify", "scanRoom", "open", "frame", "place", "saveMap", "close"].compactMap {
         CAPPluginMethod(name: $0, returnType: CAPPluginReturnPromise)
     }
     private var cameraView: ARSCNView?
     private var placement: ARAnchor?
+    private var wallFinish: ARAnchor?
+    private var seats = [UUID:ARAnchor]()
     private var floorPlacement: ARAnchor?
     private var candidate: ARPlaneAnchor?
+    @objc func removeSeat(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let value=call.getString("id"),let id=UUID(uuidString:value),
+                  let seat=self.seats.removeValue(forKey:id),let view=self.cameraView else {call.reject("Select a placed seat.");return}
+            view.session.remove(anchor:seat);call.resolve()
+        }
+    }
     @objc func identify(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             guard let view=self.cameraView,let frame=view.session.currentFrame,
@@ -89,6 +98,9 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                 let config = ARWorldTrackingConfiguration()
                 config.planeDetection = [.horizontal, .vertical]
                 config.isLightEstimationEnabled = true
+                if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
+                    config.frameSemantics.insert(.sceneDepth)
+                }
                 if let value = call.getString("id"), let id = UUID(uuidString:value) {
                     let folder = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
                     try? FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
@@ -97,18 +109,43 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                     if let data = try? Data(contentsOf:url),
                        let map = try? NSKeyedUnarchiver.unarchivedObject(ofClass:ARWorldMap.self,from:data) {
                         config.initialWorldMap = map
+                        self.wallFinish=map.anchors.first(where:{ $0.name == "earnly-wall" })
+                        for seat in map.anchors where seat.name == "earnly-seat" { self.seats[seat.identifier]=seat }
                         self.floorPlacement = map.anchors.first(where:{ $0.name == "earnly-floor" })
                         self.placement = map.anchors.first(where: { $0.name == "earnly-realm" })
                     }
                 }
                 self.cameraView = view
                 view.session.run(config)
-                call.resolve(["restoring":self.placement != nil || self.floorPlacement != nil])
+                call.resolve(["restoring":self.placement != nil || self.floorPlacement != nil || self.wallFinish != nil || !self.seats.isEmpty, "hasDepth":config.frameSemantics.contains(.sceneDepth)])
             }
         }
     }
     private func numbers(_ m: simd_float4x4) -> [Double] {
         (0..<4).flatMap { column in (0..<4).map { row in Double(m[column][row]) } }
+    }
+    // Encode the current camera's optical-axis depth in centimetres, in viewport order.
+    // Zero denotes an unavailable sample. The web renderer uses the same frame's projection.
+    private func viewportDepth(_ f: ARFrame, _ orientation: UIInterfaceOrientation, _ size: CGSize) -> String? {
+        guard let image = f.sceneDepth?.depthMap else { return nil }
+        let inverse = f.displayTransform(for: orientation, viewportSize: size).inverted()
+        let w = CVPixelBufferGetWidth(image), h = CVPixelBufferGetHeight(image)
+        CVPixelBufferLockBaseAddress(image,.readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(image,.readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(image) else { return nil }
+        let stride = CVPixelBufferGetBytesPerRow(image)/MemoryLayout<Float>.size
+        let pixels=base.assumingMemoryBound(to:Float.self)
+        var out=[UInt8](repeating:0,count:96*96*2)
+        for y in 0..<96 {
+            for x in 0..<96 {
+                let uv=CGPoint(x:(CGFloat(x)+0.5)/96,y:(CGFloat(y)+0.5)/96).applying(inverse)
+                let v=pixels[max(0,min(h-1,Int(uv.y*CGFloat(h))))*stride+max(0,min(w-1,Int(uv.x*CGFloat(w))))]
+                guard v.isFinite, v>0.1, v<30 else { continue }
+                let cm=Int(v*100), offset=(y*96+x)*2
+                out[offset]=UInt8(cm & 255);out[offset+1]=UInt8(cm >> 8)
+            }
+        }
+        return Data(out).base64EncodedString()
     }
     @objc func frame(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -118,6 +155,13 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
             var result: JSObject = ["projection": self.numbers(c.projectionMatrix(for: orientation, viewportSize: view.bounds.size, zNear: 0.03, zFar: 50)),
                                     "view": self.numbers(c.viewMatrix(for: orientation)),
                                     "light": Double(f.lightEstimate?.ambientIntensity ?? 1000)]
+            if let depth=self.viewportDepth(f,orientation,view.bounds.size) {result["depth"]=depth}
+            var seats=[String:[Double]]()
+            for anchor in f.anchors {
+                if self.seats[anchor.identifier] != nil { seats[anchor.identifier.uuidString]=self.numbers(anchor.transform) }
+                if anchor.identifier == self.wallFinish?.identifier {result["wallAnchor"]=self.numbers(anchor.transform)}
+            }
+            result["seats"]=seats
             if let id = self.placement?.identifier, let a = f.anchors.first(where: { $0.identifier == id }) {
                 result["anchor"] = self.numbers(a.transform)
             }
@@ -131,6 +175,31 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let view = self.cameraView, let frame = view.session.currentFrame else { call.reject("Camera is starting."); return }
             guard case .normal = frame.camera.trackingState else {call.reject("Move slowly until tracking settles.");return}
             let p = CGPoint(x:view.bounds.width * CGFloat(call.getDouble("x") ?? 0.5),y:view.bounds.height * CGFloat(call.getDouble("y") ?? 0.5))
+            if call.getString("surface") == "seat" {
+                guard self.seats.count<12 else {call.reject("This room already has twelve seats.");return}
+                guard let orientation=view.window?.windowScene?.interfaceOrientation,
+                      let depth=frame.sceneDepth?.depthMap else {call.reject("Chair replacement requires LiDAR depth.");return}
+                let uv=CGPoint(x:p.x/view.bounds.width,y:p.y/view.bounds.height).applying(frame.displayTransform(for:orientation,viewportSize:view.bounds.size).inverted())
+                guard uv.x>=0,uv.x<1,uv.y>=0,uv.y<1 else {call.reject("Tap the seat cushion.");return}
+                let w=CVPixelBufferGetWidth(depth),h=CVPixelBufferGetHeight(depth)
+                CVPixelBufferLockBaseAddress(depth,.readOnly)
+                defer {CVPixelBufferUnlockBaseAddress(depth,.readOnly)}
+                guard let base=CVPixelBufferGetBaseAddress(depth) else {call.reject("Depth unavailable.");return}
+                let z=base.assumingMemoryBound(to:Float.self)[Int(uv.y*CGFloat(h))*CVPixelBufferGetBytesPerRow(depth)/4+Int(uv.x*CGFloat(w))]
+                guard z.isFinite,z>0.15,z<5 else {call.reject("Move closer to the seat.");return}
+                let k=frame.camera.intrinsics, resolution=frame.camera.imageResolution
+                let local=SIMD4<Float>((Float(uv.x*resolution.width)-k.columns.2.x)*z/k.columns.0.x,
+                                       -(Float(uv.y*resolution.height)-k.columns.2.y)*z/k.columns.1.y,-z,1)
+                let point=frame.camera.transform*local
+                let forward=frame.camera.transform.columns.3-point
+                guard simd_length(SIMD2<Float>(forward.x,forward.z))>0.05 else {call.reject("Face the front of the chair.");return}
+                let n=simd_normalize(SIMD3<Float>(forward.x,0,forward.z))
+                var transform=matrix_identity_float4x4
+                transform.columns.0=SIMD4<Float>(simd_cross(SIMD3<Float>(0,1,0),n),0)
+                transform.columns.2=SIMD4<Float>(n,0);transform.columns.3=point
+                let seat=ARAnchor(name:"earnly-seat",transform:transform)
+                self.seats[seat.identifier]=seat;view.session.add(anchor:seat);call.resolve(["id":seat.identifier.uuidString]);return
+            }
             let horizontal = call.getString("surface") == "floor"
             if horizontal && call.getBool("confirm") == true {
                 guard let plane = self.candidate, frame.anchors.contains(where:{$0.identifier == plane.identifier}) else {call.reject("Scan the floor again.");return}
@@ -150,6 +219,14 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                     let geometry=plane.geometry
                     let vertices=geometry.vertices.flatMap { [Double($0.x),Double($0.y)+0.004,Double($0.z)] }
                     call.resolve(["pose":self.numbers(plane.transform),"vertices":vertices,"indices":geometry.triangleIndices.map { Int($0) }]);return
+                }
+                if call.getString("surface") == "wallFinish", let plane=hit.anchor as? ARPlaneAnchor {
+                    let geometry=plane.geometry
+                    let anchor=ARAnchor(name:"earnly-wall",transform:plane.transform)
+                    if let old=self.wallFinish {view.session.remove(anchor:old)}
+                    self.wallFinish=anchor;view.session.add(anchor:anchor)
+                    call.resolve(["vertices":geometry.vertices.flatMap { [Double($0.x),Double($0.y)+0.006,Double($0.z)] },
+                                  "indices":geometry.triangleIndices.map {Int($0)}]);return
                 }
                 pose = hit.worldTransform
                 if !horizontal {
@@ -183,9 +260,10 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func saveMap(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             guard let session = self.cameraView?.session, let url = self.mapURL,
-                  let placed = self.placement ?? self.floorPlacement else { call.reject("Place an item first."); return }
+                  self.placement != nil || self.floorPlacement != nil || self.wallFinish != nil || !self.seats.isEmpty else { call.reject("Place an item first."); return }
+            let required=Set([self.placement,self.floorPlacement,self.wallFinish].compactMap{$0?.identifier}).union(self.seats.keys)
             session.getCurrentWorldMap { map, _ in
-                guard let map = map, map.anchors.contains(where:{ $0.identifier == placed.identifier }) else {
+                guard let map = map, required.isSubset(of:Set(map.anchors.map{$0.identifier})) else {
                     call.reject("Scan more of the room, then save again."); return
                 }
                 do {
@@ -203,7 +281,7 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                 view.removeFromSuperview()
                 self.cameraView = nil
                 self.placement = nil
-                self.floorPlacement=nil; self.candidate=nil
+                self.floorPlacement=nil; self.candidate=nil;self.wallFinish=nil;self.seats.removeAll()
                 self.mapURL = nil
                 if let web = self.bridge?.webView {
                     web.isOpaque = self.previousOpaque

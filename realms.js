@@ -420,9 +420,17 @@ function panel() {
   }
   if (tab === "Objects") {
     const r = row(p);
-    ["Aquarium", "Fern", "Fountain", "Tree", "Statue", "Portal"].forEach((n) =>
-      button(r, n, () => add(n)),
-    );
+    [
+      "Aquarium",
+      "Fern",
+      "Fountain",
+      "Tree",
+      "Statue",
+      "Portal",
+      "Throne",
+      "Sofa",
+      "Recliner",
+    ].forEach((n) => button(r, n, () => add(n)));
     if (world.discoveries.length >= 3)
       button(r, "Pearl anemone", () => add("Pearl anemone"));
   }
@@ -540,6 +548,29 @@ function leaveStereo() {
   sync();
 }
 let tracking = false;
+const arLink = document.createElement("a");
+if (
+  arLink.relList?.supports?.("ar") &&
+  !window.Capacitor?.isPluginAvailable?.("EarnlyRealms")
+) {
+  const furniture = document.createElement("button");
+  furniture.textContent = "Place furniture in AR";
+  $("cameraRoom").after(furniture);
+  furniture.onclick = () =>
+    modal("Choose furniture", (d) => {
+      for (const name of ["Throne", "Sofa", "Recliner"]) {
+        const link = document.createElement("a");
+        link.rel = "ar";
+        link.href = "realms-" + name.toLowerCase() + ".usdz";
+        link.className = "seat-link";
+        const img = document.createElement("img");
+        img.alt = name;
+        img.src = "realms-" + name.toLowerCase() + ".jpg";
+        link.append(img);
+        d.append(link);
+      }
+    });
+}
 $("cameraRoom").onclick = openMyRoom;
 if (window.Capacitor?.isPluginAvailable?.("EarnlyRealms")) {
   const scan = document.createElement("button");

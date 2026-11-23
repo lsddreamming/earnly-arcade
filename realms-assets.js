@@ -327,7 +327,96 @@ function tree(group, fern) {
   batch(group, new THREE.OctahedronGeometry(1), material(0xffffff), leaves);
 }
 
+export const seatStyles = ["Throne", "Sofa", "Recliner"];
+export function seatModel(style) {
+  const group = new THREE.Group(),
+    sofa = style === "Sofa",
+    royal = style === "Throne";
+  const width = sofa ? 1.95 : royal ? 0.85 : 1.02;
+  const fabric = material(royal ? 0x75375b : sofa ? 0x466a65 : 0x764c37, 0.8);
+  const trim = material(royal ? 0xc7994e : 0x382e2a, 0.38, royal ? 0.65 : 0.12);
+  function pad(w, h, d, x, y, z, m) {
+    const shape = new THREE.Shape(),
+      r = Math.min(0.075, w / 4, h / 4);
+    const a = -w / 2,
+      b = -h / 2;
+    shape.moveTo(a + r, b);
+    shape.lineTo(-a - r, b);
+    shape.quadraticCurveTo(-a, b, -a, b + r);
+    shape.lineTo(-a, -b - r);
+    shape.quadraticCurveTo(-a, -b, -a - r, -b);
+    shape.lineTo(a + r, -b);
+    shape.quadraticCurveTo(a, -b, a, -b - r);
+    shape.lineTo(a, b + r);
+    shape.quadraticCurveTo(a, b, a + r, b);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: d,
+      bevelSize: 0.016,
+      bevelThickness: 0.016,
+      bevelSegments: 2,
+      steps: 1,
+      curveSegments: 4,
+    });
+    geo.translate(0, 0, -d / 2);
+    return mesh(group, geo, m, x, y, z);
+  }
+  for (const side of [-1, 1])
+    for (const end of [-1, 1])
+      pad(0.08, 0.19, 0.08, side * (width / 2 - 0.1), 0.1, end * 0.27, trim);
+  pad(width, 0.24, 0.74, 0, 0.28, 0, royal ? trim : fabric);
+  const count = sofa ? 3 : 1,
+    w = (width - 0.22) / count;
+  for (let i = 0; i < count; i++) {
+    const x = (i - (count - 1) / 2) * w;
+    pad(w - 0.018, 0.14, 0.63, x, 0.445, 0.045, fabric);
+    const back = pad(
+      w - 0.015,
+      royal ? 0.89 : 0.56,
+      0.14,
+      x,
+      royal ? 0.9 : 0.75,
+      -0.295,
+      fabric,
+    );
+    back.rotation.x = royal ? -0.06 : -0.18;
+  }
+  for (const sign of [-1, 1]) {
+    pad(
+      0.12,
+      0.23,
+      0.69,
+      sign * (width / 2 - 0.055),
+      0.53,
+      0,
+      royal ? trim : fabric,
+    );
+    if (royal) {
+      pad(0.065, 0.99, 0.08, sign * (width / 2 - 0.09), 0.88, -0.32, trim);
+      mesh(
+        group,
+        new THREE.SphereGeometry(0.055, 12, 8),
+        trim,
+        sign * (width / 2 - 0.09),
+        1.39,
+        -0.32,
+      );
+    }
+  }
+  if (royal) {
+    pad(width - 0.15, 0.07, 0.08, 0, 1.34, -0.32, trim);
+    for (const x of [-0.19, 0, 0.19])
+      for (const y of [0.83, 1.02, 1.21])
+        mesh(group, new THREE.SphereGeometry(0.018, 8, 6), trim, x, y, -0.209);
+  }
+  if (style === "Recliner") {
+    const rest = pad(width - 0.24, 0.12, 0.39, 0, 0.3, 0.51, fabric);
+    rest.rotation.x = 0.34;
+  }
+  return group;
+}
+
 export function decoration(name) {
+  if (seatStyles.includes(name)) return seatModel(name);
   const group = new THREE.Group();
   const stone = material(0x5e777c),
     bronze = material(0xc4a370, 0.32, 0.67);
