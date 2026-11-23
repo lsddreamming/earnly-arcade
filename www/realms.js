@@ -330,12 +330,17 @@ async function sound() {
   try {
     if (!audio) {
       audio = new AudioContext();
-      const samples = audio.createBuffer(1, audio.sampleRate * 4, audio.sampleRate);
+      const samples = audio.createBuffer(
+        1,
+        audio.sampleRate * 4,
+        audio.sampleRate,
+      );
       const wave = samples.getChannelData(0);
       let previous = 0;
       for (let i = 0; i < wave.length; i++) {
-        previous = .978 * previous + .022 * (Math.random() * 2 - 1);
-        wave[i] = previous * (.34 + .18 * Math.sin(2 * Math.PI * i / wave.length));
+        previous = 0.978 * previous + 0.022 * (Math.random() * 2 - 1);
+        wave[i] =
+          previous * (0.34 + 0.18 * Math.sin((2 * Math.PI * i) / wave.length));
       }
       const tide = audio.createBufferSource();
       tide.buffer = samples;
@@ -356,17 +361,22 @@ async function sound() {
   }
 }
 function discoverySound() {
-  if (!sound.on || audio?.state !== 'running') return;
+  if (!sound.on || audio?.state !== "running") return;
   [392, 587, 784].forEach((frequency, i) => {
-    const start = audio.currentTime + i * .08;
-    const tone = audio.createOscillator(), volume = audio.createGain();
+    const start = audio.currentTime + i * 0.08;
+    const tone = audio.createOscillator(),
+      volume = audio.createGain();
     tone.frequency.value = frequency;
-    volume.gain.setValueAtTime(.001, start);
-    volume.gain.exponentialRampToValueAtTime(.035, start + .02);
-    volume.gain.exponentialRampToValueAtTime(.001, start + .55);
+    volume.gain.setValueAtTime(0.001, start);
+    volume.gain.exponentialRampToValueAtTime(0.035, start + 0.02);
+    volume.gain.exponentialRampToValueAtTime(0.001, start + 0.55);
     tone.connect(volume).connect(audio.destination);
-    tone.onended = () => { tone.disconnect(); volume.disconnect(); };
-    tone.start(start); tone.stop(start + .56);
+    tone.onended = () => {
+      tone.disconnect();
+      volume.disconnect();
+    };
+    tone.start(start);
+    tone.stop(start + 0.56);
   });
 }
 function panel() {
@@ -492,8 +502,7 @@ function panel() {
       ),
     );
     button(r, "Stereo viewer", stereoMode);
-    if (window.Capacitor?.isPluginAvailable?.("EarnlyRealms"))
-      button(r, "Scan a real wall", nativeMode);
+    button(r, "Transform my room · Camera", openMyRoom);
   }
 }
 let stereo = false,
@@ -531,6 +540,28 @@ function leaveStereo() {
   sync();
 }
 let tracking = false;
+$("cameraRoom").onclick = openMyRoom;
+async function openMyRoom() {
+  if (tracking) return;
+  if (window.Capacitor?.isPluginAvailable?.("EarnlyRealms")) {
+    await nativeMode();
+    return;
+  }
+  tracking = true;
+  try {
+    const { openCamera } = await import("./realms-camera.js");
+    await openCamera({
+      world,
+      exit: () => {
+        tracking = false;
+        resize();
+      },
+    });
+  } catch (e) {
+    tracking = false;
+    modal("Camera unavailable", (d) => d.append(e.message));
+  }
+}
 async function nativeMode() {
   if (tracking) return;
   tracking = true;
@@ -547,7 +578,9 @@ async function nativeMode() {
     });
   } catch (e) {
     tracking = false;
-    show(e.message || "Room tracking unavailable");
+    modal("Room tracking unavailable", (d) =>
+      d.append(e.message || "Room tracking unavailable"),
+    );
   }
 }
 const pointers = new Map();
