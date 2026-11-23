@@ -459,28 +459,28 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
         camera.matrix.fromArray(f.view).invert();
         camera.updateMatrixWorld(true);
         depth.update(f.depth);
-        wallAnchor.visible = !!wallData && !!f.wallAnchor && f.tracking;
-        if (wallAnchor.visible) {
+        if (wallData && f.wallAnchor && f.tracking) wallAnchor.visible = true;
+        if (wallAnchor.visible && f.wallAnchor && f.tracking) {
           wallAnchor.matrix.fromArray(f.wallAnchor);
           wallAnchor.matrixWorldNeedsUpdate = true;
         }
         for (const [id, seat] of seats) {
           const pose = f.seats?.[id];
-          seat.root.visible = !!pose && f.tracking;
-          if (pose) {
+          if (pose && f.tracking) {
+            seat.root.visible = true;
             seat.root.matrix.fromArray(pose);
             seat.root.matrixWorldNeedsUpdate = true;
           }
         }
-        if (f.anchor) {
+        if (f.anchor && f.tracking) {
+          anchor.visible = placed;
           anchor.matrix.fromArray(f.anchor);
           anchor.matrixWorldNeedsUpdate = true;
         }
-        anchor.visible = placed && !!f.anchor && f.tracking;
         const floorPose = pendingFloor?.pose || f.floorAnchor;
-        floor.visible =
-          !!floorPose && !!(pendingFloor || floorData) && f.tracking;
-        if (floor.visible) {
+        if (!pendingFloor && !floorData) floor.visible = false;
+        if (floorPose && (pendingFloor || floorData) && f.tracking) {
+          floor.visible = true;
           floorAnchor.matrix.fromArray(floorPose);
           floorAnchor.matrixWorldNeedsUpdate = true;
           floor.material.transparent = !!pendingFloor;

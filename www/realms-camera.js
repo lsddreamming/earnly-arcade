@@ -726,7 +726,11 @@ export async function openCamera({ world, exit }) {
       }
       for (const [key, slot] of slots) {
         const h = slot.vision.locate(data);
-        slot.layer.hidden = !h || !pose(h, slot);
+        const matched = h && pose(h, slot);
+        if (matched) slot.lastSeen = t;
+        // Bridge a momentary miss, but never leave a stale overlay on a different wall.
+        if (!matched && t - (slot.lastSeen ?? -Infinity) < 450) continue;
+        slot.layer.hidden = !matched;
         if (slot.layer.hidden) {
           slot.last = null;
           if (key === slotKey())
