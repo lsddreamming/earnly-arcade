@@ -218,6 +218,7 @@
       { key:'harborGetaway', icon:'🌆', name:'Harbor Getaway', note:'Explore the city · complete jobs · optional live free roam', href:'harbor-getaway.html', freeBeta:true },
       { key:'spuddyEvolution', icon:'🌱', name:'Spuddy Evolution', note:'3D adventure · device-only saves · no Arcade Coin rewards', href:'spuddy-evolution.html', freeBeta:true },
       { key:'earnlyRealms', icon:'🌊', name:'Earnly Realms', note:'Transform a room · discover a living reef', href:'earnly-realms.html', freeBeta:true },
+      { key:'spudsKitchen', icon:'🍳', name:'Spud’s Kitchen: Merge & Serve', note:'Merge delicious ingredients, serve hungry customers, discover hundreds of recipes, and transform your tiny café into a worldwide restaurant empire!', href:'spuds-kitchen.html', freeBeta:true },
       { key:'metalMayhem', icon:'🤖', name:'Metal Mayhem', note:'3D robot combat · sever limbs · survive endless waves', href:'metal-mayhem.html', freeBeta:true },
       { key:'bigFishEnergy', icon:'🦈', name:'BIG FISH ENERGY', note:'Eat smaller fish · grow into an ocean giant', href:'big-fish-energy.html', freeBeta:true }
     ];
@@ -255,6 +256,7 @@
       spuddyTurf:['new','action','strategy'],
       harborGetaway:['action'],
       spuddyEvolution:['new','action'],
+      spudsKitchen:['new','strategy'],
       metalMayhem:['new','action'],
       bigFishEnergy:['new','action']
     };
@@ -262,7 +264,7 @@
     // Add newly launched large games (like Spuddy Defense) only after release.
     const deepPlayKeys = new Set([
       'bubblePop','crystalCommand','neonBreach','spuddyTurf',
-      'harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem','earnlyRealms'
+      'harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem','earnlyRealms','spudsKitchen'
     ]);
     // Visiting or refreshing Games advances four picks through all available titles.
     // Do not advance during favorites, cloud updates, filtering or rerenders.
@@ -288,6 +290,7 @@
       snake: {src:'snake.webp', label:'A familiar classic', description:'Steer, eat apples, and keep growing.'},
       bubblePop: {src:'bubble-pop.webp', label:'Take your time', description:'Match colorful bubbles. Solve one level at a time.'},
       spuddyEvolution: {src:'spuddy-evolution.svg', label:'Explore & grow', description:'Gather seeds and grow your own little Spuddy.'},
+      spudsKitchen: {src:'spuds-kitchen.svg', label:'Fresh from your kitchen', description:'Merge ingredients and serve your neighborhood.'},
       metalMayhem: {src:'metal-mayhem.svg', label:'Built to break.', description:'Dismantle robot gladiators. Upgrade. Survive the next wave.'},
       bigFishEnergy: {src:'big-fish-energy.webp', label:'Small fry. Big future.', description:'Eat, escape and grow into a gigantic ocean legend.'}
     };
