@@ -330,3 +330,17 @@ dialog::backdrop {
   margin: 3px 0 8px;
   font-size: 14px;
 }
+.camera-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.camera-room .wall-art {
+  pointer-events: none;
+}
+.camera-room .camera-tools,
+.camera-room .camera-top {
+  z-index: 2;
+}

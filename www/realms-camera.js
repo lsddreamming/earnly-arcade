@@ -25,7 +25,7 @@ export function tracker(width, height) {
     J.imgproc.grayscale(data, width, height, p.data[0]);
     p.build(p.data[0], true);
   };
-  function lock(data, box) {
+  function lock(data, box, polygon) {
     read(data, source);
     const points = Array.from({ length: width * height }, () => ({
       x: 0,
@@ -42,6 +42,14 @@ export function tracker(width, height) {
         p.x > box.x + box.w ||
         p.y < box.y ||
         p.y > box.y + box.h
+      )
+        continue;
+      if (
+        polygon &&
+        !polygon.every(([x, y], i) => {
+          const [u, v] = polygon[(i + 1) % 4];
+          return (u - x) * (p.y - y) - (v - y) * (p.x - x) >= 0;
+        })
       )
         continue;
       const cell = (p.x >> 3) + ":" + (p.y >> 3);
@@ -124,6 +132,16 @@ export function tracker(width, height) {
       span(support, "y") < span(original, "y") * 0.42
     )
       return null;
+    const destinations = to.filter((_, i) => mask.data[i]);
+    if (
+      !new J.motion_model.homography2d().run(
+        support,
+        destinations,
+        h,
+        support.length,
+      )
+    )
+      return null;
     return h.data;
   }
   return { lock, locate };
@@ -133,7 +151,7 @@ export async function openCamera({ world, exit }) {
   const ui = document.createElement("section");
   ui.className = "camera-room";
   ui.innerHTML =
-    '<video autoplay muted playsinline></video><canvas class="wall-art"></canvas><div class="wall-guide"></div><div class="camera-top"><b>My room</b><button data-close>Exit</button></div><div class="camera-tools"><p role="status">Opening your rear camera…</p><select aria-label="Room effect"><option>Aquarium</option><option>Castle stone</option><option>Living forest</option><option>Marble</option><option>Lava</option></select> <button data-place>Place here</button></div>';
+    '<video autoplay muted playsinline></video><canvas hidden></canvas><div class="wall-guide"></div><div class="camera-top"><b>My room</b><button data-close>Exit</button></div><div class="camera-tools"><p role="status">Opening your rear camera…</p><select aria-label="Room effect"><option>Aquarium</option><option>Castle stone</option><option>Living forest</option><option>Marble</option><option>Lava</option></select> <button data-place>Place here</button></div>';
   document.body.append(ui);
   const el = (s) => ui.querySelector(s),
     video = el("video"),
@@ -146,9 +164,6 @@ export async function openCamera({ world, exit }) {
     renderer,
     closed = false,
     raf,
-    tracked = false,
-    box,
-    vision,
     textureMesh,
     aqua,
     scene,
@@ -172,6 +187,7 @@ export async function openCamera({ world, exit }) {
         if (n.geometry) geos.add(n.geometry);
         if (n.material) mats.add(n.material);
       });
+      surfaceMaterials.forEach((m) => mats.add(m));
       mats.forEach((m) => m.dispose());
       geos.forEach((g) => g.dispose());
       renderer.dispose();
@@ -193,16 +209,41 @@ export async function openCamera({ world, exit }) {
     grab.height = Math.round(
       (320 * innerHeight) / Math.max(innerWidth, innerHeight),
     );
-    vision = tracker(grab.width, grab.height);
+    for (const key of slots.keys()) removeSlot(key);
     reset();
   }
+  const slots = new Map();
+  const surfaceMaterials = new Map();
+  let outlining = false,
+    corners = [],
+    frozenPixels = null;
+  const freeze = document.createElement("canvas");
+  freeze.className = "camera-outline";
+  freeze.hidden = true;
+  ui.insertBefore(freeze, guide);
+  function isFloor() {
+    return ["Marble", "Lava"].includes(select.value);
+  }
+  function slotKey() {
+    return isFloor() ? "floor" : select.value === "Aquarium" ? "tank" : "wall";
+  }
   function reset() {
-    tracked = false;
-    canvas.hidden = true;
-    guide.hidden = false;
-    place.textContent = "Place here";
-    status.textContent =
-      "Aim at a textured wall or floor. Tap the camera to move the frame, then place your effect.";
+    outlining = false;
+    corners = [];
+    freeze.hidden = true;
+    frozenPixels = null;
+    guide.hidden = isFloor();
+    place.textContent = isFloor() ? "Outline floor" : "Place here";
+    status.textContent = isFloor()
+      ? "Point down at the floor. Outline the area you want to change."
+      : "Aim at a textured wall and tap to position the frame.";
+  }
+  function removeSlot(key) {
+    const slot = slots.get(key);
+    if (slot) {
+      slot.layer.remove();
+      slots.delete(key);
+    }
   }
   function pixels() {
     const w = grab.width,
@@ -217,17 +258,42 @@ export async function openCamera({ world, exit }) {
     );
     return ctx.getImageData(0, 0, w, h).data;
   }
-  function pose(h) {
-    const pts = [
-      [0, 0],
-      [1, 0],
-      [1, 1],
-      [0, 1],
-    ].map(([x, y]) => project(h, box.x + box.w * x, box.y + box.h * y));
-    const target = pts.map(([x, y]) => ({
-      x: (x * ui.clientWidth) / grab.width,
-      y: (y * ui.clientHeight) / grab.height,
-    }));
+  function pose(h, slot) {
+    const target = slot.corners.map(([a, b]) => {
+      const [x, y] = project(h, a, b);
+      return {
+        x: (x * ui.clientWidth) / grab.width,
+        y: (y * ui.clientHeight) / grab.height,
+      };
+    });
+    // Reject folded and implausibly stretched estimates before they reach the compositor.
+    for (let i = 0; i < 4; i++) {
+      const a = target[i],
+        b = target[(i + 1) % 4],
+        c = target[(i + 2) % 4];
+      if ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) < 2)
+        return false;
+    }
+    const area =
+      target.reduce(
+        (sum, p, i) =>
+          sum + p.x * target[(i + 1) % 4].y - p.y * target[(i + 1) % 4].x,
+        0,
+      ) / 2;
+    if (area < slot.area * 0.25 || area > slot.area * 4) return false;
+    if (slot.last) {
+      const motion = Math.max(
+        ...target.map((p, i) =>
+          Math.hypot(p.x - slot.last[i].x, p.y - slot.last[i].y),
+        ),
+      );
+      const weight = motion < 1.2 ? 0 : Math.min(1, 0.18 + motion / 28);
+      target.forEach((p, i) => {
+        p.x = slot.last[i].x + (p.x - slot.last[i].x) * weight;
+        p.y = slot.last[i].y + (p.y - slot.last[i].y) * weight;
+      });
+    }
+    slot.last = target;
     const w = 400,
       ht = 215,
       model = new J.matrix_t(3, 3, J.F32C1_t);
@@ -247,7 +313,7 @@ export async function openCamera({ world, exit }) {
     )
       return false;
     const a = model.data;
-    canvas.style.transform =
+    slot.layer.style.transform =
       "matrix3d(" +
       [
         a[0],
@@ -270,16 +336,22 @@ export async function openCamera({ world, exit }) {
       ")";
     return true;
   }
-  function apply() {
-    const kind = select.value;
+  function apply(kind) {
     aqua.group.visible = kind === "Aquarium";
     textureMesh.visible = !aqua.group.visible;
-    if (textureMesh.visible) {
-      textureMesh.material.dispose();
-      textureMesh.material = surfaceMaterial(
-        ["Marble", "Lava"].includes(kind) ? "floor" : "wall",
-        { "Castle stone": "Stone", "Living forest": "Forest" }[kind] || kind,
-      );
+    if (textureMesh.visible && textureMesh.userData.kind !== kind) {
+      textureMesh.userData.kind = kind;
+      if (!surfaceMaterials.size) textureMesh.material.dispose();
+      if (!surfaceMaterials.has(kind))
+        surfaceMaterials.set(
+          kind,
+          surfaceMaterial(
+            ["Marble", "Lava"].includes(kind) ? "floor" : "wall",
+            { "Castle stone": "Stone", "Living forest": "Forest" }[kind] ||
+              kind,
+          ),
+        );
+      textureMesh.material = surfaceMaterials.get(kind);
     }
   }
   canvas.hidden = true;
@@ -318,13 +390,21 @@ export async function openCamera({ world, exit }) {
       new T.MeshBasicMaterial(),
     );
     scene.add(textureMesh);
-    apply();
-    select.onchange = apply;
+    select.onchange = () => {
+      reset();
+      const slot = slots.get(slotKey());
+      if (slot) {
+        slot.effect = select.value;
+        place.textContent = "Reposition";
+        guide.hidden = true;
+        status.textContent = "Using the existing " + slotKey() + " placement.";
+      }
+    };
     resize();
     window.addEventListener("resize", resize);
     place.disabled = select.disabled = false;
     video.onclick = (e) => {
-      if (tracked) return;
+      if (isFloor() || slots.has(slotKey())) return;
       guide.style.left =
         Math.max(
           guide.offsetWidth / 2,
@@ -336,49 +416,196 @@ export async function openCamera({ world, exit }) {
           Math.min(innerHeight - guide.offsetHeight / 2, e.clientY),
         ) + "px";
     };
+    function install(data, points) {
+      const xs = points.map((p) => p[0]),
+        ys = points.map((p) => p[1]);
+      const x = Math.min(...xs),
+        y = Math.min(...ys);
+      const v = tracker(grab.width, grab.height);
+      if (
+        !v.lock(
+          data,
+          { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y },
+          points,
+        )
+      ) {
+        reset();
+        status.textContent =
+          "Too little surface detail. Include more visible edges and try again.";
+        return;
+      }
+      const layer = document.createElement("canvas");
+      layer.className = "wall-art";
+      layer.width = 600;
+      layer.height = 322;
+      layer.hidden = true;
+      ui.insertBefore(layer, freeze);
+      const area =
+        ((((points.reduce(
+          (sum, p, i) =>
+            sum + p[0] * points[(i + 1) % 4][1] - p[1] * points[(i + 1) % 4][0],
+          0,
+        ) /
+          2) *
+          ui.clientWidth) /
+          grab.width) *
+          ui.clientHeight) /
+        grab.height;
+      removeSlot(slotKey());
+      slots.set(slotKey(), {
+        vision: v,
+        corners: points,
+        layer,
+        ctx: layer.getContext("2d"),
+        area,
+        effect: select.value,
+      });
+      reset();
+      guide.hidden = true;
+      place.textContent = "Reposition";
+      status.textContent = "Placed. Keep the surface in view.";
+    }
     place.onclick = () => {
-      if (tracked) {
+      if (slots.has(slotKey())) {
+        removeSlot(slotKey());
         reset();
         return;
       }
-      const r = guide.getBoundingClientRect();
-      box = {
-        x: (r.left * grab.width) / ui.clientWidth,
-        y: (r.top * grab.height) / ui.clientHeight,
-        w: (r.width * grab.width) / ui.clientWidth,
-        h: (r.height * grab.height) / ui.clientHeight,
-      };
-      if (!vision.lock(pixels(), box)) {
+      if (isFloor()) {
+        if (outlining && corners.length === 4) {
+          install(
+            frozenPixels,
+            corners.map(([x, y]) => [
+              (x * grab.width) / ui.clientWidth,
+              (y * grab.height) / ui.clientHeight,
+            ]),
+          );
+          return;
+        }
+        if (outlining) {
+          reset();
+          return;
+        }
+        frozenPixels = pixels();
+        freeze.width = ui.clientWidth;
+        freeze.height = ui.clientHeight;
+        const s = Math.max(
+          freeze.width / video.videoWidth,
+          freeze.height / video.videoHeight,
+        );
+        freeze
+          .getContext("2d")
+          .drawImage(
+            video,
+            (freeze.width - video.videoWidth * s) / 2,
+            (freeze.height - video.videoHeight * s) / 2,
+            video.videoWidth * s,
+            video.videoHeight * s,
+          );
+        outlining = true;
+        corners = [];
+        freeze.hidden = false;
+        place.textContent = "Cancel";
         status.textContent =
-          "Too little detail to track. Frame a picture, patterned wall, or floor with visible edges.";
+          "Tap four corners around the floor area, in order.";
         return;
       }
-      tracked = true;
-      guide.hidden = true;
-      place.textContent = "Reposition";
-      status.textContent = "Placed · keep the surface in view.";
+      const r = guide.getBoundingClientRect();
+      install(
+        pixels(),
+        [
+          [r.left, r.top],
+          [r.right, r.top],
+          [r.right, r.bottom],
+          [r.left, r.bottom],
+        ].map(([x, y]) => [
+          (x * grab.width) / ui.clientWidth,
+          (y * grab.height) / ui.clientHeight,
+        ]),
+      );
+    };
+    freeze.onclick = (e) => {
+      if (!outlining) return;
+      if (corners.length === 4) {
+        reset();
+        place.click();
+        return;
+      }
+      const p = [e.clientX, e.clientY],
+        ctx = freeze.getContext("2d");
+      if (corners.length) {
+        ctx.beginPath();
+        ctx.moveTo(...corners.at(-1));
+        ctx.lineTo(...p);
+        ctx.strokeStyle = "#aaffdf";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(...p, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#aaffdf";
+      ctx.fill();
+      corners.push(p);
+      if (corners.length < 4) {
+        status.textContent =
+          "Tap floor corner " + (corners.length + 1) + " of 4.";
+        return;
+      }
+      const turns = corners.map(([x, y], i) => {
+        const [u, v] = corners[(i + 1) % 4],
+          [a, b] = corners[(i + 2) % 4];
+        return (u - x) * (b - v) - (v - y) * (a - u);
+      });
+      if (turns.every((n) => n < 0)) corners.reverse();
+      else if (!turns.every((n) => n > 0)) {
+        reset();
+        status.textContent =
+          "Trace the floor outline in order without crossing edges.";
+        return;
+      }
+      ctx.beginPath();
+      corners.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fillStyle = "rgba(88,235,192,.27)";
+      ctx.fill();
+      ctx.stroke();
+      place.textContent = "Confirm floor";
+      status.textContent =
+        "Check the highlighted floor. Confirm to apply, or tap the image to redraw.";
     };
     function draw(t) {
       if (closed) return;
       raf = requestAnimationFrame(draw);
       if (
-        !tracked ||
-        t - last < 60 ||
+        !slots.size ||
+        outlining ||
+        t - last < 32 ||
         video.readyState < 2 ||
         lastVideo === video.currentTime
       )
         return;
       last = t;
       lastVideo = video.currentTime;
-      const h = vision.locate(pixels());
-      canvas.hidden = !h || !pose(h);
-      status.textContent = canvas.hidden
-        ? "Tracking lost. Look back at the original spot or tap Reposition."
-        : "Placed · keep the surface in view.";
-      if (!canvas.hidden) {
+      const data = pixels();
+      for (const [key, slot] of slots) {
+        const h = slot.vision.locate(data);
+        slot.layer.hidden = !h || !pose(h, slot);
+        if (slot.layer.hidden) {
+          slot.last = null;
+          if (key === slotKey())
+            status.textContent =
+              "Tracking lost. Look back at the selected surface.";
+          continue;
+        }
+        if (key === slotKey())
+          status.textContent =
+            "Placed · " + (key === "tank" ? "aquarium wall" : key);
+        apply(slot.effect);
         aqua.update(t / 1000);
         animateAsset(textureMesh, t / 1000);
         renderer.render(scene, cam);
+        slot.ctx.clearRect(0, 0, 600, 322);
+        slot.ctx.drawImage(canvas, 0, 0);
       }
     }
     raf = requestAnimationFrame(draw);

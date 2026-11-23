@@ -541,6 +541,27 @@ function leaveStereo() {
 }
 let tracking = false;
 $("cameraRoom").onclick = openMyRoom;
+if (window.Capacitor?.isPluginAvailable?.("EarnlyRealms")) {
+  const scan = document.createElement("button");
+  scan.textContent = "Scan furniture & walls";
+  $("cameraRoom").after(scan);
+  scan.onclick = async () => {
+    try {
+      const { items } = await window.Capacitor.Plugins.EarnlyRealms.scanRoom(
+        {},
+      );
+      modal("Recognized in this room", (d) =>
+        d.append(
+          Object.entries(items || {})
+            .map(([k, v]) => v + " " + k)
+            .join(" · ") || "No objects recognized during this scan.",
+        ),
+      );
+    } catch (e) {
+      modal("Room scan unavailable", (d) => d.append(e.message));
+    }
+  };
+}
 async function openMyRoom() {
   if (tracking) return;
   if (window.Capacitor?.isPluginAvailable?.("EarnlyRealms")) {

@@ -1,7 +1,7 @@
 // A transparent WebGL scene shares camera pose and projection with the ARKit camera underneath.
 import * as T from "./realms-three.js";
 import { createAquarium } from "./realms-aquarium.js";
-import { surfaceMaterial } from "./realms-assets.js";
+import { surfaceMaterial, animateAsset } from "./realms-assets.js";
 
 export async function openRoomTracking({ world, renderer, canvas, exit }) {
   const plugin = window.Capacitor.Plugins.EarnlyRealms;
@@ -26,9 +26,28 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
     new T.PlaneGeometry(2, 2),
     surfaceMaterial("floor", world.floor),
   );
-  floor.rotation.x = -Math.PI / 2;
-  content.add(wall, floor);
+  const floorAnchor = new T.Group();
+  floorAnchor.matrixAutoUpdate = false;
+  scene.add(floorAnchor);
+  floorAnchor.add(floor);
+  content.add(wall);
   wall.visible = floor.visible = false;
+  floor.material.side = T.DoubleSide;
+  let floorData = null,
+    confirmedFloor = null,
+    pendingFloor = null;
+  function floorMesh(data) {
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(data.vertices, 3));
+    const uv = [];
+    for (let i = 0; i < data.vertices.length; i += 3)
+      uv.push(data.vertices[i], -data.vertices[i + 2]);
+    g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+    g.setIndex(data.indices);
+    g.computeVertexNormals();
+    floor.geometry.dispose();
+    floor.geometry = g;
+  }
   aquarium.group.position.z = 0.34;
   const stored = JSON.parse(
     localStorage.getItem("earnly.realms.ar." + world.id) || "null",
@@ -50,9 +69,12 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
   controls.append(select);
   select.onchange = () => {
     mode = select.value;
-    anchor.visible = false;
+    if (pendingFloor) {
+      pendingFloor = null;
+      floorData = confirmedFloor;
+      if (floorData) floorMesh(floorData);
+    }
     status.textContent = "Aim at the new surface and place it.";
-    placed = false;
   };
   let placed = !!result.restoring && !!stored;
   if (placed) {
@@ -61,33 +83,67 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
     select.value = mode;
     aquarium.group.visible = mode === "Aquarium";
     wall.visible = mode === "Wall";
-    floor.visible = mode === "Floor";
+    floor.visible = false;
     status.textContent =
       "Look around the previously saved room to align the map.";
   }
+  if (result.restoring && stored?.floor) {
+    confirmedFloor = floorData = stored.floor;
+    floorMesh(floorData);
+  }
+  let wallMode = stored?.wallMode || (mode === "Floor" ? "Aquarium" : mode);
+  aquarium.group.visible = wallMode === "Aquarium";
+  wall.visible = wallMode === "Wall";
   const action = (label, fn) => {
     const b = document.createElement("button");
     b.textContent = label;
     b.onclick = fn;
     controls.append(b);
+    return b;
   };
-  async function place(manual) {
+  async function place(manual, x = 0.5, y = 0.5) {
     try {
-      await plugin.place({
-        surface: mode === "Floor" ? "floor" : "wall",
-        manual,
-      });
+      if (mode === "Floor") {
+        if (pendingFloor) {
+          await plugin.place({ surface: "floor", confirm: true });
+          confirmedFloor = floorData = pendingFloor;
+          pendingFloor = null;
+          status.textContent = "Floor confirmed.";
+          return;
+        }
+        const data = await plugin.place({ surface: "floor", x, y });
+        if (!data.vertices?.length) throw Error("Scan more of the floor.");
+        pendingFloor = data;
+        floorMesh(data);
+        status.textContent =
+          "Check the highlighted floor, then tap Confirm floor.";
+        return;
+      }
+      await plugin.place({ surface: "wall", manual, x, y });
       placed = true;
+      wallMode = mode;
       aquarium.group.visible = mode === "Aquarium";
       wall.visible = mode === "Wall";
-      floor.visible = mode === "Floor";
-      status.textContent = "Placed · move around it or adjust size.";
+      status.textContent = "Anchored. Tap another wall spot to move it.";
     } catch (e) {
       status.textContent = e.message;
     }
   }
-  action("Place", () => place(false));
-  action("Manual · 1.7 m", () => place(true));
+  const placeButton = action("Place", () => place(false));
+  const manualButton = action("Manual · 1.7 m", () => place(true));
+  const materialSelect = document.createElement("select");
+  materialSelect.setAttribute("aria-label", "Floor finish");
+  for (const name of ["Marble", "Lava", "Slate", "Crystal", "Water", "Glass"])
+    materialSelect.add(new Option(name, name));
+  materialSelect.value = stored?.finish || world.floor;
+  function finish() {
+    floor.material.dispose();
+    floor.material = surfaceMaterial("floor", materialSelect.value);
+    floor.material.side = T.DoubleSide;
+  }
+  materialSelect.onchange = finish;
+  controls.append(materialSelect);
+  finish();
   const size = document.createElement("input");
   Object.assign(size, {
     type: "range",
@@ -128,7 +184,13 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
   function background() {
     if (document.hidden) close();
   }
-  function pick(e) {
+  let identifying=false;
+  action("Identify object",()=>{identifying=true;status.textContent="Tap the center of a chair, TV or other object."});
+  async function pick(e) {
+    if(identifying){identifying=false;try{const {suggestions}=await plugin.identify({x:e.clientX/innerWidth,y:e.clientY/innerHeight});
+      status.textContent=suggestions?.length?"Possible match: "+suggestions.join(", "):"No confident match. Try a closer view.";
+    }catch(e){status.textContent=e.message}return}
+
     const ray = new T.Raycaster();
     ray.setFromCamera(
       new T.Vector2(
@@ -139,8 +201,13 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
     );
     if (placed && mode === "Aquarium") {
       const species = aquarium.interact(ray);
-      if (species) status.textContent = species;
+      if (species) {
+        status.textContent = species;
+        return;
+      }
     }
+    if (!pendingFloor)
+      place(false, e.clientX / innerWidth, e.clientY / innerHeight);
   }
   canvas.addEventListener("click", pick);
   document.addEventListener("visibilitychange", background);
@@ -149,7 +216,13 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
       await plugin.saveMap({});
       localStorage.setItem(
         "earnly.realms.ar." + world.id,
-        JSON.stringify({ mode, scale }),
+        JSON.stringify({
+          mode,
+          scale,
+          wallMode,
+          floor: confirmedFloor,
+          finish: materialSelect.value,
+        }),
       );
       status.textContent =
         "Placement saved. Save this realm in the editor to reopen it.";
@@ -177,6 +250,25 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
           anchor.matrixWorldNeedsUpdate = true;
         }
         anchor.visible = placed && !!f.anchor && f.tracking;
+        const floorPose = pendingFloor?.pose || f.floorAnchor;
+        floor.visible =
+          !!floorPose && !!(pendingFloor || floorData) && f.tracking;
+        if (floor.visible) {
+          floorAnchor.matrix.fromArray(floorPose);
+          floorAnchor.matrixWorldNeedsUpdate = true;
+          floor.material.transparent = !!pendingFloor;
+          floor.material.opacity = pendingFloor ? 0.48 : 1;
+          animateAsset(floor, t / 1000);
+        }
+        placeButton.textContent =
+          mode === "Floor"
+            ? pendingFloor
+              ? "Confirm floor"
+              : "Scan floor"
+            : "Place on wall";
+        manualButton.hidden = mode === "Floor";
+        materialSelect.hidden = mode !== "Floor";
+        size.hidden = mode === "Floor";
         light.intensity = T.MathUtils.clamp(f.light / 500, 0.7, 3);
         content.scale.setScalar(scale);
         aquarium.update(t / 1000);
