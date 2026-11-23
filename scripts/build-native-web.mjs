@@ -34,7 +34,7 @@ const entries = await readdir(root, { withFileTypes:true });
 for (const entry of entries) {
   if (!entry.isFile()) continue;
   if (excluded.has(entry.name)) continue;
-  if (!allowedExtensions.has(path.extname(entry.name)) && !/^spuds-kitchen(?:-[a-z]+)?\.mjs$/.test(entry.name) && !entry.name.endsWith('-LICENSE.txt')) continue;
+  if (!allowedExtensions.has(path.extname(entry.name)) && !entry.name.endsWith('-LICENSE.txt')) continue;
   await cp(path.join(root, entry.name), path.join(outDir, entry.name));
 }
 
