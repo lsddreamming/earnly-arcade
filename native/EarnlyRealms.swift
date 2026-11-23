@@ -7,7 +7,7 @@ import UIKit
 public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "EarnlyRealmsPlugin"
     public let jsName = "EarnlyRealms"
-    public let pluginMethods = ["open", "frame", "place", "saveMap", "close"].map {
+    public let pluginMethods: [CAPPluginMethod] = ["open", "frame", "place", "saveMap", "close"].compactMap {
         CAPPluginMethod(name: $0, returnType: CAPPluginReturnPromise)
     }
     private var cameraView: ARSCNView?
