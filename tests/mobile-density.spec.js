@@ -150,7 +150,7 @@ for (const width of [320, 390, 440]) {
     test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
       await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-      // Four refreshed games lead into the complete 30-game catalog.
+      // Four refreshed games lead into the complete 31-game catalog.
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
       const starters = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
       expect(new Set(starters).size).toBe(4);

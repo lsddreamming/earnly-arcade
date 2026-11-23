@@ -316,6 +316,18 @@ export function decoration(name) {
     bronze = material(0xc4a370, 0.32, 0.67);
   if (name === "Tree" || name === "Fern") {
     tree(group, name === "Fern");
+  } else if (name === "Pearl anemone") {
+    const petal = material(0x72c9b8, .36, .18, 0x173e3c);
+    const pearl = mesh(group, new THREE.SphereGeometry(.16, 24, 16), material(0xffedd2, .2, .3, 0x695846), 0, .39, 0);
+    const blade = new THREE.SphereGeometry(1, 10, 8);
+    for (let i = 0; i < 16; i++) {
+      const angle = i * Math.PI / 8;
+      const frond = mesh(group, blade, petal, Math.sin(angle) * .22, .21, Math.cos(angle) * .22);
+      frond.rotation.order = 'YXZ';
+      frond.rotation.set(.57, angle, 0);
+      frond.scale.set(.045,.26,.055);
+    }
+    group.userData.animate = t => { pearl.position.y = .42 + .025 * Math.sin(t * 1.7); };
   } else if (name === "Fountain") {
     const aqua = material(0x5cd6db, 0.17, 0.25, 0x164e5c);
     mesh(

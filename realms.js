@@ -330,12 +330,18 @@ async function sound() {
   try {
     if (!audio) {
       audio = new AudioContext();
-      const tone = audio.createOscillator(),
-        volume = audio.createGain();
-      tone.frequency.value = 82;
-      volume.gain.value = 0.018;
-      tone.connect(volume).connect(audio.destination);
-      tone.start();
+      const samples = audio.createBuffer(1, audio.sampleRate * 4, audio.sampleRate);
+      const wave = samples.getChannelData(0);
+      let previous = 0;
+      for (let i = 0; i < wave.length; i++) {
+        previous = .978 * previous + .022 * (Math.random() * 2 - 1);
+        wave[i] = previous * (.34 + .18 * Math.sin(2 * Math.PI * i / wave.length));
+      }
+      const tide = audio.createBufferSource();
+      tide.buffer = samples;
+      tide.loop = true;
+      tide.connect(audio.destination);
+      tide.start();
     }
     if (audio.state === "running" && sound.on) {
       await audio.suspend();
@@ -348,6 +354,20 @@ async function sound() {
   } catch {
     show("Audio unavailable");
   }
+}
+function discoverySound() {
+  if (!sound.on || audio?.state !== 'running') return;
+  [392, 587, 784].forEach((frequency, i) => {
+    const start = audio.currentTime + i * .08;
+    const tone = audio.createOscillator(), volume = audio.createGain();
+    tone.frequency.value = frequency;
+    volume.gain.setValueAtTime(.001, start);
+    volume.gain.exponentialRampToValueAtTime(.035, start + .02);
+    volume.gain.exponentialRampToValueAtTime(.001, start + .55);
+    tone.connect(volume).connect(audio.destination);
+    tone.onended = () => { tone.disconnect(); volume.disconnect(); };
+    tone.start(start); tone.stop(start + .56);
+  });
 }
 function panel() {
   const nav = $("nav"),
@@ -394,7 +414,7 @@ function panel() {
       button(r, n, () => add(n)),
     );
     if (world.discoveries.length >= 3)
-      button(r, "Reef monument", () => add("Statue"));
+      button(r, "Pearl anemone", () => add("Pearl anemone"));
   }
   if (tab === "Arrange") {
     const i = world.items.find((i) => i.id === selected);
@@ -596,6 +616,7 @@ c.onpointerup = (e) => {
     if (species) {
       if (!world.discoveries.includes(species)) {
         world.discoveries.push(species);
+        discoverySound();
         dirty = true;
       }
       show(species + " · " + world.discoveries.length + " discovered");
