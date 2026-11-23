@@ -161,10 +161,12 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
             if case .normal = c.trackingState, f.timestamp - self.lastWallScan >= 0.5 {
                 self.lastWallScan = f.timestamp
                 var walls = JSObject()
-                for case let plane as ARPlaneAnchor in f.anchors where plane.alignment == .vertical {
-                    guard plane.classification == .wall || (plane.classification == .none && plane.extent.x > 0.8 && plane.extent.z > 0.7) else { continue }
+                for case let plane as ARPlaneAnchor in f.anchors {
+                    let floor = plane.classification == .floor
+                    let wall = plane.alignment == .vertical && (plane.classification == .wall || (plane.classification == .none && plane.extent.x > 0.8 && plane.extent.z > 0.7))
+                    guard floor || wall else { continue }
                     let geometry = plane.geometry
-                    let boundary: JSObject = ["pose": self.numbers(plane.transform),
+                    let boundary: JSObject = ["kind": floor ? "floor" : "wall", "pose": self.numbers(plane.transform),
                         "vertices": geometry.vertices.flatMap { [Double($0.x), Double($0.y) + 0.003, Double($0.z)] },
                         "indices": geometry.triangleIndices.map { Int($0) }]
                     walls[plane.identifier.uuidString] = boundary
@@ -274,8 +276,7 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
     }
     @objc func saveMap(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            guard let session = self.cameraView?.session, let url = self.mapURL,
-                  self.placement != nil || self.floorPlacement != nil || self.wallFinish != nil || !self.seats.isEmpty else { call.reject("Place an item first."); return }
+            guard let session = self.cameraView?.session, let url = self.mapURL else { call.reject("Place an item first."); return }
             let required=Set([self.placement,self.floorPlacement,self.wallFinish].compactMap{$0?.identifier}).union(self.seats.keys)
             session.getCurrentWorldMap { map, _ in
                 guard let map = map, required.isSubset(of:Set(map.anchors.map{$0.identifier})) else {

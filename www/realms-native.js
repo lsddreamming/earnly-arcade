@@ -132,24 +132,51 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
         mountSeat(item.id, item.style, item.angle, item.fit);
   let running = true,
     busy = false,
-    mode = "Aquarium",
+    mode = "Scan room",
     scale = 0.62;
   const controls = document.createElement("aside");
   controls.className = "ar-controls";
   document.body.append(controls);
   const status = document.createElement("p");
-  status.textContent = "Pan slowly across your walls. Detected walls take the room finish automatically.";
+  status.textContent = "Move slowly across your walls and floor. Choose a detected surface to preview its finish.";
   controls.append(status);
   const select = document.createElement("select");
   select.setAttribute("aria-label", "Placement type");
   for (const v of [
-    "Aquarium",
+    "Scan room", "Aquarium",
     "Wall",
     "Floor",
     ...(result.hasDepth ? ["Chair"] : []),
   ])
     select.add(new Option(v, v));
   controls.append(select);
+  const surfaces = document.createElement("select"), finishes = document.createElement("select");
+  surfaces.setAttribute("aria-label","Detected surface");
+  finishes.setAttribute("aria-label","Selected surface finish");
+  surfaces.add(new Option("Scanning for surfaces…",""));
+  controls.append(surfaces, finishes);
+  const choices = new Map(Object.entries(stored?.surfaceFinishes || {}));
+  const counts = {wall:0,floor:0};
+  function updateScanSelection() {
+    const mesh = scannedWalls.get(surfaces.value);
+    finishes.replaceChildren(new Option("Original surface",""));
+    if (mesh) {
+      const names = mesh.userData.kind === "floor" ? ["Marble","Lava","Water","Slate","Crystal","Glass"] : ["Stone","Ruins","Luxury","Forest","Glass","Spacecraft"];
+      for (const name of names) finishes.add(new Option(name,name));
+      finishes.value = choices.get(surfaces.value) || "";
+    }
+    finishes.disabled = !mesh;
+  }
+  finishes.disabled = true;
+  surfaces.onchange = updateScanSelection;
+  finishes.onchange = () => {
+    const mesh = scannedWalls.get(surfaces.value);
+    if (!mesh) return;
+    choices.set(surfaces.value, finishes.value);
+    mesh.material.dispose();
+    mesh.material = surfaceMaterial(mesh.userData.kind, finishes.value || "Stone");
+    mesh.visible = !!finishes.value;
+  };
   select.onchange = () => {
     mode = select.value;
     size.value = String(mode === "Chair" ? 1 : scale);
@@ -411,6 +438,7 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
       }
       return;
     }
+    if (mode === "Scan room") return;
     if (!pendingFloor)
       place(false, e.clientX / innerWidth, e.clientY / innerHeight);
   }
@@ -426,6 +454,7 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
           scale,
           wallMode,
           tankPlaced: placed,
+          surfaceFinishes: Object.fromEntries(choices),
           wallGeometry: wallData,
           wallFinish: wallSelect.value,
           seats: Array.from(seats, ([id, { pivot, style }]) => ({
@@ -464,12 +493,18 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
           for (const [id, data] of Object.entries(f.walls)) {
             let mesh = scannedWalls.get(id);
             if (!mesh) {
-              mesh = new T.Mesh(new T.BufferGeometry(), paintedWall.material);
+              const kind = data.kind || "wall";
+              const finish = choices.get(id);
+              mesh = new T.Mesh(new T.BufferGeometry(), surfaceMaterial(kind, finish || "Stone"));
+              mesh.visible = !!finish;
+              mesh.userData.kind = kind;
+              surfaces.options[0].text = "Choose a detected surface";
+              surfaces.add(new Option((kind === "floor" ? "Floor " : "Wall ") + (++counts[kind]), id));
               mesh.matrixAutoUpdate = false;
               scannedWalls.set(id, mesh);
               scene.add(mesh);
             }
-            mesh.material = paintedWall.material;
+
             floorMesh(data, mesh);
             mesh.matrix.fromArray(data.pose);
             mesh.matrixWorldNeedsUpdate = true;
@@ -478,7 +513,11 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
             if (id in f.walls) continue;
             scene.remove(mesh);
             mesh.geometry.dispose();
+            mesh.material.dispose();
             scannedWalls.delete(id);
+            const selected = surfaces.value === id;
+            for (const option of Array.from(surfaces.options)) if (option.value === id) option.remove();
+            if (selected) updateScanSelection();
           }
         }
         if (wallData && f.wallAnchor && f.tracking) wallAnchor.visible = true;
@@ -521,12 +560,14 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
                 : "Place on wall";
         manualButton.hidden = mode !== "Aquarium";
         chairSelect.hidden = rotate.hidden = mode !== "Chair";
+        surfaces.hidden = finishes.hidden = mode !== "Scan room";
+        placeButton.hidden = mode === "Scan room";
         wallSelect.hidden = mode !== "Wall";
         restore.hidden = mode !== "Chair" || !chosenSeat;
         rotate.disabled = !chosenSeat;
         size.max = mode === "Chair" ? "2" : "1.3";
         materialSelect.hidden = mode !== "Floor";
-        size.hidden = mode === "Floor" || mode === "Wall";
+        size.hidden = ["Floor","Wall","Scan room"].includes(mode);
         light.intensity = T.MathUtils.clamp(f.light / 500, 0.7, 3);
         content.scale.setScalar(scale);
         aquarium.update(t / 1000);
