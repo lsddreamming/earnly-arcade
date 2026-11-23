@@ -4,6 +4,12 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 /* Original procedural artwork. All resources local; bounded debris and spark pools. */
 const E=window.MetalMayhem;
+const venues = [
+ {name:'The Crucible', sky:0x364e62, floor:0x708b99, ink:'#579bb5'},
+ {name:'Copperworks', sky:0x927869, floor:0xb19a81, ink:'#bc673c'},
+ {name:'Aurora Relay', sky:0x586e8a, floor:0x93aec2, ink:'#526da4'}
+];
+function venueIndex(wave){return Math.floor((Math.max(1,wave)-1)/2)%venues.length;}
 export class ArenaView {
  constructor(canvas){
   this.canvas=canvas;this.mobile=matchMedia('(pointer:coarse)').matches;this.low=this.mobile;this.reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -16,7 +22,7 @@ export class ArenaView {
   const rim=new THREE.DirectionalLight(0x27b5ff,2);rim.position.set(-8,5,-15);this.scene.add(rim);
   this.cameraMode="wide";this.fragments=[];this.flashMaterial=new THREE.MeshBasicMaterial({color:0xd8fcff});this.materials=new Map();this.models=new Map();this.debris=[];this.sparks=[];this.rings=[];this.shake=0;this.frame=0;this.elapsed=0;this.slow=0;
   this.unitBox=this.beveled();this.cylinder=new THREE.CylinderGeometry(1,1,1,10);this.sphere=new THREE.IcosahedronGeometry(1,1);
-  this.arena();this.mergeStatic(this.scene);this.pool();this.resize();
+  this.arena();this.mergeStatic(this.scene);this.venueLayers=[];this.pool();this.resize();
  }
  beveled(){const s=new THREE.Shape(),c=.12;s.moveTo(-.5+c,-.5);s.lineTo(.5-c,-.5);s.lineTo(.5,-.5+c);s.lineTo(.5,.5-c);s.lineTo(.5-c,.5);s.lineTo(-.5+c,.5);s.lineTo(-.5,.5-c);s.lineTo(-.5,-.5+c);s.closePath();const g=new THREE.ExtrudeGeometry(s,{depth:.8,bevelEnabled:true,bevelThickness:.1,bevelSize:.055,bevelSegments:1,steps:1});g.translate(0,0,-.4);g.computeVertexNormals();return g;}
  material(color,glow=false){const key=color+':'+glow;if(!this.materials.has(key))this.materials.set(key,new THREE.MeshStandardMaterial({color,metalness:glow?.2:.32,roughness:glow?.4:.56,emissive:glow?color:0,emissiveIntensity:glow?1.6:0}));return this.materials.get(key);}
@@ -28,14 +34,69 @@ export class ArenaView {
   const floor=new THREE.Mesh(new THREE.CylinderGeometry(26,26,.65,64),this.material(0x536c7d));floor.position.y=-.4;floor.receiveShadow=true;this.scene.add(floor);
   const plateMat=this.material(0x708b99),geo=new THREE.CylinderGeometry(1.96,1.96,.07,6),tiles=[];
   for(let ix=-6;ix<=6;ix++)for(let iz=-6;iz<=6;iz++){const x=ix*3.46,z=iz*4+(ix%2?2:0);if(Math.hypot(x,z)<24.5)tiles.push({x,z});}
-  const grid=new THREE.InstancedMesh(geo,plateMat,tiles.length),dummy=new THREE.Object3D();tiles.forEach((p,i)=>{dummy.position.set(p.x,-.035,p.z);dummy.updateMatrix();grid.setMatrixAt(i,dummy.matrix);grid.setColorAt(i,new THREE.Color(i%5?0x8da6bd:0xb3c4cf));});grid.receiveShadow=true;this.scene.add(grid);
+  const grid=new THREE.InstancedMesh(geo,plateMat,tiles.length),dummy=new THREE.Object3D();tiles.forEach((p,i)=>{dummy.position.set(p.x,-.035,p.z);dummy.updateMatrix();grid.setMatrixAt(i,dummy.matrix);grid.setColorAt(i,new THREE.Color(i%5?0x8da6bd:0xb3c4cf));});grid.receiveShadow=true;this.scene.add(grid);this.floorTiles=grid;this.tileCenters=tiles;
   for(const radius of [5.3,13.8,19.5]){const ring=new THREE.Mesh(new THREE.RingGeometry(radius-.04,radius+.04,96),new THREE.MeshBasicMaterial({color:radius===19.5?0xff8c45:0x397386,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.011;this.scene.add(ring);}
   for(let i=0;i<32;i++){const a=i/32*Math.PI*2,g=new THREE.Group();g.position.set(Math.sin(a)*21,0,-Math.cos(a)*21);g.rotation.y=-a;this.box(g,0,.8,0,3.7,1.6,1.3,0x547082);this.box(g,0,1.65,0,3.8,.13,1.4,0x4d6779);this.box(g,0,1.25,-.72,2.8,.07,.07,i%4?0x43c9e5:0xffad56,true);this.box(g,0,3.5,-2,3.9,.3,4,0x465f72);this.box(g,0,5,-4,3.9,.3,4,0x465f72);this.scene.add(g);}
   for(let i=0;i<8;i++){const a=i/8*Math.PI*2,g=new THREE.Group();g.position.set(Math.sin(a)*23,0,-Math.cos(a)*23);g.rotation.y=-a;this.box(g,0,5,0,.9,10,1.5,0x354a5e);this.box(g,0,5,-.83,.13,8,.05,0x30bcdf,true);this.box(g,0,9,-1.5,2,.55,3,0x566f81);this.box(g,0,8.7,-2.2,1.4,.1,1.2,0xd1edff,true);this.scene.add(g);}
   for(const o of E.OBSTACLES){const g=new THREE.Group();g.position.set(o.x,0,o.z);this.tube(g,0,.18,0,1.85,.36,0x0c1d2b);this.tube(g,0,2,0,1.45,3.8,0x425367);this.tube(g,0,3.9,0,1.62,.28,0x71879a);this.tube(g,0,.6,0,1.55,.23,0xc48a48);for(let i=0;i<4;i++){const a=i*Math.PI/2;const stripe=this.box(g,Math.sin(a)*1.46,2,-Math.cos(a)*1.46,.14,2.4,.09,0x78dff1,true);stripe.rotation.y=-a;}this.scene.add(g);}
-  const emblem=this.text('THE CRUCIBLE','#579bb5',768);emblem.rotation.x=-Math.PI/2;emblem.position.set(0,.02,1.8);emblem.scale.set(1.5,1.5,1.5);this.scene.add(emblem);
   const sign=this.text('METAL MAYHEM','#7fedff',1024);sign.position.set(0,6.8,-21);sign.scale.set(2.5,2.5,2.5);this.scene.add(sign);
   for(let i=0;i<4;i++){const a=Math.PI/4+i*Math.PI/2,g=new THREE.Group();g.position.set(Math.sin(a)*19.4,0,-Math.cos(a)*19.4);g.rotation.y=-a;this.box(g,-1.5,1.5,0,.32,3,.5,0xffa04d,true);this.box(g,1.5,1.5,0,.32,3,.5,0xffa04d,true);this.box(g,0,3,0,3.3,.25,.5,0xffa04d,true);this.scene.add(g);}
+ }
+ venueName(wave){return venues[venueIndex(wave)].name;}
+ createVenue(index){
+  const venue=venues[index], layer=new THREE.Group();
+  const label=this.text(venue.name.toUpperCase(),venue.ink,768);
+  label.rotation.x=-Math.PI/2;
+  label.position.set(0,.025,1.8);
+  label.scale.setScalar(1.5);
+  layer.add(label);
+  // All skyline geometry sits beyond the arena wall and the camera collision boundary.
+  for(let i=0;index!==0 && i<8;i++){
+   const angle=i*Math.PI/4, bay=new THREE.Group();
+   bay.position.set(Math.sin(angle)*28,0,-Math.cos(angle)*28);
+   bay.rotation.y=-angle;
+   layer.add(bay);
+   if(index===1){
+    const height=i%2?12:15;
+    this.tube(bay,0,height/2,0,1.6,height,0x76584d);
+    for(const y of [5,height-2,height])this.tube(bay,0,y,0,1.8,.55,0xd19158);
+    this.tube(bay,0,height+.25,0,1.2,.16,0xffad53);
+    this.box(bay,3.1,6,0,5.6,.8,.9,0x966642);
+   }else{
+    for(const side of [-1,1]){
+     const fin=this.box(bay,side*2.2,7,0,1,10,.85,0xb3cbd8);
+     fin.rotation.z=-side*.31;
+     const strip=this.box(bay,side*2.2,7,.47,.17,9,.12,0x83ffe3,true);
+     strip.rotation.z=fin.rotation.z;
+    }
+    this.tube(bay,0,7.2,0,.3,9,0x577699);
+    this.box(bay,0,12,0,1.25,1.25,1.25,0xa9a4ff,true).rotation.z=Math.PI/4;
+   }
+  }
+  this.mergeStatic(layer);
+  this.scene.add(layer);
+  return layer;
+ }
+ setVenue(wave){
+  const index=venueIndex(wave);
+  if(index===this.activeVenue)return;
+  if(this.activeVenue!==undefined)this.venueLayers[this.activeVenue].visible=false;
+  this.activeVenue=index;
+  const layer=this.venueLayers[index]??(this.venueLayers[index]=this.createVenue(index));
+  layer.visible=true;
+  const venue=venues[index];
+  this.scene.background.setHex(venue.sky);
+  this.scene.fog.color.copy(this.scene.background);
+  this.floorTiles.material.color.setHex(venue.floor);
+  const tint=new THREE.Color();
+  this.tileCenters.forEach(({x,z},i)=>{
+   // Foundry service lanes and the relay's radial sectors stay below combat effects.
+   let color=i%5?0x8da6bd:0xb3c4cf;
+   if(index===1)color=Math.abs(x)>5 && Math.abs(x)<9?0xe8c58d:0xc4bbac;
+   if(index===2)color=Math.cos(4*Math.atan2(z,x))>.55?0xacc8df:0xd2dee4;
+   this.floorTiles.setColorAt(i,tint.setHex(color));
+  });
+  this.floorTiles.instanceColor.needsUpdate=true;
  }
  robot(a){
   const color=a.type==='player'?0x41c4e6:E.TYPES[a.type].color,steel=a.type==='player'?0xd1e2ee:0x8796a8,dark=0x152330,eye=a.type==='player'?0xc3fdff:0xffe1a1;
@@ -97,6 +158,7 @@ export class ArenaView {
  resize(){const w=this.canvas.clientWidth||innerWidth,h=this.canvas.clientHeight||innerHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=cameraFraming(w/h,this.cameraMode).fov;this.camera.updateProjectionMatrix();}
  setCameraMode(mode){this.cameraMode=['wide','far','close'].includes(mode)?mode:'wide';this.resize();}
  render(s,dt,yaw=0,pitch=.4,intro=false){
+  this.setVenue(s.wave);
   this.elapsed+=dt;this.frame++;const ids=new Set();
   for(const a of [s.player,...s.enemies]){if(!a.alive)continue;ids.add(a.id);const m=this.models.get(a.id)||this.robot(a);m.root.visible=true;
    for(const name of Object.keys(m.parts)){m.parts[name].visible=false;m.parts[name].traverse(mesh=>{if(mesh.isMesh)mesh.material=a.hitFlash>.07?this.flashMaterial:mesh.restMaterial;});}
