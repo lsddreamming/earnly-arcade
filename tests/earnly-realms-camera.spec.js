@@ -50,7 +50,7 @@ test("rear camera starts, textured wall tracks translation, blank view hides pla
     });
   });
   await page.goto("/earnly-realms.html");
-  await page.getByRole("button", { name: /Transform my room/ }).click();
+  await page.getByRole("button", { name: /Camera preview/ }).click();
   const place = page.getByRole("button", { name: "Place here" });
   await expect(place).toBeEnabled();
   await page.waitForTimeout(300);

@@ -549,13 +549,20 @@ function leaveStereo() {
 }
 let tracking = false;
 const arLink = document.createElement("a");
-if (
-  arLink.relList?.supports?.("ar") &&
-  !window.Capacitor?.isPluginAvailable?.("EarnlyRealms")
-) {
+const nativeRoom = !!window.Capacitor?.isPluginAvailable?.("EarnlyRealms");
+const furnitureAR = arLink.relList?.supports?.("ar") && !nativeRoom;
+if (!nativeRoom) {
+  $("cameraRoom").textContent = "Camera preview · 2D tracking";
+  document.querySelector("#home p").textContent = furnitureAR
+    ? "Place one piece of furniture in your room with Apple AR. Scan and refinish floors and walls in the native iPhone app."
+    : "Try the camera preview or design a 3D realm. Room scanning and anchored finishes use the native iPhone app.";
+}
+if (furnitureAR) {
   const furniture = document.createElement("button");
   furniture.textContent = "Place furniture in AR";
-  $("cameraRoom").after(furniture);
+  furniture.className = "primary";
+  $("cameraRoom").classList.remove("primary");
+  $("cameraRoom").before(furniture);
   furniture.onclick = () =>
     modal("Choose furniture", (d) => {
       for (const name of ["Throne", "Sofa", "Recliner"]) {
