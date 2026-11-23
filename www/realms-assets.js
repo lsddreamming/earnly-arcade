@@ -11,7 +11,7 @@ const palette = {
   Glass: ["#174756", "#408da0"],
   Spacecraft: ["#273b48", "#83939d"],
   Forest: ["#193a32", "#42614e"],
-  Marble: ["#9bafac", "#e6e4cf"],
+  Marble: ["#d0c8bd", "#fffaf0"],
   Slate: ["#304044", "#647572"],
   Crystal: ["#263956", "#6f83af"],
   Water: ["#11636d", "#359f9b"],
@@ -156,6 +156,15 @@ function texture(kind, name) {
     }
   }
   ctx.putImageData(pixels, 0, 0);
+  if (name === "Marble") {
+    // A paired dark seam and pale bevel make individual slabs readable at room scale.
+    ctx.fillStyle = "rgba(58,54,49,.56)";
+    ctx.fillRect(0, 0, SIZE, 2);
+    ctx.fillRect(0, 0, 2, SIZE);
+    ctx.fillStyle = "rgba(255,255,249,.8)";
+    ctx.fillRect(2, 2, SIZE - 2, 1);
+    ctx.fillRect(2, 2, 1, SIZE - 2);
+  }
   if (name === "Galaxy") {
     for (let i = 0; i < 420; i++) {
       ctx.fillStyle = "rgba(220,244,255," + (0.25 + rng() * 0.7) + ")";
@@ -182,7 +191,15 @@ function texture(kind, name) {
         const x = origin + Math.sin((y / SIZE) * TAU + phase) * 16;
         ctx.fillStyle = rng() > 0.5 ? "#667e4a" : "#546b42";
         ctx.beginPath();
-        ctx.ellipse(x, y, 2, 5, rng() - 0.5, 0, TAU);
+        ctx.ellipse(
+          x,
+          y,
+          name === "Forest" ? 7 : 2,
+          name === "Forest" ? 16 : 5,
+          Math.sin(y) * 0.9,
+          0,
+          TAU,
+        );
         ctx.fill();
       }
     }
@@ -317,17 +334,33 @@ export function decoration(name) {
   if (name === "Tree" || name === "Fern") {
     tree(group, name === "Fern");
   } else if (name === "Pearl anemone") {
-    const petal = material(0x72c9b8, .36, .18, 0x173e3c);
-    const pearl = mesh(group, new THREE.SphereGeometry(.16, 24, 16), material(0xffedd2, .2, .3, 0x695846), 0, .39, 0);
+    const petal = material(0x72c9b8, 0.36, 0.18, 0x173e3c);
+    const pearl = mesh(
+      group,
+      new THREE.SphereGeometry(0.16, 24, 16),
+      material(0xffedd2, 0.2, 0.3, 0x695846),
+      0,
+      0.39,
+      0,
+    );
     const blade = new THREE.SphereGeometry(1, 10, 8);
     for (let i = 0; i < 16; i++) {
-      const angle = i * Math.PI / 8;
-      const frond = mesh(group, blade, petal, Math.sin(angle) * .22, .21, Math.cos(angle) * .22);
-      frond.rotation.order = 'YXZ';
-      frond.rotation.set(.57, angle, 0);
-      frond.scale.set(.045,.26,.055);
+      const angle = (i * Math.PI) / 8;
+      const frond = mesh(
+        group,
+        blade,
+        petal,
+        Math.sin(angle) * 0.22,
+        0.21,
+        Math.cos(angle) * 0.22,
+      );
+      frond.rotation.order = "YXZ";
+      frond.rotation.set(0.57, angle, 0);
+      frond.scale.set(0.045, 0.26, 0.055);
     }
-    group.userData.animate = t => { pearl.position.y = .42 + .025 * Math.sin(t * 1.7); };
+    group.userData.animate = (t) => {
+      pearl.position.y = 0.42 + 0.025 * Math.sin(t * 1.7);
+    };
   } else if (name === "Fountain") {
     const aqua = material(0x5cd6db, 0.17, 0.25, 0x164e5c);
     mesh(

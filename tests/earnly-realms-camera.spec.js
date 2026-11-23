@@ -75,6 +75,7 @@ test("rear camera starts, textured wall tracks translation, blank view hides pla
     [30, 660],
   ])
     await page.mouse.click(x, y);
+  await expect(page.locator(".floor-swatch")).toBeVisible();
   await expect(overlay).toHaveCount(1);
   await page.getByRole("button", { name: "Confirm floor" }).click();
   await expect(overlay).toHaveCount(2);
@@ -84,6 +85,16 @@ test("rear camera starts, textured wall tracks translation, blank view hides pla
   await page.evaluate(() => shift(1000));
   await expect(overlay.first()).toBeHidden();
   await expect(overlay.nth(1)).toBeHidden();
+  await page.evaluate(() => shift(74));
+  await expect(overlay.first()).toBeVisible();
+  await expect(overlay.nth(1)).toBeVisible();
+  await expect
+    .poll(() =>
+      overlay
+        .first()
+        .evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41),
+    )
+    .toBeGreaterThan(initial + 50);
   await page.getByRole("button", { name: "Exit", exact: true }).click();
   expect(await page.evaluate(() => feed.getTracks()[0].readyState)).toBe(
     "ended",

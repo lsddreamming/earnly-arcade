@@ -10,6 +10,7 @@ const project = (h, x, y) => {
   return [(h[0] * x + h[1] * y + h[2]) / d, (h[3] * x + h[4] * y + h[5]) / d];
 };
 
+let cornerWorkspace = [];
 export function tracker(width, height) {
   const pyramid = () => {
     const p = new J.pyramid_t(3);
@@ -18,6 +19,11 @@ export function tracker(width, height) {
   };
   let source = pyramid(),
     current = pyramid(),
+    previous = pyramid(),
+    previousCoords,
+    referenceDescriptors,
+    age = 0,
+    missed = 0,
     original,
     coords,
     count = 0;
@@ -25,18 +31,70 @@ export function tracker(width, height) {
     J.imgproc.grayscale(data, width, height, p.data[0]);
     p.build(p.data[0], true);
   };
+  const bits = Uint8Array.from(
+    { length: 256 },
+    (_, i) => i.toString(2).replace(/0/g, "").length,
+  );
+
+  function detect(image) {
+    while (cornerWorkspace.length < width * height)
+      cornerWorkspace.push({ x: 0, y: 0, score: 0, angle: 0 });
+    J.fast_corners.set_threshold(12);
+    const n = J.fast_corners.detect(image, cornerWorkspace, 12);
+    return cornerWorkspace.slice(0, n).sort((a, b) => b.score - a.score);
+  }
+  function descriptors(image, points) {
+    const result = new J.matrix_t(32, points.length, J.U8C1_t);
+    for (const p of points) p.angle = 0;
+    J.orb.describe(image, points, points.length, result);
+    return result.data;
+  }
+  // Wider baseline matching recovers the target outside the local optical-flow window.
+  function recover() {
+    const cells = new Set(),
+      points = [];
+    for (const p of detect(current.data[0])) {
+      const key = (p.x >> 3) + ":" + (p.y >> 3);
+      if (cells.has(key)) continue;
+      cells.add(key);
+      points.push(p);
+      if (points.length >= 400) break;
+    }
+    if (points.length < 12) return null;
+    const desc = descriptors(current.data[0], points),
+      pairs = [];
+    for (let i = 0; i < count; i++) {
+      let best = 257,
+        second = 257,
+        index = -1;
+      for (let j = 0; j < points.length; j++) {
+        let d = 0;
+        for (let k = 0; k < 32 && d <= second; k++)
+          d += bits[referenceDescriptors[i * 32 + k] ^ desc[j * 32 + k]];
+        if (d < best) {
+          second = best;
+          best = d;
+          index = j;
+        } else if (d < second) second = d;
+      }
+      if (best < 64 && best < second * 0.79) pairs.push({ i, index, best });
+    }
+    const used = new Set(),
+      from = [],
+      to = [];
+    for (const m of pairs.sort((a, b) => a.best - b.best)) {
+      if (used.has(m.index)) continue;
+      used.add(m.index);
+      from.push(original[m.i]);
+      to.push(points[m.index]);
+    }
+    return fitPose(from, to);
+  }
   function lock(data, box, polygon) {
     read(data, source);
-    const points = Array.from({ length: width * height }, () => ({
-      x: 0,
-      y: 0,
-      score: 0,
-    }));
-    J.fast_corners.set_threshold(15);
-    const n = J.fast_corners.detect(source.data[0], points, 4);
     const picks = [],
       occupied = new Set();
-    for (const p of points.slice(0, n).sort((a, b) => b.score - a.score)) {
+    for (const p of detect(source.data[0])) {
       if (
         p.x < box.x ||
         p.x > box.x + box.w ||
@@ -55,25 +113,28 @@ export function tracker(width, height) {
       const cell = (p.x >> 3) + ":" + (p.y >> 3);
       if (occupied.has(cell)) continue;
       occupied.add(cell);
-      picks.push(p);
+      picks.push({ ...p });
       if (picks.length === 100) break;
     }
     count = picks.length;
     original = picks;
     coords = new Float32Array(picks.flatMap((p) => [p.x, p.y]));
-    return count >= 12;
+    previousCoords = null;
+    age = 0;
+    missed = 0;
+    if (count < 12) return false;
+    referenceDescriptors = descriptors(source.data[0], original);
+    return true;
   }
-  function locate(data) {
-    if (count < 12) return null;
-    read(data, current);
+  function follow(base, positions) {
     const next = new Float32Array(count * 2),
       back = new Float32Array(count * 2),
       ok = new Uint8Array(count),
       backOK = new Uint8Array(count);
     J.optical_flow_lk.track(
-      source,
+      base,
       current,
-      coords,
+      positions,
       next,
       count,
       15,
@@ -84,7 +145,7 @@ export function tracker(width, height) {
     );
     J.optical_flow_lk.track(
       current,
-      source,
+      base,
       next,
       back,
       count,
@@ -101,13 +162,16 @@ export function tracker(width, height) {
         ok[i] &&
         backOK[i] &&
         Math.hypot(
-          back[i * 2] - coords[i * 2],
-          back[i * 2 + 1] - coords[i * 2 + 1],
+          back[i * 2] - positions[i * 2],
+          back[i * 2 + 1] - positions[i * 2 + 1],
         ) < 1.3
       ) {
         from.push(original[i]);
         to.push({ x: next[i * 2], y: next[i * 2 + 1] });
       }
+    return fitPose(from, to);
+  }
+  function fitPose(from, to) {
     if (from.length < 10) return null;
     const h = new J.matrix_t(3, 3, J.F32C1_t),
       mask = new J.matrix_t(from.length, 1, J.U8C1_t);
@@ -123,8 +187,7 @@ export function tracker(width, height) {
     );
     if (!fit) return null;
     const support = from.filter((_, i) => mask.data[i]);
-    if (support.length < Math.max(10, count * 0.25, from.length * 0.55))
-      return null;
+    if (support.length < Math.max(10, from.length * 0.55)) return null;
     const span = (set, k) =>
       Math.max(...set.map((p) => p[k])) - Math.min(...set.map((p) => p[k]));
     if (
@@ -143,6 +206,29 @@ export function tracker(width, height) {
     )
       return null;
     return h.data;
+  }
+  function locate(data) {
+    if (count < 12) return null;
+    read(data, current);
+    let h;
+    // Periodically correct incremental motion against the original image.
+    if (previousCoords && ++age % 8 !== 0) h = follow(previous, previousCoords);
+    if (!h) h = follow(source, coords);
+    if (!h && previousCoords) h = follow(previous, previousCoords);
+    if (!h && missed++ % 3 === 0) h = recover();
+    if (!h) {
+      previousCoords = null;
+      return null;
+    }
+    previousCoords ??= new Float32Array(count * 2);
+    for (let i = 0; i < count; i++) {
+      const [x, y] = project(h, original[i].x, original[i].y);
+      previousCoords[2 * i] = x;
+      previousCoords[2 * i + 1] = y;
+    }
+    [previous, current] = [current, previous];
+    missed = 0;
+    return h;
   }
   return { lock, locate };
 }
@@ -204,10 +290,10 @@ export async function openCamera({ world, exit }) {
   function resize() {
     if (!video.videoWidth) return;
     grab.width = Math.round(
-      (320 * innerWidth) / Math.max(innerWidth, innerHeight),
+      (448 * innerWidth) / Math.max(innerWidth, innerHeight),
     );
     grab.height = Math.round(
-      (320 * innerHeight) / Math.max(innerWidth, innerHeight),
+      (448 * innerHeight) / Math.max(innerWidth, innerHeight),
     );
     for (const key of slots.keys()) removeSlot(key);
     reset();
@@ -227,7 +313,21 @@ export async function openCamera({ world, exit }) {
   function slotKey() {
     return isFloor() ? "floor" : select.value === "Aquarium" ? "tank" : "wall";
   }
+  const swatch = document.createElement("canvas");
+  swatch.className = "floor-swatch";
+  swatch.width = 600;
+  swatch.height = 322;
+  swatch.hidden = true;
+  ui.insertBefore(swatch, guide);
+  let draftTracker = null;
+  const trackingCorners = () =>
+    corners.map(([x, y]) => [
+      (x * grab.width) / ui.clientWidth,
+      (y * grab.height) / ui.clientHeight,
+    ]);
   function reset() {
+    draftTracker = null;
+    swatch.hidden = true;
     outlining = false;
     corners = [];
     freeze.hidden = true;
@@ -382,7 +482,10 @@ export async function openCamera({ world, exit }) {
     scene = new T.Scene();
     cam = new T.OrthographicCamera(-1.84, 1.84, 0.99, -0.99, 0.01, 12);
     cam.position.z = 4;
-    scene.add(new T.HemisphereLight(0xffffff, 0x7ca7a1, 2.5));
+    scene.add(new T.HemisphereLight(0xfffcf5, 0xa8b6bd, 2.3));
+    const keyLight = new T.DirectionalLight(0xfff1da, 1.3);
+    keyLight.position.set(-2, 3, 4);
+    scene.add(keyLight);
     aqua = createAquarium(world.style);
     scene.add(aqua.group);
     textureMesh = new T.Mesh(
@@ -421,8 +524,9 @@ export async function openCamera({ world, exit }) {
         ys = points.map((p) => p[1]);
       const x = Math.min(...xs),
         y = Math.min(...ys);
-      const v = tracker(grab.width, grab.height);
+      const v = draftTracker || tracker(grab.width, grab.height);
       if (
+        !draftTracker &&
         !v.lock(
           data,
           { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y },
@@ -563,22 +667,51 @@ export async function openCamera({ world, exit }) {
           "Trace the floor outline in order without crossing edges.";
         return;
       }
-      ctx.beginPath();
-      corners.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-      ctx.closePath();
-      ctx.fillStyle = "rgba(88,235,192,.27)";
-      ctx.fill();
-      ctx.stroke();
+      const points = trackingCorners(),
+        xs = points.map((p) => p[0]),
+        ys = points.map((p) => p[1]);
+      const x = Math.min(...xs),
+        y = Math.min(...ys);
+      draftTracker = tracker(grab.width, grab.height);
+      if (
+        !draftTracker.lock(
+          frozenPixels,
+          { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y },
+          points,
+        )
+      ) {
+        reset();
+        status.textContent =
+          "The floor needs more visible detail. Include seams, scuffs or tile edges and outline it again.";
+        return;
+      }
+      const area =
+        corners.reduce(
+          (sum, p, i) =>
+            sum +
+            p[0] * corners[(i + 1) % 4][1] -
+            p[1] * corners[(i + 1) % 4][0],
+          0,
+        ) / 2;
+      apply(select.value);
+      renderer.render(scene, cam);
+      swatch.getContext("2d").drawImage(canvas, 0, 0);
+      swatch.hidden = !pose([1, 0, 0, 0, 1, 0, 0, 0, 1], {
+        corners: points,
+        area,
+        layer: swatch,
+      });
       place.textContent = "Confirm floor";
       status.textContent =
-        "Check the highlighted floor. Confirm to apply, or tap the image to redraw.";
+        "Review " +
+        select.value +
+        " on your floor. Confirm to return to the live camera, or tap to redraw.";
     };
     function draw(t) {
       if (closed) return;
       raf = requestAnimationFrame(draw);
       if (
-        !slots.size ||
-        outlining ||
+        (!slots.size && !draftTracker) ||
         t - last < 32 ||
         video.readyState < 2 ||
         lastVideo === video.currentTime
@@ -587,6 +720,10 @@ export async function openCamera({ world, exit }) {
       last = t;
       lastVideo = video.currentTime;
       const data = pixels();
+      if (outlining) {
+        if (draftTracker) draftTracker.locate(data);
+        return;
+      }
       for (const [key, slot] of slots) {
         const h = slot.vision.locate(data);
         slot.layer.hidden = !h || !pose(h, slot);
@@ -594,7 +731,7 @@ export async function openCamera({ world, exit }) {
           slot.last = null;
           if (key === slotKey())
             status.textContent =
-              "Tracking lost. Look back at the selected surface.";
+              "Finding the saved surface. Aim back at its edges.";
           continue;
         }
         if (key === slotKey())
