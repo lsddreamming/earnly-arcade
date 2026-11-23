@@ -237,7 +237,7 @@ export async function openCamera({ world, exit }) {
   const ui = document.createElement("section");
   ui.className = "camera-room";
   ui.innerHTML =
-    '<video autoplay muted playsinline></video><canvas hidden></canvas><div class="wall-guide"></div><div class="camera-top"><b>My room</b><button data-close>Exit</button></div><div class="camera-tools"><p role="status">Opening your rear camera…</p><select aria-label="Room effect"><option>Aquarium</option><option>Castle stone</option><option>Living forest</option><option>Marble</option><option>Lava</option></select> <button data-place>Place here</button></div>';
+    '<video autoplay muted playsinline></video><canvas hidden></canvas><div class="wall-guide"></div><div class="camera-top"><b>My room</b><button data-close>Exit</button></div><div class="camera-tools"><p role="status">Opening your rear camera…</p><select aria-label="Room effect"><option>Aquarium</option><option>Castle stone</option><option>Living forest</option><option>Marble</option><option>Lava</option><option>Lava pit</option></select> <button data-place>Place here</button></div>';
   document.body.append(ui);
   const el = (s) => ui.querySelector(s),
     video = el("video"),
@@ -308,10 +308,10 @@ export async function openCamera({ world, exit }) {
   freeze.hidden = true;
   ui.insertBefore(freeze, guide);
   function isFloor() {
-    return ["Marble", "Lava"].includes(select.value);
+    return ["Marble", "Lava", "Lava pit"].includes(select.value);
   }
   function slotKey() {
-    return isFloor() ? "floor" : select.value === "Aquarium" ? "tank" : "wall";
+    return select.value === "Lava pit" ? "pit" : isFloor() ? "floor" : select.value === "Aquarium" ? "tank" : "wall";
   }
   const swatch = document.createElement("canvas");
   swatch.className = "floor-swatch";
@@ -436,6 +436,31 @@ export async function openCamera({ world, exit }) {
       ")";
     return true;
   }
+  function drawFinish(ctx, kind) {
+    if (kind !== "Lava pit") { ctx.drawImage(canvas, 0, 0); return; }
+    const {width, height} = ctx.canvas;
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.scale(width, height);
+    ctx.beginPath();
+    for (let i = 0; i < 64; i++) {
+      const a = i * Math.PI / 32;
+      const r = 0.44 + 0.026 * Math.sin(5*a) + 0.014 * Math.cos(11*a);
+      const x = 0.5 + r*Math.cos(a), y = 0.5 + r*Math.sin(a);
+      if (i) ctx.lineTo(x,y); else ctx.moveTo(x,y);
+    }
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(canvas, 0, 0, 1, 1);
+    const glow = ctx.createRadialGradient(.49,.59,.09,.5,.5,.48);
+    glow.addColorStop(0,"rgba(255,117,0,.3)");
+    glow.addColorStop(.73,"rgba(242,62,0,.15)");
+    glow.addColorStop(.88,"rgba(76,23,12,.94)");
+    glow.addColorStop(1,"#211917");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0,0,1,1);
+    ctx.restore();
+  }
   function apply(kind) {
     aqua.group.visible = kind === "Aquarium";
     textureMesh.visible = !aqua.group.visible;
@@ -446,8 +471,8 @@ export async function openCamera({ world, exit }) {
         surfaceMaterials.set(
           kind,
           surfaceMaterial(
-            ["Marble", "Lava"].includes(kind) ? "floor" : "wall",
-            { "Castle stone": "Stone", "Living forest": "Forest" }[kind] ||
+            ["Marble", "Lava", "Lava pit"].includes(kind) ? "floor" : "wall",
+            { "Lava pit": "Lava", "Castle stone": "Stone", "Living forest": "Forest" }[kind] ||
               kind,
           ),
         );
@@ -695,7 +720,7 @@ export async function openCamera({ world, exit }) {
         ) / 2;
       apply(select.value);
       renderer.render(scene, cam);
-      swatch.getContext("2d").drawImage(canvas, 0, 0);
+      drawFinish(swatch.getContext("2d"), select.value);
       swatch.hidden = !pose([1, 0, 0, 0, 1, 0, 0, 0, 1], {
         corners: points,
         area,
@@ -746,7 +771,7 @@ export async function openCamera({ world, exit }) {
         animateAsset(textureMesh, t / 1000);
         renderer.render(scene, cam);
         slot.ctx.clearRect(0, 0, 600, 322);
-        slot.ctx.drawImage(canvas, 0, 0);
+        drawFinish(slot.ctx, slot.effect);
       }
     }
     raf = requestAnimationFrame(draw);

@@ -108,6 +108,7 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
     surfaceMaterial("wall", stored?.wallFinish || world.wall),
   );
   wallAnchor.add(paintedWall);
+  const scannedWalls = new Map();
   let wallData = result.restoring ? stored?.wallGeometry : null,
     chosenSeat = null;
   if (wallData) floorMesh(wallData, paintedWall);
@@ -137,7 +138,7 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
   controls.className = "ar-controls";
   document.body.append(controls);
   const status = document.createElement("p");
-  status.textContent = "Move slowly to scan. Aim the crosshair at a wall.";
+  status.textContent = "Pan slowly across your walls. Detected walls take the room finish automatically.";
   controls.append(status);
   const select = document.createElement("select");
   select.setAttribute("aria-label", "Placement type");
@@ -459,6 +460,27 @@ export async function openRoomTracking({ world, renderer, canvas, exit }) {
         camera.matrix.fromArray(f.view).invert();
         camera.updateMatrixWorld(true);
         depth.update(f.depth);
+        if (f.tracking && f.walls) {
+          for (const [id, data] of Object.entries(f.walls)) {
+            let mesh = scannedWalls.get(id);
+            if (!mesh) {
+              mesh = new T.Mesh(new T.BufferGeometry(), paintedWall.material);
+              mesh.matrixAutoUpdate = false;
+              scannedWalls.set(id, mesh);
+              scene.add(mesh);
+            }
+            mesh.material = paintedWall.material;
+            floorMesh(data, mesh);
+            mesh.matrix.fromArray(data.pose);
+            mesh.matrixWorldNeedsUpdate = true;
+          }
+          for (const [id, mesh] of scannedWalls) {
+            if (id in f.walls) continue;
+            scene.remove(mesh);
+            mesh.geometry.dispose();
+            scannedWalls.delete(id);
+          }
+        }
         if (wallData && f.wallAnchor && f.tracking) wallAnchor.visible = true;
         if (wallAnchor.visible && f.wallAnchor && f.tracking) {
           wallAnchor.matrix.fromArray(f.wallAnchor);

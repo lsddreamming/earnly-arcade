@@ -16,6 +16,7 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
     }
     private var cameraView: ARSCNView?
     private var placement: ARAnchor?
+    private var lastWallScan: TimeInterval = -1
     private var wallFinish: ARAnchor?
     private var seats = [UUID:ARAnchor]()
     private var floorPlacement: ARAnchor?
@@ -115,6 +116,7 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                         self.placement = map.anchors.first(where: { $0.name == "earnly-realm" })
                     }
                 }
+                self.lastWallScan = -1
                 self.cameraView = view
                 view.session.run(config)
                 call.resolve(["restoring":self.placement != nil || self.floorPlacement != nil || self.wallFinish != nil || !self.seats.isEmpty, "hasDepth":config.frameSemantics.contains(.sceneDepth)])
@@ -156,6 +158,19 @@ public class EarnlyRealmsPlugin: CAPPlugin, CAPBridgedPlugin {
                                     "view": self.numbers(c.viewMatrix(for: orientation)),
                                     "light": Double(f.lightEstimate?.ambientIntensity ?? 1000)]
             if let depth=self.viewportDepth(f,orientation,view.bounds.size) {result["depth"]=depth}
+            if case .normal = c.trackingState, f.timestamp - self.lastWallScan >= 0.5 {
+                self.lastWallScan = f.timestamp
+                var walls = JSObject()
+                for case let plane as ARPlaneAnchor in f.anchors where plane.alignment == .vertical {
+                    guard plane.classification == .wall || (plane.classification == .none && plane.extent.x > 0.8 && plane.extent.z > 0.7) else { continue }
+                    let geometry = plane.geometry
+                    let boundary: JSObject = ["pose": self.numbers(plane.transform),
+                        "vertices": geometry.vertices.flatMap { [Double($0.x), Double($0.y) + 0.003, Double($0.z)] },
+                        "indices": geometry.triangleIndices.map { Int($0) }]
+                    walls[plane.identifier.uuidString] = boundary
+                }
+                result["walls"] = walls
+            }
             var seats = JSObject()
             for anchor in f.anchors {
                 if self.seats[anchor.identifier] != nil { seats[anchor.identifier.uuidString]=self.numbers(anchor.transform) }
