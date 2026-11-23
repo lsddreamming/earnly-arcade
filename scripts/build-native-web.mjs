@@ -8,7 +8,7 @@ const environment = nativeEnvironment(process.env.EARNLY_BACKEND_ENVIRONMENT);
 const root = process.cwd();
 const outDir = path.join(root, 'www');
 const allowedExtensions = new Set([
-  '.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.webmanifest', '.woff2'
+  '.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.webmanifest', '.woff2', '.usdz'
 ]);
 const excluded = new Set([
   'coin-sandbox.html',

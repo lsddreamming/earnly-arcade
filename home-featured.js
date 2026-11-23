@@ -197,6 +197,7 @@
     "icon": "🌱",
     "description": "Gather seeds. Grow your Spuddy."
   },
+  {"key":"earnlyRealms","name":"Earnly Realms","href":"earnly-realms.html","icon":"🌊","description":"Build a room around a living reef."},
   {"key":"metalMayhem","name":"Metal Mayhem","href":"metal-mayhem.html","icon":"⚔️","description":"Sever steel. Survive the arena."},
   {"key":"bigFishEnergy","name":"BIG FISH ENERGY","href":"big-fish-energy.html","icon":"🦈","description":"Eat fish. Become an ocean giant."}
 ];

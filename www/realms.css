@@ -1,0 +1,349 @@
+:root {
+  color-scheme: dark;
+  font:
+    16px/1.4 system-ui,
+    sans-serif;
+  color: #effffb;
+  background: #071a20;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}
+#view {
+  width: 100vw;
+  height: 100dvh;
+  display: block;
+  touch-action: none;
+}
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+button,
+select {
+  cursor: pointer;
+  background: #103038;
+  border: 1px solid #779a9a66;
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-height: 42px;
+}
+button:hover,
+button.active {
+  background: #285155;
+  border-color: #a2efda;
+}
+button:disabled {
+  opacity: 0.4;
+}
+button:focus-visible {
+  outline: 3px solid #ffca87;
+}
+#home {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex-direction: column;
+  padding: max(24px, env(safe-area-inset-top)) max(7vw, 24px)
+    max(6vh, env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, #021317 0%, #041519eb 22%, transparent 74%);
+  pointer-events: none;
+}
+#home button {
+  pointer-events: auto;
+}
+h1 {
+  font:
+    clamp(60px, 11vh, 112px) / 0.82 Georgia,
+    serif;
+  letter-spacing: -0.065em;
+  margin: 14px 0 0;
+}
+h1 i {
+  color: #a2eedb;
+}
+small,
+footer {
+  letter-spacing: 0.18em;
+  font-size: 10px;
+  font-weight: 700;
+}
+footer {
+  margin-top: 12px;
+  color: #a6c8c6;
+}
+.primary {
+  background: #abf3d9;
+  color: #102a24;
+  font-weight: 750;
+  min-width: 210px;
+}
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.links button {
+  font-size: 13px;
+  background: transparent;
+  border: none;
+  padding: 6px 9px;
+}
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+header,
+#tools,
+dialog {
+  background: #061b20ed;
+  border: 1px solid #678d8b66;
+  box-shadow: 0 8px 26px #0004;
+}
+header,
+#tools {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 18px;
+  pointer-events: auto;
+  width: min(94vw, 530px);
+}
+header {
+  top: max(12px, env(safe-area-inset-top));
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+header div {
+  flex: 1;
+}
+header strong {
+  display: block;
+  font: 22px Georgia;
+}
+small {
+  color: #a4ddd1;
+}
+#tools {
+  bottom: max(12px, env(safe-area-inset-bottom));
+  padding: 6px;
+}
+nav,
+.row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+nav button {
+  flex: 1;
+  padding: 8px 3px;
+  font-size: 13px;
+}
+#panel {
+  padding: 8px;
+  max-height: 35dvh;
+  overflow: auto;
+}
+#panel button {
+  font-size: 13px;
+}
+#panel label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+}
+input[type="range"] {
+  width: 62%;
+  accent-color: #8be3cc;
+}
+#notice {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 72px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 13px;
+  background: #061c22dc;
+  border-radius: 15px;
+  padding: 6px 12px;
+  max-width: 90vw;
+  width: max-content;
+}
+#notice:empty {
+  display: none;
+}
+dialog {
+  border-radius: 20px;
+  width: min(370px, 92vw);
+  max-height: 82dvh;
+  color: inherit;
+  padding: 22px;
+}
+dialog h2 {
+  font: 30px Georgia;
+  margin: 0 0 12px;
+}
+dialog button {
+  margin: 4px;
+}
+dialog input {
+  width: 100%;
+  padding: 10px;
+  background: #112c32;
+  border: 1px solid #688;
+  border-radius: 10px;
+}
+dialog::backdrop {
+  background: #021114a8;
+}
+#failure {
+  position: fixed;
+  top: 12px;
+  left: 10px;
+  right: 10px;
+  background: #402d22;
+  padding: 12px;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-height: 500px) {
+  #home {
+    padding: 16px 4vw;
+  }
+  h1 {
+    font-size: 48px;
+  }
+  .links {
+    margin: 0;
+  }
+  #home p {
+    margin: 7px 0;
+  }
+}
+.tracking,
+.tracking body {
+  background: transparent;
+}
+.tracking #hud,
+.tracking #home {
+  display: none;
+}
+.ar-controls {
+  position: fixed;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 3vw;
+  right: 3vw;
+  background: #061b20ee;
+  border-radius: 16px;
+  padding: 10px;
+  text-align: center;
+}
+.ar-controls p {
+  margin: 4px;
+}
+.ar-controls button,
+.ar-controls select {
+  margin: 2px;
+  font-size: 13px;
+}
+.reticle {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  text-shadow: 0 1px 3px black;
+  pointer-events: none;
+}
+#home > #enter {
+  margin-top: 7px;
+}
+.camera-room {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #04161a;
+  color: white;
+  overflow: hidden;
+}
+.camera-room video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.wall-art {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  width: 400px;
+  height: 215px;
+  pointer-events: none;
+}
+.wall-guide {
+  position: absolute;
+  width: min(70vw, 58vh);
+  aspect-ratio: 400/215;
+  border: 2px dashed #acffde;
+  box-shadow: 0 0 0 2px #17413966;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border-radius: 4px;
+}
+.camera-top,
+.camera-tools {
+  position: absolute;
+  left: 4vw;
+  right: 4vw;
+  background: #061b20ed;
+  padding: 10px 14px;
+  border-radius: 16px;
+}
+.camera-top {
+  top: max(12px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.camera-tools {
+  bottom: max(12px, env(safe-area-inset-bottom));
+  text-align: center;
+}
+.camera-tools p {
+  margin: 3px 0 8px;
+  font-size: 14px;
+}
+.camera-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.camera-room .wall-art {
+  pointer-events: none;
+}
+.camera-room .camera-tools,
+.camera-room .camera-top {
+  z-index: 2;
+}
+.floor-swatch{position:absolute;top:0;left:0;width:400px;height:215px;transform-origin:0 0;pointer-events:none;border:2px solid #acffde;box-sizing:border-box}
+.realm-info{pointer-events:auto;margin-top:8px;font-size:13px}.realm-info summary{cursor:pointer;color:#a6c8c6}.realm-info .public-footer{max-width:90vw;margin:4px 0;padding:4px}.realm-info nav{display:flex;flex-wrap:wrap}
+.seat-link{display:inline-flex;width:32%;vertical-align:top;padding:3px}.seat-link img{border-radius:10px;width:100%;height:auto}

@@ -20,6 +20,7 @@ ${declaration}
     'ios/App/App.xcodeproj/project.pbxproj': 'MARKETING_VERSION = 1.0;\nCURRENT_PROJECT_VERSION = 1;\n',
     'ios/App/App/AppDelegate.swift': 'import UIKit\n',
     'ios/App/App/SceneDelegate.swift': 'let bridge = CAPBridgeViewController()\n',
+    'native/EarnlyRealms.swift': '// Fixture Realms bridge',
     'native/ArcadePurchases.swift': '// Fixture StoreKit bridge\n',
     'ios-icon-1024.png': 'fixture icon bytes'
   };
@@ -49,6 +50,7 @@ test('regenerated iOS project carries one top-level exempt declaration after rep
     assert.deepEqual(plist.NestedSettings, { keep: true });
     assert.equal(plist.CFBundleDisplayName, 'Earnly fixture');
     assert.ok(plist.NSUserTrackingUsageDescription);
+    assert.ok(plist.NSCameraUsageDescription);
     assert.ok(plist.SKAdNetworkItems.length >= 50);
     assert.equal(readFileSync(f.plist, 'utf8').match(/<key>ITSAppUsesNonExemptEncryption<\/key>/g).length, 1);
   }
