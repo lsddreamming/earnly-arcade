@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  /><meta name="theme-color" content="#06181f" /><title>
+    Earnly Realms · Realm Creator</title
+  ><link rel="stylesheet" href="realms.css" />
+  <body>
+    <canvas id="view" aria-label="Interactive three-dimensional realm"></canvas>
+    <main id="home">
+      <small>EARNLY ARCADE</small>
+      <h1>Earnly<br /><i>Realms</i></h1>
+      <p>Turn a room into your own living world.</p>
+      <button id="enter" class="primary">Enter My Realm ↗</button>
+      <div class="links">
+        <button id="create">Create New Realm</button
+        ><button id="saves">My Saved Worlds</button
+        ><button id="explore">Explore Environments</button>
+      </div>
+      <footer>Interactive 3D room editor</footer>
+    </main>
+    <section id="hud" hidden>
+      <header>
+        <button id="homeBtn" aria-label="Main menu">⌂</button>
+        <div><small>REALM CREATOR</small><strong id="title"></strong></div>
+        <button id="save">Save</button>
+      </header>
+      <div id="notice" role="status"></div>
+      <div id="tools">
+        <div id="panel" hidden></div>
+        <nav id="nav"></nav>
+      </div>
+    </section>
+    <dialog id="dialog">
+      <div id="dialogBody"></div>
+      <button id="close">Close</button>
+    </dialog>
+    <output id="failure" hidden></output>
+    <script type="module" src="realms.js"></script>
+  </body>
+</html>
+<script>
+  window.addEventListener("error", function (e) {
+    if (e.message && !document.querySelector("#view").dataset.ready) {
+      const out = document.querySelector("#failure");
+      out.hidden = false;
+      out.textContent =
+        "The 3D scene could not start. Enable WebGL or reopen this page in Safari.";
+    }
+  });
+</script>

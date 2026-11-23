@@ -109,6 +109,9 @@ plist = plist.replace(
   '\n' + skAdNetworkBlock + '\n</dict>\n</plist>\n'
 );
 
+if (!plist.includes('<key>NSCameraUsageDescription</key>')) {
+  plist = plist.replace('</dict>\n</plist>', '<key>NSCameraUsageDescription</key>\n<string>Place realm surfaces and aquariums in your room.</string>\n</dict>\n</plist>');
+}
 await writeFile(plistPath, plist);
 
 let project = await readFile(projectPath, 'utf8');
@@ -131,7 +134,7 @@ console.log(
 const delegatePath = 'ios/App/App/AppDelegate.swift';
 let delegate = await readFile(delegatePath, 'utf8');
 delegate = delegate.split('// EARNLY STOREKIT BRIDGE')[0].trimEnd();
-await writeFile(delegatePath, delegate + '\n\n// EARNLY STOREKIT BRIDGE\n' + await readFile('native/ArcadePurchases.swift', 'utf8'));
+await writeFile(delegatePath, delegate + '\n\n// EARNLY STOREKIT BRIDGE\n' + (await readFile('native/ArcadePurchases.swift', 'utf8')).replace('bridge?.registerPluginInstance(ArcadePurchasesPlugin())', 'bridge?.registerPluginInstance(ArcadePurchasesPlugin()); bridge?.registerPluginInstance(EarnlyRealmsPlugin())') + '\n' + await readFile('native/EarnlyRealms.swift', 'utf8'));
 const scenePath = 'ios/App/App/SceneDelegate.swift';
 await writeFile(scenePath, (await readFile(scenePath, 'utf8')).replace('= CAPBridgeViewController()', '= EarnlyBridgeViewController()'));
 

@@ -149,6 +149,7 @@
       <section class="card game-card compact-game catalog-tile" data-game="bubblePop"><div class="game-title-row"><h2>🫧 Bubble Pop</h2></div><p class="reward-rule">1,000 levels · First clears earn 15–35 Coins + milestones</p><a class="wide game-play-button" href="bubble-pop.html">Play</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="spuddyEvolution"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🌱</span><h2>Spuddy Evolution</h2></div></div><p class="reward-rule">3D adventure · device-only saves · no Arcade Coin rewards</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="spuddy-evolution.html" aria-label="Play Spuddy Evolution">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="metalMayhem"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Metal Mayhem</h2></div></div><p class="reward-rule">3D robot combat · sever limbs · survive endless waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="metal-mayhem.html" aria-label="Play Metal Mayhem">Play</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="earnlyRealms"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🌊</span><h2>Earnly Realms</h2></div></div><p class="reward-rule">Transform a room · discover a living reef</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="earnly-realms.html" aria-label="Play Earnly Realms">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="bigFishEnergy"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🦈</span><h2>BIG FISH ENERGY</h2></div></div><p class="reward-rule">Eat smaller fish · grow into an ocean giant</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="big-fish-energy.html" aria-label="Play BIG FISH ENERGY">Play</a></div></section>
     </div>
 
@@ -216,6 +217,7 @@
       { key:'spuddyTurf', icon:'🗺️', name:'Spuddy Turf', note:'Claim land · cut bot trails · free solo territory battles', href:'spuddy-turf.html', freeBeta:true },
       { key:'harborGetaway', icon:'🌆', name:'Harbor Getaway', note:'Explore the city · complete jobs · optional live free roam', href:'harbor-getaway.html', freeBeta:true },
       { key:'spuddyEvolution', icon:'🌱', name:'Spuddy Evolution', note:'3D adventure · device-only saves · no Arcade Coin rewards', href:'spuddy-evolution.html', freeBeta:true },
+      { key:'earnlyRealms', icon:'🌊', name:'Earnly Realms', note:'Transform a room · discover a living reef', href:'earnly-realms.html', freeBeta:true },
       { key:'metalMayhem', icon:'🤖', name:'Metal Mayhem', note:'3D robot combat · sever limbs · survive endless waves', href:'metal-mayhem.html', freeBeta:true },
       { key:'bigFishEnergy', icon:'🦈', name:'BIG FISH ENERGY', note:'Eat smaller fish · grow into an ocean giant', href:'big-fish-energy.html', freeBeta:true }
     ];
@@ -260,7 +262,7 @@
     // Add newly launched large games (like Spuddy Defense) only after release.
     const deepPlayKeys = new Set([
       'bubblePop','crystalCommand','neonBreach','spuddyTurf',
-      'harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem'
+      'harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem','earnlyRealms'
     ]);
     // Visiting or refreshing Games advances four picks through all available titles.
     // Do not advance during favorites, cloud updates, filtering or rerenders.
