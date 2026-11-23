@@ -31,6 +31,11 @@ const dish = (t) =>
 export function food(id) {
   const c = Math.floor(id / 10),
     t = id % 10;
+  if (id < 30) {
+    const x = -(id % 5) * 64;
+    const y = -Math.floor(id / 5) * 64;
+    return svg(`<image href="spuds-kitchen-food.webp" x="${x}" y="${y}" width="320" height="384" preserveAspectRatio="none"/><circle cx="54" cy="55" r="8" fill="#384b40"/><text x="54" y="59" fill="white" text-anchor="middle" font-size="11" font-family="system-ui">${t + 1}</text>`);
+  }
   let body =
     c === 0 && t < 3
       ? oval(32, 35, 15, 20, t === 0 ? "#ca5245" : "#89583a") +
