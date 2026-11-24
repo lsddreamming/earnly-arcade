@@ -1,6 +1,10 @@
 import { chains, venues, name } from "./spuds-kitchen-data.js";
 import {
+  capacity,
+  station,
+  collectOrderBonus,
   fresh,
+  stockCounter,
   refill,
   generate,
   move,
@@ -38,6 +42,25 @@ for (const k of [key, key + ".backup"]) {
       break;
     }
   } catch {}
+}
+if (stockCounter(s)) save();
+let adPending = false;
+const nativeKitchen = () => window.EarnlyNativeAds?.isNative ||
+  window.Capacitor?.getPlatform?.() === "ios";
+async function kitchenAd(grant) {
+  if (adPending) return;
+  adPending = true;
+  try {
+    if (!window.EarnlyNativeAds) await import("./native-ads.js");
+    const result = await window.EarnlyNativeAds.showRewarded("extraPlays");
+    if (result?.earned === true && result.placement === "extraPlays") grant();
+    else alert("Ad ended without a reward. You can keep cooking.");
+  } catch {
+    alert("No ad is available right now. Please try again later.");
+  } finally {
+    adPending = false;
+    render();
+  }
 }
 function save() {
   try {
@@ -170,6 +193,13 @@ function render() {
       ? name(s.board[selected]) + " · tap a matching item to merge"
       : Date.now() < noticeUntil ? notice : nextStep();
   const actions = [];
+  if (nativeKitchen() && s.bonusTicket && !s.bubble && selected === null) {
+    const ticket = s.bonusTicket;
+    actions.push(button("Ad · double last order (+$" + ticket.cash + ")", () =>
+      kitchenAd(() => {
+        if (collectOrderBonus(s, ticket)) commit("Double order cash collected");
+      })));
+  }
   if (selected !== null) {
     actions.push(
       button("Store", () => {
@@ -193,42 +223,34 @@ function render() {
       }),
     );
   }
-  if (s.bubble && Date.now() >= s.bubble.expires) s.bubble = null;
+  if (!adPending && s.bubble && Date.now() >= s.bubble.expires) s.bubble = null;
   if (s.bubble) {
     const bubble = s.bubble;
-    actions.push(
-      button(
-        "◌ " +
-          name(bubble.id) +
-          " · " +
-          Math.ceil((bubble.expires - Date.now()) / 1000) +
-          "s",
-        () => {
-          const at = empty(s);
-          if (at < 0) return commit("Free one space for the bubble.");
-          if (Date.now() >= bubble.expires) {
-            s.bubble = null;
-            return commit("Bubble expired");
-          }
-          if (
-            !confirm(
-              "Rewarded ads are unavailable. Pop for $5 restaurant cash?",
-            )
-          )
-            return;
-          if (s.money < 5) return commit("Serve an order to earn $5.");
-          s.money -= 5;
-          s.board[at] = bubble.id;
-          discover(s, bubble.id);
-          s.bubble = null;
-          commit("Bubble popped");
-        },
-      ),
-      button("Dismiss", () => {
-        s.bubble = null;
-        commit("Bubble released");
-      }),
-    );
+    const seconds = Math.max(0, Math.ceil((bubble.expires - Date.now()) / 1000));
+    const claim = (cost) => {
+      if (s.bubble !== bubble) return;
+      const at = empty(s);
+      if (at < 0) return commit("Free one board space first.");
+      if (s.money < cost) return commit("Serve an order to earn $5.");
+      s.money -= cost;
+      s.board[at] = bubble.id;
+      discover(s, bubble.id);
+      s.bubble = null;
+      commit("Collected " + name(bubble.id));
+    };
+    if (nativeKitchen()) actions.push(button("Watch ad · " + name(bubble.id), () => {
+      if (Date.now() >= bubble.expires || empty(s) < 0)
+        return commit("Check the timer and free one space first.");
+      kitchenAd(() => claim(0));
+    }));
+    actions.push(button(name(bubble.id) + " · $5 · " + seconds + "s", () => {
+      if (adPending || Date.now() >= bubble.expires) return;
+      if (confirm("Spend $5 restaurant cash for " + name(bubble.id) + "?")) claim(5);
+    }), button("Dismiss", () => {
+      if (adPending) return;
+      s.bubble = null;
+      commit("Bubble released");
+    }));
   }
   if (s.undo)
     actions.push(
@@ -244,20 +266,34 @@ function render() {
     );
   $("actions").replaceChildren(...actions);
   $("stations").replaceChildren(
-    ...venues[s.venue].chains.map((c) =>
-      button("Get " + name(10 * c).toLowerCase(), () => {
+    ...venues[s.venue].chains.map(c => {
+      const bin = station(s, c);
+      const ingredient = name(10 * c).toLowerCase();
+      if (bin.readyAt) {
+        const deadline = bin.readyAt;
+        const seconds = Math.ceil((deadline - Date.now()) / 1000);
+        const label = ingredient + " · " + seconds + "s" + (nativeKitchen() ? " · Ad to refill" : "");
+        return button(label, () => {
+          if (!station(s, c).readyAt) return render();
+          if (!nativeKitchen()) return commit("Refills automatically. Try another station.");
+          kitchenAd(() => {
+            if (station(s, c).readyAt === deadline) {
+              bin.used = 0;
+              bin.readyAt = 0;
+            }
+            commit("Station ready");
+          });
+        });
+      }
+      return button("Get " + ingredient + " · " + (capacity(s, c) - bin.used) + " left", () => {
         selected = null;
-        const ok = generate(s, c);
-        if (ok) ping();
-        commit(
-          ok
-            ? "Ingredient ready"
-            : empty(s) < 0
-              ? "Board full. Store, sell, or merge an item."
-              : "Energy returns every two minutes. Check daily supplies.",
-        );
-      }),
-    ),
+        if (generate(s, c)) {
+          ping();
+          commit("Ingredient ready");
+        } else commit(empty(s) < 0 ? "Board full. Store, sell, or merge an item." :
+          "Energy returns every two minutes. Check daily supplies.");
+      });
+    }),
   );
 }
 function play(a, b) {
@@ -455,6 +491,13 @@ function journal() {
     );
   }
   if (tab === "Supplies") {
+    if (nativeKitchen() && s.energy < 100) {
+      page.append(button("Watch ad · up to 25 energy", () => kitchenAd(() => {
+        s.energy = Math.min(100, s.energy + 25);
+        commit("Energy delivered");
+        journal();
+      })));
+    }
     const today = new Date().toLocaleDateString();
     note(
       "Orders served: " +

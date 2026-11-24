@@ -5,7 +5,7 @@ export const goal = (l) => 20 + l * 7;
 export function fresh(now = Date.now()) {
   const board = Array(80).fill(null);
   [0, 0, 10, 10].forEach((x, i) => (board[18 + i] = x));
-  return {
+  const state = {
     version: 1,
     board,
     seen: [0, 10],
@@ -23,6 +23,27 @@ export function fresh(now = Date.now()) {
     day: "",
     undo: null,
   };
+  stockCounter(state);
+  return state;
+}
+
+// A one-time delivery for new and returning kitchens. Occupied tiles belong to the player.
+export function stockCounter(s) {
+  if (s.counterStocked) return false;
+  const [first, second = first] = venues[s.venue].chains;
+  const delivery = [[9, first, 2], [10, first, 2], [13, second, 1], [14, second, 1],
+    [25, first, 0], [28, second, 2], [33, first, 0], [37, second, 2]];
+  let added = 0;
+  for (const [preferred, chain, tier] of delivery) {
+    const at = s.board[preferred] === null ? preferred : empty(s);
+    if (at < 0) break;
+    const id = 10 * chain + tier;
+    s.board[at] = id;
+    discover(s, id);
+    added++;
+  }
+  if (added) s.counterStocked = true;
+  return added > 0;
 }
 export function refill(s, now) {
   if (now < s.tick) return;
@@ -34,11 +55,31 @@ export function discover(s, id) {
   if (!s.seen.includes(id)) s.seen.push(id);
 }
 export const empty = (s) => s.board.slice(0, spaces(s)).indexOf(null);
+const rechargeMs = 2 * 60 * 1000;
+export const capacity = (s, c) => 12 + 2 * (s.ranks[c] - 1);
+export function station(s, c, now = Date.now()) {
+  s.stations ??= {};
+  const bin = s.stations[c] ??= { used: 0, readyAt: 0 };
+  if (bin.readyAt && now >= bin.readyAt) {
+    bin.used = 0;
+    bin.readyAt = 0;
+  }
+  return bin;
+}
+export function collectOrderBonus(s, ticket) {
+  if (!ticket || s.bonusTicket?.number !== ticket.number) return false;
+  s.money += s.bonusTicket.cash;
+  s.bonusTicket = null;
+  return true;
+}
 export function generate(s, c, now = Date.now(), random = Math.random) {
   refill(s, now);
   const at = empty(s);
   if (at < 0 || s.energy < 1 || !venues[s.venue].chains.includes(c))
     return false;
+  const bin = station(s, c, now);
+  if (bin.readyAt) return false;
+  if (++bin.used >= capacity(s, c)) bin.readyAt = now + rechargeMs;
   const tier = random() < 0.16 * (s.ranks[c] - 1) ? 1 : 0;
   s.energy--;
   s.board[at] = 10 * c + tier;
@@ -92,6 +133,7 @@ export function serve(s, i) {
   s.money += pay;
   s.xp += pay;
   s.served++;
+  s.bonusTicket = { number: s.served, cash: pay };
   while (s.level < balance.maxLevel && s.xp >= goal(s.level)) {
     s.xp -= goal(s.level++);
     s.energy = Math.min(100, s.energy + 12);
