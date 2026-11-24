@@ -5,7 +5,7 @@ export const goal = (l) => 20 + l * 7;
 export function fresh(now = Date.now()) {
   const board = Array(80).fill(null);
   [0, 0, 10, 10].forEach((x, i) => (board[18 + i] = x));
-  return {
+  const state = {
     version: 1,
     board,
     seen: [0, 10],
@@ -23,6 +23,27 @@ export function fresh(now = Date.now()) {
     day: "",
     undo: null,
   };
+  stockCounter(state);
+  return state;
+}
+
+// A one-time delivery for new and returning kitchens. Occupied tiles belong to the player.
+export function stockCounter(s) {
+  if (s.counterStocked) return false;
+  const [first, second = first] = venues[s.venue].chains;
+  const delivery = [[9, first, 2], [10, first, 2], [13, second, 1], [14, second, 1],
+    [25, first, 0], [28, second, 2], [33, first, 0], [37, second, 2]];
+  let added = 0;
+  for (const [preferred, chain, tier] of delivery) {
+    const at = s.board[preferred] === null ? preferred : empty(s);
+    if (at < 0) break;
+    const id = 10 * chain + tier;
+    s.board[at] = id;
+    discover(s, id);
+    added++;
+  }
+  if (added) s.counterStocked = true;
+  return added > 0;
 }
 export function refill(s, now) {
   if (now < s.tick) return;
