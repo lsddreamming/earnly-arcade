@@ -217,3 +217,26 @@ body.studio-dashboard #shop-grid .item-art[data-slot=jewelry][data-detail=true] 
  .studio-dashboard .showcase #reset-preview{min-height:44px;margin:0}
  .studio-dashboard .showcase #back-to-collection{margin:0;min-height:44px}
 }
+
+/* Softbox lighting and a low plinth behind the layered portrait. */
+.studio-dashboard .showcase #character-stage {
+  background: radial-gradient(ellipse at 27% 18%, #586b87 0, transparent 53%),
+    radial-gradient(ellipse at 80% 55%, #465579 0, transparent 50%),
+    linear-gradient(170deg, #29384e 6%, #253249 66%, #17233a 86%);
+}
+.studio-dashboard .showcase #character-stage[data-focus="full"]::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: auto 19% 2%;
+  height: 12%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #36465e, #687c98 64%, #a2b6c9 68%, #495a74 73%);
+  box-shadow: 0 4px 0 #293951, 0 8px 9px #10192999;
+  pointer-events: none;
+  z-index: 0;
+}
+#character-stage .character img:is([data-slot="head"], [data-slot="hair"], [data-slot="outfit"], [data-slot="jewelry"]),
+#purchase-preview .character img:is([data-slot="head"], [data-slot="outfit"]) {
+  filter: drop-shadow(0 1.4px 1.1px rgb(49 28 37 / 38%));
+}
