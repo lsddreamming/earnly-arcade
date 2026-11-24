@@ -1,5 +1,8 @@
 import { chains, venues, name } from "./spuds-kitchen-data.js";
 import {
+  capacity,
+  station,
+  collectOrderBonus,
   fresh,
   stockCounter,
   refill,
@@ -190,6 +193,13 @@ function render() {
       ? name(s.board[selected]) + " · tap a matching item to merge"
       : Date.now() < noticeUntil ? notice : nextStep();
   const actions = [];
+  if (nativeKitchen() && s.bonusTicket && !s.bubble && selected === null) {
+    const ticket = s.bonusTicket;
+    actions.push(button("Ad · double last order (+$" + ticket.cash + ")", () =>
+      kitchenAd(() => {
+        if (collectOrderBonus(s, ticket)) commit("Double order cash collected");
+      })));
+  }
   if (selected !== null) {
     actions.push(
       button("Store", () => {
@@ -256,20 +266,34 @@ function render() {
     );
   $("actions").replaceChildren(...actions);
   $("stations").replaceChildren(
-    ...venues[s.venue].chains.map((c) =>
-      button("Get " + name(10 * c).toLowerCase(), () => {
+    ...venues[s.venue].chains.map(c => {
+      const bin = station(s, c);
+      const ingredient = name(10 * c).toLowerCase();
+      if (bin.readyAt) {
+        const deadline = bin.readyAt;
+        const seconds = Math.ceil((deadline - Date.now()) / 1000);
+        const label = ingredient + " · " + seconds + "s" + (nativeKitchen() ? " · Ad to refill" : "");
+        return button(label, () => {
+          if (!station(s, c).readyAt) return render();
+          if (!nativeKitchen()) return commit("Refills automatically. Try another station.");
+          kitchenAd(() => {
+            if (station(s, c).readyAt === deadline) {
+              bin.used = 0;
+              bin.readyAt = 0;
+            }
+            commit("Station ready");
+          });
+        });
+      }
+      return button("Get " + ingredient + " · " + (capacity(s, c) - bin.used) + " left", () => {
         selected = null;
-        const ok = generate(s, c);
-        if (ok) ping();
-        commit(
-          ok
-            ? "Ingredient ready"
-            : empty(s) < 0
-              ? "Board full. Store, sell, or merge an item."
-              : "Energy returns every two minutes. Check daily supplies.",
-        );
-      }),
-    ),
+        if (generate(s, c)) {
+          ping();
+          commit("Ingredient ready");
+        } else commit(empty(s) < 0 ? "Board full. Store, sell, or merge an item." :
+          "Energy returns every two minutes. Check daily supplies.");
+      });
+    }),
   );
 }
 function play(a, b) {
