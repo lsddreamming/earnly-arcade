@@ -105,7 +105,7 @@ test('32 catalog games retain historical reward records for the unlisted racer',
   const catalog = [...games.matchAll(/\{\s*key:'([^']+)'/g)].map(match => match[1]);
 
   expect(new Set(catalog).size).toBe(32);
-  expect([...catalog].sort()).toEqual([...expectedGameKeys.filter(game => game !== 'turboKart'), 'crystalCommand', 'bubblePop', 'neonSlice', 'harborGetaway', 'spuddyTurf', 'spuddyEvolution', 'bigFishEnergy', 'metalMayhem', 'earnlyRealms', 'spudsKitchen'].sort());
+  expect([...catalog].sort()).toEqual([...expectedGameKeys.filter(game => game !== 'turboKart'), 'crystalCommand', 'bubblePop', 'neonSlice', 'harborGetaway', 'spuddyTurf', 'spuddyEvolution', 'bigFishEnergy', 'metalMayhem', 'spudsKitchen'].sort());
   expect([...names].sort()).toEqual([...expectedGameKeys].sort());
   expect([...bestConfig].sort()).toEqual([...expectedGameKeys, 'dodger'].sort());
   expect([...miniConfigs].sort()).toEqual([
