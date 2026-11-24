@@ -285,6 +285,10 @@
     }
     const starterKeys = nextStarterPicks();
     const gamePreviews = {
+      spiralDrop: {src:'spiral-drop.webp', label:'Find the gap'},
+      memory: {src:'memory-match.webp', label:'Flip two. Find a pair.'},
+      towerStack: {src:'tower-stack.webp', label:'Line up the next floor'},
+      spuddyTurf: {src:'spuddy-turf.webp', label:'Claim your turf'},
       neonSlice: {src:'neon-slice.webp', label:'Quick & satisfying', description:'Swipe through cookout food. Dodge the bombs.'},
       snake: {src:'snake.webp', label:'A familiar classic', description:'Steer, eat apples, and keep growing.'},
       bubblePop: {src:'bubble-pop.webp', label:'Take your time', description:'Match colorful bubbles. Solve one level at a time.'},
@@ -561,7 +565,7 @@
         if (preview) {
           const description = document.createElement('p');
           description.className = 'game-description';
-          description.textContent = preview.description;
+          description.textContent = preview.description || info.note;
           card.append(description);
         }
         card.append(rule, footer);
