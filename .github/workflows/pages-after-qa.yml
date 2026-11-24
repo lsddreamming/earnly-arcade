@@ -111,6 +111,37 @@ jobs:
         with:
           path: _pages
 
+      - name: Wait for the Pages artifact to become visible
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYTHON'
+          import json, os, time, urllib.request
+          url = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}/artifacts"
+          for attempt in range(12):
+              request = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                      "Accept": "application/vnd.github+json",
+                  },
+              )
+              with urllib.request.urlopen(request) as response:
+                  artifacts = [
+                      artifact
+                      for artifact in json.load(response)["artifacts"]
+                      if artifact["name"] == "github-pages"
+                  ]
+              if len(artifacts) == 1:
+                  print("Pages artifact metadata is available.")
+                  break
+              if attempt == 11:
+                  raise SystemExit(
+                      f"Expected one visible github-pages artifact, found {len(artifacts)}."
+                  )
+              time.sleep(5)
+          PYTHON
+
       - name: Recheck main immediately before publishing
         env:
           TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
