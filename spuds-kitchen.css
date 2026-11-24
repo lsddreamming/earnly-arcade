@@ -195,3 +195,37 @@ article p {
     animation: none !important;
   }
 }
+
+/* Warm porcelain, glazed tiles and a rounded wooden service counter. */
+body {
+  background: radial-gradient(ellipse at 48% 5%, #558f7a, transparent 57%),
+    linear-gradient(135deg, #285951, #123d38);
+}
+#orders > button {
+  background: linear-gradient(155deg, #fff6de, #f5d8a7);
+  box-shadow: inset 0 2px #fffbef, inset 0 -3px #cd9668, 0 2px 4px #102e3540;
+}
+#orders > button.ready {
+  background: linear-gradient(145deg, #efffc5, #b5de99);
+}
+#orders > button > svg:first-child {
+  width: clamp(28px, 7vw, 38px);
+  height: auto;
+}
+#board {
+  border-color: #dcac74 #926043 #7d4e37 #bd8959;
+  box-shadow: 0 3px 0 #633e30, 0 6px 10px #163a343d;
+}
+#board button:not(.lock) {
+  background: linear-gradient(145deg, #fff2d3, #efd2a4);
+}
+#board button:nth-child(3n):not(.lock) {
+  background: linear-gradient(145deg, #f8e6c3, #eacba1);
+}
+#board button:not(.lock, .match, .selected) {
+  box-shadow: inset 0 2px #fff7e0, inset 0 -2px #d7b58b;
+}
+#stations button {
+  background: linear-gradient(#ffdf92, #efb75e);
+  box-shadow: inset 0 2px #ffeab7, inset 0 -3px #c58242, 0 2px 0 #744f36;
+}
