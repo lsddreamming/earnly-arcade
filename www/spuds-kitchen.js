@@ -22,7 +22,7 @@ const $ = (id) => document.getElementById(id),
   page = document.querySelector("article");
 let s = fresh(),
   selected = null,
-  notice = "Merge the two coffee cherries, then serve Pip.",
+  notice = "", noticeUntil = 0,
   tab = "Restaurant",
   audio;
 for (const k of [key, key + ".backup"]) {
@@ -67,6 +67,7 @@ function ping(high = false) {
 }
 function commit(message) {
   notice = message;
+  noticeUntil = Date.now() + 2200;
   save();
   render();
 }
@@ -84,6 +85,21 @@ const people = [
   "Inspector Roux",
   "Sunny",
 ];
+function nextStep() {
+  const ready = s.orders.findIndex(items => indices(s, items));
+  if (ready >= 0) return "Tap " + people[(s.served + ready) % people.length] + " to serve.";
+  const easiest = Math.min(...s.orders.flat().map(id => id % 10));
+  const target = s.orders.flat().find(id => id % 10 === easiest && !s.board.includes(id))
+    ?? s.orders.flat().find(id => !s.board.includes(id)) ?? s.orders[0][0];
+  const base = target - target % 10;
+  for (let id = target - 1; id >= base; id--) {
+    if (s.board.filter(item => item === id).length >= 2)
+      return "Tap two matching " + name(id).toLowerCase() + " tiles to merge.";
+  }
+  if (empty(s) < 0) return "Board full. Tap an item, then Store.";
+  if (!s.energy) return "Out of energy? Open Journal → Supplies.";
+  return "Tap Get " + name(base).toLowerCase() + " below.";
+}
 function render() {
   refill(s, Date.now());
   $("hud").innerHTML =
@@ -100,6 +116,7 @@ function render() {
               "Served! +$" + price(items) + " and +" + price(items) + " XP",
             );
           } else {
+            noticeUntil = Date.now() + 3500;
             notice = "Wanted: " + items.map(name).join(" + ");
             render();
           }
@@ -151,7 +168,7 @@ function render() {
   $("tip").textContent =
     selected !== null
       ? name(s.board[selected]) + " · tap a matching item to merge"
-      : notice;
+      : Date.now() < noticeUntil ? notice : nextStep();
   const actions = [];
   if (selected !== null) {
     actions.push(
@@ -228,7 +245,7 @@ function render() {
   $("actions").replaceChildren(...actions);
   $("stations").replaceChildren(
     ...venues[s.venue].chains.map((c) =>
-      button("＋ " + chains[c].station, () => {
+      button("Get " + name(10 * c).toLowerCase(), () => {
         selected = null;
         const ok = generate(s, c);
         if (ok) ping();
