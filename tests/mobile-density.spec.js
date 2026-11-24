@@ -55,7 +55,7 @@ test('Home starts with direct game choices; extras and progress stay secondary',
  const firstPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
  expect(new Set(firstPicks).size).toBe(2);
  const publishedHrefs=new Set(require('../home-featured.js').catalog.map(game=>game.href));
- expect(publishedHrefs.size).toBe(31);
+ expect(publishedHrefs.size).toBe(32);
  for(const href of firstPicks) expect(publishedHrefs.has(href)).toBe(true);
  await page.reload();
  await expect(page.locator('.home-game-card')).toHaveCount(2);
@@ -150,13 +150,13 @@ for (const width of [320, 390, 440]) {
     test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
       await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-      // Four refreshed games lead into the complete 31-game catalog.
+      // Four refreshed games lead into the complete 32-game catalog.
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
       const starters = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
       expect(new Set(starters).size).toBe(4);
       await expect(page.locator('#games .game-preview')).toHaveCount(4);
       await page.locator('[data-filter=all]').click();
-      await expect(page.locator('#games > .catalog-tile')).toHaveCount(31);
+      await expect(page.locator('#games > .catalog-tile')).toHaveCount(32);
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
       await expect(page.locator('[data-game="snake"] .game-session-label')).toHaveText('⚡ Quick play');
       await expect(page.locator('[data-game="snake"] .game-reward-copy')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
@@ -234,7 +234,7 @@ for(const prefix of ['', 'www/']){
 
 
 for(const prefix of ['', 'www/']){
-  test('rotating Games starters cover all 31 titles across eight refreshes '+(prefix||'root/'),async({page,baseURL})=>{
+  test('rotating Games starters cover all 32 titles across eight refreshes '+(prefix||'root/'),async({page,baseURL})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto(new URL('/'+prefix+'games.html',process.env.EARNLY_CATALOG_BASE_URL||baseURL).href);
     const seen=new Set();
@@ -253,13 +253,13 @@ for(const prefix of ['', 'www/']){
       }));
       expect(overflowingNotes).toEqual([]);
       for(const game of batch){
-        if(seen.size<31)expect(seen.has(game),game+' repeated before all 31 titles appeared').toBe(false);
+        if(seen.size<32)expect(seen.has(game),game+' repeated before all 32 titles appeared').toBe(false);
         seen.add(game);
       }
       expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     }
-    expect(seen.size).toBe(31);
+    expect(seen.size).toBe(32);
     await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games > .catalog-tile')).toHaveCount(31);
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(32);
   });
 }
