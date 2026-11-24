@@ -31,10 +31,13 @@ const dish = (t) =>
 export function food(id) {
   const c = Math.floor(id / 10),
     t = id % 10;
-  if (id < 30) {
-    const x = -(id % 5) * 64;
-    const y = -Math.floor(id / 5) * 64;
-    return svg(`<image href="spuds-kitchen-food.webp" x="${x}" y="${y}" width="320" height="384" preserveAspectRatio="none"/><circle cx="54" cy="55" r="8" fill="#384b40"/><text x="54" y="59" fill="white" text-anchor="middle" font-size="11" font-family="system-ui">${t + 1}</text>`);
+  if (id < 40) {
+    const orchard = id >= 30;
+    const index = orchard ? id - 30 : id;
+    const atlas = orchard ? "spuds-kitchen-orchard.webp" : "spuds-kitchen-food.webp";
+    const x = -(index % 5) * 64;
+    const y = -Math.floor(index / 5) * 64;
+    return svg(`<image href="${atlas}" x="${x}" y="${y}" width="320" height="${orchard ? 128 : 384}" preserveAspectRatio="none"/><circle cx="54" cy="55" r="8" fill="#384b40"/><text x="54" y="59" fill="white" text-anchor="middle" font-size="11" font-family="system-ui">${t + 1}</text>`);
   }
   let body =
     c === 0 && t < 3
@@ -55,20 +58,7 @@ export function food(id) {
   );
 }
 export function face(i) {
-  const hats = ["#f9ead1", "#f3bb55", "#93c6ba", "#e39c93"];
-  return svg(
-    oval(32, 57, 23, 11, hats[(i + 2) % 4]) +
-      shape(
-        "M11 40Q7 23 20 18Q38 8 49 24Q61 39 48 51Q36 61 20 55Q10 51 11 40",
-        "#dfad77",
-      ) +
-      shape(
-        "M10 24Q9 15 20 16Q17 6 29 9Q40 1 44 13Q58 9 54 22L13 29Z",
-        hats[i % 4],
-      ) +
-      oval(25, 37, 2, 3, "#422e30") +
-      oval(41, 35, 2, 3, "#422e30") +
-      shape("M29 44Q34 50 40 42", "none") +
-      oval(19, 42, 4, 2, "#db8d74"),
-  );
+  const x = -(i % 3) * 64;
+  const y = -Math.floor(i / 3) * 64;
+  return svg(`<image href="spuds-kitchen-guests.webp" x="${x}" y="${y}" width="192" height="128" preserveAspectRatio="none"/>`);
 }
