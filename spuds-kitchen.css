@@ -143,8 +143,27 @@ button:disabled {
   font-size: 12px;
   min-height: 17px;
 }
-#actions:empty {
-  display: none;
+/* Keep the inspector and both control strips in place as selection changes. */
+#tip {
+  flex: 0 0 32px;
+  display: grid;
+  place-content: center;
+  overflow: auto;
+}
+#actions, #stations {
+  flex: 0 0 34px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  justify-content: flex-start;
+  overscroll-behavior-x: contain;
+}
+#actions > button, #stations > button {
+  flex: 1 0 max-content;
+  white-space: nowrap;
+}
+#actions {
+  border-radius: 10px;
+  background: #173e36;
 }
 footer button,
 #actions button {
@@ -286,4 +305,20 @@ main {position:relative}
 main:has(#advice:not([hidden])) .pal {animation:kitchen-swing .55s ease-out}
 #board button:not(.lock,.selected,.match):nth-child(n) {background:radial-gradient(ellipse at 23% 16%,hsl(var(--district-hue) 82% 93%),hsl(var(--district-hue) 56% 76%) 72%,hsl(var(--district-hue) 44% 60%))}
 #board button:not(.lock,.selected,.match):nth-child(4n+1) {background:linear-gradient(140deg,hsl(calc(var(--district-hue) + 25) 88% 92%),hsl(calc(var(--district-hue) + 25) 65% 72%))}
-#board {width:min(100%,calc((100dvh - 252px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8))}
+
+
+/* Size the board from the space between orders and the reserved inspector. */
+main {
+  display: grid;
+  height: 100svh;
+  grid-template-rows: auto auto 80px auto minmax(0, 1fr) 32px 34px 34px;
+}
+#board {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: calc((100vw - 16px) * 1.25);
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+}
