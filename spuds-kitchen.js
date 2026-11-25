@@ -1,3 +1,4 @@
+import { showTown } from "./spuds-kitchen-town.js";
 import { chains, venues, name } from "./spuds-kitchen-data.js";
 import {
   capacity,
@@ -27,7 +28,7 @@ const $ = (id) => document.getElementById(id),
 let s = fresh(),
   selected = null,
   notice = "", noticeUntil = 0,
-  tab = "Restaurant",
+  tab = "Lantern Row",
   audio;
 for (const k of [key, key + ".backup"]) {
   try {
@@ -383,6 +384,7 @@ $("board").onclick = (e) => {
     play(selected, +b.dataset.i);
 };
 const sections = [
+  "Lantern Row",
   "Restaurant",
   "Appliance",
   "World map",
@@ -419,6 +421,7 @@ function journal() {
     );
   const v = venues[s.venue],
     n = s.decor[s.venue];
+  if (tab === "Lantern Row") showTown(s, page, note, act, save);
   if (tab === "Restaurant") {
     note(v.name + " · " + v.detail);
     page.insertAdjacentHTML("beforeend", room(v, n));
@@ -590,6 +593,7 @@ function room(v, n) {
   const [wall, roof] = v.colors;
   return `<svg style="width:100%" viewBox="0 0 300 112" aria-label="Your restaurant, ${n} renovations"><rect width="300" height="112" rx="12" fill="${wall}"/><path d="M0 88l150-21 150 20v25H0" fill="${n > 1 ? "#e7b97a" : "#937250"}"/><path d="M34 30l60-10v47l-60 10z" fill="${n ? "#b9e8db" : "#868d78"}"/><path d="M155 57l96-14 26 11-97 16z" fill="#f0c594"/><path d="M180 70l97-16v24l-97 19z" fill="${roof}"/>${n > 2 ? '<path d="M35 86l60-9 19 9-60 10z" fill="#ec936b"/>' : ""}${n > 3 ? '<circle cx="140" cy="21" r="9" fill="#ffe39a"/>' : ""}${n > 4 ? '<path d="M20 98q-20-31 0-16q-2-28 8-17q10 8-8 33" fill="#92bd6f"/>' : ""}${n > 5 ? '<text x="171" y="32" fill="#ffe2a0">SPUD’S ★</text>' : ""}</svg>`;
 }
+$("menu").textContent = "Town & Journal";
 $("menu").onclick = () => {
   journal();
   dialog.showModal();
