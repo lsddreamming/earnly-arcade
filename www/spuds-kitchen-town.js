@@ -1,3 +1,73 @@
+import { venues, name } from "./spuds-kitchen-data.js";
+
+const neighborhoods = `Bayou Landing|The mailboat brings six shutters and a letter asking for supper on the water.|Mailboat Café|Cypress Canoes|Pelican Post|Porchlight Records|Reed Basket Market|Firefly Dock
+Magnolia Square|Dot finds the old dance card. Someone has circled every Friday.|Tea Porch|Ribbon Shop|Magnolia Florist|Bandstand|Dance Hall|Moon Garden
+Switchyard|A conductor needs packed lunches before the midnight train can run again.|Lunch Car|Signal Box|Ticket Hall|Clock Repair|Rail Museum|Sleeper Hotel
+Pelican Pier|Pip promises the fishing crews breakfast before the first ferry.|Bait Shop|Net Loft|Oyster Counter|Ferry Booth|Tackle Exchange|Harbor Beacon
+Cinema Mile|An usher discovers the missing reel of the town’s first film.|Poster Press|Popcorn Cart|Costume Loft|Foley Studio|Projection Booth|Starlight Cinema
+Pine Ridge|The trail crew hears bells from the abandoned lookout.|Trail Pantry|Boot Works|Map Room|Cabin Café|Ranger Lodge|Lookout Tower
+Carnival Quay|The carousel organ plays one note. Every ride holds another pipe.|Ticket Wagon|Candy Kitchen|Ring Toss|Mirror Maze|Painted Carousel|Ferris Wheel
+Copper Hill|An apprentice wants the silent foundry to cast one last bell.|Tool Library|Kiln House|Copper Kettle|Glass Studio|Smithy|Bell Tower
+Orchard Bend|A lost cider recipe turns up on the back of a harvest poster.|Seed Library|Pear Stand|Jam Pantry|Cider Mill|Pie Barn|Harvest Hall
+Coral Bay|A diver brings back a cracked tile from the first public aquarium.|Shell Studio|Dive Shack|Tide Pool|Coral Nursery|Seafood Terrace|Ocean Gallery
+Bookbinder Lane|The last page of the town atlas has been left blank for you.|Ink Counter|Bindery|Reading Room|Paper Mill|Poetry Café|Atlas Library
+Aurora Heights|Spuddy follows a penciled star chart into the hills.|Cable Station|Alpine Bakery|Snowshoe Shop|Aurora Lodge|Lens Workshop|Observatory
+Melody Ward|Six musicians remember different verses of the same song.|Drum Shop|Jazz Kitchen|Brass Repair|Radio Booth|Vinyl Press|Jubilee Theater
+Cloud Harbor|An old balloon pilot offers the cooks a view of every town they fed.|Canvas Loft|Weather Hut|Flight School|Sky Galley|Mooring Mast|Balloon Port
+Champion Park|Moonpin’s first league challenges the whole county to play.|Skate Shop|Courtside Grill|Batting Cage|Swim Club|Roller Rink|Victory Arena
+Festival Island|All sixteen crews return to set a place at one enormous table.|Welcome Wharf|Lantern Studio|Parade Garage|Festival Bakery|Grand Pavilion|Founders’ Table`.split("\n").map(row => {
+  const [district, story, ...places] = row.split("|");
+  return { district, story, places };
+});
+
+export function commission(step, chains) {
+  const site = Math.floor(step / 4), district = Math.floor(site / 6);
+  const phase = step % 4;
+  const tier = Math.min(9, 3 + Math.floor(district / 2) + (phase === 3 ? 1 : 0));
+  return { id: chains[(site + phase) % chains.length] * 10 + tier, count: 2 + Math.floor(district / 4) + phase % 2 };
+}
+
+function county(s, page, note, act) {
+  const step = s.countyStep || 0, site = Math.floor(step / 4);
+  const area = neighborhoods[Math.min(15, Math.floor(site / 6))];
+  const h = document.createElement("h3");
+  h.textContent = area.district;
+  page.append(h);
+  note(area.story);
+  if (site < 96) {
+    const venue = s.countyVenue ?? s.venue;
+    const job = commission(step, venues[venue].chains);
+    const delivered = s.countyDelivered || 0;
+    const ready = s.board.filter(id => id === job.id).length;
+    note(area.places[site % 6] + " · " + ["Feed the surveyors","Stock the workshop","Cater the crew lunch","Host opening night"][step % 4] + " · " + name(job.id) + " " + delivered + "/" + job.count);
+    if (venue !== s.venue) note("Find these ingredients at " + venues[venue].name + ".");
+    if (ready) act("Deliver " + name(job.id), () => {
+      const at = s.board.indexOf(job.id);
+      if ((s.countyStep || 0) !== step || at < 0) return;
+      s.board[at] = null;
+      s.countyVenue = venue;
+      // Credit each contribution immediately so the player need not store a whole order.
+      s.countyDelivered = (s.countyDelivered || 0) + 1;
+      if (s.countyDelivered >= job.count) {
+        s.countyStep = step + 1;
+        delete s.countyVenue;
+        s.countyDelivered = 0;
+        s.money += 10 + Math.floor(site / 6) * 5;
+      }
+    });
+  } else note("Founders’ Table is open. Every neighborhood is ready for festival night.");
+  const atlas = document.createElement("details");
+  const title = document.createElement("summary");
+  title.textContent = "County atlas · " + (4 + site) + "/100 places open";
+  atlas.append(title);
+  neighborhoods.forEach(({district, places}, index) => {
+    const row = document.createElement("p");
+    const count = Math.max(0, Math.min(6, site - index * 6));
+    row.textContent = district + " · " + count + "/6 · " + places.map((place,i) => (i < count ? "✓ " : "") + place).join(" · ");
+    atlas.append(row);
+  });
+  page.append(atlas);
+}
 const stops = [
   { name: "Pip’s Night Market", sign: "MARKET", color: "#e87c52", orders: 1, cost: 5, line: "Pip unfolds the striped awning. Inside a dusty crate he finds a brass token stamped LAST LIGHT.", item: 1 },
   { name: "Last Light Arcade", sign: "ARCADE", color: "#885abe", orders: 5, cost: 20, line: "Dot slips the token into a dark cabinet. The screen hums awake. Its high-score initials spell LANES." },
@@ -52,6 +122,8 @@ export function showTown(s, page, note, act, save) {
     note("Next opening · "+next.name+" · Orders "+Math.min(s.served,next.orders)+"/"+next.orders+" · Restaurant cash $"+s.money+"/$"+next.cost);
     if(s.served>=next.orders && s.money>=next.cost)act("Reopen "+next.name,()=>{if((s.townOpen||0)===open && s.money>=next.cost){s.money-=next.cost;s.townOpen=open+1;}});
   }
+  if (open === stops.length) county(s, page, note, act);
+  else note("Restore Lantern Row to open the county atlas: 16 more neighborhoods await.");
   for(const place of stops.slice(0,open)){
     const h=document.createElement("h3");h.textContent=place.name;page.append(h);
     if(place.item!==undefined){
