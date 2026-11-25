@@ -1,6 +1,11 @@
 * {
   box-sizing: border-box;
 }
+/* Fast taps on generators, orders and rebuilt buttons are gameplay input. */
+html, body, main, dialog, button, a {
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   background: radial-gradient(ellipse at top, #497666, #163f39 70%);
