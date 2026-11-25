@@ -45,16 +45,16 @@ function start() {
     ctx.fillStyle='#ffde7e';ctx.save();ctx.translate(230+Math.sin(t)*72,208);ctx.beginPath();ctx.moveTo(0,-21);ctx.lineTo(30,14);ctx.lineTo(0,7);ctx.lineTo(-30,14);ctx.fill();ctx.restore();
   }
   const box=(...a)=>mesh(scene,'box',...a);
-  box('#342d49',0,-.22,0,40,.4,30);
-  box('#393451',0,2,-3.6,35,6,.35);
-  for(let i=-7;i<8;i++){
-    box('#554362',i*1.5,2,-3.36,.09,5,.15);
-    box(i%2?'#ffc488':'#7aeadc',i*1.5,3.9,-3.2,1.38,.055,.06);
-    box('#57506a',i*1.5,.2,-3.22,1.38,.12,.12);
+  box('#342d49',1,-.22,0,13,.4,8);
+  box('#393451',1,2,-3.6,13,4,.35);
+  for(let i=-3;i<5;i++){
+    box('#554362',i*1.5+.2,2,-3.36,.09,5,.15);
+    box(i%2?'#ffc488':'#7aeadc',i*1.5+.2,3.9,-3.2,1.38,.055,.06);
+    box('#57506a',i*1.5+.2,.2,-3.22,1.38,.12,.12);
   }
   panel(scene,0,3.12,-3.16,4.6,1.17,lettering('S P U D C A D E','#ffc577','#352341'));
   // Continuous patterned carpet and contact shadows keep the camera inside the arcade.
-  const carpet=panel(scene,0,.002,0,32,22,(ctx)=>{
+  const carpet=panel(scene,1,.002,0,13,8,(ctx)=>{
     ctx.fillStyle='#36304e';ctx.fillRect(0,0,512,256);
     for(let i=0;i<70;i++){let x=(i*193)%510,y=(i*101)%255;ctx.strokeStyle=['#60547d','#865776','#477074'][i%3];
       ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+5,y-3);ctx.lineTo(x+7,y);ctx.stroke()}
@@ -145,6 +145,7 @@ function start() {
   canvas.onpointerdown=e=>{drag={x:e.clientX,a:angle};canvas.setPointerCapture(e.pointerId)};
   canvas.onpointermove=e=>{if(drag)angle=T.MathUtils.clamp(drag.a-(e.clientX-drag.x)*.004,-.65,.65)};
   canvas.onpointercancel=canvas.onpointerup=()=>drag=null;
+  const cameraTarget=new T.Vector3(1,1.8,0);
   let width=0,height=0;
   function frame(ms){
     requestAnimationFrame(frame);if(document.hidden||ms-last<32)return;last=ms;
@@ -166,9 +167,24 @@ function start() {
       feet.forEach((f,j)=>f.position.z=.047+step*(j?-.09:.09));
     });
     camZoom+=(zoom-camZoom)*.12;
-    const radius=(camera.aspect<1.2?5.75:4.65)/camZoom;
-    camera.position.set(-.45+Math.sin(angle)*radius,2.05+.1*radius,-.55+Math.cos(angle)*radius);
-    camera.lookAt(-.45,1.38,-.9);renderer.render(scene,camera);
+    // Fit all eight room corners in perspective, including while orbiting.
+    const target = cameraTarget;
+    const elevation = .57;
+    camera.position.set(Math.sin(angle)*Math.cos(elevation),Math.sin(elevation),Math.cos(angle)*Math.cos(elevation));
+    camera.position.add(target);
+    camera.lookAt(target);
+    camera.updateMatrixWorld();
+    const axes=camera.matrixWorld.elements;
+    const tanY=Math.tan(camera.fov*Math.PI/360);
+    let distance=0;
+    for(const x of [-6.6,6.6]) for(const y of [-2.4,2.4]) for(const z of [-4.1,4.1]){
+      const depth=x*axes[8]+y*axes[9]+z*axes[10];
+      const horizontal=Math.abs(x*axes[0]+y*axes[1]+z*axes[2]);
+      const vertical=Math.abs(x*axes[4]+y*axes[5]+z*axes[6]);
+      distance=Math.max(distance,depth+horizontal/(tanY*camera.aspect),depth+vertical/tanY);
+    }
+    camera.position.sub(target).multiplyScalar(distance*1.09/camZoom).add(target);
+    renderer.render(scene,camera);
     if(!canvas.dataset.renderer)canvas.dataset.renderer='three';
   }
   requestAnimationFrame(frame);
