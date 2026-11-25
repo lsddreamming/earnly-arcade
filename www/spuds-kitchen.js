@@ -123,7 +123,35 @@ function nextStep() {
   if (!s.energy) return "Out of energy? Open Journal → Supplies.";
   return "Tap Get " + name(base).toLowerCase() + " below.";
 }
+const districts = [
+  [0, "Courtyard", 161], [5, "Citrus grove", 38], [8, "Berry garden", 332],
+  [12, "Lagoon", 197], [20, "Lantern market", 265]
+];
+let previousDistrict;
+function showAdvice(message) {
+  $("advice").querySelector("span").textContent = message;
+  $("advice").hidden = false;
+}
+$("guide").onclick = () => showAdvice(nextStep());
+$("advice").querySelector("button").onclick = () => { $("advice").hidden = true; };
+$("district").onclick = () => { tab = "World map"; journal(); dialog.showModal(); };
+function updateDistrict() {
+  const index = districts.filter(([count]) => s.seen.length >= count).length - 1;
+  const [, area, hue] = districts[index];
+  const next = districts[index + 1];
+  $("board").style.setProperty("--district-hue", (hue + s.venue * 31) % 360);
+  $("district").textContent = area + (next ? " · " + s.seen.length + "/" + next[0] + " recipes → " + next[1] : " · World map ›");
+  if (previousDistrict !== undefined && index > previousDistrict)
+    showAdvice("You opened " + area + "! Discover new recipes by merging matching foods.");
+  else if (previousDistrict === undefined || (!s.energy || empty(s) < 0) && !$("advice").dataset.warned) {
+    showAdvice(nextStep());
+    if (!s.energy || empty(s) < 0) $("advice").dataset.warned = "1";
+  }
+  if (s.energy && empty(s) >= 0) delete $("advice").dataset.warned;
+  previousDistrict = index;
+}
 function render() {
+  updateDistrict();
   refill(s, Date.now());
   $("hud").innerHTML =
     `<span>Chef Lv ${s.level}</span><span>${s.xp}/${goal(s.level)} XP</span><span>ϟ ${s.energy}/100</span><span>$${s.money}</span>`;

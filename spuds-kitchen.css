@@ -229,3 +229,56 @@ body {
   background: linear-gradient(#ffdf92, #efb75e);
   box-shadow: inset 0 2px #ffeab7, inset 0 -3px #c58242, 0 2px 0 #744f36;
 }
+
+/* Glazed prep wells, worn wood and lit merge targets. */
+#board button:not(.lock):nth-child(n) {
+  border-color: #809e8c;
+  border-radius: 15%;
+  background: radial-gradient(ellipse at 30% 16%, #f0fbe7, #c4dfcc 65%, #a8c7b8);
+}
+#board button:not(.lock, .match, .selected) {
+  box-shadow: inset 0 1px 1px #fffff4, inset 0 -2px 2px #72968b;
+}
+#board button > svg { filter: drop-shadow(0 2px 1px #38463466); }
+#board button.lock {
+  border-color: #947251;
+  background: repeating-linear-gradient(4deg, transparent 0 7px, #89664532 8px, transparent 10px), linear-gradient(150deg, #c8ab86, #ad8e69);
+  box-shadow: inset 0 1px #dec29c, inset 0 -2px #89694e;
+}
+#board button.selected:nth-child(n) {
+  background: radial-gradient(ellipse at 35% 20%, #fff8d2, #ffd27d);
+  box-shadow: inset 0 0 0 3px #af5e18;
+}
+#board button.match:nth-child(n) {
+  background: radial-gradient(ellipse at 40% 25%, #f4ffdd, #b5ebbe);
+  box-shadow: inset 0 0 0 3px #248269;
+}
+#board button.match::after {
+  content: "";
+  position: absolute;
+  width: 12%;
+  aspect-ratio: 1;
+  top: 10%;
+  right: 10%;
+  border-radius: 25%;
+  background: #fff9bc;
+  box-shadow: 0 0 0 1px #32745c;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+#trail {display:flex;align-items:center;gap:4px}
+#district {flex:1;text-align:left;background:#244c48;color:#fff3bf;font-size:12px}
+#guide {position:relative;padding-left:34px;background:#ffdc96;font-size:12px}
+.pal {position:absolute;left:6px;bottom:3px;width:22px;height:24px;border-radius:52% 45% 42% 49%;background:radial-gradient(at 30% 25%,#ffe4a1,#da9148 64%,#8c4e29);box-shadow:0 2px 2px #653e36}
+.pal:before {content:"";position:absolute;top:-4px;left:3px;width:16px;height:8px;border-radius:70% 70% 35% 25%;background:linear-gradient(#fff,#cde5df);transform:rotate(-14deg)}
+.pal i {position:absolute;width:3px;height:4px;background:#402520;border-radius:50%;left:5px;top:10px;box-shadow:9px 0 #402520}
+.pal:after {content:"";position:absolute;width:8px;height:4px;border-bottom:2px solid #723c2b;border-radius:50%;left:7px;top:14px}
+main {position:relative}
+#advice:not([hidden]) {position:absolute;z-index:4;bottom:82px;right:10px;max-width:80%;padding:9px 30px 9px 12px;border-radius:15px;background:#fff3cc;color:#453224;box-shadow:0 4px 12px #233b3855;transform-origin:top right;animation:kitchen-swing .55s ease-out}
+#advice button {position:absolute;right:2px;top:1px;background:transparent}
+@keyframes kitchen-swing {from {transform:translateX(16px) rotate(9deg);opacity:0} 65% {transform:rotate(-3deg)}}
+main:has(#advice:not([hidden])) .pal {animation:kitchen-swing .55s ease-out}
+#board button:not(.lock,.selected,.match):nth-child(n) {background:radial-gradient(ellipse at 23% 16%,hsl(var(--district-hue) 82% 93%),hsl(var(--district-hue) 56% 76%) 72%,hsl(var(--district-hue) 44% 60%))}
+#board button:not(.lock,.selected,.match):nth-child(4n+1) {background:linear-gradient(140deg,hsl(calc(var(--district-hue) + 25) 88% 92%),hsl(calc(var(--district-hue) + 25) 65% 72%))}
+#board {width:min(100%,calc((100dvh - 252px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8))}
