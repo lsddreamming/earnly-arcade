@@ -197,6 +197,7 @@
     "icon": "🌱",
     "description": "Gather seeds. Grow your Spuddy."
   },
+  {"key":"spudsEmpire","name":"Spud’s Arcade Empire","href":"spuds-arcade-empire.html","icon":"🕹️","description":"Build and staff your neighborhood arcade."},
   {"key":"spudsKitchen","name":"Spud’s Kitchen: Merge & Serve","href":"spuds-kitchen.html","icon":"🍳","description":"Merge, serve and grow your café."},
   {"key":"metalMayhem","name":"Metal Mayhem","href":"metal-mayhem.html","icon":"⚔️","description":"Sever steel. Survive the arena."},
   {"key":"bigFishEnergy","name":"BIG FISH ENERGY","href":"big-fish-energy.html","icon":"🦈","description":"Eat fish. Become an ocean giant."}
@@ -239,7 +240,7 @@
   const storageKey = 'earnly.home.featured.queue.v2';
   let memoryState = null;
   const themes = ['slice','snake','jungle','breach'];
-  const previewImages = {spudsKitchen:'game-preview-spuds-kitchen.webp',metalMayhem:'game-preview-metal-mayhem.svg',bigFishEnergy:'game-preview-big-fish-energy.webp',bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
+  const previewImages = {spudsEmpire:'game-preview-spuds-empire.webp',spudsKitchen:'game-preview-spuds-kitchen.webp',metalMayhem:'game-preview-metal-mayhem.svg',bigFishEnergy:'game-preview-big-fish-energy.webp',bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
 
   function makeCard(info) {
     const original = existing.find(card => card.getAttribute('href') === info.href);

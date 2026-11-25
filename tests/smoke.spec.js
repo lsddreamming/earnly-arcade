@@ -138,6 +138,7 @@ test('launch gate exposes account deletion clearly on web and iOS', async ({ pag
 });
 
 test('rewarded play flow returns directly into the same game', async ({ page }) => {
+  await page.addInitScript(() => { window.EarnlyNativeAds = { isNative:true, showRewarded:async () => ({earned:true}) }; });
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => {
     const d=new Date();
@@ -153,8 +154,7 @@ test('rewarded play flow returns directly into the same game', async ({ page }) 
   await startGame(page);
   const gate=page.locator('dialog');
   await expect(gate).toContainText('One more run?');
-  await gate.getByRole('button',{name:/Watch demo ad.*Play Again/i}).click();
-  await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
+  await gate.getByRole('button',{name:/Watch ad.*Play Again/i}).click();
   await page.waitForTimeout(3900);
 
   await expect(page.locator('#gameStatus')).toHaveText('Running',{timeout:5000});
@@ -294,7 +294,7 @@ test('games catalog keeps Play readable, disabled actions readable, and avoids d
   // contrast across every accent instead of locking in the retired dark text.
   for (const catalog of ['starter', 'all']) {
     if (catalog === 'all') await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 31 : 4);
+    await expect(page.locator('#games .game-play-button')).toHaveCount(catalog === 'all' ? 32 : 4);
     const colors = await page.locator('#games .game-play-button:not(:disabled)').evaluateAll(buttons => {
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = 1;
@@ -324,7 +324,7 @@ test('games catalog keeps Play readable, disabled actions readable, and avoids d
         };
       });
     });
-    expect(colors).toHaveLength(catalog === 'all' ? 31 : 4);
+    expect(colors).toHaveLength(catalog === 'all' ? 32 : 4);
     for (const color of colors) {
       expect(color.contrast, color.game+' Play contrast').toBeGreaterThanOrEqual(4.5);
       expect(color.backgroundLight, color.game+' quiet Play background').toBeLessThan(0.1);
@@ -359,7 +359,7 @@ test('mobile catalog shows regular two-column game cards', async ({ page }) => {
   await page.goto('/games.html');
   const cards = page.locator('#games .catalog-tile');
   await page.locator('[data-filter=all]').click();
-  await expect(cards).toHaveCount(31);
+  await expect(cards).toHaveCount(32);
   const featured = cards.first();
   await expect(featured).toHaveAttribute('data-game', 'neonSlice');
   const feature = await featured.boundingBox();
@@ -1808,7 +1808,7 @@ test('out-of-plays flow offers rewarded plays without spending coins', async ({ 
   await expect(outDialog).toContainText('One more run?');
   await expect(outDialog).toContainText('Website video ads aren’t available yet');
   await expect(outDialog.getByRole('button', { name:'▶ Neon Slice · Unlimited free play' })).toBeVisible();
-  await expect(outDialog.getByRole('button', { name:/Watch demo ad.*Play Again/i })).toBeVisible();
+  await expect(outDialog.getByRole('button', { name:/Watch ad.*Play Again/i })).toHaveCount(0);
   await expect(outDialog.getByRole('button', { name:'Choose Another Game' })).toBeVisible();
   await expect(outDialog).not.toContainText(/spend .*coin/i);
 });
@@ -1876,6 +1876,7 @@ test('first completed run explains Coins and XP once', async ({ page }) => {
 });
 
 test('one-more-run gate grants exactly one play then returns control', async ({ page }) => {
+  await page.addInitScript(() => { window.EarnlyNativeAds = { isNative:true, showRewarded:async () => ({earned:true}) }; });
   await page.goto('/mini.html?game=shapeFit');
   await page.evaluate(() => {
     const d = new Date();
@@ -1890,8 +1891,7 @@ test('one-more-run gate grants exactly one play then returns control', async ({ 
   await startGame(page);
   const gate = page.locator('dialog');
   await expect(gate).toContainText('One more run?');
-  await gate.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
-  await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
+  await gate.getByRole('button', { name:/Watch ad.*Play Again/i }).click();
   await expect.poll(
     () => page.evaluate(() => Arcade.playAdStatus('shapeFit').used),
     { timeout: 8000 }
@@ -2083,6 +2083,7 @@ test('games page shows live daily mission progress', async ({ page }) => {
 
 
 test('full player journey preserves rewards missions and bonus plays', async ({ page }) => {
+  await page.addInitScript(() => { window.EarnlyNativeAds = { isNative:true, showRewarded:async () => ({earned:true}) }; });
   await page.goto('/games.html');
   await page.evaluate(() => {
     localStorage.clear();
@@ -2139,8 +2140,7 @@ test('full player journey preserves rewards missions and bonus plays', async ({ 
 
   await page.evaluate(() => Arcade.out('shapeFit'));
   await expect(page.locator('dialog')).toContainText('One more run?');
-  await page.getByRole('button', { name:/Watch demo ad.*Play Again/i }).click();
-  await expect(page.locator('dialog.reward-ad-dialog')).toBeVisible();
+  await page.getByRole('button', { name:/Watch ad.*Play Again/i }).click();
   await expect.poll(
     () => page.evaluate(() => Arcade.playAdStatus('shapeFit').used),
     { timeout: 8000 }
@@ -2515,14 +2515,17 @@ test('Profile keeps primary progress scannable and secondary data collapsed', as
   }
 });
 
-test('Crystal Command belongs to the 31-game catalog as a free searchable strategy beta', async ({page}) => {
+test('Crystal Command belongs to the 32-game catalog as a free searchable strategy beta', async ({page}) => {
   await page.goto('/games.html');
   await page.locator('[data-filter=all]').click();
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(31);
-  await expect(page.locator('#gameBrowseCount')).toHaveText('31 games to explore');
+  await expect(page.locator('#games .catalog-tile')).toHaveCount(32);
+  await expect(page.locator('#gameBrowseCount')).toHaveText('32 games to explore');
   await page.locator('[data-filter=strategy]').click();
   const card=page.locator('#games [data-game=crystalCommand]');
-  await expect(page.locator('#games .catalog-tile')).toHaveCount(3);
+  const strategy = page.locator('#games .catalog-tile');
+  await expect.poll(() => strategy.evaluateAll(cards => cards.map(card => card.dataset.game).sort())).toEqual([
+    'crystalCommand', 'spuddyTurf', 'spudsEmpire', 'spudsKitchen'
+  ]);
   await expect(page.locator('#games [data-game=spuddyTurf] a')).toHaveAttribute('href','spuddy-turf.html');
   await expect(card.locator('.game-play-button')).toHaveText('Play');
   await expect(card.locator('.game-play-button')).toHaveAttribute('href','crystal-command.html');
@@ -2835,7 +2838,7 @@ for (const prefix of ['/', '/www/']) {
     await expect(page.locator('#gameBrowseCount')).toContainText('fresh picks');
     const before = await page.evaluate(() => ({coins:Arcade.number('points'), plays:Arcade.remaining('snake')}));
     await page.locator('#browseAllGames').click();
-    await expect(cards).toHaveCount(31);
+    await expect(cards).toHaveCount(32);
     await expect(page.locator('#games [data-game=spuddyEvolution] .reward-rule')).toContainText('no Arcade Coin rewards');
     await expect(page.locator('[data-filter=all]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#browseAllGames')).toBeHidden();
@@ -2864,7 +2867,7 @@ for (const prefix of ['/', '/www/']) {
 }
 
 for (const prefix of ['/', '/www/']) {
-  test(prefix + 'Games starter picks rotate all 31 titles over eight page refreshes',async({page})=>{
+  test(prefix + 'Games starter picks rotate all 32 titles over eight page refreshes',async({page})=>{
     await page.route('https://**',r=>r.abort());
     const keys=()=>page.locator('#games > .catalog-tile').evaluateAll(items=>items.map(item=>item.dataset.game));
     const seen=[],groups=[];
@@ -2877,13 +2880,13 @@ for (const prefix of ['/', '/www/']) {
       if(groups.length)expect(selected.some(id=>groups.at(-1).includes(id))).toBe(false);
       groups.push(selected);seen.push(...selected);
     }
-    expect(new Set(seen).size).toBe(31);
+    expect(new Set(seen).size).toBe(32);
     await page.reload();
     const next=await keys();
     expect(next.some(id=>groups.at(-1).includes(id))).toBe(false);
     const unchanged=await keys();
     await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games > .catalog-tile')).toHaveCount(31);
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(32);
     await page.locator('[data-filter=starter]').click();
     expect(await keys()).toEqual(unchanged);
   });
@@ -2921,7 +2924,7 @@ for (const prefix of ['/', '/www/']) {
       await page.locator('#homeMorePicks').click();
       const pair=await keys();expect(pair[0]).not.toBe(pair[1]);seen.push(...pair);
     }
-    expect(new Set(seen).size).toBe(31);
+    expect(new Set(seen).size).toBe(32);
     const last=await keys();await page.reload();
     await expect(cards.first()).toHaveAttribute('data-game', /.+/);
     const next=await keys();expect(next.some(key=>last.includes(key))).toBe(false);

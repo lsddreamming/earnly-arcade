@@ -2147,8 +2147,8 @@ const Arcade = (() => {
     const resultAdStatus = game ? playAdStatus(game) : { remaining:0, bonus:PLAY_AD_BONUS };
     if (resultPlaysLeft > 0) {
       primary.textContent = '▶ Play Again · ' + resultPlaysLeft + ' Left';
-    } else if (resultAdStatus.remaining > 0) {
-      primary.textContent = rewardedProvider() ? '📺 Watch Ad · +1 Play & Replay' : 'Try demo replay · +1 Play';
+    } else if (resultAdStatus.remaining > 0 && rewardedProvider()) {
+      primary.textContent = '📺 Watch Ad · +1 Play & Replay';
     } else {
       primary.textContent = '🎟️ Plays Refill Tomorrow';
       primary.disabled = true;
@@ -2730,105 +2730,8 @@ const Arcade = (() => {
       return;
     }
 
-    panel(
-      'Unlocking 1 ' + gameName + ' play…',
-      'Keep this screen open. When the demo ends, you’ll jump straight back into the game.',
-      [['Cancel', () => {}, 'secondary']]
-    );
-
-    modal.className = 'reward-ad-dialog';
-
-    const reward = document.createElement('div');
-    reward.className = 'reward-ad-pill';
-    reward.textContent = '🎟️ +1 ' + gameName + ' play';
-
-    const progressWrap = document.createElement('div');
-    progressWrap.className = 'reward-ad-progress';
-
-    const track = document.createElement('div');
-    track.className = 'reward-ad-track';
-    track.setAttribute('role', 'progressbar');
-    track.setAttribute('aria-valuemin', '0');
-    track.setAttribute('aria-valuemax', '100');
-    track.setAttribute('aria-valuenow', '0');
-
-    const fill = document.createElement('div');
-    fill.className = 'reward-ad-fill';
-    track.append(fill);
-
-    const countdown = document.createElement('div');
-    countdown.className = 'reward-ad-countdown';
-    countdown.textContent = '3 seconds remaining';
-
-    progressWrap.append(track, countdown);
-    modal.insertBefore(reward, modal.querySelector('.modal-actions'));
-    modal.insertBefore(progressWrap, modal.querySelector('.modal-actions'));
-
-    const cancelButton = modal.querySelector('.modal-actions button');
-    if (cancelButton) cancelButton.classList.add('reward-ad-cancel');
-
-    const duration = 3000;
-    const startedAt = Date.now();
-    let finished = false;
-
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      clearInterval(timer);
-      fill.style.width = '100%';
-      track.setAttribute('aria-valuenow', '100');
-      countdown.textContent = 'Unlocked ✓';
-      reward.classList.add('complete');
-
-      // Re-check the cap at completion too. This protects against duplicate
-      // completion callbacks or another tab granting the same unlock.
-      const detail = grantRewardedPlayUnlock(g);
-      if (!detail) {
-        busy = false;
-        modal.close();
-        done();
-        return;
-      }
-      if (cancelButton) cancelButton.disabled = true;
-
-      const heading = modal.querySelector('h2');
-      const message = modal.querySelector('.modal-message');
-      if (heading) heading.textContent = '1 ' + gameName + ' play unlocked!';
-      if (message) message.textContent = 'Loading your next run…';
-
-      // Finish the reward UI before handing control back to the game.
-      // Previously done() could start the replay/countdown underneath this
-      // still-open ad dialog, hiding the beginning of the new run.
-      setTimeout(() => {
-        if (modal.open) modal.close();
-        modal.className = '';
-        busy = false;
-        toast('🎟️ +1 ' + gameName + ' play');
-        done();
-      }, 450);
-    };
-
-    const updateProgress = () => {
-      const elapsed = Date.now() - startedAt;
-      const percent = Math.min(100, (elapsed / duration) * 100);
-      const secondsLeft = Math.max(0, Math.ceil((duration - elapsed) / 1000));
-
-      fill.style.width = percent + '%';
-      track.setAttribute('aria-valuenow', String(Math.round(percent)));
-      countdown.textContent = secondsLeft > 0
-        ? secondsLeft + ' second' + (secondsLeft === 1 ? '' : 's') + ' remaining'
-        : 'Unlocking…';
-
-      if (elapsed >= duration) finish();
-    };
-
-    const timer = setInterval(updateProgress, 80);
-    updateProgress();
-
-    modal.addEventListener('close', () => {
-      clearInterval(timer);
-      if (!finished) busy = false;
-    }, { once:true });
+    busy = false;
+    out(g, done);
   }
 
   function resumeGameAfterRewardedPlay(g, done) {
@@ -2904,7 +2807,7 @@ const Arcade = (() => {
     const provider = rewardedProvider();
     const rewardedLabel = provider
       ? (provider.testMode ? 'Watch test ad' : 'Watch ad')
-      : 'Watch demo ad';
+      : '';
 
     queueEvent('one_more_run_shown', {
       game:g,
@@ -2917,10 +2820,10 @@ const Arcade = (() => {
       provider
         ? 'You used today’s free plays for ' + gameName + '. Watch one optional rewarded ad to unlock +1 play and jump straight back in. ' +
           status.remaining + ' of ' + status.limit + ' ad unlock' + (status.remaining === 1 ? '' : 's') + ' left today.'
-        : 'Today’s free plays for ' + gameName + ' are used. Website video ads aren’t available yet. Play Neon Slice free with no daily limit and no Coins needed, or try the optional demo replay below.',
+        : 'Today’s free plays for ' + gameName + ' are used. Website video ads aren’t available yet. Play Neon Slice free with no daily limit and no Coins needed, or choose another game.',
       [
         ...(!provider ? [['▶ Neon Slice · Unlimited free play', () => location.href = 'neon-slice.html', 'green']] : []),
-        [rewardedLabel + ' → Play Again', () => playAd(g, () => resumeGameAfterRewardedPlay(g, done)), provider ? 'green' : 'secondary'],
+        ...(provider ? [[rewardedLabel + ' → Play Again', () => playAd(g, () => resumeGameAfterRewardedPlay(g, done)), 'green']] : []),
         ...paidOption,
         ['Choose Another Game', () => location.href = 'games.html', 'secondary']
       ]
