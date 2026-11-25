@@ -110,10 +110,12 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _pages
+          name: github-pages-${{ github.run_attempt }}
 
       - name: Wait for the Pages artifact to become visible
         env:
           GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: github-pages-${{ github.run_attempt }}
         run: |
           python - <<'PYTHON'
           import json, os, time, urllib.request
@@ -130,7 +132,7 @@ jobs:
                   artifacts = [
                       artifact
                       for artifact in json.load(response)["artifacts"]
-                      if artifact["name"] == "github-pages"
+                      if artifact["name"] == os.environ["ARTIFACT_NAME"]
                   ]
               if len(artifacts) == 1:
                   print("Pages artifact metadata is available.")
@@ -151,7 +153,10 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        # v4.0.0 uses the same run-scoped REST artifact lookup verified above.
+        uses: actions/deploy-pages@f33f41b675f0ab2dc5a6863c9a170fe83af3571e
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
 
   verify-catalog:
     name: Verify published catalog on mobile WebKit
