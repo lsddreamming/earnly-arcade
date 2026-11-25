@@ -240,3 +240,73 @@ body.studio-dashboard #shop-grid .item-art[data-slot=jewelry][data-detail=true] 
 #purchase-preview .character img:is([data-slot="head"], [data-slot="outfit"]) {
   filter: drop-shadow(0 1.4px 1.1px rgb(49 28 37 / 38%));
 }
+
+/* Illustrated departments share a single texture to keep the mobile picker light. */
+.studio-dashboard .shop-category-group {
+  --accent: #ffc76f;
+  --tile-light: #664831;
+  --art-position: 0% 0%;
+  display: grid;
+  justify-items: center;
+  margin: 0;
+  gap: 3px;
+  padding: 8px 7px 5px;
+  border-radius: 15px;
+  background: radial-gradient(ellipse at top, var(--tile-light), transparent 85%), #101528;
+  box-shadow: inset 0 1px 0 #ffffff1a, 0 3px 0 #050b16;
+}
+.studio-dashboard .shop-category-group[data-department="face"] { --accent: #89dcff; --tile-light: #205274; --art-position: 50% 0%; }
+.studio-dashboard .shop-category-group[data-department="clothes"] { --accent: #dfaeff; --tile-light: #503570; --art-position: 100% 0%; }
+.studio-dashboard .shop-category-group[data-department="gear"] { --accent: #ffb477; --tile-light: #703f36; --art-position: 0% 100%; }
+.studio-dashboard .shop-category-group[data-department="extras"] { --accent: #ffa4d1; --tile-light: #6b365b; --art-position: 50% 100%; }
+.studio-dashboard .shop-category-group[data-department="battle"] { --accent: #a7b7ff; --tile-light: #353e79; --art-position: 100% 100%; }
+.studio-dashboard .shop-category-group::before {
+  content: "";
+  width: clamp(52px, 15vw, 72px);
+  aspect-ratio: 1;
+  background: url("studio-departments.webp") var(--art-position) / 300% 200% no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse, black 54%, transparent 76%);
+  mask-image: radial-gradient(ellipse, black 54%, transparent 76%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.studio-dashboard .shop-category-group > span {
+  margin: 0;
+  font-size: 13px;
+  color: var(--accent);
+}
+.studio-dashboard .shop-category-group select,
+.studio-dashboard .shop-category-group.is-active select {
+  background: #090f20;
+  color: #f4f5ff;
+  padding-inline: 6px 18px;
+  font-size: 16px;
+  border-radius: 8px;
+}
+.studio-dashboard .shop-category-group::after { bottom: 24px; right: 15px; }
+.studio-dashboard .shop-category-group.is-active,
+.studio-dashboard .shop-category-group:focus-within {
+  border-color: var(--accent);
+  box-shadow: inset 0 -3px 0 var(--accent), 0 3px 0 #050b16;
+}
+.studio-dashboard .showcase #character-stage {
+  background: radial-gradient(ellipse at 25% 23%, #42717e, transparent 58%),
+    radial-gradient(ellipse at 88% 49%, #5e4578, transparent 56%),
+    linear-gradient(165deg, #21344b, #1d293e 65%, #11172c);
+}
+.studio-dashboard #character-stage .character,
+.studio-dashboard #purchase-preview .character {
+  filter: saturate(1.08) contrast(1.035) drop-shadow(0 4px 3px #08112188);
+}
+/* Short opposing rim and contact shadows follow each wearable's silhouette. */
+.studio-dashboard :is(#character-stage, #purchase-preview) .character img:is(
+  [data-slot="outfit"], [data-slot="head"], [data-slot="shoes"], [data-slot="hair"],
+  [data-slot="weapon"], [data-slot="backpack"], [data-slot="pet"], [data-slot="face"],
+  [data-slot="jewelry"], [data-slot="beard"]
+) {
+  filter: drop-shadow(-0.5px -0.6px 0.35px #fff3d988) drop-shadow(0.6px 1.5px 1px #17102680);
+}
+.studio-dashboard #shop-grid .item-card .item-art {
+  background: radial-gradient(ellipse at 28% 19%, #314c60, transparent 65%),
+    radial-gradient(ellipse at 87% 80%, #443457, transparent 62%), #172237;
+}
