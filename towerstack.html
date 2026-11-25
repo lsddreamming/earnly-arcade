@@ -43,7 +43,7 @@
     <button class="green wide" id="startButton" type="button">👆 Tap the Tower to Start</button>
 
     <div class="tower-info" id="towerInfo"><div><strong id="towerDistrict">Harbor Lights</strong><small><span id="heightPreview">0</span> m · Speed <span id="speedPreview">1.0</span>x</small></div><div class="tower-next"><span id="towerGoal">Next skyline at 10 floors</span><small>Platform: <span id="widthPreview">100</span>%</small></div></div>
-    <p class="tower-reward-next" id="rewardTarget">Next floor Coin at floor 3</p>
+    <div class="tower-help-row"><p class="tower-reward-next" id="rewardTarget">Next floor Coin at floor 3</p></div>
     <canvas class="tower-board touch-surface" id="game" width="360" height="560" aria-label="Tower Stack game board"></canvas>
     <div id="towerControls" aria-label="Tower Stack session controls"></div>
     <a class="button wide secondary" href="games.html">← Back to Games</a>
@@ -66,7 +66,7 @@
     const WORLD_WIDTH=360,WORLD_HEIGHT=560,renderScale=Math.min(3,window.devicePixelRatio||1);
     canvas.width=Math.round(WORLD_WIDTH*renderScale);canvas.height=Math.round(WORLD_HEIGHT*renderScale);ctx.setTransform(renderScale,0,0,renderScale,0,0);
     const floorsEl=document.getElementById('floors'),perfectsEl=document.getElementById('perfects'),speedPreviewEl=document.getElementById('speedPreview'),rewardPreviewEl=document.getElementById('rewardPreview'),rewardTarget=document.getElementById('rewardTarget'),playsEl=document.getElementById('plays'),balanceEl=document.getElementById('balance'),statusEl=document.getElementById('gameStatus'),startButton=document.getElementById('startButton');
-    Arcade.gameGuide({game:'towerStack',surface:canvas,detailsAfter:'#startButton',steps:[{icon:'👆',title:'Start',text:'Tap the tower'},{icon:'⬇️',title:'Control',text:'Tap to drop a floor'},{icon:'🏙️',title:'Goal',text:'Build beyond the skyline'}],overlayIcon:'🏗️',overlayTitle:'Build Your Skyline',overlayText:'Tap when the moving floor lines up. Overhangs fall away; centered drops keep your full width.',replayTitle:'Tap to Play Again',tips:['Overhangs are cut away. A complete miss ends the run.','Perfect chains and skyline districts are extra goals; Coin rewards remain unchanged.'],reward:'1 Coin per 3 floors, +1 per 10 perfects, with bonuses at 20, 50 and 100 floors. Up to 100 Coins in a deep run.'});
+    Arcade.gameGuide({game:'towerStack',surface:canvas,detailsAfter:'#rewardTarget',steps:[{icon:'👆',title:'Start',text:'Tap the tower'},{icon:'⬇️',title:'Control',text:'Tap to drop a floor'},{icon:'🏙️',title:'Goal',text:'Build beyond the skyline'}],overlayIcon:'🏗️',overlayTitle:'Build Your Skyline',overlayText:'Tap when the moving floor lines up. Overhangs fall away; centered drops keep your full width.',replayTitle:'Tap to Play Again',tips:['Overhangs are cut away. A complete miss ends the run.','Perfect chains and skyline districts are extra goals; Coin rewards remain unchanged.'],reward:'1 Coin per 3 floors, +1 per 10 perfects, with bonuses at 20, 50 and 100 floors. Up to 100 Coins in a deep run.'});
     const blockHeight=28,startWidth=190,baseY=500,MAX_COINS=100;
     const palette=['#53a7ff','#59d6ba','#ffd075','#b69bff','#ef91cd','#78d9ef'];
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
