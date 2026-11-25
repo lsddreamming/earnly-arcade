@@ -2949,3 +2949,4 @@ for (const prefix of ['/', '/www/']) {
     expect(after).toHaveLength(2);expect(after.some(key=>before.includes(key))).toBe(false);
   });
 }
+require('./empire-floor.cases.js');
