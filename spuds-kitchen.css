@@ -229,3 +229,40 @@ body {
   background: linear-gradient(#ffdf92, #efb75e);
   box-shadow: inset 0 2px #ffeab7, inset 0 -3px #c58242, 0 2px 0 #744f36;
 }
+
+/* Glazed prep wells, worn wood and lit merge targets. */
+#board button:not(.lock):nth-child(n) {
+  border-color: #809e8c;
+  border-radius: 15%;
+  background: radial-gradient(ellipse at 30% 16%, #f0fbe7, #c4dfcc 65%, #a8c7b8);
+}
+#board button:not(.lock, .match, .selected) {
+  box-shadow: inset 0 1px 1px #fffff4, inset 0 -2px 2px #72968b;
+}
+#board button > svg { filter: drop-shadow(0 2px 1px #38463466); }
+#board button.lock {
+  border-color: #947251;
+  background: repeating-linear-gradient(4deg, transparent 0 7px, #89664532 8px, transparent 10px), linear-gradient(150deg, #c8ab86, #ad8e69);
+  box-shadow: inset 0 1px #dec29c, inset 0 -2px #89694e;
+}
+#board button.selected:nth-child(n) {
+  background: radial-gradient(ellipse at 35% 20%, #fff8d2, #ffd27d);
+  box-shadow: inset 0 0 0 3px #af5e18;
+}
+#board button.match:nth-child(n) {
+  background: radial-gradient(ellipse at 40% 25%, #f4ffdd, #b5ebbe);
+  box-shadow: inset 0 0 0 3px #248269;
+}
+#board button.match::after {
+  content: "";
+  position: absolute;
+  width: 12%;
+  aspect-ratio: 1;
+  top: 10%;
+  right: 10%;
+  border-radius: 25%;
+  background: #fff9bc;
+  box-shadow: 0 0 0 1px #32745c;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
