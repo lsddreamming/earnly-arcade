@@ -277,3 +277,5 @@ body.games-dashboard #games.compact-catalog-grid > section.catalog-tile .game-pl
     border-color:var(--tile-accent)!important;
   }
 }
+
+.game-icon-bubble > img { display:block; width:100%; height:100%; object-fit:cover; border-radius:inherit; }

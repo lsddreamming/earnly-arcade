@@ -62,7 +62,7 @@
     }
   </style>
   <link rel="stylesheet" href="public-info.css">
-  <link rel="stylesheet" href="games-showroom.css?v=6">
+  <link rel="stylesheet" href="games-showroom.css?v=7">
   <link rel="stylesheet" href="games-pathways.css?v=3">
   <link rel="canonical" href="https://earnlyarcade.com/games.html">
   <link rel="stylesheet" href="arcade-chat.css?v=1">
@@ -288,6 +288,23 @@
     }
     const starterKeys = nextStarterPicks();
     const gamePreviews = {
+      mergeRush: {src:'merge-rush.webp', label:'Merge the tiles'},
+      colorMatch: {src:'color-match.webp', label:'Match the ink'},
+      safeCracker: {src:'safe-cracker.webp', label:'Time the dial'},
+      neonBreach: {src:'neon-breach.webp', label:'Survive the wave'},
+      blockDrop: {src:'block-drop.webp', label:'Complete a line'},
+      tapRush: {src:'tap-rush.webp', label:'Hit green'},
+      jungleHopper: {src:'jungle-hopper.webp', label:'Thread the vines'},
+      coinCatch: {src:'coin-catch.webp', label:'Catch the coins'},
+      paddleRally: {src:'paddle-rally.webp', label:'Return the shot'},
+      laneRunner: {src:'lane-runner.webp', label:'Dodge traffic'},
+      neonDrift: {src:'neon-drift.webp', label:'Hold the drift'},
+      perfectDrop: {src:'perfect-drop.webp', label:'Land on target'},
+      shapeFit: {src:'shape-fit.webp', label:'Fit the silhouette'},
+      bounceRun: {src:'bounce-run.webp', label:'Clear the spikes'},
+      trafficEscape: {src:'traffic-escape.webp', label:'Clear the lot'},
+      starDefender: {src:'star-defender.webp', label:'Defend the stars'},
+      harborGetaway: {src:'harbor-getaway.webp', label:'Explore the harbor'},
       brickBreaker: {src:'brick-breaker.webp', label:'Line up a rebound'},
       neonMaze: {src:'neon-maze.webp', label:'Outrun the sentries'},
       crystalCommand: {src:'crystal-command.webp', label:'Command your army'},
@@ -301,7 +318,7 @@
       spuddyEvolution: {src:'spuddy-evolution.webp', label:'Capture & evolve', description:'Pull in monsters. Haul cargo to base. Upgrade your alien Spuddy.'},
       spudsEmpire: {src:'spuds-empire.webp', label:'Build your arcade', description:'Hire a crew and expand your arcade.'},
       spudsKitchen: {src:'spuds-kitchen.webp', label:'Fresh from your kitchen', description:'Merge ingredients and serve your neighborhood.'},
-      metalMayhem: {src:'metal-mayhem.svg', label:'Built to break.', description:'Dismantle robot gladiators. Upgrade. Survive the next wave.'},
+      metalMayhem: {src:'metal-mayhem.webp', label:'Built to break.', description:'Dismantle robot gladiators. Upgrade. Survive the next wave.'},
       bigFishEnergy: {src:'big-fish-energy.webp', label:'Small fry. Big future.', description:'Eat, escape and grow into a gigantic ocean legend.'}
     };
     function starterPreview(info) {
@@ -455,6 +472,15 @@
         const gameIcon = document.createElement('span');
         gameIcon.className = 'game-icon-bubble';
         gameIcon.textContent = info.icon;
+        const cover = gamePreviews[info.key];
+        if (activeGameFilter !== 'starter' && cover) {
+          const thumbnail = document.createElement('img');
+          thumbnail.alt = '';
+          thumbnail.src = 'game-preview-' + cover.src;
+          thumbnail.loading = 'lazy';
+          thumbnail.addEventListener('error', () => { gameIcon.textContent = info.icon; }, {once:true});
+          gameIcon.replaceChildren(thumbnail);
+        }
         const title = document.createElement('h2');
         title.textContent = info.name;
         titleWrap.append(gameIcon, title);
