@@ -9,10 +9,10 @@ let state=fresh();
 try{const s=JSON.parse(localStorage.getItem(key));if(s&&venues[s.venue]&&s.levels?.length===5&&s.levels.every(n=>Number.isInteger(n)&&n>=0&&n<=50)&&Number.isFinite(s.cash)&&Number.isFinite(s.lifetime))state={...state,...s}}catch{}
 const $=s=>document.querySelector(s), fmt=n=>new Intl.NumberFormat('en',{notation:n>=10000?'compact':'standard',maximumFractionDigits:0}).format(n);
 const unit=()=>8**state.venue;
-const price=i=>Math.ceil(unit()*[14,18,80,32,40][i]*1.35**state.levels[i]);
+const price=i=>Math.ceil(unit()*[22,30,150,48,65][i]*1.55**state.levels[i]);
 const ticket=()=>unit()*(3+state.levels[0]*2+state.levels[3]);
-const rate=()=>ticket()*state.levels[1]*(1+state.levels[2]*.3)/4;
-const expansion=()=>unit()*2200;
+const rate=()=>ticket()*state.levels[1]*(1+state.levels[2]*.15)/24;
+const expansion=()=>unit()*14000*(1+state.venue*.6);
 let tab='Floor',zoom=1,lastSale=-20,lastTick=performance.now(),serverBase=0,baseTick=0,settling=false,paused=false;
 function save(){try{localStorage.setItem(key,JSON.stringify(state))}catch{$('#notice').textContent='Storage unavailable. Progress lasts for this visit.'}}
 function credit(n){state.cash+=n;state.lifetime+=n}
@@ -28,10 +28,10 @@ function render(){
  const goal=25*2**state.claimed;row('Customer milestone',fmt(state.served)+' / '+fmt(goal)+' served','Collect',()=>{if(state.served<goal)return;state.claimed++;credit(ticket()*15);action('Milestone bonus collected')},state.served<goal);
  const next=venues[state.venue+1];if(next)row('Open '+next[0],'Start a fresh floor with 8× base ticket value.','$'+fmt(expansion()),()=>{if(state.cash<expansion())return;state.cash-=expansion();state.venue++;state.levels=[1,0,0,0,0];action('Your new location is open!')},state.cash<expansion());
  venues.forEach((v,i)=>row(v[0],i<=state.venue?v.slice(1).join(' · '):'Unlock after '+venues[i-1][0]));return}
- const details=['Higher ticket value · new machines at levels 4 and 8','Automatically serves paying customers','Increases attendant income by 30% per level','More seats and higher ticket value','Adds 30 minutes of offline capacity'];
+ const details=['Higher ticket value · new machines at levels 4 and 8','Automatically serves paying customers','Increases attendant income by 15% per level','More seats and higher ticket value','Adds 30 minutes of offline capacity'];
  for(const i of tab==='Floor'?[0,3,4]:[1,2]){const level=state.levels[i],cost=price(i);row(names[i]+' · '+level,details[i],level===50?'Max':'$'+fmt(cost),()=>{if(level>=50||state.cash<cost)return;state.cash-=cost;state.levels[i]++;action(names[i]+' upgraded')},level>=50||state.cash<cost)}
 }
-$('#serve').onclick=()=>{if(paused)return;credit(ticket());state.served++;lastSale=performance.now()/1000;action('+$'+fmt(ticket())+' at the register')};
+$('#serve').onclick=()=>{if(paused||performance.now()/1000-lastSale<1.5)return;credit(ticket());state.served++;lastSale=performance.now()/1000;const register=$('#serve');register.disabled=true;register.textContent='Serving…';setTimeout(()=>{register.disabled=false;register.textContent='Serve a customer'},1500);action('+$'+fmt(ticket())+' at the register')};
 $('#sound').onclick=()=>{state.sound=!state.sound;action(state.sound?'Sound on':'Sound off')};
 $('#zoom').onclick=()=>{zoom=zoom===1?1.2:1;$('#zoom').textContent=zoom+'×'};
 document.querySelector('nav').onclick=e=>{if(e.target.dataset.tab){tab=e.target.dataset.tab;render()}};
