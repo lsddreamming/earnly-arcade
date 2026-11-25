@@ -42,11 +42,13 @@ test('Arcade Empire renders its interactive floor and preserves sales after relo
 });
 
 test('a returning counter worker opens and keeps the app workshop',async({page})=>{
-  await page.goto('/spuds-arcade-empire.html');
+  // Seed the returning save before the game starts its pagehide checkpoint.
+  await page.route('**/empire-save-fixture', route => route.fulfill({contentType:'text/html',body:'<!doctype html>'}));
+  await page.goto('/empire-save-fixture');
   await page.evaluate(()=>localStorage.setItem('earnly.empire.guest.v1',JSON.stringify({
     levels:[1,0,0,0,0],venue:0,served:15,cash:450,lifetime:450
   })));
-  await page.reload();
+  await page.goto('/spuds-arcade-empire.html');
   await page.getByRole('button',{name:'Studio',exact:true}).click();
   await page.getByRole('button',{name:'$450',exact:true}).click();
   await expect(page.locator('#cash')).toHaveText('$0');
