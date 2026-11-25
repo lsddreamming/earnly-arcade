@@ -250,7 +250,7 @@ body.has-app-nav{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
  .studio-shortcuts{margin:5px 0 10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
  .studio-shortcuts a{font-size:10px;min-width:0;padding:9px 5px;text-align:center}
  .studio-layout{display:flex;flex-direction:column;gap:10px}
- .showcase.panel{order:0}
+ .showcase.panel{order:0;align-self:stretch}
  .shop.panel{order:1}
  .shop-tabs{display:flex!important;overflow-x:auto;gap:7px;scroll-snap-type:x proximity;padding:5px 0;scrollbar-width:thin}
  .shop-tabs button{flex:0 0 auto;min-height:44px;padding:9px 13px;scroll-snap-align:start}
