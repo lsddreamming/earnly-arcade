@@ -322,3 +322,70 @@ main {
   justify-self: center;
   margin: 0;
 }
+
+/* The order rail uses the reserved 80px at every phone height. */
+#orders > button {
+  display: grid;
+  grid-template: 32px 22px 17px / minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(108deg, #fff9e9, #f4dcac);
+}
+#orders > button > svg:first-child {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: clamp(19px, 5.4vw, 28px);
+}
+#orders b {
+  width: 100%;
+  padding-left: clamp(24px, 6vw, 32px);
+  font-size: clamp(10px, 2.7vw, 13px);
+  line-height: 1.05;
+}
+.ticket-items { display: flex; align-items: center; justify-content: center; }
+#orders .ticket-items svg { width: 21px; height: 21px; }
+#orders small {
+  align-self: end;
+  width: 94%;
+  border-top: 1px dashed #b69466;
+  font-size: 10px;
+  line-height: 15px;
+}
+#orders .ready small { color: #154f37; border-color: #6d9d70; }
+#district {
+  background: linear-gradient(90deg, #f0c373 var(--recipe-progress), #467268 var(--recipe-progress)) left bottom / 100% 3px no-repeat, #244c48;
+}
+body.game-active {
+  background: radial-gradient(ellipse at 50% 28%, #51847980, transparent 65%),
+    repeating-linear-gradient(90deg, #ffffff05 0 1px, transparent 1px 12px), #1c4944;
+}
+/* A quiet china pattern is visible through the empty prep wells only. */
+#board button:empty:not(.lock)::before {
+  content: "";
+  position: absolute;
+  inset: 36%;
+  border: 1px solid #fff9;
+  border-radius: 45% 12%;
+  transform: rotate(45deg);
+  box-shadow: 0 1px #48675730;
+  pointer-events: none;
+}
+#board button.lock {
+  color: transparent;
+  background: repeating-linear-gradient(3deg, transparent 0 6px, #633d2c22 7px, transparent 8px),
+    linear-gradient(165deg, #b98e65, #987151);
+}
+#board button.lock::after {
+  content: "";
+  position: absolute;
+  left: 34%; top: 40%; width: 32%; height: 14%;
+  border: 1px solid #775638;
+  border-top-color: #ffe0a2;
+  border-radius: 3px 3px 50% 50%;
+  background: linear-gradient(#edc385, #b6844c);
+  box-shadow: 0 2px 2px #67452c80;
+}
