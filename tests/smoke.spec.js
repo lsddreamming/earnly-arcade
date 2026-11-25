@@ -2439,6 +2439,9 @@ test('ordinary browser keeps the option to install Earnly', async ({ page }) => 
 
 for (const rejects of [false, true]) {
   test('fresh sign-in button ' + (rejects ? 'shows an authentication error' : 'connects and returns Home'), async ({ page }) => {
+    let finishSignIn;
+    const pendingSignIn = new Promise(resolve => { finishSignIn = resolve; });
+    await page.exposeFunction('waitForSignInResponse', () => pendingSignIn);
     await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
       contentType:'application/javascript',
       body:`window.supabase={createClient:()=>{
@@ -2447,7 +2450,7 @@ for (const rejects of [false, true]) {
         return {auth:{
           getSession:async()=>({data:{session:current},error:null}),
           signInWithPassword:async({email})=>{
-            await new Promise(resolve=>setTimeout(resolve,500));
+            await window.waitForSignInResponse();
             if (${rejects}) return {data:null,error:{message:'Invalid login credentials'}};
             current={user:{id:email,email},access_token:'test'};
             return {data:current,error:null};
@@ -2463,6 +2466,7 @@ for (const rejects of [false, true]) {
     await page.locator('#cloudSignInButton').click();
     await expect(page.locator('#cloudSignInButton')).toHaveText('Connecting…');
     await expect(page.locator('#cloudSignInButton')).toBeDisabled();
+    finishSignIn();
     if (rejects) {
       await expect(page.locator('#cloudAuthFeedback')).toContainText('Invalid login credentials');
       await expect(page.locator('#cloudSignInButton')).toBeEnabled();
