@@ -41,6 +41,7 @@ function county(s, page, note, act) {
     const ready = s.board.filter(id => id === job.id).length;
     note(area.places[site % 6] + " · " + ["Feed the surveyors","Stock the workshop","Cater the crew lunch","Host opening night"][step % 4] + " · " + name(job.id) + " " + delivered + "/" + job.count);
     if (venue !== s.venue) note("Find these ingredients at " + venues[venue].name + ".");
+    if (!ready) note("Back in the kitchen, merge ingredients to make "+name(job.id)+". Return here to deliver one at a time.");
     if (ready) act("Deliver " + name(job.id), () => {
       const at = s.board.indexOf(job.id);
       if ((s.countyStep || 0) !== step || at < 0) return;
@@ -115,15 +116,27 @@ function playRound(page, bowling, record, finish) {
 
 export function showTown(s, page, note, act, save) {
   const open=s.townOpen || 0;
-  page.insertAdjacentHTML("beforeend", skyline(open));
-  note(open ? stops[open-1].line : "Spuddy finds four empty sockets on Lantern Row’s festival sign. The businesses that used to light them have closed. One supper order will help Pip reopen the first stall.");
+  note("Build a town with your kitchen. Merge matching ingredients and serve customers to earn the cash that reopens shops.");
+
   const next=stops[open];
   if(next){
+    note("Your goal · Reopen "+next.name);
+    const remaining = Math.max(0, next.orders - s.served);
+    if (remaining) note("Serve "+remaining+" more customer"+(remaining === 1 ? "" : "s")+" in the kitchen.");
+    else if (s.money < next.cost) note("Earn $"+(next.cost-s.money)+" more by serving customers.");
     note("Next opening · "+next.name+" · Orders "+Math.min(s.served,next.orders)+"/"+next.orders+" · Restaurant cash $"+s.money+"/$"+next.cost);
     if(s.served>=next.orders && s.money>=next.cost)act("Reopen "+next.name,()=>{if((s.townOpen||0)===open && s.money>=next.cost){s.money-=next.cost;s.townOpen=open+1;}});
   }
   if (open === stops.length) county(s, page, note, act);
   else note("Restore Lantern Row to open the county atlas: 16 more neighborhoods await.");
+  page.insertAdjacentHTML("beforeend", skyline(open));
+  if (open) note(stops[open-1].line);
+  if (open) {
+    const heading = document.createElement("h3");
+    heading.textContent = "Optional stops";
+    page.append(heading);
+    note("Shop deliveries earn restaurant cash. Arcade and bowling games save your best score. You can skip them and keep rebuilding.");
+  }
   for(const place of stops.slice(0,open)){
     const h=document.createElement("h3");h.textContent=place.name;page.append(h);
     if(place.item!==undefined){
@@ -133,6 +146,7 @@ export function showTown(s, page, note, act, save) {
       if(at>=0)act("Deliver "+item,()=>{if(s.board[at]===place.item+10){s.board[at]=null;s.money+=place.item*4;}});
     }else{
       const bowling=place.sign==="BOWL", key=bowling?"bowlingBest":"arcadeBest";
+      note(bowling ? "Tap Roll ball when the ball reaches the gold stripe. Three rolls, up to 30 pins." : "Tap Catch spark when the spark reaches the gold stripe. Three catches, up to 300 points.");
       const start=document.createElement("button");start.textContent=(bowling?"Play three rolls":"Play Spark Catch")+" · Best "+(s[key]||0);
       const stage=document.createElement("div");page.append(start,stage);
       start.onclick=()=>{start.disabled=true;stage.replaceChildren();playRound(stage,bowling,s[key]||0,total=>{s[key]=Math.max(s[key]||0,total);save();start.textContent=(bowling?"Play three rolls":"Play Spark Catch")+" · Best "+s[key];start.disabled=false;});};

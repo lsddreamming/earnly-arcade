@@ -403,14 +403,18 @@ const sections = [
   "Settings",
 ];
 function journal() {
-  page.replaceChildren(
-    ...sections.map((t) =>
-      button(t, () => {
-        tab = t;
-        journal();
-      }),
-    ),
-  );
+  page.replaceChildren();
+  const navigation = document.createElement("details");
+  const summary = document.createElement("summary");
+  summary.textContent = "Journal tools & settings";
+  navigation.append(summary);
+  for (const section of sections) {
+    navigation.append(button(section, () => {
+      tab = section;
+      journal();
+      page.parentElement.scrollTop = 0;
+    }));
+  }
   const h = document.createElement("h2");
   h.textContent = tab;
   page.append(h);
@@ -430,6 +434,7 @@ function journal() {
     );
   const v = venues[s.venue],
     n = s.decor[s.venue];
+  page.append(navigation);
   if (tab === "Lantern Row") showTown(s, page, note, act, save);
   if (tab === "Restaurant") {
     note(v.name + " · " + v.detail);
@@ -604,8 +609,10 @@ function room(v, n) {
 }
 $("menu").textContent = "Town & Journal";
 $("menu").onclick = () => {
+  tab = "Lantern Row";
   journal();
   dialog.showModal();
+  dialog.scrollTop = 0;
 };
 $("close").onclick = () => dialog.close();
 document.addEventListener("visibilitychange", () => {
