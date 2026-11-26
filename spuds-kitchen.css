@@ -363,17 +363,6 @@ body.game-active {
   background: radial-gradient(ellipse at 50% 28%, #51847980, transparent 65%),
     repeating-linear-gradient(90deg, #ffffff05 0 1px, transparent 1px 12px), #1c4944;
 }
-/* A quiet china pattern is visible through the empty prep wells only. */
-#board button:empty:not(.lock)::before {
-  content: "";
-  position: absolute;
-  inset: 36%;
-  border: 1px solid #fff9;
-  border-radius: 45% 12%;
-  transform: rotate(45deg);
-  box-shadow: 0 1px #48675730;
-  pointer-events: none;
-}
 #board button.lock {
   color: transparent;
   background: repeating-linear-gradient(3deg, transparent 0 6px, #633d2c22 7px, transparent 8px),
@@ -389,3 +378,34 @@ body.game-active {
   background: linear-gradient(#edc385, #b6844c);
   box-shadow: 0 2px 2px #67452c80;
 }
+
+/* Morning service on Lantern Row. The scenery sits behind the fixed order rail. */
+body.game-active {
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20560%20210%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22sky%22%20x2%3D%220%22%20y2%3D%221%22%20gradientUnits%3D%22objectBoundingBox%22%3E%3Cstop%20stop-color%3D%22%2364cced%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ffedb7%22%2F%3E%3C%2FlinearGradient%3E%3Cpattern%20id%3D%22awning%22%20width%3D%2236%22%20height%3D%2228%22%20patternUnits%3D%22userSpaceOnUse%22%3E%3Cpath%20fill%3D%22%23fff0c3%22%20d%3D%22M0%200h36v28H0z%22%2F%3E%3Cpath%20fill%3D%22%23ec725a%22%20d%3D%22M0%200h18v28H0z%22%2F%3E%3C%2Fpattern%3E%3C%2Fdefs%3E%3Cpath%20fill%3D%22url(%23sky)%22%20d%3D%22M0%200h560v210H0z%22%2F%3E%3Ccircle%20cx%3D%22439%22%20cy%3D%2232%22%20r%3D%2221%22%20fill%3D%22%23ffec9e%22%2F%3E%3Cpath%20d%3D%22M0%20116Q60%2048%20125%2098T254%20100T387%2085T560%2095V210H0%22%20fill%3D%22%2387bc8c%22%2F%3E%3Cg%20fill%3D%22%23f7cea0%22%20stroke%3D%22%23ab785b%22%20stroke-width%3D%223%22%3E%3Cpath%20d%3D%22M12%2094h100v85H12zM134%2082h96v85h-96zM364%2094h76v86h-76zM465%2077h90v100h-90z%22%2F%3E%3C%2Fg%3E%3Cpath%20fill%3D%22%23446e72%22%20d%3D%22m5%2094%2054-35%2060%2035zm121-12%2054-33%2059%2033zm231%2012%2045-32%2045%2032zm100-17%2051-33%2051%2033z%22%2F%3E%3Cpath%20fill%3D%22url(%23awning)%22%20d%3D%22m7%20112%207-14h96l8%2014v7H7zm352%203%206-14h74l7%2014v7h-87zm104-13%205-14h84l7%2014v7h-96z%22%2F%3E%3Cg%20fill%3D%22%2361878a%22%3E%3Cpath%20d%3D%22M29%20125h29v29H29zm45%200h21v50H74zm79-29h19v28h-19zm34%200h19v28h-19zm289%2022h24v35h-24zm42%200h22v59h-22z%22%2F%3E%3C%2Fg%3E%3Cpath%20fill%3D%22%23dba975%22%20d%3D%22M0%20165q180-25%20302-7t258-2v55H0z%22%2F%3E%3C%2Fsvg%3E") center top / max(100%, 440px) auto no-repeat,
+    repeating-linear-gradient(0deg, transparent 0 38px, #a97c6030 39px 40px),
+    linear-gradient(110deg, #e6c49e, #fae6c9 48%, #dcb58d);
+}
+header strong, header a { color: #153e49; text-shadow: 0 1px #fff5ce; }
+#hud { background: transparent; padding: 2px 0; gap: 4px; }
+#hud span {
+  flex: 1; text-align: center; background: #fff5d9; color: #633b28;
+  border-radius: 14px; box-shadow: inset 0 -2px #dfb584, 0 1px 3px #755d4e55;
+  line-height: 21px; white-space: nowrap;
+}
+#orders > button {
+  grid-template: 22px 32px 17px / minmax(0,1fr);
+  background: linear-gradient(120deg,#fffaf0,#ffe6bd);
+}
+#orders > button > svg:first-child {
+  width: clamp(30px, 9vw, 48px); left: 1px; top: 18px;
+}
+#orders b { padding: 0; }
+.ticket-items { padding-left: clamp(26px, 8vw, 43px); }
+#orders .ticket-items svg { width: clamp(18px, 5.5vw, 28px); height: auto; }
+#board button:not(.lock,.selected,.match):nth-child(n) {
+  border-radius: 10%; border-color: #c1b4a4;
+  background: linear-gradient(140deg,#fffae9,hsl(var(--district-hue) 34% 87%));
+  box-shadow: inset 0 1px #fffefa;
+}
+#tip { color: #452e27; background: #fff2d9; border-radius: 9px; }
+#actions:empty { background: transparent; }
