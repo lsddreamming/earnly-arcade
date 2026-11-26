@@ -240,7 +240,54 @@
   const storageKey = 'earnly.home.featured.queue.v2';
   let memoryState = null;
   const themes = ['slice','snake','jungle','breach'];
-  const previewImages = {spudsEmpire:'game-preview-spuds-empire.webp',spudsKitchen:'game-preview-spuds-kitchen.webp',metalMayhem:'game-preview-metal-mayhem.svg',bigFishEnergy:'game-preview-big-fish-energy.webp',bubblePop:'game-preview-bubble-pop.webp',spuddyEvolution:'game-preview-spuddy-evolution.svg'};
+  const previewImages = {
+    "mergeRush": "merge-rush.webp",
+    "colorMatch": "color-match.webp",
+    "safeCracker": "safe-cracker.webp",
+    "neonBreach": "neon-breach.webp",
+    "blockDrop": "block-drop.webp",
+    "tapRush": "tap-rush.webp",
+    "jungleHopper": "jungle-hopper.webp",
+    "coinCatch": "coin-catch.webp",
+    "paddleRally": "paddle-rally.webp",
+    "laneRunner": "lane-runner.webp",
+    "neonDrift": "neon-drift.webp",
+    "perfectDrop": "perfect-drop.webp",
+    "shapeFit": "shape-fit.webp",
+    "bounceRun": "bounce-run.webp",
+    "trafficEscape": "traffic-escape.webp",
+    "starDefender": "star-defender.webp",
+    "harborGetaway": "harbor-getaway.webp",
+    "brickBreaker": "brick-breaker.webp",
+    "neonMaze": "neon-maze.webp",
+    "crystalCommand": "crystal-command.webp",
+    "spiralDrop": "spiral-drop.webp",
+    "memory": "memory-match.webp",
+    "towerStack": "tower-stack.webp",
+    "spuddyTurf": "spuddy-turf.webp",
+    "neonSlice": "neon-slice.webp",
+    "snake": "snake.webp",
+    "bubblePop": "bubble-pop.webp",
+    "spuddyEvolution": "spuddy-evolution.webp",
+    "spudsEmpire": "spuds-empire.webp",
+    "spudsKitchen": "spuds-kitchen.webp",
+    "metalMayhem": "metal-mayhem.webp",
+    "bigFishEnergy": "big-fish-energy.webp"
+};
+  function renderCover(container, key, icon) {
+    const filename = previewImages[key];
+    if (!filename) { container.textContent = icon; return; }
+    const src = 'game-preview-' + filename;
+    if (container.firstElementChild?.getAttribute('src') === src) return;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.addEventListener('error', () => {
+      if (img.parentNode === container) container.textContent = icon;
+    }, {once:true});
+    img.src = src;
+    container.replaceChildren(img);
+  }
+  window.renderHomeGameCover = renderCover;
 
   function makeCard(info) {
     const original = existing.find(card => card.getAttribute('href') === info.href);
@@ -252,12 +299,7 @@
     const art = document.createElement('span');
     art.className = 'home-game-art';
     art.setAttribute('aria-hidden', 'true');
-    if (previewImages[info.key]) {
-      const img = document.createElement('img');
-      img.src = previewImages[info.key]; img.alt = ''; img.width = 160; img.height = 100;
-      img.addEventListener('error', () => { art.textContent = info.icon; }, {once:true});
-      art.append(img);
-    } else art.textContent = info.icon;
+    renderCover(art, info.key, info.icon);
     const copy = document.createElement('span');
     copy.className = 'home-game-copy';
     const name = document.createElement('strong'); name.textContent = info.name;
