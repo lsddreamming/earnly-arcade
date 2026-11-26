@@ -139,19 +139,64 @@ function start() {
     body.position.y=-.19;return {p,body,feet};
   }
   const guests=Array.from({length:8},(_,i)=>spud(i));const clerk=spud(8);clerk.p.position.set(1.4,0,.04);
+  // A shared corridor connects the arcade to the three production rooms.
+  box('#946e5b',1,-.21,4.7,13,.4,1.4);
+  const offices=studioJobs.map((job,i)=>{
+    const x=-3.3+i*4.3,z=7.6;
+    const room=group(x,z);
+    const part=(color,dx,y,dz,w,h,d)=>mesh(room,'box',color,dx,y,dz,w,h,d);
+    part('#443e52',0,-.18,0,4.28,.35,4.4);
+    part(job.color,-2.08,.42,0,.11,.84,4.4);
+    part(job.color,-1.45,.4,-2.12,1.28,.8,.12);
+    part(job.color,1.35,.4,-2.12,1.45,.8,.12);
+    part(job.color,0,.17,2.12,4.2,.35,.15);
+    panel(room,0,.62,2.19,1.96,.55,lettering(job.sign,'#fff5d8','#34304b'));
+    const fixtures=new T.Group();room.add(fixtures);
+    const equipment=(color,dx,y,dz,w,h,d)=>mesh(fixtures,'box',color,dx,y,dz,w,h,d);
+    equipment('#845a48',0,.46,.25,2.6,.9,.86);
+    equipment('#f4ce9c',0,.94,.25,2.72,.09,1);
+    if(i===0){
+      equipment('#272943',0,1.34,.16,1.2,.7,.13);
+      panel(fixtures,0,1.34,.24,.96,.48,lettering('{ }','#77f5b9','#282645'));
+    }else if(i===1){
+      for(let n=-1;n<=1;n++)equipment(job.color,n*.62,1.22,.28,.34,.48,.09);
+    }else{
+      panel(fixtures,0,1.65,-.2,2.2,1.1,lettering('ON AIR','#ffd187','#753f57'));
+      equipment('#28223b',.55,1.14,.5,.28,.3,.28);
+    }
+    const worker=spud(i+10);worker.p.position.set(x,0,z+1.1);
+    room.userData.office=i;
+    return {room,fixtures,worker};
+  });
   const path=[[-3.3,1.2],[-1.7,-.92],[-1.7,-.92],[.52,.85],[1.3,1.45],[3.5,1.65],[3.5,2.45],[-3.3,2.45]];
   let angle=.10,drag=null,screenTime=-1,last=0,camZoom=1;
   canvas.style.touchAction='pan-y';
-  canvas.onpointerdown=e=>{drag={x:e.clientX,a:angle};canvas.setPointerCapture(e.pointerId)};
+  canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,a:angle};canvas.setPointerCapture(e.pointerId)};
   canvas.onpointermove=e=>{if(drag)angle=T.MathUtils.clamp(drag.a-(e.clientX-drag.x)*.004,-.65,.65)};
-  canvas.onpointercancel=canvas.onpointerup=()=>drag=null;
-  const cameraTarget=new T.Vector3(1,1.8,0);
+  const picker=new T.Raycaster();
+  canvas.onpointercancel=()=>drag=null;
+  canvas.onpointerup=e=>{
+    const tap=drag && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<8;
+    drag=null;
+    if(!tap)return;
+    const rect=canvas.getBoundingClientRect();
+    picker.setFromCamera(new T.Vector2((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2),camera);
+    const hit=picker.intersectObjects(offices.map(o=>o.room),true)[0];
+    if(hit){
+      let room=hit.object;
+      while(room.userData.office===undefined)room=room.parent;
+      tab='Studio';render();
+      document.querySelector('#panel').children[room.userData.office+1+(state.studio.deals>=25?1:0)]?.scrollIntoView({block:'nearest'});
+    }
+  };
+  const cameraTarget=new T.Vector3(1,1.8,2.9);
   let width=0,height=0;
   function frame(ms){
     requestAnimationFrame(frame);if(document.hidden||ms-last<32)return;last=ms;
     const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
     if(w!==width||h!==height){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();width=w;height=h}
     const t=ms*.001,count=Math.min(6,1+Math.floor((state.levels[0]+1)/5));
+    offices.forEach(({fixtures,worker},i)=>{fixtures.visible=worker.p.visible=i<state.studio.rooms;worker.body.rotation.z=.045*Math.sin(t*1.8+i)});
     machines.forEach((p,i)=>p.visible=i<count);
     if(t-screenTime>.12){screens.slice(0,count).forEach((s,i)=>s.draw(t+i));screenTime=t}
     benches.forEach((p,i)=>p.visible=state.levels[3]>i);
@@ -169,7 +214,7 @@ function start() {
     camZoom+=(zoom-camZoom)*.12;
     // Fit all eight room corners in perspective, including while orbiting.
     const target = cameraTarget;
-    const elevation = .57;
+    const elevation = .81;
     camera.position.set(Math.sin(angle)*Math.cos(elevation),Math.sin(elevation),Math.cos(angle)*Math.cos(elevation));
     camera.position.add(target);
     camera.lookAt(target);
@@ -177,7 +222,7 @@ function start() {
     const axes=camera.matrixWorld.elements;
     const tanY=Math.tan(camera.fov*Math.PI/360);
     let distance=0;
-    for(const x of [-6.6,6.6]) for(const y of [-2.4,2.4]) for(const z of [-4.1,4.1]){
+    for(const x of [-6.6,6.6]) for(const y of [-2.4,2.4]) for(const z of [-7.1,7.1]){
       const depth=x*axes[8]+y*axes[9]+z*axes[10];
       const horizontal=Math.abs(x*axes[0]+y*axes[1]+z*axes[2]);
       const vertical=Math.abs(x*axes[4]+y*axes[5]+z*axes[6]);
