@@ -150,13 +150,13 @@ for (const width of [320, 390, 440]) {
     test(`catalog badges and Snake reward copy: ${prefix || 'root/'} ${width}px`, async ({ page, baseURL }, testInfo) => {
       await page.setViewportSize({ width, height: 956 });
       await page.goto(new URL('/' + prefix + 'games.html', process.env.EARNLY_CATALOG_BASE_URL || baseURL).href);
-      // Four refreshed games lead into the complete 32-game catalog.
+      // Four refreshed games lead into the complete 33-game catalog.
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
       const starters = await page.locator('#games > [data-game]').evaluateAll(cards => cards.map(card => card.dataset.game));
       expect(new Set(starters).size).toBe(4);
       await expect(page.locator('#games .game-preview')).toHaveCount(4);
       await page.locator('[data-filter=all]').click();
-      await expect(page.locator('#games > .catalog-tile')).toHaveCount(32);
+      await expect(page.locator('#games > .catalog-tile')).toHaveCount(33);
       await expect(page.getByRole('button', { name: 'Add Snake favorite', exact: true })).toBeVisible();
       await expect(page.locator('[data-game="snake"] .game-session-label')).toHaveText('⚡ Quick play');
       await expect(page.locator('[data-game="snake"] .game-reward-copy')).toHaveText('Grow the snake · up to 100 Arcade Coins per run');
@@ -234,11 +234,11 @@ for(const prefix of ['', 'www/']){
 
 
 for(const prefix of ['', 'www/']){
-  test('rotating Games starters cover all 32 titles across eight refreshes '+(prefix||'root/'),async({page,baseURL})=>{
+  test('rotating Games starters cover all 33 titles across refreshes '+(prefix||'root/'),async({page,baseURL})=>{
     await page.setViewportSize({width:390,height:844});
     await page.goto(new URL('/'+prefix+'games.html',process.env.EARNLY_CATALOG_BASE_URL||baseURL).href);
     const seen=new Set();
-    for(let turn=0;turn<8;turn++){
+    for(let turn=0;turn<9;turn++){
       if(turn)await page.reload();
       await expect(page.locator('#games.starter-grid > .catalog-tile')).toHaveCount(4);
       const batch=await page.locator('#games.starter-grid > [data-game]').evaluateAll(cards=>cards.map(card=>card.dataset.game));
@@ -253,13 +253,13 @@ for(const prefix of ['', 'www/']){
       }));
       expect(overflowingNotes).toEqual([]);
       for(const game of batch){
-        if(seen.size<32)expect(seen.has(game),game+' repeated before all 32 titles appeared').toBe(false);
+        if(seen.size<33)expect(seen.has(game),game+' repeated before all 33 titles appeared').toBe(false);
         seen.add(game);
       }
       expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     }
-    expect(seen.size).toBe(32);
+    expect(seen.size).toBe(33);
     await page.locator('[data-filter=all]').click();
-    await expect(page.locator('#games > .catalog-tile')).toHaveCount(32);
+    await expect(page.locator('#games > .catalog-tile')).toHaveCount(33);
   });
 }

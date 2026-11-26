@@ -2871,11 +2871,11 @@ for (const prefix of ['/', '/www/']) {
 }
 
 for (const prefix of ['/', '/www/']) {
-  test(prefix + 'Games starter picks rotate all 32 titles over eight page refreshes',async({page})=>{
+  test(prefix + 'Games starter picks rotate all 33 titles over refreshes',async({page})=>{
     await page.route('https://**',r=>r.abort());
     const keys=()=>page.locator('#games > .catalog-tile').evaluateAll(items=>items.map(item=>item.dataset.game));
     const seen=[],groups=[];
-    for(let visit=0;visit<8;visit++){
+    for(let visit=0;visit<9;visit++){
       if(visit===0)await page.goto(prefix+'games.html');
       else await page.reload();
       await expect(page.locator('#games > .catalog-tile')).toHaveCount(4);
