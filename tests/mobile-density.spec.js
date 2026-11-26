@@ -55,7 +55,7 @@ test('Home starts with direct game choices; extras and progress stay secondary',
  const firstPicks=await page.locator('.home-game-card').evaluateAll(cards=>cards.map(card=>card.getAttribute('href')));
  expect(new Set(firstPicks).size).toBe(2);
  const publishedHrefs=new Set(require('../home-featured.js').catalog.map(game=>game.href));
- expect(publishedHrefs.size).toBe(32);
+ expect(publishedHrefs.size).toBe(33);
  for(const href of firstPicks) expect(publishedHrefs.has(href)).toBe(true);
  await page.reload();
  await expect(page.locator('.home-game-card')).toHaveCount(2);
