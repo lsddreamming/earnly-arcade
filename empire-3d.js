@@ -6,8 +6,8 @@ function start() {
   const renderer = new T.WebGLRenderer({canvas, antialias:true, powerPreference:'low-power'});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.65));
   const scene = new T.Scene();
-  scene.background = new T.Color(0x272041);
-  scene.fog = new T.FogExp2(0x312444, .028);
+  scene.background = new T.Color(0xb6dca2);
+  scene.fog = new T.FogExp2(0xc7e0c0, .007);
   const camera = new T.PerspectiveCamera(45,1,.1,65);
   scene.add(new T.HemisphereLight(0xffefea,0x8072ac,2.2));
   const key = new T.DirectionalLight(0xffdbad,2.1);
@@ -45,17 +45,26 @@ function start() {
     ctx.fillStyle='#ffde7e';ctx.save();ctx.translate(230+Math.sin(t)*72,208);ctx.beginPath();ctx.moveTo(0,-21);ctx.lineTo(30,14);ctx.lineTo(0,7);ctx.lineTo(-30,14);ctx.fill();ctx.restore();
   }
   const box=(...a)=>mesh(scene,'box',...a);
+  // A raised city block keeps the entire cutaway readable while orbiting.
+  box('#8bb278',1,-.92,3,60,.5,60);
+  box('#667582',1,-.62,13.2,60,.1,4);
+  box('#eee3c9',1,-.53,3,15.2,.27,16.5);
+  for(let x=-17;x<=19;x+=4) box('#fff4cf',x,-.556,13.2,1.8,.025,.10);
+  for(const x of [-7.6,9.6]) for(const z of [-3,2,8]){
+    mesh(scene,'drum','#9c694a',x,.12,z,.28,1.55,.28);
+    mesh(scene,'ball','#69ad5e',x,1.14,z,1.65,1.85,1.65);
+  }
   box('#342d49',1,-.22,0,13,.4,8);
-  box('#393451',1,2,-3.6,13,4,.35);
+  box('#438c9e',1,2,-3.6,13,4,.35);
   for(let i=-3;i<5;i++){
-    box('#554362',i*1.5+.2,2,-3.36,.09,5,.15);
+    box('#fff2cc',i*1.5+.2,2,-3.36,.09,5,.15);
     box(i%2?'#ffc488':'#7aeadc',i*1.5+.2,3.9,-3.2,1.38,.055,.06);
     box('#57506a',i*1.5+.2,.2,-3.22,1.38,.12,.12);
   }
   panel(scene,0,3.12,-3.16,4.6,1.17,lettering('S P U D C A D E','#ffc577','#352341'));
   // Continuous patterned carpet and contact shadows keep the camera inside the arcade.
   const carpet=panel(scene,1,.002,0,13,8,(ctx)=>{
-    ctx.fillStyle='#36304e';ctx.fillRect(0,0,512,256);
+    ctx.fillStyle='#d7b785';ctx.fillRect(0,0,512,256);
     for(let i=0;i<70;i++){let x=(i*193)%510,y=(i*101)%255;ctx.strokeStyle=['#60547d','#865776','#477074'][i%3];
       ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+5,y-3);ctx.lineTo(x+7,y);ctx.stroke()}
   }).mesh;carpet.rotation.x=-Math.PI/2;carpet.material.map.wrapS=carpet.material.map.wrapT=T.RepeatWrapping;carpet.material.map.repeat.set(5,4);
@@ -145,7 +154,7 @@ function start() {
     const x=-3.3+i*4.3,z=7.6;
     const room=group(x,z);
     const part=(color,dx,y,dz,w,h,d)=>mesh(room,'box',color,dx,y,dz,w,h,d);
-    part('#443e52',0,-.18,0,4.28,.35,4.4);
+    part(['#9bd5bf','#b7cbea','#f4be93'][i],0,-.18,0,4.28,.35,4.4);
     part(job.color,-2.08,.42,0,.11,.84,4.4);
     part(job.color,-1.45,.4,-2.12,1.28,.8,.12);
     part(job.color,1.35,.4,-2.12,1.45,.8,.12);
@@ -169,7 +178,7 @@ function start() {
     return {room,fixtures,worker};
   });
   const path=[[-3.3,1.2],[-1.7,-.92],[-1.7,-.92],[.52,.85],[1.3,1.45],[3.5,1.65],[3.5,2.45],[-3.3,2.45]];
-  let angle=.10,drag=null,screenTime=-1,last=0,camZoom=1;
+  let angle=.58,drag=null,screenTime=-1,last=0,camZoom=1;
   canvas.style.touchAction='pan-y';
   canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,a:angle};canvas.setPointerCapture(e.pointerId)};
   canvas.onpointermove=e=>{if(drag)angle=T.MathUtils.clamp(drag.a-(e.clientX-drag.x)*.004,-.65,.65)};
