@@ -200,6 +200,7 @@
   {"key":"spudsEmpire","name":"Spud’s Arcade Empire","href":"spuds-arcade-empire.html","icon":"🕹️","description":"Build and staff your neighborhood arcade."},
   {"key":"spudsKitchen","name":"Spud’s Kitchen: Merge & Serve","href":"spuds-kitchen.html","icon":"🍳","description":"Merge, serve and grow your café."},
   {"key":"metalMayhem","name":"Metal Mayhem","href":"metal-mayhem.html","icon":"⚔️","description":"Sever steel. Survive the arena."},
+  {"key":"spuddyDefense","name":"Spuddy Defense","href":"spuddy-defense.html","icon":"🏰","description":"Build towers and defend the patch."},
   {"key":"bigFishEnergy","name":"BIG FISH ENERGY","href":"big-fish-energy.html","icon":"🦈","description":"Eat fish. Become an ocean giant."}
 ];
 
@@ -241,6 +242,7 @@
   let memoryState = null;
   const themes = ['slice','snake','jungle','breach'];
   const previewImages = {
+    "spuddyDefense": "spuddy-defense-cover.webp",
     "mergeRush": "merge-rush.webp",
     "colorMatch": "color-match.webp",
     "safeCracker": "safe-cracker.webp",
