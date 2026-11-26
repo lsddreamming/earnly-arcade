@@ -195,3 +195,45 @@ test('Empire preserves the original investor reward and cooldown under mocked na
   await expect(page.locator('#investor')).toBeHidden();
   expect(await page.evaluate(()=>state.cash)).toBe(20);
 });
+
+
+test('Empire mocked in-flight offline claim does not include a later settlement or replay',async({page})=>{
+  await empireFixture(page,{away:true,ad:'defer'});
+  await expect(page.locator('#offline-double')).toBeVisible();
+  const prior=await page.evaluate(()=>{
+    state.levels[1]=0;save();
+    const offer={...state.offlineOffer},cash=state.cash;
+    document.querySelector('#offline-double').click();
+    // Simulate a separate newly settled interval before the first ad completes.
+    state.stamp+=120000;credit(11);addOfflineOffer(11,120);save();
+    return {offer,cash};
+  });
+  await page.evaluate(()=>window.finishAd({earned:true}));
+  await expect(page.locator('#notice')).toContainText('Offline earnings doubled');
+  const result=await page.evaluate(offer=>({cash:state.cash,remaining:state.offlineOffer.amount,replay:claimOfflineBonus(offer)}),prior.offer);
+  expect(result).toEqual({cash:prior.cash+11+prior.offer.amount,remaining:11,replay:false});
+  await expect(page.locator('#offline-reopen')).toBeVisible();
+});
+
+test('Empire mocked reward rolls back if saving fails, and the studio keeps its normal production pace',async({page})=>{
+  await empireFixture(page,{away:true,ad:'defer'});
+  await expect(page.locator('#offline-double')).toBeVisible();
+  const before=await page.evaluate(()=>{
+    state.levels[1]=0;save();
+    const result={cash:state.cash,offer:{...state.offlineOffer}};
+    document.querySelector('#offline-double').click();
+    window.originalSetItem=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(){throw new Error('mock storage full')};
+    return result;
+  });
+  await page.evaluate(()=>window.finishAd({earned:true}));
+  await expect(page.locator('#notice')).toContainText('could not be saved');
+  expect(await page.evaluate(()=>({cash:state.cash,offer:state.offlineOffer}))).toEqual(before);
+  const studio=await page.evaluate(()=>{
+    Storage.prototype.setItem=window.originalSetItem;
+    beginProfitBoost();
+    state.studio={rooms:3,work:[0,0,179],stock:[0,1,0],deals:0};
+    return {cash:activeIncome(1,state.boostStart+2000),deals:state.studio.deals};
+  });
+  expect(studio).toEqual({cash:240,deals:1});
+});
