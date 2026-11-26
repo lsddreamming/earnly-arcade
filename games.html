@@ -151,6 +151,7 @@
       <section class="card game-card compact-game catalog-tile" data-game="spudsEmpire"><div class="game-title-row"><h2>Spud’s Arcade Empire</h2></div><p class="reward-rule">Run the register, hire a crew, and grow your neighborhood arcade.</p><a class="wide game-play-button" href="spuds-arcade-empire.html" aria-label="Play Spud’s Arcade Empire">Play</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="spudsKitchen"><div class="game-title-row"><h2>Spud’s Kitchen: Merge &amp; Serve</h2></div><p class="reward-rule">Merge delicious ingredients, serve hungry customers, discover hundreds of recipes, and transform your tiny café into a worldwide restaurant empire!</p><a class="wide game-play-button" href="spuds-kitchen.html" aria-label="Play Spud’s Kitchen: Merge &amp; Serve">Play</a></section>
       <section class="card game-card compact-game catalog-tile" data-game="metalMayhem"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🤖</span><h2>Metal Mayhem</h2></div></div><p class="reward-rule">3D robot combat · sever limbs · survive endless waves</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="metal-mayhem.html" aria-label="Play Metal Mayhem">Play</a></div></section>
+      <section class="card game-card compact-game catalog-tile" data-game="spuddyDefense"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🏰</span><h2>Spuddy Defense</h2></div></div><p class="reward-rule">Build towers and defend the patch from waves of Gloops.</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="spuddy-defense.html" aria-label="Play Spuddy Defense">Play</a></div></section>
       <section class="card game-card compact-game catalog-tile" data-game="bigFishEnergy"><div class="game-title-row"><div class="game-name-wrap"><span class="game-icon-bubble" aria-hidden="true">🦈</span><h2>BIG FISH ENERGY</h2></div></div><p class="reward-rule">Eat smaller fish · grow into an ocean giant</p><div class="game-card-footer no-best"><a class="wide game-play-button" href="big-fish-energy.html" aria-label="Play BIG FISH ENERGY">Play</a></div></section>
     </div>
 
@@ -221,6 +222,7 @@
       { key:'spudsEmpire', icon:'🕹️', name:'Spud’s Arcade Empire', note:'Run the register, hire a crew, and grow your neighborhood arcade.', href:'spuds-arcade-empire.html', freeBeta:true },
       { key:'spudsKitchen', icon:'🍳', name:'Spud’s Kitchen: Merge & Serve', note:'Merge delicious ingredients, serve hungry customers, discover hundreds of recipes, and transform your tiny café into a worldwide restaurant empire!', href:'spuds-kitchen.html', freeBeta:true },
       { key:'metalMayhem', icon:'🤖', name:'Metal Mayhem', note:'3D robot combat · sever limbs · survive endless waves', href:'metal-mayhem.html', freeBeta:true },
+      { key:'spuddyDefense', icon:'🏰', name:'Spuddy Defense', note:'Build towers and defend the patch from waves of Gloops.', href:'spuddy-defense.html', freeBeta:true },
       { key:'bigFishEnergy', icon:'🦈', name:'BIG FISH ENERGY', note:'Eat smaller fish · grow into an ocean giant', href:'big-fish-energy.html', freeBeta:true }
     ];
 
@@ -260,13 +262,14 @@
       spudsEmpire:['new','strategy'],
       spudsKitchen:['new','strategy'],
       metalMayhem:['new','action'],
+      spuddyDefense:['new','strategy'],
       bigFishEnergy:['new','action']
     };
     // Game length is independent of genre, coins and save capability.
     // Add newly launched large games (like Spuddy Defense) only after release.
     const deepPlayKeys = new Set([
       'bubblePop','crystalCommand','neonBreach','spuddyTurf',
-      'harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem','spudsKitchen','spudsEmpire'
+      'spuddyDefense','harborGetaway','spuddyEvolution','bigFishEnergy','metalMayhem','spudsKitchen','spudsEmpire'
     ]);
     // Visiting or refreshing Games advances four picks through all available titles.
     // Do not advance during favorites, cloud updates, filtering or rerenders.
@@ -319,6 +322,7 @@
       spudsEmpire: {src:'spuds-empire.webp', label:'Build your arcade', description:'Hire a crew and expand your arcade.'},
       spudsKitchen: {src:'spuds-kitchen.webp', label:'Fresh from your kitchen', description:'Merge ingredients and serve your neighborhood.'},
       metalMayhem: {src:'metal-mayhem.webp', label:'Built to break.', description:'Dismantle robot gladiators. Upgrade. Survive the next wave.'},
+      spuddyDefense: {src:'spuddy-defense-cover.webp', label:'Defend the patch', description:'Spuddy defenders face waves of colorful Gloops.'},
       bigFishEnergy: {src:'big-fish-energy.webp', label:'Small fry. Big future.', description:'Eat, escape and grow into a gigantic ocean legend.'}
     };
     function starterPreview(info) {
