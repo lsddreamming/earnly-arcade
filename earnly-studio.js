@@ -231,6 +231,36 @@
     byId('sourceStatus').textContent = 'Select original artwork. Reselect the JPEG when opening a saved draft.';
     byId('consent').checked = false;
   }
+  byId('useSpuddy').addEventListener('click',async()=>{
+    if(!canAnimate())return;
+    clearSource();
+    const sequence=++sourceSequence,owner=userId;
+    byId('useSpuddy').disabled=true;
+    try{
+      if(!window.EarnlyPotatoRig)await loadScript('potato-rig.js');
+      const {data,error}=await window.EarnlyCloud.client.functions.invoke('avatars/api/me',{method:'GET'});
+      if(error||!data?.user?.equipped?.avatar)throw Error();
+      const layers=window.EarnlyPotatoRig.compose(data.user.equipped);
+      const images=await Promise.all(layers.map(async layer=>{
+        const url=new URL(layer.imageUrl,location.href);
+        if(url.origin!==location.origin||!/^cosmetic-[a-z0-9-]+\.(svg|webp)$/.test(url.pathname.split('/').pop()))throw Error();
+        const image=new Image();image.src=url.href;await image.decode();return image;
+      }));
+      if(sequence!==sourceSequence||owner!==userId)return;
+      const canvas=document.createElement('canvas');
+      canvas.width=576;canvas.height=768;
+      const ctx=canvas.getContext('2d'),bg=ctx.createLinearGradient(0,0,576,768);
+      bg.addColorStop(0,'#251848');bg.addColorStop(1,'#176788');ctx.fillStyle=bg;ctx.fillRect(0,0,576,768);
+      for(const image of images)ctx.drawImage(image,0,0,576,768);
+      const jpeg=canvas.toDataURL('image/jpeg',.82);
+      sourceImage=jpeg.split(',')[1];
+      if(!sourceImage||sourceImage.length>699052)throw Error();
+      byId('sourcePreview').src=jpeg;byId('sourcePreview').hidden=false;
+      byId('sourceStatus').textContent='Your currently equipped Spuddy is ready. Review your prompt and permission before generating.';
+      if(!byId('prompt').value)byId('prompt').value='My Spuddy discovers a tiny superhero cape and glides over a glowing arcade.';
+    }catch{if(sequence===sourceSequence){clearSource();byId('sourceStatus').textContent='Could not load your equipped Spuddy. Choose an original JPEG or try again.';}}
+    finally{byId('useSpuddy').disabled=false;refreshControls();}
+  });
   byId('sourceImage').addEventListener('change',async event => {
     const file = event.target.files[0];
     const sequence = ++sourceSequence;

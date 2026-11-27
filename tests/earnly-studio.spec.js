@@ -75,3 +75,32 @@ test('authenticated Studio fixture reuses the same reservation after an ambiguou
   expect(calls[1].consent_version).toBe('2026-11-27');
   expect(calls[1].expected_credits).toBe(10);
 });
+
+test('Studio can use equipped Spuddy artwork for a private animation draft',async({page})=>{
+  const path=require('node:path');
+  const {readFile}=require('node:fs/promises');
+  await page.route('https://earnlyarcade.com/**',async route=>{
+    const name=path.basename(new URL(route.request().url()).pathname);
+    if(!/^(earnly-studio\.(html|js|css)|potato-rig\.js|cosmetic-cyber-starter\.svg|game-preview-[\w-]+\.webp)$/.test(name))return route.abort();
+    const type={html:'text/html',js:'text/javascript',css:'text/css',webp:'image/webp',svg:'image/svg+xml'}[name.split('.').at(-1)];
+    return route.fulfill({contentType:type,body:await readFile(path.join(__dirname,'..',name))});
+  });
+  await page.addInitScript(()=>{
+    window.EarnlyCloud={user:async()=>({id:'fixture-owner'}),client:{functions:{invoke:async(name,{body})=>{
+      if(name==='avatars/api/me')return {data:{user:{equipped:{avatar:{id:'cyber-starter',imageUrl:'cosmetic-cyber-starter.svg'}}}}};
+      if(body.action==='library')return {data:{enabled:true,credits:80,prices:{image:1,video:10,animation:60},jobs:[]}};
+      throw Error('Unexpected submission');
+    }}}};
+  });
+  await page.goto('https://earnlyarcade.com/earnly-studio.html#create');
+  await page.locator('#animationChoice').click();
+  await page.locator('#useSpuddy').click();
+  await expect(page.locator('#sourcePreview')).toBeVisible();
+  await expect(page.locator('#prompt')).toHaveValue(/superhero/);
+  await expect(page.locator('#cost')).toHaveText('60 Studio Credits');
+  await expect(page.locator('#generate')).toBeDisabled();
+  await page.locator('#save').click();
+  const draft=await page.evaluate(()=>localStorage.getItem('earnlyStudioDrafts:fixture-owner'));
+  expect(draft).toContain('superhero');
+  expect(draft).not.toContain('base64');
+});

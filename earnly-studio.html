@@ -41,7 +41,7 @@
       <p class="eyebrow">Creation desk</p><h1>Create a scene</h1>
       <form id="composer">
         <fieldset><legend>Output</legend><div class="switch"><label><input type="radio" name="kind" value="video" checked><span>▶ &nbsp;Video</span></label><label><input type="radio" name="kind" value="image"><span>▧ &nbsp;Image</span></label><label id="animationChoice" hidden><input type="radio" name="kind" value="animation"><span>Animate image</span></label></div></fieldset>
-        <div id="upload" hidden><label for="sourceImage">Fictional artwork · JPEG</label><input id="sourceImage" type="file" accept="image/jpeg"><p class="note" id="sourceStatus">Select original artwork. Reselect the JPEG when opening a saved draft.</p><img id="sourcePreview" hidden alt="Selected animation reference"></div>
+        <div id="upload" hidden><button type="button" id="useSpuddy">Star my equipped Spuddy</button><label for="sourceImage">Fictional artwork · JPEG</label><input id="sourceImage" type="file" accept="image/jpeg"><p class="note" id="sourceStatus">Select original artwork. Reselect the JPEG when opening a saved draft.</p><img id="sourcePreview" hidden alt="Selected animation reference"></div>
         <label for="prompt">Your prompt</label><textarea id="prompt" rows="5" maxlength="1200" required placeholder="A tiny chef flips a pancake so high it lands on the moon…"></textarea>
         <div class="control-grid">
           <label>Aspect ratio<select id="ratio"><option value="9:16">9:16 · Vertical</option><option value="16:9">16:9 · Landscape</option><option value="1:1">1:1 · Square</option></select></label>
