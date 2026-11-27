@@ -353,6 +353,10 @@
     byId('save').textContent = draftId ? 'Save changes' : 'Save draft';
     byId('availability').textContent = eligible ? 'Private generation. You can leave Studio after your request is accepted.' :
       accountMessage || 'Drafts are saved on this device. AI generation is closed during this preview.';
+    const wallet = byId('pilotWallet');
+    if (wallet) wallet.textContent = online
+      ? credits + ' Studio Credit' + (credits === 1 ? '' : 's') + (available ? ' · Private pilot' : ' · Image and video generation paused')
+      : userId ? 'Signed in · Studio balance unavailable' : 'Sign in with your Earnly testing account';
     byId('balance').textContent = online ? 'Studio balance · ' + credits + ' credits' : '';
     byId('refresh').hidden = !userId;
     byId('admin').hidden = !online || !admin;
@@ -577,16 +581,36 @@
     document.querySelector('.arcade').href = 'index.html';
     try {
       if (testingPilot) {
-        const banner = element('p', 'Private testing account · ');
-        const login = element('a', 'Sign in to Earnly Testing');
-        login.href = 'coin-sandbox.html';
-        banner.append(login);
-        document.querySelector('main').prepend(banner);
         if (!window.supabase) await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4');
         const client = window.supabase.createClient('https://wphqfogbnpdsfkquvdsu.supabase.co',
           'sb_publishable_kyez8nhpp8htaPAdh7Hmfw_5NCyK6RI', {auth:{storageKey:'earnly-coin-sandbox-auth',detectSessionInUrl:false}});
         window.EarnlyCloud = {client, user:async () => (await client.auth.getUser()).data.user};
-        client.auth.onAuthStateChange(() => setTimeout(accountChanged, 0));
+        const panel = element('aside', '');
+        const message = element('p', 'Private Studio pilot');
+        message.id = 'pilotWallet';
+        message.setAttribute('role','status');
+        const form = document.createElement('form');
+        form.innerHTML = '<label>Email <input name="email" type="email" autocomplete="username" required></label> <label>Password <input name="password" type="password" autocomplete="current-password" required></label> <button type="submit">Sign in to Studio</button>';
+        form.hidden = true;
+        panel.append(message, form);
+        document.querySelector('main').prepend(panel);
+        form.onsubmit = async event => {
+          event.preventDefault();
+          const button = form.querySelector('button');
+          button.disabled = true;
+          try {
+            const {error} = await client.auth.signInWithPassword({
+              email:form.elements.email.value.trim(), password:form.elements.password.value
+            });
+            if (error) throw error;
+            form.reset();
+          } catch { message.textContent = 'Studio sign-in failed. Check your details and try again.'; }
+          finally { button.disabled = false; }
+        };
+        client.auth.onAuthStateChange((_event,session) => {
+          form.hidden = !!session;
+          setTimeout(accountChanged, 0);
+        });
       } else if (!window.EarnlyCloud) {
         if (!window.supabase) await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4');
         await loadScript('cloud.js');
