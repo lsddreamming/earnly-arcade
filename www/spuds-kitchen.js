@@ -47,7 +47,13 @@ for (const k of [key, key + ".backup"]) {
 if (stockCounter(s)) save();
 let adPending = false;
 const nativeKitchen = () => window.EarnlyNativeAds?.isNative ||
-  window.Capacitor?.getPlatform?.() === "ios";
+  window.Capacitor?.getPlatform?.() === "ios" || Boolean(window.webkit?.messageHandlers?.bridge);
+function openEnergy() {
+  tab = "Supplies";
+  journal();
+  if (!dialog.open) dialog.showModal();
+  dialog.scrollTop = 0;
+}
 async function kitchenAd(grant) {
   if (adPending) return;
   adPending = true;
@@ -164,7 +170,8 @@ function render() {
   updateDistrict();
   if (showingHint && !$("advice").hidden) $("advice").querySelector("span").textContent = nextStep();
   $("hud").innerHTML =
-    `<span>Chef Lv ${s.level}</span><span>${s.xp}/${goal(s.level)} XP</span><span>ϟ ${s.energy}/100</span><span>$${s.money}</span>`;
+    `<span>Chef Lv ${s.level}</span><span>${s.xp}/${goal(s.level)} XP</span><button type="button" aria-label="More energy, ${s.energy} of 100">ϟ ${s.energy}/100 +</button><span>${s.money}</span>`;
+  $("hud").querySelector("button").onclick = openEnergy;
   $("orders").replaceChildren(
     ...s.orders.map((items, i) => {
       const available = indices(s, items),
@@ -325,6 +332,7 @@ function render() {
       }
       return button("Get " + ingredient + " · " + (capacity(s, c) - bin.used) + " left", () => {
         selected = null;
+        if (!s.energy && empty(s) >= 0) return openEnergy();
         if (generate(s, c)) {
           ping();
           commit("Ingredient ready");
@@ -543,6 +551,7 @@ function journal() {
         journal();
       })));
     }
+    if (!nativeKitchen() && s.energy < 100) note("For a rewarded energy refill, play in the Earnly Arcade iPhone app. Here you can collect daily supplies or wait for energy to refill.");
     const today = new Date().toLocaleDateString();
     note(
       "Orders served: " +
