@@ -33,13 +33,13 @@ function county(s, page, note, act) {
   const h = document.createElement("h3");
   h.textContent = area.district;
   page.append(h);
-  note(area.story);
+  
   if (site < 96) {
     const venue = s.countyVenue ?? s.venue;
     const job = commission(step, venues[venue].chains);
     const delivered = s.countyDelivered || 0;
     const ready = s.board.filter(id => id === job.id).length;
-    note(area.places[site % 6] + " · " + ["Feed the surveyors","Stock the workshop","Cater the crew lunch","Host opening night"][step % 4] + " · " + name(job.id) + " " + delivered + "/" + job.count);
+    note("Next storefront: " + area.places[site % 6] + " · " + ["Feed the surveyors","Stock the workshop","Cater the crew lunch","Host opening night"][step % 4] + " · " + name(job.id) + " " + delivered + "/" + job.count);
     if (venue !== s.venue) note("Find these ingredients at " + venues[venue].name + ".");
     if (!ready) note("Back in the kitchen, merge ingredients to make "+name(job.id)+". Return here to deliver one at a time.");
     if (ready) act("Deliver " + name(job.id), () => {
@@ -57,6 +57,7 @@ function county(s, page, note, act) {
       }
     });
   } else note("Founders’ Table is open. Every neighborhood is ready for festival night.");
+  note(area.story);
   const atlas = document.createElement("details");
   const title = document.createElement("summary");
   title.textContent = "County atlas · " + (4 + site) + "/100 places open";
@@ -116,7 +117,7 @@ function playRound(page, bowling, record, finish) {
 
 export function showTown(s, page, note, act, save) {
   const open=s.townOpen || 0;
-  note("Build a town with your kitchen. Merge matching ingredients and serve customers to earn the cash that reopens shops.");
+
 
   const next=stops[open];
   if(next){
@@ -131,7 +132,13 @@ export function showTown(s, page, note, act, save) {
   else note("Restore Lantern Row to open the county atlas: 16 more neighborhoods await.");
   page.insertAdjacentHTML("beforeend", skyline(open));
   if (open) note(stops[open-1].line);
+  let optional;
   if (open) {
+    optional = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Optional stops · shop deliveries & mini-games";
+    optional.append(summary);
+    page.append(optional);
     const heading = document.createElement("h3");
     heading.textContent = "Optional stops";
     page.append(heading);
@@ -152,4 +159,5 @@ export function showTown(s, page, note, act, save) {
       start.onclick=()=>{start.disabled=true;stage.replaceChildren();playRound(stage,bowling,s[key]||0,total=>{s[key]=Math.max(s[key]||0,total);save();start.textContent=(bowling?"Play three rolls":"Play Spark Catch")+" · Best "+s[key];start.disabled=false;});};
     }
   }
+  while (optional?.nextSibling) optional.append(optional.nextSibling);
 }
