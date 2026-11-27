@@ -81,3 +81,8 @@ html body.mini-spiralDrop.game-active .spiral-session-controls :is(#earnlyPauseB
 body.mini-spiralDrop .game-result-dialog{background:radial-gradient(ellipse at 50% 0%,#345a86,transparent 64%),#101c32;border-color:#8dddea99;box-shadow:0 16px 50px #0009}
 body.mini-spiralDrop .game-result-dialog .result-main{background:linear-gradient(145deg,#244f69,#10243e);box-shadow:inset 0 1px 0 #e0ffff22}
 body.mini-spiralDrop .game-result-dialog .result-main>strong{color:#c9ffed;text-shadow:0 0 18px #6effdf55}
+
+/* Reactor Dive: preserve the measured control layout while giving the active stage more contrast. */
+body.mini-spiralDrop .mini-surface{box-shadow:0 0 0 2px #092035,0 0 24px #64eff944,0 14px 40px #0008!important}
+.spiral-route{background:linear-gradient(135deg,#18344f,#0c192e);border-top:1px solid var(--spiral-color,#59e5ef)}
+.spiral-idle-copy>span{letter-spacing:3.5px;color:#c5fff6}.spiral-idle-copy strong{color:#f3ffff;text-shadow:0 3px 16px #34e2ff77}

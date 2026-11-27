@@ -4,7 +4,7 @@ async function open(page,path='/mini.html?game=spiralDrop'){
  await page.clock.install({time:new Date('2026-11-01T12:00:00Z')});
  await page.route('https://**',r=>r.abort());
  await page.addInitScript(()=>{localStorage.setItem('arcadeOnboardingSeen','1');localStorage.setItem('arcadeSound','off');localStorage.setItem('spiralDropBest','97');});
- await page.route('**/spiral-drop-engine.js',async route=>{const r=await route.fetch();await route.fulfill({response:r,body:await r.text()+`;const originalSpiralCreate=SpiralDropEngine.create;SpiralDropEngine.create=(...args)=>{const game=originalSpiralCreate(...args);game.state.wait=1e9;window.testSpiral=game;return game;};`});});
+ await page.route('**/spiral-drop-engine.js*',async route=>{const r=await route.fetch();await route.fulfill({response:r,body:await r.text()+`;const originalSpiralCreate=SpiralDropEngine.create;SpiralDropEngine.create=(...args)=>{const game=originalSpiralCreate(...args);game.state.wait=1e9;window.testSpiral=game;return game;};`});});
  await page.goto(path);await page.clock.pauseAt(new Date('2026-11-01T12:02:00Z'));
  await page.evaluate(()=>{Arcade.countdown=fn=>fn();});
  await page.locator('#startButton').click();await page.clock.runFor(50);
@@ -108,5 +108,15 @@ test('Spiral Drop dimensional art renders all four zones without changing gap ge
   await page.screenshot({path:test.info().outputPath('spiral-25d-'+score+'.png')});
  }
  expect(new Set(images).size).toBe(4);
+ expect(errors).toEqual([]);
+});
+
+
+test('Reactor Dive rush and recovery change actual descent pace without extra score',async({page})=>{
+ const errors=await open(page);
+ const read=()=>page.evaluate(()=>({speed:SpiralDropEngine.speed(testSpiral.state.score),score:testSpiral.state.score,art:document.querySelector('#surface canvas').toDataURL()}));
+ await page.evaluate(()=>{testSpiral.state.score=5;});await page.clock.runFor(50);const rush=await read();
+ await page.evaluate(()=>{testSpiral.state.score=8;});await page.clock.runFor(50);const recovery=await read();
+ expect(rush.speed).toBeGreaterThan(recovery.speed);expect(rush.score).toBe(5);expect(recovery.score).toBe(8);expect(rush.art).not.toBe(recovery.art);
  expect(errors).toEqual([]);
 });

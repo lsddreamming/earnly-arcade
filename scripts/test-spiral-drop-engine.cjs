@@ -54,3 +54,10 @@ test('standing still at any opening position cannot reach a paying milestone',()
  for(let seed=1;seed<=100;seed++)for(let x=125;x<=235;x+=10){const g=E.create({random:rng(seed)});g.moveTo(x);g.advance(20);assert.equal(g.state.alive,false);assert.ok(g.state.score<=2,JSON.stringify({seed,x,score:g.state.score}));}
  for(const random of [()=>0,()=>.5,()=>.999999]){const g=E.create({random});g.advance(20);assert.equal(g.state.alive,false);assert.ok(g.state.score<=2);}
 });
+
+
+test('reactor rush and recovery speeds remain bounded and respond smoothly',()=>{
+ assert.ok(E.speed(0)>100);assert.ok(E.speed(5)>E.speed(4));assert.ok(E.speed(8)<E.speed(7));
+ for(let i=0;i<1000;i++)assert.ok(E.speed(i)<=192);
+ const g=E.create();Object.assign(g.state,{score:8,wait:0,vy:192});g.advance(E.FIXED);assert.ok(g.state.vy<192&&g.state.vy>185);assert.equal(g.state.score,8);
+});

@@ -5,7 +5,9 @@
   const zones=[{name:'Prism Well',color:'#59e5ef',dark:'#123653'},{name:'Amethyst Vault',color:'#bd9aff',dark:'#2c2452'},{name:'Solar Core',color:'#ffd080',dark:'#493343'},{name:'Aurora Deep',color:'#79f3be',dark:'#123e45'}];
   function zone(score){return zones[Math.floor(score/25)%zones.length];}
   function width(index){return index===0?140:Math.max(68,128-index*.75);}
-  function speed(score){return Math.min(178,88+score*1.6);}
+  // Rush gates accelerate the descent; recovery sections give the player a breather.
+  // The maximum is bounded by the 320ms reaction + keyboard travel contract.
+  function speed(score){const phase=score%10;return Math.min(192,112+score*2.8+(phase>=5&&phase<=7?24:0))-(score>=8&&phase>=8?18:0);}
   function nextGap(index,recent,random=Math.random){
     if(!index)return 180;
     const w=width(index),lo=28+w/2,hi=WIDTH-lo,prev=recent.at(-1);
@@ -53,7 +55,7 @@
       state.x=clamp(state.x+clamp(axis,-1,1)*KEY_SPEED*FIXED,24,336);
       state.spin+=(state.x-x0)/RADIUS;
       if(state.wait>0){state.wait=Math.max(0,state.wait-FIXED);return;}
-      state.vy=Math.min(speed(state.score),state.vy+220*FIXED);
+      const target=speed(state.score);state.vy=state.vy>target?Math.max(target,state.vy-160*FIXED):Math.min(target,state.vy+270*FIXED);
       state.y+=state.vy*FIXED;
       const dy=state.y-y0,dx=state.x-x0;
       for(const row of state.rows){
