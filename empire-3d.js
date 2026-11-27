@@ -55,19 +55,60 @@ function start() {
     mesh(scene,'ball','#69ad5e',x,1.14,z,1.65,1.85,1.65);
   }
   box('#342d49',1,-.22,0,13,.4,8);
-  box('#438c9e',1,2,-3.6,13,4,.35);
-  for(let i=-3;i<5;i++){
-    box('#fff2cc',i*1.5+.2,2,-3.36,.09,5,.15);
-    box(i%2?'#ffc488':'#7aeadc',i*1.5+.2,3.9,-3.2,1.38,.055,.06);
-    box('#57506a',i*1.5+.2,.2,-3.22,1.38,.12,.12);
+  // Step the front walls down so the default camera can see every department.
+  box('#345778',1,1.55,-3.6,13,3.1,.36);
+  box('#ffedcd',1,3.13,-3.6,13.15,.14,.48);
+  for(const side of [-5.46,7.46]){
+    box('#48688b',side,.45,.05,.18,.9,7.45);
+    box('#ffe7b8',side,.93,.05,.23,.09,7.45);
   }
-  panel(scene,0,3.12,-3.16,4.6,1.17,lettering('S P U D C A D E','#ffc577','#352341'));
-  // Continuous patterned carpet and contact shadows keep the camera inside the arcade.
-  const carpet=panel(scene,1,.002,0,13,8,(ctx)=>{
-    ctx.fillStyle='#d7b785';ctx.fillRect(0,0,512,256);
-    for(let i=0;i<70;i++){let x=(i*193)%510,y=(i*101)%255;ctx.strokeStyle=['#60547d','#865776','#477074'][i%3];
-      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+5,y-3);ctx.lineTo(x+7,y);ctx.stroke()}
-  }).mesh;carpet.rotation.x=-Math.PI/2;carpet.material.map.wrapS=carpet.material.map.wrapT=T.RepeatWrapping;carpet.material.map.repeat.set(5,4);
+  for(const x of [-3.65,5.65]){
+    box('#f8cc89',x,1.82,-3.38,2.87,1.68,.14);
+    panel(scene,x,1.82,-3.29,2.66,1.46,ctx=>{
+      const sky=ctx.createLinearGradient(0,0,0,256);
+      sky.addColorStop(0,'#168bab');sky.addColorStop(1,'#ffe49e');
+      ctx.fillStyle=sky;ctx.fillRect(0,0,512,256);
+      for(let i=0;i<16;i++){
+        const top=104+(i*53)%86;
+        ctx.fillStyle=i%2?'#416389':'#627f9a';ctx.fillRect(i*32,top,30,256-top);
+        ctx.fillStyle='#f9d697';ctx.fillRect(i*32+8,top+12,8,9);
+      }
+      ctx.fillStyle='#f6e8cb';ctx.fillRect(250,0,10,256);
+    });
+  }
+  box('#e58851',1,2.63,-3.17,5.43,1.35,.46);
+  panel(scene,1,2.65,-2.925,5.24,1.2,ctx=>{
+    ctx.fillStyle='#273452';ctx.fillRect(0,0,512,256);
+    ctx.fillStyle='#ffc259';
+    for(let x=14;x<512;x+=24)for(const y of [19,237]){
+      ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
+    }
+    ctx.textAlign='center';ctx.font='900 93px system-ui';ctx.fillText('SPUDCADE',256,161,484);
+  });
+  function floorTiles(parent,x,y,z,w,d,colors){
+    const tile=panel(parent,x,y,z,w,d,ctx=>{
+      for(let row=0;row<4;row++)for(let col=0;col<8;col++){
+        ctx.fillStyle=colors[(row+col)%2];ctx.fillRect(col*64,row*64,64,64);
+        ctx.fillStyle='rgba(37,48,76,.13)';ctx.fillRect(col*64,row*64,64,2);
+      }
+    }).mesh;
+    tile.rotation.x=-Math.PI/2;
+    tile.material.map.wrapS=tile.material.map.wrapT=T.RepeatWrapping;
+    tile.material.map.repeat.set(Math.max(1,Math.round(w/6)),Math.max(1,Math.round(d/3)));
+  }
+  floorTiles(scene,1,.004,0,13,8,['#b6c1e6','#d6d9ef']);
+  // A striped canopy marks the prize counter from across the floor.
+  for(const x of [-4.96,-2.88])box('#286477',x,.88,2.7,.1,1.76,.1);
+  box('#cf7751',-3.92,.46,2.64,2.22,.92,.82);
+  box('#ffe3ab',-3.92,.96,2.64,2.38,.13,.96);
+  for(let i=0;i<7;i++){
+    box(i%2?'#ffeec3':'#ec6861',-4.96+i*.35,1.89,2.61,.35,.18,1.22);
+  }
+  for(let i=0;i<3;i++){
+    const x=-4.56+i*.58;
+    mesh(scene,'ball','#e6a35e',x,1.22,2.68,.44,.5,.4);
+    mesh(scene,'ball',['#6eb9b6','#e288aa','#8d95dd'][i],x,1.39,2.66,.43,.19,.42);
+  }
   function group(x,z){let p=new T.Group();p.position.set(x,0,z);scene.add(p);return p}
   const machines=[],screens=[];
   for(let i=0;i<6;i++){
@@ -145,7 +186,7 @@ function start() {
     if(i%2===0){add('ball',shirt,0,1.07,0,.56,.29,.52);add('ball',shirt,0,1.04,.18,.49,.07,.46)}
     const feet=[-1,1].map(side=>add('ball','#444056',side*.135,.27,.047,.21,.14,.27));
     mesh(p,'drum','#28253c',0,.024,0,.65,.018,.44);
-    body.position.y=-.19;return {p,body,feet};
+    p.scale.setScalar(1.24);body.position.y=-.19;return {p,body,feet};
   }
   const guests=Array.from({length:8},(_,i)=>spud(i));const clerk=spud(8);clerk.p.position.set(1.4,0,.04);
   // A shared corridor connects the arcade to the three production rooms.
@@ -160,6 +201,12 @@ function start() {
     part(job.color,1.35,.4,-2.12,1.45,.8,.12);
     part(job.color,0,.17,2.12,4.2,.35,.15);
     panel(room,0,.62,2.19,1.96,.55,lettering(job.sign,'#fff5d8','#34304b'));
+    floorTiles(room,0,.003,0,4.12,4.1,[['#89c4bd','#a2d9cb'],['#9aaeda','#b1c5e1'],['#edac85','#f3c59a']][i]);
+    part('#fff1cf',-2.08,.88,0,.16,.08,4.4);
+    // Built-in storage and pinboards give even unopened rooms a function.
+    part('#485570',1.46,.51,-1.63,.84,1.02,.54);
+    for(const height of [.26,.56,.86])part('#c4d6d8',1.46,height,-1.34,.65,.21,.05);
+    panel(room,-1.46,.94,-2.01,1.09,.65,lettering(['DEV','QA','ADS'][i],'#fff5ce','#335977'));
     const fixtures=new T.Group();room.add(fixtures);
     const equipment=(color,dx,y,dz,w,h,d)=>mesh(fixtures,'box',color,dx,y,dz,w,h,d);
     equipment('#845a48',0,.46,.25,2.6,.9,.86);
