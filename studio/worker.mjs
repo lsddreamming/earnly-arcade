@@ -45,7 +45,12 @@ export async function tick(db,provider) {
   }
   const [job]=unpack(await db.rpc('studio_claim'));
   if(job) {
-    try { await provider.verifyPrice(job); }
+    try {
+      const balance=await provider.balance();
+      unpack(await db.from('studio_control').update({balance_micro:balance,balance_checked_at:new Date().toISOString()}).eq('singleton',true));
+      if(balance>25000000||balance<job.reserved_usd_micro)throw Error('Pilot prepaid balance outside approved range');
+      await provider.verifyPrice(job);
+    }
     catch(error) {
       unpack(await db.from('studio_control').update({enabled:false}).eq('singleton',true));
       unpack(await db.rpc('studio_fail',{p_job:job.id}));

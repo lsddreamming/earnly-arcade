@@ -23,6 +23,12 @@ export function falProvider(key, transport=fetch) {
     return response.json();
   }
   return {
+    async balance() {
+      const {credits}=await json('https://api.fal.ai/v1/account/billing?expand=credits');
+      if(credits?.currency!=='USD'||!Number.isFinite(credits.current_balance)||credits.current_balance<0)
+        throw Error('Provider balance unavailable');
+      return Math.floor(credits.current_balance*1000000);
+    },
     async verifyPrice(job) {
       const spec=specification(job);
       const res=await json('https://api.fal.ai/v1/models/pricing?endpoint_id='+encodeURIComponent(spec.endpoint));

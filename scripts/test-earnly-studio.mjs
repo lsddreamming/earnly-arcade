@@ -32,6 +32,10 @@ for(const setting of ['daily_limit','monthly_limit','fal_limit','daily_jobs','us
  await db.exec('update studio_control set '+setting+'=0');await assert.rejects(reserve(),/LIMIT/);
  await db.exec('update studio_control set '+setting+'='+old);
 }
+await assert.rejects(val("select studio_reserve($1,$2,'video','A fox','1:1',null,1)",[uid,randomUUID()]),/QUOTE_CHANGED/);
+await db.exec("update studio_models set enabled=false where kind='video'");
+await assert.rejects(reserve(),/MODEL_PAUSED/);
+await db.exec("update studio_models set enabled=true where kind='video'");
 const reviewed=await reserve();await val('select studio_reject($1)',[reviewed]);
 assert.equal(await val('select reserved_usd_micro from studio_jobs where id=$1',[reviewed]),0);
 await db.exec("update studio_jobs set reserved_usd_micro=24999999 where state='failed' and reserved_usd_micro>0;update studio_control set fal_limit=25000000");
@@ -73,6 +77,12 @@ await settlement.query("select studio_test_purchase('apple_sandbox','123',$1,'pr
 await settlement.query("select studio_test_purchase('apple_sandbox','123',$1,'premium','2027-01-01',true,now())",[uid]);
 await settlement.query("select studio_test_purchase('apple_sandbox','123',$1,'premium','2027-01-01',false,now())",[uid]);
 assert.equal((await settlement.query('select revoked from studio_test_purchases')).rows[0].revoked,true);
+assert.equal((await settlement.query('select credits from studio_accounts')).rows[0].credits,3);
+const restored=async()=> (await settlement.query('select studio_test_allowances($1) as data',[uid])).rows[0].data;
+assert.equal((await restored()).plan,'free');
+await settlement.query("select studio_test_purchase('stripe_test','invoice',$1,'pro',now()+interval '1 day',false,now())",[uid]);
+await settlement.query("select studio_test_purchase('stripe_test','pack',$1,'credits100',null,false,now())",[uid]);
+assert.deepEqual(await restored(),{plan:'pro',videos:35,images:700,packCredits:100,sandbox:true});
 assert.equal((await settlement.query('select credits from studio_accounts')).rows[0].credits,3);
 await settlement.close();
 console.log('PASS: ad pool exhaustion, offer reuse, unit binding, duplicate callback, sandbox purchase restoration and sticky revocation; simulated receipts only.');

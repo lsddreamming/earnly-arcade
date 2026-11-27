@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {sandboxStripe} from '../supabase/functions/studio-commerce/stripe-sandbox.ts';
+const user='00000000-0000-4000-8000-000000000001', customer='cus_test', product='premium',price='price_test';
+const records=[];
+const invoice={id:'inv',customer,livemode:false,parent:{subscription_details:{subscription:'sub'}},amount_paid:999,status:'paid',currency:'usd',lines:{has_more:false,data:[{quantity:1,pricing:{price_details:{price}},period:{end:1800000000}}]}};
+const sub={id:'sub',customer,livemode:false,status:'active',metadata:{earnlyUser:user,studioProduct:product,application:'earnly-studio-test'}};
+const intent={status:'succeeded',currency:'usd',livemode:false,customer,latest_charge:{amount_refunded:0,disputed:false}};
+const db={from:()=>({select(){return this},eq(){return this},maybeSingle:async()=>({data:{user_id:user,customer_id:customer}})})};
+const stripe={invoices:{retrieve:async()=>invoice},subscriptions:{retrieve:async()=>sub},invoicePayments:{list:async()=>({data:[{payment:{type:'payment_intent',payment_intent:'pi'},amount_paid:999,livemode:false}]})},paymentIntents:{retrieve:async()=>intent}};
+const service=sandboxStripe(stripe,db,()=>price,(...row)=>records.push(row));
+const reconcile=()=>service.event('invoice.paid',{object:'invoice',id:'inv'});
+await reconcile();assert.equal(records.length,1);assert.equal(records[0][5],false);
+intent.latest_charge.disputed=true;await reconcile();assert.equal(records.at(-1)[5],true);
+intent.latest_charge.disputed=false;sub.status='canceled';await reconcile();assert.equal(records.at(-1)[5],true);
+sub.status='active';invoice.livemode=true;await reconcile();assert.equal(records.length,3);
+invoice.livemode=false;invoice.amount_paid=100;await reconcile();assert.equal(records.length,3);
+invoice.amount_paid=999;invoice.lines.data[0].pricing.price_details.price='wrong';await reconcile();assert.equal(records.length,3);
+console.log('PASS: test invoice hydration, verified payment, dispute and cancellation reconciliation, live-mode, wrong-price and underpayment denial with fixture transactions.');

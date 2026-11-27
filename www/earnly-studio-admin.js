@@ -93,6 +93,17 @@
       if (current!==sequence) return;
       config=result.config;
       const {totals,jobs}=result;
+      const models=byId('models');models.replaceChildren();
+      for(const model of result.models){
+        const form=el('form');form.className='actions';
+        const label=el('label',model.kind+' credits '),count=el('input');
+        count.type='number';count.min='1';count.max='10000';count.required=true;count.value=model.credits;label.append(count);
+        const enabled=el('input');enabled.type='checkbox';enabled.checked=model.enabled;
+        const active=el('label','Available ');active.append(enabled);
+        const save=el('button','Save');form.append(label,active,save);
+        form.onsubmit=async event=>{event.preventDefault();save.disabled=true;try{await mutate({action:'model',kind:model.kind,credits:count.valueAsNumber,enabled:enabled.checked});}finally{save.disabled=false;}};
+        models.append(form);
+      }
       byId('panel').hidden=false;
       byId('message').textContent=config.enabled?'Pilot enabled':'Paid generation paused';
       const metrics=byId('metrics');metrics.replaceChildren();
@@ -104,7 +115,8 @@
         'Requests awaiting billing records':totals.unreconciled,
         'Image / video requests':totals.images+' / '+totals.videos,
         'Failed / uncertain':totals.failed+' / '+totals.uncertain,
-        'Revenue and provider balance':'Awaiting verified reporting'
+        'Provider prepaid balance':config.balance_micro==null?'Unverified':money(config.balance_micro)+' · '+new Date(config.balance_checked_at).toLocaleString(),
+        'Revenue':'Live billing closed'
       })) metrics.append(el('dt',label),el('dd',value));
       renderLimits();
       const queue=byId('queue');queue.replaceChildren();

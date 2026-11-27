@@ -460,7 +460,9 @@
       const {data,error} = await window.EarnlyCloud.client.functions.invoke('earnly-studio', {body:{action:'library'}});
       if (sequence !== librarySequence) return;
       if (error || !Array.isArray(data?.jobs) || !Number.isSafeInteger(data.credits)) throw Error();
+      const newlyReady=data.jobs.filter(job=>job.state==='ready'&&jobs.some(old=>old.id===job.id&&old.state!=='ready'));
       online = true; available = data.enabled === true; credits = data.credits; jobs = data.jobs;
+      if(newlyReady.length)tell('Your creation is ready in My Library.');
       setCommunity(data.community === true);
       prices = data.prices || {}; admin = data.admin === true; adOffer = data.adOffer === true;
       accountMessage = available ? '' : 'Generation is currently paused. Your existing jobs remain in My Library.';
@@ -475,6 +477,9 @@
     try {
       const current = await window.EarnlyCloud?.user();
       if (userId !== (current?.id || '')) {
+        const previous=byId('sandboxStore'),container=previous.cloneNode(false);
+        previous.replaceWith(container);
+        if(current?.app_metadata?.studio_billing_tester)import('./earnly-studio-billing.js').then(m=>m.openSandboxStore(container,current)).catch(()=>{container.textContent='Sandbox storefront unavailable.';});
         clearSource(); userId = current?.id || ''; draftId = ''; adOffer = false; adTicket = null; byId('rewardStatus').textContent = ''; pendingRequest = null; jobs = []; credits = null;
         librarySequence++; setCommunity(false); online = false; available = false; prices = {}; byId('consent').checked = false;
       }
@@ -508,7 +513,7 @@
     try { sessionStorage.setItem(requestKey,pendingRequest.id); } catch {}
     try {
       const {error,data} = await window.EarnlyCloud.client.functions.invoke('earnly-studio', {
-        body:{action:'generate',prompt:styled,ratio,kind,request_id:pendingRequest.id,consent_version:'2026-11-27',...(kind === 'animation' ? {image_base64:imagePayload} : {})}
+        body:{action:'generate',expected_credits:prices[kind],prompt:styled,ratio,kind,request_id:pendingRequest.id,consent_version:'2026-11-27',...(kind === 'animation' ? {image_base64:imagePayload} : {})}
       });
       if (error || data?.error || !data) throw Error();
       try { sessionStorage.removeItem(requestKey); } catch {}

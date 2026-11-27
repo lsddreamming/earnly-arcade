@@ -22,3 +22,20 @@ begin
 end $$;
 revoke all on function studio_test_purchase(text,text,uuid,text,timestamptz,boolean,timestamptz) from public,anon,authenticated;
 grant execute on function studio_test_purchase(text,text,uuid,text,timestamptz,boolean,timestamptz) to service_role;
+create table studio_test_customers(user_id uuid primary key references auth.users on delete cascade,customer_id text not null unique);
+alter table studio_test_customers enable row level security;
+revoke all on studio_test_customers from public,anon,authenticated;
+grant select,insert,update on studio_test_customers to service_role;
+
+-- Absolute, independent sandbox quantities. Reading twice restores the same
+-- rights. Refunded packs and expired subscription periods do not contribute.
+create function studio_test_allowances(p_user uuid) returns jsonb language sql stable set search_path=public,pg_temp as $$
+ with active as (select product from studio_test_purchases where user_id=p_user and not revoked and valid_until>now()
+                 order by (product='pro') desc,valid_until desc limit 1)
+ select jsonb_build_object('sandbox',true,'plan',coalesce((select product from active),'free'),
+  'videos',coalesce((select case when product='pro' then 35 else 15 end from active),0),
+  'images',coalesce((select case when product='pro' then 700 else 300 end from active),0),
+  'packCredits',(select 100*count(*) from studio_test_purchases where user_id=p_user and product='credits100' and not revoked))
+$$;
+revoke all on function studio_test_allowances(uuid) from public,anon,authenticated;
+grant execute on function studio_test_allowances(uuid) to service_role;

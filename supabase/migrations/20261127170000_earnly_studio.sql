@@ -2,7 +2,7 @@
 create table public.studio_control (
  singleton boolean primary key default true check (singleton),
  enabled boolean not null default false,
- quote_expires timestamptz,
+ quote_expires timestamptz, balance_micro bigint, balance_checked_at timestamptz,
  daily_limit int not null default 500000 check (daily_limit between 0 and 25000000),
  monthly_limit int not null default 3000000 check (monthly_limit between 0 and 25000000),
  fal_limit int not null default 3000000 check (fal_limit between 0 and 25000000),
@@ -11,6 +11,14 @@ create table public.studio_control (
  concurrent_jobs int not null default 2 check (concurrent_jobs between 0 and 8)
 );
 insert into public.studio_control(singleton) values(true);
+create table public.studio_models (
+ kind text primary key, enabled boolean not null default true,
+ credits int not null check(credits between 1 and 10000)
+);
+insert into studio_models(kind,credits) values('image',1),('video',10),('animation',60);
+alter table studio_models enable row level security;
+revoke all on studio_models from public,anon,authenticated;
+grant select,update on studio_models to service_role;
 create table public.studio_accounts (
  user_id uuid primary key references auth.users on delete cascade,
  credits int not null default 0 check (credits>=0), pilot boolean not null default false
@@ -53,7 +61,7 @@ begin
  return true;
 end $$;
 
-create function public.studio_reserve(p_user uuid,p_request uuid,p_kind text,p_prompt text,p_ratio text,p_hash text default null)
+create function public.studio_reserve(p_user uuid,p_request uuid,p_kind text,p_prompt text,p_ratio text,p_hash text default null,p_quote int default null)
 returns uuid language plpgsql set search_path=public,pg_temp set timezone='UTC' as $$
 declare cfg studio_control; existing studio_jobs; exposure int; charge int; new_id uuid;
 begin
@@ -64,10 +72,13 @@ begin
   return existing.id;
  end if;
  if not cfg.enabled or cfg.quote_expires is null or cfg.quote_expires<=now() then raise exception 'STUDIO_PAUSED'; end if;
- if p_kind='image' then exposure:=4000; charge:=1;
- elsif p_kind='video' then exposure:=30000; charge:=10;
- elsif p_kind='animation' and p_hash ~ '^[a-f0-9]{64}$' then exposure:=160000; charge:=60;
+ if p_kind='image' then exposure:=4000;
+ elsif p_kind='video' then exposure:=30000;
+ elsif p_kind='animation' and p_hash ~ '^[a-f0-9]{64}$' then exposure:=160000;
  else raise exception 'UNKNOWN_MODEL'; end if;
+ select credits into charge from studio_models where kind=p_kind and enabled for share;
+ if not found then raise exception 'MODEL_PAUSED';end if;
+ if p_quote is not null and charge<>p_quote then raise exception 'QUOTE_CHANGED';end if;
  if exists(select 1 from (select
    coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)),0)+exposure as lifetime,
    coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)) filter(where created_at>=date_trunc('day',now())),0)+exposure as daily,
@@ -109,8 +120,8 @@ begin
   select j.id from studio_jobs j join studio_accounts a on a.user_id=j.user_id where j.state='queued' and a.pilot order by j.created_at limit 1 for update of j
  ) returning *;
 end $$;
-revoke all on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text,text),studio_fail(uuid),studio_claim() from public,anon,authenticated;
-grant execute on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text,text),studio_fail(uuid),studio_claim() to service_role;
+revoke all on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text,text,int),studio_fail(uuid),studio_claim() from public,anon,authenticated;
+grant execute on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text,text,int),studio_fail(uuid),studio_claim() to service_role;
 create function studio_reject(p_job uuid) returns boolean language plpgsql set search_path=public,pg_temp as $$
 begin
  perform 1 from studio_jobs where id=p_job and state in ('review','output_review') for update;

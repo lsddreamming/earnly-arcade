@@ -34,12 +34,13 @@ Deno.serve(async req=>{
       const jobs=checked(await db.from('studio_jobs').select('id,title,prompt,kind,ratio,state,created_at,private_path,studio_posts(state)').eq('user_id',user.id).eq('hidden',false).order('created_at',{ascending:false}).limit(100));
       const rows=await Promise.all(jobs.map(async({private_path,studio_posts,...row})=>({...row,publication:(Array.isArray(studio_posts)?studio_posts[0]:studio_posts)?.state||null,url:row.state==='ready'&&private_path?checked(await db.storage.from('studio-private').createSignedUrl(private_path,300)).signedUrl:null})));
       const pool=adConfigured&&acct?.pilot?checked(await db.from('studio_ad_pool').select('enabled,remaining,reward').single()):null;
-      return response({community:!!(cfg.community_enabled&&acct?.community_eligible&&acct?.pilot),adOffer:!!(pool?.enabled&&pool.remaining>=pool.reward&&cfg.enabled&&Date.parse(cfg.quote_expires)>Date.now()),prices:{image:1,video:10,animation:60},credits:acct?.credits||0,enabled:!!(acct?.pilot&&cfg.enabled&&Date.parse(cfg.quote_expires)>Date.now()),admin,jobs:rows});
+      const models=checked(await db.from('studio_models').select('kind,credits').eq('enabled',true));
+      return response({community:!!(cfg.community_enabled&&acct?.community_eligible&&acct?.pilot),adOffer:!!(pool?.enabled&&pool.remaining>=pool.reward&&cfg.enabled&&Date.parse(cfg.quote_expires)>Date.now()),prices:Object.fromEntries(models.map(m=>[m.kind,m.credits])),credits:acct?.credits||0,enabled:!!(acct?.pilot&&cfg.enabled&&Date.parse(cfg.quote_expires)>Date.now()),admin,jobs:rows});
     }
     if(b.action==='ad_ticket' && adConfigured)return response(checked(await db.rpc('studio_ad_ticket',{p_user:user.id,p_unit:adUnit})));
     if(b.action==='generate'){
       if(b.consent_version!=='2026-11-27')return response({error:'Permission to send this prompt to fal is required'},400);
-      if(!uuid.test(b.request_id)||typeof b.prompt!=='string'||!b.prompt.trim()||b.prompt.length>1200||!['image','video','animation'].includes(b.kind)||!['9:16','16:9','1:1'].includes(b.ratio))return response({error:'Invalid creation settings'},400);
+      if(!Number.isInteger(b.expected_credits)||b.expected_credits<1||!uuid.test(b.request_id)||typeof b.prompt!=='string'||!b.prompt.trim()||b.prompt.length>1200||!['image','video','animation'].includes(b.kind)||!['9:16','16:9','1:1'].includes(b.ratio))return response({error:'Invalid creation settings'},400);
       let bytes:Uint8Array|null=null,hash:string|null=null;
       if(b.kind==='animation'){
         const account=checked(await db.from('studio_accounts').select('pilot').eq('user_id',user.id).single());
@@ -52,7 +53,7 @@ Deno.serve(async req=>{
         bytes=jpeg.encode({width:decoded.width,height:decoded.height,data:decoded.data},80).data;
         hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',raw)),n=>n.toString(16).padStart(2,'0')).join('');
       }
-      const id=checked(await db.rpc('studio_reserve',{p_user:user.id,p_request:b.request_id,p_kind:b.kind,p_prompt:b.prompt.trim(),p_ratio:b.ratio,p_hash:hash}));
+      const id=checked(await db.rpc('studio_reserve',{p_user:user.id,p_request:b.request_id,p_kind:b.kind,p_prompt:b.prompt.trim(),p_ratio:b.ratio,p_hash:hash,p_quote:b.expected_credits}));
       if(bytes){
         const job=checked(await db.from('studio_jobs').select('state,reference_path').eq('id',id).single());
         if(job.state==='review'&&!job.reference_path){
@@ -97,6 +98,11 @@ Deno.serve(async req=>{
       }else return response({error:'Invalid target'},400);
       return response({ok:true});
     }
+    if(admin&&b.action==='model'){
+      if(!['image','video','animation'].includes(b.kind)||typeof b.enabled!=='boolean'||!Number.isInteger(b.credits)||b.credits<1||b.credits>10000)return response({error:'Invalid model settings'},400);
+      checked(await db.from('studio_models').update({credits:b.credits,enabled:b.enabled}).eq('kind',b.kind));
+      return response({ok:true});
+    }
     if(admin && b.action==='limits'){
       const allowed=['daily_limit','monthly_limit','fal_limit','daily_jobs','user_jobs','concurrent_jobs'];
       if(!allowed.includes(b.setting)||!Number.isSafeInteger(b.value)||b.value<0)return response({error:'Invalid setting'},400);
@@ -107,7 +113,7 @@ Deno.serve(async req=>{
       const config=checked(await db.from('studio_control').select('*').single());
       const totals=checked(await db.rpc('studio_overview'));
       const jobs=checked(await db.from('studio_jobs').select('id,kind,prompt,state,created_at,private_path,reference_path').in('state',['review','output_review','uncertain']).order('created_at').limit(30));
-      return response({config,totals,jobs:await Promise.all(jobs.map(async({private_path,reference_path,...row})=>({...row,reference_url:reference_path?checked(await db.storage.from('studio-private').createSignedUrl(reference_path,180)).signedUrl:null,url:private_path?checked(await db.storage.from('studio-private').createSignedUrl(private_path,180)).signedUrl:null})))});
+      return response({models:checked(await db.from('studio_models').select('kind,credits,enabled')),config,totals,jobs:await Promise.all(jobs.map(async({private_path,reference_path,...row})=>({...row,reference_url:reference_path?checked(await db.storage.from('studio-private').createSignedUrl(reference_path,180)).signedUrl:null,url:private_path?checked(await db.storage.from('studio-private').createSignedUrl(private_path,180)).signedUrl:null})))});
     }
     if(admin && b.action==='pause'){
       checked(await db.from('studio_control').update({enabled:false}).eq('singleton',true));
@@ -126,7 +132,7 @@ Deno.serve(async req=>{
     return response({error:'Unavailable action'},403);
   }catch(err){
     const details=(err as Error)?.message||'';
-    const code=['STUDIO_PAUSED','STUDIO_LIMIT','REQUEST_CONFLICT','PILOT_OR_CREDITS_REQUIRED'].find(x=>details.includes(x));
+    const code=['STUDIO_PAUSED','MODEL_PAUSED','QUOTE_CHANGED','STUDIO_LIMIT','REQUEST_CONFLICT','PILOT_OR_CREDITS_REQUIRED'].find(x=>details.includes(x));
     return response({error:code||'Unable to complete Studio request'},code?409:400);
   }
 });
