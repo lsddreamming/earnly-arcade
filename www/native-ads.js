@@ -921,7 +921,17 @@
     supportsDailyBonus: !TEST_MODE,
     ensureReady: ensureAdMobReady,
     showPrivacyOptions,
-    showRewarded
+    showRewarded,
+    // The server issues the ticket and displayed credit amount before an opt-in tap.
+    // Studio balances update only from Google's signed callback.
+    async showStudioReward(ticket) {
+      if (TEST_MODE || !isNative || !ticket || !/^ca-app-pub-8864401806510610\/\d{10}$/.test(ticket.adUnit) || !/^[-a-f0-9]{36}$/i.test(ticket.ticket)) return { presented: false };
+      const readiness = await ensureAdMobReady();
+      if (!readiness.ready) return { presented: false };
+      const loaded = await AdMob.prepareRewardVideoAd({ adId: ticket.adUnit, npa: true, isTesting: false, ssv: { customData: ticket.ticket } });
+      await presentRewarded(loaded?.adUnitId ? { adId: loaded.adUnitId } : void 0);
+      return { presented: true };
+    }
   });
   window.dispatchEvent(new CustomEvent("earnly-native-ads-ready", {
     detail: { isNative, testMode: TEST_MODE }

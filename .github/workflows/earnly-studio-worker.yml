@@ -1,0 +1,32 @@
+name: Earnly Studio private worker
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: earnly-studio-worker
+  cancel-in-progress: false
+jobs:
+  tick:
+    if: vars.STUDIO_PRIVATE_WORKER == 'enabled' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: studio-private
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Studio media processor
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+      - run: npm ci --omit=dev --ignore-scripts
+      - run: node studio/worker.mjs
+        env:
+          FAL_KEY: ${{ secrets.STUDIO_FAL_KEY }}
+          SUPABASE_URL: ${{ vars.STUDIO_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STUDIO_SUPABASE_SERVICE_ROLE_KEY }}

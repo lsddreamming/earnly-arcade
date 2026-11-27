@@ -1,0 +1,60 @@
+name: Earnly Studio contracts
+on:
+  pull_request:
+    paths:
+      - 'studio/**'
+      - 'earnly-studio*'
+      - 'scripts/test-earnly-studio*'
+      - 'supabase/**/earnly-studio/**'
+      - 'supabase/migrations/*earnly_studio*'
+      - '.github/workflows/earnly-studio.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Studio media processor
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+      - run: npm ci
+      - run: node scripts/test-earnly-studio.mjs
+      - run: node scripts/test-earnly-studio-community.mjs
+      - run: node scripts/test-earnly-studio-media.mjs
+      - run: node --experimental-strip-types scripts/test-earnly-studio-stripe.mjs
+  concurrent-reservations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: studio_contract_test
+          POSTGRES_PASSWORD: studio_ci_only
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGDATABASE: studio_contract_test
+      PGUSER: postgres
+      PGPASSWORD: studio_ci_only
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-earnly-studio-concurrency.py
+  studio-browsers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright test tests/earnly-studio.spec.js

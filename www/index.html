@@ -57,6 +57,11 @@
       <script src="home-featured.js?v=3"></script>
     </section>
 
+    <section id="studioPreviewEntry" hidden class="home-section">
+      <a href="earnly-studio.html" style="display:block;border-radius:18px;padding:18px;color:#f7f2ff;background:linear-gradient(115deg,#4a2780,#183d69);text-decoration:none">
+        <strong>✦ Earnly Studio</strong><br><span>Imagine it. Create it. Share it. ↗</span>
+      </a>
+    </section>
     <section class="daily-arcade" id="daily-arcade" aria-labelledby="dailyArcadeHeading">
       <details class="daily-challenge-disclosure">
         <summary class="daily-challenge-summary">
@@ -751,6 +756,15 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="cloud.js"></script>
+  <script>
+    async function updateStudioPreviewEntry(){
+      const entry = document.getElementById('studioPreviewEntry');
+      try { entry.hidden = (await window.EarnlyCloud?.user())?.app_metadata?.studio_preview !== true; }
+      catch { entry.hidden = true; }
+    }
+    window.addEventListener('earnly-cloud-auth-change', updateStudioPreviewEntry);
+    updateStudioPreviewEntry();
+  </script>
   <script src="world-renderer.js"></script>
   <script src="daily-arcade.js"></script>
 <script src="potato-rig.js"></script>
