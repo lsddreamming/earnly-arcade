@@ -106,6 +106,15 @@
   connecting=true;entryState('Connecting to your room… The server may need a moment to wake up.');$('worldSignIn').hidden=true;$('reconnect').disabled=true;$('reconnect').textContent='Connecting…';
   try{
   session=await window.EarnlyCloud?.session();if(!session){finishConnecting();$('worldSignIn').hidden=false;entryState('Sign in once to enter your own room and meet other players.');openPanel('Join Earnly World').append(note('Sign in to start in your own room with your saved potato avatar.'),Object.assign(el('a','primary','Sign in'),{href:window.EarnlyWorldLinks.signIn()}));return;}
+  if(window.EarnlyCloud.ensurePlayerUsername && !await window.EarnlyCloud.ensurePlayerUsername(session.user)){
+    finishConnecting();
+    entryState('Choose your Arcade username to enter World.');
+    openPanel('Choose your Arcade username').append(window.EarnlyCloud.usernameForm('Save username & enter World',async()=>{
+      $('worldPanel').close();
+      await connect(roomId);
+    }));
+    return;
+  }
   const token=session.access_token;
   window.EarnlyActivity?.track('world_attempt');if(retry)window.EarnlyActivity?.track('world_reconnect');
   if(socket&&socket.readyState<2){const previous=socket;socket=null;connected=false;placing=null;showPlacement();for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('Changing rooms. Please retry.'));}pending.clear();await new Promise((resolve,reject)=>{

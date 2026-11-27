@@ -6391,3 +6391,5 @@ html body.brick-breaker-page.game-active .earnly-session-dock #earnlyPauseButton
 .compact-result .result-run-details .result-notes{margin-top:0}
 .compact-result .result-actions{margin-top:12px}
 .compact-result .result-room-hint{display:none}
+
+.arcade-username-form{display:grid;gap:.6rem;text-align:left}.arcade-username-form label{display:grid;gap:.3rem}.arcade-username-form input,#usernameInput{font-size:16px}.arcade-username-form input{min-height:44px;padding:0 .7rem}

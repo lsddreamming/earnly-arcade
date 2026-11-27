@@ -64,7 +64,7 @@
 
     <section class="leaderboard-toolbar">
       <select id="gameSelect" aria-label="Choose leaderboard game"></select>
-      <a class="button secondary" href="profile.html">Edit username & icon</a>
+      <a class="button secondary" href="profile.html#username">Edit username & icon</a>
     </section>
 
     <section class="rank-challenge" aria-label="Your next challenge">
@@ -191,7 +191,7 @@
       try {
         if (!window.EarnlyCloud) throw new Error('Leaderboard connection is still loading.');
         const localBest = Arcade.best(game).value;
-        if (game !== 'neonSlice' && submitLocalBest && localBest > 0 && Arcade.leaderboardUsername()) {
+        if (game !== 'neonSlice' && submitLocalBest && localBest > 0) {
           localLeaderboardSubmitDepth += 1;
           try {
             await EarnlyCloud.submitLeaderboardScore(game, localBest);
@@ -210,7 +210,7 @@
         list.replaceChildren();
         const mine = entries.find(e => myUsername() && String(e.username || '').toLowerCase() === myUsername());
         const target = mine ? entries.filter(e => Number(e.rank) < Number(mine.rank) && (game === 'memory' ? Number(e.score) < Number(mine.score) : Number(e.score) > Number(mine.score))).at(-1) : entries.at(-1);
-        document.getElementById('rankStanding').textContent = mine ? 'Your world rank: #' + mine.rank : myUsername() ? 'Your score is not in this displayed Top 25' : 'Set your leaderboard username in Profile to compete';
+        document.getElementById('rankStanding').textContent = mine ? 'Your world rank: #' + mine.rank : myUsername() ? 'Your score is not in this displayed Top 25' : 'Choose your Arcade username to compete';
         document.getElementById('rankTarget').textContent = !entries.length ? 'Set the first score on this board.' : mine && Number(mine.rank) === 1 ? 'You hold the top spot. Can you improve your record?' : target ? 'Score to beat: ' + scoreText(target, data) + ' · @' + target.username + (game === 'memory' ? ' · Fewer moves wins.' : '') : 'Improve your best to climb the board.';
 
         if (!entries.length) {

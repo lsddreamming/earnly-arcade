@@ -2572,7 +2572,7 @@ test('profile draft survives refresh and saves the typed username', async ({ pag
   await page.route('**/cloud.js', route => route.fulfill({contentType:'text/javascript', body:`window.EarnlyCloud={profile:async()=>null,updatePublicProfile:async(data)=>{window.savedProfile=data;localStorage.setItem('arcadeUsername',data.username);return {username:data.username};}};`}));
   await page.goto('/profile.html');
   await page.locator('details.profile-edit-card > summary').click();
-  await page.locator('#nameInput').fill('Test Player');
+  await expect(page.locator('.profile-edit-card input')).toHaveCount(1);
   await page.locator('#usernameInput').fill('Shrimp92');
   await page.locator('#usernameInput').blur();
   await page.evaluate(()=>window.dispatchEvent(new Event('earnly-cloud-synced')));
