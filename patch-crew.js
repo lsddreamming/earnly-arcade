@@ -19,17 +19,30 @@ window.drawPatchCrew = function (ctx, tower, ghost, turn, tools) {
   ctx.save(); ctx.translate(tower.x,tower.y); ctx.rotate(-turn);
   if(ghost) ctx.globalAlpha=.65;
   ctx.lineWidth=1.5;
-  dot(1,8,22,'#20393b48'); plate(-20,-13,40,34,ink,9); plate(-20,-18,40,33,coat,8);
+  dot(1,8,22,'#20393b48'); const chassis = [
+    [[-20,-12],[4,-17],[18,-8],[13,13],[-15,18]],
+    [[-20,-14],[16,-14],[22,0],[16,17],[-20,17]],
+    [[0,-22],[20,-6],[14,15],[-6,20],[-20,4]],
+    [[-21,5],[-8,-17],[21,-10],[13,12],[-13,18]],
+    [[0,-20],[17,-12],[20,8],[0,19],[-18,10],[-18,-9]],
+    [[-20,-11],[16,-16],[22,7],[10,17],[-19,14]],
+    [[-21,-16],[18,-16],[21,15],[-19,16]],
+    [[-20,-16],[20,-16],[16,9],[0,21],[-16,9]]
+  ][tower.type];
+  ctx.save(); ctx.translate(0,4); polygon(chassis,ink); ctx.restore();
+  polygon(chassis,coat);
+  line(chassis.slice(0,3),2,'#ffffff85');
   for(const x of [-15,15]) for(const y of [-12,10]) dot(x,y,2,brass,ink);
   ctx.save(); ctx.rotate((tower.angle||0)+turn); ctx.translate(-Math.min(4,tower.flash||0),0);
+  ctx.scale(1.17,1.14);
   switch(tower.type) {
-    case 0: barrel(2,0,23,8,'#568d46'); polygon([[13,-4],[17,-15],[22,-13],[19,-4]],'#94d35b'); dot(24,0,3,'#c9f589'); break;
-    case 1: barrel(0,0,27,17,'#ab613d'); for(const x of [8,17]) plate(x,-10,4,20,brass); dot(-1,7,5,ink,brass); break;
-    case 2: for(let i=0;i<5;i++){ctx.rotate(2*Math.PI/5);polygon([[4,0],[11,-8],[23,-6],[18,2],[7,4]],'#adf5ff');} dot(0,0,6,steel,ink); break;
+    case 0: barrel(2,0,23,8,'#568d46'); polygon([[13,-4],[17,-15],[22,-13],[19,-4]],'#94d35b'); dot(24,0,3,'#c9f589'); for(const x of [4,9,14]) dot(x,6,3,'#89c951',ink); break;
+    case 1: barrel(0,0,27,17,'#ab613d'); for(const x of [8,17]) plate(x,-10,4,20,brass); dot(-1,7,5,ink,brass); polygon([[19,-9],[31,-13],[31,12],[19,8]],steel); plate(27,-9,4,17,ink); break;
+    case 2: for(let i=0;i<5;i++){ctx.rotate(2*Math.PI/5);polygon([[4,0],[11,-8],[23,-6],[18,2],[7,4]],'#adf5ff');} dot(0,0,6,steel,ink); dot(-1,-1,3,'#f1ffff'); break;
     case 3: plate(0,-6,24,12,'#763972'); polygon([[16,0],[24,-10],[32,0],[24,10]],'#ff89cf'); line([[20,0],[25,-5],[28,0]],2,'#ffecff'); break;
     case 4: for(const y of [-9,9]){plate(0,y-3,21,6,'#936dcc');for(const x of [6,11,16])plate(x,y-5,3,10,brass);dot(23,y,5,'#d0afff',ink);} line([[24,-6],[20,-1],[26,1],[23,6]],2,'#fbf1ff'); break;
     case 5: for(const y of [-8,0,8])barrel(2,y,25,5,steel);plate(7,-12,5,24,brass);for(let i=0;i<4;i++)dot(-i*3,12,2.5,brass,ink);break;
-    case 6: plate(-10,-10,28,22,'#566756',5);dot(13,-1,12,steel,ink);dot(14,-2,8,ink,brass);dot(12,-4,4,'#494653');for(const y of [-14,13])plate(-13,y,15,5,brass);break;
+    case 6: plate(-10,-10,28,22,'#566756',5);dot(13,-1,12,steel,ink);dot(14,-2,8,ink,brass);dot(12,-4,4,'#494653'); line([[6,-8],[12,-11],[19,-9]],2,'#dbebe8');for(const y of [-14,13])plate(-13,y,15,5,brass);break;
     case 7: for(const y of [-6,6])barrel(1,y,25,7,'#496e93');line([[-13,8],[-13,-24]],2,brass);polygon([[-12,-24],[0,-21],[-12,-15]],'#ff6461');break;
   }
   ctx.restore();
