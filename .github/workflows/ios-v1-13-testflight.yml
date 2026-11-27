@@ -8,6 +8,11 @@ on:
         type: boolean
         required: true
         default: false
+      kitchen_test_ads:
+        description: 'Use Google demo ads for an on-device rewarded ad playtest'
+        type: boolean
+        required: true
+        default: false
       alien_ar_preview:
         description: 'Include the optional Alien Invasion game in this Earnly TestFlight build'
         type: boolean
@@ -79,8 +84,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 35
     env:
-      BUILD_ADMOB_MODE: live
-      EARNLY_ADMOB_TEST_MODE: '0'
+      BUILD_ADMOB_MODE: ${{ inputs.kitchen_test_ads && 'test' || 'live' }}
+      EARNLY_ADMOB_TEST_MODE: ${{ inputs.kitchen_test_ads && '1' || '0' }}
       EARNLY_IOS_MARKETING_VERSION: '1.13'
       TEAM_ID: 27R798NCMZ
       BUNDLE_ID: com.earnly.arcade
@@ -125,6 +130,13 @@ jobs:
           npx cap sync ios
           node scripts/configure-ios.mjs
           cmp ios-icon-1024.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+
+      - name: Verify Kitchen playtest assets synced to iOS
+        if: ${{ inputs.kitchen_test_ads }}
+        run: |
+          cmp spuds-kitchen.js ios/App/App/public/spuds-kitchen.js
+          cmp spuds-kitchen.html ios/App/App/public/spuds-kitchen.html
+          cmp www/native-ads.js ios/App/App/public/native-ads.js
 
       - name: Verify selected AR game is packaged inside Earnly
         if: ${{ inputs.alien_ar_preview == true }}
