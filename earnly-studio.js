@@ -30,6 +30,8 @@
   let adOffer = false;
   let adTicket = null;
   let adBusy = false;
+  let sourceImage = '';
+  let sourceSequence = 0;
   function tell(message) {
     clearTimeout(noticeTimer);
     byId('notice').textContent = message;
@@ -57,6 +59,7 @@
       renderLibrary();
       if (userId) refreshLibrary();
     }
+    if (section === 'discover' && communityEnabled) loadFeed();
     window.scrollTo(0, 0);
   }
   for (const [title, style, art, prompt] of starters) {
@@ -75,6 +78,194 @@
     item.append(image, copy);
     byId('starters').append(item);
   }
+  const challenges = [
+    ['Midnight at the diner','Spuddy sneaks into a moonlit diner to bake a birthday cake for the moon.'],
+    ['A storm in a teacup','Spuddy sails a teacup across a puddle while a tiny storm cloud follows the boat.'],
+    ['The last token','Spuddy rolls the last arcade token across the floor. A miniature city wakes up along its path.'],
+    ['Cloud delivery','Spuddy delivers a misaddressed parcel to a cloud castle. The box starts to float.'],
+    ['A bubble with a view','Spuddy explores a coral garden inside a floating bubble. A curious pufferfish follows.'],
+    ['The gravity switch','Spuddy flips a switch in an arcade workshop. All the tools gently float to the ceiling.'],
+    ['The tiny parade','Spuddy conducts a marching band of wind-up toys down a rainy cobblestone street.']
+  ];
+  function showChallenge() {
+    const [title,prompt] = challenges[Math.floor(Date.now()/86400000) % challenges.length];
+    byId('challengeTitle').textContent = title;
+    byId('challengePrompt').textContent = prompt;
+    byId('remixChallenge').onclick = () => {
+      edit({prompt,kind:'video',ratio:'9:16',style:'Cartoon'}); location.hash = 'create';
+    };
+  }
+  document.addEventListener('visibilitychange',() => { if (!document.hidden) showChallenge(); });
+  showChallenge();
+
+  let communityEnabled = false;
+  let communitySequence = 0;
+  let posts = [];
+  function setCommunity(enabled) {
+    const changed = communityEnabled !== enabled;
+    communityEnabled = enabled;
+    byId('community').hidden = !enabled;
+    byId('closedCommunity').hidden = enabled;
+    if (!enabled) {
+      communitySequence++;
+      posts = [];
+      byId('communityFeed').replaceChildren();
+      byId('feedFilter').value = '';
+      byId('feedStatus').textContent = '';
+    } else if (changed && byId('discover').hidden === false) loadFeed();
+  }
+  async function communityAction(operation,id,text) {
+    if (!communityEnabled) throw Error('Community unavailable');
+    const body = {action:'community',operation};
+    if (id) body.id = id;
+    if (text) body.text = text;
+    const {data,error} = await window.EarnlyCloud.client.functions.invoke('earnly-studio',{body});
+    if (error || data?.error || !data) throw Error('Community request failed');
+    return data;
+  }
+  async function loadFeed() {
+    if (!communityEnabled) return;
+    const sequence = ++communitySequence;
+    byId('feedStatus').textContent = 'Loading community creations…';
+    try {
+      const data = await communityAction(byId('feedType').value);
+      if (communitySequence !== sequence) return;
+      if (!Array.isArray(data.posts)) throw Error();
+      posts = data.posts;
+      byId('feedStatus').textContent = '';
+      drawFeed();
+    } catch {
+      if (communitySequence !== sequence) return;
+      posts = [];
+      byId('feedStatus').textContent = 'The community feed could not load.';
+      byId('communityFeed').replaceChildren(button('Try again',loadFeed));
+    }
+  }
+  function postAction(label,operation,post) {
+    const action = button(label,async () => {
+      let text;
+      if (operation === 'report') {
+        text = window.prompt('What should our moderators review?')?.trim().slice(0,300);
+        if (!text) return;
+      }
+      if (operation === 'comment') {
+        text = window.prompt('Write a comment for moderation before it appears publicly.')?.trim().slice(0,280);
+        if (!text) return;
+      }
+      if (operation === 'block' && !window.confirm('Block this creator and hide their community creations?')) return;
+      action.disabled = true;
+      try {
+        await communityAction(operation,operation === 'block' ? post.creator : post.job_id,text);
+        if (operation === 'report') tell('Report sent to the moderation team.');
+        if (operation === 'comment') tell('Comment submitted for review.');
+        await loadFeed();
+      } catch { tell('Could not update the community. Please try again.'); }
+      finally { action.disabled = false; }
+    });
+    return action;
+  }
+  function drawFeed() {
+    const feed = byId('communityFeed');
+    feed.replaceChildren();
+    const query = byId('feedFilter').value.trim().toLowerCase();
+    const matches = posts.filter(post => [post.title,post.username,post.prompt].join(' ').toLowerCase().includes(query));
+    if (!matches.length) {
+      feed.append(empty(query ? 'No matching creations in this feed.' : 'No published creations in this feed yet.'));
+      return;
+    }
+    for (const post of matches) {
+      const card = element('article'); card.className = 'card community-post';
+      const byline = element('span',post.username || 'Studio creator'); byline.className = 'byline';
+      card.append(byline,element('h3',post.title || (post.kind !== 'image' ? 'Untitled film' : 'Untitled image')));
+      let mediaUrl;
+      try { mediaUrl = new URL(post.url); } catch {}
+      if (mediaUrl?.protocol === 'https:') {
+        const media = element(post.kind !== 'image' ? 'video' : 'img');
+        if (post.kind !== 'image') { media.controls = true; media.playsInline = true; media.preload = 'none'; }
+        else { media.alt = post.title || 'Community artwork'; media.loading = 'lazy'; }
+        media.src = mediaUrl.href; media.className = 'community-art'; card.append(media);
+      }
+      card.append(element('p',post.prompt));
+      const actions = element('div'); actions.className = 'actions';
+      actions.append(postAction((post.liked ? 'Unlike' : 'Like') + ' · ' + (post.likes || 0),post.liked ? 'unlike':'like',post),
+        button('Remix',() => { edit({...post,ratio:post.ratio || '9:16'}); location.hash='create'; }));
+      if (post.creator !== userId) {
+        actions.append(postAction(post.following ? 'Unfollow' : 'Follow',post.following ? 'unfollow' : 'follow',post));
+      }
+      card.append(actions);
+      const details = element('details');
+      const comments = Array.isArray(post.comments) ? post.comments : [];
+      details.append(element('summary','Comments · ' + comments.length));
+      const list = element('ul');
+      for (const comment of comments) list.append(element('li',(comment.username || 'Studio creator') + ' · ' + comment.body));
+      details.append(list,postAction('Add comment','comment',post));
+      card.append(details);
+      if (post.creator !== userId) {
+        const safety = element('details'); safety.append(element('summary','Report or block'));
+        safety.append(postAction('Report creation','report',post),postAction('Block creator','block',post));
+        card.append(safety);
+      }
+      feed.append(card);
+    }
+  }
+  async function shareCommunity(job,operation) {
+    if (operation === 'submit' && !window.confirm('Publish this creation, title, creator name and full prompt to the Studio community after review? Other creators can view and remix the prompt.')) return;
+    if (operation === 'withdraw' && !window.confirm('Withdraw this creation and prompt from the community?')) return;
+    try {
+      await communityAction(operation,job.id);
+      await refreshLibrary();
+      tell(operation === 'submit' ? 'Submitted for community review.' : 'Community submission withdrawn.');
+    } catch { tell('The publication request could not be completed.'); }
+  }
+  byId('feedFilter').addEventListener('input',drawFeed);
+  byId('feedType').addEventListener('change',loadFeed);
+
+  function canAnimate() {
+    return integrated && online && available && Number.isSafeInteger(prices.animation) && prices.animation > 0;
+  }
+  function clearSource() {
+    sourceSequence++;
+    sourceImage = '';
+    byId('sourceImage').value = '';
+    byId('sourcePreview').removeAttribute('src'); byId('sourcePreview').hidden = true;
+    byId('sourceStatus').textContent = 'Select original artwork. Reselect the JPEG when opening a saved draft.';
+    byId('consent').checked = false;
+  }
+  byId('sourceImage').addEventListener('change',async event => {
+    const file = event.target.files[0];
+    const sequence = ++sourceSequence;
+    sourceImage = ''; byId('consent').checked = false;
+    byId('sourcePreview').hidden = true; byId('sourcePreview').removeAttribute('src'); refreshControls();
+    if (!file) return;
+    let url;
+    try {
+      if (file.type !== 'image/jpeg' || file.size > 12 * 1024 * 1024) throw Error();
+      const header = new Uint8Array(await file.slice(0,3).arrayBuffer());
+      if (header[0] !== 255 || header[1] !== 216 || header[2] !== 255) throw Error();
+      url = URL.createObjectURL(file);
+      const image = new Image(); image.src = url; await image.decode();
+      if (sequence !== sourceSequence) return;
+      const scale = Math.min(1,1280 / Math.max(image.naturalWidth,image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1,Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1,Math.round(image.naturalHeight * scale));
+      canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+      for (const quality of [.84,.67,.45,.3]) {
+        const data = canvas.toDataURL('image/jpeg',quality);
+        const body = data.split(',')[1];
+        if (!data.startsWith('data:image/jpeg;base64,') || Math.ceil(body.length*3/4) > 512*1024) continue;
+        sourceImage = body;
+        byId('sourcePreview').src = data; byId('sourcePreview').hidden = false;
+        byId('sourceStatus').textContent = 'Reference ready · ' + canvas.width + ' × ' + canvas.height + '. Device drafts save the prompt only.';
+        break;
+      }
+      if (!sourceImage) throw Error();
+    } catch {
+      if (sequence === sourceSequence) {
+        clearSource(); byId('sourceStatus').textContent = 'Choose a smaller JPEG (up to 12 MB) and try again.';
+      }
+    } finally { if (url) URL.revokeObjectURL(url); refreshControls(); }
+  });
   function editor() {
     return {prompt:byId('prompt').value.trim(), ratio:byId('ratio').value,
       style:byId('style').value, kind:document.querySelector('input[name=kind]:checked').value};
@@ -84,7 +275,9 @@
     byId('prompt').value = item.prompt;
     byId('ratio').value = item.ratio;
     byId('style').value = item.style || '';
-    document.querySelector('input[name=kind][value="' + (item.kind === 'image' ? 'image' : 'video') + '"]').checked = true;
+    const kind = ['image','video','animation'].includes(item.kind) ? item.kind : 'video';
+    document.querySelector('input[name=kind][value="' + (kind === 'animation' && !canAnimate() ? 'video' : kind) + '"]').checked = true;
+    clearSource();
     byId('consent').checked = false;
     refreshControls();
   }
@@ -112,14 +305,19 @@
     tell('Draft saved on this device.');
   });
   function refreshControls() {
+    byId('animationChoice').hidden = !canAnimate();
+    if (!canAnimate() && editor().kind === 'animation') {
+      document.querySelector('input[name=kind][value=video]').checked = true; clearSource();
+    }
     const kind = editor().kind;
+    byId('upload').hidden = kind !== 'animation';
     const style = byId('style').value;
     byId('prompt').maxLength = style ? 1200 - (style + ' style. ').length : 1200;
     const cost = prices[kind];
-    byId('format').textContent = kind === 'video' ? '5 seconds · Preview' : 'Still image';
+    byId('format').textContent = kind === 'image' ? 'Still image' : '5 seconds · Preview';
     byId('cost').textContent = Number.isSafeInteger(cost) && cost > 0 ? cost + ' Studio Credits' : 'Quote unavailable';
     const eligible = available && online && Number.isSafeInteger(cost) && cost > 0;
-    byId('generate').disabled = !eligible || !byId('consent').checked || submitting || credits < cost;
+    byId('generate').disabled = !eligible || !byId('consent').checked || submitting || credits < cost || (kind === 'animation' && !sourceImage);
     byId('generate').textContent = submitting ? 'Requesting…' : 'Generate';
     byId('consentRow').hidden = !eligible;
     byId('save').textContent = draftId ? 'Save changes' : 'Save draft';
@@ -215,7 +413,7 @@
             refreshControls(); renderLibrary(); tell('Draft deleted.');
           }
         }));
-      card.append(element('small', (row.kind === 'video' ? 'Video' : 'Image') + ' · ' + row.ratio),
+      card.append(element('small', (row.kind === 'image' ? 'Image' : row.kind === 'animation' ? 'Animation' : 'Video') + ' · ' + row.ratio),
         element('h3', row.title), element('p', row.prompt), options);
       drafts.append(card);
     }
@@ -231,8 +429,8 @@
         let mediaUrl;
         try { mediaUrl = new URL(job.url); } catch {}
         if (mediaUrl?.protocol === 'https:') {
-          const media = element(job.kind === 'video' ? 'video' : 'img');
-          if (job.kind === 'video') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
+          const media = element(job.kind !== 'image' ? 'video' : 'img');
+          if (job.kind !== 'image') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
           else { media.alt = job.prompt; media.loading = 'lazy'; }
           media.src = mediaUrl.href;
           const download = element('a', 'Open original ↗');
@@ -240,6 +438,11 @@
           opts.append(button('Save or share file', () => saveMedia(job, mediaUrl.href)), download);
           card.insertBefore(media, opts);
         }
+      }
+      if (communityEnabled && job.state === 'ready') {
+        const submitted = ['pending','review','published','approved'].includes(job.publication);
+        opts.append(button(submitted ? 'Withdraw from community' : 'Publish to community',
+          () => shareCommunity(job,submitted ? 'withdraw' : 'submit')));
       }
       if (job.title) card.insertBefore(element('h3',job.title),card.children[1]);
       if (['ready','failed'].includes(job.state)) {
@@ -258,11 +461,12 @@
       if (sequence !== librarySequence) return;
       if (error || !Array.isArray(data?.jobs) || !Number.isSafeInteger(data.credits)) throw Error();
       online = true; available = data.enabled === true; credits = data.credits; jobs = data.jobs;
+      setCommunity(data.community === true);
       prices = data.prices || {}; admin = data.admin === true; adOffer = data.adOffer === true;
       accountMessage = available ? '' : 'Generation is currently paused. Your existing jobs remain in My Library.';
     } catch {
       if (sequence !== librarySequence) return;
-      online = false; available = false; credits = null; jobs = []; prices = {};
+      online = false; available = false; credits = null; jobs = []; prices = {}; setCommunity(false);
       accountMessage = 'Studio generation is unavailable for this account. You can still save device drafts.';
     }
     refreshControls(); renderLibrary();
@@ -271,14 +475,15 @@
     try {
       const current = await window.EarnlyCloud?.user();
       if (userId !== (current?.id || '')) {
-        userId = current?.id || ''; draftId = ''; adOffer = false; adTicket = null; byId('rewardStatus').textContent = ''; pendingRequest = null; jobs = []; credits = null;
-        librarySequence++; online = false; available = false; prices = {}; byId('consent').checked = false;
+        clearSource(); userId = current?.id || ''; draftId = ''; adOffer = false; adTicket = null; byId('rewardStatus').textContent = ''; pendingRequest = null; jobs = []; credits = null;
+        librarySequence++; setCommunity(false); online = false; available = false; prices = {}; byId('consent').checked = false;
       }
       if (userId) await refreshLibrary();
       else { accountMessage = 'You can save drafts on this device. Generation requires an eligible Earnly account.'; refreshControls(); renderLibrary(); }
     } catch { accountMessage = 'Account connection unavailable. Device drafts are available.'; refreshControls(); }
   }
-  byId('composer').addEventListener('input', () => {
+  byId('composer').addEventListener('input', event => {
+    if (event.target.name === 'kind' && event.target.value !== 'animation') clearSource();
     byId('prompt').setCustomValidity('');
     refreshControls();
   });
@@ -290,7 +495,8 @@
     const styled = style ? style + ' style. ' + prompt : prompt;
     if (styled.length > 1200) { tell('Shorten the prompt to fit the selected style.'); return; }
     submitting = true; refreshControls();
-    const bytes = new TextEncoder().encode(JSON.stringify([userId,styled,ratio,kind]));
+    const imagePayload = kind === 'animation' ? sourceImage : '';
+    const bytes = new TextEncoder().encode(JSON.stringify([userId,styled,ratio,kind,imagePayload]));
     const signature = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),
       byte => byte.toString(16).padStart(2,'0')).join('');
     const requestKey = 'earnlyStudioPending:' + signature;
@@ -302,7 +508,7 @@
     try { sessionStorage.setItem(requestKey,pendingRequest.id); } catch {}
     try {
       const {error,data} = await window.EarnlyCloud.client.functions.invoke('earnly-studio', {
-        body:{action:'generate',prompt:styled,ratio,kind,request_id:pendingRequest.id,consent_version:'2026-11-27'}
+        body:{action:'generate',prompt:styled,ratio,kind,request_id:pendingRequest.id,consent_version:'2026-11-27',...(kind === 'animation' ? {image_base64:imagePayload} : {})}
       });
       if (error || data?.error || !data) throw Error();
       try { sessionStorage.removeItem(requestKey); } catch {}

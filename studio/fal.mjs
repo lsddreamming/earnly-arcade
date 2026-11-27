@@ -8,9 +8,10 @@ export function specification(job) {
     return {endpoint:'fal-ai/flux/schnell', units:['megapixel'], maximum:0.003,
       input:{prompt:job.prompt,image_size:{width,height},num_images:1,enable_safety_checker:true,output_format:'jpeg'}};
   }
-  if (job.kind !== 'video') throw Error('Unsupported model');
-  return {endpoint:video, units:['video'], maximum:0.025,
-    input:{prompt:job.prompt,resolution:'720p',aspect_ratio:job.ratio,num_frames:121,frames_per_second:24,
+  const animation=job.kind==='animation';
+  if (!animation && job.kind !== 'video') throw Error('Unsupported model');
+  return {endpoint:animation?'fal-ai/wan/v2.2-5b/image-to-video':video, units:['video'], maximum:animation?0.15:0.025,
+    input:{prompt:job.prompt,...(animation?{image_url:job.reference_url}:{}),resolution:'720p',aspect_ratio:job.ratio,num_frames:121,frames_per_second:24,
       enable_safety_checker:true,enable_output_safety_checker:true,enable_prompt_expansion:false}};
 }
 export class ProviderRejected extends Error {}
@@ -36,6 +37,13 @@ export function falProvider(key, transport=fetch) {
         headers:{...headers,'X-Fal-No-Retry':'1','X-Fal-Store-IO':'0'}});
       if(!/^[a-zA-Z0-9-]{1,128}$/.test(res.request_id||'')) throw Error('Missing receipt');
       return res.request_id;
+    },
+    async billing(requestIds) {
+      if(!requestIds.length)return [];
+      const params=new URLSearchParams({request_id:requestIds.join(',')});
+      const data=await json('https://api.fal.ai/v1/models/billing-events?'+params);
+      if(!Array.isArray(data.billing_events)||data.has_more)throw Error('Incomplete billing report');
+      return data.billing_events;
     },
     async result(job) {
       if(!/^[a-zA-Z0-9-]{1,128}$/.test(job.provider_request)) throw Error('Invalid receipt');

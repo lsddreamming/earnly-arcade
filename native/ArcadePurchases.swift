@@ -18,12 +18,29 @@ public class ArcadePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "manage", returnType: CAPPluginReturnPromise)
     ]
     private let ids = ["com.earnly.arcade.coins.starter", "com.earnly.arcade.coins.plus", "com.earnly.arcade.coins.vault", "com.earnly.arcade.vip.monthly"]
+    private var studioIds: [String] {
+        #if EARNLY_STUDIO_SANDBOX
+        return ["com.earnly.arcade.studio.premium.monthly", "com.earnly.arcade.studio.pro.monthly", "com.earnly.arcade.studio.credits100"]
+        #else
+        return []
+        #endif
+    }
+    private func studioSandboxAvailable() async -> Bool {
+        guard !studioIds.isEmpty else { return false }
+        if #available(iOS 16.0, *) {
+            guard let result = try? await AppTransaction.shared,
+                  case .verified(let app) = result else { return false }
+            return app.environment == .sandbox
+        }
+        return false
+    }
     private var updates: Task<Void, Never>?
     public override func load() {
         updates = Task { [weak self] in
             for await result in Transaction.updates {
-                if case .verified = result {
-                    self?.notifyListeners("transaction", data: ["signedTransaction": result.jwsRepresentation], retainUntilConsumed: true)
+                if case .verified(let transaction) = result {
+                    let event = self?.studioIds.contains(transaction.productID) == true ? "studioTransaction" : "transaction"
+                    self?.notifyListeners(event, data: ["signedTransaction": result.jwsRepresentation], retainUntilConsumed: true)
                 }
             }
         }
@@ -32,18 +49,25 @@ public class ArcadePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func products(_ call: CAPPluginCall) {
         Task {
             do {
-                let products = try await Product.products(for: ids)
+                let studio = call.getString("store") == "studio"
+                if studio {
+                    guard await studioSandboxAvailable() else { call.resolve(["products": []]); return }
+                }
+                let products = try await Product.products(for: studio ? studioIds : ids)
                 call.resolve(["products": products.filter { $0.type == .consumable || $0.type == .autoRenewable }.map { ["id": $0.id, "displayPrice": $0.displayPrice] }])
             } catch { call.reject("Apple prices are unavailable. Try again shortly.") }
         }
     }
     @objc func purchase(_ call: CAPPluginCall) {
-        guard let id = call.getString("productId"), ids.contains(id),
+        guard let id = call.getString("productId"), (ids.contains(id) || studioIds.contains(id)),
               let account = call.getString("accountToken"), let token = UUID(uuidString: account) else {
             call.reject("Sign in and choose a valid coin pack."); return
         }
         Task {
             do {
+                if studioIds.contains(id) {
+                    guard await studioSandboxAvailable() else { call.reject("Studio sandbox is unavailable."); return }
+                }
                 guard let product = try await Product.products(for: [id]).first, (product.type == .consumable || product.type == .autoRenewable) else {
                     call.reject("This coin pack is unavailable."); return
                 }
@@ -62,7 +86,7 @@ public class ArcadePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         Task {
             var transactions: [String] = []
             for await result in Transaction.unfinished {
-                if case .verified = result { transactions.append(result.jwsRepresentation) }
+                if case .verified(let transaction) = result, studioIds.contains(transaction.productID) == (call.getString("store") == "studio") { transactions.append(result.jwsRepresentation) }
             }
             call.resolve(["transactions": transactions])
         }
@@ -73,7 +97,7 @@ public class ArcadePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                 try await AppStore.sync()
                 var transactions: [String] = []
                 for await result in Transaction.currentEntitlements {
-                    if case .verified(let transaction) = result, transaction.productID == "com.earnly.arcade.vip.monthly" {
+                    if case .verified(let transaction) = result, (call.getString("store") == "studio" ? studioIds.contains(transaction.productID) : transaction.productID == "com.earnly.arcade.vip.monthly") {
                         transactions.append(result.jwsRepresentation)
                     }
                 }

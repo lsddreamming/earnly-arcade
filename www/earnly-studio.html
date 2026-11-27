@@ -25,19 +25,30 @@
       </div>
       <div class="section-head"><h2>Prompt starters</h2><p>Pick a scene to remix.</p></div>
       <div id="starters" class="starters"></div>
-      <div class="footnote"><strong>Community premieres</strong><p>Public submissions will open after creator safety and moderation checks.</p></div>
+      <article class="challenge">
+        <div><p class="eyebrow">Daily Spuddy challenge</p><h2 id="challengeTitle"></h2><p id="challengePrompt"></p></div>
+        <button type="button" id="remixChallenge">Remix challenge</button>
+      </article>
+      <section id="community" hidden aria-labelledby="communityTitle">
+        <div class="section-head"><h2 id="communityTitle">Community premieres</h2></div>
+        <div class="community-controls"><label>Browse<select id="feedType"><option value="feed">Latest</option><option value="trending">Trending</option><option value="following">Following</option></select></label>
+        <label>Filter these creations<input type="search" id="feedFilter" placeholder="Title, creator or prompt"></label></div>
+        <p id="feedStatus" role="status"></p><div id="communityFeed" class="cards"></div>
+      </section>
+      <div id="closedCommunity" class="footnote"><strong>Community premieres</strong><p>Public submissions will open after creator safety and moderation checks.</p></div>
     </section>
     <section id="create" hidden>
       <p class="eyebrow">Creation desk</p><h1>Create a scene</h1>
       <form id="composer">
-        <fieldset><legend>Output</legend><div class="switch"><label><input type="radio" name="kind" value="video" checked><span>▶ &nbsp;Video</span></label><label><input type="radio" name="kind" value="image"><span>▧ &nbsp;Image</span></label></div></fieldset>
+        <fieldset><legend>Output</legend><div class="switch"><label><input type="radio" name="kind" value="video" checked><span>▶ &nbsp;Video</span></label><label><input type="radio" name="kind" value="image"><span>▧ &nbsp;Image</span></label><label id="animationChoice" hidden><input type="radio" name="kind" value="animation"><span>Animate image</span></label></div></fieldset>
+        <div id="upload" hidden><label for="sourceImage">Fictional artwork · JPEG</label><input id="sourceImage" type="file" accept="image/jpeg"><p class="note" id="sourceStatus">Select original artwork. Reselect the JPEG when opening a saved draft.</p><img id="sourcePreview" hidden alt="Selected animation reference"></div>
         <label for="prompt">Your prompt</label><textarea id="prompt" rows="5" maxlength="1200" required placeholder="A tiny chef flips a pancake so high it lands on the moon…"></textarea>
         <div class="control-grid">
           <label>Aspect ratio<select id="ratio"><option value="9:16">9:16 · Vertical</option><option value="16:9">16:9 · Landscape</option><option value="1:1">1:1 · Square</option></select></label>
           <label>Style<select id="style"><option value="">Original</option><option>Cinematic</option><option>Cartoon</option><option>Comedy</option><option>Fantasy</option></select></label>
         </div>
         <dl class="quote"><div><dt>Format</dt><dd id="format"></dd></div><div><dt>Generation cost</dt><dd id="cost"></dd></div></dl>
-        <label class="consent" id="consentRow" hidden><input type="checkbox" id="consent">I authorize Earnly to send this prompt to fal for AI generation. I have rights to the material in it.</label>
+        <label class="consent" id="consentRow" hidden><input type="checkbox" id="consent">I authorize Earnly to send this prompt and any selected image to fal for AI generation. I have the necessary rights. My submission depicts fictional subjects and original artwork only.</label>
         <div class="actions"><button type="button" class="primary" id="save">Save draft</button><button type="submit" class="subtle" id="generate" disabled>Generate</button></div>
         <p id="availability" class="note">Drafts are saved on this device. AI generation is closed during this preview.</p>
       </form>

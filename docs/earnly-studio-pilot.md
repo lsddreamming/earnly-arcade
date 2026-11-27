@@ -16,3 +16,7 @@ The owner-only preview stores prompts on the current device. It does not send th
 ## Evidence
 
 Run node scripts/test-earnly-studio.mjs for the isolated database and provider-price contracts. Run the existing commerce suite and the Studio browser spec. Real moderation quality, provider output, Apple product verification, AdMob settlement, independent-session load testing and physical iPhone playback are separate release checks. Do not label fixtures as live traffic.
+
+The StoreKit bridge exposes Studio product IDs only in a build compiled with EARNLY_STUDIO_SANDBOX and a verified sandbox AppTransaction. Use studio/storekit-sandbox.js to verify restore/pending receipts before finishing. Studio production purchases have no enabled native product route. Personal likeness references are disallowed throughout the pilot. The worker re-encodes no user-supplied URLs. The authenticated upload endpoint re-encodes JPEG pixels and signs a private reference for an approved animation job.
+
+Community is separately locked by studio_control.community_enabled and per-account community_eligible. Only enable after age eligibility, staffed moderation, prompt publication consent, blocking, report review and takedown have been exercised. The worker queues private object removal after account deletion and removes settled creations after 30 days. Keep the cleanup scheduler running while any pilot data is retained.

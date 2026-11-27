@@ -17,11 +17,11 @@ create table public.studio_accounts (
 );
 create table public.studio_jobs (
  id uuid primary key default gen_random_uuid(), user_id uuid references auth.users on delete set null,
- request_id uuid not null, kind text not null check (kind in ('image','video')),
+ request_id uuid not null, kind text not null check (kind in ('image','video','animation')),
  prompt text not null check(length(prompt) between 1 and 1200), ratio text not null check(ratio in ('9:16','16:9','1:1')),
  credits int not null, reserved_usd_micro int not null check(reserved_usd_micro>=0),
  state text not null default 'review' check(state in ('review','queued','dispatching','submitted','output_review','ready','failed','uncertain')),
- provider_request text, private_path text, title text, hidden boolean not null default false,
+ billed_usd_micro bigint check (billed_usd_micro>=0), reference_hash text, reference_path text, consent_version text not null default '2026-11-27', provider_request text, private_path text, title text, hidden boolean not null default false,
  created_at timestamptz not null default now(), unique(user_id,request_id)
 );
 create index studio_jobs_created on public.studio_jobs(created_at);
@@ -53,24 +53,25 @@ begin
  return true;
 end $$;
 
-create function public.studio_reserve(p_user uuid,p_request uuid,p_kind text,p_prompt text,p_ratio text)
+create function public.studio_reserve(p_user uuid,p_request uuid,p_kind text,p_prompt text,p_ratio text,p_hash text default null)
 returns uuid language plpgsql set search_path=public,pg_temp set timezone='UTC' as $$
 declare cfg studio_control; existing studio_jobs; exposure int; charge int; new_id uuid;
 begin
  select * into strict cfg from studio_control for update;
  select * into existing from studio_jobs where user_id=p_user and request_id=p_request;
  if found then
-  if (existing.kind,existing.prompt,existing.ratio) is distinct from (p_kind,p_prompt,p_ratio) then raise exception 'REQUEST_CONFLICT'; end if;
+  if (existing.kind,existing.prompt,existing.ratio,existing.reference_hash) is distinct from (p_kind,p_prompt,p_ratio,p_hash) then raise exception 'REQUEST_CONFLICT'; end if;
   return existing.id;
  end if;
  if not cfg.enabled or cfg.quote_expires is null or cfg.quote_expires<=now() then raise exception 'STUDIO_PAUSED'; end if;
  if p_kind='image' then exposure:=4000; charge:=1;
  elsif p_kind='video' then exposure:=30000; charge:=10;
+ elsif p_kind='animation' and p_hash ~ '^[a-f0-9]{64}$' then exposure:=160000; charge:=60;
  else raise exception 'UNKNOWN_MODEL'; end if;
  if exists(select 1 from (select
-   coalesce(sum(reserved_usd_micro),0)+exposure as lifetime,
-   coalesce(sum(reserved_usd_micro) filter(where created_at>=date_trunc('day',now())),0)+exposure as daily,
-   coalesce(sum(reserved_usd_micro) filter(where created_at>=date_trunc('month',now())),0)+exposure as monthly,
+   coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)),0)+exposure as lifetime,
+   coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)) filter(where created_at>=date_trunc('day',now())),0)+exposure as daily,
+   coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)) filter(where created_at>=date_trunc('month',now())),0)+exposure as monthly,
    count(*) filter(where created_at>=date_trunc('day',now())) as jobs,
    count(*) filter(where created_at>=date_trunc('day',now()) and user_id=p_user) as user_count,
    count(*) filter(where state in ('queued','review','submitted','uncertain','dispatching')) as active
@@ -78,8 +79,8 @@ begin
    or jobs>=cfg.daily_jobs or user_count>=cfg.user_jobs or active>=cfg.concurrent_jobs) then raise exception 'STUDIO_LIMIT'; end if;
  update studio_accounts set credits=credits-charge where user_id=p_user and pilot and credits>=charge;
  if not found then raise exception 'PILOT_OR_CREDITS_REQUIRED'; end if;
- insert into studio_jobs(user_id,request_id,kind,prompt,ratio,credits,reserved_usd_micro)
- values(p_user,p_request,p_kind,p_prompt,p_ratio,charge,exposure) returning id into new_id;
+ insert into studio_jobs(user_id,request_id,kind,prompt,ratio,credits,reserved_usd_micro,reference_hash)
+ values(p_user,p_request,p_kind,p_prompt,p_ratio,charge,exposure,p_hash) returning id into new_id;
  return new_id;
 end $$;
 
@@ -108,8 +109,8 @@ begin
   select j.id from studio_jobs j join studio_accounts a on a.user_id=j.user_id where j.state='queued' and a.pilot order by j.created_at limit 1 for update of j
  ) returning *;
 end $$;
-revoke all on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text),studio_fail(uuid),studio_claim() from public,anon,authenticated;
-grant execute on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text),studio_fail(uuid),studio_claim() to service_role;
+revoke all on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text,text),studio_fail(uuid),studio_claim() from public,anon,authenticated;
+grant execute on function studio_grant(uuid,text,text,int),studio_reserve(uuid,uuid,text,text,text,text),studio_fail(uuid),studio_claim() to service_role;
 create function studio_reject(p_job uuid) returns boolean language plpgsql set search_path=public,pg_temp as $$
 begin
  perform 1 from studio_jobs where id=p_job and state in ('review','output_review') for update;
@@ -117,11 +118,12 @@ begin
  return studio_fail(p_job);
 end $$;
 create function studio_overview() returns jsonb language sql stable set timezone='UTC' set search_path=public,pg_temp as $$
- select jsonb_build_object('images',count(*) filter(where kind='image'),'videos',count(*) filter(where kind='video'),
+ select jsonb_build_object('images',count(*) filter(where kind='image'),'videos',count(*) filter(where kind in ('video','animation')),
  'failed',count(*) filter(where state='failed'),'uncertain',count(*) filter(where state='uncertain'),
- 'day_micro',coalesce(sum(reserved_usd_micro) filter(where created_at>=date_trunc('day',now())),0),
- 'month_micro',coalesce(sum(reserved_usd_micro) filter(where created_at>=date_trunc('month',now())),0),
- 'lifetime_micro',coalesce(sum(reserved_usd_micro),0)) from studio_jobs
+ 'day_micro',coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)) filter(where created_at>=date_trunc('day',now())),0),
+ 'month_micro',coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)) filter(where created_at>=date_trunc('month',now())),0),
+ 'billed_micro',sum(billed_usd_micro),'unreconciled',count(*) filter(where provider_request is not null and billed_usd_micro is null),
+ 'lifetime_micro',coalesce(sum(greatest(reserved_usd_micro,billed_usd_micro)),0)) from studio_jobs
 $$;
 revoke all on function studio_reject(uuid),studio_overview() from public,anon,authenticated;
 grant execute on function studio_reject(uuid),studio_overview() to service_role;
