@@ -93,3 +93,20 @@ test('Spiral Drop reduced motion keeps alignment, streak reset and thumb feedbac
  await page.screenshot({path:test.info().outputPath('spiral-drop-reduced-motion.png')});
  expect(errors).toEqual([]);
 });
+
+
+test('Spiral Drop dimensional art renders all four zones without changing gap geometry',async({page})=>{
+ const errors=await open(page);
+ const images=[];
+ for(const [score,name] of [[0,'Prism Well'],[25,'Amethyst Vault'],[50,'Solar Core'],[75,'Aurora Deep']]){
+  const before=await page.evaluate(score=>{const s=testSpiral.state;s.score=score;return {x:s.x,y:s.y,rows:s.rows.map(r=>({gap:r.gap,w:r.w,y:r.y}))};},score);
+  await page.clock.runFor(50);
+  await expect(page.locator('.spiral-zone')).toHaveText(name);
+  const after=await page.evaluate(()=>{const s=testSpiral.state,c=document.querySelector('#surface canvas');return {x:s.x,y:s.y,rows:s.rows.map(r=>({gap:r.gap,w:r.w,y:r.y})),art:c.toDataURL()};});
+  expect({x:after.x,y:after.y,rows:after.rows}).toEqual(before);
+  images.push(after.art);
+  await page.screenshot({path:test.info().outputPath('spiral-25d-'+score+'.png')});
+ }
+ expect(new Set(images).size).toBe(4);
+ expect(errors).toEqual([]);
+});
