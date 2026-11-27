@@ -32,3 +32,10 @@ verify_jwt = false
 [functions.metal-mayhem]
 # Disabled until separately approved. Handler validates bearer tokens for every run.
 verify_jwt = false
+
+[functions.earnly-studio]
+# POST validates Earnly sessions. The dedicated Studio ad callback verifies Google signatures.
+verify_jwt = false
+
+[functions.studio-commerce]
+verify_jwt = false

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101018">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Earnly Studio · Imagine it. Create it. Share it.</title>
+  <link rel="stylesheet" href="earnly-studio.css">
+  <script defer src="earnly-studio.js"></script>
+</head>
+<body>
+  <header class="top"><div class="bar">
+    <a href="#discover" class="brand"><span class="brandmark" aria-hidden="true">✦</span>Earnly <b>Studio</b></a>
+    <nav aria-label="Studio"><a href="#discover">Discover</a><a href="#create">Create</a><a href="#library">My Library</a><a href="#premium">Premium</a></nav>
+    <a class="arcade" href="https://earnlyarcade.com/">Arcade ↗</a>
+  </div></header>
+  <main>
+    <section id="discover">
+      <div class="hero">
+        <div class="hero-copy"><p class="eyebrow">Earnly Studio</p><h1>Imagine it.<br>Create it.<br><em>Share it.</em></h1>
+          <a class="primary" href="#create">Create a scene <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-art"><img src="game-preview-big-fish-energy.webp" alt="A bright reef fish explores a sunlit underwater arcade world"><span class="artlabel">Big Fish Energy <i>Arcade artwork</i></span></div>
+      </div>
+      <div class="section-head"><h2>Prompt starters</h2><p>Pick a scene to remix.</p></div>
+      <div id="starters" class="starters"></div>
+      <div class="footnote"><strong>Community premieres</strong><p>Public submissions will open after creator safety and moderation checks.</p></div>
+    </section>
+    <section id="create" hidden>
+      <p class="eyebrow">Creation desk</p><h1>Create a scene</h1>
+      <form id="composer">
+        <fieldset><legend>Output</legend><div class="switch"><label><input type="radio" name="kind" value="video" checked><span>▶ &nbsp;Video</span></label><label><input type="radio" name="kind" value="image"><span>▧ &nbsp;Image</span></label></div></fieldset>
+        <label for="prompt">Your prompt</label><textarea id="prompt" rows="5" maxlength="1200" required placeholder="A tiny chef flips a pancake so high it lands on the moon…"></textarea>
+        <div class="control-grid">
+          <label>Aspect ratio<select id="ratio"><option value="9:16">9:16 · Vertical</option><option value="16:9">16:9 · Landscape</option><option value="1:1">1:1 · Square</option></select></label>
+          <label>Style<select id="style"><option value="">Original</option><option>Cinematic</option><option>Cartoon</option><option>Comedy</option><option>Fantasy</option></select></label>
+        </div>
+        <dl class="quote"><div><dt>Format</dt><dd id="format"></dd></div><div><dt>Generation cost</dt><dd id="cost"></dd></div></dl>
+        <label class="consent" id="consentRow" hidden><input type="checkbox" id="consent">I authorize Earnly to send this prompt to fal for AI generation. I have rights to the material in it.</label>
+        <div class="actions"><button type="button" class="primary" id="save">Save draft</button><button type="submit" class="subtle" id="generate" disabled>Generate</button></div>
+        <p id="availability" class="note">Drafts are saved on this device. AI generation is closed during this preview.</p>
+      </form>
+    </section>
+    <section id="library" hidden>
+      <p class="eyebrow">Private collection</p><h1>My Library</h1>
+      <div class="section-head"><h2>Creations</h2><button id="refresh" hidden>Refresh</button></div><div id="jobs" class="cards"></div>
+      <div class="section-head"><h2>Device drafts</h2><a href="#create">New draft ↗</a></div>
+      <div id="drafts" class="cards"></div>
+    </section>
+    <section id="premium" hidden>
+      <p class="eyebrow">Studio memberships</p><h1>Premium</h1>
+      <p class="intro">Planned memberships use Studio Credits. Arcade Coins and the VIP Arcade Pass are separate.</p>
+      <div class="plans">
+        <article><span>Free Creator</span><h2>$0</h2><p>Explore prompt starters and save drafts. Optional ad rewards are under evaluation.</p></article>
+        <article><span>Studio Premium</span><h2>$9.99<small> / mo</small></h2><p>Planned monthly generation allowance and watermark-free creations.</p></article>
+        <article><span>Studio Pro</span><h2>$19.99<small> / mo</small></h2><p>Planned higher allowances, priority generation and advanced settings.</p></article>
+      </div>
+      <p class="note">Proposed pricing. Purchases and credit packs will open after billing verification.</p><p id="balance"></p>
+      <div id="reward" hidden>
+        <button type="button" id="offer">View optional ad reward</button>
+        <div id="rewardTerms" hidden><p id="rewardDescription"></p><div class="actions"><button type="button" id="watch">Watch ad</button><button type="button" id="cancelAd">Cancel</button></div></div>
+        <p class="note" role="status" id="rewardStatus"></p>
+      </div><a id="admin" href="earnly-studio-admin.html" hidden>Studio administration ↗</a>
+    </section>
+  </main>
+  <div id="notice" role="status" aria-live="polite"></div>
+</body></html>

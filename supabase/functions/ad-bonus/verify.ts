@@ -11,7 +11,7 @@ export async function googleKeys(){
  if(!Array.isArray(body.keys)||body.keys.length>20)throw new Error('Invalid key response');
  cache={keys:body.keys,until:Date.now()+3600000};return cache.keys;
 }
-export function verifyReceipt(url:string,keys:any[],now=Date.now()){
+export function verifyReceipt(url:string,keys:any[],now=Date.now(),allowedUnits=UNITS){
  const raw=new URL(url).search.slice(1);
  if(raw.length>8192)throw new Error('Oversized receipt');
  const match=raw.match(/^(.*)&signature=([^&]+)&key_id=(\d+)$/);
@@ -24,11 +24,11 @@ export function verifyReceipt(url:string,keys:any[],now=Date.now()){
  const signature=Buffer.from(decodeURIComponent(match[2]),'base64url');
  if(!verify('sha256',Buffer.from(decodeURIComponent(match[1].replace(/\+/g,' '))),key.pem,signature))throw new Error('Invalid signature');
  let unit=p.get('ad_unit')||'';
- if(['8249888009','1831908609'].includes(unit))unit='ca-app-pub-8864401806510610/'+unit;
+ if(allowedUnits.has('ca-app-pub-8864401806510610/'+unit))unit='ca-app-pub-8864401806510610/'+unit;
  const ticket=p.get('custom_data')||'',transaction=p.get('transaction_id')||'';
  const time=Number(p.get('timestamp'));
  const test=unit==='1234567890'&&ticket==='00000000-0000-4000-8000-000000000000'&&transaction==='123456789';
- if((!test&&!UNITS.has(unit))||!/^\d+$/.test(p.get('timestamp')||'')||time>now+300000||time<now-172800000)throw new Error('Invalid receipt context');
+ if((!test&&!allowedUnits.has(unit))||!/^\d+$/.test(p.get('timestamp')||'')||time>now+300000||time<now-172800000)throw new Error('Invalid receipt context');
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticket)||!transaction||transaction.length>128)throw new Error('Invalid reward identity');
  return {ticket,transaction,unit,test,time:new Date(time).toISOString()};
 }

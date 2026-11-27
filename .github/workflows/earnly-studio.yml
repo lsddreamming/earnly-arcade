@@ -1,0 +1,24 @@
+name: Earnly Studio contracts
+on:
+  pull_request:
+    paths:
+      - 'studio/**'
+      - 'earnly-studio*'
+      - 'scripts/test-earnly-studio*'
+      - 'supabase/**/earnly-studio/**'
+      - 'supabase/migrations/*earnly_studio*'
+      - '.github/workflows/earnly-studio.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/test-earnly-studio.mjs

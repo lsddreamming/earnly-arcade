@@ -1,0 +1,81 @@
+import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
+import {googleKeys,verifyReceipt} from '../ad-bonus/verify.ts';
+const adUnit=Deno.env.get('STUDIO_ADMOB_UNIT')||'';
+const adConfigured=/^ca-app-pub-8864401806510610\/\d{10}$/.test(adUnit)&&!['8249888009','1831908609'].includes(adUnit.split('/')[1]);
+const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Cache-Control':'no-store'};
+const response=(data:unknown,status=200)=>Response.json(data,{status,headers:cors});
+function checked<T>({data,error}:{data:T,error:unknown}):T {if(error)throw error; return data;}
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+Deno.serve(async req=>{
+  if(req.method==='OPTIONS')return new Response(null,{headers:cors});
+  if(req.method==='GET' && adConfigured){
+    try{
+      const receipt=verifyReceipt(req.url,await googleKeys(),Date.now(),new Set([adUnit]));
+      if(receipt.test)return response({test:true,credited:false});
+      checked(await db.rpc('studio_ad_complete',{p_ticket:receipt.ticket,p_unit:receipt.unit,p_event:receipt.transaction,p_time:receipt.time}));
+      return response({ok:true});
+    }catch{return response({error:'Reward verification failed'},400);}
+  }
+  if(req.method!=='POST')return response({error:'POST required'},405);
+  const token=req.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
+  if(!token)return response({error:'Sign in required'},401);
+  const {data:{user},error}=await db.auth.getUser(token);
+  if(error||!user)return response({error:'Sign in required'},401);
+  try {
+    const text=await req.text();
+    if(text.length>8192)return response({error:'Request too large'},413);
+    const b=JSON.parse(text);
+    const admin=user.app_metadata?.studio_admin===true;
+    if(b.action==='library'){
+      const acct=checked(await db.from('studio_accounts').select('credits,pilot').eq('user_id',user.id).maybeSingle());
+      const cfg=checked(await db.from('studio_control').select('enabled,quote_expires').single());
+      const jobs=checked(await db.from('studio_jobs').select('id,title,prompt,kind,ratio,state,created_at,private_path').eq('user_id',user.id).eq('hidden',false).order('created_at',{ascending:false}).limit(100));
+      const rows=await Promise.all(jobs.map(async({private_path,...row})=>({...row,url:row.state==='ready'&&private_path?checked(await db.storage.from('studio-private').createSignedUrl(private_path,300)).signedUrl:null})));
+      const pool=adConfigured&&acct?.pilot?checked(await db.from('studio_ad_pool').select('enabled,remaining,reward').single()):null;
+      return response({adOffer:!!(pool?.enabled&&pool.remaining>=pool.reward&&cfg.enabled&&Date.parse(cfg.quote_expires)>Date.now()),prices:{image:1,video:10},credits:acct?.credits||0,enabled:!!(acct?.pilot&&cfg.enabled&&Date.parse(cfg.quote_expires)>Date.now()),admin,jobs:rows});
+    }
+    if(b.action==='ad_ticket' && adConfigured)return response(checked(await db.rpc('studio_ad_ticket',{p_user:user.id,p_unit:adUnit})));
+    if(b.action==='generate'){
+      if(b.consent_version!=='2026-11-27')return response({error:'Permission to send this prompt to fal is required'},400);
+      if(!uuid.test(b.request_id)||typeof b.prompt!=='string'||!b.prompt.trim()||b.prompt.length>1200||!['image','video'].includes(b.kind)||!['9:16','16:9','1:1'].includes(b.ratio))return response({error:'Invalid creation settings'},400);
+      return response({id:checked(await db.rpc('studio_reserve',{p_user:user.id,p_request:b.request_id,p_kind:b.kind,p_prompt:b.prompt.trim(),p_ratio:b.ratio}))});
+    }
+    if(['rename','delete'].includes(b.action)&&uuid.test(b.id)){
+      const row=checked(await db.from('studio_jobs').select('private_path,state').eq('id',b.id).eq('user_id',user.id).in('state',['ready','failed']).single());
+      if(b.action==='rename'){
+        if(typeof b.title!=='string'||!b.title.trim()||b.title.length>80)return response({error:'Invalid title'},400);
+        checked(await db.from('studio_jobs').update({title:b.title.trim()}).eq('user_id',user.id).eq('hidden',false).eq('id',b.id));
+      }else{
+        if(row.private_path)checked(await db.storage.from('studio-private').remove([row.private_path]));
+        checked(await db.from('studio_jobs').update({hidden:true,title:null,prompt:'[deleted]',private_path:null}).eq('id',b.id).eq('user_id',user.id));
+      }
+      return response({ok:true});
+    }
+    if(admin && b.action==='admin') {
+      const config=checked(await db.from('studio_control').select('*').single());
+      const totals=checked(await db.rpc('studio_overview'));
+      const jobs=checked(await db.from('studio_jobs').select('id,kind,prompt,state,created_at,private_path').in('state',['review','output_review','uncertain']).order('created_at').limit(30));
+      return response({config,totals,jobs:await Promise.all(jobs.map(async({private_path,...row})=>({...row,url:private_path?checked(await db.storage.from('studio-private').createSignedUrl(private_path,180)).signedUrl:null})))});
+    }
+    if(admin && b.action==='pause'){
+      checked(await db.from('studio_control').update({enabled:false}).eq('singleton',true));
+      return response({paused:true});
+    }
+    if(admin && uuid.test(b.id) && ['approve','reject'].includes(b.action)){
+      // Conditional transition keeps simultaneous reviewers from overriding one another.
+      if(b.action==='reject')checked(await db.rpc('studio_reject',{p_job:b.id}));
+      else {
+        const next=b.stage==='review'?'queued':b.stage==='output_review'?'ready':null;
+        if(!next)return response({error:'Invalid review stage'},400);
+        checked(await db.from('studio_jobs').update({state:next}).eq('id',b.id).eq('state',b.stage).select('id').single());
+      }
+      return response({ok:true});
+    }
+    return response({error:'Unavailable action'},403);
+  }catch(err){
+    const details=(err as Error)?.message||'';
+    const code=['STUDIO_PAUSED','STUDIO_LIMIT','REQUEST_CONFLICT','PILOT_OR_CREDITS_REQUIRED'].find(x=>details.includes(x));
+    return response({error:code||'Unable to complete Studio request'},code?409:400);
+  }
+});

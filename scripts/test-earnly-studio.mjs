@@ -1,0 +1,78 @@
+import {PGlite} from '@electric-sql/pglite';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import {falProvider,specification} from '../studio/fal.mjs';
+const db=new PGlite();
+await db.exec(await readFile('tests/commerce-fixture.sql','utf8'));
+await db.exec('create role service_role bypassrls');
+await db.exec(await readFile('supabase/migrations/20261127170000_earnly_studio.sql','utf8'));
+const uid='00000000-0000-4000-8000-000000000001';
+const val=async(sql,args=[])=>Object.values((await db.query(sql,args)).rows[0])[0];
+const reserve=(key=randomUUID(),kind='video',prompt='A dancing potato')=>val('select studio_reserve($1,$2,$3,$4,$5)',[uid,key,kind,prompt,'9:16']);
+const grant=credits=>val("select studio_grant($1,'pilot','invitation',$2)",[uid,credits]);
+assert.equal(await grant(80),true);assert.equal(await grant(80),false);await assert.rejects(grant(100),/RECEIPT_CONFLICT/);
+await assert.rejects(reserve(),/PAUSED/);
+await db.exec("update studio_control set enabled=true,quote_expires=now()+interval '1 day'");
+await assert.rejects(reserve(),/PILOT/);
+await db.exec("update studio_accounts set pilot=true");
+const key=randomUUID();
+const [id,duplicate]=await Promise.all([reserve(key),reserve(key)]);
+assert.equal(id,duplicate);assert.equal(await val('select credits from studio_accounts'),70);
+await assert.rejects(reserve(key,'image'),/CONFLICT/);
+assert.equal(await val('select count(*) from studio_claim()'),0);
+await db.exec("update studio_jobs set state='queued'");
+assert.equal(await val('select id from studio_claim()'),id);
+assert.equal(await val('select count(*) from studio_claim()'),0);
+assert.equal(await val('select studio_fail($1)',[id]),true);
+assert.equal(await val('select studio_fail($1)',[id]),false);
+assert.equal(await val('select reserved_usd_micro from studio_jobs'),30000);
+for(const setting of ['daily_limit','monthly_limit','fal_limit','daily_jobs','user_jobs','concurrent_jobs']){
+ const old=await val('select '+setting+' from studio_control');
+ await db.exec('update studio_control set '+setting+'=0');await assert.rejects(reserve(),/LIMIT/);
+ await db.exec('update studio_control set '+setting+'='+old);
+}
+const reviewed=await reserve();await val('select studio_reject($1)',[reviewed]);
+assert.equal(await val('select reserved_usd_micro from studio_jobs where id=$1',[reviewed]),0);
+await db.exec("update studio_jobs set reserved_usd_micro=24999999 where state='failed' and reserved_usd_micro>0;update studio_control set fal_limit=25000000");
+await assert.rejects(reserve(),/LIMIT/);
+for(const role of ['anon','authenticated']){
+ await db.exec('set role '+role);await assert.rejects(reserve(),/permission denied/);
+ await assert.rejects(grant(80),/permission denied/);await assert.rejects(db.exec('select * from studio_jobs'),/permission denied/);await db.exec('reset role');
+}
+assert.equal(await val('select balance from coin_wallets where user_id=$1',[uid]),1250);
+for(const ratio of ['9:16','1:1','16:9']){
+ const {width,height}=specification({kind:'image',ratio,prompt:'hello'}).input.image_size;
+ assert.ok(width*height<=1000000);
+}
+const job={kind:'video',ratio:'9:16',prompt:'A dancing potato'};
+const spec=specification(job);
+const verify=price=>falProvider('unit-test',async()=>Response.json({prices:[{endpoint_id:spec.endpoint,...price}]})).verifyPrice(job);
+await verify({currency:'USD',unit:'video',unit_price:.025});
+for(const price of [{currency:'USD',unit:'second',unit_price:.025},{currency:'USD',unit:'video',unit_price:.026},{currency:'EUR',unit:'video',unit_price:.01}])await assert.rejects(verify(price),/Price/);
+await db.close();
+console.log('PASS: pilot access, atomic reservation and retry, independent limits, hard lifetime ceiling, dispatch once, review gates, refunds, receipt replay, database permissions, model pricing and Arcade Coin isolation.');
+const settlement=new PGlite();
+await settlement.exec(await readFile('tests/commerce-fixture.sql','utf8'));
+await settlement.exec('create role service_role');
+for(const file of ['20261127170000_earnly_studio','20261127170200_earnly_studio_rewards','20261127170300_earnly_studio_commerce'])
+ await settlement.exec(await readFile('supabase/migrations/'+file+'.sql','utf8'));
+await settlement.query('insert into studio_accounts(user_id,pilot) values($1,true)',[uid]);
+const ad=()=>settlement.query("select studio_ad_ticket($1,'dedicated-unit') as ad",[uid]);
+await assert.rejects(ad(),/ADS_PAUSED/);
+await settlement.exec('update studio_ad_pool set enabled=true,remaining=3,reward=3');
+const ticket=(await ad()).rows[0].ad.ticket;
+assert.equal((await ad()).rows[0].ad.ticket,ticket);
+const complete=(unit,event)=>settlement.query('select studio_ad_complete($1,$2,$3,now()) as complete',[ticket,unit,event]);
+await assert.rejects(complete('wrong','event'),/INVALID_TICKET/);
+assert.equal((await complete('dedicated-unit','event')).rows[0].complete,true);
+assert.equal((await complete('dedicated-unit','event')).rows[0].complete,false);
+await assert.rejects(complete('dedicated-unit','another'),/TICKET_USED/);
+await assert.rejects(ad(),/ADS_PAUSED/);
+await settlement.query("select studio_test_purchase('apple_sandbox','123',$1,'premium','2027-01-01',false,now())",[uid]);
+await settlement.query("select studio_test_purchase('apple_sandbox','123',$1,'premium','2027-01-01',true,now())",[uid]);
+await settlement.query("select studio_test_purchase('apple_sandbox','123',$1,'premium','2027-01-01',false,now())",[uid]);
+assert.equal((await settlement.query('select revoked from studio_test_purchases')).rows[0].revoked,true);
+assert.equal((await settlement.query('select credits from studio_accounts')).rows[0].credits,3);
+await settlement.close();
+console.log('PASS: ad pool exhaustion, offer reuse, unit binding, duplicate callback, sandbox purchase restoration and sticky revocation; simulated receipts only.');
