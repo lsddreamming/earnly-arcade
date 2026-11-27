@@ -409,3 +409,35 @@ header strong, header a { color: #153e49; text-shadow: 0 1px #fff5ce; }
 }
 #tip { color: #452e27; background: #fff2d9; border-radius: 9px; }
 #actions:empty { background: transparent; }
+
+/* Enamel counter tiles and paper tickets under the Lantern Row awning. */
+#board { border-color: #ad653d; background-color: #a56547; }
+#board button:not(.lock,.selected,.match):nth-child(n) {
+  --glaze: var(--district-hue);
+  background: linear-gradient(150deg,#fffbea,hsl(var(--glaze) 66% 85%) 72%,hsl(var(--glaze) 50% 75%));
+  border-color: hsl(var(--glaze) 27% 60%);
+  box-shadow: inset 0 2px #ffffffe6, inset 0 -2px #79594018;
+}
+#board button:is(:nth-child(16n+2),:nth-child(16n+4),:nth-child(16n+6),:nth-child(16n+8),:nth-child(16n+9),:nth-child(16n+11),:nth-child(16n+13),:nth-child(16n+15)):not(.lock,.selected,.match) {
+  --glaze: calc(var(--district-hue) + 42);
+}
+#orders > button { --paper:#ffd6c2; --ink:#a44836; }
+#orders > button:nth-child(2) { --paper:#e7d8ff; --ink:#754f96; }
+#orders > button:nth-child(3) { --paper:#cdeafd; --ink:#316880; }
+#orders > button:not(.ready) {
+  background:linear-gradient(155deg,#fffaf0 25%,var(--paper));
+  box-shadow:inset 0 3px var(--ink),inset 0 -2px #9a695e44;
+}
+#orders > button.ready {background:linear-gradient(135deg,#edffd9,#8ce1ad);color:#174630}
+#hud span:nth-child(1) {background:#efddff}
+#hud span:nth-child(2) {background:#d9efff}
+#hud span:nth-child(3) {background:#dcf6bb}
+#hud span:nth-child(4) {background:#ffe497}
+#stations button, #menu {color:#462f24;background:linear-gradient(#fff0b9,#ffb962)}
+#stations button:nth-child(even) {background:linear-gradient(#cefff1,#79d8cb);color:#174c49}
+dialog {background:linear-gradient(140deg,#fff7dd,#fff0e8 55%,#eee7ff);color:#392d42}
+dialog h2 {color:#673657}
+dialog h3 {color:#176561}
+dialog summary {color:#513968;font-weight:700}
+dialog article button {background:linear-gradient(#edfcef,#bce7da);color:#214c48}
+#tip {background:linear-gradient(90deg,#fff0bd,#fff6dc);color:#573519}
