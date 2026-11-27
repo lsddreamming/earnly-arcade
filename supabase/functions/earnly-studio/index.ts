@@ -28,6 +28,10 @@ Deno.serve(async req=>{
     if(text.length>720000)return response({error:'Request too large'},413);
     const b=JSON.parse(text);
     const admin=user.app_metadata?.studio_admin===true;
+    if(b.action==='room_art' && uuid.test(b.id)){
+      const row=checked(await db.from('studio_jobs').select('private_path').eq('user_id',user.id).eq('id',b.id).eq('kind','image').eq('state','ready').eq('hidden',false).single());
+      return response({url:checked(await db.storage.from('studio-private').createSignedUrl(row.private_path,120)).signedUrl});
+    }
     if(b.action==='library'){
       const acct=checked(await db.from('studio_accounts').select('credits,pilot,community_eligible').eq('user_id',user.id).maybeSingle());
       const cfg=checked(await db.from('studio_control').select('enabled,quote_expires,community_enabled').single());

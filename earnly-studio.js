@@ -465,6 +465,15 @@
           media.src = mediaUrl.href;
           const download = element('a', 'Open original ↗');
           download.href = mediaUrl.href; download.target = '_blank'; download.rel = 'noopener noreferrer';
+          if(job.kind==='image'){
+            const artKey='earnlyStudioRoomArt:'+userId;
+            const selected=localStorage.getItem(artKey)===job.id;
+            opts.append(button(selected?'Remove my room artwork':'Frame in my World room',()=>{
+              if(selected)localStorage.removeItem(artKey);else localStorage.setItem(artKey,job.id);
+              renderLibrary();tell(selected?'Frame removed.':'Framed for your own view on this device. Open Earnly World to see it.');
+            }));
+            if(selected){const room=element('a','Visit my room');room.href='world.html';opts.append(room);}
+          }
           opts.append(button('Save or share file', () => saveMedia(job, mediaUrl.href)), download);
           card.insertBefore(media, opts);
         }
