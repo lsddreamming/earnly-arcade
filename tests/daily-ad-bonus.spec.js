@@ -1,4 +1,8 @@
 const {test,expect}=require('@playwright/test');
+test.beforeEach(async ({page}) => {
+ // setup() supplies the cloud and ad responses; no live account SDK is needed.
+ await page.route('https://cdn.jsdelivr.net/**', route => route.fulfill({contentType:'application/javascript',body:''}));
+});
 async function setup(page,{native=true,earned=true,enabled=true,watched=4,verified=false,progressive=false,unlimited=false}={}){
  await page.route('**/cloud.js',route=>route.fulfill({contentType:'text/javascript',body:`
  window.bonusState={enabled:${enabled},goal:5,coins:100,watched:${watched},awarded:false,resetAt:'2030-01-02T00:00:00Z'};

@@ -1,5 +1,12 @@
 const { test, expect } = require('@playwright/test');
 
+test.beforeEach(async ({page}) => {
+  // Ad outcomes are mocked below; the live account SDK is unrelated to these
+  // checks and can hold the page load event open when its CDN is unavailable.
+  await page.route('https://cdn.jsdelivr.net/**', route => route.fulfill({contentType:'application/javascript',body:''}));
+  await page.route('**/cloud.js', route => route.fulfill({contentType:'application/javascript',body:''}));
+});
+
 async function offer(page, outcome) {
   await page.goto('/snake.html');
   await page.evaluate(outcome => {
