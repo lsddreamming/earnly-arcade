@@ -213,6 +213,7 @@ function render() {
       return b;
     }),
   );
+  const bubbleSpace = s.bubble && Date.now() < s.bubble.expires ? empty(s) : -1;
   $("board").replaceChildren(
     ...s.board.map((id, i) => {
       const b = document.createElement("button");
@@ -230,6 +231,13 @@ function render() {
         "aria-label",
         i >= spaces(s) ? "Locked" : id === null ? "Empty space" : name(id),
       );
+      if (i === bubbleSpace && id === null) {
+        b.innerHTML = food(s.bubble.id);
+        b.style.background = "radial-gradient(circle at 30% 20%, white, #b7f4ff 40%, #c7a6ef 75%, #6486c3)";
+        b.style.borderRadius = "50%";
+        b.setAttribute("aria-label", "Bonus bubble: " + name(s.bubble.id));
+        b.dataset.bubble = "true";
+      }
       return b;
     }),
   );
@@ -283,6 +291,7 @@ function render() {
       s.bubble = null;
       commit("Collected " + name(bubble.id));
     };
+    const offerIndex = actions.length;
     if (nativeKitchen()) actions.push(button("Watch ad · " + name(bubble.id), () => {
       if (Date.now() >= bubble.expires || empty(s) < 0)
         return commit("Check the timer and free one space first.");
@@ -296,6 +305,7 @@ function render() {
       s.bubble = null;
       commit("Bubble released");
     }));
+    actions[offerIndex].dataset.claimBubble = "true";
   }
   if (s.undo)
     actions.push(
@@ -347,7 +357,7 @@ function play(a, b) {
     const result = move(s, a, b);
     selected = null;
     if (result === "Merged" && !s.bubble && Math.random() < 0.12)
-      s.bubble = { id: s.board[b], expires: Date.now() + 90000 };
+      s.bubble = { id: Math.floor(s.board[b] / 10) * 10 + Math.min(9, Math.max(3, s.board[b] % 10 + 1)), expires: Date.now() + 90000 };
     ping(result === "Merged");
     commit(result === "Merged" ? "Freshly made: " + name(s.board[b]) : result);
     if (result) $("board").children[b].classList.add("pop");
@@ -360,6 +370,7 @@ let drag = null;
 $("board").onpointerdown = (e) => {
   const b = e.target.closest("[data-i]");
   if (!b || +b.dataset.i >= spaces(s)) return;
+  if (b.dataset.bubble) return;
   drag = { i: +b.dataset.i, x: e.clientX, y: e.clientY };
   $("board").setPointerCapture(e.pointerId);
 };
@@ -397,6 +408,12 @@ $("board").onpointerup = (e) => {
 };
 $("board").onclick = (e) => {
   const b = e.target.closest("[data-i]");
+  if (b?.dataset.bubble) {
+    if (!s.bubble || Date.now() >= s.bubble.expires) return render();
+    const offer = $("actions").querySelector("[data-claim-bubble]");
+    if (offer && (!nativeKitchen() || confirm("Watch a rewarded ad to claim " + name(s.bubble.id) + "?"))) offer.click();
+    return;
+  }
   if (e.detail === 0 && b && +b.dataset.i < spaces(s))
     play(selected, +b.dataset.i);
 };
