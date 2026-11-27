@@ -1932,7 +1932,10 @@ const Arcade = (() => {
             footer.textContent = '🌎 View full world leaderboard →';
           }
           leaderboardBox.append(footer);
-          if (needsSync) {
+          if (submission?.skipped === 'username-required') {
+            rankDetails.open = true;
+            leaderboardBox.append(window.EarnlyCloud.usernameForm('Save username & rank my best', loadResultLeaderboard));
+          } else if (needsSync) {
             const retry = document.createElement('button');
             retry.type = 'button'; retry.className = 'button'; retry.textContent = 'Retry score sync';
             retry.addEventListener('click', () => { retry.disabled = true; retry.textContent = 'Syncing…'; loadResultLeaderboard(); });

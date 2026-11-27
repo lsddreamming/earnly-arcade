@@ -199,7 +199,7 @@ for(const prefix of ['', '/www'])test('Profile showcases equipped gear with comp
  await expect(page.locator('.profile-more-stats')).not.toHaveAttribute('open','');await expect(page.locator('.profile-extras')).not.toHaveAttribute('open','');
  await expect(page.locator('.topbar #arcadeChatButton')).toBeVisible();
  await page.screenshot({path:test.info().outputPath('profile-iphone.png'),fullPage:true});
- await page.locator('.profile-edit-card > summary').click();await page.locator('#nameInput').fill('LONGPLAYERNAME1234');
+ await page.locator('.profile-edit-card > summary').click();await page.locator('#usernameInput').fill('LONGPLAYERNAME1234');
  await expect(page.locator('#saveProfileButton')).toBeVisible();await expect(page.locator('#usernameInput')).toBeVisible();
  await page.locator('.profile-icon-options > summary').click();await expect(page.locator('.avatar-choice')).toHaveCount(16);
  for(const width of [320,390,440]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);}

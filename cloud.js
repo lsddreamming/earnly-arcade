@@ -93,14 +93,17 @@
     return testerAccess();
   }
 
-  async function signUp(email, password){
+  async function signUp(email, password, username){
     const emailRedirectTo = new URL('account.html', window.location.href).href.split('#')[0];
     const result = await requireClient().auth.signUp({
       email:String(email || '').trim(),
       password:String(password || ''),
-      options:{ emailRedirectTo }
+      options:{ emailRedirectTo, data:{
+        arcade_username: username || undefined
+      } }
     });
     if (result.error) throw result.error;
+    sessionStorage.removeItem('earnlySignupUsername');
     return result.data;
   }
 
@@ -786,9 +789,8 @@
       display_name:displayName
     };
     const savedAvatar = localStorage.getItem('arcadeProfileIcon');
-    const savedUsername = (localStorage.getItem('arcadeUsername') || '').trim();
     if (savedAvatar && Arcade.profileAvatars?.[savedAvatar]) profilePayload.avatar_key = savedAvatar;
-    if (/^[A-Za-z0-9_]{3,18}$/.test(savedUsername)) profilePayload.username = savedUsername;
+    // Only the identity editor or first-time claim may change a public handle.
 
     const { error:profileError } = await requireClient()
       .from('profiles')
@@ -985,13 +987,90 @@
   }
 
 
-  async function updatePublicProfile({ displayName, username, avatarKey } = {}){
+  function usernameForm(action, onSaved) {
+    const form = document.createElement('form');
+    form.className = 'arcade-username-form';
+    const label = document.createElement('label');
+    label.textContent = 'Your public Arcade username';
+    const input = document.createElement('input');
+    Object.assign(input, { required:true, minLength:3, maxLength:18, pattern:'[A-Za-z0-9_]{3,18}',
+      autocomplete:'username', autocapitalize:'none', spellcheck:false, placeholder:'e.g. SpudRunner' });
+    const name = localStorage.getItem('arcadeProfileName');
+    if (name && name !== 'Player') input.value = name;
+    label.append(input);
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.textContent = action;
+    const status = document.createElement('span');
+    status.setAttribute('role', 'status');
+    status.textContent = '3–18 letters, numbers, or underscores. Used on leaderboards and in World.';
+    form.append(label, status, submit);
+    form.onsubmit = async event => {
+      event.preventDefault();
+      submit.disabled = true;
+      try {
+        await window.EarnlyCloud.updatePublicProfile({ username:input.value.trim() });
+        await onSaved();
+      } catch (error) {
+        status.textContent = error.message || 'Could not save. Try again.';
+      } finally { submit.disabled = false; }
+    };
+    return form;
+  }
+
+  async function ensurePlayerUsername(current) {
+    if (!current) return null;
+    const db = requireClient();
+    const read = () => db.from('profiles').select('username,display_name,avatar_key')
+      .eq('user_id', current.id).maybeSingle();
+    let { data, error } = await read();
+    if (error) throw error;
+    let claimed = false;
+    if (!data?.username) {
+      const owned = localStorage.getItem(LOCAL_OWNER_KEY) === current.id;
+      const candidate = [data?.display_name, owned && localStorage.getItem('arcadeProfileName'), current.user_metadata?.arcade_username].find(name =>
+        typeof name === 'string' && name !== 'Player' && /^[A-Za-z0-9_]{3,18}$/.test(name));
+      if (!candidate) return null;
+      const fields = { username:candidate, display_name:candidate };
+      // A second device may already have chosen a name since our read.
+      const claim = data
+        ? db.from('profiles').update(fields).eq('user_id', current.id).is('username', null)
+        : db.from('profiles').insert({ user_id:current.id, ...fields });
+      const result = await claim;
+      claimed = !result.error;
+      if (result.error && !['23505','23514'].includes(result.error.code)) throw result.error;
+      ({ data, error } = await read());
+      if (error) throw error;
+    }
+    if (!data?.username || (await session())?.user?.id !== current.id) return null;
+    localStorage.setItem('arcadeUsername', data.username);
+    localStorage.setItem('arcadeProfileName', data.username);
+    if (data.avatar_key) localStorage.setItem('arcadeProfileIcon', data.avatar_key);
+    if (claimed) syncSavedBests(current.id).catch(() => {});
+    return data.username;
+  }
+
+  async function syncSavedBests(owner) {
+    if (typeof Arcade === 'undefined') return;
+    for (const game of Object.keys(Arcade.names)) {
+      if (localStorage.getItem(LOCAL_OWNER_KEY) !== owner) return;
+      const score = Arcade.best(game).value;
+      if (!score || game === 'neonSlice') continue;
+      try {
+        const active = await session();
+        if (active?.user?.id !== owner) return;
+        await sendLeaderboardScore(active, game, score);
+      } catch { /* The game and its board retry the saved best on next visit. */ }
+    }
+  }
+
+  async function updatePublicProfile({ username, avatarKey } = {}){
     const current = await user();
     if (!current) throw new Error('Sign in to create a global player profile.');
 
-    const cleanDisplay = String(displayName || Arcade.profileName() || 'Player').trim().slice(0,32) || 'Player';
+    const cleanDisplay = String(username || '').trim();
     const cleanUsername = String(username || '').trim();
-    const cleanAvatar = Arcade.profileAvatars?.[avatarKey] ? avatarKey : Arcade.profileIconKey();
+    const cleanAvatar = typeof Arcade === 'undefined' ? undefined : Arcade.profileAvatars?.[avatarKey] ? avatarKey : Arcade.profileIconKey();
 
     if (!/^[A-Za-z0-9_]{3,18}$/.test(cleanUsername)) {
       throw new Error('Username must be 3–18 letters, numbers, or underscores.');
@@ -1003,7 +1082,7 @@
         user_id:current.id,
         display_name:cleanDisplay,
         username:cleanUsername,
-        avatar_key:cleanAvatar,
+        ...(cleanAvatar ? { avatar_key:cleanAvatar } : {}),
         updated_at:new Date().toISOString()
       }, { onConflict:'user_id' })
       .select('display_name,username,avatar_key,updated_at')
@@ -1017,8 +1096,10 @@
 
     localStorage.setItem('arcadeProfileName', data.display_name || cleanDisplay);
     localStorage.setItem('arcadeUsername', data.username || cleanUsername);
-    localStorage.setItem('arcadeProfileIcon', data.avatar_key || cleanAvatar);
+    if (data.avatar_key) localStorage.setItem('arcadeProfileIcon', data.avatar_key);
     window.dispatchEvent(new CustomEvent('earnly-public-profile-updated', { detail:data }));
+    sessionStorage.removeItem('earnlySignupUsername');
+    syncSavedBests(current.id).catch(() => {});
     scheduleAutoSync('public-profile', 250);
     return data;
   }
@@ -1036,16 +1117,12 @@
     const currentSession = await session();
     if (!currentSession?.user) return { skipped:'signed-out' };
 
-    let username = Arcade.leaderboardUsername?.() || '';
-    if (!username) {
-      const remoteProfile = await profile();
-      if (remoteProfile?.username) {
-        username = remoteProfile.username;
-        localStorage.setItem('arcadeUsername', remoteProfile.username);
-        if (remoteProfile.avatar_key) localStorage.setItem('arcadeProfileIcon', remoteProfile.avatar_key);
-      }
-    }
+    const username = await ensurePlayerUsername(currentSession.user);
     if (!username) return { skipped:'username-required' };
+    return sendLeaderboardScore(currentSession, game, score);
+  }
+
+  async function sendLeaderboardScore(currentSession, game, score){
 
     const { data, error } = await requireClient().functions.invoke('leaderboard', {
       headers:{ Authorization:'Bearer ' + currentSession.access_token },
@@ -1103,6 +1180,7 @@
               if (!onAccountPage) setTimeout(() => location.reload(), 300);
               return;
             }
+            if (typeof Arcade !== 'undefined' && !Arcade.leaderboardUsername()) ensurePlayerUsername(currentSession.user).catch(() => {});
             scheduleAutoSync('auth-' + String(event || 'change').toLowerCase(), 900);
           })
           .catch(error => {
@@ -1158,7 +1236,6 @@
       syncGrowthEvents().catch(() => {});
       refreshTesterAccess().catch(() => {});
     }, 0);
-    window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
   }
 
   window.EarnlyCloud = {
@@ -1170,6 +1247,8 @@
     refreshTesterAccess,
     profile,
     updatePublicProfile,
+    ensurePlayerUsername,
+    usernameForm,
     leaderboard,
     submitLeaderboardScore,
     reportLeaderboardPlayer,
@@ -1201,4 +1280,5 @@
     checkSaveConflict,
     restoreProgress
   };
+  if (client) window.dispatchEvent(new CustomEvent('earnly-cloud-ready'));
 })();

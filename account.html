@@ -82,6 +82,10 @@
         <div class="auth-mode-switch" role="group" aria-label="Account access"><button id="signInMode" type="button" aria-pressed="true">Sign in</button><button id="createMode" type="button" aria-pressed="false">Create account</button></div>
         <form id="cloudAuthForm" novalidate>
         <div class="cloud-auth-fields">
+          <label id="signupUsernameField" hidden>
+            <span>Public Arcade username</span>
+            <input id="signupUsername" type="text" maxlength="18" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Name for leaderboards and World">
+          </label>
           <label>
             <span>Email</span>
             <input id="cloudEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required placeholder="you@example.com">
@@ -305,6 +309,9 @@
       if(authBusy)return;
       authMode = mode === 'create' ? 'create' : 'signin';
       const creating = authMode === 'create';
+      document.getElementById('signupUsernameField').hidden = !creating;
+      const username = document.getElementById('signupUsername');
+      if (creating && !username.value) username.value = sessionStorage.getItem('earnlySignupUsername') || '';
       cloudCreateButton.hidden = !creating;
       cloudSignInButton.hidden = creating;
       document.getElementById('signInMode').setAttribute('aria-pressed',String(!creating));
@@ -728,6 +735,12 @@
 
       try {
         const { email, password } = authValues();
+        const usernameField = document.getElementById('signupUsername');
+        const username = usernameField.value.trim();
+        if (username && !/^[A-Za-z0-9_]{3,18}$/.test(username)) {
+          usernameField.focus();
+          throw new Error('Use 3–18 letters, numbers, or underscores for your Arcade username.');
+        }
         authBusy=true;
         trackSignup('signup_submitted', { stage:'create_account' });
 
@@ -737,7 +750,7 @@
         cloudSignInButton.disabled = true;
         cloudMessage.textContent = 'Creating your Earnly account and sending one confirmation email…';
 
-        const data = await EarnlyCloud.signUp(email, password);
+        const data = await EarnlyCloud.signUp(email, password, username);
         authBusy=false;
         cloudPassword.value = '';
         cloudSignInButton.disabled = false;
