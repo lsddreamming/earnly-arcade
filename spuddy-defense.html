@@ -75,7 +75,7 @@ button:active:enabled{transform:translateY(1px)}
  <div id="selection" hidden><div class="panel-heading"><h2 id="selectedName"></h2><button id="closeSelection" aria-label="Close tower selection">×</button></div><p id="selectedDescription"></p><p id="selectedStats" class="subtle"></p><div id="placementControls" hidden><p id="placementHint">Tap open grass to preview your tower.</p><button id="confirmPlace" class="primary" disabled>Place tower</button><button id="cancelPlace" class="text-button">Cancel</button></div><div id="upgradeControls" hidden><label class="target-label">Target <select id="target"><option value="first">First to exit</option><option value="strong">Strongest</option><option value="last">Last in line</option><option value="near">Close</option></select></label><div class="upgrade-grid"><button id="upgradeA" class="upgrade"></button><button id="upgradeB" class="upgrade"></button></div><button id="sell" class="text-button danger">Sell tower</button></div></div></aside></div>
  <footer class="battle-footer"><div><strong id="waveHeading">Make yourself at home.</strong><span id="waveTip">Place two Sprayers near the first bends.</span></div><button id="auto" aria-pressed="false">Auto: off</button><button id="nextWave" class="primary">Start wave 1 →</button></footer></section>
  <div id="dialog" class="dialog-backdrop" hidden><section class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><span id="dialogEyebrow" class="eyebrow">SPUDDY DEFENSE</span><h2 id="dialogTitle"></h2><div id="dialogBody"></div><div id="dialogButtons"></div></section></div><p id="toast" role="status" aria-live="polite"></p>
-</main><script src="crystal-command-vendor.js"></script><script src="patch-crew.js"></script><script src="patch-cup.js"></script><script>/* Spuddy Defense v1. Pure fixed-step simulation; shared with the verifier.
+</main><script src="crystal-command-vendor.js"></script><script src="patch-crew.js?v=2"></script><script src="patch-cup.js"></script><script>/* Spuddy Defense v1. Pure fixed-step simulation; shared with the verifier.
  * No DOM, wall clock, network, cosmetic randomness or client score inputs.
  * A future versus host can run two isolated instances and exchange commands. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.SpuddyDefense=api;})(globalThis,function(){
@@ -243,6 +243,22 @@ button:active:enabled{transform:translateY(1px)}
   if(id==='zip'){shape([[-r,-5],[-r-7,-12],[-3,-8]],'#ff8b35');round(c,-r,-6,r*2,5,2,'#584655');}
   if(id==='pip'){shape([[-2,-r+2],[-6,-r-7],[1,-r-4],[6,-r-9],[5,-r+2]],'#64a44d');}
   if(id==='nest'){for(const x of [-10,0,10]){circle(c,x,r-4,3,'#ffe9a5');circle(c,x+.5,r-4,1,'#49395a');}}
+  // Paint equipment into the species sprite once, below its expression.
+  if(id==='tin'||id==='chrome'){
+    for(const side of [-1,1]){
+      c.save();c.scale(side,1);
+      shape([[r-6,-7],[r+3,-10],[r+5,3],[r-3,7]],'#375771');
+      path(c,[[r-4,-5],[r+1,-7],[r+2,-2]],2,'#c9eff7');c.restore();
+    }
+  }else if(id==='dash'||id==='zip'){
+    for(const side of [-1,1])shape([[side*5,-r+4],[side*(r+5),-r-3],[side*(r-1),-2]],'#ffbe45');
+  }else if(d.boss){
+    for(const side of [-1,1]){circle(c,side*(r-2),9,8,'#693962','#facc67');circle(c,side*(r-2),7,4,'#ffcc59');}
+  }else if(id==='ghost'||id==='phantom'){
+    for(const side of [-1,1])path(c,[[side*6,10],[side*9,15],[side*11,10]],2,'#c9efff');
+  }else{
+    for(const side of [-1,1]){circle(c,side*r*.72,3,2.3,'#ffffff80');circle(c,side*r*.64,6,1,'#584356');}
+  }
   const eyeY=id==='dash'?-1:-3,eyeX=id==='split'?9:r*.32;
   for(const x of [-eyeX,eyeX]){c.save();c.translate(x,eyeY);c.scale(1,id==='ghost'?1.5:1.2);circle(c,0,0,d.boss?6:4,'#fffaf0');circle(c,id==='zip'?1:0,1,d.boss?3:2.2,'#23394c');circle(c,-.7,-.6,.8,'#fff');c.restore();}
   if(['tin','chrome','dash','king'].includes(id)){path(c,[[-eyeX-4,eyeY-7],[-eyeX+3,eyeY-4]],2.5,'#34475c');path(c,[[eyeX-3,eyeY-4],[eyeX+4,eyeY-7]],2.5,'#34475c');}
@@ -262,7 +278,7 @@ button:active:enabled{transform:translateY(1px)}
   c.save();c.translate(e.x,e.y);c.rotate(-turn);circle(c,1,r*.65+5,r*.8,'#17304425');
   if(!floating){for(const side of [-1,1]){const stride=gait*side*(armored?1:3);round(c,side*r*.52-5,r*.65+stride,armored?12:10,armored?7:6,3,armored?'#32445b':'#36595b');}}
   c.save();c.translate(0,-bob);if(d.stealth)c.globalAlpha=.75;
-  c.rotate(gait*(d.boss?.018:armored?.015:floating?.07:.04));c.scale(1+beat*.02+hit*.08,1-beat*.02-hit*.08);
+  c.rotate(gait*(d.boss?.018:armored?.015:floating?.07:.04));c.scale(1.12,1.12);c.scale(1+beat*.02+hit*.08,1-beat*.02-hit*.08);
   c.drawImage(sprite.canvas,-sprite.size/2,-sprite.size/2,sprite.size,sprite.size);
   if(hit>0){c.globalAlpha=hit*.25;circle(c,0,0,r,'#fff');}c.restore();c.translate(0,-bob);c.lineWidth=2;
   if(d.regen&&e.hp<e.maxHp&&!reduced){c.globalAlpha=.5+.3*beat;path(c,[[r+7,-7],[r+7,1]],2,'#c3ffb1');path(c,[[r+3,-3],[r+11,-3]],2,'#c3ffb1');c.globalAlpha=1;}
