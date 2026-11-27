@@ -518,7 +518,7 @@
       if (userId !== (current?.id || '')) {
         const previous=byId('sandboxStore'),container=previous.cloneNode(false);
         previous.replaceWith(container);
-        if(current?.app_metadata?.studio_billing_tester)import('./earnly-studio-billing.js').then(m=>m.openSandboxStore(container,current)).catch(()=>{container.textContent='Sandbox storefront unavailable.';});
+        if(!testingPilot && current?.app_metadata?.studio_billing_tester)import('./earnly-studio-billing.js').then(m=>m.openSandboxStore(container,current)).catch(()=>{container.textContent='Sandbox storefront unavailable.';});
         clearSource(); userId = current?.id || ''; draftId = ''; adOffer = false; adTicket = null; byId('rewardStatus').textContent = ''; pendingRequest = null; jobs = []; credits = null;
         librarySequence++; setCommunity(false); online = false; available = false; prices = {}; byId('consent').checked = false;
       }
@@ -570,11 +570,24 @@
       document.head.append(script);
     });
   }
+  const testingPilot = location.protocol === 'https:' && integrated &&
+    new URLSearchParams(location.search).get('pilot') === 'testing';
   async function connect() {
     if (!integrated) return;
     document.querySelector('.arcade').href = 'index.html';
     try {
-      if (!window.EarnlyCloud) {
+      if (testingPilot) {
+        const banner = element('p', 'Private testing account · ');
+        const login = element('a', 'Sign in to Earnly Testing');
+        login.href = 'coin-sandbox.html';
+        banner.append(login);
+        document.querySelector('main').prepend(banner);
+        if (!window.supabase) await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4');
+        const client = window.supabase.createClient('https://wphqfogbnpdsfkquvdsu.supabase.co',
+          'sb_publishable_kyez8nhpp8htaPAdh7Hmfw_5NCyK6RI', {auth:{storageKey:'earnly-coin-sandbox-auth',detectSessionInUrl:false}});
+        window.EarnlyCloud = {client, user:async () => (await client.auth.getUser()).data.user};
+        client.auth.onAuthStateChange(() => setTimeout(accountChanged, 0));
+      } else if (!window.EarnlyCloud) {
         if (!window.supabase) await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4');
         await loadScript('cloud.js');
       }
