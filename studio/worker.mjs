@@ -16,6 +16,12 @@ async function copyMedia(url) {
   }
   return new Blob(parts);
 }
+// Protect the portion of the prepaid account outside this private pilot.
+const protectedFalBalanceMicro = 75_000_000;
+export function canFundPilotJob(balance, reservation) {
+  return Number.isSafeInteger(balance) && Number.isSafeInteger(reservation) &&
+    reservation > 0 && balance - reservation >= protectedFalBalanceMicro;
+}
 export async function tick(db,provider) {
   unpack(await db.rpc('studio_expire'));
   const purge=unpack(await db.from('studio_purge_queue').select('path').order('created_at').limit(40));
@@ -48,7 +54,7 @@ export async function tick(db,provider) {
     try {
       const balance=await provider.balance();
       unpack(await db.from('studio_control').update({balance_micro:balance,balance_checked_at:new Date().toISOString()}).eq('singleton',true));
-      if(balance>25000000||balance<job.reserved_usd_micro)throw Error('Pilot prepaid balance outside approved range');
+      if (!canFundPilotJob(balance, job.reserved_usd_micro)) throw Error('Protected fal balance would be used');
       await provider.verifyPrice(job);
     }
     catch(error) {
